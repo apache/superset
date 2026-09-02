@@ -358,8 +358,9 @@ def _validate_update_against_dataset(
 
     When ``dataset_id`` is provided, validates against that dataset instead of
     the chart's existing datasource (used when rebinding to a new dataset).
-    Pass ``run_compile_check=False`` to skip the Tier 2 live-query check (used
-    for dataset-only rebinds where no new chart config is provided).
+    ``parsed_config`` may be None for a native dataset-only rebind; in that
+    case the merged form data is validated through the canonical native query
+    contract before the same query is compiled against the target dataset.
     """
     from superset.daos.dataset import DatasetDAO
 
@@ -707,16 +708,14 @@ async def update_chart(  # noqa: C901
                 if validation_error is not None:
                     return validation_error
             elif request.dataset_id is not None:
-                # Dataset-only rebind: verify the target dataset exists before
-                # writing. Skip compile check — there is no new chart config to
-                # execute against the new dataset.
+                # Dataset-only rebinds validate and compile the full native
+                # chart state against the target before persistence.
                 with event_logger.log_context(action="mcp.update_chart.validation"):
                     validation_error = _validate_update_against_dataset(
                         None,
-                        {},
+                        new_form_data or {},
                         chart,
                         dataset_id=request.dataset_id,
-                        run_compile_check=False,
                     )
                 if validation_error is not None:
                     return validation_error
@@ -745,15 +744,14 @@ async def update_chart(  # noqa: C901
                 if validation_error is not None:
                     return validation_error
             elif request.dataset_id is not None:
-                # Dataset-only rebind: verify the target dataset exists before
-                # caching. Skip compile check — no new config to execute.
+                # Preview-first rebinds use the same fail-closed native compile
+                # gate before the merged form data can enter the cache.
                 with event_logger.log_context(action="mcp.update_chart.validation"):
                     validation_error = _validate_update_against_dataset(
                         None,
-                        {},
+                        preview_or_error,
                         chart,
                         dataset_id=request.dataset_id,
-                        run_compile_check=False,
                     )
                 if validation_error is not None:
                     return validation_error

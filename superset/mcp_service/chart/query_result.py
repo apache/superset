@@ -46,6 +46,8 @@ _MAX_QUERY_COLUMNS = 4096
 _MAX_COLUMN_NAME_LENGTH = 4096
 _MAX_ROW_CONTAINER_DEPTH = 32
 _MAX_ROW_CONTAINER_ITEMS = 4096
+_MAX_CACHE_STRING_LENGTH = 4096
+_MAX_RESULT_ROW_COUNT = (1 << 63) - 1
 _BUILTIN_SCALAR_TYPES = (str, bytes, bytearray, memoryview, int, float, bool)
 _SCALAR_BASE_TYPES = (*_BUILTIN_SCALAR_TYPES, Enum)
 _SAFE_ROW_SCALAR_TYPES = (
@@ -303,6 +305,71 @@ def _malformed_result(message: str) -> ChartError:
     )
 
 
+def bounded_result_row_count(value: Any) -> int | None:
+    """Return one exact bounded row count, rejecting coercive lookalikes."""
+    if value is None:
+        return None
+    if type(value) is int:
+        count = value
+    elif type(value) is float and math.isfinite(value) and value.is_integer():
+        count = int(value)
+    else:
+        raise ValueError("must be a finite non-negative integral number")
+    if count < 0:
+        raise ValueError("must be non-negative")
+    if count > _MAX_RESULT_ROW_COUNT:
+        raise ValueError("exceeds the supported bound")
+    return count
+
+
+def _metadata_failure(  # noqa: C901
+    payload: dict[str, Any], label: str
+) -> ChartError | None:
+    """Validate bounded cache and row-count metadata before any consumer."""
+    for key in ("rowcount", "total_rows"):
+        if key in payload and dict.__getitem__(payload, key) is not None:
+            try:
+                bounded_result_row_count(dict.__getitem__(payload, key))
+            except ValueError as ex:
+                return _malformed_result(f"{label} {key} {ex}")
+
+    if "is_cached" in payload:
+        is_cached = dict.__getitem__(payload, "is_cached")
+        if is_cached is not None and type(is_cached) is not bool:
+            return _malformed_result(f"{label} is_cached must be an exact boolean")
+
+    if "cache_key" in payload:
+        cache_key = dict.__getitem__(payload, "cache_key")
+        if cache_key is not None and (
+            type(cache_key) is not str or len(cache_key) > _MAX_CACHE_STRING_LENGTH
+        ):
+            return _malformed_result(
+                f"{label} cache_key must be a bounded exact string"
+            )
+
+    if "cache_dttm" in payload:
+        cache_dttm = dict.__getitem__(payload, "cache_dttm")
+        if cache_dttm is None:
+            return None
+        if type(cache_dttm) is str:
+            if len(cache_dttm) <= _MAX_CACHE_STRING_LENGTH:
+                return None
+            return _malformed_result(
+                f"{label} cache_dttm must be a bounded exact string"
+            )
+        if type(cache_dttm) is datetime:
+            tzinfo = cache_dttm.tzinfo
+            if tzinfo is None or any(
+                type(tzinfo) is trusted for trusted in _TRUSTED_TZINFO_TYPES
+            ):
+                return None
+            return _malformed_result(f"{label} cache_dttm has an unsupported timezone")
+        return _malformed_result(
+            f"{label} cache_dttm must be a bounded exact string or datetime"
+        )
+    return None
+
+
 def _unsafe_row_value(value: Any) -> str | None:  # noqa: C901
     """Return a bounded reason when a result value is unsafe to serialize.
 
@@ -377,6 +444,9 @@ def query_result_data(  # noqa: C901
     if type(result) is not dict:
         return None, _malformed_result("top-level result must be an object")
 
+    if metadata_failure := _metadata_failure(result, "top-level result"):
+        return None, metadata_failure
+
     if failure := _failure_for_query_payload(result, "Chart query"):
         return None, failure
 
@@ -397,6 +467,8 @@ def query_result_data(  # noqa: C901
         query = list.__getitem__(queries, offset)
         if type(query) is not dict:
             return None, _malformed_result(f"query {index} must be an object")
+        if metadata_failure := _metadata_failure(query, f"query {index}"):
+            return None, metadata_failure
         if failure := _failure_for_query_payload(query, f"Chart query {index}"):
             return None, failure
         if not dict.__contains__(query, "data"):
@@ -474,19 +546,6 @@ def query_result_data(  # noqa: C901
                     return None, _malformed_result(
                         f"query {index} coltypes contains an unsupported value"
                     )
-        for metadata_key, allowed_types in (
-            ("rowcount", (int, float)),
-            ("is_cached", (bool,)),
-            ("cache_key", (str,)),
-            ("cache_dttm", (str, datetime)),
-        ):
-            metadata = dict.get(query, metadata_key)
-            if metadata is not None and not any(
-                type(metadata) is allowed for allowed in allowed_types
-            ):
-                return None, _malformed_result(
-                    f"query {index} {metadata_key} has an unsupported value"
-                )
         data_arrays.append(data)
     return data_arrays, None
 

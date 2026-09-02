@@ -26,6 +26,7 @@ from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -2409,6 +2410,30 @@ def test_aware_datetime_and_time_identity_preserves_instant_semantics() -> None:
     assert _safe_value_identity(distinct_time) != _safe_value_identity(same_times[0])
 
 
+def test_zoneinfo_time_without_offset_uses_python_naive_identity() -> None:
+    zone = ZoneInfo("America/New_York")
+    naive = datetime_time(12, 34, 56, 789)
+    zoned = datetime_time(12, 34, 56, 789, tzinfo=zone)
+    folded = datetime_time(12, 34, 56, 789, tzinfo=zone, fold=1)
+
+    assert zoned.utcoffset() is None
+    assert zoned == naive == folded
+    assert _safe_value_identity(zoned) == _safe_value_identity(naive)
+    assert _safe_value_identity(folded) == _safe_value_identity(naive)
+
+
+def test_zoneinfo_datetime_fold_preserves_distinct_instants() -> None:
+    zone = ZoneInfo("America/New_York")
+    first = datetime(2024, 11, 3, 1, 30, tzinfo=zone, fold=0)
+    second = datetime(2024, 11, 3, 1, 30, tzinfo=zone, fold=1)
+
+    assert first.utcoffset() != second.utcoffset()
+    assert _safe_value_identity(first) != _safe_value_identity(second)
+    assert _safe_value_identity(first) == _safe_value_identity(
+        datetime(2024, 11, 3, 5, 30, tzinfo=timezone.utc)
+    )
+
+
 def test_opaque_timezone_identity_does_not_execute_custom_offset() -> None:
     class _HostileTimezone(tzinfo):
         def utcoffset(self, _value: datetime | None) -> timedelta | None:
@@ -2420,9 +2445,12 @@ def test_opaque_timezone_identity_does_not_execute_custom_offset() -> None:
         def tzname(self, _value: datetime | None) -> str | None:
             raise AssertionError("custom timezone hook must not execute")
 
-    value = datetime(2024, 1, 1, 12, tzinfo=_HostileTimezone())
+    hostile = _HostileTimezone()
+    value = datetime(2024, 1, 1, 12, tzinfo=hostile)
+    time_value = datetime_time(12, tzinfo=hostile)
 
     assert _safe_value_identity(value) == _safe_value_identity(value)
+    assert _safe_value_identity(time_value) == _safe_value_identity(time_value)
 
 
 def test_oversized_numeric_identity_declines_unbounded_conversion() -> None:
@@ -2589,6 +2617,16 @@ class TestChartDataTotalRowsCoercion:
         chart_data = _make_chart_data(total_rows=5.0)
         assert chart_data.total_rows == 5
         assert isinstance(chart_data.total_rows, int)
+
+    @pytest.mark.parametrize(
+        "value",
+        [-1, 5.9, float("nan"), float("inf"), True, "5", 1 << 1000],
+    )
+    def test_malformed_total_rows_is_rejected(self, value: Any) -> None:
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            _make_chart_data(total_rows=value)
 
 
 @pytest.mark.asyncio

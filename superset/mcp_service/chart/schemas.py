@@ -3254,6 +3254,26 @@ class ChartQueryResult(BaseModel):
     row_count: int = Field(description="Rows returned")
     total_rows: int | None = Field(None, description="Total available rows")
 
+    @field_validator("total_rows", mode="before")
+    @classmethod
+    def _validate_total_rows(cls, value: Any) -> int | None:
+        return _bounded_total_rows(value)
+
+
+def _bounded_total_rows(value: Any) -> int | None:
+    """Reject lossy or unbounded query-envelope row counts."""
+    if value is None:
+        return None
+    if type(value) is int:
+        count = value
+    elif type(value) is float and math.isfinite(value) and value.is_integer():
+        count = int(value)
+    else:
+        raise ValueError("total_rows must be a finite integral value")
+    if not 0 <= count <= (1 << 63) - 1:
+        raise ValueError("total_rows must be non-negative and bounded")
+    return count
+
 
 class ChartData(BaseModel):
     """Rich chart data response with statistical insights."""
@@ -3281,12 +3301,7 @@ class ChartData(BaseModel):
     @field_validator("total_rows", mode="before")
     @classmethod
     def _coerce_total_rows(cls, v: Any) -> int | None:
-        if v is None:
-            return None
-        try:
-            return int(v)
-        except (TypeError, ValueError):
-            return None
+        return _bounded_total_rows(v)
 
     data_freshness: datetime | None = Field(description="When data was last updated")
 

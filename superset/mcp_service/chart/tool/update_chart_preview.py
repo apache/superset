@@ -291,7 +291,7 @@ def update_chart_preview(  # noqa: C901
                 }
 
             compile_result = validate_and_compile(
-                validation_config, new_form_data, dataset, run_compile_check=False
+                validation_config, new_form_data, dataset, run_compile_check=True
             )
             if not compile_result.success:
                 logger.warning(

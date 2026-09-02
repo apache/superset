@@ -26,6 +26,7 @@ URL parameter extraction. Config mapping logic lives in chart_utils.py.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
@@ -489,7 +490,444 @@ def extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
     return None
 
 
-def _build_single_query_dict(
+def _x_axis_query_field(form_data: dict[str, Any]) -> Any | None:
+    """Resolve a frontend x-axis value without losing SQL expressions."""
+    x_axis = form_data.get("x_axis")
+    if isinstance(x_axis, str) and x_axis:
+        return x_axis
+    if isinstance(x_axis, dict):
+        if (
+            isinstance(x_axis.get("sqlExpression"), str)
+            and x_axis.get("sqlExpression")
+            and isinstance(x_axis.get("label"), str)
+            and x_axis.get("label")
+            and x_axis.get("expressionType") in (None, "SQL")
+        ):
+            return x_axis
+        column_name = x_axis.get("column_name") or x_axis.get("columnName")
+        if isinstance(column_name, str) and column_name:
+            return column_name
+    return None
+
+
+def resolve_big_number_columns(form_data: dict[str, Any]) -> list[Any]:
+    """Resolve Big Number's x-axis or legacy physical granularity column."""
+    if (x_axis := _x_axis_query_field(form_data)) is not None:
+        return [x_axis]
+    granularity = form_data.get("granularity_sqla")
+    return [granularity] if isinstance(granularity, str) and granularity else []
+
+
+def _as_list(value: Any) -> list[Any]:
+    """Match the frontend's ``ensureIsArray`` for query controls."""
+    if value is None:
+        return []
+    return value if isinstance(value, list) else [value]
+
+
+def _column_label(column: Any) -> str | None:
+    """Return the frontend ``getColumnLabel`` value for a query column."""
+    if isinstance(column, str):
+        return column
+    if not isinstance(column, dict):
+        return None
+    return (
+        column.get("label") or column.get("sqlExpression") or column.get("column_name")
+    )
+
+
+def _metric_label(metric: Any) -> str | None:
+    """Return the frontend ``getMetricLabel`` value for a query metric."""
+    if isinstance(metric, str):
+        return metric
+    if not isinstance(metric, dict):
+        return None
+    if label := metric.get("label"):
+        return label
+    if metric.get("expressionType") == "SIMPLE":
+        column = metric.get("column") or {}
+        name = (
+            column.get("columnName") or column.get("column_name")
+            if isinstance(column, dict)
+            else None
+        )
+        if name and metric.get("aggregate"):
+            return f"{metric['aggregate']}({name})"
+    return metric.get("sqlExpression")
+
+
+def _dedupe_query_fields(values: list[Any], labeler: Any) -> list[Any]:
+    """Preserve the first query field for each frontend result label."""
+    result: list[Any] = []
+    seen: set[str] = set()
+    for value in values:
+        label = labeler(value)
+        if not label or label in seen:
+            continue
+        seen.add(label)
+        result.append(value)
+    return result
+
+
+def _parse_orderby(values: Any) -> list[list[Any]]:
+    """Parse bounded native ``order_by_cols`` without coercing malformed input."""
+    from superset.utils import json
+
+    if values is not None and not isinstance(values, list):
+        raise ValueError("order_by_cols must be a list")
+    if isinstance(values, list) and len(values) > 100:
+        raise ValueError("order_by_cols must contain at most 100 entries")
+    result: list[list[Any]] = []
+    for index, value in enumerate(_as_list(values)):
+        if isinstance(value, str):
+            if len(value) > 1000:
+                raise ValueError(f"order_by_cols[{index}] is too long")
+            try:
+                value = json.loads(value)
+            except (TypeError, ValueError) as ex:
+                raise ValueError(f"order_by_cols[{index}] is not valid JSON") from ex
+        if (
+            isinstance(value, (list, tuple))
+            and len(value) == 2
+            and isinstance(value[0], str)
+            and bool(value[0])
+            and isinstance(value[1], bool)
+        ):
+            result.append(list(value))
+        else:
+            raise ValueError(
+                f"order_by_cols[{index}] must be [column, ascending_boolean]"
+            )
+    return result
+
+
+def resolve_gantt_query_fields(
+    form_data: dict[str, Any],
+) -> tuple[list[Any], list[Any], list[list[Any]], list[Any]]:
+    """Mirror the bounded ECharts Gantt field extraction contract."""
+
+    def require_column(value: Any, field_name: str) -> Any:
+        if isinstance(value, str) and value:
+            return value
+        if isinstance(value, dict) and 0 < len(value) <= 20:
+            if value.get("column_name") or (
+                value.get("expressionType") and value.get("label")
+            ):
+                return value
+        raise ValueError(f"Gantt {field_name} must be a column reference")
+
+    start_time = require_column(form_data.get("start_time"), "start_time")
+    end_time = require_column(form_data.get("end_time"), "end_time")
+    category = require_column(form_data.get("y_axis"), "y_axis")
+    raw_series = form_data.get("series")
+    series_columns = (
+        [require_column(raw_series, "series")] if raw_series is not None else []
+    )
+    raw_tooltips = form_data.get("tooltip_columns") or []
+    raw_metrics = form_data.get("tooltip_metrics") or []
+    if not isinstance(raw_tooltips, list) or len(raw_tooltips) > 50:
+        raise ValueError("Gantt tooltip_columns must contain at most 50 entries")
+    if not isinstance(raw_metrics, list) or len(raw_metrics) > 50:
+        raise ValueError("Gantt tooltip_metrics must contain at most 50 entries")
+    tooltip_columns = [
+        require_column(column, f"tooltip_columns[{index}]")
+        for index, column in enumerate(raw_tooltips)
+    ]
+    orderby = _parse_orderby(form_data.get("order_by_cols"))
+    columns = _dedupe_query_fields(
+        [
+            start_time,
+            end_time,
+            category,
+            *series_columns,
+            *tooltip_columns,
+            *(item[0] for item in orderby),
+        ],
+        _column_label,
+    )
+    return columns, list(raw_metrics), orderby, series_columns
+
+
+def _table_time_offsets(form_data: dict[str, Any], query: dict[str, Any]) -> list[Any]:
+    """Resolve the Table plugin's custom/inherit comparison offsets."""
+    if not _time_comparison(form_data, query.get("metrics") or []):
+        return []
+    offsets: list[Any] = []
+    for offset in _as_list(form_data.get("time_compare")):
+        if offset == "custom":
+            offset = form_data.get("start_date_offset")
+        elif offset == "inherit":
+            offset = "inherit"
+        if offset is not None and offset not in offsets:
+            offsets.append(offset)
+    extra = form_data.get("extra_form_data")
+    if isinstance(extra, dict):
+        offset = extra.get("time_compare")
+        if offset is not None and offset not in offsets:
+            offsets = [offset]
+    return offsets
+
+
+def _table_totals_metrics(metrics: list[Any], aggregate: Any) -> list[Any]:
+    """Mirror ``getTotalsMetrics`` for Table summary queries."""
+    if aggregate not in {"SUM", "AVG"}:
+        return metrics
+    result: list[Any] = []
+    for metric in metrics:
+        if isinstance(metric, dict) and metric.get("expressionType") == "SIMPLE":
+            result.append({**metric, "aggregate": aggregate})
+        else:
+            result.append(metric)
+    return result
+
+
+def _temporal_column(column: Any, form_data: dict[str, Any]) -> Any:
+    """Apply the frontend BASE_AXIS wrapper for a physical temporal column."""
+    if not isinstance(column, str) or not form_data.get("time_grain_sqla"):
+        return column
+    lookup = form_data.get("temporal_columns_lookup")
+    if not isinstance(lookup, dict) or not lookup.get(column):
+        return column
+    return {
+        "timeGrain": form_data["time_grain_sqla"],
+        "columnType": "BASE_AXIS",
+        "sqlExpression": column,
+        "label": column,
+        "expressionType": "SQL",
+    }
+
+
+def _normalize_orderby(query: dict[str, Any]) -> None:
+    """Mirror ``normalizeOrderBy`` without dropping independent mixed state."""
+    orderby = query.get("orderby")
+    if (
+        isinstance(orderby, list)
+        and orderby
+        and isinstance(orderby[0], (list, tuple))
+        and len(orderby[0]) == 2
+        and orderby[0][0]
+        and isinstance(orderby[0][1], bool)
+    ):
+        return
+    query.pop("orderby", None)
+    target = query.get("series_limit_metric") or query.get("legacy_order_by")
+    if target is None:
+        metrics = query.get("metrics") or []
+        target = metrics[0] if metrics else None
+    if target is not None:
+        query["orderby"] = [[target, not query.get("order_desc", True)]]
+
+
+def _time_comparison(form_data: dict[str, Any], metrics: list[Any]) -> bool:
+    return bool(
+        metrics
+        and _as_list(form_data.get("time_compare"))
+        and form_data.get("comparison_type")
+        in {"values", "difference", "percentage", "ratio"}
+    )
+
+
+def _timeseries_post_processing(
+    form_data: dict[str, Any], query: dict[str, Any]
+) -> list[dict[str, Any]]:
+    """Build the Mixed/Timeseries pivot-resample-roll-compare-rename-flatten chain."""
+    metrics = query.get("metrics") or []
+    metric_labels = [label for metric in metrics if (label := _metric_label(metric))]
+    x_axis = form_data.get("x_axis")
+    x_label = (
+        _column_label(x_axis)
+        if x_axis
+        else ("__timestamp" if form_data.get("granularity_sqla") else None)
+    )
+    series = query.get("series_columns") or query.get("columns") or []
+    series_labels = [label for column in series if (label := _column_label(column))]
+    offsets = _as_list(form_data.get("time_compare"))
+    comparison = _time_comparison(form_data, metrics)
+    offset_map = {
+        f"{metric}__{offset}": metric for metric in metric_labels for offset in offsets
+    }
+    pivot_metrics = (
+        [*offset_map.values(), *offset_map.keys()] if comparison else metric_labels
+    )
+    chain: list[dict[str, Any] | None] = []
+    if x_label and pivot_metrics:
+        chain.append(
+            {
+                "operation": "pivot",
+                "options": {
+                    "index": [x_label],
+                    "columns": series_labels,
+                    "aggregates": {
+                        metric: {"operator": "mean"} for metric in pivot_metrics
+                    },
+                    "drop_missing_columns": not form_data.get(
+                        "show_empty_columns", False
+                    ),
+                },
+            }
+        )
+    method = form_data.get("resample_method")
+    rule = form_data.get("resample_rule")
+    if method and rule:
+        zero_fill = method == "zerofill"
+        chain.append(
+            {
+                "operation": "resample",
+                "options": {
+                    "method": "asfreq" if zero_fill else method,
+                    "rule": rule,
+                    "fill_value": 0 if zero_fill else None,
+                },
+            }
+        )
+    rolling_type = form_data.get("rolling_type")
+    rolling_columns = (
+        [*offset_map.values(), *offset_map.keys()] if comparison else metric_labels
+    )
+    if rolling_type == "cumsum":
+        chain.append(
+            {
+                "operation": "cum",
+                "options": {
+                    "operator": "sum",
+                    "columns": {column: column for column in rolling_columns},
+                },
+            }
+        )
+    elif rolling_type in {"sum", "mean", "std"}:
+        chain.append(
+            {
+                "operation": "rolling",
+                "options": {
+                    "rolling_type": rolling_type,
+                    "window": int(form_data.get("rolling_periods") or 1),
+                    "min_periods": int(form_data.get("min_periods") or 0),
+                    "columns": {column: column for column in rolling_columns},
+                },
+            }
+        )
+    comparison_type = form_data.get("comparison_type")
+    if comparison and comparison_type != "values":
+        chain.append(
+            {
+                "operation": "compare",
+                "options": {
+                    "source_columns": list(offset_map.values()),
+                    "compare_columns": list(offset_map.keys()),
+                    "compare_type": comparison_type,
+                    "drop_original_columns": True,
+                },
+            }
+        )
+    if comparison:
+        rename: dict[str, str | None] = {}
+        for shifted, metric in offset_map.items():
+            offset = next(
+                (item for item in offsets if shifted.endswith(f"__{item}")), None
+            )
+            source = (
+                shifted
+                if comparison_type == "values"
+                else f"{comparison_type}__{metric}__{shifted}"
+            )
+            rename[source] = f"{metric}, {offset}" if len(metrics) > 1 else offset
+        if rename:
+            chain.append(
+                {
+                    "operation": "rename",
+                    "options": {"columns": rename, "level": 0, "inplace": True},
+                }
+            )
+    elif (
+        x_label
+        and len(metrics) == 1
+        and (series_labels or len(offsets) > 1)
+        and form_data.get("truncate_metric") is not None
+        and form_data.get("truncate_metric")
+    ):
+        chain.append(
+            {
+                "operation": "rename",
+                "options": {
+                    "columns": {metric_labels[0]: None},
+                    "level": 0,
+                    "inplace": True,
+                },
+            }
+        )
+    chain.append({"operation": "flatten"})
+    return [operator for operator in chain if operator is not None]
+
+
+def _mixed_layer_form_data(
+    form_data: dict[str, Any], *, secondary: bool
+) -> dict[str, Any]:
+    """Mirror MixedTimeseries remove/retainFormDataSuffix for one layer."""
+    if not secondary:
+        return {
+            key: value for key, value in form_data.items() if not key.endswith("_b")
+        }
+    layer = {key: value for key, value in form_data.items() if not key.endswith("_b")}
+    for isolated_key in ("metrics", "groupby", "orderby"):
+        if f"{isolated_key}_b" not in form_data:
+            layer.pop(isolated_key, None)
+    # Suffixed values are visited first by retainFormDataSuffix and therefore
+    # override same-named shared controls without leaking primary-only state.
+    for key, value in form_data.items():
+        if key.endswith("_b"):
+            layer[key[:-2]] = value
+    return layer
+
+
+def _pivot_grouping_sets(
+    form_data: dict[str, Any], rows: list[Any], columns: list[Any]
+) -> list[list[str]] | None:
+    """Mirror Pivot Table's non-additive GROUPING SETS contract."""
+    metrics = _as_list(form_data.get("metrics"))
+    additive = bool(metrics) and all(
+        isinstance(metric, dict)
+        and metric.get("expressionType") == "SIMPLE"
+        and metric.get("aggregate") in {"SUM", "COUNT", "MIN", "MAX"}
+        for metric in metrics
+    )
+    if additive:
+        return None
+
+    show_values = form_data.get("showValuesAs")
+    needs_rows_collapsed = show_values in {"percent_col", "percent_total"}
+    needs_columns_collapsed = show_values in {"percent_row", "percent_total"}
+    row_prefixes = [[], *(rows[: index + 1] for index in range(len(rows)))]
+    column_prefixes = [
+        [],
+        *(columns[: index + 1] for index in range(len(columns))),
+    ]
+    row_prefixes = [
+        prefix
+        for prefix in row_prefixes
+        if len(prefix) == len(rows)
+        or (not prefix and (form_data.get("colTotals") or needs_rows_collapsed))
+        or (prefix and form_data.get("rowSubTotals"))
+    ]
+    column_prefixes = [
+        prefix
+        for prefix in column_prefixes
+        if len(prefix) == len(columns)
+        or (not prefix and (form_data.get("rowTotals") or needs_columns_collapsed))
+        or (prefix and form_data.get("colSubTotals"))
+    ]
+    levels: list[list[str]] = []
+    for row_prefix in row_prefixes:
+        for column_prefix in column_prefixes:
+            labels: list[str] = []
+            for column in [*row_prefix, *column_prefix]:
+                label = _column_label(column)
+                if label and label not in labels:
+                    labels.append(label)
+            levels.append(labels)
+    return levels
+
+
+def _build_single_query_dict(  # noqa: C901
     form_data: dict[str, Any],
     columns: list[Any],
     metrics: list[Any],
@@ -510,10 +948,26 @@ def _build_single_query_dict(
         effective_row_limit = form_data.get("row_limit")
     if effective_row_limit is not None:
         qd["row_limit"] = effective_row_limit
-    if order_desc is not None:
-        qd["order_desc"] = order_desc
+    effective_order_desc = (
+        order_desc if order_desc is not None else form_data.get("order_desc")
+    )
+    if effective_order_desc is not None:
+        qd["order_desc"] = effective_order_desc
     if orderby:
         qd["orderby"] = orderby
+    for key in (
+        "annotation_layers",
+        "row_offset",
+        "series_columns",
+        "series_limit",
+        "series_limit_metric",
+        "group_others_when_limit_reached",
+        "is_timeseries",
+        "time_offsets",
+        "time_compare_full_range",
+    ):
+        if key in form_data and form_data[key] is not None:
+            qd[key] = form_data[key]
     apply_form_data_filters_to_query(qd, form_data)
     # Mirror the common ``buildQueryObject``/``extractExtras`` translation used
     # by native frontend plugins. ``granularity_sqla`` is a form-data control,
@@ -589,7 +1043,7 @@ _DECK_TIMESERIES_VIZ_TYPES: frozenset[str] = frozenset(
 )
 
 
-def build_query_dicts_from_form_data(
+def build_query_dicts_from_form_data(  # noqa: C901
     form_data: dict[str, Any],
     datasource_id: Any,
     datasource_type: str,
@@ -614,6 +1068,346 @@ def build_query_dicts_from_form_data(
         or (getattr(chart, "viz_type", "") if chart else "")
         or ""
     )
+
+    # Each branch below is a direct Python rendering of the named frontend
+    # plugin's buildQuery. Keep this dispatcher exhaustive for every native
+    # viz type produced by an MCP typed adapter; falling through is reserved
+    # for legacy/plugin charts whose common buildQueryObject contract is enough.
+    if viz_type == "histogram_v2":
+        column = form_data.get("column")
+        histogram_groupby = _as_list(form_data.get("groupby"))
+        query = _build_single_query_dict(
+            form_data,
+            [*histogram_groupby, column] if column is not None else histogram_groupby,
+            [],
+            row_limit=row_limit,
+            order_desc=order_desc,
+        )
+        having_filter = any(
+            isinstance(filter_, dict) and filter_.get("clause") == "HAVING"
+            for filter_ in form_data.get("adhoc_filters") or []
+        )
+        if having_filter:
+            query["metrics"] = [
+                {
+                    "expressionType": "SQL",
+                    "sqlExpression": "COUNT(*)",
+                    "label": "COUNT(*)",
+                }
+            ]
+        bins = form_data.get("bins", 5)
+        try:
+            parsed_bins = float(bins)
+            parsed_bins = int(parsed_bins) if parsed_bins.is_integer() else parsed_bins
+        except (TypeError, ValueError):
+            parsed_bins = 5
+        query["post_processing"] = [
+            {
+                "operation": "histogram",
+                "options": {
+                    "column": _column_label(column),
+                    "groupby": [
+                        label
+                        for item in histogram_groupby
+                        if (label := _column_label(item))
+                    ],
+                    "bins": parsed_bins,
+                    "cumulative": form_data.get("cumulative"),
+                    "normalize": form_data.get("normalize"),
+                },
+            }
+        ]
+        return [query]
+
+    if viz_type == "box_plot":
+        distribute = _as_list(form_data.get("columns"))
+        if not distribute and form_data.get("granularity_sqla"):
+            distribute = [form_data["granularity_sqla"]]
+        box_groupby = _as_list(form_data.get("groupby"))
+        query = _build_single_query_dict(
+            form_data,
+            [
+                *(_temporal_column(column, form_data) for column in distribute),
+                *box_groupby,
+            ],
+            list(form_data.get("metrics") or []),
+            row_limit=row_limit,
+            order_desc=order_desc,
+        )
+        query["series_columns"] = box_groupby
+        whisker = form_data.get("whiskerOptions")
+        if whisker:
+            whisker_type = "tukey"
+            percentiles: list[int] | None = None
+            if whisker == "Min/max (no outliers)":
+                whisker_type = "min/max"
+            elif match := re.fullmatch(
+                r"(\d{1,3})/(\d{1,3}) percentiles", str(whisker)
+            ):
+                whisker_type = "percentile"
+                percentiles = [int(match.group(1)), int(match.group(2))]
+            elif whisker != "Tukey":
+                raise ValueError(f"Unsupported whisker type: {whisker}")
+            query["post_processing"] = [
+                {
+                    "operation": "boxplot",
+                    "options": {
+                        "whisker_type": whisker_type,
+                        "percentiles": percentiles,
+                        "groupby": [
+                            label
+                            for column in box_groupby
+                            if (label := _column_label(column))
+                        ],
+                        "metrics": [
+                            label
+                            for metric in query["metrics"]
+                            if (label := _metric_label(metric))
+                        ],
+                    },
+                }
+            ]
+        return [query]
+
+    if viz_type == "pivot_table_v2":
+        rows = _as_list(form_data.get("groupbyRows"))
+        pivot_columns = _as_list(form_data.get("groupbyColumns"))
+        if form_data.get("transposePivot"):
+            rows, pivot_columns = pivot_columns, rows
+        columns = _dedupe_query_fields([*rows, *pivot_columns], _column_label)
+        query = _build_single_query_dict(
+            form_data,
+            [_temporal_column(column, form_data) for column in columns],
+            list(form_data.get("metrics") or []),
+            row_limit=row_limit,
+            order_desc=order_desc,
+        )
+        sort_metric = query.get("series_limit_metric")
+        if sort_metric is None and query["metrics"]:
+            sort_metric = query["metrics"][0]
+        if sort_metric is not None:
+            query["orderby"] = [[sort_metric, not query.get("order_desc", True)]]
+        if grouping_sets := _pivot_grouping_sets(form_data, rows, pivot_columns):
+            query["grouping_sets"] = grouping_sets
+        return [query]
+
+    if viz_type in {"pie", "sunburst_v2"}:
+        metric = form_data.get("metric")
+        query = _build_single_query_dict(
+            form_data,
+            _as_list(form_data.get("groupby")),
+            [metric] if metric is not None else [],
+            row_limit=row_limit,
+            order_desc=order_desc,
+            orderby=form_data.get("orderby"),
+        )
+        if form_data.get("sort_by_metric") and metric is not None:
+            query["orderby"] = [[metric, False]]
+        if viz_type == "pie" and (label := _metric_label(metric)):
+            query["post_processing"] = [
+                {
+                    "operation": "contribution",
+                    "options": {
+                        "columns": [label],
+                        "rename_columns": [f"{label}__contribution"],
+                    },
+                }
+            ]
+        return [query]
+
+    if viz_type in {"table", "ag-grid-table"}:
+        raw_mode = form_data.get("query_mode") == "raw" or (
+            form_data.get("query_mode") not in {"raw", "aggregate"}
+            and bool(form_data.get("all_columns"))
+        )
+        table_columns = list(
+            (form_data.get("all_columns") or [])
+            if raw_mode
+            else (form_data.get("groupby") or [])
+        )
+        table_metrics = [] if raw_mode else list(form_data.get("metrics") or [])
+        percent_metrics = [] if raw_mode else _as_list(form_data.get("percent_metrics"))
+        table_metrics = _dedupe_query_fields(
+            [*table_metrics, *percent_metrics], _metric_label
+        )
+        table_orderby = _parse_orderby(form_data.get("order_by_cols"))
+        if not raw_mode:
+            sort_metrics = _as_list(form_data.get("timeseries_limit_metric"))
+            if sort_metrics:
+                table_orderby = [
+                    [sort_metrics[0], not form_data.get("order_desc", False)]
+                ]
+            elif table_metrics:
+                table_orderby = [[table_metrics[0], False]]
+        query = _build_single_query_dict(
+            form_data,
+            table_columns,
+            table_metrics,
+            row_limit=row_limit,
+            order_desc=order_desc,
+            orderby=table_orderby,
+        )
+        if not raw_mode:
+            query["columns"] = [
+                _temporal_column(column, form_data) for column in table_columns
+            ]
+        offsets = _table_time_offsets(form_data, query)
+        query["time_offsets"] = offsets
+        post_processing: list[dict[str, Any]] = []
+        contribution: dict[str, Any] | None = None
+        if percent_metrics:
+            labels: list[str] = []
+            for metric in percent_metrics:
+                if label := _metric_label(metric):
+                    candidates = [label]
+                    if offsets:
+                        candidates.extend(f"{label}__{offset}" for offset in offsets)
+                    for candidate in candidates:
+                        if candidate not in labels:
+                            labels.append(candidate)
+            contribution = {
+                "operation": "contribution",
+                "options": {
+                    "columns": labels,
+                    "rename_columns": [f"%{label}" for label in labels],
+                },
+            }
+            post_processing.append(contribution)
+        if offsets and form_data.get("comparison_type") != "values":
+            source: list[str] = []
+            shifted: list[str] = []
+            for metric in table_metrics:
+                if label := _metric_label(metric):
+                    for offset in offsets:
+                        source.append(label)
+                        shifted.append(f"{label}__{offset}")
+            post_processing.append(
+                {
+                    "operation": "compare",
+                    "options": {
+                        "source_columns": source,
+                        "compare_columns": shifted,
+                        "compare_type": form_data.get("comparison_type"),
+                        "drop_original_columns": True,
+                    },
+                }
+            )
+        query["post_processing"] = post_processing
+
+        configured_limit = form_data.get("row_limit")
+        if form_data.get("server_pagination"):
+            page_size = form_data.get("server_page_length") or 0
+            if page_size:
+                query["row_limit"] = (
+                    min(page_size, configured_limit) if configured_limit else page_size
+                )
+            query["row_offset"] = 0
+
+        extra_queries: list[dict[str, Any]] = []
+        if (
+            form_data.get("percent_metric_calculation") == "all_records"
+            and percent_metrics
+        ):
+            extra_queries.append(
+                {
+                    **query,
+                    "columns": [],
+                    "metrics": percent_metrics,
+                    "post_processing": [],
+                    "row_limit": 0,
+                    "row_offset": 0,
+                    "orderby": [],
+                    "is_timeseries": False,
+                }
+            )
+        if table_metrics and form_data.get("show_totals") and not raw_mode:
+            totals = {
+                **query,
+                "columns": [],
+                "metrics": _table_totals_metrics(
+                    table_metrics, form_data.get("totals_aggregate")
+                ),
+                "row_limit": 0,
+                "row_offset": 0,
+                "post_processing": [contribution] if contribution else [],
+            }
+            totals.pop("orderby", None)
+            totals.pop("order_desc", None)
+            extra_queries.append(totals)
+        if form_data.get("server_pagination"):
+            rowcount = {
+                **query,
+                "time_offsets": [],
+                "row_limit": configured_limit or 0,
+                "row_offset": 0,
+                "post_processing": [],
+                "is_rowcount": True,
+            }
+            return [query, rowcount, *extra_queries]
+        return [query, *extra_queries]
+
+    if viz_type in {"gantt", "gantt_chart"}:
+        (
+            gantt_columns,
+            gantt_metrics,
+            gantt_orderby,
+            gantt_groupby,
+        ) = resolve_gantt_query_fields(form_data)
+        query = _build_single_query_dict(
+            form_data,
+            gantt_columns,
+            gantt_metrics,
+            row_limit=row_limit,
+            order_desc=order_desc,
+            orderby=gantt_orderby,
+        )
+        query["series_columns"] = gantt_groupby
+        return [query]
+
+    if viz_type == "ag-grid-pivot-table":
+        interactive_columns = [
+            _temporal_column(column, form_data)
+            for column in _as_list(form_data.get("groupby"))
+        ]
+        query = _build_single_query_dict(
+            form_data,
+            interactive_columns,
+            list(form_data.get("metrics") or []),
+            row_limit=row_limit,
+            order_desc=order_desc,
+            orderby=form_data.get("orderby"),
+        )
+        _normalize_orderby(query)
+        return [query]
+
+    if viz_type in {"big_number", "big_number_total"}:
+        metric = form_data.get("metric")
+        columns = (
+            resolve_big_number_columns(form_data) if viz_type == "big_number" else []
+        )
+        query = _build_single_query_dict(
+            form_data,
+            columns,
+            [metric] if metric is not None else [],
+            row_limit=row_limit,
+            order_desc=order_desc,
+            orderby=form_data.get("orderby"),
+        )
+        if viz_type == "big_number":
+            if not form_data.get("x_axis"):
+                query["is_timeseries"] = True
+            query["post_processing"] = _timeseries_post_processing(form_data, query)
+            if form_data.get("aggregation") == "raw":
+                return [
+                    query,
+                    {
+                        **query,
+                        "columns": [],
+                        "is_timeseries": False,
+                        "post_processing": [],
+                    },
+                ]
+        return [query]
 
     # Deck.gl charts use spatial column configs rather than the standard
     # metrics / groupby fields. Extract columns from the spatial controls.
@@ -663,17 +1457,68 @@ def build_query_dicts_from_form_data(
         query["orderby"] = [[column, True] for column in waterfall_columns]
         return [query]
 
-    is_timeseries = (
-        viz_type.startswith("echarts_timeseries") or viz_type == "mixed_timeseries"
-    )
+    if viz_type == "mixed_timeseries":
+        from superset.utils.core import split_adhoc_filters_into_base_filters
 
-    x_axis_col: str | None = None
-    if is_timeseries:
-        x_axis_col = extract_x_axis_col(form_data)
-        if x_axis_col and x_axis_col not in groupby:
-            groupby = [x_axis_col] + groupby
+        queries: list[dict[str, Any]] = []
+        x_axis = _x_axis_query_field(form_data)
+        for secondary in (False, True):
+            layer = _mixed_layer_form_data(form_data, secondary=secondary)
+            if secondary and form_data.get("adhoc_filters_b") is not None:
+                for key in ("filters", "where", "having"):
+                    layer.pop(key, None)
+                layer["adhoc_filters"] = form_data.get("adhoc_filters_b") or []
+                split_adhoc_filters_into_base_filters(layer, engine)
+            layer_metrics = list(layer.get("metrics") or [])
+            layer_groupby = _as_list(layer.get("groupby"))
+            columns = [*(_as_list(x_axis) if x_axis else []), *layer_groupby]
+            query = _build_single_query_dict(
+                layer,
+                _dedupe_query_fields(columns, _column_label),
+                layer_metrics,
+                row_limit=row_limit,
+                order_desc=order_desc,
+                orderby=layer.get("orderby"),
+            )
+            query["series_columns"] = layer_groupby
+            if not x_axis:
+                query["is_timeseries"] = True
+            comparison = _time_comparison(layer, layer_metrics)
+            query["time_offsets"] = (
+                _as_list(layer.get("time_compare")) if comparison else []
+            )
+            query["post_processing"] = _timeseries_post_processing(layer, query)
+            _normalize_orderby(query)
+            queries.append(query)
+        return queries
 
-    queries = [
+    if viz_type.startswith("echarts_timeseries") or viz_type == "echarts_area":
+        x_axis = _x_axis_query_field(form_data)
+        timeseries_groupby = _as_list(form_data.get("groupby"))
+        columns = [*(_as_list(x_axis) if x_axis else []), *timeseries_groupby]
+        query = _build_single_query_dict(
+            form_data,
+            _dedupe_query_fields(columns, _column_label),
+            metrics,
+            row_limit=row_limit,
+            order_desc=order_desc,
+            orderby=form_data.get("orderby"),
+        )
+        query["series_columns"] = timeseries_groupby
+        if not x_axis:
+            query["is_timeseries"] = True
+        comparison = _time_comparison(form_data, metrics)
+        query["time_offsets"] = (
+            _as_list(form_data.get("time_compare")) if comparison else []
+        )
+        query["time_compare_full_range"] = bool(
+            query["time_offsets"] and form_data.get("time_compare_full_range")
+        )
+        query["post_processing"] = _timeseries_post_processing(form_data, query)
+        _normalize_orderby(query)
+        return [query]
+
+    return [
         _build_single_query_dict(
             form_data,
             groupby,
@@ -683,17 +1528,6 @@ def build_query_dicts_from_form_data(
             orderby=form_data.get("orderby"),
         )
     ]
-    if viz_type == "mixed_timeseries":
-        queries.append(
-            _build_mixed_timeseries_secondary(
-                form_data,
-                x_axis_col,
-                engine,
-                row_limit=row_limit,
-                order_desc=order_desc,
-            )
-        )
-    return queries
 
 
 def resolve_form_data_datasource(

@@ -18,7 +18,7 @@
 """Adversarial tests for the shared chart query-result envelope contract."""
 
 from collections.abc import Callable
-from datetime import datetime, timedelta, tzinfo
+from datetime import datetime, timedelta, timezone, tzinfo
 from enum import Enum
 from typing import Any
 
@@ -502,6 +502,99 @@ def test_query_result_rejects_custom_timezone_without_invoking_it() -> None:
         {
             "queries": [
                 {"data": [{"value": datetime(2024, 1, 1, tzinfo=_HostileTimezone())}]}
+            ]
+        }
+    )
+
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "MalformedQueryResult"
+
+
+@pytest.mark.parametrize(
+    ("key", "value"),
+    [
+        ("rowcount", -1),
+        ("rowcount", 1.5),
+        ("rowcount", float("nan")),
+        ("rowcount", float("inf")),
+        ("rowcount", True),
+        ("rowcount", 1 << 1000),
+        ("total_rows", -1),
+        ("total_rows", "1"),
+        ("cache_key", _HostileStr("key")),
+        ("cache_key", "x" * 5000),
+        ("cache_dttm", _HostileStr("2024-01-01")),
+        ("cache_dttm", "x" * 5000),
+    ],
+)
+def test_query_result_rejects_unbounded_or_malformed_metadata(
+    key: str, value: Any
+) -> None:
+    data, failure = query_result_data({"queries": [{"data": [], key: value}]})
+
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "MalformedQueryResult"
+
+
+def test_query_result_validates_top_level_and_every_query_metadata() -> None:
+    for result in (
+        {"rowcount": -1, "queries": [{"data": []}]},
+        {
+            "queries": [
+                {"data": [], "rowcount": 0},
+                {"data": [], "total_rows": 2.25},
+            ]
+        },
+    ):
+        data, failure = query_result_data(result)
+        assert data is None
+        assert failure is not None
+        assert failure.error_type == "MalformedQueryResult"
+
+
+def test_query_result_accepts_bounded_cache_metadata_and_integral_float_count() -> None:
+    data, failure = query_result_data(
+        {
+            "cache_key": "top",
+            "cache_dttm": datetime(2024, 1, 1, tzinfo=timezone.utc),
+            "rowcount": 1.0,
+            "queries": [
+                {
+                    "data": [],
+                    "cache_key": "query",
+                    "cache_dttm": "2024-01-01T00:00:00+00:00",
+                    "rowcount": 0.0,
+                    "total_rows": 0,
+                    "is_cached": False,
+                }
+            ],
+        }
+    )
+
+    assert failure is None
+    assert data == [[]]
+
+
+def test_query_result_cache_datetime_rejects_hostile_timezone_without_hooks() -> None:
+    class _HostileTimezone(tzinfo):
+        def utcoffset(self, _value: datetime | None) -> timedelta | None:
+            raise AssertionError("custom timezone hook must not run")
+
+        def dst(self, _value: datetime | None) -> timedelta | None:
+            raise AssertionError("custom timezone hook must not run")
+
+        def tzname(self, _value: datetime | None) -> str | None:
+            raise AssertionError("custom timezone hook must not run")
+
+    data, failure = query_result_data(
+        {
+            "queries": [
+                {
+                    "data": [],
+                    "cache_dttm": datetime(2024, 1, 1, tzinfo=_HostileTimezone()),
+                }
             ]
         }
     )

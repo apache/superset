@@ -312,6 +312,215 @@ def _validate_adhoc_filter_columns(
     )
 
 
+def _native_validation_error(role: str, reference: str) -> ChartGenerationError:
+    """Build a fail-closed error for an incompatible native chart reference."""
+    return ChartGenerationError(
+        error_type="invalid_native_chart_reference",
+        message=f"Native chart {role} {reference!r} is incompatible with the dataset",
+        details=(
+            "The rebound form data must retain its exact query roles on the target "
+            "dataset; no column or saved-metric reference may be guessed or dropped."
+        ),
+        suggestions=[
+            "Choose a target dataset with a compatible schema",
+            "Provide a complete typed chart config using target-dataset fields",
+        ],
+        error_code="CHART_VALIDATION_FAILED",
+    )
+
+
+def _native_column_name(value: Any) -> str | None:
+    """Extract a physical QueryFormColumn reference, or None for SQL columns."""
+    if isinstance(value, str):
+        return value
+    if not isinstance(value, dict):
+        return None
+    if value.get("expressionType") == "SQL":
+        return None
+    name = value.get("column_name") or value.get("columnName")
+    return name if isinstance(name, str) and name else None
+
+
+def _native_metric_ref(value: Any) -> tuple[str, str] | None:
+    """Return ``(saved_metric|column, name)`` for a native query metric."""
+    if isinstance(value, str):
+        return "saved_metric", value
+    if not isinstance(value, dict):
+        return None
+    if value.get("expressionType") == "SQL":
+        return None
+    if value.get("expressionType") != "SIMPLE":
+        return None
+    column = value.get("column")
+    name = (
+        column.get("column_name") or column.get("columnName")
+        if isinstance(column, dict)
+        else None
+    )
+    return ("column", name) if isinstance(name, str) and name else None
+
+
+def _native_reference_error(  # noqa: C901
+    form_data: Dict[str, Any],
+    dataset_context: DatasetContext,
+    dataset_id: int,
+    *,
+    strict_all_form_refs: bool,
+) -> ChartGenerationError | None:
+    """Validate the canonical native QueryObjects against a rebound dataset."""
+    from superset.mcp_service.chart.chart_helpers import (
+        build_query_dicts_from_form_data,
+    )
+
+    try:
+        queries = build_query_dicts_from_form_data(
+            deepcopy(form_data), dataset_id, "table"
+        )
+    except (KeyError, TypeError, ValueError) as ex:
+        return _native_validation_error("query contract", safe_exception_message(ex))
+
+    saved_metrics = [item["name"] for item in dataset_context.available_metrics]
+
+    def column_error(value: Any, role: str) -> ChartGenerationError | None:
+        name = _native_column_name(value)
+        if name is None:
+            if isinstance(value, dict) and value.get("expressionType") == "SQL":
+                return None
+            return _native_validation_error(role, repr(value)[:200])
+        try:
+            if resolve_dataset_column(name, dataset_context) is not None:
+                return None
+        except ValueError:
+            pass
+        return _native_validation_error(role, name)
+
+    metric_labels: set[str] = set()
+
+    for filter_ in form_data.get("adhoc_filters") or []:
+        if not isinstance(filter_, dict) or filter_.get("expressionType") != "SIMPLE":
+            continue
+        if not strict_all_form_refs and _is_inert_adhoc_filter(filter_):
+            continue
+        subject = filter_.get("subject")
+        clause = str(filter_.get("clause") or "WHERE").upper()
+        if clause == "HAVING" and isinstance(subject, str):
+            metric_matches = [
+                name for name in saved_metrics if name.casefold() == subject.casefold()
+            ]
+            if len(metric_matches) == 1:
+                continue
+        if subject is not None and (
+            error := column_error(subject, "form-data filter column")
+        ):
+            return error
+        if filter_.get("operator") == "TEMPORAL_RANGE" and isinstance(subject, str):
+            try:
+                temporal = resolve_dataset_column(subject, dataset_context)
+            except ValueError:
+                temporal = None
+            if temporal is not None and not temporal.get("is_temporal", False):
+                return _native_validation_error("temporal filter column", subject)
+
+    temporal_lookup = form_data.get("temporal_columns_lookup")
+    if isinstance(temporal_lookup, dict):
+        for column, enabled in temporal_lookup.items():
+            if enabled and (error := column_error(column, "temporal lookup column")):
+                return error
+
+    for query_index, query in enumerate(queries, 1):
+        for column in query.get("columns") or []:
+            if error := column_error(column, f"query {query_index} column"):
+                return error
+        for column in query.get("series_columns") or []:
+            if error := column_error(column, f"query {query_index} series column"):
+                return error
+        for level in query.get("grouping_sets") or []:
+            for column in level:
+                if error := column_error(
+                    column, f"query {query_index} grouping-set column"
+                ):
+                    return error
+
+        metrics = query.get("metrics") or []
+        for metric in metrics:
+            if label := _metric_label_for_validation(metric):
+                metric_labels.add(label)
+            ref = _native_metric_ref(metric)
+            if ref is None:
+                if isinstance(metric, dict) and metric.get("expressionType") == "SQL":
+                    continue
+                return _native_validation_error(
+                    f"query {query_index} metric", repr(metric)[:200]
+                )
+            kind, name = ref
+            if kind == "saved_metric":
+                matches = [
+                    item
+                    for item in saved_metrics
+                    if item == name or item.casefold() == name.casefold()
+                ]
+                if len(set(matches)) != 1:
+                    return _native_validation_error("saved metric", name)
+            elif error := column_error(name, f"query {query_index} metric column"):
+                return error
+
+        granularity = query.get("granularity")
+        if granularity:
+            if error := column_error(granularity, "temporal column"):
+                return error
+            try:
+                temporal = resolve_dataset_column(granularity, dataset_context)
+            except ValueError:
+                temporal = None
+            if (
+                (query.get("extras") or {}).get("time_grain_sqla")
+                and temporal is not None
+                and not temporal.get("is_temporal", False)
+            ):
+                return _native_validation_error("temporal column", granularity)
+
+        for filter_ in query.get("filters") or []:
+            if not isinstance(filter_, dict):
+                return _native_validation_error("filter", repr(filter_)[:200])
+            column = filter_.get("col")
+            if isinstance(column, str) and any(
+                name.casefold() == column.casefold() for name in saved_metrics
+            ):
+                continue
+            if column is not None and (
+                error := column_error(column, f"query {query_index} filter column")
+            ):
+                return error
+
+        for order in query.get("orderby") or []:
+            if not isinstance(order, (list, tuple)) or len(order) != 2:
+                return _native_validation_error("ordering", repr(order)[:200])
+            target = order[0]
+            target_label = _metric_label_for_validation(target)
+            if target in metrics or (target_label and target_label in metric_labels):
+                continue
+            if isinstance(target, str) and target in metric_labels:
+                continue
+            if error := column_error(target, f"query {query_index} ordering column"):
+                return error
+    return None
+
+
+def _metric_label_for_validation(metric: Any) -> str | None:
+    """Resolve a native metric output label without executing custom code."""
+    if isinstance(metric, str):
+        return metric
+    if not isinstance(metric, dict):
+        return None
+    if isinstance(metric.get("label"), str) and metric["label"]:
+        return metric["label"]
+    ref = _native_metric_ref(metric)
+    if ref and ref[0] == "column" and isinstance(metric.get("aggregate"), str):
+        return f"{metric['aggregate']}({ref[1]})"
+    expression = metric.get("sqlExpression")
+    return expression if isinstance(expression, str) and expression else None
+
+
 def _is_inert_adhoc_filter(filter_: dict[str, Any]) -> bool:
     """Whether a saved filter is Superset's non-filtering placeholder."""
     operator = filter_.get("operator", filter_.get("op"))
@@ -499,6 +708,21 @@ def validate_and_compile(
                 error_code="CHART_VALIDATION_FAILED",
                 tier="validation",
                 error_obj=filter_error,
+            )
+
+        native_error = _native_reference_error(
+            form_data,
+            dataset_context,
+            dataset.id,
+            strict_all_form_refs=config is None,
+        )
+        if native_error is not None:
+            return CompileResult(
+                success=False,
+                error=native_error.details or native_error.message,
+                error_code="CHART_VALIDATION_FAILED",
+                tier="validation",
+                error_obj=native_error,
             )
 
     if not run_compile_check:
