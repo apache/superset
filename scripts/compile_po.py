@@ -26,7 +26,6 @@ import os
 import shutil
 import subprocess
 import sys
-from concurrent.futures import as_completed, ThreadPoolExecutor
 
 _SHELL = os.name == "nt"
 
@@ -161,18 +160,13 @@ def compile_translations() -> int:  # noqa: C901
     print(f"Step 3: Converting {len(po_files)} .po files to JSON...")
 
     failures: list[str] = []
-    max_workers = min(8, (os.cpu_count() or 1) * 2)
-    with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {
-            executor.submit(convert_po_file, f, po2json_cmd): f for f in po_files
-        }
-        for future in as_completed(futures):
-            ok, po_path, err = future.result()
-            if not ok:
-                print(f"  FAILED: {po_path} - {err}", file=sys.stderr)
-                failures.append(po_path)
-            else:
-                print(f"  OK: {po_path}")
+    for f in po_files:
+        ok, po_path, err = convert_po_file(f, po2json_cmd)
+        if not ok:
+            print(f"  FAILED: {po_path} - {err}", file=sys.stderr)
+            failures.append(po_path)
+        else:
+            print(f"  OK: {po_path}")
 
     if failures:
         print(f"\nERROR: {len(failures)} file(s) failed conversion:", file=sys.stderr)
