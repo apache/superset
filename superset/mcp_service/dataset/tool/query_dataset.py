@@ -35,6 +35,7 @@ from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
+from superset.mcp_service.chart.query_result import query_result_data
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
 from superset.mcp_service.dataset.dataset_utils import resolve_dataset
 from superset.mcp_service.dataset.schemas import (
@@ -317,24 +318,28 @@ async def query_dataset(  # noqa: C901
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
+            queries_data, query_failure = query_result_data(result)
+            if query_failure is not None:
+                return DatasetError.create(
+                    error=query_failure.error,
+                    error_type=query_failure.error_type,
+                )
+        assert queries_data is not None
+        assert type(result) is dict
+        queries = dict.__getitem__(result, "queries")
+        assert type(queries) is list
+        query_result = list.__getitem__(queries, 0)
+        assert type(query_result) is dict
+        data = list.__getitem__(queries_data, 0)
+        raw_columns = dict.get(query_result, "colnames", [])
+        assert type(raw_columns) is list
 
         query_duration_ms = int((time.time() - start_time) * 1000)
-
-        if not result or "queries" not in result or len(result["queries"]) == 0:
-            await ctx.warning("Query returned no results for dataset %s" % dataset.id)
-            return DatasetError.create(
-                error="Query returned no results.",
-                error_type="EmptyQuery",
-            )
 
         # ------------------------------------------------------------------
         # Step 6: Format response
         # ------------------------------------------------------------------
         await ctx.report_progress(5, 5, "Formatting results")
-        query_result = result["queries"][0]
-        data = query_result.get("data", [])
-        raw_columns = query_result.get("colnames", [])
-
         if not data:
             return QueryDatasetResponse(
                 dataset_id=dataset.id,

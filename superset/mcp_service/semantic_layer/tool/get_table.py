@@ -34,6 +34,7 @@ from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
+from superset.mcp_service.chart.query_result import query_result_data
 from superset.mcp_service.chart.schemas import PerformanceMetadata
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
@@ -252,12 +253,12 @@ def _build_response(
     is_builtin: bool,
     display_name: str,
     query_result: dict[str, Any],
+    data: list[dict[str, Any]],
+    raw_columns: list[str],
     query_duration_ms: int,
     warnings: list[str],
 ) -> GetTableResponse:
     """Format the query result into a GetTableResponse."""
-    data = query_result.get("data", [])
-    raw_columns = query_result.get("colnames", [])
     cache_status = get_cache_status_from_result(
         query_result, force_refresh=request.force_refresh
     )
@@ -360,22 +361,32 @@ async def _run_get_table_query(
         command = ChartDataCommand(query_context)
         command.validate()
         result = command.run()
+        queries_data, query_failure = query_result_data(result)
+        if query_failure is not None:
+            return SemanticLayerError.create(
+                error=query_failure.error,
+                error_type=query_failure.error_type,
+            )
+    assert queries_data is not None
+    assert type(result) is dict
+    queries = dict.__getitem__(result, "queries")
+    assert type(queries) is list
+    query_result = list.__getitem__(queries, 0)
+    assert type(query_result) is dict
+    data = list.__getitem__(queries_data, 0)
+    raw_columns = dict.get(query_result, "colnames", [])
+    assert type(raw_columns) is list
 
     query_duration_ms = int((time.time() - start_time) * 1000)
 
-    if not result or "queries" not in result or not result["queries"]:
-        return SemanticLayerError.create(
-            error="Query returned no results.",
-            error_type="EmptyQuery",
-        )
-
     await ctx.report_progress(5, 5, "Formatting results")
-    query_result = result["queries"][0]
     response = _build_response(
         request,
         is_builtin,
         resolved.display_name,
         query_result,
+        data,
+        raw_columns,
         query_duration_ms,
         resolved.warnings,
     )
@@ -384,7 +395,7 @@ async def _run_get_table_query(
         "get_table complete: rows=%d, columns=%d, duration=%dms"
         % (
             response.row_count,
-            len(query_result.get("colnames", [])),
+            len(raw_columns),
             query_duration_ms,
         )
     )

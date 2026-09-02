@@ -166,7 +166,22 @@ class OmittedFieldsBuilder:
         return dict(self._fields)
 
 
+# Column metadata may otherwise perform rows*columns work after result
+# validation. Keep both a per-column sample ceiling and a shared inspection
+# budget; the latter reduces the sample for wide result sets. Three additional
+# inspections per column are reserved for representative sample values.
 STATS_ROW_CAP: int = 5000
+STATS_SAMPLE_VALUE_ROWS: int = 3
+STATS_TOTAL_WORK_CAP: int = 1_000_000
+
+
+def data_column_stats_row_limit(row_count: int, column_count: int) -> int:
+    """Return a row sample whose aggregate column-inspection work is bounded."""
+    if row_count <= 0 or column_count <= 0:
+        return 0
+    per_column_budget = STATS_TOTAL_WORK_CAP // column_count
+    statistics_budget = max(0, per_column_budget - STATS_SAMPLE_VALUE_ROWS)
+    return min(row_count, STATS_ROW_CAP, statistics_budget)
 
 
 def format_data_columns(
@@ -182,24 +197,27 @@ def format_data_columns(
     # Local import breaks the chart.schemas ↔ response_utils circular dependency.
     from superset.mcp_service.chart.schemas import DataColumn  # noqa: PLC0415
 
-    stats_rows: list[dict[str, Any]] = data[:STATS_ROW_CAP]
-    is_sampled: bool = len(data) > STATS_ROW_CAP
+    stats_row_limit = data_column_stats_row_limit(len(data), len(raw_columns))
+    stats_rows: list[dict[str, Any]] = data[:stats_row_limit]
+    is_sampled: bool = len(data) > stats_row_limit
     columns_meta: list[DataColumn] = []
     for col_name in raw_columns:
-        sample_values = [
-            row.get(col_name) for row in data[:3] if row.get(col_name) is not None
-        ]
+        sample_values: list[Any] = []
+        for row in data[:STATS_SAMPLE_VALUE_ROWS]:
+            value = dict.get(row, col_name)
+            if value is not None:
+                sample_values.append(value)
         data_type: str = "string"
         if sample_values:
-            if all(isinstance(v, bool) for v in sample_values):
+            if all(type(v) is bool for v in sample_values):
                 data_type = "boolean"
-            elif all(isinstance(v, (int, float)) for v in sample_values):
+            elif all(type(v) in (int, float) for v in sample_values):
                 data_type = "numeric"
 
         null_count = 0
         unique_vals: set[str] = set()
         for row in stats_rows:
-            val = row.get(col_name)
+            val = dict.get(row, col_name)
             if val is None:
                 null_count += 1
             else:

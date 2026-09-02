@@ -30,6 +30,8 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 import pytest
+import pytz
+from dateutil import tz as dateutil_tz
 
 from superset.mcp_service.chart.schemas import (
     ChartData,
@@ -2786,6 +2788,23 @@ def test_mixed_numeric_unique_count_uses_value_semantics() -> None:
     assert len({_safe_value_identity(value) for value in values}) == 5
 
 
+def test_chart_column_metadata_bounds_wide_sparse_statistics_work() -> None:
+    from superset.mcp_service.chart.tool.get_chart_data import _build_data_columns
+    from superset.mcp_service.utils.response_utils import (
+        data_column_stats_row_limit,
+    )
+
+    rows: list[dict[str, Any]] = [{} for _ in range(50_000)]
+    raw_columns = [f"column_{index}" for index in range(4096)]
+
+    columns = _build_data_columns(rows, raw_columns, [])
+
+    sampled_rows = data_column_stats_row_limit(len(rows), len(raw_columns))
+    assert len(columns) == len(raw_columns)
+    assert columns[0].statistics == {"sampled_rows": sampled_rows}
+    assert columns[-1].statistics == {"sampled_rows": sampled_rows}
+
+
 @pytest.mark.asyncio
 async def test_unsaved_generic_get_data_returns_finite_decimal_metadata(
     monkeypatch: pytest.MonkeyPatch,
@@ -2854,7 +2873,19 @@ async def test_unsaved_get_data_round_trips_temporal_and_boolean_coltypes(
                     {
                         "data": [
                             {
-                                "event_time": pd.Timestamp("2024-01-01T02:03:04Z"),
+                                "event_time": pd.Timestamp(
+                                    datetime(
+                                        2024,
+                                        1,
+                                        1,
+                                        2,
+                                        3,
+                                        4,
+                                        tzinfo=dateutil_tz.tzoffset(
+                                            "east", 5 * 3600 + 30 * 60
+                                        ),
+                                    )
+                                ),
                                 "enabled": True,
                             }
                         ],
@@ -2887,7 +2918,7 @@ async def test_unsaved_get_data_round_trips_temporal_and_boolean_coltypes(
         "boolean",
     ]
     assert response.data == [
-        {"event_time": "2024-01-01T02:03:04+00:00", "enabled": True}
+        {"event_time": "2024-01-01T02:03:04+05:30", "enabled": True}
     ]
 
 
@@ -3317,7 +3348,17 @@ async def test_saved_get_data_round_trips_temporal_and_boolean_coltypes(
                     {
                         "data": [
                             {
-                                "event_time": pd.Timestamp("2024-01-01T02:03:04Z"),
+                                "event_time": pd.Timestamp(
+                                    datetime(
+                                        2024,
+                                        1,
+                                        1,
+                                        2,
+                                        3,
+                                        4,
+                                        tzinfo=pytz.FixedOffset(-450),
+                                    )
+                                ),
                                 "enabled": False,
                             }
                         ],
@@ -3355,7 +3396,7 @@ async def test_saved_get_data_round_trips_temporal_and_boolean_coltypes(
         "boolean",
     ]
     assert payload["data"] == [
-        {"event_time": "2024-01-01T02:03:04+00:00", "enabled": False}
+        {"event_time": "2024-01-01T02:03:04-07:30", "enabled": False}
     ]
 
 

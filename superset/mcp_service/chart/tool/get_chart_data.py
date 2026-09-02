@@ -68,6 +68,10 @@ from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
+from superset.mcp_service.utils.response_utils import (
+    data_column_stats_row_limit,
+    STATS_SAMPLE_VALUE_ROWS,
+)
 from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
@@ -547,13 +551,16 @@ def _build_data_columns(
     coltypes: list[int | GenericDataType],
 ) -> list[DataColumn]:
     """Build identical coltype-aware metadata for saved and unsaved results."""
+    stats_row_limit = data_column_stats_row_limit(len(data), len(raw_columns))
+    stats_rows = data[:stats_row_limit]
+    is_sampled = len(data) > stats_row_limit
     columns: list[DataColumn] = []
     for index, col_name in enumerate(raw_columns):
-        sample_values = [
-            dict.get(row, col_name)
-            for row in data[:3]
-            if dict.get(row, col_name) is not None
-        ]
+        sample_values: list[Any] = []
+        for row in data[:STATS_SAMPLE_VALUE_ROWS]:
+            value = dict.get(row, col_name)
+            if value is not None:
+                sample_values.append(value)
         data_type = "string"
         if coltypes:
             data_type = _GENERIC_TYPE_MAP.get(coltypes[index], "string")
@@ -563,16 +570,23 @@ def _build_data_columns(
             elif all(type(value) in (int, float, Decimal) for value in sample_values):
                 data_type = "numeric"
 
+        null_count = 0
+        unique_values: set[tuple[Any, ...]] = set()
+        for row in stats_rows:
+            value = dict.get(row, col_name)
+            if value is None:
+                null_count += 1
+            unique_values.add(_safe_value_identity(value))
+
         columns.append(
             DataColumn(
                 name=col_name,
                 display_name=col_name.replace("_", " ").title(),
                 data_type=data_type,
                 sample_values=sample_values[:3],
-                null_count=sum(1 for row in data if dict.get(row, col_name) is None),
-                unique_count=len(
-                    {_safe_value_identity(dict.get(row, col_name)) for row in data}
-                ),
+                null_count=null_count,
+                unique_count=len(unique_values),
+                statistics={"sampled_rows": len(stats_rows)} if is_sampled else None,
             )
         )
     return columns

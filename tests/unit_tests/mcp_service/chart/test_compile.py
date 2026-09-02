@@ -29,6 +29,7 @@ from unittest.mock import Mock, patch
 
 import pandas as pd
 import pytest
+from dateutil import tz as dateutil_tz
 
 from superset.mcp_service.chart.compile import (
     CompileResult,
@@ -912,7 +913,9 @@ def test_compile_chart_executes_final_big_number_trendline_query(
             processed = trend.exec_post_processing(
                 pd.DataFrame(
                     {
-                        "event_time": pd.to_datetime(["2024-01-01", "2024-02-01"]),
+                        "event_time": pd.to_datetime(
+                            ["2024-01-01", "2024-02-01"]
+                        ).tz_localize(dateutil_tz.gettz("US/Pacific")),
                         "Gross revenue": [10.0, 15.0],
                     }
                 )
