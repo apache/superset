@@ -115,6 +115,11 @@ const StyledMainNav = styled(MainNav)`
 
       [data-icon='down'] {
         color: ${theme.colorIcon};
+        /* sizeXS (an antd token, always computed) rather than fontSizeXS
+           (a Superset custom token seeded only via THEME_DEFAULT in
+           config.py) so this stays small in contexts that construct a
+           theme without that seed, e.g. Storybook and Jest. Both resolve
+           to the same 8px in the app's default theme. */
         font-size: ${theme.sizeXS}px;
       }
 
