@@ -344,7 +344,7 @@ const ThumbnailImageWrapper = styled.div`
 const ThumbnailLabelWrapper = styled.div`
   position: absolute;
   right: ${({ theme }) => theme.sizeUnit}px;
-  top: ${({ theme }) => theme.sizeUnit}px;
+  bottom: ${({ theme }) => theme.sizeUnit}px;
 `;
 
 const TitleLabelWrapper = styled.div`
