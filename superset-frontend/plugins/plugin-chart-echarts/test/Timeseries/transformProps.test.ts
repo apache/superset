@@ -3207,8 +3207,18 @@ test('boundary label alignment is dropped when the orientation moves the time ax
   expect(horizontal.axisLabel.alignMaxLabel).toBeUndefined();
 
   // The boundary labels themselves stay forced in both orientations.
+  expect(vertical.axisLabel.showMinLabel).toBe(true);
+  expect(vertical.axisLabel.showMaxLabel).toBe(true);
+  expect(horizontal.axisLabel.showMinLabel).toBe(true);
+  expect(horizontal.axisLabel.showMaxLabel).toBe(true);
+});
 
 describe('xAxisLabelInterval string "0" is converted to number 0', () => {
+  const monthData = [
+    { __timestamp: Date.UTC(2003, 4, 1), sales: 100 },
+    { __timestamp: Date.UTC(2003, 5, 1), sales: 200 },
+  ];
+
   test('converts string "0" to number 0 so ECharts shows all labels', () => {
     const result = transformProps(
       createTestChartProps({
@@ -3278,8 +3288,4 @@ describe('xAxisLabelInterval string "0" is converted to number 0', () => {
     expect(xAxisRaw.interval).toBe(3);
   });
 });
-  expect(vertical.axisLabel.showMinLabel).toBe(true);
-  expect(vertical.axisLabel.showMaxLabel).toBe(true);
-  expect(horizontal.axisLabel.showMinLabel).toBe(true);
-  expect(horizontal.axisLabel.showMaxLabel).toBe(true);
 });
