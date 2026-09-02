@@ -276,7 +276,7 @@ def test_build_query_dicts_mixed_secondary_does_not_inherit_primary_orderby(
     primary, secondary = build_query_dicts_from_form_data(form_data, 1, "table")
 
     assert primary["orderby"] == [["m1", False]]
-    assert "orderby" not in secondary
+    assert secondary["orderby"] == [["m2", False]]
 
 
 def test_build_query_dicts_preserves_native_orderby_for_single_query(monkeypatch):
@@ -326,17 +326,20 @@ def test_common_temporal_fields_reach_final_non_deck_query_objects(
         "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
         lambda *_args: "base",
     )
-    query = _query_objects(
-        {
-            "viz_type": viz_type,
-            "metric": "count",
-            "metrics": ["count"],
-            "groupby": ["region"],
-            "granularity_sqla": "event_time",
-            "time_grain_sqla": "P1D",
-            "adhoc_filters": [],
-        }
-    )[0]
+    form_data = {
+        "viz_type": viz_type,
+        "metric": "count",
+        "metrics": ["count"],
+        "groupby": ["region"],
+        "granularity_sqla": "event_time",
+        "time_grain_sqla": "P1D",
+        "adhoc_filters": [],
+    }
+    if viz_type == "gantt":
+        form_data.update(
+            {"start_time": "event_time", "end_time": "event_end", "y_axis": "region"}
+        )
+    query = _query_objects(form_data)[0]
 
     assert query.granularity == "event_time"
     assert query.extras["time_grain_sqla"] == "P1D"
@@ -412,7 +415,437 @@ def test_xy_and_both_mixed_queries_preserve_common_temporal_fields(
         ("event_time", "P1M"),
     ]
     assert mixed[0].orderby == [["sales", False]]
-    assert mixed[1].orderby == []
+    assert mixed[1].orderby == [["orders", False]]
+
+
+@pytest.mark.parametrize(
+    ("frontend_builder", "form_data", "expected"),
+    [
+        (
+            "plugin-chart-echarts/src/Histogram/buildQuery.ts",
+            {
+                "viz_type": "histogram_v2",
+                "column": "value",
+                "groupby": ["region"],
+                "bins": 8,
+                "normalize": True,
+                "cumulative": False,
+            },
+            [(["region", "value"], [], [], ["histogram"])],
+        ),
+        (
+            "plugin-chart-echarts/src/BoxPlot/buildQuery.ts",
+            {
+                "viz_type": "box_plot",
+                "columns": ["event_time"],
+                "groupby": ["region"],
+                "metrics": ["revenue"],
+                "whiskerOptions": "10/90 percentiles",
+            },
+            [
+                (
+                    ["event_time", "region"],
+                    ["revenue"],
+                    ["region"],
+                    ["boxplot"],
+                )
+            ],
+        ),
+        (
+            "plugin-chart-pivot-table/src/plugin/buildQuery.ts",
+            {
+                "viz_type": "pivot_table_v2",
+                "groupbyRows": ["region"],
+                "groupbyColumns": ["channel"],
+                "metrics": ["revenue"],
+                "rowTotals": True,
+                "colTotals": True,
+            },
+            [(["region", "channel"], ["revenue"], [], [])],
+        ),
+        (
+            "plugin-chart-echarts/src/Pie/buildQuery.ts",
+            {
+                "viz_type": "pie",
+                "groupby": ["region"],
+                "metric": "revenue",
+                "sort_by_metric": True,
+            },
+            [(["region"], ["revenue"], [], ["contribution"])],
+        ),
+        (
+            "plugin-chart-table/src/buildQuery.ts (raw mode)",
+            {
+                "viz_type": "table",
+                "query_mode": "raw",
+                "all_columns": ["region", "revenue"],
+                "order_by_cols": ['["revenue", false]'],
+            },
+            [(["region", "revenue"], [], [], [])],
+        ),
+        (
+            "plugin-chart-echarts/src/Waterfall/buildQuery.ts",
+            {
+                "viz_type": "waterfall",
+                "x_axis": "event_time",
+                "groupby": ["region"],
+                "metric": "revenue",
+            },
+            [(["event_time", "region"], ["revenue"], [], [])],
+        ),
+        (
+            "plugin-chart-echarts/src/Gantt/buildQuery.ts",
+            {
+                "viz_type": "gantt_chart",
+                "start_time": "started",
+                "end_time": "ended",
+                "y_axis": "task",
+                "series": "team",
+                "tooltip_columns": ["owner"],
+                "tooltip_metrics": ["duration"],
+                "order_by_cols": ['["started", true]'],
+            },
+            [
+                (
+                    ["started", "ended", "task", "team", "owner"],
+                    ["duration"],
+                    ["team"],
+                    [],
+                )
+            ],
+        ),
+        (
+            "plugin-chart-echarts/src/Bullet/buildQuery.ts",
+            {"viz_type": "bullet", "groupby": ["region"], "metric": "revenue"},
+            [(["region"], ["revenue"], [], [])],
+        ),
+        (
+            "plugin-chart-echarts/src/Sunburst/buildQuery.ts",
+            {
+                "viz_type": "sunburst_v2",
+                "groupby": ["region", "channel"],
+                "metric": "revenue",
+                "sort_by_metric": True,
+            },
+            [(["region", "channel"], ["revenue"], [], [])],
+        ),
+        (
+            "plugin-chart-echarts/src/BigNumber/BigNumberTotal/buildQuery.ts",
+            {"viz_type": "big_number_total", "metric": "revenue"},
+            [([], ["revenue"], [], [])],
+        ),
+        (
+            "plugin-chart-echarts/src/Timeseries/buildQuery.ts",
+            {
+                "viz_type": "echarts_timeseries_line",
+                "x_axis": "event_time",
+                "groupby": ["region"],
+                "metrics": ["revenue"],
+            },
+            [
+                (
+                    ["event_time", "region"],
+                    ["revenue"],
+                    ["region"],
+                    ["pivot", "flatten"],
+                )
+            ],
+        ),
+        (
+            "interactive-pivot native buildQuery contract",
+            {
+                "viz_type": "ag-grid-pivot-table",
+                "groupby": ["region", "channel"],
+                "metrics": ["revenue"],
+            },
+            [(["region", "channel"], ["revenue"], [], [])],
+        ),
+        (
+            "Handlebars common buildQueryObject contract",
+            {
+                "viz_type": "handlebars",
+                "query_mode": "aggregate",
+                "groupby": ["region"],
+                "metrics": ["revenue"],
+            },
+            [(["region"], ["revenue"], [], [])],
+        ),
+    ],
+    ids=lambda value: value if isinstance(value, str) else None,
+)
+def test_frontend_query_builder_parity_matrix_uses_concrete_query_objects(
+    monkeypatch: pytest.MonkeyPatch,
+    frontend_builder: str,
+    form_data: dict[str, Any],
+    expected: list[tuple[list[Any], list[Any], list[Any], list[str]]],
+) -> None:
+    """Pin native frontend buildQuery outputs at the QueryObject boundary."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+
+    queries = _query_objects(form_data)
+    actual = [
+        (
+            query.columns,
+            query.metrics or [],
+            query.series_columns,
+            [item["operation"] for item in query.post_processing],
+        )
+        for query in queries
+    ]
+
+    assert frontend_builder
+    assert actual == expected
+
+
+def test_mixed_timeseries_frontend_parity_keeps_suffixed_layers_independent(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Pin the two concrete Mixed buildQuery outputs, including operator state."""
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    primary, secondary = _query_objects(
+        {
+            "viz_type": "mixed_timeseries",
+            "x_axis": "event_time",
+            "metrics": ["revenue"],
+            "groupby": ["region"],
+            "orderby": [["revenue", False]],
+            "time_compare": ["1 year ago"],
+            "comparison_type": "percentage",
+            "resample_method": "zerofill",
+            "resample_rule": "D",
+            "rolling_type": "mean",
+            "rolling_periods": 3,
+            "metrics_b": ["orders"],
+            "groupby_b": ["channel"],
+            "orderby_b": [["orders", True]],
+            "time_compare_b": ["1 month ago"],
+            "comparison_type_b": "values",
+            "resample_method_b": "pad",
+            "resample_rule_b": "W",
+            "rolling_type_b": "cumsum",
+        }
+    )
+
+    assert primary.columns == ["event_time", "region"]
+    assert primary.series_columns == ["region"]
+    assert primary.orderby == [["revenue", False]]
+    assert primary.time_offsets == ["1 year ago"]
+    assert [item["operation"] for item in primary.post_processing] == [
+        "pivot",
+        "resample",
+        "rolling",
+        "compare",
+        "rename",
+        "flatten",
+    ]
+    assert secondary.columns == ["event_time", "channel"]
+    assert secondary.series_columns == ["channel"]
+    assert secondary.orderby == [["orders", True]]
+    assert secondary.time_offsets == ["1 month ago"]
+    assert [item["operation"] for item in secondary.post_processing] == [
+        "pivot",
+        "resample",
+        "cum",
+        "rename",
+        "flatten",
+    ]
+
+
+def test_frontend_parity_matrix_pins_ordering_and_operator_options(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+
+    histogram = _query_objects(
+        {
+            "viz_type": "histogram_v2",
+            "column": "value",
+            "groupby": ["region"],
+            "bins": "12",
+            "normalize": True,
+            "cumulative": False,
+        }
+    )[0]
+    box = _query_objects(
+        {
+            "viz_type": "box_plot",
+            "columns": ["event_time"],
+            "groupby": ["region"],
+            "metrics": ["revenue"],
+            "whiskerOptions": "10/90 percentiles",
+        }
+    )[0]
+    raw_table = _query_objects(
+        {
+            "viz_type": "table",
+            "query_mode": "raw",
+            "all_columns": ["region", "revenue"],
+            "order_by_cols": ['["revenue", false]'],
+        }
+    )[0]
+    pie = _query_objects(
+        {
+            "viz_type": "pie",
+            "groupby": ["region"],
+            "metric": "revenue",
+            "sort_by_metric": True,
+        }
+    )[0]
+    pivot = _query_objects(
+        {
+            "viz_type": "pivot_table_v2",
+            "groupbyRows": ["region"],
+            "groupbyColumns": ["channel"],
+            "metrics": ["revenue"],
+            "rowTotals": True,
+            "colTotals": True,
+        }
+    )[0]
+
+    assert histogram.post_processing[0]["options"] == {
+        "column": "value",
+        "groupby": ["region"],
+        "bins": 12,
+        "cumulative": False,
+        "normalize": True,
+    }
+    assert box.post_processing[0]["options"] == {
+        "whisker_type": "percentile",
+        "percentiles": [10, 90],
+        "groupby": ["region"],
+        "metrics": ["revenue"],
+    }
+    assert raw_table.orderby == [["revenue", False]]
+    assert pie.orderby == [["revenue", False]]
+    assert pie.post_processing[0]["options"] == {
+        "columns": ["revenue"],
+        "rename_columns": ["revenue__contribution"],
+    }
+    assert pivot.orderby == [["revenue", False]]
+    assert pivot.grouping_sets == [[], ["channel"], ["region"], ["region", "channel"]]
+
+
+def test_table_frontend_contract_includes_pagination_percent_and_totals_queries(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    metric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "revenue"},
+        "aggregate": "SUM",
+        "label": "revenue",
+    }
+    queries = _query_objects(
+        {
+            "viz_type": "table",
+            "query_mode": "aggregate",
+            "groupby": ["event_time", "region"],
+            "metrics": [metric],
+            "percent_metrics": [metric],
+            "percent_metric_calculation": "all_records",
+            "show_totals": True,
+            "totals_aggregate": "AVG",
+            "server_pagination": True,
+            "server_page_length": 25,
+            "row_limit": 100,
+            "time_compare": ["1 year ago"],
+            "comparison_type": "difference",
+            "time_grain_sqla": "P1D",
+            "temporal_columns_lookup": {"event_time": True},
+        }
+    )
+
+    assert len(queries) == 4
+    main, rowcount, all_records, totals = queries
+    temporal_column = main.columns[0]
+    assert isinstance(temporal_column, dict)
+    assert temporal_column["columnType"] == "BASE_AXIS"
+    assert main.row_limit == 25
+    assert main.time_offsets == ["1 year ago"]
+    assert [item["operation"] for item in main.post_processing] == [
+        "contribution",
+        "compare",
+    ]
+    assert rowcount.is_rowcount is True
+    assert rowcount.row_limit == 100
+    assert all_records.columns == []
+    assert all_records.metrics == [metric]
+    assert totals.columns == []
+    assert totals.metrics is not None
+    totals_metric = totals.metrics[0]
+    assert isinstance(totals_metric, dict)
+    assert totals_metric["aggregate"] == "AVG"
+    assert totals.post_processing[0]["operation"] == "contribution"
+
+
+def test_big_number_raw_frontend_contract_has_isolated_second_query(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    trend, raw = _query_objects(
+        {
+            "viz_type": "big_number",
+            "metric": "revenue",
+            "x_axis": "event_time",
+            "aggregation": "raw",
+        }
+    )
+
+    assert trend.columns == ["event_time"]
+    assert trend.post_processing[-1]["operation"] == "flatten"
+    assert raw.columns == []
+    assert raw.is_timeseries is False
+    assert raw.post_processing == []
+
+
+@pytest.mark.parametrize(
+    "form_data, message",
+    [
+        (
+            {
+                "start_time": "started",
+                "end_time": "ended",
+                "y_axis": "task",
+                "order_by_cols": ['["started", 1]'],
+            },
+            "ascending_boolean",
+        ),
+        (
+            {"start_time": "started", "end_time": "ended", "y_axis": "task"},
+            None,
+        ),
+    ],
+)
+def test_gantt_frontend_contract_is_strict_and_bounded(
+    monkeypatch: pytest.MonkeyPatch,
+    form_data: dict[str, object],
+    message: str | None,
+) -> None:
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    form_data = {"viz_type": "gantt_chart", **form_data}
+    if message is None:
+        form_data["tooltip_columns"] = [f"column_{index}" for index in range(51)]
+        message = "at most 50"
+    with pytest.raises(ValueError, match=message):
+        _query_objects(form_data)
 
 
 def test_waterfall_final_query_matches_frontend_column_and_ordering_semantics(

@@ -464,6 +464,94 @@ class TestValidateAndCompileTier2:
         assert not result.success
         assert result.error_code == "DATASET_NOT_FOUND"
 
+    @patch("superset.mcp_service.chart.compile._compile_chart")
+    def test_dataset_only_native_rebind_validates_and_compiles(self, mock_compile):
+        mock_compile.return_value = CompileResult(success=True)
+        ds = _orm_dataset()
+        form_data = {
+            "viz_type": "table",
+            "query_mode": "aggregate",
+            "groupby": ["gender"],
+            "metrics": ["sum_boys"],
+            "datasource": "3__table",
+        }
+
+        result = validate_and_compile(None, form_data, ds, run_compile_check=True)
+
+        assert result.success
+        mock_compile.assert_called_once_with(form_data, 3)
+
+    @pytest.mark.parametrize(
+        "form_data",
+        [
+            {
+                "viz_type": "table",
+                "query_mode": "raw",
+                "all_columns": ["missing_column"],
+            },
+            {
+                "viz_type": "pie",
+                "groupby": ["gender"],
+                "metric": "missing_saved_metric",
+            },
+            {
+                "viz_type": "table",
+                "query_mode": "raw",
+                "all_columns": ["gender"],
+                "order_by_cols": ['["missing_order_column", false]'],
+            },
+            {
+                "viz_type": "echarts_timeseries_line",
+                "x_axis": "gender",
+                "granularity_sqla": "gender",
+                "time_grain_sqla": "P1D",
+                "metrics": ["sum_boys"],
+            },
+        ],
+    )
+    @patch("superset.mcp_service.chart.compile._compile_chart")
+    def test_dataset_only_native_rebind_rejects_incompatible_roles(
+        self, mock_compile, form_data
+    ):
+        result = validate_and_compile(
+            None,
+            form_data,
+            _orm_dataset(has_database=False),
+            run_compile_check=True,
+        )
+
+        assert not result.success
+        assert result.tier == "validation"
+        assert result.error_obj is not None
+        assert result.error_obj.error_type == "invalid_native_chart_reference"
+        mock_compile.assert_not_called()
+
+    @patch("superset.mcp_service.chart.compile._compile_chart")
+    def test_dataset_only_rebind_rejects_inert_stale_temporal_reference(
+        self, mock_compile
+    ):
+        result = validate_and_compile(
+            None,
+            {
+                "viz_type": "table",
+                "query_mode": "raw",
+                "all_columns": ["gender"],
+                "adhoc_filters": [
+                    {
+                        "expressionType": "SIMPLE",
+                        "subject": "removed_time",
+                        "operator": "TEMPORAL_RANGE",
+                        "comparator": "No filter",
+                    }
+                ],
+            },
+            _orm_dataset(),
+            run_compile_check=True,
+        )
+
+        assert not result.success
+        mock_compile.assert_not_called()
+
 
 @patch("superset.charts.data.form_data.set_query_context_form_data")
 @patch("superset.daos.dataset.DatasetDAO")

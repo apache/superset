@@ -2446,6 +2446,14 @@ class TestUpdateChartDatasetIdIntegration:
         mock_chart.slice_name = "Old Chart"
         mock_chart.viz_type = "table"
         mock_chart.uuid = "uuid-55"
+        mock_chart.params = json.dumps(
+            {
+                "viz_type": "table",
+                "query_mode": "raw",
+                "all_columns": ["region"],
+                "datasource": "10__table",
+            }
+        )
         mock_find_by_id.return_value = mock_chart
 
         mock_check_access.return_value = DatasetValidationResult(
@@ -2477,6 +2485,12 @@ class TestUpdateChartDatasetIdIntegration:
             payload = call_args[0][1]
             assert payload.get("datasource_id") == 1041
             assert payload.get("datasource_type") == "table"
+            validation_args = mock_validate.call_args
+            assert validation_args.args[0] is None
+            assert validation_args.args[1]["all_columns"] == ["region"]
+            assert validation_args.args[1]["datasource"] == "1041__table"
+            assert validation_args.kwargs["dataset_id"] == 1041
+            assert validation_args.kwargs.get("run_compile_check", True) is True
 
     @patch(
         "superset.mcp_service.auth.check_chart_data_access",
