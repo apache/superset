@@ -1899,7 +1899,7 @@ def test_compile_proves_numeric_metric_by_resolved_alias(
         ),
         (
             [{"region": "A", "country": "B", "Sales": float("nan")}],
-            "CHART_COMPILE_FAILED",
+            "INVALID_SUNBURST_RESULT",
         ),
         (
             [{"region": "A", "country": "B", "Sales": float("inf")}],

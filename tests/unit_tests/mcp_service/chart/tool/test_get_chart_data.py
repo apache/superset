@@ -42,6 +42,7 @@ from superset.mcp_service.chart.tool.get_chart_data import (
     _build_data_columns,
     _build_query_results,
     _coerce_row_limit,
+    _export_data_as_csv,
     _GENERIC_TYPE_MAP,
     _MAX_RECOMMENDATIONS,
     _query_from_form_data,
@@ -551,11 +552,6 @@ def test_data_column_profiling_shares_budget_across_columns(
             "coltypes": [0],
         },
         {
-            "data": [{"value": float("nan")}],
-            "colnames": ["value"],
-            "coltypes": [0],
-        },
-        {
             "data": [{"value": b"\xff"}],
             "colnames": ["value"],
             "coltypes": [1],
@@ -580,7 +576,6 @@ def test_data_column_profiling_shares_budget_across_columns(
         "misaligned-coltypes",
         "mismatched-columns",
         "huge-int",
-        "nan",
         "bytes",
         "query-status-row",
         "ordered-keys",
@@ -779,12 +774,14 @@ class TestUnsavedChartDataQueryConstruction:
                             "gender": "boy",
                             "event_time": pd.Timestamp("2026-09-02T10:11:12Z"),
                             "count": np.int64(1),
+                            "missing": np.float64("nan"),
                         }
                     ],
-                    columns=["gender", "event_time", "count"],
+                    columns=["gender", "event_time", "count", "missing"],
                     coltypes=[
                         GenericDataType.STRING,
                         GenericDataType.TEMPORAL,
+                        GenericDataType.NUMERIC,
                         GenericDataType.NUMERIC,
                     ],
                 )
@@ -834,10 +831,145 @@ class TestUnsavedChartDataQueryConstruction:
                 "gender": "boy",
                 "event_time": "2026-09-02T10:11:12+00:00",
                 "count": 1,
+                "missing": None,
             }
         ]
         # Every supported producer scalar is native before Pydantic/JSON output.
         assert response.model_dump(mode="json")["data"] == response.data
+
+    def test_csv_response_string_over_source_cell_cap_uses_aggregate_budget(
+        self,
+    ) -> None:
+        chart = MagicMock(id=1, slice_name="Large export", viz_type="table")
+        response = _export_data_as_csv(
+            chart,
+            [{"value": "x" * (70 * 1024)}],
+            ["value"],
+            None,
+            PerformanceMetadata(query_duration_ms=1, cache_status="fresh"),
+        )
+
+        assert isinstance(response, ChartData)
+        assert response.csv_data is not None
+        assert len(response.csv_data) > 65_536
+
+    @pytest.mark.asyncio
+    async def test_sampled_nan_completeness_uses_sampled_denominator(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+        row_count = 10_000
+
+        class _Command:
+            def __init__(self, query_context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return chart_data_command_result(
+                    [{"value": float("nan")} for _ in range(row_count)],
+                    columns=["value"],
+                    coltypes=[GenericDataType.NUMERIC],
+                )
+
+        monkeypatch.setattr(
+            module,
+            "build_query_context_from_form_data",
+            lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
+        )
+        monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+        monkeypatch.setattr(module, "_MAX_COLUMN_PROFILE_CELLS", 5000)
+        monkeypatch.setattr(
+            module,
+            "event_logger",
+            SimpleNamespace(log_context=lambda **kwargs: nullcontext()),
+        )
+
+        response = await _query_from_form_data(
+            {
+                "datasource_id": 1,
+                "datasource_type": "table",
+                "viz_type": "table",
+            },
+            GetChartDataRequest(form_data_key="nan-rows"),
+            _AsyncContext(),
+        )
+
+        assert isinstance(response, ChartData)
+        assert response.columns[0].null_count == 5000
+        assert response.columns[0].statistics == {"sampled_rows": 5000}
+        assert response.data_quality == {
+            "completeness": 0.0,
+            "completeness_is_approximate": True,
+            "sampled_rows": 5000,
+        }
+        assert all(row["value"] is None for row in response.data)
+
+    @pytest.mark.asyncio
+    async def test_complete_response_budget_includes_derived_and_aliased_data(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        query_result_module = importlib.import_module(
+            "superset.mcp_service.chart.query_result"
+        )
+        command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+        command_result = {
+            "queries": [
+                {
+                    "data": [{"value": "x" * 100}],
+                    "colnames": ["value"],
+                    "coltypes": [GenericDataType.STRING],
+                }
+            ]
+        }
+        source_size = len(
+            json.dumps(
+                command_result, ensure_ascii=False, separators=(",", ":")
+            ).encode()
+        )
+
+        class _Command:
+            def __init__(self, query_context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return command_result
+
+        monkeypatch.setattr(
+            module,
+            "build_query_context_from_form_data",
+            lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
+        )
+        monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+        monkeypatch.setattr(
+            module,
+            "event_logger",
+            SimpleNamespace(log_context=lambda **kwargs: nullcontext()),
+        )
+        monkeypatch.setattr(
+            query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", source_size
+        )
+
+        response = await _query_from_form_data(
+            {
+                "datasource_id": 1,
+                "datasource_type": "table",
+                "viz_type": "table",
+            },
+            GetChartDataRequest(form_data_key="response-budget"),
+            _AsyncContext(),
+        )
+
+        assert isinstance(response, ChartError)
+        assert response.error_type == "InvalidQueryResult"
+        assert "response" in response.error
 
     @pytest.mark.asyncio
     async def test_form_data_key_mixed_timeseries_builds_secondary_query(

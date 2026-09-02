@@ -26,6 +26,7 @@ import pytest
 from superset.mcp_service.utils.response_utils import (
     data_column_stats_row_limit,
     format_data_columns,
+    format_data_quality,
     STATS_ROW_CAP,
     STATS_TOTAL_WORK_CAP,
 )
@@ -182,6 +183,23 @@ class TestFormatDataColumns:
         assert len(columns) == column_count
         assert columns[0].statistics == {"sampled_rows": sampled_rows}
         assert columns[-1].statistics == {"sampled_rows": sampled_rows}
+        assert columns[0].null_count == sampled_rows
+        assert columns[-1].null_count == sampled_rows
+        assert format_data_quality(columns, row_count) == {
+            "completeness": 0.0,
+            "completeness_is_approximate": True,
+            "sampled_rows": sampled_rows,
+        }
+
+    def test_shared_acyclic_nested_values_are_profiled_by_value(self) -> None:
+        shared = [1, {"nested": 2}]
+        columns = format_data_columns(
+            [{"left": shared, "right": shared}], ["left", "right"]
+        )
+
+        assert columns[0].unique_count == 1
+        assert columns[1].unique_count == 1
+        assert columns[0].sample_values == columns[1].sample_values
 
     def test_nested_identity_consumes_the_shared_iterative_budget(
         self, monkeypatch: pytest.MonkeyPatch

@@ -204,7 +204,7 @@ def _profile_value_identity(  # noqa: C901
     """Build a hook-free identity under the shared iterative node budget."""
     tokens: list[Any] = []
     stack: list[tuple[str, Any]] = [("value", value)]
-    seen: set[int] = set()
+    active_containers: set[int] = set()
     while stack:
         action, item = stack.pop()
         budget.nodes += 1
@@ -213,14 +213,18 @@ def _profile_value_identity(  # noqa: C901
         if action == "token":
             tokens.append(item)
             continue
+        if action == "leave":
+            active_containers.remove(id(item))
+            continue
         if type(item) is list:
             identity = id(item)
-            if identity in seen:
-                tokens.append(("repeated_list", identity))
+            if identity in active_containers:
+                tokens.append(("cyclic_list",))
                 continue
-            seen.add(identity)
+            active_containers.add(identity)
             width = list.__len__(item)
             tokens.append(("list", width))
+            stack.append(("leave", item))
             stack.append(("token", "list_end"))
             stack.extend(
                 ("value", list.__getitem__(item, index))
@@ -229,12 +233,13 @@ def _profile_value_identity(  # noqa: C901
             continue
         if type(item) is dict:
             identity = id(item)
-            if identity in seen:
-                tokens.append(("repeated_dict", identity))
+            if identity in active_containers:
+                tokens.append(("cyclic_dict",))
                 continue
-            seen.add(identity)
+            active_containers.add(identity)
             entries = list(dict.items(item))
             tokens.append(("dict", list.__len__(entries)))
+            stack.append(("leave", item))
             stack.append(("token", "dict_end"))
             for key, child in reversed(entries):
                 key_token = (
@@ -344,3 +349,30 @@ def format_data_columns(  # noqa: C901
             )
         )
     return columns_meta
+
+
+def format_data_quality(columns: list[DataColumn], row_count: int) -> dict[str, Any]:
+    """Calculate completeness from the same exact or sampled rows as metadata."""
+    sampled_rows = row_count
+    for column in columns:
+        statistics = column.statistics
+        if statistics is not None:
+            candidate = statistics.get("sampled_rows")
+            if type(candidate) is int:
+                sampled_rows = min(sampled_rows, candidate)
+
+    denominator = sampled_rows * len(columns)
+    completeness = (
+        1.0
+        if denominator == 0
+        else 1.0 - sum(column.null_count for column in columns) / denominator
+    )
+    result: dict[str, Any] = {"completeness": completeness}
+    if sampled_rows < row_count:
+        result.update(
+            {
+                "completeness_is_approximate": True,
+                "sampled_rows": sampled_rows,
+            }
+        )
+    return result

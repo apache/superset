@@ -18,6 +18,7 @@
 """Canonicalize and validate ``ChartDataCommand`` result envelopes."""
 
 import math
+import time as system_time
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
@@ -30,6 +31,7 @@ import numpy as np
 import pandas as pd
 import pytz
 from dateutil import tz as dateutil_tz, zoneinfo as dateutil_zoneinfo
+from pydantic import BaseModel
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.db_query_status import QueryStatus
@@ -109,6 +111,7 @@ _DATEUTIL_FIXED_TIMEZONE_TYPES = frozenset(
 _DATEUTIL_NAMED_TIMEZONE_TYPES = frozenset(
     {dateutil_tz.tzfile, dateutil_zoneinfo.tzfile}
 )
+_DATEUTIL_LOCAL_TIMEZONE_TYPE = type(dateutil_tz.tzlocal())
 _PYTZ_FIXED_TIMEZONE_TYPES = frozenset({type(pytz.FixedOffset(1))})
 
 
@@ -273,7 +276,13 @@ def _timezone_name_without_hooks(tzinfo: Any) -> str | None:  # noqa: C901
                 continue
             zone = namespace.get("zone")
             if type(zone) is str and _bounded_utf8_length(zone, 256) is not None:
-                return zone
+                try:
+                    canonical = pytz.timezone(zone)
+                except (KeyError, ValueError):
+                    return None
+                # Generated pytz types are trusted; arbitrary subclasses that
+                # inherit their internal fields are not.
+                return zone if type(canonical) is type(tzinfo) else None
 
     if type(tzinfo) not in _DATEUTIL_NAMED_TIMEZONE_TYPES:
         return None
@@ -298,6 +307,83 @@ def _timezone_name_without_hooks(tzinfo: Any) -> str | None:  # noqa: C901
     if not parts or any(part in {"", ".", ".."} for part in parts):
         return None
     return name if _bounded_utf8_length(name, 256) is not None else None
+
+
+def _object_namespace(value: Any) -> dict[str, Any] | None:
+    """Read exact instance storage without descriptor dispatch."""
+    try:
+        namespace = object.__getattribute__(value, "__dict__")
+    except (AttributeError, TypeError):
+        return None
+    return namespace if type(namespace) is dict else None
+
+
+def _pytz_named_offset_without_hooks(tzinfo: Any) -> timezone | None:
+    """Return a localized pytz zone's stored offset without calling hooks."""
+    if _timezone_name_without_hooks(tzinfo) is None:
+        return None
+    namespace = _object_namespace(tzinfo)
+    offset = dict.get(namespace, "_utcoffset") if namespace is not None else None
+    if type(offset) is not timedelta:
+        return None
+    try:
+        return timezone(offset)
+    except ValueError:
+        return None
+
+
+def _dateutil_local_offset_without_hooks(
+    value: datetime, tzinfo: Any
+) -> timezone | None:
+    """Select a dateutil local offset using builtin system-time data."""
+    if type(tzinfo) is not _DATEUTIL_LOCAL_TIMEZONE_TYPE:
+        return None
+    namespace = _object_namespace(tzinfo)
+    if namespace is None:
+        return None
+    standard_offset = dict.get(namespace, "_std_offset")
+    daylight_offset = dict.get(namespace, "_dst_offset")
+    has_daylight = dict.get(namespace, "_hasdst")
+    if (
+        type(standard_offset) is not timedelta
+        or type(daylight_offset) is not timedelta
+        or type(has_daylight) is not bool
+    ):
+        return None
+    selected_offset = standard_offset
+    if has_daylight:
+        epoch = datetime(1970, 1, 1)
+        naive = datetime(
+            value.year,
+            value.month,
+            value.day,
+            value.hour,
+            value.minute,
+            value.second,
+            value.microsecond,
+        )
+        timestamp = (naive - epoch).total_seconds()
+        try:
+            is_daylight = bool(
+                system_time.localtime(timestamp + system_time.timezone).tm_isdst
+            )
+            daylight_saved = daylight_offset - standard_offset
+            previous_is_daylight = bool(
+                system_time.localtime(
+                    timestamp
+                    - timedelta.total_seconds(daylight_saved)
+                    + system_time.timezone
+                ).tm_isdst
+            )
+        except (OverflowError, OSError, ValueError):
+            return None
+        if not is_daylight and is_daylight != previous_is_daylight:
+            is_daylight = not bool(value.fold)
+        selected_offset = daylight_offset if is_daylight else standard_offset
+    try:
+        return timezone(selected_offset)
+    except ValueError:
+        return None
 
 
 def _canonical_timezone(tzinfo: Any) -> timezone | ZoneInfo | None:  # noqa: C901
@@ -335,6 +421,98 @@ def _canonical_timezone(tzinfo: Any) -> timezone | ZoneInfo | None:  # noqa: C90
     return None
 
 
+def _timestamp_offset_without_hooks(value: pd.Timestamp) -> timezone | None:
+    """Recover a timestamp's stored wall-clock offset without timezone hooks."""
+    multipliers = {"s": 1_000_000_000, "ms": 1_000_000, "us": 1_000, "ns": 1}
+    multiplier = multipliers.get(value.unit)
+    if multiplier is None:
+        return None
+    try:
+        instant_ns = int(value.asm8.view("i8")) * multiplier
+        epoch_ordinal = date.toordinal(date(1970, 1, 1))
+        wall_ns = (
+            (
+                (datetime.toordinal(value) - epoch_ordinal) * 86_400
+                + value.hour * 3600
+                + value.minute * 60
+                + value.second
+            )
+            * 1_000_000_000
+            + value.microsecond * 1000
+            + value.nanosecond
+        )
+        offset_ns = wall_ns - instant_ns
+        if offset_ns % 1000:
+            return None
+        return timezone(timedelta(microseconds=offset_ns // 1000))
+    except (OverflowError, TypeError, ValueError):
+        return None
+
+
+def _canonical_datetime(value: datetime) -> tuple[str | None, str | None]:
+    """Serialize an exact datetime through trusted timezone state only."""
+    tzinfo = value.tzinfo
+    canonical_value = value
+    if tzinfo is not None and not any(
+        type(tzinfo) is trusted for trusted in _TRUSTED_TIMEZONE_TYPES
+    ):
+        canonical_tz = (
+            _pytz_named_offset_without_hooks(tzinfo)
+            or _dateutil_local_offset_without_hooks(value, tzinfo)
+            or _canonical_timezone(tzinfo)
+        )
+        if canonical_tz is None:
+            return None, "a datetime with an unsupported timezone"
+        canonical_value = datetime(
+            value.year,
+            value.month,
+            value.day,
+            value.hour,
+            value.minute,
+            value.second,
+            value.microsecond,
+            tzinfo=canonical_tz,
+            fold=value.fold,
+        )
+    try:
+        return datetime.isoformat(canonical_value), None
+    except (OverflowError, TypeError, ValueError):
+        return None, "an invalid datetime"
+
+
+def _canonical_time(value: time) -> tuple[str | None, str | None]:
+    """Serialize an exact time through trusted timezone state only."""
+    tzinfo = value.tzinfo
+    canonical_value = value
+    if tzinfo is not None and not any(
+        type(tzinfo) is trusted for trusted in _TRUSTED_TIMEZONE_TYPES
+    ):
+        canonical_tz = _canonical_timezone(tzinfo)
+        if canonical_tz is None and type(tzinfo) is _DATEUTIL_LOCAL_TIMEZONE_TYPE:
+            namespace = _object_namespace(tzinfo)
+            if namespace is not None and dict.get(namespace, "_hasdst") is False:
+                offset = dict.get(namespace, "_std_offset")
+                if type(offset) is timedelta:
+                    try:
+                        canonical_tz = timezone(offset)
+                    except ValueError:
+                        canonical_tz = None
+        if canonical_tz is None:
+            return None, "a time with an unsupported timezone"
+        canonical_value = time(
+            value.hour,
+            value.minute,
+            value.second,
+            value.microsecond,
+            tzinfo=canonical_tz,
+            fold=value.fold,
+        )
+    try:
+        return time.isoformat(canonical_value), None
+    except (OverflowError, TypeError, ValueError):
+        return None, "an invalid time"
+
+
 def _canonical_timestamp(value: pd.Timestamp) -> tuple[str | None, str | None]:
     """Preserve a trusted timestamp's instant, offset, nanoseconds, and fold."""
     try:
@@ -342,9 +520,14 @@ def _canonical_timestamp(value: pd.Timestamp) -> tuple[str | None, str | None]:
         if tzinfo is not None and not any(
             type(tzinfo) is trusted for trusted in _TRUSTED_TIMEZONE_TYPES
         ):
-            canonical_tz = _canonical_timezone(tzinfo)
-            if canonical_tz is None:
+            if (
+                _canonical_timezone(tzinfo) is None
+                and type(tzinfo) is not _DATEUTIL_LOCAL_TIMEZONE_TYPE
+            ):
                 return None, "a timestamp with an unsupported timezone"
+            canonical_tz = _timestamp_offset_without_hooks(value)
+            if canonical_tz is None:
+                return None, "an invalid timestamp"
             raw_value = value.asm8.view("i8")
             value = pd.Timestamp(raw_value, unit=value.unit, tz="UTC").tz_convert(
                 canonical_tz
@@ -362,22 +545,17 @@ def _normalize_scalar(value: Any) -> tuple[Any, str | None]:  # noqa: C901
     if value_type is int:
         return value, _integer_failure(value)
     if value_type is float:
+        if math.isnan(value):
+            return None, None
         return (value, None) if math.isfinite(value) else (None, "a non-finite number")
     if value_type is Decimal:
         if reason := _decimal_failure(value):
             return None, reason
         return Decimal.__str__(value), None
-    if value_type is datetime or value_type is time:
-        tzinfo = value.tzinfo
-        if tzinfo is not None and not any(
-            type(tzinfo) is trusted for trusted in _TRUSTED_TIMEZONE_TYPES
-        ):
-            return None, "a temporal value with an unsupported timezone"
-        try:
-            method = datetime.isoformat if value_type is datetime else time.isoformat
-            return method(value), None
-        except (OverflowError, ValueError):
-            return None, "an invalid temporal value"
+    if value_type is datetime:
+        return _canonical_datetime(value)
+    if value_type is time:
+        return _canonical_time(value)
     if value_type is date:
         return date.isoformat(value), None
     if value_type is timedelta:
@@ -404,6 +582,8 @@ def _normalize_scalar(value: Any) -> tuple[Any, str | None]:  # noqa: C901
         return normalized, _integer_failure(normalized)
     if value_type in _NUMPY_FLOAT_TYPES:
         normalized_float = float(value)
+        if math.isnan(normalized_float):
+            return None, None
         return (
             (normalized_float, None)
             if math.isfinite(normalized_float)
@@ -438,13 +618,16 @@ def _normalize_value(  # noqa: C901
 ) -> tuple[Any, str | None]:
     """Iteratively normalize one bounded exact-container value tree."""
     stack: list[
-        tuple[Any, list[Any] | dict[str, Any] | None, int | str | None, int]
-    ] = [(value, None, None, 0)]
-    seen: set[int] = set()
+        tuple[Any, list[Any] | dict[str, Any] | None, int | str | None, int, bool]
+    ] = [(value, None, None, 0, False)]
+    active_containers: set[int] = set()
     root = value
 
     while stack:
-        item, parent, slot, depth = stack.pop()
+        item, parent, slot, depth, leaving = stack.pop()
+        if leaving:
+            active_containers.remove(id(item))
+            continue
         if depth > MAX_RESULT_VALUE_DEPTH:
             return None, "excessively nested data"
         if reason := _charge_value(budget):
@@ -452,9 +635,9 @@ def _normalize_value(  # noqa: C901
 
         if type(item) is list:
             identity = id(item)
-            if identity in seen:
-                return None, "repeated or cyclic containers"
-            seen.add(identity)
+            if identity in active_containers:
+                return None, "cyclic containers"
+            active_containers.add(identity)
             width = list.__len__(item)
             if width > MAX_RESULT_VALUE_ITEMS:
                 return None, "an oversized array"
@@ -462,17 +645,18 @@ def _normalize_value(  # noqa: C901
                 budget, _container_json_syntax_size(width, mapping=False)
             ):
                 return None, reason
+            stack.append((item, None, None, depth, True))
             stack.extend(
-                (list.__getitem__(item, index), item, index, depth + 1)
+                (list.__getitem__(item, index), item, index, depth + 1, False)
                 for index in range(width - 1, -1, -1)
             )
             continue
 
         if type(item) is dict:
             identity = id(item)
-            if identity in seen:
-                return None, "repeated or cyclic containers"
-            seen.add(identity)
+            if identity in active_containers:
+                return None, "cyclic containers"
+            active_containers.add(identity)
             width = dict.__len__(item)
             if width > MAX_RESULT_VALUE_ITEMS:
                 return None, "an oversized object"
@@ -480,13 +664,14 @@ def _normalize_value(  # noqa: C901
                 budget, _container_json_syntax_size(width, mapping=True)
             ):
                 return None, reason
-            children: list[tuple[Any, dict[str, Any], str, int]] = []
+            children: list[tuple[Any, dict[str, Any], str, int, bool]] = []
             for key, child in dict.items(item):
                 if type(key) is not str:
                     return None, "a non-string object key"
                 if reason := _charge_text(key, budget, key=True):
                     return None, reason
-                children.append((child, item, key, depth + 1))
+                children.append((child, item, key, depth + 1, False))
+            stack.append((item, None, None, depth, True))
             stack.extend(reversed(children))
             continue
 
@@ -746,14 +931,16 @@ def validate_query_result_envelope(  # noqa: C901
     budget = _ResultBudget()
     if reason := _charge_value(budget):
         return _invalid_result(reason)
-    wire_item_count = dict.__len__(result) - ("query_context" in result)
+    top_level_keys = list(dict.keys(result))
+    if any(type(key) is not str for key in top_level_keys):
+        return _invalid_metadata("Chart query")
+    has_query_context = any(key == "query_context" for key in top_level_keys)
+    wire_item_count = dict.__len__(result) - has_query_context
     if reason := _charge_json_bytes(
         budget, _container_json_syntax_size(wire_item_count, mapping=True)
     ):
         return _invalid_result(reason)
-    for key in list(dict.keys(result)):
-        if type(key) is not str:
-            return _invalid_metadata("Chart query")
+    for key in top_level_keys:
         if key == "query_context":
             continue
         if reason := _charge_text(key, budget, key=True):
@@ -907,3 +1094,87 @@ def first_query_data(
     queries = dict.__getitem__(result, "queries")
     first_query = list.__getitem__(queries, 0)
     return dict.__getitem__(first_query, "data"), None
+
+
+def response_json_failure(response: BaseModel) -> ChartError | None:  # noqa: C901
+    """Bound the complete compact Pydantic response before serialization.
+
+    Response models duplicate some source values in column samples and query
+    compatibility fields, and exports add derived SQL/CSV/Excel strings. Those
+    strings are limited only by the aggregate response budget, not the source
+    cell string cap.
+    """
+    try:
+        payload = BaseModel.model_dump(response, mode="python", by_alias=True)
+    except Exception:
+        return _invalid_result("an uninspectable response projection")
+
+    stack: list[tuple[str, Any]] = [("value", payload)]
+    active_containers: set[int] = set()
+    encoded_bytes = 0
+    inspected_values = 0
+    while stack:
+        action, item = stack.pop()
+        if action == "leave":
+            active_containers.remove(id(item))
+            continue
+        inspected_values += 1
+        if inspected_values > 3 * MAX_QUERY_RESULT_VALUES:
+            return _invalid_result("a response projection exceeding the work limit")
+
+        if type(item) is dict:
+            identity = id(item)
+            if identity in active_containers:
+                return _invalid_result("a cyclic response projection")
+            active_containers.add(identity)
+            width = dict.__len__(item)
+            encoded_bytes += _container_json_syntax_size(width, mapping=True)
+            stack.append(("leave", item))
+            children: list[tuple[str, Any]] = []
+            for key, child in dict.items(item):
+                if type(key) is not str:
+                    return _invalid_result("a response with a non-string object key")
+                key_size = _json_string_size(key, MAX_RESULT_KEY_LENGTH)
+                if key_size is None:
+                    return _invalid_result("an invalid or oversized response key")
+                encoded_bytes += key_size
+                children.append(("value", child))
+            stack.extend(reversed(children))
+        elif type(item) is list:
+            identity = id(item)
+            if identity in active_containers:
+                return _invalid_result("a cyclic response projection")
+            active_containers.add(identity)
+            width = list.__len__(item)
+            encoded_bytes += _container_json_syntax_size(width, mapping=False)
+            stack.append(("leave", item))
+            stack.extend(
+                ("value", list.__getitem__(item, index))
+                for index in range(width - 1, -1, -1)
+            )
+        elif type(item) is str:
+            remaining = MAX_QUERY_RESULT_VALUE_BYTES - encoded_bytes
+            scalar_size = _json_string_size(item, remaining)
+            if scalar_size is None:
+                return _invalid_result(
+                    "a response exceeding the aggregate JSON byte limit"
+                )
+            encoded_bytes += scalar_size
+        else:
+            normalized, reason = _normalize_scalar(item)
+            if reason is not None:
+                return _invalid_result(f"a response projection containing {reason}")
+            if type(normalized) is str:
+                remaining = MAX_QUERY_RESULT_VALUE_BYTES - encoded_bytes
+                scalar_size = _json_string_size(normalized, remaining)
+                if scalar_size is None:
+                    return _invalid_result(
+                        "a response exceeding the aggregate JSON byte limit"
+                    )
+            else:
+                scalar_size = _normalized_scalar_json_size(normalized)
+            encoded_bytes += scalar_size
+
+        if encoded_bytes > MAX_QUERY_RESULT_VALUE_BYTES:
+            return _invalid_result("a response exceeding the aggregate JSON byte limit")
+    return None

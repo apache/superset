@@ -48,7 +48,10 @@ from superset.mcp_service.chart.chart_helpers import (
     resolve_form_data_datasource,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
-from superset.mcp_service.chart.query_result import validate_query_result_envelope
+from superset.mcp_service.chart.query_result import (
+    response_json_failure,
+    validate_query_result_envelope,
+)
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -62,6 +65,7 @@ from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
+from superset.mcp_service.utils.response_utils import format_data_quality
 from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
@@ -1066,10 +1070,8 @@ async def get_chart_data(  # noqa: C901
             await ctx.report_progress(4, 4, "Building response")
 
             # Calculate data quality metrics
-            data_completeness = 1.0 - (
-                sum(col.null_count for col in columns)
-                / max(len(data) * len(columns), 1)
-            )
+            data_quality = format_data_quality(columns, len(data))
+            data_completeness = data_quality["completeness"]
 
             await ctx.info(
                 "Chart data retrieval completed successfully: chart_id=%s, "
@@ -1086,7 +1088,7 @@ async def get_chart_data(  # noqa: C901
             )
 
             # Default JSON format
-            return ChartData(
+            response = ChartData(
                 chart_id=chart.id,
                 chart_name=chart.slice_name or f"Chart {chart.id}",
                 chart_type=chart.viz_type or "unknown",
@@ -1097,12 +1099,13 @@ async def get_chart_data(  # noqa: C901
                 total_rows=query_result.get("rowcount"),
                 summary=summary,
                 insights=insights,
-                data_quality={"completeness": data_completeness},
+                data_quality=data_quality,
                 recommended_visualizations=recommended_visualizations,
                 data_freshness=None,  # Add missing field
                 performance=performance,
                 cache_status=cache_status,
             )
+            return response_json_failure(response) or response
 
         except (OAuth2RedirectError, OAuth2Error):
             # OAuth errors subclass SupersetException and would otherwise be
@@ -1285,7 +1288,7 @@ async def _query_from_form_data(  # noqa: C901
         )
 
         await ctx.report_progress(4, 4, "Building response")
-        return ChartData(
+        response = ChartData(
             chart_id=0,
             chart_name=chart_name,
             chart_type=viz_type,
@@ -1296,13 +1299,7 @@ async def _query_from_form_data(  # noqa: C901
             total_rows=query_result.get("rowcount"),
             summary=summary,
             insights=["This is an unsaved chart queried from cached form_data."],
-            data_quality={
-                "completeness": 1.0
-                - (
-                    sum(col.null_count for col in columns)
-                    / max(len(data) * len(columns), 1)
-                )
-            },
+            data_quality=format_data_quality(columns, len(data)),
             recommended_visualizations=[],
             data_freshness=None,
             performance=PerformanceMetadata(
@@ -1311,6 +1308,7 @@ async def _query_from_form_data(  # noqa: C901
             ),
             cache_status=cache_status,
         )
+        return response_json_failure(response) or response
 
     except (OAuth2RedirectError, OAuth2Error):
         # OAuth errors subclass SupersetException; re-raise so the caller's
@@ -1331,7 +1329,7 @@ def _export_data_as_csv(
     columns: List[str],
     cache_status: Any,
     performance: Any,
-) -> "ChartData":
+) -> "ChartData | ChartError":
     """Export chart data as CSV format."""
     import csv
     import io
@@ -1363,7 +1361,7 @@ def _export_data_as_csv(
     # Return as ChartData with CSV content in a special field
     from superset.mcp_service.chart.schemas import ChartData
 
-    return ChartData(
+    response = ChartData(
         chart_id=chart.id,
         chart_name=chart.slice_name or f"Chart {chart.id}",
         chart_type=chart.viz_type or "unknown",
@@ -1382,6 +1380,7 @@ def _export_data_as_csv(
         csv_data=csv_content,
         format="csv",
     )
+    return response_json_failure(response) or response
 
 
 def _export_data_as_excel(
@@ -1523,7 +1522,7 @@ def _create_excel_chart_data(
     chart_name = chart.slice_name or f"Chart {chart.id}"
     summary = f"Excel export of chart '{chart.slice_name}' with {len(data)} rows"
 
-    return ChartData(
+    response = ChartData(
         chart_id=chart.id,
         chart_name=chart_name,
         chart_type=chart.viz_type or "unknown",
@@ -1541,6 +1540,7 @@ def _create_excel_chart_data(
         excel_data=excel_b64,
         format="excel",
     )
+    return response_json_failure(response) or response
 
 
 def _create_excel_chart_data_xlsxwriter(
@@ -1556,7 +1556,7 @@ def _create_excel_chart_data_xlsxwriter(
     chart_name = chart.slice_name or f"Chart {chart.id}"
     summary = f"Excel export of chart '{chart.slice_name}' with {len(data)} rows"
 
-    return ChartData(
+    response = ChartData(
         chart_id=chart.id,
         chart_name=chart_name,
         chart_type=chart.viz_type or "unknown",
@@ -1574,3 +1574,4 @@ def _create_excel_chart_data_xlsxwriter(
         excel_data=excel_b64,
         format="excel",
     )
+    return response_json_failure(response) or response

@@ -109,7 +109,7 @@ def test_saved_virtual_dataset_previews_seed_all_jinja_form_data_macros(
         def run(self) -> dict[str, Any]:
             events.append("run")
             return chart_data_command_result(
-                [{"region": "North", "count": 1}],
+                [{"region": "North", "count": float("nan")}],
                 columns=["region", "count"],
                 coltypes=[GenericDataType.STRING, GenericDataType.NUMERIC],
             )
@@ -270,8 +270,8 @@ def test_saved_previews_validate_hostile_secondary_results_without_hooks(
 )
 @pytest.mark.parametrize(
     "value",
-    [10**5000, float("nan"), float("inf"), b"\xff", QueryStatus.SUCCESS],
-    ids=["huge-int", "nan", "infinity", "bytes", "query-status"],
+    [10**5000, float("inf"), b"\xff", QueryStatus.SUCCESS],
+    ids=["huge-int", "infinity", "bytes", "query-status"],
 )
 def test_saved_previews_reject_noncanonical_scalars_before_rendering(
     strategy_class: type[PreviewFormatStrategy], preview_format: str, value: Any

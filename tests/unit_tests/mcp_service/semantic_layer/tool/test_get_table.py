@@ -417,7 +417,7 @@ def test_get_table_preserves_authoritative_coltypes_for_empty_data() -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_table_rejects_nonfinite_producer_data(mcp_server: FastMCP) -> None:
+async def test_get_table_normalizes_nan_producer_data(mcp_server: FastMCP) -> None:
     mock_ds = _make_dataset(42)
     query_result = chart_data_command_result(
         [{"region": "west", "revenue": float("nan")}],
@@ -450,8 +450,9 @@ async def test_get_table_rejects_nonfinite_producer_data(mcp_server: FastMCP) ->
             )
 
     data = json.loads(result.content[0].text)
-    assert data["success"] is False
-    assert data["error_type"] == "InvalidQueryResult"
+    assert data["success"] is True
+    assert data["data"] == [{"region": "west", "revenue": None}]
+    assert data["columns"][1]["null_count"] == 1
 
 
 @pytest.mark.asyncio

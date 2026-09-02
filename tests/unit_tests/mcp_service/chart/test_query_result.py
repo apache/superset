@@ -18,7 +18,8 @@
 from datetime import date, datetime, time, timedelta, timezone, tzinfo
 from decimal import Decimal
 from enum import Enum
-from typing import Any
+from types import SimpleNamespace
+from typing import Any, cast
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
@@ -427,7 +428,6 @@ def test_cache_and_filter_metadata_rejects_non_wire_shapes(metadata):
     "value",
     [
         10**5000,
-        float("nan"),
         float("inf"),
         float("-inf"),
         Decimal("NaN"),
@@ -441,7 +441,6 @@ def test_cache_and_filter_metadata_rejects_non_wire_shapes(metadata):
     ],
     ids=[
         "huge-int",
-        "nan",
         "positive-infinity",
         "negative-infinity",
         "decimal-nan",
@@ -637,6 +636,8 @@ def test_query_context_sidecar_is_exempt_without_hook_dispatch() -> None:
         (np.int64(7), 7),
         (np.uint64(8), 8),
         (np.float32(1.5), 1.5),
+        (float("nan"), None),
+        (np.float64("nan"), None),
         (np.bool_(True), True),
         (Decimal("1.2300"), "1.2300"),
         (date(2024, 1, 2), "2024-01-02"),
@@ -657,6 +658,46 @@ def test_trusted_dataframe_scalars_are_json_native(value: Any, expected: Any) ->
     assert error is None
     assert data == [{"value": expected}]
     assert type(data[0]["value"]) is type(expected)
+
+
+def test_real_dataframe_processor_and_chart_command_normalize_nan() -> None:
+    from superset.common.query_context import QueryContext
+    from superset.common.query_context_processor import QueryContextProcessor
+
+    frame = pd.DataFrame(
+        {
+            "builtin_missing": [float("nan")],
+            "numpy_missing": [np.float64("nan")],
+            "nullable_missing": pd.Series([pd.NA], dtype="Float64"),
+        }
+    )
+    processor_context = SimpleNamespace(
+        datasource=object(), result_format=ChartDataResultFormat.JSON
+    )
+    records = QueryContextProcessor(cast(QueryContext, processor_context)).get_data(
+        frame, [GenericDataType.NUMERIC] * 3
+    )
+    assert type(records) is list
+    assert all(pd.isna(value) for value in records[0].values())
+
+    result = _producer_result(
+        {
+            "data": records,
+            "colnames": list(frame.columns),
+            "coltypes": [GenericDataType.NUMERIC] * 3,
+            "rowcount": 1,
+        }
+    )
+    data, error = first_query_data(result)
+
+    assert error is None
+    assert data == [
+        {
+            "builtin_missing": None,
+            "numpy_missing": None,
+            "nullable_missing": None,
+        }
+    ]
 
 
 def test_pandas_timestamp_preserves_fold_offset() -> None:
@@ -702,6 +743,108 @@ def test_pandas_timestamp_accepts_safe_producer_timezones(
 
     assert error is None
     assert data == [{"value": expected}]
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        (
+            datetime(2024, 1, 2, 3, 4, 5, tzinfo=dateutil_tz.tzoffset("IST", 19_800)),
+            "2024-01-02T03:04:05+05:30",
+        ),
+        (
+            datetime(2024, 1, 2, 3, 4, 5, tzinfo=dateutil_tz.gettz("US/Pacific")),
+            "2024-01-02T03:04:05-08:00",
+        ),
+        (
+            datetime(
+                2024,
+                1,
+                2,
+                3,
+                4,
+                5,
+                tzinfo=dateutil_zoneinfo.get_zonefile_instance().get(
+                    "America/Los_Angeles"
+                ),
+            ),
+            "2024-01-02T03:04:05-08:00",
+        ),
+        (
+            pytz.timezone("US/Pacific").localize(datetime(2024, 1, 2, 3, 4, 5)),
+            "2024-01-02T03:04:05-08:00",
+        ),
+        (
+            datetime(2024, 1, 2, 3, 4, 5, tzinfo=pytz.FixedOffset(-450)),
+            "2024-01-02T03:04:05-07:30",
+        ),
+        (
+            time(3, 4, 5, tzinfo=dateutil_tz.tzoffset("IST", 19_800)),
+            "03:04:05+05:30",
+        ),
+        (time(3, 4, 5, tzinfo=pytz.FixedOffset(-450)), "03:04:05-07:30"),
+        (
+            pd.Timestamp(datetime(2024, 1, 2, 3, 4, 5, tzinfo=dateutil_tz.tzlocal())),
+            pd.Timestamp(
+                datetime(2024, 1, 2, 3, 4, 5, tzinfo=dateutil_tz.tzlocal())
+            ).isoformat(),
+        ),
+    ],
+)
+def test_exact_temporals_accept_packaged_safe_timezones(
+    value: Any, expected: str
+) -> None:
+    result = _producer_result({"data": [{"value": value}]})
+
+    data, error = first_query_data(result)
+
+    assert error is None
+    assert data == [{"value": expected}]
+
+
+def test_shared_acyclic_containers_are_normalized_for_every_occurrence() -> None:
+    shared = [np.float64(1.5), float("nan")]
+    metadata = {"nested": [np.int64(2)]}
+    result = _producer_result(
+        {
+            "data": [{"left": shared, "right": shared}],
+            "metadata": [metadata, metadata],
+        }
+    )
+
+    assert validate_query_result_envelope(result) is None
+    assert result["queries"][0]["data"] == [{"left": [1.5, None], "right": [1.5, None]}]
+    assert result["queries"][0]["metadata"] == [
+        {"nested": [2]},
+        {"nested": [2]},
+    ]
+
+
+def test_shared_acyclic_containers_are_recharged_per_occurrence(monkeypatch) -> None:
+    shared = ["escaped\nvalue"]
+    result = {"queries": [{"data": [{"left": shared, "right": shared}]}]}
+    encoded_size = len(
+        json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode()
+    )
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        encoded_size - 1,
+    )
+
+    error = validate_query_result_envelope(result)
+
+    assert error is not None
+    assert "JSON bytes" in error.error
+
+
+def test_true_container_cycle_is_rejected() -> None:
+    cyclic: list[Any] = []
+    cyclic.append(cyclic)
+
+    error = validate_query_result_envelope({"queries": [{"data": [{"value": cyclic}]}]})
+
+    assert error is not None
+    assert "cyclic" in error.error
 
 
 class HostileTimezone(tzinfo):

@@ -144,6 +144,20 @@ class TestExtractSqlFromResult:
         assert output.datasource_name == ("my_table")
         assert output.error is None
 
+    def test_sql_over_source_cell_cap_is_bounded_only_by_response_budget(self):
+        sql = "SELECT '" + "x" * (70 * 1024) + "'"
+
+        output = _extract_sql_from_result(
+            {"queries": [{"query": sql, "language": "sql"}]},
+            chart_id=10,
+            chart_name="Large SQL",
+            datasource_name="virtual_dataset",
+        )
+
+        assert isinstance(output, ChartSql)
+        assert output.sql == sql
+        assert len(output.model_dump_json().encode()) < 16 * 1024 * 1024
+
     def test_successful_sql_extraction_preserves_datasource_name(self):
         """Chart SQL preserves datasource names as domain values."""
         result = {

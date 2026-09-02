@@ -25,6 +25,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
+import numpy as np
 import pandas as pd
 import pytest
 import pytz
@@ -407,6 +408,48 @@ async def test_query_dataset_rejects_nonfinite_producer_data(
 
     data = json.loads(result.content[0].text)
     assert data["error_type"] == "InvalidQueryResult"
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_normalizes_nan_producer_data(
+    mcp_server: FastMCP,
+) -> None:
+    dataset = _make_dataset()
+    result_data = chart_data_command_result(
+        [{"category": "Electronics", "count": np.float64("nan")}],
+        columns=["category", "count"],
+        coltypes=[GenericDataType.STRING, GenericDataType.NUMERIC],
+    )
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate"
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=MagicMock(),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "columns": ["category"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["data"] == [{"category": "Electronics", "count": None}]
+    assert data["columns"][1]["null_count"] == 1
 
 
 @pytest.mark.asyncio

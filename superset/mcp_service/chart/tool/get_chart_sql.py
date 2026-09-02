@@ -44,6 +44,7 @@ from superset.mcp_service.chart.chart_helpers import (
     resolve_metrics_and_groupby,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.query_result import response_json_failure
 from superset.mcp_service.chart.schemas import (
     ChartError,
     ChartSql,
@@ -375,7 +376,7 @@ def _extract_sql_from_result(
             error_type="QueryGenerationFailed",
         )
 
-    return ChartSql(
+    response = ChartSql(
         chart_id=chart_id,
         chart_name=chart_name,
         sql="\n\n".join(sql_parts),
@@ -383,6 +384,7 @@ def _extract_sql_from_result(
         datasource_name=datasource_name,
         error="; ".join(errors) if errors else None,
     )
+    return response_json_failure(response) or response
 
 
 @tool(
