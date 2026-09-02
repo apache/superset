@@ -603,6 +603,7 @@ class ImportV1DashboardSchema(Schema):
     roles = fields.List(fields.Raw(), allow_none=True, load_only=True)
     theme_uuid = fields.UUID(allow_none=True)
     theme_id = fields.Integer(allow_none=True)
+    extra = fields.Dict(allow_none=True, load_only=True)
 
 
 class EmbeddedDashboardConfigSchema(Schema):
