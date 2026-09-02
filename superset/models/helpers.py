@@ -4823,6 +4823,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         template_processor=template_processor
                     )
                     is_metric_filter = True
+                elif (
+                    col_obj is None
+                    and isinstance(flt_col, str)
+                    and flt_col in adhoc_columns_by_label
+                ):
+                    sqla_col, _unused = self.adhoc_column_to_sqla(
+                        col=adhoc_columns_by_label[flt_col],
+                        template_processor=template_processor,
+                    )
+                    if isinstance(sqla_col, ColumnElement):
+                        applied_adhoc_filters_columns.append(flt_col)
+
             filter_grain = flt.get("grain")
 
             # Check if this filter should be skipped because it was handled in
