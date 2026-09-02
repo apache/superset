@@ -6171,6 +6171,90 @@
         ],
         "type": "object"
       },
+      "DatasetPurgeImpactCollection": {
+        "additionalProperties": false,
+        "properties": {
+          "count": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "restricted_count": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "result": {
+            "items": {
+              "$ref": "#/components/schemas/DatasetPurgeImpactObject"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "count",
+          "restricted_count",
+          "result"
+        ],
+        "type": "object"
+      },
+      "DatasetPurgeImpactObject": {
+        "additionalProperties": false,
+        "properties": {
+          "archived": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "nullable": true,
+            "type": "string"
+          },
+          "uuid": {
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "archived",
+          "name",
+          "url",
+          "uuid"
+        ],
+        "type": "object"
+      },
+      "DatasetPurgeImpactSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "charts": {
+            "$ref": "#/components/schemas/DatasetPurgeImpactCollection"
+          },
+          "dashboards": {
+            "$ref": "#/components/schemas/DatasetPurgeImpactCollection"
+          },
+          "impact_token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "charts",
+          "dashboards",
+          "impact_token"
+        ],
+        "type": "object"
+      },
+      "DatasetPurgeRequestSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmed_impact_token": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirmed_impact_token"
+        ],
+        "type": "object"
+      },
       "DatasetRelatedChart": {
         "additionalProperties": false,
         "properties": {
@@ -25139,6 +25223,17 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatasetPurgeRequestSchema"
+              }
+            }
+          },
+          "description": "Confirmed dependency impact",
+          "required": true
+        },
         "responses": {
           "200": {
             "content": {
@@ -25155,6 +25250,9 @@
             },
             "description": "Dataset permanently deleted"
           },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
           "401": {
             "$ref": "#/components/responses/401"
           },
@@ -25163,6 +25261,35 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "impact": {
+                      "$ref": "#/components/schemas/DatasetPurgeImpactSchema"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "enum": [
+                        "purge_impact_changed"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "reason",
+                    "impact"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Dataset dependency impact changed"
           },
           "422": {
             "$ref": "#/components/responses/422"
@@ -25180,6 +25307,58 @@
           }
         ],
         "summary": "Permanently delete a soft-deleted dataset",
+        "tags": [
+          "Datasets"
+        ]
+      }
+    },
+    "/api/v1/dataset/{uuid}/purge-impact": {
+      "get": {
+        "description": "Report the charts and dashboards that depend on an archived dataset, with an impact token that must be echoed back on the purge request. Limited to owners and admins (same audience as restore).",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetPurgeImpactSchema"
+                }
+              }
+            },
+            "description": "Dependency impact of purging the dataset"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Preview the dependency impact of purging an archived dataset",
         "tags": [
           "Datasets"
         ]
