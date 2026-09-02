@@ -316,17 +316,25 @@ class TestTakeTiledScreenshot:
         mock_page.evaluate.side_effect = evaluate
         mock_page.screenshot.return_value = _png(800, 1000, "white")
 
-        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
-            result = take_tiled_screenshot(
+        with (
+            patch("superset.utils.screenshot_utils.logger") as mock_logger,
+            pytest.raises(BlankScreenshotError),
+        ):
+            take_tiled_screenshot(
                 mock_page,
                 "dashboard",
                 tile_height=2000,
                 report_execution_context=_report_context(),
             )
 
-        assert result is None
         assert mock_page.screenshot.call_count == 3
-        assert isinstance(mock_logger.exception.call_args.args[1], BlankScreenshotError)
+        mock_logger.exception.assert_called_once_with(
+            "Tiled screenshot rejected blank pixels%s",
+            " [capture_kind=report "
+            "execution_id=084e7ee6-5557-4ecd-9632-b7f39c9ec524 "
+            "report_schedule_id=11 dashboard_id=805 chart_id=None "
+            "expected_holders=52 attempt=1]",
+        )
 
     def test_uniform_tile_without_visible_charts_is_allowed(self, mock_page):
         element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}

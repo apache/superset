@@ -1043,6 +1043,11 @@ def take_tiled_screenshot(  # noqa: C901
             context_suffix,
         )
         raise
+    except BlankScreenshotError:
+        # Preserve the explicit blank-tile reason for the report execution
+        # history instead of degrading it to an anonymous None screenshot.
+        logger.exception("Tiled screenshot rejected blank pixels%s", context_suffix)
+        raise
     except Exception as e:
         if readiness_timeout:
             # Let the per-tile readiness timeout propagate so the caller
