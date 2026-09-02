@@ -265,21 +265,27 @@ testWithAssets(
     const cookies = (await page.context().cookies()).filter(
       cookie => cookie.name !== 'async-token',
     );
+    // CSRF is disabled in the CI config but on by default elsewhere, so send a
+    // token when the instance issues one -- fetched through the browser's jar,
+    // never the pristine one. `validate_session` re-mints `async-token` on
+    // every response, so any request made by the pristine context would hand it
+    // the exact cookie this test proves the absence of. The token is bound to
+    // the session, not to the jar that fetched it.
+    const csrfResponse = await page.request.get(
+      `${origin}/api/v1/security/csrf_token/`,
+    );
+    const headers: Record<string, string> = { Referer: origin };
+    if (csrfResponse.ok()) {
+      headers['X-CSRFToken'] = (await csrfResponse.json()).result;
+    }
+
+    // Built last, and its first request is the submission below: nothing else
+    // is allowed to touch this jar.
     const api = await apiRequest.newContext({
       storageState: { cookies, origins: [] },
     });
 
     try {
-      // CSRF is disabled in the CI config but on by default elsewhere, so send
-      // the token when the instance issues one.
-      const csrfResponse = await api.get(
-        `${origin}/api/v1/security/csrf_token/`,
-      );
-      const headers: Record<string, string> = { Referer: origin };
-      if (csrfResponse.ok()) {
-        headers['X-CSRFToken'] = (await csrfResponse.json()).result;
-      }
-
       const response = await api.post(submission.url(), {
         headers,
         // `force` skips the cache-hit shortcut, which would otherwise answer
