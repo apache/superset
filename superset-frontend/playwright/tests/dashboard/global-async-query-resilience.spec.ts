@@ -29,6 +29,7 @@
  * Requires the `GLOBAL_ASYNC_QUERIES` feature flag, Redis, and a running
  * Celery worker.
  */
+import { request as apiRequest } from '@playwright/test';
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiGetChart, apiPutChart } from '../../helpers/api/chart';
 import { TIMEOUT } from '../../utils/constants';
@@ -219,7 +220,85 @@ testWithAssets(
 );
 
 testWithAssets(
-  'losing the async-token cookie bounces chart refresh to /login even though the real session stays valid',
+  'a chart-data submission without the async-channel token is rejected with 401',
+  async ({ page, testAssets }) => {
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+
+    const { dashboard, charts, valueLocators } =
+      await setupDashboardWithBigNumberCharts(
+        page,
+        testAssets,
+        testWithAssets.info(),
+        {
+          datasetName: 'birth_names',
+          chartNamePrefix: 'gaq_tc6_token_rejected',
+          chartSpecs: [BIG_NUMBER_COUNT_SPEC],
+        },
+      );
+    const [chart] = charts;
+    const [value] = valueLocators;
+    await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
+
+    // Replay the app's own submission rather than hand-building one: the 401
+    // is raised after payload validation and after the cache-hit shortcut, so
+    // an invented body would 400 and a cacheable one would return 200.
+    const submissionPromise = page.waitForRequest(
+      req =>
+        req.method() === 'POST' &&
+        req.url().includes('/api/v1/chart/data') &&
+        sliceIdFromChartDataUrl(req.url()) === chart.id,
+      { timeout: TIMEOUT.CHART_RENDER },
+    );
+    await dashboard.forceRefresh();
+    const submission = await submissionPromise;
+    const body = submission.postDataJSON();
+    expect(
+      body,
+      'the app should have submitted a chart-data payload',
+    ).toBeTruthy();
+
+    // An isolated cookie jar carrying the session but not `async-token`. The
+    // browser's jar cannot be used for this: `validate_session` re-mints the
+    // cookie on every response, so anything else in flight would hand the page
+    // a fresh token before the submission left.
+    const { origin } = new URL(submission.url());
+    const cookies = (await page.context().cookies()).filter(
+      cookie => cookie.name !== 'async-token',
+    );
+    const api = await apiRequest.newContext({
+      storageState: { cookies, origins: [] },
+    });
+
+    try {
+      // CSRF is disabled in the CI config but on by default elsewhere, so send
+      // the token when the instance issues one.
+      const csrfResponse = await api.get(
+        `${origin}/api/v1/security/csrf_token/`,
+      );
+      const headers: Record<string, string> = { Referer: origin };
+      if (csrfResponse.ok()) {
+        headers['X-CSRFToken'] = (await csrfResponse.json()).result;
+      }
+
+      const response = await api.post(submission.url(), {
+        headers,
+        // `force` skips the cache-hit shortcut, which would otherwise answer
+        // synchronously with 200 and never reach the async gate.
+        data: { ...body, force: true },
+      });
+
+      expect(
+        response.status(),
+        'a submission carrying no async-channel token should be rejected',
+      ).toBe(401);
+    } finally {
+      await api.dispose();
+    }
+  },
+);
+
+testWithAssets(
+  'a 401 from chart-data bounces the user off the dashboard, and the session survives it',
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
@@ -238,38 +317,35 @@ testWithAssets(
     const [value] = valueLocators;
     await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
 
-    const cookiesBeforeClear = await page.context().cookies();
-    expect(
-      cookiesBeforeClear.some(cookie => cookie.name === 'async-token'),
-      'a completed GAQ request should have set the async-token cookie',
-    ).toBe(true);
-
-    await page.context().clearCookies({ name: 'async-token' });
-
-    const chartDataResponsePromise = page.waitForResponse(
-      response =>
-        response.request().method() === 'POST' &&
-        response.url().includes('/api/v1/chart/data') &&
-        sliceIdFromChartDataUrl(response.url()) === chart.id,
-      { timeout: TIMEOUT.CHART_RENDER },
-    );
+    // Losing the async-channel token is what produces this 401 in the wild --
+    // asserted server-side in the test above. Clearing the cookie here and
+    // hoping the submission is the next request to reach the server is a race,
+    // because any other response re-mints it, so the response is served
+    // directly instead. What is under test is the client's handling: a 401 on
+    // chart-data hard-redirects the whole page.
+    const chartDataPattern = /\/api\/v1\/chart\/data/;
+    await page.route(chartDataPattern, async route => {
+      if (
+        route.request().method() === 'POST' &&
+        sliceIdFromChartDataUrl(route.request().url()) === chart.id
+      ) {
+        await route.fulfill({
+          status: 401,
+          contentType: 'application/json',
+          body: JSON.stringify({ msg: 'Unauthorized' }),
+        });
+        return;
+      }
+      await route.fallback();
+    });
 
     await dashboard.forceRefresh();
 
-    // `async-token` identifies the GAQ polling channel, not the login session.
-    // Losing it ought to be an internal hiccup, but the submission is rejected
-    // outright and the generic 401 handler hard-redirects the whole page. This
-    // asserts that confirmed behavior, not the ideal one: a still-logged-in
-    // user gets bounced off their dashboard. Flagged for triage as a UX defect.
-    const chartDataResponse = await chartDataResponsePromise;
-    expect(
-      chartDataResponse.status(),
-      'chart-data submission should be rejected (401) once the async-channel token is gone',
-    ).toBe(401);
-
-    // The redirect targets /login, but the still-valid session makes the login
-    // view immediately forward an authenticated visitor onward -- a server-side
-    // hop the browser collapses, so the observed URL is the destination.
+    // `async-token` identifies the GAQ polling channel, not the login session,
+    // so losing it ought to be an internal hiccup. Instead the generic 401
+    // handler bounces a still-logged-in user off their dashboard. This asserts
+    // that confirmed behavior, not the ideal one. Flagged for triage as a UX
+    // defect.
     await page.waitForURL(
       url => !url.toString().includes(`dashboard/${dashboardId}`),
       { timeout: TIMEOUT.PAGE_LOAD },
@@ -280,6 +356,7 @@ testWithAssets(
     ).not.toContain('/login');
 
     // Proof the real session survived: straight back in, no re-auth prompt.
+    await page.unroute(chartDataPattern);
     await dashboard.gotoById(dashboardId);
     await dashboard.waitForLoad({ timeout: TIMEOUT.PAGE_LOAD });
     await expect(value).toBeVisible({ timeout: TIMEOUT.CHART_RENDER });
