@@ -808,14 +808,15 @@ class TestBuildUpdatePayload:
         assert params["metrics"][1]["label"] == "Earliest Go Live Date"
         assert params["metrics"][1]["aggregate"] == "MIN"
 
-    def test_add_columns_rebinds_requested_dataset(self):
-        """Additive saves validate and persist against the same dataset."""
+    def test_add_columns_rebind_requires_complete_config(self):
+        """An additive patch cannot safely replace old dataset-bound roles."""
         request = UpdateChartRequest(
             identifier=1,
             dataset_id=22,
             add_columns=[ColumnRef(name="region")],
         )
         chart = Mock(
+            datasource_id=10,
             slice_name="Existing",
             params=json.dumps(
                 {
@@ -829,12 +830,14 @@ class TestBuildUpdatePayload:
 
         result = _build_update_payload(request, chart)
 
-        assert isinstance(result, dict)
-        assert result["datasource_id"] == 22
-        assert result["datasource_type"] == "table"
-        assert result["slice_name"] == "Existing"
-        params = json.loads(result["params"])
-        assert params["groupby"] == ["employer", "region"]
+        preview = _build_preview_form_data(request, chart)
+
+        for response in (result, preview):
+            assert isinstance(response, GenerateChartResponse)
+            assert response.success is False
+            assert response.error is not None
+            assert response.error.error_type == "ValidationError"
+            assert "complete table configuration" in response.error.details
 
     def test_add_columns_recognizes_implicit_raw_query_mode(self) -> None:
         """A table with all_columns and no query_mode still has raw semantics."""
@@ -2230,6 +2233,113 @@ class TestBuildPreviewFormDataDatasetId:
 
         assert isinstance(result, dict)
         assert result["datasource"] == "10__table"
+
+    @pytest.mark.parametrize(
+        "saved_form_data,stale_roles",
+        [
+            (
+                {
+                    "viz_type": "deck_path",
+                    "line_column": "old_path",
+                    "line_width": {"type": "metric", "value": "old_width"},
+                    "breakpoint_metric": "old_breakpoint",
+                    "dimension": "old_dimension",
+                    "tooltip_contents": ["old_tooltip"],
+                    "adhoc_filters": [{"subject": "old_region"}],
+                    "color_scheme": "supersetColors",
+                },
+                {
+                    "line_column",
+                    "line_width",
+                    "breakpoint_metric",
+                    "dimension",
+                    "tooltip_contents",
+                    "adhoc_filters",
+                },
+            ),
+            (
+                {
+                    "viz_type": "table",
+                    "query_mode": "aggregate",
+                    "groupby": ["old_region"],
+                    "metrics": ["old_revenue"],
+                    "order_by_cols": ['["old_revenue", false]'],
+                    "column_config": {"old_revenue": {"visible": False}},
+                    "adhoc_filters": [{"subject": "old_region"}],
+                    "show_legend": True,
+                },
+                {
+                    "query_mode",
+                    "groupby",
+                    "metrics",
+                    "order_by_cols",
+                    "column_config",
+                    "adhoc_filters",
+                },
+            ),
+        ],
+    )
+    def test_dataset_only_rebind_scrubs_populated_roles_in_preview_and_save(
+        self,
+        saved_form_data: dict[str, Any],
+        stale_roles: set[str],
+    ) -> None:
+        """Dataset-only preview and persistence share the same role scrub."""
+        request = UpdateChartRequest(identifier=11, dataset_id=99)
+        chart = Mock(
+            id=11,
+            datasource_id=10,
+            datasource_type="table",
+            slice_name="Rebound chart",
+            params=json.dumps(saved_form_data),
+        )
+
+        payload = _build_update_payload(request, chart)
+        preview = _build_preview_form_data(request, chart)
+
+        assert isinstance(payload, dict)
+        assert isinstance(preview, dict)
+        persisted = json.loads(payload["params"])
+        for form_data in (persisted, preview):
+            assert form_data["datasource"] == "99__table"
+            assert form_data["slice_id"] == 11
+            assert stale_roles.isdisjoint(form_data)
+        assert persisted["viz_type"] == saved_form_data["viz_type"]
+        assert preview["viz_type"] == saved_form_data["viz_type"]
+
+    def test_complete_config_rebind_replaces_roles_in_preview_and_save(self) -> None:
+        """Only roles explicitly mapped for the target dataset survive."""
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="new_region")]
+        )
+        request = UpdateChartRequest(identifier=12, dataset_id=99, config=config)
+        chart = Mock(
+            id=12,
+            datasource_id=10,
+            datasource_type="table",
+            slice_name="Rebound table",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "aggregate",
+                    "groupby": ["old_region"],
+                    "metrics": ["old_revenue"],
+                    "column_config": {"old_revenue": {"visible": False}},
+                    "adhoc_filters": [{"subject": "old_region"}],
+                }
+            ),
+        )
+
+        payload = _build_update_payload(request, chart, parsed_config=config)
+        preview = _build_preview_form_data(request, chart, parsed_config=config)
+
+        assert isinstance(payload, dict)
+        assert isinstance(preview, dict)
+        for form_data in (json.loads(payload["params"]), preview):
+            assert form_data["all_columns"] == ["new_region"]
+            assert form_data["datasource"] == "99__table"
+            assert "old_region" not in json.dumps(form_data)
+            assert "old_revenue" not in json.dumps(form_data)
 
 
 class TestUpdateChartDatasetIdIntegration:

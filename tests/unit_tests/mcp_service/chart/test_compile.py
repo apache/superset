@@ -647,3 +647,39 @@ def test_compile_chart_strictly_validates_every_query_result(
     assert not result.success
     assert result.error_code == "CHART_COMPILE_FAILED"
     assert "query 2 result data" in (result.error or "").lower()
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+@patch("superset.charts.data.form_data.set_query_context_form_data")
+def test_compile_chart_rejects_hostile_enum_without_dispatching_hooks(
+    mock_set_form_data, mock_factory, mock_cmd_cls
+):
+    from enum import Enum
+
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    class HostileEnum(Enum):
+        VALUE = "hostile"
+
+        def __getattribute__(self, name):
+            if name == "value":
+                raise AssertionError("hostile enum value hook executed")
+            return object.__getattribute__(self, name)
+
+        def __str__(self):
+            raise AssertionError("hostile enum string hook executed")
+
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.run.return_value = {
+        "queries": [{"data": [{"value": HostileEnum.VALUE}]}]
+    }
+
+    result = _compile_chart(
+        {"metrics": [{"label": "count", "expressionType": "SIMPLE"}]},
+        dataset_id=42,
+    )
+
+    assert not result.success
+    assert result.error_code == "CHART_COMPILE_FAILED"
+    assert "hostile" in (result.error or "").lower()

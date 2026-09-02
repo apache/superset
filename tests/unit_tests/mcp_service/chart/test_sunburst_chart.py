@@ -489,6 +489,7 @@ async def test_get_chart_data_fallback_uses_rebound_chart_identity() -> None:
             {
                 "data": [{"Region": "North"}],
                 "colnames": ["Region"],
+                "coltypes": [0],
                 "rowcount": 1,
             }
         ]
@@ -3174,6 +3175,7 @@ def test_cached_update_preview_honors_explicit_sunburst_clears(
             "_get_previous_form_data",
             return_value={
                 "viz_type": source_viz,
+                "datasource": "7__table",
                 "color_scheme": "savedCategorical",
                 "linear_color_scheme": "savedLinear",
                 "granularity_sqla": "OrderDate",
@@ -3442,6 +3444,7 @@ def test_update_chart_preview_product_path_preserves_cached_sunburst_state() -> 
     dataset = _dataset()
     cached_form_data = {
         "viz_type": "sunburst_v2",
+        "datasource": "7__table",
         "columns": ["old_region", "old_country"],
         "metric": "count",
         "all_columns": ["stale_raw"],
@@ -3563,6 +3566,7 @@ def test_cached_mixed_timeseries_update_preserves_native_controls() -> None:
             "_get_previous_form_data",
             return_value={
                 "viz_type": "mixed_timeseries",
+                "datasource": "7__table",
                 "metrics": ["OldSales"],
                 "metrics_b": ["OldProfit"],
                 "query_mode": "raw",

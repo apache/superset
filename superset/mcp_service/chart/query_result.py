@@ -17,15 +17,18 @@
 
 """Helpers for interpreting ChartDataCommand result envelopes."""
 
-from collections.abc import Mapping
 from datetime import date, datetime, time
 from decimal import Decimal
-from enum import Enum
 from typing import Any
 from uuid import UUID
 
+from superset.common.db_query_status import QueryStatus
 from superset.mcp_service.chart.schemas import ChartError
-from superset.utils.core import GenericDataType
+from superset.utils.core import (
+    ExtraFiltersReasonType,
+    ExtraFiltersTimeColumnType,
+    GenericDataType,
+)
 
 FAILED_QUERY_STATUSES = frozenset(
     {"error", "failed", "stopped", "timed_out", "cancelled", "canceled"}
@@ -40,6 +43,23 @@ MAX_QUERY_RESULT_COLUMNS = 10_000
 MAX_RESULT_VALUE_ITEMS = 10_000
 MAX_RESULT_VALUE_DEPTH = 6
 MAX_RESULT_STRING_LENGTH = 1_000_000
+MAX_QUERY_RESULT_ROWCOUNT = 2**63 - 1
+
+_SAFE_RESULT_ENUM_TYPES = frozenset(
+    {
+        QueryStatus,
+        ExtraFiltersReasonType,
+        ExtraFiltersTimeColumnType,
+        GenericDataType,
+    }
+)
+
+
+def _safe_enum_value(value: Any) -> Any | None:
+    """Read only explicitly trusted enum storage without dispatching hooks."""
+    if type(value) not in _SAFE_RESULT_ENUM_TYPES:
+        return None
+    return object.__getattribute__(value, "_value_")
 
 
 def _is_bounded_result_value(value: Any, *, depth: int = 0) -> bool:
@@ -52,8 +72,8 @@ def _is_bounded_result_value(value: Any, *, depth: int = 0) -> bool:
         )
     if type(value) in {date, datetime, time, Decimal, UUID}:  # noqa: E721
         return True
-    if isinstance(value, Enum):
-        return _is_bounded_result_value(value.value, depth=depth + 1)
+    if type(value) in _SAFE_RESULT_ENUM_TYPES:
+        return _is_bounded_result_value(_safe_enum_value(value), depth=depth + 1)
     if type(value) is list:
         return len(value) <= MAX_RESULT_VALUE_ITEMS and all(
             _is_bounded_result_value(item, depth=depth + 1) for item in value
@@ -72,20 +92,72 @@ def _query_error_text(value: Any) -> str | None:
     """Convert a bounded query error payload into a useful message."""
     if value is None or value is False:
         return None
-    if isinstance(value, Mapping):
+    if type(value) is dict:
         for key in ("error", "error_message", "message", "detail"):
             if text := _query_error_text(value.get(key)):
                 return text
         return None
-    if isinstance(value, (list, tuple)):
+    if type(value) is list:
         parts = [text for item in value if (text := _query_error_text(item))]
         return "; ".join(parts[:3]) or None
-    text = str(value)
-    return text[:2000] if text else None
+    if type(value) is str:
+        return value[:2000] or None
+    if type(value) is bytes:
+        return repr(value[:2000]) or None
+    if type(value) in {bool, int, float, date, datetime, time, Decimal, UUID}:
+        text = str(value)
+        return text[:2000] if text else None
+    if type(value) in _SAFE_RESULT_ENUM_TYPES:
+        return _query_error_text(_safe_enum_value(value))
+    return None
+
+
+def _status_text(value: Any) -> str | None:
+    """Return a status wire value without invoking user-defined conversion."""
+    if value is None:
+        return ""
+    if type(value) is str:
+        return value
+    if type(value) is QueryStatus:
+        enum_value = _safe_enum_value(value)
+        return enum_value if type(enum_value) is str else None
+    return None
+
+
+def _invalid_metadata(label: str) -> ChartError:
+    return ChartError(
+        error=f"{label} returned hostile or malformed metadata.",
+        error_type="InvalidQueryResult",
+    )
+
+
+def _payload_metadata_is_bounded(payload: dict[str, Any], *, skip: str) -> bool:
+    """Validate an exact result mapping before any field-specific access."""
+    if len(payload) > MAX_RESULT_VALUE_ITEMS:
+        return False
+    return all(
+        type(key) is str
+        and len(key) <= MAX_RESULT_STRING_LENGTH
+        and (key == skip or _is_bounded_result_value(value))
+        for key, value in payload.items()
+    )
+
+
+def _payload_metadata_error(
+    payload: dict[str, Any], *, label: str, skip: str
+) -> ChartError | None:
+    """Return a structured error for metadata that cannot be read safely."""
+    if not _payload_metadata_is_bounded(payload, skip=skip):
+        return _invalid_metadata(label)
+    if "status" in payload and _status_text(payload["status"]) is None:
+        return _invalid_metadata(label)
+    if "success" in payload and type(payload["success"]) is not bool:
+        return _invalid_metadata(label)
+    return None
 
 
 def _failure_for_query_payload(
-    payload: Mapping[str, Any], label: str
+    payload: dict[str, Any], label: str
 ) -> ChartError | None:
     """Extract one failure from a top-level or per-query payload."""
     for key in ("error", "errors", "error_message"):
@@ -95,7 +167,9 @@ def _failure_for_query_payload(
             )
 
     raw_status = payload.get("status")
-    status = str(getattr(raw_status, "value", raw_status) or "")
+    status = _status_text(raw_status)
+    if status is None:
+        return _invalid_metadata(label)
     normalized_status = status.strip().casefold().replace("-", "_").replace(" ", "_")
     if normalized_status in FAILED_QUERY_STATUSES:
         message = (
@@ -125,15 +199,16 @@ def query_result_failure(result: Any) -> ChartError | None:
             error_type="InvalidQueryResult",
         )
 
-    for key in ("error", "errors", "error_message", "message", "status"):
-        if key in result and not _is_bounded_result_value(result[key]):
-            return ChartError(
-                error="Chart query returned hostile or oversized metadata.",
-                error_type="InvalidQueryResult",
-            )
+    if error := _payload_metadata_error(result, label="Chart query", skip="queries"):
+        return error
+
     if failure := _failure_for_query_payload(result, "Chart query"):
         return failure
     queries = result.get("queries")
+    if "queries" in result and (
+        type(queries) is not list or len(queries) > MAX_QUERY_RESULTS
+    ):
+        return _invalid_metadata("Chart query")
     if type(queries) is list:
         for index, query in enumerate(queries, start=1):
             if type(query) is not dict:
@@ -141,14 +216,10 @@ def query_result_failure(result: Any) -> ChartError | None:
                     error=f"Chart query {index} returned a malformed result envelope.",
                     error_type="InvalidQueryResult",
                 )
-            if any(
-                key in query and not _is_bounded_result_value(query[key])
-                for key in ("error", "errors", "error_message", "message", "status")
+            if error := _payload_metadata_error(
+                query, label=f"Chart query {index}", skip="data"
             ):
-                return ChartError(
-                    error=f"Chart query {index} returned hostile metadata.",
-                    error_type="InvalidQueryResult",
-                )
+                return error
             if failure := _failure_for_query_payload(query, f"Chart query {index}"):
                 return failure
     return None
@@ -158,7 +229,48 @@ def _is_supported_coltype(value: Any) -> bool:
     """Accept only exact wire integers or the canonical generic-type enum."""
     if type(value) is GenericDataType:
         return True
-    return type(value) is int and value in {member.value for member in GenericDataType}
+    return type(value) is int and value in {
+        _safe_enum_value(member) for member in GenericDataType
+    }
+
+
+def _is_bounded_wire_string(value: Any, *enum_types: type[Any]) -> bool:
+    """Validate a string or one exact trusted string enum."""
+    if type(value) is str:
+        return bool(value) and len(value) <= MAX_RESULT_STRING_LENGTH
+    if type(value) in enum_types:
+        enum_value = _safe_enum_value(value)
+        return (
+            type(enum_value) is str
+            and bool(enum_value)
+            and len(enum_value) <= MAX_RESULT_STRING_LENGTH
+        )
+    return False
+
+
+def _is_valid_filter_metadata(value: Any, *, rejected: bool) -> bool:
+    """Validate the filter metadata shapes read by get-chart-data consumers."""
+    if type(value) is not list or len(value) > MAX_RESULT_VALUE_ITEMS:
+        return False
+    expected_keys = {"column", "reason"} if rejected else {"column"}
+    for entry in value:
+        if type(entry) is not dict or set(entry) != expected_keys:
+            return False
+        if not _is_bounded_wire_string(entry["column"], ExtraFiltersTimeColumnType):
+            return False
+        if rejected and not _is_bounded_wire_string(
+            entry["reason"], ExtraFiltersReasonType
+        ):
+            return False
+    return True
+
+
+def _is_valid_string_list(value: Any) -> bool:
+    return (
+        type(value) is list
+        and len(value) <= MAX_RESULT_VALUE_ITEMS
+        and all(_is_bounded_wire_string(item) for item in value)
+    )
 
 
 def validate_query_result_envelope(  # noqa: C901
@@ -176,12 +288,10 @@ def validate_query_result_envelope(  # noqa: C901
             error_type="InvalidQueryResult",
         )
 
-    for key in ("error", "errors", "error_message", "message", "status"):
-        if key in result and not _is_bounded_result_value(result[key]):
-            return ChartError(
-                error="Chart query returned hostile or oversized metadata.",
-                error_type="InvalidQueryResult",
-            )
+    if not _payload_metadata_is_bounded(result, skip="queries"):
+        return _invalid_metadata("Chart query")
+    if "status" in result and _status_text(result["status"]) is None:
+        return _invalid_metadata("Chart query")
     if "success" in result and type(result["success"]) is not bool:
         return ChartError(
             error="Chart query returned malformed success metadata.",
@@ -208,12 +318,10 @@ def validate_query_result_envelope(  # noqa: C901
                 error=f"Chart query {index} returned a malformed result envelope.",
                 error_type="InvalidQueryResult",
             )
-        for key in ("error", "errors", "error_message", "message", "status"):
-            if key in query and not _is_bounded_result_value(query[key]):
-                return ChartError(
-                    error=f"Chart query {index} returned hostile metadata.",
-                    error_type="InvalidQueryResult",
-                )
+        if not _payload_metadata_is_bounded(query, skip="data"):
+            return _invalid_metadata(f"Chart query {index}")
+        if "status" in query and _status_text(query["status"]) is None:
+            return _invalid_metadata(f"Chart query {index}")
         if "success" in query and type(query["success"]) is not bool:
             return ChartError(
                 error=f"Chart query {index} returned malformed success metadata.",
@@ -284,24 +392,66 @@ def validate_query_result_envelope(  # noqa: C901
                 error=f"Chart query {index} returned malformed column type metadata.",
                 error_type="InvalidQueryResult",
             )
-        if colnames_present and coltypes_present and len(colnames) != len(coltypes):
+        if (colnames_present or coltypes_present) and (
+            not colnames_present
+            or not coltypes_present
+            or len(colnames) != len(coltypes)
+        ):
             return ChartError(
                 error=(f"Chart query {index} returned misaligned column metadata."),
                 error_type="InvalidQueryResult",
             )
-        for key in (
-            "cache_key",
-            "cache_dttm",
-            "is_cached",
-            "rowcount",
-            "rejected_filters",
-            "rejected_filter_columns",
-        ):
-            if key in query and not _is_bounded_result_value(query[key]):
+        if colnames_present:
+            column_contract = set(colnames)
+            if any(set(row) != column_contract for row in data):
                 return ChartError(
-                    error=f"Chart query {index} returned hostile result metadata.",
+                    error=(
+                        f"Chart query {index} returned rows that do not match "
+                        "declared columns."
+                    ),
                     error_type="InvalidQueryResult",
                 )
+
+        if "rowcount" in query and not (
+            query["rowcount"] is None
+            or (
+                type(query["rowcount"]) is int
+                and 0 <= query["rowcount"] <= MAX_QUERY_RESULT_ROWCOUNT
+            )
+        ):
+            return _invalid_metadata(f"Chart query {index}")
+        if "sql_rowcount" in query and not (
+            query["sql_rowcount"] is None
+            or (
+                type(query["sql_rowcount"]) is int
+                and 0 <= query["sql_rowcount"] <= MAX_QUERY_RESULT_ROWCOUNT
+            )
+        ):
+            return _invalid_metadata(f"Chart query {index}")
+        if "is_cached" in query and type(query["is_cached"]) is not bool:
+            return _invalid_metadata(f"Chart query {index}")
+        if "cache_key" in query and not (
+            query["cache_key"] is None or _is_bounded_wire_string(query["cache_key"])
+        ):
+            return _invalid_metadata(f"Chart query {index}")
+        if "cache_dttm" in query and not (
+            query["cache_dttm"] is None
+            or type(query["cache_dttm"]) is datetime
+            or _is_bounded_wire_string(query["cache_dttm"])
+        ):
+            return _invalid_metadata(f"Chart query {index}")
+        if "applied_filters" in query and not _is_valid_filter_metadata(
+            query["applied_filters"], rejected=False
+        ):
+            return _invalid_metadata(f"Chart query {index}")
+        if "rejected_filters" in query and not _is_valid_filter_metadata(
+            query["rejected_filters"], rejected=True
+        ):
+            return _invalid_metadata(f"Chart query {index}")
+        if "rejected_filter_columns" in query and not _is_valid_string_list(
+            query["rejected_filter_columns"]
+        ):
+            return _invalid_metadata(f"Chart query {index}")
     return None
 
 

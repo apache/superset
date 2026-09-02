@@ -45,6 +45,7 @@ from superset.mcp_service.chart.chart_utils import (
     merge_form_data_for_update,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
+    scrub_dataset_bound_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.preview_utils import (
@@ -249,19 +250,26 @@ def update_chart_preview(  # noqa: C901
                     warnings.append(INVALID_FORM_DATA_KEY_WARNING)
 
             if previous_form_data:
-                merge_table_column_config(previous_form_data, new_form_data)
-                merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
                 previous_dataset_id, _ = resolve_form_data_datasource(
                     previous_form_data
                 )
+                dataset_rebind = previous_dataset_id is None or str(
+                    previous_dataset_id
+                ) != str(dataset.id)
+                if dataset_rebind:
+                    # Cached roles have no usable provenance unless their
+                    # datasource identity matches the authorized target.
+                    previous_form_data = scrub_dataset_bound_form_data(
+                        previous_form_data
+                    )
+                else:
+                    merge_table_column_config(previous_form_data, new_form_data)
+                    merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
                 new_form_data = merge_form_data_for_update(
                     previous_form_data,
                     new_form_data,
                     config,
-                    dataset_rebind=(
-                        previous_dataset_id is not None
-                        and str(previous_dataset_id) != str(dataset.id)
-                    ),
+                    dataset_rebind=dataset_rebind,
                 )
                 if getattr(config, "filters", None) == []:
                     new_form_data.pop("adhoc_filters", None)

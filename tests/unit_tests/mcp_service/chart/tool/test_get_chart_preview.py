@@ -251,6 +251,66 @@ def test_saved_previews_validate_hostile_secondary_results_without_hooks(
     assert result.error_type == "InvalidQueryResult"
 
 
+@pytest.mark.parametrize(
+    "strategy_class,preview_format",
+    [
+        (ASCIIPreviewStrategy, "ascii"),
+        (TablePreviewStrategy, "table"),
+        (VegaLitePreviewStrategy, "vega_lite"),
+    ],
+)
+def test_saved_previews_reject_hostile_enum_without_dispatching_hooks(
+    strategy_class: type[PreviewFormatStrategy], preview_format: str
+) -> None:
+    from enum import Enum
+
+    class HostileEnum(Enum):
+        VALUE = "hostile"
+
+        def __getattribute__(self, name):
+            if name == "value":
+                raise AssertionError("hostile enum value hook executed")
+            return object.__getattribute__(self, name)
+
+        def __str__(self):
+            raise AssertionError("hostile enum string hook executed")
+
+    command = MagicMock()
+    command.run.return_value = {
+        "queries": [{"data": [], "metadata": HostileEnum.VALUE}]
+    }
+    chart = SimpleNamespace(
+        id=20,
+        slice_name="Hostile enum result",
+        viz_type="table",
+        datasource_id=9,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {"viz_type": "table", "groupby": ["region"], "metrics": ["count"]}
+        ),
+    )
+
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "build_query_context_from_form_data",
+            return_value=MagicMock(),
+        ),
+        patch("superset.charts.data.form_data.set_query_context_form_data"),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+    ):
+        result = strategy_class(
+            chart,
+            GetChartPreviewRequest(identifier=20, format=preview_format),
+        ).generate()
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "InvalidQueryResult"
+
+
 class TestPreviewXAxisInQueryContext:
     """Tests for x_axis inclusion in preview query context columns.
 
@@ -517,6 +577,7 @@ class TestGetChartPreview:
                         {
                             "data": [{"gender": "boy", "count": 1}],
                             "colnames": ["gender", "count"],
+                            "coltypes": [0, 0],
                             "rowcount": 1,
                         }
                     ]
@@ -596,6 +657,7 @@ class TestGetChartPreview:
                         {
                             "data": [{"count": 10}],
                             "colnames": ["count"],
+                            "coltypes": [0],
                             "rowcount": 1,
                         }
                     ]
@@ -667,6 +729,7 @@ class TestGetChartPreview:
                         {
                             "data": [{"count": 10}],
                             "colnames": ["count"],
+                            "coltypes": [0],
                             "rowcount": 1,
                         }
                     ]
@@ -794,7 +857,16 @@ class TestGetChartPreview:
                 pass
 
             def run(self) -> dict[str, Any]:
-                return {"queries": [{"data": None, "colnames": [], "rowcount": 0}]}
+                return {
+                    "queries": [
+                        {
+                            "data": None,
+                            "colnames": [],
+                            "coltypes": [],
+                            "rowcount": 0,
+                        }
+                    ]
+                }
 
         monkeypatch.setattr(
             query_context_factory_module,
@@ -885,6 +957,7 @@ class TestGetChartPreview:
                         {
                             "data": [{"gender": "boy", "count": 1}],
                             "colnames": ["gender", "count"],
+                            "coltypes": [0, 0],
                             "rowcount": 1,
                         }
                     ]

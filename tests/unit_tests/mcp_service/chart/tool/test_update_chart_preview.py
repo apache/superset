@@ -132,6 +132,62 @@ class TestUpdateChartPreview:
         assert xy_request.config.x.name == "date"
         assert xy_request.config.kind == "line"
 
+    @patch.object(update_chart_preview_module, "validate_and_compile")
+    @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
+    @patch.object(update_chart_preview_module, "analyze_chart_semantics")
+    @patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+    @patch.object(update_chart_preview_module, "generate_explore_link")
+    @patch.object(update_chart_preview_module, "_get_previous_form_data")
+    @patch.object(update_chart_preview_module, "_find_dataset")
+    @patch("superset.mcp_service.auth.get_user_from_request")
+    def test_cached_dataset_rebind_scrubs_unproven_roles_before_recaching(
+        self,
+        mock_get_user_from_request,
+        mock_find_dataset,
+        mock_get_previous_form_data,
+        mock_generate_explore_link,
+        mock_analyze_chart_capabilities,
+        mock_analyze_chart_semantics,
+        unused_access_mock,
+        mock_validate_and_compile,
+    ) -> None:
+        """Cached iteration retains only roles declared for the target dataset."""
+        mock_get_user_from_request.return_value = Mock(id=1, username="admin")
+        dataset = _mock_dataset(id=99)
+        mock_find_dataset.return_value = dataset
+        mock_get_previous_form_data.return_value = {
+            "viz_type": "table",
+            "datasource": "10__table",
+            "query_mode": "aggregate",
+            "groupby": ["old_region"],
+            "metrics": ["old_revenue"],
+            "column_config": {"old_revenue": {"visible": False}},
+            "adhoc_filters": [{"subject": "old_region"}],
+        }
+        mock_generate_explore_link.return_value = (
+            "http://localhost:8088/explore/?form_data_key=new_key"
+        )
+        mock_analyze_chart_capabilities.return_value = None
+        mock_analyze_chart_semantics.return_value = None
+        mock_validate_and_compile.return_value = Mock(success=True)
+        request = UpdateChartPreviewRequest(
+            form_data_key="old_key",
+            dataset_id=99,
+            config=TableChartConfig(chart_type="table", columns=[ColumnRef(name="ds")]),
+            generate_preview=False,
+        )
+
+        result = update_chart_preview_module.update_chart_preview(
+            request=request, ctx=Mock()
+        )
+
+        assert result["success"] is True
+        generated = mock_generate_explore_link.call_args.args[1]
+        assert generated["datasource"] == "99__table"
+        assert generated["all_columns"] == ["ds"]
+        assert "old_region" not in str(generated)
+        assert "old_revenue" not in str(generated)
+
     @pytest.mark.asyncio
     async def test_update_chart_preview_dataset_id_types(self):
         """Test that dataset_id can be int or string (UUID)."""
@@ -960,6 +1016,7 @@ class TestUpdateChartPreview:
         ]
         mock_get_previous_form_data.return_value = {
             "viz_type": "table",
+            "datasource": "3__table",
             "adhoc_filters": cached_adhoc_filters,
             "column_config": {"Sales": {"d3NumberFormat": "$,.2f", "visible": False}},
         }
@@ -1033,6 +1090,7 @@ class TestUpdateChartPreview:
         mock_validate_and_compile.return_value = Mock(success=True)
         mock_get_previous_form_data.return_value = {
             "viz_type": "ag-grid-pivot-table",
+            "datasource": "3__table",
             "column_config": {"Revenue": {"d3NumberFormat": "$,.2f"}},
             "conditional_formatting": [
                 {"column": "Revenue", "operator": ">", "targetValue": 1000}

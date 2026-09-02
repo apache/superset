@@ -31,6 +31,18 @@ class UppercaseStatus(Enum):
     FAILED = "FAILED"
 
 
+class HostileEnum(Enum):
+    VALUE = "hostile"
+
+    def __getattribute__(self, name):
+        if name == "value":
+            raise AssertionError("hostile enum value hook executed")
+        return object.__getattribute__(self, name)
+
+    def __str__(self):
+        raise AssertionError("hostile enum string hook executed")
+
+
 @pytest.mark.parametrize(
     "payload",
     [
@@ -47,7 +59,6 @@ class UppercaseStatus(Enum):
                 {"status": QueryStatus.FAILED, "error_message": "second failed"},
             ]
         },
-        {"queries": [{"status": UppercaseStatus.FAILED, "message": "enum failed"}]},
     ],
 )
 def test_query_result_failure_detects_every_failure_envelope(payload):
@@ -55,6 +66,15 @@ def test_query_result_failure_detects_every_failure_envelope(payload):
 
     assert failure is not None
     assert failure.error_type == "QueryError"
+
+
+def test_query_result_failure_rejects_arbitrary_status_enum_without_hooks():
+    failure = query_result_failure(
+        {"queries": [{"status": HostileEnum.VALUE, "message": "enum failed"}]}
+    )
+
+    assert failure is not None
+    assert failure.error_type == "InvalidQueryResult"
 
 
 @pytest.mark.parametrize(
@@ -134,8 +154,16 @@ def test_strict_result_validation_rejects_oversized_multi_query_data(monkeypatch
     error = validate_query_result_envelope(
         {
             "queries": [
-                {"data": [{"value": 1}], "colnames": ["value"]},
-                {"data": [{"value": 2}, {"value": 3}], "colnames": ["value"]},
+                {
+                    "data": [{"value": 1}],
+                    "colnames": ["value"],
+                    "coltypes": [0],
+                },
+                {
+                    "data": [{"value": 2}, {"value": 3}],
+                    "colnames": ["value"],
+                    "coltypes": [0],
+                },
             ]
         }
     )
@@ -150,8 +178,16 @@ def test_strict_result_validation_accepts_bounded_multi_query_data():
         validate_query_result_envelope(
             {
                 "queries": [
-                    {"data": [{"value": 1}], "colnames": ["value"]},
-                    {"data": [{"total": 1}], "colnames": ["total"]},
+                    {
+                        "data": [{"value": 1}],
+                        "colnames": ["value"],
+                        "coltypes": [0],
+                    },
+                    {
+                        "data": [{"total": 1}],
+                        "colnames": ["total"],
+                        "coltypes": [0],
+                    },
                 ]
             }
         )
@@ -199,6 +235,7 @@ def test_first_query_data_none_as_empty_still_validates_all_queries() -> None:
         {"colnames": ["value"], "coltypes": [{"value": 0}]},
         {"colnames": ["value"], "coltypes": [99]},
         {"colnames": ["value"], "coltypes": [HostileColumnType(0)]},
+        {"coltypes": [0]},
     ],
 )
 def test_strict_result_validation_rejects_malformed_column_metadata(metadata):
@@ -220,9 +257,135 @@ def test_strict_result_validation_accepts_aligned_optional_column_metadata():
                         "colnames": ["value"],
                         "coltypes": [0],
                     },
-                    {"data": [{"secondary": "x"}], "colnames": ["secondary"]},
+                    {
+                        "data": [{"secondary": "x"}],
+                        "colnames": ["secondary"],
+                        "coltypes": [1],
+                    },
                 ]
             }
         )
         is None
     )
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"queries": [{"data": [{"value": HostileEnum.VALUE}]}]},
+        {"queries": [{"data": [], "status": HostileEnum.VALUE}]},
+        {"queries": [{"data": [], "metadata": HostileEnum.VALUE}]},
+        {"queries": [{"data": [], "rowcount": HostileEnum.VALUE}]},
+    ],
+)
+def test_strict_result_validation_rejects_hostile_enums_without_hooks(payload):
+    error = validate_query_result_envelope(payload)
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+def test_first_query_data_rejects_hostile_enum_without_hooks():
+    data, error = first_query_data(
+        {"queries": [{"data": [{"value": HostileEnum.VALUE}]}]}
+    )
+
+    assert data is None
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        {"coltypes": [0]},
+        {"colnames": ["value"]},
+        {"colnames": ["other"], "coltypes": [0]},
+        {"colnames": ["value", "other"], "coltypes": [0, 0]},
+    ],
+)
+def test_column_metadata_requires_alignment_with_every_row(metadata):
+    error = validate_query_result_envelope(
+        {"queries": [{"data": [{"value": 1}], **metadata}]}
+    )
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+class IntSubclass(int):
+    pass
+
+
+@pytest.mark.parametrize(
+    "rowcount",
+    [True, False, -1, 1.0, float("inf"), {}, IntSubclass(1), 2**63],
+)
+def test_rowcount_is_exact_bounded_nonnegative_int_or_null(rowcount):
+    error = validate_query_result_envelope(
+        {"queries": [{"data": [], "rowcount": rowcount}]}
+    )
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+@pytest.mark.parametrize("rowcount", [None, 0, 2**63 - 1])
+def test_rowcount_accepts_exact_bounded_values(rowcount):
+    assert (
+        validate_query_result_envelope(
+            {"queries": [{"data": [], "rowcount": rowcount}]}
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize("is_cached", [0, 1, None, {}, IntSubclass(1)])
+def test_is_cached_requires_exact_bool(is_cached):
+    error = validate_query_result_envelope(
+        {"queries": [{"data": [], "is_cached": is_cached}]}
+    )
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+def test_cache_and_filter_metadata_exact_shapes_are_accepted():
+    assert (
+        validate_query_result_envelope(
+            {
+                "queries": [
+                    {
+                        "data": [],
+                        "cache_key": "key",
+                        "cache_dttm": "2026-09-02T00:00:00+00:00",
+                        "is_cached": False,
+                        "applied_filters": [{"column": "region"}],
+                        "rejected_filters": [
+                            {"column": "missing", "reason": "not_in_datasource"}
+                        ],
+                        "rejected_filter_columns": ["missing"],
+                    }
+                ]
+            }
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        {"cache_key": {}},
+        {"cache_dttm": {}},
+        {"applied_filters": {"column": "region"}},
+        {"applied_filters": [{"column": "region", "extra": True}]},
+        {"rejected_filters": [{"column": "missing"}]},
+        {"rejected_filter_columns": [{"column": "missing"}]},
+    ],
+)
+def test_cache_and_filter_metadata_rejects_non_wire_shapes(metadata):
+    error = validate_query_result_envelope({"queries": [{"data": [], **metadata}]})
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"

@@ -217,6 +217,25 @@ def _merge_replacement_config(
     return merged
 
 
+def _is_dataset_rebind(request: UpdateChartRequest, chart: Any) -> bool:
+    """Return whether a request changes the chart's datasource identity."""
+    return request.dataset_id is not None and str(request.dataset_id) != str(
+        getattr(chart, "datasource_id", None)
+    )
+
+
+def _add_columns_rebind_error() -> GenerateChartResponse:
+    """Require a complete replacement config when changing table datasets."""
+    return _validation_error_response(
+        message="Cannot combine 'add_columns' with a dataset rebind.",
+        details=(
+            "Dataset-bound roles from the previous dataset cannot be reused. "
+            "Provide 'config' with the complete table configuration for the "
+            "target dataset."
+        ),
+    )
+
+
 def _build_dataset_rebind_payload(
     request: UpdateChartRequest, chart: Any
 ) -> dict[str, Any]:
@@ -240,7 +259,7 @@ def _build_dataset_rebind_payload(
     return payload
 
 
-def _build_update_payload(
+def _build_update_payload(  # noqa: C901
     request: UpdateChartRequest,
     chart: Any,
     parsed_config: Any = None,
@@ -262,9 +281,11 @@ def _build_update_payload(
             parsed_config, dataset_id=effective_dataset_id
         )
         new_form_data.pop("_mcp_warnings", None)
-        merge_table_column_config(_get_existing_form_data(chart), new_form_data)
-        merge_interactive_pivot_ui_config(_get_existing_form_data(chart), new_form_data)
         existing_form_data = _get_existing_form_data(chart)
+        dataset_rebind = _is_dataset_rebind(request, chart)
+        if not dataset_rebind:
+            merge_table_column_config(existing_form_data, new_form_data)
+            merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
         # Apply the same bounded registry used by preview updates. Cross-viz
         # changes cannot inherit source query roles; same-viz Sunburst updates
         # additionally preserve explicitly omitted native presentation state.
@@ -272,10 +293,7 @@ def _build_update_payload(
             existing_form_data,
             new_form_data,
             parsed_config,
-            dataset_rebind=(
-                request.dataset_id is not None
-                and str(request.dataset_id) != str(chart.datasource_id)
-            ),
+            dataset_rebind=dataset_rebind,
         )
         new_form_data = canonicalize_operation_form_data(
             new_form_data,
@@ -307,6 +325,8 @@ def _build_update_payload(
         return payload
 
     if request.add_columns is not None:
+        if _is_dataset_rebind(request, chart):
+            return _add_columns_rebind_error()
         try:
             existing_form_data = json.loads(chart.params) if chart.params else {}
         except (ValueError, TypeError):
@@ -371,20 +391,21 @@ def _build_preview_form_data(
             parsed_config, dataset_id=effective_dataset_id
         )
         new_form_data.pop("_mcp_warnings", None)
-        merge_table_column_config(existing_form_data, new_form_data)
-        merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
+        dataset_rebind = _is_dataset_rebind(request, chart)
+        if not dataset_rebind:
+            merge_table_column_config(existing_form_data, new_form_data)
+            merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
         # In the preview, an explicit filters list, including [], replaces saved
         # filters. An omitted filters field preserves them through the shallow merge.
         merged = _merge_replacement_config(
             existing_form_data,
             new_form_data,
             parsed_config,
-            dataset_rebind=(
-                request.dataset_id is not None
-                and str(request.dataset_id) != str(chart.datasource_id)
-            ),
+            dataset_rebind=dataset_rebind,
         )
     elif request.add_columns is not None:
+        if _is_dataset_rebind(request, chart):
+            return _add_columns_rebind_error()
         patched = _append_table_columns(existing_form_data, request.add_columns)
         if isinstance(patched, GenerateChartResponse):
             return patched
@@ -392,7 +413,11 @@ def _build_preview_form_data(
     else:
         if not request.chart_name and request.dataset_id is None:
             return _missing_config_or_name_error()
-        merged = dict(existing_form_data)
+        merged = (
+            scrub_dataset_bound_form_data(existing_form_data)
+            if request.dataset_id is not None
+            else dict(existing_form_data)
+        )
 
     if request.chart_name:
         merged["slice_name"] = request.chart_name

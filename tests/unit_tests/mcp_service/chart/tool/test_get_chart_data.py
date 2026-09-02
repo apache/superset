@@ -21,6 +21,7 @@ Tests for the get_chart_data request schema and chart type fallback handling.
 
 import importlib
 from contextlib import nullcontext
+from enum import Enum
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
@@ -46,6 +47,18 @@ from superset.mcp_service.chart.tool.get_chart_data import (
 )
 from superset.utils import json
 from superset.utils.core import ExtraFiltersReasonType, GenericDataType
+
+
+class HostileResultEnum(Enum):
+    VALUE = "hostile"
+
+    def __getattribute__(self, name):
+        if name == "value":
+            raise AssertionError("hostile enum value hook executed")
+        return object.__getattribute__(self, name)
+
+    def __str__(self):
+        raise AssertionError("hostile enum string hook executed")
 
 
 def test_requested_filter_columns_supports_both_payload_shapes() -> None:
@@ -485,6 +498,126 @@ class _AsyncContext:
         pass
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "query_payload",
+    [
+        {"data": [], "coltypes": [0]},
+        {"data": [{"value": 1}], "colnames": ["other"], "coltypes": [0]},
+        {"data": [], "rowcount": {}},
+        {"data": [], "is_cached": {}},
+        {"data": [], "metadata": HostileResultEnum.VALUE},
+    ],
+)
+async def test_unsaved_get_data_rejects_invalid_result_before_consumers(
+    monkeypatch: pytest.MonkeyPatch, query_payload: dict[str, Any]
+) -> None:
+    """Cached form-data results get strict metadata and no-hook validation."""
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {"queries": [query_payload]}
+
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
+    )
+    monkeypatch.setattr(
+        module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **kwargs: nullcontext()),
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    result = await _query_from_form_data(
+        {"datasource_id": 1, "datasource_type": "table"},
+        GetChartDataRequest(form_data_key="cached"),
+        _AsyncContext(),
+    )
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "InvalidQueryResult"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "query_payload",
+    [
+        {"data": [], "coltypes": [0]},
+        {"data": [{"value": 1}], "colnames": ["other"], "coltypes": [0]},
+        {"data": [], "rowcount": {}},
+        {"data": [], "is_cached": {}},
+        {"data": [], "status": HostileResultEnum.VALUE},
+    ],
+)
+async def test_saved_get_data_rejects_invalid_result_before_consumers(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    query_payload: dict[str, Any],
+) -> None:
+    """Saved chart data has the same strict validation as cached form data."""
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    chart = SimpleNamespace(
+        id=9,
+        slice_name="Invalid result",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context=json.dumps(
+            {"datasource": {"id": 1, "type": "table"}, "queries": []}
+        ),
+        params=None,
+    )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {"queries": [query_payload]}
+
+    monkeypatch.setattr(
+        module, "find_chart_by_identifier", lambda *_args, **_kwargs: chart
+    )
+    monkeypatch.setattr(
+        module,
+        "validate_chart_dataset",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            is_valid=True, warnings=[], error=None
+        ),
+    )
+    monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
+    monkeypatch.setattr(
+        "superset.charts.schemas.ChartDataQueryContextSchema.load",
+        lambda self, data: SimpleNamespace(form_data={}, queries=[]),
+    )
+    monkeypatch.setattr(
+        "superset.charts.data.form_data.set_query_context_form_data",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    async with Client(mcp_server) as client:
+        response = await client.call_tool(
+            "get_chart_data", {"request": {"identifier": 9}}
+        )
+
+    data = json.loads(response.content[0].text)
+    assert data["error_type"] == "InvalidQueryResult"
+
+
 class TestUnsavedChartDataQueryConstruction:
     @pytest.mark.asyncio
     async def test_form_data_key_adhoc_filters_become_query_filters(
@@ -522,6 +655,7 @@ class TestUnsavedChartDataQueryConstruction:
                         {
                             "data": [{"gender": "boy", "count": 1}],
                             "colnames": ["gender", "count"],
+                            "coltypes": [0, 0],
                             "rowcount": 1,
                         }
                     ]
@@ -603,11 +737,13 @@ class TestUnsavedChartDataQueryConstruction:
                         {
                             "data": [{"ds": "2024-01-01", "sales": 1}],
                             "colnames": ["ds", "sales"],
+                            "coltypes": [0, 0],
                             "rowcount": 1,
                         },
                         {
                             "data": [{"ds": "2024-01-01", "profit": 2}],
                             "colnames": ["ds", "profit"],
+                            "coltypes": [0, 0],
                             "rowcount": 1,
                         },
                     ]
@@ -1527,6 +1663,7 @@ class TestSavedChartExtraFormDataFilters:
                         {
                             "data": [{"country": "USA"}],
                             "colnames": ["country"],
+                            "coltypes": [0],
                             "rowcount": 1,
                             "rejected_filters": [
                                 {
@@ -2040,9 +2177,15 @@ def test_mixed_timeseries_preserves_both_query_results(
 
     results = _build_query_results(
         [
-            {"colnames": ["primary"], "data": [{"primary": 1}], "rowcount": 1},
+            {
+                "colnames": ["primary"],
+                "coltypes": [0],
+                "data": [{"primary": 1}],
+                "rowcount": 1,
+            },
             {
                 "colnames": ["secondary"],
+                "coltypes": [0],
                 "data": [{"secondary": 2}],
                 "rowcount": 1,
             },
@@ -2108,11 +2251,13 @@ async def test_unsaved_mixed_timeseries_returns_nonempty_secondary_query(
                 "queries": [
                     {
                         "colnames": ["primary"],
+                        "coltypes": [0],
                         "data": [],
                         "rowcount": 0,
                     },
                     {
                         "colnames": ["secondary"],
+                        "coltypes": [0],
                         "data": [{"secondary": 2}],
                         "rowcount": 1,
                     },
@@ -2243,7 +2388,14 @@ class TestGuestScoping:
             def validate(self) -> None: ...
             def run(self) -> dict[str, Any]:
                 return {
-                    "queries": [{"data": [{"a": 1}], "colnames": ["a"], "rowcount": 1}]
+                    "queries": [
+                        {
+                            "data": [{"a": 1}],
+                            "colnames": ["a"],
+                            "coltypes": [0],
+                            "rowcount": 1,
+                        }
+                    ]
                 }
 
         mock_authorize = MagicMock()
@@ -2362,7 +2514,14 @@ class TestGuestScoping:
             def validate(self) -> None: ...
             def run(self) -> dict[str, Any]:
                 return {
-                    "queries": [{"data": [{"a": 1}], "colnames": ["a"], "rowcount": 1}]
+                    "queries": [
+                        {
+                            "data": [{"a": 1}],
+                            "colnames": ["a"],
+                            "coltypes": [0],
+                            "rowcount": 1,
+                        }
+                    ]
                 }
 
         cached_spy = MagicMock(
@@ -2418,7 +2577,9 @@ async def test_query_from_form_data_zero_row_limit_falls_back_to_default(
         def __init__(self, query_context: Any) -> None: ...
         def validate(self) -> None: ...
         def run(self) -> dict[str, Any]:
-            return {"queries": [{"data": [], "colnames": [], "rowcount": 0}]}
+            return {
+                "queries": [{"data": [], "colnames": [], "coltypes": [], "rowcount": 0}]
+            }
 
     monkeypatch.setattr(module, "build_query_context_from_form_data", fake_build)
     monkeypatch.setattr(
@@ -2487,6 +2648,7 @@ async def test_unsaved_form_data_query_seeds_jinja_before_command_construction(
                     {
                         "data": [{"region": "North", "count": 1}],
                         "colnames": ["region", "count"],
+                        "coltypes": [0, 0],
                         "rowcount": 1,
                     }
                 ]
@@ -2540,7 +2702,9 @@ async def test_query_from_form_data_string_row_limit_is_coerced(
         def __init__(self, query_context: Any) -> None: ...
         def validate(self) -> None: ...
         def run(self) -> dict[str, Any]:
-            return {"queries": [{"data": [], "colnames": [], "rowcount": 0}]}
+            return {
+                "queries": [{"data": [], "colnames": [], "coltypes": [], "rowcount": 0}]
+            }
 
     monkeypatch.setattr(module, "build_query_context_from_form_data", fake_build)
     monkeypatch.setattr(
@@ -2594,7 +2758,9 @@ async def test_query_from_form_data_use_cache_false_bypasses_cache(
         def __init__(self, query_context: Any) -> None: ...
         def validate(self) -> None: ...
         def run(self) -> dict[str, Any]:
-            return {"queries": [{"data": [], "colnames": [], "rowcount": 0}]}
+            return {
+                "queries": [{"data": [], "colnames": [], "coltypes": [], "rowcount": 0}]
+            }
 
     monkeypatch.setattr(module, "build_query_context_from_form_data", fake_build)
     monkeypatch.setattr(
@@ -2652,7 +2818,14 @@ async def test_query_from_form_data_refreshed_reflects_force_refresh_only(
         def validate(self) -> None: ...
         def run(self) -> dict[str, Any]:
             return {
-                "queries": [{"data": [{"col": 1}], "colnames": ["col"], "rowcount": 1}]
+                "queries": [
+                    {
+                        "data": [{"col": 1}],
+                        "colnames": ["col"],
+                        "coltypes": [0],
+                        "rowcount": 1,
+                    }
+                ]
             }
 
     monkeypatch.setattr(module, "build_query_context_from_form_data", fake_build)
