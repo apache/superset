@@ -1416,12 +1416,17 @@ def response_json_failure(response: BaseModel) -> ChartError | None:  # noqa: C9
 
     Source results and returned models are not isomorphic: multi-query ChartData
     repeats the first query through its compatibility alias, and column samples
-    repeat selected values. Walking the Python-mode projection counts every
+    repeat selected values. Walking the JSON-mode projection counts every
     actual occurrence, derived metadata, key, escape, and delimiter without
     materializing a potentially oversized JSON document.
     """
     try:
-        payload = BaseModel.model_dump(response, mode="python", by_alias=True)
+        # JSON mode is the projection Pydantic's wire serializer consumes.  In
+        # particular, UTC datetimes become ``...Z`` here rather than the longer
+        # Python-mode ``...+00:00`` spelling.  Walking that projection keeps the
+        # byte accounting exact without materializing the JSON document (or
+        # serializing the response twice).
+        payload = BaseModel.model_dump(response, mode="json", by_alias=True)
     except Exception:
         return _malformed_result("response projection could not be inspected")
 

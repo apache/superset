@@ -26,6 +26,7 @@ import pytest
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.exc import DetachedInstanceError
 
+from superset.mcp_service.chart.query_result import MAX_QUERY_RESULT_VALUE_BYTES
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
     ColumnRef,
@@ -97,6 +98,69 @@ class TestGenerateChart:
             result = await generate_chart(request, ctx=ctx)
 
         assert result.chart_type_label == "table chart"
+
+    @pytest.mark.asyncio
+    async def test_generate_chart_entrypoint_exact_limit_and_plus_one(self) -> None:
+        request = GenerateChartRequest(
+            dataset_id="1",
+            config=TableChartConfig(
+                chart_type="table", columns=[ColumnRef(name="region")]
+            ),
+            preview_formats=["url"],
+        )
+        ctx = MagicMock()
+        ctx.info = AsyncMock()
+        ctx.debug = AsyncMock()
+        ctx.warning = AsyncMock()
+        ctx.error = AsyncMock()
+        ctx.report_progress = AsyncMock()
+
+        async def run(warning: str):
+            user = Mock(id=1, username="admin", roles=[], groups=[])
+            validation_result = Mock(
+                is_valid=True,
+                request=request,
+                warnings={"warnings": [warning]},
+                error=None,
+            )
+            with (
+                patch(
+                    "superset.mcp_service.auth.get_user_from_request",
+                    return_value=user,
+                ),
+                patch(
+                    "superset.mcp_service.chart.validation.ValidationPipeline."
+                    "validate_request_with_warnings",
+                    return_value=validation_result,
+                ),
+                patch(
+                    "superset.mcp_service.chart.chart_utils.generate_explore_link",
+                    return_value=(
+                        "http://localhost:9001/explore/?form_data_key=bounded-key"
+                    ),
+                ),
+                patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=None),
+                patch(
+                    "superset.mcp_service.chart.tool.generate_chart.time.time",
+                    return_value=1.0,
+                ),
+            ):
+                return await generate_chart(request, ctx=ctx)
+
+        empty = await run("")
+        filler = "x" * (
+            MAX_QUERY_RESULT_VALUE_BYTES - len(empty.model_dump_json().encode())
+        )
+        boundary = await run(filler)
+        oversized = await run(filler + "x")
+
+        assert len(boundary.model_dump_json().encode()) == (
+            MAX_QUERY_RESULT_VALUE_BYTES
+        )
+        assert boundary.success is True
+        assert oversized.success is False
+        assert oversized.error is not None
+        assert oversized.error.error_code == "CHART_RESPONSE_TOO_LARGE"
 
     @pytest.mark.asyncio
     async def test_generate_chart_request_structure(self):

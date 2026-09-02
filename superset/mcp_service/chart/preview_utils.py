@@ -85,7 +85,7 @@ def _build_query_columns(form_data: Dict[str, Any]) -> list[str]:
     return columns_from_form_data(form_data)
 
 
-def generate_preview_from_form_data(
+def _generate_preview_from_form_data(
     form_data: Dict[str, Any], dataset_id: int, preview_format: str
 ) -> Any:
     """
@@ -175,6 +175,18 @@ def generate_preview_from_form_data(
             error=f"Failed to generate preview: {error_text}",
             error_type="PreviewError",
         )
+
+
+def generate_preview_from_form_data(
+    form_data: Dict[str, Any], dataset_id: int, preview_format: str
+) -> Any:
+    """Generate and preflight a complete unsaved preview content response."""
+    from superset.mcp_service.chart.response_preflight import (
+        preflight_chart_response,
+    )
+
+    result = _generate_preview_from_form_data(form_data, dataset_id, preview_format)
+    return preflight_chart_response(result)
 
 
 def _generate_ascii_preview_from_data(
@@ -438,6 +450,92 @@ def _safe_enum_backing(value: Any) -> Any:
     return backing
 
 
+def _decimal_javascript_string(value: Decimal) -> str:
+    """Render a finite exact Decimal with JavaScript Number string thresholds."""
+    sign, digits_tuple, exponent = Decimal.as_tuple(value)
+    if type(exponent) is not int:  # finite Decimals always have an integer exponent
+        raise BulletOutputError("Bullet dimension contains a non-finite Decimal")
+    if not any(digits_tuple):
+        return "0"
+
+    digits = "".join(str(digit) for digit in digits_tuple)
+    adjusted = len(digits) + exponent - 1
+    prefix = "-" if sign else ""
+    if -6 <= adjusted < 21:
+        point = len(digits) + exponent
+        if point <= 0:
+            text = f"0.{('0' * -point)}{digits}"
+        elif point >= len(digits):
+            text = digits + ("0" * (point - len(digits)))
+        else:
+            text = f"{digits[:point]}.{digits[point:]}"
+        if "." in text:
+            text = text.rstrip("0").rstrip(".")
+        return prefix + text
+
+    fraction = digits[1:].rstrip("0")
+    coefficient = digits[0] + (f".{fraction}" if fraction else "")
+    exponent_text = f"+{adjusted}" if adjusted >= 0 else str(adjusted)
+    return f"{prefix}{coefficient}e{exponent_text}"
+
+
+def _bullet_category_value(  # noqa: C901
+    value: Any, dimension: str, row_index: int
+) -> tuple[Any, str]:
+    """Return a JSON-safe value and bounded frontend ``String(value)`` text.
+
+    The trusted scalar normalizer is type-exact and does not dispatch through
+    application hooks.  Keeping its normalized value in Vega data preserves
+    temporal, numeric, boolean, and null provenance; only the derived category
+    key and ASCII label use the JavaScript-compatible text.
+    """
+    from superset.mcp_service.chart.query_result import (
+        _bounded_utf8_length,
+        _normalize_trusted_scalar,
+    )
+
+    normalized, reason = _normalize_trusted_scalar(
+        value, max_string_bytes=_MAX_BULLET_TEXT_BYTES
+    )
+    if reason is not None:
+        if "unsupported" in reason:
+            reason = "has an unsupported value type"
+        elif "oversized string" in reason:
+            reason = "exceeds the size limit"
+        raise BulletOutputError(
+            f"Bullet dimension {dimension!r} row {row_index} {reason}"
+        )
+
+    value_type = type(normalized)
+    if normalized is None:
+        text = "null"
+    elif value_type is str:
+        text = normalized
+    elif value_type is bool:
+        text = "true" if normalized else "false"
+    elif value_type is int:
+        text = str(normalized)
+    elif value_type is float:
+        if not math.isfinite(normalized):  # defensive; the normalizer rejects this
+            raise BulletOutputError(
+                f"Bullet dimension {dimension!r} row {row_index} is not finite"
+            )
+        text = _decimal_javascript_string(Decimal(float.__repr__(normalized)))
+    elif value_type is Decimal:
+        text = _decimal_javascript_string(normalized)
+    else:
+        raise BulletOutputError(
+            f"Bullet dimension {dimension!r} row {row_index} has an "
+            "unsupported value type"
+        )
+
+    if _bounded_utf8_length(text, _MAX_BULLET_TEXT_BYTES) is None:
+        raise BulletOutputError(
+            f"Bullet dimension {dimension!r} row {row_index} exceeds the size limit"
+        )
+    return normalized, text
+
+
 def _bullet_number(value: Any, row_index: int, metric_field: str) -> float:
     """Apply the frontend's useful ``Number(value ?? 0)`` numeric subset."""
     value = _safe_enum_backing(value)
@@ -551,12 +649,8 @@ def resolve_bullet_render_model(  # noqa: C901
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
 ) -> BulletRenderModel:
     """Resolve and validate every Bullet row and presentation control."""
-    from superset.mcp_service.chart.query_result import _truncate_utf8
-
     if type(data) is not list:
         raise BulletOutputError("Bullet query output must be an array of objects")
-    if list.__len__(data) == 0:
-        raise BulletOutputError("Bullet query returned no rows")
     for row_index in range(list.__len__(data)):
         row = list.__getitem__(data, row_index)
         if type(row) is not dict:
@@ -572,9 +666,9 @@ def resolve_bullet_render_model(  # noqa: C901
     if type(form_data) is not dict:
         raise BulletOutputError("Bullet form data must be an object")
 
-    first_row = list.__getitem__(data, 0)
     metric_label = _form_metric_label(dict.get(form_data, "metric"))
-    metric_field = _require_result_field(metric_label, first_row, "metric")
+    if not metric_label:
+        raise BulletOutputError("Bullet metric has no declared result alias")
     raw_groupby = dict.get(form_data, "groupby")
     if raw_groupby is None:
         raw_groupby = []
@@ -584,10 +678,22 @@ def resolve_bullet_render_model(  # noqa: C901
         _form_column_label(list.__getitem__(raw_groupby, index))
         for index in range(list.__len__(raw_groupby))
     ]
-    dimensions = [
-        _require_result_field(label, first_row, "dimension")
-        for label in dimension_labels
-    ]
+    if any(not label for label in dimension_labels):
+        raise BulletOutputError("Bullet dimension has no declared result alias")
+
+    if data:
+        first_row = list.__getitem__(data, 0)
+        metric_field = _require_result_field(metric_label, first_row, "metric")
+        dimensions = [
+            _require_result_field(label, first_row, "dimension")
+            for label in dimension_labels
+        ]
+    else:
+        # The frontend accepts empty results. Ungrouped charts retain one
+        # zero-valued measure; grouped charts retain the declared roles but no
+        # categories or rows are fabricated.
+        metric_field = metric_label
+        dimensions = [label for label in dimension_labels if label is not None]
 
     measures: list[float] = []
     copied_rows: list[dict[str, Any]] = []
@@ -606,44 +712,10 @@ def resolve_bullet_render_model(  # noqa: C901
         copied[metric_field] = measure
         for label, dimension in zip(dimension_labels, dimensions, strict=True):
             row_dimension = _require_result_field(label, row, f"dimension row {index}")
-            dimension_value = _safe_enum_backing(dict.__getitem__(row, row_dimension))
-            value_type = type(dimension_value)
-            if dimension_value is None:
-                dimension_text = ""
-            elif value_type is str:
-                dimension_text = _truncate_utf8(dimension_value, _MAX_BULLET_TEXT_BYTES)
-            elif value_type is bool:
-                dimension_text = "True" if dimension_value else "False"
-            elif value_type is int:
-                if dimension_value.bit_length() > 4096:
-                    raise BulletOutputError(
-                        f"Bullet dimension {dimension!r} row {index} is too large"
-                    )
-                dimension_text = str(dimension_value)
-            elif value_type is float:
-                if not math.isfinite(dimension_value):
-                    raise BulletOutputError(
-                        f"Bullet dimension {dimension!r} row {index} is not finite"
-                    )
-                dimension_text = str(dimension_value)
-            elif value_type is Decimal:
-                try:
-                    dimension_number = float(dimension_value)
-                except (ValueError, OverflowError) as ex:
-                    raise BulletOutputError(
-                        f"Bullet dimension {dimension!r} row {index} is unsupported"
-                    ) from ex
-                if not math.isfinite(dimension_number):
-                    raise BulletOutputError(
-                        f"Bullet dimension {dimension!r} row {index} is not finite"
-                    )
-                dimension_text = str(dimension_number)
-            else:
-                raise BulletOutputError(
-                    f"Bullet dimension {dimension!r} row {index} has an "
-                    "unsupported value type"
-                )
-            copied[dimension] = dimension_text
+            dimension_value, _ = _bullet_category_value(
+                dict.__getitem__(row, row_dimension), dimension, index
+            )
+            copied[dimension] = dimension_value
         copied_rows.append(copied)
         measures.append(measure)
 
@@ -652,12 +724,15 @@ def resolve_bullet_render_model(  # noqa: C901
     if not dimensions:
         copied_rows = copied_rows[:1]
         measures = measures[:1]
+        if not copied_rows:
+            copied_rows = [{metric_field: 0.0}]
+            measures = [0.0]
 
     ranges = _strict_bullet_numeric_tokens(dict.get(form_data, "ranges"), "ranges")
     if not ranges:
         # Match Bullet/transformProps.ts: the largest measure drives one
         # qualitative band whose upper threshold is 110% of that measure.
-        ranges = [0.0, max(measures) * 1.1]
+        ranges = [0.0, max(measures, default=0.0) * 1.1]
     markers = _strict_bullet_numeric_tokens(dict.get(form_data, "markers"), "markers")
     marker_lines = _strict_bullet_numeric_tokens(
         dict.get(form_data, "marker_lines"), "marker lines"
@@ -710,6 +785,8 @@ def _generate_ascii_bullet_chart(
 ) -> str:
     """Generate a horizontal Bullet preview from the shared strict model."""
     model = resolve_bullet_render_model(data, form_data)
+    if model.dimensions and not model.rows:
+        return "No data available for grouped Bullet chart"
     extent = (
         max(
             [abs(value) for value in [*model.measures, *model.ranges, *model.markers]],
@@ -718,8 +795,13 @@ def _generate_ascii_bullet_chart(
         or 1
     )
     lines = [f"ASCII Bullet Chart — {model.metric_field}", "=" * 60]
-    for row, value in zip(model.rows[:10], model.measures[:10], strict=True):
-        category = ", ".join(dict.get(row, field, "") for field in model.dimensions)
+    for row_index, (row, value) in enumerate(
+        zip(model.rows[:10], model.measures[:10], strict=True)
+    ):
+        category = ", ".join(
+            _bullet_category_value(dict.get(row, field), field, row_index)[1]
+            for field in model.dimensions
+        )
         category = category or "Measure"
         width = round(abs(value) / extent * 32)
         bar = "█" * width
@@ -971,10 +1053,13 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
 
     category_field = _unique_bullet_category_field(model.rows)
     values = []
-    for row in model.rows:
+    for row_index, row in enumerate(model.rows):
         copied = dict.copy(row)
         copied[category_field] = (
-            ", ".join(dict.get(row, field, "") for field in model.dimensions)
+            ", ".join(
+                _bullet_category_value(dict.get(row, field), field, row_index)[1]
+                for field in model.dimensions
+            )
             if model.dimensions
             else ""
         )
@@ -1170,6 +1255,11 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
         type="vega_lite",
         specification={
             "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+            **(
+                {"description": "No data available for grouped Bullet chart"}
+                if model.dimensions and not model.rows
+                else {}
+            ),
             "data": {"values": values},
             "transform": [
                 {

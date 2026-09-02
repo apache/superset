@@ -18,11 +18,13 @@
 """Product-path coverage for typed ECharts Bullet MCP support."""
 
 import math
+from datetime import date, datetime, time, timezone
 from decimal import Decimal
 from enum import Enum, IntEnum, StrEnum
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
+from uuid import UUID
 
 import pytest
 from pydantic import TypeAdapter, ValidationError
@@ -47,6 +49,7 @@ from superset.mcp_service.chart.preview_utils import (
     resolve_bullet_render_model,
 )
 from superset.mcp_service.chart.schemas import (
+    ASCIIPreview,
     BulletChartConfig,
     ChartConfig,
     ChartError,
@@ -55,6 +58,7 @@ from superset.mcp_service.chart.schemas import (
     GetChartPreviewRequest,
     UpdateChartPreviewRequest,
     UpdateChartRequest,
+    VegaLitePreview,
     XYChartConfig,
 )
 from superset.mcp_service.chart.tool.generate_chart import generate_chart
@@ -900,7 +904,7 @@ def test_bullet_result_validation_rejects_malformed_presentation(
         resolve_bullet_render_model([{"SUM(amount)": 1}], form_data)
 
 
-def test_bullet_compile_rejects_empty_or_malformed_sizing_measure() -> None:
+def test_bullet_compile_accepts_empty_ungrouped_result() -> None:
     form_data = map_bullet_config(
         BulletChartConfig(
             metric={"name": "Revenue", "aggregate": "SUM", "label": "Revenue"}
@@ -921,10 +925,8 @@ def test_bullet_compile_rejects_empty_or_malformed_sizing_measure() -> None:
         ),
     ):
         result = _compile_chart(form_data, 7)
-    assert result.success is False
-    assert result.error_code == "MALFORMED_BULLET_OUTPUT"
-    assert result.error_obj is not None
-    assert result.error_obj.error_type == "malformed_bullet_output"
+    assert result.success is True
+    assert result.row_count == 0
 
 
 def test_bullet_compile_inspects_top_level_and_query_error_envelopes() -> None:
@@ -1154,6 +1156,128 @@ def test_bullet_vega_internal_category_key_avoids_adversarial_row_aliases() -> N
     assert bar["encoding"]["y"]["field"] == category_field
 
 
+def test_bullet_categories_match_frontend_string_coercion_and_preserve_values() -> None:
+    identifier = UUID("12345678-1234-5678-1234-567812345678")
+    values = [
+        None,
+        "",
+        True,
+        False,
+        12.0,
+        12.5,
+        -0.0,
+        Decimal("12.00"),
+        Decimal("12.50"),
+        date(2026, 9, 2),
+        datetime(2026, 9, 2, 3, 4, 5, tzinfo=timezone.utc),
+        time(3, 4, 5),
+        identifier,
+        "null",
+        "true",
+        12,
+    ]
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Category"],
+    }
+    preview = _generate_vega_lite_preview_from_data(
+        [
+            {"Category": value, "Revenue": index + 1}
+            for index, value in enumerate(values)
+        ],
+        form_data,
+    )
+    rows = preview.specification["data"]["values"]
+    categories = [row["__mcp_bullet_category"] for row in rows]
+    assert categories == [
+        "null",
+        "",
+        "true",
+        "false",
+        "12",
+        "12.5",
+        "0",
+        "12",
+        "12.5",
+        "2026-09-02",
+        "2026-09-02T03:04:05+00:00",
+        "03:04:05",
+        str(identifier),
+        "null",
+        "true",
+        "12",
+    ]
+    # Null, string, boolean, integral-float, Decimal, and integer collisions
+    # are intentional because they are the same frontend category strings.
+    assert categories.count("null") == 2
+    assert categories.count("true") == 2
+    assert categories.count("12") == 3
+    assert rows[0]["Category"] is None
+    assert rows[2]["Category"] is True
+    assert rows[4]["Category"] == 12.0
+    assert rows[7]["Category"] == Decimal("12.00")
+
+    ascii_preview = _generate_ascii_preview_from_data(
+        [{"Category": None, "Revenue": 1}, {"Category": True, "Revenue": 2}],
+        form_data,
+    )
+    assert "null" in ascii_preview.ascii_content
+    assert "true" in ascii_preview.ascii_content
+
+
+def test_bullet_category_text_is_bounded_without_truncation_collisions() -> None:
+    with pytest.raises(BulletOutputError, match="size limit"):
+        resolve_bullet_render_model(
+            [{"Category": "x" * 2001, "Revenue": 1}],
+            {"metric": "Revenue", "groupby": ["Category"]},
+        )
+
+
+def test_grouped_empty_bullet_has_clear_no_data_without_fabricated_category() -> None:
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Region"],
+    }
+    model = resolve_bullet_render_model([], form_data)
+    assert model.rows == []
+    assert model.measures == []
+    assert model.dimensions == ["Region"]
+
+    vega = _generate_vega_lite_preview_from_data([], form_data)
+    assert vega.specification["data"]["values"] == []
+    assert vega.specification["description"] == (
+        "No data available for grouped Bullet chart"
+    )
+    ascii_preview = _generate_ascii_preview_from_data([], form_data)
+    assert ascii_preview.ascii_content == ("No data available for grouped Bullet chart")
+
+
+def test_bullet_derived_category_amplification_is_rejected_at_preview_boundary() -> (
+    None
+):
+    category = "x" * 1800
+    rows = [{"Region": category, "Revenue": 1} for _ in range(4800)]
+    envelope = {"queries": [{"data": rows}]}
+    source_size = len(
+        __import__("json").dumps(envelope, separators=(",", ":")).encode()
+    )
+    assert source_size < 16 * 1024 * 1024
+
+    preview = _unsaved_bullet_result_with_result(
+        envelope,
+        {
+            "viz_type": "bullet",
+            "metric": "Revenue",
+            "groupby": ["Region"],
+        },
+    )
+    assert isinstance(preview, ChartError)
+    assert preview.error_type == "MalformedQueryResult"
+    assert "response exceeds" in preview.error
+
+
 def test_bullet_preview_applies_default_band_and_every_presentation_control() -> None:
     form_data = map_bullet_config(
         BulletChartConfig(
@@ -1306,7 +1430,9 @@ def test_bullet_unsaved_preview_rejects_embedded_query_error() -> None:
     assert "metric failed" in result.error
 
 
-def _unsaved_bullet_preview_with_result(result: object) -> ChartError:
+def _unsaved_bullet_result_with_result(
+    result: object, form_data: dict[str, Any] | None = None, format_: str = "vega_lite"
+) -> ChartError | ASCIIPreview | VegaLitePreview:
     dataset = SimpleNamespace(id=7)
     factory = MagicMock()
     factory.create.return_value = MagicMock()
@@ -1324,8 +1450,14 @@ def _unsaved_bullet_preview_with_result(result: object) -> ChartError:
         ),
     ):
         preview = generate_preview_from_form_data(
-            {"viz_type": "bullet", "metric": "Revenue"}, 7, "vega_lite"
+            form_data or {"viz_type": "bullet", "metric": "Revenue"}, 7, format_
         )
+    assert isinstance(preview, (ChartError, ASCIIPreview, VegaLitePreview))
+    return preview
+
+
+def _unsaved_bullet_preview_with_result(result: object) -> ChartError:
+    preview = _unsaved_bullet_result_with_result(result)
     assert isinstance(preview, ChartError)
     return preview
 
@@ -1347,10 +1479,15 @@ def test_bullet_unsaved_preview_structures_oversized_numeric_output() -> None:
 
 def test_bullet_empty_saved_and_unsaved_vega_use_same_no_data_contract() -> None:
     envelope: dict[str, Any] = {"queries": [{"data": []}]}
-    unsaved = _unsaved_bullet_preview_with_result(envelope)
-    saved = _saved_bullet_preview_with_result(envelope, "vega_lite")
-    assert unsaved.error_type == saved.error_type == "MalformedBulletOutput"
-    assert unsaved.error == saved.error == "Bullet query returned no rows"
+    unsaved = _unsaved_bullet_result_with_result(envelope)
+    saved = _saved_bullet_result_with_result(envelope, "vega_lite")
+    assert isinstance(unsaved, VegaLitePreview)
+    assert isinstance(saved, VegaLitePreview)
+    for preview in (unsaved, saved):
+        assert preview.specification["data"]["values"] == [
+            {"Revenue": 0.0, "__mcp_bullet_category": ""}
+        ]
+        assert preview.specification["usermeta"]["bullet"]["ranges"] == [0.0, 0.0]
 
     chart = SimpleNamespace(
         id=9,
@@ -1363,12 +1500,18 @@ def test_bullet_empty_saved_and_unsaved_vega_use_same_no_data_contract() -> None
     strategy = VegaLitePreviewStrategy(
         chart, GetChartPreviewRequest(identifier=9, format="vega_lite")
     )
-    with pytest.raises(BulletOutputError, match="returned no rows"):
-        strategy._create_vega_lite_spec([])
+    specification = strategy._create_vega_lite_spec([])
+    assert specification["data"]["values"] == [
+        {"SavedRevenue": 0.0, "__mcp_bullet_category": ""}
+    ]
 
 
-def _saved_bullet_preview_with_result(result: object, format_: str) -> ChartError:
-    form_data = {"viz_type": "bullet", "metric": "Revenue"}
+def _saved_bullet_result_with_result(
+    result: object,
+    format_: str,
+    form_data: dict[str, Any] | None = None,
+) -> ChartError | ASCIIPreview | VegaLitePreview:
+    form_data = form_data or {"viz_type": "bullet", "metric": "Revenue"}
     chart = SimpleNamespace(
         id=9,
         params=__import__("json").dumps(form_data),
@@ -1398,6 +1541,12 @@ def _saved_bullet_preview_with_result(result: object, format_: str) -> ChartErro
         ),
     ):
         preview = strategy.generate()
+    assert isinstance(preview, (ChartError, ASCIIPreview, VegaLitePreview))
+    return preview
+
+
+def _saved_bullet_preview_with_result(result: object, format_: str) -> ChartError:
+    preview = _saved_bullet_result_with_result(result, format_)
     assert isinstance(preview, ChartError)
     return preview
 

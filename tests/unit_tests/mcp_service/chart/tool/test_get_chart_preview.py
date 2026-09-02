@@ -23,12 +23,13 @@ import importlib
 from datetime import datetime
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pandas as pd
 import pytest
 from dateutil import tz as dateutil_tz
 
+from superset.mcp_service.chart.query_result import MAX_QUERY_RESULT_VALUE_BYTES
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -48,6 +49,7 @@ from superset.mcp_service.chart.tool.get_chart_preview import (
     _first_query_has_fields,
     _no_query_fields_error,
     ASCIIPreviewStrategy,
+    get_chart_preview,
     PreviewFormatStrategy,
     TablePreviewStrategy,
 )
@@ -57,6 +59,72 @@ from superset.utils import json as utils_json
 def _query_context_stub(form_data: dict[str, Any] | None = None) -> Any:
     """Return the minimal real-shaped context needed by Jinja form-data seeding."""
     return SimpleNamespace(form_data=form_data or {}, queries=[])
+
+
+def _entrypoint_preview(content: str) -> ChartPreview:
+    return ChartPreview(
+        chart_id=1,
+        chart_name="",
+        chart_type="bullet",
+        explore_url="",
+        content=ASCIIPreview(ascii_content=content, width=80, height=20),
+        chart_description="",
+        accessibility=AccessibilityMetadata(
+            color_blind_safe=True,
+            alt_text="",
+            high_contrast_available=False,
+        ),
+        performance=PerformanceMetadata(
+            query_duration_ms=0,
+            cache_status="miss",
+            optimization_suggestions=[],
+        ),
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("request_payload", "extra", "expected_type"),
+    [
+        ({"id": 1, "format": "ascii"}, 0, ChartPreview),
+        ({"form_data_key": "cached-preview", "format": "ascii"}, 1, ChartError),
+    ],
+    ids=["identifier-alias-exact-limit", "cached-preview-limit-plus-one"],
+)
+async def test_get_chart_preview_entrypoint_preflights_complete_exact_wire_response(
+    request_payload: dict[str, object], extra: int, expected_type: type[object]
+) -> None:
+    empty = _entrypoint_preview("")
+    filler = "x" * (
+        MAX_QUERY_RESULT_VALUE_BYTES - len(empty.model_dump_json().encode()) + extra
+    )
+    candidate = _entrypoint_preview(filler)
+    request = GetChartPreviewRequest.model_validate(request_payload)
+    ctx = MagicMock()
+    ctx.info = AsyncMock()
+    ctx.debug = AsyncMock()
+    ctx.warning = AsyncMock()
+
+    user = MagicMock(id=1, username="admin", roles=[], groups=[])
+    with (
+        patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "_get_chart_preview_internal",
+            new=AsyncMock(return_value=candidate),
+        ),
+    ):
+        result = await get_chart_preview(request, ctx=ctx)
+
+    assert isinstance(result, expected_type)
+    if extra == 0:
+        assert len(candidate.model_dump_json().encode()) == (
+            MAX_QUERY_RESULT_VALUE_BYTES
+        )
+        assert result is candidate
+    else:
+        assert isinstance(result, ChartError)
+        assert result.error_type == "MalformedQueryResult"
 
 
 def test_ascii_preview_accepts_real_postprocessing_null_and_large_full_sql(

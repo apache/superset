@@ -44,6 +44,9 @@ from superset.mcp_service.chart.compile import (
     validate_and_compile,
 )
 from superset.mcp_service.chart.preview_utils import SUPPORTED_FORM_DATA_PREVIEW_FORMATS
+from superset.mcp_service.chart.response_preflight import (
+    preflight_generate_chart_response,
+)
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ChartError,
@@ -62,6 +65,13 @@ logger = logging.getLogger(__name__)
 
 
 __all__ = ["CompileResult", "_compile_chart", "validate_and_compile", "generate_chart"]
+
+
+def _bounded_generate_response(payload: object) -> GenerateChartResponse:
+    """Validate and preflight one complete generate-chart response."""
+    return preflight_generate_chart_response(
+        GenerateChartResponse.model_validate(payload)
+    )
 
 
 @tool(
@@ -286,7 +296,7 @@ async def generate_chart(  # noqa: C901
                 "Chart validation failed: error=%s"
                 % (validation_result.error.model_dump(),)
             )
-            return GenerateChartResponse.model_validate(
+            return _bounded_generate_response(
                 {
                     "chart": None,
                     "error": validation_result.error.model_dump(),
@@ -383,7 +393,7 @@ async def generate_chart(  # noqa: C901
                     ],
                     error_code="DATASET_NOT_FOUND",
                 )
-                return GenerateChartResponse.model_validate(
+                return _bounded_generate_response(
                     {
                         "chart": None,
                         "error": error.model_dump(),
@@ -436,7 +446,7 @@ async def generate_chart(  # noqa: C901
                     ],
                     error_code="CHART_COMPILE_FAILED",
                 )
-                return GenerateChartResponse.model_validate(
+                return _bounded_generate_response(
                     {
                         "chart": None,
                         "error": error.model_dump(),
@@ -648,7 +658,7 @@ async def generate_chart(  # noqa: C901
                         ],
                         error_code="CHART_COMPILE_FAILED",
                     )
-                    return GenerateChartResponse.model_validate(
+                    return _bounded_generate_response(
                         {
                             "chart": None,
                             "error": error.model_dump(),
@@ -866,14 +876,14 @@ async def generate_chart(  # noqa: C901
                 int((time.time() - start_time) * 1000),
             )
         )
-        return GenerateChartResponse.model_validate(result)
+        return _bounded_generate_response(result)
 
     except OAuth2RedirectError as ex:
         await ctx.warning(
             "Chart generation requires OAuth authentication: dataset_id=%s"
             % request.dataset_id
         )
-        return GenerateChartResponse.model_validate(
+        return _bounded_generate_response(
             {
                 "chart": None,
                 "success": False,
@@ -888,7 +898,7 @@ async def generate_chart(  # noqa: C901
         await ctx.error(
             "OAuth2 configuration error: dataset_id=%s" % request.dataset_id
         )
-        return GenerateChartResponse.model_validate(
+        return _bounded_generate_response(
             {
                 "chart": None,
                 "success": False,
@@ -937,7 +947,7 @@ async def generate_chart(  # noqa: C901
             error_code="CHART_GENERATION_FAILED",
         )
 
-        return GenerateChartResponse.model_validate(
+        return _bounded_generate_response(
             {
                 "chart": None,
                 "error": error.model_dump(),

@@ -21,6 +21,8 @@ MCP tool: update_chart_preview
 
 import logging
 import time
+from collections.abc import Callable
+from functools import wraps
 from typing import Any, Dict
 
 from fastmcp import Context
@@ -48,6 +50,9 @@ from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.preview_utils import (
     generate_preview_from_form_data,
     SUPPORTED_FORM_DATA_PREVIEW_FORMATS,
+)
+from superset.mcp_service.chart.response_preflight import (
+    preflight_update_preview_response,
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
@@ -153,6 +158,18 @@ def _preserve_previous_adhoc_filters(
     )
 
 
+def _preflight_update_preview_result(
+    function: Callable[[UpdateChartPreviewRequest, Context], Dict[str, Any]],
+) -> Callable[[UpdateChartPreviewRequest, Context], Dict[str, Any]]:
+    """Apply the final wire-size gate to every success and error return."""
+
+    @wraps(function)
+    def wrapped(request: UpdateChartPreviewRequest, ctx: Context) -> Dict[str, Any]:
+        return preflight_update_preview_response(function(request, ctx))
+
+    return wrapped
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Chart",
@@ -165,6 +182,7 @@ def _preserve_previous_adhoc_filters(
         openWorldHint=False,
     ),
 )
+@_preflight_update_preview_result
 def update_chart_preview(  # noqa: C901
     request: UpdateChartPreviewRequest, ctx: Context
 ) -> Dict[str, Any]:
