@@ -18,13 +18,14 @@
 """Product-path coverage for typed ECharts Bullet MCP support."""
 
 import math
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timezone, tzinfo
 from decimal import Decimal
 from enum import Enum, IntEnum, StrEnum
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 import pytest
 from pydantic import TypeAdapter, ValidationError
@@ -1117,10 +1118,10 @@ def test_bullet_unsaved_preview_path_returns_faithful_vega_spec() -> None:
     assert bar_layer["encoding"]["x"]["field"] == "Total Revenue"
     assert bar_layer["encoding"]["y"]["field"] == "__mcp_bullet_category"
     assert [item["field"] for item in bar_layer["encoding"]["tooltip"]] == [
-        "Region",
-        "Team",
+        "__mcp_bullet_category",
         "Total Revenue",
     ]
+    assert bar_layer["encoding"]["tooltip"][0]["title"] == "Region, Team"
     assert {layer["mark"]["type"] for layer in specification["layer"]} == {
         "rect",
         "bar",
@@ -1236,14 +1237,82 @@ def test_bullet_number_category_boundaries_flow_through_ascii_and_vega() -> None
     )["encoding"]["y"]["field"]
     assert [row[category_field] for row in vega["data"]["values"]] == expected
     assert "transform" not in vega
-    # Raw normalized dimensions stay available for tooltips and inspection;
-    # the derived category is the only frontend-coerced copy.
+    tooltip = next(layer for layer in vega["layer"] if layer["mark"]["type"] == "bar")[
+        "encoding"
+    ]["tooltip"]
+    assert tooltip[0] == {
+        "field": category_field,
+        "type": "nominal",
+        "title": "Category",
+    }
+    assert all(item.get("field") != "Category" for item in tooltip)
+    # Raw normalized dimensions stay available for inspection, while every
+    # category-bearing encoding uses the frontend-coerced derived value.
     assert vega["data"]["values"][0]["Category"] == 9007199254740993
     assert vega["data"]["values"][1]["Category"] == Decimal("1.0000000000000001")
 
     ascii_preview = _generate_ascii_preview_from_data(data, form_data)
     for category in ("9007199254740992", "1e+21", "1e-7", "Infinity"):
         assert category in ascii_preview.ascii_content
+
+
+def test_bullet_vega_tooltip_uses_joined_derived_numeric_category() -> None:
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Large integer", "Precise decimal"],
+    }
+    specification = _generate_vega_lite_preview_from_data(
+        [
+            {
+                "Large integer": 9007199254740993,
+                "Precise decimal": Decimal("1.0000000000000001"),
+                "Revenue": 1,
+            }
+        ],
+        form_data,
+    ).specification
+    bar = next(
+        layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
+    )
+    category_field = bar["encoding"]["y"]["field"]
+
+    assert specification["data"]["values"][0][category_field] == ("9007199254740992, 1")
+    assert bar["encoding"]["tooltip"][0] == {
+        "field": category_field,
+        "type": "nominal",
+        "title": "Large integer, Precise decimal",
+    }
+    assert "transform" not in specification
+
+
+def test_bullet_temporal_category_rejects_hostile_timezone_without_hooks() -> None:
+    class _HostileTimezone(tzinfo):
+        calls = 0
+
+        def utcoffset(self, _value: datetime | None) -> None:
+            type(self).calls += 1
+            raise AssertionError("timezone hook invoked")
+
+        def dst(self, _value: datetime | None) -> None:
+            type(self).calls += 1
+            raise AssertionError("timezone hook invoked")
+
+        def tzname(self, _value: datetime | None) -> str | None:
+            type(self).calls += 1
+            raise AssertionError("timezone hook invoked")
+
+    with pytest.raises(BulletOutputError, match="unsupported timezone"):
+        resolve_bullet_render_model(
+            [
+                {
+                    "Category": datetime(2026, 9, 2, tzinfo=_HostileTimezone()),
+                    "Revenue": 1,
+                }
+            ],
+            {"metric": "Revenue", "groupby": ["Category"]},
+        )
+    assert _HostileTimezone.calls == 0
 
 
 def test_bullet_categories_match_frontend_string_coercion_and_preserve_values() -> None:
@@ -1260,6 +1329,24 @@ def test_bullet_categories_match_frontend_string_coercion_and_preserve_values() 
         Decimal("12.50"),
         date(2026, 9, 2),
         datetime(2026, 9, 2, 3, 4, 5, tzinfo=timezone.utc),
+        datetime(
+            2023,
+            11,
+            5,
+            1,
+            30,
+            tzinfo=ZoneInfo("America/New_York"),
+            fold=0,
+        ),
+        datetime(
+            2023,
+            11,
+            5,
+            1,
+            30,
+            tzinfo=ZoneInfo("America/New_York"),
+            fold=1,
+        ),
         time(3, 4, 5),
         identifier,
         "null",
@@ -1290,8 +1377,10 @@ def test_bullet_categories_match_frontend_string_coercion_and_preserve_values() 
         "0",
         "12",
         "12.5",
-        "2026-09-02",
-        "2026-09-02T03:04:05+00:00",
+        "1788307200000",
+        "1788318245000",
+        "1699162200000",
+        "1699165800000",
         "03:04:05",
         str(identifier),
         "null",
@@ -1307,6 +1396,9 @@ def test_bullet_categories_match_frontend_string_coercion_and_preserve_values() 
     assert rows[2]["Category"] is True
     assert rows[4]["Category"] == 12.0
     assert rows[7]["Category"] == Decimal("12.00")
+    assert rows[9]["Category"] == 1788307200000.0
+    assert rows[11]["Category"] == 1699162200000.0
+    assert rows[12]["Category"] == 1699165800000.0
 
     ascii_preview = _generate_ascii_preview_from_data(
         [{"Category": None, "Revenue": 1}, {"Category": True, "Revenue": 2}],

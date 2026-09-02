@@ -3878,12 +3878,14 @@ async def test_saved_bullet_get_data_uses_strict_render_model(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("grouped", "format_", "identifier_alias"),
+    ("grouped", "format_", "identifier_alias", "excel_engine"),
     [
-        (False, "json", "id"),
-        (True, "json", "chart_id"),
-        (False, "csv", "id"),
-        (True, "excel", "chart_id"),
+        (False, "json", "id", None),
+        (True, "json", "chart_id", None),
+        (False, "csv", "id", None),
+        (True, "csv", "chart_id", None),
+        (True, "excel", "id", "openpyxl"),
+        (True, "excel", "chart_id", "xlsxwriter"),
     ],
 )
 async def test_saved_empty_bullet_get_data_fastmcp_returns_normalized_rows(
@@ -3892,10 +3894,15 @@ async def test_saved_empty_bullet_get_data_fastmcp_returns_normalized_rows(
     grouped: bool,
     format_: str,
     identifier_alias: str,
+    excel_engine: str | None,
 ) -> None:
+    import base64
+    import io
+    from contextlib import ExitStack
     from unittest.mock import patch
 
     from fastmcp import Client
+    from openpyxl import load_workbook
 
     module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
     command_module = importlib.import_module(
@@ -3934,19 +3941,30 @@ async def test_saved_empty_bullet_get_data_fastmcp_returns_normalized_rows(
                 ]
             }
 
-    with (
-        patch.object(module, "find_chart_by_identifier", return_value=chart),
-        patch.object(
-            module,
-            "validate_chart_dataset",
-            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
-        ),
-        patch(
-            "superset.charts.schemas.ChartDataQueryContextSchema.load",
-            return_value=_query_context_stub(),
-        ),
-        patch.object(command_module, "ChartDataCommand", _Command),
-    ):
+    with ExitStack() as stack:
+        stack.enter_context(
+            patch.object(module, "find_chart_by_identifier", return_value=chart)
+        )
+        stack.enter_context(
+            patch.object(
+                module,
+                "validate_chart_dataset",
+                return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "superset.charts.schemas.ChartDataQueryContextSchema.load",
+                return_value=_query_context_stub(),
+            )
+        )
+        stack.enter_context(patch.object(command_module, "ChartDataCommand", _Command))
+        if excel_engine == "xlsxwriter":
+            stack.enter_context(
+                patch.object(
+                    module, "_create_excel_with_openpyxl", side_effect=ImportError
+                )
+            )
         async with Client(mcp_server) as client:
             result = await client.call_tool(
                 "get_chart_data",
@@ -3966,20 +3984,27 @@ async def test_saved_empty_bullet_get_data_fastmcp_returns_normalized_rows(
         assert payload["row_count"] == len(expected_rows)
     elif format_ == "csv":
         assert payload["format"] == "csv"
-        assert payload["row_count"] == 1
-        assert payload["csv_data"] == "Revenue\r\n0.0\r\n"
+        assert payload["row_count"] == len(expected_rows)
+        assert payload["csv_data"] == (
+            "Revenue,Region\r\n" if grouped else "Revenue\r\n0.0\r\n"
+        )
     else:
         assert payload["format"] == "excel"
         assert payload["row_count"] == 0
-        assert payload["excel_data"]
+        workbook = load_workbook(io.BytesIO(base64.b64decode(payload["excel_data"])))
+        assert [cell.value for cell in workbook.active[1]] == raw_columns
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("grouped", [False, True])
+@pytest.mark.parametrize(
+    ("grouped", "format_"),
+    [(False, "json"), (True, "json")],
+)
 async def test_form_data_key_empty_bullet_fastmcp_returns_normalized_rows(
     mcp_server: Any,
     mock_auth: Any,
     grouped: bool,
+    format_: str,
 ) -> None:
     from unittest.mock import patch
 
@@ -4028,7 +4053,12 @@ async def test_form_data_key_empty_bullet_fastmcp_returns_normalized_rows(
         async with Client(mcp_server) as client:
             result = await client.call_tool(
                 "get_chart_data",
-                {"request": {"form_data_key": "empty-bullet"}},
+                {
+                    "request": {
+                        "form_data_key": "empty-bullet",
+                        "format": format_,
+                    }
+                },
             )
 
     payload = json.loads(result.content[0].text)
@@ -4036,8 +4066,8 @@ async def test_form_data_key_empty_bullet_fastmcp_returns_normalized_rows(
     assert "error_type" not in payload
     assert payload["chart_id"] == 0
     assert payload["chart_type"] == "bullet"
-    assert payload["data"] == expected_rows
     assert payload["row_count"] == len(expected_rows)
+    assert payload["data"] == expected_rows
 
     def test_float_total_rows_serializes_without_error(self) -> None:
         import pydantic_core

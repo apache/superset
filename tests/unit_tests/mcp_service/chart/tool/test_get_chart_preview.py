@@ -20,11 +20,12 @@ Unit tests for get_chart_preview MCP tool
 """
 
 import importlib
-from datetime import datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import pytest
@@ -130,7 +131,7 @@ async def test_get_chart_preview_entrypoint_preflights_complete_exact_wire_respo
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("format_", ["ascii", "vega_lite"])
-async def test_bullet_ieee754_categories_reach_real_mcp_preview_entrypoint(
+async def test_bullet_numeric_and_temporal_categories_reach_real_mcp_entrypoint(
     format_: str,
 ) -> None:
     from contextlib import nullcontext
@@ -162,6 +163,35 @@ async def test_bullet_ieee754_categories_reach_real_mcp_preview_entrypoint(
         {"Category": 9007199254740993, "Revenue": 1},
         {"Category": Decimal("1.0000000000000001"), "Revenue": 2},
         {"Category": Decimal("1.7976931348623159e308"), "Revenue": 3},
+        {"Category": date(2026, 9, 2), "Revenue": 4},
+        {
+            "Category": datetime(2026, 9, 2, 3, 4, 5, tzinfo=timezone.utc),
+            "Revenue": 5,
+        },
+        {
+            "Category": datetime(
+                2023,
+                11,
+                5,
+                1,
+                30,
+                tzinfo=ZoneInfo("America/New_York"),
+                fold=0,
+            ),
+            "Revenue": 6,
+        },
+        {
+            "Category": datetime(
+                2023,
+                11,
+                5,
+                1,
+                30,
+                tzinfo=ZoneInfo("America/New_York"),
+                fold=1,
+            ),
+            "Revenue": 7,
+        },
     ]
 
     class _Command:
@@ -221,6 +251,9 @@ async def test_bullet_ieee754_categories_reach_real_mcp_preview_entrypoint(
         content = payload["content"]["ascii_content"]
         assert "9007199254740992" in content
         assert "Infinity" in content
+        assert "1788307200000" in content
+        assert "1699162200000" in content
+        assert "1699165800000" in content
     else:
         specification = payload["content"]["specification"]
         bar = next(
@@ -231,7 +264,18 @@ async def test_bullet_ieee754_categories_reach_real_mcp_preview_entrypoint(
             "9007199254740992",
             "1",
             "Infinity",
+            "1788307200000",
+            "1788318245000",
+            "1699162200000",
+            "1699165800000",
         ]
+        assert [row["Category"] for row in specification["data"]["values"][3:]] == [
+            1788307200000.0,
+            1788318245000.0,
+            1699162200000.0,
+            1699165800000.0,
+        ]
+        assert bar["encoding"]["tooltip"][0]["field"] == category_field
         assert "transform" not in specification
 
 

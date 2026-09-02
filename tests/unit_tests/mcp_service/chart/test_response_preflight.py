@@ -17,6 +17,7 @@
 
 """Exact final-response bounds for preview-bearing chart schemas."""
 
+import pytest
 from pydantic import RootModel
 
 from superset.mcp_service.chart.query_result import MAX_QUERY_RESULT_VALUE_BYTES
@@ -32,6 +33,7 @@ from superset.mcp_service.chart.schemas import (
     ChartPreview,
     GenerateChartResponse,
     PerformanceMetadata,
+    VegaLitePreview,
 )
 
 
@@ -56,6 +58,29 @@ def _chart_preview(content: str) -> ChartPreview:
     )
 
 
+def _vega_chart_preview(value: float, padding: str) -> ChartPreview:
+    return ChartPreview(
+        chart_id=1,
+        chart_name="",
+        chart_type="bullet",
+        explore_url="",
+        content=VegaLitePreview(
+            specification={"value": value, "padding": padding},
+        ),
+        chart_description="",
+        accessibility=AccessibilityMetadata(
+            color_blind_safe=True,
+            alt_text="",
+            high_contrast_available=False,
+        ),
+        performance=PerformanceMetadata(
+            query_duration_ms=0,
+            cache_status="miss",
+            optimization_suggestions=[],
+        ),
+    )
+
+
 def test_chart_preview_exact_16_mib_passes_and_one_byte_fails() -> None:
     empty = _chart_preview("")
     filler = "x" * (
@@ -63,6 +88,23 @@ def test_chart_preview_exact_16_mib_passes_and_one_byte_fails() -> None:
     )
     boundary = _chart_preview(filler)
     oversized = _chart_preview(filler + "x")
+
+    assert len(boundary.model_dump_json().encode()) == MAX_QUERY_RESULT_VALUE_BYTES
+    assert preflight_chart_response(boundary) is boundary
+    failure = preflight_chart_response(oversized)
+    assert isinstance(failure, ChartError)
+    assert failure.error_type == "MalformedQueryResult"
+
+
+@pytest.mark.parametrize("value", [1e-5, 1e-6])
+def test_chart_preview_float_wire_size_exact_boundary(value: float) -> None:
+    """Final sizing follows pydantic-core, not Python float repr."""
+    empty = _vega_chart_preview(value, "")
+    filler = "x" * (
+        MAX_QUERY_RESULT_VALUE_BYTES - len(empty.model_dump_json().encode())
+    )
+    boundary = _vega_chart_preview(value, filler)
+    oversized = _vega_chart_preview(value, filler + "x")
 
     assert len(boundary.model_dump_json().encode()) == MAX_QUERY_RESULT_VALUE_BYTES
     assert preflight_chart_response(boundary) is boundary

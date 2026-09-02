@@ -148,7 +148,10 @@ def _compile_chart(
 
         warnings: List[str] = []
         row_count = 0
-        query_data, query_failure = query_result_data(result)
+        query_data, query_failure = query_result_data(
+            result,
+            temporal_json_numbers=form_data.get("viz_type") == "bullet",
+        )
         if query_failure is not None:
             error_str = query_failure.error
             return CompileResult(

@@ -238,8 +238,13 @@ test('coerces grouped categories with JavaScript String semantics', () => {
           { state: 12.0, sum__num: 5 },
           { state: 12.5, sum__num: 6 },
           { state: -0, sum__num: 7 },
-          { state: '2026-09-02T03:04:05Z', sum__num: 8 },
-          { state: '12345678-1234-5678-1234-567812345678', sum__num: 9 },
+          // Chart Data serializes date/datetime values as epoch-ms JSON
+          // numbers before ECharts applies String(value).
+          { state: JSON.parse('1788307200000'), sum__num: 8 },
+          { state: JSON.parse('1788318245000'), sum__num: 9 },
+          { state: JSON.parse('1699162200000'), sum__num: 10 },
+          { state: JSON.parse('1699165800000'), sum__num: 11 },
+          { state: '12345678-1234-5678-1234-567812345678', sum__num: 12 },
         ],
       },
     ],
@@ -255,7 +260,10 @@ test('coerces grouped categories with JavaScript String semantics', () => {
     '12',
     '12.5',
     '0',
-    '2026-09-02T03:04:05Z',
+    '1788307200000',
+    '1788318245000',
+    '1699162200000',
+    '1699165800000',
     '12345678-1234-5678-1234-567812345678',
   ]);
 });

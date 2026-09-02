@@ -35,6 +35,7 @@ import pytz
 from dateutil import tz as dateutil_tz
 from dateutil.zoneinfo import tzfile as dateutil_zoneinfo_tzfile
 from pydantic import BaseModel
+from pydantic_core import to_json
 
 from superset.mcp_service.chart.schemas import ChartError
 from superset.utils.core import GenericDataType
@@ -511,6 +512,19 @@ def _normalized_scalar_json_size(  # noqa: C901
     return size
 
 
+def _pydantic_scalar_json_size(value: Any) -> int:
+    """Return the exact Pydantic wire size for a normalized scalar.
+
+    Source-result accounting deliberately retains its existing conservative
+    scalar rules.  Final response projections, however, must match
+    pydantic-core's JSON number spelling: for example, it emits ``0.00001`` for
+    ``1e-5`` and ``1e-6`` for ``1e-6`` rather than Python's repr spellings.
+    """
+    if type(value) is float:
+        return len(to_json(value))
+    return _normalized_scalar_json_size(value)
+
+
 def _charge_json_bytes(
     budget: _ResultBudget, size: int, *, metadata: bool = False
 ) -> str | None:
@@ -962,6 +976,37 @@ def _normalize_trusted_scalar(  # noqa: C901
     return None, "contains an unsupported or subclassed value"
 
 
+def _chart_data_temporal_number(value: Any) -> tuple[float | None, str | None]:
+    """Project an exact date/datetime through Chart Data's epoch-ms wire form.
+
+    The public Chart Data API uses ``json_int_dttm_ser`` before the browser
+    parses the payload.  The trusted text normalizer first validates timezone
+    implementations without dispatching through arbitrary hooks; parsing that
+    bounded text then gives the same instant using only builtin datetime types.
+    """
+    value_type = type(value)
+    if value_type is datetime:
+        text, reason = _trusted_datetime_text(value)
+        if reason is not None or text is None:
+            return None, reason or "contains an invalid datetime"
+        try:
+            parsed = datetime.fromisoformat(text)
+            if parsed.tzinfo is None:
+                epoch = datetime(1970, 1, 1)
+            else:
+                epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
+                parsed = parsed.astimezone(timezone.utc)
+            return (parsed - epoch).total_seconds() * 1000, None
+        except (OverflowError, TypeError, ValueError):
+            return None, "contains an invalid datetime"
+    if value_type is date:
+        # ``json_int_dttm_ser`` subtracts the epoch date and emits milliseconds.
+        return float(
+            (date.toordinal(value) - date.toordinal(date(1970, 1, 1))) * 86_400_000
+        ), None
+    return None, "contains an unsupported temporal value"
+
+
 def _add_result_value_to_budget(value: Any, budget: _ResultBudget) -> str | None:
     """Account for one normalized row value and its JSON scalar size."""
     budget.values += 1
@@ -1110,7 +1155,7 @@ def _metadata_failure(  # noqa: C901
 
 
 def _normalize_row_value(  # noqa: C901
-    value: Any, budget: _ResultBudget
+    value: Any, budget: _ResultBudget, *, temporal_json_numbers: bool = False
 ) -> str | None:
     """Normalize trusted scalars and return a bounded serialization failure.
 
@@ -1186,7 +1231,10 @@ def _normalize_row_value(  # noqa: C901
                 stack.append((child, item, key, depth + 1, False))
             continue
 
-        normalized, reason = _normalize_trusted_scalar(item)
+        if temporal_json_numbers and type(item) in {date, datetime}:
+            normalized, reason = _chart_data_temporal_number(item)
+        else:
+            normalized, reason = _normalize_trusted_scalar(item)
         if reason is not None:
             return reason
         if reason := _add_result_value_to_budget(normalized, budget):
@@ -1205,6 +1253,8 @@ def _normalize_row_value(  # noqa: C901
 
 def query_result_data(  # noqa: C901
     result: Any,
+    *,
+    temporal_json_numbers: bool = False,
 ) -> tuple[list[list[dict[str, Any]]] | None, ChartError | None]:
     """Validate a chart-data envelope and return each query's data array.
 
@@ -1343,7 +1393,9 @@ def query_result_data(  # noqa: C901
                 return None, _malformed_result(
                     f"query {index} data row {row_offset + 1} must be an exact object"
                 )
-            if reason := _normalize_row_value(row, budget):
+            if reason := _normalize_row_value(
+                row, budget, temporal_json_numbers=temporal_json_numbers
+            ):
                 return None, _malformed_result(
                     f"query {index} data row {row_offset + 1} {reason}"
                 )
@@ -1471,7 +1523,7 @@ def response_json_failure(response: BaseModel) -> ChartError | None:  # noqa: C9
                 normalized, reason = _normalize_trusted_scalar(item)
                 if reason is not None:
                     return _malformed_result(f"response projection {reason}")
-                scalar_size = _normalized_scalar_json_size(normalized)
+                scalar_size = _pydantic_scalar_json_size(normalized)
             encoded_bytes += scalar_size
 
         if encoded_bytes > MAX_QUERY_RESULT_VALUE_BYTES:
