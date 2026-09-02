@@ -88,11 +88,32 @@ const targetValueRightValidator = targetValueValidator(
   t('This value should be greater than the left target value'),
 );
 
+const minBoundValidator = targetValueValidator(
+  (min: number, max: number) => min < max,
+  t('Min bound should be smaller than max bound'),
+);
+
+const maxBoundValidator = targetValueValidator(
+  (max: number, min: number) => max > min,
+  t('Max bound should be greater than min bound'),
+);
+
 const isOperatorMultiValue = (operator?: Comparator) =>
   operator && MultipleValueComparators.includes(operator);
 
 const isOperatorNone = (operator?: Comparator) =>
   !operator || operator === Comparator.None;
+
+const BOUNDABLE_OPERATORS = [
+  Comparator.None,
+  Comparator.GreaterThan,
+  Comparator.LessThan,
+  Comparator.GreaterOrEqual,
+  Comparator.LessOrEqual,
+];
+
+const isOperatorBoundable = (operator?: Comparator) =>
+  !operator || BOUNDABLE_OPERATORS.includes(operator);
 
 const rulesRequired = [{ required: true, message: t('Required') }];
 
@@ -114,6 +135,21 @@ const rulesTargetValueRight = [
 const targetValueLeftDeps = ['targetValueRight'];
 const targetValueRightDeps = ['targetValueLeft'];
 
+const rulesMinBound = [
+  ({ getFieldValue }: GetFieldValue) => ({
+    validator: minBoundValidator(getFieldValue('maxBound')),
+  }),
+];
+
+const rulesMaxBound = [
+  ({ getFieldValue }: GetFieldValue) => ({
+    validator: maxBoundValidator(getFieldValue('minBound')),
+  }),
+];
+
+const minBoundDeps = ['maxBound'];
+const maxBoundDeps = ['minBound'];
+
 const shouldFormItemUpdate = (
   prevValues: ConditionalFormattingConfig,
   currentValues: ConditionalFormattingConfig,
@@ -121,7 +157,9 @@ const shouldFormItemUpdate = (
   isOperatorNone(prevValues.operator) !==
     isOperatorNone(currentValues.operator) ||
   isOperatorMultiValue(prevValues.operator) !==
-    isOperatorMultiValue(currentValues.operator);
+    isOperatorMultiValue(currentValues.operator) ||
+  isOperatorBoundable(prevValues.operator) !==
+    isOperatorBoundable(currentValues.operator);
 
 const renderOperator = ({
   showOnlyNone,
@@ -154,6 +192,41 @@ const renderOperator = ({
   );
 };
 
+const renderBoundFields = () => (
+  <Row gutter={12}>
+    <Col span={12}>
+      <FormItem
+        name="minBound"
+        label={t('Min bound')}
+        rules={rulesMinBound}
+        dependencies={minBoundDeps}
+        validateTrigger="onBlur"
+        trigger="onBlur"
+        tooltip={t(
+          'Overrides the lowest value used for coloring. Leave blank to use the lowest value in the data.',
+        )}
+      >
+        <FullWidthInputNumber />
+      </FormItem>
+    </Col>
+    <Col span={12}>
+      <FormItem
+        name="maxBound"
+        label={t('Max bound')}
+        rules={rulesMaxBound}
+        dependencies={maxBoundDeps}
+        validateTrigger="onBlur"
+        trigger="onBlur"
+        tooltip={t(
+          'Overrides the highest value used for coloring. Leave blank to use the highest value in the data.',
+        )}
+      >
+        <FullWidthInputNumber />
+      </FormItem>
+    </Col>
+  </Row>
+);
+
 const renderOperatorFields = (
   { getFieldValue }: GetFieldValue,
   columnType?: GenericDataType,
@@ -179,11 +252,17 @@ const renderOperatorFields = (
     );
   }
 
-  return isOperatorNone(getFieldValue('operator')) ? (
-    <Row gutter={12}>
-      <Col span={operatorColSpan}>{renderOperator({ columnType })}</Col>
-    </Row>
-  ) : isOperatorMultiValue(getFieldValue('operator')) ? (
+  const operator = getFieldValue('operator');
+  const showBoundFields = !columnTypeString && isOperatorBoundable(operator);
+
+  return isOperatorNone(operator) ? (
+    <>
+      <Row gutter={12}>
+        <Col span={operatorColSpan}>{renderOperator({ columnType })}</Col>
+      </Row>
+      {showBoundFields && renderBoundFields()}
+    </>
+  ) : isOperatorMultiValue(operator) ? (
     <Row gutter={12}>
       <Col span={9}>
         <FormItem
@@ -212,18 +291,21 @@ const renderOperatorFields = (
       </Col>
     </Row>
   ) : (
-    <Row gutter={12}>
-      <Col span={operatorColSpan}>{renderOperator({ columnType })}</Col>
-      <Col span={valueColSpan}>
-        <FormItem
-          name="targetValue"
-          label={t('Target value')}
-          rules={rulesRequired}
-        >
-          {columnTypeString ? <FullWidthInput /> : <FullWidthInputNumber />}
-        </FormItem>
-      </Col>
-    </Row>
+    <>
+      <Row gutter={12}>
+        <Col span={operatorColSpan}>{renderOperator({ columnType })}</Col>
+        <Col span={valueColSpan}>
+          <FormItem
+            name="targetValue"
+            label={t('Target value')}
+            rules={rulesRequired}
+          >
+            {columnTypeString ? <FullWidthInput /> : <FullWidthInputNumber />}
+          </FormItem>
+        </Col>
+      </Row>
+      {showBoundFields && renderBoundFields()}
+    </>
   );
 };
 

@@ -39,6 +39,8 @@ export type ConditionalFormattingConfig = {
   useGradient?: boolean;
   columnFormatting?: string;
   objectFormatting?: ObjectFormattingEnum;
+  minBound?: number;
+  maxBound?: number;
 };
 
 export type ConditionalFormattingControlProps = ControlComponentProps<

@@ -335,11 +335,16 @@ test('should hide formatting fields when color scheme is Green', async () => {
 });
 
 test('should not display tooltip when extraColorChoices is not provided', async () => {
-  const { container } = render(
+  render(
     <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
   );
 
-  const tooltipIcon = container.querySelector('.ant-form-item-tooltip');
+  const colorSchemeFormItem = screen
+    .getByText('Color scheme')
+    .closest('.ant-form-item');
+  const tooltipIcon = colorSchemeFormItem?.querySelector(
+    '.ant-form-item-tooltip',
+  );
   expect(tooltipIcon).not.toBeInTheDocument();
 });
 
@@ -362,7 +367,7 @@ test('should display tooltip icon when extraColorChoices is provided', () => {
 });
 
 test('should not display tooltip icon when extraColorChoices is empty', () => {
-  const { container } = render(
+  render(
     <FormattingPopoverContent
       onChange={mockOnChange}
       columns={columns}
@@ -370,6 +375,83 @@ test('should not display tooltip icon when extraColorChoices is empty', () => {
     />,
   );
 
-  const tooltipIcon = container.querySelector('.ant-form-item-tooltip');
+  const colorSchemeFormItem = screen
+    .getByText('Color scheme')
+    .closest('.ant-form-item');
+  const tooltipIcon = colorSchemeFormItem?.querySelector(
+    '.ant-form-item-tooltip',
+  );
   expect(tooltipIcon).not.toBeInTheDocument();
+});
+
+test('shows min/max bound fields for the default None operator on a numeric column', () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  expect(
+    screen.getByLabelText('Min bound', { exact: false }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByLabelText('Max bound', { exact: false }),
+  ).toBeInTheDocument();
+});
+
+test('shows min/max bound fields when a boundable operator is selected', async () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  fireEvent.change(screen.getAllByLabelText('Operator')[0], {
+    target: { value: Comparator.GreaterThan },
+  });
+  fireEvent.click(await screen.findByTitle('>'));
+
+  expect(await screen.findByLabelText('Target value')).toBeInTheDocument();
+  expect(
+    screen.getByLabelText('Min bound', { exact: false }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByLabelText('Max bound', { exact: false }),
+  ).toBeInTheDocument();
+});
+
+test('hides min/max bound fields for operators that already take two values', async () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  fireEvent.change(screen.getAllByLabelText('Operator')[0], {
+    target: { value: Comparator.Between },
+  });
+  fireEvent.click(await screen.findByTitle('< x <'));
+
+  expect(await screen.findByLabelText('Left value')).toBeInTheDocument();
+  expect(screen.queryByLabelText('Min bound')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Max bound')).not.toBeInTheDocument();
+});
+
+test('hides min/max bound fields on string columns', () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columnsStringType}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  expect(screen.queryByLabelText('Min bound')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Max bound')).not.toBeInTheDocument();
 });
