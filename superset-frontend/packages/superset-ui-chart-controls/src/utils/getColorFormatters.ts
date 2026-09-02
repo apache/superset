@@ -83,6 +83,8 @@ export const getColorFunction = (
     targetValueRight,
     colorScheme,
     useGradient,
+    minBound,
+    maxBound,
   }: ConditionalFormattingConfig,
   columnValues: number[] | string[] | (boolean | null)[],
   alpha?: boolean,
@@ -117,8 +119,8 @@ export const getColorFunction = (
         if (typeof value !== 'number') {
           return { cutoffValue: value!, extremeValue: value! };
         }
-        const cutoffValue = Math.min(...allValues);
-        const extremeValue = Math.max(...allValues);
+        const cutoffValue = minBound ?? Math.min(...allValues);
+        const extremeValue = maxBound ?? Math.max(...allValues);
         return value >= cutoffValue && value <= extremeValue
           ? { cutoffValue, extremeValue }
           : false;
@@ -129,7 +131,7 @@ export const getColorFunction = (
         typeof targetValue === 'number' && value > targetValue!
           ? {
               cutoffValue: targetValue!,
-              extremeValue: Math.max(...allValues),
+              extremeValue: maxBound ?? Math.max(...allValues),
             }
           : false;
       break;
@@ -138,7 +140,7 @@ export const getColorFunction = (
         typeof targetValue === 'number' && value < targetValue!
           ? {
               cutoffValue: targetValue!,
-              extremeValue: Math.min(...allValues),
+              extremeValue: minBound ?? Math.min(...allValues),
             }
           : false;
       break;
@@ -147,7 +149,7 @@ export const getColorFunction = (
         typeof targetValue === 'number' && value >= targetValue!
           ? {
               cutoffValue: targetValue!,
-              extremeValue: Math.max(...allValues),
+              extremeValue: maxBound ?? Math.max(...allValues),
             }
           : false;
       break;
@@ -156,7 +158,7 @@ export const getColorFunction = (
         typeof targetValue === 'number' && value <= targetValue!
           ? {
               cutoffValue: targetValue!,
-              extremeValue: Math.min(...allValues),
+              extremeValue: minBound ?? Math.min(...allValues),
             }
           : false;
       break;

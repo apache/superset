@@ -1116,3 +1116,89 @@ test('should strip alpha channel when alpha is false and colorScheme has 9 chars
   expect(colorFunction(100)).toEqual('#FF0000');
   expect(colorFunction(100)).toHaveLength(7);
 });
+
+test('getColorFunction GREATER_THAN respects manual maxBound', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.GreaterThan,
+      targetValue: 0,
+      maxBound: 100,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    [25, 50],
+  );
+  expect(colorFunction(0)).toBeUndefined();
+  expect(colorFunction(50)).toEqual('#FF000087');
+  expect(colorFunction(100)).toEqual('#FF0000FF');
+  expect(colorFunction(150)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction LESS_THAN respects manual minBound', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.LessThan,
+      targetValue: 100,
+      minBound: 0,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    [50, 75],
+  );
+  expect(colorFunction(100)).toBeUndefined();
+  expect(colorFunction(50)).toEqual('#FF000087');
+  expect(colorFunction(0)).toEqual('#FF0000FF');
+  expect(colorFunction(-50)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction GREATER_OR_EQUAL respects manual maxBound', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.GreaterOrEqual,
+      targetValue: 0,
+      maxBound: 100,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    [25, 50],
+  );
+  expect(colorFunction(-10)).toBeUndefined();
+  expect(colorFunction(0)).toEqual('#FF00000D');
+  expect(colorFunction(50)).toEqual('#FF000087');
+  expect(colorFunction(100)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction LESS_OR_EQUAL respects manual minBound', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.LessOrEqual,
+      targetValue: 100,
+      minBound: 0,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    [50, 75],
+  );
+  expect(colorFunction(150)).toBeUndefined();
+  expect(colorFunction(100)).toEqual('#FF00000D');
+  expect(colorFunction(50)).toEqual('#FF000087');
+  expect(colorFunction(0)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction NONE respects manual minBound and maxBound', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+      minBound: 0,
+      maxBound: 200,
+    },
+    countValues,
+  );
+  expect(colorFunction(-10)).toBeUndefined();
+  expect(colorFunction(0)).toEqual('#FF000000');
+  expect(colorFunction(100)).toEqual('#FF000080');
+  expect(colorFunction(200)).toEqual('#FF0000FF');
+  expect(colorFunction(250)).toBeUndefined();
+});
