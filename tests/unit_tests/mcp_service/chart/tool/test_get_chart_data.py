@@ -555,15 +555,22 @@ class _AsyncContext:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("saved", [False, True], ids=["unsaved", "saved"])
+@pytest.mark.parametrize(
+    ("path", "response_format"),
+    [("unsaved", "json"), ("saved", "json"), ("cached-update", "csv")],
+    ids=["unsaved-json", "saved-json", "cached-update-csv"],
+)
 async def test_decimal_sunburst_get_data_is_numeric_and_json_safe(
     app: Any,
     mcp_server: Any,
     mock_auth: Any,
     monkeypatch: pytest.MonkeyPatch,
-    saved: bool,
+    path: str,
+    response_format: str,
 ) -> None:
-    """Saved and unsaved get-data preserve exact Decimal until serialization."""
+    """Actual saved and unsaved entries preserve Decimal until serialization."""
+    from fastmcp import Client
+
     module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
     command_module = importlib.import_module(
         "superset.commands.chart.data.get_data_command"
@@ -616,8 +623,20 @@ async def test_decimal_sunburst_get_data_is_numeric_and_json_safe(
         SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
     )
     monkeypatch.setattr(module, "set_query_context_form_data", lambda *_args: None)
+    monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
 
-    if saved:
+    validated_values: list[tuple[Decimal, Decimal]] = []
+    original_validator = module.validate_sunburst_result_data
+
+    def validate_result(
+        data: list[dict[str, Any]], effective_form_data: dict[str, Any]
+    ) -> tuple[Any, ChartError | None]:
+        validated_values.append((data[0]["Sales"], data[0]["Profit"]))
+        return original_validator(data, effective_form_data)
+
+    monkeypatch.setattr(module, "validate_sunburst_result_data", validate_result)
+
+    if path != "unsaved":
         chart = SimpleNamespace(
             id=9,
             slice_name="Decimal hierarchy",
@@ -625,7 +644,11 @@ async def test_decimal_sunburst_get_data_is_numeric_and_json_safe(
             datasource_id=7,
             datasource_type="table",
             query_context=json.dumps(
-                {"datasource": {"id": 7, "type": "table"}, "queries": []}
+                {
+                    "datasource": {"id": 7, "type": "table"},
+                    "queries": [],
+                    "form_data": form_data,
+                }
             ),
             params=json.dumps(form_data),
         )
@@ -639,7 +662,6 @@ async def test_decimal_sunburst_get_data_is_numeric_and_json_safe(
                 is_valid=True, warnings=[], error=None
             ),
         )
-        monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
         monkeypatch.setattr(
             module.guest_scope, "guest_dashboard_id", lambda _chart: None
         )
@@ -647,32 +669,188 @@ async def test_decimal_sunburst_get_data_is_numeric_and_json_safe(
             "superset.charts.schemas.ChartDataQueryContextSchema.load",
             lambda self, payload: SimpleNamespace(queries=[], form_data=payload),
         )
-        from fastmcp import Client
-
+        if path == "cached-update":
+            monkeypatch.setattr(
+                module, "get_cached_form_data", lambda _key: json.dumps(form_data)
+            )
+        request = {"identifier": 9, "format": response_format}
+        if path == "cached-update":
+            request["form_data_key"] = "updated-decimal-sunburst"
+        async with Client(mcp_server) as client:
+            tool_result = await client.call_tool("get_chart_data", {"request": request})
+    else:
+        monkeypatch.setattr(
+            module, "get_cached_form_data", lambda _key: json.dumps(form_data)
+        )
         async with Client(mcp_server) as client:
             tool_result = await client.call_tool(
-                "get_chart_data", {"request": {"identifier": 9}}
+                "get_chart_data",
+                {
+                    "request": {
+                        "form_data_key": "decimal-sunburst",
+                        "format": response_format,
+                    }
+                },
             )
-        wire_response = tool_result.structured_content.get(
-            "result", tool_result.structured_content
-        )
+
+    wire_response = tool_result.structured_content.get(
+        "result", tool_result.structured_content
+    )
+    if response_format == "csv":
+        assert "12.50,0.10000000000000000001" in wire_response["csv_data"]
+    else:
         assert wire_response["data"][0]["Sales"] == "12.50"
         assert wire_response["data"][0]["Profit"] == "0.10000000000000000001"
-        return
-    else:
-        response = await _query_from_form_data(
-            form_data,
-            GetChartDataRequest(form_data_key="decimal-sunburst"),
-            _AsyncContext(),
-        )
+    assert validated_values == [(Decimal("12.50"), Decimal("0.10000000000000000001"))]
 
-    assert isinstance(response, ChartData)
-    assert response.data[0]["Sales"] == Decimal("12.50")
-    assert type(response.data[0]["Sales"]) is Decimal
-    assert response.data[0]["Profit"] == Decimal("0.10000000000000000001")
-    wire_data = response.model_dump(mode="json")["data"]
-    assert wire_data[0]["Sales"] == "12.50"
-    assert wire_data[0]["Profit"] == "0.10000000000000000001"
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("path", "response_format", "form_overrides", "row", "error_type"),
+    [
+        (
+            "saved",
+            "json",
+            {},
+            {"region": "Americas", "Sales": "12.50"},
+            "InvalidSunburstMetric",
+        ),
+        (
+            "unsaved",
+            "csv",
+            {},
+            {"region": "Americas", "Sales": True},
+            "InvalidSunburstMetric",
+        ),
+        (
+            "cached-update",
+            "excel",
+            {},
+            {"region": ["Americas"], "Sales": 12},
+            "InvalidSunburstResult",
+        ),
+        (
+            "unsaved",
+            "json",
+            {"metric": "region"},
+            {"region": 12},
+            "InvalidSunburstFormData",
+        ),
+    ],
+    ids=[
+        "saved-numeric-string-json",
+        "unsaved-boolean-csv",
+        "cached-update-hierarchy-excel",
+        "unsaved-ambiguous-alias",
+    ],
+)
+async def test_sunburst_get_data_rejects_invalid_final_result_before_exports(
+    app: Any,
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    path: str,
+    response_format: str,
+    form_overrides: dict[str, Any],
+    row: dict[str, Any],
+    error_type: str,
+) -> None:
+    """Saved, cached-update, and unsaved MCP entries share strict validation."""
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    final_form_data = {
+        "datasource_id": 7,
+        "datasource_type": "table",
+        "datasource": "7__table",
+        "viz_type": "sunburst_v2",
+        "columns": ["region"],
+        "metric": "Sales",
+        **form_overrides,
+    }
+    chart = SimpleNamespace(
+        id=9,
+        slice_name="Saved hierarchy",
+        viz_type="sunburst_v2",
+        datasource_id=7,
+        datasource_type="table",
+        query_context=json.dumps(
+            {"datasource": {"id": 7, "type": "table"}, "queries": []}
+        ),
+        params=json.dumps(
+            {
+                **final_form_data,
+                "columns": ["saved_region"],
+                "metric": "Saved Sales",
+            }
+            if path == "cached-update"
+            else final_form_data
+        ),
+    )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return chart_data_command_result(
+                [row],
+                columns=list(row),
+                coltypes=[
+                    GenericDataType.STRING if index == 0 else GenericDataType.NUMERIC
+                    for index in range(len(row))
+                ],
+            )
+
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
+    )
+    monkeypatch.setattr(
+        module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
+    )
+    monkeypatch.setattr(module, "set_query_context_form_data", lambda *_args: None)
+    monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
+    monkeypatch.setattr(module.guest_scope, "guest_dashboard_id", lambda _chart: None)
+    monkeypatch.setattr(
+        module, "find_chart_by_identifier", lambda *_args, **_kwargs: chart
+    )
+    monkeypatch.setattr(
+        module,
+        "validate_chart_dataset",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            is_valid=True, warnings=[], error=None
+        ),
+    )
+    monkeypatch.setattr(
+        "superset.charts.schemas.ChartDataQueryContextSchema.load",
+        lambda self, payload: SimpleNamespace(queries=[], form_data=payload),
+    )
+    monkeypatch.setattr(
+        module, "get_cached_form_data", lambda _key: json.dumps(final_form_data)
+    )
+
+    request: dict[str, Any] = {"format": response_format}
+    if path == "saved":
+        request["identifier"] = 9
+    elif path == "cached-update":
+        request.update(identifier=9, form_data_key="updated-sunburst")
+    else:
+        request["form_data_key"] = "unsaved-sunburst"
+
+    async with Client(mcp_server) as client:
+        tool_result = await client.call_tool("get_chart_data", {"request": request})
+
+    wire_response = tool_result.structured_content.get(
+        "result", tool_result.structured_content
+    )
+    assert wire_response["error_type"] == error_type
 
 
 def test_data_column_profiling_is_bounded_and_handles_nested_primitives(

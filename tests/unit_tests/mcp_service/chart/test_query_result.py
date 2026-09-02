@@ -28,6 +28,7 @@ import pandas as pd
 import pytest
 import pytz
 from dateutil import tz as dateutil_tz, zoneinfo as dateutil_zoneinfo
+from pydantic import BaseModel
 
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -37,10 +38,17 @@ from superset.mcp_service.chart.query_result import (
     MAX_QUERY_RESULT_COLUMNS,
     MAX_QUERY_RESULT_METADATA_BYTES,
     MAX_QUERY_RESULT_ROWS_PER_QUERY,
+    MAX_QUERY_RESULT_VALUE_BYTES,
     MAX_QUERY_RESULTS,
     MAX_RESULT_STRING_LENGTH,
     query_result_failure,
+    response_json_failure,
     validate_query_result_envelope,
+)
+from superset.mcp_service.chart.schemas import (
+    ChartData,
+    ChartError,
+    PerformanceMetadata,
 )
 from superset.utils import json
 from superset.utils.core import GenericDataType
@@ -60,6 +68,140 @@ class HostileEnum(Enum):
 
     def __str__(self):
         raise AssertionError("hostile enum string hook executed")
+
+
+def _chart_error_at_wire_size(size: int, timestamp: datetime) -> ChartError:
+    """Build an error whose computed ``message``/``error`` wire size is exact."""
+    empty = ChartError(message="", error_type="", timestamp=timestamp)
+    remaining = size - len(empty.model_dump_json().encode())
+    assert remaining >= 0
+    response = ChartError(
+        message="x" * (remaining // 2),
+        error_type="e" * (remaining % 2),
+        timestamp=timestamp,
+    )
+    assert len(response.model_dump_json().encode()) == size
+    return response
+
+
+@pytest.mark.parametrize(
+    "timestamp",
+    [
+        datetime(2026, 9, 2, tzinfo=timezone.utc),
+        datetime(2026, 9, 2),
+        datetime(2024, 11, 3, 1, 30, tzinfo=ZoneInfo("America/New_York"), fold=0),
+        datetime(2024, 11, 3, 1, 30, tzinfo=ZoneInfo("America/New_York"), fold=1),
+    ],
+    ids=["utc-z", "naive", "fold-zero", "fold-one"],
+)
+def test_response_json_failure_matches_exact_chart_error_wire_boundary(
+    timestamp: datetime,
+) -> None:
+    """Exact 16 MiB errors pass and one extra wire byte fails."""
+    response = _chart_error_at_wire_size(MAX_QUERY_RESULT_VALUE_BYTES, timestamp)
+
+    assert response_json_failure(response) is None
+
+    response.error_type += "e"
+    assert len(response.model_dump_json().encode()) == (
+        MAX_QUERY_RESULT_VALUE_BYTES + 1
+    )
+    failure = response_json_failure(response)
+    assert failure is not None
+    assert failure.error_type == "InvalidQueryResult"
+
+
+@pytest.mark.parametrize(
+    "timestamp",
+    [
+        datetime(2026, 9, 2, tzinfo=timezone.utc),
+        datetime(2024, 11, 3, 1, 30, tzinfo=ZoneInfo("America/New_York"), fold=0),
+        datetime(2024, 11, 3, 1, 30, tzinfo=ZoneInfo("America/New_York"), fold=1),
+    ],
+    ids=["utc-z", "fold-zero", "fold-one"],
+)
+def test_timestamped_chart_data_preflight_matches_wire_size(
+    monkeypatch: pytest.MonkeyPatch, timestamp: datetime
+) -> None:
+    """The other timestamped bounded response has exact JSON size parity."""
+    response = ChartData(
+        chart_id=1,
+        chart_name="chart",
+        chart_type="table",
+        columns=[],
+        data=[],
+        row_count=0,
+        total_rows=0,
+        data_freshness=timestamp,
+        summary="summary",
+        insights=[],
+        data_quality={},
+        recommended_visualizations=[],
+        performance=PerformanceMetadata(query_duration_ms=1, cache_status="fresh"),
+    )
+    wire_size = len(response.model_dump_json().encode())
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        wire_size,
+    )
+    assert response_json_failure(response) is None
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        wire_size - 1,
+    )
+    assert response_json_failure(response) is not None
+
+
+def test_response_preflight_matches_pydantic_supported_scalar_projection(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Temporal, Decimal, UUID, and short-exponent float sizes match the wire."""
+
+    class SupportedResponse(BaseModel):
+        values: list[Any]
+
+    response = SupportedResponse(
+        values=[
+            1e-7,
+            1e-6,
+            Decimal("0.10000000000000000001"),
+            date(2026, 9, 2),
+            time(12, 34, 56, 789),
+            timedelta(days=2, seconds=3, microseconds=4),
+            UUID("12345678-1234-5678-1234-567812345678"),
+            True,
+            1,
+            None,
+            'quoted"\\\n💥',
+        ]
+    )
+    wire_size = len(response.model_dump_json().encode())
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        wire_size,
+    )
+    assert response_json_failure(response) is None
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        wire_size - 1,
+    )
+    assert response_json_failure(response) is not None
+
+
+def test_response_json_failure_returns_bounded_fallback_for_bad_projection() -> None:
+    """JSON projection failures return the small fixed validation response."""
+
+    class ArbitraryResponse(BaseModel):
+        payload: Any
+
+    response = ArbitraryResponse(payload=object())
+    failure = response_json_failure(response)
+
+    assert failure is not None
+    assert failure.error_type == "InvalidQueryResult"
+    assert len(failure.model_dump_json().encode()) < 1_000
 
 
 @pytest.mark.parametrize(

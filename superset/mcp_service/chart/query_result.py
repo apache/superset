@@ -32,6 +32,7 @@ import pandas as pd
 import pytz
 from dateutil import tz as dateutil_tz, zoneinfo as dateutil_zoneinfo
 from pydantic import BaseModel
+from pydantic_core import to_json
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.db_query_status import QueryStatus
@@ -221,6 +222,15 @@ def _normalized_scalar_json_size(value: Any) -> int:
         assert size is not None
         return size
     raise AssertionError("result scalar was not normalized")
+
+
+def _pydantic_scalar_json_size(value: Any) -> int:
+    """Return the scalar size emitted by Pydantic's JSON serializer."""
+    if type(value) is float:
+        # pydantic-core uses the shortest exponent (``1e-7``), while Python's
+        # repr retains a leading zero (``1e-07``).
+        return len(to_json(value))
+    return _normalized_scalar_json_size(value)
 
 
 def _charge_json_bytes(
@@ -1174,7 +1184,10 @@ def response_json_failure(response: BaseModel) -> ChartError | None:  # noqa: C9
     cell string cap.
     """
     try:
-        payload = BaseModel.model_dump(response, mode="python", by_alias=True)
+        # ``mode="json"`` is the same value projection used by
+        # ``model_dump_json``. In particular, UTC datetimes become ``Z`` rather
+        # than the ``+00:00`` text produced by the Python-mode normalizer.
+        payload = BaseModel.model_dump(response, mode="json", by_alias=True)
     except Exception:
         return _invalid_result("an uninspectable response projection")
 
@@ -1241,7 +1254,7 @@ def response_json_failure(response: BaseModel) -> ChartError | None:  # noqa: C9
                         "a response exceeding the aggregate JSON byte limit"
                     )
             else:
-                scalar_size = _normalized_scalar_json_size(normalized)
+                scalar_size = _pydantic_scalar_json_size(normalized)
             encoded_bytes += scalar_size
 
         if encoded_bytes > MAX_QUERY_RESULT_VALUE_BYTES:

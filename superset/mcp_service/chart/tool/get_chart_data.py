@@ -60,6 +60,7 @@ from superset.mcp_service.chart.schemas import (
     GetChartDataRequest,
     PerformanceMetadata,
 )
+from superset.mcp_service.chart.sunburst import validate_sunburst_result_data
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
@@ -178,6 +179,19 @@ _VIZ_CATEGORY: dict[str, str] = {
 }
 
 _MAX_RECOMMENDATIONS = 4
+
+
+def _sunburst_result_failure(
+    result: dict[str, Any], form_data: dict[str, Any]
+) -> ChartError | None:
+    """Validate the first Sunburst query after generic envelope validation."""
+    if form_data.get("viz_type") != "sunburst_v2":
+        return None
+    queries = result["queries"]
+    if not queries:
+        return None
+    _, error = validate_sunburst_result_data(queries[0]["data"], form_data)
+    return error
 
 
 def _build_data_columns(
@@ -547,6 +561,15 @@ async def get_chart_data(  # noqa: C901
 
         start_time = time.time()
 
+        try:
+            saved_form_data = utils_json.loads(chart.params) if chart.params else {}
+        except (TypeError, ValueError):
+            saved_form_data = {}
+        effective_form_data = (
+            dict(saved_form_data) if isinstance(saved_form_data, dict) else {}
+        )
+        effective_form_data.setdefault("viz_type", chart.viz_type or "")
+
         # Track whether we're using unsaved state
         using_unsaved_state = False
         cached_form_data_dict = None
@@ -620,6 +643,7 @@ async def get_chart_data(  # noqa: C901
                     datasource_type=cached_datasource_type,
                     chart_id=chart.id,
                 )
+                effective_form_data = cached_form_data_dict
                 query_datasource_id = cached_datasource_id
                 query_datasource_type = cached_datasource_type
                 # row_limit may arrive as a str. The trailing fallback keeps a
@@ -647,6 +671,10 @@ async def get_chart_data(  # noqa: C901
                 try:
                     query_context_json = utils_json.loads(chart.query_context)
                     query_datasource = query_context_json.get("datasource", {})
+                    query_form_data = query_context_json.get("form_data")
+                    if isinstance(query_form_data, dict):
+                        effective_form_data = dict(query_form_data)
+                        effective_form_data.setdefault("viz_type", chart.viz_type or "")
                     query_datasource_id = query_datasource.get(
                         "id", chart.datasource_id
                     )
@@ -670,9 +698,8 @@ async def get_chart_data(  # noqa: C901
                     "Consider re-saving the chart to enable full data retrieval."
                 )
                 # Try to construct from form_data as a fallback
-                form_data = utils_json.loads(chart.params) if chart.params else {}
-                form_data = canonicalize_operation_form_data(
-                    form_data,
+                effective_form_data = canonicalize_operation_form_data(
+                    effective_form_data,
                     datasource_id=chart.datasource_id,
                     datasource_type=chart.datasource_type,
                     chart_id=chart.id,
@@ -683,7 +710,7 @@ async def get_chart_data(  # noqa: C901
                 # row_limit from chart.params may be a str; coerce for
                 # apply_max_row_limit's int comparison.
                 row_limit = _coerce_row_limit(
-                    request.limit or form_data.get("row_limit"),
+                    request.limit or effective_form_data.get("row_limit"),
                     current_app.config["ROW_LIMIT"],
                 )
 
@@ -700,7 +727,7 @@ async def get_chart_data(  # noqa: C901
                 viz_type = chart.viz_type or ""
 
                 fallback_queries = build_query_dicts_from_form_data(
-                    form_data,
+                    effective_form_data,
                     chart.datasource_id,
                     chart.datasource_type,
                     chart=chart,
@@ -746,7 +773,7 @@ async def get_chart_data(  # noqa: C901
                         "type": chart.datasource_type,
                     },
                     queries=fallback_queries,
-                    form_data=form_data,
+                    form_data=effective_form_data,
                     force=effective_force,
                     custom_cache_timeout=request.cache_timeout,
                 )
@@ -805,6 +832,8 @@ async def get_chart_data(  # noqa: C901
 
             if result_error := validate_query_result_envelope(result):
                 return result_error
+            if sunburst_error := _sunburst_result_failure(result, effective_form_data):
+                return sunburst_error
 
             if rejected := _rejected_requested_filter_columns(
                 result, request.extra_form_data
@@ -1142,6 +1171,8 @@ async def _query_from_form_data(  # noqa: C901
 
         if result_error := validate_query_result_envelope(result):
             return result_error
+        if sunburst_error := _sunburst_result_failure(result, form_data):
+            return sunburst_error
 
         if rejected := _rejected_requested_filter_columns(
             result, request.extra_form_data
