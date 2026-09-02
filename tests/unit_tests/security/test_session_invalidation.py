@@ -19,6 +19,7 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+from flask import Flask
 from sqlalchemy.exc import IntegrityError
 
 from superset.security.session_invalidation import (
@@ -93,6 +94,18 @@ def test_enforce_skips_unauthenticated_user() -> None:
     ):
         assert enforce_session_validity() is None
         logout.assert_not_called()
+
+
+def test_enforce_skips_health_check_before_resolving_user() -> None:
+    """Health probes must not resolve current_user or touch tenant metadata."""
+    app = Flask(__name__)
+    for path in ("/health", "/healthcheck", "/ping"):
+        with app.test_request_context(path):
+            # This bare Flask app has no login_manager, so touching current_user
+            # would raise and fail the test.
+            with patch(f"{MODULE}.logout_user") as logout:
+                assert enforce_session_validity() is None
+                logout.assert_not_called()
 
 
 def test_enforce_skips_guest_user() -> None:
