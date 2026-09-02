@@ -404,7 +404,7 @@ class SemanticView(AuditMixinNullable, Model):
                 for dimension in dimensions
             },
         }
-        column_formats = {
+        column_formats: dict[str, str | None] = {
             metric.name: metric.d3format for metric in metrics if metric.d3format
         }
 

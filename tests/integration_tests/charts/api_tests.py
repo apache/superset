@@ -36,12 +36,14 @@ from superset.extensions import cache_manager, db, security_manager
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.models.sql_lab import SavedQuery
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.tags.models import ObjectType, Tag, TaggedObject, TagType
 from superset.utils import json
 from superset.utils.core import get_example_default_schema
+from superset.utils.database import get_example_database
 from tests.integration_tests.base_api_tests import ApiEditorsTestCaseMixin
 from tests.integration_tests.base_tests import (
     subjects_from_users,
@@ -660,6 +662,47 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 422
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {"message": {"datasource_id": ["Datasource does not exist"]}}
+
+    def test_create_chart_from_saved_query_rejected_cleanly(self):
+        """
+        Chart API: creating a chart with datasource_type="saved_query" must
+        fail with a clean validation error, not the unhandled 500 "Fatal
+        error" reported in apache/superset#29697. Slice.datasource only
+        ever resolves the "table" relationship, so even a chart that
+        "created" successfully with this datasource_type could never
+        actually render -- "saved_query" is a real, existing row here
+        (not a bad ID), reproducing the original report exactly rather
+        than a not-found case.
+        """
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+        saved_query = SavedQuery(
+            db_id=example_db.id,
+            label="issue-29697-repro",
+            schema=get_example_default_schema(),
+            sql="SELECT 1 AS value",
+        )
+        db.session.add(saved_query)
+        db.session.commit()
+        saved_query_id = saved_query.id
+
+        chart_data = {
+            "slice_name": "issue-29697-repro-chart",
+            "datasource_id": saved_query_id,
+            "datasource_type": "saved_query",
+            "viz_type": "table",
+        }
+        try:
+            rv = self.post_assert_metric("/api/v1/chart/", chart_data, "post")
+
+            assert rv.status_code == 422
+            response = json.loads(rv.data.decode("utf-8"))
+            assert response == {
+                "message": {"datasource_type": ["Datasource type is invalid"]}
+            }
+        finally:
+            db.session.delete(db.session.query(SavedQuery).get(saved_query_id))
+            db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_create_chart_validate_user_is_dashboard_editor(self):
