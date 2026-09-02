@@ -3456,3 +3456,155 @@ test('tooltip does not apply a metric currency format to a grouped Percentage ti
   expect(result).toContain('25.00%');
   expect(result).not.toContain('$ 0.25');
 });
+
+test('tooltip does not apply a metric currency format to a Ratio time comparison', () => {
+  // A Ratio comparison is `source / compare`, a plain multiplier, so the derived row is
+  // no more in the metric's currency than a Percentage one is — but it is not a
+  // percentage either, so it takes a unitless number format rather than the percent one.
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'sum__num',
+      metrics: ['sum__num'],
+      richTooltip: true,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Ratio,
+    },
+    queriesData: [
+      createTestQueryData(
+        [{ sum__num: 100, '1 week ago': 1.25, __timestamp: BASE_TIMESTAMP }],
+        { label_map: { sum__num: ['sum__num'], '1 week ago': ['1 week ago'] } },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        sum__num: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'sum__num',
+      seriesName: 'sum__num',
+      value: [BASE_TIMESTAMP, 100],
+    },
+    {
+      seriesId: '1 week ago',
+      seriesName: '1 week ago',
+      value: [BASE_TIMESTAMP, 1.25],
+    },
+  ]);
+
+  // The source metric keeps its currency; the ratio row renders as a plain number.
+  expect(result).toContain('$ 100');
+  expect(result).toContain('1.25');
+  expect(result).not.toContain('$ 1.25');
+});
+
+test('tooltip does not apply a metric currency format to a grouped Ratio time comparison', () => {
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'sum__num',
+      metrics: ['sum__num'],
+      groupby: ['region'],
+      richTooltip: true,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Ratio,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            'sum__num, East': 100,
+            '1 week ago, East': 1.25,
+            __timestamp: BASE_TIMESTAMP,
+          },
+        ],
+        {
+          label_map: {
+            'sum__num, East': ['sum__num', 'East'],
+            '1 week ago, East': ['1 week ago', 'East'],
+          },
+        },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        sum__num: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'sum__num, East',
+      seriesName: 'sum__num, East',
+      value: [BASE_TIMESTAMP, 100],
+    },
+    {
+      seriesId: '1 week ago, East',
+      seriesName: '1 week ago, East',
+      value: [BASE_TIMESTAMP, 1.25],
+    },
+  ]);
+
+  expect(result).toContain('$ 100');
+  expect(result).toContain('1.25');
+  expect(result).not.toContain('$ 1.25');
+});
+
+test('tooltip keeps the metric format on a Difference time comparison', () => {
+  // Difference is `source - compare`, which stays in the metric's units, so unlike
+  // Percentage and Ratio it must keep the currency format.
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'sum__num',
+      metrics: ['sum__num'],
+      richTooltip: true,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Difference,
+    },
+    queriesData: [
+      createTestQueryData(
+        [{ sum__num: 100, '1 week ago': 25, __timestamp: BASE_TIMESTAMP }],
+        { label_map: { sum__num: ['sum__num'], '1 week ago': ['1 week ago'] } },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        sum__num: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'sum__num',
+      seriesName: 'sum__num',
+      value: [BASE_TIMESTAMP, 100],
+    },
+    {
+      seriesId: '1 week ago',
+      seriesName: '1 week ago',
+      value: [BASE_TIMESTAMP, 25],
+    },
+  ]);
+
+  expect(result).toContain('$ 100');
+  expect(result).toContain('$ 25');
+});

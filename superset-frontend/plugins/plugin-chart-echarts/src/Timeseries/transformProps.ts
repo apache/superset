@@ -607,18 +607,35 @@ export default function transformProps(
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
 
-  // A Percentage time comparison replaces the derived series' values with a
-  // ratio, so that row is no longer in the source metric's units and must not
-  // inherit its currency/D3 format. `renameOperator` names those series with the
-  // offset alone or `<metric>, <offset>`, and a grouped chart appends its
-  // dimension values on top ("1 week ago, East"). Recognise them with the same
-  // helper the derived-series styling uses rather than matching exact names:
-  // `getTimeOffset` covers every form except the bare offset of an ungrouped
-  // single-metric chart, which the offsets themselves match.
-  const isPercentageComparisonSeries = (seriesKey: string) =>
-    chartProps.rawFormData?.comparison_type === ComparisonType.Percentage &&
-    (array.includes(seriesKey) ||
-      getTimeOffset({ name: seriesKey }, array) !== undefined);
+  // A Percentage or Ratio time comparison replaces the derived series' values with a
+  // dimensionless number, so that row is no longer in the source metric's units and
+  // must not inherit its currency/D3 format. `renameOperator` names those series with
+  // the offset alone or `<metric>, <offset>`, and a grouped chart appends its dimension
+  // values on top ("1 week ago, East"). Recognise them with the same helper the
+  // derived-series styling uses rather than matching exact names: `getTimeOffset`
+  // covers every form except the bare offset of an ungrouped single-metric chart,
+  // which the offsets themselves match.
+  const isDerivedComparisonSeries = (seriesKey: string) =>
+    array.includes(seriesKey) ||
+    getTimeOffset({ name: seriesKey }, array) !== undefined;
+
+  // Percentage yields `(s - c) / c`, which reads as a percentage. Ratio yields `s / c`,
+  // a plain multiplier, so it takes a unitless number format rather than a percent one.
+  const ratioFormatter = getNumberFormatter(NumberFormats.SMART_NUMBER);
+
+  const getComparisonFormatter = (seriesKey: string) => {
+    if (!isDerivedComparisonSeries(seriesKey)) {
+      return undefined;
+    }
+    switch (chartProps.rawFormData?.comparison_type) {
+      case ComparisonType.Percentage:
+        return percentFormatter;
+      case ComparisonType.Ratio:
+        return ratioFormatter;
+      default:
+        return undefined;
+    }
+  };
 
   // With the "full range" time-shift option, offset series are outer-joined onto
   // the main series, which inserts null rows into the main series wherever the
@@ -1449,17 +1466,19 @@ export default function transformProps(
         // The tooltip key is the rendered series name, so resolve it through
         // `labelMap`, whose values lead with the raw metric label. Series
         // renamed by a verbose_name are absent from that map, so fall back to
-        // the verbose-name inversion, as MixedTimeseries does. A Percentage
-        // comparison row is a ratio rather than a value in the metric's units,
-        // so it takes the percent formatter instead of the metric's own format.
+        // the verbose-name inversion, as MixedTimeseries does. A Percentage or
+        // Ratio comparison row is dimensionless rather than a value in the
+        // metric's units, so it takes its own formatter instead of the metric's.
         const getSeriesFormatter = (seriesKey: string) =>
-          forcePercentFormatter || isPercentageComparisonSeries(seriesKey)
+          forcePercentFormatter
             ? percentFormatter
-            : (getCustomFormatter(
+            : (getComparisonFormatter(seriesKey) ??
+              getCustomFormatter(
                 customFormatters,
                 metrics,
                 labelMap?.[seriesKey]?.[0] ?? inverted[seriesKey],
-              ) ?? defaultFormatter);
+              ) ??
+              defaultFormatter);
 
         // The total row aggregates every series, so it keeps the chart-level
         // formatter rather than any single metric's format.
