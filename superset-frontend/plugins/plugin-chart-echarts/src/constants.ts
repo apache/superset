@@ -52,6 +52,12 @@ export const TIMESERIES_CONSTANTS = {
   microChartHeight: 60,
   // One y-axis tick per this many pixels of chart height
   yAxisPixelsPerTick: 80,
+  // Rough average glyph width (px) used to estimate whether adjacent x-axis
+  // time labels would visually collide, since the real rendered width isn't
+  // known until ECharts lays out the axis.
+  xAxisLabelCharWidthPx: 7,
+  // Minimum gap (px) to keep between adjacent x-axis time labels.
+  xAxisLabelMinGapPx: 8,
 };
 
 export enum OpacityEnum {
