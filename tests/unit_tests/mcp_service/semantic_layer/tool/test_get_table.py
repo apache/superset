@@ -483,6 +483,82 @@ async def test_get_table_normalizes_nan_producer_data(mcp_server: FastMCP) -> No
 
 
 @pytest.mark.asyncio
+async def test_get_table_rejects_oversized_projected_response(
+    mcp_server: FastMCP,
+) -> None:
+    """The actual MCP entry point bounds duplicated sample metadata."""
+    mock_ds = _make_dataset(42)
+    mock_ds.columns = [_make_column("value")]
+    cell = "x" * 65_536
+    query_result = chart_data_command_result(
+        [{"value": cell} for _ in range(253)],
+        columns=["value"],
+        coltypes=[GenericDataType.STRING],
+    )
+    assert get_table_module.validate_query_result_envelope(query_result) is None
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch.object(
+            get_table_module,
+            "execute_tabular_query",
+            return_value=query_result,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {"request": {"dataset_id": 42, "dimensions": ["value"]}},
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["success"] is False
+    assert data["error_type"] == "InvalidQueryResult"
+    assert "aggregate JSON byte limit" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_get_table_normalizes_real_period_and_interval(
+    mcp_server: FastMCP,
+) -> None:
+    mock_ds = _make_dataset(42)
+    mock_ds.columns = [_make_column("period"), _make_column("interval")]
+    query_result = chart_data_command_result(
+        [
+            {
+                "period": pd.Period("2026-Q3", freq="Q"),
+                "interval": pd.Interval(1, 3, closed="both"),
+            }
+        ],
+        columns=["period", "interval"],
+        coltypes=[GenericDataType.STRING, GenericDataType.STRING],
+    )
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch.object(
+            get_table_module,
+            "execute_tabular_query",
+            return_value=query_result,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "dimensions": ["period", "interval"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["success"] is True
+    assert data["data"] == [{"period": "2026Q3", "interval": "[1, 3]"}]
+
+
+@pytest.mark.asyncio
 async def test_get_table_rejects_hostile_data_before_generic_consumers(
     mcp_server: FastMCP,
 ) -> None:

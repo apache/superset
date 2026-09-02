@@ -16,8 +16,10 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel
 from datetime import datetime
+from enum import Enum
 
 import numpy as np
+import pandas as pd
 import pytest
 from pandas import Timestamp
 from pandas._libs.tslibs import NaT
@@ -27,6 +29,29 @@ from superset.db_engine_specs import BaseEngineSpec
 from superset.result_set import SupersetResultSet
 from superset.superset_typing import DbapiDescription
 from superset.utils import json as superset_json
+
+
+def test_df_to_records_does_not_compare_object_column_values() -> None:
+    """Materialization must not run equality hooks before envelope validation."""
+
+    class HostileEquality:
+        def __eq__(self, other: object) -> bool:
+            raise AssertionError("hostile equality hook executed")
+
+    class AcceptedEnum(Enum):
+        VALUE = "accepted"
+
+        def __eq__(self, other: object) -> bool:
+            raise AssertionError("enum equality hook executed")
+
+    hostile = HostileEquality()
+    accepted = AcceptedEnum.VALUE
+    frame = pd.DataFrame({"value": pd.Series([hostile, accepted], dtype=object)})
+
+    records = df_to_records(frame)
+
+    assert records[0]["value"] is hostile
+    assert records[1]["value"] is accepted
 
 
 def test_df_to_records() -> None:

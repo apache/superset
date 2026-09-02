@@ -476,6 +476,78 @@ async def test_query_dataset_normalizes_nan_producer_data(
 
 
 @pytest.mark.asyncio
+async def test_query_dataset_rejects_oversized_projected_response(
+    mcp_server: FastMCP,
+) -> None:
+    """The source may fit while repeated column samples exceed 16 MiB."""
+    dataset = _make_dataset(columns=[_make_column("value")])
+    cell = "x" * 65_536
+    result_data = chart_data_command_result(
+        [{"value": cell} for _ in range(253)],
+        columns=["value"],
+        coltypes=[GenericDataType.STRING],
+    )
+    assert query_dataset_module.validate_query_result_envelope(result_data) is None
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(
+            query_dataset_module,
+            "execute_tabular_query",
+            return_value=result_data,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "columns": ["value"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "InvalidQueryResult"
+    assert "aggregate JSON byte limit" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_normalizes_real_period_and_interval(
+    mcp_server: FastMCP,
+) -> None:
+    dataset = _make_dataset(columns=[_make_column("period"), _make_column("interval")])
+    result_data = chart_data_command_result(
+        [
+            {
+                "period": pd.Period("2026-09", freq="M"),
+                "interval": pd.Interval(1, 3, closed="right"),
+            }
+        ],
+        columns=["period", "interval"],
+        coltypes=[GenericDataType.STRING, GenericDataType.STRING],
+    )
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(
+            query_dataset_module,
+            "execute_tabular_query",
+            return_value=result_data,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {"request": {"dataset_id": 1, "columns": ["period", "interval"]}},
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["data"] == [{"period": "2026-09", "interval": "(1, 3]"}]
+
+
+@pytest.mark.asyncio
 async def test_query_dataset_rejects_hostile_data_before_generic_consumers(
     mcp_server: FastMCP,
 ) -> None:

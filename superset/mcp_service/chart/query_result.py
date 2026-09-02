@@ -107,6 +107,8 @@ _NUMPY_FLOAT_TYPES = frozenset(
 )
 _PANDAS_NAT_TYPE = type(pd.NaT)
 _PANDAS_NA_TYPE = type(pd.NA)
+_PANDAS_PERIOD_TYPE = type(pd.Period("2000-01", freq="M"))
+_PANDAS_INTERVAL_TYPE = type(pd.Interval(0, 1))
 _DATEUTIL_FIXED_TIMEZONE_TYPES = frozenset(
     {type(dateutil_tz.tzoffset(None, 0)), type(dateutil_tz.tzutc())}
 )
@@ -603,6 +605,16 @@ def _normalize_scalar(value: Any) -> tuple[Any, str | None]:  # noqa: C901
             return pd.Timedelta.isoformat(value), None
         except (OverflowError, TypeError, ValueError):
             return None, "an invalid pandas duration"
+    if value_type is _PANDAS_PERIOD_TYPE or value_type is _PANDAS_INTERVAL_TYPE:
+        # These concrete immutable pandas extension scalars are trusted. Exact
+        # type checks deliberately exclude subclasses with conversion hooks.
+        try:
+            normalized_text = str(value)
+        except (OverflowError, TypeError, ValueError):
+            return None, "an invalid pandas scalar"
+        if _bounded_utf8_length(normalized_text, MAX_RESULT_STRING_LENGTH) is None:
+            return None, "an oversized pandas scalar"
+        return normalized_text, None
     if value_type in _NUMPY_INTEGER_TYPES:
         normalized = int(value)
         return normalized, _integer_failure(normalized)

@@ -670,6 +670,8 @@ def test_query_context_sidecar_is_exempt_without_hook_dispatch() -> None:
             "2024-01-02T03:04:05.123456789",
         ),
         (pd.Timedelta("1 day 2 seconds"), "P1DT0H0M2S"),
+        (pd.Period("2026-09", freq="M"), "2026-09"),
+        (pd.Interval(1, 3, closed="right"), "(1, 3]"),
         (pd.NaT, None),
         (pd.NA, None),
         (np.datetime64("2024-01-02T03:04:05"), "2024-01-02T03:04:05"),
@@ -739,6 +741,37 @@ def test_real_dataframe_processor_and_chart_command_normalize_nan() -> None:
             "nullable_missing": None,
         }
     ]
+
+
+def test_real_dataframe_processor_normalizes_period_and_interval() -> None:
+    from superset.common.query_context import QueryContext
+    from superset.common.query_context_processor import QueryContextProcessor
+
+    frame = pd.DataFrame(
+        {
+            "period": pd.Series([pd.Period("2026-Q3", freq="Q")], dtype=object),
+            "interval": pd.Series([pd.Interval(1, 3, closed="both")], dtype=object),
+        }
+    )
+    processor_context = SimpleNamespace(
+        datasource=object(), result_format=ChartDataResultFormat.JSON
+    )
+    records = QueryContextProcessor(cast(QueryContext, processor_context)).get_data(
+        frame, [GenericDataType.STRING, GenericDataType.STRING]
+    )
+    result = _producer_result(
+        {
+            "data": records,
+            "colnames": ["period", "interval"],
+            "coltypes": [GenericDataType.STRING, GenericDataType.STRING],
+            "rowcount": 1,
+        }
+    )
+
+    data, error = first_query_data(result)
+
+    assert error is None
+    assert data == [{"period": "2026Q3", "interval": "[1, 3]"}]
 
 
 @pytest.mark.parametrize(

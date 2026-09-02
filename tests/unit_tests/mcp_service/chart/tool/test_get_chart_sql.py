@@ -25,6 +25,10 @@ from unittest.mock import Mock, patch
 import pytest
 
 from superset.mcp_service.auth import CLASS_PERMISSION_ATTR, METHOD_PERMISSION_ATTR
+from superset.mcp_service.chart.query_result import (
+    MAX_QUERY_RESULT_VALUE_BYTES,
+    MAX_QUERY_RESULTS,
+)
 from superset.mcp_service.chart.schemas import (
     ChartError,
     ChartSql,
@@ -245,6 +249,136 @@ class TestExtractSqlFromResult:
         assert output.chart_id is None
         assert output.chart_name is None
         assert output.datasource_name is None
+
+
+@pytest.mark.parametrize("container", [dict, list])
+def test_extract_sql_rejects_hostile_top_level_containers_without_hooks(
+    container: type[dict[str, object]] | type[list[object]],
+) -> None:
+    class HostileDict(dict[str, object]):
+        def get(self, key, default=None):
+            raise AssertionError("hostile mapping access executed")
+
+        def __iter__(self):
+            raise AssertionError("hostile mapping iteration executed")
+
+    class HostileList(list[object]):
+        def __getitem__(self, key):
+            raise AssertionError("hostile list access executed")
+
+        def __iter__(self):
+            raise AssertionError("hostile list iteration executed")
+
+    value = HostileDict(queries=[]) if container is dict else HostileList()
+
+    output = _extract_sql_from_result(value, 1, "chart", "dataset")
+
+    assert isinstance(output, ChartError)
+    assert output.error_type == "MalformedQueryResult"
+
+
+def test_extract_sql_rejects_every_malformed_query_entry_without_hooks() -> None:
+    class HostileQuery(dict[str, object]):
+        def get(self, key, default=None):
+            raise AssertionError("hostile query access executed")
+
+    class HostileString(str):
+        def __str__(self) -> str:
+            raise AssertionError("hostile string conversion executed")
+
+    class HostileError:
+        def __str__(self) -> str:
+            raise AssertionError("hostile error conversion executed")
+
+    for query in (
+        HostileQuery(query="SELECT 1"),
+        {"query": HostileString("SELECT 1")},
+        {"query": "", "error": HostileError()},
+        7,
+    ):
+        output = _extract_sql_from_result({"queries": [query]}, 1, "chart", "dataset")
+        assert isinstance(output, ChartError)
+        assert output.error_type == "MalformedQueryResult"
+
+
+def test_extract_sql_enforces_query_count_and_aggregate_source_bytes() -> None:
+    too_many = _extract_sql_from_result(
+        {"queries": [{} for _ in range(MAX_QUERY_RESULTS + 1)]},
+        1,
+        "chart",
+        "dataset",
+    )
+    oversized = _extract_sql_from_result(
+        {
+            "queries": [
+                {"query": "x" * (MAX_QUERY_RESULT_VALUE_BYTES // 2 + 1)},
+                {"query": "y" * (MAX_QUERY_RESULT_VALUE_BYTES // 2 + 1)},
+            ]
+        },
+        1,
+        "chart",
+        "dataset",
+    )
+
+    assert isinstance(too_many, ChartError)
+    assert too_many.error_type == "MalformedQueryResult"
+    assert isinstance(oversized, ChartError)
+    assert oversized.error_type == "MalformedQueryResult"
+
+
+def test_extract_sql_accepts_multi_query_and_near_response_boundary() -> None:
+    multi = _extract_sql_from_result(
+        {
+            "queries": [
+                {"query": "SELECT 1", "language": "sql"},
+                {"query": "SELECT 2", "language": "sql"},
+            ]
+        },
+        1,
+        "chart",
+        "dataset",
+    )
+    boundary_sql = "x" * (MAX_QUERY_RESULT_VALUE_BYTES - 512)
+    boundary = _extract_sql_from_result(
+        {"queries": [{"query": boundary_sql, "language": "sql"}]},
+        1,
+        "chart",
+        "dataset",
+    )
+
+    assert isinstance(multi, ChartSql)
+    assert multi.sql == "-- Query 1\nSELECT 1\n\n-- Query 2\nSELECT 2"
+    assert isinstance(boundary, ChartSql)
+    assert boundary.sql == boundary_sql
+
+
+@pytest.mark.asyncio
+async def test_get_chart_sql_maps_hostile_exception_without_string_hook() -> None:
+    from fastmcp import Client
+
+    from superset.mcp_service.app import mcp
+
+    class HostileValueError(ValueError):
+        def __str__(self) -> str:
+            raise AssertionError("hostile exception conversion executed")
+
+    with (
+        patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user,
+        patch.object(
+            _get_chart_sql_mod,
+            "_handle_chart_sql_request",
+            side_effect=HostileValueError("bounded failure"),
+        ),
+    ):
+        mock_get_user.return_value = Mock(id=1, username="admin")
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "get_chart_sql", {"request": {"identifier": 1}}
+            )
+
+    data = result.structured_content.get("result", result.structured_content)
+    assert data["error_type"] == "QueryGenerationFailed"
+    assert "bounded failure" in data["error"]
 
 
 class TestFindChartByIdentifier:

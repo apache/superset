@@ -38,7 +38,10 @@ from superset.common.tabular_query import (
 )
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
-from superset.mcp_service.chart.query_result import validate_query_result_envelope
+from superset.mcp_service.chart.query_result import (
+    response_json_failure,
+    validate_query_result_envelope,
+)
 from superset.mcp_service.chart.schemas import PerformanceMetadata
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
@@ -353,6 +356,11 @@ async def _run_get_table_query(
         query_duration_ms,
         resolved.warnings,
     )
+    if response_failure := response_json_failure(response):
+        return SemanticLayerError.create(
+            error=response_failure.error,
+            error_type=response_failure.error_type,
+        )
 
     await ctx.info(
         "get_table complete: rows=%d, columns=%d, duration=%dms"
