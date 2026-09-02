@@ -160,6 +160,7 @@ _VIZ_CATEGORY: dict[str, str] = {
     "box_plot": "box_plot",
     "world_map": "map",
     "pivot_table_v2": "table",
+    "ag-grid-pivot-table": "table",
     # Own category: cumulative-flow semantics differ from a plain bar, like
     # funnel/gauge carry distinct categories.
     "waterfall": "waterfall",

@@ -196,6 +196,61 @@ function formatSeriesLabel(
   });
 }
 
+test('bar value labels retain their legacy outside position', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: queriesData,
+    formData: { ...formData, showValueB: true },
+    queriesData,
+  });
+
+  const transformed = transformProps(chartProps);
+  const barSeries = (transformed.echartOptions.series as SeriesOption[]).filter(
+    (series): series is BarSeriesOption => series.type === 'bar',
+  );
+
+  expect(barSeries).not.toHaveLength(0);
+  barSeries.forEach(series => {
+    expect(series.label).toMatchObject({ show: true, position: 'top' });
+    expect(series.labelLayout).toBeUndefined();
+  });
+});
+
+test('negative bar values retain their legacy outside position', () => {
+  const negativeRows = [
+    { boy: -1, girl: -2, ds: 599616000000 },
+    { boy: -3, girl: -4, ds: 599916000000 },
+  ];
+  const negativeQueriesData = [
+    createTestQueryData(negativeRows, { label_map: defaultLabelMap }),
+    createTestQueryData(negativeRows, { label_map: defaultLabelMap }),
+  ];
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: negativeQueriesData,
+    formData: { ...formData, showValueB: true },
+    queriesData: negativeQueriesData,
+  });
+
+  const transformed = transformProps(chartProps);
+  const barSeries = (transformed.echartOptions.series as SeriesOption[]).filter(
+    (series): series is BarSeriesOption => series.type === 'bar',
+  );
+
+  expect(barSeries).not.toHaveLength(0);
+  barSeries.forEach(series => {
+    expect(series.data?.[0]).toMatchObject({
+      label: { position: 'bottom' },
+    });
+  });
+});
+
 test('should transform chart props for viz with showQueryIdentifiers=false', () => {
   const chartProps = createEchartsTimeseriesTestChartProps<
     EchartsMixedTimeseriesFormData,
@@ -1324,6 +1379,58 @@ test('#39899 - x-axis dates do not overlap and last label stays visible at 0° r
   expect(axisLabel.hideOverlap).toBe(false);
 });
 
+test('#39899 - closely spaced x-axis time labels do not visually overlap (mixed)', () => {
+  const startTime = Date.UTC(2026, 0, 1);
+  const data = Array.from({ length: 20 }, (_, i) => ({
+    __timestamp: startTime + i * 60 * 1000,
+    sum__num: i,
+  }));
+  const queryData = createTestQueryData(data, {
+    colnames: ['__timestamp', 'sum__num'],
+    coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+    label_map: { __timestamp: ['__timestamp'], sum__num: ['sum__num'] },
+  });
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    width: 300,
+    height: 400,
+    defaultQueriesData: [queryData, queryData],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      xAxisTimeFormat: '%Y-%m-%d %H:%M:%S',
+      metrics: ['sum__num'],
+      metricsB: ['sum__num'],
+      groupby: [],
+      groupbyB: [],
+      xAxisLabelRotation: 0,
+      timeGrainSqla: TimeGranularity.MINUTE,
+    },
+    queriesData: [queryData, queryData],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { axisLabel } = echartOptions.xAxis as Record<string, any>;
+  const labels = data.map(({ __timestamp }) =>
+    axisLabel.formatter(__timestamp),
+  );
+
+  // hideOverlap must stay off so ECharts' own collision detection can never
+  // suppress the forced boundary label (#39899 must not regress).
+  expect(axisLabel.hideOverlap).toBe(false);
+  // The formatter itself must thin out labels that are too close together to
+  // render legibly in the available width.
+  expect(labels.filter(label => label === '').length).toBeGreaterThan(0);
+  // The first and last labels are the forced axis boundaries and must always
+  // stay visible.
+  expect(labels[0]).not.toBe('');
+  expect(labels[labels.length - 1]).not.toBe('');
+});
+
 test('regression #37921: multi-metric Query A with groupby does not duplicate first metric in series names', () => {
   // Regression test for https://github.com/apache/superset/issues/37921
   // ("Residual" follow-up to #37055).
@@ -1509,6 +1616,98 @@ describe('EchartsMixedTimeseries tooltip truncation', () => {
     const html = buildTooltip('middle');
     expect(html).toContain('prod-us-east-1-servi…heckout-latency-p99');
     expect(html).not.toContain(longSeriesName);
+  });
+});
+
+describe('weekly x-axis tick alignment', () => {
+  const WEEK_MS = 7 * 24 * 3600 * 1000;
+  const MONDAYS = Array.from(
+    { length: 6 },
+    (_, i) => Date.UTC(2026, 3, 6) + i * WEEK_MS,
+  );
+  const weeklyLabelMap = { ds: ['ds'], sum__num: ['sum__num'] };
+
+  const weeklyQuery = (timestamps: number[]) =>
+    createTestQueryData(
+      timestamps.map((ds, i) => ({ ds, sum__num: 10 + i })),
+      {
+        label_map: weeklyLabelMap,
+        colnames: ['ds', 'sum__num'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      },
+    );
+
+  const weeklyChartProps = (
+    queryA: number[],
+    queryB: number[],
+    overrides: Partial<EchartsMixedTimeseriesFormData> = {},
+  ) =>
+    createEchartsTimeseriesTestChartProps<
+      EchartsMixedTimeseriesFormData,
+      EchartsMixedTimeseriesProps
+    >({
+      ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+      defaultQueriesData: [weeklyQuery(queryA), weeklyQuery(queryB)],
+      formData: {
+        ...formData,
+        groupby: [],
+        groupbyB: [],
+        timeGrainSqla: TimeGranularity.WEEK_STARTING_MONDAY,
+        ...overrides,
+      },
+      queriesData: [weeklyQuery(queryA), weeklyQuery(queryB)],
+    });
+
+  test('pins ticks, labels and gridlines to the weekly buckets', () => {
+    const { xAxis } = transformProps(weeklyChartProps(MONDAYS, MONDAYS))
+      .echartOptions as any;
+
+    expect(xAxis.type).toBe(AxisType.Time);
+    expect(xAxis.axisLabel.customValues).toEqual(MONDAYS);
+    // Gridlines follow axisTick.customValues, so splitLine needs no own copy.
+    expect(xAxis.axisTick.customValues).toEqual(MONDAYS);
+    expect(xAxis.splitLine).toBeUndefined();
+  });
+
+  test('keeps label thinning on when the labels are rotated', () => {
+    const { xAxis } = transformProps(
+      weeklyChartProps(MONDAYS, MONDAYS, { xAxisLabelRotation: 45 }),
+    ).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toEqual(MONDAYS);
+    expect(xAxis.axisLabel.hideOverlap).toBe(true);
+  });
+
+  test('keeps the showMaxLabel override at 0° rotation on pinned axes', () => {
+    // hideOverlap stays on for pinned ticks (they label every bucket), but
+    // showMaxLabel still shields the boundary label's immediate neighbour
+    // so the last bucket isn't silently dropped (#39899).
+    const { xAxis } = transformProps(weeklyChartProps(MONDAYS, MONDAYS))
+      .echartOptions as any;
+
+    expect(xAxis.axisLabel.showMaxLabel).toBe(true);
+    expect(xAxis.axisLabel.hideOverlap).toBe(true);
+  });
+
+  test('covers buckets contributed by either query', () => {
+    // The two queries share one axis, so a bucket present in only one of them
+    // still needs a tick.
+    const { xAxis } = transformProps(
+      weeklyChartProps(MONDAYS.slice(0, 3), MONDAYS.slice(2)),
+    ).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toEqual(MONDAYS);
+  });
+
+  test('leaves grains ECharts places correctly untouched', () => {
+    const { xAxis } = transformProps(
+      weeklyChartProps(MONDAYS, MONDAYS, {
+        timeGrainSqla: TimeGranularity.MONTH,
+      }),
+    ).echartOptions as any;
+
+    expect(xAxis.axisLabel.customValues).toBeUndefined();
+    expect(xAxis.axisTick?.customValues).toBeUndefined();
   });
 });
 
