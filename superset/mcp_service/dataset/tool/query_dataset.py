@@ -335,12 +335,16 @@ async def query_dataset(  # noqa: C901
         query_result = result["queries"][0]
         data = query_result.get("data", [])
         raw_columns = query_result.get("colnames", [])
+        coltypes = query_result.get("coltypes", [])
+        columns_meta: list[DataColumn] = format_data_columns(
+            data, raw_columns, coltypes
+        )
 
         if not data:
             return QueryDatasetResponse(
                 dataset_id=dataset.id,
                 dataset_name=dataset_name,
-                columns=[],
+                columns=columns_meta,
                 data=[],
                 row_count=0,
                 total_rows=0,
@@ -355,8 +359,6 @@ async def query_dataset(  # noqa: C901
                 applied_filters=effective_filters,
                 warnings=warnings,
             )
-
-        columns_meta: list[DataColumn] = format_data_columns(data, raw_columns)
 
         cache_status = get_cache_status_from_result(
             query_result, force_refresh=request.force_refresh

@@ -39,6 +39,7 @@ from superset.mcp_service.chart.query_result import (
     query_result_failure,
     validate_query_result_envelope,
 )
+from superset.utils import json
 from superset.utils.core import GenericDataType
 
 
@@ -798,19 +799,101 @@ def test_aggregate_nested_nodes_accept_boundary_and_reject_one_beyond(
     assert "aggregate values" in error.error
 
 
-def test_aggregate_utf8_bytes_accept_boundary_and_reject_one_beyond(
+def test_aggregate_json_bytes_accept_boundary_and_reject_one_beyond(
     monkeypatch,
 ) -> None:
-    monkeypatch.setattr(
-        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES", 19
-    )
     boundary = {"queries": [{"data": [{"x": "a"}]}, {"data": [{"x": "a"}]}]}
+    encoded_size = len(
+        json.dumps(boundary, ensure_ascii=False, separators=(",", ":")).encode()
+    )
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        encoded_size,
+    )
     beyond = {"queries": [{"data": [{"x": "a"}]}, {"data": [{"x": "aa"}]}]}
 
     assert validate_query_result_envelope(boundary) is None
     error = validate_query_result_envelope(beyond)
     assert error is not None
-    assert "UTF-8 bytes" in error.error
+    assert "JSON bytes" in error.error
+
+
+def test_json_budget_charges_escaped_keys_scalars_and_nested_syntax(
+    monkeypatch,
+) -> None:
+    result = {
+        "queries": [
+            {"data": [{'quoted"\\\n💥': {"nested": [None, True, 123, "café"]}}]}
+        ]
+    }
+    encoded_size = len(
+        json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode()
+    )
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        encoded_size - 1,
+    )
+
+    error = validate_query_result_envelope(result)
+    assert error is not None
+    assert "JSON bytes" in error.error
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        encoded_size,
+    )
+    assert validate_query_result_envelope(result) is None
+
+
+def test_json_budget_charges_canonical_cache_metadata_expansion(monkeypatch) -> None:
+    def producer_result() -> dict[str, Any]:
+        return {
+            "queries": [
+                {
+                    "data": [],
+                    "is_cached": None,
+                    "cached_dttm": "2026-09-02T00:00:00Z",
+                }
+            ]
+        }
+
+    canonical = {
+        "queries": [
+            {
+                "data": [],
+                "is_cached": False,
+                "cached_dttm": "2026-09-02T00:00:00+00:00",
+            }
+        ]
+    }
+    encoded_size = len(
+        json.dumps(canonical, ensure_ascii=False, separators=(",", ":")).encode()
+    )
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        encoded_size - 1,
+    )
+    error = validate_query_result_envelope(producer_result())
+    assert error is not None
+    assert "JSON bytes" in error.error
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        encoded_size,
+    )
+    assert validate_query_result_envelope(producer_result()) is None
+
+
+def test_aggregate_large_integers_are_rejected_by_json_byte_budget() -> None:
+    huge_value = 10**999
+    rows = [{"value": huge_value}] * 17_000
+
+    error = validate_query_result_envelope(
+        {"queries": [{"data": rows, "rowcount": len(rows)}]}
+    )
+
+    assert error is not None
+    assert "JSON bytes" in error.error
 
 
 def test_max_query_count_cannot_multiply_the_shared_nested_budget(monkeypatch) -> None:

@@ -56,6 +56,8 @@ Usage example::
 
 from __future__ import annotations
 
+import math
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Dict, TYPE_CHECKING
 
@@ -63,6 +65,8 @@ if TYPE_CHECKING:
     from superset.mcp_service.chart.schemas import DataColumn
 
 import humanize
+
+from superset.utils.core import GenericDataType
 
 
 def humanize_timestamp(dt: datetime | None) -> str | None:
@@ -167,53 +171,176 @@ class OmittedFieldsBuilder:
 
 
 STATS_ROW_CAP: int = 5000
+STATS_SAMPLE_VALUE_COUNT: int = 3
+STATS_TOTAL_WORK_CAP: int = 100_000
+
+_GENERIC_DATA_TYPE_NAMES: dict[int, str] = {
+    GenericDataType.NUMERIC: "numeric",
+    GenericDataType.STRING: "string",
+    GenericDataType.TEMPORAL: "temporal",
+    GenericDataType.BOOLEAN: "boolean",
+}
+_MAX_PROFILE_INTEGER_BITS = 4_096
+_MAX_PROFILE_STRING_LENGTH = 65_536
 
 
-def format_data_columns(
-    data: list[dict[str, Any]], raw_columns: list[str]
+@dataclass
+class _ColumnStatsBudget:
+    """One nested-node budget shared by all result columns."""
+
+    nodes: int = 0
+
+
+def data_column_stats_row_limit(row_count: int, column_count: int) -> int:
+    """Return a row sample whose aggregate top-level cell work is bounded."""
+    if row_count <= 0 or column_count <= 0:
+        return 0
+    return min(row_count, STATS_ROW_CAP, STATS_TOTAL_WORK_CAP // column_count)
+
+
+def _profile_value_identity(  # noqa: C901
+    value: Any, budget: _ColumnStatsBudget
+) -> tuple[Any, ...] | None:
+    """Build a hook-free identity under the shared iterative node budget."""
+    tokens: list[Any] = []
+    stack: list[tuple[str, Any]] = [("value", value)]
+    seen: set[int] = set()
+    while stack:
+        action, item = stack.pop()
+        budget.nodes += 1
+        if budget.nodes > STATS_TOTAL_WORK_CAP:
+            return None
+        if action == "token":
+            tokens.append(item)
+            continue
+        if type(item) is list:
+            identity = id(item)
+            if identity in seen:
+                tokens.append(("repeated_list", identity))
+                continue
+            seen.add(identity)
+            width = list.__len__(item)
+            tokens.append(("list", width))
+            stack.append(("token", "list_end"))
+            stack.extend(
+                ("value", list.__getitem__(item, index))
+                for index in range(width - 1, -1, -1)
+            )
+            continue
+        if type(item) is dict:
+            identity = id(item)
+            if identity in seen:
+                tokens.append(("repeated_dict", identity))
+                continue
+            seen.add(identity)
+            entries = list(dict.items(item))
+            tokens.append(("dict", list.__len__(entries)))
+            stack.append(("token", "dict_end"))
+            for key, child in reversed(entries):
+                key_token = (
+                    ("key", key)
+                    if type(key) is str
+                    and str.__len__(key) <= _MAX_PROFILE_STRING_LENGTH
+                    else ("opaque_key", id(type(key)), id(key))
+                )
+                stack.append(("value", child))
+                stack.append(("token", key_token))
+            continue
+
+        value_type = type(item)
+        if item is None:
+            tokens.append(("null",))
+        elif value_type is bool:
+            tokens.append(("number", int(item), 1))
+        elif value_type is int:
+            bit_count = int.bit_length(item)
+            tokens.append(
+                ("number", item, 1)
+                if bit_count <= _MAX_PROFILE_INTEGER_BITS
+                else ("oversized_integer", item < 0, bit_count)
+            )
+        elif value_type is float:
+            if math.isfinite(item):
+                numerator, denominator = float.as_integer_ratio(item)
+                tokens.append(("number", numerator, denominator))
+            else:
+                tokens.append(("nonfinite_float", float.__repr__(item)))
+        elif value_type is str:
+            tokens.append(
+                ("string", item)
+                if str.__len__(item) <= _MAX_PROFILE_STRING_LENGTH
+                else ("oversized_string", str.__len__(item))
+            )
+        else:
+            tokens.append(("opaque", id(value_type), id(item)))
+    return tuple(tokens)
+
+
+def format_data_columns(  # noqa: C901
+    data: list[dict[str, Any]],
+    raw_columns: list[str],
+    coltypes: list[int | GenericDataType] | None = None,
 ) -> list[DataColumn]:
-    """Build column metadata from query result data.
-
-    Caps null_count/unique_count computation at STATS_ROW_CAP rows to avoid
-    O(rows*cols) overhead on large result sets. When the result exceeds the
-    cap, those counts are marked as sampled/approximate via ``statistics``
-    instead of being reported as exact full-dataset totals.
-    """
+    """Build coltype-aware metadata under one shared iterative work budget."""
     # Local import breaks the chart.schemas ↔ response_utils circular dependency.
     from superset.mcp_service.chart.schemas import DataColumn  # noqa: PLC0415
 
-    stats_rows: list[dict[str, Any]] = data[:STATS_ROW_CAP]
-    is_sampled: bool = len(data) > STATS_ROW_CAP
-    columns_meta: list[DataColumn] = []
-    for col_name in raw_columns:
-        sample_values = [
-            row.get(col_name) for row in data[:3] if row.get(col_name) is not None
-        ]
-        data_type: str = "string"
-        if sample_values:
-            if all(isinstance(v, bool) for v in sample_values):
-                data_type = "boolean"
-            elif all(isinstance(v, (int, float)) for v in sample_values):
-                data_type = "numeric"
+    row_limit = data_column_stats_row_limit(len(data), len(raw_columns))
+    budget = _ColumnStatsBudget()
+    samples: dict[str, list[Any]] = {column: [] for column in raw_columns}
+    null_counts = dict.fromkeys(raw_columns, 0)
+    unique_values: dict[str, set[tuple[Any, ...]]] = {
+        column: set() for column in raw_columns
+    }
+    sampled_rows = 0
+    for row_offset in range(row_limit):
+        row = list.__getitem__(data, row_offset)
+        row_values: list[tuple[str, Any, tuple[Any, ...]]] = []
+        for column in raw_columns:
+            value = dict.get(row, column)
+            identity = _profile_value_identity(value, budget)
+            if identity is None:
+                break
+            row_values.append((column, value, identity))
+        if list.__len__(row_values) != list.__len__(raw_columns):
+            break
+        for column, value, identity in row_values:
+            if value is None:
+                null_counts[column] += 1
+                continue
+            if list.__len__(samples[column]) < STATS_SAMPLE_VALUE_COUNT:
+                samples[column].append(value)
+            unique_values[column].add(identity)
+        sampled_rows += 1
 
-        null_count = 0
-        unique_vals: set[str] = set()
-        for row in stats_rows:
-            val = row.get(col_name)
-            if val is None:
-                null_count += 1
-            else:
-                unique_vals.add(str(val))
+    columns_meta: list[DataColumn] = []
+    authoritative_coltypes = coltypes or []
+    for index, col_name in enumerate(raw_columns):
+        sample_values = samples[col_name]
+        if index < list.__len__(authoritative_coltypes):
+            data_type = _GENERIC_DATA_TYPE_NAMES.get(
+                list.__getitem__(authoritative_coltypes, index), "string"
+            )
+        else:
+            data_type = "string"
+            if sample_values and all(type(value) is bool for value in sample_values):
+                data_type = "boolean"
+            elif sample_values and all(
+                type(value) in {int, float} for value in sample_values
+            ):
+                data_type = "numeric"
 
         columns_meta.append(
             DataColumn(
                 name=col_name,
                 display_name=col_name.replace("_", " ").title(),
                 data_type=data_type,
-                sample_values=sample_values[:3],
-                null_count=null_count,
-                unique_count=len(unique_vals),
-                statistics={"sampled_rows": len(stats_rows)} if is_sampled else None,
+                sample_values=sample_values,
+                null_count=null_counts[col_name],
+                unique_count=len(unique_values[col_name]),
+                statistics=(
+                    {"sampled_rows": sampled_rows} if sampled_rows < len(data) else None
+                ),
             )
         )
     return columns_meta

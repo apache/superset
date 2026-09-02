@@ -249,6 +249,126 @@ async def test_query_dataset_normalizes_supported_producer_timezones(
 
 
 @pytest.mark.asyncio
+async def test_query_dataset_uses_authoritative_coltypes_and_late_samples(
+    mcp_server: FastMCP,
+) -> None:
+    dataset = _make_dataset(
+        columns=[
+            _make_column("event_time", is_dttm=True),
+            _make_column("enabled"),
+            _make_column("amount"),
+        ],
+    )
+    rows: list[dict[str, Any]] = [
+        {"event_time": None, "enabled": None, "amount": None} for _ in range(5)
+    ]
+    rows.extend(
+        [
+            {
+                "event_time": pd.Timestamp("2024-01-02T03:04:05Z"),
+                "enabled": True,
+                "amount": 1,
+            },
+            {"event_time": None, "enabled": False, "amount": 1.0},
+            {"event_time": None, "enabled": True, "amount": "1"},
+        ]
+    )
+    result_data = chart_data_command_result(
+        rows,
+        columns=["event_time", "enabled", "amount"],
+        coltypes=[
+            GenericDataType.TEMPORAL,
+            GenericDataType.BOOLEAN,
+            GenericDataType.NUMERIC,
+        ],
+    )
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate"
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=MagicMock(),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "columns": ["event_time", "enabled", "amount"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert [column["data_type"] for column in data["columns"]] == [
+        "temporal",
+        "boolean",
+        "numeric",
+    ]
+    assert data["columns"][0]["sample_values"] == ["2024-01-02T03:04:05+00:00"]
+    assert data["columns"][1]["sample_values"] == [True, False, True]
+    assert data["columns"][2]["unique_count"] == 2
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_preserves_authoritative_coltypes_for_empty_data(
+    mcp_server: FastMCP,
+) -> None:
+    dataset = _make_dataset(
+        columns=[
+            _make_column("event_time", is_dttm=True),
+            _make_column("enabled"),
+        ],
+    )
+    result_data = chart_data_command_result(
+        rows=[],
+        columns=["event_time", "enabled"],
+        coltypes=[GenericDataType.TEMPORAL, GenericDataType.BOOLEAN],
+    )
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate"
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=MagicMock(),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "columns": ["event_time", "enabled"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["data"] == []
+    assert [column["data_type"] for column in data["columns"]] == [
+        "temporal",
+        "boolean",
+    ]
+
+
+@pytest.mark.asyncio
 async def test_query_dataset_rejects_nonfinite_producer_data(
     mcp_server: FastMCP,
 ) -> None:

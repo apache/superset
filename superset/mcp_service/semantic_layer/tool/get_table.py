@@ -259,13 +259,15 @@ def _build_response(
     """Format the query result into a GetTableResponse."""
     data = query_result.get("data", [])
     raw_columns = query_result.get("colnames", [])
+    coltypes = query_result.get("coltypes", [])
     cache_status = get_cache_status_from_result(
         query_result, force_refresh=request.force_refresh
     )
+    columns_meta = format_data_columns(data, raw_columns, coltypes)
 
     if not data:
         return GetTableResponse(
-            columns=[],
+            columns=columns_meta,
             data=[],
             row_count=0,
             total_rows=0,
@@ -283,7 +285,6 @@ def _build_response(
             warnings=warnings,
         )
 
-    columns_meta = format_data_columns(data, raw_columns)
     cache_label = "cached" if cache_status and cache_status.cache_hit else "fresh"
     summary = (
         f"'{display_name}': {len(data)} rows, "
