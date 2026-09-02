@@ -241,6 +241,26 @@ class PandasAxis(int, Enum):
     COLUMN = 1
 
 
+class ShowValuesAs(StrEnum):
+    """
+    Pivot table "Show values as" modes.
+
+    Mirrors ``ShowValuesAsEnum`` in the pivot table plugin's ``types.ts``. The
+    value reaches the backend verbatim in the chart's form data, and is honored
+    by both the pandas postprocessing ``pivot`` operator and the server-side
+    render of the chart used for exports and reports.
+    """
+
+    ACTUAL = "actual"
+    PERCENT_OF_ROW = "percent_row"
+    PERCENT_OF_COLUMN = "percent_col"
+    PERCENT_OF_TOTAL = "percent_total"
+
+
+# The modes that transform values; ``ACTUAL`` (like ``None``) is a no-op.
+SHOW_VALUES_AS_PERCENT_MODES = frozenset(ShowValuesAs) - {ShowValuesAs.ACTUAL}
+
+
 class PandasPostprocessingCompare(StrEnum):
     DIFF = "difference"
     PCT = "percentage"

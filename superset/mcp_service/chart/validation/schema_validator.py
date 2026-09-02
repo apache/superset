@@ -131,7 +131,8 @@ class SchemaValidator:
                     "Add 'chart_type': 'xy' for line/bar/area/scatter charts",
                     "Add 'chart_type': 'table' for table visualizations",
                     "Add 'chart_type': 'pie' for pie or donut charts",
-                    "Add 'chart_type': 'pivot_table' for interactive pivot tables",
+                    "Add 'chart_type': 'pivot_table' for OSS pivot tables",
+                    "Use 'interactive_pivot' only when schema discovery exposes it",
                     "Add 'chart_type': 'mixed_timeseries' for dual-series time charts",
                     "Add 'chart_type': 'handlebars' for custom HTML template charts",
                     "Add 'chart_type': 'big_number' for big number display",
@@ -166,7 +167,8 @@ class SchemaValidator:
                     "Use 'chart_type': 'xy' for line, bar, area, or scatter charts",
                     "Use 'chart_type': 'table' for tabular data display",
                     "Use 'chart_type': 'pie' for pie or donut charts",
-                    "Use 'chart_type': 'pivot_table' for interactive pivot tables",
+                    "Use 'chart_type': 'pivot_table' for OSS pivot tables",
+                    "Use 'interactive_pivot' only when schema discovery exposes it",
                     "Use 'chart_type': 'mixed_timeseries' for dual-series time charts",
                     "Use 'chart_type': 'handlebars' for custom HTML template charts",
                     "Use 'chart_type': 'big_number' for big number display",
@@ -183,8 +185,7 @@ class SchemaValidator:
             return False, ChartGenerationError(
                 error_type="disabled_chart_type",
                 message=f"Chart type '{chart_type}' is not enabled on this instance",
-                details=f"Chart type '{chart_type}' is registered but has been "
-                f"disabled by the operator. "
+                details=f"Chart type '{chart_type}' is not available on this instance. "
                 f"Enabled chart types: {valid_types}",
                 suggestions=[
                     f"Use one of the enabled chart types: {valid_types}",

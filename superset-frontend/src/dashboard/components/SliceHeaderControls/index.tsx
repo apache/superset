@@ -34,11 +34,13 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   getChartMetadataRegistry,
+  getExtensionsRegistry,
   VizType,
   BinaryQueryObjectFilterClause,
   JsonObject,
   QueryFormData,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import { css, useTheme, styled } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
@@ -164,6 +166,8 @@ const queueChartResize = () => {
     window.dispatchEvent(new Event('resize'));
   }, 300);
 };
+
+const extensionsRegistry = getExtensionsRegistry();
 
 const SliceHeaderControls = (
   props: SliceHeaderControlsPropsWithRouter | SliceHeaderControlsProps,
@@ -513,6 +517,26 @@ const SliceHeaderControls = (
       type: 'divider',
     },
   ];
+
+  const sliceHeaderMenuExtension = extensionsRegistry.get(
+    'dashboard.slice.header.menu',
+  );
+  if (sliceHeaderMenuExtension) {
+    // Isolate the extension: a bad registration (throwing, or returning a
+    // non-array) must not take down the whole dashboard render.
+    try {
+      const extensionItems = sliceHeaderMenuExtension({
+        sliceId: slice.slice_id,
+        sliceName: slice.slice_name,
+        dashboardId,
+      });
+      if (Array.isArray(extensionItems) && extensionItems.length) {
+        newMenuItems.unshift(...extensionItems, { type: 'divider' });
+      }
+    } catch (error) {
+      logging.error('dashboard.slice.header.menu extension failed', error);
+    }
+  }
 
   if (slice.description) {
     newMenuItems.push({

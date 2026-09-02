@@ -138,8 +138,8 @@ class BaseRestoreVersionCommand(BaseCommand):
         # With capture off, Continuum's write listeners are detached: a
         # revert would mutate the live entity with NO new version row —
         # a destructive, untracked write. The whole restore surface is
-        # therefore inert under the kill-switch, matching the read-side
-        # convention (404, indistinguishable from "no such version").
+        # therefore inert under the kill-switch (404, indistinguishable from
+        # "no such version"). Existing history remains readable.
         if not capture_enabled():
             raise self.not_found_exc()
         entity = find_active_by_uuid(self.model_cls, self._uuid)

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from flask_appbuilder.security.sqla.models import User
+from jinja2.exceptions import TemplateSyntaxError
 from pytest import raises  # noqa: PT013
 from pytest_mock import MockerFixture
 
@@ -30,7 +31,7 @@ from superset.commands.exceptions import (
     DatasourceNotFoundValidationError,
     QueryNotFoundValidationError,
 )
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetSecurityException, SupersetTemplateException
 from superset.utils.core import DatasourceType, override_user
 
 dataset_find_by_id = "superset.daos.dataset.DatasetDAO.find_by_id"
@@ -338,6 +339,28 @@ def test_query_has_access(mocker: MockerFixture) -> None:
         )
         is True
     )
+
+
+def test_query_malformed_jinja_template(mocker: MockerFixture) -> None:
+    """
+    ``raise_for_access(query=...)`` Jinja-renders the query's SQL to resolve
+    the tables it touches. A malformed template must surface as a
+    ``SupersetTemplateException``, not the raw ``jinja2`` exception.
+    """
+    from superset.explore.utils import check_datasource_access
+    from superset.models.sql_lab import Query
+
+    mocker.patch(query_find_by_id, return_value=Query())
+    mocker.patch(
+        raise_for_access,
+        side_effect=TemplateSyntaxError("unexpected end of template", lineno=1),
+    )
+
+    with raises(SupersetTemplateException):  # noqa: PT012
+        check_datasource_access(
+            datasource_id=1,
+            datasource_type=DatasourceType.QUERY,
+        )
 
 
 def test_query_no_access(mocker: MockerFixture, client) -> None:

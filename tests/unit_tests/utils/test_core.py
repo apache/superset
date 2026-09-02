@@ -1942,8 +1942,24 @@ def test_sanitize_svg_content_safe():
 
 
 def test_sanitize_svg_content_removes_scripts():
-    """Test that nh3 removes dangerous script content."""
+    """Test that dangerous script content is removed."""
     malicious_svg = '<svg><script>alert("xss")</script><rect/></svg>'
+    result = sanitize_svg_content(malicious_svg)
+    assert "script" not in result.lower()
+    assert "alert" not in result
+
+
+def test_sanitize_svg_content_removes_script_with_attributes_on_closer():
+    """A closing </script foo> tag is still a valid closer to browsers."""
+    malicious_svg = "<svg><script>fetch('/api/v1/me/')</script foo></svg>"
+    result = sanitize_svg_content(malicious_svg)
+    assert "script" not in result.lower()
+    assert "fetch" not in result
+
+
+def test_sanitize_svg_content_removes_unterminated_script():
+    """An unterminated <script> opener with no closing tag is still stripped."""
+    malicious_svg = "<svg><script>alert('xss')"
     result = sanitize_svg_content(malicious_svg)
     assert "script" not in result.lower()
     assert "alert" not in result

@@ -16,6 +16,8 @@
 # under the License.
 from typing import Optional
 
+from jinja2.exceptions import TemplateError
+
 from superset import security_manager
 from superset.commands.chart.exceptions import (
     ChartAccessDeniedError,
@@ -33,6 +35,7 @@ from superset.commands.exceptions import (
 from superset.daos.chart import ChartDAO
 from superset.daos.dataset import DatasetDAO
 from superset.daos.query import QueryDAO
+from superset.exceptions import SupersetTemplateException
 from superset.utils.core import DatasourceType
 
 
@@ -53,7 +56,13 @@ def check_query_access(query_id: int) -> Optional[bool]:
         # Access checks below, no need to validate them twice as they can be expensive.
         query = QueryDAO.find_by_id(query_id, skip_base_filter=True)
         if query:
-            security_manager.raise_for_access(query=query)
+            try:
+                security_manager.raise_for_access(query=query)
+            except TemplateError as ex:
+                # raise_for_access() Jinja-renders the query's SQL to resolve
+                # the tables it touches; a malformed template surfaces here as
+                # a raw jinja2 exception rather than a Superset one.
+                raise SupersetTemplateException(str(ex)) from ex
             return True
     raise QueryNotFoundValidationError()
 

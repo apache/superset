@@ -19,6 +19,7 @@ from collections.abc import Iterator
 from uuid import UUID
 
 import pytest
+from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 from superset_core.tasks.types import TaskProperties, TaskScope, TaskStatus
 
@@ -395,9 +396,15 @@ def test_remove_subscriber_not_subscribed(session_with_task: Session) -> None:
     assert result is None
 
 
-def test_get_status(session_with_task: Session) -> None:
+def test_get_status(session_with_task: Session, mocker: MockerFixture) -> None:
     """Test get_status returns status string when task found by UUID"""
     from superset.daos.tasks import TaskDAO
+    from superset.models.task_subscribers import TaskSubscriber
+
+    # get_status enforces the TaskFilter, so the polling user must be
+    # authenticated and subscribed to see the task.
+    mocker.patch("superset.tasks.filters.get_user_id", return_value=TEST_USER_ID)
+    mocker.patch("superset.security_manager.is_admin", return_value=False)
 
     task = create_task(
         session_with_task,
@@ -405,6 +412,8 @@ def test_get_status(session_with_task: Session) -> None:
         task_key="status-task",
         status=TaskStatus.IN_PROGRESS,
     )
+    session_with_task.add(TaskSubscriber(task_id=task.id, user_id=TEST_USER_ID))
+    session_with_task.flush()
 
     result = TaskDAO.get_status(task.uuid)
 

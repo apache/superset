@@ -51,7 +51,11 @@ def _get_user_subjects(users):
     "editor_names,creator_name,config,expected_result",
     [
         (["gamma"], None, [FixedExecutor("admin")], "admin"),
-        (["gamma"], None, [ExecutorType.EDITOR], "gamma"),
+        # EDITOR only resolves to whoever authored the model's current state
+        # (changed_by, then created_by); a bare attached editor with no
+        # authorship on the model is not enough, so gamma must be the creator
+        # here for EDITOR to resolve to them.
+        (["gamma"], "gamma", [ExecutorType.EDITOR], "gamma"),
         (
             ["alpha", "gamma"],
             "gamma",

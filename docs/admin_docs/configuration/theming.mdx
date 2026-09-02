@@ -88,6 +88,27 @@ THEME_DARK = {
 # - OS preference detection is automatically enabled
 ```
 
+### Default Theme Mode
+
+By default, Superset mimics the visitor's OS/browser preference (light or dark) for
+sessions that don't have a saved user preference. Use `THEME_DEFAULT_MODE` to override
+that starting point instance-wide for the standard application:
+
+```python
+# Default theme mode for sessions without a saved user preference.
+# One of "default" (always light), "dark" (always dark), or "system" (mimic OS preference).
+THEME_DEFAULT_MODE = "dark"
+```
+
+- `"system"` (the default) preserves the existing behavior of following the OS/browser
+  preference, provided a dark theme is configured (`THEME_DARK` is not `None`). If no dark
+  theme is available, Superset always starts in light mode regardless of this setting.
+- `"default"` or `"dark"` forces that starting mode for first-time visitors; users can still switch themes manually afterward if both `THEME_DEFAULT` and `THEME_DARK` are available.
+- A user's own saved preference, once they toggle the theme switcher, always takes precedence over `THEME_DEFAULT_MODE`.
+- `THEME_DEFAULT_MODE` has no effect on embedded dashboards: the embed SDK sets the
+  starting mode via its own `themeMode` URL parameter, which takes precedence and falls
+  back to light mode when the parameter is absent.
+
 ### App Branding
 
 The application name shown in the browser title bar and navigation can be
@@ -218,6 +239,39 @@ Font URLs are validated against a configurable allowlist. By default, fonts from
 - **Self-hosted**: Place font files in `/static/assets/fonts/` and reference via CSS
 
 This feature works with the stock Docker image - no custom build required!
+
+## Results Grid Configuration Overrides
+
+Superset exposes a handful of opt-in tokens that customize the appearance of
+the results grid in SQL Lab. These tokens have no effect unless explicitly
+set, since the results grid otherwise falls back to its built-in defaults.
+
+```python
+THEME_DEFAULT = {
+    "token": {
+        "colorPrimary": "#2893B3",
+        # ... other Ant Design tokens
+
+        # Results grid overrides
+        "resultsGridRowHeight": 32,
+        "resultsGridHeaderFontSize": 13,
+        "resultsGridHeaderFontWeight": 600,
+        "resultsGridBorderRadius": 4,
+        "resultsGridNoStriping": True,
+    }
+}
+```
+
+| Token | Type | Description |
+| --- | --- | --- |
+| `resultsGridRowHeight` | `number` | Row and header height, in pixels. |
+| `resultsGridHeaderFontSize` | `number` | Header cell font size, in pixels. |
+| `resultsGridHeaderFontWeight` | `number` | Header cell font weight. |
+| `resultsGridBorderRadius` | `number` | Border radius applied to the grid and its wrapper, in pixels. |
+| `resultsGridNoStriping` | `boolean` | When `true`, disables alternating row background striping. |
+
+These tokens can also be set through the theme CRUD interface's JSON editor,
+alongside any other Superset-specific tokens.
 
 ## ECharts Configuration Overrides
 

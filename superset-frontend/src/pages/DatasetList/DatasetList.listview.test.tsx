@@ -1157,6 +1157,34 @@ test('dataset links use internal routing when PREVENT_UNSAFE_DEFAULT_URLS_ON_DAT
   });
 });
 
+test('legacy dashboard default URLs use the registered client route', async () => {
+  const dataset = {
+    ...mockDatasets[0],
+    explore_url: '/superset/dashboard/123/?standalone=1#section',
+  };
+  mockDatasetListEndpoints({ result: [dataset], count: 1 });
+
+  renderDatasetList(
+    mockAdminUser,
+    {},
+    {
+      common: {
+        conf: {
+          PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET: true,
+        },
+      },
+    },
+  );
+
+  const datasetLink = await screen.findByRole('link', {
+    name: dataset.table_name,
+  });
+  expect(datasetLink).toHaveAttribute(
+    'href',
+    '/dashboard/123/?standalone=1#section',
+  );
+});
+
 // Note: These delete error tests verify that the modal doesn't open when fetching
 // related_objects fails. The component's openDatasetDeleteModal error handler
 // (index.tsx:262-268) returns a string but doesn't call addDangerToast(), so no

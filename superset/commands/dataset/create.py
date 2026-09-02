@@ -33,7 +33,18 @@ from superset.commands.dataset.exceptions import (
 )
 from superset.commands.utils import populate_subjects
 from superset.daos.dataset import DatasetDAO
-from superset.exceptions import SupersetParseError, SupersetSecurityException
+from superset.db_engine_specs.exceptions import (
+    SupersetDBAPIConnectionError,
+    SupersetDBAPIDatabaseError,
+    SupersetDBAPIOperationalError,
+)
+from superset.exceptions import (
+    OAuth2RedirectError,
+    SupersetException,
+    SupersetParseError,
+    SupersetSecurityException,
+    SupersetTimeoutException,
+)
 from superset.extensions import security_manager
 from superset.sql.parse import Table
 from superset.utils.decorators import on_error, transaction
@@ -50,7 +61,38 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         self.validate()
 
         dataset = DatasetDAO.create(attributes=self._properties)
-        dataset.fetch_metadata()
+        try:
+            dataset.fetch_metadata()
+        except OAuth2RedirectError:
+            # Must reach the caller unchanged to start the OAuth2 dance.
+            raise
+        except (
+            SupersetTimeoutException,
+            SupersetDBAPIConnectionError,
+            SupersetDBAPIOperationalError,
+            SupersetDBAPIDatabaseError,
+        ):
+            # Infra-level failures (unreachable database, query timeout), not
+            # bad user input: let them propagate with their own status
+            # instead of being coerced into a 422 "invalid table" error.
+            raise
+        except SupersetException as ex:
+            # Not a SQLAlchemyError, so ``on_error`` re-raises it untouched and
+            # it escapes to FAB's ``@safe`` as an opaque 500 "Fatal error".
+            # Deliberately covers the 403 ``SupersetSecurityException`` raised
+            # for mutation/multi-statement SQL too: ``validate()`` already
+            # reports that class of rejection as a 422 on ``sql`` via
+            # ``DatasetDataAccessIsNotAllowed``.
+            raise DatasetInvalidError(
+                exceptions=[
+                    ValidationError(
+                        # ``lazy_gettext`` messages aren't ``str``, so
+                        # marshmallow won't wrap them into a list on its own.
+                        [str(ex.message)],
+                        field_name="sql" if self._properties.get("sql") else "table",
+                    )
+                ]
+            ) from ex
         return dataset
 
     def validate(self) -> None:  # noqa: C901

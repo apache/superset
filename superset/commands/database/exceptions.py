@@ -52,42 +52,6 @@ class DatabaseRequiredFieldValidationError(ValidationError):
         )
 
 
-class DatabaseExtraJSONValidationError(ValidationError):
-    """
-    Marshmallow validation error for database encrypted extra must be a valid JSON
-    """
-
-    def __init__(self, json_error: str = "") -> None:
-        super().__init__(
-            [
-                _(
-                    "Field cannot be decoded by JSON. %(json_error)s",
-                    json_error=json_error,
-                )
-            ],
-            field_name="extra",
-        )
-
-
-class DatabaseExtraValidationError(ValidationError):
-    """
-    Marshmallow validation error for database encrypted extra must be a valid JSON
-    """
-
-    def __init__(self, key: str = "") -> None:
-        super().__init__(
-            [
-                _(
-                    "The metadata_params in Extra field "
-                    "is not configured correctly. The key "
-                    "%{key}s is invalid.",
-                    key=key,
-                )
-            ],
-            field_name="extra",
-        )
-
-
 class DatabaseConnectionSyncPermissionsError(CommandException):
     status = 500
     message = _("Unable to sync permissions for this database connection.")

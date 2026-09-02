@@ -43,6 +43,21 @@ function findEndpoint(spy: jest.SpyInstance, substring: string): string {
   return (match[0] as Record<string, string>).endpoint;
 }
 
+function deferredJsonResponse() {
+  let resolveResponse: ((value: JsonResponse) => void) | undefined;
+  let rejectResponse: ((reason?: unknown) => void) | undefined;
+  const promise = new Promise<JsonResponse>((resolve, reject) => {
+    resolveResponse = resolve;
+    rejectResponse = reject;
+  });
+
+  if (!resolveResponse || !rejectResponse) {
+    throw new Error('Deferred response handlers were not initialized');
+  }
+
+  return { promise, resolve: resolveResponse, reject: rejectResponse };
+}
+
 beforeEach(() => {
   jest.restoreAllMocks();
 });
@@ -280,6 +295,147 @@ test('useListViewResource: fetchData sets loading to true then false', async () 
   await waitFor(() => {
     expect(result.current.state.loading).toBe(false);
   });
+});
+
+test('useListViewResource: ignores an older response that resolves last', async () => {
+  const older = deferredJsonResponse();
+  const newer = deferredJsonResponse();
+  const toISOString = jest
+    .spyOn(Date.prototype, 'toISOString')
+    .mockReturnValueOnce('newer-response-time')
+    .mockReturnValueOnce('older-response-time');
+  jest
+    .spyOn(SupersetClient, 'get')
+    .mockReturnValueOnce(older.promise)
+    .mockReturnValueOnce(newer.promise);
+
+  const { result } = renderHook(() =>
+    useListViewResource('chart', 'Charts', jest.fn(), false),
+  );
+
+  act(() => {
+    result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'name' }],
+      filters: [],
+    });
+    result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'name' }],
+      filters: [{ id: 'name', operator: 'ct', value: 'newer' }],
+    });
+  });
+
+  await act(async () => {
+    newer.resolve({
+      json: { result: [], count: 0 },
+    } as unknown as JsonResponse);
+  });
+  expect(result.current.state.resourceCollection).toEqual([]);
+  expect(result.current.state.resourceCount).toBe(0);
+  expect(result.current.state.lastFetched).toBe('newer-response-time');
+
+  await act(async () => {
+    older.resolve({
+      json: { result: [{ id: 1 }, { id: 2 }], count: 2 },
+    } as unknown as JsonResponse);
+  });
+
+  expect(result.current.state.resourceCollection).toEqual([]);
+  expect(result.current.state.resourceCount).toBe(0);
+  expect(result.current.state.lastFetched).toBe('newer-response-time');
+  expect(toISOString).toHaveBeenCalledTimes(1);
+});
+
+test('useListViewResource: stale completion keeps the latest request loading', async () => {
+  const older = deferredJsonResponse();
+  const newer = deferredJsonResponse();
+  jest
+    .spyOn(SupersetClient, 'get')
+    .mockReturnValueOnce(older.promise)
+    .mockReturnValueOnce(newer.promise);
+
+  const { result } = renderHook(() =>
+    useListViewResource('chart', 'Charts', jest.fn(), false),
+  );
+
+  act(() => {
+    result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'name' }],
+      filters: [],
+    });
+    result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'name' }],
+      filters: [{ id: 'name', operator: 'ct', value: 'newer' }],
+    });
+  });
+
+  await act(async () => {
+    older.resolve({
+      json: { result: [{ id: 1 }], count: 1 },
+    } as unknown as JsonResponse);
+  });
+
+  expect(result.current.state.resourceCollection).toEqual([]);
+  expect(result.current.state.loading).toBe(true);
+
+  await act(async () => {
+    newer.resolve({
+      json: { result: [{ id: 2 }], count: 1 },
+    } as unknown as JsonResponse);
+  });
+
+  expect(result.current.state.resourceCollection).toEqual([{ id: 2 }]);
+  expect(result.current.state.loading).toBe(false);
+});
+
+test('useListViewResource: only the latest request reports an error', async () => {
+  const older = deferredJsonResponse();
+  const newer = deferredJsonResponse();
+  const handleErrorMsg = jest.fn();
+  jest
+    .spyOn(SupersetClient, 'get')
+    .mockReturnValueOnce(older.promise)
+    .mockReturnValueOnce(newer.promise);
+
+  const { result } = renderHook(() =>
+    useListViewResource('chart', 'Charts', handleErrorMsg, false),
+  );
+
+  act(() => {
+    result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'name' }],
+      filters: [],
+    });
+    result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'name' }],
+      filters: [{ id: 'name', operator: 'ct', value: 'newer' }],
+    });
+  });
+
+  await act(async () => {
+    older.reject('older request failed');
+  });
+
+  expect(handleErrorMsg).not.toHaveBeenCalled();
+  expect(result.current.state.loading).toBe(true);
+
+  await act(async () => {
+    newer.reject('newer request failed');
+  });
+
+  expect(handleErrorMsg).toHaveBeenCalledTimes(1);
+  expect(result.current.state.loading).toBe(false);
 });
 
 test('useListViewResource: refreshData re-fetches with last config', async () => {

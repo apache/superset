@@ -15,29 +15,29 @@ description of what changed — "Chart renamed to Q3 Revenue", "Added filter on
 'Region'" — rather than a raw diff. You can search the history and filter it
 down to changes on the entity itself or on the things it depends on.
 
-## Enabling it
-
-Two switches are involved, and both matter.
+## Enabling and disabling it
 
 | Setting | Type | Effect |
 | --- | --- | --- |
 | `VERSION_HISTORY` | Feature flag | Shows the version history UI |
 | `ENABLE_VERSIONING_CAPTURE` | Config value | Records versions as entities are saved |
 
+Both default to on. To turn the feature off:
+
 ```python
 # superset_config.py
-FEATURE_FLAGS = {"VERSION_HISTORY": True}
-ENABLE_VERSIONING_CAPTURE = True
+FEATURE_FLAGS = {"VERSION_HISTORY": False}
+ENABLE_VERSIONING_CAPTURE = False
 ```
 
-Both default to off. They are separate because capture is the expensive half:
-an operator may want to start recording history before exposing the UI, so that
-there is something to show when they do.
+Restart Superset and its workers for the capture change to take effect. Existing
+history remains readable while capture is off, but **Restore** is unavailable
+(404).
 
-Turning the UI on without capture gives a panel that reports "No history yet"
-and never fills, so enable capture first — or at the same time. History only
-accrues from the moment capture is switched on; earlier edits are not
-reconstructed.
+Disable them together: capture off with the UI left on gives a panel that
+stops filling — an empty or stale history misrepresents the entity as
+unchanged. History only accrues while capture is on; edits made while it was
+off are not reconstructed.
 
 ## Viewing history
 

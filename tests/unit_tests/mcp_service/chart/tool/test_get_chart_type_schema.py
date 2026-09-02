@@ -19,12 +19,19 @@
 
 import pytest
 
+from superset.extensions import feature_flag_manager
 from superset.mcp_service.chart.tool.get_chart_type_schema import (
     _CHART_EXAMPLES,
     _CHART_TYPE_ADAPTERS,
     _get_chart_type_schema_impl as _call_schema,
     VALID_CHART_TYPES,
 )
+
+
+@pytest.fixture(autouse=True)
+def enable_all_feature_flags(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Exercise every registered adapter, including host-gated chart types."""
+    monkeypatch.setattr(feature_flag_manager, "is_feature_enabled", lambda _: True)
 
 
 class TestGetChartTypeSchema:

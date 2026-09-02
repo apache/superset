@@ -107,12 +107,14 @@ const getAllSelectOptions = () =>
 
 const findSelectOption = (text: string) =>
   waitFor(() =>
-    within(getElementByClassName('.rc-virtual-list')).getByText(text),
+    within(getElementByClassName('.ant-select-dropdown-list')).getByText(text),
   );
 
 const querySelectOption = (text: string) =>
   waitFor(() =>
-    within(getElementByClassName('.rc-virtual-list')).queryByText(text),
+    within(getElementByClassName('.ant-select-dropdown-list')).queryByText(
+      text,
+    ),
   );
 
 const findAllSelectOptions = () =>
@@ -644,7 +646,7 @@ test('does not add a new option if the option already exists', async () => {
   await type(option);
   await waitFor(() => {
     const array = within(
-      getElementByClassName('.rc-virtual-list'),
+      getElementByClassName('.ant-select-dropdown-list'),
     ).getAllByText(option);
     expect(array.length).toBe(1);
   });
@@ -1398,7 +1400,7 @@ test('appends page>1 results during an active search and discards them when sear
   // scrollTop via e.currentTarget in its onFallbackScroll handler, which
   // then forwards to onPopupScroll (handlePagination here).
   const holder = document.querySelector(
-    '.rc-virtual-list-holder',
+    '.ant-select-dropdown-list-holder',
   ) as HTMLElement | null;
   if (!holder) throw new Error('virtual-list holder not rendered');
   Object.defineProperty(holder, 'scrollHeight', {

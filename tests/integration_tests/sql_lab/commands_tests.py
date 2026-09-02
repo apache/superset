@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
 from unittest import mock
 from unittest.mock import Mock, patch
 
@@ -22,10 +23,13 @@ import pytest
 from flask import current_app
 from flask_babel import gettext as __
 from jinja2.exceptions import TemplateError, TemplateSyntaxError
+from sqlalchemy import inspect as sa_inspect
+from sqlalchemy.orm import object_session
 
 from superset import db, sql_lab
 from superset.commands.sql_lab import estimate, export, results
 from superset.common.db_query_status import QueryStatus
+from superset.db_engine_specs.base import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SerializationError,
@@ -35,6 +39,7 @@ from superset.exceptions import (
 )
 from superset.models.core import Database  # noqa: F401
 from superset.models.sql_lab import Query
+from superset.result_set import SupersetResultSet
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.schemas import EstimateQueryCostSchema
 from superset.utils import core as utils
@@ -431,6 +436,93 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
 
     @pytest.mark.usefixtures("create_database_and_query")
     @patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
+    def test_validation_releases_db_connection_before_fetching_from_results_backend(
+        self,
+    ) -> None:
+        # The DB connection must be released back to the pool (via
+        # warm_and_release_connection(), not a full session close -- see
+        # ``test_validation_warms_database_relationship_before_releasing_connection``
+        # for why) before the (potentially slow) results-backend fetch, so a
+        # large download doesn't hold a connection out of the pool for its
+        # duration.
+        #
+        # This spies on ``warm_and_release_connection`` itself rather than on
+        # ``db.session.commit`` -- the latter is a ``scoped_session`` proxy
+        # method, and patching it wouldn't be observed by the real
+        # ``Session`` object that ``warm_and_release_connection`` commits
+        # (see the fix for the analogous ``expire_on_commit`` proxy pitfall).
+        call_order: list[str] = []
+        original_warm_and_release_connection = results.warm_and_release_connection
+
+        def tracked_warm_and_release_connection(
+            instance: Any, *relationships: str
+        ) -> None:
+            call_order.append("connection_released")
+            original_warm_and_release_connection(instance, *relationships)
+
+        def tracked_get(key: str) -> None:
+            call_order.append("results_backend_get")
+            return None
+
+        results.results_backend = mock.Mock()
+        results.results_backend.get.side_effect = tracked_get
+
+        command = results.SqlExecutionResultsCommand("abc_query", 1000)
+
+        admin = self.get_user("admin")
+        with current_app.test_request_context():
+            with override_user(admin):
+                with mock.patch(
+                    "superset.commands.sql_lab.results.warm_and_release_connection",
+                    side_effect=tracked_warm_and_release_connection,
+                ):
+                    with pytest.raises(SupersetErrorException):
+                        # ``get`` returns ``None`` above, so validation goes
+                        # on to raise the "results missing" (410) error --
+                        # irrelevant here, we only care about the call order
+                        # leading up to it.
+                        command.validate()
+
+        assert call_order == ["connection_released", "results_backend_get"]
+
+    @pytest.mark.usefixtures("create_database_and_query")
+    @patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
+    def test_validation_warms_database_relationship_before_releasing_connection(
+        self,
+    ) -> None:
+        # ``run`` needs ``self._query.database.db_engine_spec`` after the
+        # connection has been released by ``validate``. The relationship
+        # must therefore already be loaded by then, and the query must stay
+        # attached to the session (unlike a full ``db.session.close()``,
+        # which would detach every object in the session -- including
+        # ``g.user`` -- not just the query), or accessing it later would
+        # either raise (detached instance with an unloaded attribute) or
+        # silently open a fresh, unwanted connection.
+        data = [{"col_0": i} for i in range(104)]
+        payload = {
+            "status": QueryStatus.SUCCESS,
+            "query": {"rows": 104},
+            "data": data,
+        }
+        serialized_payload = sql_lab._serialize_payload(payload, False)
+        compressed = utils.zlib_compress(serialized_payload)
+
+        results.results_backend = mock.Mock()
+        results.results_backend.get.return_value = compressed
+
+        command = results.SqlExecutionResultsCommand("abc_query", 1000)
+
+        admin = self.get_user("admin")
+        with current_app.test_request_context():
+            with override_user(admin):
+                command.validate()
+
+        assert object_session(command._query) is not None
+        assert "database" not in sa_inspect(command._query).unloaded
+        assert command._query.database is not None
+
+    @pytest.mark.usefixtures("create_database_and_query")
+    @patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_run_succeeds(self) -> None:
         data = [{"col_0": i} for i in range(104)]
         payload = {
@@ -452,4 +544,51 @@ class TestSqlExecutionResultsCommand(SupersetTestCase):
 
         assert result.get("status") == "success"
         assert result["query"].get("rows") == 104
-        assert result.get("data") == data
+
+    @pytest.mark.usefixtures("create_database_and_query")
+    @patch("superset.commands.sql_lab.results.results_backend_use_msgpack", True)
+    def test_run_succeeds_with_msgpack(self) -> None:
+        # ``query.database.db_engine_spec`` is only touched in the
+        # ``use_msgpack=True`` branch of ``_deserialize_results_payload`` --
+        # which is the production default. All the other tests here run
+        # with msgpack off, so this exercises the full ``run()`` path with
+        # msgpack on, to catch a regression that leaves ``query.database``
+        # unloaded or detached after ``validate()`` releases the connection.
+        cursor_descr = (
+            ("a", "string", None, None, None, None, True),
+            ("b", "int", None, None, None, None, True),
+            ("c", "float", None, None, None, None, True),
+        )
+        result_set = SupersetResultSet(
+            [("a", 4, 4.0)],
+            cursor_descr,
+            BaseEngineSpec,
+        )
+        (
+            serialized_data,
+            selected_columns,
+            all_columns,
+            expanded_columns,
+        ) = sql_lab._serialize_and_expand_data(result_set, BaseEngineSpec(), True)
+        payload = {
+            "status": QueryStatus.SUCCESS,
+            "query": {"rows": 1},
+            "data": serialized_data,
+            "columns": all_columns,
+            "selected_columns": selected_columns,
+            "expanded_columns": expanded_columns,
+        }
+        serialized_payload = sql_lab._serialize_payload(payload, True)
+        compressed = utils.zlib_compress(serialized_payload)
+
+        results.results_backend = mock.Mock()
+        results.results_backend.get.return_value = compressed
+
+        admin = self.get_user("admin")
+        with current_app.test_request_context():
+            with override_user(admin):
+                command = results.SqlExecutionResultsCommand("abc_query", 1000)
+                result = command.run()
+
+        assert result.get("status") == "success"
+        assert result["data"]

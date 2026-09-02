@@ -1148,3 +1148,21 @@ class TestTileWaitBudget:
             assert args[1] == i + 1  # tile index
             assert args[2] == 3  # total tiles
             assert args[-1] == " [cache_key=xyz]"
+
+
+def test_readiness_predicates_gate_on_unpainted_echarts_hosts() -> None:
+    """The report gate, the single-chart gate, and the diagnostics query all
+    key on the ECharts paint marker so a pre-paint canvas is never captured."""
+    from superset.utils.screenshot_utils import (
+        CHART_CONTAINER_READY_JS,
+        ECHARTS_UNPAINTED_HOST_SELECTOR,
+        FIND_CHART_HOLDER_STATES_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+    )
+
+    assert (
+        ECHARTS_UNPAINTED_HOST_SELECTOR == ".echarts-host:not(.echarts-render-finished)"
+    )
+    assert ECHARTS_UNPAINTED_HOST_SELECTOR in REPORT_CHART_HOLDERS_READY_JS
+    assert ECHARTS_UNPAINTED_HOST_SELECTOR in CHART_CONTAINER_READY_JS
+    assert "mounted_unpainted" in FIND_CHART_HOLDER_STATES_JS

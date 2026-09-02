@@ -102,7 +102,7 @@ def get_oauth2_access_token(
     return a fresh token and store it in the database for further requests. The function
     has a retry decorator, in case a dashboard with multiple charts triggers
     simultaneous requests for refreshing a stale token; in that case only the first
-    process to acquire the lock will perform the refresh, and othe process should find a
+    process to acquire the lock will perform the refresh, and other processes should find
     a valid token when they retry.
     """  # noqa: E501
     # pylint: disable=import-outside-toplevel

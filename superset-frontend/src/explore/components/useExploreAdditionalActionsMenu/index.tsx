@@ -78,6 +78,37 @@ import { useExploreDataExport } from './useExploreDataExport';
 
 export const SEARCH_THRESHOLD = 10;
 
+/**
+ * Escape a single CSV cell value.
+ *
+ * Mirrors the server-side chokepoint (superset/utils/csv.py escape_value):
+ * values starting with a spreadsheet formula prefix (=, +, -, @, |, %, or a
+ * leading tab/carriage return, optionally behind leading whitespace) are
+ * neutralized with a leading single quote so exported cells cannot execute
+ * as formulas when opened in Excel/LibreOffice/Google Sheets. Plain negative
+ * numbers are left untouched. RFC-4180 quoting is applied afterwards.
+ */
+export const escapeCsvValue = (v: unknown): string => {
+  if (v === null || v === undefined) return '';
+  let s = String(v);
+  if (s.length > 0) {
+    const stripped = s.replace(/^\s+/, '');
+    const startsLikeFormula =
+      s[0] === '\t' ||
+      s[0] === '\r' ||
+      (stripped.length > 0 && '-@+|=%'.includes(stripped[0]));
+    const isNegativeNumber = s.length > 1 && /^-[0-9.]+$/.test(s);
+    if (startsLikeFormula && !isNegativeNumber) {
+      // Escape pipe to be extra safe (DDE payloads), then prefix with a
+      // single quote to prevent formula evaluation. Existing backslashes
+      // must be escaped first so the resulting `\|`/`\\` sequences are
+      // unambiguous to a downstream unescaper.
+      s = `'${s.replace(/\\/g, '\\\\').replace(/\|/g, '\\|')}`;
+    }
+  }
+  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+
 const MENU_KEYS = {
   EDIT_PROPERTIES: 'edit_properties',
   DASHBOARDS_ADDED_TO: 'dashboards_added_to',
@@ -488,15 +519,11 @@ export const useExploreAdditionalActionsMenu = (
     filename: string,
   ) => {
     if (!rows?.length || !columns?.length) return;
-    const esc = (v: unknown): string => {
-      if (v === null || v === undefined) return '';
-      const s = String(v);
-      const wrapped = /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-      return wrapped;
-    };
-    const header = columns.map(c => esc(c.label ?? c.key ?? '')).join(',');
+    const header = columns
+      .map(c => escapeCsvValue(c.label ?? c.key ?? ''))
+      .join(',');
     const body = rows
-      .map(r => columns.map(c => esc(r[c.key])).join(','))
+      .map(r => columns.map(c => escapeCsvValue(r[c.key])).join(','))
       .join('\n');
     const csv = `${header}\n${body}`;
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });

@@ -571,6 +571,49 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         assert tags.count() == 0
 
     @pytest.mark.usefixtures("create_tags")
+    def test_delete_tag_by_pk(self):
+        """
+        Tag API: the single-object ``DELETE /api/v1/tag/<pk>`` route must
+        share the same ownership/system-tag validation as bulk_delete
+        (DeleteTagsCommand), not the FAB-generated model delete.
+        """
+        tag = db.session.query(Tag).filter(Tag.name == "example_tag_1").one()
+        system_tag = Tag(name="system:pk_delete_example", type=TagType.type)
+        db.session.add(system_tag)
+        db.session.commit()
+
+        try:
+            # a non-admin, non-creator user may not delete via the pk route
+            self.login(GAMMA_USERNAME)
+            rv = self.client.delete(f"api/v1/tag/{tag.id}", follow_redirects=True)
+            assert rv.status_code == 422
+            assert db.session.query(Tag).filter(Tag.id == tag.id).count() == 1
+
+            # system-generated tags are refused outright, even for an admin
+            self.logout()
+            self.login(ADMIN_USERNAME)
+            rv = self.client.delete(
+                f"api/v1/tag/{system_tag.id}", follow_redirects=True
+            )
+            assert rv.status_code == 422
+            assert db.session.query(Tag).filter(Tag.id == system_tag.id).count() == 1
+
+            # an admin may delete a custom tag via the pk route
+            rv = self.client.delete(f"api/v1/tag/{tag.id}", follow_redirects=True)
+            assert rv.status_code == 200
+            assert db.session.query(Tag).filter(Tag.id == tag.id).count() == 0
+        finally:
+            db.session.query(Tag).filter(Tag.id == system_tag.id).delete()
+            db.session.commit()
+
+    def test_delete_tag_by_pk_not_found(self):
+        self.login(ADMIN_USERNAME)
+        existing_ids = [tag_id for (tag_id,) in db.session.query(Tag.id).all()]
+        non_existent_id = max(existing_ids, default=0) + 1
+        rv = self.client.delete(f"api/v1/tag/{non_existent_id}", follow_redirects=True)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_tags")
     def test_delete_favorite_tag(self):
         self.login(ADMIN_USERNAME)
         user_id = self.get_user(username="admin").get_id()

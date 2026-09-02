@@ -625,6 +625,42 @@ describe('server', () => {
       );
       expect(wsEventMock).toHaveBeenCalledWith('pong', expect.any(Function));
     });
+
+    test('unsolicited pong payload cannot pollute Object.prototype', async () => {
+      const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+      const request = getRequest(validToken, 'http://localhost');
+
+      server.wsConnection(ws, request);
+
+      // Extract the handler registered for the 'pong' event, the same way
+      // the underlying `ws` library would invoke it on a raw pong frame.
+      const pongCall = wsEventMock.mock.calls.find(call => call[0] === 'pong');
+      expect(pongCall).toBeDefined();
+      const pongHandler = pongCall![1] as (data: Buffer) => void;
+
+      // An unsolicited pong with a payload matching an inherited key must not
+      // resolve through the prototype chain and must not write through to
+      // Object.prototype.
+      pongHandler(Buffer.from('__proto__'));
+      pongHandler(Buffer.from('constructor'));
+      pongHandler(Buffer.from('hasOwnProperty'));
+
+      // eslint-disable-next-line no-prototype-builtins
+      expect(Object.prototype.hasOwnProperty('pongTs')).toBe(false);
+      expect(({} as Record<string, unknown>).pongTs).toBeUndefined();
+
+      // A genuine socket id must still record its pong normally.
+      const socketId = server.channels[channelId].sockets[0];
+      const beforePongTs = server.sockets[socketId].pongTs;
+      dateNowSpy.mockImplementation(() =>
+        new Date('2021-03-10T11:02:58.135Z').valueOf(),
+      );
+      pongHandler(Buffer.from(socketId));
+      expect(server.sockets[socketId].pongTs).not.toBe(beforePongTs);
+      expect(server.sockets[socketId].pongTs).toBe(
+        new Date('2021-03-10T11:02:58.135Z').valueOf(),
+      );
+    });
   });
 
   describe('connection limits', () => {

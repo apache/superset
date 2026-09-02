@@ -47,6 +47,10 @@ export default defineConfig({
   // Retry logic - 2 retries in CI, 0 locally
   retries: process.env.CI ? 2 : 0,
 
+  // Disable capturing Git commit info as the project's history is increasingly dense
+  // and breach Playwright's default 3-seconds `git` command timeout limit
+  captureGitInfo: { commit: false, diff: false },
+
   // Reporter configuration - multiple reporters for better visibility
   reporter: process.env.CI
     ? [

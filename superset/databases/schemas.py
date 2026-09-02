@@ -1586,7 +1586,7 @@ class QualifiedTableSchema(Schema):
     """
     Schema for a qualified table reference.
 
-    Catalog and schema can be ommited, to fallback to default values. Table name must be
+    Catalog and schema can be omitted, to fallback to default values. Table name must be
     present.
     """
 

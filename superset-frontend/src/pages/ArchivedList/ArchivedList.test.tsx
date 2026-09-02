@@ -25,8 +25,10 @@ import {
   fireEvent,
   userEvent,
   waitFor,
+  within,
   selectOption,
 } from 'spec/helpers/testing-library';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
@@ -88,6 +90,15 @@ const mockCharts = [
 // list so `_info` requests resolve to it rather than the broader list glob.
 // withToasts injects the toast callbacks as props; the harness renders no
 // toast container, so the spy is the only way to pin what the user is told.
+// The type label for the dataset concept is flag-aware (SEMANTIC_LAYERS →
+// "Datasource"); mock the flag reader so tests can exercise both states. The
+// default (false for every flag) matches the real test environment, where no
+// bootstrap flags are set.
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(() => false),
+}));
+
 const mockAddDangerToast = jest.fn();
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
@@ -141,6 +152,14 @@ const renderArchivedList = (withStore = store) =>
 beforeEach(() => {
   fetchMock.removeRoutes();
   fetchMock.clearHistory();
+  mockAddDangerToast.mockClear();
+});
+
+afterEach(() => {
+  // The flag mock is shared module state; restore the environment default so a
+  // flag-flipping test that dies mid-body (e.g. by Jest timeout) cannot leak
+  // SEMANTIC_LAYERS into whichever test runs next.
+  (isFeatureEnabled as jest.Mock).mockImplementation(() => false);
 });
 
 test('renders archived rows with Name and Type columns', async () => {
@@ -202,6 +221,31 @@ test('restore failure surfaces an error and leaves the row in place', async () =
   // No refetch on failure — the row stays.
   expect(fetchMock.callHistory.calls(/chart\/\?q/)).toHaveLength(1);
   expect(screen.getByText('Deleted Chart One')).toBeInTheDocument();
+});
+
+test('restoring an already-restored row (404) surfaces an error without crashing', async () => {
+  // Simulates another actor having restored the object out from under this
+  // view: the server answers 404 to the now-stale row's restore request.
+  mockRoutes(404);
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
+
+  const restoreButtons = await screen.findAllByTestId('archived-row-restore');
+  fireEvent.click(restoreButtons[0]);
+
+  await waitFor(() => {
+    expect(fetchMock.callHistory.calls(/chart\/uuid-1\/restore/)).toHaveLength(
+      1,
+    );
+  });
+  await waitFor(() => {
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
+      expect.stringContaining('Failed to restore Deleted Chart One'),
+    );
+  });
+  expect(mockAddDangerToast).toHaveBeenCalledTimes(1);
+  // The page is still functional -- the list view did not crash.
+  expect(screen.getByTestId('archived-list-view')).toBeInTheDocument();
 });
 
 test('row actions are keyboard-operable (Enter restores)', async () => {
@@ -271,6 +315,45 @@ test('name search refetches with a contains filter on the name field', async () 
       );
     expect(hit).toBeTruthy();
   });
+});
+
+test('a search that matches nothing shows the empty-state and no restore actions', async () => {
+  // The initial load returns real rows; only the search-triggered request
+  // answers empty. If the list were empty from the start, this test could
+  // pass even if the search never fired a request at all -- so the request
+  // itself is asserted below before trusting the rendered empty state.
+  fetchMock.get(infoEndpoint, { permissions: ['can_read', 'can_write'] });
+  fetchMock.getOnce(listEndpoint, {
+    result: mockCharts,
+    count: mockCharts.length,
+  });
+  fetchMock.get(listEndpoint, { result: [], count: 0 });
+  renderArchivedList();
+  await screen.findByText('Deleted Chart One');
+
+  const searchInput = screen.getByPlaceholderText(/type a value/i);
+  fireEvent.change(searchInput, { target: { value: 'e2e_nonexistent' } });
+  fireEvent.keyDown(searchInput, { key: 'Enter', keyCode: 13 });
+
+  await waitFor(() => {
+    const hit = fetchMock.callHistory
+      .calls(/chart\/\?q/)
+      .find(call =>
+        call.url.includes(
+          '(col:slice_name,opr:chart_all_text,value:e2e_nonexistent)',
+        ),
+      );
+    expect(hit).toBeTruthy();
+  });
+
+  // ListView renders this hardcoded copy whenever a filter is active and the
+  // result set is empty, overriding the page's own `emptyState` prop
+  // entirely (see ListView.tsx) -- so this is the actual rendered text, not
+  // the page's "No archived items" default.
+  expect(
+    await screen.findByText('No results match your filter criteria'),
+  ).toBeInTheDocument();
+  expect(screen.queryAllByTestId('archived-row-restore')).toHaveLength(0);
 });
 
 test('switching Type fetches the newly selected resource with its deleted-state filter', async () => {
@@ -507,4 +590,58 @@ test('a viewer who can read none of the types gets an empty state, not three 403
   ).toBeInTheDocument();
   // No list fetch was ever issued.
   expect(fetchMock.callHistory.calls(/chart\/\?q/)).toHaveLength(0);
+});
+
+test('labels the dataset type "Datasource" when semantic layers is enabled', async () => {
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    (flag: FeatureFlag) => flag === FeatureFlag.SemanticLayers,
+  );
+  mockRoutes();
+  renderArchivedList();
+  await screen.findByText('Deleted Chart One');
+
+  userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
+  expect(
+    await screen.findByRole('option', { name: 'Datasource' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('option', { name: 'Dataset' }),
+  ).not.toBeInTheDocument();
+
+  // Selecting the renamed option still drives the dataset resource —
+  // the underlying type value is flag-independent.
+  await selectOption('Datasource', 'Type');
+  await screen.findByText('deleted_table_one');
+  expect(
+    fetchMock.callHistory.calls(datasetListEndpoint).length,
+  ).toBeGreaterThan(0);
+  // Pin the Type COLUMN cell, not just the Select's own rendered value.
+  const datasetRow = screen.getByText('deleted_table_one').closest('tr');
+  expect(
+    within(datasetRow as HTMLElement).getByText('Datasource'),
+  ).toBeInTheDocument();
+});
+
+test('labels the dataset type "Dataset" when semantic layers is disabled', async () => {
+  mockRoutes();
+  renderArchivedList();
+  await screen.findByText('Deleted Chart One');
+
+  userEvent.click(screen.getByRole('combobox', { name: 'Type' }));
+  expect(
+    await screen.findByRole('option', { name: 'Dataset' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('option', { name: 'Datasource' }),
+  ).not.toBeInTheDocument();
+
+  await selectOption('Dataset', 'Type');
+  await screen.findByText('deleted_table_one');
+  expect(
+    fetchMock.callHistory.calls(datasetListEndpoint).length,
+  ).toBeGreaterThan(0);
+  const datasetRow = screen.getByText('deleted_table_one').closest('tr');
+  expect(
+    within(datasetRow as HTMLElement).getByText('Dataset'),
+  ).toBeInTheDocument();
 });

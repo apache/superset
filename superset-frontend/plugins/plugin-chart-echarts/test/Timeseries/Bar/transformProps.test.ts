@@ -29,6 +29,7 @@ import type {
   GridComponentOption,
   LegendComponentOption,
 } from 'echarts/components';
+import type { BarSeriesOption } from 'echarts/charts';
 import {
   EchartsTimeseriesChartProps,
   LegendOrientation,
@@ -37,6 +38,7 @@ import {
 import transformProps from '../../../src/Timeseries/transformProps';
 import { DEFAULT_FORM_DATA } from '../../../src/Timeseries/constants';
 import {
+  BarValueLabelPosition,
   EchartsTimeseriesFormData,
   OrientationType,
   EchartsTimeseriesSeriesType,
@@ -73,6 +75,106 @@ function createTestQueryData(
     ...overrides,
   };
 }
+
+test('manual Bar value label position flows through transformProps', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      valueLabelPosition: BarValueLabelPosition.OutsideEnd,
+      metrics: ['Sales'],
+      xAxis: '__timestamp',
+      showValue: true,
+    },
+    queriesData: [
+      createTestQueryData([{ Sales: 100, __timestamp: 1609459200000 }], {
+        colnames: ['Sales', '__timestamp'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Temporal],
+      }),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const [series] = echartOptions.series as BarSeriesOption[];
+
+  expect(series.label).toMatchObject({ position: 'top' });
+  expect(series.labelLayout).toBeUndefined();
+  expect(echartOptions.darkMode).toBeUndefined();
+});
+
+test('Auto Bar labels enable theme-aware ECharts contrast', () => {
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      valueLabelPosition: BarValueLabelPosition.Auto,
+      metrics: ['Sales'],
+      xAxis: '__timestamp',
+      showValue: true,
+    },
+    queriesData: [
+      createTestQueryData([{ Sales: 100, __timestamp: 1609459200000 }], {
+        colnames: ['Sales', '__timestamp'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Temporal],
+      }),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const [series] = echartOptions.series as BarSeriesOption[];
+
+  expect(typeof series.labelLayout).toBe('function');
+  expect(echartOptions.darkMode).toBe(false);
+});
+
+test('legacy Bar labels without a saved position keep their pre-existing Outside End placement', () => {
+  const legacyFormData: Partial<EchartsTimeseriesFormData> = {
+    ...DEFAULT_FORM_DATA,
+  };
+  delete legacyFormData.valueLabelPosition;
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: legacyFormData as EchartsTimeseriesFormData,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      metrics: ['Sales'],
+      xAxis: '__timestamp',
+      showValue: true,
+    },
+    queriesData: [
+      createTestQueryData([{ Sales: 100, __timestamp: 1609459200000 }], {
+        colnames: ['Sales', '__timestamp'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Temporal],
+      }),
+    ],
+  });
+
+  expect(chartProps.formData).not.toHaveProperty('valueLabelPosition');
+  const { echartOptions } = transformProps(chartProps);
+  const [series] = echartOptions.series as BarSeriesOption[];
+
+  expect(series.label).toMatchObject({ position: 'top' });
+  expect(series.labelLayout).toBeUndefined();
+
+  Reflect.set(chartProps.formData, 'valueLabelPosition', undefined);
+  const undefinedPositionOptions = transformProps(chartProps).echartOptions;
+  const [undefinedPositionSeries] =
+    undefinedPositionOptions.series as BarSeriesOption[];
+
+  expect(undefinedPositionSeries.label).toMatchObject({ position: 'top' });
+  expect(undefinedPositionSeries.labelLayout).toBeUndefined();
+});
 
 describe('Bar Chart X-axis Time Formatting', () => {
   const baseFormData: SqlaFormData = {

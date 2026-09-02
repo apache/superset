@@ -74,6 +74,7 @@ def test_validate_success(
     mock_parameters: OAuth2ProviderResponseSchema,
 ) -> None:
     mocker.patch("superset.utils.oauth2.decode_oauth2_state", return_value=mock_state)
+    mocker.patch("superset.commands.database.oauth2.get_user_id", return_value=1)
     mocker.patch.object(
         DatabaseUserOAuth2TokensDAO,
         "get_database",
@@ -95,6 +96,7 @@ def test_validate_database_not_found(
         "superset.utils.oauth2.decode_oauth2_state",
         return_value={"database_id": 999},
     )
+    mocker.patch("superset.commands.database.oauth2.get_user_id", return_value=1)
     mocker.patch.object(DatabaseUserOAuth2TokensDAO, "get_database", return_value=None)
 
     command = OAuth2StoreTokenCommand(mock_parameters)
@@ -120,6 +122,7 @@ def test_run_success(
         "get_database",
         return_value=mock_database,
     )
+    mocker.patch("superset.commands.database.oauth2.get_user_id", return_value=1)
     mocker.patch.object(
         DatabaseUserOAuth2TokensDAO,
         "find_one_or_none",
@@ -155,6 +158,7 @@ def test_run_logs_token_exchange_failure(
         "get_database",
         return_value=mock_database,
     )
+    mocker.patch("superset.commands.database.oauth2.get_user_id", return_value=1)
     mock_database.db_engine_spec.get_oauth2_token.side_effect = HTTPError(
         "provider-payload-sentinel"
     )
@@ -188,6 +192,7 @@ def test_run_existing_token(
         "get_database",
         return_value=mock_database,
     )
+    mocker.patch("superset.commands.database.oauth2.get_user_id", return_value=1)
     existing_token = MagicMock()
     mocker.patch.object(
         DatabaseUserOAuth2TokensDAO,
@@ -208,3 +213,23 @@ def test_run_existing_token(
     assert result == "new_token"
     mock_delete.assert_called_once_with([existing_token])
     mock_create.assert_called_once()
+
+
+def test_validate_rejects_state_not_bound_to_session(
+    mocker: MockerFixture,
+    mock_parameters: OAuth2ProviderResponseSchema,
+) -> None:
+    """
+    The callback must only store tokens for the user who initiated the
+    dance: a state minted for another user, or presented without an
+    authenticated session, is rejected before any token exchange.
+    """
+    command = OAuth2StoreTokenCommand(mock_parameters)
+
+    mocker.patch("superset.commands.database.oauth2.get_user_id", return_value=2)
+    with pytest.raises(OAuth2Error):
+        command.validate()
+
+    mocker.patch("superset.commands.database.oauth2.get_user_id", return_value=None)
+    with pytest.raises(OAuth2Error):
+        command.validate()

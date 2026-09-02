@@ -40,6 +40,7 @@ from superset.mcp_service.chart.chart_utils import (
     analyze_chart_semantics,
     generate_chart_name,
     map_config_to_form_data,
+    merge_interactive_pivot_ui_config,
     merge_table_column_config,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
@@ -50,9 +51,7 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
     TableChartConfig,
     UpdateChartRequest,
-    wrap_sql_adhoc_metrics,
 )
-from superset.mcp_service.utils import escape_llm_context_delimiters
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -110,9 +109,8 @@ def _missing_config_or_name_error() -> GenerateChartResponse:
 def _wrapped_form_data_for_response(
     new_form_data: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    """Wrap SQL-metric strings in form_data before LLM-facing return."""
+    """Return form data without changing SQL metric strings."""
     payload = dict(new_form_data) if new_form_data is not None else {}
-    wrap_sql_adhoc_metrics(payload)
     return payload
 
 
@@ -237,6 +235,7 @@ def _build_update_payload(
         )
         new_form_data.pop("_mcp_warnings", None)
         merge_table_column_config(_get_existing_form_data(chart), new_form_data)
+        merge_interactive_pivot_ui_config(_get_existing_form_data(chart), new_form_data)
 
         chart_name = (
             request.chart_name
@@ -318,6 +317,7 @@ def _build_preview_form_data(
         )
         new_form_data.pop("_mcp_warnings", None)
         merge_table_column_config(existing_form_data, new_form_data)
+        merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
         # In the preview, an explicit filters list, including [], replaces saved
         # filters. An omitted filters field preserves them through the shallow merge.
         merged = _merge_replacement_config(
@@ -479,6 +479,8 @@ def _create_preview_url(
         title="Update chart",
         readOnlyHint=False,
         destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 async def update_chart(  # noqa: C901
@@ -580,9 +582,9 @@ async def update_chart(  # noqa: C901
             chart = find_chart_by_identifier(request.identifier)
 
         if not chart:
-            safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
+            display_id = str(request.identifier)[:200]
             not_found_msg = (
-                f"No chart found with identifier: {safe_id}."
+                f"No chart found with identifier: {display_id}."
                 " Use list_charts to get valid chart IDs."
             )
             return GenerateChartResponse.model_validate(

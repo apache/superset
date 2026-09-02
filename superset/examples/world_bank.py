@@ -154,7 +154,7 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
         "compare_lag": "10",
         "compare_suffix": "o10Y",
         "limit": "25",
-        "granularity_sqla": "year",
+        "granularity": "year",
         "groupby": [],
         "row_limit": current_app.config["ROW_LIMIT"],
         "since": "2014-01-01",

@@ -1400,6 +1400,52 @@ class TestDestructiveDDLBlocking:
             ddl_mocks.execute.assert_not_called()
 
     @pytest.mark.asyncio
+    async def test_empty_template_params_rendered_before_ddl_check(
+        self, ddl_mocks, mcp_server
+    ):
+        """template_params={} must not skip Jinja rendering in the DDL guard.
+
+        The executor renders templates whenever template_params is not None
+        (including {}), so the guard must parse the same rendered SQL. With a
+        truthiness check, SQL whose destructive statement is hidden inside a
+        Jinja expression in a comment passes the guard unrendered and then
+        renders and executes.
+        """
+        ddl_mocks.execute.return_value = _create_select_result(
+            rows=[{"x": 1}], columns=["x"], original_sql="SELECT 1"
+        )
+        mock_tp = MagicMock()
+        # The raw (unrendered) SQL below parses as a single, non-destructive
+        # SELECT -- the Jinja expression sits inside a `--` comment. Only
+        # after rendering does it become a second, destructive statement.
+        mock_tp.process_template.return_value = (
+            "SELECT 1;\n-- \nDROP TABLE important_table;"
+        )
+
+        with patch(
+            "superset.jinja_context.get_template_processor",
+            return_value=mock_tp,
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "execute_sql",
+                    {
+                        "request": {
+                            "database_id": 1,
+                            "sql": (
+                                'SELECT 1 -- {{ "\\nDROP TABLE important_table; --" }}'
+                            ),
+                            "template_params": {},
+                        }
+                    },
+                )
+                data = result.structured_content
+                assert data["success"] is False
+                assert "Destructive DDL" in data["error"]
+                mock_tp.process_template.assert_called_once()
+                ddl_mocks.execute.assert_not_called()
+
+    @pytest.mark.asyncio
     async def test_select_allowed(self, ddl_mocks, mcp_server):
         """SELECT queries pass through the DDL check."""
         ddl_mocks.execute.return_value = _create_select_result(

@@ -28,7 +28,10 @@ from superset.commands.tag.export import ExportTagsCommand
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.commands.dashboard.importers.v1.utils import find_chart_uuids
 from superset.daos.dashboard import DashboardDAO
-from superset.commands.export.models import ExportModelsCommand
+from superset.commands.export.models import (
+    ExportModelsCommand,
+    get_extra_export_fields,
+)
 from superset.commands.dataset.export import ExportDatasetsCommand
 from superset.daos.dataset import DatasetDAO
 from superset.models.dashboard import Dashboard
@@ -377,14 +380,21 @@ class ExportDashboardsCommand(ExportModelsCommand):
             tags = model.tags if hasattr(model, "tags") else []
             payload["tags"] = [tag.name for tag in tags if tag.type == TagType.custom]
 
+        if extra_fields := get_extra_export_fields(model, "dashboard"):
+            payload["extra"] = extra_fields
+
         file_content = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
         return file_content
 
     @staticmethod
     # ruff: noqa: C901
     def _export(
-        model: Dashboard, export_related: bool = True
+        model: Dashboard, export_related: bool = True, seen: set[str] | None = None
     ) -> Iterator[tuple[str, Callable[[], str]]]:
+        # Initialize seen set if not provided
+        if seen is None:
+            seen = set()
+
         yield (
             ExportDashboardsCommand._file_name(model),
             lambda: ExportDashboardsCommand._file_content(model),
@@ -395,8 +405,11 @@ class ExportDashboardsCommand(ExportModelsCommand):
             dashboard_ids = model.id
             command = ExportChartsCommand(chart_ids)
             command.disable_tag_export()
-            yield from command.run()
-            command.enable_tag_export()
+            try:
+                # Pass the shared seen set to the chart export command
+                yield from command.run(seen=seen)
+            finally:
+                command.enable_tag_export()
             if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
                 yield from ExportTagsCommand(
                     dashboard_ids=dashboard_ids, chart_ids=chart_ids
@@ -406,7 +419,8 @@ class ExportDashboardsCommand(ExportModelsCommand):
             if model.theme:
                 from superset.commands.theme.export import ExportThemesCommand
 
-                yield from ExportThemesCommand([model.theme.id]).run()
+                # Pass the shared seen set to the theme export command
+                yield from ExportThemesCommand([model.theme.id]).run(seen=seen)
 
         payload = model.export_to_dict(
             recursive=False,
@@ -435,7 +449,10 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     if dataset_id is not None:
                         dataset = DatasetDAO.find_by_id(dataset_id)
                         if dataset:
-                            yield from ExportDatasetsCommand([dataset_id]).run()
+                            # Pass the shared seen set to the dataset export command
+                            yield from ExportDatasetsCommand([dataset_id]).run(
+                                seen=seen
+                            )
 
             # Export datasets referenced by display controls
             for customization in (
@@ -446,4 +463,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     if dataset_id is not None:
                         dataset = DatasetDAO.find_by_id(dataset_id)
                         if dataset:
-                            yield from ExportDatasetsCommand([dataset_id]).run()
+                            # Pass the shared seen set to the dataset export command
+                            yield from ExportDatasetsCommand([dataset_id]).run(
+                                seen=seen
+                            )

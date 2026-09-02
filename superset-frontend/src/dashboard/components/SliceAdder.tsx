@@ -468,7 +468,7 @@ function SliceAdder({
           <AutoSizer>
             {({ height, width }: { height: number; width: number }) => (
               <List
-                style={{ width, height }}
+                style={{ width, height, maxHeight: height }}
                 rowCount={filteredSlices.length}
                 rowHeight={DEFAULT_CELL_HEIGHT}
                 rowProps={listRowProps}

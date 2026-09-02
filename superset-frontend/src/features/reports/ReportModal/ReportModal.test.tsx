@@ -452,7 +452,23 @@ test('submit failure dispatches danger toast and keeps modal open', async () => 
 // Error Handling section tests
 // ---------------------------------------------------------------------------
 
-test('Error Handling section is visible and Enable Retries checkbox is unchecked by default', () => {
+const enableRetryFlag = () => {
+  mockedIsFeatureEnabled.mockImplementation(
+    (featureFlag: string) =>
+      featureFlag === FeatureFlag.AlertReports ||
+      featureFlag === FeatureFlag.AlertReportsRetry,
+  );
+};
+
+test('Error Handling section is hidden when ALERT_REPORTS_RETRY flag is off', () => {
+  const store = createStore({}, reducerIndex);
+  render(<ReportModal {...defaultProps} />, { useRedux: true, store });
+
+  expect(screen.queryByText('Error Handling')).not.toBeInTheDocument();
+});
+
+test('Error Handling section is visible when ALERT_REPORTS_RETRY flag is on', () => {
+  enableRetryFlag();
   const store = createStore({}, reducerIndex);
   render(<ReportModal {...defaultProps} />, { useRedux: true, store });
 
@@ -464,6 +480,7 @@ test('Error Handling section is visible and Enable Retries checkbox is unchecked
 });
 
 test('conditional retry fields are hidden when Enable Retries is unchecked', () => {
+  enableRetryFlag();
   const store = createStore({}, reducerIndex);
   render(<ReportModal {...defaultProps} />, { useRedux: true, store });
 
@@ -473,6 +490,7 @@ test('conditional retry fields are hidden when Enable Retries is unchecked', () 
 });
 
 test('conditional retry fields appear when Enable Retries is checked', async () => {
+  enableRetryFlag();
   const store = createStore({}, reducerIndex);
   render(<ReportModal {...defaultProps} />, { useRedux: true, store });
 
@@ -489,6 +507,7 @@ test('conditional retry fields appear when Enable Retries is checked', async () 
 });
 
 test('retry fields are included in the POST body when Enable Retries is enabled', async () => {
+  enableRetryFlag();
   fetchMock.post(REPORT_ENDPOINT, { result: {} }, { name: 'post-retry' });
   const store = createStore({}, reducerIndex);
   render(

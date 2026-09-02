@@ -88,6 +88,21 @@ embedDashboard({
 
 If the callback returns `null` or is not provided, Superset uses its own permalink URL as a fallback.
 
+### Permalink origin rewriting
+
+This rewrite only applies to the non-embedded permalink path — it has no effect on embedded dashboards. When Superset is not embedded, it rewrites the origin of any permalink URL it generates to `window.location.origin` before showing it to the user, which keeps a proxied or subdirectory-deployed Superset from handing out a permalink that points at an internal hostname the user's browser can't reach.
+
+When Superset **is** embedded, this rewrite is skipped entirely regardless of the flag below: a `resolvePermalinkUrl` callback's return value is used as-is, and if no callback is provided (or it fails), the backend-supplied URL is also returned as-is.
+
+If your reverse proxy correctly forwards `X-Forwarded-Host` and you'd rather non-embedded permalinks carry the backend's literal origin, opt out of the rewrite with `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE`:
+
+```python
+# superset_config.py
+EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE = True
+```
+
+This defaults to `False` (rewrite enabled) and only affects non-embedded permalinks. Flipping the default would regress the common proxied/subdirectory deployment by exposing an unreachable internal host in copied permalinks.
+
 ---
 
 ## Feature Flags for Embedded Mode

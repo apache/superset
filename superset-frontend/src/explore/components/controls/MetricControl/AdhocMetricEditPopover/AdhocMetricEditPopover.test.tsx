@@ -340,7 +340,9 @@ test('Should filter saved metrics by metric_name and verbose_name', async () => 
 
   await userEvent.type(combobox, 'revenue');
 
-  let dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  let dropdown = document.querySelector(
+    '.ant-select-dropdown-list',
+  ) as HTMLElement;
   expect(within(dropdown).getByText('Gross Revenue')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Total Count')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Average Price')).not.toBeInTheDocument();
@@ -352,7 +354,7 @@ test('Should filter saved metrics by metric_name and verbose_name', async () => 
   await userEvent.clear(combobox);
   await userEvent.type(combobox, 'Unique');
 
-  dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
   expect(within(dropdown).getByText('Unique Users')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Total Count')).not.toBeInTheDocument();
   expect(within(dropdown).queryByText('Gross Revenue')).not.toBeInTheDocument();
@@ -360,7 +362,7 @@ test('Should filter saved metrics by metric_name and verbose_name', async () => 
   await userEvent.clear(combobox);
   await userEvent.type(combobox, 'total');
 
-  dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
   expect(within(dropdown).getByText('Total Count')).toBeInTheDocument();
   expect(within(dropdown).getByText('Total Quantity')).toBeInTheDocument();
   expect(within(dropdown).queryByText('Gross Revenue')).not.toBeInTheDocument();
@@ -421,7 +423,9 @@ test('Should filter columns by column_name and verbose_name in Simple tab', asyn
 
   await userEvent.type(columnCombobox, 'product');
 
-  let dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  let dropdown = document.querySelector(
+    '.ant-select-dropdown-list',
+  ) as HTMLElement;
   expect(within(dropdown).getByText('Product Title')).toBeInTheDocument();
   expect(
     within(dropdown).queryByText('User Identifier'),
@@ -435,7 +439,7 @@ test('Should filter columns by column_name and verbose_name in Simple tab', asyn
   await userEvent.clear(columnCombobox);
   await userEvent.type(columnCombobox, 'Modified');
 
-  dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
   expect(within(dropdown).getByText('Last Modified')).toBeInTheDocument();
   expect(
     within(dropdown).queryByText('User Identifier'),
@@ -445,7 +449,7 @@ test('Should filter columns by column_name and verbose_name in Simple tab', asyn
   await userEvent.clear(columnCombobox);
   await userEvent.type(columnCombobox, '_at');
 
-  dropdown = document.querySelector('.rc-virtual-list') as HTMLElement;
+  dropdown = document.querySelector('.ant-select-dropdown-list') as HTMLElement;
   expect(within(dropdown).getByText('Creation Timestamp')).toBeInTheDocument();
   expect(within(dropdown).getByText('Last Modified')).toBeInTheDocument();
   expect(

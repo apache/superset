@@ -37,6 +37,7 @@ import {
   type ListViewFilters,
 } from 'src/components';
 import SubMenu from 'src/features/home/SubMenu';
+import { datasetLabel } from 'src/features/semanticLayers/label';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { recoveredToast } from 'src/utils/softDeleteCopy';
 import { findPermission } from 'src/utils/findPermission';
@@ -82,10 +83,12 @@ const EmptyStateRow = styled.div`
   `}
 `;
 
-const TYPE_LABELS: Record<ArchivedType, string> = {
-  chart: t('Chart'),
-  dashboard: t('Dashboard'),
-  dataset: t('Dataset'),
+// Getters, not strings: the dataset label follows the SEMANTIC_LAYERS flag
+// ("Dataset" / "Datasource"), read at render time via the shared naming module.
+const TYPE_LABELS: Record<ArchivedType, () => string> = {
+  chart: () => t('Chart'),
+  dashboard: () => t('Dashboard'),
+  dataset: datasetLabel,
 };
 
 interface ToastProps {
@@ -166,7 +169,7 @@ function ArchivedListBody({
     refreshData,
   } = useListViewResource<ArchivedItem>(
     config.resource,
-    TYPE_LABELS[type],
+    TYPE_LABELS[type](),
     addDangerToast,
     true,
     [],
@@ -247,7 +250,7 @@ function ArchivedListBody({
         name => {
           const { text, options } = recoveredToast(
             name,
-            TYPE_LABELS[type],
+            TYPE_LABELS[type](),
             item.url ?? item.explore_url,
           );
           addSuccessToast(text, options);
@@ -306,7 +309,7 @@ function ArchivedListBody({
         id: config.nameField,
       },
       {
-        Cell: () => TYPE_LABELS[type],
+        Cell: () => TYPE_LABELS[type](),
         Header: t('Type'),
         id: 'type',
         disableSortBy: true,
@@ -539,7 +542,7 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
           onChange={handleTypeChange}
           options={availableTypes.map(option => ({
             value: option,
-            label: TYPE_LABELS[option],
+            label: TYPE_LABELS[option](),
           }))}
         />
       </TypeSelectRow>

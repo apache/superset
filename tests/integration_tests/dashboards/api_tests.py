@@ -35,6 +35,7 @@ import yaml
 from freezegun import freeze_time
 from sqlalchemy import and_
 from superset import db, security_manager  # noqa: F401
+from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.exceptions import LockAlreadyHeldException
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
@@ -650,6 +651,65 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         db.session.delete(dashboard)
         db.session.commit()
 
+    def test_get_dashboard_derives_stale_filter_scope(self):
+        """
+        Dashboard API: ``chartsInScope`` is derived from the layout, not read
+        back from the stored cache (sc-116923).
+        """
+        admin = self.get_user("admin")
+        slices = db.session.query(Slice).limit(2).all()
+        positions = {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {"id": "GRID_ID", "type": "GRID", "parents": ["ROOT_ID"]},
+        }
+        for slc in slices:
+            positions[f"CHART-{slc.id}"] = {
+                "id": f"CHART-{slc.id}",
+                "type": "CHART",
+                "meta": {"chartId": slc.id},
+                "parents": ["ROOT_ID", "GRID_ID"],
+            }
+        # A scope naming charts the dashboard does not contain - the state every
+        # seeded and imported dashboard starts in.
+        stored_metadata = {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-1",
+                    "name": "Region",
+                    "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                    "chartsInScope": [90001, 90002],
+                    "tabsInScope": ["TAB-gone"],
+                }
+            ]
+        }
+        dashboard = self.insert_dashboard(
+            "scope-cache",
+            "scope-cache",
+            [admin.id],
+            slices=slices,
+            position_json=json.dumps(positions),
+            json_metadata=json.dumps(stored_metadata),
+        )
+
+        self.login(ADMIN_USERNAME)
+        rv = self.get_assert_metric(f"api/v1/dashboard/{dashboard.id}", "get")
+        assert rv.status_code == 200
+
+        response_metadata = json.loads(
+            json.loads(rv.data.decode("utf-8"))["result"]["json_metadata"]
+        )
+        native_filter = response_metadata["native_filter_configuration"][0]
+        assert sorted(native_filter["chartsInScope"]) == sorted(
+            slc.id for slc in slices
+        )
+        assert native_filter["tabsInScope"] == []
+        assert native_filter["name"] == "Region"
+        # Deriving is read-only; the stored document is left alone.
+        assert json.loads(dashboard.json_metadata) == stored_metadata
+
+        db.session.delete(dashboard)
+        db.session.commit()
+
     def test_get_dashboard_with_columns(self):
         """
         Dashboard API: Test get dashboard with column selection via q param
@@ -866,6 +926,55 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             db.session.delete(dashboard)
             db.session.commit()
 
+    def test_get_dashboards_list_omits_extra_editors_by_default(self):
+        """No EXTRA_EDITORS_RESOLVER configured: list rows omit extra_editors."""
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "no_extra_editors_list_dashboard",
+            "no-extra-editors-list-dashboard",
+            [admin.id],
+        )
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get("api/v1/dashboard/")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            row = next(
+                d
+                for d in data["result"]
+                if d["dashboard_title"] == dashboard.dashboard_title
+            )
+            assert "extra_editors" not in row
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    @with_config({"EXTRA_EDITORS_RESOLVER": lambda resource: [123]})
+    def test_get_dashboards_list_includes_extra_editors_when_resolver_configured(
+        self,
+    ):
+        """List rows get extra_editors too, mirroring the single-object GET."""
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "extra_editors_list_dashboard",
+            "extra-editors-list-dashboard",
+            [admin.id],
+        )
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get("api/v1/dashboard/")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            row = next(
+                d
+                for d in data["result"]
+                if d["dashboard_title"] == dashboard.dashboard_title
+            )
+            assert row["extra_editors"] == [123]
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
     def test_get_charts_admin_sees_existing_charts(self):
         """Regression for #25890: GET /api/v1/chart/ as an Admin user should
         return existing charts, not an empty list."""
@@ -884,6 +993,41 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             assert chart.slice_name in names, (
                 f"Admin list missing the inserted chart. Got slice_names: {names}"
             )
+        finally:
+            db.session.delete(chart)
+            db.session.commit()
+
+    def test_get_charts_list_omits_extra_editors_by_default(self):
+        """No EXTRA_EDITORS_RESOLVER configured: list rows omit extra_editors."""
+        admin = self.get_user("admin")
+        chart = self.insert_chart(
+            "no_extra_editors_list_chart", [admin.id], 1, params="{}"
+        )
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get("api/v1/chart/")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            row = next(c for c in data["result"] if c["slice_name"] == chart.slice_name)
+            assert "extra_editors" not in row
+        finally:
+            db.session.delete(chart)
+            db.session.commit()
+
+    @with_config({"EXTRA_EDITORS_RESOLVER": lambda resource: [123]})
+    def test_get_charts_list_includes_extra_editors_when_resolver_configured(self):
+        """List rows get extra_editors too, mirroring the single-object GET."""
+        admin = self.get_user("admin")
+        chart = self.insert_chart(
+            "extra_editors_list_chart", [admin.id], 1, params="{}"
+        )
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get("api/v1/chart/")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            row = next(c for c in data["result"] if c["slice_name"] == chart.slice_name)
+            assert row["extra_editors"] == [123]
         finally:
             db.session.delete(chart)
             db.session.commit()
@@ -3243,6 +3387,14 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         }
 
     def test_import_dashboard_v0_export(self):
+        """
+        Dashboard API: legacy v0-format exports are rejected by the HTTP
+        import endpoint. The v0 command is not registered in the import
+        dispatcher (see superset/commands/dashboard/importers/dispatcher.py)
+        because it overrides charts/dashboards matched by remote_id with no
+        per-object ownership check. Legacy v0 JSON is still importable via
+        the `legacy_import_dashboards` CLI command.
+        """
         num_dashboards = db.session.query(Dashboard).count()
 
         self.login(ADMIN_USERNAME)
@@ -3257,20 +3409,28 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         rv = self.client.post(uri, data=form_data, content_type="multipart/form-data")
         response = json.loads(rv.data.decode("utf-8"))
 
-        assert rv.status_code == 200
-        assert response == {"message": "OK"}
-        assert db.session.query(Dashboard).count() == num_dashboards + 1
-
-        dashboard = (
-            db.session.query(Dashboard).filter_by(dashboard_title="Births 2").one()
-        )
-        chart = dashboard.slices[0]
-        dataset = chart.table
-
-        db.session.delete(dashboard)
-        db.session.delete(chart)
-        db.session.delete(dataset)
-        db.session.commit()
+        assert rv.status_code == 422
+        assert response == {
+            "errors": [
+                {
+                    "message": "Could not find a valid command to import file",
+                    "error_type": "GENERIC_COMMAND_ERROR",
+                    "level": "warning",
+                    "extra": {
+                        "issue_codes": [
+                            {
+                                "code": 1010,
+                                "message": (
+                                    "Issue 1010 - Superset encountered an "
+                                    "error while running a command."
+                                ),
+                            }
+                        ]
+                    },
+                }
+            ]
+        }
+        assert db.session.query(Dashboard).count() == num_dashboards
 
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
     def test_import_dashboard_overwrite(self, mock_add_permissions):
@@ -4369,8 +4529,50 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
         )
-        response = self._cache_screenshot(dashboard.id, {"permalinkKey": "1234"})
+        # A permalink key must resolve (and access-check) to `dashboard.id` --
+        # an arbitrary/unresolvable key is now rejected rather than accepted
+        # verbatim.
+        permalink_key = CreateDashboardPermalinkCommand(
+            dashboard_id=str(dashboard.id),
+            state={"dataMask": {}, "activeTabs": [], "anchor": "", "urlParams": []},
+        ).run()
+        response = self._cache_screenshot(dashboard.id, {"permalinkKey": permalink_key})
         assert response.status_code == 202
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    def test_cache_dashboard_screenshot_rejects_unresolvable_permalink(self):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        response = self._cache_screenshot(dashboard.id, {"permalinkKey": "1234"})
+        assert response.status_code == 404
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices",
+        "load_birth_names_dashboard_with_slices",
+    )
+    def test_cache_dashboard_screenshot_rejects_permalink_for_other_dashboard(self):
+        """
+        A permalink key that resolves to a *different* dashboard than `pk` must
+        be rejected -- otherwise a caller with access to `pk` could pass a
+        permalink key for a dashboard they don't have access to and have it
+        rendered by the (potentially more-privileged) screenshot executor.
+        """
+        self.login(ADMIN_USERNAME)
+        dashboard_a_id, dashboard_b_id = get_dashboards_ids(["world_health", "births"])
+        permalink_key = CreateDashboardPermalinkCommand(
+            dashboard_id=str(dashboard_b_id),
+            state={"dataMask": {}, "activeTabs": [], "anchor": "", "urlParams": []},
+        ).run()
+        response = self._cache_screenshot(
+            dashboard_a_id, {"permalinkKey": permalink_key}
+        )
+        assert response.status_code == 403
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
@@ -4407,14 +4609,14 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         """
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
-        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
-            b"fake image data"
-        )
 
         dashboard = (
             db.session.query(Dashboard)
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
+        )
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data", scope=f"dashboard:{dashboard.id}"
         )
         cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 200
@@ -4445,15 +4647,15 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         """
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
-        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
-            b"fake image data"
-        )
         mock_build_pdf.return_value = b"fake pdf data"
 
         dashboard = (
             db.session.query(Dashboard)
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
+        )
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data", scope=f"dashboard:{dashboard.id}"
         )
         cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 200
@@ -4505,12 +4707,14 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     ):
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
-        mock_get_from_cache_key.return_value = ScreenshotCachePayload(b"fake png data")
 
         dashboard = (
             db.session.query(Dashboard)
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
+        )
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake png data", scope=f"dashboard:{dashboard.id}"
         )
 
         cache_resp = self._cache_screenshot(dashboard.id)
@@ -4521,6 +4725,12 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 202
 
+        # Restore a valid, correctly-scoped payload so the request below
+        # actually reaches the download_format validation instead of
+        # failing the earlier cache-scope check.
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake png data", scope=f"dashboard:{dashboard.id}"
+        )
         response = self._get_screenshot(dashboard.id, cache_key, "invalid")
         assert response.status_code == 404
 
@@ -4537,15 +4747,15 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         """
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
-        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
-            b"fake image data"
-        )
         mock_build_pdf.return_value = b"fake pdf data"
 
         dashboard = (
             db.session.query(Dashboard)
             .filter(Dashboard.dashboard_title == "dash with tag")
             .first()
+        )
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data", scope=f"dashboard:{dashboard.id}"
         )
 
         cache_resp = self._cache_screenshot(dashboard.id)
@@ -4575,14 +4785,14 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         """
         self.login(ADMIN_USERNAME)
         mock_cache_task.return_value = None
-        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
-            b"fake image data"
-        )
         mock_build_pdf.return_value = b"fake pdf data"
 
         dashboard = Dashboard()
         db.session.add(dashboard)
         db.session.commit()
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data", scope=f"dashboard:{dashboard.id}"
+        )
 
         cache_resp = self._cache_screenshot(dashboard.id)
         assert cache_resp.status_code == 200

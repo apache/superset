@@ -28,6 +28,7 @@ export enum FeatureFlag {
   AlertReportSlackV2 = 'ALERT_REPORT_SLACK_V2',
   AlertReportWebhook = 'ALERT_REPORT_WEBHOOK',
   AlertReportsFilter = 'ALERT_REPORTS_FILTER',
+  AlertReportsRetry = 'ALERT_REPORTS_RETRY',
   AllowFullCsvExport = 'ALLOW_FULL_CSV_EXPORT',
   ChartPluginsExperimental = 'CHART_PLUGINS_EXPERIMENTAL',
   ConfirmDashboardDiff = 'CONFIRM_DASHBOARD_DIFF',

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useCallback } from 'react';
+import { ReactNode, useCallback, useEffect, useRef } from 'react';
 import { Divider, Form, Typography } from '@superset-ui/core/components';
 import { css } from '@apache-superset/core/theme';
 import { recurseReactClone } from '../../utils';
@@ -28,6 +28,7 @@ export interface FieldsetProps {
   item?: Record<string, any>;
   title?: ReactNode;
   compact?: boolean;
+  renderWarning?: (item: Record<string, any>) => ReactNode;
 }
 
 type fieldKeyType = string | number;
@@ -38,15 +39,26 @@ export default function Fieldset({
   item = {},
   title = null,
   compact = false,
+  renderWarning,
 }: FieldsetProps) {
+  // Controls report their edits asynchronously - TextControl debounces by
+  // FAST_DEBOUNCE - so the callback that eventually fires was built during an
+  // earlier render. Spreading that render's `item` rebuilds the whole record
+  // from a snapshot taken before a sibling field committed, dropping the value
+  // the user typed first. Reading off a ref merges into the latest commit.
+  const itemRef = useRef(item);
+  useEffect(() => {
+    itemRef.current = item;
+  }, [item]);
+
   const handleChange = useCallback(
     (fieldKey: fieldKeyType, val: any) => {
       onChange?.({
-        ...item,
+        ...itemRef.current,
         [fieldKey]: val,
       });
     },
-    [onChange, item],
+    [onChange],
   );
 
   const propExtender = (field: { props: { fieldKey: fieldKeyType } }) => ({
@@ -68,6 +80,7 @@ export default function Fieldset({
         </Typography.Title>
       )}
 
+      {renderWarning?.(item)}
       {recurseReactClone(children, Field, propExtender)}
     </Form>
   );

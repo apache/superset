@@ -26,6 +26,7 @@ from unittest.mock import Mock, patch
 import pytest
 from fastmcp import Client
 
+from superset.extensions import feature_flag_manager
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.chart_utils import map_big_number_config
 from superset.mcp_service.chart.schemas import (
@@ -33,6 +34,7 @@ from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     ColumnRef,
     FilterConfig,
+    InteractivePivotChartConfig,
     LegendConfig,
     TableChartConfig,
     TablePreview,
@@ -997,6 +999,83 @@ class TestUpdateChartPreview:
         assert result["error"] is None
         assert result["warnings"] == []
         mock_get_previous_form_data.assert_called_once_with("valid_key_12345")
+
+    @patch.object(update_chart_preview_module, "validate_and_compile")
+    @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch.object(update_chart_preview_module, "analyze_chart_semantics")
+    @patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+    @patch.object(update_chart_preview_module, "generate_explore_link")
+    @patch.object(update_chart_preview_module, "_get_previous_form_data")
+    @patch.object(update_chart_preview_module, "_find_dataset")
+    @patch("superset.mcp_service.auth.get_user_from_request")
+    @pytest.mark.asyncio
+    async def test_preserves_interactive_pivot_ui_config(
+        self,
+        mock_get_user_from_request,
+        mock_find_dataset,
+        mock_get_previous_form_data,
+        mock_generate_explore_link,
+        mock_analyze_chart_capabilities,
+        mock_analyze_chart_semantics,
+        mock_find_by_id,
+        unused_access_mock,
+        mock_validate_and_compile,
+    ) -> None:
+        """Cached preview iteration keeps state and UI-only formatting."""
+        mock_user = Mock(id=1)
+        mock_get_user_from_request.return_value = mock_user
+        mock_find_dataset.return_value = _mock_dataset(id=3)
+        mock_find_by_id.return_value = _mock_dataset(id=3)
+        mock_validate_and_compile.return_value = Mock(success=True)
+        mock_get_previous_form_data.return_value = {
+            "viz_type": "ag-grid-pivot-table",
+            "column_config": {"Revenue": {"d3NumberFormat": "$,.2f"}},
+            "conditional_formatting": [
+                {"column": "Revenue", "operator": ">", "targetValue": 1000}
+            ],
+            "pivot_table_state": {
+                "columnSizing": {
+                    "columnSizingModel": [{"colId": "region", "width": 180}]
+                },
+                "sort": {"sortModel": []},
+                "rowGroup": {"groupColIds": ["old_region"]},
+            },
+        }
+        mock_generate_explore_link.return_value = (
+            "http://localhost:8088/explore/?form_data_key=new_preview_key"
+        )
+        mock_analyze_chart_capabilities.return_value = None
+        mock_analyze_chart_semantics.return_value = None
+
+        request = UpdateChartPreviewRequest(
+            form_data_key="valid_key_12345",
+            dataset_id=3,
+            config=InteractivePivotChartConfig(
+                chart_type="interactive_pivot",
+                rows=[ColumnRef(name="region")],
+                columns=[ColumnRef(name="quarter")],
+                metrics=[ColumnRef(name="revenue", aggregate="SUM", label="Revenue")],
+            ),
+        )
+
+        with patch.object(
+            feature_flag_manager, "is_feature_enabled", return_value=True
+        ):
+            result = update_chart_preview_module.update_chart_preview(
+                request=request, ctx=Mock()
+            )
+
+        generated = mock_generate_explore_link.call_args.args[1]
+        assert generated["viz_type"] == "ag-grid-pivot-table"
+        assert generated["column_config"] == {"Revenue": {"d3NumberFormat": "$,.2f"}}
+        assert generated["conditional_formatting"][0]["column"] == "Revenue"
+        state = generated["pivot_table_state"]
+        assert state["columnSizing"]["columnSizingModel"][0]["width"] == 180
+        assert state["sort"] == {"sortModel": []}
+        assert state["rowGroup"] == {"groupColIds": ["region"]}
+        assert state["pivot"] == {"pivotMode": True, "pivotColIds": ["quarter"]}
+        assert result["success"] is True
 
     @patch.object(update_chart_preview_module, "validate_and_compile")
     @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)

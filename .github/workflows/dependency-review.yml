@@ -66,6 +66,27 @@ jobs:
 
       - name: "Set up liccheck"
         run: |
+          # liccheck (as of 0.9.2) still does a bare `import pkg_resources`
+          # without declaring setuptools as a dependency, relying on it
+          # having historically been bundled. setuptools 81+ (installed
+          # above via requirements/base.txt) dropped the pkg_resources
+          # subpackage entirely, so liccheck's own import breaks outright.
+          #
+          # Reinstalling an older setuptools would restore pkg_resources but
+          # would also downgrade the *real* setuptools install, which then
+          # trips liccheck's own working_set.resolve() -- it cross-checks
+          # requirements/base.txt's declared `setuptools==84.0.0` against
+          # what's actually installed, and a downgrade makes those disagree.
+          #
+          # Instead, vendor just the pkg_resources/ package files from an
+          # old setuptools wheel into site-packages, leaving the real
+          # setuptools install (and its dist-info metadata) untouched. This
+          # gives liccheck an importable pkg_resources whose own working-set
+          # scan still correctly reports the real installed setuptools
+          # version, so no conflict is raised.
+          pip download "setuptools<81" --no-deps -d /tmp/old-setuptools
+          python -m zipfile -e /tmp/old-setuptools/setuptools-*.whl /tmp/old-setuptools-extracted/
+          cp -r /tmp/old-setuptools-extracted/pkg_resources "$(python -c 'import site; print(site.getsitepackages()[0])')/"
           uv pip install --system liccheck
       - name: "Run liccheck"
         run: |

@@ -104,6 +104,17 @@ export const ThemedAgGridReact = forwardRef<
       foregroundColor: theme.colorText,
       browserColorScheme: isDarkMode ? 'dark' : 'light',
 
+      // Native menus, popups, side bar, tooltips and loading/no-rows overlays
+      // are rendered against these params rather than `backgroundColor`
+      // (which is intentionally transparent). Without explicit values they
+      // inherit transparency too, making them unreadable.
+      chromeBackgroundColor: theme.colorBgElevated,
+      menuBackgroundColor: theme.colorBgElevated,
+      menuBorder: true,
+      sideBarBackgroundColor: theme.colorBgElevated,
+      tooltipBackgroundColor: theme.colorBgElevated,
+      modalOverlayBackgroundColor: theme.colorBgElevated,
+
       // Header styling
       headerBackgroundColor: theme.colorFillTertiary,
       headerTextColor: theme.colorTextHeading,
