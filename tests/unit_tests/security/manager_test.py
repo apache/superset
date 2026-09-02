@@ -1380,6 +1380,31 @@ def test_query_context_modified_tampered(
     assert query_context_modified(query_context)
 
 
+def test_query_context_modified_malformed_stored_query_context(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A stored ``query_context`` that is not valid JSON (which the query-context-only
+    chart update path can persist) must be treated as modified/tampered rather than
+    crashing with a raw ``JSONDecodeError``. Returning ``True`` lets
+    ``raise_for_access`` deny the guest with the intended 403.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = "not valid json"
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+    }
+    query_context.queries = [QueryObject(metrics=stored_metrics)]  # type: ignore
+    assert query_context_modified(query_context)
+
+
 def test_query_context_modified_singular_metric_param(
     mocker: MockerFixture,
 ) -> None:
