@@ -18,6 +18,7 @@
 # ATTENTION: If you change any constants, make sure to also change utils/common.js
 
 # string to use when None values *need* to be converted to/from strings
+from collections.abc import Iterable
 from enum import Enum
 
 from superset.utils.backports import StrEnum
@@ -275,3 +276,41 @@ class CacheRegion(StrEnum):
 
 # Cache timeout constants
 CACHE_DISABLED_TIMEOUT = -1  # Special value indicating no caching should occur
+
+
+class SemanticCacheStatus(StrEnum):
+    """Containment-cache provenance of a semantic query result.
+
+    A single chart query can fan out into several semantic queries (a main
+    query plus one per time offset), each served independently. ``HIT`` means
+    every one of them came from containment, ``MISS`` that none did, and
+    ``MIXED`` that provenance differs across them.
+    """
+
+    HIT = "HIT"
+    MISS = "MISS"
+    MIXED = "MIXED"
+
+    @classmethod
+    def from_hits(cls, hits: Iterable[bool]) -> "SemanticCacheStatus":
+        """Roll per-semantic-query hit flags up to one status."""
+        outcomes: tuple[bool, ...] = tuple(hits)
+        if outcomes and all(outcomes):
+            return cls.HIT
+        if any(outcomes):
+            return cls.MIXED
+        return cls.MISS
+
+    @classmethod
+    def combine(cls, statuses: Iterable[object]) -> "SemanticCacheStatus":
+        """Roll per-query statuses up to a response-level status.
+
+        Queries without a status (non-semantic datasources, failures) count as
+        misses so a response is only a ``HIT`` when everything in it was.
+        """
+        values: tuple[object, ...] = tuple(statuses)
+        if values and all(value == cls.HIT for value in values):
+            return cls.HIT
+        if any(value in (cls.HIT, cls.MIXED) for value in values):
+            return cls.MIXED
+        return cls.MISS

@@ -141,6 +141,78 @@ class TestSupersetAppInitializer:
         makedirs.assert_called_once_with("/var/lib/superset", exist_ok=True)
 
     @patch("superset.initialization.logger")
+    @patch("superset.initialization.stats_logger_manager")
+    @patch("superset.initialization.cache_manager")
+    @patch("superset.initialization.feature_flag_manager")
+    def test_semantic_cache_unsupported_coordination_is_nonfatal(
+        self,
+        mock_feature_flags: MagicMock,
+        mock_cache_manager: MagicMock,
+        mock_stats_manager: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        mock_app: MagicMock = MagicMock()
+        mock_app.config = {
+            "SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS": 1.0,
+            "SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS": 30,
+        }
+        mock_feature_flags.is_feature_enabled.return_value = True
+        mock_cache_manager.semantic_cache_coordination = None
+        mock_stats_manager.instance.gauge.side_effect = RuntimeError(
+            "metrics unavailable"
+        )
+        initializer: SupersetAppInitializer = SupersetAppInitializer(mock_app)
+
+        initializer.configure_semantic_cache()
+
+        mock_logger.warning.assert_called_once()
+        warning: str = mock_logger.warning.call_args.args[0]
+        assert "owner-token leases" in warning
+        mock_stats_manager.instance.gauge.assert_called_once_with(
+            "semantic_cache.containment.enabled", 0.0
+        )
+        mock_stats_manager.instance.incr.assert_called_once_with(
+            "semantic_cache.containment.unsupported"
+        )
+
+    @patch("superset.initialization.logger")
+    @patch("superset.initialization.stats_logger_manager")
+    @patch("superset.initialization.cache_manager")
+    @patch("superset.initialization.feature_flag_manager")
+    def test_semantic_cache_null_data_cache_warns_and_disables(
+        self,
+        mock_feature_flags: MagicMock,
+        mock_cache_manager: MagicMock,
+        mock_stats_manager: MagicMock,
+        mock_logger: MagicMock,
+    ) -> None:
+        """The default ``NullCache`` data cache can never serve a containment
+        hit; enabling the flag on top of it must be surfaced, not silent."""
+        from flask_caching.backends.nullcache import NullCache
+
+        mock_app: MagicMock = MagicMock()
+        mock_app.config = {
+            "SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS": 1.0,
+            "SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS": 30,
+        }
+        mock_feature_flags.is_feature_enabled.return_value = True
+        mock_cache_manager.data_cache = NullCache()
+        mock_cache_manager.semantic_cache_coordination = MagicMock()
+        initializer: SupersetAppInitializer = SupersetAppInitializer(mock_app)
+
+        initializer.configure_semantic_cache()
+
+        mock_logger.warning.assert_called_once()
+        warning: str = mock_logger.warning.call_args.args[0]
+        assert "DATA_CACHE_CONFIG" in warning
+        mock_stats_manager.instance.gauge.assert_called_once_with(
+            "semantic_cache.containment.enabled", 0.0
+        )
+        mock_stats_manager.instance.incr.assert_called_once_with(
+            "semantic_cache.containment.unsupported"
+        )
+
+    @patch("superset.initialization.logger")
     def test_init_app_in_ctx_calls_sync_config_to_db(self, mock_logger):
         """Test that initialization calls app.sync_config_to_db()."""
         # Setup
@@ -160,6 +232,7 @@ class TestSupersetAppInitializer:
             patch.object(app_initializer, "configure_async_queries"),
             patch.object(app_initializer, "configure_ssh_manager"),
             patch.object(app_initializer, "configure_stats_manager"),
+            patch.object(app_initializer, "configure_semantic_cache"),
             patch.object(app_initializer, "init_views"),
         ):
             app_initializer.init_app_in_ctx()

@@ -27,6 +27,7 @@ jobs:
       pull-requests: read
     outputs:
       python: ${{ steps.check.outputs.python }}
+      semantic-layers: ${{ steps.check.outputs.semantic-layers }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -37,6 +38,55 @@ jobs:
         uses: ./.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+
+  test-semantic-cache-coordination:
+    needs: changes
+    if: needs.changes.outputs.semantic-layers == 'true'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SEMANTIC_CACHE_REDIS_PORT: 16379
+      SEMANTIC_CACHE_SENTINEL_PORT: 26379
+    services:
+      redis:
+        image: redis:7.4.10-alpine3.21
+        ports:
+          - 16379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=2s
+          --health-timeout=2s
+          --health-retries=20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Setup Python
+        uses: ./.github/actions/setup-backend/
+      - name: Start pinned Redis Sentinel
+        run: |
+          docker run --detach --name semantic-cache-sentinel \
+            --publish 26379:26379 \
+            --add-host host.docker.internal:host-gateway \
+            redis:7.4.10-alpine3.21 sh -c \
+            'printf "port 26379\nsentinel resolve-hostnames yes\nsentinel monitor mymaster host.docker.internal 16379 1\nsentinel down-after-milliseconds mymaster 5000\nsentinel failover-timeout mymaster 10000\n" > /tmp/sentinel.conf && exec redis-server /tmp/sentinel.conf --sentinel'
+          for attempt in $(seq 1 30); do
+            if docker exec semantic-cache-sentinel redis-cli -p 26379 ping; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
+      - name: Run semantic-cache Redis coordination tests
+        timeout-minutes: 5
+        run: |
+          pytest -q tests/integration_tests/semantic_layers/cache_coordination_tests.py
+      - name: Stop Redis Sentinel
+        if: always()
+        run: docker rm --force semantic-cache-sentinel || true
 
   test-mysql:
     needs: changes

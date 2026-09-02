@@ -21,7 +21,7 @@ from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
-from flask import Flask, g
+from flask import Flask, g, Response
 
 from superset.charts.data.api import ChartDataRestApi
 from superset.charts.data.dashboard_filter_context import (
@@ -275,6 +275,50 @@ def test_send_chart_response_excludes_timing_by_default(app: SupersetApp) -> Non
     body = json.loads(response.get_data(as_text=True))
     assert body == {"result": [{"data": [{"col1": 1}], "query": "SELECT 1"}]}
     assert "timing" not in query_payload
+
+
+@pytest.mark.parametrize(
+    ("semantic_cache_statuses", "expected_status"),
+    [
+        (["HIT"], "HIT"),
+        (["MISS"], "MISS"),
+        ([None], "MISS"),
+        (["MIXED"], "MIXED"),
+        (["HIT", "MISS"], "MIXED"),
+        (["HIT", "MIXED"], "MIXED"),
+        (["HIT", None], "MIXED"),
+    ],
+)
+def test_send_chart_response_reports_semantic_cache_status(
+    app: SupersetApp,
+    semantic_cache_statuses: list[str | None],
+    expected_status: str,
+) -> None:
+    query_context: MagicMock = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.result_format = ChartDataResultFormat.JSON
+    query_results: tuple[QueryDataResult, ...] = tuple(
+        QueryDataResult(
+            payload={"semantic_cache_status": cache_status},
+            timing=_query_timing(),
+        )
+        for cache_status in semantic_cache_statuses
+    )
+    result: ChartDataExecutionResult = ChartDataExecutionResult(
+        query_context=query_context,
+        queries=query_results,
+    )
+
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch(
+            "superset.charts.data.api.security_manager.is_guest_user",
+            return_value=False,
+        ),
+    ):
+        response: Response = ChartDataRestApi()._send_chart_response(result)
+
+    assert response.headers["X-Superset-Semantic-Cache"] == expected_status
 
 
 def test_send_chart_response_includes_opt_in_timing(app: SupersetApp) -> None:

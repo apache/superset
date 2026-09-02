@@ -164,3 +164,19 @@ def test_image_tag_compose_changes_trigger_python_tests() -> None:
         ["docker-compose-image-tag.yml"],
         change_detector.PATTERNS["python"],
     )
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "superset/async_events/cache_backend.py",
+        "superset/utils/cache_manager.py",
+        "superset/semantic_layers/cache_repository.py",
+    ],
+)
+def test_lease_backend_changes_trigger_semantic_cache_coordination(path: str) -> None:
+    """The real-Redis coordination job must run for the owner-token lease code
+    it exercises, which lives outside the semantic_layers package."""
+    assert change_detector.detect_changes(
+        [path], change_detector.PATTERNS["semantic-layers"]
+    )
