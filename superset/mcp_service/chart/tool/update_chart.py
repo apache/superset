@@ -117,6 +117,16 @@ def _wrapped_form_data_for_response(
     return payload
 
 
+def _canonicalize_form_data_datasource(
+    form_data: dict[str, Any],
+    dataset_id: int | None,
+    datasource_type: str = "table",
+) -> None:
+    """Bind operation form data to the effective datasource after all merges."""
+    if dataset_id is not None:
+        form_data["datasource"] = f"{dataset_id}__{datasource_type}"
+
+
 def _entry_key(entry: Any) -> str:
     """Stable identity for a form_data column or metric entry.
 
@@ -222,7 +232,8 @@ def _build_update_payload(
         merge_update_form_data(existing_form_data, new_form_data, parsed_config)
         merge_table_column_config(existing_form_data, new_form_data)
         merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
-        merge_same_viz_form_data(existing_form_data, new_form_data)
+        merge_same_viz_form_data(existing_form_data, new_form_data, parsed_config)
+        _canonicalize_form_data_datasource(new_form_data, effective_dataset_id)
 
         chart_name = (
             request.chart_name
@@ -250,6 +261,7 @@ def _build_update_payload(
         patched = _append_table_columns(existing_form_data, request.add_columns)
         if isinstance(patched, GenerateChartResponse):
             return patched
+        _canonicalize_form_data_datasource(patched, effective_dataset_id)
         chart_name = request.chart_name or chart.slice_name
         additive_payload: dict[str, Any] = {
             "slice_name": chart_name,
@@ -264,9 +276,13 @@ def _build_update_payload(
 
     # Dataset-only update: rebind chart to a different dataset without changing viz
     if request.dataset_id is not None:
+        rebound_form_data = _get_existing_form_data(chart)
+        _canonicalize_form_data_datasource(rebound_form_data, request.dataset_id)
         payload = {
             "datasource_id": request.dataset_id,
             "datasource_type": "table",
+            "params": json.dumps(rebound_form_data),
+            "query_context": None,
         }
         if request.chart_name:
             payload["slice_name"] = request.chart_name
@@ -306,7 +322,7 @@ def _build_preview_form_data(
         merge_update_form_data(existing_form_data, new_form_data, parsed_config)
         merge_table_column_config(existing_form_data, new_form_data)
         merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
-        merge_same_viz_form_data(existing_form_data, new_form_data)
+        merge_same_viz_form_data(existing_form_data, new_form_data, parsed_config)
         merged = new_form_data
     elif request.add_columns is not None:
         patched = _append_table_columns(existing_form_data, request.add_columns)
@@ -324,8 +340,7 @@ def _build_preview_form_data(
         merged["slice_name"] = chart.slice_name
 
     merged["slice_id"] = chart.id
-    if effective_dataset_id:
-        merged["datasource"] = f"{effective_dataset_id}__table"
+    _canonicalize_form_data_datasource(merged, effective_dataset_id)
 
     return merged
 

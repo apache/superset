@@ -265,7 +265,7 @@ def update_chart_preview(  # noqa: C901
                 merge_update_form_data(previous_form_data, new_form_data, config)
                 merge_table_column_config(previous_form_data, new_form_data)
                 merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
-                merge_same_viz_form_data(previous_form_data, new_form_data)
+                merge_same_viz_form_data(previous_form_data, new_form_data, config)
 
             validation_config = config
             try:
