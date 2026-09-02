@@ -361,13 +361,13 @@ def _eval_ast_value(node: Any) -> Any:  # noqa: C901
     if isinstance(node, ast.Constant):
         return node.value
     elif hasattr(ast, "Str") and isinstance(
-        node, getattr(ast, "Str")
+        node, ast.Str
     ):  # Python <3.8 compat
-        return getattr(node, "s")
+        return node.s
     elif hasattr(ast, "Num") and isinstance(
-        node, getattr(ast, "Num")
+        node, ast.Num
     ):  # Python <3.8 compat
-        return getattr(node, "n")
+        return node.n
     elif isinstance(node, ast.List):
         return [_eval_ast_value(e) for e in node.elts]
     elif isinstance(node, ast.Tuple):
