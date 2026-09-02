@@ -27,6 +27,10 @@ assists people when migrating to a new version.
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 - The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed should `pip uninstall cockroachdb && pip install sqlalchemy-cockroachdb` (or simply reinstall the extra) to restore CockroachDB connectivity.
 
+### Native Value filter "Select all" always targets the whole column
+
+The native "Value" filter's bulk "Select all" / "Clear" controls now operate on the entire loaded set of column values regardless of any text typed into the filter's search box. Previously the "Select all (N)" count briefly flickered to the search-scoped count before settling on the full-column count, and clicking "Select all" while searching could select only the currently matching subset. Search-scoped bulk selection was never a supported feature; the count is now stable and always matches what "Select all" selects (the full column). No configuration change is required.
+
 ### MCP tool results preserve stored string values
 
 Structured MCP tool results no longer add `<UNTRUSTED-CONTENT>` wrappers or
