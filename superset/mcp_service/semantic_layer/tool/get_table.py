@@ -30,6 +30,7 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
@@ -355,6 +356,7 @@ async def _run_get_table_query(
             form_data={},
             force=not request.use_cache or request.force_refresh,
         )
+        set_query_context_form_data(query_context, datasource_id, datasource_type)
         command = ChartDataCommand(query_context)
         command.validate()
         result = command.run()

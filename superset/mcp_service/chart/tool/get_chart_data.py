@@ -541,6 +541,43 @@ def _safe_value_identity(value: Any) -> tuple[Any, ...]:  # noqa: C901
     return (object,)
 
 
+def _build_data_columns(
+    data: list[dict[str, Any]],
+    raw_columns: list[str],
+    coltypes: list[int | GenericDataType],
+) -> list[DataColumn]:
+    """Build identical coltype-aware metadata for saved and unsaved results."""
+    columns: list[DataColumn] = []
+    for index, col_name in enumerate(raw_columns):
+        sample_values = [
+            dict.get(row, col_name)
+            for row in data[:3]
+            if dict.get(row, col_name) is not None
+        ]
+        data_type = "string"
+        if coltypes:
+            data_type = _GENERIC_TYPE_MAP.get(coltypes[index], "string")
+        elif sample_values:
+            if all(type(value) is bool for value in sample_values):
+                data_type = "boolean"
+            elif all(type(value) in (int, float, Decimal) for value in sample_values):
+                data_type = "numeric"
+
+        columns.append(
+            DataColumn(
+                name=col_name,
+                display_name=col_name.replace("_", " ").title(),
+                data_type=data_type,
+                sample_values=sample_values[:3],
+                null_count=sum(1 for row in data if dict.get(row, col_name) is None),
+                unique_count=len(
+                    {_safe_value_identity(dict.get(row, col_name)) for row in data}
+                ),
+            )
+        )
+    return columns
+
+
 def _strict_bullet_result_data(
     data: list[dict[str, Any]], form_data: dict[str, Any]
 ) -> tuple[list[dict[str, Any]] | None, ChartError | None]:
@@ -1040,43 +1077,7 @@ async def get_chart_data(  # noqa: C901
 
             # Create rich column metadata
             coltypes = query_result.get("coltypes", [])
-            columns = []
-            for idx, col_name in enumerate(raw_columns):
-                # Sample some values for metadata
-                sample_values = [
-                    dict.get(row, col_name)
-                    for row in data[:3]
-                    if dict.get(row, col_name) is not None
-                ]
-
-                # Use SQL-derived GenericDataType when available,
-                # fall back to Python isinstance heuristic
-                data_type = "string"
-                if coltypes:
-                    data_type = _GENERIC_TYPE_MAP.get(coltypes[idx], "string")
-                elif sample_values:
-                    if all(type(v) is bool for v in sample_values):
-                        data_type = "boolean"
-                    elif all(type(v) in (int, float, Decimal) for v in sample_values):
-                        data_type = "numeric"
-
-                columns.append(
-                    DataColumn(
-                        name=col_name,
-                        display_name=col_name.replace("_", " ").title(),
-                        data_type=data_type,
-                        sample_values=sample_values[:3],
-                        null_count=sum(
-                            1 for row in data if dict.get(row, col_name) is None
-                        ),
-                        unique_count=len(
-                            {
-                                _safe_value_identity(dict.get(row, col_name))
-                                for row in data
-                            }
-                        ),
-                    )
-                )
+            columns = _build_data_columns(data, raw_columns, coltypes)
 
             # Cache status information using utility function
             cache_status = get_cache_status_from_result(
@@ -1374,6 +1375,7 @@ async def _query_from_form_data(  # noqa: C901
         query_result = query_results[0]
         data = queries_data[0] if queries_data is not None else []
         raw_columns = query_result.get("colnames", [])
+        coltypes = query_result.get("coltypes", [])
 
         if viz_type == "bullet":
             strict_data, bullet_error = _strict_bullet_result_data(data, form_data)
@@ -1391,32 +1393,7 @@ async def _query_from_form_data(  # noqa: C901
                 error_type="NoData",
             )
 
-        columns = []
-        for col_name in raw_columns:
-            sample_values = [
-                dict.get(row, col_name)
-                for row in data[:3]
-                if dict.get(row, col_name) is not None
-            ]
-            data_type = "string"
-            if sample_values and all(
-                type(v) in (int, float, Decimal) for v in sample_values
-            ):
-                data_type = "numeric"
-            columns.append(
-                DataColumn(
-                    name=col_name,
-                    display_name=col_name.replace("_", " ").title(),
-                    data_type=data_type,
-                    sample_values=sample_values[:3],
-                    null_count=sum(
-                        1 for row in data if dict.get(row, col_name) is None
-                    ),
-                    unique_count=len(
-                        {_safe_value_identity(dict.get(row, col_name)) for row in data}
-                    ),
-                )
-            )
+        columns = _build_data_columns(data, raw_columns, coltypes)
 
         cache_status = get_cache_status_from_result(
             query_result, force_refresh=request.force_refresh

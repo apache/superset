@@ -180,10 +180,7 @@ def test_saved_big_number_preview_executes_timestamp_pivot_without_series(
             return {
                 "queries": [
                     {
-                        "data": [
-                            {"event_time": "2024-01-01", "saved_revenue": 1.0},
-                            {"event_time": "2024-02-01", "saved_revenue": 2.0},
-                        ],
+                        "data": processed.to_dict("records"),
                         "colnames": ["event_time", "saved_revenue"],
                     }
                 ]
@@ -651,8 +648,14 @@ class TestGetChartPreview:
                 return {
                     "queries": [
                         {
-                            "data": [{"gender": "boy", "count": 1}],
-                            "colnames": ["gender", "count"],
+                            "data": [
+                                {
+                                    "event_time": pd.Timestamp("2024-01-01T00:00:00Z"),
+                                    "gender": "boy",
+                                    "count": 1,
+                                }
+                            ],
+                            "colnames": ["event_time", "gender", "count"],
                             "rowcount": 1,
                         }
                     ]
@@ -1019,8 +1022,14 @@ class TestGetChartPreview:
                 return {
                     "queries": [
                         {
-                            "data": [{"gender": "boy", "count": 1}],
-                            "colnames": ["gender", "count"],
+                            "data": [
+                                {
+                                    "event_time": pd.Timestamp("2024-01-01T00:00:00Z"),
+                                    "gender": "boy",
+                                    "count": 1,
+                                }
+                            ],
+                            "colnames": ["event_time", "gender", "count"],
                             "rowcount": 1,
                         }
                     ]
@@ -1118,6 +1127,8 @@ class TestGetChartPreview:
         )
 
         assert isinstance(result, ChartPreview)
+        assert isinstance(result.content, TablePreview)
+        assert "2024-01-01T00:00:00+00:00" in result.content.table_data
         query = captured_query_contexts[0]["queries"][0]
         assert query["filters"] == [{"col": "gender", "op": "==", "val": "boy"}]
 

@@ -28,6 +28,7 @@ from typing import Any
 from unittest.mock import MagicMock
 from zoneinfo import ZoneInfo
 
+import pandas as pd
 import pytest
 
 from superset.mcp_service.chart.schemas import (
@@ -38,6 +39,7 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
 )
 from superset.mcp_service.chart.tool.get_chart_data import (
+    _build_data_columns,
     _build_query_results,
     _coerce_row_limit,
     _GENERIC_TYPE_MAP,
@@ -2278,6 +2280,42 @@ def test_coltypes_populates_data_type():
     assert _GENERIC_TYPE_MAP[GenericDataType.BOOLEAN] == "boolean"
 
 
+@pytest.mark.parametrize(
+    "data",
+    [
+        [],
+        [
+            {
+                "event_time": "2024-01-01T00:00:00",
+                "enabled": True,
+                "amount": 3.5,
+                "label": "A",
+            }
+        ],
+    ],
+)
+def test_shared_column_builder_honors_aligned_coltypes_for_empty_and_full_data(
+    data: list[dict[str, Any]],
+) -> None:
+    columns = _build_data_columns(
+        data,
+        ["event_time", "enabled", "amount", "label"],
+        [
+            GenericDataType.TEMPORAL,
+            GenericDataType.BOOLEAN,
+            GenericDataType.NUMERIC,
+            GenericDataType.STRING,
+        ],
+    )
+
+    assert [column.data_type for column in columns] == [
+        "temporal",
+        "boolean",
+        "numeric",
+        "string",
+    ]
+
+
 def test_bool_isinstance_check_before_int():
     """bool is a subclass of int; verify bool check takes priority in fallback."""
 
@@ -2749,7 +2787,7 @@ def test_mixed_numeric_unique_count_uses_value_semantics() -> None:
 
 
 @pytest.mark.asyncio
-async def test_unsaved_generic_get_data_returns_decimal_metadata(
+async def test_unsaved_generic_get_data_returns_finite_decimal_metadata(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
@@ -2757,10 +2795,6 @@ async def test_unsaved_generic_get_data_returns_decimal_metadata(
         "superset.commands.chart.data.get_data_command"
     )
     values = [
-        Decimal("sNaN"),
-        Decimal("NaN"),
-        Decimal("Infinity"),
-        Decimal("-Infinity"),
         Decimal("1.25"),
         Decimal("1.250"),
         1.25,
@@ -2798,8 +2832,63 @@ async def test_unsaved_generic_get_data_returns_decimal_metadata(
 
     assert isinstance(response, ChartData)
     assert response.columns[0].data_type == "numeric"
-    assert response.columns[0].unique_count == 6
+    assert response.columns[0].unique_count == 2
     assert response.columns[0].sample_values == values[:3]
+
+
+@pytest.mark.asyncio
+async def test_unsaved_get_data_round_trips_temporal_and_boolean_coltypes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [
+                            {
+                                "event_time": pd.Timestamp("2024-01-01T02:03:04Z"),
+                                "enabled": True,
+                            }
+                        ],
+                        "colnames": ["event_time", "enabled"],
+                        "coltypes": [
+                            GenericDataType.TEMPORAL,
+                            GenericDataType.BOOLEAN,
+                        ],
+                        "rowcount": 1,
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: _query_context_stub(),
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    response = await _query_from_form_data(
+        {"datasource": "1__table", "viz_type": "table"},
+        GetChartDataRequest(form_data_key="typed"),
+        _AsyncContext(),
+    )
+
+    assert isinstance(response, ChartData)
+    assert [column.data_type for column in response.columns] == [
+        "temporal",
+        "boolean",
+    ]
+    assert response.data == [
+        {"event_time": "2024-01-01T02:03:04+00:00", "enabled": True}
+    ]
 
 
 @pytest.mark.asyncio
@@ -3128,7 +3217,7 @@ async def test_saved_generic_get_data_rejects_misaligned_coltypes(
 
 
 @pytest.mark.asyncio
-async def test_saved_generic_get_data_returns_decimal_metadata(
+async def test_saved_generic_get_data_returns_finite_decimal_metadata(
     mcp_server: Any,
     mock_auth: Any,
 ) -> None:
@@ -3150,10 +3239,6 @@ async def test_saved_generic_get_data_returns_decimal_metadata(
         params='{"viz_type": "table"}',
     )
     values = [
-        Decimal("sNaN"),
-        Decimal("NaN"),
-        Decimal("Infinity"),
-        Decimal("-Infinity"),
         Decimal("1.25"),
         Decimal("1.250"),
         1.25,
@@ -3196,8 +3281,82 @@ async def test_saved_generic_get_data_returns_decimal_metadata(
 
     payload = json.loads(result.content[0].text)
     assert payload["columns"][0]["data_type"] == "numeric"
-    assert payload["columns"][0]["unique_count"] == 6
-    assert payload["columns"][0]["sample_values"] == ["sNaN", "NaN", "Infinity"]
+    assert payload["columns"][0]["unique_count"] == 2
+    assert payload["columns"][0]["sample_values"] == ["1.25", "1.250", 1.25]
+
+
+@pytest.mark.asyncio
+async def test_saved_get_data_round_trips_temporal_and_boolean_coltypes(
+    mcp_server: Any,
+    mock_auth: Any,
+) -> None:
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    chart = SimpleNamespace(
+        id=13,
+        slice_name="Typed metadata",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params='{"viz_type": "table"}',
+    )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [
+                            {
+                                "event_time": pd.Timestamp("2024-01-01T02:03:04Z"),
+                                "enabled": False,
+                            }
+                        ],
+                        "colnames": ["event_time", "enabled"],
+                        "coltypes": [
+                            GenericDataType.TEMPORAL,
+                            GenericDataType.BOOLEAN,
+                        ],
+                        "rowcount": 1,
+                    }
+                ]
+            }
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 13}}
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert [column["data_type"] for column in payload["columns"]] == [
+        "temporal",
+        "boolean",
+    ]
+    assert payload["data"] == [
+        {"event_time": "2024-01-01T02:03:04+00:00", "enabled": False}
+    ]
 
 
 @pytest.mark.asyncio

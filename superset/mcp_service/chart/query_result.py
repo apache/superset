@@ -25,7 +25,10 @@ from decimal import Decimal
 from enum import Enum
 from typing import Any
 from uuid import UUID
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+import numpy as np
+import pandas as pd
 
 from superset.mcp_service.chart.schemas import ChartError
 from superset.utils.core import GenericDataType
@@ -43,27 +46,58 @@ _MAX_ERROR_BYTES = 2000
 _MAX_INTEGER_DIGITS = 1000
 _MAX_QUERY_COUNT = 64
 _MAX_QUERY_COLUMNS = 4096
-_MAX_COLUMN_NAME_LENGTH = 4096
+_MAX_COLUMN_NAME_BYTES = 4096
 _MAX_ROW_CONTAINER_DEPTH = 32
 _MAX_ROW_CONTAINER_ITEMS = 4096
-_MAX_CACHE_STRING_LENGTH = 4096
+_MAX_CACHE_STRING_BYTES = 4096
 _MAX_RESULT_ROW_COUNT = (1 << 63) - 1
+
+# Chart results are routinely much larger than an MCP response should return, but
+# legitimate exports and high-cardinality chart queries still need useful room.
+# These limits allow up to 50k rows, 1m scalar/container values, and 16 MiB of
+# textual row data while bounding validation work before response construction.
+# Individual cell strings are capped at 64 KiB and object keys at 4 KiB. Query
+# metadata has its own 1 MiB aggregate budget so SQL and cache metadata cannot
+# consume the row-data allowance. Integer/Decimal bounds also prevent later
+# hashing, uniqueness, and JSON conversion from allocating by numeric magnitude.
+MAX_QUERY_RESULT_ROWS = 50_000
+MAX_QUERY_RESULT_VALUES = 1_000_000
+MAX_QUERY_RESULT_VALUE_BYTES = 16 * 1024 * 1024
+MAX_QUERY_RESULT_METADATA_BYTES = 1024 * 1024
+MAX_QUERY_RESULT_METADATA_ITEMS = 32_768
+MAX_QUERY_RESULT_WORK = MAX_QUERY_RESULT_VALUES + MAX_QUERY_RESULT_METADATA_ITEMS
+MAX_QUERY_RESULT_STRING_BYTES = 64 * 1024
+MAX_QUERY_RESULT_KEY_BYTES = 4096
+MAX_QUERY_RESULT_INTEGER_BITS = 4096
+MAX_QUERY_RESULT_INTEGER_DIGITS = 1234
+MAX_QUERY_RESULT_DECIMAL_DIGITS = 1024
+MAX_QUERY_RESULT_DECIMAL_EXPONENT = 4096
+MAX_QUERY_RESULT_DECIMAL_STORAGE = 2048
 _BUILTIN_SCALAR_TYPES = (str, bytes, bytearray, memoryview, int, float, bool)
 _SCALAR_BASE_TYPES = (*_BUILTIN_SCALAR_TYPES, Enum)
-_SAFE_ROW_SCALAR_TYPES = (
-    str,
-    int,
-    float,
-    bool,
-    Decimal,
-    date,
-    datetime,
-    time,
-    timedelta,
-    UUID,
-)
 _SUPPORTED_COLTYPES = frozenset(GenericDataType)
 _TRUSTED_TZINFO_TYPES = (timezone, ZoneInfo)
+_NUMPY_INTEGER_TYPES = frozenset(
+    type(value)
+    for value in (
+        np.int8(0),
+        np.int16(0),
+        np.int32(0),
+        np.int64(0),
+        np.uint8(0),
+        np.uint16(0),
+        np.uint32(0),
+        np.uint64(0),
+    )
+)
+_NUMPY_FLOAT_TYPES = frozenset(
+    type(value)
+    for value in (np.float16(0), np.float32(0), np.float64(0), np.longdouble(0))
+)
+_PANDAS_NAT_TYPE = type(pd.NaT)
+_PANDAS_NA_TYPE = type(pd.NA)
+_PANDAS_PERIOD_TYPE = type(pd.Period("2000-01", freq="M"))
+_PANDAS_INTERVAL_TYPE = type(pd.Interval(0, 1))
 
 
 @dataclass(frozen=True)
@@ -72,6 +106,17 @@ class _ErrorText:
 
     text: str | None = None
     malformed: str | None = None
+
+
+@dataclass
+class _ResultBudget:
+    """Aggregate work counters shared across all queries in one result."""
+
+    rows: int = 0
+    values: int = 0
+    value_bytes: int = 0
+    metadata_items: int = 0
+    metadata_bytes: int = 0
 
 
 def _truncate_utf8(value: str, max_bytes: int) -> str:
@@ -322,6 +367,294 @@ def bounded_result_row_count(value: Any) -> int | None:
     return count
 
 
+def _bounded_utf8_length(value: str, max_bytes: int) -> int | None:
+    """Return an exact UTF-8 size without encoding attacker-sized text."""
+    if str.__len__(value) > max_bytes:
+        return None
+    try:
+        encoded = str.encode(value, "utf-8", errors="strict")
+    except UnicodeEncodeError:
+        return None
+    size = bytes.__len__(encoded)
+    return size if size <= max_bytes else None
+
+
+def _integer_failure(value: int) -> str | None:
+    """Validate exact integer magnitude before decimal rendering or hashing."""
+    bits = int.bit_length(value)
+    if bits > MAX_QUERY_RESULT_INTEGER_BITS:
+        return "contains an integer exceeding the bit-length limit"
+    digits = 1 if bits == 0 else ((bits - 1) * 30103) // 100000 + 1
+    if digits > MAX_QUERY_RESULT_INTEGER_DIGITS:
+        return "contains an integer exceeding the digit limit"
+    return None
+
+
+def _decimal_failure(value: Decimal) -> str | None:
+    """Validate exact Decimal storage, finiteness, digits, and exponent."""
+    if Decimal.__sizeof__(value) > MAX_QUERY_RESULT_DECIMAL_STORAGE:
+        return "contains a Decimal exceeding the storage limit"
+    if not Decimal.is_finite(value):
+        return "contains a non-finite Decimal"
+    parts = Decimal.as_tuple(value)
+    if tuple.__len__(parts.digits) > MAX_QUERY_RESULT_DECIMAL_DIGITS:
+        return "contains a Decimal exceeding the digit limit"
+    exponent = parts.exponent
+    if type(exponent) is not int or abs(exponent) > MAX_QUERY_RESULT_DECIMAL_EXPONENT:
+        return "contains a Decimal exceeding the exponent limit"
+    return None
+
+
+def _timezone_name_without_hooks(tzinfo: Any) -> str | None:
+    """Read an IANA name from pytz/dateutil state without calling tz hooks."""
+    value_type = type(tzinfo)
+    for base in _type_mro(value_type):
+        try:
+            namespace = type.__getattribute__(base, "__dict__")
+        except (AttributeError, TypeError):  # pragma: no cover - normal type MRO
+            continue
+        zone = namespace.get("zone")
+        if type(zone) is str and _bounded_utf8_length(zone, 256) is not None:
+            return zone
+
+    try:
+        namespace = object.__getattribute__(tzinfo, "__dict__")
+    except (AttributeError, TypeError):
+        return None
+    if type(namespace) is not dict:
+        return None
+    zone = dict.get(namespace, "zone")
+    if type(zone) is str and _bounded_utf8_length(zone, 256) is not None:
+        return zone
+    filename = dict.get(namespace, "_filename")
+    if type(filename) is not str or _bounded_utf8_length(filename, 4096) is None:
+        return None
+    marker = "/zoneinfo/"
+    marker_offset = str.find(filename, marker)
+    if marker_offset < 0:
+        return None
+    name = str.__getitem__(filename, slice(marker_offset + len(marker), None))
+    return name if _bounded_utf8_length(name, 256) is not None else None
+
+
+def _canonical_timezone(tzinfo: Any) -> timezone | ZoneInfo | None:
+    """Return an exact trusted timezone without invoking the source's methods."""
+    if any(type(tzinfo) is type_ for type_ in _TRUSTED_TZINFO_TYPES):
+        return tzinfo
+    if zone_name := _timezone_name_without_hooks(tzinfo):
+        try:
+            return ZoneInfo(zone_name)
+        except (KeyError, ValueError, ZoneInfoNotFoundError):
+            return None
+    return None
+
+
+def _trusted_timestamp_text(value: pd.Timestamp) -> tuple[str | None, str | None]:
+    """Convert an exact pandas timestamp to its canonical JSON representation."""
+    tzinfo = value.tzinfo
+    try:
+        if tzinfo is not None and not any(
+            type(tzinfo) is trusted for trusted in _TRUSTED_TZINFO_TYPES
+        ):
+            if (canonical_tz := _canonical_timezone(tzinfo)) is None:
+                return (
+                    None,
+                    "contains a pandas timestamp with an unsupported timezone",
+                )
+            # Rebuild from the stored instant and resolution. No method on the
+            # original pytz/dateutil object is called, and ZoneInfo determines
+            # the correct offset/fold for the same instant.
+            raw_value = value.asm8.view("i8")
+            value = pd.Timestamp(raw_value, unit=value.unit, tz="UTC").tz_convert(
+                canonical_tz
+            )
+        # ISO output preserves nanoseconds and the UTC offset selected by fold.
+        text = pd.Timestamp.isoformat(value)
+    except (KeyError, OverflowError, TypeError, ValueError):
+        return None, "contains an invalid pandas timestamp"
+    if _bounded_utf8_length(text, MAX_QUERY_RESULT_STRING_BYTES) is None:
+        return None, "contains an oversized pandas timestamp"
+    return text, None
+
+
+def _normalize_trusted_scalar(value: Any) -> tuple[Any, str | None]:  # noqa: C901
+    """Normalize one exact trusted pandas/NumPy scalar or validate a builtin.
+
+    Type identity is checked before every conversion. This deliberately does not
+    accept subclasses or generic ``np.generic``/pandas extension objects, whose
+    conversion hooks are outside the trusted ChartData materialization contract.
+    """
+    value_type = type(value)
+
+    if value is None or value_type is bool:
+        return value, None
+    if value_type is str:
+        size = _bounded_utf8_length(value, MAX_QUERY_RESULT_STRING_BYTES)
+        return (
+            (value, None)
+            if size is not None
+            else (
+                None,
+                "contains an invalid or oversized string",
+            )
+        )
+    if value_type is int:
+        return value, _integer_failure(value)
+    if value_type is float:
+        if not math.isfinite(value):
+            return None, "contains a non-finite number"
+        return value, None
+    if value_type is Decimal:
+        return value, _decimal_failure(value)
+
+    if value_type is datetime or value_type is time:
+        tzinfo = value.tzinfo
+        if tzinfo is not None and not any(
+            type(tzinfo) is type_ for type_ in _TRUSTED_TZINFO_TYPES
+        ):
+            return None, "contains a temporal value with an unsupported timezone"
+        return value, None
+    if value_type is date or value_type is timedelta or value_type is UUID:
+        return value, None
+
+    if value_type is _PANDAS_NAT_TYPE or value_type is _PANDAS_NA_TYPE:
+        return None, None
+    if value_type is pd.Timestamp:
+        return _trusted_timestamp_text(value)
+    if value_type is pd.Timedelta:
+        if pd.isna(value):
+            return None, None
+        text = pd.Timedelta.isoformat(value)
+        if _bounded_utf8_length(text, MAX_QUERY_RESULT_STRING_BYTES) is None:
+            return None, "contains an oversized pandas timedelta"
+        return text, None
+    if value_type is _PANDAS_PERIOD_TYPE or value_type is _PANDAS_INTERVAL_TYPE:
+        # The concrete extension scalar implementations are trusted, unlike an
+        # arbitrary subclass's ``__str__`` implementation.
+        text = str(value)
+        if _bounded_utf8_length(text, MAX_QUERY_RESULT_STRING_BYTES) is None:
+            return None, "contains an oversized pandas scalar"
+        return text, None
+
+    if any(value_type is type_ for type_ in _NUMPY_INTEGER_TYPES):
+        normalized_integer = int(value)
+        return normalized_integer, _integer_failure(normalized_integer)
+    if any(value_type is type_ for type_ in _NUMPY_FLOAT_TYPES):
+        normalized_float = float(value)
+        if not math.isfinite(normalized_float):
+            return None, "contains a non-finite NumPy number"
+        return normalized_float, None
+    if value_type is np.bool_:
+        return bool(value), None
+    if value_type is np.str_:
+        text = str(value)
+        if _bounded_utf8_length(text, MAX_QUERY_RESULT_STRING_BYTES) is None:
+            return None, "contains an invalid or oversized NumPy string"
+        return text, None
+    if value_type is np.datetime64:
+        if np.isnat(value):
+            return None, None
+        try:
+            timestamp = pd.Timestamp(value)
+        except (OverflowError, TypeError, ValueError):
+            return None, "contains an invalid NumPy datetime"
+        return _trusted_timestamp_text(timestamp)
+    if value_type is np.timedelta64:
+        if np.isnat(value):
+            return None, None
+        try:
+            delta = pd.Timedelta(value)
+            text = pd.Timedelta.isoformat(delta)
+        except (OverflowError, TypeError, ValueError):
+            return None, "contains an invalid NumPy timedelta"
+        if _bounded_utf8_length(text, MAX_QUERY_RESULT_STRING_BYTES) is None:
+            return None, "contains an oversized NumPy timedelta"
+        return text, None
+
+    return None, "contains an unsupported or subclassed value"
+
+
+def _add_result_value_to_budget(value: Any, budget: _ResultBudget) -> str | None:
+    """Account for one normalized row value and its bounded text size."""
+    budget.values += 1
+    if budget.values > MAX_QUERY_RESULT_VALUES:
+        return "contains too many total values"
+    if budget.values + budget.metadata_items > MAX_QUERY_RESULT_WORK:
+        return "exceeds the total work limit"
+    if type(value) is str:
+        size = _bounded_utf8_length(value, MAX_QUERY_RESULT_STRING_BYTES)
+        if size is None:  # already checked by scalar normalization
+            return "contains an invalid or oversized string"
+        budget.value_bytes += size
+        if budget.value_bytes > MAX_QUERY_RESULT_VALUE_BYTES:
+            return "exceeds the total string-byte limit"
+    return None
+
+
+def _metadata_failure_for_value(  # noqa: C901
+    value: Any, budget: _ResultBudget
+) -> str | None:
+    """Bound exact-container query metadata independently of row data."""
+    stack: list[tuple[Any, int]] = [(value, 0)]
+    seen: set[int] = set()
+    while stack:
+        item, depth = stack.pop()
+        budget.metadata_items += 1
+        if budget.metadata_items > MAX_QUERY_RESULT_METADATA_ITEMS:
+            return "metadata exceeds the item limit"
+        if budget.values + budget.metadata_items > MAX_QUERY_RESULT_WORK:
+            return "metadata exceeds the total work limit"
+        if depth > _MAX_ROW_CONTAINER_DEPTH:
+            return "metadata exceeds the nesting depth limit"
+
+        if type(item) is dict:
+            identity = id(item)
+            if identity in seen:
+                return "metadata contains repeated or cyclic containers"
+            seen.add(identity)
+            if dict.__len__(item) > _MAX_ROW_CONTAINER_ITEMS:
+                return "metadata contains an oversized object"
+            for key, child in dict.items(item):
+                if type(key) is not str:
+                    return "metadata contains a non-string object key"
+                key_size = _bounded_utf8_length(key, MAX_QUERY_RESULT_KEY_BYTES)
+                if key_size is None:
+                    return "metadata contains an invalid or oversized object key"
+                budget.metadata_bytes += key_size
+                stack.append((child, depth + 1))
+            continue
+
+        if type(item) is list:
+            identity = id(item)
+            if identity in seen:
+                return "metadata contains repeated or cyclic containers"
+            seen.add(identity)
+            width = list.__len__(item)
+            if width > _MAX_ROW_CONTAINER_ITEMS:
+                return "metadata contains an oversized array"
+            stack.extend(
+                (list.__getitem__(item, index), depth + 1) for index in range(width)
+            )
+            continue
+
+        if _mro_contains(_type_mro(type(item)), (Enum,)):
+            try:
+                item = object.__getattribute__(item, "_value_")
+            except Exception:
+                return "metadata contains an unsupported enum"
+        normalized, reason = _normalize_trusted_scalar(item)
+        if reason is not None:
+            return f"metadata {reason}"
+        if type(normalized) is str:
+            size = _bounded_utf8_length(normalized, MAX_QUERY_RESULT_STRING_BYTES)
+            if size is None:
+                return "metadata contains an invalid or oversized string"
+            budget.metadata_bytes += size
+        if budget.metadata_bytes > MAX_QUERY_RESULT_METADATA_BYTES:
+            return "metadata exceeds the total byte limit"
+    return None
+
+
 def _metadata_failure(  # noqa: C901
     payload: dict[str, Any], label: str
 ) -> ChartError | None:
@@ -341,7 +674,8 @@ def _metadata_failure(  # noqa: C901
     if "cache_key" in payload:
         cache_key = dict.__getitem__(payload, "cache_key")
         if cache_key is not None and (
-            type(cache_key) is not str or len(cache_key) > _MAX_CACHE_STRING_LENGTH
+            type(cache_key) is not str
+            or _bounded_utf8_length(cache_key, _MAX_CACHE_STRING_BYTES) is None
         ):
             return _malformed_result(
                 f"{label} cache_key must be a bounded exact string"
@@ -357,7 +691,7 @@ def _metadata_failure(  # noqa: C901
         if cache_dttm is None:
             continue
         if type(cache_dttm) is str:
-            if len(cache_dttm) <= _MAX_CACHE_STRING_LENGTH:
+            if _bounded_utf8_length(cache_dttm, _MAX_CACHE_STRING_BYTES) is not None:
                 continue
             return _malformed_result(f"{label} {key} must be a bounded exact string")
         if type(cache_dttm) is datetime:
@@ -373,39 +707,30 @@ def _metadata_failure(  # noqa: C901
     return None
 
 
-def _unsafe_row_value(value: Any) -> str | None:  # noqa: C901
-    """Return a bounded reason when a result value is unsafe to serialize.
+def _normalize_row_value(  # noqa: C901
+    value: Any, budget: _ResultBudget
+) -> str | None:
+    """Normalize trusted scalars and return a bounded serialization failure.
 
-    ChartDataCommand output is expected to have crossed its JSON-materialization
-    boundary. Exact builtin containers and the small scalar set emitted by SQL
-    result adapters are safe to inspect. Subclasses and arbitrary objects are
-    rejected without calling their conversion, comparison, iteration, or
-    descriptor hooks.
+    ChartDataCommand materializes a real DataFrame with ``to_dict(records)``, so
+    exact pandas and NumPy scalars can remain in an otherwise valid result. They
+    are converted in place to their canonical JSON-facing builtin values here.
+    Exact containers are inspected through builtin operations only; arbitrary
+    subclasses and scalar hooks remain rejected.
     """
-    stack: list[tuple[Any, int]] = [(value, 0)]
-    visited = 0
+    stack: list[
+        tuple[Any, list[Any] | dict[str, Any] | None, int | str | None, int]
+    ] = [(value, None, None, 0)]
     seen: set[int] = set()
 
     while stack:
-        item, depth = stack.pop()
-        visited += 1
-        if visited > _MAX_ROW_CONTAINER_ITEMS:
-            return "contains too many nested values"
+        item, parent, slot, depth = stack.pop()
         if depth > _MAX_ROW_CONTAINER_DEPTH:
             return "exceeds the nesting depth limit"
 
-        if type(item) is datetime or type(item) is time:
-            tzinfo = item.tzinfo
-            if tzinfo is not None and not any(
-                type(tzinfo) is type_ for type_ in _TRUSTED_TZINFO_TYPES
-            ):
-                return "contains a temporal value with an unsupported timezone"
-            continue
-
-        if item is None or any(type(item) is type_ for type_ in _SAFE_ROW_SCALAR_TYPES):
-            continue
-
         if type(item) is list:
+            if reason := _add_result_value_to_budget(item, budget):
+                return reason
             identity = id(item)
             if identity in seen:
                 return "contains repeated or cyclic containers"
@@ -414,11 +739,14 @@ def _unsafe_row_value(value: Any) -> str | None:  # noqa: C901
             if width > _MAX_ROW_CONTAINER_ITEMS:
                 return "contains an oversized array"
             stack.extend(
-                (list.__getitem__(item, index), depth + 1) for index in range(width)
+                (list.__getitem__(item, index), item, index, depth + 1)
+                for index in range(width)
             )
             continue
 
         if type(item) is dict:
+            if reason := _add_result_value_to_budget(item, budget):
+                return reason
             identity = id(item)
             if identity in seen:
                 return "contains repeated or cyclic containers"
@@ -428,10 +756,28 @@ def _unsafe_row_value(value: Any) -> str | None:  # noqa: C901
             for key, child in dict.items(item):
                 if type(key) is not str:
                     return "contains a non-string object key"
-                stack.append((child, depth + 1))
+                key_size = _bounded_utf8_length(key, MAX_QUERY_RESULT_KEY_BYTES)
+                if key_size is None:
+                    return "contains an invalid or oversized object key"
+                budget.value_bytes += key_size
+                if budget.value_bytes > MAX_QUERY_RESULT_VALUE_BYTES:
+                    return "exceeds the total string-byte limit"
+                stack.append((child, item, key, depth + 1))
             continue
 
-        return "contains an unsupported or subclassed value"
+        normalized, reason = _normalize_trusted_scalar(item)
+        if reason is not None:
+            return reason
+        if reason := _add_result_value_to_budget(normalized, budget):
+            return reason
+        if parent is not None and normalized is not item:
+            if type(parent) is list:
+                assert type(slot) is int
+                list.__setitem__(parent, slot, normalized)
+            else:
+                assert type(parent) is dict
+                assert type(slot) is str
+                dict.__setitem__(parent, slot, normalized)
 
     return None
 
@@ -446,6 +792,40 @@ def query_result_data(  # noqa: C901
     """
     if type(result) is not dict:
         return None, _malformed_result("top-level result must be an object")
+
+    budget = _ResultBudget()
+    for result_key in dict.keys(result):
+        if type(result_key) is not str:
+            return None, _malformed_result(
+                "top-level result contains a non-string object key"
+            )
+        key_size = _bounded_utf8_length(result_key, MAX_QUERY_RESULT_KEY_BYTES)
+        if key_size is None:
+            return None, _malformed_result(
+                "top-level result contains an invalid or oversized object key"
+            )
+        budget.metadata_items += 1
+        budget.metadata_bytes += key_size
+    if budget.metadata_items > MAX_QUERY_RESULT_METADATA_ITEMS:
+        return None, _malformed_result("top-level metadata exceeds the item limit")
+    if budget.metadata_bytes > MAX_QUERY_RESULT_METADATA_BYTES:
+        return None, _malformed_result("top-level metadata exceeds the byte limit")
+
+    for metadata_key in (
+        "cache_key",
+        "cached_dttm",
+        "cache_dttm",
+        "queried_dttm",
+        "cache_timeout",
+        "is_cached",
+        "rowcount",
+        "total_rows",
+    ):
+        if dict.__contains__(result, metadata_key):
+            if reason := _metadata_failure_for_value(
+                dict.__getitem__(result, metadata_key), budget
+            ):
+                return None, _malformed_result(f"top-level result {reason}")
 
     if metadata_failure := _metadata_failure(result, "top-level result"):
         return None, metadata_failure
@@ -470,6 +850,28 @@ def query_result_data(  # noqa: C901
         query = list.__getitem__(queries, offset)
         if type(query) is not dict:
             return None, _malformed_result(f"query {index} must be an object")
+        for query_key in dict.keys(query):
+            if type(query_key) is not str:
+                return None, _malformed_result(
+                    f"query {index} contains a non-string object key"
+                )
+            key_size = _bounded_utf8_length(query_key, MAX_QUERY_RESULT_KEY_BYTES)
+            if key_size is None:
+                return None, _malformed_result(
+                    f"query {index} contains an invalid or oversized object key"
+                )
+            budget.metadata_items += 1
+            budget.metadata_bytes += key_size
+        if budget.metadata_items > MAX_QUERY_RESULT_METADATA_ITEMS:
+            return None, _malformed_result("query metadata exceeds the item limit")
+        if budget.metadata_bytes > MAX_QUERY_RESULT_METADATA_BYTES:
+            return None, _malformed_result("query metadata exceeds the byte limit")
+
+        for metadata_key, metadata_value in dict.items(query):
+            if metadata_key in {"data", *_ERROR_KEYS, "errors"}:
+                continue
+            if reason := _metadata_failure_for_value(metadata_value, budget):
+                return None, _malformed_result(f"query {index} {reason}")
         if metadata_failure := _metadata_failure(query, f"query {index}"):
             return None, metadata_failure
         if failure := _failure_for_query_payload(query, f"Chart query {index}"):
@@ -479,13 +881,31 @@ def query_result_data(  # noqa: C901
         data = dict.__getitem__(query, "data")
         if type(data) is not list:
             return None, _malformed_result(f"query {index} data must be an array")
-        for row_offset in range(list.__len__(data)):
+        data_length = list.__len__(data)
+        if data_length > MAX_QUERY_RESULT_ROWS:
+            return None, _malformed_result(f"query {index} data exceeds the row limit")
+        budget.rows += data_length
+        if budget.rows > MAX_QUERY_RESULT_ROWS:
+            return None, _malformed_result("queries exceed the total row limit")
+        for count_key in ("rowcount", "total_rows"):
+            if dict.__contains__(query, count_key):
+                count = dict.__getitem__(query, count_key)
+                if count is not None:
+                    try:
+                        normalized_count = bounded_result_row_count(count)
+                    except ValueError:  # handled above with the more specific label
+                        normalized_count = None
+                    if normalized_count is not None and normalized_count < data_length:
+                        return None, _malformed_result(
+                            f"query {index} {count_key} is smaller than len(data)"
+                        )
+        for row_offset in range(data_length):
             row = list.__getitem__(data, row_offset)
             if type(row) is not dict:
                 return None, _malformed_result(
                     f"query {index} data row {row_offset + 1} must be an exact object"
                 )
-            if reason := _unsafe_row_value(row):
+            if reason := _normalize_row_value(row, budget):
                 return None, _malformed_result(
                     f"query {index} data row {row_offset + 1} {reason}"
                 )
@@ -514,7 +934,7 @@ def query_result_data(  # noqa: C901
                 if (
                     type(colname) is not str
                     or not colname
-                    or len(colname) > _MAX_COLUMN_NAME_LENGTH
+                    or _bounded_utf8_length(colname, _MAX_COLUMN_NAME_BYTES) is None
                 ):
                     return None, _malformed_result(
                         f"query {index} colnames must contain bounded, nonempty "
