@@ -332,9 +332,11 @@ async def test_get_table_uses_authoritative_coltypes_and_late_samples(
         _make_column("event_time", is_dttm=True),
         _make_column("enabled"),
         _make_column("amount"),
+        _make_column("identity"),
     ]
     rows: list[dict[str, Any]] = [
-        {"event_time": None, "enabled": None, "amount": None} for _ in range(5)
+        {"event_time": None, "enabled": None, "amount": None, "identity": None}
+        for _ in range(5)
     ]
     rows.extend(
         [
@@ -342,18 +344,36 @@ async def test_get_table_uses_authoritative_coltypes_and_late_samples(
                 "event_time": pd.Timestamp("2024-01-02T03:04:05Z"),
                 "enabled": True,
                 "amount": 1,
+                "identity": True,
             },
-            {"event_time": None, "enabled": False, "amount": 1.0},
-            {"event_time": None, "enabled": True, "amount": "1"},
+            {
+                "event_time": None,
+                "enabled": False,
+                "amount": 1.0,
+                "identity": 1,
+            },
+            {
+                "event_time": None,
+                "enabled": True,
+                "amount": "1",
+                "identity": False,
+            },
+            {
+                "event_time": None,
+                "enabled": False,
+                "amount": None,
+                "identity": 0,
+            },
         ]
     )
     query_result = chart_data_command_result(
         rows,
-        columns=["event_time", "enabled", "amount"],
+        columns=["event_time", "enabled", "amount", "identity"],
         coltypes=[
             GenericDataType.TEMPORAL,
             GenericDataType.BOOLEAN,
             GenericDataType.NUMERIC,
+            GenericDataType.STRING,
         ],
     )
 
@@ -375,7 +395,12 @@ async def test_get_table_uses_authoritative_coltypes_and_late_samples(
                 {
                     "request": {
                         "dataset_id": 42,
-                        "dimensions": ["event_time", "enabled", "amount"],
+                        "dimensions": [
+                            "event_time",
+                            "enabled",
+                            "amount",
+                            "identity",
+                        ],
                     }
                 },
             )
@@ -385,10 +410,12 @@ async def test_get_table_uses_authoritative_coltypes_and_late_samples(
         "temporal",
         "boolean",
         "numeric",
+        "string",
     ]
     assert data["columns"][0]["sample_values"] == ["2024-01-02T03:04:05+00:00"]
     assert data["columns"][1]["sample_values"] == [True, False, True]
     assert data["columns"][2]["unique_count"] == 2
+    assert data["columns"][3]["unique_count"] == 4
 
 
 def test_get_table_preserves_authoritative_coltypes_for_empty_data() -> None:

@@ -21,7 +21,6 @@ MCP tool: get_chart_data
 
 import logging
 import time
-from dataclasses import dataclass
 from typing import Any, Dict, List, TYPE_CHECKING
 from uuid import UUID
 
@@ -66,7 +65,10 @@ from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
-from superset.mcp_service.utils.response_utils import format_data_quality
+from superset.mcp_service.utils.response_utils import (
+    format_data_columns,
+    format_data_quality,
+)
 from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
@@ -176,110 +178,15 @@ _VIZ_CATEGORY: dict[str, str] = {
 }
 
 _MAX_RECOMMENDATIONS = 4
-_MAX_COLUMN_PROFILE_CELLS = 100_000
 
 
-@dataclass
-class _ProfileBudget:
-    """One iterative node budget shared by every profiled column."""
-
-    nodes: int = 0
-
-
-def _canonical_profile_key(
-    value: Any, budget: _ProfileBudget
-) -> tuple[Any, ...] | None:
-    """Build a bounded identity from canonical JSON primitives, iteratively."""
-    tokens: list[Any] = []
-    stack: list[tuple[str, Any]] = [("value", value)]
-    while stack:
-        action, item = stack.pop()
-        budget.nodes += 1
-        if budget.nodes > _MAX_COLUMN_PROFILE_CELLS:
-            return None
-        if action == "end":
-            tokens.append(item)
-            continue
-        if type(item) is list:
-            tokens.append(("list", len(item)))
-            stack.append(("end", "list_end"))
-            stack.extend(
-                ("value", list.__getitem__(item, index))
-                for index in range(list.__len__(item) - 1, -1, -1)
-            )
-            continue
-        if type(item) is dict:
-            entries = sorted(dict.items(item))
-            tokens.append(("dict", len(entries)))
-            stack.append(("end", "dict_end"))
-            for key, child in reversed(entries):
-                stack.append(("value", child))
-                stack.append(("end", ("key", key)))
-            continue
-        value_type = type(item)
-        if value_type not in {type(None), bool, int, float, str}:  # noqa: E721
-            raise TypeError("query result value was not canonicalized")
-        tokens.append((value_type.__name__, item))
-    return tuple(tokens)
-
-
-def _build_data_columns(  # noqa: C901
+def _build_data_columns(
     data: list[dict[str, Any]],
     raw_columns: list[str],
-    coltypes: list[Any] | None = None,
+    coltypes: list[int | GenericDataType] | None = None,
 ) -> list[DataColumn]:
-    """Profile canonical rows under one nested-node budget."""
-    column_count = max(len(raw_columns), 1)
-    profile_row_limit = max(3, _MAX_COLUMN_PROFILE_CELLS // column_count)
-    budget = _ProfileBudget()
-    profiled_values: dict[str, list[Any]] = {column: [] for column in raw_columns}
-    profiled_keys: dict[str, set[tuple[Any, ...]]] = {
-        column: set() for column in raw_columns
-    }
-    sampled_rows = 0
-    for row_offset in range(min(len(data), profile_row_limit)):
-        row = list.__getitem__(data, row_offset)
-        row_values: list[tuple[str, Any, tuple[Any, ...]]] = []
-        for col_name in raw_columns:
-            value = dict.get(row, col_name)
-            identity = _canonical_profile_key(value, budget)
-            if identity is None:
-                break
-            row_values.append((col_name, value, identity))
-        if len(row_values) != len(raw_columns):
-            break
-        for col_name, value, identity in row_values:
-            profiled_values[col_name].append(value)
-            profiled_keys[col_name].add(identity)
-        sampled_rows += 1
-
-    columns: list[DataColumn] = []
-    for idx, col_name in enumerate(raw_columns):
-        values = profiled_values[col_name]
-        sample_values = [value for value in values[:3] if value is not None]
-        data_type = "string"
-        if coltypes:
-            data_type = _GENERIC_TYPE_MAP.get(coltypes[idx], "string")
-        elif sample_values:
-            if all(type(value) is bool for value in sample_values):
-                data_type = "boolean"
-            elif all(type(value) in {int, float} for value in sample_values):
-                data_type = "numeric"
-        columns.append(
-            DataColumn(
-                name=col_name,
-                display_name=col_name.replace("_", " ").title(),
-                data_type=data_type,
-                sample_values=sample_values,
-                null_count=sum(value is None for value in values),
-                unique_count=len(profiled_keys[col_name]),
-                statistics=(
-                    {"sampled_rows": sampled_rows} if sampled_rows < len(data) else None
-                ),
-                semantic_type=None,
-            )
-        )
-    return columns
+    """Build chart metadata through the shared bounded coltype-aware profiler."""
+    return format_data_columns(data, raw_columns, coltypes)
 
 
 def _compute_effective_force(request: GetChartDataRequest) -> bool:

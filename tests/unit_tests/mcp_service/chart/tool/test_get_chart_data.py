@@ -556,11 +556,11 @@ class _AsyncContext:
 def test_data_column_profiling_is_bounded_and_handles_nested_primitives(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
-    # Each nested value consumes seven iterative profile events. The single
-    # shared budget therefore profiles exactly three rows, rather than charging
-    # only the outer cell and recursively bypassing the cap.
-    monkeypatch.setattr(module, "_MAX_COLUMN_PROFILE_CELLS", 21)
+    # Container entry/exit, keys, and scalar nodes all consume the single shared
+    # budget, so only two complete rows fit rather than recursively bypassing it.
+    monkeypatch.setattr(
+        "superset.mcp_service.utils.response_utils.STATS_TOTAL_WORK_CAP", 21
+    )
     data = [{"value": [index, {"nested": index % 2}]} for index in range(10)]
 
     columns = _build_data_columns(data, ["value"])
@@ -568,23 +568,33 @@ def test_data_column_profiling_is_bounded_and_handles_nested_primitives(
     assert columns[0].sample_values == [
         [0, {"nested": 0}],
         [1, {"nested": 1}],
-        [2, {"nested": 0}],
     ]
-    assert columns[0].unique_count == 3
-    assert columns[0].statistics == {"sampled_rows": 3}
+    assert columns[0].unique_count == 2
+    assert columns[0].statistics == {"sampled_rows": 2}
 
 
 def test_data_column_profiling_shares_budget_across_columns(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
-    monkeypatch.setattr(module, "_MAX_COLUMN_PROFILE_CELLS", 4)
+    monkeypatch.setattr(
+        "superset.mcp_service.utils.response_utils.STATS_TOTAL_WORK_CAP", 4
+    )
     data = [{"left": index, "right": index} for index in range(10)]
 
     columns = _build_data_columns(data, ["left", "right"])
 
     assert [column.unique_count for column in columns] == [2, 2]
     assert all(column.statistics == {"sampled_rows": 2} for column in columns)
+
+
+def test_chart_data_column_identity_distinguishes_booleans_and_integers() -> None:
+    columns = _build_data_columns(
+        [{"value": value} for value in [True, 1, False, 0]],
+        ["value"],
+        [GenericDataType.STRING],
+    )
+
+    assert columns[0].unique_count == 4
 
 
 @pytest.mark.asyncio
@@ -928,7 +938,9 @@ class TestUnsavedChartDataQueryConstruction:
             lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
         )
         monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
-        monkeypatch.setattr(module, "_MAX_COLUMN_PROFILE_CELLS", 5000)
+        monkeypatch.setattr(
+            "superset.mcp_service.utils.response_utils.STATS_TOTAL_WORK_CAP", 5000
+        )
         monkeypatch.setattr(
             module,
             "event_logger",

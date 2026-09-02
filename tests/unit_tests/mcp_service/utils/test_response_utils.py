@@ -116,6 +116,15 @@ class TestFormatDataColumns:
 
         assert column.unique_count == 4
 
+    def test_unique_count_distinguishes_booleans_and_integers(self) -> None:
+        column = format_data_columns(
+            [{"value": value} for value in [True, 1, False, 0]],
+            ["value"],
+            [GenericDataType.STRING],
+        )[0]
+
+        assert column.unique_count == 4
+
     def test_authoritative_coltypes_apply_to_empty_data(self) -> None:
         columns = format_data_columns(
             [],

@@ -646,6 +646,7 @@ def test_source_cell_string_keeps_independent_64_kib_limit() -> None:
     error = validate_query_result_envelope(result)
 
     assert error is not None
+    assert error.error_type == "InvalidQueryResult"
     assert "invalid text data" in error.error
 
 
