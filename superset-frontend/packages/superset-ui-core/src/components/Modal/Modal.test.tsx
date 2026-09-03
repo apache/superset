@@ -72,6 +72,12 @@ describe('mergeResizableConfig', () => {
       right: true,
     });
   });
+
+  test('preserves explicit enable: false opt-out', () => {
+    const config = mergeResizableConfig(false, { enable: false });
+
+    expect(config.enable).toBe(false);
+  });
 });
 
 describe('Modal draggable', () => {

@@ -237,18 +237,22 @@ const defaultResizableConfig = (hideFooter: boolean | undefined) => ({
 export function mergeResizableConfig(
   hideFooter: boolean | undefined,
   overrides: ModalProps['resizableConfig'] = {},
-) {
+): ModalProps['resizableConfig'] {
   const defaults = defaultResizableConfig(hideFooter);
   if (!overrides || Object.keys(overrides).length === 0) {
     return defaults;
   }
+  const { enable: enableOverride, ...restOverrides } = overrides;
   return {
     ...defaults,
-    ...overrides,
-    enable: {
-      ...defaults.enable,
-      ...overrides.enable,
-    },
+    ...restOverrides,
+    enable:
+      enableOverride === false
+        ? false
+        : {
+            ...defaults.enable,
+            ...(typeof enableOverride === 'object' ? enableOverride : {}),
+          },
   };
 }
 
