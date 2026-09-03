@@ -29,6 +29,8 @@ import {
   MultipleValueComparators,
   ResolvedColorFormatterResult,
   ColorSchemeEnum,
+  BoundUnit,
+  PercentDenominator,
 } from '../types';
 
 export const round = (num: number, precision = 0) =>
@@ -136,16 +138,40 @@ export const getColorFunction = (
     targetValueRight,
     colorScheme,
     useGradient,
-    minBound,
-    maxBound,
-    centerValue,
+    minBound: rawMinBound,
+    maxBound: rawMaxBound,
+    centerValue: rawCenterValue,
     lowColor,
     midColor,
     highColor,
+    boundUnit,
+    percentDenominator,
   }: ConditionalFormattingConfig,
   columnValues: number[] | string[] | (boolean | null)[],
   alpha?: boolean,
 ) => {
+  const numericColumnValues = (
+    columnValues as (number | string | boolean | null)[]
+  ).filter((value): value is number => typeof value === 'number');
+
+  const resolvePercentBound = (bound: number | undefined) => {
+    if (boundUnit !== BoundUnit.Percent || bound === undefined) {
+      return bound;
+    }
+    if (numericColumnValues.length === 0) {
+      return undefined;
+    }
+    const denominatorValue =
+      percentDenominator === PercentDenominator.Sum
+        ? numericColumnValues.reduce((sum, value) => sum + value, 0)
+        : Math.max(...numericColumnValues);
+    return (bound / 100) * denominatorValue;
+  };
+
+  const minBound = resolvePercentBound(rawMinBound);
+  const maxBound = resolvePercentBound(rawMaxBound);
+  const centerValue = resolvePercentBound(rawCenterValue);
+
   let minOpacity = MIN_OPACITY_BOUNDED;
   const maxOpacity = MAX_OPACITY;
 
