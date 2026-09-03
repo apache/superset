@@ -25,9 +25,11 @@ import Field from '../Field';
 export interface FieldsetProps {
   children: ReactNode;
   onChange?: (updatedItem: Record<string, any>) => void;
+  onFieldChange?: (fieldKey: fieldKeyType, value: unknown) => void;
   item?: Record<string, any>;
   title?: ReactNode;
   compact?: boolean;
+  renderWarning?: (item: Record<string, any>) => ReactNode;
 }
 
 type fieldKeyType = string | number;
@@ -35,9 +37,11 @@ type fieldKeyType = string | number;
 export default function Fieldset({
   children,
   onChange,
+  onFieldChange,
   item = {},
   title = null,
   compact = false,
+  renderWarning,
 }: FieldsetProps) {
   // Controls report their edits asynchronously - TextControl debounces by
   // FAST_DEBOUNCE - so the callback that eventually fires was built during an
@@ -51,12 +55,21 @@ export default function Fieldset({
 
   const handleChange = useCallback(
     (fieldKey: fieldKeyType, val: any) => {
-      onChange?.({
+      const updatedItem = {
         ...itemRef.current,
         [fieldKey]: val,
-      });
+      };
+      // Multiple debounced controls can commit in the same React batch, before
+      // the effect above has synchronized the item passed back by the parent.
+      // Advance the ref synchronously so the later commit includes its sibling.
+      itemRef.current = updatedItem;
+      if (onFieldChange) {
+        onFieldChange(fieldKey, val);
+      } else {
+        onChange?.(updatedItem);
+      }
     },
-    [onChange],
+    [onChange, onFieldChange],
   );
 
   const propExtender = (field: { props: { fieldKey: fieldKeyType } }) => ({
@@ -78,6 +91,7 @@ export default function Fieldset({
         </Typography.Title>
       )}
 
+      {renderWarning?.(item)}
       {recurseReactClone(children, Field, propExtender)}
     </Form>
   );
