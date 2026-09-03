@@ -150,21 +150,23 @@ export const getColorFunction = (
   columnValues: number[] | string[] | (boolean | null)[],
   alpha?: boolean,
 ) => {
-  const numericColumnValues = (
-    columnValues as (number | string | boolean | null)[]
-  ).filter((value): value is number => typeof value === 'number');
-
   const resolvePercentBound = (bound: number | undefined) => {
     if (boundUnit !== BoundUnit.Percent || bound === undefined) {
       return bound;
     }
+    const numericColumnValues = (
+      columnValues as (number | string | boolean | null)[]
+    ).filter((value): value is number => typeof value === 'number');
     if (numericColumnValues.length === 0) {
       return undefined;
     }
     const denominatorValue =
       percentDenominator === PercentDenominator.Sum
         ? numericColumnValues.reduce((sum, value) => sum + value, 0)
-        : Math.max(...numericColumnValues);
+        : numericColumnValues.reduce(
+            (max, value) => (value > max ? value : max),
+            -Infinity,
+          );
     return (bound / 100) * denominatorValue;
   };
 
