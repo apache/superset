@@ -1560,6 +1560,19 @@ def test_native_column_meta_bounds_depth_total_values_and_integer_size() -> None
             )
 
 
+def test_native_column_meta_accepts_exact_key_and_string_boundaries() -> None:
+    metric = _frontend_native_metric()
+    metric["column"] = {
+        "column_name": "sales",
+        "k" * 1_024: "v" * (16 * 1_024),
+    }
+    request = GenerateChartRequest.model_validate(
+        _native_request_payload(GenerateChartRequest, metric, None)
+    )
+    assert isinstance(request.config, SunburstChartConfig)
+    assert request.config.metric.name == "sales"
+
+
 def test_native_column_meta_rejects_hostile_objects_without_hooks() -> None:  # noqa: C901
     calls: list[str] = []
 

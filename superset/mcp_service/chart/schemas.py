@@ -1169,7 +1169,14 @@ def _sanitize_native_metric_dict(
             projected[_NATIVE_METRIC_INVALID_KEY] = _NATIVE_METRIC_INVALID_VALUE
             requires_rejection = True
             continue
-        if str.__len__(key) > _NATIVE_METRIC_ERROR_STRING_LENGTH:
+        try:
+            key_size = len(str.encode(key, "utf-8"))
+        except UnicodeEncodeError:
+            key_size = _NATIVE_COLUMN_META_MAX_KEY_BYTES + 1
+        if (
+            str.__len__(key) > _NATIVE_COLUMN_META_MAX_KEY_BYTES
+            or key_size > _NATIVE_COLUMN_META_MAX_KEY_BYTES
+        ):
             projected["x" * (_NATIVE_COLUMN_META_MAX_KEY_BYTES + 1)] = (
                 _NATIVE_METRIC_INVALID_VALUE
             )
@@ -1218,6 +1225,30 @@ def _sanitize_native_metric_list(
     return projected_items, requires_rejection
 
 
+def _sanitize_native_metric_scalar(value: Any) -> tuple[Any, bool] | None:
+    """Project an exact scalar, or signal that ``value`` is a container."""
+    value_type = type(value)
+    if value_type is str:
+        try:
+            encoded_size = len(str.encode(value, "utf-8"))
+        except UnicodeEncodeError:
+            return _NATIVE_METRIC_INVALID_VALUE, True
+        if (
+            str.__len__(value) > _NATIVE_COLUMN_META_MAX_STRING_BYTES
+            or encoded_size > _NATIVE_COLUMN_META_MAX_STRING_BYTES * 4
+        ):
+            return "x" * (_NATIVE_COLUMN_META_MAX_STRING_BYTES + 1), True
+        return (
+            str.__getitem__(value, slice(0, _NATIVE_METRIC_ERROR_STRING_LENGTH)),
+            False,
+        )
+    if value_type is int and int.bit_length(value) > _NATIVE_COLUMN_META_MAX_INT_BITS:
+        return 1 << (_NATIVE_COLUMN_META_MAX_INT_BITS + 1), True
+    if value_type in (int, float, bool, type(None), ColumnRef):
+        return value, False
+    return None
+
+
 def _sanitize_native_metric_value(
     value: Any,
     *,
@@ -1234,14 +1265,9 @@ def _sanitize_native_metric_value(
     if remaining[0] < 0 or depth > _NATIVE_METRIC_SANITIZE_MAX_DEPTH:
         return _NATIVE_METRIC_INVALID_VALUE, True
 
+    if (scalar := _sanitize_native_metric_scalar(value)) is not None:
+        return scalar
     value_type = type(value)
-    if value_type is str:
-        return (
-            str.__getitem__(value, slice(0, _NATIVE_METRIC_ERROR_STRING_LENGTH)),
-            False,
-        )
-    if value_type in (int, float, bool, type(None), ColumnRef):
-        return value, False
     if value_type is dict:
         return _sanitize_native_metric_dict(value, depth, remaining, ancestors)
     if value_type is list:
