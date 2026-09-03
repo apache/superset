@@ -471,6 +471,47 @@ def _trusted_timedelta_text(value: timedelta) -> str:
     return f"{sign}P{date_text}{'T' if time_text else ''}{time_text}"
 
 
+def _chart_data_builtin_timedelta_text(value: timedelta) -> str:
+    """Reproduce ``format_timedelta`` without comparison or string hooks."""
+    total_microseconds = (
+        value.days * 86_400 + value.seconds
+    ) * 1_000_000 + value.microseconds
+    sign = "-" if total_microseconds < 0 else ""
+    remaining = abs(total_microseconds)
+    days, remaining = divmod(remaining, 86_400 * 1_000_000)
+    hours, remaining = divmod(remaining, 3_600 * 1_000_000)
+    minutes, remaining = divmod(remaining, 60 * 1_000_000)
+    seconds, microseconds = divmod(remaining, 1_000_000)
+    day_text = f"{days} {'day' if days == 1 else 'days'}, " if days else ""
+    fraction = f".{microseconds:06d}" if microseconds else ""
+    return f"{sign}{day_text}{hours}:{minutes:02d}:{seconds:02d}{fraction}"
+
+
+def _chart_data_pandas_timedelta_text(value: pd.Timedelta) -> str:
+    """Reproduce pandas ``Timedelta`` formatting from trusted exact fields."""
+    total_nanoseconds = (
+        (
+            object.__getattribute__(value, "days") * 86_400
+            + object.__getattribute__(value, "seconds")
+        )
+        * 1_000_000
+        + object.__getattribute__(value, "microseconds")
+    ) * 1_000 + object.__getattribute__(value, "nanoseconds")
+    sign = "-" if total_nanoseconds < 0 else ""
+    remaining = abs(total_nanoseconds)
+    days, remaining = divmod(remaining, 86_400 * 1_000_000_000)
+    hours, remaining = divmod(remaining, 3_600 * 1_000_000_000)
+    minutes, remaining = divmod(remaining, 60 * 1_000_000_000)
+    seconds, nanoseconds = divmod(remaining, 1_000_000_000)
+    if nanoseconds % 1_000:
+        fraction = f".{nanoseconds:09d}"
+    elif nanoseconds:
+        fraction = f".{nanoseconds // 1_000:06d}"
+    else:
+        fraction = ""
+    return f"{sign}{days} days {hours:02d}:{minutes:02d}:{seconds:02d}{fraction}"
+
+
 def _normalized_scalar_json_size(  # noqa: C901
     value: Any, *, max_string_bytes: int = MAX_QUERY_RESULT_STRING_BYTES
 ) -> int:
@@ -1133,6 +1174,39 @@ def _is_chart_data_temporal_scalar(value: Any) -> bool:
     }
 
 
+def _is_chart_data_duration_scalar(value: Any) -> bool:
+    """Return whether an exact scalar has Chart Data duration semantics."""
+    return type(value) in {timedelta, pd.Timedelta, np.timedelta64}
+
+
+def _chart_data_duration_text(value: Any) -> tuple[str | None, str | None]:
+    """Project an exact duration through Chart Data's public JSON spelling.
+
+    Builtin and pandas durations are ``timedelta`` instances consumed by
+    ``format_timedelta``. Exact NumPy durations model the real DataFrame
+    producer boundary: unambiguous units are promoted to a pandas Timedelta,
+    NaT becomes JSON null, and ambiguous or overflowing units fail closed.
+    """
+    value_type = type(value)
+    if value_type is timedelta:
+        text = _chart_data_builtin_timedelta_text(value)
+    elif value_type is pd.Timedelta:
+        text = _chart_data_pandas_timedelta_text(value)
+    elif value_type is np.timedelta64:
+        if np.isnat(value):
+            return None, None
+        try:
+            pandas_value = pd.Timedelta(value)
+        except (OverflowError, TypeError, ValueError):
+            return None, "contains an invalid NumPy duration"
+        text = _chart_data_pandas_timedelta_text(pandas_value)
+    else:
+        return None, "contains an unsupported duration value"
+    if _bounded_utf8_length(text, MAX_QUERY_RESULT_STRING_BYTES) is None:
+        return None, "contains an oversized duration"
+    return text, None
+
+
 def _chart_data_temporal_number(  # noqa: C901
     value: Any,
 ) -> tuple[float | None, str | None]:
@@ -1401,8 +1475,11 @@ def _normalize_row_value(  # noqa: C901
                 stack.append((child, item, key, depth + 1, False))
             continue
 
+        normalized: Any
         if temporal_json_numbers and _is_chart_data_temporal_scalar(item):
             normalized, reason = _chart_data_temporal_number(item)
+        elif temporal_json_numbers and _is_chart_data_duration_scalar(item):
+            normalized, reason = _chart_data_duration_text(item)
         else:
             normalized, reason = _normalize_trusted_scalar(item)
         if reason is not None:

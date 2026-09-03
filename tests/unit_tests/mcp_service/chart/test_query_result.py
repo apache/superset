@@ -346,6 +346,126 @@ def test_query_result_canonicalizes_exact_json_string_scalars(
     assert data == [[{"value": expected}]]
 
 
+@pytest.mark.parametrize(
+    "value",
+    [
+        timedelta(0),
+        timedelta(microseconds=-1),
+        timedelta(days=1, seconds=2, microseconds=3),
+        timedelta.max,
+        timedelta.min,
+        pd.Timedelta(0),
+        pd.Timedelta(-1, unit="ns"),
+        pd.Timedelta(1, unit="ns"),
+        pd.Timedelta("1 days 00:00:02.000003004"),
+        pd.Timedelta.max,
+        pd.Timedelta.min,
+    ],
+)
+def test_bullet_duration_projection_matches_chart_data_json(value: object) -> None:
+    expected = json.loads(json.dumps(value, default=json.json_int_dttm_ser))
+
+    data, failure = query_result_data(
+        {"queries": [{"data": [{"value": value}], "rowcount": 1}]},
+        temporal_json_numbers=True,
+    )
+
+    assert failure is None
+    assert data == [[{"value": expected}]]
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        np.timedelta64("NaT"),
+        np.timedelta64(0, "ns"),
+        np.timedelta64(-1, "ns"),
+        np.timedelta64(1, "D"),
+        np.timedelta64(123456789, "ns"),
+        np.timedelta64(np.iinfo("int64").max, "s"),
+        np.timedelta64(np.iinfo("int64").min + 1, "us"),
+    ],
+)
+def test_bullet_numpy_duration_matches_real_dataframe_producer(value: object) -> None:
+    from superset.dataframe import df_to_records
+
+    produced = df_to_records(
+        pd.DataFrame({"value": pd.Series([value], dtype=object)}),
+        convert_big_integers=False,
+    )[0]["value"]
+    expected = (
+        None
+        if produced is None
+        else json.loads(json.dumps(produced, default=json.json_int_dttm_ser))
+    )
+
+    data, failure = query_result_data(
+        {"queries": [{"data": [{"value": value}], "rowcount": 1}]},
+        temporal_json_numbers=True,
+    )
+
+    assert failure is None
+    assert data == [[{"value": expected}]]
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        np.timedelta64(1, "Y"),
+        np.timedelta64(1, "ps"),
+        np.timedelta64(np.iinfo("int64").max, "D"),
+    ],
+)
+def test_bullet_numpy_duration_fails_closed_for_ambiguous_or_overflowing_value(
+    value: np.timedelta64,
+) -> None:
+    data, failure = query_result_data(
+        {"queries": [{"data": [{"value": value}], "rowcount": 1}]},
+        temporal_json_numbers=True,
+    )
+
+    assert data is None
+    assert failure is not None
+    assert "invalid NumPy duration" in failure.error
+
+
+def test_bullet_duration_subclasses_are_rejected_without_hooks() -> None:
+    class HostileTimedelta(timedelta):
+        calls = 0
+
+        def _call(self, *_args: object) -> Any:
+            type(self).calls += 1
+            raise AssertionError("hostile timedelta hook executed")
+
+        __abs__ = _call
+        __eq__ = _call
+        __lt__ = _call
+        __str__ = _call
+
+    class HostilePandasTimedelta(pd.Timedelta):
+        calls = 0
+
+        def _call(self, *_args: object) -> Any:
+            type(self).calls += 1
+            raise AssertionError("hostile pandas timedelta hook executed")
+
+        __abs__ = _call
+        __eq__ = _call
+        __lt__ = _call
+        __str__ = _call
+
+    for value in (HostileTimedelta(seconds=1), HostilePandasTimedelta("1s")):
+        data, failure = query_result_data(
+            {"queries": [{"data": [{"value": value}], "rowcount": 1}]},
+            temporal_json_numbers=True,
+        )
+        assert data is None
+        assert failure is not None
+        assert "unsupported or subclassed value" in failure.error
+    assert HostileTimedelta.calls == 0
+    assert HostilePandasTimedelta.calls == 0
+
+
 @pytest.mark.parametrize("timezone_name", ["US/Pacific", "dateutil/US/Pacific"])
 def test_query_result_canonicalizes_common_pandas_timezones_without_tz_hooks(
     timezone_name: str,
@@ -1267,6 +1387,60 @@ def test_timedelta_envelope_uses_exact_json_boundary(
                 }
             ]
         }
+    )
+
+    assert data is None
+    assert failure is not None
+    assert "total JSON-encoded byte limit" in failure.error
+
+
+def test_bullet_timedelta_envelope_uses_chart_data_wire_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    expected = {
+        "queries": [
+            {
+                "data": [{"duration": "1 day, 0:00:02.000003"}],
+                "rowcount": 1,
+            }
+        ]
+    }
+    exact_bytes = len(
+        json.dumps(expected, ensure_ascii=False, separators=(",", ":")).encode()
+    )
+    monkeypatch.setattr(
+        query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", exact_bytes
+    )
+    result = {
+        "queries": [
+            {
+                "data": [{"duration": timedelta(days=1, seconds=2, microseconds=3)}],
+                "rowcount": 1,
+            }
+        ]
+    }
+
+    data, failure = query_result_data(result, temporal_json_numbers=True)
+
+    assert failure is None
+    assert data == [[{"duration": "1 day, 0:00:02.000003"}]]
+    assert len(json.dumps(result, separators=(",", ":")).encode()) == exact_bytes
+
+    monkeypatch.setattr(
+        query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", exact_bytes - 1
+    )
+    data, failure = query_result_data(
+        {
+            "queries": [
+                {
+                    "data": [
+                        {"duration": timedelta(days=1, seconds=2, microseconds=3)}
+                    ],
+                    "rowcount": 1,
+                }
+            ]
+        },
+        temporal_json_numbers=True,
     )
 
     assert data is None

@@ -529,7 +529,9 @@ def _bullet_category_value(  # noqa: C901
     """
     from superset.mcp_service.chart.query_result import (
         _bounded_utf8_length,
+        _chart_data_duration_text,
         _chart_data_temporal_number,
+        _is_chart_data_duration_scalar,
         _is_chart_data_temporal_scalar,
         _normalize_trusted_scalar,
     )
@@ -538,6 +540,8 @@ def _bullet_category_value(  # noqa: C901
     reason: str | None
     if _is_chart_data_temporal_scalar(value):
         normalized, reason = _chart_data_temporal_number(value)
+    elif _is_chart_data_duration_scalar(value):
+        normalized, reason = _chart_data_duration_text(value)
     else:
         normalized, reason = _normalize_trusted_scalar(
             value, max_string_bytes=_MAX_BULLET_TEXT_BYTES
@@ -634,16 +638,23 @@ def _bullet_string_tokens(value: Any) -> list[str]:
     return [_truncate_utf8(token.strip(), _MAX_BULLET_TEXT_BYTES) for token in tokens]
 
 
-def _unique_bullet_category_field(rows: list[dict[str, Any]]) -> str:
-    """Return an internal category key absent from every query-result row."""
+def _unique_bullet_derived_field(
+    rows: list[dict[str, Any]], base: str, reserved: tuple[str, ...] = ()
+) -> str:
+    """Return one internal key absent from result rows and prior derived keys."""
     occupied = {key for row in rows for key in dict.keys(row)}
-    base = "__mcp_bullet_category"
+    occupied.update(reserved)
     candidate = base
     suffix = 0
     while candidate in occupied:
         suffix += 1
         candidate = f"{base}_{suffix}"
     return candidate
+
+
+def _unique_bullet_category_field(rows: list[dict[str, Any]]) -> str:
+    """Return an internal category key absent from every query-result row."""
+    return _unique_bullet_derived_field(rows, "__mcp_bullet_category")
 
 
 def _validate_bullet_format(format_: Any, values: list[float]) -> str:
@@ -680,6 +691,19 @@ def _format_bullet_number(format_: str, value: float) -> str:
             prefix = "+" if format_ == "SMART_NUMBER_SIGNED" and value > 0 else ""
             return prefix + repr(value)
         raise
+
+
+def _containing_bullet_range_label(
+    measure: float, ranges: list[float], labels: list[str]
+) -> str | None:
+    """Match the frontend's labelled containing-range tooltip selection."""
+    ascending = sorted(zip(ranges, labels, strict=True), key=lambda entry: entry[0])
+    for threshold, label in ascending:
+        if measure <= threshold:
+            return label or None
+    if ascending and ascending[-1][1]:
+        return f"> {ascending[-1][1]}"
+    return None
 
 
 def resolve_bullet_render_model(  # noqa: C901
@@ -1087,6 +1111,21 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
     model = resolve_bullet_render_model(data, form_data)
 
     category_field = _unique_bullet_category_field(model.rows)
+    containing_range_labels = (
+        [
+            _containing_bullet_range_label(measure, model.ranges, model.range_labels)
+            for measure in model.measures
+        ]
+        if model.range_labels
+        else [None] * len(model.rows)
+    )
+    range_tooltip_field = (
+        _unique_bullet_derived_field(
+            model.rows, "__mcp_bullet_range", (category_field,)
+        )
+        if any(label is not None for label in containing_range_labels)
+        else None
+    )
     values = []
     for row_index, row in enumerate(model.rows):
         copied = dict.copy(row)
@@ -1098,6 +1137,11 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
             if model.dimensions
             else ""
         )
+        if (
+            range_tooltip_field is not None
+            and containing_range_labels[row_index] is not None
+        ):
+            copied[range_tooltip_field] = containing_range_labels[row_index]
         values.append(copied)
 
     y_encoding = {
@@ -1120,6 +1164,10 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
             ),
         },
     ]
+    if range_tooltip_field is not None:
+        tooltip.append(
+            {"field": range_tooltip_field, "type": "nominal", "title": "Range"}
+        )
     axis_min = min(
         0.0,
         *model.measures,

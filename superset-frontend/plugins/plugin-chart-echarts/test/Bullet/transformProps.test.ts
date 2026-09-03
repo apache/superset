@@ -33,13 +33,16 @@ const formData: SqlaFormData = {
   markerLineLabels: 'stretch',
 };
 
-const chartProps = (overrides: Partial<SqlaFormData> = {}) =>
+const chartProps = (
+  overrides: Partial<SqlaFormData> = {},
+  data: Array<Record<string, number>> = [{ sum__num: 120 }],
+) =>
   new ChartProps({
     width: 800,
     height: 200,
     formData: { ...formData, ...overrides },
     theme: supersetTheme,
-    queriesData: [{ data: [{ sum__num: 120 }] }],
+    queriesData: [{ data }],
     hooks: {},
   }) as unknown as EchartsBulletChartProps;
 
@@ -147,6 +150,27 @@ test('marks a measure beyond every range as past the last label', () => {
   expect((echartOptions as any).series[0].tooltip.formatter()).toContain(
     '&gt; high',
   );
+});
+
+test('uses sorted inclusive range boundaries and omits unavailable labels', () => {
+  const tooltip = (measure: number, ranges: string, rangeLabels: string) => {
+    const { echartOptions } = transformProps(
+      chartProps({ ranges, rangeLabels }, [{ sum__num: measure }]),
+    );
+    const series = echartOptions.series as Array<{
+      tooltip: { formatter: () => string };
+    }>;
+    return series[0].tooltip.formatter();
+  };
+
+  expect(tooltip(100, '300,100,200', 'high,low,mid')).toContain('Range: low');
+  expect(tooltip(120, '300,100,200', 'high,low,mid')).toContain('Range: mid');
+  expect(tooltip(-5, '10,-10,0', 'positive,negative,zero')).toContain(
+    'Range: zero',
+  );
+  expect(tooltip(50, '100,200', ',high')).not.toContain('Range:');
+  expect(tooltip(250, '100,200', 'low,')).not.toContain('Range:');
+  expect(tooltip(120, '100,200', '')).not.toContain('Range:');
 });
 
 test('renders range labels inside the top-right corner of their bands', () => {
