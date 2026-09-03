@@ -387,6 +387,20 @@ test('should render all the top navbar menu items', async () => {
   });
 });
 
+test('renders the down-chevron caret icon on top-level category dropdowns, not the caret glyph (regression #43531)', async () => {
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+  const sources = await screen.findByText('Sources');
+  const caret = sources.closest('li')?.querySelector('.ant-menu-item-icon');
+  expect(caret).toHaveClass('anticon-down');
+  expect(caret?.querySelector('svg')).toHaveAttribute('data-icon', 'down');
+});
+
 test('should render the top navbar child menu items', async () => {
   useSelectorMock.mockReturnValue({ roles: user.roles });
   const {
