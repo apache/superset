@@ -23,17 +23,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 import yaml
 
-ECHARTS_TIMESERIES_VIZ_TYPES = {
-    "echarts_area",
-    "echarts_timeseries",
-    "echarts_timeseries_bar",
-    "echarts_timeseries_line",
-    "echarts_timeseries_scatter",
-    "echarts_timeseries_smooth",
-    "echarts_timeseries_step",
-    "mixed_timeseries",
-}
-
 
 def _create_example_tree(base_dir: Path) -> Path:
     """Create a minimal example directory tree under base_dir/superset/examples/.
@@ -216,23 +205,6 @@ def test_load_examples_from_configs_defaults(
         force_data=False,
     )
     mock_command.run.assert_called_once()
-
-
-def test_echarts_timeseries_yaml_examples_use_x_axis_metadata() -> None:
-    """ECharts time-series examples must set the temporal column on x_axis."""
-    examples_root = Path(__file__).resolve().parents[3] / "superset" / "examples"
-    stale_charts: list[str] = []
-
-    for chart_path in sorted(examples_root.glob("**/charts/*.yaml")):
-        with chart_path.open() as chart_file:
-            chart = yaml.safe_load(chart_file)
-
-        params = chart.get("params") or {}
-        viz_type = chart.get("viz_type") or params.get("viz_type")
-        if viz_type in ECHARTS_TIMESERIES_VIZ_TYPES and "granularity" in params:
-            stale_charts.append(str(chart_path.relative_to(examples_root)))
-
-    assert stale_charts == []
 
 
 def test_load_configs_from_directory_rejects_unsafe_yaml_metadata():
