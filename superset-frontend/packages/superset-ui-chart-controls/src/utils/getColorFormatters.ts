@@ -377,12 +377,12 @@ export const getColorFunction = (
     ) {
       return getDivergingColor(
         resolvedValue,
-        cutoffValue,
+        cutoffValue as number,
         centerValue,
-        extremeValue,
-        lowColor,
-        midColor,
-        highColor,
+        extremeValue as number,
+        lowColor!,
+        midColor!,
+        highColor!,
       );
     }
 
