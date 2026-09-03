@@ -20,6 +20,7 @@ import memoizeOne from 'memoize-one';
 import { isString, isBoolean } from 'lodash-es';
 import { isBlank } from '@apache-superset/core/utils';
 import { addAlpha, DataRecord, rgbaToHex } from '@superset-ui/core';
+import { type RGBColor } from '@superset-ui/core/components';
 import tinycolor from 'tinycolor2';
 import {
   ColorFormatters,
@@ -72,6 +73,58 @@ export const getOpacity = (
   );
 };
 
+const parseColorToRgb = (color: RGBColor | string) => {
+  if (typeof color === 'string') {
+    const { r, g, b } = tinycolor(color).toRgb();
+    return { r, g, b };
+  }
+  return { r: color.r, g: color.g, b: color.b };
+};
+
+export const getDivergingColor = (
+  value: number,
+  cutoffValue: number,
+  centerValue: number,
+  extremeValue: number,
+  lowColor: RGBColor | string,
+  midColor: RGBColor | string,
+  highColor: RGBColor | string,
+): string => {
+  const clampedValue = Math.min(Math.max(value, cutoffValue), extremeValue);
+  const belowCenter = clampedValue <= centerValue;
+  const from = parseColorToRgb(belowCenter ? lowColor : midColor);
+  const to = parseColorToRgb(belowCenter ? midColor : highColor);
+  const rangeStart = belowCenter ? cutoffValue : centerValue;
+  const rangeEnd = belowCenter ? centerValue : extremeValue;
+  const ratio =
+    rangeEnd === rangeStart
+      ? 1
+      : (clampedValue - rangeStart) / (rangeEnd - rangeStart);
+  return rgbaToHex({
+    r: from.r + (to.r - from.r) * ratio,
+    g: from.g + (to.g - from.g) * ratio,
+    b: from.b + (to.b - from.b) * ratio,
+    a: 1,
+  });
+};
+
+const isValidDivergingConfig = (
+  centerValue: number | undefined,
+  lowColor: RGBColor | string | undefined,
+  midColor: RGBColor | string | undefined,
+  highColor: RGBColor | string | undefined,
+  cutoffValue: number | string,
+  extremeValue: number | string,
+): centerValue is number =>
+  centerValue !== undefined &&
+  lowColor !== undefined &&
+  midColor !== undefined &&
+  highColor !== undefined &&
+  typeof cutoffValue === 'number' &&
+  typeof extremeValue === 'number' &&
+  centerValue > cutoffValue &&
+  centerValue < extremeValue;
+
 const isSpecialColor = (value: unknown): value is ColorSchemeEnum =>
   Object.values(ColorSchemeEnum).includes(value as ColorSchemeEnum);
 
@@ -85,6 +138,10 @@ export const getColorFunction = (
     useGradient,
     minBound,
     maxBound,
+    centerValue,
+    lowColor,
+    midColor,
+    highColor,
   }: ConditionalFormattingConfig,
   columnValues: number[] | string[] | (boolean | null)[],
   alpha?: boolean,
@@ -304,6 +361,30 @@ export const getColorFunction = (
     const compareResult = comparatorFunction(value, columnValues);
     if (compareResult === false) return undefined;
     const { cutoffValue, extremeValue, opacityValue } = compareResult;
+    const resolvedValue = opacityValue ?? value;
+
+    if (
+      operator === Comparator.None &&
+      typeof resolvedValue === 'number' &&
+      isValidDivergingConfig(
+        centerValue,
+        lowColor,
+        midColor,
+        highColor,
+        cutoffValue,
+        extremeValue,
+      )
+    ) {
+      return getDivergingColor(
+        resolvedValue,
+        cutoffValue,
+        centerValue,
+        extremeValue,
+        lowColor,
+        midColor,
+        highColor,
+      );
+    }
 
     if (typeof colorScheme === 'string') {
       if (isSpecialColor(colorScheme)) {

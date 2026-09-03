@@ -1232,3 +1232,77 @@ test('getColorFunction NONE respects manual minBound and maxBound', () => {
   expect(colorFunction(200)).toEqual('#FF0000FF');
   expect(colorFunction(250)).toEqual('#FF0000FF');
 });
+
+test('getColorFunction NONE applies a diverging low/mid/high scale when centerValue and all three colors are set', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#000000',
+      column: 'count',
+      minBound: 0,
+      maxBound: 100,
+      centerValue: 50,
+      lowColor: { r: 255, g: 0, b: 0, a: 1 },
+      midColor: { r: 255, g: 255, b: 255, a: 1 },
+      highColor: { r: 0, g: 128, b: 0, a: 1 },
+    },
+    [10, 90],
+  );
+  expect(colorFunction(0)).toEqual('#ff0000');
+  expect(colorFunction(25)).toEqual('#ff8080');
+  expect(colorFunction(50)).toEqual('#ffffff');
+  expect(colorFunction(75)).toEqual('#80c080');
+  expect(colorFunction(100)).toEqual('#008000');
+});
+
+test('getColorFunction NONE ignores an incomplete diverging config and falls back to colorScheme', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+      minBound: 0,
+      maxBound: 100,
+      centerValue: 50,
+      lowColor: { r: 255, g: 0, b: 0, a: 1 },
+      // midColor and highColor intentionally omitted
+    },
+    [10, 90],
+  );
+  expect(colorFunction(100)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction NONE ignores a centerValue outside the min/max range', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+      minBound: 0,
+      maxBound: 100,
+      centerValue: 150,
+      lowColor: { r: 255, g: 0, b: 0, a: 1 },
+      midColor: { r: 255, g: 255, b: 255, a: 1 },
+      highColor: { r: 0, g: 128, b: 0, a: 1 },
+    },
+    [10, 90],
+  );
+  expect(colorFunction(100)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction GREATER_THAN ignores diverging fields even when fully set', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.GreaterThan,
+      targetValue: 0,
+      colorScheme: '#FF0000',
+      column: 'count',
+      centerValue: 50,
+      lowColor: { r: 255, g: 0, b: 0, a: 1 },
+      midColor: { r: 255, g: 255, b: 255, a: 1 },
+      highColor: { r: 0, g: 128, b: 0, a: 1 },
+    },
+    [25, 100],
+  );
+  expect(colorFunction(100)).toEqual('#FF0000FF');
+});
