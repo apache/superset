@@ -17,17 +17,57 @@
  * under the License.
  */
 import { GenericDataType } from '@apache-superset/core/common';
-import { QueryFormData } from '@superset-ui/core';
+import { QueryFormData, QueryMode } from '@superset-ui/core';
 import {
   ColumnMeta,
   Dataset,
   isCustomControlItem,
   ControlConfig,
+  ControlPanelsContainerProps,
   ControlPanelState,
   ControlState,
   ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 import config from '../src/controlPanel';
+
+type VisibilityFn = (
+  props: ControlPanelsContainerProps,
+  control?: ControlState,
+) => boolean;
+
+const findTimeGrainSqlaVisibility = (): VisibilityFn | null => {
+  for (const section of config.controlPanelSections) {
+    if (!section) continue;
+    for (const row of section.controlSetRows) {
+      for (const control of row) {
+        if (
+          isCustomControlItem(control) &&
+          control.name === 'time_grain_sqla' &&
+          typeof control.config.visibility === 'function'
+        ) {
+          return control.config.visibility as VisibilityFn;
+        }
+      }
+    }
+  }
+  return null;
+};
+
+function mkTimeGrainProps(
+  groupbyValue: string[],
+  options = [
+    { column_name: 'ORDERDATE', is_dttm: true },
+    { column_name: 'some_other_col', is_dttm: false },
+  ],
+  queryMode?: QueryMode,
+): ControlPanelsContainerProps {
+  return {
+    controls: {
+      groupby: { value: groupbyValue, options },
+      ...(queryMode ? { query_mode: { value: queryMode } } : {}),
+    },
+  } as unknown as ControlPanelsContainerProps;
+}
 
 const findConditionalFormattingControl = (): ControlConfig | null => {
   for (const section of config.controlPanelSections) {
@@ -272,4 +312,40 @@ test('metrics control includes non-filterable columns', () => {
       expect.objectContaining({ column_name: 'non_filterable_col' }),
     ]),
   );
+});
+
+test('time_grain_sqla visibility is false in raw records mode even with a stale temporal groupby value', () => {
+  const vis = findTimeGrainSqlaVisibility();
+  expect(vis).toBeTruthy();
+  const controlState = {} as ControlState;
+
+  // Simulates switching from an aggregated chart (groupby set to a temporal
+  // column) to this plugin's Raw Records mode: groupby's value survives the
+  // switch (its own visibility uses resetOnHide: false), but the query is no
+  // longer aggregated, so time_grain_sqla must not stay visible/applied.
+  expect(
+    vis!(
+      mkTimeGrainProps(['orderdate'], undefined, QueryMode.Raw),
+      controlState,
+    ),
+  ).toBe(false);
+});
+
+test('time_grain_sqla visibility still requires aggregate mode plus a temporal groupby column', () => {
+  const vis = findTimeGrainSqlaVisibility();
+  expect(vis).toBeTruthy();
+  const controlState = {} as ControlState;
+
+  expect(
+    vis!(
+      mkTimeGrainProps(['orderdate'], undefined, QueryMode.Aggregate),
+      controlState,
+    ),
+  ).toBe(true);
+  expect(
+    vis!(
+      mkTimeGrainProps(['some_other_col'], undefined, QueryMode.Aggregate),
+      controlState,
+    ),
+  ).toBe(false);
 });

@@ -247,6 +247,9 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.time_grain_sqla,
               visibility: ({ controls }) => {
+                if (!isAggMode({ controls })) {
+                  return false;
+                }
                 const dttmLookup = Object.fromEntries(
                   ensureIsArray(controls?.groupby?.options).map(option => [
                     (option.column_name || '').toLowerCase(),
