@@ -235,6 +235,18 @@ def test_bullet_equal_dimension_aliases_are_order_independent_and_round_trip() -
         ]
 
 
+def test_bullet_dimension_aliases_require_exact_physical_identity() -> None:
+    """Schema-only alias resolution must not merge quoted case variants."""
+    with pytest.raises(ValidationError, match="Conflicting Bullet dimension aliases"):
+        BulletChartConfig.model_validate(
+            {
+                "metric": _simple_metric(),
+                "dimensions": ["Region"],
+                "groupby": ["region"],
+            }
+        )
+
+
 @pytest.mark.parametrize(
     "request_payload",
     [
@@ -414,6 +426,55 @@ def test_bullet_repository_metric_names_round_trip_as_saved_metrics_on_all_reque
     assert isinstance(config, BulletChartConfig)
     assert config.metric.saved_metric is True
     assert map_bullet_config(config)["metric"] == metric_name
+
+
+@pytest.mark.parametrize(
+    ("native_operator", "typed_operator", "round_trip_operator"),
+    [
+        ("EQUALS", "=", "=="),
+        ("NOT_EQUALS", "!=", "!="),
+        ("LESS_THAN", "<", "<"),
+        ("LESS_THAN_OR_EQUAL", "<=", "<="),
+        ("GREATER_THAN", ">", ">"),
+        ("GREATER_THAN_OR_EQUAL", ">=", ">="),
+        ("IN", "IN", "IN"),
+        ("NOT_IN", "NOT IN", "NOT IN"),
+        ("LIKE", "LIKE", "LIKE"),
+        ("ILIKE", "ILIKE", "ILIKE"),
+        ("IS_NULL", "IS NULL", "IS NULL"),
+        ("IS_NOT_NULL", "IS NOT NULL", "IS NOT NULL"),
+    ],
+)
+def test_bullet_native_filter_operator_names_round_trip(
+    native_operator: str, typed_operator: str, round_trip_operator: str
+) -> None:
+    comparator: object
+    if native_operator.startswith("IS_"):
+        comparator = None
+    elif native_operator in {"IN", "NOT_IN"}:
+        comparator = ["North"]
+    else:
+        comparator = "North"
+    config = BulletChartConfig.model_validate(
+        {
+            "viz_type": "bullet",
+            "metric": "SavedRevenue",
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "expressionType": "SIMPLE",
+                    "subject": "Region",
+                    "operator": native_operator,
+                    "comparator": comparator,
+                }
+            ],
+        }
+    )
+
+    assert config.filters is not None
+    assert config.filters[0].op == typed_operator
+    mapped = map_bullet_config(config)
+    assert mapped["adhoc_filters"][0]["operator"] == round_trip_operator
 
 
 def test_bullet_legacy_label_only_saved_metric_adapter_is_strict_and_bounded() -> None:
@@ -1187,6 +1248,8 @@ def test_bullet_compile_projects_real_dataframe_durations_to_chart_data_wire() -
         ),
         convert_big_integers=False,
     )
+    assert type(rows[4]["Duration"]) is pd.Timedelta
+    assert rows[5]["Duration"] is None
     expected = [
         None
         if row["Duration"] is None
@@ -2567,6 +2630,13 @@ def test_bullet_saved_preview_uses_native_roles_aliases_and_overlays() -> None:
     )
     assert bar_layer["encoding"]["x"]["field"] == "Total Revenue"
     assert bar_layer["encoding"]["y"]["field"] == "__mcp_bullet_category"
+    range_layers = [
+        layer for layer in specification["layer"] if layer["mark"]["type"] == "rect"
+    ]
+    assert range_layers
+    assert all(
+        layer["encoding"]["y"] == bar_layer["encoding"]["y"] for layer in range_layers
+    )
     assert {layer["mark"]["type"] for layer in specification["layer"]} == {
         "rect",
         "bar",
@@ -2574,6 +2644,29 @@ def test_bullet_saved_preview_uses_native_roles_aliases_and_overlays() -> None:
         "rule",
         "text",
     }
+
+
+def test_bullet_saved_sql_metric_without_label_uses_expression_result_field() -> None:
+    expression = "SUM(revenue) / COUNT(*)"
+    preview = _generate_vega_lite_preview_from_data(
+        [{"Region": "North", expression: 12.5}],
+        {
+            "viz_type": "bullet",
+            "metric": {
+                "expressionType": "SQL",
+                "sqlExpression": expression,
+            },
+            "groupby": ["Region"],
+            "ranges": "10,20",
+        },
+    )
+
+    bar = next(
+        layer
+        for layer in preview.specification["layer"]
+        if layer["mark"]["type"] == "bar"
+    )
+    assert bar["encoding"]["x"]["field"] == expression
 
 
 def test_bullet_update_paths_preserve_omitted_native_state() -> None:

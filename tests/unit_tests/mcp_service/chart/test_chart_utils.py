@@ -757,7 +757,8 @@ class TestMapXYConfig:
         assert result["x_axis_format"] == "%Y-%m-%d"
         assert result["y_axis_title"] == "Revenue"
         assert result["y_axis_format"] == "$,.2f"
-        assert result["y_axis_scale"] == "log"
+        assert result["logAxis"] is True
+        assert "y_axis_scale" not in result
 
     def test_map_xy_config_with_legend(self) -> None:
         """Test XY config mapping with legend configuration"""

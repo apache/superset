@@ -660,6 +660,8 @@ async def test_duration_dataframe_reaches_fastmcp_bullet_preview(
         ),
         convert_big_integers=False,
     )
+    assert type(rows[3]["Duration"]) is pd.Timedelta
+    assert rows[4]["Duration"] is None
     expected = [
         "null"
         if row["Duration"] is None
@@ -766,6 +768,13 @@ async def test_duration_dataframe_reaches_fastmcp_bullet_preview(
         assert [
             row[range_tooltip["field"]] for row in specification["data"]["values"]
         ] == ["Low", "Mid", "> High", "Low", "Mid"]
+        range_layers = [
+            layer for layer in specification["layer"] if layer["mark"]["type"] == "rect"
+        ]
+        assert range_layers
+        assert all(
+            layer["encoding"]["y"] == bar["encoding"]["y"] for layer in range_layers
+        )
 
 
 def test_ascii_preview_accepts_real_postprocessing_null_and_large_full_sql(
