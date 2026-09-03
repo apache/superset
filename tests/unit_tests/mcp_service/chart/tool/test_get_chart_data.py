@@ -3877,6 +3877,118 @@ async def test_saved_bullet_get_data_uses_strict_render_model(
 
 
 @pytest.mark.asyncio
+async def test_saved_bullet_get_data_projects_dataframe_timestamps_to_epoch(
+    mcp_server: Any,
+    mock_auth: Any,
+) -> None:
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    from superset.dataframe import df_to_records
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Category"],
+    }
+    chart = SimpleNamespace(
+        id=20,
+        slice_name="Timestamp Bullet",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params=json.dumps(form_data),
+    )
+    source_values = [
+        pd.Timestamp("2024-01-02 03:04:05.123456789"),
+        pd.Timestamp("2024-01-02 08:34:05.123456789+05:30"),
+        pd.Timestamp(
+            datetime(
+                2024,
+                11,
+                3,
+                1,
+                30,
+                tzinfo=ZoneInfo("America/New_York"),
+                fold=0,
+            )
+        ),
+        pd.Timestamp(
+            datetime(
+                2024,
+                11,
+                3,
+                1,
+                30,
+                tzinfo=ZoneInfo("America/New_York"),
+                fold=1,
+            )
+        ),
+        pd.Timestamp("1969-12-31 23:59:59.999999999"),
+        pd.NaT,
+    ]
+    rows = df_to_records(
+        pd.DataFrame(
+            {
+                "Category": pd.Series(source_values, dtype=object),
+                "Revenue": range(1, len(source_values) + 1),
+            }
+        ),
+        convert_big_integers=False,
+    )
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["Category", "Revenue"],
+                        "rowcount": len(rows),
+                    }
+                ]
+            }
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 20}}
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert [row["Category"] for row in payload["data"]] == [
+        1704164645123.456,
+        1704164645123.456,
+        1730611800000.0,
+        1730615400000.0,
+        -0.0010000000000287557,
+        None,
+    ]
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("grouped", "format_", "identifier_alias", "excel_engine"),
     [

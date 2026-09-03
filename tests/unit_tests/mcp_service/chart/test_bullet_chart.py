@@ -18,7 +18,7 @@
 """Product-path coverage for typed ECharts Bullet MCP support."""
 
 import math
-from datetime import date, datetime, time, timezone, tzinfo
+from datetime import date, datetime, time, timedelta, timezone, tzinfo
 from decimal import Decimal
 from enum import Enum, IntEnum, StrEnum
 from types import SimpleNamespace
@@ -27,7 +27,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID
 from zoneinfo import ZoneInfo
 
+import numpy as np
+import pandas as pd
 import pytest
+import pytz
 from pydantic import TypeAdapter, ValidationError
 
 from superset.mcp_service.chart.chart_helpers import (
@@ -50,6 +53,7 @@ from superset.mcp_service.chart.preview_utils import (
     generate_preview_from_form_data,
     resolve_bullet_render_model,
 )
+from superset.mcp_service.chart.query_result import _chart_data_temporal_number
 from superset.mcp_service.chart.schemas import (
     ASCIIPreview,
     BulletChartConfig,
@@ -85,6 +89,7 @@ from superset.mcp_service.chart.tool.update_chart import (
 from superset.mcp_service.chart.tool.update_chart_preview import update_chart_preview
 from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
 from superset.mcp_service.common.error_schemas import DatasetContext
+from superset.utils.json import json_int_dttm_ser
 
 
 def _reject_scalar_conversion(*_args: object, **_kwargs: object) -> Any:
@@ -1091,6 +1096,54 @@ def test_bullet_compile_path_uses_groupby_metric_orderby_and_usable_result() -> 
     assert result.row_count == 1
 
 
+def test_bullet_compile_projects_dataframe_timestamp_before_validation() -> None:
+    from superset.dataframe import df_to_records
+
+    form_data = map_bullet_config(
+        BulletChartConfig(
+            metric={"name": "Revenue", "aggregate": "SUM", "label": "Revenue"},
+            dimensions=[{"name": "Category"}],
+        )
+    )
+    rows = df_to_records(
+        pd.DataFrame(
+            {
+                "Category": [pd.Timestamp("2024-01-02 03:04:05.123456789")],
+                "Revenue": [1],
+            }
+        ),
+        convert_big_integers=False,
+    )
+    factory = MagicMock()
+    factory.create.return_value = MagicMock()
+    command = MagicMock()
+    command.run.return_value = {"queries": [{"data": rows}]}
+    captured: list[list[dict[str, Any]]] = []
+
+    def validate(data: list[dict[str, Any]], config: dict[str, Any]) -> Any:
+        captured.append(data)
+        return resolve_bullet_render_model(data, config)
+
+    with (
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory",
+            return_value=factory,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+        patch(
+            "superset.mcp_service.chart.preview_utils.resolve_bullet_render_model",
+            side_effect=validate,
+        ),
+    ):
+        result = _compile_chart(form_data, 7)
+
+    assert result.success is True
+    assert captured[0][0]["Category"] == 1704164645123.456
+
+
 def test_bullet_unsaved_preview_path_returns_faithful_vega_spec() -> None:
     form_data = map_bullet_config(
         BulletChartConfig(
@@ -1313,6 +1366,105 @@ def test_bullet_temporal_category_rejects_hostile_timezone_without_hooks() -> No
             {"metric": "Revenue", "groupby": ["Category"]},
         )
     assert _HostileTimezone.calls == 0
+
+
+def test_bullet_timestamp_categories_match_chart_data_wire_and_all_previews() -> None:
+    zoneinfo_tz = ZoneInfo("America/New_York")
+    pytz_tz = pytz.timezone("America/New_York")
+    values = [
+        pd.Timestamp("2024-01-02 03:04:05.123456789"),
+        pd.Timestamp("2024-01-02 03:04:05.123456789", tz="UTC"),
+        pd.Timestamp("2024-01-02 08:34:05.123456789+05:30"),
+        pd.Timestamp(datetime(2024, 11, 3, 1, 30, tzinfo=zoneinfo_tz, fold=0)),
+        pd.Timestamp(datetime(2024, 11, 3, 1, 30, tzinfo=zoneinfo_tz, fold=1)),
+        pd.Timestamp(pytz_tz.localize(datetime(2024, 11, 3, 1, 30), is_dst=True)),
+        pd.Timestamp(pytz_tz.localize(datetime(2024, 11, 3, 1, 30), is_dst=False)),
+        pd.Timestamp("1969-12-31 23:59:59.999999999"),
+        pd.Timestamp("1970-01-01 00:00:00.000000001"),
+        np.datetime64("2024-01-02", "D"),
+        np.datetime64("2024-01-02T03:04:05.123456789"),
+        date(2024, 1, 2),
+        pd.NaT,
+        np.datetime64("NaT"),
+    ]
+    expected = [
+        "1704164645123.456",
+        "1704164645123.456",
+        "1704164645123.456",
+        "1730611800000",
+        "1730615400000",
+        "1730611800000",
+        "1730615400000",
+        "-0.0010000000000287557",
+        "0",
+        "1704153600000",
+        "1704164645123.456",
+        "1704153600000",
+        "null",
+        "null",
+    ]
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Category"],
+    }
+    data = [
+        {"Category": value, "Revenue": index + 1} for index, value in enumerate(values)
+    ]
+
+    # Exact pandas Timestamp values match Superset's production serializer,
+    # including its pre-epoch/sub-millisecond float behavior.
+    for value in values[:9]:
+        number, reason = _chart_data_temporal_number(value)
+        assert reason is None
+        assert number == json_int_dttm_ser(value)
+
+    vega = _generate_vega_lite_preview_from_data(data, form_data).specification
+    bar = next(layer for layer in vega["layer"] if layer["mark"]["type"] == "bar")
+    category_field = bar["encoding"]["y"]["field"]
+    assert [row[category_field] for row in vega["data"]["values"]] == expected
+    assert bar["encoding"]["tooltip"][0]["field"] == category_field
+    assert bar["encoding"]["tooltip"][0]["title"] == "Category"
+    assert "transform" not in vega
+
+    for row, category in zip(data, expected, strict=True):
+        ascii_content = _generate_ascii_preview_from_data(
+            [row], form_data
+        ).ascii_content
+        assert category[:20] in ascii_content
+
+
+def test_bullet_pandas_timestamp_rejects_hostile_timezone_without_hooks() -> None:
+    class _ArmedTimezone(tzinfo):
+        armed = False
+        calls = 0
+
+        def _offset(self) -> timedelta:
+            type(self).calls += 1
+            if self.armed:
+                raise AssertionError("timezone hook invoked")
+            return timedelta(hours=1)
+
+        def utcoffset(self, _value: datetime | None) -> timedelta:
+            return self._offset()
+
+        def dst(self, _value: datetime | None) -> timedelta:
+            return timedelta(0)
+
+        def tzname(self, _value: datetime | None) -> str:
+            return "armed"
+
+    hostile_tz = _ArmedTimezone()
+    value = pd.Timestamp(datetime(2024, 1, 2, tzinfo=hostile_tz))
+    _ArmedTimezone.calls = 0
+    _ArmedTimezone.armed = True
+
+    with pytest.raises(BulletOutputError, match="unsupported timezone"):
+        resolve_bullet_render_model(
+            [{"Category": value, "Revenue": 1}],
+            {"metric": "Revenue", "groupby": ["Category"]},
+        )
+    assert _ArmedTimezone.calls == 0
 
 
 def test_bullet_categories_match_frontend_string_coercion_and_preserve_values() -> None:
