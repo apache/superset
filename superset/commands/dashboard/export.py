@@ -28,7 +28,10 @@ from superset.commands.tag.export import ExportTagsCommand
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.commands.dashboard.importers.v1.utils import find_chart_uuids
 from superset.daos.dashboard import DashboardDAO
-from superset.commands.export.models import ExportModelsCommand
+from superset.commands.export.models import (
+    ExportModelsCommand,
+    get_extra_export_fields,
+)
 from superset.commands.dataset.export import ExportDatasetsCommand
 from superset.daos.dataset import DatasetDAO
 from superset.models.dashboard import Dashboard
@@ -405,6 +408,9 @@ class ExportDashboardsCommand(ExportModelsCommand):
         if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
             tags = model.tags if hasattr(model, "tags") else []
             payload["tags"] = [tag.name for tag in tags if tag.type == TagType.custom]
+
+        if extra_fields := get_extra_export_fields(model, "dashboard"):
+            payload["extra"] = extra_fields
 
         file_content = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
         return file_content

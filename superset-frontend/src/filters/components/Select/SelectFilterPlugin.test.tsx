@@ -915,6 +915,107 @@ describe('SelectFilterPlugin', () => {
     userEvent.type(screen.getByRole('combobox'), 'brand-new');
     expect(await screen.findByTitle('brand-new')).toBeInTheDocument();
   });
+
+  // The native Value filter's "Select all" targets the whole column, so its
+  // count must stay pinned to the full option set while the user searches — no
+  // transient scoped value. This integration
+  // test uses `creatable: false`, where the plugin does not churn its `options`
+  // reference on search, so `visibleOptions` stays narrowed and the un-fixed
+  // code would leave the badge stuck at the scoped count — making the fix
+  // observable at a settled point. (The default `creatable: true` path self-
+  // corrects once the options churn fires, so its flicker is transient; the
+  // count-stability mechanism itself is covered comprehensively by the
+  // superset-ui-core Select component tests.) The default fixture only has 3
+  // rows, so this uses a >=4-value column to enable the "Select all" badge.
+  const STABLE_DATA = [
+    { gender: 'apple' },
+    { gender: 'apricot' },
+    { gender: 'banana' },
+    { gender: 'blueberry' },
+    { gender: 'cherry' },
+  ];
+
+  const renderValueFilter = (
+    overrides: Partial<PluginFilterSelectQueryFormData> = {},
+  ) => {
+    const setDataMaskMock = jest.fn();
+    const testProps = {
+      ...selectMultipleProps,
+      formData: {
+        ...selectMultipleProps.formData,
+        multiSelect: true,
+        searchAllOptions: false,
+        ...overrides,
+      },
+      queriesData: [
+        {
+          rowcount: STABLE_DATA.length,
+          colnames: ['gender'],
+          coltypes: [1],
+          data: STABLE_DATA,
+          applied_filters: [{ column: 'gender' }],
+          rejected_filters: [],
+        },
+      ],
+      filterState: { value: [] },
+    };
+    render(
+      // @ts-expect-error
+      <SelectFilterPlugin
+        // @ts-expect-error
+        {...transformProps(testProps)}
+        setDataMask={setDataMaskMock}
+        showOverflow={false}
+      />,
+      {
+        useRedux: true,
+        initialState: {
+          nativeFilters: {
+            filters: { 'test-filter': { name: 'Test Filter' } },
+          },
+          dataMask: {
+            'test-filter': {
+              extraFormData: {},
+              filterState: { value: [] },
+            },
+          },
+        },
+      },
+    );
+    return setDataMaskMock;
+  };
+
+  test('keeps "Select all" pinned to the full column while searching (creatable false)', async () => {
+    const setDataMaskMock = renderValueFilter({ creatable: false });
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
+    // Baseline: full-column count before searching.
+    expect(await screen.findByText('Select all (5)')).toBeInTheDocument();
+
+    await userEvent.type(filterSelect, 'ap');
+    act(() => {
+      // Advance past both the plugin's SLOW_DEBOUNCE and the Select's
+      // FAST_DEBOUNCE so the option list narrows.
+      jest.advanceTimersByTime(1000);
+    });
+    // The search narrows the list (banana drops out)...
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('option', { name: /banana/i }),
+      ).not.toBeInTheDocument(),
+    );
+    // ...but the badge still reports the FULL column count, never the scoped 2.
+    expect(screen.getByText('Select all (5)')).toBeInTheDocument();
+    expect(screen.queryByText('Select all (2)')).not.toBeInTheDocument();
+
+    // Clicking "Select all" selects the entire column, not the search subset.
+    userEvent.click(screen.getByText('Select all (5)'));
+    await waitFor(() => {
+      const lastValue =
+        setDataMaskMock.mock.calls.at(-1)?.[0]?.filterState?.value;
+      expect(lastValue).toHaveLength(STABLE_DATA.length);
+    });
+  });
 });
 
 test('Select boolean FALSE value in single-select mode', async () => {
