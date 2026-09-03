@@ -1,3 +1,22 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
 ## What Happened
 
 Reproduction steps:
@@ -29,7 +48,7 @@ Assumption gap: the author of the visibility function assumed "the `groupby` con
 
 ## The Fix
 
-File: `superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx`, `time_grain_sqla` control override (`visibility` function).
+The identical fix is applied in both `superset-frontend/plugins/plugin-chart-table/src/controlPanel.tsx` and `superset-frontend/plugins/plugin-chart-ag-grid-table/src/controlPanel.tsx` (see the sibling-plugin note above): the `time_grain_sqla` control override's `visibility` function.
 
 Before:
 ```tsx
@@ -86,11 +105,13 @@ With this change, switching to Raw Records mode makes `time_grain_sqla`'s visibi
 
 This fix does not touch the per-column `CUSTOMIZE` → D3 time format override path (`column_config` / `d3TimeFormat` in `transformProps.ts`), which continues to take precedence over any grain-derived formatting exactly as before.
 
+`verified` — the sibling `plugin-chart-ag-grid-table` plugin (`superset-frontend/plugins/plugin-chart-ag-grid-table/src/controlPanel.tsx`) has the exact same `time_grain_sqla` visibility function, byte-for-byte the same logic as the pre-fix `plugin-chart-table` version, including the same `groupby` `resetOnHide: false` setup and a locally-defined `isAggMode` helper already in scope. It is registered in `superset-frontend/src/visualizations/presets/MainPreset.ts` as the `VizType.TableAgGrid` chart type behind `FeatureFlag.AgGridTableEnabled` (`AG_GRID_TABLE_ENABLED`, default `False` in `superset/config.py`). This flag is opt-in rather than dead/unshipped code — any deployment that enables it exposes a second, user-selectable "Table" style viz type through the same viz-picker/Explore flow, so it reproduces this bug identically once enabled. It is fixed with the identical change described above, rather than treated as an unreachable latent bug.
+
 ## Latent Bugs Found
 
-- The same stale-`groupby`-value pattern (`resetOnHide: false`) is intentional and shared by several other controls in this file (`metrics`, `percent_metrics`, `timeseries_limit_metric`, `order_by_cols`, `show_totals`, `totals_aggregate`); all of those already gate their own visibility on `isAggMode`/`isRawMode` directly, so they were not affected by this bug. Not fixed because out of scope: none found affected.
-- `buildQuery.ts` reads `time_grain_sqla` via `extra_form_data?.time_grain_sqla || formData.time_grain_sqla` (line 70-71) without any query-mode gate of its own; it happens to only be dangerous when `form_data.time_grain_sqla` is stale, which the controlPanel fix now prevents. A defense-in-depth guard here (e.g. only reading `time_grain_sqla` when `queryMode === QueryMode.Aggregate`) was considered but not added, to keep this fix minimal and scoped to the one root cause.
+- The same stale-`groupby`-value pattern (`resetOnHide: false`) is intentional and shared by several other controls in both `controlPanel.tsx` files (`metrics`, `percent_metrics`, `timeseries_limit_metric`, `order_by_cols`, `show_totals`, `totals_aggregate`); all of those already gate their own visibility on `isAggMode`/`isRawMode` directly, so they were not affected by this bug. Not fixed because out of scope: none found affected.
+- `buildQuery.ts` (both `plugin-chart-table` and `plugin-chart-ag-grid-table`) reads `time_grain_sqla` via `extra_form_data?.time_grain_sqla || formData.time_grain_sqla` without any query-mode gate of its own; it happens to only be dangerous when `form_data.time_grain_sqla` is stale, which the controlPanel fixes now prevent. A defense-in-depth guard here (e.g. only reading `time_grain_sqla` when `queryMode === QueryMode.Aggregate`) was considered but not added, to keep this fix minimal and scoped to the one root cause.
 
 ## Prevention
 
-Add a jest test asserting `query_mode`-dependent visibility for any control whose `visibility` function is customized per chart plugin, whenever the control also has a shared/base default visibility being overridden — a lint or contributor-doc note reminding authors that stale unrelated control values are the norm (`resetOnHide: false` is common) and any visibility override must re-derive its own query-mode gate rather than relying on another control's own gating. This regression is covered going forward by `plugins/plugin-chart-table/test/controlPanel.test.ts`.
+Add a jest test asserting `query_mode`-dependent visibility for any control whose `visibility` function is customized per chart plugin, whenever the control also has a shared/base default visibility being overridden — a lint or contributor-doc note reminding authors that stale unrelated control values are the norm (`resetOnHide: false` is common) and any visibility override must re-derive its own query-mode gate rather than relying on another control's own gating. This regression is covered going forward by `plugins/plugin-chart-table/test/controlPanel.test.ts` and `plugins/plugin-chart-ag-grid-table/test/controlPanel.test.tsx`.
