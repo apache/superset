@@ -41,6 +41,10 @@ export type ConditionalFormattingConfig = {
   objectFormatting?: ObjectFormattingEnum;
   minBound?: number;
   maxBound?: number;
+  centerValue?: number;
+  lowColor?: RGBColor | string;
+  midColor?: RGBColor | string;
+  highColor?: RGBColor | string;
 };
 
 export type ConditionalFormattingControlProps = ControlComponentProps<

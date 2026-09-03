@@ -685,3 +685,150 @@ test('requires min bound to be smaller than a less-than target', async () => {
   fireEvent.click(screen.getByText('Apply'));
   expect(onChange).not.toHaveBeenCalled();
 });
+
+test('shows Center value and Low/Mid/High color fields for the default None operator on a numeric column', () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  expect(
+    screen.getByLabelText('Center value', boundLabelOptions),
+  ).toBeInTheDocument();
+  expect(screen.getByLabelText('Low color')).toBeInTheDocument();
+  expect(screen.getByLabelText('Mid color')).toBeInTheDocument();
+  expect(screen.getByLabelText('High color')).toBeInTheDocument();
+});
+
+test('hides Center value and Low/Mid/High color fields for a boundable directional operator', async () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  fireEvent.change(screen.getAllByLabelText('Operator')[0], {
+    target: { value: Comparator.GreaterThan },
+  });
+  fireEvent.click(await screen.findByTitle('>'));
+
+  expect(await screen.findByLabelText('Target value')).toBeInTheDocument();
+  expect(
+    screen.queryByLabelText('Center value', boundLabelOptions),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Low color')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Mid color')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('High color')).not.toBeInTheDocument();
+});
+
+test('hides Center value and color fields on string columns', () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columnsStringType}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  expect(
+    screen.queryByLabelText('Center value', boundLabelOptions),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('Low color')).not.toBeInTheDocument();
+});
+
+test('validates Center value against Min bound and Max bound when both are set', async () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  const { minBoundInput, maxBoundInput } = getBoundInputs();
+  await userEvent.type(minBoundInput, '0');
+  fireEvent.blur(minBoundInput);
+  await userEvent.type(maxBoundInput, '100');
+  fireEvent.blur(maxBoundInput);
+
+  const centerValueInput = screen.getByLabelText(
+    'Center value',
+    boundLabelOptions,
+  );
+  await userEvent.type(centerValueInput, '150');
+  fireEvent.blur(centerValueInput);
+
+  expect(
+    await screen.findByText('Center value should be smaller than max bound'),
+  ).toBeInTheDocument();
+});
+
+// Selects the first preset swatch for a given ColorPickerControl, following
+// the same interaction mechanics as 'renders None for operator when Green
+// for increase is selected' above: open the trigger, wait for the presets
+// panel, click a swatch. The `ariaLabel` prop on ColorPickerControl lands
+// directly on the `.ant-color-picker-trigger` element (see ColorTrigger in
+// antd), so `getByLabelText` resolves the correct trigger among the several
+// color pickers now rendered in this form without any extra scoping.
+//
+// Each picker's popover stays mounted (unclosed) after a swatch is picked,
+// so with three pickers on the page there can be more than one
+// `.ant-color-picker-presets-items` panel present at once by the time this
+// runs a second or third time. Rather than a plain `querySelector` (which
+// would grab whichever panel happens to be first in the DOM — possibly a
+// stale one from an earlier pick), wait for the panel *count* to grow past
+// what it was before this trigger was clicked, then act on the newest
+// (last) panel, which is the one this click just opened.
+const pickFirstPresetColor = async (label: string) => {
+  const panelSelector = '.ant-color-picker-presets-items';
+  const panelCountBefore = document.querySelectorAll(panelSelector).length;
+
+  const trigger = screen.getByLabelText(label);
+  expect(trigger).toHaveClass('ant-color-picker-trigger');
+  await userEvent.click(trigger);
+
+  await waitFor(() => {
+    expect(document.querySelectorAll(panelSelector).length).toBeGreaterThan(
+      panelCountBefore,
+    );
+  });
+
+  const panels = document.querySelectorAll(panelSelector);
+  const newestPanel = panels[panels.length - 1];
+  const preset = newestPanel.querySelector(
+    '.ant-color-picker-presets-color',
+  ) as HTMLElement;
+  expect(preset).toBeInTheDocument();
+  await userEvent.click(preset);
+};
+
+test('selecting Low/Mid/High colors submits lowColor/midColor/highColor to onChange', async () => {
+  const onChange = jest.fn();
+  render(
+    <FormattingPopoverContent
+      onChange={onChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  await pickFirstPresetColor('Low color');
+  await pickFirstPresetColor('Mid color');
+  await pickFirstPresetColor('High color');
+
+  fireEvent.click(screen.getByText('Apply'));
+
+  await waitFor(() => {
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  const payload = onChange.mock.calls[0][0];
+  expect(payload.lowColor).toEqual(expect.any(String));
+  expect(payload.midColor).toEqual(expect.any(String));
+  expect(payload.highColor).toEqual(expect.any(String));
+});

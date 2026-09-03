@@ -110,6 +110,16 @@ const maxBoundTargetValidator = targetValueValidator(
   t('Max bound should be greater than target value'),
 );
 
+const centerValueMinValidator = targetValueValidator(
+  (min: number, center: number) => center > min,
+  t('Center value should be greater than min bound'),
+);
+
+const centerValueMaxValidator = targetValueValidator(
+  (max: number, center: number) => center < max,
+  t('Center value should be smaller than max bound'),
+);
+
 const normalizeOptionalNumber = (value: number | string | null | undefined) =>
   value === '' || value === null || value === undefined
     ? undefined
@@ -194,6 +204,17 @@ const rulesMaxBoundTarget = [
 const minBoundDeps = ['maxBound'];
 const maxBoundDeps = ['minBound'];
 const targetValueDeps = ['targetValue'];
+
+const rulesCenterValue = [
+  ({ getFieldValue }: GetFieldValue) => ({
+    validator: centerValueMinValidator(getFieldValue('minBound')),
+  }),
+  ({ getFieldValue }: GetFieldValue) => ({
+    validator: centerValueMaxValidator(getFieldValue('maxBound')),
+  }),
+];
+
+const centerValueDeps = ['minBound', 'maxBound'];
 
 const shouldFormItemUpdate = (
   prevValues: ConditionalFormattingConfig,
@@ -297,6 +318,45 @@ const renderBoundFields = (operator?: Comparator) => {
   );
 };
 
+const renderDivergingFields = () => (
+  <>
+    <Row gutter={12}>
+      <Col span={24}>
+        <FormItem
+          name="centerValue"
+          label={t('Center value')}
+          rules={rulesCenterValue}
+          dependencies={centerValueDeps}
+          normalize={normalizeOptionalNumber}
+          validateTrigger="onBlur"
+          tooltip={t(
+            'Optional. When set together with Low color, Mid color, and High color below, colors diverge from Mid color at this value toward Low color below it and High color above it, instead of a single color fading in and out.',
+          )}
+        >
+          <FullWidthInputNumber />
+        </FormItem>
+      </Col>
+    </Row>
+    <Row gutter={12}>
+      <Col span={8}>
+        <FormItem name="lowColor" label={t('Low color')}>
+          <ColorPickerControl ariaLabel={t('Low color')} outputFormat="hex" />
+        </FormItem>
+      </Col>
+      <Col span={8}>
+        <FormItem name="midColor" label={t('Mid color')}>
+          <ColorPickerControl ariaLabel={t('Mid color')} outputFormat="hex" />
+        </FormItem>
+      </Col>
+      <Col span={8}>
+        <FormItem name="highColor" label={t('High color')}>
+          <ColorPickerControl ariaLabel={t('High color')} outputFormat="hex" />
+        </FormItem>
+      </Col>
+    </Row>
+  </>
+);
+
 const renderOperatorFields = (
   { getFieldValue }: GetFieldValue,
   columnType?: GenericDataType,
@@ -324,6 +384,7 @@ const renderOperatorFields = (
 
   const operator = getFieldValue('operator');
   const showBoundFields = !columnTypeString && isOperatorBoundable(operator);
+  const showDivergingFields = !columnTypeString && isOperatorNone(operator);
 
   return isOperatorNone(operator) ? (
     <>
@@ -331,6 +392,7 @@ const renderOperatorFields = (
         <Col span={operatorColSpan}>{renderOperator({ columnType })}</Col>
       </Row>
       {showBoundFields && renderBoundFields(operator)}
+      {showDivergingFields && renderDivergingFields()}
     </>
   ) : isOperatorMultiValue(operator) ? (
     <Row gutter={12}>
