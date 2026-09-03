@@ -25,7 +25,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
-from fastmcp.exceptions import ToolError
+from fastmcp.exceptions import ToolError, ValidationError as FastMCPValidationError
 from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
@@ -375,7 +375,7 @@ class TestGenerateExploreLink:
             }
             with (
                 patch("fastmcp.server.server.logger.warning"),
-                pytest.raises(ValidationError),
+                pytest.raises((ValidationError, FastMCPValidationError)),
             ):
                 await mcp_server.call_tool(
                     "generate_explore_link",
