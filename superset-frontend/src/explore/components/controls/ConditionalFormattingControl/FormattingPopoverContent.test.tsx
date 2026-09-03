@@ -23,6 +23,7 @@ import {
   waitFor,
   userEvent,
 } from 'spec/helpers/testing-library';
+import tinycolor from 'tinycolor2';
 import { Comparator, ColorSchemeEnum } from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/common';
 import { FormattingPopoverContent } from './FormattingPopoverContent';
@@ -784,7 +785,24 @@ test('validates Center value against Min bound and Max bound when both are set',
 // stale one from an earlier pick), wait for the panel *count* to grow past
 // what it was before this trigger was clicked, then act on the newest
 // (last) panel, which is the one this click just opened.
-const pickFirstPresetColor = async (label: string) => {
+// Opens the given ColorPickerControl's popover, clicks the preset swatch at
+// `presetIndex`, and returns the hex color that swatch actually represents
+// (read from its own inline `style.background`, normalized via `tinycolor`
+// so it's comparable to the hex string ColorPickerControl's
+// `outputFormat="hex"` produces). Returning the *actual* clicked color
+// (rather than just asserting "some string came back") lets the caller
+// verify each of the three fields resolved to the swatch it was individually
+// told to click, not merely that all three happened to end up non-empty.
+//
+// Each picker's popover stays mounted (unclosed) after a swatch is picked,
+// so with three pickers on the page there can be more than one
+// `.ant-color-picker-presets-items` panel present at once by the time this
+// runs a second or third time. Rather than a plain `querySelector` (which
+// would grab whichever panel happens to be first in the DOM — possibly a
+// stale one from an earlier pick), wait for the panel *count* to grow past
+// what it was before this trigger was clicked, then act on the newest
+// (last) panel, which is the one this click just opened.
+const pickPresetColorAt = async (label: string, presetIndex: number) => {
   const panelSelector = '.ant-color-picker-presets-items';
   const panelCountBefore = document.querySelectorAll(panelSelector).length;
 
@@ -800,14 +818,23 @@ const pickFirstPresetColor = async (label: string) => {
 
   const panels = document.querySelectorAll(panelSelector);
   const newestPanel = panels[panels.length - 1];
-  const preset = newestPanel.querySelector(
+  const presets = newestPanel.querySelectorAll(
     '.ant-color-picker-presets-color',
-  ) as HTMLElement;
+  );
+  const preset = presets[presetIndex] as HTMLElement;
   expect(preset).toBeInTheDocument();
+
+  const swatch = preset.querySelector(
+    '.ant-color-picker-color-block-inner',
+  ) as HTMLElement;
+  expect(swatch).toBeInTheDocument();
+  const clickedColor = tinycolor(swatch.style.background).toHexString();
+
   await userEvent.click(preset);
+  return clickedColor;
 };
 
-test('selecting Low/Mid/High colors submits lowColor/midColor/highColor to onChange', async () => {
+test('selecting Low/Mid/High colors submits the exact colors clicked to onChange, independently per field', async () => {
   const onChange = jest.fn();
   render(
     <FormattingPopoverContent
@@ -817,9 +844,17 @@ test('selecting Low/Mid/High colors submits lowColor/midColor/highColor to onCha
     />,
   );
 
-  await pickFirstPresetColor('Low color');
-  await pickFirstPresetColor('Mid color');
-  await pickFirstPresetColor('High color');
+  // Distinct preset indices per field are the whole point of this test: it
+  // proves the three fields wire independently, not merely that each ends
+  // up holding some string (which selecting the same swatch three times
+  // would also satisfy).
+  const lowExpected = await pickPresetColorAt('Low color', 0);
+  const midExpected = await pickPresetColorAt('Mid color', 1);
+  const highExpected = await pickPresetColorAt('High color', 2);
+
+  // Sanity check: if the default categorical scheme ever collapsed to fewer
+  // distinct colors, the assertions below could pass vacuously.
+  expect(new Set([lowExpected, midExpected, highExpected]).size).toBe(3);
 
   fireEvent.click(screen.getByText('Apply'));
 
@@ -828,7 +863,7 @@ test('selecting Low/Mid/High colors submits lowColor/midColor/highColor to onCha
   });
 
   const payload = onChange.mock.calls[0][0];
-  expect(payload.lowColor).toEqual(expect.any(String));
-  expect(payload.midColor).toEqual(expect.any(String));
-  expect(payload.highColor).toEqual(expect.any(String));
+  expect(tinycolor(payload.lowColor).toHexString()).toEqual(lowExpected);
+  expect(tinycolor(payload.midColor).toHexString()).toEqual(midExpected);
+  expect(tinycolor(payload.highColor).toHexString()).toEqual(highExpected);
 });
