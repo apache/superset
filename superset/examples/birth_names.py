@@ -182,7 +182,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         "viz_type": "table",
         "markup_type": "markdown",
     }
-    legacy_granularity_defaults = {**shared_defaults, "granularity": "ds"}
+    non_echarts_defaults = {**shared_defaults, "granularity": "ds"}
     echarts_x_axis_defaults = {**shared_defaults, "x_axis": "ds"}
 
     default_query_context = {
@@ -212,7 +212,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Participants",
             viz_type="big_number",
             params=get_slice_json(
-                legacy_granularity_defaults,
+                non_echarts_defaults,
                 viz_type="big_number",
                 granularity="ds",
                 compare_lag="5",
@@ -226,7 +226,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Genders",
             viz_type="pie",
             params=get_slice_json(
-                legacy_granularity_defaults,
+                non_echarts_defaults,
                 viz_type="pie",
                 groupby=["gender"],
                 metric=metric,
@@ -289,7 +289,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Girls",
             viz_type="table",
             params=get_slice_json(
-                legacy_granularity_defaults,
+                non_echarts_defaults,
                 groupby=["name"],
                 adhoc_filters=[gen_filter("gender", "girl")],
                 row_limit=50,
@@ -303,7 +303,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Girl Name Cloud",
             viz_type="word_cloud",
             params=get_slice_json(
-                legacy_granularity_defaults,
+                non_echarts_defaults,
                 viz_type="word_cloud",
                 size_from="10",
                 series="name",
@@ -320,7 +320,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Boys",
             viz_type="table",
             params=get_slice_json(
-                legacy_granularity_defaults,
+                non_echarts_defaults,
                 groupby=["name"],
                 adhoc_filters=[gen_filter("gender", "boy")],
                 row_limit=50,
@@ -334,7 +334,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Boy Name Cloud",
             viz_type="word_cloud",
             params=get_slice_json(
-                legacy_granularity_defaults,
+                non_echarts_defaults,
                 viz_type="word_cloud",
                 size_from="10",
                 series="name",
@@ -387,7 +387,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Pivot Table v2",
             viz_type="pivot_table_v2",
             params=get_slice_json(
-                legacy_granularity_defaults,
+                non_echarts_defaults,
                 viz_type="pivot_table_v2",
                 groupbyRows=["name"],
                 groupbyColumns=["state"],
@@ -444,7 +444,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Daily Totals",
             viz_type="table",
             params=get_slice_json(
-                legacy_granularity_defaults,
+                non_echarts_defaults,
                 groupby=["ds"],
                 time_range="1983 : 2023",
                 viz_type="table",
@@ -467,7 +467,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Number of California Births",
             viz_type="big_number_total",
             params=get_slice_json(
-                legacy_granularity_defaults,
+                non_echarts_defaults,
                 metric={
                     "expressionType": "SIMPLE",
                     "column": {
@@ -521,7 +521,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Names Sorted by Num in California",
             viz_type="table",
             params=get_slice_json(
-                legacy_granularity_defaults,
+                non_echarts_defaults,
                 metrics=metrics,
                 groupby=["name"],
                 row_limit=50,
@@ -542,7 +542,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Number of Girls",
             viz_type="big_number_total",
             params=get_slice_json(
-                legacy_granularity_defaults,
+                non_echarts_defaults,
                 metric=metric,
                 viz_type="big_number_total",
                 granularity="ds",
@@ -556,7 +556,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Pivot Table",
             viz_type="pivot_table_v2",
             params=get_slice_json(
-                legacy_granularity_defaults,
+                non_echarts_defaults,
                 viz_type="pivot_table_v2",
                 groupbyRows=["name"],
                 groupbyColumns=["state"],
