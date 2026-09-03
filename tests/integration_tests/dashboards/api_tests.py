@@ -3881,6 +3881,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 200
         assert rv.json["status"] == "ready"
         assert str(job_id) in rv.json["download_url"]
+        # Origin-relative: the browser resolves it against its own host, so
+        # APPLICATION_ROOT deployments and unset webdriver bases both work.
+        assert rv.json["download_url"].startswith("/")
 
     def test_export_xlsx_status_error_includes_message(self):
         """Dashboard API: a failed job's status is distinguishable from
@@ -3986,8 +3989,14 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         _, kwargs = mock_task.apply_async.call_args
         assert kwargs["kwargs"]["user_id"] is None
         assert kwargs["kwargs"]["guest_token"] == token
+        from superset.tasks.export_dashboard_excel import guest_lock_slot
+
         (_, lock_params), _ = mock_acquire.call_args
-        assert lock_params == {"user_id": 0, "dashboard_id": dashboard.id}
+        assert lock_params == {
+            "user_id": guest_lock_slot(token),
+            "dashboard_id": dashboard.id,
+        }
+        assert lock_params["user_id"] != 0
 
     def test_export_xlsx_status_running(self):
         """Dashboard API: a job a worker has started reports ``running``,
@@ -4007,6 +4016,32 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
         assert rv.status_code == 200
         assert rv.json == {"status": "running"}
+
+    def test_export_xlsx_status_reports_error_when_backend_changed(self):
+        """Dashboard API: status never reports ready for a link the download
+        endpoint will refuse after a storage-backend migration."""
+        from superset.dashboards.excel_export.download_link import (
+            create_download_link,
+        )
+
+        job_id = uuid.uuid4()
+        create_download_link(
+            job_id,
+            "exports",
+            "dashboard-exports/1/job.xlsx",
+            datetime.now() + timedelta(hours=1),
+            backend="superset.utils.s3.S3ExportStorage",
+        )
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+        original_storage_config = current_app.config["EXPORT_STORAGE"]
+        current_app.config["EXPORT_STORAGE"] = {"backend": MagicMock()}
+        try:
+            rv = self.client.get(f"/api/v1/dashboard/export_xlsx/status/{job_id}/")
+        finally:
+            current_app.config["EXPORT_STORAGE"] = original_storage_config
+        assert rv.status_code == 200
+        assert rv.json["status"] == "error"
 
     def test_download_xlsx_410_when_storage_backend_changed(self):
         """Dashboard API: a link uploaded by one storage backend is not signed

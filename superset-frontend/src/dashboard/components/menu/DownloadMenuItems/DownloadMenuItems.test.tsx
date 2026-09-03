@@ -665,3 +665,60 @@ test('poll failures past the deadline give up with an error toast', async () => 
   });
   expect(mockRedirect).not.toHaveBeenCalled();
 });
+
+test('a "ready" status with no download_url is an error, not a fake success', async () => {
+  jest.useFakeTimers();
+  mockSupersetClient.post.mockResolvedValue({
+    json: { job_id: 'abc' },
+  } as never);
+  mockSupersetClient.get.mockResolvedValue({
+    json: { status: 'ready' },
+  } as never);
+
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
+
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+  await waitFor(() => expect(mockSupersetClient.post).toHaveBeenCalled());
+
+  await act(async () => {
+    jest.advanceTimersByTime(3000);
+  });
+
+  await waitFor(() => {
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
+      'Sorry, something went wrong. Try again later.',
+    );
+  });
+  expect(mockAddSuccessToast).not.toHaveBeenCalled();
+  expect(mockRedirect).not.toHaveBeenCalled();
+});
+
+test('unmounting stops the polling loop', async () => {
+  jest.useFakeTimers();
+  mockSupersetClient.post.mockResolvedValue({
+    json: { job_id: 'abc' },
+  } as never);
+  mockSupersetClient.get.mockResolvedValue({
+    json: { status: 'pending' },
+  } as never);
+
+  const { unmount } = render(<MenuWrapper />, {
+    useRedux: true,
+    initialState: loggedInState,
+  });
+
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+  await waitFor(() => expect(mockSupersetClient.post).toHaveBeenCalled());
+
+  await act(async () => {
+    jest.advanceTimersByTime(3000);
+  });
+  await waitFor(() => expect(mockSupersetClient.get).toHaveBeenCalledTimes(1));
+
+  unmount();
+
+  await act(async () => {
+    jest.advanceTimersByTime(30000);
+  });
+  expect(mockSupersetClient.get).toHaveBeenCalledTimes(1);
+});

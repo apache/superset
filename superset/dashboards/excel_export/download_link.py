@@ -46,6 +46,8 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from flask import current_app
+
 from superset.daos.key_value import KeyValueDAO
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.utils.decorators import transaction
@@ -81,10 +83,24 @@ def _sweep_and_upsert(
     )
 
 
+def download_path(job_id: UUID) -> str:
+    """Root-relative path of the download endpoint for ``job_id``, including
+    ``APPLICATION_ROOT`` when Superset is served under a subpath. Handed to the
+    polling frontend, which resolves it against its own origin (the one host
+    the user is provably reachable at)."""
+    path = DOWNLOAD_PATH.format(job_id=job_id)
+    app_root = current_app.config.get("APPLICATION_ROOT") or "/"
+    if app_root != "/" and not path.startswith(app_root):
+        path = app_root.rstrip("/") + path
+    return path
+
+
 def build_download_url(job_id: UUID) -> str:
-    """The browser-facing URL that redirects to a freshly pre-signed S3 URL
-    for ``job_id``, once its export is ready."""
-    return headless_url(DOWNLOAD_PATH.format(job_id=job_id), user_friendly=True)
+    """Absolute download URL for ``job_id``, for the email (which cannot be
+    origin-relative). Based on ``WEBDRIVER_BASEURL_USER_FRIENDLY``, with
+    ``APPLICATION_ROOT`` preserved (a root-absolute path would otherwise
+    replace the base URL's whole path in ``urljoin``)."""
+    return headless_url(download_path(job_id), user_friendly=True)
 
 
 def create_download_link(
@@ -95,9 +111,9 @@ def create_download_link(
     (used in the success email).
 
     ``backend`` is the dotted path of the ``ExportStorage`` class that
-    uploaded the file; the download redirect refuses to sign with a different
-    backend (see ``download_xlsx``), failing clearly after a storage migration
-    instead of minting a URL for the wrong provider.
+    uploaded the file; the download endpoint refuses to serve with a
+    different backend (see ``download_xlsx``), failing clearly after a
+    storage migration instead of reading the wrong provider's bucket.
 
     ``expires_at`` should be a naive datetime in the same timezone convention
     ``KeyValueEntry.is_expired()`` compares against (naive ``datetime.now()``).
@@ -137,8 +153,7 @@ def get_export_status(job_id: UUID) -> dict[str, Any] | None:
 
 def resolve_download_link(job_id: UUID) -> tuple[str, str, str | None] | None:
     """The ``(bucket, object_key, backend_path)`` for a *ready* download, or
-    ``None`` if it is missing, expired, still running, or errored.
-    ``backend_path`` is ``None`` for records written before it was tracked."""
+    ``None`` if it is missing, expired, still running, or errored."""
     payload = get_export_status(job_id)
     if payload is None or payload.get("status") != STATUS_READY:
         return None

@@ -383,6 +383,11 @@ WTF_CSRF_EXEMPT_LIST = [
     # the same reason as the chart data endpoint above.
     "superset.datasource.api.query",
     "superset.dashboards.api.cache_dashboard_screenshot",
+    # Guest-token (embedded) sessions authenticate via the guest token
+    # header and carry no CSRF token cookie; without the exemption their
+    # export POST is rejected outright. Worst case for a logged-in user is a
+    # cross-site forced enqueue of an export they never see (the response is
+    # unreadable cross-origin and the link is never exposed).
     "superset.dashboards.api.export_xlsx",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
@@ -1547,15 +1552,16 @@ EXCEL_EXPORT: dict[str, Any] = {}
 class ExportStorageConfig(TypedDict, total=False):
     """Where generated export artifacts (dashboard Excel exports, and
     potentially other export file types) are uploaded, and how the download
-    redirect resolves them back to a fresh URL. See EXPORT_STORAGE."""
+    endpoint streams them back. See EXPORT_STORAGE."""
 
     # Destination bucket for generated export artifacts. The export feature is
     # disabled until this is set: the export endpoint returns 501 while absent.
     bucket: str
     # Key/blob prefix for export objects: {prefix}{dashboard_id}/{job_id}.xlsx
-    # A callable is invoked per export, for deployments where the prefix is
-    # only known in request/task context (e.g. a multi-tenant installation
-    # scoping a shared bucket per tenant).
+    # A callable is invoked per export, inside the worker task (no request
+    # context), for deployments where the prefix is only known at run time
+    # (e.g. a multi-tenant installation scoping a shared bucket per tenant
+    # from worker-ambient app config).
     key_prefix: str | Callable[[], str]
     # The storage backend (an instance implementing
     # superset.utils.export_storage.ExportStorage), the same pattern as
@@ -1575,11 +1581,11 @@ class ExportStorageConfig(TypedDict, total=False):
 EXPORT_STORAGE: ExportStorageConfig = {
     "key_prefix": "dashboard-exports/",
 }
-# Lifetime (seconds) of the download link emailed to the user (24h). Not part
-# of ExportStorageConfig: it bounds the Superset-issued redirect link
-# itself (see superset.dashboards.excel_export.download_link), independent of
-# how long the underlying storage backend's own credentials or URLs last --
-# the storage URL is minted fresh at click time with its own short lifetime.
+# Lifetime (seconds) of the download link shared with the user (24h). Not
+# part of ExportStorageConfig: it bounds the Superset-issued link itself (see
+# superset.dashboards.excel_export.download_link); each click streams the
+# file from storage through Superset. Guest-initiated exports are clamped to
+# a shorter lifetime (see superset.tasks.export_dashboard_excel).
 EXCEL_EXPORT_LINK_TTL_SECONDS = 86400
 # Viz types treated as tables in the "Export Images to Excel" mode: these charts
 # stay tabular (one worksheet of data) while every other viz type is embedded as

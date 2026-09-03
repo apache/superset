@@ -33,6 +33,7 @@ filters) and embedded, while table-like charts stay tabular.
 from __future__ import annotations
 
 import copy
+import hashlib
 import logging
 import os
 import tempfile
@@ -93,6 +94,12 @@ REBUILD_VIZ_TYPES = {"table", "big_number_total", "big_number", "pie"}
 EXPORT_SOFT_TIME_LIMIT = 600
 EXPORT_HARD_TIME_LIMIT = 660
 
+# Guest-initiated exports cap their download-link lifetime: guests retrieve the
+# file through the polling window right after the export and have no email to
+# revisit a link from later, so the link should not outlive by a day the
+# short-lived credential that authorized it.
+GUEST_LINK_TTL_SECONDS = 60 * 60
+
 # Namespace + TTL for the per-user+dashboard in-flight lock the API acquires
 # before enqueue and this task releases when it settles. The lock uses the
 # shared, atomic DistributedLock backend (Redis when configured, the metadata
@@ -108,6 +115,25 @@ EXPORT_LOCK_TTL_SECONDS = EXPORT_HARD_TIME_LIMIT + 60
 def export_lock_params(user_id: int, dashboard_id: int) -> dict[str, int]:
     """Key parameters identifying the per-user+dashboard in-flight lock."""
     return {"user_id": user_id, "dashboard_id": dashboard_id}
+
+
+def guest_lock_slot(guest_token: GuestToken | None) -> int:
+    """A stable per-guest lock slot derived from the token's identity, so
+    concurrent guests on the same dashboard throttle independently instead of
+    all sharing slot 0 (where the second guest's export is refused with no
+    job id and no email fallback). Anonymous requesters (no token) share 0.
+    """
+    if not guest_token:
+        return 0
+    user = guest_token.get("user") or {}
+    resources = guest_token.get("resources") or []
+    fingerprint = json.dumps(
+        {"username": user.get("username"), "resources": resources},
+        sort_keys=True,
+        default=str,
+    )
+    digest = hashlib.sha256(fingerprint.encode()).digest()
+    return int.from_bytes(digest[:8], "big")
 
 
 class _ChartSkippedError(Exception):
@@ -408,11 +434,20 @@ def _build_workbook(
                 )
                 errored.setdefault(email.ERROR_GENERAL, []).append(label)
 
+        # The workbook itself carries the skipped-charts list: sessions with
+        # no email (guests, Public role) have no other way to learn that part
+        # of the requested workbook was omitted.
         if writer.sheet_count == 0:
             flat = [label for labels in errored.values() for label in labels]
             writer.add_summary_sheet(
                 "Export Summary",
                 ["No chart data could be exported.", *flat],
+            )
+        elif errored:
+            flat = [label for labels in errored.values() for label in labels]
+            writer.add_summary_sheet(
+                "Export Summary",
+                ["Charts that could not be exported:", *flat],
             )
     finally:
         writer.close()
@@ -433,6 +468,18 @@ def _handle_export_failure(
     session with no email, e.g. an embedded/guest dashboard, has no other way
     to learn the export failed than polling ``export_xlsx/status/<job_id>/``).
     """
+    # Status first: on a soft timeout only 60s remain before the hard kill,
+    # and a slow SMTP send must not cost pollers the failure status.
+    try:
+        # Naive local time: KeyValueEntry.is_expired() compares against naive
+        # datetime.now(), like every other writer into this store.
+        mark_export_failed(
+            uuid.UUID(job_id),
+            _GENERIC_FAILURE_MESSAGE,
+            datetime.now() + timedelta(seconds=ttl),
+        )
+    except Exception:  # pylint: disable=broad-except
+        logger.exception("Failed to record export failure status for %s", job_id)
     if user and getattr(user, "email", None):
         try:
             email.send_export_email(
@@ -442,15 +489,6 @@ def _handle_export_failure(
             )
         except Exception:  # pylint: disable=broad-except
             logger.exception("Failed to send export failure email")
-    try:
-        expires_at = datetime.now(tz=timezone.utc) + timedelta(seconds=ttl)
-        mark_export_failed(
-            uuid.UUID(job_id),
-            _GENERIC_FAILURE_MESSAGE,
-            expires_at.replace(tzinfo=None),
-        )
-    except Exception:  # pylint: disable=broad-except
-        logger.exception("Failed to record export failure status for %s", job_id)
 
 
 def _resolve_export_storage(
@@ -486,10 +524,8 @@ def _mark_running(job_id: str) -> None:
     """Tell pollers execution has begun (vs. queued); best-effort, the export
     must not fail over a status write."""
     try:
-        expires_at = datetime.now(tz=timezone.utc) + timedelta(
-            seconds=EXPORT_HARD_TIME_LIMIT + 300
-        )
-        mark_export_running(uuid.UUID(job_id), expires_at.replace(tzinfo=None))
+        expires_at = datetime.now() + timedelta(seconds=EXPORT_HARD_TIME_LIMIT + 300)
+        mark_export_running(uuid.UUID(job_id), expires_at)
     except Exception:  # pylint: disable=broad-except
         logger.exception("Failed to record running status for %s", job_id)
 
@@ -572,15 +608,18 @@ def export_dashboard_excel(
 
             storage_backend, bucket, key = _resolve_export_storage(dashboard_id, job_id)
             storage_backend.upload_file(tmp_path, bucket, key)
-            expires_at = datetime.now(tz=timezone.utc) + timedelta(seconds=ttl)
-            # KeyValueEntry.expires_on comparisons use naive datetime.now(), so
-            # the stored expiry must be naive UTC too, not tz-aware.
+            # Naive local time to match KeyValueEntry.is_expired()'s naive
+            # datetime.now() comparison. Guests hold the link only for the
+            # polling window (no email fallback to revisit later), so their
+            # links need not outlive the short credential that authorized them.
+            link_ttl = min(ttl, GUEST_LINK_TTL_SECONDS) if guest_token else ttl
+            expires_at = datetime.now() + timedelta(seconds=link_ttl)
             backend_cls = type(storage_backend)
             download_url = create_download_link(
                 uuid.UUID(job_id),
                 bucket,
                 key,
-                expires_at.replace(tzinfo=None),
+                expires_at,
                 backend=f"{backend_cls.__module__}.{backend_cls.__qualname__}",
             )
 
@@ -614,8 +653,11 @@ def export_dashboard_excel(
         try:
             ReleaseDistributedLock(
                 EXPORT_LOCK_NAMESPACE,
-                # Must mirror the key the API acquired: guests share slot 0.
-                export_lock_params(user_id or 0, dashboard_id),
+                # Must mirror the key the API acquired: guests get a stable
+                # slot from their token identity, anonymous sessions share 0.
+                export_lock_params(
+                    user_id or guest_lock_slot(guest_token), dashboard_id
+                ),
             ).run()
         except Exception:  # pylint: disable=broad-except
             # Best-effort: the lock's TTL is the backstop if this fails.

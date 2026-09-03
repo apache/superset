@@ -65,7 +65,9 @@ This feature is **disabled by default**. It requires:
 
    Until both are set, the export endpoint returns `501` and the menu action
    surfaces a "not configured" message.
-2. **The backend's SDK dependency.** Not installed by default; install
+2. **The backend's SDK dependency, on both the web and worker tiers** (the
+   worker uploads, the web server streams downloads). Not installed by
+   default; install
    `pip install apache-superset[excel-export]` (boto3) for `S3ExportStorage`,
    or `pip install apache-superset[excel-export-gcs]` (google-cloud-storage)
    for `GCSExportStorage`. Without it, exports fail.
@@ -105,8 +107,10 @@ for MinIO/LocalStack); for GCS, Application Default Credentials. Two tiers
 need bucket access, which matters when they run under separate identities:
 the **Celery worker** uploads the file (write, e.g. `s3:PutObject`), while
 the **web server** streams it back at download time (read, e.g.
-`s3:GetObject`). No signing permissions are needed on either tier: downloads
-stream through Superset rather than redirecting to a signed storage URL.
+`s3:GetObject`; on S3 also grant `s3:ListBucket`, or a lifecycle-expired
+object surfaces as AccessDenied instead of a clean "link expired"). No
+signing permissions are needed on either tier: downloads stream through
+Superset rather than redirecting to a signed storage URL.
 
 ## Security considerations
 

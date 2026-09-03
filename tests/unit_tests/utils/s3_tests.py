@@ -125,3 +125,15 @@ def test_download_unrelated_client_error_propagates(
 
     with pytest.raises(botocore.exceptions.ClientError):
         S3ExportStorage().download("my-bucket", "exports/1/abc.xlsx")
+
+
+@patch("boto3.client")
+def test_download_closes_body_after_streaming(mock_client_fn: MagicMock) -> None:
+    client = mock_client_fn.return_value
+    body = MagicMock(iter_chunks=lambda chunk_size: iter([b"aa"]))
+    client.get_object.return_value = {"ContentLength": 2, "Body": body}
+
+    _, chunks = S3ExportStorage().download("my-bucket", "k")
+    list(chunks)
+
+    body.close.assert_called_once_with()
