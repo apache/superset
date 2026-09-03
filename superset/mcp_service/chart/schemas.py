@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import difflib
 import logging
+import math
 import re
 from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal, Protocol
@@ -1085,8 +1086,143 @@ class SunburstStandardizedFormData(UnknownFieldCheckMixin):
     )
 
 
-class SunburstNativeMetricColumn(UnknownFieldCheckMixin):
-    """Bounded frontend column metadata nested in a native SIMPLE metric."""
+_NATIVE_COLUMN_META_MAX_DEPTH = 8
+_NATIVE_COLUMN_META_MAX_CONTAINER_ITEMS = 128
+_NATIVE_COLUMN_META_MAX_TOTAL_VALUES = 512
+_NATIVE_COLUMN_META_MAX_KEY_BYTES = 1_024
+_NATIVE_COLUMN_META_MAX_STRING_BYTES = 16 * 1_024
+_NATIVE_COLUMN_META_MAX_TOTAL_STRING_BYTES = 64 * 1_024
+_NATIVE_COLUMN_META_MAX_INT_BITS = 64
+
+
+def _native_column_meta_string_bytes(value: str, *, key: bool = False) -> int:
+    """Return exact UTF-8 size for a trusted built-in string."""
+    kind = "key" if key else "string"
+    try:
+        size = len(str.encode(value, "utf-8"))
+    except UnicodeEncodeError as ex:
+        raise ValueError(
+            f"Sunburst native metric column metadata {kind} is invalid"
+        ) from ex
+    limit = (
+        _NATIVE_COLUMN_META_MAX_KEY_BYTES
+        if key
+        else _NATIVE_COLUMN_META_MAX_STRING_BYTES
+    )
+    if size > limit:
+        raise ValueError(f"Sunburst native metric column metadata {kind} is too long")
+    return size
+
+
+def _native_column_meta_dict_children(
+    value: dict[Any, Any], depth: int
+) -> tuple[list[tuple[Any, int]], int]:
+    """Read exact-dict children while validating bounded primitive keys."""
+    if dict.__len__(value) > _NATIVE_COLUMN_META_MAX_CONTAINER_ITEMS:
+        raise ValueError("Sunburst native metric column metadata object is too large")
+    children: list[tuple[Any, int]] = []
+    string_bytes = 0
+    for key, nested in dict.items(value):
+        if type(key) is not str:
+            raise ValueError(
+                "Sunburst native metric column metadata keys must be strings"
+            )
+        string_bytes += _native_column_meta_string_bytes(key, key=True)
+        children.append((nested, depth + 1))
+    return children, string_bytes
+
+
+def _native_column_meta_list_children(
+    value: list[Any], depth: int
+) -> list[tuple[Any, int]]:
+    """Read exact-list children without dispatching subclass hooks."""
+    if list.__len__(value) > _NATIVE_COLUMN_META_MAX_CONTAINER_ITEMS:
+        raise ValueError("Sunburst native metric column metadata array is too large")
+    return [
+        (list.__getitem__(value, index), depth + 1)
+        for index in range(list.__len__(value))
+    ]
+
+
+def _validate_native_column_meta_scalar(value: Any) -> int:
+    """Validate one exact JSON scalar and return its string-byte contribution."""
+    value_type = type(value)
+    if value_type is str:
+        return _native_column_meta_string_bytes(value)
+    if value_type is int:
+        if int.bit_length(value) > _NATIVE_COLUMN_META_MAX_INT_BITS:
+            raise ValueError(
+                "Sunburst native metric column metadata integer is too large"
+            )
+        return 0
+    if value_type is float:
+        if not math.isfinite(value):
+            raise ValueError(
+                "Sunburst native metric column metadata number must be finite"
+            )
+        return 0
+    if value_type not in (bool, type(None)):
+        raise ValueError(
+            "Sunburst native metric column metadata contains an invalid value"
+        )
+    return 0
+
+
+def _validate_bounded_native_column_meta(value: Any) -> Any:
+    """Validate an extensible frontend ColumnMeta object without invoking hooks."""
+    if type(value) is not dict:
+        raise ValueError("Sunburst native metric column must be an object")
+
+    total_values = 0
+    total_string_bytes = 0
+    stack: list[tuple[Any, int]] = [(value, 0)]
+    while stack:
+        item, depth = stack.pop()
+        total_values += 1
+        if total_values > _NATIVE_COLUMN_META_MAX_TOTAL_VALUES:
+            raise ValueError("Sunburst native metric column metadata is too large")
+        if depth > _NATIVE_COLUMN_META_MAX_DEPTH:
+            raise ValueError(
+                "Sunburst native metric column metadata is too deeply nested"
+            )
+
+        item_type = type(item)
+        if item_type is dict:
+            children, key_bytes = _native_column_meta_dict_children(item, depth)
+            total_string_bytes += key_bytes
+            stack.extend(children)
+        elif item_type is list:
+            stack.extend(_native_column_meta_list_children(item, depth))
+        else:
+            total_string_bytes += _validate_native_column_meta_scalar(item)
+
+        if total_string_bytes > _NATIVE_COLUMN_META_MAX_TOTAL_STRING_BYTES:
+            raise ValueError("Sunburst native metric column metadata is too large")
+    return value
+
+
+class SunburstNativeMetricColumn(BaseModel):
+    """Owned projection of the frontend's intentionally extensible ColumnMeta."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    column_name: StrictStr = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        validation_alias=AliasChoices("column_name", "columnName"),
+    )
+    type: StrictStr | None = Field(None, max_length=255)
+
+    @model_validator(mode="before")
+    @classmethod
+    def validate_bounded_column_meta(cls, value: Any) -> Any:
+        """Bound the full open object before projecting the fields we own."""
+        return _validate_bounded_native_column_meta(value)
+
+
+class XYNativeMetricColumn(UnknownFieldCheckMixin):
+    """Closed legacy ColumnMeta projection retained for native XY axes."""
 
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -1312,11 +1448,17 @@ class SunburstChartConfig(BaseChartConfig):
         )
 
     @staticmethod
-    def _coerce_native_metric(value: Any) -> Any:
+    def _coerce_native_metric(
+        value: Any, *, allow_extensible_column_meta: bool = True
+    ) -> Any:
         """Accept saved metric names and native SIMPLE/SQL metric objects."""
-        if isinstance(value, str):
+        if type(value) is str:
             return {"name": value, "saved_metric": True}
-        if not isinstance(value, dict) or "expressionType" not in value:
+        if isinstance(value, ColumnRef):
+            return value
+        if type(value) is not dict:
+            raise ValueError("Sunburst native metric must be a string or object")
+        if "expressionType" not in value:
             return value
 
         allowed_keys = {
@@ -1329,10 +1471,7 @@ class SunburstChartConfig(BaseChartConfig):
             "optionName",
             "sqlExpression",
         }
-        if unknown := set(value) - allowed_keys:
-            raise ValueError(
-                "Unknown Sunburst native metric field(s): " + ", ".join(sorted(unknown))
-            )
+        SunburstChartConfig._validate_native_metric_keys(value, allowed_keys)
 
         SunburstChartConfig._validate_native_metric_metadata(value)
 
@@ -1351,13 +1490,22 @@ class SunburstChartConfig(BaseChartConfig):
             }
         if expression_type == "SIMPLE":
             column = value.get("column")
-            if isinstance(column, dict):
-                column_metadata = SunburstNativeMetricColumn.model_validate(column)
+            if type(column) is dict:
+                column_model = (
+                    SunburstNativeMetricColumn
+                    if allow_extensible_column_meta
+                    else XYNativeMetricColumn
+                )
+                column_metadata = column_model.model_validate(column)
                 name = column_metadata.column_name
                 dtype = column_metadata.type
-            else:
+            elif type(column) is str:
                 name = column
                 dtype = None
+            else:
+                raise ValueError(
+                    "Sunburst SIMPLE metric column must be a column name or object"
+                )
             return {
                 "name": name,
                 "aggregate": value.get("aggregate"),
@@ -1368,17 +1516,30 @@ class SunburstChartConfig(BaseChartConfig):
         return value
 
     @staticmethod
+    def _validate_native_metric_keys(
+        value: dict[str, Any], allowed_keys: set[str]
+    ) -> None:
+        """Reject typos in the closed, schema-owned metric wrapper."""
+        keys = dict.keys(value)
+        if any(type(key) is not str for key in keys):
+            raise ValueError("Sunburst native metric keys must be strings")
+        if unknown := set(keys) - allowed_keys:
+            raise ValueError(
+                "Unknown Sunburst native metric field(s): " + ", ".join(sorted(unknown))
+            )
+
+    @staticmethod
     def _validate_native_metric_metadata(value: dict[str, Any]) -> None:
         """Validate bounded frontend-only attributes on an adhoc metric."""
         for key in ("label", "optionName", "sqlExpression"):
             item = value.get(key)
-            if item is not None and not isinstance(item, str):
+            if item is not None and type(item) is not str:
                 raise ValueError(f"Sunburst native metric {key} must be a string")
-        if isinstance(value.get("optionName"), str) and len(value["optionName"]) > 500:
+        if type(value.get("optionName")) is str and len(value["optionName"]) > 500:
             raise ValueError("Sunburst native metric optionName is too long")
         for key in ("datasourceWarning", "hasCustomLabel"):
             item = value.get(key)
-            if item is not None and not isinstance(item, bool):
+            if item is not None and type(item) is not bool:
                 raise ValueError(f"Sunburst native metric {key} must be a boolean")
 
     @staticmethod
@@ -2518,7 +2679,9 @@ class XYChartConfig(BaseChartConfig):
         if values is None:
             return values
         return [
-            SunburstChartConfig._coerce_native_metric(value)
+            SunburstChartConfig._coerce_native_metric(
+                value, allow_extensible_column_meta=False
+            )
             if isinstance(value, dict) and "expressionType" in value
             else value
             for value in values
@@ -2999,7 +3162,7 @@ def _normalize_chart_request_input(data: Any) -> Any:  # noqa: C901
                         if expression_type == "SIMPLE":
                             column = native_x_axis.get("column")
                             if isinstance(column, dict):
-                                column = SunburstNativeMetricColumn.model_validate(
+                                column = XYNativeMetricColumn.model_validate(
                                     column
                                 ).column_name
                             native_x_axis = {
@@ -3075,7 +3238,9 @@ def _normalize_chart_request_input(data: Any) -> Any:  # noqa: C901
                     (
                         {"name": metric, "saved_metric": True}
                         if isinstance(metric, str)
-                        else SunburstChartConfig._coerce_native_metric(metric)
+                        else SunburstChartConfig._coerce_native_metric(
+                            metric, allow_extensible_column_meta=False
+                        )
                     )
                     for metric in metrics
                 ]

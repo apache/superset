@@ -159,6 +159,62 @@ class TestGenerateExploreLink:
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @pytest.mark.asyncio
+    async def test_sunburst_accepts_complete_frontend_column_meta(
+        self, mock_find_dataset, mcp_server
+    ) -> None:
+        """The real FastMCP boundary accepts the frontend's open ColumnMeta."""
+        mock_find_dataset.return_value = _mock_dataset(id=1)
+        column_meta = {
+            "advanced_data_type": None,
+            "certification_details": None,
+            "certified_by": None,
+            "column_name": "sales",
+            "description": None,
+            "expression": "",
+            "filterable": True,
+            "groupby": True,
+            "id": 332,
+            "is_certified": False,
+            "is_dttm": False,
+            "python_date_format": None,
+            "type": "DOUBLE",
+            "type_generic": 0,
+            "verbose_name": None,
+            "warning_markdown": None,
+            "future_metadata": {"nested": ["value", 1, True, None]},
+        }
+        request = {
+            "dataset_id": 1,
+            "config": {
+                "viz_type": "sunburst_v2",
+                "columns": ["region", "country"],
+                "metric": {
+                    "expressionType": "SIMPLE",
+                    "column": column_meta,
+                    "aggregate": "SUM",
+                    "hasCustomLabel": False,
+                    "label": "SUM(sales)",
+                },
+            },
+        }
+
+        with patch.object(
+            generate_explore_link_module.DatasetValidator,
+            "normalize_column_names",
+            side_effect=lambda config, _dataset_id: config,
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "generate_explore_link", {"request": request}
+                )
+
+        assert result.structured_content["success"] is True
+        metric = result.structured_content["form_data"]["metric"]
+        assert metric["column"] == {"column_name": "sales"}
+        assert "future_metadata" not in metric["column"]
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
     async def test_generate_table_explore_link_minimal(
         self, mock_find_dataset, mcp_server
     ):

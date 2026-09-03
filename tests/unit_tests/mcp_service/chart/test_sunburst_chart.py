@@ -17,6 +17,7 @@
 
 """Product-path coverage for typed MCP Sunburst support."""
 
+from collections.abc import Iterator
 from copy import deepcopy
 from decimal import Decimal
 from pathlib import Path
@@ -64,6 +65,7 @@ from superset.mcp_service.chart.schemas import (
     ChartError,
     ColumnRef,
     GenerateChartRequest,
+    GenerateExploreLinkRequest,
     GetChartDataRequest,
     GetChartPreviewRequest,
     HandlebarsChartConfig,
@@ -123,6 +125,53 @@ def _config(**overrides: object) -> SunburstChartConfig:
         "chart_type": "sunburst",
         "hierarchy": [{"name": "region"}, {"name": "country"}],
         "metric": {"name": "sales", "aggregate": "SUM", "label": "Sales"},
+    }
+    payload.update(overrides)
+    return SunburstChartConfig.model_validate(payload)
+
+
+def _frontend_column_meta(
+    column_name: object = "sales", type_: object = "DOUBLE"
+) -> dict[object, object]:
+    """Mirror the frontend TestDataset ColumnMeta shape plus future fields."""
+    return {
+        "advanced_data_type": None,
+        "certification_details": None,
+        "certified_by": None,
+        "column_name": column_name,
+        "description": None,
+        "expression": "",
+        "filterable": True,
+        "groupby": True,
+        "id": 332,
+        "is_certified": False,
+        "is_dttm": False,
+        "python_date_format": None,
+        "type": type_,
+        "type_generic": 0,
+        "verbose_name": None,
+        "warning_markdown": None,
+        "forward_compatible": {
+            "nested": ["value", 1, 1.5, True, None, {"enabled": False}]
+        },
+    }
+
+
+def _frontend_native_metric() -> dict[str, object]:
+    return {
+        "expressionType": "SIMPLE",
+        "column": _frontend_column_meta(),
+        "aggregate": "SUM",
+        "hasCustomLabel": False,
+        "label": "SUM(sales)",
+    }
+
+
+def _frontend_native_config(**overrides: object) -> SunburstChartConfig:
+    payload: dict[str, object] = {
+        "viz_type": "sunburst_v2",
+        "columns": ["region", "country"],
+        "metric": _frontend_native_metric(),
     }
     payload.update(overrides)
     return SunburstChartConfig.model_validate(payload)
@@ -1079,7 +1128,10 @@ def test_native_saved_form_data_preserves_bounded_ui_state_on_round_trip() -> No
 
 def _native_request_payload(
     request_model: type[
-        GenerateChartRequest | UpdateChartRequest | UpdateChartPreviewRequest
+        GenerateChartRequest
+        | GenerateExploreLinkRequest
+        | UpdateChartRequest
+        | UpdateChartPreviewRequest
     ],
     metric: object,
     secondary_metric: object | None,
@@ -1100,7 +1152,7 @@ def _native_request_payload(
             "memorizedFormData": [["table", {"viz_type": "table"}]],
         },
     }
-    if request_model is GenerateChartRequest:
+    if request_model in (GenerateChartRequest, GenerateExploreLinkRequest):
         return {"dataset_id": 7, "config": config}
     if request_model is UpdateChartRequest:
         return {"identifier": 19, "config": config}
@@ -1109,7 +1161,12 @@ def _native_request_payload(
 
 @pytest.mark.parametrize(
     "request_model",
-    [GenerateChartRequest, UpdateChartRequest, UpdateChartPreviewRequest],
+    [
+        GenerateChartRequest,
+        GenerateExploreLinkRequest,
+        UpdateChartRequest,
+        UpdateChartPreviewRequest,
+    ],
 )
 @pytest.mark.parametrize(
     "metric,secondary_metric,expected_metric,expected_secondary",
@@ -1147,7 +1204,10 @@ def _native_request_payload(
 )
 def test_real_native_request_schema_round_trip(
     request_model: type[
-        GenerateChartRequest | UpdateChartRequest | UpdateChartPreviewRequest
+        GenerateChartRequest
+        | GenerateExploreLinkRequest
+        | UpdateChartRequest
+        | UpdateChartPreviewRequest
     ],
     metric: object,
     secondary_metric: object | None,
@@ -1197,6 +1257,213 @@ def test_real_native_request_schema_round_trip(
         "standardizedFormData",
     ):
         assert reparsed_form_data.get(key) == form_data.get(key)
+
+
+@pytest.mark.parametrize(
+    "request_model",
+    [
+        GenerateChartRequest,
+        GenerateExploreLinkRequest,
+        UpdateChartRequest,
+        UpdateChartPreviewRequest,
+    ],
+)
+def test_public_native_requests_accept_complete_frontend_column_meta(
+    request_model: type[
+        GenerateChartRequest
+        | GenerateExploreLinkRequest
+        | UpdateChartRequest
+        | UpdateChartPreviewRequest
+    ],
+) -> None:
+    """ColumnMeta is open-ended, but only its owned projection is retained."""
+    payload = _native_request_payload(request_model, _frontend_native_metric(), None)
+    request = request_model.model_validate(payload)
+    assert isinstance(request.config, SunburstChartConfig)
+    assert request.config.metric.name == "sales"
+    assert request.config.metric.dtype == "DOUBLE"
+
+    form_data = map_config_to_form_data(request.config)
+    assert form_data["metric"]["column"] == {"column_name": "sales"}
+    assert "forward_compatible" not in form_data["metric"]["column"]
+
+    config = payload["config"]
+    assert isinstance(config, dict)
+    config["metric"] = form_data["metric"]
+    reparsed = request_model.model_validate(payload)
+    assert isinstance(reparsed.config, SunburstChartConfig)
+    assert map_config_to_form_data(reparsed.config)["metric"] == form_data["metric"]
+
+
+@pytest.mark.parametrize(
+    "column,expected_name,expected_type",
+    [
+        ("sales", "sales", None),
+        ({"column_name": "sales"}, "sales", None),
+        ({"columnName": "sales", "type": "DOUBLE"}, "sales", "DOUBLE"),
+        (
+            {"column_name": "sales", "future_column_nmae": "ignored"},
+            "sales",
+            None,
+        ),
+    ],
+)
+def test_native_simple_metric_reduced_column_shapes_remain_supported(
+    column: object, expected_name: str, expected_type: str | None
+) -> None:
+    metric = _frontend_native_metric()
+    metric["column"] = column
+    request = GenerateChartRequest.model_validate(
+        _native_request_payload(GenerateChartRequest, metric, None)
+    )
+    assert isinstance(request.config, SunburstChartConfig)
+    assert request.config.metric.name == expected_name
+    assert request.config.metric.dtype == expected_type
+
+
+@pytest.mark.parametrize(
+    "column,error",
+    [
+        ({}, "column_name"),
+        ({"column_nmae": "sales"}, "column_name"),
+        ({"column_name": ""}, "column_name"),
+        ({"column_name": 7}, "column_name"),
+        ({"column_name": "x" * 256}, "column_name"),
+        ({"column_name": "sales", "type": 7}, "type"),
+        ({"column_name": "sales", "type": "x" * 256}, "type"),
+        ({"column_name": "sales", "future": float("nan")}, "finite"),
+        (
+            {"column_name": "sales", "future": [None] * 129},
+            "array is too large",
+        ),
+        (
+            {
+                "column_name": "sales",
+                **{f"future_{index}": None for index in range(128)},
+            },
+            "object is too large",
+        ),
+        (
+            {"column_name": "sales", "future": "x" * (16 * 1024 + 1)},
+            "string is too long",
+        ),
+        (
+            {"column_name": "sales", "x" * 1_025: True},
+            "key is too long",
+        ),
+    ],
+)
+def test_native_column_meta_rejects_invalid_owned_and_bounded_values(
+    column: dict[object, object], error: str
+) -> None:
+    metric = _frontend_native_metric()
+    metric["column"] = column
+    with pytest.raises(ValidationError, match=error):
+        GenerateChartRequest.model_validate(
+            _native_request_payload(GenerateChartRequest, metric, None)
+        )
+
+
+def test_native_column_meta_bounds_depth_total_values_and_integer_size() -> None:
+    deeply_nested: object = None
+    for _ in range(9):
+        deeply_nested = {"nested": deeply_nested}
+
+    for future_value in (
+        deeply_nested,
+        [[0, 1, 2, 3] for _ in range(128)],
+        1 << 64,
+    ):
+        metric = _frontend_native_metric()
+        metric["column"] = {
+            "column_name": "sales",
+            "future": future_value,
+        }
+        with pytest.raises(ValidationError):
+            GenerateChartRequest.model_validate(
+                _native_request_payload(GenerateChartRequest, metric, None)
+            )
+
+
+def test_native_column_meta_rejects_hostile_objects_without_hooks() -> None:  # noqa: C901
+    calls: list[str] = []
+
+    class HostileDict(dict[object, object]):
+        def __iter__(self) -> Iterator[object]:
+            calls.append("iter")
+            if calls:
+                raise AssertionError
+            return iter(())
+
+        def items(self):
+            calls.append("items")
+            raise AssertionError
+
+        def __repr__(self) -> str:
+            calls.append("repr")
+            if calls:
+                raise AssertionError
+            return ""
+
+        def __str__(self) -> str:
+            calls.append("str")
+            if calls:
+                raise AssertionError
+            return ""
+
+    class HostileStr(str):
+        def __repr__(self) -> str:
+            calls.append("repr")
+            if calls:
+                raise AssertionError
+            return ""
+
+        def __str__(self) -> str:
+            calls.append("str")
+            if calls:
+                raise AssertionError
+            return ""
+
+        def encode(self, *_args, **_kwargs):
+            calls.append("encode")
+            raise AssertionError
+
+    class HostileValue:
+        def __repr__(self) -> str:
+            calls.append("repr")
+            if calls:
+                raise AssertionError
+            return ""
+
+        def __str__(self) -> str:
+            calls.append("str")
+            if calls:
+                raise AssertionError
+            return ""
+
+    hostile_columns: list[object] = [
+        HostileDict(column_name="sales"),
+        {HostileStr("column_name"): "sales"},
+        {"column_name": HostileStr("sales")},
+        {"column_name": "sales", "future": HostileValue()},
+    ]
+    for column in hostile_columns:
+        metric = _frontend_native_metric()
+        metric["column"] = column
+        with pytest.raises(ValidationError):
+            GenerateChartRequest.model_validate(
+                _native_request_payload(GenerateChartRequest, metric, None)
+            )
+        assert calls == []
+
+
+def test_native_metric_owned_typo_remains_rejected() -> None:
+    metric = _frontend_native_metric()
+    metric["aggregat"] = metric.pop("aggregate")
+    with pytest.raises(ValidationError, match="aggregat"):
+        GenerateChartRequest.model_validate(
+            _native_request_payload(GenerateChartRequest, metric, None)
+        )
 
 
 @pytest.mark.parametrize(
@@ -1370,16 +1637,10 @@ _SUNBURST_LEGACY_FIXTURE_KEYS = {
     [
         (lambda params: params.__setitem__("show_bubbles", "true"), "show_bubbles"),
         (
-            lambda params: params["secondary_metric"]["column"].__setitem__(
-                "optionName", 7
+            lambda params: params["secondary_metric"]["column"].update(
+                {"column_nmae": params["secondary_metric"]["column"].pop("column_name")}
             ),
-            "optionName",
-        ),
-        (
-            lambda params: params["secondary_metric"]["column"].__setitem__(
-                "optionNmae", "typo"
-            ),
-            "optionNmae",
+            "column_name",
         ),
         (lambda params: params.__setitem__("show_buble", True), "show_buble"),
     ],
@@ -3985,7 +4246,7 @@ def test_saved_preview_is_sunburst_faithful_and_vega_is_unsupported() -> None:
 async def test_generate_chart_product_path_returns_sunburst_preview() -> None:
     request = GenerateChartRequest(
         dataset_id=7,
-        config=_config(),
+        config=_frontend_native_config(),
         preview_formats=["url"],
     )
     context = MagicMock()
@@ -4095,7 +4356,7 @@ async def test_unsaved_generate_ignores_native_chart_and_datasource_identity(
 async def test_saved_generate_assigns_only_the_new_chart_identity() -> None:
     request = GenerateChartRequest(
         dataset_id=7,
-        config=_config(datasource="10__table", slice_id=404),
+        config=_frontend_native_config(datasource="10__table", slice_id=404),
         chart_name="New hierarchy",
         save_chart=True,
         generate_preview=False,
@@ -4265,7 +4526,7 @@ async def test_cross_viz_preview_update_and_immediate_save_report_sunburst_state
         uuid="chart-uuid",
         params=json.dumps({"viz_type": source_viz, **source_params}),
     )
-    config = _config()
+    config = _frontend_native_config()
     context = MagicMock()
     context.warning = AsyncMock()
     context.error = AsyncMock()
