@@ -22,6 +22,7 @@ from typing import Any, Optional, TypedDict
 import pandas as pd
 from flask import current_app
 from flask_babel import lazy_gettext as _
+from sqlalchemy import or_
 from werkzeug.datastructures import FileStorage
 
 from superset import db
@@ -170,13 +171,18 @@ class UploadCommand(BaseCommand):
 
         catalog = self._model.get_default_catalog()
 
+        catalog_filter = (
+            or_(SqlaTable.catalog == catalog, SqlaTable.catalog.is_(None))
+            if catalog is not None
+            else SqlaTable.catalog.is_(None)
+        )
         sqla_table = (
             db.session.query(SqlaTable)
-            .filter_by(
-                table_name=self._table_name,
-                schema=self._schema,
-                catalog=catalog,
-                database_id=self._model_id,
+            .filter(
+                SqlaTable.table_name == self._table_name,
+                SqlaTable.schema == self._schema,
+                SqlaTable.database_id == self._model_id,
+                catalog_filter,
             )
             .one_or_none()
         )

@@ -296,6 +296,9 @@ def _stub_run_environment(mocker: MockerFixture) -> MagicMock:
     )
     db_mock = mocker.patch("superset.commands.database.uploaders.base.db")
     # No visible dataset over the target table.
+    db_mock.session.query.return_value.filter.return_value.one_or_none.return_value = (
+        None
+    )
     db_mock.session.query.return_value.filter_by.return_value.one_or_none.return_value = None  # noqa: E501
     return model
 
@@ -410,7 +413,7 @@ def test_run_updates_catalog_on_existing_dataset_with_none_catalog(
     existing_table.catalog = None
 
     db_mock = mocker.patch("superset.commands.database.uploaders.base.db")
-    db_mock.session.query.return_value.filter_by.return_value.one_or_none.return_value = (  # noqa: E501
+    db_mock.session.query.return_value.filter.return_value.one_or_none.return_value = (
         existing_table
     )
 
