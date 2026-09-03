@@ -193,6 +193,12 @@ def test_happy_path_uploads_and_emails(mocks: dict[str, Any]) -> None:
     assert list(uploaded["sheets"].keys()) == ["10 - First", "20 - Second"]
     mocks["email"].send_export_email.assert_called_once()
     mocks["email"].build_success_email.assert_called_once()
+    # The email labels its timestamps "UTC", so expires_at is handed over as a
+    # UTC-aware value even though it is stored naive-local for is_expired().
+    from datetime import timezone
+
+    _, kwargs = mocks["email"].build_success_email.call_args
+    assert kwargs["expires_at"].tzinfo == timezone.utc
     assert _no_temp_files_left(JOB_ID)
 
 
@@ -1073,9 +1079,20 @@ def test_guest_lock_slot_is_stable_and_identity_scoped() -> None:
         resources=[{"type": GuestTokenResourceType.DASHBOARD, "id": "d1"}],
         rls_rules=[],
     )
+    # Same username and resources, different RLS -- embedded guests sharing a
+    # dashboard are distinguished by their RLS rules when the username is shared
+    # or absent, so they must not collide on one lock slot.
+    token_a_rls = GuestToken(
+        iat=0.0,
+        exp=0.0,
+        user={"username": "alice"},
+        resources=[{"type": GuestTokenResourceType.DASHBOARD, "id": "d1"}],
+        rls_rules=[{"clause": "team_id = 1"}],
+    )
 
     assert guest_lock_slot(token_a) == guest_lock_slot(token_a_copy)
     assert guest_lock_slot(token_a) != guest_lock_slot(token_b)
+    assert guest_lock_slot(token_a) != guest_lock_slot(token_a_rls)
     assert guest_lock_slot(None) == 0
 
 
