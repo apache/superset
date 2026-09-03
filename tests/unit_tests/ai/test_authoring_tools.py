@@ -85,17 +85,19 @@ def test_generate_chart_accepts_json_config() -> None:
 
 
 def test_mcp_runner_isolates_request_state(app_context: None) -> None:
-    from flask import g, has_request_context
+    from flask import current_app, g, has_request_context
+
+    from superset.mcp_service.auth import get_user_from_request
 
     original_user = MagicMock(username="admin", email="admin@example.test")
     worker_user = MagicMock(username="admin", email="admin@example.test")
     g.user = original_user
-    seen: list[tuple[Any, bool]] = []
+    seen: list[tuple[Any, Any, bool]] = []
 
     async def call(_tool_name: str, _request: Any) -> dict[str, Any]:
         from flask import g as worker_g
 
-        seen.append((worker_g.user, has_request_context()))
+        seen.append((worker_g.user, get_user_from_request(), has_request_context()))
         return {"success": True}
 
     request = GenerateChartRequest.model_validate(
@@ -109,6 +111,7 @@ def test_mcp_runner_isolates_request_state(app_context: None) -> None:
     )
 
     with (
+        patch.dict(current_app.config, {"MCP_DEV_USERNAME": "configured-dev"}),
         patch("superset.ai.tools.authoring._call_mcp_tool", new=call),
         patch(
             "superset.mcp_service.auth.load_user_with_relationships",
@@ -123,7 +126,7 @@ def test_mcp_runner_isolates_request_state(app_context: None) -> None:
 
     assert output == {"success": True}
     load_user.assert_called_once_with(username="admin", email="admin@example.test")
-    assert seen == [(worker_user, True)]
+    assert seen == [(worker_user, worker_user, True)]
     assert g.user is original_user
 
 
@@ -137,7 +140,7 @@ def test_mcp_runner_times_out_stalled_worker(app_context: None) -> None:
     with (
         patch.dict(current_app.config, {"AI_AGENT_TIMEOUT_SECONDS": 12}),
         patch("superset.ai.tools.authoring.Thread", return_value=worker),
-        pytest.raises(ToolError, match="authoring timed out"),
+        pytest.raises(ToolError, match="may still complete"),
     ):
         _run_mcp_tool("generate_chart", MagicMock())
 

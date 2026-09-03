@@ -99,6 +99,23 @@ _mcp_user_id_var: ContextVar[int | None] = ContextVar("mcp_user_id", default=Non
 # authenticated principals for tool execution.
 MCPUser: TypeAlias = User | GuestUser
 
+# A trusted in-process caller may already have resolved the principal and need
+# to carry it through FastMCP without falling back to development credentials.
+_mcp_user_override_var: ContextVar[MCPUser | None] = ContextVar(
+    "mcp_user_override", default=None
+)
+
+
+@contextmanager
+def mcp_user_context(user: MCPUser) -> Generator[None, None, None]:
+    """Pin a trusted in-process MCP call to its authenticated principal."""
+    token = _mcp_user_override_var.set(user)
+    try:
+        yield
+    finally:
+        _mcp_user_override_var.reset(token)
+
+
 # Constants for RBAC permission attributes (mirrors FAB conventions)
 PERMISSION_PREFIX = "can_"
 CLASS_PERMISSION_ATTR = "_class_permission_name"
@@ -803,8 +820,9 @@ def get_user_from_request() -> MCPUser:
        ``MCP_EMBEDDED_GUEST_AUTH_ENABLED`` + ``EMBEDDED_SUPERSET`` are on), so a
        guest can never be downgraded to a lower-priority source.
     2. API key from Authorization header (via FAB SecurityManager)
-    3. MCP_DEV_USERNAME from configuration (for development/testing)
-    4. g.user fallback (for external middleware like Preset's
+    3. Principal pinned by a trusted in-process caller
+    4. MCP_DEV_USERNAME from configuration (for development/testing)
+    5. g.user fallback (for external middleware like Preset's
        WorkspaceContextMiddleware that sets g.user fresh per request)
 
     This ordering prevents stale ``g.user`` from a previous tool call
@@ -825,7 +843,11 @@ def get_user_from_request() -> MCPUser:
     if (api_key_user := _resolve_user_from_api_key(current_app)) is not None:
         return api_key_user
 
-    # Priority 3: Configured dev username for development/single-user deployments
+    # Priority 3: trusted in-process principal
+    if (pinned_user := _mcp_user_override_var.get()) is not None:
+        return pinned_user
+
+    # Priority 4: Configured dev username for development/single-user deployments
     if username := current_app.config.get("MCP_DEV_USERNAME"):
         user = load_user_with_relationships(username)
         if not user:
@@ -835,7 +857,7 @@ def get_user_from_request() -> MCPUser:
             )
         return user
 
-    # Priority 4: g.user fallback (set by external middleware, e.g. Preset)
+    # Priority 5: g.user fallback (set by external middleware, e.g. Preset)
     if hasattr(g, "user") and g.user:
         return g.user
 

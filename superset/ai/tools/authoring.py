@@ -125,7 +125,10 @@ def _run_mcp_tool(tool_name: str, request: BaseModel) -> dict[str, Any]:
         try:
             from flask import g as worker_g
 
-            from superset.mcp_service.auth import load_user_with_relationships
+            from superset.mcp_service.auth import (
+                load_user_with_relationships,
+                mcp_user_context,
+            )
 
             with app.test_request_context():
                 worker_g.user = load_user_with_relationships(
@@ -134,7 +137,8 @@ def _run_mcp_tool(tool_name: str, request: BaseModel) -> dict[str, Any]:
                 )
                 if worker_g.user is None:
                     raise ToolError("The authenticated user could not be reloaded.")
-                outcome["value"] = asyncio.run(_call_mcp_tool(tool_name, request))
+                with mcp_user_context(worker_g.user):
+                    outcome["value"] = asyncio.run(_call_mcp_tool(tool_name, request))
         except BaseException as ex:  # noqa: BLE001
             outcome["error"] = ex
 
@@ -143,7 +147,10 @@ def _run_mcp_tool(tool_name: str, request: BaseModel) -> dict[str, Any]:
     worker.join(float(app.config.get("AI_AGENT_TIMEOUT_SECONDS", 300)))
 
     if worker.is_alive():
-        raise ToolError("Superset authoring timed out.")
+        raise ToolError(
+            "Superset authoring timed out. The operation may still complete; "
+            "check for the asset before retrying."
+        )
 
     if error := outcome.get("error"):
         raise error

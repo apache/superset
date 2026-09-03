@@ -672,8 +672,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     #
     # Off by default and inert until a model provider is configured via
     # AI_LLM_PROVIDER_CLASS — with the flag on but no provider the endpoints
-    # still return 404, so enabling the flag alone sends nothing anywhere. The
-    # assistant's own tools are read-only; it cannot create or modify assets.
+    # still return 404, so enabling the flag alone sends nothing anywhere.
+    # Shipped profiles are read-only; administrators may opt profiles into tools
+    # that create virtual datasets, charts, or dashboards under normal RBAC.
     # @lifecycle: development
     "AI_ASSISTANT": False,
     # Enables experimental tabs UI for Alerts and Reports
