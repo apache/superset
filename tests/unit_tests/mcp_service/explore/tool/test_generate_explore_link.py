@@ -21,6 +21,7 @@ Comprehensive unit tests for MCP generate_explore_link tool
 
 import importlib
 import logging
+from collections.abc import Iterator, Mapping
 from unittest.mock import Mock, patch
 
 import pytest
@@ -325,45 +326,153 @@ class TestGenerateExploreLink:
         )
 
     @pytest.mark.asyncio
-    async def test_registered_fastmcp_rejects_hostile_metric_strings_without_hooks(
+    async def test_registered_fastmcp_sanitizes_all_hostile_native_metric_inputs(  # noqa: C901
         self, mcp_server
     ) -> None:
         calls: list[str] = []
 
-        class HostileStr(str):
-            def __hash__(self) -> int:
-                calls.append("hash")
-                return str.__hash__(self)
-
-            def __eq__(self, _other: object) -> bool:
-                calls.append("eq")
+        class HostileObject:
+            def __repr__(self) -> str:
+                calls.append("object.repr")
                 raise AssertionError
 
             def __str__(self) -> str:
-                calls.append("str")
-                if calls:
-                    raise AssertionError
-                return ""
+                calls.append("object.str")
+                raise AssertionError
+
+            def __hash__(self) -> int:
+                calls.append("object.hash")
+                raise AssertionError
+
+            def __eq__(self, _other: object) -> bool:
+                calls.append("object.eq")
+                raise AssertionError
+
+            def __bool__(self) -> bool:
+                calls.append("object.bool")
+                raise AssertionError
+
+        class HostileStr(str):
+            def __hash__(self) -> int:
+                calls.append("str.hash")
+                return str.__hash__(self)
+
+            def __eq__(self, _other: object) -> bool:
+                calls.append("str.eq")
+                raise AssertionError
+
+            def __str__(self) -> str:
+                calls.append("str.str")
+                raise AssertionError
 
             def __repr__(self) -> str:
-                calls.append("repr")
-                if calls:
-                    raise AssertionError
-                return ""
+                calls.append("str.repr")
+                raise AssertionError
+
+        class HostileDict(dict[object, object]):
+            def __repr__(self) -> str:
+                calls.append("dict.repr")
+                raise AssertionError
+
+            def __iter__(self) -> Iterator[object]:
+                calls.append("dict.iter")
+                raise AssertionError
+
+            def items(self):
+                calls.append("dict.items")
+                raise AssertionError
+
+            def keys(self):
+                calls.append("dict.keys")
+                raise AssertionError
+
+            def get(self, _key: object, _default: object = None) -> object:
+                calls.append("dict.get")
+                raise AssertionError
+
+            def __getitem__(self, _key: object) -> object:
+                calls.append("dict.getitem")
+                raise AssertionError
+
+        class HostileList(list[object]):
+            def __repr__(self) -> str:
+                calls.append("list.repr")
+                raise AssertionError
+
+            def __iter__(self) -> Iterator[object]:
+                calls.append("list.iter")
+                raise AssertionError
+
+            def __getitem__(self, _key: object) -> object:  # type: ignore[override]
+                calls.append("list.getitem")
+                raise AssertionError
+
+        class HostileMapping(Mapping[object, object]):
+            def __repr__(self) -> str:
+                calls.append("mapping.repr")
+                raise AssertionError
+
+            def __iter__(self) -> Iterator[object]:
+                calls.append("mapping.iter")
+                raise AssertionError
+
+            def __len__(self) -> int:
+                calls.append("mapping.len")
+                raise AssertionError
+
+            def __getitem__(self, _key: object) -> object:
+                calls.append("mapping.getitem")
+                raise AssertionError
+
+        def simple(**overrides: object) -> dict[object, object]:
+            metric: dict[object, object] = {
+                "expressionType": "SIMPLE",
+                "column": "sales",
+                "aggregate": "SUM",
+            }
+            for key, value in overrides.items():
+                dict.__setitem__(metric, key, value)
+            return metric
 
         hostile_key = HostileStr("expressionType")
-        key_metric = {
-            hostile_key: "SIMPLE",
-            "column": "sales",
-            "aggregate": "SUM",
-        }
-        calls.clear()
-        value_metric = {
-            "expressionType": HostileStr("SIMPLE"),
-            "column": "sales",
-            "aggregate": "SUM",
-        }
-        for metric in (key_metric, value_metric):
+        cases: list[object] = [
+            simple(label=HostileStr("Sales")),
+            simple(aggregate=HostileStr("SUM")),
+            {
+                "expressionType": "SQL",
+                "sqlExpression": HostileStr("SUM(sales)"),
+                "label": "Sales",
+            },
+            simple(optionName=HostileStr("metric")),
+            simple(expressionType=HostileObject()),
+            simple(hasCustomLabel=HostileObject()),
+            simple(datasourceWarning=HostileObject()),
+            simple(column=HostileDict(column_name="sales")),
+            simple(column=HostileList(["sales"])),
+            simple(column={"column_name": "sales", "future": HostileObject()}),
+            simple(
+                column={
+                    "column_name": "sales",
+                    "future": HostileDict(enabled=True),
+                }
+            ),
+            simple(
+                column={
+                    "column_name": "sales",
+                    "future": HostileList([True]),
+                }
+            ),
+            HostileMapping(),
+            HostileList([]),
+            HostileDict(expressionType="SIMPLE", column="sales", aggregate="SUM"),
+            {
+                hostile_key: "SIMPLE",
+                "column": "sales",
+                "aggregate": "SUM",
+            },
+        ]
+        calls.clear()  # constructing the hostile-key dictionary needs hashing
+        for metric in cases:
             request = {
                 "dataset_id": 1,
                 "config": {
@@ -385,8 +494,73 @@ class TestGenerateExploreLink:
                     run_middleware=False,
                 )
             assert calls == []
-            str(validation_error.value)
+            outputs = (
+                str(validation_error.value),
+                repr(validation_error.value),
+                repr(validation_error.value.errors()),
+            )
             assert calls == []
+            assert all(len(output.encode()) < 64 * 1024 for output in outputs)
+
+    @pytest.mark.parametrize(
+        "metric_path",
+        ["metric", "secondary_metric", "secondaryMetric", "standardized metrics"],
+    )
+    @pytest.mark.asyncio
+    async def test_registered_fastmcp_sanitizes_every_native_metric_path(
+        self, metric_path: str, mcp_server
+    ) -> None:
+        calls: list[str] = []
+
+        class HostileStr(str):
+            def __repr__(self) -> str:
+                calls.append("repr")
+                raise AssertionError
+
+            def __str__(self) -> str:
+                calls.append("str")
+                raise AssertionError
+
+        hostile_metric = {
+            "expressionType": "SIMPLE",
+            "column": "sales",
+            "aggregate": "SUM",
+            "label": HostileStr("Sales"),
+        }
+        valid_metric = {
+            "expressionType": "SIMPLE",
+            "column": "sales",
+            "aggregate": "SUM",
+        }
+        config: dict[str, object] = {
+            "viz_type": "sunburst_v2",
+            "columns": ["region"],
+            "annotation_layers": [],
+            "metric": valid_metric,
+        }
+        if metric_path == "standardized metrics":
+            config["standardizedFormData"] = {"controls": {"metrics": [hostile_metric]}}
+        else:
+            config[metric_path] = hostile_metric
+        request = {"dataset_id": 1, "config": config}
+        with (
+            patch("fastmcp.server.server.logger.warning"),
+            pytest.raises(
+                (ValidationError, FastMCPValidationError)
+            ) as validation_error,
+        ):
+            await mcp_server.call_tool(
+                "generate_explore_link",
+                {"request": request},
+                run_middleware=False,
+            )
+        outputs = (
+            str(validation_error.value),
+            repr(validation_error.value),
+            repr(validation_error.value.errors()),
+        )
+        assert calls == []
+        assert all(len(output.encode()) < 64 * 1024 for output in outputs)
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @pytest.mark.asyncio

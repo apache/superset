@@ -1116,10 +1116,14 @@ _NATIVE_METRIC_DISCRIMINATOR_KEYS = frozenset(
     }
 )
 _NATIVE_METRIC_MISSING = object()
-
-
-class _UnsafeNativeMetricInputError(ValueError):
-    """Signal input that must be removed before Pydantic renders an error."""
+_NATIVE_METRIC_INPUT_KEYS = frozenset(
+    {"metric", "metrics", "secondary_metric", "secondaryMetric"}
+)
+_NATIVE_METRIC_INVALID_VALUE = b"invalid native metric value"
+_NATIVE_METRIC_INVALID_KEY = "__invalid_native_metric_key__"
+_NATIVE_METRIC_SANITIZE_MAX_DEPTH = 16
+_NATIVE_METRIC_SANITIZE_MAX_VALUES = 1_024
+_NATIVE_METRIC_ERROR_STRING_LENGTH = 128
 
 
 def _native_column_meta_string_bytes(value: str, *, key: bool = False) -> int:
@@ -1139,6 +1143,197 @@ def _native_column_meta_string_bytes(value: str, *, key: bool = False) -> int:
     if size > limit:
         raise ValueError(f"Sunburst native metric column metadata {kind} is too long")
     return size
+
+
+def _sanitize_native_metric_dict(
+    value: dict[Any, Any],
+    depth: int,
+    remaining: list[int],
+    ancestors: set[int],
+) -> tuple[Any, bool]:
+    """Project one exact dictionary through built-in operations only."""
+    value_id = id(value)
+    if value_id in ancestors:
+        return _NATIVE_METRIC_INVALID_VALUE, True
+    if dict.__len__(value) > _NATIVE_COLUMN_META_MAX_CONTAINER_ITEMS:
+        return {
+            f"invalid_{index}": _NATIVE_METRIC_INVALID_VALUE
+            for index in range(_NATIVE_COLUMN_META_MAX_CONTAINER_ITEMS + 1)
+        }, True
+
+    ancestors.add(value_id)
+    projected: dict[str, Any] = {}
+    requires_rejection = False
+    for key, item in dict.items(value):
+        if type(key) is not str:
+            projected[_NATIVE_METRIC_INVALID_KEY] = _NATIVE_METRIC_INVALID_VALUE
+            requires_rejection = True
+            continue
+        if str.__len__(key) > _NATIVE_METRIC_ERROR_STRING_LENGTH:
+            projected["x" * (_NATIVE_COLUMN_META_MAX_KEY_BYTES + 1)] = (
+                _NATIVE_METRIC_INVALID_VALUE
+            )
+            requires_rejection = True
+            continue
+        projected_item, item_requires_rejection = _sanitize_native_metric_value(
+            item,
+            depth=depth + 1,
+            remaining=remaining,
+            ancestors=ancestors,
+        )
+        projected[key] = projected_item
+        requires_rejection = requires_rejection or item_requires_rejection
+    ancestors.remove(value_id)
+    return projected, requires_rejection
+
+
+def _sanitize_native_metric_list(
+    value: list[Any],
+    depth: int,
+    remaining: list[int],
+    ancestors: set[int],
+) -> tuple[Any, bool]:
+    """Project one exact list through built-in operations only."""
+    value_id = id(value)
+    if value_id in ancestors:
+        return _NATIVE_METRIC_INVALID_VALUE, True
+    if list.__len__(value) > _NATIVE_COLUMN_META_MAX_CONTAINER_ITEMS:
+        return [_NATIVE_METRIC_INVALID_VALUE] * (
+            _NATIVE_COLUMN_META_MAX_CONTAINER_ITEMS + 1
+        ), True
+
+    ancestors.add(value_id)
+    projected_items: list[Any] = []
+    requires_rejection = False
+    for index in range(list.__len__(value)):
+        projected_item, item_requires_rejection = _sanitize_native_metric_value(
+            list.__getitem__(value, index),
+            depth=depth + 1,
+            remaining=remaining,
+            ancestors=ancestors,
+        )
+        projected_items.append(projected_item)
+        requires_rejection = requires_rejection or item_requires_rejection
+    ancestors.remove(value_id)
+    return projected_items, requires_rejection
+
+
+def _sanitize_native_metric_value(
+    value: Any,
+    *,
+    depth: int = 0,
+    remaining: list[int] | None = None,
+    ancestors: set[int] | None = None,
+) -> tuple[Any, bool]:
+    """Build a bounded exact-type projection without dispatching object hooks."""
+    if remaining is None:
+        remaining = [_NATIVE_METRIC_SANITIZE_MAX_VALUES]
+    if ancestors is None:
+        ancestors = set()
+    remaining[0] -= 1
+    if remaining[0] < 0 or depth > _NATIVE_METRIC_SANITIZE_MAX_DEPTH:
+        return _NATIVE_METRIC_INVALID_VALUE, True
+
+    value_type = type(value)
+    if value_type is str:
+        return (
+            str.__getitem__(value, slice(0, _NATIVE_METRIC_ERROR_STRING_LENGTH)),
+            False,
+        )
+    if value_type in (int, float, bool, type(None), ColumnRef):
+        return value, False
+    if value_type is dict:
+        return _sanitize_native_metric_dict(value, depth, remaining, ancestors)
+    if value_type is list:
+        return _sanitize_native_metric_list(value, depth, remaining, ancestors)
+    return _NATIVE_METRIC_INVALID_VALUE, True
+
+
+def _metric_paths_in_dict_require_safe_rejection(
+    value: dict[Any, Any], depth: int, remaining: list[int], seen: set[int]
+) -> bool:
+    """Inspect metric-bearing paths of one exact dictionary."""
+    value_id = id(value)
+    if value_id in seen:
+        return False
+    seen.add(value_id)
+    for key, nested in dict.items(value):
+        if type(key) is not str:
+            return True
+        if key in _NATIVE_METRIC_INPUT_KEYS:
+            if _sanitize_native_metric_value(nested)[1]:
+                return True
+        elif _native_metric_paths_require_safe_rejection(
+            nested, depth=depth + 1, remaining=remaining, seen=seen
+        ):
+            return True
+    return False
+
+
+def _metric_paths_in_list_require_safe_rejection(
+    value: list[Any], depth: int, remaining: list[int], seen: set[int]
+) -> bool:
+    """Inspect metric-bearing paths of one exact list."""
+    value_id = id(value)
+    if value_id in seen:
+        return False
+    seen.add(value_id)
+    return any(
+        _native_metric_paths_require_safe_rejection(
+            list.__getitem__(value, index),
+            depth=depth + 1,
+            remaining=remaining,
+            seen=seen,
+        )
+        for index in range(list.__len__(value))
+    )
+
+
+def _native_metric_paths_require_safe_rejection(
+    value: Any,
+    *,
+    depth: int = 0,
+    remaining: list[int] | None = None,
+    seen: set[int] | None = None,
+) -> bool:
+    """Find unsafe metric subtrees without consuming non-exact containers."""
+    if remaining is None:
+        remaining = [_NATIVE_METRIC_SANITIZE_MAX_VALUES]
+    if seen is None:
+        seen = set()
+    remaining[0] -= 1
+    if remaining[0] < 0 or depth > _NATIVE_METRIC_SANITIZE_MAX_DEPTH:
+        return False
+    if type(value) is dict:
+        return _metric_paths_in_dict_require_safe_rejection(
+            value, depth, remaining, seen
+        )
+    if type(value) is list:
+        return _metric_paths_in_list_require_safe_rejection(
+            value, depth, remaining, seen
+        )
+    return False
+
+
+def _replace_exact_dict_contents(
+    value: dict[Any, Any], replacement: dict[str, Any]
+) -> None:
+    """Replace exact-dict input through built-in operations only."""
+    dict.clear(value)
+    for key, item in dict.items(replacement):
+        dict.__setitem__(value, key, item)
+
+
+def _sanitize_rejected_native_metric_config(
+    data: dict[str, Any], original_data: dict[str, Any] | None
+) -> dict[str, Any]:
+    """Project a rejected config and replace Pydantic's retained input."""
+    projected, _ = _sanitize_native_metric_value(data)
+    if type(projected) is not dict:
+        projected = {_NATIVE_METRIC_INVALID_KEY: _NATIVE_METRIC_INVALID_VALUE}
+    if original_data is not None:
+        _replace_exact_dict_contents(original_data, projected)
+    return projected
 
 
 def _validate_native_metric_string(
@@ -1168,18 +1363,12 @@ def _inspect_native_metric_expression_type(value: Any) -> tuple[object, bool]:
     has_native_discriminator = False
     for key, item in dict.items(value):
         if type(key) is not str:
-            raise _UnsafeNativeMetricInputError(
-                "Sunburst native metric keys must be strings"
-            )
+            raise ValueError("Sunburst native metric keys must be strings")
         _validate_native_metric_string(key, "field name", 255)
         if key in _NATIVE_METRIC_DISCRIMINATOR_KEYS:
             has_native_discriminator = True
         if key == "expressionType":
             if type(item) is not str:
-                if issubclass(type(item), str):
-                    raise _UnsafeNativeMetricInputError(
-                        "Sunburst native metric expressionType must be a string"
-                    )
                 raise ValueError(
                     "Sunburst native metric expressionType must be a string"
                 )
@@ -1251,22 +1440,9 @@ def _validate_native_metric_wrapper(value: Any) -> dict[str, Any]:
 
 def _validate_non_dict_native_metric(value: Any) -> ColumnRef:
     """Accept an existing model while rejecting hook-bearing dict subclasses."""
-    if issubclass(type(value), dict):
-        raise _UnsafeNativeMetricInputError(
-            "Sunburst native metric must be an exact object"
-        )
-    if isinstance(value, ColumnRef):
+    if type(value) is ColumnRef:
         return value
     raise ValueError("Sunburst native metric must be a string or object")
-
-
-def _replace_unsafe_native_metric(
-    data: dict[str, Any], original_data: dict[str, Any] | None, key: str
-) -> None:
-    """Remove one hook-bearing value from working and Pydantic input mappings."""
-    dict.__setitem__(data, key, 0)
-    if original_data is not None:
-        dict.__setitem__(original_data, key, 0)
 
 
 def _native_column_meta_dict_children(
@@ -1373,6 +1549,19 @@ class SunburstNativeMetricColumn(BaseModel):
     @classmethod
     def validate_bounded_column_meta(cls, value: Any) -> Any:
         """Bound the full open object before projecting the fields we own."""
+        projected, requires_safe_rejection = _sanitize_native_metric_value(value)
+        if requires_safe_rejection:
+            if type(value) is dict:
+                if type(projected) is not dict:
+                    projected = {
+                        _NATIVE_METRIC_INVALID_KEY: _NATIVE_METRIC_INVALID_VALUE
+                    }
+                _replace_exact_dict_contents(value, projected)
+                value = projected
+            else:
+                # Let Pydantic reject the safe scalar so the original subclass
+                # is not retained as the input of an in-validator exception.
+                return projected
         value = _validate_bounded_native_column_meta(value)
         snake_name = dict.get(value, "column_name", _NATIVE_METRIC_MISSING)
         camel_name = dict.get(value, "columnName", _NATIVE_METRIC_MISSING)
@@ -1792,13 +1981,9 @@ class SunburstChartConfig(BaseChartConfig):
             return data
         original_data = data if type(data) is dict else None
         data = dict(data)
-        try:
-            is_native_form_data = cls._looks_like_native_form_data(data)
-        except _UnsafeNativeMetricInputError:
-            # Pydantic includes rejected input in its rendered error. Remove
-            # hook-bearing objects before handing control back to its validators.
-            _replace_unsafe_native_metric(data, original_data, "metric")
-            is_native_form_data = True
+        if _native_metric_paths_require_safe_rejection(data):
+            data = _sanitize_rejected_native_metric_config(data, original_data)
+        is_native_form_data = cls._looks_like_native_form_data(data)
         data.pop(_NATIVE_FORM_DATA_MARKER, None)
 
         if is_native_form_data:
@@ -1807,10 +1992,7 @@ class SunburstChartConfig(BaseChartConfig):
 
             for key in ("metric", "secondary_metric", "secondaryMetric"):
                 if key in data and data[key] is not None:
-                    try:
-                        data[key] = cls._coerce_native_metric(data[key])
-                    except _UnsafeNativeMetricInputError:
-                        _replace_unsafe_native_metric(data, original_data, key)
+                    data[key] = cls._coerce_native_metric(data[key])
 
             # Native saved filters can be round-tripped when they use the SIMPLE
             # controls. SQL filter clauses intentionally remain outside the typed

@@ -17,7 +17,7 @@
 
 """Product-path coverage for typed MCP Sunburst support."""
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from copy import deepcopy
 from decimal import Decimal
 from pathlib import Path
@@ -166,6 +166,180 @@ def _frontend_native_metric() -> dict[str, object]:
         "hasCustomLabel": False,
         "label": "SUM(sales)",
     }
+
+
+def _hostile_native_metric_cases(  # noqa: C901
+    calls: list[str],
+) -> list[tuple[str, object]]:
+    """Build hostile values without relying on their application hooks."""
+
+    class HostileObject:
+        def __repr__(self) -> str:
+            calls.append("object.repr")
+            raise AssertionError
+
+        def __str__(self) -> str:
+            calls.append("object.str")
+            raise AssertionError
+
+        def __hash__(self) -> int:
+            calls.append("object.hash")
+            raise AssertionError
+
+        def __eq__(self, _other: object) -> bool:
+            calls.append("object.eq")
+            raise AssertionError
+
+        def __bool__(self) -> bool:
+            calls.append("object.bool")
+            raise AssertionError
+
+        def __iter__(self) -> Iterator[object]:
+            calls.append("object.iter")
+            raise AssertionError
+
+        def __getitem__(self, _key: object) -> object:
+            calls.append("object.getitem")
+            raise AssertionError
+
+    class HostileStr(str):
+        def __repr__(self) -> str:
+            calls.append("str.repr")
+            raise AssertionError
+
+        def __str__(self) -> str:
+            calls.append("str.str")
+            raise AssertionError
+
+        def __hash__(self) -> int:
+            calls.append("str.hash")
+            return str.__hash__(self)
+
+        def __eq__(self, _other: object) -> bool:
+            calls.append("str.eq")
+            raise AssertionError
+
+    class HostileDict(dict[object, object]):
+        def __repr__(self) -> str:
+            calls.append("dict.repr")
+            raise AssertionError
+
+        def __iter__(self) -> Iterator[object]:
+            calls.append("dict.iter")
+            raise AssertionError
+
+        def items(self):
+            calls.append("dict.items")
+            raise AssertionError
+
+        def keys(self):
+            calls.append("dict.keys")
+            raise AssertionError
+
+        def get(self, _key: object, _default: object = None) -> object:
+            calls.append("dict.get")
+            raise AssertionError
+
+        def __getitem__(self, _key: object) -> object:
+            calls.append("dict.getitem")
+            raise AssertionError
+
+    class HostileList(list[object]):
+        def __repr__(self) -> str:
+            calls.append("list.repr")
+            raise AssertionError
+
+        def __iter__(self) -> Iterator[object]:
+            calls.append("list.iter")
+            raise AssertionError
+
+        def __getitem__(self, _key: object) -> object:  # type: ignore[override]
+            calls.append("list.getitem")
+            raise AssertionError
+
+    class HostileMapping(Mapping[object, object]):
+        def __repr__(self) -> str:
+            calls.append("mapping.repr")
+            raise AssertionError
+
+        def __iter__(self) -> Iterator[object]:
+            calls.append("mapping.iter")
+            raise AssertionError
+
+        def __len__(self) -> int:
+            calls.append("mapping.len")
+            raise AssertionError
+
+        def __getitem__(self, _key: object) -> object:
+            calls.append("mapping.getitem")
+            raise AssertionError
+
+    def simple(**overrides: object) -> dict[object, object]:
+        metric: dict[object, object] = {
+            "expressionType": "SIMPLE",
+            "column": "sales",
+            "aggregate": "SUM",
+        }
+        for key, value in overrides.items():
+            dict.__setitem__(metric, key, value)
+        return metric
+
+    hostile_key = HostileStr("expressionType")
+    hostile_key_metric: dict[object, object] = {
+        hostile_key: "SIMPLE",
+        "column": "sales",
+        "aggregate": "SUM",
+    }
+    return [
+        ("label string subclass", simple(label=HostileStr("Sales"))),
+        ("aggregate string subclass", simple(aggregate=HostileStr("SUM"))),
+        (
+            "SQL expression string subclass",
+            {
+                "expressionType": "SQL",
+                "sqlExpression": HostileStr("SUM(sales)"),
+                "label": "Sales",
+            },
+        ),
+        ("option name string subclass", simple(optionName=HostileStr("metric"))),
+        ("expression object", simple(expressionType=HostileObject())),
+        ("custom label boolean object", simple(hasCustomLabel=HostileObject())),
+        ("datasource warning object", simple(datasourceWarning=HostileObject())),
+        (
+            "column dict subclass",
+            simple(column=HostileDict(column_name="sales")),
+        ),
+        ("column list subclass", simple(column=HostileList(["sales"]))),
+        (
+            "nested ColumnMeta scalar",
+            simple(column={"column_name": "sales", "future": HostileObject()}),
+        ),
+        (
+            "nested ColumnMeta dict subclass",
+            simple(
+                column={
+                    "column_name": "sales",
+                    "future": HostileDict(enabled=True),
+                }
+            ),
+        ),
+        (
+            "nested ColumnMeta list subclass",
+            simple(
+                column={
+                    "column_name": "sales",
+                    "future": HostileList([True]),
+                }
+            ),
+        ),
+        ("mapping wrapper", HostileMapping()),
+        ("list wrapper", HostileList([])),
+        (
+            "dict wrapper subclass",
+            HostileDict(expressionType="SIMPLE", column="sales", aggregate="SUM"),
+        ),
+        ("hostile wrapper key", hostile_key_metric),
+    ]
 
 
 def _frontend_native_config(**overrides: object) -> SunburstChartConfig:
@@ -1547,6 +1721,114 @@ def test_native_metric_wrapper_hostile_objects_are_hook_free() -> None:  # noqa:
                 }
             )
         assert calls == []
+
+
+def _assert_validation_error_is_hook_free_and_bounded(
+    error: ValidationError, calls: list[str]
+) -> None:
+    """Exercise every normal Pydantic error-rendering surface."""
+    assert calls == []
+    rendered = str(error)
+    represented = repr(error)
+    details = error.errors()
+    represented_details = repr(details)
+    assert calls == []
+    for output in (rendered, represented, represented_details):
+        assert len(output.encode()) < 64 * 1024
+
+
+def test_rejected_native_metric_subtrees_are_sanitized_before_rendering() -> None:
+    """All rejected native metric categories have safe retained inputs."""
+    request_models = (
+        GenerateChartRequest,
+        UpdateChartRequest,
+        GenerateExploreLinkRequest,
+    )
+    for request_model in request_models:
+        for index in range(16):
+            calls: list[str] = []
+            description, metric = _hostile_native_metric_cases(calls)[index]
+            calls.clear()  # constructing the hostile-key dictionary needs hashing
+            payload = _native_request_payload(request_model, metric, None)
+            with pytest.raises(ValidationError) as validation_error:
+                request_model.model_validate(payload)
+            _assert_validation_error_is_hook_free_and_bounded(
+                validation_error.value, calls
+            )
+            assert description
+
+
+@pytest.mark.parametrize(
+    "metric_path",
+    ["secondary_metric", "secondaryMetric", "standardized metrics"],
+)
+def test_all_native_metric_aliases_sanitize_rejected_retained_inputs(
+    metric_path: str,
+) -> None:
+    calls: list[str] = []
+    metric = _hostile_native_metric_cases(calls)[0][1]
+    calls.clear()
+    payload = _native_request_payload(
+        GenerateChartRequest, _frontend_native_metric(), None
+    )
+    config = payload["config"]
+    assert isinstance(config, dict)
+    if metric_path == "standardized metrics":
+        standardized = config["standardizedFormData"]
+        assert isinstance(standardized, dict)
+        controls = standardized["controls"]
+        assert isinstance(controls, dict)
+        controls["metrics"] = [metric]
+    else:
+        config[metric_path] = metric
+
+    with pytest.raises(ValidationError) as validation_error:
+        GenerateChartRequest.model_validate(payload)
+    _assert_validation_error_is_hook_free_and_bounded(validation_error.value, calls)
+
+
+def test_direct_native_column_rejection_has_safe_pydantic_input() -> None:
+    calls: list[str] = []
+    cases = _hostile_native_metric_cases(calls)
+    for index in (7, 8, 9, 10, 11):
+        calls.clear()
+        metric = cases[index][1]
+        assert isinstance(metric, dict)
+        column = dict.__getitem__(metric, "column")
+        with pytest.raises(ValidationError) as validation_error:
+            SunburstNativeMetricColumn.model_validate(column)
+        _assert_validation_error_is_hook_free_and_bounded(validation_error.value, calls)
+
+
+@pytest.mark.parametrize(
+    "metric",
+    [
+        {
+            "expressionType": "SIMPLE",
+            "column": "sales",
+            "aggregate": 7,
+        },
+        {
+            "expressionType": "SQL",
+            "sqlExpression": ["SUM(sales)"],
+            "label": "Sales",
+        },
+        {
+            "expressionType": "SIMPLE",
+            "column": {"column_name": "sales", "future": [None] * 129},
+            "aggregate": "SUM",
+        },
+    ],
+)
+def test_native_metric_json_validation_errors_remain_bounded(
+    metric: dict[str, object],
+) -> None:
+    """JSON-native malformed values retain normal client compatibility."""
+    payload = _native_request_payload(GenerateChartRequest, metric, None)
+    serialized = json.dumps(payload)
+    with pytest.raises(ValidationError) as validation_error:
+        GenerateChartRequest.model_validate_json(serialized)
+    _assert_validation_error_is_hook_free_and_bounded(validation_error.value, [])
 
 
 @pytest.mark.parametrize(
