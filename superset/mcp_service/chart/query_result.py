@@ -19,6 +19,7 @@
 
 import math
 import time as system_time
+from bisect import bisect_right
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
@@ -33,6 +34,7 @@ import numpy as np
 import pandas as pd
 import pytz
 from dateutil import tz as dateutil_tz
+from dateutil.tz.tz import _ttinfo as dateutil_ttinfo
 from dateutil.zoneinfo import tzfile as dateutil_zoneinfo_tzfile
 from pydantic import BaseModel
 from pydantic_core import to_json
@@ -97,6 +99,7 @@ _DATEUTIL_TZFILE_TYPE = dateutil_tz.tzfile
 _DATEUTIL_TZOFFSET_TYPE = type(dateutil_tz.tzoffset(None, 0))
 _DATEUTIL_TZUTC_TYPE = type(dateutil_tz.UTC)
 _DATEUTIL_TZLOCAL_TYPE = type(dateutil_tz.tzlocal())
+_MAX_DATEUTIL_TRANSITIONS = 4096
 _PYTZ_FIXED_OFFSET_TYPE = type(pytz.FixedOffset(1))
 _PYTZ_UTC_TYPE = type(pytz.UTC)
 _PYTZ_NAMED_BASE_TYPES = (pytz.tzinfo.DstTzInfo, pytz.tzinfo.StaticTzInfo)
@@ -603,6 +606,114 @@ def _dateutil_timezone_name_without_hooks(tzinfo: Any) -> str | None:
     return name if _bounded_utf8_length(name, 256) is not None else None
 
 
+def _dateutil_ttinfo_without_hooks(
+    value: Any,
+) -> tuple[int, timedelta] | None:
+    """Read one exact dateutil transition record without user-hook dispatch."""
+    if type(value) is not dateutil_ttinfo:
+        return None
+    try:
+        offset = object.__getattribute__(value, "offset")
+        delta = object.__getattribute__(value, "delta")
+    except (AttributeError, TypeError):
+        return None
+    if type(offset) is not int or type(delta) is not timedelta:
+        return None
+    try:
+        if delta != timedelta(seconds=offset):
+            return None
+    except OverflowError:
+        return None
+    return offset, delta
+
+
+def _dateutil_named_offset_without_hooks(  # noqa: C901
+    value: datetime, tzinfo: Any
+) -> timezone | None:
+    """Recover the offset selected by an exact dateutil named timezone.
+
+    A dateutil tzfile's finite transition table is its wire-semantic source of
+    truth. Reinterpreting its wall time through a system ``ZoneInfo`` database
+    changes negative-DST folds, nonexistent times, and dates after the final
+    transition. This mirrors dateutil's transition selection using only exact
+    builtin containers and its exact trusted transition-record type.
+    """
+    if _dateutil_timezone_name_without_hooks(tzinfo) is None:
+        return None
+    namespace = _exact_object_namespace(tzinfo)
+    if namespace is None:
+        return None
+    transitions = dict.get(namespace, "_trans_list")
+    transition_info = dict.get(namespace, "_trans_idx")
+    standard_info = dict.get(namespace, "_ttinfo_std")
+    before_info = dict.get(namespace, "_ttinfo_before")
+    if (
+        type(transitions) is not tuple
+        or type(transition_info) is not tuple
+        or tuple.__len__(transitions) != tuple.__len__(transition_info)
+        or tuple.__len__(transitions) > _MAX_DATEUTIL_TRANSITIONS
+        or _dateutil_ttinfo_without_hooks(standard_info) is None
+        or _dateutil_ttinfo_without_hooks(before_info) is None
+    ):
+        return None
+
+    previous: int | None = None
+    for transition in transitions:
+        if (
+            type(transition) is not int
+            or int.bit_length(transition) > 63
+            or (previous is not None and transition < previous)
+        ):
+            return None
+        previous = transition
+    if any(_dateutil_ttinfo_without_hooks(info) is None for info in transition_info):
+        return None
+
+    naive = datetime(
+        value.year,
+        value.month,
+        value.day,
+        value.hour,
+        value.minute,
+        value.second,
+        value.microsecond,
+    )
+    try:
+        timestamp = (naive - EPOCH).total_seconds()
+    except (OverflowError, TypeError, ValueError):
+        return None
+
+    transition_count = tuple.__len__(transitions)
+    index: int | None = (
+        bisect_right(transitions, timestamp) - 1 if transition_count else None
+    )
+
+    def info_at(selected: int | None) -> Any:
+        if selected is None or selected + 1 >= transition_count:
+            return standard_info
+        if selected < 0:
+            return before_info
+        return tuple.__getitem__(transition_info, selected)
+
+    if index is not None and index != 0:
+        current = _dateutil_ttinfo_without_hooks(info_at(index))
+        prior = _dateutil_ttinfo_without_hooks(info_at(index - 1))
+        if current is None or prior is None:
+            return None
+        offset_delta = prior[0] - current[0]
+        transition = tuple.__getitem__(transitions, index)
+        is_ambiguous = timestamp < transition + offset_delta
+        index -= int(not value.fold and is_ambiguous)
+
+    selected = _dateutil_ttinfo_without_hooks(info_at(index))
+    if selected is None:
+        return None
+    try:
+        return timezone(selected[1])
+    except ValueError:
+        return None
+
+
 def _pytz_timezone_name_without_hooks(tzinfo: Any) -> str | None:
     """Read and verify one generated pytz named-zone implementation."""
     value_type = type(tzinfo)
@@ -769,11 +880,18 @@ def _trusted_datetime_value(
     if tzinfo is not None and not any(
         type(tzinfo) is trusted for trusted in _TRUSTED_TZINFO_TYPES
     ):
-        canonical_tz = (
-            _pytz_named_offset_without_hooks(tzinfo)
-            or _dateutil_local_offset_without_hooks(value, tzinfo)
-            or _canonical_timezone(tzinfo)
-        )
+        canonical_tz: timezone | ZoneInfo | None
+        if _dateutil_timezone_name_without_hooks(tzinfo) is not None:
+            # A recognized dateutil tzfile must use its own finite transition
+            # table. Falling through to ZoneInfo would silently reinterpret a
+            # source-selected gap/fold or post-table wall time.
+            canonical_tz = _dateutil_named_offset_without_hooks(value, tzinfo)
+        else:
+            canonical_tz = (
+                _pytz_named_offset_without_hooks(tzinfo)
+                or _dateutil_local_offset_without_hooks(value, tzinfo)
+                or _canonical_timezone(tzinfo)
+            )
         if canonical_tz is None:
             return None, "contains a datetime with an unsupported timezone"
         canonical_value = datetime(

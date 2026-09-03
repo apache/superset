@@ -18,6 +18,7 @@
 
 import logging
 import math
+from decimal import Decimal
 from typing import Any
 
 import numpy as np
@@ -50,6 +51,8 @@ def _is_trusted_missing_or_nonfinite(value: Any) -> bool:
     value_type = type(value)
     if value is None or value_type in _PANDAS_MISSING_TYPES:
         return True
+    if value_type is Decimal:
+        return not Decimal.is_finite(value)
     if value_type is float:
         return not math.isfinite(value)
     if value_type in _NUMPY_FLOAT_TYPES:
@@ -82,10 +85,13 @@ def df_to_records(
     records = dframe.to_dict(orient="records")
 
     for record in records:
-        for key in record:
-            value = record[key]
-            record[key] = None if _is_trusted_missing_or_nonfinite(value) else value
-            if convert_big_integers and record[key] is not None:
-                record[key] = _convert_big_integers(record[key])
+        for key, value in dict.items(record):
+            dict.__setitem__(
+                record,
+                key,
+                None
+                if _is_trusted_missing_or_nonfinite(value)
+                else (_convert_big_integers(value) if convert_big_integers else value),
+            )
 
     return records
