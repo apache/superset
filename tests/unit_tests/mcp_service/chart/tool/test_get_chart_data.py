@@ -33,6 +33,7 @@ import pandas as pd
 import pytest
 
 from superset.common.db_query_status import QueryStatus
+from superset.dataframe import df_to_records
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -589,27 +590,37 @@ async def test_decimal_sunburst_get_data_is_numeric_and_json_safe(
         def __init__(self, query_context: Any) -> None: ...
         def validate(self) -> None: ...
         def run(self) -> dict[str, Any]:
+            rows = df_to_records(
+                pd.DataFrame(
+                    {
+                        "region": pd.Series(
+                            ["Americas", "Americas", "Europe"], dtype=object
+                        ),
+                        "country": pd.Series(
+                            ["Brazil", "Argentina", "France"], dtype=object
+                        ),
+                        "Sales": pd.Series(
+                            [
+                                Decimal("12.50"),
+                                Decimal("12.500"),
+                                Decimal("13.00"),
+                            ],
+                            dtype=object,
+                        ),
+                        "Profit": pd.Series(
+                            [
+                                Decimal("0.10000000000000000001"),
+                                Decimal("0.100000000000000000010"),
+                                Decimal("0.2"),
+                            ],
+                            dtype=object,
+                        ),
+                    }
+                ),
+                convert_big_integers=False,
+            )
             return chart_data_command_result(
-                [
-                    {
-                        "region": "Americas",
-                        "country": "Brazil",
-                        "Sales": Decimal("12.50"),
-                        "Profit": Decimal("0.10000000000000000001"),
-                    },
-                    {
-                        "region": "Americas",
-                        "country": "Argentina",
-                        "Sales": Decimal("12.500"),
-                        "Profit": Decimal("0.100000000000000000010"),
-                    },
-                    {
-                        "region": "Europe",
-                        "country": "France",
-                        "Sales": Decimal("13.00"),
-                        "Profit": Decimal("0.2"),
-                    },
-                ],
+                rows,
                 columns=["region", "country", "Sales", "Profit"],
                 coltypes=[
                     GenericDataType.STRING,
@@ -717,6 +728,91 @@ async def test_decimal_sunburst_get_data_is_numeric_and_json_safe(
         assert columns["Sales"]["unique_count"] == 2
         assert columns["Profit"]["unique_count"] == 2
     assert validated_values == [(Decimal("12.50"), Decimal("0.10000000000000000001"))]
+
+
+@pytest.mark.asyncio
+async def test_unsaved_get_data_canonicalizes_decimal_nonfinite_at_producer(
+    app: Any,
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The MCP ChartData wire never receives Decimal non-finite tokens."""
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    form_data = {
+        "datasource_id": 7,
+        "datasource_type": "table",
+        "datasource": "7__table",
+        "viz_type": "table",
+        "all_columns": ["value"],
+    }
+    finite = Decimal("0.10000000000000000001")
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            rows = df_to_records(
+                pd.DataFrame(
+                    {
+                        "value": pd.Series(
+                            [
+                                Decimal("NaN"),
+                                Decimal("sNaN"),
+                                Decimal("Infinity"),
+                                Decimal("-Infinity"),
+                                finite,
+                            ],
+                            dtype=object,
+                        )
+                    }
+                ),
+                convert_big_integers=False,
+            )
+            return chart_data_command_result(
+                rows,
+                columns=["value"],
+                coltypes=[GenericDataType.NUMERIC],
+            )
+
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        module, "get_cached_form_data", lambda _key: json.dumps(form_data)
+    )
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
+    )
+    monkeypatch.setattr(module, "set_query_context_form_data", lambda *_args: None)
+    monkeypatch.setattr(
+        module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
+    )
+    monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
+
+    async with Client(mcp_server) as client:
+        tool_result = await client.call_tool(
+            "get_chart_data",
+            {"request": {"form_data_key": "decimal-nonfinite"}},
+        )
+
+    wire_response = tool_result.structured_content.get(
+        "result", tool_result.structured_content
+    )
+    assert [row["value"] for row in wire_response["data"]] == [
+        None,
+        None,
+        None,
+        None,
+        "0.10000000000000000001",
+    ]
 
 
 @pytest.mark.asyncio

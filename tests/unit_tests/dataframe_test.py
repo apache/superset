@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel
 from datetime import datetime
+from decimal import Decimal
 from enum import Enum
 
 import numpy as np
@@ -29,6 +30,19 @@ from superset.db_engine_specs import BaseEngineSpec
 from superset.result_set import SupersetResultSet
 from superset.superset_typing import DbapiDescription
 from superset.utils import json as superset_json
+
+
+class HostileDecimal(Decimal):
+    """Decimal subclass whose numeric hooks must not run during projection."""
+
+    def is_finite(self) -> bool:
+        raise AssertionError("hostile Decimal is_finite hook executed")
+
+    def __eq__(self, other: object) -> bool:
+        raise AssertionError("hostile Decimal equality hook executed")
+
+    def __float__(self) -> float:
+        raise AssertionError("hostile Decimal float hook executed")
 
 
 def test_df_to_records_does_not_compare_object_column_values() -> None:
@@ -52,6 +66,35 @@ def test_df_to_records_does_not_compare_object_column_values() -> None:
 
     assert records[0]["value"] is hostile
     assert records[1]["value"] is accepted
+
+
+def test_df_to_records_normalizes_only_exact_nonfinite_decimals() -> None:
+    """Exact non-finite Decimal cells become null without subclass hooks."""
+    finite = Decimal("0.10000000000000000001")
+    hostile = HostileDecimal("NaN")
+    values = [
+        Decimal("NaN"),
+        Decimal("sNaN"),
+        Decimal("Infinity"),
+        Decimal("-Infinity"),
+        finite,
+        hostile,
+    ]
+    frame = pd.DataFrame({"value": pd.Series(values, dtype=object)})
+
+    records = df_to_records(frame)
+
+    assert [records[index]["value"] for index in range(4)] == [None] * 4
+    assert records[4]["value"] is finite
+    assert records[5]["value"] is hostile
+    strict_json = superset_json.dumps(records[:5], ignore_nan=False)
+    assert superset_json.loads(strict_json) == [
+        {"value": None},
+        {"value": None},
+        {"value": None},
+        {"value": None},
+        {"value": 0.10000000000000000001},
+    ]
 
 
 def test_df_to_records() -> None:

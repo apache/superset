@@ -866,44 +866,88 @@ def test_exact_decimal_keeps_numeric_identity_and_json_precision() -> None:
     )
 
 
-def test_real_dataframe_processor_and_chart_command_normalize_nan() -> None:
+def test_real_dataframe_processor_and_chart_command_normalize_nonfinite() -> None:
     from superset.common.query_context import QueryContext
     from superset.common.query_context_processor import QueryContextProcessor
 
+    class HostileDecimal(Decimal):
+        def is_finite(self) -> bool:
+            raise AssertionError("hostile Decimal is_finite hook executed")
+
+        def __eq__(self, other: object) -> bool:
+            raise AssertionError("hostile Decimal equality hook executed")
+
+        def __float__(self) -> float:
+            raise AssertionError("hostile Decimal float hook executed")
+
+    finite = Decimal("0.10000000000000000001")
+    hostile = HostileDecimal("NaN")
     frame = pd.DataFrame(
         {
             "builtin_missing": [float("nan")],
             "numpy_missing": [np.float64("nan")],
             "nullable_missing": pd.Series([pd.NA], dtype="Float64"),
+            "decimal_nan": pd.Series([Decimal("NaN")], dtype=object),
+            "decimal_snan": pd.Series([Decimal("sNaN")], dtype=object),
+            "decimal_infinity": pd.Series([Decimal("Infinity")], dtype=object),
+            "decimal_negative_infinity": pd.Series(
+                [Decimal("-Infinity")], dtype=object
+            ),
+            "decimal_finite": pd.Series([finite], dtype=object),
+            "hostile_decimal": pd.Series([hostile], dtype=object),
         }
     )
     processor_context = SimpleNamespace(
         datasource=object(), result_format=ChartDataResultFormat.JSON
     )
     records = QueryContextProcessor(cast(QueryContext, processor_context)).get_data(
-        frame, [GenericDataType.NUMERIC] * 3
+        frame, [GenericDataType.NUMERIC] * len(frame.columns)
     )
     assert type(records) is list
-    assert all(pd.isna(value) for value in records[0].values())
+    for column in (
+        "builtin_missing",
+        "numpy_missing",
+        "nullable_missing",
+        "decimal_nan",
+        "decimal_snan",
+        "decimal_infinity",
+        "decimal_negative_infinity",
+    ):
+        assert records[0][column] is None
+    assert records[0]["decimal_finite"] is finite
+    assert records[0]["hostile_decimal"] is hostile
 
+    safe_record = dict(records[0])
+    del safe_record["hostile_decimal"]
     result = _producer_result(
         {
-            "data": records,
-            "colnames": list(frame.columns),
-            "coltypes": [GenericDataType.NUMERIC] * 3,
+            "data": [safe_record],
+            "colnames": list(safe_record),
+            "coltypes": [GenericDataType.NUMERIC] * len(safe_record),
             "rowcount": 1,
         }
     )
     data, error = first_query_data(result)
 
     assert error is None
-    assert data == [
+    assert data is not None
+    assert data[0]["decimal_finite"] is finite
+    assert all(
+        data[0][column] is None for column in safe_record if column != "decimal_finite"
+    )
+
+    hostile_result = _producer_result(
         {
-            "builtin_missing": None,
-            "numpy_missing": None,
-            "nullable_missing": None,
+            "data": [{"hostile_decimal": hostile}],
+            "colnames": ["hostile_decimal"],
+            "coltypes": [GenericDataType.NUMERIC],
+            "rowcount": 1,
         }
-    ]
+    )
+    hostile_data, hostile_error = first_query_data(hostile_result)
+    assert hostile_data is None
+    assert hostile_error is not None
+    assert hostile_error.error_type == "InvalidQueryResult"
 
 
 def test_real_dataframe_processor_normalizes_period_and_interval() -> None:

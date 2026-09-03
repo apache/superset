@@ -18,6 +18,7 @@
 
 import logging
 import math
+from decimal import Decimal
 from typing import Any
 
 import numpy as np
@@ -50,6 +51,8 @@ def _is_trusted_missing_or_nonfinite(value: Any) -> bool:
     value_type = type(value)
     if value_type in _PANDAS_MISSING_TYPES:
         return True
+    if value_type is Decimal:
+        return not Decimal.is_finite(value)
     if value_type is float:
         return not math.isfinite(value)
     if value_type in _NUMPY_FLOAT_TYPES:
