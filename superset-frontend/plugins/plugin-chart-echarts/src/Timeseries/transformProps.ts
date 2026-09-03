@@ -609,15 +609,26 @@ export default function transformProps(
 
   // A Percentage or Ratio time comparison replaces the derived series' values with a
   // dimensionless number, so that row is no longer in the source metric's units and
-  // must not inherit its currency/D3 format. `renameOperator` names those series with
-  // the offset alone or `<metric>, <offset>`, and a grouped chart appends its dimension
-  // values on top ("1 week ago, East"). Recognise them with the same helper the
-  // derived-series styling uses rather than matching exact names: `getTimeOffset`
-  // covers every form except the bare offset of an ungrouped single-metric chart,
-  // which the offsets themselves match.
-  const isDerivedComparisonSeries = (seriesKey: string) =>
-    array.includes(seriesKey) ||
-    getTimeOffset({ name: seriesKey }, array) !== undefined;
+  // must not inherit its currency/D3 format.
+  //
+  // `label_map` carries the structured identity behind a rendered series name, and
+  // `renameOperator` puts the offset at the front of a derived row's entry:
+  //
+  //   derived  '1 week ago, East'  -> ['1 week ago', 'East']
+  //   derived  'count, 1 year ago' -> ['1 year ago', 'count']
+  //   base     'sum__num, East'    -> ['sum__num', 'East']
+  //
+  // so the leading column says which it is. Matching the rendered name instead would
+  // misread a base series whose dimension value happens to equal the offset — a region
+  // literally named "1 week ago" gives 'sum__num, 1 week ago', which reads as derived.
+  const isDerivedComparisonSeries = (seriesKey: string) => {
+    const columns = labelMap?.[seriesKey];
+    // Without an entry there is nothing structured to go on, and the only name that can
+    // stand alone is the bare offset of an ungrouped single-metric chart.
+    return columns?.length
+      ? array.includes(columns[0])
+      : array.includes(seriesKey);
+  };
 
   // Percentage yields `(s - c) / c`, which reads as a percentage. Ratio yields `s / c`,
   // a plain multiplier, so it takes a unitless number format rather than a percent one.

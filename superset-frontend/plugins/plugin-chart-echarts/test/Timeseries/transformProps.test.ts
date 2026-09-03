@@ -3563,6 +3563,70 @@ test('tooltip does not apply a metric currency format to a grouped Ratio time co
   expect(result).not.toContain('$ 1.25');
 });
 
+test('tooltip keeps the metric format when a dimension value equals the offset', () => {
+  // A groupby value can legitimately read like the configured offset, giving a *base*
+  // series called `sum__num, 1 week ago`. Matching the rendered name would classify it
+  // as derived and strip its currency; `label_map` leads with the metric, not the
+  // offset, so it stays a base row.
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'sum__num',
+      metrics: ['sum__num'],
+      groupby: ['region'],
+      richTooltip: true,
+      time_compare: ['1 week ago'],
+      comparison_type: ComparisonType.Percentage,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            'sum__num, 1 week ago': 100,
+            '1 week ago, 1 week ago': 0.25,
+            __timestamp: BASE_TIMESTAMP,
+          },
+        ],
+        {
+          label_map: {
+            // The region is named "1 week ago"; the metric still leads the base entry.
+            'sum__num, 1 week ago': ['sum__num', '1 week ago'],
+            // Its derived counterpart leads with the offset.
+            '1 week ago, 1 week ago': ['1 week ago', '1 week ago'],
+          },
+        },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        sum__num: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'sum__num, 1 week ago',
+      seriesName: 'sum__num, 1 week ago',
+      value: [BASE_TIMESTAMP, 100],
+    },
+    {
+      seriesId: '1 week ago, 1 week ago',
+      seriesName: '1 week ago, 1 week ago',
+      value: [BASE_TIMESTAMP, 0.25],
+    },
+  ]);
+
+  // The base row keeps its currency even though its name ends in the offset, and the
+  // genuinely derived row is still formatted as a percentage.
+  expect(result).toContain('$ 100');
+  expect(result).toContain('25.00%');
+});
+
 test('tooltip keeps the metric format on a Difference time comparison', () => {
   // Difference is `source - compare`, which stays in the metric's units, so unlike
   // Percentage and Ratio it must keep the currency format.
