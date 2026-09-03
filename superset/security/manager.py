@@ -872,15 +872,43 @@ def _native_filter_query_modified(
     return False
 
 
+def _drill_by_row_expanding_result_type(query_context: "QueryContext") -> bool:
+    """
+    Whether a chartless Drill By request (``slice_id`` sentinel ``0`` plus a
+    source ``chart_id``) asks for a result type that expands a query to every
+    column on the datasource.
+
+    ``raise_for_access`` grants Drill By only after confirming the requested
+    ``groupby`` dimensions are configured as drillable columns on the source
+    chart's datasource (see ``has_drill_access``); a guest's entitlement there
+    is that specific dimension allowlist, not the whole table. The
+    samples/drill_detail preparers ignore ``groupby`` entirely and return
+    every column, which would bypass that allowlist - unlike Drill to Detail
+    (no ``slice_id``/``chart_id`` at all), which is already meant to expose a
+    full dataset already attached to the dashboard.
+    """
+    form_data = query_context.form_data or {}
+    if not (form_data.get("slice_id") == 0 and form_data.get("chart_id")):
+        return False
+    return any(
+        _effective_result_type(
+            getattr(query, "result_type", None), query_context.result_type
+        )
+        in _ROW_EXPANDING_RESULT_TYPES
+        for query in query_context.queries
+    )
+
+
 def _native_filter_request_modified(query_context: "QueryContext") -> bool:
     """
     Validate a chartless data request that targets a native filter.
 
     Only requests identified as native-filter lookups (by the ``NATIVE_FILTER``
-    type marker or a ``native_filter_id``) are constrained; other chartless
+    type marker or a ``native_filter_id``) are constrained here; other chartless
     paths (drill-to-detail, drill-by, samples) carry neither and are validated by
     the datasource-access checks in raise_for_access, so they are not treated as
-    modified here.
+    modified here beyond the Drill By result-type guard in
+    ``_drill_by_row_expanding_result_type``.
 
     A native filter may only read the column(s) it targets on the dashboard it
     belongs to. The request is treated as modified (and therefore rejected for
@@ -1784,7 +1812,10 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     # Native-filter data requests have no associated chart (no slice_id). Rather
     # than accepting any payload, constrain them to the column(s) the dashboard's
     # native filter is allowed to target; other chartless paths keep prior
-    # behavior (see _native_filter_request_modified).
+    # behavior (see _native_filter_request_modified), except Drill By is still
+    # rejected when it asks for a row-expanding result type, since that would
+    # bypass the drillable-column allowlist raise_for_access checked for it
+    # (see _drill_by_row_expanding_result_type).
     #
     # SQL extras (extras.where/having) are NOT validated on chartless paths:
     # without a stored chart there is nothing to validate against, and
@@ -1793,7 +1824,9 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     # are still protected by datasource-access checks in raise_for_access.
     # The _sql_filters_modified check below covers chart payloads only.
     if stored_chart is None:
-        return _native_filter_request_modified(query_context)
+        return _native_filter_request_modified(
+            query_context
+        ) or _drill_by_row_expanding_result_type(query_context)
 
     if form_data is None:
         return False
