@@ -182,8 +182,8 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
         "viz_type": "table",
         "markup_type": "markdown",
     }
-    defaults = {**shared_defaults, "granularity": "ds"}
-    echarts_defaults = {**shared_defaults, "x_axis": "ds"}
+    legacy_granularity_defaults = {**shared_defaults, "granularity": "ds"}
+    echarts_x_axis_defaults = {**shared_defaults, "x_axis": "ds"}
 
     default_query_context = {
         "result_format": "json",
@@ -212,7 +212,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Participants",
             viz_type="big_number",
             params=get_slice_json(
-                defaults,
+                legacy_granularity_defaults,
                 viz_type="big_number",
                 granularity="ds",
                 compare_lag="5",
@@ -226,7 +226,10 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Genders",
             viz_type="pie",
             params=get_slice_json(
-                defaults, viz_type="pie", groupby=["gender"], metric=metric
+                legacy_granularity_defaults,
+                viz_type="pie",
+                groupby=["gender"],
+                metric=metric,
             ),
             editors=[],
         ),
@@ -235,7 +238,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Trends",
             viz_type="echarts_timeseries_line",
             params=get_slice_json(
-                echarts_defaults,
+                echarts_x_axis_defaults,
                 viz_type="echarts_timeseries_line",
                 groupby=["name"],
                 rich_tooltip=True,
@@ -249,7 +252,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Genders by State",
             viz_type="echarts_timeseries_bar",
             params=get_slice_json(
-                echarts_defaults,
+                echarts_x_axis_defaults,
                 adhoc_filters=[
                     {
                         "clause": "WHERE",
@@ -286,7 +289,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Girls",
             viz_type="table",
             params=get_slice_json(
-                defaults,
+                legacy_granularity_defaults,
                 groupby=["name"],
                 adhoc_filters=[gen_filter("gender", "girl")],
                 row_limit=50,
@@ -300,7 +303,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Girl Name Cloud",
             viz_type="word_cloud",
             params=get_slice_json(
-                defaults,
+                legacy_granularity_defaults,
                 viz_type="word_cloud",
                 size_from="10",
                 series="name",
@@ -317,7 +320,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Boys",
             viz_type="table",
             params=get_slice_json(
-                defaults,
+                legacy_granularity_defaults,
                 groupby=["name"],
                 adhoc_filters=[gen_filter("gender", "boy")],
                 row_limit=50,
@@ -331,7 +334,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Boy Name Cloud",
             viz_type="word_cloud",
             params=get_slice_json(
-                defaults,
+                legacy_granularity_defaults,
                 viz_type="word_cloud",
                 size_from="10",
                 series="name",
@@ -348,7 +351,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Top 10 Girl Name Share",
             viz_type="echarts_area",
             params=get_slice_json(
-                echarts_defaults,
+                echarts_x_axis_defaults,
                 adhoc_filters=[gen_filter("gender", "girl")],
                 comparison_type="values",
                 groupby=["name"],
@@ -366,7 +369,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Top 10 Boy Name Share",
             viz_type="echarts_area",
             params=get_slice_json(
-                echarts_defaults,
+                echarts_x_axis_defaults,
                 adhoc_filters=[gen_filter("gender", "boy")],
                 comparison_type="values",
                 groupby=["name"],
@@ -384,7 +387,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Pivot Table v2",
             viz_type="pivot_table_v2",
             params=get_slice_json(
-                defaults,
+                legacy_granularity_defaults,
                 viz_type="pivot_table_v2",
                 groupbyRows=["name"],
                 groupbyColumns=["state"],
@@ -408,7 +411,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Average and Sum Trends",
             viz_type="mixed_timeseries",
             params=get_slice_json(
-                echarts_defaults,
+                echarts_x_axis_defaults,
                 viz_type="mixed_timeseries",
                 metrics=[
                     {
@@ -430,7 +433,9 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Num Births Trend",
             viz_type="echarts_timeseries_line",
             params=get_slice_json(
-                echarts_defaults, viz_type="echarts_timeseries_line", metrics=metrics
+                echarts_x_axis_defaults,
+                viz_type="echarts_timeseries_line",
+                metrics=metrics,
             ),
             editors=[],
         ),
@@ -439,7 +444,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Daily Totals",
             viz_type="table",
             params=get_slice_json(
-                defaults,
+                legacy_granularity_defaults,
                 groupby=["ds"],
                 time_range="1983 : 2023",
                 viz_type="table",
@@ -462,7 +467,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Number of California Births",
             viz_type="big_number_total",
             params=get_slice_json(
-                defaults,
+                legacy_granularity_defaults,
                 metric={
                     "expressionType": "SIMPLE",
                     "column": {
@@ -482,7 +487,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Top 10 California Names Timeseries",
             viz_type="echarts_timeseries_line",
             params=get_slice_json(
-                echarts_defaults,
+                echarts_x_axis_defaults,
                 metrics=[
                     {
                         "expressionType": "SIMPLE",
@@ -516,7 +521,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Names Sorted by Num in California",
             viz_type="table",
             params=get_slice_json(
-                defaults,
+                legacy_granularity_defaults,
                 metrics=metrics,
                 groupby=["name"],
                 row_limit=50,
@@ -537,7 +542,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Number of Girls",
             viz_type="big_number_total",
             params=get_slice_json(
-                defaults,
+                legacy_granularity_defaults,
                 metric=metric,
                 viz_type="big_number_total",
                 granularity="ds",
@@ -551,7 +556,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Pivot Table",
             viz_type="pivot_table_v2",
             params=get_slice_json(
-                defaults,
+                legacy_granularity_defaults,
                 viz_type="pivot_table_v2",
                 groupbyRows=["name"],
                 groupbyColumns=["state"],
