@@ -4105,6 +4105,122 @@ async def test_saved_bullet_get_data_projects_dataframe_timestamps_to_epoch(
 
 
 @pytest.mark.asyncio
+async def test_transitionless_dateutil_dataframe_reaches_fastmcp_data(
+    mcp_server: Any,
+    mock_auth: Any,
+) -> None:
+    from unittest.mock import patch
+
+    from dateutil.zoneinfo import get_zonefile_instance
+    from fastmcp import Client
+
+    from superset.commands.chart.data.get_data_command import (
+        ChartDataCommand as ProducerChartDataCommand,
+    )
+    from superset.common.chart_data import ChartDataResultType
+    from superset.dataframe import df_to_records
+    from superset.utils.json import json_int_dttm_ser
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    names = [
+        "UTC",
+        "GMT",
+        "Universal",
+        "Zulu",
+        "EST",
+        "HST",
+        "MST",
+        "Etc/GMT+1",
+        "Etc/GMT-2",
+    ]
+    values = []
+    for getter in (dateutil_tz.gettz, get_zonefile_instance().get):
+        for name in names:
+            timezone_value = getter(name)
+            assert timezone_value is not None
+            values.append(
+                datetime(2040, 7, 1, 12, 34, 56, 123456, tzinfo=timezone_value)
+            )
+    rows = df_to_records(
+        pd.DataFrame(
+            {
+                "Category": pd.Series(values, dtype=object),
+                "Revenue": range(1, len(values) + 1),
+            }
+        ),
+        convert_big_integers=False,
+    )
+
+    class _ProducerContext:
+        result_type = ChartDataResultType.FULL
+
+        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["Category", "Revenue"],
+                        "rowcount": len(rows),
+                    }
+                ]
+            }
+
+    producer_result = ProducerChartDataCommand(
+        _ProducerContext()  # type: ignore[arg-type]
+    ).run()
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Category"],
+    }
+    chart = SimpleNamespace(
+        id=22,
+        slice_name="Transitionless timestamps",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params=json.dumps(form_data),
+    )
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return producer_result
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 22}}
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert payload["row_count"] == len(values)
+    assert payload["total_rows"] == len(values)
+    assert [row["Category"] for row in payload["data"]] == [
+        json_int_dttm_ser(value) for value in values
+    ]
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("grouped", "format_", "identifier_alias", "excel_engine"),
     [
@@ -4112,7 +4228,9 @@ async def test_saved_bullet_get_data_projects_dataframe_timestamps_to_epoch(
         (True, "json", "chart_id", None),
         (False, "csv", "id", None),
         (True, "csv", "chart_id", None),
+        (False, "excel", "id", "openpyxl"),
         (True, "excel", "id", "openpyxl"),
+        (False, "excel", "chart_id", "xlsxwriter"),
         (True, "excel", "chart_id", "xlsxwriter"),
     ],
 )
@@ -4160,7 +4278,8 @@ async def test_saved_empty_bullet_get_data_fastmcp_returns_normalized_rows(
 
         def run(self) -> dict[str, Any]:
             return {
-                "queries": [
+                "queries": 2
+                * [
                     {
                         "data": [],
                         "colnames": raw_columns,
@@ -4206,33 +4325,42 @@ async def test_saved_empty_bullet_get_data_fastmcp_returns_normalized_rows(
 
     payload = json.loads(result.content[0].text)
     assert "error_type" not in payload
-    expected_rows = [] if grouped else [{"Revenue": 0.0}]
     if format_ == "json":
-        assert payload["data"] == expected_rows
-        assert payload["row_count"] == len(expected_rows)
+        assert payload["data"] == []
+        assert payload["row_count"] == 0
+        assert payload["total_rows"] == 0
+        assert len(payload["query_results"]) == 2
+        for query_result in payload["query_results"]:
+            assert query_result["data"] == []
+            assert query_result["row_count"] == 0
+            assert query_result["total_rows"] == 0
     elif format_ == "csv":
         assert payload["format"] == "csv"
-        assert payload["row_count"] == len(expected_rows)
+        assert payload["row_count"] == 0
+        assert payload["total_rows"] == 0
         assert payload["csv_data"] == (
-            "Revenue,Region\r\n" if grouped else "Revenue\r\n0.0\r\n"
+            "Revenue,Region\r\n" if grouped else "Revenue\r\n"
         )
     else:
         assert payload["format"] == "excel"
         assert payload["row_count"] == 0
+        assert payload["total_rows"] == 0
         workbook = load_workbook(io.BytesIO(base64.b64decode(payload["excel_data"])))
         assert [cell.value for cell in workbook.active[1]] == raw_columns
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    ("grouped", "format_"),
-    [(False, "json"), (True, "json")],
+    "grouped",
+    [
+        False,
+        True,
+    ],
 )
 async def test_form_data_key_empty_bullet_fastmcp_returns_normalized_rows(
     mcp_server: Any,
     mock_auth: Any,
     grouped: bool,
-    format_: str,
 ) -> None:
     from unittest.mock import patch
 
@@ -4258,7 +4386,8 @@ async def test_form_data_key_empty_bullet_fastmcp_returns_normalized_rows(
 
         def run(self) -> dict[str, Any]:
             return {
-                "queries": [
+                "queries": 2
+                * [
                     {
                         "data": [],
                         "colnames": raw_columns,
@@ -4284,18 +4413,23 @@ async def test_form_data_key_empty_bullet_fastmcp_returns_normalized_rows(
                 {
                     "request": {
                         "form_data_key": "empty-bullet",
-                        "format": format_,
+                        "format": "json",
                     }
                 },
             )
 
     payload = json.loads(result.content[0].text)
-    expected_rows = [] if grouped else [{"Revenue": 0.0}]
     assert "error_type" not in payload
     assert payload["chart_id"] == 0
     assert payload["chart_type"] == "bullet"
-    assert payload["row_count"] == len(expected_rows)
-    assert payload["data"] == expected_rows
+    assert payload["row_count"] == 0
+    assert payload["total_rows"] == 0
+    assert payload["data"] == []
+    assert len(payload["query_results"]) == 2
+    for query_result in payload["query_results"]:
+        assert query_result["data"] == []
+        assert query_result["row_count"] == 0
+        assert query_result["total_rows"] == 0
 
     def test_float_total_rows_serializes_without_error(self) -> None:
         import pydantic_core

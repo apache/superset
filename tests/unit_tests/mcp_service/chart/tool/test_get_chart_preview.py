@@ -31,6 +31,7 @@ import pandas as pd
 import pytest
 import pytz
 from dateutil import tz as dateutil_tz
+from dateutil.zoneinfo import get_zonefile_instance
 
 from superset.mcp_service.chart.query_result import MAX_QUERY_RESULT_VALUE_BYTES
 from superset.mcp_service.chart.schemas import (
@@ -473,6 +474,151 @@ async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
             1729989000123.456,
             1710052200123.456,
         ]
+
+
+@pytest.mark.asyncio
+async def test_transitionless_dateutil_dataframe_reaches_fastmcp_preview() -> None:
+    from contextlib import nullcontext
+
+    from fastmcp import Client
+
+    from superset.commands.chart.data.get_data_command import (
+        ChartDataCommand as ProducerChartDataCommand,
+    )
+    from superset.common.chart_data import ChartDataResultType
+    from superset.dataframe import df_to_records
+    from superset.mcp_service.app import mcp
+    from superset.mcp_service.chart.preview_utils import _javascript_number_string
+    from superset.utils.json import json_int_dttm_ser
+
+    preview_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    names = [
+        "UTC",
+        "GMT",
+        "Universal",
+        "Zulu",
+        "EST",
+        "HST",
+        "MST",
+        "Etc/GMT+1",
+        "Etc/GMT-2",
+    ]
+    values = []
+    for getter in (dateutil_tz.gettz, get_zonefile_instance().get):
+        for name in names:
+            timezone_value = getter(name)
+            assert timezone_value is not None
+            values.append(
+                datetime(2040, 7, 1, 12, 34, 56, 123456, tzinfo=timezone_value)
+            )
+    rows = df_to_records(
+        pd.DataFrame(
+            {
+                "Category": pd.Series(values, dtype=object),
+                "Revenue": range(1, len(values) + 1),
+            }
+        ),
+        convert_big_integers=False,
+    )
+
+    class _ProducerContext:
+        result_type = ChartDataResultType.FULL
+
+        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["Category", "Revenue"],
+                        "rowcount": len(rows),
+                    }
+                ]
+            }
+
+    producer_result = ProducerChartDataCommand(
+        _ProducerContext()  # type: ignore[arg-type]
+    ).run()
+    expected_numbers = [json_int_dttm_ser(value) for value in values]
+    expected_categories = [
+        _javascript_number_string(float(value)) for value in expected_numbers
+    ]
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Category"],
+    }
+    chart = SimpleNamespace(
+        id=123,
+        slice_name="Transitionless timestamps",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(form_data),
+    )
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return producer_result
+
+    query_context = SimpleNamespace(
+        form_data={},
+        queries=[SimpleNamespace(metrics=["Revenue"], columns=["Category"])],
+    )
+    user = MagicMock(id=1, username="admin", roles=[], groups=[])
+    with (
+        patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
+        patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
+        patch.object(preview_module, "find_chart_by_identifier", return_value=chart),
+        patch.object(preview_module.db.session, "refresh", return_value=None),
+        patch.object(
+            preview_module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch.object(
+            preview_module.event_logger,
+            "log_context",
+            side_effect=lambda **_kwargs: nullcontext(),
+        ),
+        patch.object(
+            preview_module,
+            "build_query_context_from_form_data",
+            return_value=query_context,
+        ),
+        patch.object(preview_module, "set_query_context_form_data", return_value=None),
+        patch.object(command_module, "ChartDataCommand", _Command),
+        patch.object(
+            preview_module, "get_superset_base_url", return_value="http://localhost"
+        ),
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "get_chart_preview",
+                {"request": {"id": 123, "format": "vega_lite"}},
+            )
+
+    payload = utils_json.loads(result.content[0].text)
+    specification = payload["content"]["specification"]
+    bar = next(
+        layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
+    )
+    category_field = bar["encoding"]["y"]["field"]
+    assert [row["Category"] for row in specification["data"]["values"]] == (
+        expected_numbers
+    )
+    assert [row[category_field] for row in specification["data"]["values"]] == (
+        expected_categories
+    )
+    assert bar["encoding"]["tooltip"][0]["field"] == category_field
 
 
 def test_ascii_preview_accepts_real_postprocessing_null_and_large_full_sql(

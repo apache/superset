@@ -498,6 +498,87 @@ def test_dateutil_named_datetime_fails_closed_for_untrusted_transition_table() -
     assert reason == "contains a datetime with an unsupported timezone"
 
 
+@pytest.mark.parametrize("source", ["system", "packaged"])
+@pytest.mark.parametrize(
+    "zone_name",
+    [
+        "UTC",
+        "GMT",
+        "Universal",
+        "Zulu",
+        "EST",
+        "HST",
+        "MST",
+        "Etc/GMT+1",
+        "Etc/GMT-2",
+    ],
+)
+def test_transitionless_dateutil_named_zones_match_chart_data_wire(
+    source: str, zone_name: str
+) -> None:
+    timezone_value = (
+        dateutil_tz.gettz(zone_name)
+        if source == "system"
+        else get_zonefile_instance().get(zone_name)
+    )
+    assert timezone_value is not None
+    namespace = object.__getattribute__(timezone_value, "__dict__")
+    assert dict.__getitem__(namespace, "_trans_list") == ()
+    assert dict.__getitem__(namespace, "_ttinfo_before") is None
+    value = datetime(2040, 7, 1, 12, 34, 56, 123456, tzinfo=timezone_value)
+    expected_epoch = datetime_to_epoch(value)
+
+    projected, reason = query_result_module._chart_data_temporal_number(value)
+    data, failure = query_result_data(
+        {"queries": [{"data": [{"zone": zone_name, "value": value}]}]},
+        temporal_json_numbers=True,
+    )
+
+    assert reason is None
+    assert projected == expected_epoch
+    assert failure is None
+    assert data == [[{"zone": zone_name, "value": expected_epoch}]]
+
+
+def test_transitionless_dateutil_named_zones_do_not_dispatch_hooks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    values = []
+    for getter in (dateutil_tz.gettz, get_zonefile_instance().get):
+        timezone_value = getter("EST")
+        assert timezone_value is not None
+        values.append(datetime(2040, 7, 1, 12, tzinfo=timezone_value))
+    expected = [datetime_to_epoch(value) for value in values]
+    for timezone_type in {type(value.tzinfo) for value in values}:
+        for method_name in ("utcoffset", "dst", "tzname", "fromutc"):
+            monkeypatch.setattr(timezone_type, method_name, _hostile_call)
+
+    for value, expected_epoch in zip(values, expected, strict=True):
+        projected, reason = query_result_module._chart_data_temporal_number(value)
+        assert reason is None
+        assert projected == expected_epoch
+
+
+def test_transitionless_dateutil_named_zone_fails_closed_for_mutated_std() -> None:
+    import copy
+
+    class HostileStandard:
+        def __getattribute__(self, _name: str) -> Any:
+            raise AssertionError("hostile standard transition hook executed")
+
+    timezone_value = dateutil_tz.gettz("UTC")
+    assert timezone_value is not None
+    mutated_timezone = copy.copy(timezone_value)
+    namespace = object.__getattribute__(mutated_timezone, "__dict__")
+    dict.__setitem__(namespace, "_ttinfo_std", HostileStandard())
+    value = datetime(2040, 7, 1, 12, tzinfo=mutated_timezone)
+
+    projected, reason = query_result_module._chart_data_temporal_number(value)
+
+    assert projected is None
+    assert reason == "contains a datetime with an unsupported timezone"
+
+
 @pytest.mark.parametrize(
     "tzinfo_value",
     [dateutil_tz.tzoffset("east", 3600), pytz.FixedOffset(60)],

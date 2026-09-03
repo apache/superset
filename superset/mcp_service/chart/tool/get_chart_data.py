@@ -364,9 +364,10 @@ def _strict_bullet_result_data(
             error=safe_exception_message(ex), error_type=ex.error_type
         )
     # The strict model retains exact result keys while replacing unselected
-    # values with None and normalizing the selected roles. Return those rows so
-    # get-data never serializes a value the Bullet renderer did not approve.
-    return model.rows, None
+    # values with None and normalizing the selected roles. Its zero-valued
+    # ungrouped row is a render-only frontend fallback, not source query data.
+    # Return no rows for an empty query so get-data and exports stay truthful.
+    return model.rows if data else [], None
 
 
 @tool(
