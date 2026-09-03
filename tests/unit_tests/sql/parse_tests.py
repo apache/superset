@@ -2918,6 +2918,11 @@ def test_starrocks_admin_and_job_control_statements_parse(sql: str) -> None:
         "AS SELECT x FROM t",
         # Existing forms these overrides must not regress.
         "REFRESH EXTERNAL TABLE t1",
+        # REFRESH EXTERNAL TABLE / TABLE's own PARTITION(...) clause -- using
+        # `_parse_table_parts` unconditionally for the target would raise
+        # before this clause is ever reached.
+        "REFRESH EXTERNAL TABLE hudi1 PARTITION('date=2022-12-20', 'date=2022-12-21')",
+        "REFRESH TABLE t1 PARTITION('p1')",
         "CREATE MATERIALIZED VIEW lo_mv1 DISTRIBUTED BY HASH(`lo_orderkey`) "
         "REFRESH ASYNC START ('2023-07-01 10:00:00') EVERY (INTERVAL 1 DAY) "
         "AS SELECT lo_orderkey FROM lineorder",
@@ -2925,6 +2930,114 @@ def test_starrocks_admin_and_job_control_statements_parse(sql: str) -> None:
 )
 def test_starrocks_kill_refresh_show_create_function_parse(sql: str) -> None:
     SQLStatement(sql, "starrocks")
+
+
+@pytest.mark.parametrize(
+    ("sql", "expected"),
+    [
+        # `this` is a placeholder Var required by the base Refresh expression,
+        # not a real target name; the generic REFRESH {kind} {this} rendering
+        # would otherwise duplicate the word.
+        ("REFRESH CONNECTIONS", "REFRESH CONNECTIONS"),
+        # A standalone ALTER TABLE ADD ROLLUP action's own "ADD ROLLUP"
+        # keywords live on the RollupIndex node, not on the enclosing ALTER.
+        (
+            "ALTER TABLE db.tbl ADD ROLLUP r1(col1, col2) FROM r0",
+            "ALTER TABLE db.tbl\nADD ROLLUP r1(col1, col2) FROM r0",
+        ),
+        # Dual-bound `VALUES [(...), (...))` range partition must round-trip
+        # as the same half-open bound, not collapse into a single-bound
+        # `VALUES LESS THAN (...)` partition with a different meaning.
+        (
+            "CREATE TABLE t(k1 INT) PARTITION BY RANGE (k1) "
+            "(PARTITION p1 VALUES [('2021-01-01'), ('2021-01-31'))) "
+            "DISTRIBUTED BY HASH(k1)",
+            "CREATE TABLE t (\n  k1 INT\n)\n"
+            "PARTITION BY RANGE (k1) (PARTITION p1 VALUES "
+            "[('2021-01-01'), ('2021-01-31')))\n"
+            "DISTRIBUTED BY HASH (\n  k1\n)",
+        ),
+        # StarRocks' single-argument INTERVAL form must round-trip with the
+        # INTERVAL keyword, not the generic positional Func rendering.
+        (
+            "CREATE TABLE t(dt DATETIME) PARTITION BY time_slice(dt, INTERVAL 7 day) "
+            "DISTRIBUTED BY HASH(dt)",
+            "CREATE TABLE t (\n  dt DATETIME\n)\n"
+            "PARTITION BY TIME_SLICE(dt, INTERVAL '7' DAY)\n"
+            "DISTRIBUTED BY HASH (\n  dt\n)",
+        ),
+        # The 3-argument boundary form, and the non-CONNECTIONS/non-dual-bound/
+        # non-ALTER-action fallback paths of each override above, must keep
+        # deferring to the base StarRocks generator rather than always taking
+        # the specialized branch.
+        (
+            "CREATE TABLE t(dt DATETIME) "
+            "PARTITION BY TIME_SLICE(dt, INTERVAL 7 DAY, FLOOR) "
+            "DISTRIBUTED BY HASH(dt)",
+            "CREATE TABLE t (\n  dt DATETIME\n)\n"
+            "PARTITION BY TIME_SLICE(dt, INTERVAL '7' DAY, FLOOR)\n"
+            "DISTRIBUTED BY HASH (\n  dt\n)",
+        ),
+        ("REFRESH TABLE t1", "REFRESH TABLE t1"),
+        ("REFRESH DICTIONARY dict_obj", "REFRESH DICTIONARY dict_obj"),
+        (
+            "CREATE TABLE t (k1 INT, k2 INT) DUPLICATE KEY (k1) "
+            "DISTRIBUTED BY HASH (k1) ROLLUP (r1 (k1) FROM t)",
+            "CREATE TABLE t (\n  k1 INT,\n  k2 INT\n)\n"
+            "DUPLICATE KEY (k1)\n"
+            "DISTRIBUTED BY HASH (\n  k1\n)\n"
+            "ROLLUP (r1(k1) FROM t)",
+        ),
+        (
+            "CREATE TABLE t(k1 INT) PARTITION BY RANGE (k1) "
+            '(PARTITION p1 VALUES LESS THAN ("10")) DISTRIBUTED BY HASH(k1)',
+            "CREATE TABLE t (\n  k1 INT\n)\n"
+            "PARTITION BY RANGE (k1) (PARTITION p1 VALUES LESS THAN ('10'))\n"
+            "DISTRIBUTED BY HASH (\n  k1\n)",
+        ),
+        # REFRESH MATERIALIZED VIEW's FORCE / PARTITION START(...) END(...) /
+        # WITH {SYNC|ASYNC} MODE clauses must round-trip, not vanish --
+        # `format()` is what SQL Lab actually sends to the database.
+        (
+            "REFRESH MATERIALIZED VIEW lo_mv1 FORCE",
+            "REFRESH MATERIALIZED VIEW lo_mv1 FORCE",
+        ),
+        (
+            "REFRESH MATERIALIZED VIEW lo_mv1 PARTITION START ('2020-02-01') "
+            "END ('2020-03-01')",
+            "REFRESH MATERIALIZED VIEW lo_mv1 PARTITION START ('2020-02-01') "
+            "END ('2020-03-01')",
+        ),
+        # FORCE is accepted either right after the view name or after the
+        # PARTITION clause; it always renders after PARTITION.
+        (
+            "REFRESH MATERIALIZED VIEW lo_mv1 FORCE PARTITION START ('2020-02-01') "
+            "END ('2020-03-01')",
+            "REFRESH MATERIALIZED VIEW lo_mv1 PARTITION START ('2020-02-01') "
+            "END ('2020-03-01') FORCE",
+        ),
+        (
+            "REFRESH MATERIALIZED VIEW lo_mv1 PARTITION START ('2020-02-01') "
+            "END ('2020-03-01') FORCE",
+            "REFRESH MATERIALIZED VIEW lo_mv1 PARTITION START ('2020-02-01') "
+            "END ('2020-03-01') FORCE",
+        ),
+        (
+            "REFRESH MATERIALIZED VIEW lo_mv1 WITH SYNC MODE",
+            "REFRESH MATERIALIZED VIEW lo_mv1 WITH SYNC MODE",
+        ),
+        (
+            "REFRESH MATERIALIZED VIEW lo_mv1 WITH ASYNC MODE",
+            "REFRESH MATERIALIZED VIEW lo_mv1 WITH ASYNC MODE",
+        ),
+    ],
+)
+def test_starrocks_generator_round_trip(sql: str, expected: str) -> None:
+    # SQL Lab regenerates SQL from this AST via `format()` for every
+    # statement it executes (see `build_statement_blocks` in
+    # `superset/sql/execution/executor.py`), so an incorrect round-trip here
+    # would send malformed or semantically wrong SQL to the database.
+    assert SQLStatement(sql, "starrocks").format() == expected
 
 
 @pytest.mark.parametrize(
