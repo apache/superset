@@ -253,3 +253,21 @@ test('withholds restore on an externally managed dashboard', () => {
     expect.objectContaining({ canRestore: false }),
   );
 });
+
+test('renders nothing in place while the panel is closed', () => {
+  // The DashboardBuilder overlay relies on this contract: the closed
+  // column must stay DOM-empty (the restore modal portals out of it), or
+  // the :empty shadow guard stops matching and a stray shadow line appears
+  // at the viewport edge below the overlay breakpoint (sc-119737).
+  const store = makeTestStore({
+    versionHistory: versionHistoryState({ isPanelOpen: false }),
+    dashboardInfo: {
+      uuid: 'dash-uuid',
+      last_modified_time: 100,
+      dash_edit_perm: true,
+    },
+    dashboardState: { hasUnsavedChanges: false, lastModifiedTime: 500 },
+  });
+  const { container } = renderAdapter(store);
+  expect(container).toBeEmptyDOMElement();
+});
