@@ -319,9 +319,7 @@ class DatabricksODBCEngineSpec(DatabricksBaseEngineSpec):
     default_driver = "pyodbc"
 
     metadata = {
-        "description": (
-            "Databricks SQL Endpoint connection using the ODBC driver."
-        ),
+        "description": ("Databricks SQL Endpoint connection using the ODBC driver."),
         "logo": "databricks.png",
         "homepage_url": "https://www.databricks.com/",
         "categories": [
@@ -660,9 +658,7 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
     )
 
     metadata = {
-        "description": (
-            "Databricks legacy connector using databricks-dbapi."
-        ),
+        "description": ("Databricks legacy connector using databricks-dbapi."),
         "logo": "databricks.png",
         "homepage_url": "https://www.databricks.com/",
         "categories": [

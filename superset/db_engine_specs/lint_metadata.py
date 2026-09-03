@@ -48,6 +48,7 @@ Example output:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json  # noqa: TID251 - standalone script, don't depend on superset.utils
 import sys
 from dataclasses import dataclass
@@ -360,13 +361,9 @@ def _eval_ast_value(node: Any) -> Any:  # noqa: C901
 
     if isinstance(node, ast.Constant):
         return node.value
-    elif hasattr(ast, "Str") and isinstance(
-        node, ast.Str
-    ):  # Python <3.8 compat
+    elif hasattr(ast, "Str") and isinstance(node, ast.Str):  # Python <3.8 compat
         return node.s
-    elif hasattr(ast, "Num") and isinstance(
-        node, ast.Num
-    ):  # Python <3.8 compat
+    elif hasattr(ast, "Num") and isinstance(node, ast.Num):  # Python <3.8 compat
         return node.n
     elif isinstance(node, ast.List):
         return [_eval_ast_value(e) for e in node.elts]
@@ -641,18 +638,14 @@ def generate_markdown_report(reports: list[MetadataReport]) -> str:
     return "\n".join(lines)
 
 
-def main() -> int:
+def main() -> int:  # noqa: C901
     """Main entry point."""
     if hasattr(sys.stdout, "reconfigure"):
-        try:
+        with contextlib.suppress(Exception):
             sys.stdout.reconfigure(encoding="utf-8")
-        except Exception:
-            pass
     if hasattr(sys.stderr, "reconfigure"):
-        try:
+        with contextlib.suppress(Exception):
             sys.stderr.reconfigure(encoding="utf-8")
-        except Exception:
-            pass
 
     parser = argparse.ArgumentParser(
         description="Lint DB engine spec metadata for completeness"

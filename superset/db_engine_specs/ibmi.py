@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from superset.db_engine_specs.base import DatabaseCategory
+
 from .db2 import Db2EngineSpec
 
 
