@@ -601,3 +601,14 @@ def test_chart_data_adhoc_metric_schema_accepts_extended_aggregates(
         }
     )
     assert result["aggregate"] == aggregate
+
+
+@pytest.mark.parametrize("operation", ["escape_separator", "unescape_separator"])
+def test_post_processing_operation_schema_rejects_string_helpers(
+    app_context: None, operation: str
+) -> None:
+    """`escape_separator`/`unescape_separator` are internal str -> str helpers,
+    not DataFrame post-processing operations, and shouldn't validate as one."""
+    schema = ChartDataPostProcessingOperationSchema()
+    with pytest.raises(ValidationError):
+        schema.load({"operation": operation, "options": {}})
