@@ -39,7 +39,10 @@ from superset.common.tabular_query import (
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
 from superset.mcp_service.chart.query_result import validate_query_result_envelope
-from superset.mcp_service.chart.response_preflight import finalize_get_table_response
+from superset.mcp_service.chart.response_preflight import (
+    bounded_exception_message,
+    finalize_get_table_response,
+)
 from superset.mcp_service.chart.schemas import PerformanceMetadata
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
@@ -152,7 +155,7 @@ def _resolve_external_view(
         view.raise_for_access()
     except SupersetSecurityException as ex:
         return SemanticLayerError.create(
-            error=str(ex.error.message),
+            error=bounded_exception_message(ex),
             error_type="AccessDenied",
         )
 
@@ -464,35 +467,65 @@ async def _get_table(
         )
 
     except OAuth2Error as exc:
-        await ctx.error("OAuth2 error: %s" % str(exc))
+        error_text = bounded_exception_message(exc)
+        await ctx.error("OAuth2 error: %s" % error_text)
         return SemanticLayerError.create(
-            error=f"OAuth2 authentication error: {exc}",
+            error=f"OAuth2 authentication error: {error_text}",
             error_type="OAuth2Error",
         )
 
     except (CommandException, SupersetException) as exc:
-        await ctx.error("Query failed: %s" % str(exc))
+        error_text = bounded_exception_message(exc)
+        await ctx.error("Query failed: %s" % error_text)
         return SemanticLayerError.create(
-            error=f"Query execution failed: {exc}",
+            error=f"Query execution failed: {error_text}",
             error_type="QueryError",
         )
 
     except SQLAlchemyError as exc:
-        await ctx.error("Database error: %s" % str(exc))
+        error_text = bounded_exception_message(exc)
+        await ctx.error("Database error: %s" % error_text)
         return SemanticLayerError.create(
-            error=f"Database error: {exc}",
+            error=f"Database error: {error_text}",
             error_type="DatabaseError",
         )
 
-    except Exception as exc:
-        logger.exception(
-            "Unexpected error in get_table: %s: %s", type(exc).__name__, str(exc)
+
+def _semantic_table_internal_error() -> SemanticLayerError:
+    """Build the static public fallback for unexpected semantic-table failures."""
+    return SemanticLayerError.create(
+        error="An internal error occurred while querying the semantic table.",
+        error_type="InternalError",
+    )
+
+
+def _log_semantic_table_failure(message: str) -> None:
+    """Write a fixed best-effort log record without exception formatting."""
+    try:
+        logger.exception(message, exc_info=False)
+    except Exception:  # noqa: S110 - containment logging is best effort
+        pass
+
+
+async def _finalized_get_table(
+    request: GetTableRequest,
+    ctx: Context,
+) -> GetTableResponse | SemanticLayerError:
+    """Contain and preflight one semantic-table producer invocation."""
+    try:
+        response = await _get_table(request, ctx)
+    except Exception:
+        _log_semantic_table_failure(
+            "Unhandled exception while querying a semantic table"
         )
-        await ctx.error("Unexpected error: %s: %s" % (type(exc).__name__, str(exc)))
-        return SemanticLayerError.create(
-            error=f"Internal error executing get_table: {exc}",
-            error_type="InternalError",
+        response = _semantic_table_internal_error()
+    try:
+        return finalize_get_table_response(response)
+    except Exception:
+        _log_semantic_table_failure(
+            "Unhandled exception while finalizing a semantic table response"
         )
+        return _semantic_table_internal_error()
 
 
 @tool(
@@ -511,15 +544,4 @@ async def get_table(
     ctx: Context,
 ) -> GetTableResponse | SemanticLayerError:
     """Query a data source and preflight every public response branch."""
-    try:
-        response = await _get_table(request, ctx)
-    except Exception:
-        # Exception text can contain query values; keep the log record fixed.
-        logger.exception(
-            "Unhandled exception while querying a semantic table", exc_info=False
-        )
-        response = SemanticLayerError.create(
-            error="An internal error occurred while querying the semantic table.",
-            error_type="InternalError",
-        )
-    return finalize_get_table_response(response)
+    return await _finalized_get_table(request, ctx)

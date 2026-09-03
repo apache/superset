@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import importlib
 from collections.abc import Generator
 from contextlib import nullcontext
@@ -44,7 +45,21 @@ from superset.utils import json
 from superset.utils.core import GenericDataType
 from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
     chart_data_command_result,
+    HostileTimezone,
 )
+
+
+class HostileRuntimeError(RuntimeError):
+    calls = 0
+
+    def __str__(self) -> str:
+        type(self).calls += 1
+        return "round21-hostile-runtime-secret"
+
+    def __repr__(self) -> str:
+        type(self).calls += 1
+        return "round21-hostile-runtime-secret"
+
 
 get_table_module: ModuleType = importlib.import_module(
     "superset.mcp_service.semantic_layer.tool.get_table"
@@ -144,8 +159,8 @@ async def test_get_table_mcp_entry_bounds_dynamic_command_error(
         )
 
     returned = SemanticLayerError.model_validate(json.loads(result.content[0].text))
-    assert returned.error_type == "InvalidQueryResult"
-    assert len(returned.model_dump_json().encode()) < 1_000
+    assert returned.error_type == "QueryError"
+    assert len(returned.model_dump_json().encode()) < 4_096
 
 
 @pytest.mark.asyncio
@@ -215,6 +230,141 @@ async def test_get_table_mcp_entry_bounds_uncaught_dynamic_exception(
     assert secret not in repr(log_exception.call_args)
     assert "Unhandled exception while querying a semantic table" in caplog.text
     assert secret not in caplog.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "failure_stage", ["runtime-error", "context-enter", "context-exit"]
+)
+async def test_get_table_contains_hostile_unexpected_failures_without_hooks(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    failure_stage: str,
+) -> None:
+    """Unexpected inner-stage failures reach the fixed public containment layer."""
+    failure = HostileRuntimeError("stored-secret")
+    if failure_stage == "runtime-error":
+        monkeypatch.setattr(
+            get_table_module,
+            "_resolve_builtin_dataset",
+            MagicMock(side_effect=failure),
+        )
+    else:
+
+        class FailingContextManager:
+            def __enter__(self) -> None:
+                if failure_stage == "context-enter":
+                    raise failure
+
+            def __exit__(self, *_args: Any) -> None:
+                if failure_stage == "context-exit":
+                    raise failure
+
+        monkeypatch.setattr(
+            get_table_module,
+            "event_logger",
+            SimpleNamespace(log_context=lambda **_kwargs: FailingContextManager()),
+        )
+
+    original_finalizer = get_table_module.finalize_get_table_response
+    finalizer = MagicMock(wraps=original_finalizer)
+    log_exception = MagicMock(wraps=get_table_module.logger.exception)
+    monkeypatch.setattr(get_table_module, "finalize_get_table_response", finalizer)
+    monkeypatch.setattr(get_table_module.logger, "exception", log_exception)
+    caplog.set_level("ERROR", logger=get_table_module.__name__)
+    HostileRuntimeError.calls = 0
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_table", {"request": {"dataset_id": 42, "metrics": ["revenue"]}}
+        )
+
+    assert isinstance(result.structured_content, dict)
+    payload = result.structured_content.get("result", result.structured_content)
+    returned = SemanticLayerError.model_validate(payload)
+    wire = returned.model_dump_json().encode()
+    assert returned.error_type == "InternalError"
+    assert len(wire) < 1_000
+    assert "stored-secret" not in repr(result.structured_content)
+    assert "round21-hostile" not in caplog.text
+    assert HostileRuntimeError.calls == 0
+    finalizer.assert_called_once()
+    log_exception.assert_called_once_with(
+        "Unhandled exception while querying a semantic table", exc_info=False
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure_stage", ["finalizer", "logger"])
+async def test_get_table_contains_finalizer_and_logger_failures(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+    failure_stage: str,
+) -> None:
+    """Containment remains structured when its finalizer or logger fails."""
+    hostile = HostileRuntimeError("stored-secret")
+    if failure_stage == "finalizer":
+
+        async def known_result(*_args: Any, **_kwargs: Any) -> SemanticLayerError:
+            return SemanticLayerError.create(error="known", error_type="KnownError")
+
+        monkeypatch.setattr(get_table_module, "_get_table", known_result)
+        finalizer = MagicMock(side_effect=hostile)
+        monkeypatch.setattr(get_table_module, "finalize_get_table_response", finalizer)
+    else:
+
+        def producer_failure(*_args: Any, **_kwargs: Any) -> None:
+            raise hostile
+
+        monkeypatch.setattr(get_table_module, "_get_table", producer_failure)
+        original_finalizer = get_table_module.finalize_get_table_response
+        finalizer = MagicMock(wraps=original_finalizer)
+        monkeypatch.setattr(get_table_module, "finalize_get_table_response", finalizer)
+        monkeypatch.setattr(
+            get_table_module.logger,
+            "exception",
+            MagicMock(side_effect=RuntimeError("logger-secret")),
+        )
+    HostileRuntimeError.calls = 0
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_table", {"request": {"dataset_id": 42, "metrics": ["revenue"]}}
+        )
+
+    assert isinstance(result.structured_content, dict)
+    payload = result.structured_content.get("result", result.structured_content)
+    returned = SemanticLayerError.model_validate(payload)
+    wire = returned.model_dump_json().encode()
+    assert returned.error_type == "InternalError"
+    assert len(wire) < 1_000
+    assert b"stored-secret" not in wire
+    assert b"logger-secret" not in wire
+    assert HostileRuntimeError.calls == 0
+    finalizer.assert_called_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "system_failure",
+    [asyncio.CancelledError(), KeyboardInterrupt(), SystemExit(), GeneratorExit()],
+)
+async def test_get_table_preserves_base_exception_propagation(
+    monkeypatch: pytest.MonkeyPatch,
+    system_failure: BaseException,
+) -> None:
+    """The public containment boundary catches Exception, not BaseException."""
+    from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+    def fail(*_args: Any, **_kwargs: Any) -> None:
+        raise system_failure
+
+    monkeypatch.setattr(get_table_module, "_get_table", fail)
+    with pytest.raises(type(system_failure)):
+        await get_table_module._finalized_get_table(
+            GetTableRequest(dataset_id=42, metrics=["revenue"]), MagicMock()
+        )
 
 
 def _make_metric(name: str, expression: str = "COUNT(*)") -> MagicMock:
@@ -409,6 +559,7 @@ async def test_get_table_builtin_happy_path(mcp_server: FastMCP) -> None:
 @pytest.mark.asyncio
 async def test_get_table_normalizes_supported_producer_timezones(
     mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     mock_ds = _make_dataset(42)
     query_result = chart_data_command_result(
@@ -431,10 +582,66 @@ async def test_get_table_normalizes_supported_producer_timezones(
                 ),
                 "revenue": 3,
             },
+            {
+                "created_at": datetime(
+                    2024,
+                    10,
+                    27,
+                    1,
+                    30,
+                    0,
+                    123456,
+                    tzinfo=dateutil_tz.gettz("Europe/Dublin"),
+                    fold=1,
+                ),
+                "revenue": 4,
+            },
+            {
+                "created_at": datetime(
+                    2024,
+                    3,
+                    10,
+                    2,
+                    30,
+                    tzinfo=dateutil_tz.gettz("America/New_York"),
+                ),
+                "revenue": 5,
+            },
+            {
+                "created_at": datetime(
+                    2040,
+                    7,
+                    1,
+                    12,
+                    tzinfo=dateutil_tz.gettz("America/New_York"),
+                ),
+                "revenue": 6,
+            },
+            {
+                "created_at": datetime(
+                    2024,
+                    1,
+                    1,
+                    12,
+                    tzinfo=dateutil_tz.gettz("Etc/GMT+3"),
+                ),
+                "revenue": 7,
+            },
         ],
         columns=["created_at", "revenue"],
         coltypes=[GenericDataType.TEMPORAL, GenericDataType.NUMERIC],
     )
+
+    def hostile_timezone_hook(*_args: Any, **_kwargs: Any) -> None:
+        raise AssertionError("dateutil timezone hook executed")
+
+    for zone_name in ("Europe/Dublin", "America/New_York", "Etc/GMT+3"):
+        timezone_value = dateutil_tz.gettz(zone_name)
+        assert timezone_value is not None
+        for method_name in ("utcoffset", "dst", "tzname", "fromutc"):
+            monkeypatch.setattr(
+                type(timezone_value), method_name, hostile_timezone_hook
+            )
 
     with (
         patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
@@ -466,9 +673,59 @@ async def test_get_table_normalizes_supported_producer_timezones(
         {"created_at": "2024-01-02T03:04:05+05:30", "revenue": 1},
         {"created_at": "2024-01-02T03:04:05-04:00", "revenue": 2},
         {"created_at": "2024-01-02T03:04:05-08:00", "revenue": 3},
+        {
+            "created_at": "2024-10-27T01:30:00.123456+01:00",
+            "revenue": 4,
+        },
+        {"created_at": "2024-03-10T02:30:00-04:00", "revenue": 5},
+        {"created_at": "2040-07-01T12:00:00-05:00", "revenue": 6},
+        {"created_at": "2024-01-01T12:00:00-03:00", "revenue": 7},
     ]
     assert data["performance"]["cache_status"] == "fresh"
     assert data["cache_status"]["cache_hit"] is False
+
+
+@pytest.mark.asyncio
+async def test_get_table_rejects_hostile_timezone_without_hooks(
+    mcp_server: FastMCP,
+) -> None:
+    """The semantic entry point rejects an untrusted timezone without hooks."""
+    hostile = HostileTimezone()
+    mock_ds = _make_dataset(42)
+    frame = pd.DataFrame(index=range(1))
+    frame["created_at"] = pd.Series(
+        [datetime(2024, 1, 1, tzinfo=hostile)], dtype=object
+    )
+    frame["revenue"] = pd.Series([1], dtype=object)
+    query_result = chart_data_command_result(
+        columns=["created_at", "revenue"],
+        coltypes=[GenericDataType.TEMPORAL, GenericDataType.NUMERIC],
+        frame=frame,
+    )
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=mock_ds),
+        patch.object(
+            get_table_module,
+            "execute_tabular_query",
+            return_value=query_result,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "dataset_id": 42,
+                        "metrics": ["revenue"],
+                        "dimensions": ["created_at"],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "InvalidQueryResult"
+    assert hostile.calls == 0
 
 
 @pytest.mark.asyncio

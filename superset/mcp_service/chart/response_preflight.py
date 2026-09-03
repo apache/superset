@@ -34,10 +34,50 @@ from superset.mcp_service.semantic_layer.schemas import (
 )
 
 _ResponseModel = TypeVar("_ResponseModel", bound=BaseModel)
+_MAX_EXCEPTION_PARTS = 3
+_MAX_EXCEPTION_TEXT_BYTES = 256
 
 
 class UpdateChartPreviewResponse(RootModel[dict[str, Any]]):
     """Typed wire projection for the legacy dict-shaped preview response."""
+
+
+def bounded_exception_message(exception: BaseException) -> str:  # noqa: C901
+    """Extract bounded primitive exception arguments without formatting hooks."""
+    try:
+        args = object.__getattribute__(exception, "args")
+    except Exception:  # pragma: no cover - BaseException provides args
+        args = ()
+    parts: list[str] = []
+    used = 0
+    if type(args) is tuple:
+        for index in range(min(tuple.__len__(args), _MAX_EXCEPTION_PARTS)):
+            value = tuple.__getitem__(args, index)
+            if type(value) is str:
+                text = value
+            elif type(value) is bool:
+                text = "True" if value else "False"
+            elif type(value) is int and int.bit_length(value) <= 4_096:
+                text = int.__str__(value)
+            elif type(value) is float:
+                text = float.__repr__(value)
+            elif value is None:
+                text = "None"
+            else:
+                continue
+            remaining = _MAX_EXCEPTION_TEXT_BYTES - used - (2 if parts else 0)
+            if remaining <= 0:
+                break
+            encoded = str.encode(text[:remaining], "utf-8", errors="replace")[
+                :remaining
+            ]
+            bounded = bytes.decode(encoded, "utf-8", errors="ignore")
+            if bounded:
+                parts.append(bounded)
+                used += bytes.__len__(encoded) + (2 if len(parts) > 1 else 0)
+    if parts:
+        return "; ".join(parts)
+    return "request failed"
 
 
 def finalize_chart_data_response(

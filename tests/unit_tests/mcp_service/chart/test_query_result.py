@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import copy
 from datetime import date, datetime, time, timedelta, timezone, tzinfo
 from decimal import Decimal
 from enum import Enum
@@ -1171,6 +1172,206 @@ def test_exact_temporals_accept_packaged_safe_timezones(
 
     assert error is None
     assert data == [{"value": expected}]
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        datetime(
+            2024,
+            10,
+            27,
+            1,
+            30,
+            0,
+            123456,
+            tzinfo=dateutil_tz.gettz("Europe/Dublin"),
+            fold=1,
+        ),
+        datetime(
+            2024,
+            3,
+            10,
+            2,
+            30,
+            tzinfo=dateutil_tz.gettz("America/New_York"),
+        ),
+        datetime(
+            2040,
+            7,
+            1,
+            12,
+            tzinfo=dateutil_tz.gettz("America/New_York"),
+        ),
+        datetime(
+            1880,
+            1,
+            1,
+            12,
+            tzinfo=dateutil_tz.gettz("America/New_York"),
+        ),
+        datetime(
+            1920,
+            1,
+            1,
+            12,
+            tzinfo=dateutil_tz.gettz("America/New_York"),
+        ),
+        datetime(
+            2024,
+            1,
+            1,
+            12,
+            tzinfo=dateutil_tz.gettz("Etc/GMT+3"),
+        ),
+        datetime(
+            2024,
+            3,
+            10,
+            2,
+            30,
+            tzinfo=dateutil_zoneinfo.get_zonefile_instance().get("America/New_York"),
+        ),
+        datetime(
+            2024,
+            1,
+            1,
+            12,
+            tzinfo=dateutil_zoneinfo.get_zonefile_instance().get("Etc/GMT+3"),
+        ),
+    ],
+    ids=[
+        "dublin-negative-dst-fold",
+        "new-york-spring-gap",
+        "new-york-post-final-transition",
+        "historical-before-first-transition",
+        "historical-transition-table",
+        "system-transitionless-zone",
+        "packaged-new-york-gap",
+        "packaged-transitionless-zone",
+    ],
+)
+def test_dateutil_datetime_preserves_source_selected_transition_offset(
+    value: datetime,
+) -> None:
+    expected = datetime.isoformat(value)
+    result = _producer_result({"data": [{"value": value}]})
+
+    data, error = first_query_data(result)
+
+    assert error is None
+    assert data == [{"value": expected}]
+    assert datetime.fromisoformat(data[0]["value"]).timestamp() == value.timestamp()
+
+
+def test_dateutil_datetime_preserves_equivalent_instant_and_source_offset() -> None:
+    source_timezone = dateutil_tz.gettz("America/New_York")
+    assert source_timezone is not None
+    dateutil_value = datetime(2024, 1, 1, 7, tzinfo=source_timezone)
+    utc_value = datetime(2024, 1, 1, 12, tzinfo=timezone.utc)
+    assert dateutil_value.timestamp() == utc_value.timestamp()
+    result = _producer_result(
+        {"data": [{"dateutil": dateutil_value, "utc": utc_value}]}
+    )
+
+    data, error = first_query_data(result)
+
+    assert error is None
+    assert data == [
+        {
+            "dateutil": "2024-01-01T07:00:00-05:00",
+            "utc": "2024-01-01T12:00:00+00:00",
+        }
+    ]
+    assert datetime.fromisoformat(data[0]["dateutil"]).timestamp() == (
+        datetime.fromisoformat(data[0]["utc"]).timestamp()
+    )
+
+
+def test_dateutil_datetime_preserves_historical_transition_boundary() -> None:
+    source_timezone = dateutil_tz.gettz("America/New_York")
+    assert source_timezone is not None
+    namespace = object.__getattribute__(source_timezone, "__dict__")
+    transition = dict.__getitem__(namespace, "_trans_list")[1]
+    wall = datetime(1970, 1, 1) + timedelta(seconds=transition)
+    values = [
+        (wall - timedelta(seconds=1)).replace(tzinfo=source_timezone),
+        wall.replace(tzinfo=source_timezone),
+    ]
+    expected = [datetime.isoformat(value) for value in values]
+    result = _producer_result({"data": [{"value": value} for value in values]})
+
+    data, error = first_query_data(result)
+
+    assert error is None
+    assert data == [{"value": value} for value in expected]
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "reversed-transitions",
+        "inconsistent-wall-transition",
+        "mismatched-index",
+        "invalid-offset",
+        "wrong-standard-record",
+    ],
+)
+def test_dateutil_datetime_rejects_mutated_transition_state(mutation: str) -> None:
+    zone = copy.deepcopy(dateutil_tz.gettz("America/New_York"))
+    namespace = object.__getattribute__(zone, "__dict__")
+    if mutation == "reversed-transitions":
+        namespace["_trans_list"] = tuple(reversed(namespace["_trans_list"]))
+    elif mutation == "inconsistent-wall-transition":
+        transitions = namespace["_trans_list"]
+        namespace["_trans_list"] = (transitions[0] + 1, *transitions[1:])
+    elif mutation == "mismatched-index":
+        namespace["_trans_idx"] = namespace["_trans_idx"][:-1]
+    elif mutation == "wrong-standard-record":
+        namespace["_ttinfo_std"] = next(
+            info
+            for info in namespace["_ttinfo_list"]
+            if info is not namespace["_ttinfo_std"]
+        )
+    else:
+        namespace["_ttinfo_std"].offset = 86_400
+    result = _producer_result(
+        {"data": [{"value": datetime(2024, 1, 1, 12, tzinfo=zone)}]}
+    )
+
+    error = validate_query_result_envelope(result)
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+
+
+class HostileTransition(int):
+    calls = 0
+
+    def __le__(self, _other: Any) -> bool:
+        type(self).calls += 1
+        raise AssertionError("hostile transition hook executed")
+
+    def __repr__(self) -> str:
+        type(self).calls += 1
+        raise AssertionError("hostile transition hook executed")
+
+
+def test_dateutil_datetime_rejects_hostile_transition_without_hooks() -> None:
+    zone = copy.deepcopy(dateutil_tz.gettz("America/New_York"))
+    namespace = object.__getattribute__(zone, "__dict__")
+    transitions = namespace["_trans_list"]
+    namespace["_trans_list"] = (HostileTransition(transitions[0]), *transitions[1:])
+    value = datetime(2024, 1, 1, 12, tzinfo=zone)
+    HostileTransition.calls = 0
+
+    error = validate_query_result_envelope(
+        _producer_result({"data": [{"value": value}]})
+    )
+
+    assert error is not None
+    assert error.error_type == "InvalidQueryResult"
+    assert HostileTransition.calls == 0
 
 
 def test_shared_acyclic_containers_are_normalized_for_every_occurrence() -> None:

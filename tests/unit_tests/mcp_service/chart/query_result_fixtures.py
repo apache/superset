@@ -17,8 +17,9 @@
 
 """Real chart-data producer fixtures shared by MCP consumer tests."""
 
+from datetime import datetime, timedelta, tzinfo
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, cast, NoReturn
 
 import pandas as pd
 
@@ -28,6 +29,32 @@ from superset.common.db_query_status import QueryStatus
 from superset.common.query_context import QueryContext
 from superset.common.query_context_processor import QueryContextProcessor
 from superset.utils.core import GenericDataType
+
+
+class HostileTimezone(tzinfo):
+    """Timezone whose protocol and representation hooks must remain unused."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    def _fail(self) -> NoReturn:
+        self.calls += 1
+        raise AssertionError("hostile timezone hook executed")
+
+    def utcoffset(self, _dt: datetime | None) -> timedelta | None:
+        self._fail()
+
+    def dst(self, _dt: datetime | None) -> timedelta | None:
+        self._fail()
+
+    def tzname(self, _dt: datetime | None) -> str | None:
+        self._fail()
+
+    def fromutc(self, _dt: datetime) -> datetime:
+        self._fail()
+
+    def __repr__(self) -> str:
+        self._fail()
 
 
 class FakeQueryContext:
@@ -48,12 +75,21 @@ def chart_data_command_result(
     *,
     columns: list[str] | None = None,
     coltypes: list[GenericDataType] | None = None,
+    frame: pd.DataFrame | None = None,
 ) -> dict[str, Any]:
     """Materialize a DataFrame and pass it through ``ChartDataCommand.run``."""
     rows = rows if rows is not None else [{"value": 1}]
-    columns = columns if columns is not None else list(rows[0]) if rows else ["value"]
+    columns = (
+        columns
+        if columns is not None
+        else list(frame.columns)
+        if frame is not None
+        else list(rows[0])
+        if rows
+        else ["value"]
+    )
     coltypes = coltypes or [GenericDataType.NUMERIC] * len(columns)
-    frame = pd.DataFrame(rows, columns=columns)
+    frame = frame if frame is not None else pd.DataFrame(rows, columns=columns)
     processor_context = SimpleNamespace(
         datasource=object(), result_format=ChartDataResultFormat.JSON
     )
@@ -72,8 +108,8 @@ def chart_data_command_result(
         "is_cached": None,
         "query": "SELECT 1",
         "status": QueryStatus.SUCCESS,
-        "rowcount": len(rows),
-        "sql_rowcount": len(rows),
+        "rowcount": len(frame),
+        "sql_rowcount": len(frame),
         "result_format": ChartDataResultFormat.JSON,
         "applied_filters": [],
         "rejected_filters": [],

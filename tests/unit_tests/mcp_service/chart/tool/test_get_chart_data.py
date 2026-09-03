@@ -19,6 +19,7 @@
 Tests for the get_chart_data request schema and chart type fallback handling.
 """
 
+import asyncio
 import importlib
 from contextlib import nullcontext
 from datetime import datetime, timezone
@@ -32,6 +33,7 @@ from uuid import UUID
 import numpy as np
 import pandas as pd
 import pytest
+from dateutil import tz as dateutil_tz
 
 from superset.common.db_query_status import QueryStatus
 from superset.dataframe import df_to_records
@@ -58,6 +60,7 @@ from superset.utils import json
 from superset.utils.core import ExtraFiltersReasonType, GenericDataType
 from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
     chart_data_command_result,
+    HostileTimezone,
 )
 
 
@@ -71,6 +74,18 @@ class HostileResultEnum(Enum):
 
     def __str__(self):
         raise AssertionError("hostile enum string hook executed")
+
+
+class HostileValueError(ValueError):
+    calls = 0
+
+    def __str__(self) -> str:
+        type(self).calls += 1
+        return "round21-hostile-value-secret"
+
+    def __repr__(self) -> str:
+        type(self).calls += 1
+        return "round21-hostile-value-secret"
 
 
 def test_requested_filter_columns_supports_both_payload_shapes() -> None:
@@ -814,6 +829,173 @@ async def test_unsaved_get_data_canonicalizes_decimal_nonfinite_at_producer(
         None,
         "0.10000000000000000001",
     ]
+
+
+@pytest.mark.asyncio
+async def test_unsaved_get_data_preserves_dateutil_transition_offsets(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The chart entry point preserves dateutil's selected offset and instant."""
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    form_data = {
+        "datasource_id": 7,
+        "datasource_type": "table",
+        "datasource": "7__table",
+        "viz_type": "table",
+        "all_columns": ["value"],
+    }
+    values = [
+        datetime(
+            2024,
+            10,
+            27,
+            1,
+            30,
+            0,
+            123456,
+            tzinfo=dateutil_tz.gettz("Europe/Dublin"),
+            fold=1,
+        ),
+        datetime(
+            2024,
+            3,
+            10,
+            2,
+            30,
+            tzinfo=dateutil_tz.gettz("America/New_York"),
+        ),
+        datetime(
+            2040,
+            7,
+            1,
+            12,
+            tzinfo=dateutil_tz.gettz("America/New_York"),
+        ),
+        datetime(
+            2024,
+            1,
+            1,
+            12,
+            tzinfo=dateutil_tz.gettz("Etc/GMT+3"),
+        ),
+    ]
+    producer_result = chart_data_command_result(
+        [{"value": value} for value in values],
+        columns=["value"],
+        coltypes=[GenericDataType.TEMPORAL],
+    )
+
+    def hostile_timezone_hook(*_args: Any, **_kwargs: Any) -> None:
+        raise AssertionError("dateutil timezone hook executed")
+
+    for timezone_type in {type(value.tzinfo) for value in values}:
+        for method_name in ("utcoffset", "dst", "tzname", "fromutc"):
+            monkeypatch.setattr(timezone_type, method_name, hostile_timezone_hook)
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return producer_result
+
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        module, "get_cached_form_data", lambda _key: json.dumps(form_data)
+    )
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
+    )
+    monkeypatch.setattr(module, "set_query_context_form_data", lambda *_args: None)
+    monkeypatch.setattr(
+        module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
+    )
+    monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_chart_data", {"request": {"form_data_key": "dateutil-values"}}
+        )
+
+    payload = result.structured_content.get("result", result.structured_content)
+    assert payload["data"] == [
+        {"value": "2024-10-27T01:30:00.123456+01:00"},
+        {"value": "2024-03-10T02:30:00-04:00"},
+        {"value": "2040-07-01T12:00:00-05:00"},
+        {"value": "2024-01-01T12:00:00-03:00"},
+    ]
+
+
+@pytest.mark.asyncio
+async def test_unsaved_get_data_rejects_hostile_timezone_without_hooks(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The chart entry point rejects an untrusted timezone without invoking it."""
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    hostile = HostileTimezone()
+    frame = pd.DataFrame(index=range(1))
+    frame["value"] = pd.Series([datetime(2024, 1, 1, tzinfo=hostile)], dtype=object)
+    producer_result = chart_data_command_result(
+        columns=["value"],
+        coltypes=[GenericDataType.TEMPORAL],
+        frame=frame,
+    )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return producer_result
+
+    form_data = {
+        "datasource_id": 7,
+        "datasource_type": "table",
+        "datasource": "7__table",
+        "viz_type": "table",
+        "all_columns": ["value"],
+    }
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        module, "get_cached_form_data", lambda _key: json.dumps(form_data)
+    )
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
+    )
+    monkeypatch.setattr(module, "set_query_context_form_data", lambda *_args: None)
+    monkeypatch.setattr(
+        module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
+    )
+    monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_chart_data", {"request": {"form_data_key": "hostile-timezone"}}
+        )
+
+    payload = result.structured_content.get("result", result.structured_content)
+    assert payload["error_type"] == "InvalidQueryResult"
+    assert hostile.calls == 0
 
 
 @pytest.mark.asyncio
@@ -2297,7 +2479,7 @@ async def test_get_chart_data_mcp_entry_bounds_dynamic_internal_error(
 
     payload = result.structured_content.get("result", result.structured_content)
     returned = ChartError.model_validate(payload)
-    assert returned.error_type == "InvalidQueryResult"
+    assert returned.error_type == "InternalError"
     assert len(returned.model_dump_json().encode()) < 1_000
 
 
@@ -2385,6 +2567,143 @@ async def test_get_chart_data_mcp_entry_bounds_uncaught_dynamic_exception(
     assert secret not in repr(log_exception.call_args)
     assert "Unhandled exception while retrieving chart data" in caplog.text
     assert secret not in caplog.text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "failure_stage", ["value-error", "context-enter", "context-exit"]
+)
+async def test_get_chart_data_contains_hostile_unexpected_failures_without_hooks(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    failure_stage: str,
+) -> None:
+    """Unexpected inner-stage failures reach the fixed public containment layer."""
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    failure = HostileValueError("stored-secret")
+    if failure_stage == "value-error":
+        monkeypatch.setattr(
+            module, "find_chart_by_identifier", MagicMock(side_effect=failure)
+        )
+    else:
+
+        class FailingContextManager:
+            def __enter__(self) -> None:
+                if failure_stage == "context-enter":
+                    raise failure
+
+            def __exit__(self, *_args: Any) -> None:
+                if failure_stage == "context-exit":
+                    raise failure
+
+        module.event_logger.log_context.side_effect = lambda **_kwargs: (
+            FailingContextManager()
+        )
+
+    original_finalizer = module.finalize_chart_data_response
+    finalizer = MagicMock(wraps=original_finalizer)
+    log_exception = MagicMock(wraps=module.logger.exception)
+    monkeypatch.setattr(module, "finalize_chart_data_response", finalizer)
+    monkeypatch.setattr(module.logger, "exception", log_exception)
+    caplog.set_level("ERROR", logger=module.__name__)
+    HostileValueError.calls = 0
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_chart_data", {"request": {"identifier": 1}}
+        )
+
+    payload = result.structured_content.get("result", result.structured_content)
+    returned = ChartError.model_validate(payload)
+    wire = returned.model_dump_json().encode()
+    assert returned.error_type == "InternalError"
+    assert len(wire) < 1_000
+    assert "stored-secret" not in repr(result.structured_content)
+    assert "round21-hostile" not in caplog.text
+    assert HostileValueError.calls == 0
+    finalizer.assert_called_once()
+    log_exception.assert_called_once_with(
+        "Unhandled exception while retrieving chart data", exc_info=False
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("failure_stage", ["finalizer", "logger"])
+async def test_get_chart_data_contains_finalizer_and_logger_failures(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    failure_stage: str,
+) -> None:
+    """Containment remains structured when its finalizer or logger fails."""
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    hostile = HostileValueError("stored-secret")
+    if failure_stage == "finalizer":
+
+        async def known_result(*_args: Any, **_kwargs: Any) -> ChartError:
+            return ChartError(error="known", error_type="KnownError")
+
+        monkeypatch.setattr(module, "_get_chart_data", known_result)
+        finalizer = MagicMock(side_effect=hostile)
+        monkeypatch.setattr(module, "finalize_chart_data_response", finalizer)
+    else:
+
+        def producer_failure(*_args: Any, **_kwargs: Any) -> None:
+            raise hostile
+
+        monkeypatch.setattr(module, "_get_chart_data", producer_failure)
+        original_finalizer = module.finalize_chart_data_response
+        finalizer = MagicMock(wraps=original_finalizer)
+        monkeypatch.setattr(module, "finalize_chart_data_response", finalizer)
+        monkeypatch.setattr(
+            module.logger,
+            "exception",
+            MagicMock(side_effect=RuntimeError("logger-secret")),
+        )
+    HostileValueError.calls = 0
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_chart_data", {"request": {"identifier": 1}}
+        )
+
+    payload = result.structured_content.get("result", result.structured_content)
+    returned = ChartError.model_validate(payload)
+    wire = returned.model_dump_json().encode()
+    assert returned.error_type == "InternalError"
+    assert len(wire) < 1_000
+    assert b"stored-secret" not in wire
+    assert b"logger-secret" not in wire
+    assert HostileValueError.calls == 0
+    finalizer.assert_called_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "system_failure",
+    [asyncio.CancelledError(), KeyboardInterrupt(), SystemExit(), GeneratorExit()],
+)
+async def test_get_chart_data_preserves_base_exception_propagation(
+    monkeypatch: pytest.MonkeyPatch,
+    system_failure: BaseException,
+) -> None:
+    """The public containment boundary catches Exception, not BaseException."""
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+
+    def fail(*_args: Any, **_kwargs: Any) -> None:
+        raise system_failure
+
+    monkeypatch.setattr(module, "_get_chart_data", fail)
+    with pytest.raises(type(system_failure)):
+        await module._finalized_chart_data(
+            GetChartDataRequest(identifier=1), MagicMock()
+        )
 
 
 def _extract_metrics_load_path(load_opt: Any) -> list[str]:

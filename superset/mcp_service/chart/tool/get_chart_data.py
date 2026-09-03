@@ -50,6 +50,7 @@ from superset.mcp_service.chart.chart_helpers import (
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.query_result import validate_query_result_envelope
 from superset.mcp_service.chart.response_preflight import (
+    bounded_exception_message,
     finalize_chart_data_response,
 )
 from superset.mcp_service.chart.schemas import (
@@ -446,15 +447,16 @@ async def _get_chart_data(  # noqa: C901
                     )
                 try:
                     cached_form_data_dict = utils_json.loads(cached_form_data)
-                except (TypeError, ValueError) as e:
+                except (TypeError, ValueError) as exc:
+                    if type(exc) not in {TypeError, ValueError}:
+                        raise
                     logger.warning(
                         "get_chart_data: failed to parse cached form_data "
-                        "for form_data_key=%s: %s",
+                        "for form_data_key=%s",
                         request.form_data_key,
-                        e,
                     )
                     return ChartError(
-                        error=f"Failed to parse cached form_data: {e}",
+                        error="Failed to parse cached form_data.",
                         error_type="ParseError",
                     )
                 if not isinstance(cached_form_data_dict, dict):
@@ -553,7 +555,9 @@ async def _get_chart_data(  # noqa: C901
 
         try:
             saved_form_data = utils_json.loads(chart.params) if chart.params else {}
-        except (TypeError, ValueError):
+        except (TypeError, ValueError) as exc:
+            if type(exc) not in {TypeError, ValueError}:
+                raise
             saved_form_data = {}
         effective_form_data = (
             dict(saved_form_data) if isinstance(saved_form_data, dict) else {}
@@ -596,10 +600,12 @@ async def _get_chart_data(  # noqa: C901
                                     "Cached form_data is not a JSON object. "
                                     "Falling back to saved chart configuration."
                                 )
-                        except (TypeError, ValueError) as e:
+                        except (TypeError, ValueError) as exc:
+                            if type(exc) not in {TypeError, ValueError}:
+                                raise
                             await ctx.warning(
-                                "Failed to parse cached form_data: %s. "
-                                "Falling back to saved chart configuration." % str(e)
+                                "Failed to parse cached form_data. "
+                                "Falling back to saved chart configuration."
                             )
                     else:
                         await ctx.warning(
@@ -677,10 +683,10 @@ async def _get_chart_data(  # noqa: C901
                     await ctx.debug(
                         "Using chart's saved query_context for data retrieval"
                     )
-                except (TypeError, ValueError) as e:
-                    await ctx.warning(
-                        "Failed to parse chart query_context: %s" % str(e)
-                    )
+                except (TypeError, ValueError) as exc:
+                    if type(exc) not in {TypeError, ValueError}:
+                        raise
+                    await ctx.warning("Failed to parse chart query_context.")
 
             if query_context_json is None and not using_unsaved_state:
                 # Fallback: Chart has no saved query_context
@@ -1043,18 +1049,19 @@ async def _get_chart_data(  # noqa: C901
             # dedicated outer handlers return the OAuth redirect message
             # instead of a generic DataError.
             raise
-        except (CommandException, SupersetException, ValueError) as data_error:
+        except (CommandException, SupersetException) as data_error:
+            error_text = bounded_exception_message(data_error)
             await ctx.error(
                 "Data retrieval failed: chart_id=%s, error=%s, error_type=%s"
                 % (
                     chart.id,
-                    str(data_error),
+                    error_text,
                     type(data_error).__name__,
                 )
             )
-            logger.error("Data retrieval error for chart %s: %s", chart.id, data_error)
+            logger.error("Data retrieval error for chart %s", chart.id)
             return ChartError(
-                error=f"Error retrieving chart data: {str(data_error)}",
+                error=f"Error retrieving chart data: {error_text}",
                 error_type="DataError",
             )
 
@@ -1087,22 +1094,19 @@ async def _get_chart_data(  # noqa: C901
         SupersetException,
         CommandException,
         SQLAlchemyError,
-        KeyError,
-        ValueError,
-        TypeError,
-        AttributeError,
     ) as e:
+        error_text = bounded_exception_message(e)
         await ctx.error(
             "Chart data retrieval failed: identifier=%s, error=%s, error_type=%s"
             % (
                 request.identifier,
-                str(e),
+                error_text,
                 type(e).__name__,
             )
         )
-        logger.error("Error in get_chart_data: %s", e)
+        logger.error("Domain error in get_chart_data")
         return ChartError(
-            error=f"Failed to get chart data: {str(e)}", error_type="InternalError"
+            error=f"Failed to get chart data: {error_text}", error_type="InternalError"
         )
 
 
@@ -1247,10 +1251,11 @@ async def _query_from_form_data(  # noqa: C901
         # outer OAuth handlers return the redirect instead of a generic
         # DataError.
         raise
-    except (CommandException, SupersetException, ValueError) as e:
-        logger.error("Error querying unsaved chart data: %s", e)
+    except (CommandException, SupersetException) as e:
+        error_text = bounded_exception_message(e)
+        logger.error("Domain error querying unsaved chart data")
         return ChartError(
-            error=f"Error querying unsaved chart data: {e}",
+            error=f"Error querying unsaved chart data: {error_text}",
             error_type="DataError",
         )
 
@@ -1507,6 +1512,38 @@ def _create_excel_chart_data_xlsxwriter(
     return response
 
 
+def _chart_data_internal_error() -> ChartError:
+    """Build the static public fallback for unexpected chart-data failures."""
+    return ChartError(
+        error="An internal error occurred while retrieving chart data.",
+        error_type="InternalError",
+    )
+
+
+def _log_chart_data_failure(message: str) -> None:
+    """Write a fixed best-effort log record without exception formatting."""
+    try:
+        logger.exception(message, exc_info=False)
+    except Exception:  # noqa: S110 - containment logging is best effort
+        pass
+
+
+async def _finalized_chart_data(
+    request: GetChartDataRequest, ctx: Context
+) -> ChartData | ChartError:
+    """Contain and preflight one chart-data producer invocation."""
+    try:
+        response = await _get_chart_data(request, ctx)
+    except Exception:
+        _log_chart_data_failure("Unhandled exception while retrieving chart data")
+        response = _chart_data_internal_error()
+    try:
+        return finalize_chart_data_response(response)
+    except Exception:
+        _log_chart_data_failure("Unhandled exception while finalizing chart data")
+        return _chart_data_internal_error()
+
+
 @tool(
     tags=["data"],
     class_permission_name="Chart",
@@ -1521,15 +1558,4 @@ async def get_chart_data(
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:
     """Get saved or cached unsaved chart data in JSON or export formats."""
-    try:
-        response = await _get_chart_data(request, ctx)
-    except Exception:
-        # Exception text can contain query values; keep the log record fixed.
-        logger.exception(
-            "Unhandled exception while retrieving chart data", exc_info=False
-        )
-        response = ChartError(
-            error="An internal error occurred while retrieving chart data.",
-            error_type="InternalError",
-        )
-    return finalize_chart_data_response(response)
+    return await _finalized_chart_data(request, ctx)

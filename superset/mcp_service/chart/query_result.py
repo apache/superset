@@ -19,13 +19,14 @@
 
 import math
 import time as system_time
+from bisect import bisect_right
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 from enum import Enum
 from typing import Any
 from uuid import UUID
-from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -116,8 +117,14 @@ _DATEUTIL_FIXED_TIMEZONE_TYPES = frozenset(
 _DATEUTIL_NAMED_TIMEZONE_TYPES = frozenset(
     {dateutil_tz.tzfile, dateutil_zoneinfo.tzfile}
 )
+_DATEUTIL_TTINFO_TYPE = type(
+    object.__getattribute__(dateutil_tz.gettz("UTC"), "__dict__")["_ttinfo_std"]
+)
 _DATEUTIL_LOCAL_TIMEZONE_TYPE = type(dateutil_tz.tzlocal())
 _PYTZ_FIXED_TIMEZONE_TYPES = frozenset({type(pytz.FixedOffset(1))})
+_MAX_DATEUTIL_TRANSITIONS = 4_096
+_MAX_DATEUTIL_TTINFOS = 256
+_MAX_DATEUTIL_TRANSITION_MAGNITUDE = 10**12
 
 
 @dataclass
@@ -129,6 +136,16 @@ class _ResultBudget:
     json_bytes: int = 0
     metadata_items: int = 0
     metadata_bytes: int = 0
+
+
+@dataclass(frozen=True)
+class _DateutilTimezoneState:
+    """Hook-free subset of a validated exact dateutil tzfile transition table."""
+
+    transitions: tuple[int, ...]
+    transition_offsets: tuple[int, ...]
+    standard_offset: int
+    before_offset: int | None
 
 
 def _invalid_result(message: str) -> ChartError:
@@ -363,6 +380,236 @@ def _object_namespace(value: Any) -> dict[str, Any] | None:
     return namespace if type(namespace) is dict else None
 
 
+def _dateutil_ttinfo_offset_without_hooks(value: Any) -> int | None:
+    """Validate one exact dateutil transition record and return its offset."""
+    if type(value) is not _DATEUTIL_TTINFO_TYPE:
+        return None
+    try:
+        offset = object.__getattribute__(value, "offset")
+        delta = object.__getattribute__(value, "delta")
+        isdst = object.__getattribute__(value, "isdst")
+        abbreviation = object.__getattribute__(value, "abbr")
+        is_standard = object.__getattribute__(value, "isstd")
+        is_gmt = object.__getattribute__(value, "isgmt")
+        dst_offset = object.__getattribute__(value, "dstoffset")
+    except (AttributeError, TypeError):
+        return None
+    if type(offset) is not int or not -86_400 < offset < 86_400:
+        return None
+    if type(delta) is not timedelta or delta != timedelta(seconds=offset):
+        return None
+    if type(isdst) is not int or isdst not in {0, 1}:
+        return None
+    if abbreviation is not None and (
+        type(abbreviation) is not str or _bounded_utf8_length(abbreviation, 256) is None
+    ):
+        return None
+    if type(is_standard) is not bool or type(is_gmt) is not bool:
+        return None
+    if type(dst_offset) is not timedelta:
+        return None
+    if not -timedelta(days=1) < dst_offset < timedelta(days=1):
+        return None
+    return offset
+
+
+def _dateutil_named_state_without_hooks(  # noqa: C901
+    tzinfo: Any,
+) -> _DateutilTimezoneState | None:
+    """Validate bounded exact dateutil tzfile state without timezone hooks."""
+    if type(tzinfo) not in _DATEUTIL_NAMED_TIMEZONE_TYPES:
+        return None
+    if _timezone_name_without_hooks(tzinfo) is None:
+        return None
+    namespace = _object_namespace(tzinfo)
+    if namespace is None:
+        return None
+    transitions = dict.get(namespace, "_trans_list")
+    utc_transitions = dict.get(namespace, "_trans_list_utc")
+    transition_info = dict.get(namespace, "_trans_idx")
+    info_list = dict.get(namespace, "_ttinfo_list")
+    standard_info = dict.get(namespace, "_ttinfo_std")
+    before_info = dict.get(namespace, "_ttinfo_before")
+    first_info = dict.get(namespace, "_ttinfo_first")
+    if (
+        type(transitions) is not tuple
+        or type(utc_transitions) is not tuple
+        or type(transition_info) is not tuple
+        or type(info_list) is not list
+        or tuple.__len__(transitions) > _MAX_DATEUTIL_TRANSITIONS
+        or tuple.__len__(utc_transitions) != tuple.__len__(transitions)
+        or tuple.__len__(transition_info) != tuple.__len__(transitions)
+        or list.__len__(info_list) == 0
+        or list.__len__(info_list) > _MAX_DATEUTIL_TTINFOS
+    ):
+        return None
+
+    previous_transition: int | None = None
+    previous_utc_transition: int | None = None
+    for index in range(tuple.__len__(transitions)):
+        transition = tuple.__getitem__(transitions, index)
+        utc_transition = tuple.__getitem__(utc_transitions, index)
+        if (
+            type(transition) is not int
+            or type(utc_transition) is not int
+            or abs(transition) > _MAX_DATEUTIL_TRANSITION_MAGNITUDE
+            or abs(utc_transition) > _MAX_DATEUTIL_TRANSITION_MAGNITUDE
+            or (previous_transition is not None and transition <= previous_transition)
+            or (
+                previous_utc_transition is not None
+                and utc_transition <= previous_utc_transition
+            )
+        ):
+            return None
+        previous_transition = transition
+        previous_utc_transition = utc_transition
+
+    known_info_ids: set[int] = set()
+    for index in range(list.__len__(info_list)):
+        info = list.__getitem__(info_list, index)
+        if _dateutil_ttinfo_offset_without_hooks(info) is None:
+            return None
+        known_info_ids.add(id(info))
+    for info in (standard_info, before_info, first_info):
+        if info is not None and id(info) not in known_info_ids:
+            return None
+    for index in range(tuple.__len__(transition_info)):
+        if id(tuple.__getitem__(transition_info, index)) not in known_info_ids:
+            return None
+    if not transitions:
+        if (
+            standard_info is not list.__getitem__(info_list, 0)
+            or first_info is not standard_info
+            or before_info is not None
+        ):
+            return None
+    else:
+        expected_standard = None
+        expected_dst = None
+        for index in range(tuple.__len__(transition_info) - 1, -1, -1):
+            info = tuple.__getitem__(transition_info, index)
+            is_dst = object.__getattribute__(info, "isdst")
+            if expected_standard is None and not is_dst:
+                expected_standard = info
+            elif expected_dst is None and is_dst:
+                expected_dst = info
+            if expected_standard is not None and expected_dst is not None:
+                break
+        if expected_standard is None:
+            expected_standard = expected_dst
+        expected_before = None
+        for index in range(list.__len__(info_list)):
+            info = list.__getitem__(info_list, index)
+            if not object.__getattribute__(info, "isdst"):
+                expected_before = info
+                break
+        if expected_before is None:
+            expected_before = list.__getitem__(info_list, 0)
+        if standard_info is not expected_standard or before_info is not expected_before:
+            return None
+    standard_offset = _dateutil_ttinfo_offset_without_hooks(standard_info)
+    if standard_offset is None:
+        return None
+    before_offset = (
+        _dateutil_ttinfo_offset_without_hooks(before_info)
+        if before_info is not None
+        else None
+    )
+    transition_offsets: list[int] = []
+    previous_offset: int | None = None
+    previous_base_offset: int | None = None
+    previous_is_dst: int | None = None
+    previous_dst_offset = 0
+    for index in range(tuple.__len__(transition_info)):
+        info = tuple.__getitem__(transition_info, index)
+        if id(info) not in known_info_ids:
+            return None
+        offset = _dateutil_ttinfo_offset_without_hooks(info)
+        if offset is None:
+            return None
+        is_dst = object.__getattribute__(info, "isdst")
+        dst_offset_seconds = 0
+        if previous_is_dst is not None and is_dst:
+            if not previous_is_dst:
+                assert previous_offset is not None
+                dst_offset_seconds = offset - previous_offset
+            if not dst_offset_seconds and previous_dst_offset:
+                dst_offset_seconds = previous_dst_offset
+            previous_dst_offset = dst_offset_seconds
+        base_offset = offset - dst_offset_seconds
+        adjustment = base_offset
+        if (
+            previous_base_offset is not None
+            and base_offset != previous_base_offset
+            and is_dst != previous_is_dst
+        ):
+            adjustment = previous_base_offset
+        if (
+            tuple.__getitem__(transitions, index)
+            != tuple.__getitem__(utc_transitions, index) + adjustment
+        ):
+            return None
+        transition_offsets.append(offset)
+        previous_offset = offset
+        previous_base_offset = base_offset
+        previous_is_dst = is_dst
+    if transitions and before_offset is None:
+        return None
+    return _DateutilTimezoneState(
+        transitions=transitions,
+        transition_offsets=tuple(transition_offsets),
+        standard_offset=standard_offset,
+        before_offset=before_offset,
+    )
+
+
+def _dateutil_named_offset_without_hooks(  # noqa: C901
+    value: datetime, tzinfo: Any
+) -> timezone | None:
+    """Preserve dateutil's source-selected wall offset from validated state."""
+    state = _dateutil_named_state_without_hooks(tzinfo)
+    if state is None:
+        return None
+    epoch_ordinal = date.toordinal(date(1970, 1, 1))
+    wall_timestamp = (
+        (datetime.toordinal(value) - epoch_ordinal) * 86_400
+        + value.hour * 3_600
+        + value.minute * 60
+        + value.second
+    )
+    transitions = state.transitions
+    selected_offset: int | None
+    if not transitions:
+        selected_offset = state.standard_offset
+    else:
+        index = bisect_right(transitions, wall_timestamp) - 1
+
+        def offset_at(transition_index: int | None) -> int | None:
+            if transition_index is None or transition_index + 1 >= len(transitions):
+                return state.standard_offset
+            if transition_index < 0:
+                return state.before_offset
+            return state.transition_offsets[transition_index]
+
+        if index > 0:
+            selected_offset = offset_at(index)
+            previous_offset = offset_at(index - 1)
+            if selected_offset is None or previous_offset is None:
+                return None
+            is_ambiguous = wall_timestamp < transitions[index] + (
+                previous_offset - selected_offset
+            )
+            if not value.fold and is_ambiguous:
+                index -= 1
+        selected_offset = offset_at(index)
+        if selected_offset is None:
+            return None
+    try:
+        return timezone(timedelta(seconds=selected_offset))
+    except (OverflowError, ValueError):
+        return None
+
+
 def _pytz_named_offset_without_hooks(tzinfo: Any) -> timezone | None:
     """Return a localized pytz zone's stored offset without calling hooks."""
     if _timezone_name_without_hooks(tzinfo) is None:
@@ -434,11 +681,6 @@ def _dateutil_local_offset_without_hooks(
 def _canonical_timezone(tzinfo: Any) -> timezone | ZoneInfo | None:  # noqa: C901
     if any(type(tzinfo) is trusted for trusted in _TRUSTED_TIMEZONE_TYPES):
         return tzinfo
-    if zone_name := _timezone_name_without_hooks(tzinfo):
-        try:
-            return ZoneInfo(zone_name)
-        except (KeyError, ValueError, ZoneInfoNotFoundError):
-            return None
     if type(tzinfo) in _DATEUTIL_FIXED_TIMEZONE_TYPES:
         try:
             namespace = object.__getattribute__(tzinfo, "__dict__")
@@ -504,6 +746,7 @@ def _canonical_datetime(value: datetime) -> tuple[str | None, str | None]:
         canonical_tz = (
             _pytz_named_offset_without_hooks(tzinfo)
             or _dateutil_local_offset_without_hooks(value, tzinfo)
+            or _dateutil_named_offset_without_hooks(value, tzinfo)
             or _canonical_timezone(tzinfo)
         )
         if canonical_tz is None:
@@ -532,26 +775,35 @@ def _canonical_time(value: time) -> tuple[str | None, str | None]:
     if tzinfo is not None and not any(
         type(tzinfo) is trusted for trusted in _TRUSTED_TIMEZONE_TYPES
     ):
-        canonical_tz = _canonical_timezone(tzinfo)
-        if canonical_tz is None and type(tzinfo) is _DATEUTIL_LOCAL_TIMEZONE_TYPE:
-            namespace = _object_namespace(tzinfo)
-            if namespace is not None and dict.get(namespace, "_hasdst") is False:
-                offset = dict.get(namespace, "_std_offset")
-                if type(offset) is timedelta:
-                    try:
-                        canonical_tz = timezone(offset)
-                    except ValueError:
-                        canonical_tz = None
-        if canonical_tz is None:
-            return None, "a time with an unsupported timezone"
-        canonical_value = time(
-            value.hour,
-            value.minute,
-            value.second,
-            value.microsecond,
-            tzinfo=canonical_tz,
-            fold=value.fold,
-        )
+        if _dateutil_named_state_without_hooks(tzinfo) is not None:
+            canonical_value = time(
+                value.hour,
+                value.minute,
+                value.second,
+                value.microsecond,
+                fold=value.fold,
+            )
+        else:
+            canonical_tz = _canonical_timezone(tzinfo)
+            if canonical_tz is None and type(tzinfo) is _DATEUTIL_LOCAL_TIMEZONE_TYPE:
+                namespace = _object_namespace(tzinfo)
+                if namespace is not None and dict.get(namespace, "_hasdst") is False:
+                    offset = dict.get(namespace, "_std_offset")
+                    if type(offset) is timedelta:
+                        try:
+                            canonical_tz = timezone(offset)
+                        except ValueError:
+                            canonical_tz = None
+            if canonical_tz is None:
+                return None, "a time with an unsupported timezone"
+            canonical_value = time(
+                value.hour,
+                value.minute,
+                value.second,
+                value.microsecond,
+                tzinfo=canonical_tz,
+                fold=value.fold,
+            )
     try:
         return time.isoformat(canonical_value), None
     except (OverflowError, TypeError, ValueError):
@@ -565,10 +817,12 @@ def _canonical_timestamp(value: pd.Timestamp) -> tuple[str | None, str | None]:
         if tzinfo is not None and not any(
             type(tzinfo) is trusted for trusted in _TRUSTED_TIMEZONE_TYPES
         ):
-            if (
-                _canonical_timezone(tzinfo) is None
-                and type(tzinfo) is not _DATEUTIL_LOCAL_TIMEZONE_TYPE
-            ):
+            supported_timezone = (
+                _canonical_timezone(tzinfo) is not None
+                or type(tzinfo) is _DATEUTIL_LOCAL_TIMEZONE_TYPE
+                or _dateutil_named_state_without_hooks(tzinfo) is not None
+            )
+            if not supported_timezone:
                 return None, "a timestamp with an unsupported timezone"
             canonical_tz = _timestamp_offset_without_hooks(value)
             if canonical_tz is None:

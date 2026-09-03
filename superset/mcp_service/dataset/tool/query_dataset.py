@@ -41,6 +41,7 @@ from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetExcept
 from superset.extensions import event_logger
 from superset.mcp_service.chart.query_result import validate_query_result_envelope
 from superset.mcp_service.chart.response_preflight import (
+    bounded_exception_message,
     finalize_query_dataset_response,
 )
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
@@ -366,38 +367,61 @@ async def _query_dataset(  # noqa: C901
         )
 
     except OAuth2Error as exc:
-        await ctx.error("OAuth2 error: %s" % (str(exc),))
+        error_text = bounded_exception_message(exc)
+        await ctx.error("OAuth2 error: %s" % (error_text,))
         return DatasetError.create(
-            error=f"OAuth2 authentication error: {exc}",
+            error=f"OAuth2 authentication error: {error_text}",
             error_type="OAuth2Error",
         )
 
     except (CommandException, SupersetException) as exc:
-        await ctx.error("Query failed: %s" % (str(exc),))
+        error_text = bounded_exception_message(exc)
+        await ctx.error("Query failed: %s" % (error_text,))
         return DatasetError.create(
-            error=f"Query execution failed: {exc}",
+            error=f"Query execution failed: {error_text}",
             error_type="QueryError",
         )
 
     except SQLAlchemyError as exc:
-        logger.exception("Database error while querying dataset")
-        await ctx.error("Database error: %s" % (str(exc),))
+        error_text = bounded_exception_message(exc)
+        logger.error("Database error while querying dataset")
+        await ctx.error("Database error: %s" % (error_text,))
         return DatasetError.create(
-            error=f"Database error: {exc}",
+            error=f"Database error: {error_text}",
             error_type="DatabaseError",
         )
 
-    except Exception as exc:
-        logger.exception(
-            "Unexpected error while querying dataset: %s: %s",
-            type(exc).__name__,
-            str(exc),
-        )
-        await ctx.error("Unexpected error: %s: %s" % (type(exc).__name__, str(exc)))
-        return DatasetError.create(
-            error="An unexpected error occurred while querying the dataset.",
-            error_type="UnexpectedError",
-        )
+
+def _dataset_internal_error() -> DatasetError:
+    """Build the static public fallback for unexpected dataset failures."""
+    return DatasetError.create(
+        error="An internal error occurred while querying the dataset.",
+        error_type="InternalError",
+    )
+
+
+def _log_dataset_failure(message: str) -> None:
+    """Write a fixed best-effort log record without exception formatting."""
+    try:
+        logger.exception(message, exc_info=False)
+    except Exception:  # noqa: S110 - containment logging is best effort
+        pass
+
+
+async def _finalized_query_dataset(
+    request: QueryDatasetRequest, ctx: Context
+) -> QueryDatasetResponse | DatasetError:
+    """Contain and preflight one dataset producer invocation."""
+    try:
+        response = await _query_dataset(request, ctx)
+    except Exception:
+        _log_dataset_failure("Unhandled exception while querying a dataset")
+        response = _dataset_internal_error()
+    try:
+        return finalize_query_dataset_response(response)
+    except Exception:
+        _log_dataset_failure("Unhandled exception while finalizing a dataset response")
+        return _dataset_internal_error()
 
 
 @tool(
@@ -415,13 +439,4 @@ async def query_dataset(
     request: QueryDatasetRequest, ctx: Context
 ) -> QueryDatasetResponse | DatasetError:
     """Query a dataset and preflight every public response branch."""
-    try:
-        response = await _query_dataset(request, ctx)
-    except Exception:
-        # Exception text can contain query values; keep the log record fixed.
-        logger.exception("Unhandled exception while querying a dataset", exc_info=False)
-        response = DatasetError.create(
-            error="An internal error occurred while querying the dataset.",
-            error_type="InternalError",
-        )
-    return finalize_query_dataset_response(response)
+    return await _finalized_query_dataset(request, ctx)
