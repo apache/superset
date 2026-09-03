@@ -1118,6 +1118,10 @@ _NATIVE_METRIC_DISCRIMINATOR_KEYS = frozenset(
 _NATIVE_METRIC_MISSING = object()
 
 
+class _UnsafeNativeMetricInputError(ValueError):
+    """Signal input that must be removed before Pydantic renders an error."""
+
+
 def _native_column_meta_string_bytes(value: str, *, key: bool = False) -> int:
     """Return exact UTF-8 size for a trusted built-in string."""
     kind = "key" if key else "string"
@@ -1164,12 +1168,18 @@ def _inspect_native_metric_expression_type(value: Any) -> tuple[object, bool]:
     has_native_discriminator = False
     for key, item in dict.items(value):
         if type(key) is not str:
-            raise ValueError("Sunburst native metric keys must be strings")
+            raise _UnsafeNativeMetricInputError(
+                "Sunburst native metric keys must be strings"
+            )
         _validate_native_metric_string(key, "field name", 255)
         if key in _NATIVE_METRIC_DISCRIMINATOR_KEYS:
             has_native_discriminator = True
         if key == "expressionType":
             if type(item) is not str:
+                if issubclass(type(item), str):
+                    raise _UnsafeNativeMetricInputError(
+                        "Sunburst native metric expressionType must be a string"
+                    )
                 raise ValueError(
                     "Sunburst native metric expressionType must be a string"
                 )
@@ -1237,6 +1247,17 @@ def _validate_native_metric_wrapper(value: Any) -> dict[str, Any]:
     if expression_type not in _NATIVE_METRIC_EXPRESSION_TYPES:
         raise ValueError("Sunburst native metric expressionType must be SIMPLE or SQL")
     return validated
+
+
+def _validate_non_dict_native_metric(value: Any) -> ColumnRef:
+    """Accept an existing model while rejecting hook-bearing dict subclasses."""
+    if issubclass(type(value), dict):
+        raise _UnsafeNativeMetricInputError(
+            "Sunburst native metric must be an exact object"
+        )
+    if isinstance(value, ColumnRef):
+        return value
+    raise ValueError("Sunburst native metric must be a string or object")
 
 
 def _native_column_meta_dict_children(
@@ -1612,10 +1633,8 @@ class SunburstChartConfig(BaseChartConfig):
                     raise ValueError("Sunburst native metric requires expressionType")
                 return value
             value = _validate_native_metric_wrapper(value)
-        elif isinstance(value, ColumnRef):
-            return value
         else:
-            raise ValueError("Sunburst native metric must be a string or object")
+            return _validate_non_dict_native_metric(value)
 
         expression_type = value.get("expressionType")
         label = value.get("label")
@@ -1763,7 +1782,13 @@ class SunburstChartConfig(BaseChartConfig):
         if not isinstance(data, dict):
             return data
         data = dict(data)
-        is_native_form_data = cls._looks_like_native_form_data(data)
+        try:
+            is_native_form_data = cls._looks_like_native_form_data(data)
+        except _UnsafeNativeMetricInputError:
+            # Pydantic includes rejected input in its rendered error. Remove
+            # hook-bearing objects before handing control back to its validators.
+            data["metric"] = 0
+            is_native_form_data = True
         data.pop(_NATIVE_FORM_DATA_MARKER, None)
 
         if is_native_form_data:
@@ -1772,7 +1797,10 @@ class SunburstChartConfig(BaseChartConfig):
 
             for key in ("metric", "secondary_metric", "secondaryMetric"):
                 if key in data and data[key] is not None:
-                    data[key] = cls._coerce_native_metric(data[key])
+                    try:
+                        data[key] = cls._coerce_native_metric(data[key])
+                    except _UnsafeNativeMetricInputError:
+                        data[key] = 0
 
             # Native saved filters can be round-tripped when they use the SIMPLE
             # controls. SQL filter clauses intentionally remain outside the typed
