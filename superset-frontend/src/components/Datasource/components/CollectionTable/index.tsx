@@ -99,6 +99,8 @@ export default function CRUDCollection({
   pagination = false,
   filterTerm,
   filterFields,
+  rowClassName,
+  expandItemWhere,
 }: CRUDCollectionProps) {
   const [expandedColumns, setExpandedColumns] = useState<
     Record<PropertyKey, boolean>
@@ -489,6 +491,18 @@ export default function CRUDCollection({
     return collectionArray;
   }, [collectionArray, filterTerm, filterFields]);
 
+  // Open a row on request from elsewhere in the editor -- the dataset settings
+  // link to the mapped column's transform, which is only reachable expanded.
+  useEffect(() => {
+    if (!expandItemWhere) {
+      return;
+    }
+    const match = collectionArray.find(item => expandItemWhere(item));
+    if (match) {
+      setExpandedColumns(prev => ({ ...prev, [match.id]: true }));
+    }
+  }, [expandItemWhere, collectionArray]);
+
   const paginationConfig = useMemo((): false | TablePaginationConfig => {
     if (pagination === false || pagination === undefined) {
       return false;
@@ -553,6 +567,7 @@ export default function CRUDCollection({
         columns={antdColumns}
         data={displayData}
         rowKey={(record: CollectionItem) => String(record.id)}
+        rowClassName={rowClassName}
         sticky={stickyHeader}
         pagination={paginationConfig}
         onChange={handleTableChange}
