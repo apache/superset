@@ -7896,8 +7896,6 @@ msgstr "数据应分组成多少个桶。"
 msgid "How many periods into the future do we want to predict"
 msgstr "我们想要预测未来多少个周期"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
-# ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "How many top values to select"
 msgstr "要选择多少个顶部值"
 
@@ -10449,7 +10447,7 @@ msgid "Options"
 msgstr "选项"
 
 msgid "Or choose from a list of other databases we support:"
-msgstr "或者从我们支持的 other 数据库列表中选择："
+msgstr "或者从我们支持的其他数据库列表中选择："
 
 msgid "Order results by selected columns"
 msgstr "按选定列对结果进行排序"
@@ -13201,7 +13199,7 @@ msgid "Shift + Click to sort by multiple columns"
 msgstr "Shift + 点击可按多列排序"
 
 msgid "Shift start date"
-msgstr "平移开始日期"
+msgstr "偏移开始日期"
 
 msgid "Short description must be unique for this layer"
 msgstr "此层的简述必须是唯一的"
@@ -17018,7 +17016,6 @@ msgstr "上传CSV"
 msgid "Upload CSV to database"
 msgstr "将 CSV 上传到数据库"
 
-#, fuzzy
 msgid "Upload Columnar"
 msgstr "上传列式文件"
 
