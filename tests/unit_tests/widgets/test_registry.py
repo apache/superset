@@ -138,6 +138,30 @@ def test_data_binding_declares_column_and_metric_controls() -> None:
     assert data_binding_props["metrics"]["x-control"] == "metric-multi"
 
 
+def test_data_binding_round_trip_preserves_filters() -> None:
+    # `filters` isn't a schema-visible DataBinding field (no control panel or
+    # MCP editor authors it yet — see `superset/widgets/controls.py`), but a
+    # dashboard filter binding can still populate it on `node.props`. The
+    # `validate` endpoint's `model_validate(...).model_dump(by_alias=True)`
+    # round trip (mirrored here) is exactly what the frontend commits back to
+    # `node.props` on every edit, so it must not silently drop the field.
+    widget = _block("balloons")
+    control_values = {
+        "dataBinding": {
+            "datasetId": 1,
+            "metrics": ["count"],
+            "filters": [{"clause": "WHERE", "expressionType": "SIMPLE"}],
+        },
+    }
+    assert widget.validate_control_values(control_values) == []
+    values = widget.controls_class.model_validate(control_values).model_dump(
+        by_alias=True
+    )
+    assert values["dataBinding"]["filters"] == [
+        {"clause": "WHERE", "expressionType": "SIMPLE"}
+    ]
+
+
 def test_color_dimension_declares_column_control() -> None:
     schema = _block("balloons").get_control_schema(None, None)
     assert schema["properties"]["colorDimension"]["x-control"] == "column"

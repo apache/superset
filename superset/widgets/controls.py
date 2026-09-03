@@ -32,6 +32,7 @@ from __future__ import annotations
 from typing import Any, ClassVar, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic.json_schema import SkipJsonSchema
 from superset_core.widgets import MetricControl
 
 
@@ -64,6 +65,15 @@ class DataBinding(MetricControl):
         description="Columns to group by (the categories / series).",
         json_schema_extra={"x-control": "column-multi"},
     )
+    # No `x-control` yet authors it through the control panel or MCP — it's
+    # populated by other means (e.g. a dashboard filter binding a chart).
+    # `SkipJsonSchema` keeps it out of the control schema (so `field_order`
+    # doesn't need it) while still round-tripping through `model_dump`;
+    # without it, committing the backend-normalized dump (see
+    # `commitWidgetProps`) would silently discard any authored filters, since
+    # Pydantic's default `extra="ignore"` drops fields the model doesn't
+    # declare.
+    filters: SkipJsonSchema[list[dict[str, Any]]] = Field(default_factory=list)
     row_limit: int = Field(
         default=1000,
         ge=1,
