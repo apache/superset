@@ -29,44 +29,51 @@ mandatory leaves, leaving optional/styling fields behind a drill-in.
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, ClassVar, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic.json_schema import SkipJsonSchema
+from superset_core.widgets import MetricControl
 
 
-class DataBinding(BaseModel):
+class DataBinding(MetricControl):
     """Query binding for a data-backed widget (mirrors the frontend
     ``DataBindingSpec``). ``datasetId`` and ``metrics`` are mandatory; the rest
     are optional."""
 
     model_config = ConfigDict(populate_by_name=True)
 
+    # Pydantic places an inherited field (``metrics``, from ``MetricControl``)
+    # ahead of this class's own fields in ``model_fields`` regardless of
+    # declaration order, so the rendered field order needs to be pinned
+    # explicitly to match what this class served before composing MetricControl.
+    field_order: ClassVar[list[str]] = [
+        "datasetId",
+        "metrics",
+        "dimensions",
+        "rowLimit",
+    ]
+
     dataset_id: int = Field(
         alias="datasetId",
         title="Dataset ID",
         description="Numeric id of the dataset to query.",
     )
-    metrics: list[Any] = Field(
-        title="Metrics",
-        description=(
-            "Metrics to fetch. Each entry is EITHER a string naming a saved "
-            'metric on the dataset (e.g. "count"), OR an ad-hoc aggregate '
-            "object of the shape "
-            '{"expressionType": "SIMPLE", "column": {"column_name": "<col>"}, '
-            '"aggregate": "SUM"|"AVG"|"COUNT"|"COUNT_DISTINCT"|"MIN"|"MAX", '
-            '"label": "<optional display label>"}. Do not pass a raw SQL string '
-            'like "SUM(sales)" — a plain string is looked up as a saved-metric '
-            "name, not evaluated as an expression."
-        ),
-        # Entries are heterogeneous (a name string or an ad-hoc object), so the
-        # generic panel edits the list as JSON rather than a typed array.
-        json_schema_extra={"x-control": "code", "x-language": "json"},
-    )
     dimensions: list[str] = Field(
         default_factory=list,
         title="Dimensions",
         description="Columns to group by (the categories / series).",
+        json_schema_extra={"x-control": "column-multi"},
     )
+    # No `x-control` yet authors it through the control panel or MCP — it's
+    # populated by other means (e.g. a dashboard filter binding a chart).
+    # `SkipJsonSchema` keeps it out of the control schema (so `field_order`
+    # doesn't need it) while still round-tripping through `model_dump`;
+    # without it, committing the backend-normalized dump (see
+    # `commitWidgetProps`) would silently discard any authored filters, since
+    # Pydantic's default `extra="ignore"` drops fields the model doesn't
+    # declare.
+    filters: SkipJsonSchema[list[dict[str, Any]]] = Field(default_factory=list)
     row_limit: int = Field(
         default=1000,
         ge=1,
@@ -154,6 +161,7 @@ class SeriesStyle(BaseModel):
             "Multiplier on the metric-derived balloon size for this series "
             "(1 = as-is, 2 = twice as big)."
         ),
+        json_schema_extra={"x-step": 0.25},
     )
 
 
@@ -215,6 +223,7 @@ class BalloonsControls(BaseModel):
             'E.g. to color by gender: set this to "gender" AND include "gender" '
             'in dimensions (e.g. dimensions ["name", "gender"]).'
         ),
+        json_schema_extra={"x-control": "column"},
     )
     customize: Customization = Field(
         default_factory=Customization,
@@ -251,12 +260,177 @@ class MarkdownControls(BaseModel):
     )
 
 
+class SeriesOverride(BaseModel):
+    """One structured chart series' visual override, matched to a
+    ``dataBinding`` metric by its stable label (the same label ECharts'
+    `getMetricLabel`-equivalent computes and the query result column is
+    named after), not by array position."""
+
+    color: str = Field(
+        default="",
+        title="Color",
+        description="Empty keeps the palette-assigned default.",
+        json_schema_extra={"x-control": "color"},
+    )
+    visible: bool = Field(
+        default=True,
+        title="Visible",
+        description="Unchecking omits this series from the rendered chart.",
+    )
+    display_name: str = Field(
+        default="",
+        alias="displayName",
+        title="Display name",
+        description=(
+            "Overrides the series' legend/tooltip label. Empty keeps the "
+            "metric's own label."
+        ),
+    )
+
+
+class EchartsCustomization(BaseModel):
+    """Per-series overrides for a structured (``chartType`` set) echarts
+    chart.
+
+    ``series`` is ``x-dynamic``: inlined with one entry per ``dataBinding``
+    metric once ``chartType`` is set, plus any already-stored override whose
+    metric was since removed from ``dataBinding.metrics`` — so switching
+    metrics around doesn't silently discard configuration (see
+    ``Echarts._populate_chart_series``).
+    """
+
+    series: dict[str, SeriesOverride] = Field(
+        default_factory=dict,
+        title="Per-series overrides",
+        json_schema_extra={
+            "x-dynamic": True,
+            "x-dependsOn": ["dataBinding", "chartType"],
+        },
+    )
+
+
+class EchartsChrome(BaseModel):
+    """Structured chart chrome — title, legend, tooltip, axis labels — each
+    field independently optional and layered on top of the matching
+    `echartsOptions` section. A field left at its default doesn't touch
+    `echartsOptions` at all; only the specific key(s) a set field manages are
+    merged onto that section, so an unmanaged sibling property there (e.g. a
+    hand-authored `legend.orient`) survives.
+
+    Deliberately flat (not grouped into `title`/`legend`/`tooltip`/`xAxis`/
+    `yAxis` sub-objects — the natural modeling) rather than nested two levels
+    under `chrome`: JsonForms' generated control panel only renders one level
+    of nested-object properties (the same depth `DataBinding`/`Customization`
+    already rely on), so a `chrome.title.text`-style double nesting would
+    render an empty group with no fields inside it.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    title_text: str = Field(
+        default="",
+        alias="titleText",
+        title="Title",
+        description="Empty leaves echartsOptions.title exactly as authored.",
+    )
+    legend_show: bool = Field(
+        default=True,
+        alias="legendShow",
+        title="Show legend",
+        description="Unchecking hides the legend, regardless of echartsOptions.",
+    )
+    legend_position: Literal["top", "bottom", "left", "right"] | None = Field(
+        default=None,
+        alias="legendPosition",
+        title="Legend position",
+        description=(
+            "Unset leaves echartsOptions.legend's own position (or "
+            "ECharts' default) untouched."
+        ),
+        json_schema_extra={
+            "x-control": "select",
+            "x-options": ["top", "bottom", "left", "right"],
+        },
+    )
+    tooltip_trigger: Literal["item", "axis"] | None = Field(
+        default=None,
+        alias="tooltipTrigger",
+        title="Tooltip trigger",
+        description=(
+            "Unset leaves echartsOptions.tooltip's own trigger (or "
+            "ECharts' default) untouched."
+        ),
+        json_schema_extra={
+            "x-control": "select",
+            "x-options": ["item", "axis"],
+        },
+    )
+    x_axis_name: str = Field(
+        default="",
+        alias="xAxisName",
+        title="X axis name",
+        description="Empty leaves the axis's own `name` (or none) untouched.",
+    )
+    x_axis_rotate: int = Field(
+        default=0,
+        ge=-90,
+        le=90,
+        alias="xAxisRotate",
+        title="X axis label rotation (°)",
+        description="0 leaves the axis's own `axisLabel.rotate` (or none) untouched.",
+    )
+    x_axis_format: str = Field(
+        default="",
+        alias="xAxisFormat",
+        title="X axis label format",
+        description=(
+            'An ECharts axisLabel formatter template, e.g. "{value} kg". Empty '
+            "leaves the axis's own `axisLabel.formatter` (or none) untouched."
+        ),
+    )
+    y_axis_name: str = Field(
+        default="",
+        alias="yAxisName",
+        title="Y axis name",
+        description="Empty leaves the axis's own `name` (or none) untouched.",
+    )
+    y_axis_rotate: int = Field(
+        default=0,
+        ge=-90,
+        le=90,
+        alias="yAxisRotate",
+        title="Y axis label rotation (°)",
+        description="0 leaves the axis's own `axisLabel.rotate` (or none) untouched.",
+    )
+    y_axis_format: str = Field(
+        default="",
+        alias="yAxisFormat",
+        title="Y axis label format",
+        description=(
+            'An ECharts axisLabel formatter template, e.g. "{value} kg". Empty '
+            "leaves the axis's own `axisLabel.formatter` (or none) untouched."
+        ),
+    )
+
+
 class EchartsControls(BaseModel):
     """Controls for the ``echarts`` widget (a chart from a raw ECharts option).
 
     Not modeled field-by-field: ``echartsOptions`` is a near-raw ECharts
     ``option`` edited as JSON, with ``$bind`` markers splicing in the queried
     data. The query itself is the standard ``dataBinding``.
+
+    ``chartType``/``customize`` are an optional structured layer on top:
+    when ``chartType`` is set, the frontend replaces `option.series` with one
+    generated series per ``dataBinding`` metric (styled per ``customize``).
+    Leaving ``chartType`` unset ("Custom") keeps ``echartsOptions.series``
+    fully authoritative, including mixed-series or non-Cartesian (e.g. pie)
+    shapes the structured layer doesn't cover.
+
+    ``chrome`` is a second, independent structured layer — title, legend,
+    tooltip, and axis labels — each leaf optional and applying (or not)
+    regardless of ``chartType``. See ``EchartsChrome`` for its own
+    leaf-by-leaf precedence.
     """
 
     model_config = ConfigDict(populate_by_name=True)
@@ -287,7 +461,40 @@ class EchartsControls(BaseModel):
             "x-control": "code",
             "x-language": "json",
             "x-spec-dialect": "echarts",
+            # The Inspector's JSON tab already edits the whole `node.props`
+            # record as text — including this field — so a second, redundant
+            # raw-JSON box in the Form tab just duplicates it. Hidden there;
+            # still fully editable via the JSON tab (or `chartType`/
+            # `customize` for what those manage).
+            "x-hidden-in-form": True,
         },
+    )
+    chart_type: Literal["bar", "line", "scatter"] | None = Field(
+        default=None,
+        alias="chartType",
+        title="Chart type",
+        description=(
+            "Renders a structured chart — one series per dataBinding metric — "
+            "layered on top of echartsOptions. Leave unset ('Custom') to use "
+            "echartsOptions exactly as authored, including mixed-series or "
+            "non-Cartesian (e.g. pie) configurations. Pie isn't offered here: "
+            "its data shape (one series, categories as data points) doesn't "
+            "match the one-series-per-metric model this picker drives."
+        ),
+        json_schema_extra={
+            "x-control": "select",
+            "x-options": ["bar", "line", "scatter"],
+        },
+    )
+    customize: EchartsCustomization = Field(
+        default_factory=EchartsCustomization,
+        title="Customize",
+        description="Per-series color, visibility, and display-name overrides.",
+    )
+    chrome: EchartsChrome = Field(
+        default_factory=EchartsChrome,
+        title="Chrome",
+        description="Structured title, legend, tooltip, and axis label overrides.",
     )
     cross_filter: bool = Field(
         default=False,
@@ -329,7 +536,7 @@ class FilterSelectControls(BaseModel):
     target column. ``datasetId``'s enum (every dataset the caller can view)
     and ``column``'s enum (that dataset's own columns, populated once
     ``datasetId`` is set) are both populated dynamically — see
-    ``FilterSelect.enrich_schema``.
+    ``FilterSelect.enrichers``.
     """
 
     model_config = ConfigDict(populate_by_name=True)
@@ -338,13 +545,14 @@ class FilterSelectControls(BaseModel):
         alias="datasetId",
         title="Dataset ID",
         description="Numeric id of the dataset this filter targets.",
+        json_schema_extra={"x-dynamic": True},
     )
     # Defaulted (unlike `dataset_id`) even though a real filter needs one:
     # the control panel posts control_values as the author fills fields in,
     # and until a dataset is chosen there's no `column` value to send at
     # all. Without a default, validating that partial payload would raise
     # on the *missing* field, `Widget.get_control_schema` would swallow that
-    # and fall back to `parsed=None`, and `enrich_schema` below would never
+    # and fall back to `parsed=None`, and the column enricher would never
     # see the `dataset_id` it needs to populate this very field's `enum` —
     # i.e. picking a dataset would never turn `column` into a working
     # dropdown. `min_length=1` keeps an explicit empty value invalid at

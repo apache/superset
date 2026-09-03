@@ -27,7 +27,7 @@ import { provider } from 'src/core/dashboard/store';
 import inferPropsSchema, { untypedKeys } from './inferPropsSchema';
 
 /**
- * What the generated form is made to agree with.
+ * What a generated form is made to agree with.
  *
  * The controls come from a third-party renderer set, and it lays a form out
  * for a page of its own rather than for a rail beside a canvas. Four things
@@ -54,8 +54,13 @@ import inferPropsSchema, { untypedKeys } from './inferPropsSchema';
  * Scoped to this element rather than fixed in the renderers, which the
  * semantic-layer modal also draws from and which are not this change's to move
  * — the same reason `DashboardProperties` scopes its own input fix.
+ *
+ * Exported because `SchemaControlPanel` renders the same third-party renderer
+ * set for schema-driven widgets and hits the identical four problems — the
+ * Properties tab has two forms sharing one rail, and they read as one rhythm
+ * only if they share this wrapper too.
  */
-const FormShell = styled.div`
+export const FormShell = styled.div`
   ${({ theme }) => css`
     /* A group's name, at the weight Section titles a group with. */
     > form > b,
@@ -67,23 +72,28 @@ const FormShell = styled.div`
       color: ${theme.colorText};
     }
 
-    /* One column, one width.
+    /* One column, one width — but only for an array entry's own fields.
 
-       An array's entries are handed to a grid meant for a page — two to a
-       line, so a dimension came out half the width of the field above it. In a
-       rail there is no second column to put anything in, so the grid is turned
-       down its own axis and every cell given the width. The form item's own
-       label/control row is left alone: it is already a column in this layout,
-       and it is not a grid of entries. */
-    .ant-form-item-control-input-content .ant-row:not(.ant-form-item-row) {
+       An array entry's fields are handed to a grid meant for a page — two to
+       a line, so a dimension came out half the width of the field above it.
+       In a rail there is no second column to put anything in, so the grid is
+       turned down its own axis and every cell given the width.
+
+       Scoped to \`.ant-list-item\` (an entry) rather than to every Form.Item's
+       control, because a scalar field can carry the identical Row/Col pair
+       for a reason that has nothing to do with a page-width grid — a bounded
+       number renders as a slider beside the figure it reads, and forcing
+       that onto two full-width lines was this rule catching a control it was
+       never aimed at. The form item's own label/control row is left alone
+       either way: it is already a column in this layout, not a grid of
+       entries. */
+    .ant-list-item .ant-row:not(.ant-form-item-row) {
       flex-direction: column;
       align-items: stretch;
     }
 
     .ant-form-item-control-input-content > .ant-col,
-    .ant-form-item-control-input-content
-      .ant-row:not(.ant-form-item-row)
-      > .ant-col {
+    .ant-list-item .ant-row:not(.ant-form-item-row) > .ant-col {
       flex: 1 1 auto;
       min-width: 0;
       width: 100%;
@@ -142,9 +152,25 @@ const FormShell = styled.div`
       text-align: left;
     }
 
-    .ant-flex-justify-center,
+    .ant-flex-justify-center {
+      justify-content: flex-start;
+    }
+
+    /* A bounded number's own slider-plus-figure pair (NumericSliderControl)
+       lays its two halves in an antd Row with no gutter and neither column
+       padded: nothing between them, so the slider's track ran flush against
+       the box reading it (closed by the Row's own \`gap\`), and nothing
+       before the slider's own handle either, which at its lowest value sat
+       flush against the row's left edge — the field's own start, not a gap
+       between siblings, so it's closed on the slider's column specifically
+       rather than by widening the Row's padding generally. */
     .ant-form-item-control-input-content > .ant-row {
       justify-content: flex-start;
+      gap: ${theme.sizeUnit * 2}px;
+
+      > .ant-col:first-child {
+        padding-left: ${theme.sizeUnit}px;
+      }
     }
 
     /* At the rail's own control height, like every button beside it. */

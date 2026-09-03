@@ -18,7 +18,6 @@
  */
 import { lazy, Suspense, useEffect, useState } from 'react';
 import type { ReactElement, ReactNode } from 'react';
-import type { dashboard as dashboardApi } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import {
@@ -26,7 +25,6 @@ import {
   EmptyState,
   Form,
   Input,
-  InputNumber,
   Loading,
   Tabs,
 } from '@superset-ui/core/components';
@@ -37,6 +35,11 @@ import { widgetLabel } from 'src/core/dashboard/widgetLabel';
 import DashboardProperties from './DashboardProperties';
 import PropsForm from './PropsForm';
 import { useSchemaControlledWidgetTypes } from './schemaControlledWidgets';
+import {
+  commitWidgetProps,
+  describeError,
+  type ControlValidationError,
+} from './controlValueValidation';
 
 // Lazy so the JSONForms / semanticLayers graph the schema-driven control panel
 // pulls in stays out of the eagerly-loaded Inspector bundle (the same
@@ -44,18 +47,6 @@ import { useSchemaControlledWidgetTypes } from './schemaControlledWidgets';
 // function`). Loaded only when a schema-controlled widget is selected; the
 // dependency-free `schemaControlledWidgets` decides membership.
 const SchemaControlPanel = lazy(() => import('./SchemaControlPanel'));
-
-type LayoutProps = dashboardApi.LayoutProps;
-
-const CHILD_FIELDS: readonly {
-  readonly key: keyof LayoutProps;
-  readonly label: string;
-}[] = [
-  { key: 'colSpan', label: t('Width (columns)') },
-  { key: 'rowSpan', label: t('Height (rows)') },
-  { key: 'col', label: t('Start column') },
-  { key: 'row', label: t('Start row') },
-];
 
 /**
  * A group of fields, and where one stops.
@@ -89,15 +80,6 @@ const GroupTitle = styled.h4`
     font-size: ${theme.fontSize}px;
     font-weight: ${theme.fontWeightStrong};
     color: ${theme.colorText};
-  `}
-`;
-
-/** Where the panel ends, and the one control that ends the widget with it. */
-const Footer = styled.div`
-  ${({ theme }) => css`
-    margin-top: ${theme.sizeUnit * 4}px;
-    padding-top: ${theme.sizeUnit * 4}px;
-    border-top: 1px solid ${theme.colorSplit};
   `}
 `;
 
@@ -135,40 +117,6 @@ const Section = ({
     {children}
   </Group>
 );
-
-/**
- * A number that may be absent, and stays absent when cleared.
- *
- * Every one of these fields has a meaning for "not set" that differs from any
- * number: a child with no `col` is auto-placed, and a container with no
- * `columns` takes the default. Writing a zero when a field is emptied would
- * turn "let the grid decide" into "pin it at nothing".
- */
-const NumberField = ({
-  label,
-  value,
-  test,
-  onChange,
-}: {
-  label: string;
-  value: number | undefined;
-  test: string;
-  onChange: (next: number | undefined) => void;
-}): ReactElement => {
-  const theme = useTheme();
-  return (
-    <Form.Item label={label} style={{ marginBottom: theme.sizeUnit * 2 }}>
-      <InputNumber
-        size="small"
-        style={{ width: '100%' }}
-        value={value ?? null}
-        placeholder={t('Auto')}
-        data-test={test}
-        onChange={next => onChange(typeof next === 'number' ? next : undefined)}
-      />
-    </Form.Item>
-  );
-};
 
 /**
  * Widget types whose renderer reads a plain-text `content` prop.
@@ -242,18 +190,40 @@ const COPIED_FOR_MS = 1500;
  * does not survive the next serialization back into this editor. Without
  * that, deleting a line here would silently do nothing and the widget would
  * go on rendering from the value it appeared to lose.
+ *
+ * Applying always goes through the same `commitWidgetProps` validation gate
+ * the Form tab's edits do — one candidate, one gate, regardless of which tab
+ * wrote it — so Apply can reject a change and leave both the draft and the
+ * stored node as they were. This asks the backend directly rather than
+ * consulting the Inspector's own cached `useSchemaControlledWidgetTypes` list
+ * the way the Form tab's panel choice does: that list is `null` while
+ * loading and empty on a fetch failure (deliberately, so the Form tab falls
+ * back to the generic form rather than hanging — see that hook's own
+ * comment), and gating Apply on it too would silently skip validation for a
+ * widget that does have a schema, for as long as the list hasn't resolved. A
+ * `404` from `/type/<widget_type>/validate` is the backend's own confirmation
+ * that this widget type has no schema to validate against, so only then does
+ * this fall back to committing straight to the store, as every widget type
+ * did before this gate existed.
  */
 const PropsJsonEditor = ({
   nodeId,
+  widgetType,
   props,
 }: {
   nodeId: string;
+  widgetType: string;
   props: Record<string, unknown> | undefined;
 }): ReactElement => {
   const theme = useTheme();
   const accepted = format(props);
   const [draft, setDraft] = useState(accepted);
   useEffect(() => setDraft(accepted), [accepted, nodeId]);
+  const [submitting, setSubmitting] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<
+    ControlValidationError[]
+  >([]);
+  useEffect(() => setValidationErrors([]), [nodeId]);
 
   // Reverts on its own so the control goes back to offering the copy rather
   // than reporting one indefinitely, and on any edit, because a tick beside
@@ -265,6 +235,9 @@ const PropsJsonEditor = ({
     return () => clearTimeout(timer);
   }, [copied]);
   useEffect(() => setCopied(false), [draft]);
+  // A validation error is about the candidate it was raised for; further
+  // typing makes it stale, and Apply will re-raise it if it still applies.
+  useEffect(() => setValidationErrors([]), [draft]);
 
   let parsed: Record<string, unknown> | undefined;
   let error: string | undefined;
@@ -309,23 +282,58 @@ const PropsJsonEditor = ({
           {error}
         </p>
       )}
+      {validationErrors.map(err => (
+        <p
+          key={`${err.loc.join('.')}:${err.message}`}
+          data-test="inspector-props-validation-error"
+          style={{
+            margin: `0 0 ${theme.sizeUnit}px`,
+            fontSize: theme.fontSizeSM,
+            color: theme.colorErrorText,
+          }}
+        >
+          {err.loc.length > 0 ? `${err.loc.join('.')}: ` : ''}
+          {err.message}
+        </p>
+      ))}
       <div style={{ display: 'flex', gap: theme.sizeUnit }}>
         <Button
           buttonSize="xsmall"
           buttonStyle="primary"
           data-test="inspector-props-apply"
-          disabled={parsed === undefined || !dirty}
-          onClick={() => {
+          disabled={parsed === undefined || !dirty || submitting}
+          onClick={async () => {
             if (parsed === undefined) {
               return;
             }
             const removed = Object.keys(props ?? {}).filter(
               key => !(key in parsed!),
             );
-            provider.updateProps(nodeId, {
+            const delta = {
               ...parsed,
               ...Object.fromEntries(removed.map(key => [key, undefined])),
-            });
+            };
+            setSubmitting(true);
+            try {
+              const result = await commitWidgetProps(nodeId, widgetType, delta);
+              setValidationErrors(result.ok ? [] : result.errors);
+            } catch (e) {
+              if (
+                typeof Response !== 'undefined' &&
+                e instanceof Response &&
+                e.status === 404
+              ) {
+                // No backend schema registered for this widget type —
+                // nothing to validate against, so commit directly.
+                provider.updateProps(nodeId, delta);
+                setValidationErrors([]);
+              } else {
+                const message = await describeError(e);
+                setValidationErrors([{ loc: [], message }]);
+              }
+            } finally {
+              setSubmitting(false);
+            }
           }}
         >
           {t('Apply')}
@@ -477,7 +485,11 @@ const PropsEditor = ({
               style={inset}
               data-test="inspector-props-json"
             >
-              <PropsJsonEditor nodeId={nodeId} props={props} />
+              <PropsJsonEditor
+                nodeId={nodeId}
+                widgetType={widgetType}
+                props={props}
+              />
             </Form>
           ),
         },
@@ -504,13 +516,14 @@ export default function Inspector(): ReactElement {
   const node =
     selection === undefined ? undefined : provider.getNode(selection);
 
-  // Set down from the tab bar above, and in from the rail's right edge —
-  // `EditorPanel`'s tab body scrolls on its own (see the `allowOverflow`
-  // comment there), and its scrollbar sits flush against this panel's
-  // content with no padding of its own to its left, so without this a
-  // field's right edge butts straight up against the scrollbar track.
+  // Set down from the tab bar above, and in from the rail's own edges.
+  // Whatever comes first here — the identity of what is selected, or the
+  // line saying nothing is — reads as a caption hanging off the tabs when it
+  // starts flush against them; every field below inherits this same inset,
+  // since none of them supply their own horizontal padding.
   const inset = {
     paddingTop: theme.sizeUnit * 3,
+    paddingLeft: theme.sizeUnit * 3,
     paddingRight: theme.sizeUnit * 3,
   };
 
@@ -586,53 +599,6 @@ export default function Inspector(): ReactElement {
             formOmitKeys={takesText ? ['content'] : undefined}
           />
         </Section>
-      )}
-
-      {/* The root is placed by nothing — it is what everything else is
-          placed in — so it has no column, row or span of its own to set. */}
-      {!isRoot && (
-        <Form layout="vertical" component="div">
-          <Section title={t('Placement')} test="inspector-section-placement">
-            {CHILD_FIELDS.map(field => (
-              <NumberField
-                key={field.key}
-                label={field.label}
-                test={`inspector-${field.key}`}
-                value={node.layout?.[field.key] as number | undefined}
-                onChange={next =>
-                  provider.updateLayout(node.id, { [field.key]: next })
-                }
-              />
-            ))}
-          </Section>
-        </Form>
-      )}
-
-      {/* `removeWidget` refuses the root, so offering it here would be
-          a button that only ever raises.
-
-          Ruled off from the fields above it rather than following them at a
-          gap: everything else in this column changes the widget, and this is
-          the one control that ends it. The rule is the same one that divides
-          the sections, so the panel reads as ending here rather than as
-          having one more field. */}
-      {!isRoot && (
-        <Footer>
-          <Button
-            buttonSize="xsmall"
-            // `buttonStyle`, not antd's own `danger`: the shared Button reads
-            // the former and derives the latter from it, so a bare `danger`
-            // is dropped and the control falls back to `primary` — which drew
-            // the one destructive thing in this panel as its filled headline
-            // action.
-            buttonStyle="danger"
-            icon={<Icons.DeleteOutlined iconSize="s" />}
-            data-test="inspector-delete"
-            onClick={() => provider.removeWidget(node.id)}
-          >
-            {t('Delete widget')}
-          </Button>
-        </Footer>
       )}
     </div>
   );

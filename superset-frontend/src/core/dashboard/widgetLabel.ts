@@ -33,12 +33,18 @@ import { DASHBOARD_WIDGETS_LOCATION } from './resolveWidgetView';
 type Props = Record<string, unknown> | undefined;
 
 /**
- * The ECharts option's own title, which is where a chart's name is authored.
+ * The ECharts option's own title, which is where a chart's name is authored
+ * — the structured `chrome.titleText` when set (mirroring
+ * `applyStructuredChrome`'s own precedence: a set structured field wins for
+ * the property it manages), else the raw `echartsOptions.title`.
  *
  * ECharts accepts either one title or an array of them; the first is the
  * chart's, and any others annotate parts of it.
  */
 const echartsTitle = (props: Props): unknown => {
+  const chromeText = (props?.chrome as { titleText?: unknown } | undefined)
+    ?.titleText;
+  if (typeof chromeText === 'string' && chromeText !== '') return chromeText;
   const title = (props?.echartsOptions as { title?: unknown } | undefined)
     ?.title;
   const first = Array.isArray(title) ? title[0] : title;

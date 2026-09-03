@@ -21,12 +21,43 @@ import { t } from '@apache-superset/core/translation';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { ActionButton, Flex, Typography } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { ErrorBoundary } from 'src/components';
+import type { MenuItem } from '@superset-ui/core/components/Menu';
+import { ErrorBoundary, KebabMenuButton } from 'src/components';
 import { provider, useDashboardRevision } from './store';
 import { resolveWidgetView } from './resolveWidgetView';
 import { widgetLabel } from './widgetLabel';
 import { widgetHeaderControl } from './widgetHeaderControl';
 import RootGrid from './RootGrid';
+
+/**
+ * The overflow menu's contents — the same items, order and grouping as the
+ * real per-chart menu (`SliceHeaderControls`), disabled because none of them
+ * has anything to act on yet: this widget renders straight to ECharts with
+ * no query context, no Redux chart state, and none of the drill/cross-filter/
+ * export plumbing the real ones read from. Placeholders rather than omitted
+ * entirely, so the menu reads as what's coming next rather than as empty.
+ *
+ * Not Remove — the bin beside this menu already offers that, and disabling
+ * every entry here to make room for the one live action would bury it.
+ */
+const PLACEHOLDER_MENU_ITEMS: MenuItem[] = [
+  { key: 'force-refresh', label: t('Force refresh'), disabled: true },
+  { key: 'fullscreen', label: t('Enter fullscreen'), disabled: true },
+  { type: 'divider' },
+  { key: 'edit-chart', label: t('Edit chart'), disabled: true },
+  {
+    key: 'cross-filter-scoping',
+    label: t('Cross-filtering scoping'),
+    disabled: true,
+  },
+  { type: 'divider' },
+  { key: 'view-query', label: t('View query'), disabled: true },
+  { key: 'view-as-table', label: t('View as table'), disabled: true },
+  { key: 'drill-to-detail', label: t('Drill to detail'), disabled: true },
+  { type: 'divider' },
+  { key: 'share', label: t('Share'), disabled: true },
+  { key: 'download', label: t('Download'), disabled: true },
+];
 
 function UnsupportedBlockPlaceholder({ nodeId }: { nodeId: string }) {
   const theme = useTheme();
@@ -159,6 +190,29 @@ const OverlayControls = styled.div`
  */
 const RemoveSlot = styled.span`
   display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+
+  /* \`ActionButton\` bakes in its own trailing margin for the common case of
+     sitting alone at the end of a row (the dashboard list's own Delete
+     carries the same margin for that reason). Here it sits mid-row against
+     \`HeaderTrailingControls\`'s own \`gap\`, and the two together doubled the
+     space before the menu that follows it. */
+  && .action-button {
+    margin-right: 0;
+  }
+`;
+
+/**
+ * What the overflow menu is wrapped in, and why — the same reasoning
+ * `RemoveSlot` is wrapped for: a click opening the menu must not also select
+ * the widget it sits on, and a pointer down on it must not start a grid
+ * drag. `data-widget-menu` is the other half of that second one — see
+ * `RootGrid`'s own drag-cancel selector.
+ */
+const MenuSlot = styled.span`
+  display: flex;
+  align-items: center;
   flex: 0 0 auto;
 `;
 
@@ -273,6 +327,20 @@ const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
             provider.setSelection(nodeId);
           }
         }}
+        // A card that lifts slightly on hover, the way the app already
+        // marks a surface as interactive elsewhere (a popover, a toast) —
+        // `css`, not `style`, because a hover state has no inline form.
+        // Never on the root: it is the canvas, not a card resting on it.
+        css={
+          !isRoot &&
+          css`
+            transition: box-shadow ${theme.motionDurationMid};
+
+            &:hover {
+              box-shadow: ${theme.boxShadowSecondary};
+            }
+          `
+        }
         style={{
           ...rest.style,
           // A widget's contents are positioned against this element.
@@ -407,6 +475,23 @@ const WidgetView = forwardRef<HTMLDivElement, WidgetViewProps>(
                     icon={<Icons.DeleteOutlined iconSize="s" />}
                   />
                 </RemoveSlot>
+                {/* To the bin's right, since the bin is the more common action
+                    of the two. See `PLACEHOLDER_MENU_ITEMS`. */}
+                <MenuSlot
+                  data-widget-menu
+                  onMouseDown={event => event.stopPropagation()}
+                  onPointerDown={event => event.stopPropagation()}
+                  onClick={event => event.stopPropagation()}
+                >
+                  <KebabMenuButton
+                    ariaLabel={t('More actions')}
+                    dataTest={`widget-menu-${nodeId}`}
+                    buttonSize="xsmall"
+                    buttonStyle="link"
+                    iconOrientation="vertical"
+                    menuItems={PLACEHOLDER_MENU_ITEMS}
+                  />
+                </MenuSlot>
               </>
             );
 

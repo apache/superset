@@ -222,7 +222,9 @@ const BlockTile = styled.button`
     width: 100%;
     padding: ${theme.sizeUnit * 2}px;
     border: 1px solid ${theme.colorBorder};
-    border-radius: ${theme.borderRadiusSM}px;
+    /* The same radius the canvas draws a placed widget's own card at, so a
+       tile reads as the same kind of object before and after it is placed. */
+    border-radius: ${theme.borderRadiusLG}px;
     background-color: ${theme.colorFillQuaternary};
     color: ${theme.colorText};
     font-size: ${theme.fontSizeSM}px;

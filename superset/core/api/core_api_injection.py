@@ -292,6 +292,20 @@ def inject_widget_implementations() -> None:
     silently replace another widget's schema; extension registrations are
     namespaced by publisher/name, mirroring semantic layers.
 
+    A widget whose static schema fails to build (see ``validate_control_schema``
+    below) raises the same way — deliberately: this is meant to be a loud,
+    fail-at-import check, not one an author can silently ship past. For a
+    built-in widget that failure aborts application startup (as any other
+    error importing ``superset.widgets.builtin`` would). For an
+    extension-registered widget, the raise unwinds through that extension's own
+    backend entrypoint import — `init_extensions`'s per-extension `try/except`
+    (in `superset/initialization/__init__.py`) catches it there, so one
+    broken widget's schema disables that whole extension's backend for this
+    process (any other widget or route the same entrypoint module would have
+    registered after it never runs), not just Superset overall or just the
+    one widget — the same containment boundary a collision in an extension's
+    own widget already has.
+
     Built-ins are imported here — *after* the decorator is concrete — because
     ``superset.widgets.api`` is imported during ``init_views()``, which runs
     before this injection. This mirrors how the MCP layer imports its host tool
@@ -328,6 +342,14 @@ def inject_widget_implementations() -> None:
             cls.name = name
             cls.description = description or ""
             registry[key] = cls
+            try:
+                # Validate the static schema and dependency graph at import
+                # time. Runtime enrichers may perform permission-scoped data
+                # lookups, so they must wait until a request user exists.
+                cls.validate_control_schema()
+            except Exception:
+                registry.pop(key, None)
+                raise
             return cls
 
         return decorator

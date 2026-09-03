@@ -863,6 +863,7 @@ from superset.mcp_service.user.tool import (  # noqa: F401, E402
 from superset.mcp_service.widgets.tool import (  # noqa: F401, E402
     get_widget_control_schema,
     list_widget_types,
+    set_widget_control_values,
 )
 
 #: Tool names exempt from the mcp_auth_hook protection check. Adding a tool

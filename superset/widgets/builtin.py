@@ -26,10 +26,10 @@ from __future__ import annotations
 
 import logging
 from copy import deepcopy
-from typing import Any
+from typing import Any, ClassVar
 
 from pydantic import BaseModel
-from superset_core.widgets import Widget, widget
+from superset_core.widgets import EnricherFn, Widget, widget
 
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import SupersetSecurityException
@@ -44,6 +44,26 @@ from superset.widgets.controls import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _metric_key(metric: Any) -> str:
+    """The stable label a `dataBinding` metric renders/queries under —
+    mirrors the frontend's `getMetricLabel` (`@superset-ui/core`) exactly,
+    since the two must agree: this is also the query result column name a
+    structured series reads its data from."""
+    if isinstance(metric, str):
+        return metric
+    if isinstance(metric, dict):
+        label = metric.get("label")
+        if label:
+            return str(label)
+        if metric.get("expressionType") != "SQL":
+            column = metric.get("column") or {}
+            column_name = column.get("columnName") or column.get("column_name") or ""
+            aggregate = metric.get("aggregate") or ""
+            return f"{aggregate}({column_name})"
+        return str(metric.get("sqlExpression", ""))
+    return str(metric)
 
 
 @widget(
@@ -61,7 +81,70 @@ class Markdown(Widget):
     description="A chart from a raw ECharts option with $bind data markers.",
 )
 class Echarts(Widget):
+    """
+    A raw-ECharts-option chart, plus an optional structured layer: when
+    ``chartType`` is set, ``customize.series`` offers one entry per
+    ``dataBinding`` metric (the SIP's ``x-dynamic`` pattern, as ``Balloons``
+    uses for its per-series styling) so a series can be colored, hidden, or
+    relabeled without hand-editing ``echartsOptions``.
+    """
+
     controls_class = EchartsControls
+
+    # Default color per series index, matching the frontend's structured
+    # series builder so a series' color is stable before the author touches
+    # customize (same convention as Balloons.PALETTE).
+    PALETTE = ["#e74c3c", "#3498db", "#2ecc71", "#f1c40f", "#9b59b6", "#1abc9c"]
+
+    # Upper bound on distinct series inlined into the schema (see Balloons.MAX_SERIES).
+    MAX_SERIES = 100
+
+    @staticmethod
+    def _populate_chart_series(
+        schema: dict[str, Any],
+        node: dict[str, Any],
+        parsed: BaseModel | None,
+        series: list[str],
+        upstream: dict[str, Any],
+    ) -> None:
+        # Unlike Balloons (where dimension *values* are only known once the
+        # frontend reports them, so an extra runtime guard is needed beyond
+        # the x-dependsOn gate), a structured series' identity comes entirely
+        # from `dataBinding.metrics` — a field already on `parsed` once the
+        # `dataBinding`/`chartType` gate above has passed.
+        style_def = schema.get("$defs", {}).get("SeriesOverride")
+        if style_def is None:
+            return
+        data_binding = getattr(parsed, "data_binding", None) if parsed else None
+        metrics = getattr(data_binding, "metrics", None) or []
+        discovered_keys = [_metric_key(metric) for metric in metrics]
+        customize = getattr(parsed, "customize", None) if parsed else None
+        stored = getattr(customize, "series", None) or {}
+        # Union with already-stored override keys, so an override for a
+        # metric temporarily removed from dataBinding.metrics stays visible
+        # (and thus editable/removable) instead of silently disappearing.
+        combined_keys = list(dict.fromkeys([*discovered_keys, *stored.keys()]))
+        if not combined_keys:
+            # Also sidesteps a forward reference to `Echarts.MAX_SERIES`
+            # below: this enricher runs once during the class's own
+            # `@widget` registration check (control_values=None), before the
+            # `Echarts` name is bound in this module.
+            return
+        all_keys = combined_keys[: Echarts.MAX_SERIES]
+        node.pop("additionalProperties", None)
+        properties: dict[str, Any] = {}
+        for index, key in enumerate(all_keys):
+            style = deepcopy(style_def)
+            style["properties"]["color"]["default"] = Echarts.PALETTE[
+                index % len(Echarts.PALETTE)
+            ]
+            style["title"] = key
+            properties[key] = style
+        node["properties"] = properties
+
+    enrichers: ClassVar[dict[str, EnricherFn]] = {
+        "customize/series": _populate_chart_series
+    }
 
 
 @widget(
@@ -110,21 +193,24 @@ class Balloons(Widget):
     # (or duplicate-heavy) series list.
     MAX_SERIES = 100
 
-    @classmethod
-    def enrich_schema(
-        cls,
+    @staticmethod
+    def _populate_series(
         schema: dict[str, Any],
+        node: dict[str, Any],
         parsed: BaseModel | None,
         series: list[str],
+        upstream: dict[str, Any],
     ) -> None:
-        # Nested models land in $defs; the x-dynamic field is Customization.series.
-        defs = schema.get("$defs", {})
-        series_prop = defs.get("Customization", {}).get("properties", {}).get("series")
-        style_def = defs.get("SeriesStyle")
-        if series_prop is None or style_def is None:
+        # `node` is Customization.series's own fragment; `SeriesStyle` is a
+        # sibling $defs entry, only reachable via the full `schema`.
+        style_def = schema.get("$defs", {}).get("SeriesStyle")
+        if style_def is None:
             return
-        # Only populate once a grouping dimension is set and the frontend has
-        # reported the distinct series values from the query results.
+        # The x-dependsOn: ["dataBinding"] gate (run by run_enrichers before
+        # this is ever called) only confirms a dataBinding was parsed at all
+        # -- it can't express "dimensions is non-empty" (a nested attribute)
+        # or "series is non-empty" (a runtime parameter, not a field on
+        # parsed), so both stay checked here.
         dimensions = None
         if parsed is not None:
             data_binding = getattr(parsed, "data_binding", None)
@@ -133,20 +219,22 @@ class Balloons(Widget):
             return
         # Dedupe (preserving order) and cap before doing per-series work, so an
         # oversized/duplicate list can't blow up CPU, memory, or response size.
-        unique_series = list(dict.fromkeys(series))[: cls.MAX_SERIES]
+        unique_series = list(dict.fromkeys(series))[: Balloons.MAX_SERIES]
         # Replace the open-ended map with one inlined, pre-colored style per series.
-        series_prop.pop("additionalProperties", None)
+        node.pop("additionalProperties", None)
         properties: dict[str, Any] = {}
         for index, value in enumerate(unique_series):
             style = deepcopy(style_def)
-            style["properties"]["color"]["default"] = cls.PALETTE[
-                index % len(cls.PALETTE)
+            style["properties"]["color"]["default"] = Balloons.PALETTE[
+                index % len(Balloons.PALETTE)
             ]
             # Title each group with the series value so the control panel labels
             # it by series rather than by the shared model name ("SeriesStyle").
             style["title"] = value
             properties[value] = style
-        series_prop["properties"] = properties
+        node["properties"] = properties
+
+    enrichers: ClassVar[dict[str, EnricherFn]] = {"customize/series": _populate_series}
 
 
 @widget(
@@ -166,32 +254,33 @@ class FilterSelect(Widget):
 
     controls_class = FilterSelectControls
 
-    @classmethod
-    def enrich_schema(
-        cls,
-        schema: dict[str, Any],
-        parsed: BaseModel | None,
-        series: list[str],  # noqa: ARG003
+    @staticmethod
+    def _populate_datasets(
+        _schema: dict[str, Any],
+        node: dict[str, Any],
+        _parsed: BaseModel | None,
+        _series: list[str],
+        _upstream: dict[str, Any],
     ) -> None:
-        # Unlike `column` below, this doesn't depend on any other field, so
-        # it's populated unconditionally with every dataset the caller can
-        # view — `enum` carries the ids the widget actually stores, and
-        # `x-enumNames` the display names the control panel shows instead
-        # (see `EnumNamesControl` on the frontend).
-        if (dataset_prop := schema.get("properties", {}).get("datasetId")) is not None:
-            datasets = DatasetDAO.find_all()
-            dataset_prop["enum"] = [dataset.id for dataset in datasets]
-            dataset_prop["x-enumNames"] = [dataset.name for dataset in datasets]
+        """Populate the dataset picker with datasets the caller can view."""
+        datasets = DatasetDAO.find_all()
+        node["enum"] = [dataset.id for dataset in datasets]
+        node["x-enumNames"] = [dataset.name for dataset in datasets]
 
-        column_prop = schema.get("properties", {}).get("column")
-        if column_prop is None:
-            return
+    @staticmethod
+    def _populate_columns(
+        _schema: dict[str, Any],
+        node: dict[str, Any],
+        parsed: BaseModel | None,
+        _series: list[str],
+        _upstream: dict[str, Any],
+    ) -> None:
         # Every early-return below leaves `enum` explicitly blank (rather than
         # merely absent) so the field degrades to a plain text input instead
         # of an enum-typed control with no choices. `build_configuration_schema`
         # already does this when `parsed` is None; these branches cover the
         # cases it doesn't (a dataset that's unset, missing, or inaccessible).
-        column_prop["enum"] = []
+        node["enum"] = []
         dataset_id = getattr(parsed, "dataset_id", None) if parsed else None
         if not dataset_id:
             return
@@ -209,7 +298,12 @@ class FilterSelect(Widget):
                 dataset_id,
             )
             return
-        column_prop["enum"] = dataset.filterable_column_names
+        node["enum"] = dataset.filterable_column_names
+
+    enrichers: ClassVar[dict[str, EnricherFn]] = {
+        "datasetId": _populate_datasets,
+        "column": _populate_columns,
+    }
 
 
 @widget(

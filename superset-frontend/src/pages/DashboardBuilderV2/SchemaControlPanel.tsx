@@ -59,7 +59,13 @@ import {
 } from 'src/features/semanticLayers/jsonFormsHelpers';
 import { provider, useDashboardRevision } from 'src/core/dashboard/store';
 import { fetchQueryData } from 'src/core/dashboard/chartData';
+import { FormShell } from './PropsForm';
 import { schemaControlRenderers } from './schemaControlRenderers';
+import {
+  commitWidgetProps,
+  describeError,
+  type ControlValidationError,
+} from './controlValueValidation';
 
 type DataBindingSpec = dashboardApi.DataBindingSpec;
 type WidgetProps = Record<string, unknown>;
@@ -96,33 +102,6 @@ async function fetchControlSchema(
   return (json as { result: JsonSchema }).result;
 }
 
-/**
- * SupersetClient rejects a non-2xx response with the raw, unparsed `Response`
- * object rather than an `Error`, so a plain `String(e)` yields the useless
- * "[object Response]". Pull the actual `{message}`/`{errors:[...]}` body Superset
- * sends back (same shape `chartData.ts` handles).
- */
-async function describeError(e: unknown): Promise<string> {
-  if (typeof Response !== 'undefined' && e instanceof Response) {
-    try {
-      const body = await e.clone().json();
-      const detail =
-        body?.message ??
-        (Array.isArray(body?.errors)
-          ? body.errors
-              .map((err: { message?: string }) => err.message)
-              .join('; ')
-          : undefined);
-      return detail
-        ? `${e.status} ${e.statusText}: ${detail}`
-        : `${e.status} ${e.statusText}`;
-    } catch {
-      return `${e.status} ${e.statusText}`;
-    }
-  }
-  return e instanceof Error ? e.message : String(e);
-}
-
 /** True once a binding has enough to run a grouped query. */
 function canQuery(
   binding: DataBindingSpec | undefined,
@@ -130,6 +109,30 @@ function canQuery(
   return Boolean(
     binding?.datasetId && binding.metrics?.length && binding.dimensions?.length,
   );
+}
+
+/**
+ * Drops any top-level property tagged `x-hidden-in-form` (e.g. echarts'
+ * `echartsOptions` — already fully editable via the Inspector's JSON tab, so
+ * a second raw-JSON box here would just duplicate it) before the schema
+ * reaches JsonForms, so no control is generated for it. The property stays
+ * in `data`/`node.props` untouched — this only changes what's rendered, not
+ * what's stored, so the JSON tab (which reads the whole record) still shows
+ * and edits it.
+ */
+function hideFlaggedFields(schema: JsonSchema): JsonSchema {
+  const { properties } = schema as { properties?: Record<string, unknown> };
+  if (!properties) return schema;
+  const visible = Object.fromEntries(
+    Object.entries(properties).filter(
+      ([, propSchema]) =>
+        !(propSchema as Record<string, unknown>)['x-hidden-in-form'],
+    ),
+  );
+  if (Object.keys(visible).length === Object.keys(properties).length) {
+    return schema;
+  }
+  return { ...schema, properties: visible } as JsonSchema;
 }
 
 export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
@@ -154,7 +157,18 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
 
   const [series, setSeries] = useState<string[]>([]);
   const [schema, setSchema] = useState<JsonSchema | null>(null);
+  const [formKey, setFormKey] = useState(0);
   const [error, setError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<
+    ControlValidationError[]
+  >([]);
+  // Guards against an earlier, slower validation round-trip landing after a
+  // later one — e.g. two edits typed close together — and overwriting the
+  // more recent result with a stale one.
+  const validateSeqRef = useRef(0);
+  // A validation error belongs to the widget it was raised for; selecting a
+  // different one shouldn't leave a stale message on screen.
+  useEffect(() => setValidationErrors([]), [nodeId]);
   // Whether a debounced re-fetch triggered by a dynamic field's own
   // dependency (see `maybeRefreshSchema` below) is in flight — surfaced to
   // the renderers via `config` so a dependent field (e.g. `column`) can show
@@ -188,9 +202,14 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastDepSnapshotRef = useRef<string>('');
 
-  // (Re)fetch the schema when the widget type or discovered series change. The
-  // series change is what carries an x-dynamic dependency (e.g. a new grouping
-  // dimension) through to a re-enriched schema.
+  // (Re)fetch the schema when the selected node, its widget type, or its
+  // discovered series change. `nodeId` has to be here too, not just
+  // `widgetType`/`seriesKey`: selecting a different node of the *same* type
+  // that happens to resolve to the same series (e.g. neither has a color
+  // dimension yet, so both are `[]`) would otherwise skip this effect
+  // entirely and keep rendering the previous node's enriched schema — its
+  // per-metric override controls, discovered series, whatever the enricher
+  // built from props this node never had.
   const seriesKey = JSON.stringify(series);
   useEffect(() => {
     if (!widgetType) return undefined;
@@ -214,7 +233,7 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [widgetType, seriesKey]);
+  }, [nodeId, widgetType, seriesKey]);
 
   // The effect above only reacts to `widgetType`/`series` — an edit to a
   // plain control value (e.g. picking `datasetId`) needs its own trigger so
@@ -254,6 +273,10 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
           .then(result => {
             setSchema(sanitizeSchema(result));
             dynamicDepsRef.current = getDynamicDependencies(result);
+            // JsonForms keeps its own schema/data state after mount. A
+            // dependency refresh can add or replace controls, so remount it
+            // with the accepted node props and the newly enriched schema.
+            setFormKey(key => key + 1);
             setError(null);
           })
           .catch(async e => setError(await describeError(e)))
@@ -279,7 +302,18 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
   const propsKey = JSON.stringify(props);
   const mountedRef = useRef(false);
   const selfEditRef = useRef(false);
-  const [formKey, setFormKey] = useState(0);
+  // What sibling controls (e.g. a metric/column picker reading the widget's
+  // `dataBinding.datasetId` off `config.formData`) see as this field's
+  // current value — updated synchronously on every edit, whether or not it
+  // ends up validating. `props` alone can't serve this: `dataBinding` and its
+  // required siblings (`datasetId`, `metrics`) can only ever be committed
+  // together, so a freshly placed widget's very first pick is always
+  // individually rejected — if sibling controls only saw the last *accepted*
+  // props, none of them would ever see that pick and the widget could never
+  // be built up field by field. Reset to `props` on the same external-change
+  // path the resync effect below already distinguishes from a self-triggered
+  // one.
+  const [liveData, setLiveData] = useState<WidgetProps>(props);
   useEffect(() => {
     if (!mountedRef.current) {
       mountedRef.current = true;
@@ -290,11 +324,19 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
       return;
     }
     setFormKey(key => key + 1);
+    setLiveData(props);
+    // `propsKey` is `props`'s own stable, value-equality-comparable proxy —
+    // see its own comment just above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propsKey]);
 
-  const uiSchema = useMemo(
-    () => (schema ? buildUiSchema(schema) : undefined),
+  const formSchema = useMemo(
+    () => (schema ? hideFlaggedFields(schema) : undefined),
     [schema],
+  );
+  const uiSchema = useMemo(
+    () => (formSchema ? buildUiSchema(formSchema) : undefined),
+    [formSchema],
   );
 
   if (!node) return null;
@@ -306,20 +348,26 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
       {schema && (
         // Vertical layout via class, not an antd `Form` wrapper: the renderers
         // read the layout off the nearest `.ant-form` ancestor class, so a real
-        // `Form` here would take the edits with it (see `PropsForm`).
-        <div
+        // `Form` here would take the edits with it (see `PropsForm`). Wrapped in
+        // the same `FormShell` as `PropsForm`'s generic form, so both halves of
+        // the Properties tab share one spacing rhythm.
+        <FormShell
           className="ant-form ant-form-vertical"
           data-test="schema-control-panel"
         >
           <JsonForms
             key={formKey}
-            schema={schema}
+            schema={formSchema}
             uischema={uiSchema}
             data={props}
             renderers={schemaControlRenderers}
             cells={cellRegistryEntries}
-            config={{ refreshingSchema, formData: props }}
+            config={{ refreshingSchema, formData: liveData }}
             validationMode="ValidateAndHide"
+            // Column/metric-reference controls need the widget's
+            // `dataBinding.datasetId`, which lives outside their own field —
+            // `config.formData` is how a JsonForms control reaches sibling
+            // data (mirrors `SemanticLayerModal`'s `config={{ formData }}`).
             onChange={({ data }) => {
               const nextRaw = data as WidgetProps;
               if (JSON.stringify(nextRaw) === propsKey) return;
@@ -354,13 +402,65 @@ export default function SchemaControlPanel({ nodeId }: { nodeId: string }) {
                 }
               }
 
-              // Our own edit — don't let the resync effect remount the form
-              // for it (that would drop input focus mid-typing).
-              selfEditRef.current = true;
-              provider.updateProps(nodeId, next);
-              maybeRefreshSchema(next);
+              // Before validation even starts: sibling controls read this
+              // off `config.formData` on every render (unlike `data`, which
+              // JsonForms only reads at mount), so a control depending on
+              // this field sees the pick immediately, regardless of whether
+              // it ends up accepted.
+              setLiveData(next);
+
+              validateSeqRef.current += 1;
+              const seq = validateSeqRef.current;
+              commitWidgetProps(nodeId, widgetType, next, {
+                // Runs immediately before the actual `updateProps` write, so
+                // a superseded validation (a newer edit already bumped
+                // `validateSeqRef`) is vetoed here rather than after the
+                // fact — by the time `.then()` below can check `seq`, a
+                // committed write can no longer be un-committed. Only once
+                // accepted does it set the flag telling the resync effect
+                // "this `props` change was mine", so it never remounts the
+                // form and drops input focus for an edit it made itself.
+                onBeforeCommit: () => {
+                  if (validateSeqRef.current !== seq) return false;
+                  selfEditRef.current = true;
+                  return true;
+                },
+              })
+                .then(result => {
+                  if (validateSeqRef.current !== seq) return;
+                  setValidationErrors(result.ok ? [] : result.errors);
+                  // A rejected pick is deliberately left in place — both in
+                  // JsonForms' own (uncontrolled) field and in `liveData` —
+                  // rather than reverted: `dataBinding`'s required fields can
+                  // only ever validate together, so building up a fresh
+                  // widget means picking one, seeing it rejected, and then
+                  // picking the next one the sibling control can now offer
+                  // (thanks to `liveData` already reflecting the first pick).
+                  // Reverting on every individual rejection would undo each
+                  // step as soon as it's made, and a new widget could never
+                  // reach a valid state at all.
+                  if (result.ok) maybeRefreshSchema(next);
+                })
+                .catch(async e => {
+                  if (validateSeqRef.current !== seq) return;
+                  const message = await describeError(e);
+                  setValidationErrors([{ loc: [], message }]);
+                });
             }}
           />
+        </FormShell>
+      )}
+      {validationErrors.length > 0 && (
+        <div data-test="schema-control-panel-validation-errors">
+          {validationErrors.map(err => (
+            <Typography.Text
+              key={`${err.loc.join('.')}:${err.message}`}
+              type="danger"
+            >
+              {err.loc.length > 0 ? `${err.loc.join('.')}: ` : ''}
+              {err.message}
+            </Typography.Text>
+          ))}
         </div>
       )}
     </>
