@@ -43,6 +43,7 @@ import pytest
 from sqlalchemy.orm.session import Session
 
 VIEW_PERM = "[test_layer].[test_view](id:1)"
+VIEW2_PERM = "[test_layer].[test_view_2](id:2)"
 TABLE_PERM = "[examples].[birth_names](id:1)"
 
 
@@ -81,8 +82,20 @@ def access_fixtures(session: Session) -> SimpleNamespace:
         configuration="{}",
         perm=VIEW_PERM,
     )
+    # A second view with a NON-colliding numeric id (no table shares id 2):
+    # the entitled-visibility test uses it so it discriminates the type-aware
+    # join from the old unconstrained join, which happened to match view 1
+    # only via its id collision with the table below.
+    view2 = SemanticView(
+        id=2,
+        uuid=uuid_lib.uuid4(),
+        name="test_view_2",
+        semantic_layer_uuid=layer.uuid,
+        configuration="{}",
+        perm=VIEW2_PERM,
+    )
     database = Database(id=10, database_name="examples", sqlalchemy_uri="sqlite://")
-    session.add_all([view, database])
+    session.add_all([view, view2, database])
     session.flush()
 
     table = SqlaTable(
@@ -125,7 +138,14 @@ def access_fixtures(session: Session) -> SimpleNamespace:
         datasource_name="gone",
         viz_type="table",
     )
-    session.add_all([semantic_slice, table_slice, dangling_slice])
+    semantic_slice_2 = Slice(
+        slice_name="semantic chart 2",
+        datasource_id=view2.id,
+        datasource_type="semantic_view",
+        datasource_name="test_view_2",
+        viz_type="table",
+    )
+    session.add_all([semantic_slice, semantic_slice_2, table_slice, dangling_slice])
     session.flush()
 
     semantic_dashboard = Dashboard(
@@ -146,6 +166,12 @@ def access_fixtures(session: Session) -> SimpleNamespace:
         published=True,
         slices=[dangling_slice],
     )
+    semantic_nocollide_dashboard = Dashboard(
+        dashboard_title="semantic nocollide",
+        slug="semantic-nocollide",
+        published=True,
+        slices=[semantic_slice_2],
+    )
     empty_dashboard = Dashboard(
         dashboard_title="empty",
         slug="empty",
@@ -153,7 +179,13 @@ def access_fixtures(session: Session) -> SimpleNamespace:
         slices=[],
     )
     session.add_all(
-        [semantic_dashboard, regular_dashboard, dangling_dashboard, empty_dashboard]
+        [
+            semantic_dashboard,
+            regular_dashboard,
+            dangling_dashboard,
+            semantic_nocollide_dashboard,
+            empty_dashboard,
+        ]
     )
     session.flush()
 
@@ -165,6 +197,7 @@ def access_fixtures(session: Session) -> SimpleNamespace:
         table_slice=table_slice,
         dangling_slice=dangling_slice,
         semantic_dashboard=semantic_dashboard,
+        semantic_nocollide_dashboard=semantic_nocollide_dashboard,
         regular_dashboard=regular_dashboard,
         dangling_dashboard=dangling_dashboard,
         empty_dashboard=empty_dashboard,
@@ -392,6 +425,33 @@ def test_gate_allows_semantic_chart_for_entitled_user(
         sm.raise_for_access(chart=access_fixtures.semantic_slice)
 
 
+def test_gate_denies_dashboard_of_unsupported_datasource_type(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """Gate-level pin for an unsupported datasource_type: a dashboard whose
+    chart references an unknown type is denied even for a broadly granted
+    user (previously only covered at resolver level). Built transient so the
+    unknown type never hits insert-time perm denormalization."""
+    # pylint: disable=import-outside-toplevel
+    from superset.exceptions import SupersetSecurityException
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+
+    druid_slice = Slice(
+        slice_name="druid chart", datasource_id=3, datasource_type="druid"
+    )
+    dashboard = Dashboard(
+        dashboard_title="druid only", published=True, slices=[druid_slice]
+    )
+
+    sm = _gate_sm()
+    with (
+        _gate_patches(sm, granted_perms={VIEW_PERM, VIEW2_PERM, TABLE_PERM}),
+        pytest.raises(SupersetSecurityException),
+    ):
+        sm.raise_for_access(dashboard=dashboard)
+
+
 def test_gate_denies_semantic_chart_without_grant(
     access_fixtures: SimpleNamespace, app_context: None
 ) -> None:
@@ -454,7 +514,18 @@ def test_list_filter_shows_semantic_dashboard_to_entitled_user(
 ) -> None:
     """SC-111233 fail-closed case: a user with the semantic view's grant must
     see the semantic-view-only dashboard in the list (the inner SqlaTable
-    join used to drop it)."""
+    join used to drop it). Uses the NON-colliding view (id 2, no table with
+    that id) so the assertion discriminates: under the old unconstrained
+    join this dashboard had no SqlaTable row to survive through at all."""
+    titles = _apply_list_filter(datasource_perms={VIEW2_PERM}, accessible_databases=[])
+    assert titles == {"semantic nocollide"}
+
+
+def test_list_filter_entitled_visibility_survives_id_collision(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """The colliding view (shares id 1 with a table) is also listed for its
+    grant holder — the type constraint must not lose entitled visibility."""
     titles = _apply_list_filter(datasource_perms={VIEW_PERM}, accessible_databases=[])
     assert titles == {"semantic only"}
 

@@ -253,6 +253,12 @@ class Slice(  # pylint: disable=too-many-public-methods
             return None
         if self.datasource_type == utils.DatasourceType.TABLE:
             return self.table
+        if self.datasource_type == utils.DatasourceType.SEMANTIC_VIEW:
+            # Resolved through the type-guarded ``semantic_view`` relationship
+            # rather than a DAO query: identity-map cached, and its join
+            # predicate already enforces the type constraint. ``None`` when
+            # the row is gone, matching the DAO fallback's semantics.
+            return self.semantic_view
         # pylint: disable=import-outside-toplevel
         # Deferred to avoid a circular import: superset.daos.datasource
         # imports connectors and sql_lab models at module top.
