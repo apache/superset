@@ -22,6 +22,7 @@ import {
   fireEvent,
   waitFor,
   userEvent,
+  within,
 } from 'spec/helpers/testing-library';
 import tinycolor from 'tinycolor2';
 import { Comparator, ColorSchemeEnum } from '@superset-ui/chart-controls';
@@ -69,6 +70,29 @@ const getBoundInputs = () => ({
   minBoundInput: screen.getByLabelText('Min bound', boundLabelOptions),
   maxBoundInput: screen.getByLabelText('Max bound', boundLabelOptions),
 });
+
+// The shared `selectOption` helper (spec/helpers/testing-library) resolves
+// the open dropdown via `document.querySelector('.ant-select-dropdown-list')`
+// -- the first match anywhere in the document -- which is safe only when a
+// test opens a single Select. This `Select` (from `@superset-ui/core/components`)
+// renders its popup through `getPopupContainer={trigger => trigger.parentNode}`
+// (inline, as a sibling of the trigger, rather than portaled to <body>), and
+// antd never removes a closed dropdown's list node afterward. Because "Bound
+// unit" sits earlier in the DOM than "Percent denominator", opening "Bound
+// unit" once leaves a stale, closed dropdown list that permanently wins any
+// *unscoped* "first match" query -- a later interaction with "Percent
+// denominator" via the shared helper would silently re-read "Bound unit"'s
+// stale list and time out looking for an option that was never there.
+// Scope explicitly to the target Select's own popup container (its trigger's
+// parent) to sidestep that.
+const selectFieldOption = async (option: string, selectName: string) => {
+  const trigger = await screen.findByRole('combobox', { name: selectName });
+  const container = trigger.closest('.ant-select')!
+    .parentElement as HTMLElement;
+  await userEvent.click(trigger);
+  const item = await within(container).findByText(option);
+  await userEvent.click(item);
+};
 
 test('renders FormattingPopoverContent component', () => {
   render(
@@ -854,4 +878,88 @@ test('selecting Low/Mid/High colors submits the exact colors clicked to onChange
   expect(tinycolor(payload.lowColor).toHexString()).toEqual(lowExpected);
   expect(tinycolor(payload.midColor).toHexString()).toEqual(midExpected);
   expect(tinycolor(payload.highColor).toHexString()).toEqual(highExpected);
+});
+
+test('shows the percent denominator select only when Bound unit is set to percent, for both None and a directional operator', async () => {
+  const { rerender } = render(
+    <FormattingPopoverContent
+      onChange={jest.fn()}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  expect(screen.getByLabelText('Bound unit')).toBeInTheDocument();
+  expect(
+    screen.queryByLabelText('Percent denominator'),
+  ).not.toBeInTheDocument();
+
+  await selectFieldOption('% of column', 'Bound unit');
+  expect(screen.getByLabelText('Percent denominator')).toBeInTheDocument();
+
+  await selectFieldOption('Value', 'Bound unit');
+  expect(
+    screen.queryByLabelText('Percent denominator'),
+  ).not.toBeInTheDocument();
+
+  // Also present for a directional operator (only Max bound shows for '>',
+  // per getBoundVisibility) -- Bound unit isn't None-specific.
+  await selectFieldOption('>', 'Operator');
+  expect(screen.getByLabelText('Bound unit')).toBeInTheDocument();
+
+  rerender(
+    <FormattingPopoverContent
+      onChange={jest.fn()}
+      columns={columnsStringType}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+  // String columns never show bound fields at all (Phase 1 behavior,
+  // unchanged) -- Bound unit must not appear either.
+  expect(screen.queryByLabelText('Bound unit')).not.toBeInTheDocument();
+});
+
+test('submits boundUnit and percentDenominator to onChange with the correct field names', async () => {
+  const onChange = jest.fn();
+  render(
+    <FormattingPopoverContent
+      onChange={onChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  await selectFieldOption('% of column', 'Bound unit');
+  await selectFieldOption('Column sum', 'Percent denominator');
+
+  fireEvent.click(screen.getByText('Apply'));
+
+  await waitFor(() => {
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  const payload = onChange.mock.calls[0][0];
+  expect(payload.boundUnit).toBe('percent');
+  expect(payload.percentDenominator).toBe('sum');
+});
+
+test('defaults to Value and Column max when never touched', async () => {
+  const onChange = jest.fn();
+  render(
+    <FormattingPopoverContent
+      onChange={onChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  fireEvent.click(screen.getByText('Apply'));
+
+  await waitFor(() => {
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  const payload = onChange.mock.calls[0][0];
+  expect(payload.boundUnit).toBe('value');
+  expect(payload.percentDenominator).toBeUndefined();
 });

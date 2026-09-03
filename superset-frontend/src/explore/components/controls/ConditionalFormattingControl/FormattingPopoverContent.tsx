@@ -45,6 +45,8 @@ import {
   booleanOperatorOptions,
   formattingOptions,
   colorScheme,
+  boundUnitOptions,
+  percentDenominatorOptions,
 } from './constants';
 import ColorPickerControl from '../ColorPickerControl';
 
@@ -232,6 +234,11 @@ const shouldFormItemUpdate = (
   );
 };
 
+const boundUnitShouldUpdate = (
+  prevValues: ConditionalFormattingConfig,
+  currentValues: ConditionalFormattingConfig,
+) => prevValues.boundUnit !== currentValues.boundUnit;
+
 const renderOperator = ({
   showOnlyNone,
   columnType,
@@ -279,42 +286,72 @@ const renderBoundFields = (operator?: Comparator) => {
   const maxDependencies = useCrossFieldRules ? maxBoundDeps : targetValueDeps;
 
   return (
-    <Row gutter={12}>
-      {showMin && (
-        <Col span={showMax ? 12 : 24}>
+    <>
+      <Row gutter={12}>
+        <Col span={12}>
           <FormItem
-            name="minBound"
-            label={t('Min bound')}
-            rules={minRules}
-            dependencies={minDependencies}
-            normalize={normalizeOptionalNumber}
-            validateTrigger="onBlur"
+            name="boundUnit"
+            label={t('Bound unit')}
+            initialValue={boundUnitOptions[0].value}
             tooltip={t(
-              'Overrides the lowest value used for coloring. Leave blank to use the lowest value in the data.',
+              'Value: type the exact numbers used for coloring below. % of column: type a percentage of the column total instead, so the rule keeps working as the data changes.',
             )}
           >
-            <FullWidthInputNumber />
+            <Select ariaLabel={t('Bound unit')} options={boundUnitOptions} />
           </FormItem>
         </Col>
-      )}
-      {showMax && (
-        <Col span={showMin ? 12 : 24}>
-          <FormItem
-            name="maxBound"
-            label={t('Max bound')}
-            rules={maxRules}
-            dependencies={maxDependencies}
-            normalize={normalizeOptionalNumber}
-            validateTrigger="onBlur"
-            tooltip={t(
-              'Overrides the highest value used for coloring. Leave blank to use the highest value in the data.',
-            )}
-          >
-            <FullWidthInputNumber />
+        <Col span={12}>
+          <FormItem noStyle shouldUpdate={boundUnitShouldUpdate}>
+            {({ getFieldValue }: GetFieldValue) =>
+              getFieldValue('boundUnit') === boundUnitOptions[1].value ? (
+                <FormItem name="percentDenominator" label={t('% of')}>
+                  <Select
+                    ariaLabel={t('Percent denominator')}
+                    options={percentDenominatorOptions}
+                  />
+                </FormItem>
+              ) : null
+            }
           </FormItem>
         </Col>
-      )}
-    </Row>
+      </Row>
+      <Row gutter={12}>
+        {showMin && (
+          <Col span={showMax ? 12 : 24}>
+            <FormItem
+              name="minBound"
+              label={t('Min bound')}
+              rules={minRules}
+              dependencies={minDependencies}
+              normalize={normalizeOptionalNumber}
+              validateTrigger="onBlur"
+              tooltip={t(
+                'Overrides the lowest value used for coloring. Leave blank to use the lowest value in the data.',
+              )}
+            >
+              <FullWidthInputNumber />
+            </FormItem>
+          </Col>
+        )}
+        {showMax && (
+          <Col span={showMin ? 12 : 24}>
+            <FormItem
+              name="maxBound"
+              label={t('Max bound')}
+              rules={maxRules}
+              dependencies={maxDependencies}
+              normalize={normalizeOptionalNumber}
+              validateTrigger="onBlur"
+              tooltip={t(
+                'Overrides the highest value used for coloring. Leave blank to use the highest value in the data.',
+              )}
+            >
+              <FullWidthInputNumber />
+            </FormItem>
+          </Col>
+        )}
+      </Row>
+    </>
   );
 };
 

@@ -23,6 +23,8 @@ import {
   Comparator,
   ControlComponentProps,
   ObjectFormattingEnum,
+  BoundUnit,
+  PercentDenominator,
 } from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/common';
 import { type RGBColor } from '@superset-ui/core/components';
@@ -45,6 +47,8 @@ export type ConditionalFormattingConfig = {
   lowColor?: RGBColor | string;
   midColor?: RGBColor | string;
   highColor?: RGBColor | string;
+  boundUnit?: BoundUnit;
+  percentDenominator?: PercentDenominator;
 };
 
 export type ConditionalFormattingControlProps = ControlComponentProps<
