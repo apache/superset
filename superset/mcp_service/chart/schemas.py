@@ -1093,6 +1093,29 @@ _NATIVE_COLUMN_META_MAX_KEY_BYTES = 1_024
 _NATIVE_COLUMN_META_MAX_STRING_BYTES = 16 * 1_024
 _NATIVE_COLUMN_META_MAX_TOTAL_STRING_BYTES = 64 * 1_024
 _NATIVE_COLUMN_META_MAX_INT_BITS = 64
+_NATIVE_METRIC_ALLOWED_KEYS = frozenset(
+    {
+        "aggregate",
+        "column",
+        "datasourceWarning",
+        "expressionType",
+        "hasCustomLabel",
+        "label",
+        "optionName",
+        "sqlExpression",
+    }
+)
+_NATIVE_METRIC_EXPRESSION_TYPES = frozenset({"SIMPLE", "SQL"})
+_NATIVE_METRIC_DISCRIMINATOR_KEYS = frozenset(
+    {
+        "column",
+        "datasourceWarning",
+        "hasCustomLabel",
+        "optionName",
+        "sqlExpression",
+    }
+)
+_NATIVE_METRIC_MISSING = object()
 
 
 def _native_column_meta_string_bytes(value: str, *, key: bool = False) -> int:
@@ -1112,6 +1135,108 @@ def _native_column_meta_string_bytes(value: str, *, key: bool = False) -> int:
     if size > limit:
         raise ValueError(f"Sunburst native metric column metadata {kind} is too long")
     return size
+
+
+def _validate_native_metric_string(
+    value: Any, field: str, max_length: int
+) -> str | None:
+    """Validate one optional exact string in the closed native metric wrapper."""
+    if value is None:
+        return None
+    if type(value) is not str:
+        raise ValueError(f"Sunburst native metric {field} must be a string")
+    try:
+        encoded_size = len(str.encode(value, "utf-8"))
+    except UnicodeEncodeError as ex:
+        raise ValueError(f"Sunburst native metric {field} is invalid") from ex
+    if str.__len__(value) > max_length or encoded_size > max_length * 4:
+        raise ValueError(f"Sunburst native metric {field} is too long")
+    return value
+
+
+def _inspect_native_metric_expression_type(value: Any) -> tuple[object, bool]:
+    """Inspect an exact wrapper without hashing or comparing hostile objects."""
+    if type(value) is not dict:
+        return _NATIVE_METRIC_MISSING, False
+    if dict.__len__(value) > len(_NATIVE_METRIC_ALLOWED_KEYS):
+        raise ValueError("Sunburst native metric has too many fields")
+    expression_type: object = _NATIVE_METRIC_MISSING
+    has_native_discriminator = False
+    for key, item in dict.items(value):
+        if type(key) is not str:
+            raise ValueError("Sunburst native metric keys must be strings")
+        _validate_native_metric_string(key, "field name", 255)
+        if key in _NATIVE_METRIC_DISCRIMINATOR_KEYS:
+            has_native_discriminator = True
+        if key == "expressionType":
+            if type(item) is not str:
+                raise ValueError(
+                    "Sunburst native metric expressionType must be a string"
+                )
+            if item not in _NATIVE_METRIC_EXPRESSION_TYPES:
+                raise ValueError(
+                    "Sunburst native metric expressionType must be SIMPLE or SQL"
+                )
+            expression_type = item
+    return expression_type, has_native_discriminator
+
+
+def _validate_native_metric_column_value(value: Any) -> None:
+    """Validate a wrapper column without dispatching container or scalar hooks."""
+    if type(value) is str:
+        _validate_native_metric_string(value, "column", 255)
+    elif type(value) is dict:
+        _validate_bounded_native_column_meta(value)
+    elif value is not None:
+        raise ValueError("Sunburst native metric column must be a string or object")
+
+
+def _validate_native_metric_item(key: str, item: Any) -> object:
+    """Validate one value after its wrapper key is known to be an exact string."""
+    if key == "expressionType":
+        if type(item) is not str:
+            raise ValueError("Sunburst native metric expressionType must be a string")
+        _validate_native_metric_string(item, "expressionType", 10)
+        return item
+    if key in ("label", "optionName"):
+        _validate_native_metric_string(item, key, 500)
+    elif key == "sqlExpression":
+        _validate_native_metric_string(item, key, 2_000)
+    elif key == "aggregate":
+        _validate_native_metric_string(item, key, 32)
+    elif key in ("datasourceWarning", "hasCustomLabel"):
+        if item is not None and type(item) is not bool:
+            raise ValueError(f"Sunburst native metric {key} must be a boolean")
+    elif key == "column":
+        _validate_native_metric_column_value(item)
+    return _NATIVE_METRIC_MISSING
+
+
+def _validate_native_metric_wrapper(value: Any) -> dict[str, Any]:
+    """Validate and copy the closed native metric wrapper without calling hooks."""
+    if type(value) is not dict:
+        raise ValueError("Sunburst native metric must be a string or object")
+    if dict.__len__(value) > len(_NATIVE_METRIC_ALLOWED_KEYS):
+        raise ValueError("Sunburst native metric has too many fields")
+
+    validated: dict[str, Any] = {}
+    expression_type: object = _NATIVE_METRIC_MISSING
+    for key, item in dict.items(value):
+        if type(key) is not str:
+            raise ValueError("Sunburst native metric keys must be strings")
+        _validate_native_metric_string(key, "field name", 255)
+        if key not in _NATIVE_METRIC_ALLOWED_KEYS:
+            raise ValueError(f"Unknown Sunburst native metric field: {key}")
+        item_expression_type = _validate_native_metric_item(key, item)
+        if item_expression_type is not _NATIVE_METRIC_MISSING:
+            expression_type = item_expression_type
+        validated[key] = item
+
+    if expression_type is _NATIVE_METRIC_MISSING:
+        raise ValueError("Sunburst native metric requires expressionType")
+    if expression_type not in _NATIVE_METRIC_EXPRESSION_TYPES:
+        raise ValueError("Sunburst native metric expressionType must be SIMPLE or SQL")
+    return validated
 
 
 def _native_column_meta_dict_children(
@@ -1218,7 +1343,22 @@ class SunburstNativeMetricColumn(BaseModel):
     @classmethod
     def validate_bounded_column_meta(cls, value: Any) -> Any:
         """Bound the full open object before projecting the fields we own."""
-        return _validate_bounded_native_column_meta(value)
+        value = _validate_bounded_native_column_meta(value)
+        snake_name = dict.get(value, "column_name", _NATIVE_METRIC_MISSING)
+        camel_name = dict.get(value, "columnName", _NATIVE_METRIC_MISSING)
+        if (
+            snake_name is not _NATIVE_METRIC_MISSING
+            and camel_name is not _NATIVE_METRIC_MISSING
+        ):
+            if type(snake_name) is not str or type(camel_name) is not str:
+                raise ValueError(
+                    "column_name and columnName must both be exact strings"
+                )
+            if snake_name != camel_name:
+                raise ValueError(
+                    "column_name and columnName must match when both are provided"
+                )
+        return value
 
 
 class XYNativeMetricColumn(UnknownFieldCheckMixin):
@@ -1424,11 +1564,19 @@ class SunburstChartConfig(BaseChartConfig):
     @staticmethod
     def _looks_like_native_form_data(data: Any) -> bool:
         """Identify saved Explore payloads without weakening typed typo checks."""
-        if not isinstance(data, dict) or not (
-            data.get(_NATIVE_FORM_DATA_MARKER) or data.get("viz_type") == "sunburst_v2"
+        if type(data) is not dict:
+            return False
+        native_marker = dict.get(data, _NATIVE_FORM_DATA_MARKER)
+        viz_type = dict.get(data, "viz_type")
+        if not (
+            (type(native_marker) is bool and native_marker)
+            or (type(viz_type) is str and viz_type == "sunburst_v2")
         ):
             return False
-        metric = data.get("metric")
+        metric = dict.get(data, "metric")
+        expression_type, has_native_discriminator = (
+            _inspect_native_metric_expression_type(metric)
+        )
         return (
             any(
                 key in data
@@ -1443,8 +1591,9 @@ class SunburstChartConfig(BaseChartConfig):
                     "until",
                 )
             )
-            or isinstance(metric, str)
-            or (isinstance(metric, dict) and "expressionType" in metric)
+            or type(metric) is str
+            or expression_type is not _NATIVE_METRIC_MISSING
+            or has_native_discriminator
         )
 
     @staticmethod
@@ -1454,26 +1603,19 @@ class SunburstChartConfig(BaseChartConfig):
         """Accept saved metric names and native SIMPLE/SQL metric objects."""
         if type(value) is str:
             return {"name": value, "saved_metric": True}
-        if isinstance(value, ColumnRef):
+        if type(value) is dict:
+            expression_type, has_native_discriminator = (
+                _inspect_native_metric_expression_type(value)
+            )
+            if expression_type is _NATIVE_METRIC_MISSING:
+                if has_native_discriminator:
+                    raise ValueError("Sunburst native metric requires expressionType")
+                return value
+            value = _validate_native_metric_wrapper(value)
+        elif isinstance(value, ColumnRef):
             return value
-        if type(value) is not dict:
+        else:
             raise ValueError("Sunburst native metric must be a string or object")
-        if "expressionType" not in value:
-            return value
-
-        allowed_keys = {
-            "aggregate",
-            "column",
-            "datasourceWarning",
-            "expressionType",
-            "hasCustomLabel",
-            "label",
-            "optionName",
-            "sqlExpression",
-        }
-        SunburstChartConfig._validate_native_metric_keys(value, allowed_keys)
-
-        SunburstChartConfig._validate_native_metric_metadata(value)
 
         expression_type = value.get("expressionType")
         label = value.get("label")
@@ -1514,33 +1656,6 @@ class SunburstChartConfig(BaseChartConfig):
                 "dtype": dtype,
             }
         return value
-
-    @staticmethod
-    def _validate_native_metric_keys(
-        value: dict[str, Any], allowed_keys: set[str]
-    ) -> None:
-        """Reject typos in the closed, schema-owned metric wrapper."""
-        keys = dict.keys(value)
-        if any(type(key) is not str for key in keys):
-            raise ValueError("Sunburst native metric keys must be strings")
-        if unknown := set(keys) - allowed_keys:
-            raise ValueError(
-                "Unknown Sunburst native metric field(s): " + ", ".join(sorted(unknown))
-            )
-
-    @staticmethod
-    def _validate_native_metric_metadata(value: dict[str, Any]) -> None:
-        """Validate bounded frontend-only attributes on an adhoc metric."""
-        for key in ("label", "optionName", "sqlExpression"):
-            item = value.get(key)
-            if item is not None and type(item) is not str:
-                raise ValueError(f"Sunburst native metric {key} must be a string")
-        if type(value.get("optionName")) is str and len(value["optionName"]) > 500:
-            raise ValueError("Sunburst native metric optionName is too long")
-        for key in ("datasourceWarning", "hasCustomLabel"):
-            item = value.get(key)
-            if item is not None and type(item) is not bool:
-                raise ValueError(f"Sunburst native metric {key} must be a boolean")
 
     @staticmethod
     def _coerce_native_hierarchy(data: dict[str, Any]) -> None:

@@ -75,6 +75,7 @@ from superset.mcp_service.chart.schemas import (
     PieChartConfig,
     PivotTableChartConfig,
     SunburstChartConfig,
+    SunburstNativeMetricColumn,
     TableChartConfig,
     UpdateChartPreviewRequest,
     UpdateChartRequest,
@@ -1463,6 +1464,232 @@ def test_native_metric_owned_typo_remains_rejected() -> None:
     with pytest.raises(ValidationError, match="aggregat"):
         GenerateChartRequest.model_validate(
             _native_request_payload(GenerateChartRequest, metric, None)
+        )
+
+
+def test_native_metric_wrapper_hostile_objects_are_hook_free() -> None:  # noqa: C901
+    calls: list[str] = []
+
+    class HostileStr(str):
+        def __hash__(self) -> int:
+            calls.append("hash")
+            return str.__hash__(self)
+
+        def __eq__(self, _other: object) -> bool:
+            calls.append("eq")
+            raise AssertionError
+
+        def __str__(self) -> str:
+            calls.append("str")
+            if calls:
+                raise AssertionError
+            return ""
+
+        def __repr__(self) -> str:
+            calls.append("repr")
+            if calls:
+                raise AssertionError
+            return ""
+
+    class HostileDict(dict[object, object]):
+        def __contains__(self, _key: object) -> bool:
+            calls.append("contains")
+            raise AssertionError
+
+        def __iter__(self) -> Iterator[object]:
+            calls.append("iter")
+            if calls:
+                raise AssertionError
+            return iter(())
+
+        def items(self):
+            calls.append("items")
+            raise AssertionError
+
+        def get(self, _key: object, _default: object = None) -> object:
+            calls.append("get")
+            raise AssertionError
+
+        def __repr__(self) -> str:
+            calls.append("repr")
+            if calls:
+                raise AssertionError
+            return ""
+
+    hostile_key = HostileStr("expressionType")
+    key_wrapper = {
+        hostile_key: "SIMPLE",
+        "column": "sales",
+        "aggregate": "SUM",
+    }
+    calls.clear()
+    hostile_value = HostileStr("SIMPLE")
+    value_wrapper = {
+        "expressionType": hostile_value,
+        "column": "sales",
+        "aggregate": "SUM",
+    }
+    wrapper_subclass = HostileDict(
+        expressionType="SIMPLE", column="sales", aggregate="SUM"
+    )
+
+    for wrapper in (key_wrapper, value_wrapper, wrapper_subclass):
+        with pytest.raises(ValidationError):
+            GenerateChartRequest.model_validate(
+                {
+                    "dataset_id": 7,
+                    "config": {
+                        "viz_type": "sunburst_v2",
+                        "columns": ["region"],
+                        "annotation_layers": [],
+                        "metric": wrapper,
+                    },
+                }
+            )
+        assert calls == []
+
+
+@pytest.mark.parametrize(
+    "expression_type",
+    [None, True, 1, [], "simple", "SQL_QUERY", ""],
+)
+def test_native_metric_wrapper_rejects_malformed_expression_type(
+    expression_type: object,
+) -> None:
+    metric = {
+        "expressionType": expression_type,
+        "column": "sales",
+        "aggregate": "SUM",
+    }
+    with pytest.raises(ValidationError, match="expressionType"):
+        GenerateChartRequest.model_validate(
+            _native_request_payload(GenerateChartRequest, metric, None)
+        )
+
+
+def test_native_metric_wrapper_requires_expression_type() -> None:
+    metric = {"column": "sales", "aggregate": "SUM"}
+    with pytest.raises(ValidationError, match="requires expressionType"):
+        GenerateChartRequest.model_validate(
+            _native_request_payload(GenerateChartRequest, metric, None)
+        )
+
+
+def test_typed_metric_remains_valid_with_native_envelope_fields() -> None:
+    request = GenerateChartRequest.model_validate(
+        {
+            "dataset_id": 7,
+            "config": {
+                "viz_type": "sunburst_v2",
+                "columns": ["region"],
+                "annotation_layers": [],
+                "metric": {"name": "sales", "aggregate": "SUM"},
+            },
+        }
+    )
+    assert isinstance(request.config, SunburstChartConfig)
+    assert request.config.metric.name == "sales"
+    assert request.config.metric.aggregate == "SUM"
+
+
+@pytest.mark.parametrize(
+    "metric,expected",
+    [
+        (
+            {
+                "expressionType": "SIMPLE",
+                "column": "sales",
+                "aggregate": "SUM",
+            },
+            ("sales", None),
+        ),
+        (
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "SUM(sales)",
+                "label": "Sales",
+            },
+            (None, "SUM(sales)"),
+        ),
+    ],
+)
+def test_native_metric_wrapper_accepts_explicit_simple_and_sql(
+    metric: dict[str, object], expected: tuple[str | None, str | None]
+) -> None:
+    request = GenerateChartRequest.model_validate(
+        _native_request_payload(GenerateChartRequest, metric, None)
+    )
+    assert isinstance(request.config, SunburstChartConfig)
+    assert (
+        request.config.metric.name,
+        request.config.metric.sql_expression,
+    ) == expected
+
+
+def test_native_column_meta_model_validate_json_handles_dual_aliases() -> None:
+    column = _frontend_column_meta()
+    column["columnName"] = "sales"
+    parsed = SunburstNativeMetricColumn.model_validate_json(json.dumps(column))
+    assert parsed.column_name == "sales"
+    assert parsed.type == "DOUBLE"
+
+    column["columnName"] = "profit"
+    with pytest.raises(ValidationError, match="must match"):
+        SunburstNativeMetricColumn.model_validate_json(json.dumps(column))
+
+    column["column_name"] = 7
+    with pytest.raises(ValidationError, match="both be exact strings"):
+        SunburstNativeMetricColumn.model_validate_json(json.dumps(column))
+
+
+@pytest.mark.parametrize(
+    "request_model",
+    [GenerateChartRequest, UpdateChartRequest, GenerateExploreLinkRequest],
+)
+def test_public_requests_accept_equal_dual_column_aliases_with_full_metadata(
+    request_model: type[
+        GenerateChartRequest | UpdateChartRequest | GenerateExploreLinkRequest
+    ],
+) -> None:
+    metric = _frontend_native_metric()
+    column = metric["column"]
+    assert isinstance(column, dict)
+    column["columnName"] = "sales"
+    request = request_model.model_validate(
+        _native_request_payload(request_model, metric, None)
+    )
+    assert isinstance(request.config, SunburstChartConfig)
+    assert request.config.metric.name == "sales"
+
+
+@pytest.mark.parametrize(
+    "request_model",
+    [GenerateChartRequest, UpdateChartRequest, GenerateExploreLinkRequest],
+)
+@pytest.mark.parametrize(
+    "snake_name,camel_name,error",
+    [
+        ("sales", "profit", "must match"),
+        (7, "sales", "both be exact strings"),
+        ("sales", False, "both be exact strings"),
+    ],
+)
+def test_public_requests_reject_conflicting_or_malformed_dual_column_aliases(
+    request_model: type[
+        GenerateChartRequest | UpdateChartRequest | GenerateExploreLinkRequest
+    ],
+    snake_name: object,
+    camel_name: object,
+    error: str,
+) -> None:
+    metric = _frontend_native_metric()
+    column = metric["column"]
+    assert isinstance(column, dict)
+    column["column_name"] = snake_name
+    column["columnName"] = camel_name
+    with pytest.raises(ValidationError, match=error):
+        request_model.model_validate(
+            _native_request_payload(request_model, metric, None)
         )
 
 
