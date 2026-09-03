@@ -95,7 +95,13 @@ export const getColorFunction = (
   let comparatorFunction: (
     value: number | string | boolean | null,
     allValues: number[] | string[] | (boolean | null)[],
-  ) => false | { cutoffValue: number | string; extremeValue: number | string };
+  ) =>
+    | false
+    | {
+        cutoffValue: number | string;
+        extremeValue: number | string;
+        opacityValue?: number;
+      };
   if (operator === undefined || colorScheme === undefined) {
     return () => undefined;
   }
@@ -121,6 +127,17 @@ export const getColorFunction = (
         }
         const cutoffValue = minBound ?? Math.min(...allValues);
         const extremeValue = maxBound ?? Math.max(...allValues);
+        const hasManualBound = minBound !== undefined || maxBound !== undefined;
+        if (cutoffValue > extremeValue) {
+          return false;
+        }
+        if (hasManualBound) {
+          return {
+            cutoffValue,
+            extremeValue,
+            opacityValue: Math.min(Math.max(value, cutoffValue), extremeValue),
+          };
+        }
         return value >= cutoffValue && value <= extremeValue
           ? { cutoffValue, extremeValue }
           : false;
@@ -131,7 +148,10 @@ export const getColorFunction = (
         typeof targetValue === 'number' && value > targetValue!
           ? {
               cutoffValue: targetValue!,
-              extremeValue: maxBound ?? Math.max(...allValues),
+              extremeValue:
+                maxBound !== undefined && maxBound > targetValue
+                  ? maxBound
+                  : Math.max(...allValues),
             }
           : false;
       break;
@@ -140,7 +160,10 @@ export const getColorFunction = (
         typeof targetValue === 'number' && value < targetValue!
           ? {
               cutoffValue: targetValue!,
-              extremeValue: minBound ?? Math.min(...allValues),
+              extremeValue:
+                minBound !== undefined && minBound < targetValue
+                  ? minBound
+                  : Math.min(...allValues),
             }
           : false;
       break;
@@ -149,7 +172,10 @@ export const getColorFunction = (
         typeof targetValue === 'number' && value >= targetValue!
           ? {
               cutoffValue: targetValue!,
-              extremeValue: maxBound ?? Math.max(...allValues),
+              extremeValue:
+                maxBound !== undefined && maxBound > targetValue
+                  ? maxBound
+                  : Math.max(...allValues),
             }
           : false;
       break;
@@ -158,7 +184,10 @@ export const getColorFunction = (
         typeof targetValue === 'number' && value <= targetValue!
           ? {
               cutoffValue: targetValue!,
-              extremeValue: minBound ?? Math.min(...allValues),
+              extremeValue:
+                minBound !== undefined && minBound < targetValue
+                  ? minBound
+                  : Math.min(...allValues),
             }
           : false;
       break;
@@ -274,7 +303,7 @@ export const getColorFunction = (
     }
     const compareResult = comparatorFunction(value, columnValues);
     if (compareResult === false) return undefined;
-    const { cutoffValue, extremeValue } = compareResult;
+    const { cutoffValue, extremeValue, opacityValue } = compareResult;
 
     if (typeof colorScheme === 'string') {
       if (isSpecialColor(colorScheme)) {
@@ -299,7 +328,13 @@ export const getColorFunction = (
       if (alpha === undefined || alpha) {
         return addAlpha(
           cleanHex,
-          getOpacity(value, cutoffValue, extremeValue, minOpacity, maxOpacity),
+          getOpacity(
+            opacityValue ?? value,
+            cutoffValue,
+            extremeValue,
+            minOpacity,
+            maxOpacity,
+          ),
         );
       }
       return colorScheme;
@@ -317,7 +352,13 @@ export const getColorFunction = (
     if (alpha === undefined || alpha) {
       return addAlpha(
         baseHexColor,
-        getOpacity(value, cutoffValue, extremeValue, minOpacity, maxOpacity),
+        getOpacity(
+          opacityValue ?? value,
+          cutoffValue,
+          extremeValue,
+          minOpacity,
+          maxOpacity,
+        ),
       );
     }
     return baseHexColor;

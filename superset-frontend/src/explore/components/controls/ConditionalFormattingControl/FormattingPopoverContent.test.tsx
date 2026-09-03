@@ -510,9 +510,10 @@ test('hides min/max bound fields on string columns', () => {
 });
 
 test('shows no validation error for a valid min/max bound pair', async () => {
-  const { container } = render(
+  const onChange = jest.fn();
+  render(
     <FormattingPopoverContent
-      onChange={mockOnChange}
+      onChange={onChange}
       columns={columns}
       extraColorChoices={extraColorChoices}
     />,
@@ -526,10 +527,10 @@ test('shows no validation error for a valid min/max bound pair', async () => {
   fireEvent.blur(maxBoundInput);
   fireEvent.blur(minBoundInput);
 
+  fireEvent.click(screen.getByText('Apply'));
+
   await waitFor(() => {
-    expect(
-      container.querySelector('.ant-form-item-is-validating'),
-    ).not.toBeInTheDocument();
+    expect(onChange).toHaveBeenCalled();
   });
 
   expect(
@@ -541,9 +542,10 @@ test('shows no validation error for a valid min/max bound pair', async () => {
 });
 
 test('shows a validation error when min bound is greater than max bound', async () => {
-  const { container } = render(
+  const onChange = jest.fn();
+  render(
     <FormattingPopoverContent
-      onChange={mockOnChange}
+      onChange={onChange}
       columns={columns}
       extraColorChoices={extraColorChoices}
     />,
@@ -557,24 +559,22 @@ test('shows a validation error when min bound is greater than max bound', async 
   fireEvent.blur(maxBoundInput);
   fireEvent.blur(minBoundInput);
 
-  await waitFor(() => {
-    expect(
-      container.querySelector('.ant-form-item-is-validating'),
-    ).not.toBeInTheDocument();
-  });
+  expect(
+    await screen.findByText('Min bound should be smaller than max bound'),
+  ).toBeInTheDocument();
+  expect(
+    await screen.findByText('Max bound should be greater than min bound'),
+  ).toBeInTheDocument();
 
-  expect(
-    screen.getByText('Min bound should be smaller than max bound'),
-  ).toBeInTheDocument();
-  expect(
-    screen.getByText('Max bound should be greater than min bound'),
-  ).toBeInTheDocument();
+  fireEvent.click(screen.getByText('Apply'));
+  expect(onChange).not.toHaveBeenCalled();
 });
 
 test('submits typed minBound/maxBound values to onChange with the correct field names', async () => {
+  const onChange = jest.fn();
   render(
     <FormattingPopoverContent
-      onChange={mockOnChange}
+      onChange={onChange}
       columns={columns}
       extraColorChoices={extraColorChoices}
     />,
@@ -590,18 +590,98 @@ test('submits typed minBound/maxBound values to onChange with the correct field 
   fireEvent.click(screen.getByText('Apply'));
 
   await waitFor(() => {
-    expect(mockOnChange).toHaveBeenCalled();
+    expect(onChange).toHaveBeenCalled();
   });
 
-  // The underlying InputNumber may hand back its value as a numeric string
-  // (the same reason targetValueValidator above defensively wraps its inputs
-  // in Number(...)), so compare numerically rather than asserting a specific
-  // JS type. The point of this test is to catch a typo in the `minBound`/
-  // `maxBound` field names — if either were misspelled, the corresponding
-  // property would be `undefined` and `Number(undefined)` is `NaN`, which
-  // fails the assertion below.
-  const lastCallPayload =
-    mockOnChange.mock.calls[mockOnChange.mock.calls.length - 1][0];
-  expect(Number(lastCallPayload.minBound)).toBe(5);
-  expect(Number(lastCallPayload.maxBound)).toBe(10);
+  const lastCallPayload = onChange.mock.calls[0][0];
+  expect(lastCallPayload.minBound).toBe(5);
+  expect(lastCallPayload.maxBound).toBe(10);
+});
+
+test('clearing optional bounds restores undefined values', async () => {
+  const onChange = jest.fn();
+  render(
+    <FormattingPopoverContent
+      config={{
+        column: 'column1',
+        operator: Comparator.None,
+        colorScheme: '#FF0000',
+        minBound: 5,
+        maxBound: 10,
+      }}
+      onChange={onChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  const { minBoundInput, maxBoundInput } = getBoundInputs();
+  await userEvent.clear(minBoundInput);
+  fireEvent.blur(minBoundInput);
+  await userEvent.clear(maxBoundInput);
+  fireEvent.blur(maxBoundInput);
+
+  fireEvent.click(screen.getByText('Apply'));
+
+  await waitFor(() => {
+    expect(onChange).toHaveBeenCalled();
+  });
+  expect(onChange.mock.calls[0][0].minBound).toBeUndefined();
+  expect(onChange.mock.calls[0][0].maxBound).toBeUndefined();
+});
+
+test('requires max bound to be greater than a greater-than target', async () => {
+  const onChange = jest.fn();
+  render(
+    <FormattingPopoverContent
+      onChange={onChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  fireEvent.change(screen.getAllByLabelText('Operator')[0], {
+    target: { value: Comparator.GreaterThan },
+  });
+  fireEvent.click(await screen.findByTitle('>'));
+
+  const targetInput = await screen.findByLabelText('Target value');
+  const maxBoundInput = screen.getByLabelText('Max bound', boundLabelOptions);
+  await userEvent.type(targetInput, '100');
+  await userEvent.type(maxBoundInput, '90');
+  fireEvent.blur(maxBoundInput);
+
+  expect(
+    await screen.findByText('Max bound should be greater than target value'),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByText('Apply'));
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('requires min bound to be smaller than a less-than target', async () => {
+  const onChange = jest.fn();
+  render(
+    <FormattingPopoverContent
+      onChange={onChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  fireEvent.change(screen.getAllByLabelText('Operator')[0], {
+    target: { value: Comparator.LessThan },
+  });
+  fireEvent.click(await screen.findByTitle('<'));
+
+  const targetInput = await screen.findByLabelText('Target value');
+  const minBoundInput = screen.getByLabelText('Min bound', boundLabelOptions);
+  await userEvent.type(targetInput, '100');
+  await userEvent.type(minBoundInput, '110');
+  fireEvent.blur(minBoundInput);
+
+  expect(
+    await screen.findByText('Min bound should be smaller than target value'),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByText('Apply'));
+  expect(onChange).not.toHaveBeenCalled();
 });

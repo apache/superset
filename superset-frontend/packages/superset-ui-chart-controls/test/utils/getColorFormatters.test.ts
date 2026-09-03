@@ -1134,6 +1134,21 @@ test('getColorFunction GREATER_THAN respects manual maxBound', () => {
   expect(colorFunction(150)).toEqual('#FF0000FF');
 });
 
+test('getColorFunction GREATER_THAN ignores a maxBound below its target', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.GreaterThan,
+      targetValue: 100,
+      maxBound: 90,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    [100, 150],
+  );
+  expect(colorFunction(125)).toEqual('#FF000087');
+  expect(colorFunction(150)).toEqual('#FF0000FF');
+});
+
 test('getColorFunction LESS_THAN respects manual minBound', () => {
   const colorFunction = getColorFunction(
     {
@@ -1149,6 +1164,21 @@ test('getColorFunction LESS_THAN respects manual minBound', () => {
   expect(colorFunction(50)).toEqual('#FF000087');
   expect(colorFunction(0)).toEqual('#FF0000FF');
   expect(colorFunction(-50)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction LESS_THAN ignores a minBound above its target', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.LessThan,
+      targetValue: 100,
+      minBound: 110,
+      colorScheme: '#FF0000',
+      column: 'count',
+    },
+    [50, 100],
+  );
+  expect(colorFunction(75)).toEqual('#FF000087');
+  expect(colorFunction(50)).toEqual('#FF0000FF');
 });
 
 test('getColorFunction GREATER_OR_EQUAL respects manual maxBound', () => {
@@ -1196,9 +1226,9 @@ test('getColorFunction NONE respects manual minBound and maxBound', () => {
     },
     countValues,
   );
-  expect(colorFunction(-10)).toBeUndefined();
+  expect(colorFunction(-10)).toEqual('#FF000000');
   expect(colorFunction(0)).toEqual('#FF000000');
   expect(colorFunction(100)).toEqual('#FF000080');
   expect(colorFunction(200)).toEqual('#FF0000FF');
-  expect(colorFunction(250)).toBeUndefined();
+  expect(colorFunction(250)).toEqual('#FF0000FF');
 });

@@ -100,6 +100,21 @@ const maxBoundValidator = targetValueValidator(
   t('Max bound should be greater than min bound'),
 );
 
+const minBoundTargetValidator = targetValueValidator(
+  (target: number, min: number) => min < target,
+  t('Min bound should be smaller than target value'),
+);
+
+const maxBoundTargetValidator = targetValueValidator(
+  (target: number, max: number) => max > target,
+  t('Max bound should be greater than target value'),
+);
+
+const normalizeOptionalNumber = (value: number | string | null | undefined) =>
+  value === '' || value === null || value === undefined
+    ? undefined
+    : Number(value);
+
 const isOperatorMultiValue = (operator?: Comparator) =>
   operator && MultipleValueComparators.includes(operator);
 
@@ -164,8 +179,21 @@ const rulesMaxBound = [
   }),
 ];
 
+const rulesMinBoundTarget = [
+  ({ getFieldValue }: GetFieldValue) => ({
+    validator: minBoundTargetValidator(getFieldValue('targetValue')),
+  }),
+];
+
+const rulesMaxBoundTarget = [
+  ({ getFieldValue }: GetFieldValue) => ({
+    validator: maxBoundTargetValidator(getFieldValue('targetValue')),
+  }),
+];
+
 const minBoundDeps = ['maxBound'];
 const maxBoundDeps = ['minBound'];
+const targetValueDeps = ['targetValue'];
 
 const shouldFormItemUpdate = (
   prevValues: ConditionalFormattingConfig,
@@ -221,8 +249,13 @@ const renderBoundFields = (operator?: Comparator) => {
   }
   // Cross-field validation only makes sense when both bounds are user-facing;
   // when only one bound renders for the operator, there is nothing to
-  // cross-validate it against.
+  // cross-validate it against. Directional bounds are validated against the
+  // target value that forms the other end of their scale.
   const useCrossFieldRules = showMin && showMax;
+  const minRules = useCrossFieldRules ? rulesMinBound : rulesMinBoundTarget;
+  const maxRules = useCrossFieldRules ? rulesMaxBound : rulesMaxBoundTarget;
+  const minDependencies = useCrossFieldRules ? minBoundDeps : targetValueDeps;
+  const maxDependencies = useCrossFieldRules ? maxBoundDeps : targetValueDeps;
 
   return (
     <Row gutter={12}>
@@ -231,10 +264,10 @@ const renderBoundFields = (operator?: Comparator) => {
           <FormItem
             name="minBound"
             label={t('Min bound')}
-            rules={useCrossFieldRules ? rulesMinBound : undefined}
-            dependencies={useCrossFieldRules ? minBoundDeps : undefined}
+            rules={minRules}
+            dependencies={minDependencies}
+            normalize={normalizeOptionalNumber}
             validateTrigger="onBlur"
-            trigger="onBlur"
             tooltip={t(
               'Overrides the lowest value used for coloring. Leave blank to use the lowest value in the data.',
             )}
@@ -248,10 +281,10 @@ const renderBoundFields = (operator?: Comparator) => {
           <FormItem
             name="maxBound"
             label={t('Max bound')}
-            rules={useCrossFieldRules ? rulesMaxBound : undefined}
-            dependencies={useCrossFieldRules ? maxBoundDeps : undefined}
+            rules={maxRules}
+            dependencies={maxDependencies}
+            normalize={normalizeOptionalNumber}
             validateTrigger="onBlur"
-            trigger="onBlur"
             tooltip={t(
               'Overrides the highest value used for coloring. Leave blank to use the highest value in the data.',
             )}
