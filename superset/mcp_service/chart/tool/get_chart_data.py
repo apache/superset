@@ -1521,4 +1521,15 @@ async def get_chart_data(
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:
     """Get saved or cached unsaved chart data in JSON or export formats."""
-    return finalize_chart_data_response(await _get_chart_data(request, ctx))
+    try:
+        response = await _get_chart_data(request, ctx)
+    except Exception:
+        # Exception text can contain query values; keep the log record fixed.
+        logger.exception(
+            "Unhandled exception while retrieving chart data", exc_info=False
+        )
+        response = ChartError(
+            error="An internal error occurred while retrieving chart data.",
+            error_type="InternalError",
+        )
+    return finalize_chart_data_response(response)

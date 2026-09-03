@@ -2301,6 +2301,92 @@ async def test_get_chart_data_mcp_entry_bounds_dynamic_internal_error(
     assert len(returned.model_dump_json().encode()) < 1_000
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "failure_point",
+    [
+        "before_await",
+        "cached_unsaved_helper",
+        "cached_unsaved_authorization",
+        "saved_chart_selection",
+    ],
+)
+async def test_get_chart_data_mcp_entry_bounds_uncaught_dynamic_exception(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    failure_point: str,
+) -> None:
+    """Uncaught producer failures become one finalized, fixed-schema error."""
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    secret = "round20-chart-secret-" + "x" * (20 * 1024)
+    request: dict[str, Any]
+
+    if failure_point == "before_await":
+
+        def fail_before_await(*_args: Any, **_kwargs: Any) -> None:
+            raise RuntimeError(secret)
+
+        monkeypatch.setattr(module, "_get_chart_data", fail_before_await)
+        request = {"identifier": 1}
+    elif failure_point == "cached_unsaved_helper":
+        monkeypatch.setattr(
+            module,
+            "_compute_effective_force",
+            MagicMock(side_effect=RuntimeError(secret)),
+        )
+        request = {"form_data_key": "cached-unsaved-form-data"}
+    elif failure_point == "cached_unsaved_authorization":
+        monkeypatch.setattr(
+            module.guest_scope,
+            "is_guest_read",
+            MagicMock(side_effect=RuntimeError(secret)),
+        )
+        request = {"form_data_key": "cached-unsaved-form-data"}
+    else:
+        monkeypatch.setattr(
+            module,
+            "find_chart_by_identifier",
+            MagicMock(side_effect=RuntimeError(secret)),
+        )
+        request = {"identifier": 1}
+
+    original_finalizer = module.finalize_chart_data_response
+    finalizer = MagicMock(wraps=original_finalizer)
+    log_exception = MagicMock(wraps=module.logger.exception)
+    caplog.set_level("ERROR", logger=module.__name__)
+    monkeypatch.setattr(module, "finalize_chart_data_response", finalizer)
+    monkeypatch.setattr(module.logger, "exception", log_exception)
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool("get_chart_data", {"request": request})
+
+    assert isinstance(result.structured_content, dict)
+    payload = result.structured_content.get("result", result.structured_content)
+    returned = ChartError.model_validate(payload)
+    wire = returned.model_dump_json().encode()
+    assert returned.error_type == "InternalError"
+    assert returned.message == "An internal error occurred while retrieving chart data."
+    assert payload["message"] == returned.message
+    assert payload["error"] == returned.message
+    assert len(wire) < 1_000
+    assert secret.encode() not in wire
+    assert secret not in repr(result.structured_content)
+    assert secret not in "".join(
+        block.text for block in result.content if hasattr(block, "text")
+    )
+    finalizer.assert_called_once()
+    log_exception.assert_called_once_with(
+        "Unhandled exception while retrieving chart data", exc_info=False
+    )
+    assert secret not in repr(log_exception.call_args)
+    assert "Unhandled exception while retrieving chart data" in caplog.text
+    assert secret not in caplog.text
+
+
 def _extract_metrics_load_path(load_opt: Any) -> list[str]:
     """Walk a SQLAlchemy Load option and return the attr chain.
 

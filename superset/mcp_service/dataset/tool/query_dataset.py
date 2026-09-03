@@ -415,4 +415,13 @@ async def query_dataset(
     request: QueryDatasetRequest, ctx: Context
 ) -> QueryDatasetResponse | DatasetError:
     """Query a dataset and preflight every public response branch."""
-    return finalize_query_dataset_response(await _query_dataset(request, ctx))
+    try:
+        response = await _query_dataset(request, ctx)
+    except Exception:
+        # Exception text can contain query values; keep the log record fixed.
+        logger.exception("Unhandled exception while querying a dataset", exc_info=False)
+        response = DatasetError.create(
+            error="An internal error occurred while querying the dataset.",
+            error_type="InternalError",
+        )
+    return finalize_query_dataset_response(response)

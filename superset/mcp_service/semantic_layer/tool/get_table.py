@@ -511,4 +511,15 @@ async def get_table(
     ctx: Context,
 ) -> GetTableResponse | SemanticLayerError:
     """Query a data source and preflight every public response branch."""
-    return finalize_get_table_response(await _get_table(request, ctx))
+    try:
+        response = await _get_table(request, ctx)
+    except Exception:
+        # Exception text can contain query values; keep the log record fixed.
+        logger.exception(
+            "Unhandled exception while querying a semantic table", exc_info=False
+        )
+        response = SemanticLayerError.create(
+            error="An internal error occurred while querying the semantic table.",
+            error_type="InternalError",
+        )
+    return finalize_get_table_response(response)

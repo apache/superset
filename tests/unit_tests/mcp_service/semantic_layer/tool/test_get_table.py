@@ -148,6 +148,75 @@ async def test_get_table_mcp_entry_bounds_dynamic_command_error(
     assert len(returned.model_dump_json().encode()) < 1_000
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "failure_point", ["before_await", "metadata_permission", "selection_helper"]
+)
+async def test_get_table_mcp_entry_bounds_uncaught_dynamic_exception(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    failure_point: str,
+) -> None:
+    """Uncaught producer failures become one finalized, fixed-schema error."""
+    secret = "round20-semantic-secret-" + "x" * (20 * 1024)
+
+    if failure_point == "before_await":
+
+        def fail_before_await(*_args: Any, **_kwargs: Any) -> None:
+            raise RuntimeError(secret)
+
+        monkeypatch.setattr(get_table_module, "_get_table", fail_before_await)
+    elif failure_point == "metadata_permission":
+        monkeypatch.setattr(
+            get_table_module,
+            "user_can_view_data_model_metadata",
+            MagicMock(side_effect=RuntimeError(secret)),
+        )
+    else:
+        monkeypatch.setattr(
+            get_table_module,
+            "_validate_datasource_selection",
+            MagicMock(side_effect=RuntimeError(secret)),
+        )
+
+    original_finalizer = get_table_module.finalize_get_table_response
+    finalizer = MagicMock(wraps=original_finalizer)
+    log_exception = MagicMock(wraps=get_table_module.logger.exception)
+    caplog.set_level("ERROR", logger=get_table_module.__name__)
+    monkeypatch.setattr(get_table_module, "finalize_get_table_response", finalizer)
+    monkeypatch.setattr(get_table_module.logger, "exception", log_exception)
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_table", {"request": {"dataset_id": 42, "metrics": ["revenue"]}}
+        )
+
+    assert isinstance(result.structured_content, dict)
+    payload = result.structured_content.get("result", result.structured_content)
+    returned = SemanticLayerError.model_validate(payload)
+    wire = returned.model_dump_json().encode()
+    assert returned.error_type == "InternalError"
+    assert returned.message == (
+        "An internal error occurred while querying the semantic table."
+    )
+    assert payload["message"] == returned.message
+    assert payload["error"] == returned.message
+    assert len(wire) < 1_000
+    assert secret.encode() not in wire
+    assert secret not in repr(result.structured_content)
+    assert secret not in "".join(
+        block.text for block in result.content if hasattr(block, "text")
+    )
+    finalizer.assert_called_once()
+    log_exception.assert_called_once_with(
+        "Unhandled exception while querying a semantic table", exc_info=False
+    )
+    assert secret not in repr(log_exception.call_args)
+    assert "Unhandled exception while querying a semantic table" in caplog.text
+    assert secret not in caplog.text
+
+
 def _make_metric(name: str, expression: str = "COUNT(*)") -> MagicMock:
     m = MagicMock()
     m.metric_name = name
