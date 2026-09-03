@@ -426,6 +426,14 @@ const StyledColumnsTableWrapper = styled.div`
       background-color: ${theme.colorFillQuaternary};
       color: ${theme.colorTextTertiary};
     }
+    /* An expanded row sizes to its content, so a long line inside it -- an
+       engine error, say, whose length we do not control -- widens the whole
+       table and pushes everything past the modal edge. A zero max-width on
+       the cell is the standard way to make it respect the table width and
+       wrap instead. */
+    .ant-table-expanded-row > td {
+      max-width: 0;
+    }
   `}
 `;
 
