@@ -172,17 +172,18 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
     ]
     metric = "sum__num"
 
-    defaults = {
+    shared_defaults = {
         "compare_lag": "10",
         "compare_suffix": "o10Y",
         "limit": "25",
-        "granularity": "ds",
         "groupby": [],
         "row_limit": current_app.config["ROW_LIMIT"],
         "time_range": "100 years ago : now",
         "viz_type": "table",
         "markup_type": "markdown",
     }
+    defaults = {**shared_defaults, "granularity": "ds"}
+    echarts_defaults = {**shared_defaults, "x_axis": "ds"}
 
     default_query_context = {
         "result_format": "json",
@@ -234,10 +235,9 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Trends",
             viz_type="echarts_timeseries_line",
             params=get_slice_json(
-                defaults,
+                echarts_defaults,
                 viz_type="echarts_timeseries_line",
                 groupby=["name"],
-                granularity="ds",
                 rich_tooltip=True,
                 show_legend=True,
                 metrics=metrics,
@@ -249,7 +249,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Genders by State",
             viz_type="echarts_timeseries_bar",
             params=get_slice_json(
-                defaults,
+                echarts_defaults,
                 adhoc_filters=[
                     {
                         "clause": "WHERE",
@@ -348,7 +348,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Top 10 Girl Name Share",
             viz_type="echarts_area",
             params=get_slice_json(
-                defaults,
+                echarts_defaults,
                 adhoc_filters=[gen_filter("gender", "girl")],
                 comparison_type="values",
                 groupby=["name"],
@@ -356,7 +356,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 stacked_style="expand",
                 time_grain_sqla="P1D",
                 viz_type="echarts_area",
-                x_axis_forma="smart_date",
+                x_axis_time_format="smart_date",
                 metrics=metrics,
             ),
             editors=[],
@@ -366,7 +366,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Top 10 Boy Name Share",
             viz_type="echarts_area",
             params=get_slice_json(
-                defaults,
+                echarts_defaults,
                 adhoc_filters=[gen_filter("gender", "boy")],
                 comparison_type="values",
                 groupby=["name"],
@@ -374,7 +374,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                 stacked_style="expand",
                 time_grain_sqla="P1D",
                 viz_type="echarts_area",
-                x_axis_forma="smart_date",
+                x_axis_time_format="smart_date",
                 metrics=metrics,
             ),
             editors=[],
@@ -408,7 +408,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Average and Sum Trends",
             viz_type="mixed_timeseries",
             params=get_slice_json(
-                defaults,
+                echarts_defaults,
                 viz_type="mixed_timeseries",
                 metrics=[
                     {
@@ -420,7 +420,6 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                     }
                 ],
                 metrics_b=["sum__num"],
-                granularity="ds",
                 yAxisIndex=0,
                 yAxisIndexB=1,
             ),
@@ -431,7 +430,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Num Births Trend",
             viz_type="echarts_timeseries_line",
             params=get_slice_json(
-                defaults, viz_type="echarts_timeseries_line", metrics=metrics
+                echarts_defaults, viz_type="echarts_timeseries_line", metrics=metrics
             ),
             editors=[],
         ),
@@ -483,7 +482,7 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
             slice_name="Top 10 California Names Timeseries",
             viz_type="echarts_timeseries_line",
             params=get_slice_json(
-                defaults,
+                echarts_defaults,
                 metrics=[
                     {
                         "expressionType": "SIMPLE",
@@ -496,7 +495,6 @@ def create_slices(tbl: SqlaTable) -> tuple[list[Slice], list[Slice]]:
                     }
                 ],
                 viz_type="echarts_timeseries_line",
-                granularity="ds",
                 groupby=["name"],
                 series_limit_metric={
                     "expressionType": "SIMPLE",

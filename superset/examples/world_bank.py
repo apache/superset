@@ -150,11 +150,10 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
         "hasCustomLabel": True,
         "label": "Rural Population",
     }
-    defaults = {
+    shared_defaults = {
         "compare_lag": "10",
         "compare_suffix": "o10Y",
         "limit": "25",
-        "granularity": "year",
         "groupby": [],
         "row_limit": current_app.config["ROW_LIMIT"],
         "since": "2014-01-01",
@@ -165,6 +164,8 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
         "entity": "country_code",
         "show_bubbles": True,
     }
+    defaults = {**shared_defaults, "granularity": "year"}
+    echarts_defaults = {**shared_defaults, "x_axis": "year"}
 
     return [
         Slice(
@@ -199,7 +200,7 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
-                defaults,
+                echarts_defaults,
                 viz_type="echarts_timeseries_line",
                 since="1960-01-01",
                 metrics=["sum__SP_POP_TOTL"],
@@ -285,7 +286,7 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
-                defaults,
+                echarts_defaults,
                 since="1960-01-01",
                 until="now",
                 viz_type="echarts_area",
