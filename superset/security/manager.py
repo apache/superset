@@ -1630,11 +1630,25 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         )
         return True
 
-    stored_query_context = (
-        json.loads(cast(str, stored_chart.query_context))
-        if stored_chart.query_context
-        else None
-    )
+    try:
+        stored_query_context = (
+            json.loads(cast(str, stored_chart.query_context))
+            if stored_chart.query_context
+            else None
+        )
+    except (json.JSONDecodeError, TypeError):
+        # A stored query_context that fails to parse cannot be compared against
+        # the guest payload, so it is treated as modified/tampered (returning
+        # True triggers the SupersetSecurityException 403 in raise_for_access),
+        # consistent with the other rejection branches below. Malformed
+        # query_context can be persisted by the query-context-only update path
+        # (see ChartUpdateCommand._validate_query_context_datasource).
+        logger.warning(
+            "Guest chart payload rejected for slice %s: stored query_context "
+            "is not valid JSON",
+            stored_chart.id,
+        )
+        return True
 
     # A rejected guest load is most often a chart whose saved query_context is
     # NULL or stale rather than genuine tampering, and the generic 403 gives no
