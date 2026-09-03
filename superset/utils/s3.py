@@ -32,6 +32,7 @@ S3-compatible stores such as MinIO/LocalStack):
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
 from typing import Any
 
 from superset.utils.export_storage import ExportDownload
@@ -88,15 +89,25 @@ class S3ExportStorage:
         :param key: The S3 object key
         :raises FileNotFoundError: when the object does not exist
         """
+        # Build the client first so a missing boto3 surfaces the install
+        # hint from _client() instead of a bare error on this import.
+        client = self._client()
         import botocore.exceptions  # pylint: disable=import-outside-toplevel
 
         try:
-            response = self._client().get_object(Bucket=bucket, Key=key)
+            response = client.get_object(Bucket=bucket, Key=key)
         except botocore.exceptions.ClientError as ex:
             if ex.response.get("Error", {}).get("Code") in ("NoSuchKey", "404"):
                 raise FileNotFoundError(f"s3://{bucket}/{key}") from ex
             raise
-        return ExportDownload(
-            size=response["ContentLength"],
-            chunks=response["Body"].iter_chunks(chunk_size=DOWNLOAD_CHUNK_BYTES),
-        )
+
+        def chunks() -> Iterator[bytes]:
+            body = response["Body"]
+            # Close the connection even when the consumer abandons the
+            # stream (e.g. a cancelled download).
+            try:
+                yield from body.iter_chunks(chunk_size=DOWNLOAD_CHUNK_BYTES)
+            finally:
+                body.close()
+
+        return ExportDownload(size=response["ContentLength"], chunks=chunks())

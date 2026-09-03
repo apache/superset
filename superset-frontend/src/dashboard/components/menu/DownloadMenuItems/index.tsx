@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SyntheticEvent } from 'react';
+import { SyntheticEvent, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
@@ -88,6 +88,19 @@ export const useDownloadMenuItems = (
   } = props;
 
   const { addDangerToast, addSuccessToast, addInfoToast } = useToasts();
+  // Track the in-flight poll timer so navigating away stops the polling
+  // (and the full-page navigation it would eventually trigger).
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const unmountedRef = useRef(false);
+  useEffect(
+    () => () => {
+      unmountedRef.current = true;
+      if (pollTimerRef.current) {
+        clearTimeout(pollTimerRef.current);
+      }
+    },
+    [],
+  );
   const dataMask = useSelector((state: RootState) => state.dataMask);
   const user = useSelector((state: RootState) => state.user);
   // Guests and anonymous sessions have no userId and cannot be emailed.
@@ -199,6 +212,9 @@ export const useDownloadMenuItems = (
   };
 
   const pollExportStatus = (jobId: string, pollState: ExportPollState) => {
+    if (unmountedRef.current) {
+      return;
+    }
     SupersetClient.get({
       endpoint: `/api/v1/dashboard/export_xlsx/status/${jobId}/`,
     })
@@ -211,8 +227,10 @@ export const useDownloadMenuItems = (
         if (status === 'ready') {
           if (downloadUrl) {
             redirect(downloadUrl);
+            addSuccessToast(t('Your export is ready and downloading.'));
+          } else {
+            addDangerToast(t('Sorry, something went wrong. Try again later.'));
           }
-          addSuccessToast(t('Your export is ready and downloading.'));
           return;
         }
         if (status === 'error') {
@@ -234,7 +252,7 @@ export const useDownloadMenuItems = (
           return;
         }
         addExportPendingToast();
-        setTimeout(
+        pollTimerRef.current = setTimeout(
           () => pollExportStatus(jobId, pollState),
           EXPORT_STATUS_POLL_INTERVAL_MS,
         );
@@ -247,7 +265,7 @@ export const useDownloadMenuItems = (
           addDangerToast(t('Sorry, something went wrong. Try again later.'));
           return;
         }
-        setTimeout(
+        pollTimerRef.current = setTimeout(
           () => pollExportStatus(jobId, pollState),
           EXPORT_STATUS_POLL_INTERVAL_MS,
         );
@@ -265,7 +283,7 @@ export const useDownloadMenuItems = (
       const jobId = (json as { job_id?: string })?.job_id;
       if (jobId) {
         addExportPendingToast();
-        setTimeout(
+        pollTimerRef.current = setTimeout(
           () =>
             pollExportStatus(jobId, {
               deadline: Date.now() + EXPORT_STATUS_POLL_TIMEOUT_MS,

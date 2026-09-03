@@ -30,7 +30,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
 
 from superset.exceptions import SupersetException
-from superset.security.guest_token import GuestToken
+from superset.security.guest_token import GuestToken, GuestTokenResourceType
 from superset.utils import json
 
 MODULE = "superset.tasks.export_dashboard_excel"
@@ -930,13 +930,16 @@ def test_inflight_lock_released_on_success(mocks: dict[str, Any]) -> None:
     mocks["ReleaseDistributedLock"].return_value.run.assert_called_once_with()
 
 
-def test_guest_export_reconstructs_guest_user_and_shares_lock_slot_zero(
+def test_guest_export_reconstructs_guest_user_and_releases_its_lock_slot(
     mocks: dict[str, Any],
 ) -> None:
     """A guest export (user_id=None) rebuilds the user from the token payload —
-    so the token's RLS rules apply in the worker — and releases lock slot 0,
-    mirroring the key the API acquired for guests."""
-    from superset.tasks.export_dashboard_excel import export_dashboard_excel
+    so the token's RLS rules apply in the worker — and releases the same
+    token-derived lock slot the API acquired."""
+    from superset.tasks.export_dashboard_excel import (
+        export_dashboard_excel,
+        guest_lock_slot,
+    )
 
     # Like a real GuestUser: no ``email`` (and no ``id``) attribute at all.
     guest = mock.MagicMock(spec=["username"])
@@ -968,8 +971,9 @@ def test_guest_export_reconstructs_guest_user_and_shares_lock_slot_zero(
     # The file still lands in storage for the status-poll download path.
     mocks["storage_backend"].upload_file.assert_called_once()
     mocks["ReleaseDistributedLock"].assert_called_once_with(
-        "excel_export", {"user_id": 0, "dashboard_id": 1}
+        "excel_export", {"user_id": guest_lock_slot(token), "dashboard_id": 1}
     )
+    assert guest_lock_slot(token) != 0
 
 
 def test_anonymous_export_runs_under_the_anonymous_principal(
@@ -1045,6 +1049,114 @@ def test_download_link_records_the_upload_backend(mocks: dict[str, Any]) -> None
     assert kwargs["backend"] == (f"{backend_cls.__module__}.{backend_cls.__qualname__}")
 
 
+def test_guest_lock_slot_is_stable_and_identity_scoped() -> None:
+    from superset.tasks.export_dashboard_excel import guest_lock_slot
+
+    token_a = GuestToken(
+        iat=0.0,
+        exp=0.0,
+        user={"username": "alice"},
+        resources=[{"type": GuestTokenResourceType.DASHBOARD, "id": "d1"}],
+        rls_rules=[],
+    )
+    token_b = GuestToken(
+        iat=0.0,
+        exp=0.0,
+        user={"username": "bob"},
+        resources=[{"type": GuestTokenResourceType.DASHBOARD, "id": "d1"}],
+        rls_rules=[],
+    )
+    token_a_copy = GuestToken(
+        iat=0.0,
+        exp=0.0,
+        user={"username": "alice"},
+        resources=[{"type": GuestTokenResourceType.DASHBOARD, "id": "d1"}],
+        rls_rules=[],
+    )
+
+    assert guest_lock_slot(token_a) == guest_lock_slot(token_a_copy)
+    assert guest_lock_slot(token_a) != guest_lock_slot(token_b)
+    assert guest_lock_slot(None) == 0
+
+
+def test_guest_download_link_ttl_is_clamped(mocks: dict[str, Any]) -> None:
+    """Guests retrieve the file via the polling window; their link must not
+    outlive the short credential that authorized it by a day."""
+    from datetime import datetime, timedelta
+
+    from superset.tasks.export_dashboard_excel import (
+        export_dashboard_excel,
+        GUEST_LINK_TTL_SECONDS,
+    )
+
+    guest = mock.MagicMock(spec=["username"])
+    mocks["security_manager"].get_guest_user_from_token.return_value = guest
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    export_dashboard_excel(
+        dashboard_id=1,
+        user_id=None,
+        active_data_mask={},
+        job_id=JOB_ID,
+        guest_token={"user": {}, "resources": [], "rls_rules": []},
+    )
+
+    (_, _, _, expires_at), kwargs = mocks["create_download_link"].call_args
+    assert expires_at.tzinfo is None
+    limit = datetime.now() + timedelta(seconds=GUEST_LINK_TTL_SECONDS + 60)
+    assert expires_at <= limit
+
+
+def test_status_expiries_are_naive_local(mocks: dict[str, Any]) -> None:
+    """KeyValueEntry.is_expired() compares naive local datetime.now(); a
+    naive-UTC expiry breaks the store on any non-UTC server."""
+    from datetime import datetime, timedelta
+
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    (_, running_expiry), _ = mocks["mark_export_running"].call_args
+    assert running_expiry.tzinfo is None
+    assert (
+        abs(
+            (running_expiry - (datetime.now() + timedelta(seconds=960))).total_seconds()
+        )
+        < 30
+    )
+
+
+def test_partial_failure_appends_summary_sheet(mocks: dict[str, Any]) -> None:
+    """When some charts export and others are skipped, the workbook itself
+    lists the skipped charts: sessions with no email have no other channel."""
+    mocks["get_charts_in_layout_order"].return_value = [
+        _chart(10, "Good"),
+        _chart(20, "Bad", has_context=False, viz_type="sunburst"),
+    ]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    uploaded: dict[str, Any] = {}
+
+    def _capture(path: str, bucket: str, key: str) -> None:
+        uploaded["sheets"] = _read_sheets(path)
+
+    mocks["storage_backend"].upload_file.side_effect = _capture
+
+    _run()
+
+    assert "Export Summary" in uploaded["sheets"]
+    flat = [str(cell) for row in uploaded["sheets"]["Export Summary"] for cell in row]
+    assert any("20 - Bad" in cell for cell in flat)
+
+
 def test_missing_dashboard_records_failure(mocks: dict[str, Any]) -> None:
     """A dashboard deleted between enqueue and execution fails cleanly:
     failure recorded for pollers, lock released."""
@@ -1094,19 +1206,20 @@ def test_lock_released_and_failure_recorded_when_user_resolution_fails(
         "role lookup failed"
     )
 
+    from superset.tasks.export_dashboard_excel import guest_lock_slot
+
+    token = GuestToken(iat=0.0, exp=0.0, user={}, resources=[], rls_rules=[])
     with pytest.raises(RuntimeError):
         export_dashboard_excel(
             dashboard_id=1,
             user_id=None,
             active_data_mask={},
             job_id=JOB_ID_FAIL,
-            guest_token=GuestToken(
-                iat=0.0, exp=0.0, user={}, resources=[], rls_rules=[]
-            ),
+            guest_token=token,
         )
 
     mocks["ReleaseDistributedLock"].assert_called_once_with(
-        "excel_export", {"user_id": 0, "dashboard_id": 1}
+        "excel_export", {"user_id": guest_lock_slot(token), "dashboard_id": 1}
     )
     mocks["mark_export_failed"].assert_called_once()
 

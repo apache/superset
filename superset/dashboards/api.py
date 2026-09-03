@@ -101,7 +101,7 @@ from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
 from superset.dashboards.excel_export.download_link import (
-    build_download_url,
+    download_path,
     get_export_status,
     resolve_download_link,
     STATUS_ERROR,
@@ -171,6 +171,7 @@ from superset.tasks.export_dashboard_excel import (
     EXPORT_LOCK_NAMESPACE,
     export_lock_params,
     EXPORT_LOCK_TTL_SECONDS,
+    guest_lock_slot,
 )
 from superset.tasks.thumbnails import (
     cache_dashboard_screenshot,
@@ -217,6 +218,20 @@ from superset.views.filters import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _link_backend_matches(uploaded_backend: str | None) -> bool:
+    """Whether the configured export storage backend is the one that uploaded
+    the linked file (links refuse to serve across a storage migration). An
+    unconfigured backend is not a mismatch: that case is answered with the
+    download endpoint's explicit 501."""
+    storage_backend = current_app.config["EXPORT_STORAGE"].get("backend")
+    if storage_backend is None or uploaded_backend is None:
+        return True
+    backend_cls = type(storage_backend)
+    configured = f"{backend_cls.__module__}.{backend_cls.__qualname__}"
+    return uploaded_backend == configured
+
 
 _DASHBOARD_PURGE_BINDING = SoftDeleteBinding(
     dao=DashboardDAO,
@@ -1754,7 +1769,8 @@ class DashboardRestApi(
           summary: Export dashboard chart data to Excel
           description: >-
             Enqueues an async task that writes each chart's data to its own
-            worksheet, uploads the .xlsx to S3, and records a download link.
+            worksheet, uploads the .xlsx to the configured export storage,
+            and records a download link.
             The requesting user is emailed the link when they have an address
             on file; either way the returned job id can be polled at
             export_xlsx/status/<job_id>/ for status and, once ready, the
@@ -1843,7 +1859,12 @@ class DashboardRestApi(
         # dashboard; the task reconstructs the guest (with the token's RLS rules
         # and resource claims) from the token payload passed alongside.
         user_id = get_user_id()
-        lock_params = export_lock_params(user_id or 0, dashboard.id)
+        guest_token_payload = (
+            getattr(g.user, "guest_token", None) if user_id is None else None
+        )
+        lock_params = export_lock_params(
+            user_id or guest_lock_slot(guest_token_payload), dashboard.id
+        )
         try:
             AcquireDistributedLock(
                 EXPORT_LOCK_NAMESPACE,
@@ -1865,11 +1886,7 @@ class DashboardRestApi(
                     "active_data_mask": payload.get("active_data_mask", {}),
                     "job_id": job_id,
                     "mode": payload.get("mode", "data"),
-                    "guest_token": (
-                        getattr(g.user, "guest_token", None)
-                        if user_id is None
-                        else None
-                    ),
+                    "guest_token": guest_token_payload,
                 },
                 task_id=job_id,
             )
@@ -1920,8 +1937,14 @@ class DashboardRestApi(
         if payload is None:
             return self.response(200, status="pending")
         if payload.get("status") == STATUS_READY:
+            # Same backend-mismatch rule as download_xlsx: never report ready
+            # for a link the download endpoint will refuse.
+            if not _link_backend_matches(payload.get("backend")):
+                return self.response(
+                    200, status=STATUS_ERROR, message="This download has expired."
+                )
             return self.response(
-                200, status=STATUS_READY, download_url=build_download_url(job_id)
+                200, status=STATUS_READY, download_url=download_path(job_id)
             )
         if payload.get("status") == STATUS_ERROR:
             return self.response(
@@ -1976,9 +1999,7 @@ class DashboardRestApi(
             return self.response(
                 501, message="Excel export is not configured on this server."
             )
-        backend_cls = type(storage_backend)
-        configured_backend = f"{backend_cls.__module__}.{backend_cls.__qualname__}"
-        if uploaded_backend is not None and uploaded_backend != configured_backend:
+        if not _link_backend_matches(uploaded_backend):
             # Don't read another backend's upload; expire the link instead.
             return self.response(410, message="This download link has expired.")
         try:

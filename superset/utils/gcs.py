@@ -81,10 +81,12 @@ class GCSExportStorage:
         :param key: The GCS blob name
         :raises FileNotFoundError: when the blob does not exist
         """
+        # Client first, so a missing SDK surfaces _get_client()'s install
+        # hint instead of a bare error on the exceptions import.
+        blob = _get_client().bucket(bucket).blob(key)
         # pylint: disable=import-outside-toplevel
         from google.api_core import exceptions as gcs_exceptions
 
-        blob = _get_client().bucket(bucket).blob(key)
         try:
             # Fetches metadata (incl. size) and doubles as the existence check.
             blob.reload()
