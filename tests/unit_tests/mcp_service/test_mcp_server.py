@@ -435,14 +435,13 @@ def test_create_auth_provider_fails_closed_on_custom_factory_error() -> None:
 @contextlib.contextmanager
 def _run_server_dependencies(
     flask_config: dict[str, Any],
-) -> Iterator[MagicMock]:
-    """Patch every ``run_server()`` collaborator except stateless_http resolution.
+) -> Iterator[tuple[MagicMock, MagicMock]]:
+    """Patch ``run_server()`` collaborators while retaining config resolution.
 
-    Returns the ``mcp_instance`` mock so callers can assert on the kwargs its
-    ``run()`` was called with -- everything else (auth, middleware, event
-    store, health endpoint) is stubbed out since this is only exercising the
-    ``flask_app.config.get("MCP_STATELESS_HTTP", ...)`` wiring, not those
-    other startup steps.
+    Returns the MCP instance and middleware-builder mocks so callers can assert
+    that resolved Flask settings reach their runtime consumers. Auth, event
+    storage, and health collaborators are stubbed because these tests exercise
+    startup configuration wiring only.
     """
     from superset.mcp_service import server
 
@@ -458,7 +457,9 @@ def _run_server_dependencies(
             return_value=flask_app,
         ),
         patch.object(server, "_create_auth_provider", return_value=None),
-        patch.object(server, "build_middleware_list", return_value=[]),
+        patch.object(
+            server, "build_middleware_list", return_value=[]
+        ) as mock_build_middleware_list,
         patch.object(
             server, "create_response_size_guard_middleware", return_value=None
         ),
@@ -471,7 +472,7 @@ def _run_server_dependencies(
         patch.object(server, "create_event_store", return_value=None),
         patch.object(server, "_build_starlette_middleware", return_value=[]),
     ):
-        yield mcp_instance
+        yield mcp_instance, mock_build_middleware_list
 
 
 def test_run_server_defaults_stateless_http_to_true_when_unset() -> None:
@@ -490,7 +491,10 @@ def test_run_server_defaults_stateless_http_to_true_when_unset() -> None:
     port = 59901
     os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
     try:
-        with _run_server_dependencies(flask_config={}) as mcp_instance:
+        with _run_server_dependencies(flask_config={}) as (
+            mcp_instance,
+            _mock_build_middleware_list,
+        ):
             run_server(host="127.0.0.1", port=port)
 
         mcp_instance.run.assert_called_once()
@@ -508,12 +512,32 @@ def test_run_server_respects_mcp_stateless_http_false_override() -> None:
     port = 59902
     os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
     try:
-        with _run_server_dependencies(
-            flask_config={"MCP_STATELESS_HTTP": False}
-        ) as mcp_instance:
+        with _run_server_dependencies(flask_config={"MCP_STATELESS_HTTP": False}) as (
+            mcp_instance,
+            _mock_build_middleware_list,
+        ):
             run_server(host="127.0.0.1", port=port)
 
         mcp_instance.run.assert_called_once()
         assert mcp_instance.run.call_args.kwargs["stateless_http"] is False
+    finally:
+        os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+
+
+def test_run_server_respects_structured_output_override() -> None:
+    """The Flask setting reaches the outer compatibility middleware."""
+    from superset.mcp_service.server import run_server
+
+    port = 59903
+    os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+    try:
+        with _run_server_dependencies(
+            flask_config={"MCP_STRUCTURED_OUTPUT_ENABLED": True}
+        ) as (_mcp_instance, mock_build_middleware_list):
+            run_server(host="127.0.0.1", port=port)
+
+        mock_build_middleware_list.assert_called_once_with(
+            structured_output_enabled=True
+        )
     finally:
         os.environ.pop(f"FASTMCP_RUNNING_{port}", None)

@@ -45,6 +45,7 @@ from superset.mcp_service.middleware import (
     RBACToolVisibilityMiddleware,
     ResponseSizeGuardMiddleware,
     StructuredContentStripperMiddleware,
+    ToolResultCompatibilityMiddleware,
 )
 from superset.mcp_service.utils.token_utils import estimate_token_count
 from superset.utils import json as utils_json
@@ -2072,16 +2073,16 @@ class TestGlobalErrorHandlerErrorIdUsesCallId:
             _mcp_call_id_var.reset(token)
 
 
-class TestStructuredContentStripperErrorHook:
+class TestToolResultCompatibilityErrorHook:
     """Test the last-resort MCP_ERROR_HOOK capture point in
-    StructuredContentStripperMiddleware.on_call_tool's except block."""
+    ToolResultCompatibilityMiddleware.on_call_tool's except block."""
 
     @pytest.mark.asyncio
     async def test_invokes_hook_for_exception_bypassing_error_handler(self) -> None:
         """A non-ToolError exception reaching this final catch means it
         slipped past GlobalErrorHandlerMiddleware entirely — invoke the
         hook here as the true last-resort capture point."""
-        middleware = StructuredContentStripperMiddleware()
+        middleware = ToolResultCompatibilityMiddleware()
         context = MagicMock()
         context.message.name = "list_charts"
         call_next = AsyncMock(side_effect=RuntimeError("boom"))
@@ -2119,7 +2120,7 @@ class TestStructuredContentStripperErrorHook:
         """ToolError has already been classified and hooked by
         GlobalErrorHandlerMiddleware — avoid double-reporting the same
         failure to the error tracker."""
-        middleware = StructuredContentStripperMiddleware()
+        middleware = ToolResultCompatibilityMiddleware()
         context = MagicMock()
         context.message.name = "list_charts"
         call_next = AsyncMock(side_effect=ToolError("already handled"))
@@ -2147,7 +2148,7 @@ class TestStructuredContentStripperErrorHook:
             def __str__(self) -> str:
                 raise RuntimeError("hostile __str__")
 
-        middleware = StructuredContentStripperMiddleware()
+        middleware = ToolResultCompatibilityMiddleware()
         context = MagicMock()
         context.message.name = "list_charts"
         call_next = AsyncMock(side_effect=HostileStrError())
@@ -2167,7 +2168,7 @@ class TestStructuredContentStripperErrorHook:
         """An exception bypassing GlobalErrorHandlerMiddleware must not
         leak raw internals to the client — the last-resort response text
         goes through the same sanitizer as every other error path."""
-        middleware = StructuredContentStripperMiddleware()
+        middleware = ToolResultCompatibilityMiddleware()
         context = MagicMock()
         context.message.name = "execute_sql"
         # Connection string with embedded credentials — must be redacted.
@@ -2192,8 +2193,8 @@ class TestStructuredContentStripperErrorHook:
         assert "[REDACTED]" in text
 
 
-class TestStructuredContentStripperIsErrorFlag:
-    """Failures caught by StructuredContentStripperMiddleware must still be
+class TestToolResultCompatibilityIsErrorFlag:
+    """Failures caught by ToolResultCompatibilityMiddleware must still be
     reported as errors on the wire — a client that only inspects isError
     would otherwise read a denial or a crash as a successful call."""
 
@@ -2201,7 +2202,7 @@ class TestStructuredContentStripperIsErrorFlag:
     async def test_tool_error_is_flagged_as_error(self) -> None:
         """A permission denial surfaces as ToolError; it must not come back
         looking like a successful tool call."""
-        middleware = StructuredContentStripperMiddleware()
+        middleware = ToolResultCompatibilityMiddleware()
         context = MagicMock()
         context.message.name = "save_sql_query"
         call_next = AsyncMock(
@@ -2223,7 +2224,7 @@ class TestStructuredContentStripperIsErrorFlag:
     async def test_unexpected_exception_is_flagged_as_error(self) -> None:
         """The same holds for exceptions that bypass
         GlobalErrorHandlerMiddleware and reach the last-resort catch."""
-        middleware = StructuredContentStripperMiddleware()
+        middleware = ToolResultCompatibilityMiddleware()
         context = MagicMock()
         context.message.name = "list_charts"
         call_next = AsyncMock(side_effect=RuntimeError("boom"))
@@ -2240,18 +2241,88 @@ class TestStructuredContentStripperIsErrorFlag:
 
     @pytest.mark.asyncio
     async def test_successful_result_is_not_flagged(self) -> None:
-        """The success path must stay untouched."""
+        """The success path, including structured output, stays untouched."""
         from fastmcp.tools.tool import ToolResult
         from mcp.types import TextContent
 
-        middleware = StructuredContentStripperMiddleware()
+        middleware = ToolResultCompatibilityMiddleware(structured_output_enabled=True)
         context = MagicMock()
         context.message.name = "list_charts"
         call_next = AsyncMock(
-            return_value=ToolResult(content=[TextContent(type="text", text="ok")])
+            return_value=ToolResult(
+                content=[TextContent(type="text", text="ok")],
+                structured_content={"status": "ok"},
+            )
         )
 
         result = await middleware.on_call_tool(context, call_next)
 
         assert result.is_error is False
         assert result.content[0].text == "ok"
+        assert result.structured_content == {"status": "ok"}
+
+    @pytest.mark.asyncio
+    async def test_default_strips_structured_content(self) -> None:
+        """The default preserves the legacy text-only bridge contract."""
+        from fastmcp.tools.tool import ToolResult
+        from mcp.types import TextContent
+
+        middleware = ToolResultCompatibilityMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        call_next = AsyncMock(
+            return_value=ToolResult(
+                content=[TextContent(type="text", text='{"status":"ok"}')],
+                structured_content={"status": "ok"},
+            )
+        )
+
+        result = await middleware.on_call_tool(context, call_next)
+
+        assert result.content[0].text == '{"status":"ok"}'
+        assert result.structured_content is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("enabled", [False, True])
+    async def test_output_schema_follows_compatibility_setting(
+        self, enabled: bool
+    ) -> None:
+        """Discovery and call results use the same structured-output setting."""
+        from fastmcp.tools import Tool
+
+        def sample_tool() -> dict[str, str]:
+            """Return a structured test result."""
+            return {"status": "ok"}
+
+        tool = Tool.from_function(sample_tool)
+        assert tool.output_schema is not None
+        middleware = ToolResultCompatibilityMiddleware(
+            structured_output_enabled=enabled
+        )
+
+        result = await middleware.on_list_tools(
+            MagicMock(), AsyncMock(return_value=[tool])
+        )
+
+        assert (result[0].output_schema is not None) is enabled
+
+    @pytest.mark.asyncio
+    async def test_deprecated_stripper_warns_and_still_strips(self) -> None:
+        """The deprecated import name must not silently reverse behavior."""
+        from fastmcp.tools.tool import ToolResult
+        from mcp.types import TextContent
+
+        with pytest.warns(DeprecationWarning, match="is deprecated"):
+            middleware = StructuredContentStripperMiddleware()
+
+        result = await middleware.on_call_tool(
+            MagicMock(),
+            AsyncMock(
+                return_value=ToolResult(
+                    content=[TextContent(type="text", text="ok")],
+                    structured_content={"status": "ok"},
+                )
+            ),
+        )
+
+        assert result.structured_content is None

@@ -23,7 +23,7 @@ never serializes a JSON-RPC message over HTTP and never runs through the
 Starlette ASGI app that ``superset.mcp_service.server.run_server()`` builds
 via ``mcp_instance.http_app(...)`` -- so the FastMCP-level middleware stack
 (``LoggingMiddleware``, ``GlobalErrorHandlerMiddleware``,
-``StructuredContentStripperMiddleware``, etc., see
+``ToolResultCompatibilityMiddleware``, etc., see
 ``build_middleware_list()`` in ``server.py``) is never actually exercised in
 CI.
 
@@ -58,6 +58,7 @@ restores that list so this file cannot leak middleware into other tests.
 """
 
 import contextlib
+import importlib
 from collections.abc import AsyncIterator, Iterator, Mapping
 from typing import Any
 from unittest.mock import Mock, patch
@@ -141,7 +142,9 @@ async def _run_asgi_lifespan(app: Starlette) -> AsyncIterator[None]:
 
 
 @contextlib.asynccontextmanager
-async def _real_asgi_client() -> AsyncIterator[Client]:
+async def _real_asgi_client(
+    *, structured_output_enabled: bool = True
+) -> AsyncIterator[Client]:
     """A FastMCP ``Client`` wired to the real ASGI app over real HTTP semantics.
 
     Builds the app the way ``run_server()`` does for the multi-pod/http_app
@@ -167,7 +170,9 @@ async def _real_asgi_client() -> AsyncIterator[Client]:
     task sidesteps that entirely.
     """
     original_middleware = list(mcp.middleware)
-    for middleware in build_middleware_list():
+    for middleware in build_middleware_list(
+        structured_output_enabled=structured_output_enabled
+    ):
         mcp.add_middleware(middleware)
 
     try:
@@ -201,7 +206,7 @@ async def test_tools_list_over_real_asgi_transport() -> None:
 
     This alone proves the full stack boots: the Starlette app built by
     ``http_app()``, the FastMCP-level middleware chain (Logging,
-    GlobalErrorHandler, StructuredContentStripper, RBAC visibility), the
+    GlobalErrorHandler, ToolResultCompatibility, RBAC visibility), the
     streamable-HTTP session manager, and real JSON-RPC (de)serialization --
     none of which the in-process ``Client(mcp)`` tests elsewhere in this
     package exercise.
@@ -224,6 +229,7 @@ async def test_tools_list_over_real_asgi_transport() -> None:
         and tool.annotations.readOnlyHint is False
         and tool.annotations.idempotentHint is not False
     }
+    assert not {tool.name for tool in tools if tool.outputSchema is None}
 
 
 @pytest.mark.asyncio
@@ -238,12 +244,41 @@ async def test_tools_call_health_check_over_real_asgi_transport() -> None:
     request arrived (in-process client vs. real HTTP transport), so the same
     mock works unmodified here.
     """
-    async with _real_asgi_client() as client:
-        result = await client.call_tool("health_check", {})
+    health_module = importlib.import_module(
+        "superset.mcp_service.system.tool.health_check"
+    )
+    with patch.object(
+        health_module,
+        "get_version_metadata",
+        return_value={"version_string": "test-version"},
+    ):
+        async with _real_asgi_client() as client:
+            result = await client.call_tool("health_check", {})
 
     data = json.loads(result.content[0].text)
     assert data["status"] == "healthy"
     assert data["service"] == "Superset MCP Service"
+    assert result.structured_content == data
+
+
+@pytest.mark.asyncio
+async def test_structured_output_can_be_disabled_over_real_asgi_transport() -> None:
+    """Compatibility mode removes both halves of the structured contract."""
+    health_module = importlib.import_module(
+        "superset.mcp_service.system.tool.health_check"
+    )
+    with patch.object(
+        health_module,
+        "get_version_metadata",
+        return_value={"version_string": "test-version"},
+    ):
+        async with _real_asgi_client(structured_output_enabled=False) as client:
+            tools = await client.list_tools()
+            result = await client.call_tool("health_check", {})
+
+    assert all(tool.outputSchema is None for tool in tools)
+    assert result.structured_content is None
+    assert json.loads(result.content[0].text)["status"] == "healthy"
 
 
 @pytest.mark.asyncio
@@ -252,7 +287,7 @@ async def test_tools_call_failure_sets_is_error_over_real_asgi_transport() -> No
 
     An unknown tool name raises inside the middleware chain, so this exercises
     the real path a permission denial takes: the exception propagates to the
-    outermost ``StructuredContentStripperMiddleware`` catch-all, whose result
+    outermost ``ToolResultCompatibilityMiddleware`` catch-all, whose result
     then crosses the real JSON-RPC wire. Isolated middleware tests with a mocked
     ``call_next`` cannot prove this -- inner middlewares rebuild the result and
     can drop the flag -- which is why this runs over the full chain.
