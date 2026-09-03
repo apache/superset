@@ -21,6 +21,7 @@ from typing import Optional
 
 import pytest
 
+from superset.constants import TimeGrain
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
@@ -95,5 +96,7 @@ def test_firebolt_metadata() -> None:
 def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
     from superset.db_engine_specs.firebolt import FireboltEngineSpec
 
-    assert FireboltEngineSpec._time_grain_expressions[time_grain].format(col="ts") == expected
-
+    assert (
+        FireboltEngineSpec._time_grain_expressions[time_grain].format(col="ts")
+        == expected
+    )
