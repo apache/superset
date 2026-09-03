@@ -288,6 +288,20 @@ def test_first_query_data_allows_legitimate_empty_result():
     assert error is None
 
 
+def test_query_result_allows_duplicate_frontend_column_labels() -> None:
+    payload = {
+        "queries": [
+            {
+                "data": [{"Revenue": 1}],
+                "colnames": ["Revenue", "Revenue"],
+                "coltypes": [0, 0],
+            }
+        ]
+    }
+
+    assert validate_query_result_envelope(payload) is None
+
+
 class HostileList(list[object]):
     def __iter__(self):
         raise AssertionError("hostile list hook executed")

@@ -191,8 +191,11 @@ def query_fields_from_form_data(  # noqa: C901
         if isinstance(value, str):
             try:
                 value = json.loads(value)
-            except (TypeError, ValueError) as ex:
-                raise ValueError("Found invalid orderby options") from ex
+            except (TypeError, ValueError):
+                # Saved raw-table controls can retain stale malformed entries.
+                # The frontend skips them, and callers extracting only columns
+                # or metrics must not fail on an ordering value they discard.
+                continue
         if isinstance(value, (list, tuple)):
             parsed_orderby.append(list(value))
 
@@ -230,8 +233,11 @@ def adhoc_filters_to_query_filters(
     for flt in adhoc_filters or []:
         if flt.get("expressionType") != "SIMPLE":
             continue
-        clause = flt.get("clause", "WHERE")
-        if not isinstance(clause, str) or clause not in {"WHERE", "HAVING"}:
+        clause = flt.get("clause") or "WHERE"
+        if type(clause) is not str:
+            raise ValueError("SIMPLE filter clause must be 'WHERE' or 'HAVING'")
+        clause = str.upper(clause)
+        if clause not in {"WHERE", "HAVING"}:
             raise ValueError("SIMPLE filter clause must be 'WHERE' or 'HAVING'")
         if clause == "HAVING" and not where_only:
             raise ValueError(
@@ -919,8 +925,6 @@ def _table_time_offsets(form_data: dict[str, Any]) -> list[Any]:
     offsets = [offset for offset in raw_offsets if offset not in {"custom", "inherit"}]
     if "custom" in raw_offsets and form_data.get("start_date_offset") is not None:
         offsets.append(form_data["start_date_offset"])
-    if "inherit" in raw_offsets:
-        offsets.append("inherit")
     extra_form_data = form_data.get("extra_form_data")
     if isinstance(extra_form_data, Mapping) and extra_form_data.get("time_compare"):
         inherited = extra_form_data["time_compare"]

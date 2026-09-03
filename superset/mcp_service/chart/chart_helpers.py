@@ -399,8 +399,12 @@ def _is_deck_metric_value(value: Any) -> bool:
     """Mirror Deck's ``isMetricValue`` fixed-or-metric discriminator."""
     if not value:
         return False
-    if isinstance(value, str):
-        return True
+    if type(value) is str:
+        try:
+            float(value)
+        except ValueError:
+            return True
+        return False
     return isinstance(value, dict) and value.get("type") == "metric"
 
 

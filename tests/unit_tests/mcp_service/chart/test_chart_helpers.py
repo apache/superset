@@ -919,6 +919,24 @@ def test_build_query_dicts_deck_scatter_string_point_radius_fixed(monkeypatch):
     assert queries[0]["metrics"] == ["count"]
 
 
+def test_build_query_dicts_deck_scatter_numeric_radius_is_not_metric(monkeypatch):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_scatter",
+        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+        "point_radius_fixed": "100",
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert queries[0]["metrics"] == []
+    assert queries[0]["orderby"] == []
+
+
 def test_build_query_dicts_deck_hex_orderby_when_metrics_present(monkeypatch):
     # Mirrors BaseDeckGLViz.query_obj(): orderby set from first metric (desc by default)
     monkeypatch.setattr(

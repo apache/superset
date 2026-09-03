@@ -207,6 +207,50 @@ class TestFormatDataColumns:
         assert column.unique_count == 5
         assert column.data_type == "numeric"
 
+    def test_boolean_and_integer_cardinality_remain_distinct(self) -> None:
+        column = format_data_columns(
+            [{"value": value} for value in [True, 1, False, 0]], ["value"]
+        )[0]
+
+        assert column.unique_count == 4
+
+    def test_json_object_cardinality_is_independent_of_key_order(self) -> None:
+        column = format_data_columns(
+            [
+                {"value": {"a": 1, "b": 2}},
+                {"value": {"b": 2, "a": 1}},
+            ],
+            ["value"],
+        )[0]
+
+        assert column.unique_count == 1
+
+    def test_json_object_sorting_does_not_compare_string_subclass_keys(self) -> None:
+        class HostileString(str):
+            comparisons = 0
+
+            def __lt__(self, other: object) -> bool:
+                type(self).comparisons += 1
+                raise AssertionError("string comparison hook executed")
+
+        hostile_key = HostileString("hostile")
+        column = format_data_columns(
+            [{"value": {hostile_key: 1, "safe": 2}}], ["value"]
+        )[0]
+
+        assert column.unique_count == 1
+        assert HostileString.comparisons == 0
+
+    def test_decimal_at_exponent_cap_matches_equivalent_oversized_int(self) -> None:
+        decimal_value = Decimal("1e4096")
+        integer_value = 10**4096
+
+        column = format_data_columns(
+            [{"value": decimal_value}, {"value": integer_value}], ["value"]
+        )[0]
+
+        assert column.unique_count == 1
+
     @pytest.mark.parametrize(
         "value",
         [Decimal("1e4097"), Decimal("1" * 1025)],

@@ -310,6 +310,16 @@ def test_orderby_raw_mode_parses_order_by_cols() -> None:
     assert query["orderby"] == [["a", True], ["b", False]]
 
 
+def test_column_extraction_ignores_stale_malformed_ordering() -> None:
+    form_data = {
+        "groupby": ["region"],
+        "order_by_cols": ["not json"],
+    }
+
+    assert columns_from_form_data(form_data) == ["region"]
+    assert query_fields_from_form_data(form_data) == (["region"], [], [])
+
+
 def test_aggregate_mode_ignores_stale_order_by_cols() -> None:
     # order_by_cols is a raw-mode-only control (resetOnHide: false), so it isn't
     # reset when switching to aggregate mode. The rebuild must ignore a stale value
@@ -457,6 +467,44 @@ def test_time_range_falls_back_to_since_until() -> None:
     form_data = {"metrics": ["count"], "since": "2020-01-01", "until": "2020-12-31"}
     query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
     assert query["time_range"] == "2020-01-01 : 2020-12-31"
+
+
+def test_table_inherit_offset_requires_an_inherited_value() -> None:
+    base = {
+        "metrics": ["count"],
+        "groupby": ["region"],
+        "time_compare": ["inherit"],
+        "comparison_type": "values",
+    }
+    without_value = build_query_context_from_form_data(
+        base, DATASOURCE, viz_type="table"
+    )["queries"][0]
+    with_value = build_query_context_from_form_data(
+        {**base, "extra_form_data": {"time_compare": "1 year ago"}},
+        DATASOURCE,
+        viz_type="table",
+    )["queries"][0]
+
+    assert without_value["time_offsets"] == []
+    assert with_value["time_offsets"] == ["1 year ago"]
+
+
+@pytest.mark.parametrize("clause", [None, "where", "Where"])
+def test_legacy_simple_filter_where_clause_is_normalized(clause: str | None) -> None:
+    filters = adhoc_filters_to_query_filters(
+        [
+            {
+                "expressionType": "SIMPLE",
+                "clause": clause,
+                "subject": "region",
+                "operator": "==",
+                "comparator": "EMEA",
+            }
+        ],
+        where_only=True,
+    )
+
+    assert filters == [{"col": "region", "op": "==", "val": "EMEA"}]
 
 
 def test_raw_mode_ignores_stale_metrics_and_groupby() -> None:

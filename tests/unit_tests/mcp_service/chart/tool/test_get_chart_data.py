@@ -50,6 +50,7 @@ from superset.mcp_service.chart.tool.get_chart_data import (
     _coerce_row_limit,
     _export_data_as_csv,
     _GENERIC_TYPE_MAP,
+    _is_expected_json_load_error,
     _MAX_RECOMMENDATIONS,
     _query_from_form_data,
     _recommend_visualizations,
@@ -86,6 +87,17 @@ class HostileValueError(ValueError):
     def __repr__(self) -> str:
         type(self).calls += 1
         return "round21-hostile-value-secret"
+
+
+def test_json_load_error_classifier_accepts_only_exact_parser_failures() -> None:
+    from superset.utils.json import JSONDecodeError
+
+    HostileValueError.calls = 0
+    assert _is_expected_json_load_error(TypeError())
+    assert _is_expected_json_load_error(ValueError())
+    assert _is_expected_json_load_error(JSONDecodeError("bad", "{", 0))
+    assert not _is_expected_json_load_error(HostileValueError("secret"))
+    assert HostileValueError.calls == 0
 
 
 def test_requested_filter_columns_supports_both_payload_shapes() -> None:
@@ -2410,6 +2422,80 @@ def _chart_error_at_test_limit(limit: int) -> ChartError:
     )
     assert len(response.model_dump_json().encode()) == limit
     return response
+
+
+@pytest.mark.asyncio
+async def test_get_chart_data_mcp_entry_returns_parse_error_for_invalid_cached_json(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """simplejson's JSONDecodeError follows the ordinary bounded fallback."""
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    monkeypatch.setattr(module, "get_cached_form_data", lambda _key: "{")
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_chart_data", {"request": {"form_data_key": "invalid-json"}}
+        )
+
+    payload = result.structured_content.get("result", result.structured_content)
+    error = ChartError.model_validate(payload)
+    assert error.error_type == "ParseError"
+    assert error.message == "Failed to parse cached form_data."
+
+
+@pytest.mark.asyncio
+async def test_unsaved_generic_chart_treats_none_data_as_empty(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Generic charts retain the legacy NoData response for ``data: null``."""
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    form_data = {
+        "datasource_id": 7,
+        "datasource_type": "table",
+        "viz_type": "table",
+        "all_columns": ["region"],
+    }
+
+    class EmptyCommand:
+        def __init__(self, query_context: object) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [{"data": None, "colnames": ["region"], "coltypes": [1]}]
+            }
+
+    monkeypatch.setattr(command_module, "ChartDataCommand", EmptyCommand)
+    monkeypatch.setattr(
+        module, "get_cached_form_data", lambda _key: json.dumps(form_data)
+    )
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
+    )
+    monkeypatch.setattr(module, "set_query_context_form_data", lambda *_args: None)
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_chart_data", {"request": {"form_data_key": "empty-table"}}
+        )
+
+    payload = result.structured_content.get("result", result.structured_content)
+    error = ChartError.model_validate(payload)
+    assert error.error_type == "NoData"
 
 
 @pytest.mark.asyncio

@@ -72,8 +72,14 @@ from superset.mcp_service.utils.response_utils import (
     format_data_quality,
 )
 from superset.utils.core import GenericDataType
+from superset.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
+
+
+def _is_expected_json_load_error(exc: Exception) -> bool:
+    """Recognize only the exact exceptions emitted for ordinary JSON failures."""
+    return type(exc) in {TypeError, ValueError, JSONDecodeError}
 
 
 def _requested_filter_columns(extra_form_data: dict[str, Any] | None) -> set[str]:
@@ -448,7 +454,7 @@ async def _get_chart_data(  # noqa: C901
                 try:
                     cached_form_data_dict = utils_json.loads(cached_form_data)
                 except (TypeError, ValueError) as exc:
-                    if type(exc) not in {TypeError, ValueError}:
+                    if not _is_expected_json_load_error(exc):
                         raise
                     logger.warning(
                         "get_chart_data: failed to parse cached form_data "
@@ -556,7 +562,7 @@ async def _get_chart_data(  # noqa: C901
         try:
             saved_form_data = utils_json.loads(chart.params) if chart.params else {}
         except (TypeError, ValueError) as exc:
-            if type(exc) not in {TypeError, ValueError}:
+            if not _is_expected_json_load_error(exc):
                 raise
             saved_form_data = {}
         effective_form_data = (
@@ -601,7 +607,7 @@ async def _get_chart_data(  # noqa: C901
                                     "Falling back to saved chart configuration."
                                 )
                         except (TypeError, ValueError) as exc:
-                            if type(exc) not in {TypeError, ValueError}:
+                            if not _is_expected_json_load_error(exc):
                                 raise
                             await ctx.warning(
                                 "Failed to parse cached form_data. "
@@ -684,7 +690,7 @@ async def _get_chart_data(  # noqa: C901
                         "Using chart's saved query_context for data retrieval"
                     )
                 except (TypeError, ValueError) as exc:
-                    if type(exc) not in {TypeError, ValueError}:
+                    if not _is_expected_json_load_error(exc):
                         raise
                     await ctx.warning("Failed to parse chart query_context.")
 
@@ -829,7 +835,10 @@ async def _get_chart_data(  # noqa: C901
                 command.validate()
                 result = command.run()
 
-            if result_error := validate_query_result_envelope(result):
+            if result_error := validate_query_result_envelope(
+                result,
+                none_as_empty=effective_form_data.get("viz_type") != "sunburst_v2",
+            ):
                 return result_error
             if sunburst_error := _sunburst_result_failure(result, effective_form_data):
                 return sunburst_error
@@ -1166,7 +1175,9 @@ async def _query_from_form_data(  # noqa: C901
             command.validate()
             result = command.run()
 
-        if result_error := validate_query_result_envelope(result):
+        if result_error := validate_query_result_envelope(
+            result, none_as_empty=viz_type != "sunburst_v2"
+        ):
             return result_error
         if sunburst_error := _sunburst_result_failure(result, form_data):
             return sunburst_error

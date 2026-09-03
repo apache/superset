@@ -239,11 +239,22 @@ def _decimal_profile_identity(
         return ("number", 0, 1)
 
     if exponent >= 0:
-        return ("number", coefficient * 10**exponent, 1)
+        numerator = coefficient * 10**exponent
+        bit_count = int.bit_length(numerator)
+        if bit_count > _MAX_PROFILE_INTEGER_BITS:
+            return ("oversized_integer", numerator < 0, bit_count)
+        return ("number", numerator, 1)
 
     denominator = 10 ** (-exponent)
     divisor = math.gcd(coefficient, denominator)
-    return ("number", coefficient // divisor, denominator // divisor)
+    numerator = coefficient // divisor
+    denominator //= divisor
+    if (
+        int.bit_length(numerator) > _MAX_PROFILE_INTEGER_BITS
+        or int.bit_length(denominator) > _MAX_PROFILE_INTEGER_BITS
+    ):
+        return None
+    return ("number", numerator, denominator)
 
 
 def _profile_value_identity(  # noqa: C901
@@ -286,6 +297,8 @@ def _profile_value_identity(  # noqa: C901
                 continue
             active_containers.add(identity)
             entries = list(dict.items(item))
+            if all(type(key) is str for key, _child in entries):
+                entries.sort(key=lambda entry: entry[0])
             tokens.append(("dict", list.__len__(entries)))
             stack.append(("leave", item))
             stack.append(("token", "dict_end"))

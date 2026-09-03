@@ -1210,7 +1210,6 @@ def _validate_query_metadata(query: dict[str, Any], index: int) -> ChartError | 
         type(colnames) is not list
         or list.__len__(colnames) > MAX_QUERY_RESULT_COLUMNS
         or any(type(column) is not str or not column for column in colnames)
-        or len(set(colnames)) != len(colnames)
     ):
         return _invalid_result(f"malformed column metadata for query {index}")
     if (
@@ -1354,6 +1353,11 @@ def validate_query_result_envelope(  # noqa: C901
         declared_columns = (
             dict.__getitem__(query, "colnames") if "colnames" in query else None
         )
+        declared_row_columns = (
+            list(dict.fromkeys(declared_columns))
+            if declared_columns is not None
+            else None
+        )
 
         # Check declared order in the same capped pass that normalizes cells.
         # A width mismatch fails before comparing names, so empty rows cannot
@@ -1370,9 +1374,9 @@ def validate_query_result_envelope(  # noqa: C901
                 _container_json_syntax_size(list.__len__(row_items), mapping=True),
             ):
                 return _invalid_result(reason)
-            if declared_columns is not None and list.__len__(row_items) != list.__len__(
-                declared_columns
-            ):
+            if declared_row_columns is not None and list.__len__(
+                row_items
+            ) != list.__len__(declared_row_columns):
                 return ChartError(
                     error=(
                         f"Chart query {index} returned rows that do not match the "
@@ -1385,8 +1389,8 @@ def validate_query_result_envelope(  # noqa: C901
                     return _invalid_result(
                         f"hostile or oversized row data for query {index}"
                     )
-                if declared_columns is not None and column != list.__getitem__(
-                    declared_columns, column_offset
+                if declared_row_columns is not None and column != list.__getitem__(
+                    declared_row_columns, column_offset
                 ):
                     return ChartError(
                         error=(

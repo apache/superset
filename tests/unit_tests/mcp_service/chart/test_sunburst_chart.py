@@ -38,6 +38,7 @@ from superset.mcp_service.chart.chart_helpers import (
     resolve_form_data_datasource,
 )
 from superset.mcp_service.chart.chart_utils import (
+    analyze_chart_semantics,
     generate_explore_link,
     map_config_to_form_data,
     merge_form_data_for_update,
@@ -84,6 +85,7 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.chart.sunburst import (
     normalize_sunburst_form_data_references,
+    resolve_sunburst_result_roles,
     validate_sunburst_result_data,
 )
 from superset.mcp_service.chart.tool.generate_chart import generate_chart
@@ -2313,7 +2315,7 @@ def test_typed_input_still_rejects_unknown_fields() -> None:
         (
             {
                 "secondary_metric": {
-                    "name": "sales",
+                    "name": "profit",
                     "aggregate": "SUM",
                     "label": "Sales",
                 }
@@ -2327,6 +2329,88 @@ def test_role_and_output_constraints(
 ) -> None:
     with pytest.raises(ValidationError, match=message):
         _config(**overrides)
+
+
+@pytest.mark.parametrize(
+    "metric",
+    [
+        {"name": "sales", "aggregate": "SUM", "label": "Sales"},
+        {"name": "SavedSales", "saved_metric": True, "label": "Sales"},
+        {"sql_expression": "SUM(sales)", "label": "Sales"},
+    ],
+    ids=["simple", "saved", "sql"],
+)
+def test_same_primary_and_secondary_metric_selects_categorical_fallback(
+    metric: dict[str, object],
+) -> None:
+    """The native control permits selecting the primary metric twice."""
+    config = _config(metric=metric, secondary_metric=metric)
+    form_data = map_config_to_form_data(config)
+
+    assert form_data["metric"] == form_data["secondary_metric"]
+    roles, error = resolve_sunburst_result_roles(form_data)
+
+    assert error is None
+    assert roles is not None
+    assert roles.secondary_metric is None
+    assert (
+        validate_sunburst_result_data(
+            [
+                {
+                    "region": "West",
+                    "country": "US",
+                    roles.primary_metric: Decimal("1.5"),
+                }
+            ],
+            form_data,
+        )[1]
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "request_model",
+    [GenerateChartRequest, UpdateChartRequest, GenerateExploreLinkRequest],
+)
+def test_same_metric_is_accepted_at_public_request_boundaries(
+    request_model: type[
+        GenerateChartRequest | UpdateChartRequest | GenerateExploreLinkRequest
+    ],
+) -> None:
+    metric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "sales"},
+        "aggregate": "SUM",
+        "label": "SUM(sales)",
+    }
+    payload = _native_request_payload(request_model, metric, metric)
+
+    request = request_model.model_validate(payload)
+    form_data = map_config_to_form_data(request.config)
+
+    assert form_data["metric"] == form_data["secondary_metric"]
+
+
+def test_sunburst_semantics_describe_hierarchy_metric_and_ellipsis() -> None:
+    concise = analyze_chart_semantics("sunburst_v2", _config())
+    config = _config(
+        hierarchy=[
+            {"name": "continent"},
+            {"name": "country"},
+            {"name": "state"},
+            {"name": "city"},
+        ]
+    )
+
+    semantics = analyze_chart_semantics("sunburst_v2", config)
+
+    assert concise.data_story == (
+        "This sunburst_v2 chart analyzes region, country, sales"
+    )
+    assert "hierarchical part-to-whole" in semantics.primary_insight
+    assert semantics.data_story == (
+        "This sunburst_v2 chart analyzes continent, country, state..."
+    )
 
 
 def test_mapper_covers_query_time_filter_limit_and_presentation_contract() -> None:

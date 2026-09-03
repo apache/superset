@@ -31,7 +31,10 @@ from typing import Any, Dict, List
 from uuid import UUID
 
 from superset.mcp_service.chart.chart_helpers import canonicalize_operation_form_data
-from superset.mcp_service.chart.query_result import first_query_data
+from superset.mcp_service.chart.query_result import (
+    first_query_data,
+    MAX_RESULT_VALUE_DEPTH,
+)
 from superset.mcp_service.chart.schemas import (
     ASCIIPreview,
     ChartError,
@@ -65,12 +68,12 @@ def _canonical_preview_value(value: Any, *, depth: int = 0) -> Any:
         return value.isoformat()[:MAX_PREVIEW_VALUE_LENGTH]
     if value_type is UUID:
         return str(value)
-    if value_type is list and depth < 6:
+    if value_type is list and depth < MAX_RESULT_VALUE_DEPTH:
         return [
             _canonical_preview_value(item, depth=depth + 1)
             for item in value[:MAX_PREVIEW_NESTED_ITEMS]
         ]
-    if value_type is dict and depth < 6:
+    if value_type is dict and depth < MAX_RESULT_VALUE_DEPTH:
         return {
             key: _canonical_preview_value(item, depth=depth + 1)
             for key, item in list(value.items())[:MAX_PREVIEW_NESTED_ITEMS]

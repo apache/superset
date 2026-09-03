@@ -49,6 +49,7 @@ from superset.mcp_service.chart.tool.get_chart_sql import (
 _get_chart_sql_mod = importlib.import_module(
     "superset.mcp_service.chart.tool.get_chart_sql"
 )
+_query_result_mod = importlib.import_module("superset.mcp_service.chart.query_result")
 
 
 def _base_axis(column: str) -> dict[str, object]:
@@ -305,6 +306,7 @@ def test_extract_sql_enforces_query_count_and_aggregate_source_bytes(
 ) -> None:
     test_limit = 4 * 1024
     monkeypatch.setattr(_get_chart_sql_mod, "MAX_QUERY_RESULT_VALUE_BYTES", test_limit)
+    monkeypatch.setattr(_query_result_mod, "MAX_QUERY_RESULT_VALUE_BYTES", test_limit)
     too_many = _extract_sql_from_result(
         {"queries": [{} for _ in range(MAX_QUERY_RESULTS + 1)]},
         1,

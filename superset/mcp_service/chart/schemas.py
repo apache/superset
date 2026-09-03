@@ -2085,6 +2085,17 @@ class SunburstChartConfig(BaseChartConfig):
         for role, label in output_labels:
             folded = label.casefold()
             if folded in seen:
+                if (
+                    role == "secondary_metric"
+                    and seen[folded] == "metric"
+                    and self.secondary_metric is not None
+                    and _same_metric_query_reference(self.metric, self.secondary_metric)
+                ):
+                    # The native control deliberately treats selecting the
+                    # primary metric again as categorical-color mode. It also
+                    # produces only one result column, so this one intentional
+                    # duplicate is not an ambiguous query-output alias.
+                    continue
                 raise ValueError(
                     f"Duplicate Sunburst query output label {label!r}: "
                     f"{role} conflicts with {seen[folded]}. Use a unique metric label."
@@ -2930,6 +2941,24 @@ def _metric_display_label(col: ColumnRef) -> str:
     if col.aggregate:
         return col.label or f"{col.aggregate}({col.name})"
     return col.label or col.name or ""
+
+
+def _same_metric_query_reference(left: ColumnRef, right: ColumnRef) -> bool:
+    """Compare validated metric query semantics, excluding presentation labels."""
+    if left.sql_expression is not None or right.sql_expression is not None:
+        return (
+            left.sql_expression is not None
+            and right.sql_expression is not None
+            and left.sql_expression == right.sql_expression
+        )
+    if left.saved_metric or right.saved_metric:
+        return left.saved_metric and right.saved_metric and left.name == right.name
+    return (
+        left.aggregate is not None
+        and right.aggregate is not None
+        and left.name == right.name
+        and left.aggregate == right.aggregate
+    )
 
 
 class XYChartConfig(BaseChartConfig):

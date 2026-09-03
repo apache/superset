@@ -25,6 +25,8 @@ from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 from superset.mcp_service.chart import preview_utils
+from superset.mcp_service.chart.preview_utils import _canonical_preview_value
+from superset.mcp_service.chart.query_result import MAX_RESULT_VALUE_DEPTH
 from superset.mcp_service.chart.schemas import ChartError
 from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
     chart_data_command_result,
@@ -64,6 +66,18 @@ def test_preview_utils_does_not_top_level_import_chart_data_command():
         {"ascii", "table", "vega_lite"}
     )
     assert not any(_imports_chart_data_command(node) for node in top_level_imports)
+
+
+def test_preview_projection_uses_the_validated_result_depth_limit() -> None:
+    value: object = "leaf"
+    for _ in range(MAX_RESULT_VALUE_DEPTH):
+        value = [value]
+
+    projected = _canonical_preview_value(value)
+    for _ in range(MAX_RESULT_VALUE_DEPTH):
+        assert isinstance(projected, list)
+        projected = projected[0]
+    assert projected == "leaf"
 
 
 class TestPreviewUtilsColumnBuilding:

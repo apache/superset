@@ -91,6 +91,35 @@ def _metric_result_label(metric: Any) -> str | None:
     return None
 
 
+def _metric_query_identity(metric: Any) -> tuple[str, ...] | None:
+    """Return a hook-free identity for one exact native metric value."""
+    if type(metric) is str and metric:
+        return ("saved", metric)
+    if type(metric) is not dict:
+        return None
+    expression_type = dict.get(metric, "expressionType")
+    if expression_type == "SQL":
+        expression = dict.get(metric, "sqlExpression")
+        return ("sql", expression) if type(expression) is str and expression else None
+    if expression_type == "SIMPLE":
+        aggregate = dict.get(metric, "aggregate")
+        column = dict.get(metric, "column")
+        if type(aggregate) is not str:
+            return None
+        column_name: Any
+        if type(column) is str:
+            column_name = column
+        elif type(column) is dict:
+            column_name = dict.get(column, "column_name")
+            if column_name is None:
+                column_name = dict.get(column, "columnName")
+        else:
+            return None
+        if type(column_name) is str and column_name:
+            return ("simple", aggregate, column_name)
+    return None
+
+
 def resolve_sunburst_result_roles(
     form_data: Mapping[str, Any],
 ) -> tuple[SunburstResultRoles | None, ChartError | None]:
@@ -117,14 +146,24 @@ def resolve_sunburst_result_roles(
             error="Sunburst primary metric is missing or malformed.",
             error_type="InvalidSunburstFormData",
         )
+    primary_metric = form_data.get("metric")
     secondary: str | None = None
-    if form_data.get("secondary_metric") is not None:
-        secondary = _metric_result_label(form_data.get("secondary_metric"))
+    if (secondary_metric := form_data.get("secondary_metric")) is not None:
+        secondary = _metric_result_label(secondary_metric)
         if secondary is None:
             return None, ChartError(
                 error="Sunburst secondary metric is malformed.",
                 error_type="InvalidSunburstFormData",
             )
+        if (
+            secondary.casefold() == primary.casefold()
+            and _metric_query_identity(primary_metric)
+            == _metric_query_identity(secondary_metric)
+            and _metric_query_identity(primary_metric) is not None
+        ):
+            # The frontend interprets a repeated primary metric as categorical
+            # color mode and the query has one physical metric output.
+            secondary = None
 
     labels = [*hierarchy, primary, *([secondary] if secondary else [])]
     seen: dict[str, str] = {}

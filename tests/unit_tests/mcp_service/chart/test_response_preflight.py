@@ -104,9 +104,9 @@ def _fill_model_to_limit(
 ) -> _ResponseT:
     empty = model_factory("")
     limit = query_result_module.MAX_QUERY_RESULT_VALUE_BYTES
-    filler_size = limit - len(empty.model_dump_json().encode())
+    filler_size = limit - len(empty.model_dump_json(by_alias=True).encode())
     result = model_factory("x" * filler_size)
-    assert len(result.model_dump_json().encode()) == limit
+    assert len(result.model_dump_json(by_alias=True).encode()) == limit
     return result
 
 

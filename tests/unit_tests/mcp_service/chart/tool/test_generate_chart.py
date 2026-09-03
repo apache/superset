@@ -19,6 +19,7 @@
 Unit tests for MCP generate_chart tool
 """
 
+from contextlib import nullcontext
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
@@ -40,11 +41,85 @@ from superset.mcp_service.chart.tool.generate_chart import (
     CompileResult,
     generate_chart,
 )
+from superset.mcp_service.chart.validation.pipeline import ValidationResult
 from superset.utils import json as utils_json
 
 
 class TestGenerateChart:
     """Tests for generate_chart MCP tool."""
+
+    @pytest.mark.asyncio
+    async def test_generate_chart_fastmcp_accepts_same_sunburst_metric_twice(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The registered request boundary preserves categorical fallback mode."""
+        from fastmcp import Client
+
+        from superset.mcp_service.app import mcp
+
+        module = __import__(
+            "superset.mcp_service.chart.tool.generate_chart", fromlist=["unused"]
+        )
+        metric = {
+            "expressionType": "SIMPLE",
+            "column": {"column_name": "sales"},
+            "aggregate": "SUM",
+            "label": "SUM(sales)",
+        }
+
+        def validate(payload: dict[str, Any]) -> ValidationResult:
+            return ValidationResult(
+                is_valid=True,
+                request=GenerateChartRequest.model_validate(payload),
+                warnings={},
+            )
+
+        monkeypatch.setattr(
+            "superset.mcp_service.chart.validation.ValidationPipeline."
+            "validate_request_with_warnings",
+            validate,
+        )
+        monkeypatch.setattr(
+            "superset.daos.dataset.DatasetDAO.find_by_id",
+            lambda *_args, **_kwargs: None,
+        )
+        monkeypatch.setattr(
+            "superset.mcp_service.chart.chart_utils.generate_explore_link",
+            lambda *_args, **_kwargs: "/explore/?form_data_key=same-metric",
+        )
+        monkeypatch.setattr(
+            "superset.mcp_service.auth.get_user_from_request",
+            lambda: Mock(id=1, username="admin", roles=[], groups=[]),
+        )
+        monkeypatch.setattr(
+            module.event_logger,
+            "log_context",
+            lambda **_kwargs: nullcontext(),
+        )
+
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "generate_chart",
+                {
+                    "request": {
+                        "dataset_id": 7,
+                        "config": {
+                            "viz_type": "sunburst_v2",
+                            "columns": ["region"],
+                            "metric": metric,
+                            "secondary_metric": metric,
+                        },
+                        "generate_preview": True,
+                        "preview_formats": ["url"],
+                    }
+                },
+            )
+
+        payload = result.structured_content.get("result", result.structured_content)
+        assert payload["success"] is True
+        assert (
+            payload["form_data"]["metric"] == payload["form_data"]["secondary_metric"]
+        )
 
     @pytest.mark.asyncio
     async def test_generate_chart_returns_table_chart_type_label(self) -> None:
