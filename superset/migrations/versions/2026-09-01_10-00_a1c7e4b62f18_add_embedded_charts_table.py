@@ -29,7 +29,7 @@ from superset.migrations.shared.utils import create_table, drop_table
 
 # revision identifiers, used by Alembic.
 revision = "a1c7e4b62f18"
-down_revision = "39097d124752"
+down_revision = "8f31c5d726ab"
 
 
 def upgrade() -> None:
