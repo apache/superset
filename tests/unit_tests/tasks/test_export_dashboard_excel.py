@@ -1087,7 +1087,7 @@ def test_guest_lock_slot_is_stable_and_identity_scoped() -> None:
         exp=0.0,
         user={"username": "alice"},
         resources=[{"type": GuestTokenResourceType.DASHBOARD, "id": "d1"}],
-        rls_rules=[{"clause": "team_id = 1"}],
+        rls_rules=[{"dataset": None, "clause": "team_id = 1"}],
     )
 
     assert guest_lock_slot(token_a) == guest_lock_slot(token_a_copy)
