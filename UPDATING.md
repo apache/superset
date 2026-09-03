@@ -69,6 +69,25 @@ tags are included in asset export and import.
 
 Set `FEATURE_FLAGS = {"TAGGING_SYSTEM": False}` to restore the previous
 behavior. Existing tag rows are left untouched.
+### MCP structured tool outputs are opt-in
+
+Native MCP tools define concrete output schemas, but Superset preserves the
+text-only wire contract by default for compatibility with clients and transport
+bridges that cannot encode structured results. Set the following only after
+validating every MCP client and bridge used by the deployment:
+
+```python
+MCP_STRUCTURED_OUTPUT_ENABLED = True
+```
+
+When enabled, tool discovery includes `outputSchema` and successful tool calls
+include matching `structuredContent` alongside the existing text representation.
+When disabled, the outer compatibility middleware removes both fields as a pair;
+server-side output validation still applies to native tools.
+
+`StructuredContentStripperMiddleware` is deprecated for custom startup paths but
+retains its original stripping behavior. Replace it with
+`ToolResultCompatibilityMiddleware(structured_output_enabled=False)`.
 
 ### Global Async Queries re-platformed onto the Global Task Framework (breaking)
 

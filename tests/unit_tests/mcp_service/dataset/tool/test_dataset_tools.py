@@ -25,6 +25,7 @@ import fastmcp
 import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
+from jsonschema import validate
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dataset.schemas import (
@@ -209,7 +210,7 @@ async def test_list_datasets_basic(mock_list, mcp_server):
 
     Note: Dataset tests use json.loads(result.content[0].text) pattern
     for response parsing, which differs from dashboard/chart tests that
-    use result.data directly. This is intentional based on how the
+    use result.structured_content directly. This is intentional based on how the
     dataset tool responses are structured.
     """
     dataset = MagicMock()
@@ -1101,7 +1102,7 @@ async def test_get_dataset_info_not_found(mock_info, mcp_server):
         result = await client.call_tool(
             "get_dataset_info", {"request": {"identifier": 999}}
         )
-        assert result.data["error_type"] == "not_found"
+        assert result.structured_content["error_type"] == "not_found"
 
 
 # TODO (Phase 3+): Add tests for get_dataset_available_filters tool
@@ -1233,12 +1234,25 @@ async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_serv
     mock_info.return_value = dataset
     async with Client(mcp_server) as client:
         result = await client.call_tool(
-            "get_dataset_info", {"request": {"identifier": 10}}
+            "get_dataset_info",
+            {
+                "request": {
+                    "identifier": 10,
+                    "select_columns": [
+                        "id",
+                        "table_name",
+                        "schema",
+                        "columns",
+                        "metrics",
+                    ],
+                }
+            },
         )
         assert result.content is not None
         data = json.loads(result.content[0].text)
         assert data["table_name"] == "Dataset With Columns"
-        assert data["database_name"] == "examples"
+        assert data["schema"] == "main"
+        assert "database_name" not in data
         # Check that columns and metrics are included
         assert len(data["columns"]) == 2
         assert len(data["metrics"]) == 2
@@ -1246,6 +1260,10 @@ async def test_get_dataset_info_includes_columns_and_metrics(mock_info, mcp_serv
         assert data["columns"][1]["column_name"] == "col2"
         assert data["metrics"][0]["metric_name"] == "sum_sales"
         assert data["metrics"][1]["metric_name"] == "count_orders"
+
+    tool = await mcp_server.get_tool("get_dataset_info")
+    assert tool.output_schema is not None
+    validate(instance=result.structured_content, schema=tool.output_schema)
 
 
 @patch("superset.daos.dataset.DatasetDAO.list")

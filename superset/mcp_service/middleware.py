@@ -19,6 +19,7 @@ import logging
 import re
 import secrets
 import time
+import warnings
 from contextvars import ContextVar
 from typing import Any, Awaitable, Callable, Sequence
 
@@ -737,24 +738,24 @@ class LoggingMiddleware(Middleware):
             )
 
 
-class StructuredContentStripperMiddleware(Middleware):
-    """Strip ``outputSchema`` and ``structured_content`` to prevent encoding errors.
+class ToolResultCompatibilityMiddleware(Middleware):
+    """Gate structured results while providing a last-resort error boundary.
 
     FastMCP 3.x auto-generates ``outputSchema`` in tool definitions
     (``tools/list``) and ``structuredContent`` in tool call responses
     (``tools/call``) when the tool has a typed return annotation.
 
-    Some MCP client transports (e.g. Claude.ai's MCP bridge) cannot handle
-    ``structuredContent`` dicts, causing ``TypeError: encoding without a
-    string argument``.  Additionally, if ``outputSchema`` is advertised but
-    ``structuredContent`` is stripped from the response, clients may raise
-    ``Output validation error: outputSchema defined but no structured output
-    returned``.
-
-    This middleware handles both sides:
-    - ``on_list_tools``: removes ``output_schema`` from every tool definition
-    - ``on_call_tool``: removes ``structured_content`` from every tool result
+    Structured output is part of the MCP contract, but some transport bridges
+    cannot encode it. When ``structured_output_enabled`` is false, this
+    middleware preserves the legacy text-only contract by stripping both sides
+    of that contract: ``outputSchema`` from discovery and ``structuredContent``
+    from successful calls. It always converts exceptions that escape the inner
+    error handler into a sanitized text result and returns an empty tool list if
+    discovery itself fails.
     """
+
+    def __init__(self, *, structured_output_enabled: bool = False) -> None:
+        self.structured_output_enabled = structured_output_enabled
 
     async def on_list_tools(
         self,
@@ -769,11 +770,13 @@ class StructuredContentStripperMiddleware(Middleware):
             # list, not an error object — causing "encoding without a string argument".
             # Return an empty list; GlobalErrorHandlerMiddleware already logged it.
             return []
+        if self.structured_output_enabled:
+            return tools
         return [
-            t.model_copy(update={"output_schema": None})
-            if t.output_schema is not None
-            else t
-            for t in tools
+            tool.model_copy(update={"output_schema": None})
+            if tool.output_schema is not None
+            else tool
+            for tool in tools
         ]
 
     async def on_call_tool(
@@ -832,16 +835,32 @@ class StructuredContentStripperMiddleware(Middleware):
             # CallToolResult(isError=True) (see ToolResult.to_mcp_result);
             # what keeps it encodable is that structured_content stays None
             # and only the boolean flips false->true, not the structured
-            # payload implicated in the bridge failure above. That leg is
-            # unverified against the live Claude.ai bridge.
+            # payload implicated in transport-level encoding failures.
             return ToolResult(
                 content=[mt.TextContent(type="text", text=error_text)],
                 meta={"mcp_call_id": mcp_call_id} if mcp_call_id else None,
                 is_error=True,
             )
-        if isinstance(result, ToolResult) and result.structured_content is not None:
-            result = ToolResult(content=result.content, meta=result.meta)
+        if not self.structured_output_enabled and result.structured_content is not None:
+            return ToolResult(
+                content=result.content,
+                meta=result.meta,
+                is_error=result.is_error,
+            )
         return result
+
+
+class StructuredContentStripperMiddleware(ToolResultCompatibilityMiddleware):
+    """Deprecated compatibility middleware that retains its stripping behavior."""
+
+    def __init__(self) -> None:
+        warnings.warn(
+            "StructuredContentStripperMiddleware is deprecated; use "
+            "ToolResultCompatibilityMiddleware(structured_output_enabled=False)",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        super().__init__(structured_output_enabled=False)
 
 
 class RBACToolVisibilityMiddleware(Middleware):

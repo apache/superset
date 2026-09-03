@@ -38,6 +38,7 @@ from superset.mcp_service.mcp_config import (
     get_mcp_factory_config,
     MCP_STATELESS_HTTP,
     MCP_STORE_CONFIG,
+    MCP_STRUCTURED_OUTPUT_ENABLED,
     MCP_TOOL_SEARCH_CONFIG,
 )
 from superset.mcp_service.middleware import (
@@ -45,7 +46,7 @@ from superset.mcp_service.middleware import (
     GlobalErrorHandlerMiddleware,
     LoggingMiddleware,
     RBACToolVisibilityMiddleware,
-    StructuredContentStripperMiddleware,
+    ToolResultCompatibilityMiddleware,
 )
 from superset.mcp_service.storage import _create_redis_store
 from superset.utils import json
@@ -887,22 +888,26 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
     return auth_provider
 
 
-def build_middleware_list() -> list[Middleware]:
+def build_middleware_list(
+    *, structured_output_enabled: bool = MCP_STRUCTURED_OUTPUT_ENABLED
+) -> list[Middleware]:
     """Build the core MCP middleware list in the correct order.
 
     FastMCP wraps handlers so that the FIRST-added middleware is
     outermost.  Order here is outermost → innermost:
 
-    1. StructuredContentStripper — safety net, converts exceptions
-       to safe ToolResult text for transports that can't encode errors
+    1. ToolResultCompatibility — applies the structured-output compatibility
+       setting and converts exceptions to safe ToolResult text
     2. RBACToolVisibilityMiddleware — filters tools/list by RBAC;
-       positioned inside the Stripper so it sees full tool objects
-       (with outputSchema) before stripping occurs
+       positioned inside the compatibility boundary so it sees full tool objects
+       (with outputSchema) before results are returned
     3. LoggingMiddleware — logs tool calls with success/failure status
     4. GlobalErrorHandler — catches tool exceptions, raises ToolError
     """
     return [
-        StructuredContentStripperMiddleware(),
+        ToolResultCompatibilityMiddleware(
+            structured_output_enabled=structured_output_enabled
+        ),
         RBACToolVisibilityMiddleware(),
         LoggingMiddleware(),
         GlobalErrorHandlerMiddleware(),
@@ -1035,7 +1040,11 @@ def run_server(
         flask_app = get_flask_app()
         auth_provider = _create_auth_provider(flask_app)
 
-        middleware_list = build_middleware_list()
+        middleware_list = build_middleware_list(
+            structured_output_enabled=flask_app.config.get(
+                "MCP_STRUCTURED_OUTPUT_ENABLED", MCP_STRUCTURED_OUTPUT_ENABLED
+            )
+        )
 
         # Add optional middleware (innermost, closest to tool)
         size_guard_middleware = create_response_size_guard_middleware()
