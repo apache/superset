@@ -20,13 +20,13 @@ After fetching + filtering, each record needs the synthesized fields
 the API contract documents — ``entity_kind`` translated to the user-
 facing form, ``entity_uuid``, ``entity_deleted`` /
 ``entity_deletion_state``, ``source`` (self vs. related),
-``summary`` (the headline), ``impact`` (chart-count for
+``summary`` (the headline), ``impact`` (affected-chart payload for
 dashboard→dataset records), ``version_uuid``, ``changed_by``.
 
 This module collects all those decorations:
 
 * :func:`apply_record_decoration` — orchestrates the per-page additions in
-  one pass: pulls tombstones + uuids + impact counts in batches, then
+  one pass: pulls tombstones + uuids + impact payloads in batches, then
   walks records adding the synthesized fields and stripping the
   internal-only columns the API contract doesn't expose.
 * :func:`_lookup_entity_uuids` plus the historical UUID resolver — identify
@@ -46,7 +46,7 @@ import sqlalchemy as sa
 
 from superset.extensions import db
 from superset.versioning.activity.impact import (
-    batch_chart_counts,
+    batch_chart_impacts,
     collect_impact_pairs,
     impact_for_record,
 )
@@ -111,11 +111,10 @@ def apply_record_decoration(
     tombstones = check_entity_tombstones(distinct)
     live_uuids = _lookup_entity_uuids(distinct, tombstones)
     historical_uuids = resolve_historical_entity_uuids(records)
-    # Pre-compute impact counts for the whole page in one batch query
-    # instead of one COUNT per related record (was N+1).
-    impact_counts = batch_chart_counts(
-        path_id, collect_impact_pairs(records, path_kind)
-    )
+    # Pre-compute impact payloads (affected-chart ids + names) for the
+    # whole page in one batch query instead of one query per related
+    # record (was N+1).
+    impact_refs = batch_chart_impacts(path_id, collect_impact_pairs(records, path_kind))
 
     for record in records:
         api_kind = TABLE_KIND_TO_API.get(record["entity_kind"], "")
@@ -168,7 +167,7 @@ def apply_record_decoration(
             record["impact"] = None
         else:
             record["summary"] = _build_summary(api_kind, record)
-            record["impact"] = impact_for_record(record, path_kind, impact_counts)
+            record["impact"] = impact_for_record(record, path_kind, impact_refs)
             if record["entity_deleted"]:
                 # Security: a tombstoned related entity has no live row, so
                 # the visibility filter cannot access-gate it (there is

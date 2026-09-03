@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ComponentType } from 'react';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Icons, Tooltip } from '@superset-ui/core/components';
 import type { IconType } from '@superset-ui/core/components/Icons/types';
@@ -98,6 +98,12 @@ const Meta = styled.div`
   `}
 `;
 
+// Both hover tooltips in this component (rolled-up entity names, impact
+// chart names) render the same "list of names with an Untitled fallback"
+// shape; one helper keeps them visually identical.
+const tooltipNameList = (items: { key: number | string; name: string }[]) =>
+  items.map(({ key, name }) => <div key={key}>{name || t('Untitled')}</div>);
+
 export interface RelatedUpdateRowProps {
   record: ActivityRecord;
   /** Entity names when several same-kind entities rolled into this row. */
@@ -121,10 +127,12 @@ export default function RelatedUpdateRow({
         </IconWrapper>
         <Content>
           <Tooltip
-            title={rollupEntityNames.map((name, index) => (
-              // eslint-disable-next-line react/no-array-index-key
-              <div key={index}>{name || t('Untitled')}</div>
-            ))}
+            title={tooltipNameList(
+              rollupEntityNames.map((name, index) => ({
+                key: `${index}-${name}`,
+                name,
+              })),
+            )}
           >
             <Headline>
               {relatedRollupHeadline(
@@ -144,6 +152,13 @@ export default function RelatedUpdateRow({
 
   const headline = relatedHeadline(record);
   const entityName = entityDisplayName(record);
+  // The "Dataset used by N charts updated" phrasing summarizes siblings the
+  // row cannot name inline; the impact payload carries them for the hover
+  // detail (sc-119775), mirroring the rolled-up-names tooltip above.
+  const impactCharts = record.impact?.chart_names ?? [];
+  // The server caps the named refs while `charts` keeps the full count;
+  // surface the difference as an overflow line.
+  const impactOverflow = (record.impact?.charts ?? 0) - impactCharts.length;
   const linkable = !record.entity_deleted && Boolean(onOpen);
   // Both the server summary and the impact-aware phrasing end with the
   // entity name; split it out so the name can render as a link. Records
@@ -159,20 +174,45 @@ export default function RelatedUpdateRow({
         <Icon iconSize="l" />
       </IconWrapper>
       <Content>
-        <Headline>
-          {nameIndex >= 0 ? (
-            <>
-              {headline.slice(0, nameIndex)}
-              <NameLink type="button" onClick={() => onOpen?.(record)}>
-                {entityName}
-              </NameLink>
-              {headline.slice(nameIndex + record.entity_name.length)}
-            </>
-          ) : (
-            headline
-          )}
-          {record.entity_deleted && ` (${t('deleted')})`}
-        </Headline>
+        <Tooltip
+          title={
+            impactCharts.length > 0
+              ? [
+                  ...tooltipNameList(
+                    impactCharts.map(chart => ({
+                      key: chart.id,
+                      name: chart.name,
+                    })),
+                  ),
+                  impactOverflow > 0 && (
+                    <div key="impact-overflow">
+                      {tn(
+                        '…and %s more chart',
+                        '…and %s more charts',
+                        impactOverflow,
+                        impactOverflow,
+                      )}
+                    </div>
+                  ),
+                ]
+              : null
+          }
+        >
+          <Headline>
+            {nameIndex >= 0 ? (
+              <>
+                {headline.slice(0, nameIndex)}
+                <NameLink type="button" onClick={() => onOpen?.(record)}>
+                  {entityName}
+                </NameLink>
+                {headline.slice(nameIndex + record.entity_name.length)}
+              </>
+            ) : (
+              headline
+            )}
+            {record.entity_deleted && ` (${t('deleted')})`}
+          </Headline>
+        </Tooltip>
         <Meta>
           {formatAuthor(record.changed_by)} ·{' '}
           {formatVersionDateTimeShort(record.issued_at)}
