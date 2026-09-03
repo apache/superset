@@ -1115,17 +1115,26 @@ export function getTemporalAxisTickConfig(
     ? capTickMarks(temporalTickValues)
     : undefined;
   const labelCustomValues = zoomable ? temporalTickValues : cappedTickValues;
+  // When the user picks "All" (interval === 0), they want every label shown.
+  // Disable hideOverlap so ECharts never drops a label, and pin customValues
+  // to the full tick set so each label lands on a real gridline.
+  const showAllLabels = xAxisLabelInterval === 0;
+
   return {
     axisLabel: {
       // Pinned ticks label every bucket, which does crowd, so thinning
-      // always wins there.
+      // wins there unless the user asked for every label.
       hideOverlap:
-        !!temporalTickValues ||
-        (showMaxLabel
-          ? false
-          : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0)),
+        !showAllLabels &&
+        (!!temporalTickValues ||
+          (showMaxLabel
+            ? false
+            : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0))),
       formatter,
       rotate: xAxisLabelRotation,
+      // ECharts only honors axisLabel.interval on category axes. A time axis
+      // ignores it, so the "All" setting relies on showAllLabels disabling
+      // hideOverlap above rather than on interval: 0 here.
       interval: xAxisLabelInterval,
       // Force the boundary labels so the first and last dates stay visible:
       // hideOverlap can hide the last label, and a min date that falls

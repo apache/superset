@@ -1930,4 +1930,6 @@ test('should not apply a dashed lineStyle when timeShiftColor is disabled', () =
 test('converts xAxisLabelInterval string "0" to number 0', () => {
   const { xAxis } = transformWithChrome({ xAxisLabelInterval: '0' });
   expect(xAxis.axisLabel.interval).toBe(0);
+  // "All" must also disable hideOverlap so ECharts never drops a label.
+  expect(xAxis.axisLabel.hideOverlap).toBe(false);
 });
