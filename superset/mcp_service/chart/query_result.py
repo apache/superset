@@ -647,13 +647,16 @@ def _dateutil_named_offset_without_hooks(  # noqa: C901
     transition_info = dict.get(namespace, "_trans_idx")
     standard_info = dict.get(namespace, "_ttinfo_std")
     before_info = dict.get(namespace, "_ttinfo_before")
+    transition_count = tuple.__len__(transitions) if type(transitions) is tuple else 0
     if (
         type(transitions) is not tuple
         or type(transition_info) is not tuple
         or tuple.__len__(transitions) != tuple.__len__(transition_info)
-        or tuple.__len__(transitions) > _MAX_DATEUTIL_TRANSITIONS
+        or transition_count > _MAX_DATEUTIL_TRANSITIONS
         or _dateutil_ttinfo_without_hooks(standard_info) is None
-        or _dateutil_ttinfo_without_hooks(before_info) is None
+        or (
+            transition_count > 0 and _dateutil_ttinfo_without_hooks(before_info) is None
+        )
     ):
         return None
 
@@ -683,7 +686,6 @@ def _dateutil_named_offset_without_hooks(  # noqa: C901
     except (OverflowError, TypeError, ValueError):
         return None
 
-    transition_count = tuple.__len__(transitions)
     index: int | None = (
         bisect_right(transitions, timestamp) - 1 if transition_count else None
     )

@@ -32,6 +32,7 @@ import pandas as pd
 import pytest
 import pytz
 from dateutil import tz as dateutil_tz
+from dateutil.zoneinfo import get_zonefile_instance
 from pydantic import TypeAdapter, ValidationError
 
 from superset.mcp_service.chart.chart_helpers import (
@@ -1157,6 +1158,94 @@ def test_bullet_compile_projects_dataframe_timestamp_before_validation() -> None
         1729989000000.0,
         1710052200000.0,
         2224774800000.0,
+    ]
+
+
+def test_bullet_compile_accepts_transitionless_dateutil_dataframe_producer() -> None:
+    from superset.commands.chart.data.get_data_command import ChartDataCommand
+    from superset.common.chart_data import ChartDataResultType
+    from superset.dataframe import df_to_records
+
+    names = [
+        "UTC",
+        "GMT",
+        "Universal",
+        "Zulu",
+        "EST",
+        "HST",
+        "MST",
+        "Etc/GMT+1",
+        "Etc/GMT-2",
+    ]
+    values = []
+    for getter in (dateutil_tz.gettz, get_zonefile_instance().get):
+        for name in names:
+            timezone_value = getter(name)
+            assert timezone_value is not None
+            values.append(
+                datetime(2040, 7, 1, 12, 34, 56, 123456, tzinfo=timezone_value)
+            )
+    rows = df_to_records(
+        pd.DataFrame(
+            {
+                "Category": pd.Series(values, dtype=object),
+                "Revenue": range(1, len(values) + 1),
+            }
+        ),
+        convert_big_integers=False,
+    )
+
+    class _ProducerContext:
+        result_type = ChartDataResultType.FULL
+
+        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["Category", "Revenue"],
+                        "rowcount": len(rows),
+                    }
+                ]
+            }
+
+    producer_result = ChartDataCommand(_ProducerContext()).run()  # type: ignore[arg-type]
+    form_data = map_bullet_config(
+        BulletChartConfig(
+            metric={"name": "Revenue", "aggregate": "SUM", "label": "Revenue"},
+            dimensions=[{"name": "Category"}],
+        )
+    )
+    factory = MagicMock()
+    factory.create.return_value = MagicMock()
+    command = MagicMock()
+    command.run.return_value = producer_result
+    captured: list[list[dict[str, Any]]] = []
+
+    def validate(data: list[dict[str, Any]], config: dict[str, Any]) -> Any:
+        captured.append(data)
+        return resolve_bullet_render_model(data, config)
+
+    with (
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory",
+            return_value=factory,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+        patch(
+            "superset.mcp_service.chart.preview_utils.resolve_bullet_render_model",
+            side_effect=validate,
+        ),
+    ):
+        result = _compile_chart(form_data, 7)
+
+    assert result.success is True
+    assert result.row_count == len(values)
+    assert [row["Category"] for row in captured[0]] == [
+        json_int_dttm_ser(value) for value in values
     ]
 
 
