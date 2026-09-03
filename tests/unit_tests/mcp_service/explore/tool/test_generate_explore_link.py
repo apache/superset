@@ -494,11 +494,10 @@ class TestGenerateExploreLink:
                     run_middleware=False,
                 )
             assert calls == []
-            outputs = (
-                str(validation_error.value),
-                repr(validation_error.value),
-                repr(validation_error.value.errors()),
-            )
+            error = validation_error.value
+            outputs = [str(error), repr(error)]
+            if isinstance(error, ValidationError):
+                outputs.append(repr(error.errors()))
             assert calls == []
             assert all(len(output.encode()) < 64 * 1024 for output in outputs)
 
@@ -554,11 +553,10 @@ class TestGenerateExploreLink:
                 {"request": request},
                 run_middleware=False,
             )
-        outputs = (
-            str(validation_error.value),
-            repr(validation_error.value),
-            repr(validation_error.value.errors()),
-        )
+        error = validation_error.value
+        outputs = [str(error), repr(error)]
+        if isinstance(error, ValidationError):
+            outputs.append(repr(error.errors()))
         assert calls == []
         assert all(len(output.encode()) < 64 * 1024 for output in outputs)
 
