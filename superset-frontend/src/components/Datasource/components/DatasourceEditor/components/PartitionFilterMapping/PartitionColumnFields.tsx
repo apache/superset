@@ -33,6 +33,7 @@ import {
   mappedColumnIsImplicit,
   mappingIsActive,
   resolveMappedColumn,
+  suggestedMappedColumn,
 } from './utils';
 import type { PartitionMappingColumn, PartitionMappingDatasource } from './types';
 
@@ -195,11 +196,12 @@ export default function PartitionColumnFields({
                 </Label>
                 <Typography.Link
                   onClick={() => {
-                    const firstOther = columns.find(
-                      column => column.column_name !== partitionColumn,
+                    const candidate = suggestedMappedColumn(
+                      columns,
+                      partitionColumn,
                     );
-                    if (firstOther) {
-                      onNavigateToColumn(firstOther.column_name);
+                    if (candidate) {
+                      onNavigateToColumn(candidate);
                     }
                   }}
                   data-test="map-a-column"
