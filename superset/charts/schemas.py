@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import Any, TYPE_CHECKING
 
 from flask import current_app
+from flask_appbuilder.api.schemas import get_list_schema
 from flask_babel import gettext as _
 from marshmallow import (
     EXCLUDE,
@@ -113,6 +114,26 @@ def validate_prophet_periods(value: int) -> None:
 #
 # RISON/JSON schemas for query parameters
 #
+MAX_VIZ_TYPE_ORDER_LENGTH = 256
+MAX_VIZ_TYPE_LENGTH = 250
+
+chart_get_list_schema = {
+    **get_list_schema,
+    "properties": {
+        **get_list_schema["properties"],
+        "viz_type_order": {
+            "type": "array",
+            "items": {"type": "string", "maxLength": MAX_VIZ_TYPE_LENGTH},
+            "maxItems": MAX_VIZ_TYPE_ORDER_LENGTH,
+            "uniqueItems": True,
+            "description": (
+                "Visualization type slugs in display-name order. Used only when "
+                "order_column is viz_type."
+            ),
+        },
+    },
+}
+
 get_delete_ids_schema = {
     "type": "array",
     "items": {"type": "integer"},
@@ -1886,6 +1907,7 @@ class ImportV1ChartSchema(Schema):
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
     tags = fields.List(fields.String(), allow_none=True)
+    extra = fields.Dict(allow_none=True, load_only=True)
 
 
 class ChartCacheWarmUpRequestSchema(Schema):
