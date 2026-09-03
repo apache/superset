@@ -4222,6 +4222,247 @@ async def test_transitionless_dateutil_dataframe_reaches_fastmcp_data(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
+    ("format_", "excel_engine"),
+    [
+        ("json", None),
+        ("csv", None),
+        ("excel", "openpyxl"),
+        ("excel", "xlsxwriter"),
+    ],
+)
+async def test_saved_cached_bullet_duration_producer_reaches_fastmcp_exports(
+    mcp_server: Any,
+    mock_auth: Any,
+    format_: str,
+    excel_engine: str | None,
+) -> None:
+    import base64
+    import csv
+    import io
+    from contextlib import ExitStack
+    from unittest.mock import patch
+
+    from fastmcp import Client
+    from openpyxl import load_workbook
+
+    from superset.commands.chart.data.get_data_command import (
+        ChartDataCommand as ProducerChartDataCommand,
+    )
+    from superset.common.chart_data import ChartDataResultType
+    from superset.dataframe import df_to_records
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    source_values = [
+        timedelta(0),
+        timedelta(microseconds=-1),
+        timedelta(days=1, seconds=2, microseconds=3),
+        pd.Timedelta(-1, unit="ns"),
+        pd.Timedelta("1 days 00:00:02.000003004"),
+        np.timedelta64(123456789, "ns"),
+        np.timedelta64("NaT"),
+    ]
+    rows = df_to_records(
+        pd.DataFrame(
+            {
+                "Duration": pd.Series(source_values, dtype=object),
+                "Revenue": range(1, len(source_values) + 1),
+            }
+        ),
+        convert_big_integers=False,
+    )
+    expected = [
+        None
+        if row["Duration"] is None
+        else json.loads(json.dumps(row["Duration"], default=json.json_int_dttm_ser))
+        for row in rows
+    ]
+
+    class _ProducerContext:
+        result_type = ChartDataResultType.FULL
+
+        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["Duration", "Revenue"],
+                        "rowcount": len(rows),
+                        "is_cached": True,
+                        "cache_key": "duration-cache",
+                        "cached_dttm": "2026-09-03T00:00:00+00:00",
+                    }
+                ]
+            }
+
+    producer_result = ProducerChartDataCommand(
+        _ProducerContext()  # type: ignore[arg-type]
+    ).run()
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Duration"],
+    }
+    chart = SimpleNamespace(
+        id=23,
+        slice_name="Duration Bullet",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params=json.dumps(form_data),
+    )
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return producer_result
+
+    with ExitStack() as stack:
+        stack.enter_context(
+            patch.object(module, "find_chart_by_identifier", return_value=chart)
+        )
+        stack.enter_context(
+            patch.object(
+                module,
+                "validate_chart_dataset",
+                return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "superset.charts.schemas.ChartDataQueryContextSchema.load",
+                return_value=_query_context_stub(),
+            )
+        )
+        stack.enter_context(patch.object(command_module, "ChartDataCommand", _Command))
+        if excel_engine == "xlsxwriter":
+            stack.enter_context(
+                patch.object(
+                    module, "_create_excel_with_openpyxl", side_effect=ImportError
+                )
+            )
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data",
+                {"request": {"identifier": 23, "format": format_}},
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert payload["row_count"] == len(rows)
+    assert payload["total_rows"] == len(rows)
+    assert payload["cache_status"]["cache_hit"] is True
+    if format_ == "json":
+        assert [row["Duration"] for row in payload["data"]] == expected
+    elif format_ == "csv":
+        decoded = list(csv.DictReader(io.StringIO(payload["csv_data"])))
+        assert [row["Duration"] or None for row in decoded] == expected
+    else:
+        workbook = load_workbook(io.BytesIO(base64.b64decode(payload["excel_data"])))
+        assert [cell.value for cell in workbook.active[1]] == ["Duration", "Revenue"]
+        assert [
+            workbook.active.cell(row=index + 2, column=1).value
+            for index in range(len(expected))
+        ] == expected
+
+
+@pytest.mark.asyncio
+async def test_form_data_key_bullet_duration_producer_uses_chart_data_wire(
+    mcp_server: Any,
+    mock_auth: Any,
+) -> None:
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    from superset.commands.chart.data.get_data_command import (
+        ChartDataCommand as ProducerChartDataCommand,
+    )
+    from superset.common.chart_data import ChartDataResultType
+    from superset.dataframe import df_to_records
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    rows = df_to_records(
+        pd.DataFrame(
+            {
+                "Duration": pd.Series(
+                    [timedelta(days=1, microseconds=3), pd.Timedelta(-1, "ns")],
+                    dtype=object,
+                ),
+                "Revenue": [1, 2],
+            }
+        ),
+        convert_big_integers=False,
+    )
+    expected = [
+        json.loads(json.dumps(row["Duration"], default=json.json_int_dttm_ser))
+        for row in rows
+    ]
+
+    class _ProducerContext:
+        result_type = ChartDataResultType.FULL
+
+        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["Duration", "Revenue"],
+                        "rowcount": len(rows),
+                    }
+                ]
+            }
+
+    producer_result = ProducerChartDataCommand(
+        _ProducerContext()  # type: ignore[arg-type]
+    ).run()
+    form_data = {
+        "datasource": "1__table",
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Duration"],
+    }
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return producer_result
+
+    with (
+        patch.object(
+            module, "get_cached_form_data", return_value=json.dumps(form_data)
+        ),
+        patch.object(
+            module,
+            "build_query_context_from_form_data",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data",
+                {"request": {"form_data_key": "duration-bullet"}},
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert payload["chart_id"] == 0
+    assert [row["Duration"] for row in payload["data"]] == expected
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
     ("grouped", "format_", "identifier_alias", "excel_engine"),
     [
         (False, "json", "id", None),

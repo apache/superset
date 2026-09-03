@@ -55,7 +55,10 @@ from superset.mcp_service.chart.preview_utils import (
     generate_preview_from_form_data,
     resolve_bullet_render_model,
 )
-from superset.mcp_service.chart.query_result import _chart_data_temporal_number
+from superset.mcp_service.chart.query_result import (
+    _chart_data_duration_text,
+    _chart_data_temporal_number,
+)
 from superset.mcp_service.chart.schemas import (
     ASCIIPreview,
     BulletChartConfig,
@@ -1161,6 +1164,78 @@ def test_bullet_compile_projects_dataframe_timestamp_before_validation() -> None
     ]
 
 
+def test_bullet_compile_projects_real_dataframe_durations_to_chart_data_wire() -> None:
+    from superset.commands.chart.data.get_data_command import ChartDataCommand
+    from superset.common.chart_data import ChartDataResultType
+    from superset.dataframe import df_to_records
+    from superset.utils import json
+
+    source_values = [
+        timedelta(0),
+        timedelta(days=1, seconds=2, microseconds=3),
+        pd.Timedelta(-1, unit="ns"),
+        pd.Timedelta("1 days 00:00:02.000003004"),
+        np.timedelta64(123456789, "ns"),
+        np.timedelta64("NaT"),
+    ]
+    rows = df_to_records(
+        pd.DataFrame(
+            {
+                "Duration": pd.Series(source_values, dtype=object),
+                "Revenue": range(1, len(source_values) + 1),
+            }
+        ),
+        convert_big_integers=False,
+    )
+    expected = [
+        None
+        if row["Duration"] is None
+        else json.loads(json.dumps(row["Duration"], default=json.json_int_dttm_ser))
+        for row in rows
+    ]
+
+    class _ProducerContext:
+        result_type = ChartDataResultType.FULL
+
+        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
+            return {"queries": [{"data": rows, "rowcount": len(rows)}]}
+
+    producer_result = ChartDataCommand(_ProducerContext()).run()  # type: ignore[arg-type]
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Duration"],
+    }
+    factory = MagicMock()
+    factory.create.return_value = MagicMock()
+    command = MagicMock()
+    command.run.return_value = producer_result
+    captured: list[list[dict[str, Any]]] = []
+
+    def validate(data: list[dict[str, Any]], config: dict[str, Any]) -> Any:
+        captured.append(data)
+        return resolve_bullet_render_model(data, config)
+
+    with (
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory",
+            return_value=factory,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            return_value=command,
+        ),
+        patch(
+            "superset.mcp_service.chart.preview_utils.resolve_bullet_render_model",
+            side_effect=validate,
+        ),
+    ):
+        result = _compile_chart(form_data, 7)
+
+    assert result.success is True
+    assert [row["Duration"] for row in captured[0]] == expected
+
+
 def test_bullet_compile_accepts_transitionless_dateutil_dataframe_producer() -> None:
     from superset.commands.chart.data.get_data_command import ChartDataCommand
     from superset.common.chart_data import ChartDataResultType
@@ -1315,6 +1390,66 @@ def test_bullet_vega_internal_category_key_avoids_adversarial_row_aliases() -> N
     assert specification["data"]["values"][0][category_field] == "North"
     assert bar["encoding"]["y"]["field"] == category_field
     assert "transform" not in specification
+
+
+def test_bullet_duration_categories_match_chart_data_wire_in_ascii_and_vega() -> None:
+    values = [
+        timedelta(0),
+        timedelta(microseconds=-1),
+        timedelta(days=1, seconds=2, microseconds=3),
+        pd.Timedelta(0),
+        pd.Timedelta(-1, unit="ns"),
+        pd.Timedelta("1 days 00:00:02.000003004"),
+        np.timedelta64(123456789, "ns"),
+        np.timedelta64("NaT"),
+    ]
+    expected = []
+    for value in values:
+        projected, reason = _chart_data_duration_text(value)
+        assert reason is None
+        expected.append("null" if projected is None else projected)
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Duration"],
+    }
+    data = [
+        {"Duration": value, "Revenue": index + 1} for index, value in enumerate(values)
+    ]
+
+    vega = _generate_vega_lite_preview_from_data(data, form_data).specification
+    bar = next(layer for layer in vega["layer"] if layer["mark"]["type"] == "bar")
+    category_field = bar["encoding"]["y"]["field"]
+    assert [row[category_field] for row in vega["data"]["values"]] == expected
+    assert [row["Duration"] for row in vega["data"]["values"]] == [
+        None if value == "null" else value for value in expected
+    ]
+    assert bar["encoding"]["tooltip"][0]["field"] == category_field
+
+    ascii_preview = _generate_ascii_preview_from_data(data, form_data).ascii_content
+    for value in expected:
+        assert value[:20] in ascii_preview
+
+
+def test_bullet_duration_category_rejects_subclass_without_hooks() -> None:
+    class HostileTimedelta(timedelta):
+        calls = 0
+
+        def _call(self, *_args: object) -> Any:
+            type(self).calls += 1
+            raise AssertionError("duration hook executed")
+
+        __abs__ = _call
+        __eq__ = _call
+        __lt__ = _call
+        __str__ = _call
+
+    with pytest.raises(BulletOutputError, match="unsupported value type"):
+        resolve_bullet_render_model(
+            [{"Duration": HostileTimedelta(seconds=1), "Revenue": 1}],
+            {"metric": "Revenue", "groupby": ["Duration"]},
+        )
+    assert HostileTimedelta.calls == 0
 
 
 @pytest.mark.parametrize(
@@ -1799,6 +1934,29 @@ def test_bullet_derived_category_amplification_is_rejected_at_preview_boundary()
     assert "response exceeds" in preview.error
 
 
+def test_bullet_derived_range_amplification_is_rejected_at_preview_boundary() -> None:
+    rows = [{"Region": "x", "Revenue": 1} for _ in range(9500)]
+    envelope = {"queries": [{"data": rows}]}
+    source_size = len(
+        __import__("json").dumps(envelope, separators=(",", ":")).encode()
+    )
+    assert source_size < 16 * 1024 * 1024
+
+    preview = _unsaved_bullet_result_with_result(
+        envelope,
+        {
+            "viz_type": "bullet",
+            "metric": "Revenue",
+            "groupby": ["Region"],
+            "ranges": "10",
+            "range_labels": "x" * 1800,
+        },
+    )
+    assert isinstance(preview, ChartError)
+    assert preview.error_type == "MalformedQueryResult"
+    assert "response exceeds" in preview.error
+
+
 def test_bullet_preview_applies_default_band_and_every_presentation_control() -> None:
     form_data = map_bullet_config(
         BulletChartConfig(
@@ -1833,6 +1991,17 @@ def test_bullet_preview_applies_default_band_and_every_presentation_control() ->
     assert bullet["y_axis_format"] == "$,.1f"
     assert bullet["show_labels"] is True
     assert bullet["show_legend"] is True
+    bar = next(
+        layer
+        for layer in preview.specification["layer"]
+        if layer["mark"]["type"] == "bar"
+    )
+    range_tooltip = next(
+        item for item in bar["encoding"]["tooltip"] if item.get("title") == "Range"
+    )
+    assert preview.specification["data"]["values"][0][range_tooltip["field"]] == (
+        "Capacity"
+    )
     assert any(
         layer["mark"]["type"] == "text" for layer in preview.specification["layer"]
     )
@@ -1841,6 +2010,139 @@ def test_bullet_preview_applies_default_band_and_every_presentation_control() ->
         for layer in preview.specification["layer"]
         if isinstance((encoding := layer.get("encoding")), dict)
     )
+
+
+@pytest.mark.parametrize(
+    ("measure", "ranges", "labels", "expected"),
+    [
+        (100, [300, 100, 200], ["High", "Low", "Mid"], "Low"),
+        (120.0, [300, 100, 200], ["High", "Low", "Mid"], "Mid"),
+        (Decimal("450"), [300, 100, 200], ["High", "Low", "Mid"], "> High"),
+        (-5, [10, -10, 0], ["Positive", "Negative", "Zero"], "Zero"),
+        (0, [10, 0], ["Positive", "Zero"], "Zero"),
+        (50, [100, 200], ["", "High"], None),
+        (250, [100, 200], ["Low", ""], None),
+    ],
+)
+def test_bullet_vega_measure_tooltip_matches_frontend_containing_range(
+    measure: int | float | Decimal,
+    ranges: list[int],
+    labels: list[str],
+    expected: str | None,
+) -> None:
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "ranges": ",".join(str(value) for value in ranges),
+        "range_labels": ",".join(labels),
+    }
+    specification = _generate_vega_lite_preview_from_data(
+        [{"Revenue": measure}], form_data
+    ).specification
+    bar = next(
+        layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
+    )
+    range_tooltip = [
+        item for item in bar["encoding"]["tooltip"] if item.get("title") == "Range"
+    ]
+
+    if expected is None:
+        assert range_tooltip == []
+        assert all(
+            not key.startswith("__mcp_bullet_range")
+            for key in specification["data"]["values"][0]
+        )
+    else:
+        assert len(range_tooltip) == 1
+        range_field = range_tooltip[0]["field"]
+        assert specification["data"]["values"][0][range_field] == expected
+
+
+def test_bullet_vega_range_tooltip_is_grouped_per_row_and_collision_safe() -> None:
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Region"],
+        "ranges": "100,200,300",
+        "range_labels": "Low,Mid,High",
+    }
+    rows = [
+        {
+            "Region": "North",
+            "Revenue": 100,
+            "__mcp_bullet_range": "occupied",
+            "__mcp_bullet_range_1": "occupied",
+        },
+        {
+            "Region": "South",
+            "Revenue": 120,
+            "__mcp_bullet_range": "occupied",
+            "__mcp_bullet_range_1": "occupied",
+        },
+        {
+            "Region": "West",
+            "Revenue": 350,
+            "__mcp_bullet_range": "occupied",
+            "__mcp_bullet_range_1": "occupied",
+        },
+    ]
+    specification = _generate_vega_lite_preview_from_data(rows, form_data).specification
+    bar = next(
+        layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
+    )
+    range_tooltip = next(
+        item for item in bar["encoding"]["tooltip"] if item.get("title") == "Range"
+    )
+    range_field = range_tooltip["field"]
+
+    assert range_field == "__mcp_bullet_range_2"
+    assert [row[range_field] for row in specification["data"]["values"]] == [
+        "Low",
+        "Mid",
+        "> High",
+    ]
+    assert "transform" not in specification
+
+
+def test_bullet_vega_omits_range_tooltip_for_frontend_default_labels() -> None:
+    specification = _generate_vega_lite_preview_from_data(
+        [{"Revenue": 5}],
+        {"viz_type": "bullet", "metric": "Revenue", "ranges": "10,20"},
+    ).specification
+    bar = next(
+        layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
+    )
+    assert all(item.get("title") != "Range" for item in bar["encoding"]["tooltip"])
+
+
+def test_bullet_vega_empty_range_tooltip_matches_grouping_semantics() -> None:
+    presentation = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "ranges": "-1,1",
+        "range_labels": "Negative,Positive",
+    }
+    ungrouped = _generate_vega_lite_preview_from_data([], presentation).specification
+    grouped = _generate_vega_lite_preview_from_data(
+        [], {**presentation, "groupby": ["Region"]}
+    ).specification
+    ungrouped_bar = next(
+        layer for layer in ungrouped["layer"] if layer["mark"]["type"] == "bar"
+    )
+    grouped_bar = next(
+        layer for layer in grouped["layer"] if layer["mark"]["type"] == "bar"
+    )
+
+    range_tooltip = next(
+        item
+        for item in ungrouped_bar["encoding"]["tooltip"]
+        if item.get("title") == "Range"
+    )
+    assert ungrouped["data"]["values"][0][range_tooltip["field"]] == "Positive"
+    assert all(
+        item.get("title") != "Range" for item in grouped_bar["encoding"]["tooltip"]
+    )
+    assert grouped["data"]["values"] == []
 
 
 def test_bullet_ascii_uses_shared_roles_labels_and_format() -> None:
