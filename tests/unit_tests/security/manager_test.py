@@ -1920,6 +1920,51 @@ def test_query_context_modified_chartless_non_native_filter_allowed(
     assert not query_context_modified(qc)
 
 
+def test_query_context_modified_drill_by_row_expanding_result_type_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A Drill By request (``slice_id`` 0 sentinel + source ``chart_id``) is
+    rejected when it asks for a row-expanding result type: that would bypass
+    the drillable-dimension allowlist raise_for_access already checked for it
+    and return every column instead.
+    """
+    query = SimpleNamespace(
+        columns=[], metrics=[], groupby=["region"], result_type="samples"
+    )
+    qc = mocker.MagicMock()
+    qc.slice_ = None
+    qc.form_data = {
+        "dashboardId": 10,
+        "slice_id": 0,
+        "chart_id": 5,
+        "groupby": ["region"],
+    }
+    qc.queries = [query]
+    assert query_context_modified(qc)
+
+    query.result_type = "drill_detail"
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_drill_to_detail_row_expanding_result_type_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Drill to Detail (no ``slice_id``/``chart_id`` at all) is unaffected: it is
+    already meant to expose every column of a dataset attached to the
+    dashboard, and is validated by raise_for_access rather than here.
+    """
+    query = SimpleNamespace(
+        columns=[], metrics=[], groupby=[], result_type="drill_detail"
+    )
+    qc = mocker.MagicMock()
+    qc.slice_ = None
+    qc.form_data = {"dashboardId": 10}
+    qc.queries = [query]
+    assert not query_context_modified(qc)
+
+
 def test_query_context_modified_native_filter_row_expanding_result_type_blocked(
     mocker: MockerFixture,
 ) -> None:
