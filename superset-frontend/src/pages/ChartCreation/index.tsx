@@ -17,9 +17,8 @@
  * under the License.
  */
 import { ReactNode, useState, useEffect, useCallback, useMemo } from 'react';
-import rison from 'rison';
 import { t } from '@apache-superset/core/translation';
-import { isDefined, JsonResponse, SupersetClient } from '@superset-ui/core';
+import { FeatureFlag, isDefined, isFeatureEnabled } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
@@ -29,6 +28,7 @@ import {
   Button,
   Loading,
   Steps,
+  Tag,
 } from '@superset-ui/core/components';
 import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -43,6 +43,7 @@ import {
   Dataset,
   DatasetSelectLabel,
 } from 'src/features/datasets/DatasetSelectLabel';
+import { fetchDatasourceList } from 'src/features/datasets/fetchDatasourceList';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
   datasetLabel,
@@ -53,6 +54,19 @@ export interface ChartCreationProps {
   user: UserWithPermissionsAndRoles;
   addSuccessToast: (arg: string) => void;
 }
+
+type DatasourceOption = {
+  id: number;
+  label: ReactNode;
+  value: string;
+  table_name: string;
+};
+
+/**
+ * AsyncSelect reports the chosen option as a LabeledValue, so only the
+ * fields it carries can be relied on after selection.
+ */
+type SelectedDatasource = Pick<DatasourceOption, 'label' | 'value'>;
 
 const ESTIMATED_NAV_HEIGHT = 56;
 const ELEMENTS_EXCEPT_VIZ_GALLERY = ESTIMATED_NAV_HEIGHT + 250;
@@ -167,12 +181,52 @@ const StyledStepDescription = styled.div`
   `}
 `;
 
+// The first column shrinks to zero so the name ellipsizes and the tag stays
+// visible. AsyncSelect renders option labels inside a nowrap container, which
+// is what makes that ellipsis take effect.
+const StyledDatasourceOption = styled.div`
+  ${({ theme }) => `
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: ${theme.sizeXS}px;
+    align-items: center;
+    width: 100%;
+  `}
+`;
+
+/**
+ * Builds a picker option whose value carries the Explore datasource identity
+ * (`<id>__table` or `<id>__semantic_view`). Datasets and semantic views are
+ * numbered independently, so the type suffix is what keeps them apart.
+ */
+const createDatasourceOption = (
+  item: Dataset,
+  withTypeTag: boolean,
+): DatasourceOption => {
+  const isSemanticView = item.kind === 'semantic_view';
+  const datasourceLabel = DatasetSelectLabel(item);
+  return {
+    id: item.id,
+    value: `${item.id}__${isSemanticView ? 'semantic_view' : 'table'}`,
+    table_name: item.table_name,
+    label: withTypeTag ? (
+      <StyledDatasourceOption>
+        {datasourceLabel}
+        <Tag>{isSemanticView ? t('Semantic View') : t('Dataset')}</Tag>
+      </StyledDatasourceOption>
+    ) : (
+      datasourceLabel
+    ),
+  };
+};
+
 export const ChartCreation = ({
   user,
   addSuccessToast,
 }: ChartCreationProps) => {
   const theme = useTheme();
   const history = useHistory();
+  const semanticLayersEnabled = isFeatureEnabled(FeatureFlag.SemanticLayers);
 
   const canCreateDataset = useMemo(
     () => findPermission('can_write', 'Dataset', user.roles),
@@ -185,8 +239,8 @@ export const ChartCreation = ({
   );
 
   const [datasource, setDatasource] = useState<
-    { label: string | ReactNode; value: string } | undefined
-  >(undefined);
+    SelectedDatasource | undefined
+  >();
   const [vizType, setVizType] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(hasDatasetParam);
 
@@ -203,10 +257,10 @@ export const ChartCreation = ({
     history.push(exploreUrl());
   }, [history, exploreUrl]);
 
+  // AsyncSelect's onChange is typed for every select value shape; narrow it
+  // to the labelled option this picker produces.
   const changeDatasource = useCallback(
-    (newDatasource: { label: string | ReactNode; value: string }) => {
-      setDatasource(newDatasource);
-    },
+    (selected: SelectedDatasource) => setDatasource(selected),
     [],
   );
 
@@ -225,54 +279,34 @@ export const ChartCreation = ({
     }
   }, [isBtnDisabled, gotoSlice]);
 
+  // Type tags only make sense once the list can mix datasets and semantic
+  // views, so they follow the feature flag rather than the endpoint used.
+  const toDatasourceOption = useCallback(
+    (item: Dataset) => createDatasourceOption(item, semanticLayersEnabled),
+    [semanticLayersEnabled],
+  );
+
   const loadDatasources = useCallback(
-    (search: string, page: number, pageSize: number, exactMatch = false) => {
-      const query = rison.encode({
-        columns: [
-          'id',
-          'table_name',
-          'datasource_type',
-          'database.database_name',
-          'schema',
-        ],
-        filters: [
-          { col: 'table_name', opr: exactMatch ? 'eq' : 'ct', value: search },
-        ],
-        page,
-        page_size: pageSize,
-        order_column: 'table_name',
-        order_direction: 'asc',
-      });
-      return SupersetClient.get({
-        endpoint: `/api/v1/dataset/?q=${query}`,
-      }).then((response: JsonResponse) => {
-        const list: {
-          id: number;
-          label: string | ReactNode;
-          value: string;
-          table_name: string;
-        }[] = response.json.result.map((item: Dataset) => ({
-          id: item.id,
-          value: `${item.id}__${item.datasource_type}`,
-          label: DatasetSelectLabel(item),
-          table_name: item.table_name,
-        }));
-        return {
-          data: list,
-          totalCount: response.json.count,
-        };
-      });
-    },
-    [],
+    (search: string, page: number, pageSize: number) =>
+      fetchDatasourceList(search, page, pageSize).then(({ result, count }) => ({
+        data: result.map(toDatasourceOption),
+        totalCount: count,
+      })),
+    [toDatasourceOption],
   );
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search).get('dataset');
     if (params) {
-      loadDatasources(params, 0, 1, true)
-        .then(r => {
-          const newDatasource = r.data[0];
-          setDatasource(newDatasource);
+      // The URL names a dataset that was just saved, so resolve it against
+      // datasets only: a semantic view with the same name must not win.
+      fetchDatasourceList(params, 0, 1, {
+        exactMatch: true,
+        datasetsOnly: true,
+      })
+        .then(({ result }) => {
+          const [dataset] = result;
+          setDatasource(dataset && toDatasourceOption(dataset));
           setLoading(false);
         })
         .catch(() => {
@@ -280,7 +314,7 @@ export const ChartCreation = ({
         });
       addSuccessToast(t('The dataset has been saved'));
     }
-  }, [loadDatasources, addSuccessToast]);
+  }, [toDatasourceOption, addSuccessToast]);
 
   const isButtonDisabled = isBtnDisabled();
   const VIEW_INSTRUCTIONS_TEXT = t('view instructions');

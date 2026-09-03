@@ -218,7 +218,9 @@ class DashboardJSONMetadataSchema(Schema):
     color_namespace = fields.Str(allow_none=True)
     positions = fields.Dict(allow_none=True)
     label_colors = fields.Dict()
-    shared_label_colors = SharedLabelsColorsField()
+    shared_label_colors = SharedLabelsColorsField(
+        metadata={"type": "array", "items": {"type": "string"}}
+    )
     map_label_colors = fields.Dict()
     color_scheme_domain = fields.List(fields.Str())
     cross_filters_enabled = fields.Boolean(dump_default=True)
@@ -546,7 +548,9 @@ class DashboardColorsConfigUpdateSchema(BaseDashboardSchema):
     color_namespace = fields.String(allow_none=True)
     color_scheme = fields.String(allow_none=True)
     map_label_colors = fields.Dict(allow_none=False)
-    shared_label_colors = SharedLabelsColorsField()
+    shared_label_colors = SharedLabelsColorsField(
+        metadata={"type": "array", "items": {"type": "string"}}
+    )
     label_colors = fields.Dict(allow_none=False)
     color_scheme_domain = fields.List(fields.String(), allow_none=False)
 

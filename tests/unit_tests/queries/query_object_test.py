@@ -718,3 +718,20 @@ def test_post_processing_keeps_an_entry_without_an_operation():
     query_object = QueryObject(row_limit=1, post_processing=post_processing)
 
     assert query_object.post_processing == post_processing
+
+
+@pytest.mark.parametrize("operation", ["escape_separator", "unescape_separator"])
+def test_exec_post_processing_rejects_string_helpers(
+    app_context: None, operation: str
+) -> None:
+    """`escape_separator`/`unescape_separator` are str -> str helpers used by
+    `flatten`, not DataFrame post-processing operations, and must not be
+    reachable as a `post_processing` operation name."""
+    df = pd.DataFrame({"value": [1, 2, 3]})
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": operation, "options": {}}],
+    )
+
+    with pytest.raises(InvalidPostProcessingError):
+        query_object.exec_post_processing(df)

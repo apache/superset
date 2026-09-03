@@ -624,6 +624,9 @@ class DashboardRestApi(
         EmbeddedDashboardResponseSchema,
         DashboardScreenshotPostSchema,
         VersionListItemSchema,
+        DashboardChartCustomizationsConfigUpdateSchema,
+        DashboardColorsConfigUpdateSchema,
+        DashboardNativeFiltersConfigUpdateSchema,
     )
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,

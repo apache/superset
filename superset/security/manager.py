@@ -22,6 +22,7 @@ import logging
 import re
 import time
 from collections import defaultdict
+from collections.abc import Set as AbstractSet
 from math import ceil
 from types import SimpleNamespace
 from typing import (
@@ -2630,7 +2631,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self,
         database: "Database",
         catalog: Optional[str],
-        schemas: set[str],
+        schemas: AbstractSet[str] | list[str],
         hierarchical: bool = True,
     ) -> set[str]:
         """
@@ -2640,13 +2641,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :param database: The SQL database
         :param catalog: An optional database catalog
-        :param schemas: A set of candidate schemas
+        :param schemas: The candidate schemas
         :param hierarchical: Whether to check using the hierarchical permission logic
         :returns: The set of accessible database schemas
         """
 
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlaTable
+
+        # Candidate names may come from cached metadata calls (eg,
+        # ``Database.get_all_schema_names``) whose values can be deserialized
+        # as lists rather than sets depending on the cache serializer, so
+        # normalize before applying set operations.
+        schemas = set(schemas)
 
         default_catalog = database.get_default_catalog()
         catalog = catalog or default_catalog
@@ -2700,19 +2707,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def get_catalogs_accessible_by_user(
         self,
         database: "Database",
-        catalogs: set[str],
+        catalogs: AbstractSet[str] | list[str],
         hierarchical: bool = True,
     ) -> set[str]:
         """
         Returned a filtered list of the catalogs accessible by the user.
 
         :param database: The SQL database
-        :param catalogs: A set of candidate catalogs
+        :param catalogs: The candidate catalogs
         :param hierarchical: Whether to check using the hierarchical permission logic
         :returns: The set of accessible database catalogs
         """
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlaTable
+
+        # Candidate names may come from cached metadata calls (eg,
+        # ``Database.get_all_catalog_names``) whose values can be deserialized
+        # as lists rather than sets depending on the cache serializer, so
+        # normalize before applying set operations.
+        catalogs = set(catalogs)
 
         if hierarchical and self.can_access_database(database):
             return catalogs

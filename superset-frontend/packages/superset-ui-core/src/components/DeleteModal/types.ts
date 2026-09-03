@@ -32,4 +32,10 @@ export interface DeleteModalProps {
    * friction and uses a primary (non-danger) confirm button.
    */
   recoverable?: boolean;
+  /** Disable confirmation independently of the typed-text gate. */
+  disablePrimaryButton?: boolean;
+  /** Show progress on the primary action and prevent duplicate submission. */
+  loading?: boolean;
+  /** Clear and re-arm the typed-text gate when the reviewed data changes. */
+  confirmationResetKey?: string | number;
 }

@@ -21,6 +21,7 @@ import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
+from sqlalchemy.dialects import sqlite
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session
 
@@ -45,8 +46,119 @@ from superset.models.helpers import (
     validate_rendered_expression,
 )
 from superset.sql.parse import Table
-from superset.superset_typing import QueryObjectDict
+from superset.superset_typing import AdhocMetric, QueryObjectDict
 from superset.utils import json
+
+
+def test_get_sqla_col_quotes_snowflake_case_sensitive_identifier(
+    mocker: MockerFixture,
+) -> None:
+    """Snowflake physical columns retain their exact reflected case in generated SQL."""
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(
+        Database,
+        "get_db_engine_spec",
+        return_value=SnowflakeEngineSpec,
+    )
+    table = SqlaTable(
+        table_name="bug_test",
+        database=database,
+        normalize_columns=False,
+    )
+    tbl_column = TableColumn(column_name="id", type="INTEGER", table=table)
+
+    rendered = str(
+        tbl_column.get_sqla_col().compile(
+            dialect=sqlite.dialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+
+    assert rendered == '"id"'
+
+
+@pytest.mark.parametrize("time_grain", [None, "P1D"])
+def test_get_timestamp_expression_quotes_snowflake_case_sensitive_identifier(
+    mocker: MockerFixture,
+    time_grain: str | None,
+) -> None:
+    """Snowflake timestamp paths quote exact-case physical columns."""
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(
+        Database,
+        "get_db_engine_spec",
+        return_value=SnowflakeEngineSpec,
+    )
+    table = SqlaTable(
+        table_name="bug_test",
+        database=database,
+        normalize_columns=False,
+    )
+    tbl_column = TableColumn(
+        column_name="created_at",
+        type="TIMESTAMP",
+        table=table,
+    )
+
+    rendered = str(
+        tbl_column.get_timestamp_expression(time_grain=time_grain).compile(
+            dialect=sqlite.dialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+
+    assert '"created_at"' in rendered
+
+
+def test_adhoc_metric_to_sqla_quotes_snowflake_column_absent_from_columns_by_name(
+    mocker: MockerFixture,
+) -> None:
+    """A SIMPLE adhoc metric quotes exact-case Snowflake columns even when the
+    metric's column is unknown to the dataset.
+
+    ``adhoc_metric_to_sqla`` only routes through ``TableColumn.get_sqla_col`` when
+    the column is present in ``columns_by_name``; the fallback builds a bare
+    ``column()`` and must apply the same identifier preparation, otherwise
+    SQLAlchemy upper-cases the unquoted name and Snowflake fails to resolve it.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    mocker.patch.object(
+        Database,
+        "get_db_engine_spec",
+        return_value=SnowflakeEngineSpec,
+    )
+    table = SqlaTable(
+        table_name="bug_test",
+        database=database,
+        normalize_columns=False,
+    )
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "aggregate": "SUM",
+        "column": {"column_name": "amount"},
+        "label": "total",
+    }
+
+    # Deliberately empty so the lookup misses and the fallback branch runs.
+    sqla_metric = table.adhoc_metric_to_sqla(metric, {})
+
+    rendered = str(
+        sqla_metric.compile(
+            dialect=sqlite.dialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+
+    assert '"amount"' in rendered, (
+        f"Expected the exact-case column to be quoted, got: {rendered}"
+    )
+    assert "(amount)" not in rendered, f"Column was aggregated unquoted: {rendered}"
 
 
 def test_query_bubbles_errors(mocker: MockerFixture) -> None:

@@ -43,6 +43,7 @@ import type { DatasetObject } from 'src/features/datasets/types';
 import { withCertificationFields } from '../utils';
 import { mapSubjectValuesToIds } from 'src/features/subjects/SubjectPicker';
 import type { DatasourceModalProps } from '../types';
+import { setDatasetCertification } from '../components/DatasourceEditor/datasetCertification';
 
 const DatasourceEditor = AsyncEsmComponent(
   () => import('../components/DatasourceEditor'),
@@ -188,7 +189,12 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         datasource.cache_timeout === '' ? null : datasource.cache_timeout,
       is_sqllab_view: datasource.is_sqllab_view,
       template_params: datasource.template_params,
-      extra: datasource.extra,
+      extra: datasource.dataset_certification_changed
+        ? setDatasetCertification(datasource.extra, {
+            certified_by: datasource.certified_by,
+            certification_details: datasource.certification_details,
+          })
+        : datasource.extra,
       is_managed_externally: datasource.is_managed_externally,
       external_url: datasource.external_url,
       metrics: datasource?.metrics?.map(

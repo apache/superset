@@ -647,49 +647,57 @@ class SQLExecutor:
 
         results_list = []
 
-        # Use consistent execution path for all queries
-        with self.database.get_raw_connection(catalog=catalog, schema=schema) as conn:
-            with contextlib.closing(conn.cursor()) as cursor:
-                execution_results = execute_sql_with_cursor(
-                    database=self.database,
-                    cursor=cursor,
-                    statements=[
-                        stmt.format() for stmt in transformed_script.statements
-                    ],
-                    query=query,
-                    log_query_fn=self._log_query,
+        def execute() -> list[tuple[str, SupersetResultSet | None, float, int]]:
+            with self.database.get_raw_connection(
+                catalog=catalog, schema=schema
+            ) as conn:
+                with contextlib.closing(conn.cursor()) as cursor:
+                    return execute_sql_with_cursor(
+                        database=self.database,
+                        cursor=cursor,
+                        statements=[
+                            stmt.format() for stmt in transformed_script.statements
+                        ],
+                        query=query,
+                        log_query_fn=self._log_query,
+                    )
+
+        from superset.utils.oauth2 import execute_with_oauth2_retry
+
+        execution_results = execute_with_oauth2_retry(
+            self.database, execute, can_retry=lambda: not query.progress
+        )
+
+        # If execution was stopped or returned no results, return early
+        if not execution_results:
+            return []
+
+        # Build StatementResult for each executed statement
+        # with both original and executed SQL
+        for orig_sql, (exec_sql, result_set, exec_time, rowcount) in zip(
+            original_sqls, execution_results, strict=True
+        ):
+            if result_set is not None:
+                # SELECT statement
+                df = result_set.to_pandas_df()
+                stmt_result = StatementResult(
+                    original_sql=orig_sql,
+                    executed_sql=exec_sql,
+                    data=df,
+                    row_count=len(df),
+                    execution_time_ms=exec_time,
+                )
+            else:
+                # DML statement - no data, just row count
+                stmt_result = StatementResult(
+                    original_sql=orig_sql,
+                    executed_sql=exec_sql,
+                    data=None,
+                    row_count=rowcount,
+                    execution_time_ms=exec_time,
                 )
 
-                # If execution was stopped or returned no results, return early
-                if not execution_results:
-                    return []
-
-                # Build StatementResult for each executed statement
-                # with both original and executed SQL
-                for orig_sql, (exec_sql, result_set, exec_time, rowcount) in zip(
-                    original_sqls, execution_results, strict=True
-                ):
-                    if result_set is not None:
-                        # SELECT statement
-                        df = result_set.to_pandas_df()
-                        stmt_result = StatementResult(
-                            original_sql=orig_sql,
-                            executed_sql=exec_sql,
-                            data=df,
-                            row_count=len(df),
-                            execution_time_ms=exec_time,
-                        )
-                    else:
-                        # DML statement - no data, just row count
-                        stmt_result = StatementResult(
-                            original_sql=orig_sql,
-                            executed_sql=exec_sql,
-                            data=None,
-                            row_count=rowcount,
-                            execution_time_ms=exec_time,
-                        )
-
-                    results_list.append(stmt_result)
+            results_list.append(stmt_result)
 
         return results_list
 

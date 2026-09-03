@@ -70,5 +70,24 @@ alert or report is removed, and the reason is shown. Charts that belong to
 dashboards are removed from those dashboards as part of the deletion; the
 dashboards themselves are left in place.
 
+Before an archived dataset is deleted permanently, Superset checks which
+charts still use it and which dashboards contain those charts. The confirmation
+shows the total number of affected charts and dashboards, identifies the ones
+you are allowed to access, and reports the remaining objects only as restricted
+counts. Restricted names, identifiers, and links are not displayed. Archived
+dependents are included because they can still be recovered after the dataset
+is gone.
+
+Deleting the dataset does not delete those charts or dashboards. They remain
+in place without a usable dataset and may therefore be broken. If there are no
+dependents, the confirmation explicitly reports zero affected charts and
+dashboards.
+
+The dependency check fails closed. While it is loading, or if its result is
+unavailable, permanent deletion is disabled; cancel or retry the check. Superset
+checks again when you submit. If dependencies changed while the confirmation
+was open, the refreshed impact replaces the previous result and you must type
+DELETE again before proceeding.
+
 Objects are also deleted permanently on their own once they have been in the
 archive longer than the retention window, without anyone acting.
