@@ -3078,6 +3078,96 @@ async def test_unsaved_generic_get_data_returns_finite_decimal_metadata(
 
 
 @pytest.mark.asyncio
+async def test_unsaved_get_data_canonicalizes_decimal_nonfinite_at_producer(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The public MCP ChartData wire never receives Decimal non-finite tokens."""
+    from fastmcp import Client
+
+    from superset.dataframe import df_to_records
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    form_data = {
+        "datasource_id": 7,
+        "datasource_type": "table",
+        "datasource": "7__table",
+        "viz_type": "table",
+        "all_columns": ["value"],
+    }
+    finite = Decimal("0.10000000000000000001")
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            rows = df_to_records(
+                pd.DataFrame(
+                    {
+                        "value": pd.Series(
+                            [
+                                Decimal("NaN"),
+                                Decimal("sNaN"),
+                                Decimal("Infinity"),
+                                Decimal("-Infinity"),
+                                finite,
+                            ],
+                            dtype=object,
+                        )
+                    }
+                ),
+                convert_big_integers=False,
+            )
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["value"],
+                        "coltypes": [GenericDataType.NUMERIC],
+                        "rowcount": len(rows),
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        module, "get_cached_form_data", lambda _key: json.dumps(form_data)
+    )
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: _query_context_stub(),
+    )
+    monkeypatch.setattr(module, "set_query_context_form_data", lambda *_args: None)
+    monkeypatch.setattr(
+        module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
+    )
+    monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_chart_data", {"request": {"form_data_key": "decimal-nonfinite"}}
+        )
+
+    payload = json.loads(result.content[0].text)
+    assert [row["value"] for row in payload["data"]] == [
+        None,
+        None,
+        None,
+        None,
+        "0.10000000000000000001",
+    ]
+
+
+@pytest.mark.asyncio
 async def test_unsaved_get_data_reports_sampled_all_null_completeness(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -3891,6 +3981,22 @@ async def test_saved_bullet_get_data_projects_dataframe_timestamps_to_epoch(
     command_module = importlib.import_module(
         "superset.commands.chart.data.get_data_command"
     )
+    dateutil_dublin = dateutil_tz.gettz("Europe/Dublin")
+    dateutil_new_york = dateutil_tz.gettz("America/New_York")
+    assert dateutil_dublin is not None
+    assert dateutil_new_york is not None
+    dublin_fold = datetime(
+        2024,
+        10,
+        27,
+        1,
+        30,
+        0,
+        123456,
+        tzinfo=dateutil_dublin,
+        fold=1,
+    )
+    new_york_gap = datetime(2024, 3, 10, 2, 30, 0, 123456, tzinfo=dateutil_new_york)
     form_data = {
         "viz_type": "bullet",
         "metric": "Revenue",
@@ -3932,6 +4038,11 @@ async def test_saved_bullet_get_data_projects_dataframe_timestamps_to_epoch(
         ),
         pd.Timestamp("1969-12-31 23:59:59.999999999"),
         pd.NaT,
+        dublin_fold,
+        new_york_gap,
+        datetime(2040, 7, 1, 12, 0, 0, 123456, tzinfo=dateutil_new_york),
+        pd.Timestamp(dublin_fold),
+        pd.Timestamp(new_york_gap),
     ]
     rows = df_to_records(
         pd.DataFrame(
@@ -3985,6 +4096,11 @@ async def test_saved_bullet_get_data_projects_dataframe_timestamps_to_epoch(
         1730615400000.0,
         -0.0010000000000287557,
         None,
+        1729989000123.456,
+        1710052200123.456,
+        2224774800123.456,
+        1729989000123.456,
+        1710052200123.456,
     ]
 
 

@@ -300,6 +300,22 @@ async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
     )
     zoneinfo_tz = ZoneInfo("America/New_York")
     pytz_tz = pytz.timezone("America/New_York")
+    dateutil_dublin = dateutil_tz.gettz("Europe/Dublin")
+    dateutil_new_york = dateutil_tz.gettz("America/New_York")
+    assert dateutil_dublin is not None
+    assert dateutil_new_york is not None
+    dublin_fold = datetime(
+        2024,
+        10,
+        27,
+        1,
+        30,
+        0,
+        123456,
+        tzinfo=dateutil_dublin,
+        fold=1,
+    )
+    new_york_gap = datetime(2024, 3, 10, 2, 30, 0, 123456, tzinfo=dateutil_new_york)
     source_values = [
         pd.Timestamp("2024-01-02 03:04:05.123456789"),
         pd.Timestamp("2024-01-02 08:34:05.123456789+05:30"),
@@ -310,6 +326,22 @@ async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
         pd.Timestamp("1969-12-31 23:59:59.999999999"),
         date(2024, 1, 2),
         pd.NaT,
+        dublin_fold,
+        new_york_gap,
+        datetime(2040, 7, 1, 12, 0, 0, 123456, tzinfo=dateutil_new_york),
+        datetime(
+            2024,
+            3,
+            10,
+            2,
+            30,
+            0,
+            123456,
+            tzinfo=dateutil_tz.tzoffset("EDT", -4 * 3600),
+        ),
+        datetime(2024, 3, 10, 6, 30, 0, 123456, tzinfo=timezone.utc),
+        pd.Timestamp(dublin_fold),
+        pd.Timestamp(new_york_gap),
     ]
     rows = df_to_records(
         pd.DataFrame(
@@ -320,6 +352,10 @@ async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
         ),
         convert_big_integers=False,
     )
+    if format_ == "ascii":
+        # ASCII intentionally displays at most ten categories. Keep every
+        # dateutil named-zone edge in this public-format invocation.
+        rows = rows[9:12]
     expected = [
         "1704164645123.456",
         "1704164645123.456",
@@ -330,6 +366,13 @@ async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
         "-0.0010000000000287557",
         "1704153600000",
         "null",
+        "1729989000123.456",
+        "1710052200123.456",
+        "2224774800123.456",
+        "1710052200123.456",
+        "1710052200123.456",
+        "1729989000123.456",
+        "1710052200123.456",
     ]
     form_data = {
         "viz_type": "bullet",
@@ -400,7 +443,7 @@ async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
     payload = utils_json.loads(result.content[0].text)
     if format_ == "ascii":
         content = payload["content"]["ascii_content"]
-        for category in set(expected):
+        for category in set(expected[9:12]):
             assert category[:20] in content
     else:
         specification = payload["content"]["specification"]
@@ -422,6 +465,13 @@ async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
             -0.0010000000000287557,
             1704153600000.0,
             None,
+            1729989000123.456,
+            1710052200123.456,
+            2224774800123.456,
+            1710052200123.456,
+            1710052200123.456,
+            1729989000123.456,
+            1710052200123.456,
         ]
 
 

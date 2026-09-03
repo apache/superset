@@ -55,6 +55,7 @@ from superset.mcp_service.chart.query_result import (
 )
 from superset.utils import json
 from superset.utils.core import GenericDataType
+from superset.utils.dates import datetime_to_epoch
 
 
 def _hostile_call(*_args: object, **_kwargs: object) -> Any:
@@ -413,6 +414,91 @@ def test_query_result_accepts_dateutil_packaged_zoneinfo_type() -> None:
 
 
 @pytest.mark.parametrize(
+    ("zone_name", "wall_time", "fold"),
+    [
+        ("Europe/Dublin", (2024, 10, 27, 1, 30, 0, 123456), 1),
+        ("America/New_York", (2024, 3, 10, 2, 30, 0, 123456), 0),
+        ("America/New_York", (2040, 7, 1, 12, 0, 0, 123456), 0),
+        ("America/New_York", (1969, 12, 31, 23, 59, 59, 999999), 0),
+    ],
+)
+def test_dateutil_named_datetime_matches_chart_data_wire_without_zone_rewrite(
+    zone_name: str,
+    wall_time: tuple[int, int, int, int, int, int, int],
+    fold: int,
+) -> None:
+    """Named dateutil wall-time choices remain the Chart Data source of truth."""
+    source_timezone = dateutil_tz.gettz(zone_name)
+    assert source_timezone is not None
+    value = datetime(*wall_time, tzinfo=source_timezone, fold=fold)
+    expected_epoch = datetime_to_epoch(value)
+    expected_text = value.isoformat()
+
+    projected, reason = query_result_module._chart_data_temporal_number(value)
+    data, failure = query_result_data(
+        {"queries": [{"data": [{"value": value}], "rowcount": 1}]}
+    )
+
+    assert reason is None
+    assert projected == expected_epoch
+    assert failure is None
+    assert data == [[{"value": expected_text}]]
+
+
+def test_dateutil_named_datetime_projection_never_calls_timezone_hooks(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    dublin = dateutil_tz.gettz("Europe/Dublin")
+    new_york = dateutil_tz.gettz("America/New_York")
+    assert dublin is not None
+    assert new_york is not None
+    values = [
+        datetime(2024, 10, 27, 1, 30, tzinfo=dublin, fold=1),
+        datetime(2024, 3, 10, 2, 30, tzinfo=new_york),
+        datetime(2040, 7, 1, 12, tzinfo=new_york),
+    ]
+    expected_epochs = [datetime_to_epoch(value) for value in values]
+    expected_text = [value.isoformat() for value in values]
+    for timezone_type in {type(value.tzinfo) for value in values}:
+        for method_name in ("utcoffset", "dst", "tzname", "fromutc"):
+            monkeypatch.setattr(timezone_type, method_name, _hostile_call)
+
+    for value, epoch, text in zip(values, expected_epochs, expected_text, strict=True):
+        projected, reason = query_result_module._chart_data_temporal_number(value)
+        normalized, normalize_reason = query_result_module._trusted_datetime_text(value)
+
+        assert reason is None
+        assert projected == epoch
+        assert normalize_reason is None
+        assert normalized == text
+
+
+def test_dateutil_named_datetime_fails_closed_for_untrusted_transition_table() -> None:
+    import copy
+
+    class HostileTransition(int):
+        def __lt__(self, _other: object) -> bool:
+            raise AssertionError("hostile transition comparison executed")
+
+        def bit_length(self) -> int:
+            raise AssertionError("hostile transition bit_length executed")
+
+    source_timezone = dateutil_tz.gettz("America/New_York")
+    assert source_timezone is not None
+    mutated_timezone = copy.copy(source_timezone)
+    namespace = object.__getattribute__(mutated_timezone, "__dict__")
+    transition_info = dict.__getitem__(namespace, "_trans_idx")
+    dict.__setitem__(namespace, "_trans_list", (HostileTransition(0),))
+    dict.__setitem__(namespace, "_trans_idx", (transition_info[0],))
+    value = datetime(2024, 3, 10, 2, 30, tzinfo=mutated_timezone)
+
+    projected, reason = query_result_module._chart_data_temporal_number(value)
+
+    assert projected is None
+    assert reason == "contains a datetime with an unsupported timezone"
+
+
+@pytest.mark.parametrize(
     "tzinfo_value",
     [dateutil_tz.tzoffset("east", 3600), pytz.FixedOffset(60)],
 )
@@ -662,17 +748,37 @@ def test_query_result_canonicalizes_exact_numeric_missing_values(value: object) 
 
 
 def test_real_dataframe_and_chart_command_canonicalize_numeric_missing_values() -> None:
-    """Pandas leaves NaN records after Superset converts infinities to NaN."""
+    """The producer emits strict JSON nulls while preserving finite Decimals."""
     from superset.commands.chart.data.get_data_command import ChartDataCommand
     from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
     from superset.common.query_context import QueryContext
     from superset.common.query_context_processor import QueryContextProcessor
 
+    class HostileDecimal(Decimal):
+        def is_finite(self) -> bool:
+            raise AssertionError("hostile Decimal is_finite hook executed")
+
+        def __eq__(self, _other: object) -> bool:
+            raise AssertionError("hostile Decimal equality hook executed")
+
+        def __float__(self) -> float:
+            raise AssertionError("hostile Decimal float hook executed")
+
+    finite = Decimal("0.10000000000000000001")
+    hostile = HostileDecimal("NaN")
     frame = pd.DataFrame(
         {
             "builtin_missing": [float("nan")],
             "numpy_missing": [np.float64("nan")],
             "nullable_missing": pd.Series([pd.NA], dtype="Float64"),
+            "decimal_nan": pd.Series([Decimal("NaN")], dtype=object),
+            "decimal_snan": pd.Series([Decimal("sNaN")], dtype=object),
+            "decimal_infinity": pd.Series([Decimal("Infinity")], dtype=object),
+            "decimal_negative_infinity": pd.Series(
+                [Decimal("-Infinity")], dtype=object
+            ),
+            "decimal_finite": pd.Series([finite], dtype=object),
+            "hostile_decimal": pd.Series([hostile], dtype=object),
         }
     )
     processor_context = SimpleNamespace(
@@ -680,10 +786,24 @@ def test_real_dataframe_and_chart_command_canonicalize_numeric_missing_values() 
     )
     records = QueryContextProcessor(cast(QueryContext, processor_context)).get_data(
         frame,
-        [GenericDataType.NUMERIC] * 3,
+        [GenericDataType.NUMERIC] * len(frame.columns),
     )
     assert type(records) is list
-    assert all(pd.isna(value) for value in records[0].values())
+    for column in (
+        "builtin_missing",
+        "numpy_missing",
+        "nullable_missing",
+        "decimal_nan",
+        "decimal_snan",
+        "decimal_infinity",
+        "decimal_negative_infinity",
+    ):
+        assert records[0][column] is None
+    assert records[0]["decimal_finite"] is finite
+    assert records[0]["hostile_decimal"] is hostile
+
+    safe_record = dict(records[0])
+    del safe_record["hostile_decimal"]
 
     class _Context:
         result_type = ChartDataResultType.FULL
@@ -692,9 +812,9 @@ def test_real_dataframe_and_chart_command_canonicalize_numeric_missing_values() 
             return {
                 "queries": [
                     {
-                        "data": records,
-                        "colnames": list(frame.columns),
-                        "coltypes": [GenericDataType.NUMERIC] * 3,
+                        "data": [safe_record],
+                        "colnames": list(safe_record),
+                        "coltypes": [GenericDataType.NUMERIC] * len(safe_record),
                         "rowcount": 1,
                     }
                 ]
@@ -704,15 +824,40 @@ def test_real_dataframe_and_chart_command_canonicalize_numeric_missing_values() 
     data, failure = query_result_data(result)
 
     assert failure is None
-    assert data == [
-        [
-            {
-                "builtin_missing": None,
-                "numpy_missing": None,
-                "nullable_missing": None,
+    assert data is not None
+    assert data[0][0]["decimal_finite"] is finite
+    assert all(
+        data[0][0][column] is None
+        for column in safe_record
+        if column != "decimal_finite"
+    )
+    wire = json.dumps({"queries": result["queries"]}, ignore_nan=False)
+    assert "NaN" not in wire
+    assert "Infinity" not in wire
+    wire_finite = json.loads(wire)["queries"][0]["data"][0]["decimal_finite"]
+    assert type(wire_finite) is float
+    assert wire_finite == float(finite)
+
+    class _HostileContext:
+        result_type = ChartDataResultType.FULL
+
+        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"hostile_decimal": hostile}],
+                        "colnames": ["hostile_decimal"],
+                        "coltypes": [GenericDataType.NUMERIC],
+                        "rowcount": 1,
+                    }
+                ]
             }
-        ]
-    ]
+
+    hostile_result = ChartDataCommand(_HostileContext()).run()  # type: ignore[arg-type]
+    hostile_data, hostile_failure = query_result_data(hostile_result)
+    assert hostile_data is None
+    assert hostile_failure is not None
+    assert hostile_failure.error_type == "MalformedQueryResult"
 
 
 def test_real_query_processor_does_not_compare_hostile_object_cells() -> None:

@@ -31,6 +31,7 @@ import numpy as np
 import pandas as pd
 import pytest
 import pytz
+from dateutil import tz as dateutil_tz
 from pydantic import TypeAdapter, ValidationError
 
 from superset.mcp_service.chart.chart_helpers import (
@@ -1099,6 +1100,16 @@ def test_bullet_compile_path_uses_groupby_metric_orderby_and_usable_result() -> 
 def test_bullet_compile_projects_dataframe_timestamp_before_validation() -> None:
     from superset.dataframe import df_to_records
 
+    dublin = dateutil_tz.gettz("Europe/Dublin")
+    new_york = dateutil_tz.gettz("America/New_York")
+    assert dublin is not None
+    assert new_york is not None
+    source_values = [
+        pd.Timestamp("2024-01-02 03:04:05.123456789"),
+        datetime(2024, 10, 27, 1, 30, tzinfo=dublin, fold=1),
+        datetime(2024, 3, 10, 2, 30, tzinfo=new_york),
+        datetime(2040, 7, 1, 12, tzinfo=new_york),
+    ]
     form_data = map_bullet_config(
         BulletChartConfig(
             metric={"name": "Revenue", "aggregate": "SUM", "label": "Revenue"},
@@ -1108,8 +1119,8 @@ def test_bullet_compile_projects_dataframe_timestamp_before_validation() -> None
     rows = df_to_records(
         pd.DataFrame(
             {
-                "Category": [pd.Timestamp("2024-01-02 03:04:05.123456789")],
-                "Revenue": [1],
+                "Category": pd.Series(source_values, dtype=object),
+                "Revenue": range(1, len(source_values) + 1),
             }
         ),
         convert_big_integers=False,
@@ -1141,7 +1152,12 @@ def test_bullet_compile_projects_dataframe_timestamp_before_validation() -> None
         result = _compile_chart(form_data, 7)
 
     assert result.success is True
-    assert captured[0][0]["Category"] == 1704164645123.456
+    assert [row["Category"] for row in captured[0]] == [
+        1704164645123.456,
+        1729989000000.0,
+        1710052200000.0,
+        2224774800000.0,
+    ]
 
 
 def test_bullet_unsaved_preview_path_returns_faithful_vega_spec() -> None:
@@ -1428,6 +1444,88 @@ def test_bullet_timestamp_categories_match_chart_data_wire_and_all_previews() ->
     assert "transform" not in vega
 
     for row, category in zip(data, expected, strict=True):
+        ascii_content = _generate_ascii_preview_from_data(
+            [row], form_data
+        ).ascii_content
+        assert category[:20] in ascii_content
+
+
+def test_bullet_dateutil_categories_preserve_chart_data_selected_instants() -> None:
+    dublin = dateutil_tz.gettz("Europe/Dublin")
+    new_york = dateutil_tz.gettz("America/New_York")
+    assert dublin is not None
+    assert new_york is not None
+    dateutil_values = [
+        datetime(2024, 10, 27, 1, 30, 0, 123456, tzinfo=dublin, fold=1),
+        datetime(2024, 3, 10, 2, 30, 0, 123456, tzinfo=new_york),
+        datetime(2040, 7, 1, 12, 0, 0, 123456, tzinfo=new_york),
+        datetime(
+            2024,
+            3,
+            10,
+            2,
+            30,
+            0,
+            123456,
+            tzinfo=dateutil_tz.tzoffset("EDT", -4 * 3600),
+        ),
+        datetime(1969, 12, 31, 23, 59, 59, 999999, tzinfo=dateutil_tz.UTC),
+    ]
+    equivalent_values = [
+        datetime(2024, 3, 10, 6, 30, 0, 123456, tzinfo=timezone.utc),
+        pytz.timezone("America/New_York").localize(
+            datetime(2024, 3, 10, 1, 30, 0, 123456), is_dst=False
+        ),
+        datetime(
+            2024,
+            3,
+            10,
+            1,
+            30,
+            0,
+            123456,
+            tzinfo=ZoneInfo("America/New_York"),
+        ),
+    ]
+    pandas_values = [pd.Timestamp(value) for value in dateutil_values[:3]]
+    values = [*dateutil_values, *equivalent_values, *pandas_values]
+    expected_numbers = [json_int_dttm_ser(value) for value in values]
+    expected_categories = [
+        "1729989000123.456",
+        "1710052200123.456",
+        "2224774800123.456",
+        "1710052200123.456",
+        "-0.001",
+        "1710052200123.456",
+        "1710052200123.456",
+        "1710052200123.456",
+        "1729989000123.456",
+        "1710052200123.456",
+        "2224774800123.456",
+    ]
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Category"],
+    }
+    data = [
+        {"Category": value, "Revenue": index + 1} for index, value in enumerate(values)
+    ]
+
+    for value, expected_number in zip(values, expected_numbers, strict=True):
+        projected, reason = _chart_data_temporal_number(value)
+        assert reason is None
+        assert projected == expected_number
+
+    vega = _generate_vega_lite_preview_from_data(data, form_data).specification
+    bar = next(layer for layer in vega["layer"] if layer["mark"]["type"] == "bar")
+    category_field = bar["encoding"]["y"]["field"]
+    assert [row[category_field] for row in vega["data"]["values"]] == (
+        expected_categories
+    )
+    assert bar["encoding"]["tooltip"][0]["field"] == category_field
+
+    for row, category in zip(data, expected_categories, strict=True):
         ascii_content = _generate_ascii_preview_from_data(
             [row], form_data
         ).ascii_content
