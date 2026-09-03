@@ -3240,6 +3240,9 @@ describe('xAxisLabelInterval string "0" is converted to number 0', () => {
 
     const xAxisRaw = (result.xAxis as any).axisLabel;
     expect(xAxisRaw.interval).toBe(0);
+    // "All" must also disable hideOverlap, otherwise ECharts still drops
+    // crowded labels even after interval is numeric 0.
+    expect(xAxisRaw.hideOverlap).toBe(false);
   });
 
   test('passes "auto" through unchanged', () => {
