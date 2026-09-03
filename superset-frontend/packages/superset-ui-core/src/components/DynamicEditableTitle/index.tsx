@@ -34,6 +34,9 @@ import { Input } from '../Input';
 import type { InputRef } from '../Input';
 import type { DynamicEditableTitleProps } from './types';
 
+// Inputs can render text slightly wider than the hidden measuring span.
+const INPUT_WIDTH_BUFFER = 8;
+
 const titleStyles = (theme: SupersetTheme) => css`
   display: flex;
   font-size: ${theme.fontSizeXL}px;
@@ -250,7 +253,7 @@ export const DynamicEditableTitle = memo(
                 inputWidth &&
                 inputWidth > 0 &&
                 css`
-                  width: ${inputWidth}px;
+                  width: ${inputWidth + INPUT_WIDTH_BUFFER}px;
                 `
               }
             `}
