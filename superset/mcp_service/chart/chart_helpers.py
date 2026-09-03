@@ -851,8 +851,6 @@ def build_query_dicts_from_form_data(
         or (getattr(chart, "viz_type", "") if chart else "")
         or ""
     )
-    _validate_sunburst_simple_filter_clauses(form_data, viz_type)
-
     engine = resolve_datasource_engine(datasource_id, datasource_type)
     secondary_form_data = (
         retain_mixed_timeseries_secondary_form_data(form_data)
@@ -866,6 +864,9 @@ def build_query_dicts_from_form_data(
         extra_form_data,
         datasource_engine=engine,
     )
+    # Validate the complete reconstructed state, including legacy clauses and
+    # request-level extra_form_data merged by prepare_form_data_for_query.
+    _validate_sunburst_simple_filter_clauses(form_data, viz_type)
     if secondary_form_data is not None:
         prepare_form_data_for_query(
             secondary_form_data,

@@ -2248,6 +2248,19 @@ def test_saved_simple_having_is_rejected_by_both_sunburst_query_builders() -> No
             datasource_id=7,
             datasource_type="table",
         )
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            return_value="base",
+        ),
+        pytest.raises(ValueError, match="SIMPLE HAVING filters are unsupported"),
+    ):
+        build_query_dicts_from_form_data(
+            map_config_to_form_data(_config()),
+            datasource_id=7,
+            datasource_type="table",
+            extra_form_data={"adhoc_filters": form_data["adhoc_filters"]},
+        )
 
 
 @pytest.mark.parametrize(
@@ -4808,7 +4821,9 @@ def test_saved_preview_is_sunburst_faithful_and_vega_is_unsupported() -> None:
         datasource_type="table",
         params=json.dumps(form_data),
     )
-    request = GetChartPreviewRequest(identifier=11, format="ascii")
+    request = GetChartPreviewRequest(
+        identifier=11, format="ascii", ascii_width=111, ascii_height=33
+    )
     command = MagicMock()
     command.run.return_value = {
         "queries": [
@@ -4839,6 +4854,7 @@ def test_saved_preview_is_sunburst_faithful_and_vega_is_unsupported() -> None:
     assert not isinstance(ascii_result, ChartError)
     assert "Americas > Brazil" in ascii_result.ascii_content
     assert "SQL Sales=10" in ascii_result.ascii_content
+    assert (ascii_result.width, ascii_result.height) == (111, 33)
 
     vega_result = VegaLitePreviewStrategy(
         chart, GetChartPreviewRequest(identifier=11, format="vega_lite")

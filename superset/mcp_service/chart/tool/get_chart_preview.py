@@ -305,7 +305,12 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             assert data is not None
 
             if self.chart.viz_type == "sunburst_v2":
-                return _generate_ascii_preview_from_data(data, form_data)
+                return _generate_ascii_preview_from_data(
+                    data,
+                    form_data,
+                    width=self.request.ascii_width or 80,
+                    height=self.request.ascii_height or 20,
+                )
 
             ascii_chart = generate_ascii_chart(
                 data,

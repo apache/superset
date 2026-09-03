@@ -705,9 +705,10 @@ async def generate_chart(  # noqa: C901
                     )
                 response_warnings.extend(compile_result.warnings)
 
-            # Cache only a chart state that passed its compile/final-form-data
-            # checks. This ordering matches the saved-chart path, which also
-            # compiles before persisting anything.
+            # Cache only after final-form-data validation and every applicable
+            # compile check. A live compile requires an accessible numeric
+            # dataset; URL generation remains available for UUID/late-bound
+            # dataset resolution.
             from superset.mcp_service.chart.chart_utils import generate_explore_link
 
             explore_url = generate_explore_link(

@@ -189,7 +189,11 @@ def generate_preview_from_form_data(
 
 
 def _generate_ascii_preview_from_data(
-    data: List[Dict[str, Any]], form_data: Dict[str, Any]
+    data: List[Dict[str, Any]],
+    form_data: Dict[str, Any],
+    *,
+    width: int = 80,
+    height: int = 20,
 ) -> ASCIIPreview | ChartError:
     """Generate ASCII preview from raw data."""
     viz_type = form_data.get("viz_type", "table")
@@ -210,7 +214,7 @@ def _generate_ascii_preview_from_data(
         content = _generate_safe_ascii_table(data)
 
     return ASCIIPreview(
-        ascii_content=content, width=80, height=20, supports_color=False
+        ascii_content=content, width=width, height=height, supports_color=False
     )
 
 
