@@ -503,9 +503,9 @@ test('an empty-string leaf still applies its filter to effectiveFormData', () =>
   // would have dropped it, diverging from the emitted cross-filter.
   const adhoc = (result.current.effectiveFormData as Record<string, unknown>)
     .adhoc_filters as { subject: unknown; comparator: unknown }[];
-  expect(
-    adhoc.some(f => f.subject === 'region' && f.comparator === ''),
-  ).toBe(true);
+  expect(adhoc.some(f => f.subject === 'region' && f.comparator === '')).toBe(
+    true,
+  );
 });
 
 test('effectiveFormData narrows to the selected leaf at the deepest level', () => {

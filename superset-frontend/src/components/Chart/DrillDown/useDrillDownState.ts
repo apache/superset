@@ -311,8 +311,7 @@ export function useDrillDownState({
     // selected so that navigating back (resetTo) or drilling deeper never
     // leaves stale leaf filters in effectiveFormData. Test presence, not
     // truthiness, so an empty-string category still counts as a selection.
-    const leafFilters =
-      selectedLeaf != null ? (selectedLeafFilters ?? []) : [];
+    const leafFilters = selectedLeaf != null ? (selectedLeafFilters ?? []) : [];
 
     updated[DEFAULT_ADHOC_FILTERS_FIELD] = [
       ...baseAdhoc,

@@ -26,7 +26,8 @@ import type { ChartRendererProps } from '../ChartRenderer';
 // Captures the onDrillDown callback handed to the chart renderer so tests can
 // invoke a drill interaction directly.
 let capturedOnDrillDown:
-  ((filters: unknown, label: string) => void) | undefined;
+  | ((filters: unknown, label: string) => void)
+  | undefined;
 
 function CaptureRenderer(
   props: ChartRendererProps & {
