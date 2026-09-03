@@ -88,6 +88,14 @@ export interface CRUDCollectionProps {
       };
   filterTerm?: string;
   filterFields?: string[];
+  /** Per-row class, e.g. to mute a row that is not a normal editable column. */
+  rowClassName?: (record: any) => string;
+  /**
+   * Expand the first row this matches, for links elsewhere in the editor that
+   * point at a particular item. Expansion is additive: rows the user opened
+   * themselves stay open.
+   */
+  expandItemWhere?: (record: any) => boolean;
 }
 
 export type Sort = number | string | boolean | any;

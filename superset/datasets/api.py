@@ -98,6 +98,7 @@ from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
 from superset.utils import json
 from superset.utils.core import (
+    FilterOperator,
     get_user_id,
     parse_boolean_string,
     sanitize_cookie_token,
@@ -278,6 +279,10 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "columns.is_active",
         "columns.extra",
         "columns.is_dttm",
+        # Without these the editor reopens a saved mapping as if it had no
+        # transform, and the next save writes that emptiness back.
+        "columns.partition_value_transform",
+        "columns.partition_transform_is_monotonic",
         "columns.python_date_format",
         "columns.type",
         "columns.uuid",
@@ -311,9 +316,18 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     ]
     show_columns = show_select_columns + [
         "columns.type_generic",
+        # Engine-supplied pre-fill for the editor's value transform input.
+        "partition_value_transform_default",
         "database.backend",
         "database.allow_multi_catalog",
         "columns.advanced_data_type",
+        # Listed here as well as in `show_select_columns` -- the latter drives
+        # the query, this drives what is actually serialized for a related
+        # model. `columns.advanced_data_type` above is in both for the same
+        # reason. Without it the editor reopens a saved mapping as if it had no
+        # transform, and the next save writes that emptiness back.
+        "columns.partition_value_transform",
+        "columns.partition_transform_is_monotonic",
         "is_managed_externally",
         "uid",
         "uuid",
@@ -1754,10 +1768,12 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         post:
           summary: Preview a partition filter mapping
           description: >-
-            Evaluate a partition value transform at a sample value and return
-            the predicate that would be appended to queries. Parse and
-            denylist checks run before anything reaches the engine, so an
-            unparseable transform costs no query.
+            Evaluate a partition value transform at sample values and return
+            the predicate that would be appended to queries. The predicate is
+            built by the same code the query path uses, so the preview cannot
+            drift from what a chart emits. Parse and denylist checks run
+            before anything reaches the engine, so an unparseable transform
+            costs no query.
           parameters:
           - in: path
             schema:
@@ -1783,6 +1799,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                         properties:
                           valid:
                             type: boolean
+                          sample_input:
+                            type: string
                           emitted_predicate:
                             type: string
                           error:
@@ -1829,7 +1847,10 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 dataset,
                 mapped_column=payload["mapped_column"],
                 value_transform=payload["value_transform"],
-                sample_value=payload["sample_value"],
+                sample_values=payload["sample_values"],
+                operator=FilterOperator(payload["operator"]),
+                is_monotonic=payload["is_monotonic"],
+                partition_column=payload["partition_column"],
             ),
         )
 

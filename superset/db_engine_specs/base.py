@@ -662,6 +662,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         OAuth2RedirectError
     )
 
+    # Default partition value transform offered by the dataset editor when a
+    # temporal column is mapped onto a partition column. `:value` stands for the
+    # filter bound being mirrored. The expression is engine syntax, so the
+    # default only belongs on engines where it actually parses; `None` means the
+    # editor offers no pre-fill and the owner writes the transform themselves.
+    partition_value_transform_default: str | None = None
+
     # Does the query id related to the connection?
     # The default value is True, which means that the query id is determined when
     # the connection is created.

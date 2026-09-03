@@ -103,15 +103,107 @@ def test_preview_returns_the_emitted_predicate(
             json={
                 "mapped_column": "event_time",
                 "value_transform": "unix_timestamp(:value)",
-                "sample_value": "2026-01-15 00:00:00",
+                "sample_values": ["2026-01-15 00:00:00"],
             },
         )
 
     assert response.status_code == 200
     assert response.json["result"] == {
         "valid": True,
+        "sample_input": "event_time == '2026-01-15 00:00:00'",
+        "emitted_predicate": "dt_epoch = 1768435200",
+    }
+
+
+def test_preview_mirrors_a_range_when_the_transform_is_monotonic(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The case the whole feature exists for: an Explore time range bound.
+    """
+    with patch(PROBE, return_value=[1768435200]):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["2026-01-15 00:00:00"],
+                "operator": ">=",
+                "is_monotonic": True,
+            },
+        )
+
+    assert response.json["result"] == {
+        "valid": True,
+        "sample_input": "event_time >= '2026-01-15 00:00:00'",
         "emitted_predicate": "dt_epoch >= 1768435200",
     }
+
+
+def test_preview_refuses_a_range_when_the_transform_is_not_monotonic(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    Refusing here rather than showing a predicate is the point: the query path
+    would not mirror this filter either, and a preview that implied otherwise
+    would be the one thing worse than no preview.
+    """
+    with patch(PROBE, side_effect=AssertionError("probe must not run")):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["2026-01-15 00:00:00"],
+                "operator": ">=",
+                "is_monotonic": False,
+            },
+        )
+
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert "preserves ordering" in result["error"]
+
+
+def test_preview_mirrors_in_element_wise(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    Wireframe 1h: a non-temporal mapping previews as an `IN`, not as a `>=`
+    against the first value.
+    """
+    with patch(PROBE, return_value=["us", "ca"]):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "lower(:value)",
+                "sample_values": ["US", "CA"],
+                "operator": "IN",
+            },
+        )
+
+    assert response.json["result"] == {
+        "valid": True,
+        "sample_input": "event_time IN ('US', 'CA')",
+        "emitted_predicate": "dt_epoch IN ('us', 'ca')",
+    }
+
+
+def test_preview_rejects_an_operator_that_can_never_mirror(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    response = client.post(
+        f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+        json={
+            "mapped_column": "event_time",
+            "value_transform": "unix_timestamp(:value)",
+            "sample_values": ["2026-01-15 00:00:00"],
+            "operator": "NOT IN",
+        },
+    )
+
+    assert response.status_code == 400
 
 
 def test_preview_reports_a_parse_error_without_touching_the_engine(
@@ -127,7 +219,7 @@ def test_preview_reports_a_parse_error_without_touching_the_engine(
             json={
                 "mapped_column": "event_time",
                 "value_transform": "unix_timestamp(:value",
-                "sample_value": "2026-01-15 00:00:00",
+                "sample_values": ["2026-01-15 00:00:00"],
             },
         )
 
@@ -145,7 +237,7 @@ def test_preview_rejects_a_non_deterministic_transform(
             json={
                 "mapped_column": "event_time",
                 "value_transform": "unix_timestamp()",
-                "sample_value": "2026-01-15 00:00:00",
+                "sample_values": ["2026-01-15 00:00:00"],
             },
         )
 
@@ -161,7 +253,7 @@ def test_preview_reports_an_unknown_mapped_column(
             json={
                 "mapped_column": "nope",
                 "value_transform": "unix_timestamp(:value)",
-                "sample_value": "2026-01-15 00:00:00",
+                "sample_values": ["2026-01-15 00:00:00"],
             },
         )
 
@@ -177,7 +269,7 @@ def test_preview_reports_a_failed_probe_rather_than_erroring(
             json={
                 "mapped_column": "event_time",
                 "value_transform": "unix_timestamp(:value)",
-                "sample_value": "2026-01-15 00:00:00",
+                "sample_values": ["2026-01-15 00:00:00"],
             },
         )
 
@@ -193,7 +285,7 @@ def test_preview_404s_for_an_unknown_dataset(
         json={
             "mapped_column": "event_time",
             "value_transform": "unix_timestamp(:value)",
-            "sample_value": "2026-01-15",
+            "sample_values": ["2026-01-15"],
         },
     )
     assert response.status_code == 404
@@ -209,7 +301,7 @@ def test_preview_is_gated_on_the_feature_flag(
         json={
             "mapped_column": "event_time",
             "value_transform": "unix_timestamp(:value)",
-            "sample_value": "2026-01-15",
+            "sample_values": ["2026-01-15"],
         },
     )
     assert response.status_code == 404
@@ -237,13 +329,13 @@ def test_preview_is_rate_limited_per_user_and_dataset(
     payload = {
         "mapped_column": "event_time",
         "value_transform": "unix_timestamp(:value)",
-        "sample_value": "2026-01-15",
+        "sample_values": ["2026-01-15"],
     }
     with patch(PROBE, return_value=[1]):
         statuses = [
             client.post(
                 f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
-                json={**payload, "sample_value": f"2026-01-{day:02d}"},
+                json={**payload, "sample_values": [f"2026-01-{day:02d}"]},
             ).status_code
             for day in range(1, 5)
         ]
