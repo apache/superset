@@ -47,7 +47,6 @@ from superset.sql_lab import (
     get_sql_results,
     SqlLabException,
 )
-from superset.utils import json as superset_json
 from superset.utils.rls import apply_rls, get_predicates_for_table
 from tests.conftest import with_config
 from tests.unit_tests.models.core_test import oauth2_client_info
@@ -91,9 +90,14 @@ def test_sql_lab_and_view_json_normalize_decimal_nonfinite() -> None:
     assert isinstance(serialized, str)
     assert "NaN" not in serialized
     assert "Infinity" not in serialized
-    assert _deserialize_results_payload(serialized, MagicMock()) == (
-        superset_json.loads(serialized)
-    )
+    deserialized = _deserialize_results_payload(serialized, MagicMock())
+    assert [row["value"] for row in deserialized["data"]] == [
+        None,
+        None,
+        None,
+        None,
+        0.1,
+    ]
 
 
 def test_execute_query(mocker: MockerFixture, app: None) -> None:

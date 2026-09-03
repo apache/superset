@@ -67,10 +67,13 @@ logger = logging.getLogger(__name__)
 __all__ = ["CompileResult", "_compile_chart", "validate_and_compile", "generate_chart"]
 
 
-def _bounded_generate_response(payload: object) -> GenerateChartResponse:
+def _bounded_generate_response(
+    payload: object, *, persisted_chart_id: int | None = None
+) -> GenerateChartResponse:
     """Validate and preflight one complete generate-chart response."""
     return preflight_generate_chart_response(
-        GenerateChartResponse.model_validate(payload)
+        GenerateChartResponse.model_validate(payload),
+        persisted_chart_id=persisted_chart_id,
     )
 
 
@@ -876,7 +879,10 @@ async def generate_chart(  # noqa: C901
                 int((time.time() - start_time) * 1000),
             )
         )
-        return _bounded_generate_response(result)
+        return _bounded_generate_response(
+            result,
+            persisted_chart_id=chart_id if request.save_chart else None,
+        )
 
     except OAuth2RedirectError as ex:
         await ctx.warning(

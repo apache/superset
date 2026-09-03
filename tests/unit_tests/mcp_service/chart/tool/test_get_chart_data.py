@@ -742,7 +742,7 @@ class TestUnsavedChartDataQueryConstruction:
             lambda *_args: "base",
         )
 
-        await _query_from_form_data(
+        response = await _query_from_form_data(
             {
                 "datasource": "1__table",
                 "viz_type": "deck_path",
@@ -768,6 +768,10 @@ class TestUnsavedChartDataQueryConstruction:
         assert query["filters"] == [{"col": "route", "op": "IS NOT NULL"}]
         assert query["row_limit"] == 20
         assert "orderby" not in query
+        assert isinstance(response, ChartData)
+        assert response.data == [{"route": "LINESTRING(...)"}]
+        assert response.row_count == 1
+        assert [column.name for column in response.columns] == ["route"]
 
     @pytest.mark.parametrize("explicit_axis", [False, True])
     @pytest.mark.asyncio
@@ -4273,6 +4277,8 @@ async def test_saved_cached_bullet_duration_producer_reaches_fastmcp_exports(
         ),
         convert_big_integers=False,
     )
+    assert type(rows[5]["Duration"]) is pd.Timedelta
+    assert rows[6]["Duration"] is None
     expected = [
         None
         if row["Duration"] is None

@@ -332,7 +332,7 @@ def test_df_to_records_normalizes_only_exact_nonfinite_decimals() -> None:
         {"value": None},
         {"value": None},
         {"value": None},
-        {"value": 0.10000000000000000001},
+        {"value": 0.1},
     ]
 
 

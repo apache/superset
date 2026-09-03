@@ -2345,7 +2345,18 @@ class BulletChartConfig(BaseChartConfig):
                 continue
             if not isinstance(operator, str):
                 raise ValueError(f"adhoc_filters[{index}] needs an operator")
-            operator_map = {"==": "=", "IS_NOT_NULL": "IS NOT NULL"}
+            operator_map = {
+                "==": "=",
+                "EQUALS": "=",
+                "NOT_EQUALS": "!=",
+                "LESS_THAN": "<",
+                "LESS_THAN_OR_EQUAL": "<=",
+                "GREATER_THAN": ">",
+                "GREATER_THAN_OR_EQUAL": ">=",
+                "NOT_IN": "NOT IN",
+                "IS_NULL": "IS NULL",
+                "IS_NOT_NULL": "IS NOT NULL",
+            }
             operator = operator_map.get(operator, operator)
             filters.append({"column": subject, "op": operator, "value": comparator})
         data["filters"] = filters

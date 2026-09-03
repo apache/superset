@@ -31,6 +31,7 @@ from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
 from superset.constants import EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS
+from superset.utils import json as utils_json
 
 if TYPE_CHECKING:
     from superset.mcp_service.chart.schemas import AppliedDashboardFilter
@@ -705,10 +706,8 @@ def _deck_base_query_fields(  # noqa: C901
         if isinstance(value, str):
             if len(value) > 1000:
                 raise ValueError(f"Deck orderby[{index}] is too long")
-            from superset.utils import json
-
             try:
-                value = json.loads(value)
+                value = utils_json.loads(value)
             except (TypeError, ValueError) as ex:
                 raise ValueError(f"Deck orderby[{index}] is not valid JSON") from ex
         if (
@@ -956,8 +955,6 @@ def _build_deck_query(  # noqa: C901
 
 def _parse_orderby(values: Any) -> list[list[Any]]:
     """Parse bounded native ``order_by_cols`` without coercing malformed input."""
-    from superset.utils import json
-
     if values is not None and not isinstance(values, list):
         raise ValueError("order_by_cols must be a list")
     if isinstance(values, list) and len(values) > 100:
@@ -968,7 +965,7 @@ def _parse_orderby(values: Any) -> list[list[Any]]:
             if len(value) > 1000:
                 raise ValueError(f"order_by_cols[{index}] is too long")
             try:
-                value = json.loads(value)
+                value = utils_json.loads(value)
             except (TypeError, ValueError) as ex:
                 raise ValueError(f"order_by_cols[{index}] is not valid JSON") from ex
         if (

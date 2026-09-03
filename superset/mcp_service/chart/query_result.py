@@ -326,10 +326,12 @@ def _failure_for_query_payload(  # noqa: C901
     payload: dict[str, Any], label: str
 ) -> ChartError | None:
     """Extract one failure from a top-level or per-query payload."""
+    malformed: str | None = None
     for key in ("error", "errors", "error_message"):
         extracted = _query_error_text(dict.get(payload, key))
         if extracted.malformed:
-            return _malformed_result(extracted.malformed)
+            malformed = malformed or extracted.malformed
+            continue
         if message := extracted.text:
             return ChartError(
                 error=f"{label} failed: {message}", error_type="QueryError"
@@ -341,16 +343,20 @@ def _failure_for_query_payload(  # noqa: C901
     if normalized_status in FAILED_QUERY_STATUSES:
         extracted = _query_error_text(dict.get(payload, "message"))
         if extracted.malformed:
-            return _malformed_result(extracted.malformed)
+            malformed = malformed or extracted.malformed
         fallback = _query_error_text(dict.get(payload, "error_message"))
         if fallback.malformed:
-            return _malformed_result(fallback.malformed)
+            malformed = malformed or fallback.malformed
+        if malformed and not (extracted.text or fallback.text):
+            return _malformed_result(malformed)
         message = extracted.text or fallback.text or normalized_status
         return ChartError(error=f"{label} failed: {message}", error_type="QueryError")
     if dict.get(payload, "success") is False:
         extracted = _query_error_text(dict.get(payload, "message"))
         if extracted.malformed:
-            return _malformed_result(extracted.malformed)
+            malformed = malformed or extracted.malformed
+        if malformed and not extracted.text:
+            return _malformed_result(malformed)
         message = extracted.text or "request failed"
         return ChartError(error=f"{label} failed: {message}", error_type="QueryError")
     if (
@@ -360,11 +366,13 @@ def _failure_for_query_payload(  # noqa: C901
     ):
         extracted = _query_error_text(dict.get(payload, "message"))
         if extracted.malformed:
-            return _malformed_result(extracted.malformed)
+            malformed = malformed or extracted.malformed
         if extracted.text:
             return ChartError(
                 error=f"{label} failed: {extracted.text}", error_type="QueryError"
             )
+    if malformed:
+        return _malformed_result(malformed)
     return None
 
 
@@ -488,7 +496,7 @@ def _chart_data_builtin_timedelta_text(value: timedelta) -> str:
 
 
 def _chart_data_pandas_timedelta_text(value: pd.Timedelta) -> str:
-    """Reproduce pandas ``Timedelta`` formatting from trusted exact fields."""
+    """Reproduce Chart Data ``format_timedelta`` output from exact fields."""
     total_nanoseconds = (
         (
             object.__getattribute__(value, "days") * 86_400

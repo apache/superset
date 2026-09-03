@@ -30,6 +30,17 @@ from superset.mcp_service.chart.schemas import (
 _ChartModel = TypeVar("_ChartModel", bound=BaseModel)
 
 
+def _wire_size_error(failure: ChartError, message: str) -> dict[str, Any]:
+    """Build the shared bounded error payload for chart response finalizers."""
+    return {
+        "error_type": failure.error_type,
+        "message": message,
+        "details": failure.error,
+        "suggestions": ["Request fewer preview formats or reduce result cardinality"],
+        "error_code": "CHART_RESPONSE_TOO_LARGE",
+    }
+
+
 def preflight_chart_response(
     response: _ChartModel,
 ) -> _ChartModel | ChartError:
@@ -39,24 +50,43 @@ def preflight_chart_response(
 
 def preflight_generate_chart_response(
     response: GenerateChartResponse,
+    *,
+    persisted_chart_id: int | None = None,
 ) -> GenerateChartResponse:
     """Map a wire-size failure into the generate/update response error schema."""
     failure = response_json_failure(response)
     if failure is None:
         return response
+    if persisted_chart_id is not None:
+        return GenerateChartResponse.model_validate(
+            {
+                "chart": {"id": persisted_chart_id},
+                "success": False,
+                "error": {
+                    "error_type": failure.error_type,
+                    "message": (
+                        "Chart was created, but its full response could not be "
+                        "returned safely"
+                    ),
+                    "details": (
+                        f"Chart {persisted_chart_id} was created successfully. "
+                        f"{failure.error}"
+                    ),
+                    "suggestions": [
+                        "Do not retry creation; use the returned chart ID",
+                        "Request fewer preview formats or reduce result cardinality",
+                    ],
+                    "error_code": "CHART_RESPONSE_TOO_LARGE",
+                },
+            }
+        )
     return GenerateChartResponse.model_validate(
         {
             "chart": None,
             "success": False,
-            "error": {
-                "error_type": failure.error_type,
-                "message": "Chart response could not be returned safely",
-                "details": failure.error,
-                "suggestions": [
-                    "Request fewer preview formats or reduce result cardinality"
-                ],
-                "error_code": "CHART_RESPONSE_TOO_LARGE",
-            },
+            "error": _wire_size_error(
+                failure, "Chart response could not be returned safely"
+            ),
         }
     )
 
@@ -68,15 +98,9 @@ def preflight_update_preview_response(response: dict[str, Any]) -> dict[str, Any
         return response
     return {
         "chart": None,
-        "error": {
-            "error_type": failure.error_type,
-            "message": "Chart preview response could not be returned safely",
-            "details": failure.error,
-            "suggestions": [
-                "Request fewer preview formats or reduce result cardinality"
-            ],
-            "error_code": "CHART_RESPONSE_TOO_LARGE",
-        },
+        "error": _wire_size_error(
+            failure, "Chart preview response could not be returned safely"
+        ),
         "success": False,
         "schema_version": "2.0",
         "api_version": "v1",

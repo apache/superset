@@ -19,8 +19,8 @@
 Integration-style tests for ``validate_and_compile``.
 
 These tests exercise the real ``DatasetValidator.validate_against_dataset``
-path so fast-path tools (``generate_explore_link``, ``update_chart_preview``)
-that only use Tier-1 validation are exercised end-to-end.
+path so callers that use Tier 1 alone as well as mutation tools that proceed to
+Tier 2 are exercised end-to-end.
 """
 
 import importlib
@@ -436,6 +436,28 @@ class TestAdhocFiltersFromFormData:
         assert result.success, (
             "A saved-metric name in a HAVING filter should pass Tier-1 validation"
         )
+
+    def test_having_metric_survives_ambiguous_physical_casefold_match(self) -> None:
+        ds = _orm_dataset(
+            column_names=["Metric", "metric", "gender"],
+            metric_names=["mEtRiC"],
+        )
+        config = TableChartConfig(columns=[ColumnRef(name="gender")])
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "clause": "HAVING",
+                    "subject": "METRIC",
+                    "operator": ">",
+                    "comparator": 0,
+                }
+            ]
+        }
+
+        result = validate_and_compile(config, form_data, ds, run_compile_check=False)
+
+        assert result.success
 
 
 class TestValidateAndCompileTier2:

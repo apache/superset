@@ -1832,6 +1832,27 @@ def test_query_result_extracts_normal_nested_errors() -> None:
     assert "warehouse unavailable; retry later" in failure.error
 
 
+def test_query_result_prefers_top_level_message_over_unrecognized_error_object() -> (
+    None
+):
+    data, failure = query_result_data(
+        {"error": {"code": 500}, "message": "warehouse unavailable"}
+    )
+
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "QueryError"
+    assert "warehouse unavailable" in failure.error
+
+
+def test_query_result_rejects_unrecognized_error_object_without_message() -> None:
+    data, failure = query_result_data({"error": {"code": 500}})
+
+    assert data is None
+    assert failure is not None
+    assert failure.error_type == "MalformedQueryResult"
+
+
 @pytest.mark.parametrize("shape", ["deep", "wide", "cycle", "repeated"])
 def test_query_result_bounds_adversarial_error_containers(shape: str) -> None:
     if shape == "deep":

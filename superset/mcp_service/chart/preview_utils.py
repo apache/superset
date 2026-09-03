@@ -378,6 +378,9 @@ def _form_metric_label(metric: Any) -> str | None:
         return None
     if label := dict.get(metric, "label"):
         return label if type(label) is str else None
+    if dict.get(metric, "expressionType") == "SQL":
+        expression = dict.get(metric, "sqlExpression")
+        return expression if type(expression) is str and expression else None
     column = dict.get(metric, "column")
     column_name = dict.get(column, "column_name") if type(column) is dict else column
     aggregate = dict.get(metric, "aggregate")

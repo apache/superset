@@ -683,7 +683,7 @@ def add_axis_config(form_data: Dict[str, Any], config: XYChartConfig) -> None:
         if config.y_axis.format:
             form_data["y_axis_format"] = config.y_axis.format
         if config.y_axis.scale == "log":
-            form_data["y_axis_scale"] = "log"
+            form_data["logAxis"] = True
 
 
 def add_legend_config(form_data: Dict[str, Any], config: XYChartConfig) -> None:
@@ -1643,7 +1643,7 @@ def _apply_explicit_form_controls(  # noqa: C901
     axis_controls = {
         "xy": (
             ("x_axis", "x_axis_title", "x_axis_format", None),
-            ("y_axis", "y_axis_title", "y_axis_format", "y_axis_scale"),
+            ("y_axis", "y_axis_title", "y_axis_format", "logAxis"),
         ),
         "mixed_timeseries": (
             ("x_axis", "xAxisTitle", "x_axis_time_format", None),
@@ -1767,9 +1767,11 @@ def validate_merged_bullet_form_data(
     if form_data.get("viz_type") != "bullet":
         return None
     validation_data = dict(form_data)
-    if isinstance(update_config, BulletChartConfig) and (
-        "filters" not in update_config.model_fields_set
-    ):
+    preserves_native_filters = update_config is None or (
+        isinstance(update_config, BulletChartConfig)
+        and "filters" not in update_config.model_fields_set
+    )
+    if preserves_native_filters:
         validation_data.pop("adhoc_filters", None)
         validation_data.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
     return BulletChartConfig.model_validate(validation_data)

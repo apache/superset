@@ -248,7 +248,8 @@ def _adhoc_filter_column_valid(
         if resolve_dataset_column(column, dataset_context) is not None:
             return True
     except ValueError:
-        return False
+        if clause != "HAVING":
+            return False
     if clause != "HAVING":
         return False
     metric_matches = [
@@ -428,7 +429,8 @@ def _native_reference_error(  # noqa: C901
                 if item == name or item.casefold() == name.casefold()
             ]
             if len(set(matches)) != 1:
-                return _native_validation_error(role, name)
+                saved_role = f"{role.removesuffix(' metric')} saved metric"
+                return _native_validation_error(saved_role, name)
             return None
         return column_error(name, f"{role} column")
 
@@ -874,9 +876,10 @@ def validate_and_compile(
     ``dataset`` must be an already-fetched ORM dataset; this avoids a second
     ``DatasetDAO.find_by_id`` round trip inside the validator.
 
-    ``run_compile_check`` lets fast-path tools (``generate_explore_link``,
-    ``update_chart_preview``) skip the live DB query while still rejecting
-    obviously bad column references with fuzzy-match suggestions.
+    ``run_compile_check`` lets explicitly latency-sensitive callers such as
+    ``generate_explore_link`` skip the live DB query while still rejecting
+    obviously bad column references with fuzzy-match suggestions. Mutation and
+    cached-preview update paths run Tier 2 before persistence.
 
     Returns a :class:`CompileResult`. On failure, ``error_obj`` carries the
     structured :class:`ChartGenerationError` (with ``suggestions``) that the

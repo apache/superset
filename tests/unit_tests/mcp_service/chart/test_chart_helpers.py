@@ -2171,7 +2171,7 @@ def test_build_query_dicts_deck_arc_time_grain(monkeypatch):
 
 def test_build_query_dicts_deck_geojson_preserves_grain_but_is_not_timeseries(
     monkeypatch,
-):
+) -> None:
     monkeypatch.setattr(
         "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
         lambda datasource_id, datasource_type: "base",

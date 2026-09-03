@@ -20,6 +20,7 @@ Unit tests for update_chart MCP tool
 """
 
 import importlib
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
@@ -30,9 +31,11 @@ from pydantic import ValidationError
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.chart_helpers import find_chart_by_identifier
 from superset.mcp_service.chart.chart_utils import DatasetValidationResult
+from superset.mcp_service.chart.compile import CompileResult
 from superset.mcp_service.chart.query_result import MAX_QUERY_RESULT_VALUE_BYTES
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
+    BulletChartConfig,
     ColumnRef,
     FilterConfig,
     GenerateChartResponse,
@@ -2508,6 +2511,153 @@ class TestBuildPreviewFormDataDatasetId:
 
 class TestUpdateChartDatasetIdIntegration:
     """Integration test verifying dataset_id is plumbed into UpdateChartCommand."""
+
+    def test_configless_bullet_rebind_preserves_native_sql_and_having(self) -> None:
+        native_filters = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SQL",
+                "sqlExpression": "region <> 'unknown'",
+            },
+            {
+                "clause": "HAVING",
+                "expressionType": "SIMPLE",
+                "subject": "SavedRevenue",
+                "operator": "GREATER_THAN",
+                "comparator": 10,
+            },
+        ]
+        form_data = {
+            "viz_type": "bullet",
+            "metric": "SavedRevenue",
+            "groupby": ["Region"],
+            "adhoc_filters": native_filters,
+            "datasource": "1041__table",
+        }
+        chart = SimpleNamespace(id=55, datasource_id=10)
+        dataset = SimpleNamespace(id=1041)
+
+        def validate(
+            config: Any,
+            compiled_form_data: dict[str, Any],
+            target_dataset: Any,
+            *,
+            run_compile_check: bool,
+        ) -> CompileResult:
+            assert isinstance(config, BulletChartConfig)
+            assert not config.filters
+            assert compiled_form_data["adhoc_filters"] == native_filters
+            assert target_dataset is dataset
+            assert run_compile_check is True
+            return CompileResult(success=True)
+
+        with (
+            patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+            patch.object(
+                update_chart_module, "validate_and_compile", side_effect=validate
+            ),
+        ):
+            result = update_chart_module._validate_update_against_dataset(
+                None, form_data, chart, dataset_id=1041
+            )
+
+        assert result is None
+        assert form_data["adhoc_filters"] == native_filters
+
+    @pytest.mark.asyncio
+    async def test_fastmcp_configless_bullet_rebind_keeps_native_filters(
+        self, mcp_server: Any
+    ) -> None:
+        native_filters = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SQL",
+                "sqlExpression": "region <> 'unknown'",
+            },
+            {
+                "clause": "HAVING",
+                "expressionType": "SIMPLE",
+                "subject": "SavedRevenue",
+                "operator": "GREATER_THAN",
+                "comparator": 10,
+            },
+        ]
+        form_data = {
+            "viz_type": "bullet",
+            "metric": "SavedRevenue",
+            "groupby": ["Region"],
+            "adhoc_filters": native_filters,
+            "datasource": "10__table",
+        }
+        chart = Mock(
+            id=55,
+            datasource_id=10,
+            slice_name="Saved Bullet",
+            viz_type="bullet",
+            uuid="uuid-55",
+            params=json.dumps(form_data),
+        )
+        updated_chart = Mock(
+            id=55,
+            datasource_id=1041,
+            slice_name="Saved Bullet",
+            viz_type="bullet",
+            uuid="uuid-55",
+        )
+        target_dataset = SimpleNamespace(id=1041)
+        update_command = Mock(return_value=Mock(run=Mock(return_value=updated_chart)))
+
+        def validate(
+            config: Any,
+            compiled_form_data: dict[str, Any],
+            dataset: Any,
+            *,
+            run_compile_check: bool,
+        ) -> CompileResult:
+            assert isinstance(config, BulletChartConfig)
+            assert not config.filters
+            assert compiled_form_data["adhoc_filters"] == native_filters
+            assert dataset is target_dataset
+            assert run_compile_check is True
+            return CompileResult(success=True)
+
+        with (
+            patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart),
+            patch(
+                "superset.mcp_service.auth.check_chart_data_access",
+                return_value=DatasetValidationResult(
+                    is_valid=True,
+                    dataset_id=10,
+                    dataset_name="old_dataset",
+                    warnings=[],
+                ),
+            ),
+            patch(
+                "superset.daos.dataset.DatasetDAO.find_by_id",
+                return_value=target_dataset,
+            ),
+            patch.object(
+                update_chart_module, "validate_and_compile", side_effect=validate
+            ),
+            patch("superset.commands.chart.update.UpdateChartCommand", update_command),
+        ):
+            async with Client(mcp) as client:
+                response = await client.call_tool(
+                    "update_chart",
+                    {
+                        "request": {
+                            "identifier": 55,
+                            "dataset_id": 1041,
+                            "generate_preview": False,
+                        }
+                    },
+                )
+
+        assert response.structured_content["success"] is True
+        saved_payload = update_command.call_args.args[1]
+        saved_form_data = json.loads(saved_payload["params"])
+        assert saved_form_data["adhoc_filters"] == native_filters
+        assert saved_form_data["datasource"] == "1041__table"
 
     @patch(
         "superset.mcp_service.auth.check_chart_data_access",

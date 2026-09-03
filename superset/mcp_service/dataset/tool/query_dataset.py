@@ -314,17 +314,31 @@ async def query_dataset(  # noqa: C901
                 error=query_failure.error,
                 error_type=query_failure.error_type,
             )
-        assert queries_data is not None
-        assert type(result) is dict
-        queries = dict.__getitem__(result, "queries")
-        assert type(queries) is list
+        if queries_data is None or type(result) is not dict:
+            return DatasetError.create(
+                error="Malformed chart query result after validation",
+                error_type="MalformedQueryResult",
+            )
+        queries = dict.get(result, "queries")
+        if type(queries) is not list or not queries:
+            return DatasetError.create(
+                error="Malformed chart query result after validation",
+                error_type="MalformedQueryResult",
+            )
         query_result = list.__getitem__(queries, 0)
-        assert type(query_result) is dict
+        if type(query_result) is not dict:
+            return DatasetError.create(
+                error="Malformed chart query result after validation",
+                error_type="MalformedQueryResult",
+            )
         data = list.__getitem__(queries_data, 0)
         raw_columns = dict.get(query_result, "colnames", [])
-        assert type(raw_columns) is list
         coltypes = dict.get(query_result, "coltypes", [])
-        assert type(coltypes) is list
+        if type(raw_columns) is not list or type(coltypes) is not list:
+            return DatasetError.create(
+                error="Malformed chart query metadata after validation",
+                error_type="MalformedQueryResult",
+            )
         query_duration_ms = int((time.time() - start_time) * 1000)
 
         # ------------------------------------------------------------------

@@ -470,7 +470,7 @@ def test_explicit_temporal_column_overrides_temporal_granularity(
 
 @patch("superset.daos.dataset.DatasetDAO.find_by_id_or_uuid")
 @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
-def test_non_temporal_waterfall_granularity_falls_back_to_dataset_time_column(
+def test_non_temporal_waterfall_clears_granularity_and_binds_dataset_time_column(
     mock_is_temporal: MagicMock,
     mock_find_dataset: MagicMock,
 ) -> None:

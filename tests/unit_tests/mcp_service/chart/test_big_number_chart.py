@@ -33,6 +33,9 @@ from superset.mcp_service.chart.chart_utils import (
     generate_chart_name,
     map_big_number_config,
     map_config_to_form_data,
+    merge_interactive_pivot_ui_config,
+    merge_same_viz_form_data,
+    merge_table_column_config,
     merge_update_form_data,
 )
 from superset.mcp_service.chart.schemas import (
@@ -102,6 +105,9 @@ def test_big_number_trendline_query_parity_on_every_update_path(path: str) -> No
         else:
             form_data = map_config_to_form_data(config, dataset_id=7)
             merge_update_form_data(existing, form_data, config)
+            merge_table_column_config(existing, form_data)
+            merge_interactive_pivot_ui_config(existing, form_data)
+            merge_same_viz_form_data(existing, form_data, config)
 
         trend, raw = [
             QueryObject(**query)

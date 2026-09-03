@@ -572,6 +572,7 @@ class _DetachableSlice:
 async def _generate_saved_chart(
     refetch: Any,
     compile_result: CompileResult | None = None,
+    warnings: list[str] | None = None,
 ) -> tuple[Any, _DetachableSlice, Mock]:
     """Run generate_chart(save_chart=True) with a chart that detaches on commit.
 
@@ -595,7 +596,12 @@ async def _generate_saved_chart(
     dataset = Mock(
         id=1, datasource_name="test_table", table_name="test_table", sql=None
     )
-    validation_result = Mock(is_valid=True, request=request, warnings={}, error=None)
+    validation_result = Mock(
+        is_valid=True,
+        request=request,
+        warnings={"warnings": warnings or []},
+        error=None,
+    )
     session = MagicMock()
     # The instance is detached right after the commit, before any of the reads
     # that build the response.
@@ -669,6 +675,25 @@ class TestGenerateChartDetachedInstance:
         assert result.chart.id == 42
         assert result.explore_url == "http://localhost:8088/explore/?slice_id=42"
         assert result.api_endpoints["data"].endswith("/api/v1/chart/42/data/")
+
+    @pytest.mark.asyncio
+    async def test_persisted_oversized_response_reports_created_chart_id(self) -> None:
+        result, _chart, create_command = await _generate_saved_chart(
+            refetch=Mock(return_value=_make_mock_chart()),
+            warnings=["x" * MAX_QUERY_RESULT_VALUE_BYTES],
+        )
+
+        assert result.success is False
+        assert result.chart is not None
+        assert result.chart.id == 42
+        assert result.error is not None
+        assert result.error.error_code == "CHART_RESPONSE_TOO_LARGE"
+        assert "created successfully" in result.error.details
+        assert any(
+            suggestion.startswith("Do not retry creation")
+            for suggestion in result.error.suggestions
+        )
+        create_command.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_detached_chart_falls_back_to_captured_scalars(self) -> None:

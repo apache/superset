@@ -148,7 +148,9 @@ class BulletChartPlugin(BaseChartPlugin):
             ):
                 return ChartGenerationError(
                     error_type="ambiguous_bullet_reference",
-                    message=f"Bullet {role} {name!r} is ambiguous by case",
+                    message=(
+                        f"Bullet {role} {name!r} is ambiguous in dataset metadata"
+                    ),
                     details=(
                         "Multiple dataset fields differ only by case. The query and "
                         "frontend require an exact canonical field name."
@@ -171,7 +173,10 @@ class BulletChartPlugin(BaseChartPlugin):
         except ValueError as ex:
             return ChartGenerationError(
                 error_type="ambiguous_bullet_reference",
-                message=f"Bullet metric column {metric.name!r} is ambiguous by case",
+                message=(
+                    f"Bullet metric column {metric.name!r} is ambiguous in "
+                    "dataset metadata"
+                ),
                 details=str(ex),
                 suggestions=["Use get_dataset_info and copy the exact-case field name"],
                 error_code="AMBIGUOUS_BULLET_REFERENCE",
