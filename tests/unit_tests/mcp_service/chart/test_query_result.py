@@ -1707,6 +1707,68 @@ def test_query_result_rejects_custom_timezone_without_invoking_it() -> None:
         assert failure.error_type == "MalformedQueryResult"
 
 
+def test_bullet_temporal_mode_projects_timestamp_and_numpy_before_generic() -> None:
+    timestamp = pd.Timestamp("2024-01-02 03:04:05.123456789")
+    numpy_timestamp = np.datetime64("1969-12-31T23:59:59.999999999")
+    result = {
+        "queries": [
+            {
+                "data": [
+                    {
+                        "timestamp": timestamp,
+                        "numpy_timestamp": numpy_timestamp,
+                        "date": date(2024, 1, 2),
+                        "pandas_nat": pd.NaT,
+                        "numpy_nat": np.datetime64("NaT"),
+                    }
+                ]
+            }
+        ]
+    }
+
+    data, failure = query_result_data(result, temporal_json_numbers=True)
+
+    assert failure is None
+    assert data == [
+        [
+            {
+                "timestamp": 1704164645123.456,
+                "numpy_timestamp": -0.0010000000000287557,
+                "date": 1704153600000.0,
+                "pandas_nat": None,
+                "numpy_nat": None,
+            }
+        ]
+    ]
+
+
+def test_non_bullet_temporal_mode_retains_canonical_iso_projection() -> None:
+    result = {
+        "queries": [
+            {
+                "data": [
+                    {
+                        "timestamp": pd.Timestamp("2024-01-02 03:04:05.123456789"),
+                        "numpy_timestamp": np.datetime64("2024-01-02", "D"),
+                    }
+                ]
+            }
+        ]
+    }
+
+    data, failure = query_result_data(result)
+
+    assert failure is None
+    assert data == [
+        [
+            {
+                "timestamp": "2024-01-02T03:04:05.123456789",
+                "numpy_timestamp": "2024-01-02T00:00:00",
+            }
+        ]
+    ]
+
+
 @pytest.mark.parametrize(
     ("key", "value"),
     [

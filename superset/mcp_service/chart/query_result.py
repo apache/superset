@@ -39,6 +39,7 @@ from pydantic_core import to_json
 
 from superset.mcp_service.chart.schemas import ChartError
 from superset.utils.core import GenericDataType
+from superset.utils.dates import datetime_to_epoch, EPOCH
 
 FAILED_QUERY_STATUSES = frozenset(
     {"error", "failed", "stopped", "timed_out", "cancelled", "canceled"}
@@ -759,8 +760,10 @@ def _timestamp_offset_without_hooks(value: pd.Timestamp) -> timezone | None:
         return None
 
 
-def _trusted_datetime_text(value: datetime) -> tuple[str | None, str | None]:
-    """Serialize an exact Python datetime through only trusted timezone types."""
+def _trusted_datetime_value(
+    value: datetime,
+) -> tuple[datetime | None, str | None]:
+    """Return an exact datetime rebuilt with only trusted timezone types."""
     tzinfo = value.tzinfo
     canonical_value = value
     if tzinfo is not None and not any(
@@ -785,9 +788,20 @@ def _trusted_datetime_text(value: datetime) -> tuple[str | None, str | None]:
             fold=value.fold,
         )
     try:
-        return datetime.isoformat(canonical_value), None
+        # Exercise builtin validation without dispatching through a source
+        # timezone after the reconstruction above.
+        datetime.isoformat(canonical_value)
     except (OverflowError, TypeError, ValueError):
         return None, "contains an invalid datetime"
+    return canonical_value, None
+
+
+def _trusted_datetime_text(value: datetime) -> tuple[str | None, str | None]:
+    """Serialize an exact Python datetime through only trusted timezone types."""
+    canonical_value, reason = _trusted_datetime_value(value)
+    if reason is not None or canonical_value is None:
+        return None, reason or "contains an invalid datetime"
+    return datetime.isoformat(canonical_value), None
 
 
 def _trusted_time_text(value: time) -> tuple[str | None, str | None]:
@@ -828,8 +842,10 @@ def _trusted_time_text(value: time) -> tuple[str | None, str | None]:
         return None, "contains an invalid time"
 
 
-def _trusted_timestamp_text(value: pd.Timestamp) -> tuple[str | None, str | None]:
-    """Convert an exact pandas timestamp to its canonical JSON representation."""
+def _trusted_timestamp_value(
+    value: pd.Timestamp,
+) -> tuple[pd.Timestamp | None, str | None]:
+    """Return a timestamp rebuilt with only trusted timezone implementations."""
     tzinfo = value.tzinfo
     try:
         if tzinfo is not None and not any(
@@ -852,10 +868,20 @@ def _trusted_timestamp_text(value: pd.Timestamp) -> tuple[str | None, str | None
             value = pd.Timestamp(raw_value, unit=value.unit, tz="UTC").tz_convert(
                 canonical_tz
             )
-        # ISO output preserves nanoseconds and the UTC offset selected by fold.
-        text = pd.Timestamp.isoformat(value)
+        # Validate the retained resolution and selected UTC offset.
+        pd.Timestamp.isoformat(value)
     except (KeyError, OverflowError, TypeError, ValueError):
         return None, "contains an invalid pandas timestamp"
+    return value, None
+
+
+def _trusted_timestamp_text(value: pd.Timestamp) -> tuple[str | None, str | None]:
+    """Convert an exact pandas timestamp to its canonical JSON representation."""
+    canonical_value, reason = _trusted_timestamp_value(value)
+    if reason is not None or canonical_value is None:
+        return None, reason or "contains an invalid pandas timestamp"
+    # ISO output preserves nanoseconds and the UTC offset selected by fold.
+    text = pd.Timestamp.isoformat(canonical_value)
     if _bounded_utf8_length(text, MAX_QUERY_RESULT_STRING_BYTES) is None:
         return None, "contains an oversized pandas timestamp"
     return text, None
@@ -976,34 +1002,58 @@ def _normalize_trusted_scalar(  # noqa: C901
     return None, "contains an unsupported or subclassed value"
 
 
-def _chart_data_temporal_number(value: Any) -> tuple[float | None, str | None]:
+def _is_chart_data_temporal_scalar(value: Any) -> bool:
+    """Return whether an exact scalar has Chart Data temporal wire semantics."""
+    return type(value) in {
+        date,
+        datetime,
+        pd.Timestamp,
+        np.datetime64,
+        _PANDAS_NAT_TYPE,
+    }
+
+
+def _chart_data_temporal_number(  # noqa: C901
+    value: Any,
+) -> tuple[float | None, str | None]:
     """Project an exact date/datetime through Chart Data's epoch-ms wire form.
 
     The public Chart Data API uses ``json_int_dttm_ser`` before the browser
-    parses the payload.  The trusted text normalizer first validates timezone
-    implementations without dispatching through arbitrary hooks; parsing that
-    bounded text then gives the same instant using only builtin datetime types.
+    parses the payload. Trusted canonicalizers first validate or replace
+    timezone implementations without arbitrary hooks, then the production
+    ``datetime_to_epoch`` helper preserves its exact float behavior.
     """
     value_type = type(value)
+    if value_type is _PANDAS_NAT_TYPE:
+        # json_int_dttm_ser produces NaN and the Chart Data response's
+        # ``ignore_nan=True`` projects it to JSON null.
+        return None, None
+    if value_type is np.datetime64:
+        if np.isnat(value):
+            return None, None
+        try:
+            value = pd.Timestamp(value)
+        except (OverflowError, TypeError, ValueError):
+            return None, "contains an invalid NumPy datetime"
+        value_type = type(value)
+    if value_type is pd.Timestamp:
+        canonical_timestamp, reason = _trusted_timestamp_value(value)
+        if reason is not None or canonical_timestamp is None:
+            return None, reason or "contains an invalid pandas timestamp"
+        try:
+            return datetime_to_epoch(canonical_timestamp), None
+        except (OverflowError, TypeError, ValueError):
+            return None, "contains an invalid pandas timestamp"
     if value_type is datetime:
-        text, reason = _trusted_datetime_text(value)
-        if reason is not None or text is None:
+        canonical_datetime, reason = _trusted_datetime_value(value)
+        if reason is not None or canonical_datetime is None:
             return None, reason or "contains an invalid datetime"
         try:
-            parsed = datetime.fromisoformat(text)
-            if parsed.tzinfo is None:
-                epoch = datetime(1970, 1, 1)
-            else:
-                epoch = datetime(1970, 1, 1, tzinfo=timezone.utc)
-                parsed = parsed.astimezone(timezone.utc)
-            return (parsed - epoch).total_seconds() * 1000, None
+            return datetime_to_epoch(canonical_datetime), None
         except (OverflowError, TypeError, ValueError):
             return None, "contains an invalid datetime"
     if value_type is date:
-        # ``json_int_dttm_ser`` subtracts the epoch date and emits milliseconds.
-        return float(
-            (date.toordinal(value) - date.toordinal(date(1970, 1, 1))) * 86_400_000
-        ), None
+        return (value - EPOCH.date()).total_seconds() * 1000, None
     return None, "contains an unsupported temporal value"
 
 
@@ -1231,7 +1281,7 @@ def _normalize_row_value(  # noqa: C901
                 stack.append((child, item, key, depth + 1, False))
             continue
 
-        if temporal_json_numbers and type(item) in {date, datetime}:
+        if temporal_json_numbers and _is_chart_data_temporal_scalar(item):
             normalized, reason = _chart_data_temporal_number(item)
         else:
             normalized, reason = _normalize_trusted_scalar(item)

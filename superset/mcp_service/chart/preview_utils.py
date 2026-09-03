@@ -25,7 +25,6 @@ from form data without requiring a saved chart object.
 import logging
 import math
 from dataclasses import dataclass
-from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from enum import Enum
 from typing import Any, Dict, List
@@ -531,12 +530,13 @@ def _bullet_category_value(  # noqa: C901
     from superset.mcp_service.chart.query_result import (
         _bounded_utf8_length,
         _chart_data_temporal_number,
+        _is_chart_data_temporal_scalar,
         _normalize_trusted_scalar,
     )
 
     normalized: Any
     reason: str | None
-    if type(value) in {date, datetime}:
+    if _is_chart_data_temporal_scalar(value):
         normalized, reason = _chart_data_temporal_number(value)
     else:
         normalized, reason = _normalize_trusted_scalar(
