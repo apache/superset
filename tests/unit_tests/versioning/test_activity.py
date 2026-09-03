@@ -800,6 +800,62 @@ def test_record_matches_falsy_values_and_json_form() -> None:
     assert _record_matches(nested, '"label"')  # JSON double-quoted key
 
 
+def test_record_matches_searches_author_name() -> None:
+    """The q filter also matches the change author's display name from the
+    projected ``changed_by`` DTO (sc-119374: author-scoped search returned
+    "No actions found" because the author was absent from the haystack)."""
+    from superset.versioning.activity.orchestrator import _record_matches
+
+    record = {
+        "summary": "",
+        "entity_name": "Sales",
+        "kind": "field",
+        "path": ["params"],
+        "from_value": None,
+        "to_value": None,
+        "changed_by": {
+            "id": 1,
+            "first_name": "Test Primary",
+            "last_name": "Contributor",
+        },
+    }
+    assert _record_matches(record, "Primary")  # first-name substring
+    assert _record_matches(record, "contributor")  # last name, case-insensitive
+    assert _record_matches(record, "Test Primary Contributor")  # full name
+    assert not _record_matches(record, "Nonexistent Author")
+
+
+def test_record_matches_author_partial_and_missing_name() -> None:
+    """A user with only one name part still matches on it, and a record
+    whose author is redacted/absent (``changed_by`` is None — the
+    tombstoned-related-entity security contract) contributes no author
+    text and is not matchable by author."""
+    from superset.versioning.activity.orchestrator import _record_matches
+
+    first_only = {
+        "summary": "",
+        "entity_name": "",
+        "kind": "field",
+        "path": [],
+        "from_value": None,
+        "to_value": None,
+        "changed_by": {"id": 2, "first_name": "Ada", "last_name": None},
+    }
+    assert _record_matches(first_only, "ada")
+
+    redacted = {**first_only, "changed_by": None}
+    assert not _record_matches(redacted, "ada")
+
+    # A present DTO with both name parts null (a user row with no names) is
+    # distinct from redaction: it yields an empty author name and is likewise
+    # unsearchable by author, without matching on the literal 'None'.
+    nameless = {
+        **first_only,
+        "changed_by": {"id": 3, "first_name": None, "last_name": None},
+    }
+    assert not _record_matches(nameless, "none")
+
+
 def test_build_summary_meta_headline_branches() -> None:
     """The __meta__ headline dispatches on the transaction's action_kind
     (path is pure navigation): restore renders 'restored to version N'
