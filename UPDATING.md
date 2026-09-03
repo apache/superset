@@ -24,6 +24,22 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **[BREAKING] `SemanticLayer` and `SemanticView` are now classified in the
+  Flask-AppBuilder role sets**, so `sync_role_definitions` (run on
+  `superset init` and on startup) stops granting the built-in **Gamma** role
+  write access to them. `SemanticLayer` is treated like `Database`
+  (`READ_ONLY_MODEL_VIEWS`): create/edit/delete become **admin-only**, while
+  read stays broadly available (its configuration is returned masked).
+  `SemanticView` is treated like `Dataset` (`GAMMA_READ_ONLY_MODEL_VIEWS`):
+  writes are Alpha-tier, reads Gamma-tier. Its custom read endpoints
+  (`views`, `connections`) are mapped to `can_read` so they remain
+  accessible under the read-only classification. A deployment relying on
+  Gamma users creating or editing semantic layers/views must grant those
+  permissions through a custom role. A migration retires the now-unused
+  `can_views` / `can_connections` permissions left on the `SemanticLayer`
+  view menu by earlier builds. The feature remains gated behind the
+  default-off `SEMANTIC_LAYERS` flag.
+
 ### Archived dataset purge requires impact confirmation
 
 `GET /api/v1/dataset/<uuid>/purge-impact` returns the charts and distinct
