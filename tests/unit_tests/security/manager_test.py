@@ -1494,9 +1494,7 @@ def test_query_context_modified_scalar_groupby_param(
         "groupby": "division",
         "metric": "count",
     }
-    query_context.queries = [
-        QueryObject(columns=["division"], metrics=["count"])
-    ]
+    query_context.queries = [QueryObject(columns=["division"], metrics=["count"])]
     assert not query_context_modified(query_context)
 
 
@@ -1519,12 +1517,8 @@ def test_query_context_modified_scalar_columns_param(
         "columns": "region",
         "metrics": "sales",
     }
-    query_context.queries = [
-        QueryObject(columns=["region"], metrics=["sales"])
-    ]
+    query_context.queries = [QueryObject(columns=["region"], metrics=["sales"])]
     assert not query_context_modified(query_context)
-
-
 
 
 def _native_filter_ctx(

@@ -716,7 +716,6 @@ def _ensure_list(value: Any) -> list[Any]:
     return [value]
 
 
-
 # Frontend-only markers that ``normalizeTimeColumn`` adds when it synthesizes a
 # chart's x-axis into a ``BASE_AXIS`` column. Like ``timeGrain`` they decorate
 # the column without changing which data is queried, so they must not count as

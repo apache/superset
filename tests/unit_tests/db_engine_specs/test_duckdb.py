@@ -255,7 +255,7 @@ def test_extended_aggregation_func_median_stddev_var_executes() -> None:
 def test_motherduck_properties() -> None:
     from superset.db_engine_specs.duckdb import DuckDBEngineSpec, MotherDuckEngineSpec
 
-    assert MotherDuckEngineSpec.engine == "duckdb"
+    assert MotherDuckEngineSpec.engine == "motherduck"
     assert MotherDuckEngineSpec.engine_name == "MotherDuck"
     assert issubclass(MotherDuckEngineSpec, DuckDBEngineSpec)
 
