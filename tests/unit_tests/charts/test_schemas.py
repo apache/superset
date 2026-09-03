@@ -559,3 +559,81 @@ def test_chart_data_adhoc_metric_schema_accepts_extended_aggregates(
         }
     )
     assert result["aggregate"] == aggregate
+
+
+def test_post_processing_option_schemas_match_their_functions(
+    app_context: None,
+) -> None:
+    """Every documented post-processing option must be a real parameter.
+
+    `QueryObject.exec_post_processing` resolves the operation and calls it as
+    `func(df, **options)`, and the per-operation `options` dict is passed
+    through unvalidated. So a field that appears in one of these schemas but
+    not in the corresponding function signature is published in the OpenAPI
+    spec as a valid option while raising
+    `TypeError: <op>() got an unexpected keyword argument` -- an HTTP 500 --
+    for any client that sends it.
+
+    `ChartDataSortOptionsSchema` documented a required `columns` dict and an
+    `aggregates` field, neither of which `sort()` accepts, and
+    `ChartDataProphetOptionsSchema` documented `monthly_seasonality` where
+    `prophet()` takes `daily_seasonality`.
+
+    Only this direction is asserted. A parameter the schema omits is a
+    documentation gap that still works when sent; a field the schema adds is
+    a 500.
+    """
+    import inspect
+
+    from marshmallow import Schema
+
+    from superset.charts import schemas as chart_schemas
+    from superset.utils import pandas_postprocessing
+
+    # Keyed without underscores so that, say, `ChartDataGeohashDecodeOptionsSchema`
+    # reaches `geohash_decode`. Resolving by a bare `getattr` on the lowercased
+    # class name would miss every underscored operation, and missing ones would
+    # be skipped silently rather than reported.
+    operations = {
+        name.replace("_", ""): name
+        for name, _ in inspect.getmembers(pandas_postprocessing, inspect.isfunction)
+    }
+
+    mismatches = {}
+    unresolved = []
+    for name, schema_cls in vars(chart_schemas).items():
+        if not (
+            inspect.isclass(schema_cls)
+            and issubclass(schema_cls, Schema)
+            and name.startswith("ChartData")
+            and name.endswith("OptionsSchema")
+            # the base class the per-operation schemas derive from
+            and schema_cls
+            is not chart_schemas.ChartDataPostProcessingOperationOptionsSchema  # noqa: E501
+        ):
+            continue
+        operation = operations.get(
+            name[len("ChartData") : -len("OptionsSchema")].lower()
+        )
+        if operation is None:
+            unresolved.append(name)
+            continue
+        function = getattr(pandas_postprocessing, operation)
+        # `validate_column_args` wraps the operation; the signature worth
+        # checking is the wrapped function's, not the decorator's `**options`.
+        wrapped = function
+        for cell in function.__closure__ or ():
+            if inspect.isfunction(cell.cell_contents):
+                wrapped = cell.cell_contents
+        accepted = set(inspect.signature(wrapped).parameters) - {"df"}
+        if undocumented := sorted(set(schema_cls().fields) - accepted):
+            mismatches[f"{name} -> {operation}()"] = undocumented
+
+    assert not unresolved, (
+        "option schemas that could not be matched to a post-processing "
+        f"operation, so they went unchecked: {unresolved}"
+    )
+    assert not mismatches, (
+        "schema fields that the post-processing function does not accept "
+        f"(each is a 500 for any client following the OpenAPI spec): {mismatches}"
+    )
