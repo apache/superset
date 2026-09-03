@@ -380,7 +380,12 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Charts"
     """ Override the name set for this collection of endpoints """
-    openapi_spec_component_schemas = CHART_SCHEMAS + (VersionListItemSchema,)
+    openapi_spec_component_schemas = CHART_SCHEMAS + (
+        VersionListItemSchema,
+        # Referenced by $ref from the embedded endpoints, so it has to be
+        # registered as a component rather than only inlined.
+        EmbeddedChartResponseSchema,
+    )
 
     apispec_parameter_schemas = {
         "chart_get_list_schema": chart_get_list_schema,
