@@ -34,6 +34,7 @@ def test_parse_filters_semantic_view_requires_dataset_operator() -> None:
         type_filter,
         database_id,
         semantic_layer_uuid,
+        schema_filter,
     ) = GetCombinedDatasourceListCommand._parse_filters(
         [{"col": "sql", "opr": "eq", "value": "semantic_view"}]
     )
@@ -44,6 +45,7 @@ def test_parse_filters_semantic_view_requires_dataset_operator() -> None:
     assert type_filter is None
     assert database_id is None
     assert semantic_layer_uuid is None
+    assert schema_filter is None
 
 
 def test_parse_filters_semantic_view_with_dataset_operator() -> None:
@@ -54,6 +56,7 @@ def test_parse_filters_semantic_view_with_dataset_operator() -> None:
         type_filter,
         database_id,
         semantic_layer_uuid,
+        schema_filter,
     ) = GetCombinedDatasourceListCommand._parse_filters(
         [
             {
@@ -70,6 +73,7 @@ def test_parse_filters_semantic_view_with_dataset_operator() -> None:
     assert type_filter == "semantic_view"
     assert database_id is None
     assert semantic_layer_uuid is None
+    assert schema_filter is None
 
 
 def test_parse_filters_sql_bool_requires_dataset_operator() -> None:
@@ -80,6 +84,7 @@ def test_parse_filters_sql_bool_requires_dataset_operator() -> None:
         type_filter,
         database_id,
         semantic_layer_uuid,
+        schema_filter,
     ) = GetCombinedDatasourceListCommand._parse_filters(
         [{"col": "sql", "opr": "eq", "value": True}]
     )
@@ -90,6 +95,53 @@ def test_parse_filters_sql_bool_requires_dataset_operator() -> None:
     assert type_filter is None
     assert database_id is None
     assert semantic_layer_uuid is None
+    assert schema_filter is None
+
+
+def test_parse_filters_extracts_schema() -> None:
+    (
+        source_type,
+        name_filter,
+        sql_filter,
+        type_filter,
+        database_id,
+        semantic_layer_uuid,
+        schema_filter,
+    ) = GetCombinedDatasourceListCommand._parse_filters(
+        [{"col": "schema", "opr": "eq", "value": "main"}]
+    )
+
+    assert schema_filter == "main"
+    assert source_type == "all"
+    assert name_filter is None
+    assert sql_filter is None
+    assert type_filter is None
+    assert database_id is None
+    assert semantic_layer_uuid is None
+
+
+def test_parse_filters_ignores_schema_with_wrong_operator() -> None:
+    (*_, schema_filter) = GetCombinedDatasourceListCommand._parse_filters(
+        [{"col": "schema", "opr": "ct", "value": "main"}]
+    )
+
+    assert schema_filter is None
+
+
+def test_parse_filters_schema_boundary_values() -> None:
+    # An empty string is a real value: it becomes ``schema == ''`` (matching
+    # empty-schema rows, not NULL), mirroring the canonical /api/v1/dataset/
+    # FilterEqual behavior.
+    (*_, empty) = GetCombinedDatasourceListCommand._parse_filters(
+        [{"col": "schema", "opr": "eq", "value": ""}]
+    )
+    assert empty == ""
+
+    # A null value is ignored so no schema filter is applied.
+    (*_, missing) = GetCombinedDatasourceListCommand._parse_filters(
+        [{"col": "schema", "opr": "eq", "value": None}]
+    )
+    assert missing is None
 
 
 def test_resolve_source_type_semantic_view_filter_forces_semantic_layer() -> None:
@@ -122,6 +174,40 @@ def test_resolve_source_type_sql_filter_forces_database() -> None:
     )
 
     assert source_type == "database"
+
+
+def test_resolve_source_type_schema_filter_forces_database() -> None:
+    command = GetCombinedDatasourceListCommand(
+        args={},
+        can_read_datasets=True,
+        can_read_semantic_views=True,
+    )
+
+    source_type = command._resolve_source_type(
+        source_type="all",
+        sql_filter=None,
+        type_filter=None,
+        schema_filter="main",
+    )
+
+    assert source_type == "database"
+
+
+def test_resolve_source_type_explicit_semantic_layer_wins_over_schema() -> None:
+    command = GetCombinedDatasourceListCommand(
+        args={},
+        can_read_datasets=True,
+        can_read_semantic_views=True,
+    )
+
+    source_type = command._resolve_source_type(
+        source_type="semantic_layer",
+        sql_filter=None,
+        type_filter=None,
+        schema_filter="main",
+    )
+
+    assert source_type == "semantic_layer"
 
 
 @pytest.mark.parametrize(
