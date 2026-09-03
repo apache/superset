@@ -118,17 +118,24 @@ def export_lock_params(user_id: int, dashboard_id: int) -> dict[str, int]:
 
 
 def guest_lock_slot(guest_token: GuestToken | None) -> int:
-    """A stable per-guest lock slot derived from the token's identity, so
-    concurrent guests on the same dashboard throttle independently instead of
-    all sharing slot 0 (where the second guest's export is refused with no
-    job id and no email fallback). Anonymous requesters (no token) share 0.
+    """A stable per-guest lock slot derived from the token's identity (username,
+    resources, and RLS rules), so concurrent guests on the same dashboard
+    throttle independently instead of all sharing slot 0 (where the second
+    guest's export is refused with no job id and no email fallback). RLS is part
+    of the fingerprint because it is what distinguishes embedded guests sharing a
+    dashboard when the username is shared or absent. Anonymous requesters (no
+    token) share 0.
     """
     if not guest_token:
         return 0
     user = guest_token.get("user") or {}
     resources = guest_token.get("resources") or []
     fingerprint = json.dumps(
-        {"username": user.get("username"), "resources": resources},
+        {
+            "username": user.get("username"),
+            "resources": resources,
+            "rls": guest_token.get("rls_rules") or [],
+        },
         sort_keys=True,
         default=str,
     )
@@ -437,18 +444,14 @@ def _build_workbook(
         # The workbook itself carries the skipped-charts list: sessions with
         # no email (guests, Public role) have no other way to learn that part
         # of the requested workbook was omitted.
-        if writer.sheet_count == 0:
+        if writer.sheet_count == 0 or errored:
             flat = [label for labels in errored.values() for label in labels]
-            writer.add_summary_sheet(
-                "Export Summary",
-                ["No chart data could be exported.", *flat],
+            header = (
+                "No chart data could be exported."
+                if writer.sheet_count == 0
+                else "Charts that could not be exported:"
             )
-        elif errored:
-            flat = [label for labels in errored.values() for label in labels]
-            writer.add_summary_sheet(
-                "Export Summary",
-                ["Charts that could not be exported:", *flat],
-            )
+            writer.add_summary_sheet("Export Summary", [header, *flat])
     finally:
         writer.close()
     return errored
@@ -632,7 +635,9 @@ def export_dashboard_excel(
                             dashboard_title=dashboard_title,
                             download_url=download_url,
                             requested_at=requested_at,
-                            expires_at=expires_at,
+                            # Stored naive-local to match is_expired(); the email
+                            # labels its timestamps "UTC", so convert for display.
+                            expires_at=expires_at.astimezone(timezone.utc),
                             ttl_seconds=ttl,
                             errored=errored,
                         ),

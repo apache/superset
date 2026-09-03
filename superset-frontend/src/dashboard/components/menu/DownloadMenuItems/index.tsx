@@ -219,6 +219,11 @@ export const useDownloadMenuItems = (
       endpoint: `/api/v1/dashboard/export_xlsx/status/${jobId}/`,
     })
       .then(({ json }) => {
+        // A response in flight when the component unmounts must not navigate
+        // (redirect) or toast on whatever page the user moved to.
+        if (unmountedRef.current) {
+          return;
+        }
         const {
           status,
           download_url: downloadUrl,
@@ -258,6 +263,9 @@ export const useDownloadMenuItems = (
         );
       })
       .catch(error => {
+        if (unmountedRef.current) {
+          return;
+        }
         // A transient polling failure shouldn't give up the wait -- the export
         // itself may still succeed -- so keep polling until the timeout.
         logging.error(error);

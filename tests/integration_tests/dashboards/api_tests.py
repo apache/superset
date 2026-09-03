@@ -3974,8 +3974,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         self, mock_user_id, mock_g, mock_task, mock_acquire
     ):
         """Dashboard API: a guest-token request enqueues the task with
-        ``user_id=None`` plus the token payload, and shares lock slot 0 --
-        the API-to-worker handoff the guest fix depends on."""
+        ``user_id=None`` plus the token payload, and takes a token-derived lock
+        slot (not 0) -- the API-to-worker handoff the guest fix depends on."""
         token = {"user": {}, "resources": [], "rls_rules": []}
         mock_user_id.return_value = None
         mock_g.user.guest_token = token
