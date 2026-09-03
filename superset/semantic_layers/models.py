@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import uuid
 from collections.abc import Hashable
 from dataclasses import dataclass
@@ -456,7 +457,16 @@ class SemanticView(AuditMixinNullable, Model):
             raise ValueError(
                 f"Provider result is missing the requested dimension {dimension.name}"
             )
-        values = column.to_pylist()
+        # Non-finite floats must not leave the model: NaN/Infinity render the
+        # endpoint's body as invalid strict JSON (the browser's JSON.parse
+        # throws and the picker silently empties, with nothing in the server
+        # log), and NaN defeats the ascending sort (every comparison is
+        # False). Collapse them to None -- the same outcome the dataset path
+        # produces by replacing NaN after the query.
+        values = [
+            None if isinstance(value, float) and not math.isfinite(value) else value
+            for value in column.to_pylist()
+        ]
         try:
             values.sort(key=lambda value: (value is not None, value))
         except TypeError:

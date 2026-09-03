@@ -1858,13 +1858,9 @@ def test_values_for_column_sorts_struct_values_without_error(
     ):
         values = view.values_for_column("category")
 
-    assert values[0] is None
-    assert {"code": "a", "n": 1} in values and {"code": "b", "n": 2} in values
-    assert (
-        values
-        == sorted(values, key=lambda v: (v is not None, str(sorted((v or {}).items()))))
-        or values[0] is None
-    )  # deterministic: nulls first, stable order after
+    # Exact expected order: nulls first, then canonical-string order of
+    # the dicts (json.dumps with sorted keys puts code "a" before "b").
+    assert values == [None, {"code": "a", "n": 1}, {"code": "b", "n": 2}]
 
 
 def test_values_for_column_sorts_list_values_with_null_elements(
@@ -1897,6 +1893,42 @@ def test_values_for_column_sorts_list_values_with_null_elements(
     assert values[0] is None
     assert len(values) == 4
     assert [None, "a"] in values and ["a"] in values and ["b", None] in values
+
+
+def test_values_for_column_normalizes_non_finite_floats(
+    mock_implementation: MagicMock,
+    mock_dimensions: list[Dimension],
+) -> None:
+    """NaN and Infinity in a numeric dimension must become None before the
+    result leaves the model: emitted raw they render the endpoint's body as
+    invalid strict JSON (browsers' JSON.parse throws and the picker silently
+    empties -- the exact failure class this feature exists to kill), and NaN
+    defeats the ascending sort (every comparison is False). Datasets guard
+    the same edge by replacing NaN with None after the query."""
+    view = SemanticView()
+    mock_implementation.get_values.return_value = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="values query")],
+        results=pa.table(
+            {
+                "category": pa.array(
+                    [1.5, float("nan"), 0.5, float("inf"), float("-inf"), None],
+                    type=pa.float64(),
+                )
+            }
+        ),
+    )
+
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: mock_implementation),
+    ):
+        values = view.values_for_column("category")
+
+    # Non-finite floats collapse to None alongside the real null: nulls
+    # first, finite values in ascending order, everything JSON-safe.
+    assert values == [None, None, None, None, 0.5, 1.5]
+    assert all(v is None or isinstance(v, float) for v in values)
 
 
 def test_values_for_column_scalar_sort_unchanged(
