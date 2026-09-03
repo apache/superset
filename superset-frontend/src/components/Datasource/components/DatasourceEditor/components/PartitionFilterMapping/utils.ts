@@ -184,3 +184,21 @@ export function applyPartitionColumnDefaults<T extends PartitionMappingColumn>(
       : column,
   );
 }
+
+/**
+ * Where "Map a column →" should take an owner with nothing mapped yet.
+ *
+ * Prefers a temporal column: this feature exists for time ranges, and the
+ * alternative -- whichever column happens to sort first -- lands on something
+ * like a revenue metric, which no one would mirror onto a partition key.
+ */
+export function suggestedMappedColumn(
+  columns: PartitionMappingColumn[],
+  partitionColumnName: string | null | undefined,
+): string | null {
+  const candidates = columns.filter(
+    column => column.column_name !== partitionColumnName,
+  );
+  const temporal = candidates.find(column => column.is_dttm);
+  return (temporal ?? candidates[0])?.column_name ?? null;
+}
