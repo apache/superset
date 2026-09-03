@@ -127,4 +127,3 @@ test('renders description icon outside label when hovered', async () => {
   const formLabel = label.closest('label');
   expect(formLabel).not.toContainElement(infoIcon);
 });
-
