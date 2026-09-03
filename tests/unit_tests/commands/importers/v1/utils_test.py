@@ -177,7 +177,7 @@ class TestLoadConfigs:
     """
 
     @staticmethod
-    def _trivial_schema():  # type: ignore[no-untyped-def]
+    def _trivial_schema():
         from marshmallow import EXCLUDE, Schema
 
         class TrivialSchema(Schema):
