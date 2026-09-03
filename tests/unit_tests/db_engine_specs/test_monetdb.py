@@ -45,7 +45,8 @@ def test_monetdb_metadata() -> None:
         ),
         (
             TimeGrain.HOUR,
-            "CAST(ts AS TIMESTAMP) - CAST(EXTRACT(MINUTE FROM ts) AS INTERVAL MINUTE) - "
+            "CAST(ts AS TIMESTAMP) - "
+            "CAST(EXTRACT(MINUTE FROM ts) AS INTERVAL MINUTE) - "
             "CAST(EXTRACT(SECOND FROM ts) AS INTERVAL SECOND)",
         ),
         (TimeGrain.DAY, "CAST(ts AS DATE)"),
@@ -58,4 +59,7 @@ def test_monetdb_metadata() -> None:
     ],
 )
 def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
-    assert MonetDbEngineSpec._time_grain_expressions[time_grain].format(col="ts") == expected
+    assert (
+        MonetDbEngineSpec._time_grain_expressions[time_grain].format(col="ts")
+        == expected
+    )

@@ -95,6 +95,7 @@ class AuroraPostgresDataAPI(PostgresEngineSpec):
             "{database_name}?aurora_cluster_arn={aurora_cluster_arn}&"
             "secret_arn={secret_arn}&region_name={region_name}"
         ),
+        "default_port": 5432,
         "parameters": {
             "aws_access_id": "AWS Access Key ID",
             "aws_secret_access_key": "AWS Secret Access Key",

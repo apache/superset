@@ -28,7 +28,10 @@ def test_arc_properties() -> None:
 
 def test_arc_metadata() -> None:
     metadata = ArcEngineSpec.metadata
-    assert metadata["description"] == "Arc is a data platform with multiple connection options."
+    assert (
+        metadata["description"]
+        == "Arc is a data platform with multiple connection options."
+    )
     assert metadata["logo"] == "arc.png"
     assert "arc-superset-arrow" in metadata["pypi_packages"]
     assert metadata["default_port"] == 443
@@ -49,4 +52,6 @@ def test_arc_metadata() -> None:
     ],
 )
 def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
-    assert ArcEngineSpec._time_grain_expressions[time_grain].format(col="ts") == expected
+    assert (
+        ArcEngineSpec._time_grain_expressions[time_grain].format(col="ts") == expected
+    )

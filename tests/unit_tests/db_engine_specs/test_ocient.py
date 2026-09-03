@@ -37,8 +37,14 @@ def test_ocient_metadata() -> None:
 
 
 def test_ocient_epoch_to_dttm() -> None:
-    assert OcientEngineSpec.epoch_to_dttm().format(col="ts") == "DATEADD(S, ts, '1970-01-01')"
-    assert OcientEngineSpec.epoch_ms_to_dttm().format(col="ts") == "DATEADD(MS, ts, '1970-01-01')"
+    assert (
+        OcientEngineSpec.epoch_to_dttm().format(col="ts")
+        == "DATEADD(S, ts, '1970-01-01')"
+    )
+    assert (
+        OcientEngineSpec.epoch_ms_to_dttm().format(col="ts")
+        == "DATEADD(MS, ts, '1970-01-01')"
+    )
 
 
 @pytest.mark.parametrize(
@@ -56,4 +62,7 @@ def test_ocient_epoch_to_dttm() -> None:
     ],
 )
 def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
-    assert OcientEngineSpec._time_grain_expressions[time_grain].format(col="ts") == expected
+    assert (
+        OcientEngineSpec._time_grain_expressions[time_grain].format(col="ts")
+        == expected
+    )

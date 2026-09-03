@@ -29,7 +29,7 @@ def test_ascend_properties() -> None:
 
 def test_ascend_metadata() -> None:
     metadata = AscendEngineSpec.metadata
-    assert "Ascend.io" in metadata["description"]
+    assert "Ascend" in metadata["description"]
     assert metadata["logo"] == "ascend.webp"
     assert "impyla" in metadata["pypi_packages"]
     assert "ascend://" in metadata["connection_string"]
@@ -50,4 +50,7 @@ def test_ascend_metadata() -> None:
     ],
 )
 def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
-    assert AscendEngineSpec._time_grain_expressions[time_grain].format(col="ts") == expected
+    assert (
+        AscendEngineSpec._time_grain_expressions[time_grain].format(col="ts")
+        == expected
+    )

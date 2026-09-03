@@ -69,4 +69,7 @@ def test_convert_dttm(
     ],
 )
 def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
-    assert PhoenixEngineSpec._time_grain_expressions[time_grain].format(col="ts") == expected
+    assert (
+        PhoenixEngineSpec._time_grain_expressions[time_grain].format(col="ts")
+        == expected
+    )

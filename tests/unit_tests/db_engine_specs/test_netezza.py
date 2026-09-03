@@ -59,4 +59,7 @@ def test_netezza_epoch_to_dttm() -> None:
     ],
 )
 def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
-    assert NetezzaEngineSpec._time_grain_expressions[time_grain].format(col="ts") == expected
+    assert (
+        NetezzaEngineSpec._time_grain_expressions[time_grain].format(col="ts")
+        == expected
+    )

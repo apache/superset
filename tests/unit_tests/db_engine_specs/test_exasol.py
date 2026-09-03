@@ -49,4 +49,7 @@ def test_exasol_metadata() -> None:
     ],
 )
 def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
-    assert ExasolEngineSpec._time_grain_expressions[time_grain].format(col="ts") == expected
+    assert (
+        ExasolEngineSpec._time_grain_expressions[time_grain].format(col="ts")
+        == expected
+    )

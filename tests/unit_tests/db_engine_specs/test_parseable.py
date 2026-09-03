@@ -31,7 +31,9 @@ def test_parseable_properties() -> None:
 
 def test_parseable_metadata() -> None:
     metadata = ParseableEngineSpec.metadata
-    assert "Parseable is a distributed log analytics database" in metadata["description"]
+    assert (
+        "Parseable is a distributed log analytics database" in metadata["description"]
+    )
     assert metadata["logo"] == "parseable.png"
     assert "sqlalchemy-parseable" in metadata["pypi_packages"]
     assert metadata["default_port"] == 8000
@@ -39,7 +41,10 @@ def test_parseable_metadata() -> None:
 
 def test_epoch_to_dttm() -> None:
     assert ParseableEngineSpec.epoch_to_dttm().format(col="ts") == "to_timestamp(ts)"
-    assert ParseableEngineSpec.epoch_ms_to_dttm().format(col="ts") == "to_timestamp(ts / 1000)"
+    assert (
+        ParseableEngineSpec.epoch_ms_to_dttm().format(col="ts")
+        == "to_timestamp(ts / 1000)"
+    )
 
 
 @pytest.mark.parametrize(
@@ -72,4 +77,7 @@ def test_convert_dttm(
     ],
 )
 def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
-    assert ParseableEngineSpec._time_grain_expressions[time_grain].format(col="ts") == expected
+    assert (
+        ParseableEngineSpec._time_grain_expressions[time_grain].format(col="ts")
+        == expected
+    )
