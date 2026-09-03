@@ -5475,10 +5475,12 @@ msgid "Deleted %(num)d saved query"
 msgid_plural "Deleted %(num)d saved queries"
 msgstr[0] "删除 %(num)d 个保存的查询"
 
+#, python-format
 msgid "Deleted %(num)d semantic view"
 msgid_plural "Deleted %(num)d semantic views"
 msgstr[0] "删除了 %(num)d 个语义视图"
 
+#, python-format
 msgid "Deleted %(num)d theme"
 msgid_plural "Deleted %(num)d themes"
 msgstr[0] "删除了 %(num)d 个主题"
@@ -7061,7 +7063,7 @@ msgid "Failed to load columns for %s %s"
 msgstr "无法加载 %s %s 的列"
 
 msgid "Failed to load top values"
-msgstr "加载前 N 个值失败"
+msgstr "加载顶部值失败"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -13863,7 +13865,7 @@ msgid "Start at (UTC)"
 msgstr "开始于（UTC）"
 
 msgid "Start date"
-msgstr "开始时间"
+msgstr "开始日期"
 
 msgid "Start date included in time range"
 msgstr "开始日期包含在时间范围内"
@@ -16092,7 +16094,6 @@ msgid ""
 " is not the case."
 msgstr "此页面设计为嵌入在 iframe 中，但看起来并非如此。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "This password is too common; please choose a less guessable one."
 msgstr "此密码过于常见；请选择一个不易被猜到的密码。"
 
