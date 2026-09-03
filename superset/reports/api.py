@@ -297,6 +297,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
+        "get_slack_channels_schema": get_slack_channels_schema,
     }
     openapi_spec_tag = "Report Schedules"
     openapi_spec_methods = openapi_spec_methods_override
