@@ -205,9 +205,13 @@ class DatasourceDAO(BaseDAO[Datasource]):
         sort_col = combined.c[sort_col_name]
         ordered_col = sort_col.desc() if order_direction == "desc" else sort_col.asc()
 
+        # None of the sortable columns is unique across the union (a dataset
+        # and a semantic view may share a name, two datasets may share a
+        # changed_on), so offset pagination needs a total order or rows can
+        # repeat or vanish at page boundaries.
         rows = db.session.execute(
             select(combined.c.item_id, combined.c.source_type)
-            .order_by(ordered_col)
+            .order_by(ordered_col, combined.c.source_type, combined.c.item_id)
             .offset(page * page_size)
             .limit(page_size)
         ).fetchall()
