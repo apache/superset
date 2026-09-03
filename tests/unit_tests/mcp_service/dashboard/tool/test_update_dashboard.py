@@ -146,7 +146,7 @@ class TestUpdateDashboard:
         assert merged["cross_filters_enabled"] is False
         assert mock_session.commit.call_count >= 1
         # changed_fields enumerates what actually changed.
-        # StructuredContentStripperMiddleware strips structured_content;
+        # ToolResultCompatibilityMiddleware preserves structured_content;
         # the JSON-encoded response lives in content[0].text.
         payload = json.loads(result.content[0].text)
         changed = set(payload.get("changed_fields") or [])
@@ -289,7 +289,7 @@ class TestUpdateDashboard:
         # Nothing modified — dashboard fields unchanged, warning emitted
         assert dash.css == original_css
         assert dash.dashboard_title == original_title
-        # StructuredContentStripperMiddleware strips structured_content;
+        # ToolResultCompatibilityMiddleware preserves structured_content;
         # the JSON-encoded response lives in content[0].text.
         payload = json.loads(result.content[0].text)
         warnings = payload.get("warnings") or []

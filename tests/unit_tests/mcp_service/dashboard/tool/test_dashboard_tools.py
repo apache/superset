@@ -385,17 +385,21 @@ async def test_get_dashboard_info_success(
         result = await client.call_tool(
             "get_dashboard_info", {"request": {"identifier": 1}}
         )
-        assert result.data["dashboard_title"] == _wrapped("Test Dashboard")
-        assert result.data["description"] == _wrapped("Test description")
-        assert result.data["certification_details"] == _wrapped(
+        assert result.structured_content["dashboard_title"] == _wrapped(
+            "Test Dashboard"
+        )
+        assert result.structured_content["description"] == _wrapped("Test description")
+        assert result.structured_content["certification_details"] == _wrapped(
             "Certified by data team"
         )
-        assert result.data["slug"] == "test-dashboard"
-        assert result.data["url"].endswith("/dashboard/1")
-        assert result.data["uuid"] == "dashboard-uuid-1"
-        assert result.data["native_filters"][0]["id"] == "native-filter-1"
-        assert result.data["native_filters"][0]["name"] == _wrapped("Region Filter")
-        assert result.data["native_filters"][0]["targets"] == [
+        assert result.structured_content["slug"] == "test-dashboard"
+        assert result.structured_content["url"].endswith("/dashboard/1")
+        assert result.structured_content["uuid"] == "dashboard-uuid-1"
+        assert result.structured_content["native_filters"][0]["id"] == "native-filter-1"
+        assert result.structured_content["native_filters"][0]["name"] == _wrapped(
+            "Region Filter"
+        )
+        assert result.structured_content["native_filters"][0]["targets"] == [
             {"column": {"name": _wrapped("region")}, "datasetId": 12}
         ]
 
@@ -482,22 +486,28 @@ async def test_get_dashboard_info_permalink_does_not_double_sanitize(
                 {"request": {"identifier": 1, "permalink_key": "permalink-1"}},
             )
 
-    assert result.data["dashboard_title"] == _wrapped("Test Dashboard")
-    assert result.data["description"] == _wrapped("Test description")
-    assert result.data["certification_details"] == _wrapped("Certified by data team")
-    assert result.data["native_filters"][0]["name"] == _wrapped("Region Filter")
-    assert result.data["permalink_key"] == "permalink-1"
-    assert result.data["is_permalink_state"] is True
-    assert result.data["filter_state"]["dataMask"]["native-filter-1"]["filterState"][
-        "label"
-    ] == _wrapped("EMEA")
-    assert result.data["filter_state"]["dataMask"]["native-filter-1"]["filterState"][
-        "url"
-    ] == _wrapped("https://example.com/filter-value")
-    assert result.data["filter_state"]["dataMask"]["native-filter-1"]["extraFormData"][
-        "filters"
-    ][0]["val"][0] == _wrapped("EMEA")
-    assert result.data["filter_state"]["activeTabs"][0] == _wrapped("TAB-1")
+    assert result.structured_content["dashboard_title"] == _wrapped("Test Dashboard")
+    assert result.structured_content["description"] == _wrapped("Test description")
+    assert result.structured_content["certification_details"] == _wrapped(
+        "Certified by data team"
+    )
+    assert result.structured_content["native_filters"][0]["name"] == _wrapped(
+        "Region Filter"
+    )
+    assert result.structured_content["permalink_key"] == "permalink-1"
+    assert result.structured_content["is_permalink_state"] is True
+    assert result.structured_content["filter_state"]["dataMask"]["native-filter-1"][
+        "filterState"
+    ]["label"] == _wrapped("EMEA")
+    assert result.structured_content["filter_state"]["dataMask"]["native-filter-1"][
+        "filterState"
+    ]["url"] == _wrapped("https://example.com/filter-value")
+    assert result.structured_content["filter_state"]["dataMask"]["native-filter-1"][
+        "extraFormData"
+    ]["filters"][0]["val"][0] == _wrapped("EMEA")
+    assert result.structured_content["filter_state"]["activeTabs"][0] == _wrapped(
+        "TAB-1"
+    )
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -567,9 +577,9 @@ async def test_get_dashboard_info_permalink_key_includes_filter_state(
                 {"request": {"identifier": 42, "permalink_key": "some-key"}},
             )
 
-    assert "filter_state" in result.data
-    assert result.data["is_permalink_state"] is True
-    assert result.data["permalink_key"] == "some-key"
+    assert "filter_state" in result.structured_content
+    assert result.structured_content["is_permalink_state"] is True
+    assert result.structured_content["permalink_key"] == "some-key"
 
 
 @patch("superset.mcp_service.mcp_core.ModelGetInfoCore.run_tool")
@@ -589,9 +599,11 @@ async def test_get_dashboard_info_resolves_permalink_without_identifier(
             "get_dashboard_info", {"request": {"permalink_key": "shared-key"}}
         )
 
-    assert result.data["id"] == 42
-    assert result.data["permalink_key"] == "shared-key"
-    assert result.data["filter_state"]["activeTabs"] == [_wrapped("TAB-A")]
+    assert result.structured_content["id"] == 42
+    assert result.structured_content["permalink_key"] == "shared-key"
+    assert result.structured_content["filter_state"]["activeTabs"] == [
+        _wrapped("TAB-A")
+    ]
     mock_run_tool.assert_called_once_with("42")
 
 
@@ -608,8 +620,8 @@ async def test_get_dashboard_info_invalid_permalink_is_actionable(
             "get_dashboard_info", {"request": {"permalink_key": "expired-key"}}
         )
 
-    assert result.data["error_type"] == "permalink_not_found"
-    assert "fresh shared dashboard link" in result.data["error"]
+    assert result.structured_content["error_type"] == "permalink_not_found"
+    assert "fresh shared dashboard link" in result.structured_content["error"]
 
 
 @patch("superset.mcp_service.mcp_core.ModelGetInfoCore.run_tool")
@@ -632,9 +644,9 @@ async def test_get_dashboard_info_identifier_takes_precedence_over_permalink(
             {"request": {"identifier": 10, "permalink_key": "dashboard-20-key"}},
         )
 
-    assert result.data["id"] == 10
-    assert result.data["is_permalink_state"] is False
-    assert "filter_state" not in result.data
+    assert result.structured_content["id"] == 10
+    assert result.structured_content["is_permalink_state"] is False
+    assert "filter_state" not in result.structured_content
     mock_run_tool.assert_called_once_with(10)
 
 
@@ -662,10 +674,12 @@ async def test_get_dashboard_info_permalink_with_uuid_dashboard_id(
             {"request": {"identifier": 42, "permalink_key": "uuid-key"}},
         )
 
-    assert result.data["id"] == 42
-    assert result.data["is_permalink_state"] is True
-    assert result.data["permalink_key"] == "uuid-key"
-    assert result.data["filter_state"]["activeTabs"] == [_wrapped("TAB-A")]
+    assert result.structured_content["id"] == 42
+    assert result.structured_content["is_permalink_state"] is True
+    assert result.structured_content["permalink_key"] == "uuid-key"
+    assert result.structured_content["filter_state"]["activeTabs"] == [
+        _wrapped("TAB-A")
+    ]
 
 
 @patch("superset.mcp_service.mcp_core.ModelGetInfoCore.run_tool")
@@ -689,8 +703,10 @@ async def test_get_dashboard_info_permalink_with_slug_dashboard_id(
             {"request": {"identifier": 42, "permalink_key": "slug-key"}},
         )
 
-    assert result.data["is_permalink_state"] is True
-    assert result.data["filter_state"]["activeTabs"] == [_wrapped("TAB-A")]
+    assert result.structured_content["is_permalink_state"] is True
+    assert result.structured_content["filter_state"]["activeTabs"] == [
+        _wrapped("TAB-A")
+    ]
 
 
 @patch("superset.mcp_service.mcp_core.ModelGetInfoCore.run_tool")
@@ -714,9 +730,9 @@ async def test_get_dashboard_info_unknown_slug_keeps_not_found_error(
             "get_dashboard_info", {"request": {"identifier": "sales-dashbord"}}
         )
 
-    assert result.data["error_type"] == "not_found"
-    assert "sales-dashbord" in result.data["error"]
-    assert "fresh shared dashboard link" not in result.data["error"]
+    assert result.structured_content["error_type"] == "not_found"
+    assert "sales-dashbord" in result.structured_content["error"]
+    assert "fresh shared dashboard link" not in result.structured_content["error"]
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -727,7 +743,7 @@ async def test_get_dashboard_info_not_found(mock_info, mcp_server):
         result = await client.call_tool(
             "get_dashboard_info", {"request": {"identifier": 999}}
         )
-        assert result.data["error_type"] == "not_found"
+        assert result.structured_content["error_type"] == "not_found"
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -738,7 +754,7 @@ async def test_get_dashboard_info_access_denied(mock_info, mcp_server):
         result = await client.call_tool(
             "get_dashboard_info", {"request": {"identifier": 1}}
         )
-        assert result.data["error_type"] == "not_found"
+        assert result.structured_content["error_type"] == "not_found"
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -799,13 +815,15 @@ async def test_get_dashboard_info_does_not_expose_access_list(mock_info, mcp_ser
             "get_dashboard_info", {"request": {"identifier": 1}}
         )
 
-    assert result.data["dashboard_title"] == _wrapped("Customer Success Home Dashboard")
-    assert "created_by" not in result.data
-    assert "changed_by" not in result.data
-    assert "editors" not in result.data
-    assert "created_by" not in result.data["charts"][0]
-    assert "changed_by" not in result.data["charts"][0]
-    assert "editors" not in result.data["charts"][0]
+    assert result.structured_content["dashboard_title"] == _wrapped(
+        "Customer Success Home Dashboard"
+    )
+    assert "created_by" not in result.structured_content
+    assert "changed_by" not in result.structured_content
+    assert "editors" not in result.structured_content
+    assert "created_by" not in result.structured_content["charts"][0]
+    assert "changed_by" not in result.structured_content["charts"][0]
+    assert "editors" not in result.structured_content["charts"][0]
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -875,12 +893,18 @@ async def test_get_dashboard_info_restricted_user_redacts_data_model_metadata(
                 {"request": {"identifier": 1}},
             )
 
-    assert result.data["dashboard_title"] == _wrapped("Sales Dashboard")
-    assert result.data["charts"][0]["slice_name"] == _wrapped("Revenue by Deal Size")
-    assert result.data["charts"][0]["viz_type"] == "echarts_timeseries_bar"
-    assert result.data["charts"][0]["datasource_name"] is None
-    assert result.data["native_filters"][0]["name"] == _wrapped("Product Line")
-    assert result.data["native_filters"][0]["targets"] == []
+    assert result.structured_content["dashboard_title"] == _wrapped("Sales Dashboard")
+    assert result.structured_content["charts"][0]["slice_name"] == _wrapped(
+        "Revenue by Deal Size"
+    )
+    assert (
+        result.structured_content["charts"][0]["viz_type"] == "echarts_timeseries_bar"
+    )
+    assert result.structured_content["charts"][0]["datasource_name"] is None
+    assert result.structured_content["native_filters"][0]["name"] == _wrapped(
+        "Product Line"
+    )
+    assert result.structured_content["native_filters"][0]["targets"] == []
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -969,9 +993,11 @@ async def test_get_dashboard_info_restricted_user_redacts_permalink_filter_state
                 {"request": {"identifier": 1, "permalink_key": "abc123"}},
             )
 
-    assert result.data["permalink_key"] == "abc123"
-    assert result.data["is_permalink_state"] is True
-    assert result.data["filter_state"] == {"activeTabs": [_wrapped("TAB-products")]}
+    assert result.structured_content["permalink_key"] == "abc123"
+    assert result.structured_content["is_permalink_state"] is True
+    assert result.structured_content["filter_state"] == {
+        "activeTabs": [_wrapped("TAB-products")]
+    }
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")
@@ -1074,8 +1100,13 @@ async def test_get_dashboard_info_includes_embedded_uuid(mock_find_object, mcp_s
         result = await client.call_tool(
             "get_dashboard_info", {"request": {"identifier": 1}}
         )
-        assert result.data["uuid"] == "94b826a5-dbd5-473d-ab58-1af676ee07e4"
-        assert result.data["embedded_uuid"] == "37c56048-d3f1-452d-b3ae-0879802dcb1f"
+        assert (
+            result.structured_content["uuid"] == "94b826a5-dbd5-473d-ab58-1af676ee07e4"
+        )
+        assert (
+            result.structured_content["embedded_uuid"]
+            == "37c56048-d3f1-452d-b3ae-0879802dcb1f"
+        )
 
 
 @patch("superset.mcp_service.mcp_core.ModelGetInfoCore._find_object")
@@ -1114,7 +1145,7 @@ async def test_get_dashboard_info_embedded_uuid_none_when_not_embedded(
         result = await client.call_tool(
             "get_dashboard_info", {"request": {"identifier": 2}}
         )
-        assert result.data.get("embedded_uuid") is None
+        assert result.structured_content.get("embedded_uuid") is None
 
 
 # TODO (Phase 3+): Add tests for get_dashboard_available_filters tool
@@ -1157,7 +1188,9 @@ async def test_get_dashboard_info_by_uuid(mock_find_object, mcp_server):
         result = await client.call_tool(
             "get_dashboard_info", {"request": {"identifier": uuid_str}}
         )
-        assert result.data["dashboard_title"] == _wrapped("Test Dashboard UUID")
+        assert result.structured_content["dashboard_title"] == _wrapped(
+            "Test Dashboard UUID"
+        )
 
 
 @patch("superset.mcp_service.mcp_core.ModelGetInfoCore._find_object")
@@ -1196,7 +1229,9 @@ async def test_get_dashboard_info_by_slug(mock_find_object, mcp_server):
         result = await client.call_tool(
             "get_dashboard_info", {"request": {"identifier": "test-dashboard-slug"}}
         )
-        assert result.data["dashboard_title"] == _wrapped("Test Dashboard Slug")
+        assert result.structured_content["dashboard_title"] == _wrapped(
+            "Test Dashboard Slug"
+        )
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")
@@ -1634,9 +1669,12 @@ async def test_get_dashboard_info_direct_filter_state(mock_info, mcp_server):
                 "get_dashboard_info",
                 {"request": {"identifier": 1, "filter_state": filter_state}},
             )
-    assert result.data["is_permalink_state"] is False
-    assert result.data["permalink_key"] is None
-    assert result.data["filter_state"]["applied_filters"][0]["col"] == "gender"
+    assert result.structured_content["is_permalink_state"] is False
+    assert result.structured_content["permalink_key"] is None
+    assert (
+        result.structured_content["filter_state"]["applied_filters"][0]["col"]
+        == "gender"
+    )
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -1666,9 +1704,9 @@ async def test_direct_filter_state_redacts_data_model_metadata(mock_info, mcp_se
                 "get_dashboard_info",
                 {"request": {"identifier": 1, "filter_state": filter_state}},
             )
-    assert "dataMask" not in result.data["filter_state"]
-    assert "chartStates" not in result.data["filter_state"]
-    assert "applied_filters" in result.data["filter_state"]
+    assert "dataMask" not in result.structured_content["filter_state"]
+    assert "chartStates" not in result.structured_content["filter_state"]
+    assert "applied_filters" in result.structured_content["filter_state"]
 
 
 @patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
@@ -1706,9 +1744,9 @@ async def test_get_dashboard_info_permalink_wins_over_filter_state(
                     }
                 },
             )
-    assert result.data["permalink_key"] == "permalink-1"
-    assert "dataMask" in result.data["filter_state"]
-    assert "applied_filters" not in result.data["filter_state"]
+    assert result.structured_content["permalink_key"] == "permalink-1"
+    assert "dataMask" in result.structured_content["filter_state"]
+    assert "applied_filters" not in result.structured_content["filter_state"]
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -1725,8 +1763,8 @@ async def test_direct_empty_filter_state_is_honored(mock_info, mcp_server):
                 "get_dashboard_info",
                 {"request": {"identifier": 1, "filter_state": {}}},
             )
-    assert result.data["is_permalink_state"] is False
-    assert result.data["filter_state"] == {}
+    assert result.structured_content["is_permalink_state"] is False
+    assert result.structured_content["filter_state"] == {}
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -1751,4 +1789,4 @@ async def test_explicit_default_columns_excludes_filter_state(mock_info, mcp_ser
                     }
                 },
             )
-    assert "filter_state" not in result.data
+    assert "filter_state" not in result.structured_content

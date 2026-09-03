@@ -22,8 +22,11 @@ This module provides the concrete implementation of MCP abstractions
 that replaces the abstract functions in superset-core during initialization.
 """
 
+import inspect
 import logging
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, Callable, get_type_hints, Optional, TypeVar
+
+from pydantic import TypeAdapter
 
 try:
     from mcp.types import ToolAnnotations
@@ -36,6 +39,83 @@ from superset.extensions.context import get_current_extension_context
 F = TypeVar("F", bound=Callable[..., Any])
 
 logger = logging.getLogger(__name__)
+
+
+def _strip_schema_titles(value: Any) -> Any:
+    """Remove generated JSON Schema titles while preserving useful metadata."""
+    if isinstance(value, list):
+        return [_strip_schema_titles(item) for item in value]
+    if not isinstance(value, dict):
+        return value
+    return {
+        key: _strip_schema_titles(item) for key, item in value.items() if key != "title"
+    }
+
+
+def _is_object_schema(schema: dict[str, Any], root_schema: dict[str, Any]) -> bool:
+    """Return whether a schema, including a local reference, is an object."""
+    if schema.get("type") == "object" or "properties" in schema:
+        return True
+
+    reference = schema.get("$ref")
+    if not isinstance(reference, str) or not reference.startswith("#/$defs/"):
+        return False
+    definition = root_schema.get("$defs", {}).get(reference.removeprefix("#/$defs/"))
+    return isinstance(definition, dict) and (
+        definition.get("type") == "object" or "properties" in definition
+    )
+
+
+def _native_tool_output_schema(func: Callable[..., Any]) -> dict[str, Any] | None:
+    """Build an output schema from the callable's validation shape.
+
+    FastMCP normally derives schemas in Pydantic's serialization mode. A model
+    serializer annotated as returning ``dict[str, Any]`` then collapses an
+    otherwise typed model to an unconstrained object. Superset uses such
+    serializers to omit unrequested columns and normalize aliases, but the
+    model's validation schema remains an accurate superset of every field the
+    serializer can emit.
+
+    MCP requires an object at the output-schema root, so non-object return
+    types are wrapped the same way FastMCP wraps them at execution time.
+    """
+    try:
+        return_type = get_type_hints(func, include_extras=True).get("return")
+        if return_type in (None, Any, inspect.Signature.empty):
+            return None
+
+        schema = TypeAdapter(return_type).json_schema(mode="validation")
+    except Exception:  # noqa: BLE001
+        logger.debug("Could not derive MCP output schema", exc_info=True)
+        return None
+
+    # A union of object response models is still an object on the wire. Marking
+    # that fact at the root satisfies MCP's object-schema requirement without
+    # introducing an artificial {"result": ...} envelope around every
+    # success/error union.
+    alternatives = schema.get("anyOf")
+    if (
+        isinstance(alternatives, list)
+        and alternatives
+        and all(
+            isinstance(alternative, dict) and _is_object_schema(alternative, schema)
+            for alternative in alternatives
+        )
+    ):
+        schema["type"] = "object"
+
+    if not _is_object_schema(schema, schema):
+        definitions = schema.pop("$defs", None)
+        schema = {
+            "properties": {"result": schema},
+            "required": ["result"],
+            "type": "object",
+            "x-fastmcp-wrap-result": True,
+        }
+        if definitions:
+            schema["$defs"] = definitions
+
+    return _strip_schema_titles(schema)
 
 
 def _get_prefixed_id_with_context(base_id: str) -> tuple[str, str]:
@@ -134,13 +214,18 @@ def create_tool_decorator(
 
             from fastmcp.tools import Tool
 
-            tool = Tool.from_function(
-                wrapped_func,
-                name=tool_name,
-                description=tool_description,
-                tags=tool_tags,
-                annotations=annotations,
-            )
+            tool_options: dict[str, Any] = {
+                "name": tool_name,
+                "description": tool_description,
+                "tags": tool_tags,
+                "annotations": annotations,
+            }
+            if context_type == "host" and (
+                output_schema := _native_tool_output_schema(wrapped_func)
+            ):
+                tool_options["output_schema"] = output_schema
+
+            tool = Tool.from_function(wrapped_func, **tool_options)
             mcp.add_tool(tool)
 
             protected_status = "protected" if protect else "public"

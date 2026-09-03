@@ -114,7 +114,7 @@ MCP_DISABLED_TOOLS: set[str] = set()
 # "user_id", "error_type", "sanitized_message", and "duration_ms" — but
 # values may be unavailable depending on the capture path: "user_id" and
 # "duration_ms" are None on the last-resort path
-# (StructuredContentStripperMiddleware), "mcp_call_id" is None outside a
+# (ToolResultCompatibilityMiddleware), "mcp_call_id" is None outside a
 # tool call, and "tool_name" falls back to "unknown" for non-tool
 # messages. Only "sanitized_message" is scrubbed — the ``error`` argument
 # is the RAW exception and may contain sensitive data (connection

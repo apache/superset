@@ -1245,9 +1245,9 @@ class TestUpdateChartPreviewValidation:
                 "update_chart_preview", {"request": request.model_dump()}
             )
 
-            assert result.data["success"] is False
-            assert result.data["chart"] is None
-            error = result.data["error"]
+            assert result.structured_content["success"] is False
+            assert result.structured_content["chart"] is None
+            error = result.structured_content["error"]
             assert isinstance(error, dict)
             assert error["error_code"] == "CHART_VALIDATION_FAILED"
             assert "sum_boys" in error["suggestions"]
@@ -1285,9 +1285,9 @@ class TestUpdateChartPreviewValidation:
                 "update_chart_preview", {"request": request.model_dump()}
             )
 
-            assert result.data["success"] is False
-            assert result.data["chart"] is None
-            error = result.data["error"]
+            assert result.structured_content["success"] is False
+            assert result.structured_content["chart"] is None
+            error = result.structured_content["error"]
             assert isinstance(error, dict)
             assert error["error_type"] == "DatasetNotAccessible"
             mock_create_form_data.assert_not_called()
