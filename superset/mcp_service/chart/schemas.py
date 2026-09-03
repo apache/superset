@@ -1260,6 +1260,15 @@ def _validate_non_dict_native_metric(value: Any) -> ColumnRef:
     raise ValueError("Sunburst native metric must be a string or object")
 
 
+def _replace_unsafe_native_metric(
+    data: dict[str, Any], original_data: dict[str, Any] | None, key: str
+) -> None:
+    """Remove one hook-bearing value from working and Pydantic input mappings."""
+    dict.__setitem__(data, key, 0)
+    if original_data is not None:
+        dict.__setitem__(original_data, key, 0)
+
+
 def _native_column_meta_dict_children(
     value: dict[Any, Any], depth: int
 ) -> tuple[list[tuple[Any, int]], int]:
@@ -1781,13 +1790,14 @@ class SunburstChartConfig(BaseChartConfig):
         """Translate native saved Sunburst form_data into the typed contract."""
         if not isinstance(data, dict):
             return data
+        original_data = data if type(data) is dict else None
         data = dict(data)
         try:
             is_native_form_data = cls._looks_like_native_form_data(data)
         except _UnsafeNativeMetricInputError:
             # Pydantic includes rejected input in its rendered error. Remove
             # hook-bearing objects before handing control back to its validators.
-            data["metric"] = 0
+            _replace_unsafe_native_metric(data, original_data, "metric")
             is_native_form_data = True
         data.pop(_NATIVE_FORM_DATA_MARKER, None)
 
@@ -1800,7 +1810,7 @@ class SunburstChartConfig(BaseChartConfig):
                     try:
                         data[key] = cls._coerce_native_metric(data[key])
                     except _UnsafeNativeMetricInputError:
-                        data[key] = 0
+                        _replace_unsafe_native_metric(data, original_data, key)
 
             # Native saved filters can be round-tripped when they use the SIMPLE
             # controls. SQL filter clauses intentionally remain outside the typed

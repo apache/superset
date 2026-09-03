@@ -375,13 +375,17 @@ class TestGenerateExploreLink:
             }
             with (
                 patch("fastmcp.server.server.logger.warning"),
-                pytest.raises((ValidationError, FastMCPValidationError)),
+                pytest.raises(
+                    (ValidationError, FastMCPValidationError)
+                ) as validation_error,
             ):
                 await mcp_server.call_tool(
                     "generate_explore_link",
                     {"request": request},
                     run_middleware=False,
                 )
+            assert calls == []
+            str(validation_error.value)
             assert calls == []
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
