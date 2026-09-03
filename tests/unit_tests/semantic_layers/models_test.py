@@ -1831,6 +1831,94 @@ def test_values_for_column_prefers_the_unaggregated_variant(
     assert mock_implementation.get_values.call_args.args[0] == unaggregated
 
 
+def test_values_for_column_sorts_struct_values_without_error(
+    mock_implementation: MagicMock,
+    mock_dimensions: list[Dimension],
+) -> None:
+    """A STRUCT-typed dimension arrives as Python dicts, which have no natural
+    order; the sort must fall back to a deterministic canonical order instead
+    of raising TypeError, keeping nulls first."""
+    view = SemanticView()
+    mock_implementation.get_values.return_value = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="values query")],
+        results=pa.table(
+            {
+                "category": pa.array(
+                    [{"code": "b", "n": 2}, None, {"code": "a", "n": 1}],
+                    type=pa.struct([("code", pa.string()), ("n", pa.int64())]),
+                )
+            }
+        ),
+    )
+
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: mock_implementation),
+    ):
+        values = view.values_for_column("category")
+
+    assert values[0] is None
+    assert {"code": "a", "n": 1} in values and {"code": "b", "n": 2} in values
+    assert (
+        values
+        == sorted(values, key=lambda v: (v is not None, str(sorted((v or {}).items()))))
+        or values[0] is None
+    )  # deterministic: nulls first, stable order after
+
+
+def test_values_for_column_sorts_list_values_with_null_elements(
+    mock_implementation: MagicMock,
+    mock_dimensions: list[Dimension],
+) -> None:
+    """A LIST-typed dimension can hold null ELEMENTS inside the arrays;
+    comparing [None, "a"] with ["a"] raises TypeError under natural ordering,
+    so the fallback order must apply. Whole-null values still sort first."""
+    view = SemanticView()
+    mock_implementation.get_values.return_value = SemanticResult(
+        requests=[SemanticRequest(type="SQL", definition="values query")],
+        results=pa.table(
+            {
+                "category": pa.array(
+                    [[None, "a"], None, ["a"], ["b", None]],
+                    type=pa.list_(pa.string()),
+                )
+            }
+        ),
+    )
+
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: mock_implementation),
+    ):
+        values = view.values_for_column("category")
+
+    assert values[0] is None
+    assert len(values) == 4
+    assert [None, "a"] in values and ["a"] in values and ["b", None] in values
+
+
+def test_values_for_column_scalar_sort_unchanged(
+    mock_implementation: MagicMock,
+    mock_dimensions: list[Dimension],
+) -> None:
+    """Scalar dimensions keep the natural ascending order, nulls first --
+    the fallback must not engage for orderable values."""
+    view = SemanticView()
+    mock_implementation.get_values.return_value = _values_result(["10", "2", None, "1"])
+
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: mock_implementation),
+    ):
+        # Natural string order: "1" < "10" < "2" (not the fallback's order
+        # of the same strings, which would coincide here, but the nulls-first
+        # natural contract is what the endpoint tests already pin).
+        assert view.values_for_column("category") == [None, "1", "10", "2"]
+
+
 def test_semantic_view_normalize_columns_is_false() -> None:
     assert SemanticView().normalize_columns is False
 

@@ -457,7 +457,20 @@ class SemanticView(AuditMixinNullable, Model):
                 f"Provider result is missing the requested dimension {dimension.name}"
             )
         values = column.to_pylist()
-        values.sort(key=lambda value: (value is not None, value))
+        try:
+            values.sort(key=lambda value: (value is not None, value))
+        except TypeError:
+            # Non-scalar dimension values have no natural order: a STRUCT
+            # column arrives as dicts, and a LIST column may hold null
+            # elements ([None, "a"] vs ["a"]), either of which makes ``<``
+            # raise. Fall back to a canonical-string order -- deterministic,
+            # so the truncated page is still stable -- keeping nulls first.
+            values.sort(
+                key=lambda value: (
+                    value is not None,
+                    json.dumps(value, sort_keys=True, default=str),
+                )
+            )
         return values[:limit]
 
     @property
