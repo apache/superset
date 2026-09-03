@@ -58,7 +58,16 @@ export interface ActivityRecord {
   from_value: unknown;
   to_value: unknown;
   summary: string;
-  impact: { charts: number } | null;
+  impact: {
+    charts: number;
+    /**
+     * The affected charts (id + name at that transaction), sorted by name.
+     * Always present when `impact` is non-null on servers that emit it;
+     * optional only for responses from older backends that predate the
+     * field.
+     */
+    chart_names?: { id: number; name: string }[];
+  } | null;
   /**
    * True only on records whose transaction is the entity's first tracked
    * save (the first update after its retroactive baseline). Such saves can
