@@ -229,6 +229,8 @@ class UploadCommand(BaseCommand):
                 catalog=catalog,
                 editors=editors,
                 schema=self._schema,
+                # Ensure catalog is set
+                catalog=self._model.get_default_catalog(),
             )
             db.session.add(sqla_table)
         elif sqla_table.catalog is None and catalog is not None:

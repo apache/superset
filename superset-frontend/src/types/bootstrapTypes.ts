@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FormatLocaleDefinition } from 'd3-format';
 import { TimeLocaleDefinition } from 'd3-time-format';
 import { isPlainObject } from 'lodash-es';
 import { Languages } from 'src/features/home/LanguagePicker';
@@ -28,6 +27,7 @@ import {
 import type {
   ColorSchemeConfig,
   FeatureFlagMap,
+  FormatLocaleDefinition,
   JsonObject,
   SequentialSchemeConfig,
 } from '@superset-ui/core';

@@ -15,19 +15,99 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime
 from unittest.mock import ANY, patch
 
 import pytest
+from flask_appbuilder.security.sqla.models import PermissionView
 from sqlalchemy.sql.elements import TextClause
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.exceptions import DatasourceTypeNotSupportedError
 from superset.extensions import cache_manager
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
+
+
+@contextmanager
+def _semantic_views(*layer_names: str) -> Iterator[list[SemanticView]]:
+    """Persist one semantic view per named layer and remove them on exit.
+
+    Names are suffixed to stay unique across runs. The layer and view insert
+    hooks create the matching ``datasource_access`` permissions; the delete
+    hooks remove them again together with any role associations.
+    """
+    suffix = uuid.uuid4().hex
+    layers = [
+        SemanticLayer(
+            uuid=uuid.uuid4(),
+            name=f"{name}_{suffix}",
+            type="test",
+            configuration="{}",
+        )
+        for name in layer_names
+    ]
+    views = [
+        SemanticView(
+            uuid=uuid.uuid4(),
+            name=f"{layer.name}_view",
+            semantic_layer_uuid=layer.uuid,
+            configuration="{}",
+        )
+        for layer in layers
+    ]
+    db.session.add_all([*layers, *views])
+    db.session.commit()
+    try:
+        for obj in [*layers, *views]:
+            db.session.refresh(obj)
+        yield views
+    finally:
+        db.session.rollback()
+        for obj in [*views, *layers]:
+            db.session.delete(obj)
+        db.session.commit()
+
+
+@contextmanager
+def _gamma_granted(*pvms: tuple[str, str]) -> Iterator[None]:
+    """Grant ``(permission, view_menu)`` pairs to Gamma for the block's duration.
+
+    A permission-view that does not exist yet (``can_read SemanticView`` is only
+    registered when the semantic view API is mounted) is created and removed
+    again afterwards; one that already exists is left in place.
+    """
+    gamma = security_manager.find_role("Gamma")
+    assert gamma is not None
+    created: list[PermissionView] = []
+    granted: list[PermissionView] = []
+    for permission, view_menu in pvms:
+        pvm = security_manager.find_permission_view_menu(permission, view_menu)
+        if pvm is None:
+            pvm = security_manager.add_permission_view_menu(permission, view_menu)
+            created.append(pvm)
+        if pvm not in gamma.permissions:
+            security_manager.add_permission_role(gamma, pvm)
+            granted.append(pvm)
+    db.session.commit()
+    try:
+        yield
+    finally:
+        db.session.rollback()
+        for pvm in granted:
+            security_manager.del_permission_role(gamma, pvm)
+        for pvm in created:
+            security_manager.del_permission_view_menu(
+                pvm.permission.name, pvm.view_menu.name
+            )
+        db.session.commit()
 
 
 class TestDatasourceApi(SupersetTestCase):
@@ -155,6 +235,7 @@ class TestDatasourceApi(SupersetTestCase):
             limit=10000,
             denormalize_column=False,
             array_elements=False,
+            search=None,
         )
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
@@ -169,6 +250,79 @@ class TestDatasourceApi(SupersetTestCase):
             "?array_elements=true"
         )
         assert values_for_column_mock.call_args.kwargs["array_elements"] is True
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_search_filters_server_side(self):
+        """``?q=`` narrows the values in the database rather than client-side,
+        which is what makes a value beyond the row limit reachable at all."""
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        rv = self.client.get(
+            f"api/v1/datasource/table/{table.id}/column/col2/values/?q=b"
+        )
+        assert rv.status_code == 200
+        assert json.loads(rv.data.decode("utf-8"))["result"] == ["b"]
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_search_is_case_insensitive(self):
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        rv = self.client.get(
+            f"api/v1/datasource/table/{table.id}/column/col2/values/?q=B"
+        )
+        assert rv.status_code == 200
+        assert json.loads(rv.data.decode("utf-8"))["result"] == ["b"]
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_search_escapes_wildcards(self):
+        """A literal ``%`` must not be treated as "match everything"."""
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        rv = self.client.get(
+            f"api/v1/datasource/table/{table.id}/column/col2/values/?q=%25"
+        )
+        assert rv.status_code == 200
+        assert json.loads(rv.data.decode("utf-8"))["result"] == []
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_blank_search_is_ignored(self, values_for_column_mock):
+        """Whitespace is not a search term; it must not narrow the list."""
+        values_for_column_mock.return_value = []
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        self.client.get(
+            f"api/v1/datasource/table/{table.id}/column/col2/values/?q=%20%20"
+        )
+        assert values_for_column_mock.call_args.kwargs["search"] is None
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_get_column_values_returns_applied_limit(self):
+        """The client needs the limit to tell a short list from a truncated
+        one, so it can say the list is partial instead of implying it is whole."""
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        rv = self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
+        assert rv.status_code == 200
+        assert json.loads(rv.data.decode("utf-8"))["limit"] == 10000
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_cache_isolated_per_search(self, values_for_column_mock):
+        """Search terms must partition the cache; sharing one entry would serve
+        the results of somebody else's search."""
+        cache_manager.data_cache.clear()
+        values_for_column_mock.return_value = ["x"]
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        url = f"api/v1/datasource/table/{table.id}/column/col2/values/"
+
+        self.client.get(url)
+        self.client.get(f"{url}?q=a")
+        self.client.get(f"{url}?q=b")
+        self.client.get(f"{url}?q=a")
+
+        assert values_for_column_mock.call_count == 3
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     @patch("superset.db_engine_specs.base.BaseEngineSpec.denormalize_name")
@@ -191,6 +345,7 @@ class TestDatasourceApi(SupersetTestCase):
             limit=10000,
             denormalize_column=True,
             array_elements=False,
+            search=None,
         )
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
@@ -402,3 +557,74 @@ class TestDatasourceApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {"count": 0, "result": []}
         run_mock.assert_called_once()
+
+    def _list_semantic_views_as_gamma(self) -> tuple[int, set[str]]:
+        """Fetch the semantic-view slice of the combined list as Gamma."""
+        self.login(GAMMA_USERNAME)
+        rv = self.client.get(
+            "api/v1/datasource/?q="
+            "(filters:!((col:source_type,opr:eq,value:semantic_layer)),"
+            "order_column:table_name,order_direction:asc,page:0,page_size:25)"
+        )
+        payload = json.loads(rv.data.decode("utf-8"))
+        names = {item["table_name"] for item in payload.get("result", [])}
+        return rv.status_code, names
+
+    @with_feature_flags(SEMANTIC_LAYERS=True)
+    def test_combined_list_gamma_sees_views_of_granted_layers(self):
+        """A layer-level grant exposes that layer's views and no others."""
+        with _semantic_views("permitted", "denied") as (permitted, denied):
+            layer_perm = permitted.semantic_layer.perm
+            assert layer_perm is not None
+            # The layer insert hook creates this permission; a regression
+            # there must fail here rather than be papered over by the grant.
+            assert (
+                security_manager.find_permission_view_menu(
+                    "datasource_access", layer_perm
+                )
+                is not None
+            )
+            with _gamma_granted(
+                ("can_read", "SemanticView"), ("datasource_access", layer_perm)
+            ):
+                status, names = self._list_semantic_views_as_gamma()
+            assert status == 200
+            assert permitted.name in names
+            assert denied.name not in names
+
+    @with_feature_flags(SEMANTIC_LAYERS=True)
+    def test_combined_list_gamma_sees_individually_granted_views(self):
+        """A view-level grant exposes that view without touching other layers."""
+        with _semantic_views("granted", "other") as (granted, other):
+            view_perm = granted.perm
+            assert view_perm is not None
+            assert (
+                security_manager.find_permission_view_menu(
+                    "datasource_access", view_perm
+                )
+                is not None
+            )
+            with _gamma_granted(
+                ("can_read", "SemanticView"), ("datasource_access", view_perm)
+            ):
+                status, names = self._list_semantic_views_as_gamma()
+            assert status == 200
+            assert granted.name in names
+            assert other.name not in names
+
+    @with_feature_flags(SEMANTIC_LAYERS=True)
+    def test_combined_list_gamma_without_semantic_view_read_gets_none(self):
+        """Without can_read on SemanticView the semantic-layer slice is empty."""
+        gamma = security_manager.find_role("Gamma")
+        assert gamma is not None
+        read_pvm = security_manager.find_permission_view_menu(
+            "can_read", "SemanticView"
+        )
+        assert read_pvm is None or read_pvm not in gamma.permissions
+        with _semantic_views("layer") as (view,):
+            layer_perm = view.semantic_layer.perm
+            assert layer_perm is not None
+            with _gamma_granted(("datasource_access", layer_perm)):
+                status, names = self._list_semantic_views_as_gamma()
+            assert status == 200
+            assert names == set()

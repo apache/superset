@@ -68,6 +68,8 @@ export const TableControls = ({
   canDownload,
   rowLimit,
   rowLimitOptions,
+  effectiveRowLimit,
+  limitReachedMessage,
   onRowLimitChange,
   onDownloadCSV,
   onDownloadXLSX,
@@ -111,14 +113,19 @@ export const TableControls = ({
             value={rowLimit}
             onChange={onRowLimitChange}
             options={rowLimitOptions ?? []}
+            // Labelled as the applied limit to avoid a second row count next to RowCountLabel.
+            prefix={t('Limit')}
             css={css`
-              min-width: 110px;
+              min-width: 160px;
             `}
           />
         )}
-        {(!onRowLimitChange || rowcount < (rowLimit ?? Infinity)) && (
-          <RowCountLabel rowcount={rowcount} loading={isLoading} />
-        )}
+        <RowCountLabel
+          rowcount={rowcount}
+          limit={effectiveRowLimit ?? rowLimit}
+          limitReachedMessage={limitReachedMessage}
+          loading={isLoading}
+        />
         {canDownload && onDownloadCSV && onDownloadXLSX && (
           <DownloadDropdown
             onDownloadCSV={onDownloadCSV}

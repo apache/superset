@@ -101,6 +101,7 @@ from superset.utils.oauth2 import (
     generate_code_challenge,
     generate_code_verifier,
     get_oauth2_redirect_uri,
+    is_oauth2_retry_active,
 )
 
 if TYPE_CHECKING:
@@ -746,18 +747,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def encrypted_extra_sensitive_field_paths(cls) -> set[str]:
         """
-        Returns a set of paths for fields that should be masked in the
-        ``masked_encrypted_extra`` JSON.
+        Returns a set of JSONPath expressions for fields that should be masked
+        in the ``masked_encrypted_extra`` JSON.
 
-        :param cls: Description
-        :return: Description
-        :rtype: set[str]
+        The OAuth2 client secret is always included, since
+        ``Database.get_oauth2_config`` reads ``oauth2_client_info`` from the
+        ``encrypted_extra`` of any database regardless of its engine, so engine
+        specs that override ``encrypted_extra_sensitive_fields`` cannot
+        accidentally expose it.
         """
-        return (
-            set(cls.encrypted_extra_sensitive_fields)
-            if isinstance(cls.encrypted_extra_sensitive_fields, dict)
-            else cls.encrypted_extra_sensitive_fields
-        )
+        return set(cls.encrypted_extra_sensitive_fields) | {
+            "$.oauth2_client_info.secret"
+        }
 
     @classmethod
     def get_rls_method(cls) -> RLSMethod:
@@ -976,7 +977,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             else requests.post(uri, json=req_body, timeout=timeout)
         )
         if response.status_code in (400, 401, 403):
-            raise OAuth2TokenRefreshError()
+            try:
+                payload = response.json()
+                if not isinstance(payload, dict):
+                    payload = json.loads(response.text)
+                error = payload.get("error")
+            except (ValueError, TypeError, AttributeError):
+                error = None
+            # RFC 6749 defines invalid_grant for an invalid, expired, or revoked
+            # refresh token. Other error responses can be transient or indicate a
+            # client configuration problem and must not invalidate stored tokens.
+            if error == "invalid_grant":
+                raise OAuth2TokenRefreshError()
         response.raise_for_status()
         return response.json()
 
@@ -1811,7 +1823,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             )
             if cancel_query_id is not None:
                 query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
-                db.session.commit()
+                db.session.commit()  # pylint: disable=consider-using-transaction
         logger.debug("Query %d: Handling cursor", query.id)
         cls.handle_cursor(cursor, query)
 
@@ -2387,7 +2399,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         try:
             cursor.execute(query)
         except Exception as ex:
-            if database.is_oauth2_enabled() and cls.needs_oauth2(ex):
+            if (
+                not is_oauth2_retry_active()
+                and database.is_oauth2_enabled()
+                and cls.needs_oauth2(ex)
+            ):
                 cls.start_oauth2_dance(database)
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
@@ -2870,7 +2886,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         corresponding entry is updated, otherwise the old value is used (see
         `unmask_encrypted_extra` below).
         """
-        if encrypted_extra is None or not cls.encrypted_extra_sensitive_fields:
+        if encrypted_extra is None:
             return encrypted_extra
 
         try:
@@ -2957,6 +2973,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ):
             return dialect.denormalize_name(name)
 
+        return name
+
+    @classmethod
+    def prepare_identifier(
+        cls,
+        name: str,
+        normalize_columns: bool = False,
+    ) -> str:
+        """
+        Prepare a physical identifier for SQLAlchemy column construction.
+
+        The default preserves SQLAlchemy's automatic identifier-quoting behavior.
+        """
         return name
 
     @classmethod

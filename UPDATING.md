@@ -24,7 +24,27 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Archived dataset purge requires impact confirmation
+
+`GET /api/v1/dataset/<uuid>/purge-impact` returns the charts and distinct
+dashboards affected by permanently deleting an archived dataset, together with
+an opaque `impact_token`. The dataset purge endpoint now requires that token in
+the JSON body as `confirmed_impact_token`. API clients that call
+`POST /api/v1/dataset/<uuid>/purge` must fetch and display the impact first;
+requests with a missing or malformed token are rejected with 400.
+
+The server rechecks the dependency identities immediately before mutation. If
+they changed, purge performs no deletion and returns 409 with a refreshed impact
+payload. Clients must display the new impact and obtain renewed confirmation
+before retrying. Preview or recheck failures fail closed rather than treating
+unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
+
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
+- The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed should `pip uninstall cockroachdb && pip install sqlalchemy-cockroachdb` (or simply reinstall the extra) to restore CockroachDB connectivity.
+
+### Native Value filter "Select all" always targets the whole column
+
+The native "Value" filter's bulk "Select all" / "Clear" controls now operate on the entire loaded set of column values regardless of any text typed into the filter's search box. Previously the "Select all (N)" count briefly flickered to the search-scoped count before settling on the full-column count, and clicking "Select all" while searching could select only the currently matching subset. Search-scoped bulk selection was never a supported feature; the count is now stable and always matches what "Select all" selects (the full column). No configuration change is required.
 
 ### MCP tool results preserve stored string values
 
@@ -229,8 +249,10 @@ Behavior changes to be aware of:
   fail fast at the first phase check rather than erroring at setup.
 - Dashboard reports whose charts have not mounted are no longer captured
   blank: readiness is polled until the deadline, and the report fails loudly
-  if charts never mount. Thumbnails and non-report screenshots keep their
-  previous behavior.
+  if charts never mount. Large tiled reports also retry Chromium screenshot
+  stalls and suspicious uniform tiles, while persistent screenshot timeouts
+  fail loudly. Large tiled thumbnails use the same bounded retries, but retain
+  their previous failure contract after a persistent timeout.
 
 ### Embedded (guest token) API responses no longer echo database errors
 
