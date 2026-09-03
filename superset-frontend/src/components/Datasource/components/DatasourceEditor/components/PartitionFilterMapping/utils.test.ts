@@ -26,6 +26,7 @@ import {
   previewOperatorFor,
   sampleValuesFor,
   resolveMappedColumn,
+  suggestedMappedColumn,
 } from './utils';
 import type { PartitionMappingColumn } from './types';
 
@@ -267,4 +268,29 @@ test('a non-temporal column previews the IN shape a category filter produces', (
   expect(sampleValuesFor({ column_name: 'event_time', is_dttm: true })).toEqual([
     '2026-01-15 00:00:00',
   ]);
+});
+
+test('"map a column" suggests a temporal column over whatever sorts first', () => {
+  // The alternative lands on `revenue`, which nobody would mirror onto a
+  // partition key.
+  const columns = [
+    { column_name: 'revenue', type: 'DOUBLE PRECISION' },
+    { column_name: 'dt_epoch', type: 'BIGINT' },
+    { column_name: 'event_time', type: 'TIMESTAMP', is_dttm: true },
+  ];
+
+  expect(suggestedMappedColumn(columns, 'dt_epoch')).toBe('event_time');
+});
+
+test('with no temporal column it falls back to the first non-partition one', () => {
+  const columns = [
+    { column_name: 'region_key', type: 'TEXT' },
+    { column_name: 'country', type: 'TEXT' },
+  ];
+
+  expect(suggestedMappedColumn(columns, 'region_key')).toBe('country');
+});
+
+test('a dataset of nothing but the partition column suggests nothing', () => {
+  expect(suggestedMappedColumn([{ column_name: 'dt_epoch' }], 'dt_epoch')).toBeNull();
 });

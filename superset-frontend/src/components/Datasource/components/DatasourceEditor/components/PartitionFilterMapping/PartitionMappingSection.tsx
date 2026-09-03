@@ -128,6 +128,18 @@ export default function PartitionMappingSection({
         max-width: 100%;
         min-width: 0;
         overflow-wrap: anywhere;
+        /* Flex items default to min-width: auto, so a long line -- the engine's
+           own error text, whose length we do not control -- refuses to shrink
+           and spills past the panel instead of wrapping inside it. */
+        > * {
+          min-width: 0;
+          max-width: 100%;
+        }
+        /* Alert descriptions are nowrap by default, which truncates an engine
+           error mid-sentence however much width it is given. */
+        .ant-alert-description {
+          white-space: normal;
+        }
       `}
     >
       <Flex align="center" gap={theme.sizeUnit}>
