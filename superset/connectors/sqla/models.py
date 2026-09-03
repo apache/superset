@@ -1883,6 +1883,17 @@ class SqlaTable(
         return data_
 
     @property
+    def partition_value_transform_default(self) -> str | None:
+        """
+        Transform the dataset editor pre-fills for a temporal mapped column.
+
+        Engine syntax, so it comes from the engine spec rather than the editor:
+        `unix_timestamp(:value)` is Hive-family and does not parse on Postgres,
+        Trino or BigQuery. `None` means offer no pre-fill.
+        """
+        return self.db_engine_spec.partition_value_transform_default
+
+    @property
     def partition_filter_mapping_summary(self) -> dict[str, Any] | None:
         """
         Self-contained summary of the mapping for the Explore indicator.
