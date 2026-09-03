@@ -22,6 +22,7 @@ from flask_login import AnonymousUserMixin, login_user
 from flask_wtf.csrf import same_origin
 
 from superset import event_logger, is_feature_enabled
+from superset.daos.chart import EmbeddedChartDAO
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
@@ -45,28 +46,45 @@ class EmbeddedView(BaseSupersetView):
         add_extra_log_payload: Callable[..., None] = lambda **kwargs: None,
     ) -> FlaskResponse:
         """
-        Server side rendering for the embedded dashboard page
-        :param uuid: identifier for embedded dashboard
+        Server side rendering for the embedded dashboard or chart page
+        :param uuid: identifier for the embedded dashboard or chart
         :param add_extra_log_payload: added by `log_this_with_manual_updates`, set a
             default value to appease pylint
         """
         if not is_feature_enabled("EMBEDDED_SUPERSET"):
             abort(404)
 
+        # A uuid identifies either an embedded dashboard or an embedded chart.
+        # Dashboards are looked up first since they are the older, more common
+        # resource; the two id spaces are distinct so ordering is not ambiguous.
+        resource_type = "dashboard"
         embedded = EmbeddedDashboardDAO.find_by_id(uuid)
+
+        if not embedded:
+            embedded = EmbeddedChartDAO.find_by_id(uuid)
+            resource_type = "chart"
 
         if not embedded:
             abort(404)
 
         assert embedded is not None
-        dashboard = embedded.dashboard
+        resource = (
+            embedded.dashboard if resource_type == "dashboard" else embedded.slice
+        )
 
         # validate request referrer in allowed domains
         is_referrer_allowed = not embedded.allowed_domains
         for domain in embedded.allowed_domains:
-            if same_origin(request.referrer, domain):
-                is_referrer_allowed = True
-                break
+            try:
+                if same_origin(request.referrer, domain):
+                    is_referrer_allowed = True
+                    break
+            except ValueError:
+                # The referrer is attacker-controlled and same_origin parses it
+                # eagerly, so a malformed authority (e.g. a host that looks like
+                # it carries a non-numeric port) raises rather than returning
+                # False. Treat it as a non-match instead of a 500.
+                continue
 
         if not is_referrer_allowed:
             abort(403)
@@ -91,7 +109,8 @@ class EmbeddedView(BaseSupersetView):
         login_user(AnonymousUserMixin(), force=True)
 
         add_extra_log_payload(
-            embedded_dashboard_id=uuid,
+            embedded_id=uuid,
+            resource_type=resource_type,
             dashboard_version="v2",
         )
 
@@ -101,7 +120,11 @@ class EmbeddedView(BaseSupersetView):
             },
             "common": common_bootstrap_payload(),
             "embedded": {
-                "dashboard_id": embedded.dashboard_id,
+                "resource_type": resource_type,
+                "dashboard_id": (
+                    embedded.dashboard_id if resource_type == "dashboard" else None
+                ),
+                "chart_id": embedded.slice_id if resource_type == "chart" else None,
                 # The list of domains allowed to embed this dashboard. An empty
                 # list means any domain is allowed (no restriction). The frontend
                 # uses this to validate the origin of incoming postMessage events.
@@ -112,8 +135,12 @@ class EmbeddedView(BaseSupersetView):
         return self.render_template(
             "superset/spa.html",
             entry="embedded",
-            title=dashboard.dashboard_title,
-            dashboard_description=dashboard.description,
+            title=(
+                resource.dashboard_title
+                if resource_type == "dashboard"
+                else resource.slice_name
+            ),
+            dashboard_description=resource.description,
             bootstrap_data=json.dumps(
                 bootstrap_data, default=json.pessimistic_json_iso_dttm_ser
             ),

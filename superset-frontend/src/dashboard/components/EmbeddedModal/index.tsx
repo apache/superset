@@ -44,6 +44,9 @@ const extensionsRegistry = getExtensionsRegistry();
 
 type Props = {
   dashboardId: string;
+  // Which resource the id refers to. Defaults to 'dashboard' so existing
+  // call sites are unaffected; charts reuse the same controls.
+  resourceType?: 'dashboard' | 'chart';
   show: boolean;
   onHide: () => void;
 };
@@ -59,7 +62,11 @@ const ButtonRow = styled.div`
   justify-content: flex-end;
 `;
 
-export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
+export const DashboardEmbedControls = ({
+  dashboardId,
+  resourceType = 'dashboard',
+  onHide,
+}: Props) => {
   const { addInfoToast, addDangerToast } = useToasts();
   const [ready, setReady] = useState(true); // whether we have initialized yet
   const [loading, setLoading] = useState(false); // whether we are currently doing an async thing
@@ -67,7 +74,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
   const [allowedDomains, setAllowedDomains] = useState<string>('');
   const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false);
 
-  const endpoint = `/api/v1/dashboard/${dashboardId}/embedded`;
+  const endpoint = `/api/v1/${resourceType}/${dashboardId}/embedded`;
   // whether saveable changes have been made to the config
   const isDirty =
     !embedded ||
@@ -172,18 +179,26 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
           <DocsConfigDetails embeddedId={embedded.uuid} />
         ) : (
           <p>
-            {t(
-              'This dashboard is ready to embed. In your application, pass the following id to the SDK:',
-            )}
+            {resourceType === 'chart'
+              ? t(
+                  'This chart is ready to embed. In your application, pass the following id to the SDK:',
+                )
+              : t(
+                  'This dashboard is ready to embed. In your application, pass the following id to the SDK:',
+                )}
             <br />
             <code>{embedded.uuid}</code>
           </p>
         )
       ) : (
         <p>
-          {t(
-            'Configure this dashboard to embed it into an external web application.',
-          )}
+          {resourceType === 'chart'
+            ? t(
+                'Configure this chart to embed it into an external web application.',
+              )
+            : t(
+                'Configure this dashboard to embed it into an external web application.',
+              )}
         </p>
       )}
       <p>
