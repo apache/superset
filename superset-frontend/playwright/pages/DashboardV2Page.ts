@@ -115,20 +115,20 @@ export class DashboardV2Page {
   }
 
   /**
-   * Switches back to the "Widgets" palette tab. Placing (or selecting) a
-   * block switches the editor panel to Properties, so a test that places
-   * one block via `placeBlockByClick` and then wants to drag a second one
-   * from the palette needs this in between.
+   * Switches back to the "Building Blocks" palette tab. Placing (or
+   * selecting) a block switches the editor panel to Properties, so a test
+   * that places one block via `placeBlockByClick` and then wants to drag a
+   * second one from the palette needs this in between.
    *
-   * A plain `text=Widgets` locator is unsafe here: on a branch (or any
-   * other page state) where the word "Widgets" happens to appear
-   * elsewhere too — e.g. a dev-mode badge showing the current git branch
-   * name — it resolves to more than one element and Playwright refuses to
-   * click ambiguously. Scoping to the `tab` role narrows that, but not
+   * A plain `text=Building Blocks` locator is unsafe here: on a branch (or
+   * any other page state) where that text happens to appear elsewhere too
+   * — e.g. a dev-mode badge showing the current git branch name — it
+   * resolves to more than one element and Playwright refuses to click
+   * ambiguously. Scoping to the `tab` role narrows that, but not
    * completely: an author can place a `tabs` widget on the canvas itself
-   * and name one of its own panes "Widgets", which is `role="tab"` too —
-   * an unscoped `getByRole('tab', ...)` would then match that canvas tab
-   * *and* the real palette tab, and Playwright would again refuse to
+   * and name one of its own panes "Building Blocks", which is `role="tab"`
+   * too — an unscoped `getByRole('tab', ...)` would then match that canvas
+   * tab *and* the real palette tab, and Playwright would again refuse to
    * click ambiguously. Scoping to `[data-test="editor-panel"]` — the
    * rail the palette's own tab bar lives in, never the canvas — rules
    * that out regardless of what an author names a widget on the canvas.
@@ -136,7 +136,7 @@ export class DashboardV2Page {
   async showPalette(): Promise<void> {
     await this.page
       .locator(DashboardV2Page.SELECTORS.EDITOR_PANEL)
-      .getByRole('tab', { name: 'Widgets', exact: true })
+      .getByRole('tab', { name: 'Building Blocks', exact: true })
       .click();
   }
 
