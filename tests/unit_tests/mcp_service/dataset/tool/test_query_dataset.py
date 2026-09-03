@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import importlib
 from collections.abc import Generator
+from datetime import datetime, timezone
 from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
@@ -33,8 +34,10 @@ import pytz
 from dateutil import tz as dateutil_tz
 from fastmcp import Client, FastMCP
 
+from superset.commands.exceptions import CommandException
 from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import is_tool_visible_to_current_user
+from superset.mcp_service.dataset.schemas import DatasetError
 from superset.mcp_service.privacy import tool_requires_data_model_metadata_access
 from superset.utils import json
 from superset.utils.core import GenericDataType
@@ -120,6 +123,82 @@ def _make_dataset(
         _make_metric("total_revenue", "SUM(revenue)"),
     ]
     return ds
+
+
+def _dataset_error_at_test_limit(limit: int) -> DatasetError:
+    timestamp = datetime(2026, 9, 3, tzinfo=timezone.utc)
+    empty = DatasetError(error="", error_type="", timestamp=timestamp)
+    response = DatasetError(
+        error="x" * (limit - len(empty.model_dump_json().encode())),
+        error_type="",
+        timestamp=timestamp,
+    )
+    assert len(response.model_dump_json().encode()) == limit
+    return response
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("extra_byte", [False, True], ids=["exact", "plus-one"])
+async def test_query_dataset_mcp_entry_preflights_every_error_return(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+    extra_byte: bool,
+) -> None:
+    """The public union preserves an exact error and bounds the next byte."""
+    query_result_module = importlib.import_module(
+        "superset.mcp_service.chart.query_result"
+    )
+    limit = 4 * 1024
+    monkeypatch.setattr(query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", limit)
+    response = _dataset_error_at_test_limit(limit)
+    if extra_byte:
+        response.error += "x"
+
+    async def error_result(*_args: Any, **_kwargs: Any) -> DatasetError:
+        return response
+
+    monkeypatch.setattr(query_dataset_module, "_query_dataset", error_result)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "query_dataset",
+            {"request": {"dataset_id": 1, "metrics": ["count"]}},
+        )
+
+    returned = DatasetError.model_validate(json.loads(result.content[0].text))
+    if extra_byte:
+        assert returned.error_type == "InvalidQueryResult"
+        assert len(returned.model_dump_json().encode()) < 1_000
+    else:
+        assert returned.error_type == response.error_type
+        assert returned.error == response.error
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_mcp_entry_bounds_dynamic_command_error(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A dynamically amplified command error cannot bypass the finalizer."""
+    query_result_module = importlib.import_module(
+        "superset.mcp_service.chart.query_result"
+    )
+    limit = 4 * 1024
+    monkeypatch.setattr(query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", limit)
+    monkeypatch.setattr(
+        query_dataset_module,
+        "resolve_dataset",
+        MagicMock(side_effect=CommandException("dynamic:" + "x" * limit)),
+    )
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "query_dataset",
+            {"request": {"dataset_id": 1, "metrics": ["count"]}},
+        )
+
+    returned = DatasetError.model_validate(json.loads(result.content[0].text))
+    assert returned.error_type == "InvalidQueryResult"
+    assert len(returned.model_dump_json().encode()) < 1_000
 
 
 def _mock_command_result(
@@ -479,14 +558,19 @@ async def test_query_dataset_normalizes_nan_producer_data(
 @pytest.mark.asyncio
 async def test_query_dataset_rejects_oversized_projected_response(
     mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
-    """The source may fit while repeated column samples exceed 16 MiB."""
+    """The source may fit while repeated column samples exceed the budget."""
     dataset = _make_dataset(columns=[_make_column("value")])
-    cell = "x" * 65_536
+    cell = "x" * 100
     result_data = chart_data_command_result(
-        [{"value": cell} for _ in range(253)],
+        [{"value": cell} for _ in range(10)],
         columns=["value"],
         coltypes=[GenericDataType.STRING],
+    )
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        1_500,
     )
     assert query_dataset_module.validate_query_result_envelope(result_data) is None
 
@@ -511,7 +595,7 @@ async def test_query_dataset_rejects_oversized_projected_response(
 
     data = json.loads(result.content[0].text)
     assert data["error_type"] == "InvalidQueryResult"
-    assert "aggregate JSON byte limit" in data["error"]
+    assert len(DatasetError.model_validate(data).model_dump_json().encode()) < 1_000
 
 
 @pytest.mark.asyncio

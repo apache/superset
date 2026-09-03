@@ -21,6 +21,7 @@ Tests for the get_chart_data request schema and chart type fallback handling.
 
 import importlib
 from contextlib import nullcontext
+from datetime import datetime, timezone
 from decimal import Decimal
 from enum import Enum
 from types import SimpleNamespace
@@ -1427,14 +1428,16 @@ class TestUnsavedChartDataQueryConstruction:
             query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", source_size
         )
 
-        response = await _query_from_form_data(
-            {
-                "datasource_id": 1,
-                "datasource_type": "table",
-                "viz_type": "table",
-            },
-            GetChartDataRequest(form_data_key="response-budget"),
-            _AsyncContext(),
+        response = module.finalize_chart_data_response(
+            await _query_from_form_data(
+                {
+                    "datasource_id": 1,
+                    "datasource_type": "table",
+                    "viz_type": "table",
+                },
+                GetChartDataRequest(form_data_key="response-budget"),
+                _AsyncContext(),
+            )
         )
 
         assert isinstance(response, ChartError)
@@ -2212,6 +2215,90 @@ def mock_auth():
         user.username = "admin"
         mock_get_user.return_value = user
         yield mock_get_user
+
+
+def _chart_error_at_test_limit(limit: int) -> ChartError:
+    timestamp = datetime(2026, 9, 3, tzinfo=timezone.utc)
+    empty = ChartError(message="", error_type="", timestamp=timestamp)
+    remaining = limit - len(empty.model_dump_json().encode())
+    response = ChartError(
+        message="x" * (remaining // 2),
+        error_type="e" * (remaining % 2),
+        timestamp=timestamp,
+    )
+    assert len(response.model_dump_json().encode()) == limit
+    return response
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("extra_byte", [False, True], ids=["exact", "plus-one"])
+async def test_get_chart_data_mcp_entry_preflights_every_error_return(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    extra_byte: bool,
+) -> None:
+    """The public union preserves an exact error and bounds the next byte."""
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    query_result_module = importlib.import_module(
+        "superset.mcp_service.chart.query_result"
+    )
+    limit = 4 * 1024
+    monkeypatch.setattr(query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", limit)
+    response = _chart_error_at_test_limit(limit)
+    if extra_byte:
+        response.error_type += "e"
+
+    async def error_result(*_args: Any, **_kwargs: Any) -> ChartError:
+        return response
+
+    monkeypatch.setattr(module, "_get_chart_data", error_result)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_chart_data", {"request": {"identifier": 1}}
+        )
+
+    payload = result.structured_content.get("result", result.structured_content)
+    returned = ChartError.model_validate(payload)
+    if extra_byte:
+        assert returned.error_type == "InvalidQueryResult"
+        assert len(returned.model_dump_json().encode()) < 1_000
+    else:
+        assert returned.error_type == response.error_type
+        assert returned.message == response.message
+
+
+@pytest.mark.asyncio
+async def test_get_chart_data_mcp_entry_bounds_dynamic_internal_error(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A dynamically amplified command error cannot bypass the finalizer."""
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    query_result_module = importlib.import_module(
+        "superset.mcp_service.chart.query_result"
+    )
+    limit = 4 * 1024
+    monkeypatch.setattr(query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", limit)
+
+    def dynamic_error(*_args: Any, **_kwargs: Any) -> None:
+        raise ValueError("dynamic:" + "x" * limit)
+
+    monkeypatch.setattr(module, "find_chart_by_identifier", dynamic_error)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_chart_data", {"request": {"identifier": 1}}
+        )
+
+    payload = result.structured_content.get("result", result.structured_content)
+    returned = ChartError.model_validate(payload)
+    assert returned.error_type == "InvalidQueryResult"
+    assert len(returned.model_dump_json().encode()) < 1_000
 
 
 def _extract_metrics_load_path(load_opt: Any) -> list[str]:

@@ -29,7 +29,7 @@ from pydantic import BaseModel, Field
 
 from superset.exceptions import OAuth2Error
 from superset.mcp_service.app import mcp
-from superset.mcp_service.chart.query_result import MAX_QUERY_RESULT_VALUE_BYTES
+from superset.mcp_service.chart import query_result as query_result_module
 from superset.mcp_service.chart.response_preflight import (
     finalize_chart_response,
     finalize_generate_chart_response,
@@ -47,6 +47,17 @@ from superset.mcp_service.chart.schemas import (
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
 _ResponseT = TypeVar("_ResponseT", bound=BaseModel)
+_TEST_RESPONSE_BYTES = 4 * 1024
+
+
+@pytest.fixture(autouse=True)
+def small_response_budget(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep the route/schema matrix exact without repeated 16 MiB allocations."""
+    monkeypatch.setattr(
+        query_result_module,
+        "MAX_QUERY_RESULT_VALUE_BYTES",
+        _TEST_RESPONSE_BYTES,
+    )
 
 
 @pytest.fixture
@@ -92,9 +103,10 @@ def _fill_model_to_limit(
     model_factory: Callable[[str], _ResponseT],
 ) -> _ResponseT:
     empty = model_factory("")
-    filler_size = MAX_QUERY_RESULT_VALUE_BYTES - len(empty.model_dump_json().encode())
+    limit = query_result_module.MAX_QUERY_RESULT_VALUE_BYTES
+    filler_size = limit - len(empty.model_dump_json().encode())
     result = model_factory("x" * filler_size)
-    assert len(result.model_dump_json().encode()) == MAX_QUERY_RESULT_VALUE_BYTES
+    assert len(result.model_dump_json().encode()) == limit
     return result
 
 
@@ -111,7 +123,7 @@ def test_chart_preview_and_error_exact_limit_pass_and_plus_one_fails() -> None:
     assert len(failure.model_dump_json().encode()) < 1_000
 
     empty_error = ChartError(message="", error_type="")
-    remaining = MAX_QUERY_RESULT_VALUE_BYTES - len(
+    remaining = query_result_module.MAX_QUERY_RESULT_VALUE_BYTES - len(
         empty_error.model_dump_json().encode()
     )
     boundary_error = ChartError(
@@ -119,7 +131,8 @@ def test_chart_preview_and_error_exact_limit_pass_and_plus_one_fails() -> None:
         error_type="x" * (remaining % 2),
     )
     assert (
-        len(boundary_error.model_dump_json().encode()) == MAX_QUERY_RESULT_VALUE_BYTES
+        len(boundary_error.model_dump_json().encode())
+        == query_result_module.MAX_QUERY_RESULT_VALUE_BYTES
     )
     assert finalize_chart_response(boundary_error) is boundary_error
     boundary_error.error_type += "x"
@@ -131,7 +144,7 @@ def test_chart_preview_and_error_exact_limit_pass_and_plus_one_fails() -> None:
 
 def test_generate_response_counts_nested_previews_and_complete_form_data() -> None:
     """Shared content is charged for every place serialized on the wire."""
-    amplified = "z" * (2 * 1024 * 1024)
+    amplified = "z" * 512
 
     def response(warning: str) -> GenerateChartResponse:
         return GenerateChartResponse(
@@ -176,11 +189,11 @@ def test_update_preview_root_model_exact_limit_passes_and_plus_one_fails() -> No
 
     empty = response("")
     empty_size = len(UpdateChartPreviewResponse(empty).model_dump_json().encode())
-    filler = "x" * (MAX_QUERY_RESULT_VALUE_BYTES - empty_size)
+    filler = "x" * (query_result_module.MAX_QUERY_RESULT_VALUE_BYTES - empty_size)
     boundary = response(filler)
     assert (
         len(UpdateChartPreviewResponse(boundary).model_dump_json().encode())
-        == MAX_QUERY_RESULT_VALUE_BYTES
+        == query_result_module.MAX_QUERY_RESULT_VALUE_BYTES
     )
     assert finalize_update_chart_preview_response(boundary) is boundary
 
@@ -373,7 +386,7 @@ async def test_update_chart_preview_mcp_entry_preflights_dict_response(
         return {"chart": None, "error": error, "success": False}
 
     empty_size = len(UpdateChartPreviewResponse(response("")).model_dump_json())
-    error = "x" * (MAX_QUERY_RESULT_VALUE_BYTES - empty_size)
+    error = "x" * (query_result_module.MAX_QUERY_RESULT_VALUE_BYTES - empty_size)
     if extra_byte:
         error += "x"
     monkeypatch.setattr(module, "OAUTH2_CONFIG_ERROR_MESSAGE", error)

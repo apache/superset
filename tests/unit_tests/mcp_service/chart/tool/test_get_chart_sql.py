@@ -26,7 +26,6 @@ import pytest
 
 from superset.mcp_service.auth import CLASS_PERMISSION_ATTR, METHOD_PERMISSION_ATTR
 from superset.mcp_service.chart.query_result import (
-    MAX_QUERY_RESULT_VALUE_BYTES,
     MAX_QUERY_RESULTS,
 )
 from superset.mcp_service.chart.schemas import (
@@ -301,7 +300,11 @@ def test_extract_sql_rejects_every_malformed_query_entry_without_hooks() -> None
         assert output.error_type == "MalformedQueryResult"
 
 
-def test_extract_sql_enforces_query_count_and_aggregate_source_bytes() -> None:
+def test_extract_sql_enforces_query_count_and_aggregate_source_bytes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    test_limit = 4 * 1024
+    monkeypatch.setattr(_get_chart_sql_mod, "MAX_QUERY_RESULT_VALUE_BYTES", test_limit)
     too_many = _extract_sql_from_result(
         {"queries": [{} for _ in range(MAX_QUERY_RESULTS + 1)]},
         1,
@@ -311,8 +314,8 @@ def test_extract_sql_enforces_query_count_and_aggregate_source_bytes() -> None:
     oversized = _extract_sql_from_result(
         {
             "queries": [
-                {"query": "x" * (MAX_QUERY_RESULT_VALUE_BYTES // 2 + 1)},
-                {"query": "y" * (MAX_QUERY_RESULT_VALUE_BYTES // 2 + 1)},
+                {"query": "x" * (test_limit // 2 + 1)},
+                {"query": "y" * (test_limit // 2 + 1)},
             ]
         },
         1,
@@ -332,15 +335,23 @@ def test_extract_sql_enforces_query_count_and_aggregate_source_bytes() -> None:
     ids=["exact-16-mib", "16-mib-plus-one"],
 )
 def test_error_only_sql_result_is_bounded_at_exact_source_limit(
-    extra_bytes: int, expected_error_type: str
+    monkeypatch: pytest.MonkeyPatch,
+    extra_bytes: int,
+    expected_error_type: str,
 ) -> None:
     """A source-sized error cannot double into an oversized final response."""
+    test_limit = 4 * 1024
+    monkeypatch.setattr(_get_chart_sql_mod, "MAX_QUERY_RESULT_VALUE_BYTES", test_limit)
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        test_limit,
+    )
     output = _extract_sql_from_result(
         {
             "queries": [
                 {
                     "query": "",
-                    "error": "x" * (MAX_QUERY_RESULT_VALUE_BYTES + extra_bytes),
+                    "error": "x" * (test_limit + extra_bytes),
                 }
             ]
         },
@@ -351,26 +362,33 @@ def test_error_only_sql_result_is_bounded_at_exact_source_limit(
 
     assert isinstance(output, ChartError)
     assert output.error_type == expected_error_type
-    assert len(output.model_dump_json().encode()) <= MAX_QUERY_RESULT_VALUE_BYTES
+    assert len(output.model_dump_json().encode()) <= test_limit
 
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
-    "handler_result",
-    [
-        ChartError(error="warehouse parser rejected query", error_type="QueryError"),
-        ChartError(error="x" * MAX_QUERY_RESULT_VALUE_BYTES, error_type="QueryError"),
-    ],
+    "oversized",
+    [False, True],
     ids=["realistic", "hostile-oversized"],
 )
 async def test_get_chart_sql_preflights_every_returned_chart_error_once(
-    handler_result: ChartError,
+    monkeypatch: pytest.MonkeyPatch,
+    oversized: bool,
 ) -> None:
     """The public finalizer bounds ChartError without recursively preflighting."""
     from fastmcp import Client
 
     from superset.mcp_service.app import mcp
 
+    test_limit = 4 * 1024
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        test_limit,
+    )
+    handler_result = ChartError(
+        error="x" * test_limit if oversized else "warehouse parser rejected query",
+        error_type="QueryError",
+    )
     original_preflight = _get_chart_sql_mod.response_json_failure
     with (
         patch(
@@ -395,15 +413,19 @@ async def test_get_chart_sql_preflights_every_returned_chart_error_once(
 
     assert preflight.call_count == 1
     output = result.structured_content.get("result", result.structured_content)
-    assert len(str(output).encode()) <= MAX_QUERY_RESULT_VALUE_BYTES
-    if len(handler_result.model_dump_json().encode()) > MAX_QUERY_RESULT_VALUE_BYTES:
+    assert len(str(output).encode()) <= test_limit
+    if len(handler_result.model_dump_json().encode()) > test_limit:
         assert output["error_type"] == "InvalidQueryResult"
     else:
         assert output["error_type"] == handler_result.error_type
         assert output["error"] == handler_result.error
 
 
-def test_extract_sql_accepts_multi_query_and_near_response_boundary() -> None:
+def test_extract_sql_accepts_multi_query_and_near_response_boundary(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    test_limit = 4 * 1024
+    monkeypatch.setattr(_get_chart_sql_mod, "MAX_QUERY_RESULT_VALUE_BYTES", test_limit)
     multi = _extract_sql_from_result(
         {
             "queries": [
@@ -415,7 +437,7 @@ def test_extract_sql_accepts_multi_query_and_near_response_boundary() -> None:
         "chart",
         "dataset",
     )
-    boundary_sql = "x" * (MAX_QUERY_RESULT_VALUE_BYTES - 512)
+    boundary_sql = "x" * (test_limit - 512)
     boundary = _extract_sql_from_result(
         {"queries": [{"query": boundary_sql, "language": "sql"}]},
         1,

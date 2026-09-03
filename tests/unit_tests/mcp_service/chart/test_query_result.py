@@ -95,20 +95,39 @@ def _chart_error_at_wire_size(size: int, timestamp: datetime) -> ChartError:
     ids=["utc-z", "naive", "fold-zero", "fold-one"],
 )
 def test_response_json_failure_matches_exact_chart_error_wire_boundary(
+    monkeypatch: pytest.MonkeyPatch,
     timestamp: datetime,
 ) -> None:
-    """Exact 16 MiB errors pass and one extra wire byte fails."""
-    response = _chart_error_at_wire_size(MAX_QUERY_RESULT_VALUE_BYTES, timestamp)
+    """The timestamp matrix retains exact/+1 semantics at a small budget."""
+    test_limit = 4 * 1024
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        test_limit,
+    )
+    response = _chart_error_at_wire_size(test_limit, timestamp)
 
     assert response_json_failure(response) is None
 
     response.error_type += "e"
-    assert len(response.model_dump_json().encode()) == (
-        MAX_QUERY_RESULT_VALUE_BYTES + 1
-    )
+    assert len(response.model_dump_json().encode()) == test_limit + 1
     failure = response_json_failure(response)
     assert failure is not None
     assert failure.error_type == "InvalidQueryResult"
+
+
+def test_response_json_failure_real_16_mib_wire_boundary() -> None:
+    """Retain one real allocation proving the production byte boundary."""
+    response = _chart_error_at_wire_size(
+        MAX_QUERY_RESULT_VALUE_BYTES,
+        datetime(2026, 9, 2, tzinfo=timezone.utc),
+    )
+
+    assert response_json_failure(response) is None
+    response.error_type += "e"
+    assert len(response.model_dump_json().encode()) == (
+        MAX_QUERY_RESULT_VALUE_BYTES + 1
+    )
+    assert response_json_failure(response) is not None
 
 
 @pytest.mark.parametrize(

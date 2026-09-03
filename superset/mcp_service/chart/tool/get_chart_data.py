@@ -48,9 +48,9 @@ from superset.mcp_service.chart.chart_helpers import (
     resolve_form_data_datasource,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
-from superset.mcp_service.chart.query_result import (
-    response_json_failure,
-    validate_query_result_envelope,
+from superset.mcp_service.chart.query_result import validate_query_result_envelope
+from superset.mcp_service.chart.response_preflight import (
+    finalize_chart_data_response,
 )
 from superset.mcp_service.chart.schemas import (
     ChartData,
@@ -371,17 +371,7 @@ def _build_query_results(
     return results
 
 
-@tool(
-    tags=["data"],
-    class_permission_name="Chart",
-    annotations=ToolAnnotations(
-        title="Get chart data",
-        readOnlyHint=True,
-        destructiveHint=False,
-        openWorldHint=False,
-    ),
-)
-async def get_chart_data(  # noqa: C901
+async def _get_chart_data(  # noqa: C901
     request: GetChartDataRequest, ctx: Context
 ) -> ChartData | ChartError:
     """Get chart data by ID or UUID.
@@ -1045,7 +1035,7 @@ async def get_chart_data(  # noqa: C901
                 performance=performance,
                 cache_status=cache_status,
             )
-            return response_json_failure(response) or response
+            return response
 
         except (OAuth2RedirectError, OAuth2Error):
             # OAuth errors subclass SupersetException and would otherwise be
@@ -1250,7 +1240,7 @@ async def _query_from_form_data(  # noqa: C901
             ),
             cache_status=cache_status,
         )
-        return response_json_failure(response) or response
+        return response
 
     except (OAuth2RedirectError, OAuth2Error):
         # OAuth errors subclass SupersetException; re-raise so the caller's
@@ -1315,7 +1305,7 @@ def _export_data_as_csv(
         csv_data=csv_content,
         format="csv",
     )
-    return response_json_failure(response) or response
+    return response
 
 
 def _export_data_as_excel(
@@ -1480,7 +1470,7 @@ def _create_excel_chart_data(
         excel_data=excel_b64,
         format="excel",
     )
-    return response_json_failure(response) or response
+    return response
 
 
 def _create_excel_chart_data_xlsxwriter(
@@ -1514,4 +1504,21 @@ def _create_excel_chart_data_xlsxwriter(
         excel_data=excel_b64,
         format="excel",
     )
-    return response_json_failure(response) or response
+    return response
+
+
+@tool(
+    tags=["data"],
+    class_permission_name="Chart",
+    annotations=ToolAnnotations(
+        title="Get chart data",
+        readOnlyHint=True,
+        destructiveHint=False,
+        openWorldHint=False,
+    ),
+)
+async def get_chart_data(
+    request: GetChartDataRequest, ctx: Context
+) -> ChartData | ChartError:
+    """Get saved or cached unsaved chart data in JSON or export formats."""
+    return finalize_chart_data_response(await _get_chart_data(request, ctx))

@@ -22,13 +22,61 @@ from typing import Any, TypeVar
 from pydantic import BaseModel, RootModel
 
 from superset.mcp_service.chart.query_result import response_json_failure
-from superset.mcp_service.chart.schemas import ChartError, GenerateChartResponse
+from superset.mcp_service.chart.schemas import (
+    ChartData,
+    ChartError,
+    GenerateChartResponse,
+)
+from superset.mcp_service.dataset.schemas import DatasetError, QueryDatasetResponse
+from superset.mcp_service.semantic_layer.schemas import (
+    GetTableResponse,
+    SemanticLayerError,
+)
 
 _ResponseModel = TypeVar("_ResponseModel", bound=BaseModel)
 
 
 class UpdateChartPreviewResponse(RootModel[dict[str, Any]]):
     """Typed wire projection for the legacy dict-shaped preview response."""
+
+
+def finalize_chart_data_response(
+    response: ChartData | ChartError,
+) -> ChartData | ChartError:
+    """Preflight every chart-data result while preserving its public union."""
+    if response_json_failure(response) is None:
+        return response
+    return ChartError(
+        error="Chart data response could not be returned safely.",
+        error_type="InvalidQueryResult",
+        details="The complete response exceeded its serialization safety limits.",
+        suggestions=["Request fewer rows or use a narrower export."],
+        error_code="CHART_DATA_RESPONSE_TOO_LARGE",
+    )
+
+
+def finalize_query_dataset_response(
+    response: QueryDatasetResponse | DatasetError,
+) -> QueryDatasetResponse | DatasetError:
+    """Preflight every dataset-query result while preserving its public union."""
+    if response_json_failure(response) is None:
+        return response
+    return DatasetError.create(
+        error="Dataset response could not be returned safely.",
+        error_type="InvalidQueryResult",
+    )
+
+
+def finalize_get_table_response(
+    response: GetTableResponse | SemanticLayerError,
+) -> GetTableResponse | SemanticLayerError:
+    """Preflight every semantic-table result while preserving its public union."""
+    if response_json_failure(response) is None:
+        return response
+    return SemanticLayerError.create(
+        error="Semantic table response could not be returned safely.",
+        error_type="InvalidQueryResult",
+    )
 
 
 def finalize_chart_response(

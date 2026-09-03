@@ -22,6 +22,7 @@ from __future__ import annotations
 import importlib
 from collections.abc import Generator
 from contextlib import nullcontext
+from datetime import datetime, timezone
 from decimal import Decimal
 from types import ModuleType, SimpleNamespace
 from typing import Any
@@ -34,9 +35,11 @@ import pytz
 from dateutil import tz as dateutil_tz
 from fastmcp import Client, FastMCP
 
+from superset.commands.exceptions import CommandException
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.app import mcp
+from superset.mcp_service.semantic_layer.schemas import SemanticLayerError
 from superset.utils import json
 from superset.utils.core import GenericDataType
 from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
@@ -68,6 +71,81 @@ def mock_auth() -> Generator[MagicMock, None, None]:
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
         yield mock_get_user
+
+
+def _semantic_error_at_test_limit(limit: int) -> SemanticLayerError:
+    timestamp = datetime(2026, 9, 3, tzinfo=timezone.utc)
+    empty = SemanticLayerError(message="", error_type="", timestamp=timestamp)
+    remaining = limit - len(empty.model_dump_json().encode())
+    response = SemanticLayerError(
+        message="x" * (remaining // 2),
+        error_type="e" * (remaining % 2),
+        timestamp=timestamp,
+    )
+    assert len(response.model_dump_json().encode()) == limit
+    return response
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("extra_byte", [False, True], ids=["exact", "plus-one"])
+async def test_get_table_mcp_entry_preflights_every_error_return(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+    extra_byte: bool,
+) -> None:
+    """The public union preserves an exact error and bounds the next byte."""
+    query_result_module = importlib.import_module(
+        "superset.mcp_service.chart.query_result"
+    )
+    limit = 4 * 1024
+    monkeypatch.setattr(query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", limit)
+    response = _semantic_error_at_test_limit(limit)
+    if extra_byte:
+        response.error_type += "e"
+
+    async def error_result(*_args: Any, **_kwargs: Any) -> SemanticLayerError:
+        return response
+
+    monkeypatch.setattr(get_table_module, "_get_table", error_result)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_table", {"request": {"dataset_id": 42, "metrics": ["revenue"]}}
+        )
+
+    returned = SemanticLayerError.model_validate(json.loads(result.content[0].text))
+    if extra_byte:
+        assert returned.error_type == "InvalidQueryResult"
+        assert len(returned.model_dump_json().encode()) < 1_000
+    else:
+        assert returned.error_type == response.error_type
+        assert returned.message == response.message
+
+
+@pytest.mark.asyncio
+async def test_get_table_mcp_entry_bounds_dynamic_command_error(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A dynamically amplified command error cannot bypass the finalizer."""
+    query_result_module = importlib.import_module(
+        "superset.mcp_service.chart.query_result"
+    )
+    limit = 4 * 1024
+    monkeypatch.setattr(query_result_module, "MAX_QUERY_RESULT_VALUE_BYTES", limit)
+    monkeypatch.setattr(
+        get_table_module,
+        "_run_get_table_query",
+        AsyncMock(side_effect=CommandException("dynamic:" + "x" * limit)),
+    )
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_table", {"request": {"dataset_id": 42, "metrics": ["revenue"]}}
+        )
+
+    returned = SemanticLayerError.model_validate(json.loads(result.content[0].text))
+    assert returned.error_type == "InvalidQueryResult"
+    assert len(returned.model_dump_json().encode()) < 1_000
 
 
 def _make_metric(name: str, expression: str = "COUNT(*)") -> MagicMock:
@@ -486,15 +564,20 @@ async def test_get_table_normalizes_nan_producer_data(mcp_server: FastMCP) -> No
 @pytest.mark.asyncio
 async def test_get_table_rejects_oversized_projected_response(
     mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The actual MCP entry point bounds duplicated sample metadata."""
     mock_ds = _make_dataset(42)
     mock_ds.columns = [_make_column("value")]
-    cell = "x" * 65_536
+    cell = "x" * 100
     query_result = chart_data_command_result(
-        [{"value": cell} for _ in range(253)],
+        [{"value": cell} for _ in range(10)],
         columns=["value"],
         coltypes=[GenericDataType.STRING],
+    )
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.query_result.MAX_QUERY_RESULT_VALUE_BYTES",
+        1_500,
     )
     assert get_table_module.validate_query_result_envelope(query_result) is None
 
@@ -515,7 +598,9 @@ async def test_get_table_rejects_oversized_projected_response(
     data = json.loads(result.content[0].text)
     assert data["success"] is False
     assert data["error_type"] == "InvalidQueryResult"
-    assert "aggregate JSON byte limit" in data["error"]
+    assert (
+        len(SemanticLayerError.model_validate(data).model_dump_json().encode()) < 1_000
+    )
 
 
 @pytest.mark.asyncio

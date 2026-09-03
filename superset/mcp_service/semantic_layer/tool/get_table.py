@@ -38,10 +38,8 @@ from superset.common.tabular_query import (
 )
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
-from superset.mcp_service.chart.query_result import (
-    response_json_failure,
-    validate_query_result_envelope,
-)
+from superset.mcp_service.chart.query_result import validate_query_result_envelope
+from superset.mcp_service.chart.response_preflight import finalize_get_table_response
 from superset.mcp_service.chart.schemas import PerformanceMetadata
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
@@ -356,12 +354,6 @@ async def _run_get_table_query(
         query_duration_ms,
         resolved.warnings,
     )
-    if response_failure := response_json_failure(response):
-        return SemanticLayerError.create(
-            error=response_failure.error,
-            error_type=response_failure.error_type,
-        )
-
     await ctx.info(
         "get_table complete: rows=%d, columns=%d, duration=%dms"
         % (
@@ -393,18 +385,7 @@ def _validate_datasource_selection(
     return None
 
 
-@tool(
-    tags=["data", "semantic"],
-    class_permission_name="Dataset",
-    annotations=ToolAnnotations(
-        title="Get table",
-        readOnlyHint=True,
-        destructiveHint=False,
-        openWorldHint=False,
-    ),
-)
-@requires_data_model_metadata_access
-async def get_table(
+async def _get_table(
     request: GetTableRequest,
     ctx: Context,
 ) -> GetTableResponse | SemanticLayerError:
@@ -512,3 +493,22 @@ async def get_table(
             error=f"Internal error executing get_table: {exc}",
             error_type="InternalError",
         )
+
+
+@tool(
+    tags=["data", "semantic"],
+    class_permission_name="Dataset",
+    annotations=ToolAnnotations(
+        title="Get table",
+        readOnlyHint=True,
+        destructiveHint=False,
+        openWorldHint=False,
+    ),
+)
+@requires_data_model_metadata_access
+async def get_table(
+    request: GetTableRequest,
+    ctx: Context,
+) -> GetTableResponse | SemanticLayerError:
+    """Query a data source and preflight every public response branch."""
+    return finalize_get_table_response(await _get_table(request, ctx))

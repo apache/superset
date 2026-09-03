@@ -39,9 +39,9 @@ from superset.common.tabular_query import (
 )
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
-from superset.mcp_service.chart.query_result import (
-    response_json_failure,
-    validate_query_result_envelope,
+from superset.mcp_service.chart.query_result import validate_query_result_envelope
+from superset.mcp_service.chart.response_preflight import (
+    finalize_query_dataset_response,
 )
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
 from superset.mcp_service.dataset.dataset_utils import resolve_dataset
@@ -70,30 +70,7 @@ _NO_SAVED_METRICS_HINT = (
 )
 
 
-def _bounded_response(
-    response: QueryDatasetResponse,
-) -> QueryDatasetResponse | DatasetError:
-    """Reject an oversized complete response projection before transport."""
-    if failure := response_json_failure(response):
-        return DatasetError.create(
-            error=failure.error,
-            error_type=failure.error_type,
-        )
-    return response
-
-
-@tool(
-    tags=["data"],
-    class_permission_name="Dataset",
-    annotations=ToolAnnotations(
-        title="Query dataset",
-        readOnlyHint=True,
-        destructiveHint=False,
-        openWorldHint=False,
-    ),
-)
-@requires_data_model_metadata_access
-async def query_dataset(  # noqa: C901
+async def _query_dataset(  # noqa: C901
     request: QueryDatasetRequest, ctx: Context
 ) -> QueryDatasetResponse | DatasetError:
     """Query a dataset using its semantic layer (saved metrics, dimensions, filters).
@@ -329,25 +306,23 @@ async def query_dataset(  # noqa: C901
         )
 
         if not data:
-            return _bounded_response(
-                QueryDatasetResponse(
-                    dataset_id=dataset.id,
-                    dataset_name=dataset_name,
-                    columns=columns_meta,
-                    data=[],
-                    row_count=0,
-                    total_rows=0,
-                    summary=f"Query on '{dataset_name}' returned no data.",
-                    performance=PerformanceMetadata(
-                        query_duration_ms=query_duration_ms,
-                        cache_status="no_data",
-                    ),
-                    cache_status=get_cache_status_from_result(
-                        query_result, force_refresh=request.force_refresh
-                    ),
-                    applied_filters=effective_filters,
-                    warnings=warnings,
-                )
+            return QueryDatasetResponse(
+                dataset_id=dataset.id,
+                dataset_name=dataset_name,
+                columns=columns_meta,
+                data=[],
+                row_count=0,
+                total_rows=0,
+                summary=f"Query on '{dataset_name}' returned no data.",
+                performance=PerformanceMetadata(
+                    query_duration_ms=query_duration_ms,
+                    cache_status="no_data",
+                ),
+                cache_status=get_cache_status_from_result(
+                    query_result, force_refresh=request.force_refresh
+                ),
+                applied_filters=effective_filters,
+                warnings=warnings,
             )
 
         cache_status = get_cache_status_from_result(
@@ -365,23 +340,21 @@ async def query_dataset(  # noqa: C901
             % (len(data), len(raw_columns), query_duration_ms)
         )
 
-        return _bounded_response(
-            QueryDatasetResponse(
-                dataset_id=dataset.id,
-                dataset_name=dataset_name,
-                columns=columns_meta,
-                data=data,
-                row_count=len(data),
-                total_rows=query_result.get("rowcount"),
-                summary=summary,
-                performance=PerformanceMetadata(
-                    query_duration_ms=query_duration_ms,
-                    cache_status=cache_label,
-                ),
-                cache_status=cache_status,
-                applied_filters=effective_filters,
-                warnings=warnings,
-            )
+        return QueryDatasetResponse(
+            dataset_id=dataset.id,
+            dataset_name=dataset_name,
+            columns=columns_meta,
+            data=data,
+            row_count=len(data),
+            total_rows=query_result.get("rowcount"),
+            summary=summary,
+            performance=PerformanceMetadata(
+                query_duration_ms=query_duration_ms,
+                cache_status=cache_label,
+            ),
+            cache_status=cache_status,
+            applied_filters=effective_filters,
+            warnings=warnings,
         )
 
     except OAuth2RedirectError as exc:
@@ -425,3 +398,21 @@ async def query_dataset(  # noqa: C901
             error="An unexpected error occurred while querying the dataset.",
             error_type="UnexpectedError",
         )
+
+
+@tool(
+    tags=["data"],
+    class_permission_name="Dataset",
+    annotations=ToolAnnotations(
+        title="Query dataset",
+        readOnlyHint=True,
+        destructiveHint=False,
+        openWorldHint=False,
+    ),
+)
+@requires_data_model_metadata_access
+async def query_dataset(
+    request: QueryDatasetRequest, ctx: Context
+) -> QueryDatasetResponse | DatasetError:
+    """Query a dataset and preflight every public response branch."""
+    return finalize_query_dataset_response(await _query_dataset(request, ctx))
