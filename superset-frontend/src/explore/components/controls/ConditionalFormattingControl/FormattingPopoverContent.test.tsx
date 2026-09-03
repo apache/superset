@@ -769,22 +769,6 @@ test('validates Center value against Min bound and Max bound when both are set',
   ).toBeInTheDocument();
 });
 
-// Selects the first preset swatch for a given ColorPickerControl, following
-// the same interaction mechanics as 'renders None for operator when Green
-// for increase is selected' above: open the trigger, wait for the presets
-// panel, click a swatch. The `ariaLabel` prop on ColorPickerControl lands
-// directly on the `.ant-color-picker-trigger` element (see ColorTrigger in
-// antd), so `getByLabelText` resolves the correct trigger among the several
-// color pickers now rendered in this form without any extra scoping.
-//
-// Each picker's popover stays mounted (unclosed) after a swatch is picked,
-// so with three pickers on the page there can be more than one
-// `.ant-color-picker-presets-items` panel present at once by the time this
-// runs a second or third time. Rather than a plain `querySelector` (which
-// would grab whichever panel happens to be first in the DOM — possibly a
-// stale one from an earlier pick), wait for the panel *count* to grow past
-// what it was before this trigger was clicked, then act on the newest
-// (last) panel, which is the one this click just opened.
 // Opens the given ColorPickerControl's popover, clicks the preset swatch at
 // `presetIndex`, and returns the hex color that swatch actually represents
 // (read from its own inline `style.background`, normalized via `tinycolor`
@@ -793,6 +777,10 @@ test('validates Center value against Min bound and Max bound when both are set',
 // (rather than just asserting "some string came back") lets the caller
 // verify each of the three fields resolved to the swatch it was individually
 // told to click, not merely that all three happened to end up non-empty.
+// The `ariaLabel` prop on ColorPickerControl lands directly on the
+// `.ant-color-picker-trigger` element (see ColorTrigger in antd), so
+// `getByLabelText` resolves the correct trigger among the several color
+// pickers rendered in this form without any extra scoping.
 //
 // Each picker's popover stays mounted (unclosed) after a swatch is picked,
 // so with three pickers on the page there can be more than one
