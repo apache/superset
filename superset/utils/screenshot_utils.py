@@ -171,16 +171,25 @@ LOADING_SELECTOR = r".loading"
 ALERT_SELECTOR = r'[role="alert"]'
 EMPTY_SELECTOR = r".ant-empty, .ag-overlay-no-rows-wrapper:not(.ag-hidden)"
 MISSING_CHART_SELECTOR = r".missing-chart-container"
-CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS = f"""clip => Array.from(
-    document.querySelectorAll('{CHART_HOLDER_SELECTOR}')
-).filter(holder => {{
-    const rect = holder.getBoundingClientRect();
-    const intersectsClip = rect.bottom > clip.top && rect.top < clip.bottom;
-    const isEmptyOrError = holder.querySelector(
-        '{ALERT_SELECTOR}, {EMPTY_SELECTOR}, {MISSING_CHART_SELECTOR}'
-    ) !== null;
-    return intersectsClip && !isEmptyOrError;
-}}).length"""
+CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS = f"""clip => {{
+    const holders = Array.from(
+        document.querySelectorAll('{CHART_HOLDER_SELECTOR}')
+    );
+    const contentful = holders.filter(holder => {{
+        const rect = holder.getBoundingClientRect();
+        const overlap = Math.min(rect.bottom, clip.bottom)
+            - Math.max(rect.top, clip.top);
+        const meaningfulOverlap = overlap > Math.min(
+            rect.height,
+            clip.bottom - clip.top,
+        ) * 0.1;
+        const isEmptyOrError = holder.querySelector(
+            '{ALERT_SELECTOR}, {EMPTY_SELECTOR}, {MISSING_CHART_SELECTOR}'
+        ) !== null;
+        return meaningfulOverlap && !isEmptyOrError;
+    }}).length;
+    return {{total: holders.length, contentful}};
+}}"""
 TERMINAL_MARKER_SELECTOR = (
     f"{SLICE_CONTAINER_SELECTOR}, {ALERT_SELECTOR}, {EMPTY_SELECTOR}, "
     f"{MISSING_CHART_SELECTOR}"
@@ -889,13 +898,20 @@ def take_tiled_screenshot(  # noqa: C901
                 "height": clip_height,
             }
 
+            holder_count_failed = False
             try:
-                contentful_chart_holders = page.evaluate(
+                holder_counts = page.evaluate(
                     CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS,
                     {"top": clip_y, "bottom": clip_y + clip_height},
                 )
-                if not isinstance(contentful_chart_holders, int):
-                    contentful_chart_holders = 0
+                if not (
+                    isinstance(holder_counts, dict)
+                    and isinstance(holder_counts.get("total"), int)
+                    and isinstance(holder_counts.get("contentful"), int)
+                ):
+                    raise ValueError("Unexpected chart-holder count result")
+                total_chart_holders = holder_counts["total"]
+                contentful_chart_holders = holder_counts["contentful"]
             except Exception:  # noqa: BLE001
                 logger.warning(
                     "Unable to count chart holders intersecting tile %s/%s%s",
@@ -904,7 +920,24 @@ def take_tiled_screenshot(  # noqa: C901
                     context_suffix,
                     exc_info=True,
                 )
+                holder_count_failed = True
+                total_chart_holders = 0
                 contentful_chart_holders = 0
+
+            if (
+                total_chart_holders == 0
+                and report_execution_context
+                and report_execution_context.expected_chart_count
+            ):
+                logger.warning(
+                    "report_capture_no_chart_holders tile=%s/%s "
+                    "expected_holders=%s holder_count_failed=%s%s",
+                    i + 1,
+                    num_tiles,
+                    report_execution_context.expected_chart_count,
+                    holder_count_failed,
+                    context_suffix,
+                )
 
             # Take screenshot with clipping to capture only this tile's content
             tile_screenshot: bytes | None = None
@@ -953,7 +986,9 @@ def take_tiled_screenshot(  # noqa: C901
                 else:
                     capture_elapsed = time.monotonic() - capture_started_at
                     is_uniform, dominant_ratio = is_screenshot_nearly_uniform(candidate)
-                    is_blank = is_uniform and contentful_chart_holders > 0
+                    is_blank = is_uniform and (
+                        contentful_chart_holders > 0 or holder_count_failed
+                    )
                     logger.debug(
                         "Captured tile %s/%s attempt %s/%s in %.2fs "
                         "(contentful_chart_holders=%s dominant_pixel_ratio=%.5f)%s",
@@ -999,15 +1034,41 @@ def take_tiled_screenshot(  # noqa: C901
                         break
 
                 _raise_if_budget_exhausted()
-                page.bring_to_front()
-                page.evaluate(
-                    """() => new Promise(resolve => {
-                        window.scrollBy(0, 1);
-                        window.scrollBy(0, -1);
-                        requestAnimationFrame(() =>
-                            requestAnimationFrame(() => resolve()));
-                    })"""
-                )
+                try:
+                    page.bring_to_front()
+                    page.evaluate(
+                        """() => {
+                            window.scrollBy(0, 1);
+                            window.scrollBy(0, -1);
+                            window.__supersetRepaintComplete = false;
+                            requestAnimationFrame(() => requestAnimationFrame(() => {
+                                window.__supersetRepaintComplete = true;
+                            }));
+                        }"""
+                    )
+                    repaint_timeout = _timeout_seconds(
+                        "screenshot_repaint",
+                        requested_seconds=5.0,
+                        reserve_seconds=(
+                            report_execution_context.post_capture_reserve_seconds
+                            if report_execution_context
+                            else 0.0
+                        ),
+                    )
+                    page.wait_for_function(
+                        "() => window.__supersetRepaintComplete === true",
+                        timeout=repaint_timeout * 1000,
+                    )
+                except Exception:  # noqa: BLE001
+                    logger.warning(
+                        "report_capture_repaint_timeout tile=%s/%s attempt=%s/%s%s",
+                        i + 1,
+                        num_tiles,
+                        capture_attempt,
+                        TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+                        context_suffix,
+                        exc_info=True,
+                    )
 
             assert tile_screenshot is not None
             screenshot_tiles.append(tile_screenshot)
@@ -1034,6 +1095,12 @@ def take_tiled_screenshot(  # noqa: C901
             holder_states = []
         ready_states = {"rendered", "empty", "error", "virtualized"}
         elapsed, remaining = _deadline_values()
+        if blank_tile_retries:
+            logger.info(
+                "report_capture_blank_tile_retries count=%s%s",
+                blank_tile_retries,
+                context_suffix,
+            )
         logger.info(
             "report_readiness_ready url=%s expected_holders=%s mounted_holders=%s "
             "ready_holders=%s ag_grid_waited_holders=%s blank_tile_retries=%s "
@@ -1082,7 +1149,9 @@ def take_tiled_screenshot(  # noqa: C901
         # Preserve the explicit capture-timeout reason for report execution
         # history instead of degrading it to an anonymous None screenshot.
         logger.exception("Tiled screenshot capture rejected%s", context_suffix)
-        raise
+        if report_execution_context:
+            raise
+        return None
     except Exception as e:
         if readiness_timeout:
             # Let the per-tile readiness timeout propagate so the caller

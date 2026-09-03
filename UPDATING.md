@@ -251,8 +251,8 @@ Behavior changes to be aware of:
   blank: readiness is polled until the deadline, and the report fails loudly
   if charts never mount. Large tiled reports also retry Chromium screenshot
   stalls and suspicious uniform tiles, while persistent screenshot timeouts
-  fail loudly. Thumbnails and non-report screenshots keep their previous
-  behavior.
+  fail loudly. Large tiled thumbnails use the same bounded retries, but retain
+  their previous failure contract after a persistent timeout.
 
 ### Embedded (guest token) API responses no longer echo database errors
 

@@ -273,7 +273,7 @@ class TestTakeTiledScreenshot:
                 return element_info
             if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
                 assert arg == {"top": 1000, "bottom": 2000}
-                return 1
+                return {"total": 1, "contentful": 1}
             if "requestAnimationFrame" in script or "window.scrollTo" in script:
                 return None
             return [{"chartId": "7", "state": "rendered"}]
@@ -313,6 +313,12 @@ class TestTakeTiledScreenshot:
             if call.args[0].startswith("report_readiness_ready")
         )
         assert readiness_log.args[6] == 1
+        retry_log = next(
+            call
+            for call in mock_logger.info.call_args_list
+            if call.args[0].startswith("report_capture_blank_tile_retries")
+        )
+        assert retry_log.args[1] == 1
 
     def test_repeated_uniform_tiles_are_retained_with_warning(self, mock_page):
         element_info = {"height": 2000, "top": 0, "left": 0, "width": 800}
@@ -321,7 +327,7 @@ class TestTakeTiledScreenshot:
             if "scrollWidth" in script:
                 return element_info
             if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
-                return 1
+                return {"total": 1, "contentful": 1}
             if "requestAnimationFrame" in script or "window.scrollTo" in script:
                 return None
             return [{"chartId": "7", "state": "rendered"}]
@@ -361,7 +367,7 @@ class TestTakeTiledScreenshot:
             if "scrollWidth" in script:
                 return element_info
             if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
-                return 1
+                return {"total": 1, "contentful": 1}
             if "requestAnimationFrame" in script or "window.scrollTo" in script:
                 return None
             return [{"chartId": "7", "state": "rendered"}]
@@ -395,7 +401,7 @@ class TestTakeTiledScreenshot:
             if "scrollWidth" in script:
                 return element_info
             if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
-                return 0
+                return {"total": 1, "contentful": 0}
             if "window.scrollTo" in script:
                 return None
             return []
@@ -437,7 +443,7 @@ class TestTakeTiledScreenshot:
             if "scrollWidth" in script:
                 return element_info
             if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
-                return 1
+                return {"total": 1, "contentful": 1}
             if "requestAnimationFrame" in script or "window.scrollTo" in script:
                 return None
             return [{"chartId": "7", "state": "rendered"}]
@@ -477,7 +483,7 @@ class TestTakeTiledScreenshot:
             if "scrollWidth" in script:
                 return element_info
             if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
-                return 1
+                return {"total": 1, "contentful": 1}
             if "requestAnimationFrame" in script or "window.scrollTo" in script:
                 return None
             return [{"chartId": "7", "state": "rendered"}]
@@ -513,14 +519,94 @@ class TestTakeTiledScreenshot:
         mock_page.evaluate.side_effect = evaluate
         mock_page.screenshot.return_value = _png(800, 1000, "white")
 
-        with patch(
-            "superset.utils.screenshot_utils.combine_screenshot_tiles",
-            return_value=b"combined",
+        with (
+            patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles",
+                return_value=b"combined",
+            ) as mock_combine,
+            patch("superset.utils.screenshot_utils.logger") as mock_logger,
         ):
             result = take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
 
         assert result == b"combined"
-        assert mock_page.screenshot.call_count == 1
+        assert mock_page.screenshot.call_count == 3
+        assert len(mock_combine.call_args.args[0]) == 1
+        assert any(
+            call.args[0].startswith("Unable to count chart holders")
+            for call in mock_logger.warning.call_args_list
+        )
+        assert any(
+            call.args[0].startswith("report_capture_uniform_tile_retained")
+            for call in mock_logger.warning.call_args_list
+        )
+
+    def test_repaint_wait_timeout_is_bounded_and_retried(self, mock_page):
+        from superset.utils.screenshot_utils import PlaywrightTimeout
+
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.side_effect = [
+            _png(800, 1000, "white"),
+            self._create_chart_like_tile(),
+        ]
+
+        def wait_for_function(script, **_kwargs):
+            if "__supersetRepaintComplete" in script:
+                raise PlaywrightTimeout("no repaint")
+            return None
+
+        mock_page.wait_for_function.side_effect = wait_for_function
+
+        with patch(
+            "superset.utils.screenshot_utils.combine_screenshot_tiles",
+            return_value=b"combined",
+        ):
+            result = take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                report_execution_context=_report_context(),
+            )
+
+        assert result == b"combined"
+        assert any(
+            call.args == ("() => window.__supersetRepaintComplete === true",)
+            and call.kwargs == {"timeout": 5000.0}
+            for call in mock_page.wait_for_function.call_args_list
+        )
+        assert mock_page.screenshot.call_count == 2
+
+    def test_repeated_capture_timeout_preserves_thumbnail_contract(self, mock_page):
+        from superset.utils.screenshot_utils import PlaywrightTimeout
+
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return []
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.side_effect = PlaywrightTimeout("wedged compositor")
+
+        result = take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
+
+        assert result is None
+        assert mock_page.screenshot.call_count == 3
 
     @staticmethod
     def _create_chart_like_tile() -> bytes:
@@ -1243,8 +1329,12 @@ class TestTileWaitBudget:
         # system fault, so it must log at WARNING (not ERROR) -- consistent
         # with the #38130/#38441 precedent for screenshot timeout logging.
         assert mock_logger.error.call_count == 0
-        mock_logger.warning.assert_called_once()
-        warning_args = mock_logger.warning.call_args[0]
+        terminal_warning = next(
+            call
+            for call in mock_logger.warning.call_args_list
+            if call.args[0].startswith("report_capture_terminal")
+        )
+        warning_args = terminal_warning.args
         assert "terminal_reason=budget_exhausted" in warning_args[0]
 
     def test_budget_exhausted_warning_includes_log_context(
