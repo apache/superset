@@ -25,7 +25,7 @@ import type {
   PurgeImpactCollection,
   PurgeImpactItem,
 } from './types';
-import { sanitizeHtml } from '@superset-ui/core';
+import { toSafeHref } from 'src/utils/urlUtils';
 
 const ImpactSection = styled.section`
   ${({ theme }) => `
@@ -63,7 +63,7 @@ function ImpactItem({ item }: { item: PurgeImpactItem }) {
   );
   const label =
     item.url && isSafeAppPath && !item.archived ? (
-      <a href={sanitizeHtml(item.url)}>{item.name}</a>
+      <a href={toSafeHref(item.url)}>{item.name}</a>
     ) : (
       item.name
     );
