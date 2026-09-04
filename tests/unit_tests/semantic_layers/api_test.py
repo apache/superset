@@ -1561,6 +1561,89 @@ def test_connections_list(
     assert len(result) == 2
 
 
+def _connections_db_query_mock(mocker: MockerFixture) -> MagicMock:
+    """Wire ``db.session`` for the database branch of /connections and enable
+    the ``SEMANTIC_LAYERS`` feature flag (both are needed to reach the branch).
+
+    Returns the mock database query so a test can assert whether the access
+    filter was applied to it.
+    """
+    mock_db_session = mocker.patch("superset.semantic_layers.api.db.session")
+    db_query = MagicMock()
+    db_query.options.return_value = db_query
+    db_query.filter.return_value = db_query
+    db_query.all.return_value = []
+    sl_query = MagicMock()
+    sl_query.options.return_value = sl_query
+    sl_query.filter.return_value = sl_query
+    sl_query.all.return_value = []
+    mock_db_session.query.side_effect = [db_query, sl_query]
+    mocker.patch("superset.semantic_layers.api.is_feature_enabled", return_value=True)
+    return db_query
+
+
+@SEMANTIC_LAYERS_APP
+def test_connections_all_access_user_sees_all_databases(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """A user with all-database access has the DB branch left unfiltered (sc-119878).
+
+    With no name filter and full access, DatabaseFilter is a no-op, so no
+    ``filter`` is applied to the database query -- the caller sees everything.
+    """
+    mocker.patch(
+        "superset.databases.filters.security_manager.can_access_all_databases",
+        return_value=True,
+    )
+    db_query = _connections_db_query_mock(mocker)
+
+    response = client.get("/api/v1/semantic_layer/connections/")
+
+    assert response.status_code == 200
+    # No access predicate for a full-access caller (the default empty
+    # EXTRA_DYNAMIC_QUERY_FILTERS also skips DatabaseFilter's dynamic block),
+    # and no name filter was passed -- so no filter runs at all.
+    db_query.filter.assert_not_called()
+
+
+@SEMANTIC_LAYERS_APP
+def test_connections_limited_user_access_filters_databases(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """A user WITHOUT all-database access has the DB branch access-filtered (sc-119878).
+
+    Reaching this ``can_read`` endpoint must not expose databases the caller
+    cannot access. DatabaseFilter applies its access predicate to the database
+    query -- the same scoping DatabaseRestApi uses. Reverting the fix (bare
+    ``db.session.query(Database)``) makes this assertion fail.
+    """
+    mocker.patch(
+        "superset.databases.filters.security_manager.can_access_all_databases",
+        return_value=False,
+    )
+    perm_lookup = mocker.patch(
+        "superset.databases.filters.security_manager.user_view_menu_names",
+        return_value={"[example].(id:1)"},
+    )
+    mocker.patch(
+        "superset.databases.filters.can_access_databases",
+        return_value=set(),
+    )
+    db_query = _connections_db_query_mock(mocker)
+
+    response = client.get("/api/v1/semantic_layer/connections/")
+
+    assert response.status_code == 200
+    db_query.filter.assert_called_once()
+    # ...and it is the ACCESS predicate: DatabaseFilter consulted the caller's
+    # database permissions to build it, not some incidental filter.
+    perm_lookup.assert_called_once_with("database_access")
+
+
 @SEMANTIC_LAYERS_APP
 def test_connections_database_only(
     client: Any,
