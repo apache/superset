@@ -26,17 +26,6 @@ import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
 import * as resolveCssImportsModule from 'src/dashboard/util/resolveCssImports';
 import StylingSection from './StylingSection';
 
-jest.mock('src/dashboard/util/resolveCssImports', () => ({
-  ...jest.requireActual('src/dashboard/util/resolveCssImports'),
-  resolveCssImports: jest.fn(),
-}));
-
-const mockResolveCssImports =
-  resolveCssImportsModule.resolveCssImports as jest.MockedFunction<
-    typeof resolveCssImportsModule.resolveCssImports
-  >;
-
-// Mock SupersetClient
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   SupersetClient: {
@@ -50,7 +39,6 @@ const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
   typeof isFeatureEnabled
 >;
 
-// Mock ColorSchemeSelect component
 jest.mock('src/dashboard/components/ColorSchemeSelect', () => ({
   __esModule: true,
   default: ({ value, onChange, ...props }: any) => (
@@ -82,6 +70,8 @@ const defaultProps = {
   customCss: '',
   hasCustomLabelsColor: false,
   showChartTimestamps: false,
+  jsonMetadata: '{}',
+  onJsonMetadataChange: jest.fn(),
   onThemeChange: jest.fn(),
   onColorSchemeChange: jest.fn(),
   onCustomCssChange: jest.fn(),
@@ -136,7 +126,6 @@ test('calls onThemeChange when theme is selected', async () => {
   const onThemeChange = jest.fn();
   render(<StylingSection {...defaultProps} onThemeChange={onThemeChange} />);
 
-  // This would require mocking the Select component properly for full interaction testing
   expect(screen.getByText('Theme')).toBeInTheDocument();
 });
 
@@ -217,8 +206,6 @@ test('calls onShowChartTimestampsChange when switch is toggled', async () => {
   expect(onShowChartTimestampsChange.mock.calls[0][0]).toBe(true);
 });
 
-// CSS Template Tests
-// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('CSS Template functionality', () => {
   test('does not show CSS template select when feature flag is disabled', () => {
     mockIsFeatureEnabled.mockReturnValue(false);
@@ -280,7 +267,6 @@ describe('CSS Template functionality', () => {
 
     render(<StylingSection {...defaultProps} />);
 
-    // Wait for fetch to complete
     await waitFor(() => {
       expect(mockSupersetClient.get).toHaveBeenCalled();
     });
