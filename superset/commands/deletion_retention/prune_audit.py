@@ -107,6 +107,7 @@ from flask import current_app
 from superset import db
 from superset.commands.deletion_retention.audit import (
     acquire_coordination_lock,
+    TRIGGER_FORCE,
     utc_now,
 )
 from superset.models.purge_audit_log import (
@@ -304,6 +305,12 @@ def _repeats_an_earlier_block(
     pre-feature duplicates — the streak's earliest "blocked since" row is
     still always kept. Tied same-reason rows are not "earlier" than each
     other, so all of them are kept.
+
+    A ``force`` row is exempt: it is never reported as a repeat (see the
+    return), so it is kept out of the duplicate category and marked a
+    survivor while its streak is current. This is not blanket immortality —
+    once the streak resolves, a force block ages on the operational window
+    like any other resolved-streak blocked row.
     """
     earlier: sa.FromClause = table.alias("earlier_block")
     between: sa.FromClause = table.alias("reason_change")
@@ -329,7 +336,7 @@ def _repeats_an_earlier_block(
         )
         .correlate(table, earlier)
     )
-    return sa.exists(
+    repeats: sa.ColumnElement[bool] = sa.exists(
         sa.select(sa.literal(1))
         .select_from(earlier)
         .where(
@@ -345,6 +352,18 @@ def _repeats_an_earlier_block(
         )
         .correlate(table, boundary)
     )
+    # A ``force`` attempt is an operator action the writer never suppresses:
+    # audit.py's ``_suppress_redundant_block`` only collapses consecutive
+    # scheduled same-reason blocks, so the pruner does not collapse a force row
+    # either — it is never reported as a repeat. This keeps it out of the
+    # duplicate category and (via ``sa.not_`` in the operational category) marks
+    # it a survivor while its streak is current. It is not blanket immortality:
+    # once the streak resolves the force block ages on the operational window
+    # like any resolved-streak blocked row, the confirmed/target_absent boundary
+    # being the durable record. A force row may still be the *earlier* anchor a
+    # later scheduled repeat collapses into — only the force row itself is
+    # protected from duplicate removal.
+    return sa.and_(table.c.trigger != TRIGGER_FORCE, repeats)
 
 
 def _preceded_by_unresolved_attempt(table: sa.Table) -> sa.ColumnElement[bool]:
@@ -383,10 +402,11 @@ def _duplicate_candidates(now: datetime, limit: int) -> sa.sql.Select:
 
     Age-independent by design (FR-003): a repeat is prunable the moment the
     streak holds an earlier same-reason block, regardless of the retention
-    window. Trigger is not a discriminator — ``scheduled`` and ``force``
-    blocked rows share streaks. Reason *is*: the first block after a reason
-    change survives alongside the streak's earliest row (see
-    :func:`_repeats_an_earlier_block`).
+    window. Trigger does not gate streak membership — ``scheduled`` and
+    ``force`` blocked rows share streaks — but a ``force`` row is itself never
+    collapsed as a repeat (see :func:`_repeats_an_earlier_block`). Reason *is*
+    a discriminator: the first block after a reason change survives alongside
+    the streak's earliest row.
 
     Rows preceded by an unresolved attempt are skipped: their classification
     is not stable, because that attempt can finalize into a boundary and
