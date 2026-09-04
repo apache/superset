@@ -905,6 +905,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     _RETENTION_TASK_NAME: str = "version_history.prune_old_versions"
     _PURGE_TASK_NAME: str = "deletion_retention.purge_soft_deleted"
+    _PRUNE_AUDIT_TASK_NAME: str = "deletion_retention.prune_purge_audit"
     #: Module each task lives in. A beat entry alone is not enough — a worker
     #: that never imported the module answers ``NotRegistered`` when the task
     #: fires, which is the same silent non-execution one layer down.
@@ -912,30 +913,32 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
     _PURGE_TASK_MODULE: str = "superset.tasks.deletion_retention"
 
     def _warn_if_retention_beat_missing(self) -> None:
-        """WARN at startup when the resolved Celery beat schedule is
-        missing a time-based retention task:
+        """WARN when the Celery configuration omits a retention task.
 
         * ``version_history.prune_old_versions`` — checked always, since
           shadow rows written by prior deploys keep ageing even when
           capture is off;
-        Each task needs an entry in ``beat_schedule``. When ``imports`` is
-        explicitly configured, its module is checked there as well. An absent
-        ``imports`` setting is not diagnosed because Celery may register tasks
-        through ``include``, autodiscovery, or worker startup imports.
-
         * ``deletion_retention.purge_soft_deleted`` — checked only when
           ``SOFT_DELETE`` is enabled, because the purge task itself
           no-ops while the flag is off, so a missing entry is only
           actionable once soft delete is statically configured. Dynamic
           request-time feature resolvers are intentionally excluded from this
-          startup diagnostic.
+          startup diagnostic; and
+        * ``deletion_retention.prune_purge_audit`` — checked whenever audit
+          pruning is enabled, because historical audit rows remain after
+          ``SOFT_DELETE`` is turned off.
+
+        Each task needs an entry in ``beat_schedule``. When ``imports`` is
+        explicitly configured, its module is checked there as well. An absent
+        ``imports`` setting is not diagnosed because Celery may register tasks
+        through ``include``, autodiscovery, or worker startup imports.
 
         Operators who redefine ``CeleryConfig`` in ``superset_config.py``
         — instead of subclassing or merging the default — silently lose
         these tasks. Capture continues writing rows; the prune
         never runs; disk grows until paged. Archived objects likewise
         accumulate forever instead of purging after the retention window.
-        The default config carries both entries; this check makes the
+        The default config carries all three entries; this check makes the
         misconfiguration visible in the deploy log before disk pressure
         makes it visible at 03:00.
 
@@ -956,7 +959,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             return  # Celery disabled entirely; no retention task to warn about.
         if isinstance(celery_config, str):
             return  # Celery resolves dotted config references in its loader.
-        beat_schedule = (
+        beat_schedule: Any = (
             celery_config.get("beat_schedule")
             if isinstance(celery_config, dict)
             else getattr(celery_config, "beat_schedule", None)
@@ -974,7 +977,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             if isinstance(celery_imports, (list, tuple, set, frozenset))
             else ()
         )
-        imports_configured = celery_imports is not None
+        imports_configured: bool = celery_imports is not None
         # Match on the ``task`` each entry runs, not the schedule entry key:
         # an operator may register the retention task under any key (e.g.
         # ``{"prune_versions": {"task": "version_history.prune_old_versions"}}``),
@@ -1002,11 +1005,26 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "CeleryConfig or add the module to your override.",
                 self._RETENTION_TASK_MODULE,
             )
-        default_flags = self.config.get("DEFAULT_FEATURE_FLAGS", {})
-        configured_flags = self.config.get("FEATURE_FLAGS", {})
-        soft_delete_enabled = bool(
+        default_flags: dict[str, Any] = self.config.get("DEFAULT_FEATURE_FLAGS", {})
+        configured_flags: dict[str, Any] = self.config.get("FEATURE_FLAGS", {})
+        soft_delete_enabled: bool = bool(
             configured_flags.get("SOFT_DELETE", default_flags.get("SOFT_DELETE", False))
         )
+        audit_pruning_switch: Any = self.config.get(
+            "PURGE_AUDIT_PRUNING_ENABLED", False
+        )
+        if not isinstance(audit_pruning_switch, bool):
+            # The task fails closed on anything but the literal True, so a
+            # typo such as "true" or 1 silently leaves the audit log
+            # growing. Surface it here, where the operator is looking.
+            logger.warning(
+                "soft-delete: PURGE_AUDIT_PRUNING_ENABLED=%r is not a boolean — "
+                "audit pruning stays disabled (the prune task removes nothing "
+                "unless the value is exactly True) and the purge audit log "
+                "will grow without bound. Set it to True or False.",
+                audit_pruning_switch,
+            )
+        audit_pruning_enabled: bool = audit_pruning_switch is True
         if soft_delete_enabled and (
             not beat_schedule or self._PURGE_TASK_NAME not in registered_tasks
         ):
@@ -1028,6 +1046,30 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "with NotRegistered and archived objects are never purged. "
                 "Either inherit from the default CeleryConfig or add the "
                 "module to your override.",
+                self._PURGE_TASK_MODULE,
+            )
+        if audit_pruning_enabled and (
+            not beat_schedule or self._PRUNE_AUDIT_TASK_NAME not in registered_tasks
+        ):
+            logger.warning(
+                "soft-delete: CELERY_CONFIG.beat_schedule is missing the "
+                "%r entry — the purge audit log will never be pruned and "
+                "will grow without bound. Either inherit from the default "
+                "CeleryConfig or add the entry to your override.",
+                self._PRUNE_AUDIT_TASK_NAME,
+            )
+        if (
+            audit_pruning_enabled
+            and imports_configured
+            and self._PURGE_TASK_MODULE not in imported_modules
+            and not soft_delete_enabled
+        ):
+            logger.warning(
+                "soft-delete: CELERY_CONFIG.imports is missing %r — workers "
+                "will not register the audit-prune task, so a scheduled run "
+                "fails with NotRegistered and the purge audit log grows "
+                "without bound. Either inherit from the default CeleryConfig "
+                "or add the module to your override.",
                 self._PURGE_TASK_MODULE,
             )
 

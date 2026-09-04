@@ -63,6 +63,41 @@ payload. Clients must display the new impact and obtain renewed confirmation
 before retrying. Preview or recheck failures fail closed rather than treating
 unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
 
+- The purge audit log can now be pruned automatically. The new
+  `deletion_retention.prune_purge_audit` Celery beat task (daily, 03:30, in the
+  default `CeleryConfig.beat_schedule`) removes duplicate `blocked` records
+  within an entity's current blockage streak (the earliest — "blocked since" —
+  record and the first record after each change of block `reason` always
+  survive, mirroring the audit writer's own suppression rule) and ages out
+  operational records (`blocked` from
+  resolved streaks, `failed`) older than
+  `PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS` (default 90). A streak is ended
+  only by proof the object is gone (`confirmed`/`target_absent`); a `failed`
+  attempt does not reset the "blocked since" record. Completed-destruction
+  evidence (`confirmed`, `target_absent`) is **never touched** unless the
+  separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is explicitly set,
+  which is the operator's assertion that an approved compliance policy
+  permits expiring destruction evidence. Automatic deletion is disabled by
+  default; set `PURGE_AUDIT_PRUNING_ENABLED = True` after reviewing these
+  policies to enable it. Deployments that replace the default
+  `CELERY_CONFIG` must carry the new beat entry forward (the task shares
+  `superset.tasks.deletion_retention` with the purge task, so no new worker
+  import is needed). When audit pruning is enabled, a missing schedule or
+  worker import logs a startup warning even if `SOFT_DELETE` is disabled,
+  because historical audit rows remain eligible for pruning. Audit creation,
+  recovery, and pruning batches use a shared database coordination row held
+  through commit. This serializes timestamp assignment with candidate deletion
+  so an uncommitted writer cannot later publish a row into pruning's logical
+  past. A missing coordination row fails pruning closed. Because a pruning batch
+  holds this lock across its DELETE, on a very large audit table a concurrent
+  scheduled purge's audit write can block on it until the batch commits. On
+  PostgreSQL that write then succeeds (``lock_timeout`` is disabled by default);
+  where a lock or statement timeout is configured — and on MySQL
+  (``innodb_lock_wait_timeout``) or SQLite (which does not wait) — the write
+  instead fails closed, so the affected purge cycle is skipped and retried on its
+  next run rather than losing data. Batches are bounded (500 rows) and
+  index-backed to keep the window short — run pruning off-peak if the overlap is
+  noticeable.
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 - The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed should `pip uninstall cockroachdb && pip install sqlalchemy-cockroachdb` (or simply reinstall the extra) to restore CockroachDB connectivity.
 

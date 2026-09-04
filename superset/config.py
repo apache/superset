@@ -1031,6 +1031,29 @@ FEATURE_FLAGS: dict[str, bool] = {}
 SOFT_DELETE_RETENTION_DAYS: int = 30
 SOFT_DELETE_PURGE_DRY_RUN: bool = False
 
+# Retention policy for the purge audit log itself (the durable evidence the
+# purge task writes). Pruning is deletion-only and scheduled
+# (``deletion_retention.prune_purge_audit``); it never mutates surviving rows.
+# Automatic deletion is opt-in so operators can validate retention policy and
+# workload characteristics before the first irreversible run. A disabled run
+# reports itself rather than silently doing nothing.
+PURGE_AUDIT_PRUNING_ENABLED: bool = False
+# How long operational audit records (``blocked``, ``failed``) are kept.
+# Duplicate blocked records within a current blockage streak are removed
+# regardless of age (the streak's earliest record and the first record after
+# each change of block reason always survive); this window governs failed
+# records and blocked records from resolved streaks.
+# It never applies to completed-destruction evidence — see the evidence key
+# below. Zero or negative values are invalid: the run logs a warning and
+# skips the age-based category rather than widening removal.
+PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS: int = 90
+# Evidence expiration opt-in. ``None`` (the default) means completed
+# destruction records (``confirmed``, ``target_absent``) — the only surviving
+# trace of destroyed objects — are never pruned. Setting a positive number of
+# days is the operator's assertion that an approved compliance policy permits
+# expiring destruction evidence older than that window.
+PURGE_AUDIT_EVIDENCE_RETENTION_DAYS: int | None = None
+
 # A function that receives a dict of all feature flags
 # (DEFAULT_FEATURE_FLAGS merged with FEATURE_FLAGS)
 # can alter it, and returns a similar dict. Note the dict of feature
@@ -1834,6 +1857,13 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "deletion_retention.purge_soft_deleted": {
             "task": "deletion_retention.purge_soft_deleted",
             "schedule": crontab(minute=0, hour=0),
+        },
+        # Purge-audit retention. Daily at 03:30, offset from the purge task
+        # and the version-history prune; the task itself reports and skips
+        # when PURGE_AUDIT_PRUNING_ENABLED is False.
+        "deletion_retention.prune_purge_audit": {
+            "task": "deletion_retention.prune_purge_audit",
+            "schedule": crontab(minute=30, hour=3),
         },
         # Uncomment to enable pruning of the query table
         # "prune_query": {
