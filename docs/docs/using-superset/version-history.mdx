@@ -51,11 +51,11 @@ the entity's editors. Users who cannot edit do not see the panel.
 One entry can appear that nobody typed: the first save through the chart
 editor of a chart created by an older Superset version, an import, or the
 API may record a one-time settings-migration entry alongside the user's
-change, as legacy settings are rewritten to their modern form — most
-visibly the legacy time settings becoming an ad-hoc filter. On a chart
-opened normally in Explore that is all that records; when Explore is
+change, as legacy settings are rewritten to their modern form. On a chart
+opened normally in Explore almost none of that rewrite is recorded — at
+most, a removed legacy setting may appear as cleared; when Explore is
 reached from a dashboard, a shared link, or a URL that picks the chart
-type, a first save can carry a few more of these automatic rewrites. It
+type, a first save can carry more of these automatic rewrites. It
 happens at most once per chart per upgrade, and later saves record only
 what the user changed.
 
