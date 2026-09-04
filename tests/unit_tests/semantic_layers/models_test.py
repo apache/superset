@@ -765,6 +765,21 @@ def test_semantic_view_data_features_tolerates_raw_string(
     ]
 
 
+def test_semantic_view_data_features_coerces_non_string_member(
+    mock_implementation: MagicMock,
+    semantic_view: SemanticView,
+) -> None:
+    """A feature that is neither a SemanticViewFeature nor a string is coerced
+    to its string form (the ``str(value)`` fallback in ``_feature_value``),
+    keeping ``sorted`` from raising on a mixed-type comparison rather than
+    500-ing Explore."""
+    mock_implementation.features = frozenset({SemanticViewFeature.GROUP_LIMIT, 7})
+
+    data = semantic_view.data
+
+    assert data["semantic_view_features"] == ["7", "GROUP_LIMIT"]
+
+
 @pytest.fixture
 def mock_grain_variant_dimensions() -> list[Dimension]:
     """Time column exposed as multiple Dimension variants, one per grain."""
