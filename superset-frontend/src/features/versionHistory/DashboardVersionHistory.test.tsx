@@ -17,7 +17,7 @@
  * under the License.
  */
 import type { AnyAction, Store } from 'redux';
-import { act, render } from 'spec/helpers/testing-library';
+import { act, render, screen } from 'spec/helpers/testing-library';
 import type { VersionHistoryState } from './types';
 import { useVersionActivity } from './useVersionActivity';
 import DashboardVersionHistory from './DashboardVersionHistory';
@@ -25,9 +25,12 @@ import DashboardVersionHistory from './DashboardVersionHistory';
 const mockPanelProps = jest.fn();
 jest.mock('./VersionHistoryPanel', () => ({
   __esModule: true,
+  // Renders a marker so open and closed states are distinguishable in the
+  // DOM: a null-rendering mock would let the closed-state contract test
+  // below pass vacuously, regardless of isPanelOpen.
   default: (props: unknown) => {
     mockPanelProps(props);
-    return null;
+    return <div data-test="mock-version-history-panel" />;
   },
 }));
 jest.mock('./useDashboardVersionPreview', () => ({
@@ -37,7 +40,15 @@ jest.mock('./useVersionActions', () => ({
   useVersionActions: () => ({
     requestRestore: jest.fn(),
     openAsNew: jest.fn(),
-    restoreModal: null,
+    // The real restore modal portals out of the column (Modal renders into
+    // document.body). Model that faithfully so the closed-state test can
+    // assert the column stays DOM-empty even while a modal is alive.
+    restoreModal: jest
+      .requireActual('react-dom')
+      .createPortal(
+        <div data-test="mock-restore-modal" />,
+        globalThis.document.body,
+      ),
   }),
 }));
 jest.mock('./useVersionActivity', () => ({
@@ -258,7 +269,10 @@ test('renders nothing in place while the panel is closed', () => {
   // The DashboardBuilder overlay relies on this contract: the closed
   // column must stay DOM-empty (the restore modal portals out of it), or
   // the :empty shadow guard stops matching and a stray shadow line appears
-  // at the viewport edge below the overlay breakpoint (sc-119737).
+  // at the viewport edge below the overlay breakpoint (sc-119737). The
+  // panel mock renders a marker and the restore-modal mock portals a
+  // marker into document.body, so this test fails if the closed state
+  // ever renders the panel — or any wrapper element — in place.
   const store = makeTestStore({
     versionHistory: versionHistoryState({ isPanelOpen: false }),
     dashboardInfo: {
@@ -270,4 +284,23 @@ test('renders nothing in place while the panel is closed', () => {
   });
   const { container } = renderAdapter(store);
   expect(container).toBeEmptyDOMElement();
+  // The modal is alive OUTSIDE the column — the guard is specifically
+  // about in-place emptiness, not about nothing rendering at all.
+  expect(screen.getByTestId('mock-restore-modal')).toBeInTheDocument();
+  expect(
+    screen.queryByTestId('mock-version-history-panel'),
+  ).not.toBeInTheDocument();
+});
+
+test('renders the panel in place while open — the closed-state discriminator', () => {
+  // Companion control for the contract test above: with the panel open the
+  // very same container is non-empty. Together the pair proves the
+  // closed-state assertion turns on isPanelOpen rather than on mocks that
+  // render nothing in either state.
+  const store = makeStore();
+  const { container } = renderAdapter(store);
+  expect(container).not.toBeEmptyDOMElement();
+  expect(
+    screen.getByTestId('mock-version-history-panel'),
+  ).toBeInTheDocument();
 });
