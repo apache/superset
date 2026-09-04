@@ -150,7 +150,7 @@ test('DateFilter popover should attach to document.body when not overflowing', a
 test('DateFilter popover shifts into the viewport', async () => {
   render(setup());
 
-  userEvent.click(screen.getByText(NO_TIME_RANGE));
+  await userEvent.click(screen.getByText(NO_TIME_RANGE));
 
   await waitFor(() => {
     expect(mockPopoverProps).toEqual(

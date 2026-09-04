@@ -1000,7 +1000,7 @@ const openComparator = async () => {
   const comparator = screen.getByRole('combobox', {
     name: 'Comparator option',
   });
-  userEvent.click(comparator);
+  await userEvent.click(comparator);
   return comparator;
 };
 
@@ -1015,7 +1015,7 @@ test('sends the typed text to the server rather than filtering the loaded page',
   // beyond the row limit. The search has to reach the database.
   setupWithFilterValues(['alpha']);
   const comparator = await openComparator();
-  userEvent.type(comparator, 'gamma');
+  await userEvent.type(comparator, 'gamma');
 
   await waitFor(
     () => {
@@ -1033,7 +1033,7 @@ test('lets a value the server did not return still be selected', async () => {
   // exact value has to remain a way through.
   setupWithFilterValues([]);
   const comparator = await openComparator();
-  userEvent.type(comparator, 'not-in-the-page');
+  await userEvent.type(comparator, 'not-in-the-page');
   expect(await screen.findByTitle('not-in-the-page')).toBeInTheDocument();
 });
 
@@ -1059,7 +1059,7 @@ test('stores the picked value, not the option object', async () => {
   // as a literal.
   const props = setupWithFilterValues(['Michael']);
   await openComparator();
-  userEvent.click(await screen.findByTitle('Michael'));
+  await userEvent.click(await screen.findByTitle('Michael'));
 
   await waitFor(() => expect(props.onChange).toHaveBeenCalled());
   const [filter] = props.onChange.mock.calls.at(-1);
@@ -1098,7 +1098,7 @@ test('can remove a value that was saved earlier', async () => {
   );
 
   // Remove it the way a user does: the tag's own close control.
-  userEvent.click(await screen.findByLabelText('close'));
+  await userEvent.click(await screen.findByLabelText('close'));
 
   await waitFor(() => expect(onChange).toHaveBeenCalled());
   const [filter] = onChange.mock.calls.at(-1);

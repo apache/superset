@@ -988,7 +988,7 @@ describe('SelectFilterPlugin', () => {
   test('keeps "Select all" pinned to the full column while searching (creatable false)', async () => {
     const setDataMaskMock = renderValueFilter({ creatable: false });
     const filterSelect = screen.getAllByRole('combobox')[0];
-    userEvent.click(filterSelect);
+    await userEvent.click(filterSelect);
     // Baseline: full-column count before searching.
     expect(await screen.findByText('Select all (5)')).toBeInTheDocument();
 
@@ -1009,7 +1009,7 @@ describe('SelectFilterPlugin', () => {
     expect(screen.queryByText('Select all (2)')).not.toBeInTheDocument();
 
     // Clicking "Select all" selects the entire column, not the search subset.
-    userEvent.click(screen.getByText('Select all (5)'));
+    await userEvent.click(screen.getByText('Select all (5)'));
     await waitFor(() => {
       const lastValue =
         setDataMaskMock.mock.calls.at(-1)?.[0]?.filterState?.value;
@@ -1587,7 +1587,7 @@ test('keeps a dependent filter empty after the user clears it', async () => {
     },
   });
 
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('img', {
       name: /close-circle/i,
       hidden: true,
