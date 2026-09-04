@@ -74,8 +74,19 @@ def _authorize_datasource(
         # superset/explore/utils.py::check_query_access), so the
         # Explore page for that transition actually opens for the
         # query's own author.
+        #
+        # The Query is still passed as ``datasource`` too: the
+        # ``EXTRA_RAISE_FOR_ACCESS_BYPASS`` hook only ever receives
+        # ``datasource`` (never ``query``), and before this reroute the
+        # Explore GET handed it the Query under that name. Dropping it
+        # would silently stop a deployment's custom bypass from seeing
+        # the query at all. The author bypass returns before the generic
+        # ``datasource`` perm check at the tail of ``raise_for_access``,
+        # so this does not weaken anything for anyone else.
         security_manager.raise_for_access(
-            query=datasource, allow_query_authorship_bypass=True
+            query=datasource,
+            datasource=datasource,
+            allow_query_authorship_bypass=True,
         )
     else:
         security_manager.raise_for_access(datasource=datasource)

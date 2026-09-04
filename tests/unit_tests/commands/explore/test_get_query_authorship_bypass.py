@@ -14,6 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from unittest.mock import Mock
+
+import pytest
 from pytest_mock import MockerFixture
 
 from superset.commands.explore.get import _authorize_datasource
@@ -41,8 +44,33 @@ def test_query_datasource_uses_authorship_bypass(mocker: MockerFixture) -> None:
     _authorize_datasource(query, None)
 
     mock_sm.raise_for_access.assert_called_once_with(
-        query=query, allow_query_authorship_bypass=True
+        query=query, datasource=query, allow_query_authorship_bypass=True
     )
+
+
+def test_query_datasource_still_reaches_extra_bypass_hook(
+    app_context: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    ``EXTRA_RAISE_FOR_ACCESS_BYPASS`` callbacks only ever receive the
+    resource under ``datasource`` (there is no ``query`` kwarg in that hook
+    call), and before the authorship reroute the Explore GET handed them the
+    SQL Lab ``Query`` that way. Rerouting through ``query=`` alone would
+    leave that argument ``None`` and silently bypass a deployment's custom
+    grant, so the Query must still arrive at the hook as ``datasource``.
+    """
+    from flask import current_app
+
+    query = Query(id=1)
+    bypass_mock = Mock(return_value=True)
+    monkeypatch.setitem(
+        current_app.config, "EXTRA_RAISE_FOR_ACCESS_BYPASS", bypass_mock
+    )
+
+    _authorize_datasource(query, None)
+
+    assert bypass_mock.call_count == 1
+    assert bypass_mock.call_args.kwargs["datasource"] is query
 
 
 def test_saved_chart_path_unaffected(mocker: MockerFixture) -> None:
