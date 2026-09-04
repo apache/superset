@@ -210,8 +210,9 @@ test('logs success after initializeExtensions completes', async () => {
     json: { result: [] },
   } as any);
 
-  await loader.initializeExtensions();
+  const failed = await loader.initializeExtensions();
 
+  expect(failed).toEqual([]);
   expect(infoSpy).toHaveBeenCalledWith('Extensions initialized successfully.');
 
   infoSpy.mockRestore();
@@ -226,6 +227,7 @@ test('logs partial failure count when some extensions fail to initialize', async
         createMockExtension({ id: 'good-ext', remoteEntry: '' }),
         createMockExtension({
           id: 'broken-ext',
+          name: 'Broken Extension',
           remoteEntry: 'http://broken-url/remoteEntry.js',
         }),
       ],
@@ -242,8 +244,11 @@ test('logs partial failure count when some extensions fail to initialize', async
       return element;
     });
 
-  await loader.initializeExtensions();
+  const failed = await loader.initializeExtensions();
 
+  // The names of the failed extensions are handed back so the caller can
+  // surface the partial failure to the user.
+  expect(failed).toEqual(['Broken Extension']);
   expect(infoSpy).toHaveBeenCalledWith(
     expect.stringContaining('1 of 2 extension(s) failing'),
   );
