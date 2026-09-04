@@ -101,6 +101,11 @@ export default defineConfig({
         '**/tests/sqllab/**/*.spec.ts',
         '**/tests/embedded/**/*.spec.ts',
         '**/tests/mobile/**/*.spec.ts',
+        // Global Async Queries needs the GLOBAL_ASYNC_QUERIES flag, Redis and a
+        // Celery worker, which the required run does not provide. They live in
+        // the chromium-gaq project below, which only exists when the workflow's
+        // GAQ step opts in.
+        '**/global-async-query*.spec.ts',
         ...(process.env.INCLUDE_EXPERIMENTAL ? [] : ['**/experimental/**']),
       ],
       use: {
@@ -119,6 +124,8 @@ export default defineConfig({
       // via API with unique names — no shared mutable state between tests.
       name: 'chromium-sqllab',
       testMatch: '**/tests/sqllab/**/*.spec.ts',
+      // See the chromium-gaq project below.
+      testIgnore: '**/global-async-query*.spec.ts',
       fullyParallel: false,
       use: {
         browserName: 'chromium',
@@ -156,6 +163,25 @@ export default defineConfig({
               browserName: 'chromium' as const,
               testIdAttribute: 'data-test',
               // Uses admin auth for API calls to configure embedding and get guest tokens
+              storageState: 'playwright/.auth/user.json',
+            },
+          },
+        ]
+      : []),
+    // Global Async Queries tests need the GLOBAL_ASYNC_QUERIES feature flag
+    // enabled in the Flask backend, plus Redis and a running Celery worker --
+    // without a worker, submissions return 202 and no job ever executes. The
+    // workflow's GAQ step provisions all three and sets INCLUDE_GAQ, so these
+    // specs never load in the required run, where the pipeline is inert. Same
+    // strict 'true' check as INCLUDE_EMBEDDED.
+    ...(process.env.INCLUDE_GAQ?.toLowerCase() === 'true'
+      ? [
+          {
+            name: 'chromium-gaq',
+            testMatch: '**/global-async-query*.spec.ts',
+            use: {
+              browserName: 'chromium' as const,
+              testIdAttribute: 'data-test',
               storageState: 'playwright/.auth/user.json',
             },
           },

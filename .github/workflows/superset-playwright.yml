@@ -169,6 +169,30 @@ jobs:
           INCLUDE_MOBILE: "true"
         with:
           run: playwright-run "${{ matrix.app_root }}" mobile/
+      - name: Run Playwright (Global Async Queries Tests)
+        uses: ./.github/actions/cached-dependencies
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Scoped to this step for the same reason as the embedded and mobile
+          # flags above: GLOBAL_ASYNC_QUERIES changes chart-data behaviour for
+          # every spec sharing a server.
+          #
+          # This suite lives here rather than in the required E2E workflow
+          # because, unlike the other flag-gated suites, it needs a Celery
+          # worker: submissions are handed to Celery, so without one the API
+          # returns 202 and no job ever executes. Putting a background worker
+          # and its startup window on the required path would let a GAQ flake
+          # block PRs that have nothing to do with async queries.
+          #
+          # `playwright-run-gaq` starts the worker and sets INCLUDE_GAQ, which
+          # is what makes the chromium-gaq project exist at all.
+          SUPERSET_FEATURE_GLOBAL_ASYNC_QUERIES: "true"
+        with:
+          run: >-
+            playwright-run-gaq "${{ matrix.app_root }}"
+            dashboard/global-async-query.spec.ts
+            dashboard/global-async-query-resilience.spec.ts
+            sqllab/global-async-query-sqllab.spec.ts
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root

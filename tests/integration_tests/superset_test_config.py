@@ -157,6 +157,26 @@ EXPLORE_FORM_DATA_CACHE_CONFIG = {
 
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me-test-secret-change-me"  # noqa: S105
 
+# Without this the backend falls back to the `superset/config.py` default, which
+# hardcodes `localhost:6379`. CI's Redis is published on `REDIS_PORT`, so the
+# async pipeline would fail to reach a cache backend and every GAQ submission
+# would die before a worker ever saw it. Built from the same environment
+# variables as `CACHE_CONFIG` above; its own DB index keeps async job payloads
+# out of the query cache.
+GLOBAL_ASYNC_QUERIES_REDIS_DB = os.environ.get("GLOBAL_ASYNC_QUERIES_REDIS_DB", 5)  # noqa: F405
+# Note the discrete host/port/db keys rather than a CACHE_REDIS_URL:
+# `RedisCacheBackend.from_config` reads CACHE_REDIS_HOST/PORT/DB and ignores a
+# URL entirely, so supplying one silently leaves the backend on its
+# localhost:6379 defaults.
+GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_DEFAULT_TIMEOUT": int(timedelta(minutes=10).total_seconds()),
+    "CACHE_KEY_PREFIX": "superset_async_data_cache",
+    "CACHE_REDIS_HOST": REDIS_HOST,
+    "CACHE_REDIS_PORT": int(REDIS_PORT),
+    "CACHE_REDIS_DB": int(GLOBAL_ASYNC_QUERIES_REDIS_DB),
+}
+
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 
 ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 3
