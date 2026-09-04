@@ -22,17 +22,21 @@ from zipfile import ZipFile
 
 from flask import current_app as app, request, Response
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
+from flask_appbuilder.const import API_RESULT_RES_KEY
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
 from werkzeug.datastructures import FileStorage
 
 from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.theme.create import CreateThemeCommand
 from superset.commands.theme.delete import DeleteThemeCommand
 from superset.commands.theme.exceptions import (
     SystemThemeInUseError,
     SystemThemeProtectedError,
     ThemeDeleteFailedError,
+    ThemeForbiddenError,
+    ThemeInvalidError,
     ThemeNotFoundError,
 )
 from superset.commands.theme.export import ExportThemesCommand
@@ -45,8 +49,14 @@ from superset.commands.theme.set_system_theme import (
 )
 from superset.commands.theme.update import UpdateThemeCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.theme import ThemeDAO
 from superset.extensions import event_logger
 from superset.models.core import Theme
+from superset.security.manager import (
+    get_extra_editor_subject_ids,
+    get_extra_editors_by_pk,
+)
+from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
 from superset.themes.filters import ThemeAllTextFilter
 from superset.themes.schemas import (
     get_delete_ids_schema,
@@ -56,7 +66,6 @@ from superset.themes.schemas import (
     ThemePutSchema,
 )
 from superset.utils.core import send_export_zip
-from superset.utils.decorators import transaction
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -102,6 +111,9 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         "created_by.first_name",
         "created_by.id",
         "created_by.last_name",
+        "editors.id",
+        "editors.label",
+        "editors.type",
         "json_data",
         "id",
         "is_system",
@@ -120,6 +132,9 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         "created_by.first_name",
         "created_by.id",
         "created_by.last_name",
+        "editors.id",
+        "editors.label",
+        "editors.type",
         "json_data",
         "id",
         "is_system",
@@ -138,7 +153,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
     edit_model_schema = ThemePutSchema()
 
     search_filters = {"theme_name": [ThemeAllTextFilter]}
-    allowed_rel_fields = {"created_by", "changed_by"}
+    allowed_rel_fields = {"created_by", "changed_by", "editors"}
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
@@ -149,10 +164,36 @@ class ThemeRestApi(BaseSupersetModelRestApi):
 
     related_field_filters = {
         "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "editors": RelatedFieldFilter("label", FilterRelatedSubjects),
     }
     base_related_field_filters = {
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "editors": [
+            [
+                "type",
+                subject_type_filter("SUBJECTS_RELATED_TYPES_THEMES"),
+                lambda: [],
+            ]
+        ],
     }
+
+    def pre_get(self, data: dict[str, Any]) -> None:
+        """Attach ``extra_editors``, matching the dashboard/chart GET response."""
+        if app.config.get("EXTRA_EDITORS_RESOLVER"):
+            theme = ThemeDAO.find_by_id(data["id"])
+            if theme:
+                data[API_RESULT_RES_KEY]["extra_editors"] = (
+                    get_extra_editor_subject_ids(theme)
+                )
+
+    def pre_get_list(self, data: dict[str, Any]) -> None:
+        """Attach ``extra_editors`` to each row, matching the single-object GET."""
+        super().pre_get_list(data)
+        ids = data.get("ids", [])
+        extra_editors_by_id = get_extra_editors_by_pk(Theme, ids)
+        for row, row_id in zip(data.get("result", []), ids, strict=False):
+            if row_id in extra_editors_by_id:
+                row["extra_editors"] = extra_editors_by_id[row_id]
 
     @expose("/<int:pk>", methods=("DELETE",))
     @protect()
@@ -207,6 +248,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             return self.response_404()
         except SystemThemeProtectedError:
             return self.response_403()
+        except ThemeForbiddenError:
+            return self.response_403()
         except SystemThemeInUseError as ex:
             return self.response_422(message=str(ex))
         except ThemeDeleteFailedError as ex:
@@ -246,6 +289,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
                         type: string
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -267,6 +312,8 @@ class ThemeRestApi(BaseSupersetModelRestApi):
         except ThemeNotFoundError:
             return self.response_404()
         except SystemThemeProtectedError:
+            return self.response_403()
+        except ThemeForbiddenError:
             return self.response_403()
         except SystemThemeInUseError as ex:
             return self.response_422(message=str(ex))
@@ -335,7 +382,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             filtered_data = {
                 k: v
                 for k, v in request.json.items()
-                if k in ["theme_name", "json_data"]
+                if k in ["theme_name", "json_data", "editors"]
             }
 
             item = self.edit_model_schema.load(filtered_data)
@@ -354,6 +401,10 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except SystemThemeInUseError:
             return self.response_403()
+        except ThemeForbiddenError:
+            return self.response_403()
+        except ThemeInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
         except Exception as ex:
             logger.exception("Unexpected error in PUT /theme/%s", pk)
             return self.response_422(message=str(ex))
@@ -410,27 +461,13 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
 
         try:
-            # Create new theme instance with transaction decorator
-            new_theme = self._create_theme(item)
+            new_theme = CreateThemeCommand(item).run()
             return self.response(201, id=new_theme.id, result=item)
+        except ThemeInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
         except Exception as ex:
             logger.exception("Unexpected error in POST /theme")
             return self.response_422(message=str(ex))
-
-    @transaction()
-    def _create_theme(self, item: dict[str, Any]) -> Theme:
-        """Create a new theme with proper transaction handling."""
-        new_theme = Theme(
-            theme_name=item["theme_name"],
-            json_data=item["json_data"],
-            is_system=False,  # User-created themes are never system themes
-        )
-
-        from superset.extensions import db
-
-        db.session.add(new_theme)
-        db.session.flush()  # Flush to get the ID
-        return new_theme
 
     @expose("/export/", methods=("GET",))
     @protect()

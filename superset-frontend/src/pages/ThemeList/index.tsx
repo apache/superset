@@ -18,6 +18,7 @@
  */
 
 import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
@@ -56,6 +57,9 @@ import { hasConflictingAlgorithm } from 'src/features/themes/utils';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
+import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   setSystemDefaultTheme,
   setSystemDarkTheme,
@@ -113,6 +117,9 @@ function ThemesList({
     refreshData,
     toggleBulkSelect,
   } = useListViewResource<ThemeObject>('theme', t('Themes'), addDangerToast);
+  const currentUser = useSelector<any, UserWithPermissionsAndRoles>(
+    state => state.user,
+  );
   const {
     setTemporaryTheme,
     hasDevOverride,
@@ -494,6 +501,17 @@ function ThemesList({
         id: 'changed_on_delta_humanized',
       },
       {
+        Cell: ({
+          row: {
+            original: { editors = [] },
+          },
+        }: any) => <SubjectPile subjects={editors} />,
+        Header: t('Editors'),
+        accessor: 'editors',
+        disableSortBy: true,
+        id: 'editors',
+      },
+      {
         Cell: ({ row: { original } }: any) => {
           const handleEdit = () => handleThemeEdit(original);
           const handleDelete = () => {
@@ -510,13 +528,24 @@ function ThemesList({
           const handleApply = () => handleThemeApply(original);
           const handleExport = () => handleBulkThemeExport([original]);
 
+          // A user may edit a non-system theme only if they are an editor
+          // (or an admin), including editorship granted indirectly via
+          // EXTRA_EDITORS_RESOLVER. Everyone else gets a read-only view.
+          const allowEdit =
+            !original.is_system &&
+            isUserEditorOrAdmin(
+              currentUser,
+              original.editors,
+              original.extra_editors,
+            );
+
           const actions = [
             canEdit
               ? {
                   label: 'edit-action',
-                  tooltip: original.is_system ? t('View') : t('Edit'),
+                  tooltip: allowEdit ? t('Edit') : t('View'),
                   placement: 'bottom',
-                  icon: original.is_system ? 'EyeOutlined' : 'EditOutlined',
+                  icon: allowEdit ? 'EditOutlined' : 'EyeOutlined',
                   onClick: handleEdit,
                 }
               : null,
@@ -606,6 +635,7 @@ function ThemesList({
       canDelete,
       canApply,
       canExport,
+      currentUser,
       hasDevOverride,
       appliedThemeId,
       canSetSystemThemes,
