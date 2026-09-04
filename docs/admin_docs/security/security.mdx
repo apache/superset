@@ -132,6 +132,31 @@ tables in the **Permissions** dropdown. To select the data sources you want to a
 You can then confirm with users assigned to the **Gamma** role that they see the
 objects (dashboards and slices) associated with the tables you just extended them.
 
+### Actionable Access-Denied Messages
+
+When a viewer opens a chart or dashboard built on a dataset they don't have access to, Superset
+shows a plain-language error naming the dataset (or tables, for SQL Lab) and, when known, the
+chart owners to contact. You can also point users at your own access-request process by setting
+`PERMISSION_INSTRUCTIONS_LINK` in `superset_config.py`:
+
+```python
+PERMISSION_INSTRUCTIONS_LINK = (
+    "https://access.example.com/request?dataset={datasource_name}&user={username}"
+)
+```
+
+The URL may include any of the following placeholders, which are substituted with URL-encoded
+values so the link can deep-link into an internal ticketing or access-request tool with the
+denied resource pre-filled:
+
+- `{datasource_id}` — id of the denied dataset (datasource errors)
+- `{datasource_name}` — name of the denied dataset (datasource errors)
+- `{table_names}` — comma-separated denied table names (table/SQL errors)
+- `{username}` — the requesting user's username
+
+A URL with no placeholders is used as-is, and leaving `PERMISSION_INSTRUCTIONS_LINK` unset (the
+default) omits the "Request access" link, falling back to owner-contact guidance.
+
 ### Subjects
 
 A **subject** is a unified identity that can be granted access to Superset resources such as
