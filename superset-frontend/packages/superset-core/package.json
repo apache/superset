@@ -104,7 +104,7 @@
     "@emotion/styled": "^11.14.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "*",
-    "@testing-library/react": "^15.0.0",
+    "@testing-library/react": "*",
     "@testing-library/user-event": "*",
     "@types/lodash": "^4.17.25",
     "@types/react": "*",
