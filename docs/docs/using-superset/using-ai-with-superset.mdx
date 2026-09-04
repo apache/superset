@@ -269,26 +269,28 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 
 ### Charts
 
-| Tool                    | Description                                                                                                                        |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `list_charts`           | List charts with filtering and search                                                                                              |
-| `get_chart_info`        | Get chart metadata and configuration                                                                                               |
-| `get_chart_data`        | Retrieve chart data (JSON, CSV, or Excel)                                                                                          |
-| `get_chart_preview`     | Generate a chart preview (URL, ASCII, table, or Vega-Lite)                                                                         |
-| `get_chart_type_schema` | Get the configuration schema for a chart type                                                                                      |
-| `generate_chart`        | Create a new chart from a specification (defaults to preview mode — review before saving)                                          |
-| `update_chart`          | Modify an existing chart's configuration (pass `generate_preview=False` to persist immediately instead of returning a preview URL) |
-| `update_chart_preview`  | Update a cached chart preview without saving                                                                                       |
-| `generate_explore_link` | Generate an Explore URL for interactive visualization                                                                              |
+| Tool                    | Description                                                                                                                                      |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `list_charts`           | List charts with filtering and search                                                                                                             |
+| `get_chart_info`        | Get chart metadata and configuration                                                                                                              |
+| `get_chart_data`        | Retrieve chart data (JSON, CSV, or Excel)                                                                                                         |
+| `get_chart_preview`     | Generate a chart preview (URL, ASCII, table, or Vega-Lite)                                                                                        |
+| `get_chart_type_schema` | Get the configuration schema for a chart type                                                                                                     |
+| `generate_chart`        | Create a new chart from a specification (defaults to preview mode — review before saving)                                                        |
+| `update_chart`          | Modify an existing chart's configuration (pass `generate_preview=False` to persist immediately instead of returning a preview URL)               |
+| `update_chart_preview`  | Update a cached chart preview without saving                                                                                                      |
+| `generate_explore_link` | Generate an Explore URL for interactive visualization                                                                                             |
+| `delete_chart`          | Delete a chart by ID or UUID (soft-deletes to trash when `SOFT_DELETE` is enabled; returns `permission_denied` if the caller isn't owner/Admin)   |
 
 ### Dashboards
 
-| Tool                              | Description                                  |
-| --------------------------------- | -------------------------------------------- |
-| `list_dashboards`                 | List dashboards with filtering and search    |
-| `get_dashboard_info`              | Get dashboard metadata and layout            |
-| `generate_dashboard`              | Create a new dashboard with specified charts |
-| `add_chart_to_existing_dashboard` | Add a chart to an existing dashboard         |
+| Tool                              | Description                                                                                                                                                                          |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `list_dashboards`                 | List dashboards with filtering and search                                                                                                                                            |
+| `get_dashboard_info`              | Get dashboard metadata and layout                                                                                                                                                    |
+| `generate_dashboard`              | Create a new dashboard with specified charts                                                                                                                                         |
+| `add_chart_to_existing_dashboard` | Add a chart to an existing dashboard                                                                                                                                                 |
+| `delete_dashboard`                | Delete a dashboard by ID, UUID, or slug; leaves its charts intact (soft-deletes to trash when `SOFT_DELETE` is enabled; returns `permission_denied` if the caller isn't owner/Admin) |
 
 ### SQL
 
