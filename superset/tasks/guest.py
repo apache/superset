@@ -39,8 +39,9 @@ def get_current_guest_subscriber_key() -> str | None:
     ``None`` when the request is not an embedded guest (an authenticated user
     subscribes by ``user_id`` instead). The key is an HMAC over the guest token's
     stable identifying claims, keyed with the app ``SECRET_KEY`` so it is
-    unguessable to outside callers and reproducible for the same token across the
-    request that schedules a task and the polls that await it.
+    unguessable to outside callers and reproducible across the request that
+    schedules a task and the polls that await it, including polls made with a
+    refreshed token carrying the same scope.
     """
     guest_user = security_manager.get_current_guest_user_if_guest()
     if not guest_user:
@@ -48,15 +49,18 @@ def get_current_guest_subscriber_key() -> str | None:
     token = guest_user.guest_token
     # Bind the key to every authorization-relevant claim so two tokens that differ
     # in their effective access scope derive different keys (and can't see each
-    # other's tasks): ``iat``/``exp`` pin it to a single issuance, ``resources``/
-    # ``datasets``/``rev`` to the granted resources, and ``rls_rules`` to the
-    # row-level scope.
+    # other's tasks): ``resources``/``datasets``/``rev`` to the granted resources
+    # and ``rls_rules`` to the row-level scope. Issuance claims (``iat``/``exp``)
+    # are deliberately left out: the embedded SDK re-issues the token on a fixed
+    # cadence (shortly before ``exp``), and a key that changed with each issuance
+    # would stop matching the subscriber row mid-query, so the polls after a
+    # refresh could no longer see the task and the chart would spin to the stale
+    # timeout. Tokens with identical scope claims carry identical entitlements,
+    # so sharing a key across them grants nothing extra.
     message = json.dumps(
         {
             "user": token.get("user"),
             "resources": token.get("resources"),
-            "iat": token.get("iat"),
-            "exp": token.get("exp"),
             "aud": token.get("aud"),
             "datasets": token.get("datasets"),
             "rev": token.get("rev"),

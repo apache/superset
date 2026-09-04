@@ -18,10 +18,11 @@
 
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Literal, TypedDict
+from typing import Any, cast, Literal, TypedDict
 from uuid import UUID
 
 import sqlalchemy as sa
+from sqlalchemy.orm import object_session
 from sqlalchemy.sql.elements import ColumnElement
 from superset_core.tasks.types import TaskProperties, TaskScope, TaskStatus
 
@@ -722,6 +723,64 @@ class TaskDAO(BaseDAO[Task]):
         return [required_by_uuid for (required_by_uuid,) in rows]
 
     @classmethod
+    def _with_current_subscription_state(
+        cls, task_uuid: UUID, properties: TaskProperties
+    ) -> TaskProperties:
+        """Return ``properties`` with ``private.subscription`` as it is on the row.
+
+        Reads the row under ``FOR UPDATE`` so the subsequent UPDATE and a
+        concurrent policy write (:meth:`merge_subscription_state`, which takes the
+        same lock) serialize instead of racing; a missing row yields the input
+        unchanged and the caller's UPDATE then matches nothing.
+        """
+        from superset.tasks.utils import preserve_subscription_state
+
+        current_raw = (
+            db.session.query(Task.properties)
+            .filter(Task.uuid == task_uuid)
+            .with_for_update()
+            .scalar()
+        )
+        if current_raw is None:
+            return properties
+        return preserve_subscription_state(properties, parse_properties(current_raw))
+
+    @classmethod
+    def merge_subscription_state(cls, task: Task, updates: dict[str, Any]) -> None:
+        """Merge ``updates`` into the task's ``private.subscription`` namespace.
+
+        The write path for subscription-policy hooks (chart-data's per-tab
+        consumer list). Hooks run under the submit/cancel lock, but the executor
+        does not hold that lock and keeps writing the task's properties while it
+        runs (``is_abortable``, the engine cancel handle, progress), so two things
+        are needed for the two writers not to clobber each other: the entity is
+        refreshed from a row-locked read before merging, so the merge lands on top
+        of whatever the executor has committed since the caller loaded the task
+        rather than on the caller's stale copy; and the executor's whole-blob
+        writes take the same row lock and re-read this namespace
+        (:meth:`_with_current_subscription_state`). Pending changes on the
+        session are flushed first so the refresh cannot discard them. A task not
+        attached to a session (a bare model in a unit test) is merged in memory.
+        """
+        from superset.tasks.utils import SUBSCRIPTION_PRIVATE_NAMESPACE
+
+        if object_session(task) is not None and task.id is not None:
+            db.session.flush()
+            (
+                db.session.query(Task)
+                .filter(Task.id == task.id)
+                .with_for_update()
+                .populate_existing()
+                .one()
+            )
+        task.update_properties(
+            cast(
+                TaskProperties,
+                {"private": {SUBSCRIPTION_PRIVATE_NAMESPACE: updates}},
+            )
+        )
+
+    @classmethod
     def set_properties_and_payload(
         cls,
         task_uuid: UUID,
@@ -742,8 +801,15 @@ class TaskDAO(BaseDAO[Task]):
         It does NOT touch the status column, so it's safe to use concurrently
         with operations that modify status (like abort).
 
+        The one exception to "zero-read" is the ``private.subscription`` subtree:
+        it is owned by the task type's subscription policy and written under the
+        submit/cancel lock, which the executor does not hold, so a complete-blob
+        write re-reads that subtree from the row (under a row lock) and carries it
+        through instead of overwriting it with the executor's pickup-time snapshot.
+
         :param task_uuid: UUID of the task to update
-        :param properties: Complete properties dict to write (replaces existing)
+        :param properties: Complete properties dict to write (replaces existing,
+            except ``private.subscription`` which is preserved from the row)
         :param payload: Complete payload dict to write (replaces existing)
         :returns: True if task was updated, False if not found or nothing to update
         """
@@ -754,7 +820,9 @@ class TaskDAO(BaseDAO[Task]):
         update_values: dict[str, Any] = {}
 
         if properties is not None:
-            # Write complete properties (caller manages merging in their cache)
+            # Write complete properties (caller manages merging in their cache),
+            # keeping the policy-owned subscription subtree as it is on the row.
+            properties = cls._with_current_subscription_state(task_uuid, properties)
             update_values["properties"] = json.dumps(properties)
 
         if payload is not None:
@@ -825,6 +893,11 @@ class TaskDAO(BaseDAO[Task]):
         update_values: dict[str, Any] = {"status": new_status_val}
 
         if properties is not None:
+            # A terminal write carries the executor's full property cache; keep the
+            # policy-owned subscription subtree from the row (see
+            # ``set_properties_and_payload``) so a late-joining client is still
+            # routed the completion it is waiting for.
+            properties = cls._with_current_subscription_state(task_uuid, properties)
             update_values["properties"] = json.dumps(properties)
 
         # Store as naive UTC (see ``naive_utcnow``), matching Task.set_status.

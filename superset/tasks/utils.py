@@ -368,10 +368,11 @@ def merge_private_subtree(
 ) -> dict[str, Any]:
     """Recursively merge the ``private`` properties subtree, per namespace.
 
-    Each namespace (``framework``, ``task``) is a dict merged independently, so a
-    write to one never clobbers the other or drops earlier keys — this is what
-    structurally isolates task-owned freeform keys from framework orchestration
-    keys. Defensive against a malformed persisted value: a non-dict subtree or a
+    Each namespace (``framework``, ``task``, ``subscription``) is a dict merged
+    independently, so a write to one never clobbers the others or drops earlier
+    keys — this is what structurally isolates task-owned freeform keys from
+    framework orchestration keys and from subscription-policy bookkeeping.
+    Defensive against a malformed persisted value: a non-dict subtree or a
     non-dict namespace is treated as empty rather than raising ``TypeError`` on
     unpacking (``private`` is framework-managed, so this only guards corrupted or
     externally-tampered rows).
@@ -386,6 +387,49 @@ def merge_private_subtree(
         else:
             merged[namespace] = ns_updates
     return merged
+
+
+# ``private`` namespace owned by a task type's subscription policy (per-client
+# bookkeeping such as chart-data's per-tab consumer list). Written only from the
+# policy hooks, under the submit/cancel lock; the executor never writes it, and
+# its whole-blob writes carry the row's current value through
+# :func:`preserve_subscription_state`.
+SUBSCRIPTION_PRIVATE_NAMESPACE = "subscription"
+
+
+def preserve_subscription_state(
+    incoming: TaskProperties, current: TaskProperties | None
+) -> TaskProperties:
+    """Return ``incoming`` with ``private.subscription`` taken from ``current``.
+
+    The executor writes the complete property blob from an in-memory cache it
+    snapshotted when it picked the task up, and does not hold the submit/cancel
+    lock. A client that subscribed since the snapshot (a second browser tab
+    joining a SHARED chart-data task) would be silently dropped by such a write,
+    after which the first tab's detach would abort work the second still awaits,
+    and per-tab status fanout would skip it. Whole-blob writers run their value
+    through this helper with the row's current properties (read under the same
+    row lock as the UPDATE) so that subtree always reflects the policy's latest
+    write, whatever the executor's cache holds.
+    """
+    result: dict[str, Any] = dict(incoming)
+    private_value = result.get("private")
+    private: dict[str, Any] = (
+        dict(private_value) if isinstance(private_value, dict) else {}
+    )
+    current_private = current.get("private") if isinstance(current, dict) else None
+    current_subtree = (
+        current_private.get(SUBSCRIPTION_PRIVATE_NAMESPACE)
+        if isinstance(current_private, dict)
+        else None
+    )
+    if isinstance(current_subtree, dict):
+        private[SUBSCRIPTION_PRIVATE_NAMESPACE] = current_subtree
+    else:
+        private.pop(SUBSCRIPTION_PRIVATE_NAMESPACE, None)
+    if private or "private" in result:
+        result["private"] = private
+    return cast(TaskProperties, result)
 
 
 def merge_properties(

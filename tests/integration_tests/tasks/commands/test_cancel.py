@@ -513,7 +513,11 @@ def test_cancel_shared_task_not_subscribed_raises_not_found(
 
 def _consumers(task) -> list[str]:
     """Read the chart-data per-tab consumer list off a task's private state."""
-    return task.properties_dict.get("private", {}).get("task", {}).get("consumers", [])
+    return (
+        task.properties_dict.get("private", {})
+        .get("subscription", {})
+        .get("consumers", [])
+    )
 
 
 def test_cancel_detaches_one_tab_and_keeps_task_alive(app_context, get_user) -> None:
@@ -532,8 +536,8 @@ def test_cancel_detaches_one_tab_and_keeps_task_alive(app_context, get_user) -> 
     )
     task.created_by = admin
     # Two tabs of the same principal are watching (single subscriber row).
-    task.update_task_private(
-        {"consumers": [f"user:{admin.id}:tabA", f"user:{admin.id}:tabB"]}
+    TaskDAO.merge_subscription_state(
+        task, {"consumers": [f"user:{admin.id}:tabA", f"user:{admin.id}:tabB"]}
     )
     db.session.commit()
 
@@ -645,8 +649,8 @@ def test_force_cancel_aborts_regardless_of_tabs(app_context, get_user) -> None:
         user_id=admin.id,
     )
     task.created_by = admin
-    task.update_task_private(
-        {"consumers": [f"user:{admin.id}:tabA", f"user:{admin.id}:tabB"]}
+    TaskDAO.merge_subscription_state(
+        task, {"consumers": [f"user:{admin.id}:tabA", f"user:{admin.id}:tabB"]}
     )
     db.session.commit()
 

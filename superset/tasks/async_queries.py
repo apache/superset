@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 from contextlib import contextmanager
-from typing import Any, Iterator, TYPE_CHECKING
+from typing import Any, cast, Iterator, TYPE_CHECKING
 from uuid import UUID
 
 from flask import current_app
@@ -43,7 +43,10 @@ from superset.tasks.query_cancel import (
     capture_cancel_query_id,
 )
 from superset.tasks.subscription import get_request_tab_id, TaskSubscriptionPolicy
-from superset.tasks.utils import floored_status_cursor
+from superset.tasks.utils import (
+    floored_status_cursor,
+    SUBSCRIPTION_PRIVATE_NAMESPACE,
+)
 from superset.utils.core import override_user
 
 if TYPE_CHECKING:
@@ -81,12 +84,17 @@ class ChartQueryConsumerPolicy(TaskSubscriptionPolicy):
     other tab's still-pending query.
 
     This policy keeps a list of ``"<principal>:<tab_id>"`` entries in the task's
-    ``private["task"]`` namespace (framework-invisible, task-owned, debug-gated).
-    On subscribe it adds the calling tab; on unsubscribe it removes the calling
-    tab and reports whether the principal has any tab left, so the framework
-    aborts the task only once the principal's last tab is gone. Both hooks run
-    under the submit/cancel lock, so the read-modify-write on the list is
-    race-free.
+    ``private["subscription"]`` namespace (policy-owned, debug-gated). On
+    subscribe it adds the calling tab; on unsubscribe it removes the calling tab
+    and reports whether the principal has any tab left, so the framework aborts
+    the task only once the principal's last tab is gone. Both hooks run under the
+    submit/cancel lock, so the read-modify-write on the list is race-free against
+    other submits/cancels; the executor, which does not hold that lock, writes
+    the task's properties while it runs, so the list is written through
+    ``TaskDAO.merge_subscription_state`` (a row-locked merge) and the executor's
+    whole-blob writes preserve this namespace rather than replacing it with their
+    pickup-time snapshot. Otherwise a tab joining mid-execution would be dropped
+    and the other tab's detach would abort work it still awaits.
 
     A request without a ``tab_id`` (a non-interactive or legacy caller) is a
     no-op on subscribe and proceeds (principal-grain) on unsubscribe; in practice
@@ -96,9 +104,17 @@ class ChartQueryConsumerPolicy(TaskSubscriptionPolicy):
     @staticmethod
     def _consumers(task: "CoreTask") -> list[str]:
         private = task.properties_dict.get("private") or {}
-        task_private = private.get("task") or {}
-        consumers = task_private.get(CONSUMERS_PRIVATE_KEY) or []
+        subscription = private.get(SUBSCRIPTION_PRIVATE_NAMESPACE) or {}
+        consumers = subscription.get(CONSUMERS_PRIVATE_KEY) or []
         return [entry for entry in consumers if isinstance(entry, str)]
+
+    @staticmethod
+    def _write_consumers(task: "CoreTask", consumers: list[str]) -> None:
+        from superset.daos.tasks import TaskDAO
+
+        TaskDAO.merge_subscription_state(
+            cast("Task", task), {CONSUMERS_PRIVATE_KEY: consumers}
+        )
 
     def on_subscribe(
         self, task: "CoreTask", *, principal: str, client_ref: str | None
@@ -107,7 +123,7 @@ class ChartQueryConsumerPolicy(TaskSubscriptionPolicy):
             return
         entry = f"{principal}:{client_ref}"
         if entry not in (consumers := self._consumers(task)):
-            task.update_task_private({CONSUMERS_PRIVATE_KEY: [*consumers, entry]})
+            self._write_consumers(task, [*consumers, entry])
 
     def on_unsubscribe(
         self, task: "CoreTask", *, principal: str, client_ref: str | None
@@ -124,7 +140,7 @@ class ChartQueryConsumerPolicy(TaskSubscriptionPolicy):
             entry = f"{principal}:{client_ref}"
             remaining = [c for c in consumers if c != entry]
         if remaining != consumers:
-            task.update_task_private({CONSUMERS_PRIVATE_KEY: remaining})
+            self._write_consumers(task, remaining)
         # Proceed to unsubscribe the principal only once it has no tab left on
         # this task; a surviving tab of the same principal keeps it subscribed.
         return not any(c.startswith(prefix) for c in remaining)

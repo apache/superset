@@ -776,3 +776,161 @@ def test_get_statuses_changed_since_narrows_by_task_type(
     statuses, _ = TaskDAO.get_statuses_changed_since(boundary, task_type="tracked_type")
 
     assert list(statuses) == [str(TASK_UUID)]
+
+
+def test_set_properties_and_payload_preserves_subscription_state(
+    session_with_task: Session,
+) -> None:
+    """An executor whole-blob write keeps the policy-owned subscription subtree.
+
+    Models a browser tab joining a SHARED task after the worker snapshotted the
+    properties at pickup: the executor's next write must not drop the tab.
+    """
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(
+        session_with_task,
+        task_uuid=TASK_UUID,
+        task_key="preserve-subscription",
+        properties={"is_abortable": False},
+    )
+    executor_snapshot = dict(task.properties_dict)  # worker pickup: no tabs yet
+
+    TaskDAO.merge_subscription_state(task, {"consumers": ["user:1:tabA"]})
+    session_with_task.flush()
+
+    executor_snapshot["is_abortable"] = True
+    executor_snapshot["private"] = {"task": {"cancel_query_id": "q1"}}
+    assert TaskDAO.set_properties_and_payload(
+        TASK_UUID,
+        properties=executor_snapshot,
+    )
+
+    session_with_task.expire_all()
+    fresh = session_with_task.query(Task).filter(Task.uuid == TASK_UUID).one()
+    private = fresh.properties_dict["private"]
+    assert fresh.properties_dict["is_abortable"] is True
+    assert private["task"] == {"cancel_query_id": "q1"}
+    assert private["subscription"] == {"consumers": ["user:1:tabA"]}
+
+
+def test_conditional_status_update_preserves_subscription_state(
+    session_with_task: Session,
+) -> None:
+    """A terminal transition carrying properties keeps the subscription subtree."""
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(
+        session_with_task,
+        task_uuid=TASK_UUID,
+        task_key="terminal-preserve-subscription",
+        status=TaskStatus.IN_PROGRESS,
+    )
+    TaskDAO.merge_subscription_state(task, {"consumers": ["user:1:tabA"]})
+    session_with_task.flush()
+
+    assert TaskDAO.conditional_status_update(
+        task_uuid=TASK_UUID,
+        new_status=TaskStatus.FAILURE,
+        expected_status=TaskStatus.IN_PROGRESS,
+        properties={"error_message": "boom"},
+        set_ended_at=True,
+    )
+
+    session_with_task.expire_all()
+    fresh = session_with_task.query(Task).filter(Task.uuid == TASK_UUID).one()
+    assert fresh.status == TaskStatus.FAILURE.value
+    assert fresh.properties_dict["error_message"] == "boom"
+    assert fresh.properties_dict["private"]["subscription"] == {
+        "consumers": ["user:1:tabA"]
+    }
+
+
+def test_merge_subscription_state_keeps_executor_written_keys(
+    session_with_task: Session,
+) -> None:
+    """A policy write lands on top of what the executor committed meanwhile.
+
+    The caller's entity is stale (loaded before the executor's write); the merge
+    must refresh first so the executor's keys survive the flush.
+    """
+    from superset.daos.tasks import TaskDAO
+
+    task = create_task(
+        session_with_task,
+        task_uuid=TASK_UUID,
+        task_key="merge-keeps-executor-keys",
+        properties={"is_abortable": False},
+    )
+    # Executor writes while the caller still holds the pre-write entity.
+    assert TaskDAO.set_properties_and_payload(
+        TASK_UUID,
+        properties={
+            "is_abortable": True,
+            "private": {"task": {"cancel_query_id": "q1"}},
+        },
+    )
+    assert task.properties_dict["is_abortable"] is False  # stale copy
+
+    TaskDAO.merge_subscription_state(task, {"consumers": ["user:1:tabA"]})
+    session_with_task.flush()
+
+    session_with_task.expire_all()
+    fresh = session_with_task.query(Task).filter(Task.uuid == TASK_UUID).one()
+    assert fresh.properties_dict["is_abortable"] is True
+    assert fresh.properties_dict["private"]["task"] == {"cancel_query_id": "q1"}
+    assert fresh.properties_dict["private"]["subscription"] == {
+        "consumers": ["user:1:tabA"]
+    }
+
+
+def test_merge_subscription_state_on_detached_task_merges_in_memory() -> None:
+    """A bare model (no session) is merged in memory, keeping other namespaces."""
+    from superset.daos.tasks import TaskDAO
+
+    task = Task()
+    task.update_properties({"private": {"task": {"cancel_query_id": "q1"}}})
+    TaskDAO.merge_subscription_state(task, {"consumers": ["user:1:tabA"]})
+    assert task.properties_dict["private"] == {
+        "task": {"cancel_query_id": "q1"},
+        "subscription": {"consumers": ["user:1:tabA"]},
+    }
+
+
+def test_chart_policy_join_during_execution_survives_executor_write(
+    session_with_task: Session,
+) -> None:
+    """End-to-end shape of the bug: a second tab joins while the worker runs.
+
+    Tab A submits, the worker snapshots the properties, tab B joins, then the
+    worker flags the task abortable. Afterwards both tabs must still be routed
+    and tab A's detach must not abort the task tab B is waiting on.
+    """
+    from superset.daos.tasks import TaskDAO
+    from superset.tasks.async_queries import ChartQueryConsumerPolicy
+
+    policy = ChartQueryConsumerPolicy()
+    task = create_task(
+        session_with_task,
+        task_uuid=TASK_UUID,
+        task_key="join-during-execution",
+        properties={"is_abortable": False},
+    )
+    policy.on_subscribe(task, principal="user:1", client_ref="tabA")
+    session_with_task.flush()
+    executor_snapshot = dict(task.properties_dict)  # worker pickup: sees tab A
+
+    policy.on_subscribe(task, principal="user:1", client_ref="tabB")
+    session_with_task.flush()
+
+    executor_snapshot["is_abortable"] = True  # ctx._set_abortable() write
+    assert TaskDAO.set_properties_and_payload(
+        TASK_UUID,
+        properties=executor_snapshot,
+    )
+
+    session_with_task.expire_all()
+    fresh = session_with_task.query(Task).filter(Task.uuid == TASK_UUID).one()
+    assert fresh.properties_dict["is_abortable"] is True
+    assert policy.routing_channels(fresh) == ["user:1:tabA", "user:1:tabB"]
+    assert policy.on_unsubscribe(fresh, principal="user:1", client_ref="tabA") is False

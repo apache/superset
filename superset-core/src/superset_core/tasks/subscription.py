@@ -48,7 +48,7 @@ points:
 
 A task type with no policy behaves exactly as before (principal-grain). The
 policy owns its own bookkeeping — the chart-data policy, for instance, stores
-its per-tab set in the task's ``private["task"]`` namespace (see
+its per-tab set in the task's ``private["subscription"]`` namespace (see
 :class:`superset_core.tasks.types.PrivateProperties`), which the framework never
 inspects. ``client_ref`` is an opaque, client-supplied identifier (e.g. a
 browser-tab id); it is **not** an authorization token — the framework has
@@ -72,7 +72,7 @@ class TaskSubscriptionPolicy(ABC):
     (``@task(..., subscription_policy=MyPolicy())``). Both hooks run in the web
     request process, inside the distributed lock that serializes concurrent
     submit/cancel for the task, so an implementation may safely read-modify-write
-    task state (e.g. a list in ``private["task"]``) without additional locking.
+    task state (e.g. a list in ``private["subscription"]``) without additional locking.
     """
 
     @abstractmethod

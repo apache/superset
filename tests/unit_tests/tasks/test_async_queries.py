@@ -381,7 +381,11 @@ def _make_task(properties: "TaskProperties | None" = None):
 
 
 def _consumers(task) -> list[str]:
-    return task.properties_dict.get("private", {}).get("task", {}).get("consumers", [])
+    return (
+        task.properties_dict.get("private", {})
+        .get("subscription", {})
+        .get("consumers", [])
+    )
 
 
 def test_chart_query_task_registers_subscription_policy() -> None:

@@ -39,6 +39,24 @@ test('shows results plus a separate internal section when private is present', a
   expect(screen.getByText(/celery_task_id/)).toBeInTheDocument();
 });
 
+test('shows the internal section for subscription-policy bookkeeping alone', async () => {
+  render(
+    <TaskPayloadPopover
+      payload={{}}
+      taskPrivate={{
+        framework: {},
+        task: {},
+        subscription: { consumers: ['user:1:tabA'] },
+      }}
+    />,
+  );
+
+  fireEvent.mouseEnter(screen.getByRole('img'));
+
+  expect(await screen.findByText('Internal')).toBeInTheDocument();
+  expect(screen.getByText(/consumers/)).toBeInTheDocument();
+});
+
 test('shows only the results payload when private is empty', async () => {
   render(
     <TaskPayloadPopover
