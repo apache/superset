@@ -227,18 +227,33 @@ const renderOperatorFields = (
   );
 };
 
+const omitFormattingTargets = (
+  values: ConditionalFormattingConfig,
+): ConditionalFormattingConfig => {
+  const rest: ConditionalFormattingConfig = { ...values };
+  delete rest.columnFormatting;
+  delete rest.objectFormatting;
+  return rest;
+};
+
 export const FormattingPopoverContent = ({
   config,
   onChange,
   columns = [],
   extraColorChoices = [],
   allColumns = [],
+  metricOnly = false,
 }: {
   config?: ConditionalFormattingConfig;
   onChange: (config: ConditionalFormattingConfig) => void;
   columns: { label: string; value: string; dataType: GenericDataType }[];
   extraColorChoices?: { label: string; colors: string[] }[];
   allColumns?: ColumnOption[];
+  /**
+   * Hide formatting-target fields (columnFormatting / objectFormatting)
+   * so the control applies only to the selected metric.
+   */
+  metricOnly?: boolean;
 }) => {
   const [form] = Form.useForm();
   const colors = colorScheme();
@@ -262,8 +277,22 @@ export const FormattingPopoverContent = ({
     config?.column || columns[0]?.value,
   );
   const visibleAllColumns = useMemo(
-    () => !!(allColumns && Array.isArray(allColumns) && allColumns.length),
-    [allColumns],
+    () =>
+      !metricOnly &&
+      !!(allColumns && Array.isArray(allColumns) && allColumns.length),
+    [allColumns, metricOnly],
+  );
+
+  const formInitialValues = useMemo(
+    () => (metricOnly && config ? omitFormattingTargets(config) : config),
+    [config, metricOnly],
+  );
+
+  const handleFinish = useCallback(
+    (values: ConditionalFormattingConfig) => {
+      onChange(metricOnly ? omitFormattingTargets(values) : values);
+    },
+    [metricOnly, onChange],
   );
 
   const [columnFormatting, setColumnFormatting] = useState<string | undefined>(
@@ -320,8 +349,8 @@ export const FormattingPopoverContent = ({
     () => allColumns.filter(col => col.dataType === GenericDataType.Numeric),
     [allColumns],
   );
-  const defaultColorToken = colors[0]?.colors?.[0];
 
+  const defaultColorToken = colors[0]?.colors?.[0];
   const visibleUseGradient = useMemo(
     () =>
       numericColumns.length > 0
@@ -378,8 +407,8 @@ export const FormattingPopoverContent = ({
   return (
     <Form
       form={form}
-      onFinish={onChange}
-      initialValues={config}
+      onFinish={handleFinish}
+      initialValues={formInitialValues}
       requiredMark="optional"
       layout="vertical"
     >
@@ -461,7 +490,7 @@ export const FormattingPopoverContent = ({
           </Col>
         </Row>
       ) : null}
-      {visibleUseGradient && (
+      {(metricOnly || visibleUseGradient) && (
         <Row gutter={20}>
           <Col span={1}>
             <FormItem

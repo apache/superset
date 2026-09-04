@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ChartProps } from '@superset-ui/core';
+import { Comparator } from '@superset-ui/chart-controls';
 import transformProps from '../src/transformProps';
 
 const onContextMenu = jest.fn();
@@ -126,4 +127,30 @@ test('renames v1 API records using adhoc metric labels', () => {
     ),
   );
   expect(transformed.data).toEqual([{ country_id: 'FRA', metric: 3.14 }]);
+});
+
+test('builds color formatters from conditional formatting config', () => {
+  const transformed = transformProps(
+    createProps({
+      conditionalFormatting: [
+        {
+          column: 'metric',
+          colorScheme: '#FF0000',
+          operator: Comparator.GreaterThan,
+          targetValue: 50,
+          useGradient: false,
+        },
+      ],
+    }),
+  );
+
+  expect(transformed.formatters).toHaveLength(1);
+  expect(transformed.formatters?.[0].column).toBe('metric');
+  expect(transformed.formatters?.[0].getColorFromValue(100)).toBe('#FF0000');
+  expect(transformed.formatters?.[0].getColorFromValue(10)).toBeUndefined();
+});
+
+test('returns an empty formatters array when conditional formatting is unset', () => {
+  const transformed = transformProps(createProps());
+  expect(transformed.formatters).toEqual([]);
 });

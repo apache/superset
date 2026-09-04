@@ -28,6 +28,7 @@ import {
   ValueFormatter,
   getSequentialSchemeRegistry,
 } from '@superset-ui/core';
+import { ColorFormatters } from '@superset-ui/chart-controls';
 import countries, { countryOptions } from './countries';
 
 /**
@@ -81,6 +82,7 @@ interface CountryMapProps {
     };
   };
   entity?: string;
+  formatters?: ColorFormatters;
 }
 
 const maps: Record<string, GeoData> = {};
@@ -105,6 +107,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     emitCrossFilters,
     onContextMenu,
     setDataMask,
+    formatters,
   } = props;
 
   const container = element;
@@ -120,16 +123,27 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   const colorScale = CategoricalColorNamespace.getScale(colorScheme);
 
   const colorMap: Record<string, string> = {};
+  const conditionalColorByIso: Record<string, string> = {};
   data.forEach(d => {
     colorMap[d.country_id] = colorScheme
       ? colorScale(d.country_id, sliceId)
       : (linearColorScale(d.metric) ?? '');
+
+    if (formatters?.length) {
+      for (const colorFormatter of formatters) {
+        const cfColor = colorFormatter.getColorFromValue(d.metric);
+        if (cfColor) {
+          conditionalColorByIso[d.country_id] = cfColor;
+          break;
+        }
+      }
+    }
   });
 
   const colorFn = (feature: GeoFeature): string => {
     if (!feature?.properties) return '#d9d9d9';
     const iso = feature.properties.ISO;
-    return colorMap[iso] || '#d9d9d9';
+    return conditionalColorByIso[iso] || colorMap[iso] || '#d9d9d9';
   };
 
   // Check if dashboard is in edit mode
