@@ -1114,11 +1114,15 @@ export function getTemporalAxisTickConfig(
   const cappedTickValues = temporalTickValues
     ? capTickMarks(temporalTickValues)
     : undefined;
-  const labelCustomValues = zoomable ? temporalTickValues : cappedTickValues;
   // When the user picks "All" (interval === 0), they want every label shown.
   // Disable hideOverlap so ECharts never drops a label, and pin customValues
   // to the full tick set so each label lands on a real gridline.
   const showAllLabels = xAxisLabelInterval === 0;
+  // On a zoomable axis the full set is already used; for "All" we also bypass
+  // the cap so every tick gets a label rather than the 60-mark subset.
+  const labelCustomValues = zoomable || showAllLabels
+    ? temporalTickValues
+    : cappedTickValues;
 
   return {
     axisLabel: {
