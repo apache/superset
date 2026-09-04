@@ -363,6 +363,38 @@ def test_gate_allows_semantic_chart_for_layer_grant(
         sm.raise_for_access(chart=access_fixtures.semantic_slice)
 
 
+def test_gate_layer_grant_is_inert_for_table_dashboards(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """The layer fallback must not leak outside semantic views: a layer
+    grant admits nothing on a table-backed dashboard."""
+    # pylint: disable=import-outside-toplevel
+    from superset.exceptions import SupersetSecurityException
+
+    sm = _gate_sm()
+    with (
+        _gate_patches(sm, granted_perms={access_fixtures.layer_perm}),
+        pytest.raises(SupersetSecurityException),
+    ):
+        sm.raise_for_access(dashboard=access_fixtures.regular_dashboard)
+
+
+def test_gate_denies_wrong_layer_grant(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """A grant on some OTHER layer's perm does not admit this layer's
+    views — the fallback matches the exact parent perm only."""
+    # pylint: disable=import-outside-toplevel
+    from superset.exceptions import SupersetSecurityException
+
+    sm = _gate_sm()
+    with (
+        _gate_patches(sm, granted_perms={"[other_layer](id:ffffffff)"}),
+        pytest.raises(SupersetSecurityException),
+    ):
+        sm.raise_for_access(dashboard=access_fixtures.semantic_dashboard)
+
+
 def test_gate_denies_regular_dashboard_without_grant(
     access_fixtures: SimpleNamespace, app_context: None
 ) -> None:

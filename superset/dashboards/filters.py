@@ -168,6 +168,13 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
             filters.append(Dashboard.id.in_(viewer_query))
 
         # (C) No-viewer fallback: dashboards with no viewers → dataset-based access
+        # A datasource_access grant on a parent semantic layer covers its
+        # views (sc-119501; the double perm fetch alongside
+        # get_dataset_access_filters is accepted until sc-119500 reworks the
+        # helper's signature for the chart-list mirror of this clause).
+        layer_grant_clause = SemanticLayer.perm.in_(
+            security_manager.user_view_menu_names("datasource_access")
+        )
         # Note: for ordinary users a dashboard with no charts is never yielded
         # here (every access predicate is NULL-false after the outer joins)
         # even though the object gate allows opening it — a deliberate,
@@ -216,9 +223,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
                     get_dataset_access_filters(
                         Slice,
                         security_manager.can_access_all_datasources(),
-                        SemanticLayer.perm.in_(
-                            security_manager.user_view_menu_names("datasource_access")
-                        ),
+                        layer_grant_clause,
                     ),
                 )
             )
