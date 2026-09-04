@@ -125,6 +125,18 @@ def get_column_type(semantic_type: pa.DataType) -> GenericDataType:
     return GenericDataType.STRING
 
 
+def _feature_value(feature: object) -> str:
+    """Normalize a declared semantic-view feature to its stable string value.
+
+    Features are typed ``frozenset[SemanticViewFeature]``, but a third-party
+    provider may hand back a raw string (or any object) instead of the enum
+    member. Fall back to the value itself rather than 500-ing Explore for that
+    datasource, so a new provider stays safe by default.
+    """
+    value = getattr(feature, "value", feature)
+    return value if isinstance(value, str) else str(value)
+
+
 @dataclass(frozen=True)
 class MetricMetadata:
     metric_name: str
@@ -583,13 +595,11 @@ class SemanticView(AuditMixinNullable, Model):
             "uid": self.uid,
             "type": "semantic_view",
             # Sorted for a deterministic payload; values are the stable
-            # SemanticViewFeature strings, never provider identity. A provider
-            # may hand back a raw string instead of the enum member, so fall
-            # back to the value itself rather than 500-ing Explore for that
-            # datasource (a new provider must stay safe by default).
+            # SemanticViewFeature strings, never provider identity.
+            # ``_feature_value`` tolerates a provider that hands back a raw
+            # string instead of the enum member (see its docstring).
             "semantic_view_features": sorted(
-                getattr(feature, "value", feature)
-                for feature in self.implementation.features
+                _feature_value(feature) for feature in self.implementation.features
             ),
             "name": self.name,
             "columns": [
