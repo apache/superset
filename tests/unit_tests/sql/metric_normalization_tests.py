@@ -28,7 +28,9 @@ from superset.db_engine_specs.timescaledb import TimescaleDBEngineSpec
 from superset.exceptions import QueryClauseValidationException
 from superset.sql.dialects.postgres import normalize_date_trunc_units
 from superset.sql.metric_normalization import (
+    CommentConversionError,
     normalize_custom_metric,
+    NormalizedMetric,
     SqlCommentConverter,
 )
 
@@ -204,4 +206,50 @@ def test_snowflake_keeps_uppercase_units_without_source_preservation() -> None:
     )
 
     assert normalized_metric.expression == expression
+    assert not normalized_metric.may_preserve_source
+
+
+def test_comment_conversion_error_subclasses_value_error() -> None:
+    with pytest.raises(CommentConversionError, match="Unterminated SQL"):
+        SqlCommentConverter("SUM('unterminated)").convert()
+
+    assert issubclass(CommentConversionError, ValueError)
+
+
+def test_normalize_custom_metric_does_not_swallow_unrelated_value_error(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A ValueError from convert() that is not a CommentConversionError propagates.
+
+    The fallback only catches the converter's own signal; an unexpected
+    ValueError inside convert() must surface rather than being silently degraded
+    to the sanitize_clause path.
+    """
+
+    def boom(self: SqlCommentConverter) -> NormalizedMetric:
+        raise ValueError("unrelated converter bug")
+
+    monkeypatch.setattr(SqlCommentConverter, "convert", boom)
+
+    with pytest.raises(ValueError, match="unrelated converter bug"):
+        normalize_custom_metric(
+            "DATE_TRUNC('QUARTER', created_at)", "postgresql", PostgresEngineSpec
+        )
+
+
+def test_greenplum_fallback_parses_under_postgres_dialect() -> None:
+    """The greenplum sanitize_clause fallback now resolves to the Postgres dialect.
+
+    The ``*/``-bearing line comment forces the fallback branch, where
+    ``sanitize_clause(expr, "greenplum")`` builds its statement — previously under
+    the generic base dialect, now under Postgres via the SQLGLOT_DIALECTS mapping.
+    A Postgres ``::`` cast in the clause must survive rather than fail to parse.
+    """
+    normalized_metric = normalize_custom_metric(
+        "SUM(created_at::timestamp) -- note */",
+        "greenplum",
+        GreenplumEngineSpec,
+    )
+
+    assert "created_at" in normalized_metric.expression
     assert not normalized_metric.may_preserve_source

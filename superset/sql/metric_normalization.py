@@ -26,6 +26,18 @@ if TYPE_CHECKING:
     from superset.db_engine_specs.base import BaseEngineSpec
 
 
+class CommentConversionError(ValueError):
+    """The fast comment converter cannot safely rewrite an expression.
+
+    Raised when :class:`SqlCommentConverter` meets input it will not rewrite in
+    place -- a line comment that already contains a ``*/`` sequence, or an
+    unterminated string/quoted/dollar region. It subclasses ``ValueError`` so
+    existing ``pytest.raises(ValueError, ...)`` call sites keep matching, while
+    letting ``normalize_custom_metric`` catch only this signal and defer to the
+    slower SQLGlot-based sanitizer rather than swallowing unrelated errors.
+    """
+
+
 @dataclass(frozen=True)
 class NormalizedMetric:
     """A normalized metric expression and its source-preservation policy."""
@@ -73,7 +85,7 @@ class SqlCommentConverter:
         )
         contents = self.expression[self.index + 2 : line_end]
         if "*/" in contents:
-            raise ValueError("Line comment cannot be converted safely")
+            raise CommentConversionError("Line comment cannot be converted safely")
         self.result.append(f"/*{contents} */")
         self.index = line_end
         return True
@@ -97,7 +109,7 @@ class SqlCommentConverter:
     def _copy_delimited_region(self, delimiter: str, content_start: int) -> bool:
         end = self.expression.find(delimiter, content_start)
         if end < 0:
-            raise ValueError(f"Unterminated SQL region: {delimiter}")
+            raise CommentConversionError(f"Unterminated SQL region: {delimiter}")
         region_end = end + len(delimiter)
         self.result.append(self.expression[self.index : region_end])
         self.index = region_end
@@ -130,7 +142,7 @@ class SqlCommentConverter:
                 else:
                     self.result.append(self.expression[start : self.index])
                     return True
-        raise ValueError("Unterminated SQL string")
+        raise CommentConversionError("Unterminated SQL string")
 
 
 def normalize_custom_metric(
@@ -156,7 +168,13 @@ def normalize_custom_metric(
 
     try:
         return SqlCommentConverter(normalized_expression).convert()
-    except ValueError:
+    except CommentConversionError:
+        # The fast in-place converter bailed on an expression it cannot rewrite
+        # safely (a ``*/`` inside a line comment, or an unterminated region). Fall
+        # back to the SQLGlot-based sanitizer, which either re-renders the comments
+        # into a safe form or raises QueryClauseValidationException for genuinely
+        # invalid SQL -- so the failure is never swallowed, only the fast path is
+        # given up. Source can no longer be preserved because it was re-rendered.
         return NormalizedMetric(
             sanitize_clause(normalized_expression, engine),
             False,

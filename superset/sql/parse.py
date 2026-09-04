@@ -129,6 +129,7 @@ SQLGLOT_DIALECTS = {
     # "firebird": ???
     "firebolt": Firebolt,
     "gsheets": Dialects.SQLITE,
+    "greenplum": Dialects.POSTGRES,
     "hana": Hana,
     "hive": Dialects.HIVE,
     # "ibmi": ???
