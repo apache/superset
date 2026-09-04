@@ -8888,6 +8888,11 @@
             },
             "type": "array"
           },
+          "report_format": {
+            "maxLength": 50,
+            "nullable": true,
+            "type": "string"
+          },
           "retry_max_attempts": {
             "type": "integer"
           },
