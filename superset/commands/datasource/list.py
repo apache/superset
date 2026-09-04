@@ -214,8 +214,16 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         if source_type in ("database", "semantic_layer"):
             return source_type
         # sql_filter (physical/virtual toggle) and schema both only apply to
-        # datasets (semantic views have no schema), so either narrows to datasets
+        # datasets (semantic views have no schema), so either narrows to datasets.
         if sql_filter is not None or schema_filter is not None:
+            # A schema filter combined with an explicit Type="Semantic View" is
+            # contradictory: no semantic view has a schema, so under AND semantics
+            # the honest result is zero rows rather than silently dropping either
+            # filter. This pair is reachable because the Schema control is not part
+            # of the frontend cascade; sql_filter and type_filter share one control
+            # and cannot collide, so that combination needs no such guard.
+            if schema_filter is not None and type_filter == "semantic_view":
+                return "empty"
             return "database"
         # Explicit semantic-view type filter (only reached when source_type="all")
         if type_filter == "semantic_view":

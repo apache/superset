@@ -210,6 +210,25 @@ def test_resolve_source_type_explicit_semantic_layer_wins_over_schema() -> None:
     assert source_type == "semantic_layer"
 
 
+def test_resolve_source_type_semantic_view_type_plus_schema_is_empty() -> None:
+    command = GetCombinedDatasourceListCommand(
+        args={},
+        can_read_datasets=True,
+        can_read_semantic_views=True,
+    )
+
+    # Type="Semantic View" AND a schema is contradictory (views have no schema);
+    # the honest AND result is zero rows, not a silently-dropped filter.
+    source_type = command._resolve_source_type(
+        source_type="all",
+        sql_filter=None,
+        type_filter="semantic_view",
+        schema_filter="main",
+    )
+
+    assert source_type == "empty"
+
+
 @pytest.mark.parametrize(
     "order_column",
     ["unknown", "database.database_name", "id"],
