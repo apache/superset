@@ -24,6 +24,8 @@ import { styled, useTheme, css, keyframes } from '@apache-superset/core/theme';
 import { InfoTooltip, Icons, Tooltip } from '@superset-ui/core/components';
 import { savedMetricType } from 'src/explore/components/controls/MetricControl/types';
 import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import PartitionPruningIndicator from 'src/explore/components/PartitionPruningIndicator';
+import type { PartitionFilterMapping } from '@superset-ui/chart-controls';
 import { StyledMetricOption } from '../../optionRenderers';
 
 export const DragContainer = styled.div`
@@ -260,6 +262,7 @@ export const OptionControlLabel = ({
   isExtra,
   datasourceWarningMessage,
   tooltipTitle,
+  partitionMapping,
   multi = true,
   ...props
 }: {
@@ -277,6 +280,8 @@ export const OptionControlLabel = ({
   isExtra?: boolean;
   datasourceWarningMessage?: string;
   tooltipTitle?: string;
+  /** Set when this filter's column is mirrored onto a partition column. */
+  partitionMapping?: PartitionFilterMapping | null;
   multi?: boolean;
 }) => {
   const theme = useTheme();
@@ -373,6 +378,7 @@ export const OptionControlLabel = ({
         {isFunction && <Icons.FunctionOutlined iconSize="m" />}
         {getLabelContent()}
       </Label>
+      <PartitionPruningIndicator mapping={partitionMapping} />
       {(!!datasourceWarningMessage || isExtra) && (
         <StyledInfoTooltip
           type="warning"
