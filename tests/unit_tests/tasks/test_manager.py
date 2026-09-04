@@ -216,6 +216,30 @@ class TestTaskManagerEntityChange:
             "payload": {"entity_type": "task", "id": 42},
         }
 
+    @patch(GET_ID, return_value=42)
+    @patch(PUBLISH)
+    @patch(IS_DEFINED, return_value=True)
+    def test_publishes_on_configured_prefixed_channel(
+        self, mock_defined, mock_publish, mock_get_id
+    ):
+        """A configured REALTIME_CHANNEL_PREFIX reaches the published channel.
+
+        Drives init_app and the public publisher end to end, so it guards the
+        _publish_realtime wiring (not just the get_realtime_channel helper): were
+        the publish to revert to the literal ``realtime``, the producer would
+        diverge from a websocket server subscribed to ``tenant-a:realtime``.
+        """
+        app = MagicMock()
+        app.config.get.side_effect = lambda key, default=None: {
+            "REALTIME_CHANNEL_PREFIX": "tenant-a:",
+        }.get(key, default)
+        TaskManager.init_app(app)
+
+        assert TaskManager.publish_entity_change(uuid.uuid4()) is True
+
+        channel = mock_publish.call_args.args[0]
+        assert channel == "tenant-a:realtime"
+
     @patch(GET_ID, return_value=None)
     @patch(PUBLISH)
     @patch(IS_DEFINED, return_value=True)
