@@ -1464,7 +1464,7 @@ test('getColorFunction NONE degrades percent bounds to unset when the column has
   expect(colorFunction(50)).toBeUndefined();
 });
 
-test('getColorFunction NONE resolves a negative percent Max denominator via its absolute magnitude', () => {
+test('getColorFunction NONE preserves the sign of a negative column max', () => {
   const colorFunction = getColorFunction(
     {
       operator: Comparator.None,
@@ -1472,15 +1472,14 @@ test('getColorFunction NONE resolves a negative percent Max denominator via its 
       column: 'count',
       boundUnit: BoundUnit.Percent,
       percentDenominator: PercentDenominator.Max,
-      minBound: 0,
       maxBound: 100,
     },
-    [-10, -5],
+    [-100, -5],
   );
-  // max of [-10,-5] is -5. Its magnitude keeps the resolved range ordered,
-  // so both values clamp to the low endpoint instead of disabling the rule.
-  expect(colorFunction(-10)).toEqual('#FF000000');
-  expect(colorFunction(-5)).toEqual('#FF000000');
+  // The maximum is -5, so 100% resolves to -5 rather than +5. The automatic
+  // lower endpoint remains the column minimum.
+  expect(colorFunction(-100)).toEqual('#FF000000');
+  expect(colorFunction(-5)).toEqual('#FF0000FF');
 });
 
 test('getColorFunction NONE degrades a zero-sum percent denominator to the data-derived range instead of full saturation', () => {

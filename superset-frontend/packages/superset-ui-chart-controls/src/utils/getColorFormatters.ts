@@ -160,16 +160,16 @@ export const getColorFunction = (
     if (numericColumnValues.length === 0) {
       return undefined;
     }
-    // Use the magnitude so a negative denominator doesn't flip the scale;
-    // a zero denominator falls back to unset rather than collapsing it.
-    const denominatorValue = Math.abs(
+    // A sum uses its magnitude so a negative total does not reverse the
+    // scale. Column max retains its sign because it represents the actual
+    // maximum value in the column.
+    const denominatorValue =
       percentDenominator === PercentDenominator.Sum
-        ? numericColumnValues.reduce((sum, value) => sum + value, 0)
+        ? Math.abs(numericColumnValues.reduce((sum, value) => sum + value, 0))
         : numericColumnValues.reduce(
             (max, value) => (value > max ? value : max),
             -Infinity,
-          ),
-    );
+          );
     if (denominatorValue === 0) {
       return undefined;
     }

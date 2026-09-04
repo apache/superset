@@ -330,7 +330,7 @@ Each rule has a **"Use gradient"** toggle: enabled applies a varying opacity (li
 
 For numeric rules, the optional **"Min bound"** / **"Max bound"** fields let you override the auto-detected color range with fixed values instead of relying on the minimum/maximum found in the data — useful when you want consistent coloring across dashboards or data refreshes.
 
-Set **"Bound unit"** to **"% of column"** to express the bounds as percentages of either the column maximum or column sum. This option is unavailable with server pagination because the browser only receives one page of rows and cannot calculate a stable full-column denominator.
+Set **"Bound unit"** to **"% of column"** to express the bounds as percentages of either the column's signed maximum value or the magnitude of its sum. This option is unavailable with server pagination because the browser only receives one page of rows and cannot calculate a stable full-column denominator.
 
 For a diverging scale, set a **"Center value"** together with **"Low color"**, **"Mid color"**, and **"High color"**. Values below and above the center interpolate toward the corresponding endpoint color. Turning off **"Use gradient"** disables this interpolation and applies the base color as a solid fill.
 
