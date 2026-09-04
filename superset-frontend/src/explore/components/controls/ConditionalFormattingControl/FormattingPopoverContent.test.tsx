@@ -711,6 +711,30 @@ test('requires min bound to be smaller than a less-than target', async () => {
   expect(onChange).not.toHaveBeenCalled();
 });
 
+test('does not compare a percentage max bound directly with an absolute target', async () => {
+  const onChange = jest.fn();
+  render(
+    <FormattingPopoverContent
+      onChange={onChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  await selectFieldOption('>', 'Operator');
+  await userEvent.type(await screen.findByLabelText('Target value'), '1000');
+  await selectFieldOption('% of column', 'Bound unit');
+  const maxBoundInput = screen.getByLabelText('Max bound', boundLabelOptions);
+  await userEvent.type(maxBoundInput, '100');
+  fireEvent.blur(maxBoundInput);
+
+  expect(
+    screen.queryByText('Max bound should be greater than target value'),
+  ).not.toBeInTheDocument();
+  fireEvent.click(screen.getByText('Apply'));
+  await waitFor(() => expect(onChange).toHaveBeenCalled());
+});
+
 test('shows Center value and Low/Mid/High color fields for the default None operator on a numeric column', () => {
   render(
     <FormattingPopoverContent
@@ -880,10 +904,11 @@ test('selecting Low/Mid/High colors submits the exact colors clicked to onChange
   expect(tinycolor(payload.highColor).toHexString()).toEqual(highExpected);
 });
 
-test('hides Use gradient once a complete diverging config is set, since diverging always interpolates', async () => {
+test('keeps Use gradient available for complete diverging configs', async () => {
+  const onChange = jest.fn();
   render(
     <FormattingPopoverContent
-      onChange={mockOnChange}
+      onChange={onChange}
       columns={columns}
       allColumns={columns}
       extraColorChoices={extraColorChoices}
@@ -903,13 +928,13 @@ test('hides Use gradient once a complete diverging config is set, since divergin
   await pickPresetColorAt('Mid color', 1);
   await pickPresetColorAt('High color', 2);
 
-  // Diverging mode always interpolates a color and has no solid,
-  // non-gradient rendering to fall back to, so once it's fully configured
-  // the checkbox that previously stayed visible while silently having no
-  // effect on it must no longer be shown (see PR review finding #3).
-  await waitFor(() => {
-    expect(screen.queryByText('Use gradient')).not.toBeInTheDocument();
-  });
+  const gradientCheckbox = screen.getByRole('checkbox');
+  expect(screen.getByText('Use gradient')).toBeInTheDocument();
+  await userEvent.click(gradientCheckbox);
+  fireEvent.click(screen.getByText('Apply'));
+
+  await waitFor(() => expect(onChange).toHaveBeenCalled());
+  expect(onChange.mock.calls[0][0].useGradient).toBe(false);
 });
 
 test('shows the percent denominator select only when Bound unit is set to percent, for both None and a directional operator', async () => {
@@ -946,8 +971,7 @@ test('shows the percent denominator select only when Bound unit is set to percen
       extraColorChoices={extraColorChoices}
     />,
   );
-  // String columns never show bound fields at all (Phase 1 behavior,
-  // unchanged) -- Bound unit must not appear either.
+  // String columns never show bound fields, so Bound unit must not appear.
   expect(screen.queryByLabelText('Bound unit')).not.toBeInTheDocument();
 });
 
@@ -987,10 +1011,8 @@ test('defaults percentDenominator to Column max once switched to percent mode wi
 
   await selectFieldOption('% of column', 'Bound unit');
 
-  // Left untouched -- the select must show Column max explicitly rather than
-  // a blank/placeholder state, since getColorFunction already treats an
-  // unset percentDenominator as Column max (see PR review finding #4: an
-  // invisible default reads as an ambiguous, unset configuration).
+  // Left untouched, the select must show the same explicit default used by
+  // getColorFunction rather than an ambiguous blank state.
   expect(screen.getByText('Column max')).toBeInTheDocument();
 
   fireEvent.click(screen.getByText('Apply'));
@@ -1040,10 +1062,8 @@ test('disables the % of column option when serverPagination is true', async () =
   const option = await screen.findByText('% of column');
   await userEvent.click(option);
 
-  // The option is disabled (server pagination makes % of column resolve a
-  // different denominator per page -- see PR review finding #1), so clicking
-  // it must not select it: the denominator select never appears and the
-  // submitted config keeps Bound unit at its Value default.
+  // The disabled option must not be selected: the denominator select stays
+  // hidden and the submitted config keeps Bound unit at its Value default.
   expect(
     screen.queryByLabelText('Percent denominator'),
   ).not.toBeInTheDocument();

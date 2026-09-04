@@ -737,6 +737,34 @@ test('correct column config', () => {
   expect(colorFormatters[2].getColorFromValue(100)).toEqual('#FF000087');
 });
 
+test('getColorFormatters suppresses saved percentage rules when requested', () => {
+  const colorFormatters = getColorFormatters(
+    [
+      {
+        operator: Comparator.None,
+        colorScheme: '#FF0000',
+        column: 'count',
+        boundUnit: BoundUnit.Percent,
+        minBound: 0,
+        maxBound: 100,
+      },
+      {
+        operator: Comparator.None,
+        colorScheme: '#00FF00',
+        column: 'sum',
+        boundUnit: BoundUnit.Value,
+      },
+    ],
+    mockData,
+    undefined,
+    undefined,
+    true,
+  );
+
+  expect(colorFormatters).toHaveLength(1);
+  expect(colorFormatters[0].column).toBe('sum');
+});
+
 test('undefined column config', () => {
   const colorFormatters = getColorFormatters(undefined, mockData);
   expect(colorFormatters.length).toEqual(0);
@@ -1257,6 +1285,27 @@ test('getColorFunction NONE applies a diverging low/mid/high scale when centerVa
   expect(colorFunction(100)).toEqual('#008000');
 });
 
+test('getColorFunction NONE uses the solid base color when gradient is disabled for a complete diverging config', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#000000',
+      useGradient: false,
+      column: 'count',
+      minBound: 0,
+      maxBound: 100,
+      centerValue: 50,
+      lowColor: { r: 255, g: 0, b: 0, a: 1 },
+      midColor: { r: 255, g: 255, b: 255, a: 1 },
+      highColor: { r: 0, g: 128, b: 0, a: 1 },
+    },
+    [10, 90],
+  );
+
+  expect(colorFunction(25)).toEqual('#000000');
+  expect(colorFunction(75)).toEqual('#000000');
+});
+
 test('getColorFunction NONE ignores an incomplete diverging config and falls back to colorScheme', () => {
   const colorFunction = getColorFunction(
     {
@@ -1363,8 +1412,8 @@ test('getColorFunction NONE ignores percentDenominator and treats bounds as abso
     [50, 150],
   );
   // percentDenominator is present but boundUnit is not 'percent', so minBound
-  // and maxBound are used exactly as typed (0 and 200), not resolved against
-  // the sum (200) -- identical to Phase 1's existing absolute-bound behavior.
+  // and maxBound are used exactly as typed rather than resolved against the
+  // sum.
   expect(colorFunction(100)).toEqual('#FF000080');
   expect(colorFunction(200)).toEqual('#FF0000FF');
 });
@@ -1386,10 +1435,8 @@ test('getColorFunction NONE applies a percent-resolved centerValue to the diverg
     },
     [0, 100],
   );
-  // max = 100, so every bound resolves to exactly the value it names (0, 50,
-  // 100) -- this proves boundUnit/percentDenominator feed centerValue too,
-  // not just minBound/maxBound, reusing Phase 2's own diverging-scale test
-  // shape and expected hex values.
+  // max = 100, so every bound resolves to exactly the value it names. This
+  // verifies that boundUnit and percentDenominator also apply to centerValue.
   expect(colorFunction(0)).toEqual('#ff0000');
   expect(colorFunction(50)).toEqual('#ffffff');
   expect(colorFunction(100)).toEqual('#008000');
@@ -1430,13 +1477,8 @@ test('getColorFunction NONE resolves a negative percent Max denominator via its 
     },
     [-10, -5],
   );
-  // max of [-10,-5] is -5. Resolving maxBound to -5 directly would make
-  // cutoffValue (0) > extremeValue (-5), which the None branch's own guard
-  // treats as an invalid range and disables coloring entirely. Taking the
-  // magnitude (5) instead keeps cutoffValue < extremeValue, so both values
-  // clamp into [0, 5] and render (both at the low end, since neither is
-  // positive) rather than the whole rule going dark -- see PR review
-  // finding #2.
+  // max of [-10,-5] is -5. Its magnitude keeps the resolved range ordered,
+  // so both values clamp to the low endpoint instead of disabling the rule.
   expect(colorFunction(-10)).toEqual('#FF000000');
   expect(colorFunction(-5)).toEqual('#FF000000');
 });

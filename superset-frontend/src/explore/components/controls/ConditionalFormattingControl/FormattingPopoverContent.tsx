@@ -25,6 +25,7 @@ import {
   MultipleValueComparators,
   ObjectFormattingEnum,
   ColorSchemeEnum,
+  BoundUnit,
 } from '@superset-ui/chart-controls';
 import {
   Select,
@@ -192,19 +193,25 @@ const rulesMaxBound = [
 
 const rulesMinBoundTarget = [
   ({ getFieldValue }: GetFieldValue) => ({
-    validator: minBoundTargetValidator(getFieldValue('targetValue')),
+    validator:
+      getFieldValue('boundUnit') === BoundUnit.Percent
+        ? () => Promise.resolve()
+        : minBoundTargetValidator(getFieldValue('targetValue')),
   }),
 ];
 
 const rulesMaxBoundTarget = [
   ({ getFieldValue }: GetFieldValue) => ({
-    validator: maxBoundTargetValidator(getFieldValue('targetValue')),
+    validator:
+      getFieldValue('boundUnit') === BoundUnit.Percent
+        ? () => Promise.resolve()
+        : maxBoundTargetValidator(getFieldValue('targetValue')),
   }),
 ];
 
 const minBoundDeps = ['maxBound'];
 const maxBoundDeps = ['minBound'];
-const targetValueDeps = ['targetValue'];
+const targetValueDeps = ['targetValue', 'boundUnit'];
 
 const rulesCenterValue = [
   ({ getFieldValue }: GetFieldValue) => ({
@@ -284,9 +291,9 @@ const renderBoundFields = (
   const maxRules = useCrossFieldRules ? rulesMaxBound : rulesMaxBoundTarget;
   const minDependencies = useCrossFieldRules ? minBoundDeps : targetValueDeps;
   const maxDependencies = useCrossFieldRules ? maxBoundDeps : targetValueDeps;
-  // % of column derives its denominator from the loaded rows, which under
-  // server pagination is just the current page -- disable picking it there
-  // so the scale doesn't drift per page. Existing saved configs keep working.
+  // Percentage bounds require the complete result set. Existing percentage
+  // configurations remain editable here, but the formatter suppresses them
+  // while server pagination is enabled.
   const boundUnitSelectOptions = serverPagination
     ? boundUnitOptions.map(option =>
         option.value === boundUnitOptions[1].value
@@ -599,40 +606,13 @@ export const FormattingPopoverContent = ({
   );
   const defaultColorToken = colors[0]?.colors?.[0];
 
-  // Diverging colors always interpolate, so "Use gradient" has no effect
-  // once diverging mode is active -- hide it rather than leave a no-op
-  // checkbox. Mirrors getColorFunction's own diverging field-presence
-  // check, minus its center-value range validation, since this only
-  // toggles checkbox visibility, not whether diverging colors apply.
-  const divergingOperator = Form.useWatch('operator', form);
-  const divergingCenterValue = Form.useWatch('centerValue', form);
-  const divergingLowColor = Form.useWatch('lowColor', form);
-  const divergingMidColor = Form.useWatch('midColor', form);
-  const divergingHighColor = Form.useWatch('highColor', form);
-  const isDivergingActive = useMemo(
-    () =>
-      isOperatorNone(divergingOperator) &&
-      divergingCenterValue !== undefined &&
-      divergingLowColor !== undefined &&
-      divergingMidColor !== undefined &&
-      divergingHighColor !== undefined,
-    [
-      divergingOperator,
-      divergingCenterValue,
-      divergingLowColor,
-      divergingMidColor,
-      divergingHighColor,
-    ],
-  );
-
   const visibleUseGradient = useMemo(
     () =>
       numericColumns.length > 0
         ? numericColumns.some((col: ColumnOption) => col.value === column) &&
-          objectFormatting === ObjectFormattingEnum.BACKGROUND_COLOR &&
-          !isDivergingActive
+          objectFormatting === ObjectFormattingEnum.BACKGROUND_COLOR
         : false,
-    [column, numericColumns, objectFormatting, isDivergingActive],
+    [column, numericColumns, objectFormatting],
   );
 
   const handleObjectChange = (value: ObjectFormattingEnum) => {

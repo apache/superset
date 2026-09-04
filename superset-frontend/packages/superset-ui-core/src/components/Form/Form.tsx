@@ -25,7 +25,6 @@ function CustomForm(props: FormProps) {
 
 export const Form = Object.assign(CustomForm, {
   useForm: AntdForm.useForm,
-  useWatch: AntdForm.useWatch,
   Item: AntdForm.Item,
   List: AntdForm.List,
   ErrorList: AntdForm.ErrorList,

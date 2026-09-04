@@ -398,6 +398,7 @@ export const getColorFunction = (
     const resolvedValue = opacityValue ?? value;
 
     if (
+      useGradient !== false &&
       operator === Comparator.None &&
       typeof resolvedValue === 'number' &&
       isValidDivergingConfig(
@@ -486,9 +487,13 @@ export const getColorFormatters = memoizeOne(
     data: DataRecord[],
     theme?: Record<string, any>,
     alpha?: boolean,
+    disablePercentBounds = false,
   ) =>
     columnConfig?.reduce(
       (acc: ColorFormatters, config: ConditionalFormattingConfig) => {
+        if (disablePercentBounds && config.boundUnit === BoundUnit.Percent) {
+          return acc;
+        }
         let resolvedColorScheme = config.colorScheme;
         if (
           theme &&
