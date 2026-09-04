@@ -37,7 +37,7 @@ export type StreamResult = [
 
 // sync with superset-frontend/src/components/ErrorMessage/types
 export type ErrorLevel = 'info' | 'warning' | 'error';
-// eslint-disable-next-line  @typescript-eslint/no-explicit-any
+// oxlint-disable-next-line no-explicit-any
 export type SupersetError<ExtraType = Record<string, any> | null> = {
   error_type: string;
   extra: ExtraType;
@@ -321,7 +321,7 @@ export const subscribeToGlobalStream = async (
   stream: string,
   listener: ListenerFunction,
 ) => {
-  /*eslint no-constant-condition: ["error", { "checkLoops": false }]*/
+  /* oxlint no-constant-condition: ["error", { "checkLoops": false }]*/
   while (true) {
     try {
       const reply = await redis.xread(
