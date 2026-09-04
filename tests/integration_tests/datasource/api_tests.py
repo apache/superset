@@ -29,6 +29,7 @@ from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.exceptions import DatasourceTypeNotSupportedError
 from superset.extensions import cache_manager
+from superset.models.core import Database
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -119,8 +120,6 @@ def _datasets_with_schemas() -> Iterator[str]:
     ``other_ds_<suffix>`` in schema ``other_<suffix>``). The unique schema name
     guarantees the filter value cannot collide with pre-existing datasets.
     """
-    from superset.models.core import Database
-
     suffix = uuid.uuid4().hex
     database = Database(database_name=f"schema_db_{suffix}", sqlalchemy_uri="sqlite://")
     main_ds = SqlaTable(

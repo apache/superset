@@ -265,6 +265,89 @@ def test_resolve_source_type_views_only_user_without_schema_is_semantic_layer() 
     assert source_type == "semantic_layer"
 
 
+def test_resolve_source_type_views_only_user_with_sql_filter_is_empty() -> None:
+    command = GetCombinedDatasourceListCommand(
+        args={},
+        can_read_datasets=False,
+        can_read_semantic_views=True,
+    )
+
+    # sql_filter (physical/virtual) is dataset-only, so a views-only user matches
+    # nothing rather than seeing the full view list with the filter dropped.
+    source_type = command._resolve_source_type(
+        source_type="all",
+        sql_filter=True,
+        type_filter=None,
+    )
+
+    assert source_type == "empty"
+
+
+def test_resolve_connection_semantic_layer_uuid_with_schema_is_empty() -> None:
+    # Picking a semantic-layer connection (not an explicit source type) narrows to
+    # that layer's schema-less views; a dataset-only schema filter matches nothing.
+    source_type = GetCombinedDatasourceListCommand._resolve_connection_source_type(
+        source_type="all",
+        database_id=None,
+        semantic_layer_uuid="uuid-123",
+        schema_filter="main",
+    )
+
+    assert source_type == "empty"
+
+
+def test_resolve_connection_semantic_layer_uuid_without_schema() -> None:
+    # Without a schema filter the connection still narrows to that layer's views.
+    source_type = GetCombinedDatasourceListCommand._resolve_connection_source_type(
+        source_type="all",
+        database_id=None,
+        semantic_layer_uuid="uuid-123",
+        schema_filter=None,
+    )
+
+    assert source_type == "semantic_layer"
+
+
+def test_resolve_connection_explicit_semantic_layer_ignores_schema() -> None:
+    # The "empty" narrowing only applies to the implicit (source_type="all") route;
+    # an explicit source_type is left alone even with uuid + schema both set.
+    source_type = GetCombinedDatasourceListCommand._resolve_connection_source_type(
+        source_type="semantic_layer",
+        database_id=None,
+        semantic_layer_uuid="uuid-123",
+        schema_filter="main",
+    )
+
+    assert source_type == "semantic_layer"
+
+
+def test_run_semantic_layer_connection_with_schema_returns_empty() -> None:
+    """A semantic-layer connection + schema filter short-circuits to empty.
+
+    Pins the run() guard that stops the content-filter stage from overriding a
+    connection-stage "empty": without it, the query would fall through to a
+    dataset source instead of returning zero rows.
+    """
+    command = GetCombinedDatasourceListCommand(
+        args={
+            "filters": [
+                {"col": "semantic_layer_uuid", "opr": "eq", "value": "uuid-123"},
+                {"col": "schema", "opr": "eq", "value": "main"},
+            ]
+        },
+        can_read_datasets=True,
+        can_read_semantic_views=True,
+    )
+
+    with patch(
+        "superset.commands.datasource.list.DatasourceDAO.paginate_combined_query"
+    ) as paginate_mock:
+        result = command.run()
+
+    assert result == {"count": 0, "result": []}
+    paginate_mock.assert_not_called()
+
+
 @pytest.mark.parametrize(
     "order_column",
     ["unknown", "database.database_name", "id"],

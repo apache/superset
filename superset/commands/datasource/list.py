@@ -77,10 +77,15 @@ class GetCombinedDatasourceListCommand(BaseCommand):
             source_type,
             database_id,
             semantic_layer_uuid,
+            schema_filter,
         )
-        source_type = self._resolve_source_type(
-            source_type, sql_filter, type_filter, schema_filter
-        )
+        # A connection filter can already resolve to "empty" (e.g. a semantic-layer
+        # connection combined with a dataset-only schema filter); don't let the
+        # content-filter resolution override that terminal decision.
+        if source_type != "empty":
+            source_type = self._resolve_source_type(
+                source_type, sql_filter, type_filter, schema_filter
+            )
 
         if source_type == "empty":
             return {"count": 0, "result": []}
@@ -106,6 +111,7 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         source_type: str,
         database_id: int | None,
         semantic_layer_uuid: str | None,
+        schema_filter: str | None = None,
     ) -> str:
         # A connection filter implicitly narrows the source type: selecting a
         # database ID means "show only datasets", and selecting a semantic layer
@@ -115,6 +121,14 @@ class GetCombinedDatasourceListCommand(BaseCommand):
             if database_id is not None:
                 return "database"
             elif semantic_layer_uuid is not None:
+                # A semantic-layer connection selects only that layer's
+                # (schema-less) views, so a dataset-only schema filter matches
+                # nothing: the honest result is empty. Unlike an explicit
+                # Source="Semantic layer" selection (handled in
+                # _resolve_source_type), the user never picked a source type
+                # here, so the "explicit selection wins" rule does not apply.
+                if schema_filter is not None:
+                    return "empty"
                 return "semantic_layer"
 
         return source_type
@@ -207,11 +221,12 @@ class GetCombinedDatasourceListCommand(BaseCommand):
                 return "empty"
             return "database"
         if not self._can_read_datasets:
-            # A schema filter is dataset-only, so a semantic-views-only user
-            # matches nothing under AND semantics; return "empty" rather than
-            # showing schema-less views (mirrors the not-can_read_semantic_views
-            # branch above and the schema/Type="Semantic View" case below).
-            if schema_filter is not None:
+            # schema and sql_filter are both dataset-only, so a semantic-views-only
+            # user matches nothing under AND semantics; return "empty" rather than
+            # showing views with the filter dropped (mirrors the
+            # not-can_read_semantic_views branch above and the
+            # schema/Type="Semantic View" case below).
+            if schema_filter is not None or sql_filter is not None:
                 return "empty"
             return "semantic_layer"
         # An explicit source_type selection ("database" or "semantic_layer") always
@@ -226,8 +241,9 @@ class GetCombinedDatasourceListCommand(BaseCommand):
             # contradictory: no semantic view has a schema, so under AND semantics
             # the honest result is zero rows rather than silently dropping either
             # filter. This pair is reachable because the Schema control is not part
-            # of the frontend cascade; sql_filter and type_filter share one control
-            # and cannot collide, so that combination needs no such guard.
+            # of the frontend cascade. (Via the UI, sql_filter and type_filter come
+            # from one control and cannot collide; a direct API payload could set
+            # both, in which case sql_filter wins — see _apply_sql_null_filter.)
             if schema_filter is not None and type_filter == "semantic_view":
                 return "empty"
             return "database"
