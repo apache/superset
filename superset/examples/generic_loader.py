@@ -150,14 +150,21 @@ def load_parquet_table(  # noqa: C901
                 except Exception as e:
                     logger.warning("Could not process column %s: %s", col, e)
 
-        # Write to target database
+        # Write to target database. Scale the row chunksize down for wide
+        # tables so a single batch's bound-parameter count (rows * columns)
+        # stays reasonable -- a flat chunksize=500 on a 328-column table
+        # generates ~164k params per batch, close to some backends' limits
+        # and slower to plan than a right-sized batch.
+        num_cols = max(len(pdf.columns), 1)
+        chunksize = max(50, min(500, 50_000 // num_cols))
+
         with database.get_sqla_engine() as engine:
             pdf.to_sql(
                 table_name,
                 engine,
                 schema=schema,
                 if_exists="replace",
-                chunksize=500,
+                chunksize=chunksize,
                 method="multi",
                 index=False,
             )

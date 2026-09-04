@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import time
 from typing import Any, Callable
 
 import click
@@ -58,10 +59,13 @@ def _load_dataset(
     if "force" in sig.parameters:
         params["force"] = force
 
+    start = time.perf_counter()
     try:
         loader(**params)
     except Exception as e:
         logger.warning("Failed to load %s: %s", dataset_name, e)
+    finally:
+        logger.info("Finished [%s] in %.2fs", dataset_name, time.perf_counter() - start)
 
 
 def load_examples_run(
@@ -70,6 +74,7 @@ def load_examples_run(
     only_metadata: bool = False,
     force: bool = False,
 ) -> None:
+    run_start = time.perf_counter()
     if only_metadata:
         logger.info("Loading examples metadata")
     else:
@@ -94,7 +99,14 @@ def load_examples_run(
         _load_dataset(loader, loader_name, only_metadata, force)
 
     # Load examples that are stored as YAML config files
+    configs_start = time.perf_counter()
     examples.load_examples_from_configs(force, load_test_data)
+    logger.info(
+        "Finished [Examples From Configs] in %.2fs",
+        time.perf_counter() - configs_start,
+    )
+
+    logger.info("load_examples finished in %.2fs", time.perf_counter() - run_start)
 
 
 @click.command()
