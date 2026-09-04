@@ -27,16 +27,18 @@ from superset.connectors.sqla import models
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import FavStar
 from superset.models.slice import Slice
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.subjects.filters import (
     EditableFilter,
     subject_relation_exists_for_current_user,
 )
 from superset.subjects.models import chart_editors
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
-from superset.utils.core import get_user_id
+from superset.utils.core import DatasourceType, get_user_id
 from superset.utils.filters import (
     get_dataset_access_filters,
     guest_embedded_dashboard_filter,
+    table_backed_slice_join,
 )
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
@@ -150,16 +152,55 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             filters.append(Slice.id.in_(viewer_query))
 
         # (C) No-viewer fallback: charts with no viewers → dataset-based access
+        # A datasource_access grant on a parent semantic layer covers its
+        # views (sc-119501). The datasource_access perms are fetched here and
+        # again inside get_dataset_access_filters — an accepted cost, shared
+        # with DashboardAccessFilter: deduping would need the helper to
+        # accept prefetched perm sets.
+        layer_grant_clause = SemanticLayer.perm.in_(
+            security_manager.user_view_menu_names("datasource_access")
+        )
         chart_has_viewers = Slice.viewers.any()
         table_alias = aliased(SqlaTable)
         no_viewer_query = (
             db.session.query(Slice.id)
-            .join(table_alias, Slice.datasource_id == table_alias.id)
-            .join(models.Database, table_alias.database_id == models.Database.id)
+            # Type-aware datasource joins (mirroring DashboardAccessFilter):
+            # the SqlaTable join is constrained to table-backed charts (an
+            # unconstrained id join can bind a semantic-view chart to an
+            # unrelated table sharing its numeric id) and kept outer so
+            # charts on other datasource types survive into the access
+            # filter — their access matches through the perm columns
+            # denormalized onto Slice by ``set_related_perm``. A chart whose
+            # datasource row is hard-deleted can still match its stale
+            # denormalized perm here; the object gate stays authoritative
+            # and denies (accepted edge, shared with the dashboard filter).
+            .join(table_alias, table_backed_slice_join(table_alias), isouter=True)
+            .join(
+                models.Database,
+                table_alias.database_id == models.Database.id,
+                isouter=True,
+            )
+            # A datasource_access grant on a semantic LAYER covers its views,
+            # as SemanticView.raise_for_access enforces on the data path
+            # (sc-119501) — list those charts here too, through the same
+            # type-guarded outer-join shape as the SqlaTable join.
+            .join(
+                SemanticView,
+                and_(
+                    Slice.datasource_id == SemanticView.id,
+                    Slice.datasource_type == DatasourceType.SEMANTIC_VIEW,
+                ),
+                isouter=True,
+            )
+            .join(
+                SemanticLayer,
+                SemanticView.semantic_layer_uuid == SemanticLayer.uuid,
+                isouter=True,
+            )
             .filter(
                 and_(
                     ~chart_has_viewers,
-                    get_dataset_access_filters(Slice),
+                    get_dataset_access_filters(Slice, layer_grant_clause),
                 )
             )
         )
@@ -172,29 +213,6 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                 filters.append(Slice.id.in_(extra_charts_filter(user_id)))
 
         return query.filter(or_(*filters)) if filters else query
-
-    def _apply_legacy(self, query: Query) -> Query:
-        table_alias = aliased(SqlaTable)
-        query = query.join(table_alias, self.model.datasource_id == table_alias.id)
-        query = query.join(
-            models.Database, table_alias.database_id == models.Database.id
-        )
-
-        extra_access_filters = []
-        extra_filters = current_app.config.get("EXTRA_ACCESS_QUERY_FILTERS", {})
-        if extra_charts_filter := extra_filters.get("charts"):
-            user_id = get_user_id()
-            if user_id:
-                extra_access_filters.append(
-                    self.model.id.in_(extra_charts_filter(user_id))
-                )
-
-        return query.filter(
-            or_(
-                get_dataset_access_filters(self.model),
-                *extra_access_filters,
-            )
-        )
 
 
 class ChartEditableFilter(EditableFilter):  # pylint: disable=too-few-public-methods

@@ -14,17 +14,31 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING, Union
 
 from flask_appbuilder import Model
-from sqlalchemy import and_, false, or_
+from sqlalchemy import and_, false, or_, true
 from sqlalchemy.sql.elements import BooleanClauseList, ColumnElement
+
+if TYPE_CHECKING:
+    from sqlalchemy.orm.util import AliasedClass
+
+    from superset.connectors.sqla.models import SqlaTable
 
 
 def get_dataset_access_filters(
     base_model: type[Model],
-    *args: Any,
+    *extra_access_clauses: "ColumnElement[bool]",
+    include_all: bool = False,
 ) -> BooleanClauseList:
+    """OR-clause matching rows the user's data grants cover.
+
+    ``extra_access_clauses`` are additional grant clauses OR-ed into the
+    filter (e.g. the semantic-layer grant clause the dashboard and chart
+    list filters splice in); ``include_all`` short-circuits the filter open
+    for callers that have already established the user holds
+    ``all_datasource_access``.
+    """
     # pylint: disable=import-outside-toplevel
     from superset import security_manager
     from superset.connectors.sqla.models import Database
@@ -34,12 +48,37 @@ def get_dataset_access_filters(
     schema_perms = security_manager.user_view_menu_names("schema_access")
     catalog_perms = security_manager.user_view_menu_names("catalog_access")
 
-    return or_(
+    clauses: list[Any] = [
         Database.id.in_(database_ids),
         base_model.perm.in_(perms),
         base_model.catalog_perm.in_(catalog_perms),
         base_model.schema_perm.in_(schema_perms),
-        *args,
+        *extra_access_clauses,
+    ]
+    if include_all:
+        clauses.append(true())
+    return or_(*clauses)
+
+
+def table_backed_slice_join(
+    table_entity: Union[type["SqlaTable"], "AliasedClass"],
+) -> BooleanClauseList:
+    """ON-clause joining ``Slice`` to a table datasource, guarded by type.
+
+    ``table_entity`` is ``SqlaTable`` or an ``aliased()`` of it. This is the
+    single authoritative definition of the type constraint shared by the
+    dashboard and chart list filters: a bare id join can bind a chart on
+    another datasource type (e.g. a semantic view) to an unrelated table
+    sharing its numeric id — the id-collision class behind SC-111233 and
+    SC-119500 — so the join must always be qualified by ``datasource_type``.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    return and_(
+        Slice.datasource_id == table_entity.id,
+        Slice.datasource_type == DatasourceType.TABLE,
     )
 
 
