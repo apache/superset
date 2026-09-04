@@ -15710,30 +15710,36 @@ msgstr "预览所选查询时出现问题。%s"
 
 #, python-format
 msgid ""
-"These %(type)s will be moved to Recently Archived. You can recover them "
-"there within %(days)s days."
-msgstr "这些 %(type)s 将被移至“最近归档”。您可以在 %(days)s 天内从那里恢复它们。"
+"These %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover them there within %(days)s day."
+msgid_plural ""
+"These %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover them there within %(days)s days."
+msgstr[0] "这些 %(type)s 将被移至设置菜单中的“最近归档”。您可以在 %(days)s 天内从那里恢复它们。"
 
 #, python-format
 msgid ""
-"These %(type)s will be moved to Recently Archived. You can recover them "
-"there."
-msgstr "这些 %(type)s 将被移至“最近归档”。您可以在那里恢复它们。"
+"These %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover them there."
+msgstr "这些 %(type)s 将被移至设置菜单中的“最近归档”。您可以在那里恢复它们。"
 
 msgid "These are the datasets this filter will be applied to."
 msgstr "这些是此筛选器将应用到的数据集。"
 
 #, python-format
 msgid ""
-"This %(type)s will be moved to Recently Archived. You can recover it "
-"there within %(days)s days."
-msgstr "此 %(type)s 将被移至“最近归档”。您可以在 %(days)s 天内从那里恢复它。"
+"This %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover it there within %(days)s day."
+msgid_plural ""
+"This %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover it there within %(days)s days."
+msgstr[0] "此 %(type)s 将被移至设置菜单中的“最近归档”。您可以在 %(days)s 天内从那里恢复它。"
 
 #, python-format
 msgid ""
-"This %(type)s will be moved to Recently Archived. You can recover it "
-"there."
-msgstr "此 %(type)s 将被移至“最近归档”。您可以在那里恢复它。"
+"This %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover it there."
+msgstr "此 %(type)s 将被移至设置菜单中的“最近归档”。您可以在那里恢复它。"
 
 msgid ""
 "This JSON object is generated dynamically when clicking the save or "
