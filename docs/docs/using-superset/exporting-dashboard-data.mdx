@@ -129,8 +129,10 @@ Superset rather than redirecting to a signed storage URL.
   runs under the guest token's RLS rules and resource claims, and the page
   polls for completion and downloads automatically — but there is no email
   fallback, so the browser tab must stay open until the export finishes.
-  **Export Images to Excel** is not available to guests (the webdriver cannot
-  render under a guest identity; the API rejects it).
+  **Export Images to Excel** is not available to guest or anonymous
+  (Public-role) sessions: the webdriver cannot render without a real user
+  identity, so the menu hides it and the API rejects it for any session
+  without a user id.
 - The default **Export Data to Excel** mode exports data only (no visual
   styling). Use **Export Images to Excel** to embed rendered chart images, which
   requires the webdriver infrastructure described in the prerequisites.
