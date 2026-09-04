@@ -53,7 +53,7 @@ export type EchartsCandlestickFormData = QueryFormData &
     tooltipTimeFormat?: string;
     tooltipValuesFormat?: string;
     zoomable: boolean;
-    movingAverages: (number | string)[];
+    movingAverages?: (number | string)[];
     echartOptions?: string;
   };
 

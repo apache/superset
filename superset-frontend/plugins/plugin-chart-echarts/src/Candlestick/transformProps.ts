@@ -77,6 +77,17 @@ function toNumber(value: unknown): number | null {
   return Number.isFinite(numeric) ? numeric : null;
 }
 
+function getOwnValue<T extends object>(
+  object: T,
+  key: string,
+): T[keyof T] | undefined {
+  return key && Object.hasOwn(object, key) ? object[key as keyof T] : undefined;
+}
+
+function toCategoryKey(value: unknown): string {
+  return value == null ? NULL_STRING : String(value);
+}
+
 function getOhlc(
   datum: DataRecord,
   openLabel: string,
@@ -84,10 +95,10 @@ function getOhlc(
   lowLabel: string,
   highLabel: string,
 ): OhlcValue | null {
-  const open = toNumber(datum[openLabel]);
-  const close = toNumber(datum[closeLabel]);
-  const low = toNumber(datum[lowLabel]);
-  const high = toNumber(datum[highLabel]);
+  const open = toNumber(getOwnValue(datum, openLabel));
+  const close = toNumber(getOwnValue(datum, closeLabel));
+  const low = toNumber(getOwnValue(datum, lowLabel));
+  const high = toNumber(getOwnValue(datum, highLabel));
   if (open === null || close === null || low === null || high === null) {
     return null;
   }
@@ -265,8 +276,8 @@ export default function transformProps(
   const xRecords: DataRecord[] = [];
   const xKeySet = new Set<string>();
   data.forEach(datum => {
-    const raw = datum[xAxisName];
-    const key = raw == null ? NULL_STRING : String(raw);
+    const raw = getOwnValue(datum, xAxisName);
+    const key = toCategoryKey(raw);
     if (xKeySet.has(key)) {
       return;
     }
@@ -274,7 +285,7 @@ export default function transformProps(
     xKeys.push(key);
     xRecords.push(datum);
     xLabels.push(
-      coltypeMapping[xAxisName] === GenericDataType.Temporal
+      getOwnValue(coltypeMapping, xAxisName) === GenericDataType.Temporal
         ? extractGroupbyLabel({
             datum,
             groupby: [xAxisName],
@@ -292,21 +303,16 @@ export default function transformProps(
   const seriesNames = seriesName
     ? [
         ...new Set(
-          data.map(datum =>
-            datum[seriesName] == null ? NULL_STRING : String(datum[seriesName]),
-          ),
+          data.map(datum => toCategoryKey(getOwnValue(datum, seriesName))),
         ),
       ]
     : [CANDLESTICK_SERIES_NAME];
 
   const recordsBySeriesAndX = new Map<string, Map<string, DataRecord>>();
   data.forEach(datum => {
-    const xKey =
-      datum[xAxisName] == null ? NULL_STRING : String(datum[xAxisName]);
+    const xKey = toCategoryKey(getOwnValue(datum, xAxisName));
     const seriesKey = seriesName
-      ? datum[seriesName] == null
-        ? NULL_STRING
-        : String(datum[seriesName])
+      ? toCategoryKey(getOwnValue(datum, seriesName))
       : seriesNames[0];
     let byX = recordsBySeriesAndX.get(seriesKey);
     if (!byX) {
@@ -385,8 +391,6 @@ export default function transformProps(
     showLegend,
     legendOrientation,
     effectiveLegendMargin,
-    undefined,
-    true,
   );
 
   const dataZoom = zoomable
@@ -463,15 +467,25 @@ export default function transformProps(
         if (!item) {
           return '';
         }
+        const categoryIndex = item.dataIndex;
+        const categoryDatum =
+          Number.isInteger(categoryIndex) &&
+          categoryIndex >= 0 &&
+          categoryIndex < xRecords.length
+            ? xRecords[categoryIndex]
+            : {};
+        const categoryLabel = Number.isInteger(categoryIndex)
+          ? xLabels[categoryIndex]
+          : undefined;
         const title =
-          coltypeMapping[xAxisName] === GenericDataType.Temporal
+          getOwnValue(coltypeMapping, xAxisName) === GenericDataType.Temporal
             ? extractGroupbyLabel({
-                datum: xRecords[item.dataIndex] ?? {},
+                datum: categoryDatum,
                 groupby: [xAxisName],
                 coltypeMapping,
                 timeFormatter,
               })
-            : String(item.name ?? xLabels[item.dataIndex] ?? '');
+            : String(item.name ?? categoryLabel ?? '');
         return formatTooltip({
           params: ensureIsArray(params) as CallbackDataParams[],
           numberFormatter,

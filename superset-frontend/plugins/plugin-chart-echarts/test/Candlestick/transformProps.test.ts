@@ -133,6 +133,19 @@ test('hides axes when showXAxis or showYAxis is false', () => {
   expect((echartOptions.yAxis as { show: boolean }).show).toBe(false);
 });
 
+test('reserves bottom legend space on the bottom grid edge', () => {
+  const { echartOptions } = buildProps({
+    show_legend: true,
+    legend_orientation: 'bottom',
+    show_x_axis: false,
+    show_y_axis: false,
+    x_axis_title_margin: 0,
+    y_axis_title_margin: 0,
+  });
+  const grid = echartOptions.grid as { left: number; bottom: number };
+  expect(grid.bottom).toBeGreaterThan(grid.left);
+});
+
 test('splits data into multiple series when a series dimension is set', () => {
   const seriesData = [
     {

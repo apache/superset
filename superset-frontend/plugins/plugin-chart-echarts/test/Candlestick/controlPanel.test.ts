@@ -18,14 +18,14 @@
  */
 import { SqlaFormData } from '@superset-ui/core';
 
-const mockShiftMetric = jest.fn();
+const mockPopAllMetrics = jest.fn();
 
 jest.mock('@superset-ui/chart-controls', () => {
   const actual = jest.requireActual('@superset-ui/chart-controls');
   return {
     ...actual,
     getStandardizedControls: jest.fn(() => ({
-      shiftMetric: mockShiftMetric,
+      popAllMetrics: mockPopAllMetrics,
     })),
   };
 });
@@ -34,11 +34,13 @@ jest.mock('@superset-ui/chart-controls', () => {
 import controlPanel from '../../src/Candlestick/controlPanel';
 
 test('formDataOverrides consumes four metrics for open, close, high, and low', () => {
-  mockShiftMetric
-    .mockReturnValueOnce('openMetric')
-    .mockReturnValueOnce('closeMetric')
-    .mockReturnValueOnce('highMetric')
-    .mockReturnValueOnce('lowMetric');
+  mockPopAllMetrics.mockReturnValueOnce([
+    'openMetric',
+    'closeMetric',
+    'highMetric',
+    'lowMetric',
+    'extraMetric',
+  ]);
 
   expect(controlPanel.formDataOverrides).toBeDefined();
 
@@ -50,7 +52,25 @@ test('formDataOverrides consumes four metrics for open, close, high, and low', (
   expect(newFormData.close).toBe('closeMetric');
   expect(newFormData.high).toBe('highMetric');
   expect(newFormData.low).toBe('lowMetric');
-  expect(mockShiftMetric).toHaveBeenCalledTimes(4);
+  expect(mockPopAllMetrics).toHaveBeenCalledTimes(1);
+});
+
+test('formDataOverrides keeps existing OHLC fields when fewer than four metrics are available', () => {
+  mockPopAllMetrics.mockReturnValueOnce(['openMetric']);
+
+  const dummyFormData = {
+    someProp: 'test',
+    open: 'existingOpen',
+    close: 'existingClose',
+    high: 'existingHigh',
+    low: 'existingLow',
+  } as unknown as SqlaFormData;
+  const newFormData = controlPanel.formDataOverrides!(dummyFormData);
+
+  expect(newFormData.open).toBe('openMetric');
+  expect(newFormData.close).toBe('existingClose');
+  expect(newFormData.high).toBe('existingHigh');
+  expect(newFormData.low).toBe('existingLow');
 });
 
 test('overrides series to a single optional dimension', () => {

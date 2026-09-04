@@ -246,13 +246,18 @@ const config: ControlPanelConfig = {
       multi: false,
     },
   },
-  formDataOverrides: formData => ({
-    ...formData,
-    open: getStandardizedControls().shiftMetric(),
-    close: getStandardizedControls().shiftMetric(),
-    high: getStandardizedControls().shiftMetric(),
-    low: getStandardizedControls().shiftMetric(),
-  }),
+  formDataOverrides: formData => {
+    const [open, close, high, low] = getStandardizedControls()
+      .popAllMetrics()
+      .slice(0, 4);
+    return {
+      ...formData,
+      ...(open !== undefined ? { open } : {}),
+      ...(close !== undefined ? { close } : {}),
+      ...(high !== undefined ? { high } : {}),
+      ...(low !== undefined ? { low } : {}),
+    };
+  },
 };
 
 export default config;
