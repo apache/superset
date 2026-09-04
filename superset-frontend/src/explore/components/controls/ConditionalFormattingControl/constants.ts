@@ -76,7 +76,7 @@ export const boundUnitOptions = [
 
 export const percentDenominatorOptions = [
   { value: PercentDenominator.Max, label: t('Column max') },
-  { value: PercentDenominator.Sum, label: t('Column sum') },
+  { value: PercentDenominator.Sum, label: t('Sum of magnitudes') },
 ];
 
 // Use theme token names instead of hex values to support theme switching

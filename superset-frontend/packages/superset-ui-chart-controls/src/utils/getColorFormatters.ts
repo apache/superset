@@ -160,12 +160,12 @@ export const getColorFunction = (
     if (numericColumnValues.length === 0) {
       return undefined;
     }
-    // A sum uses its magnitude so a negative total does not reverse the
-    // scale. A non-positive column maximum cannot produce ordered percentage
-    // bounds, so it falls back to the automatic data range below.
+    // Sum magnitudes independently so mixed signs do not cancel into an
+    // unstable denominator. A non-positive column maximum cannot produce
+    // ordered percentage bounds, so it falls back to the automatic range.
     const denominatorValue =
       percentDenominator === PercentDenominator.Sum
-        ? Math.abs(numericColumnValues.reduce((sum, value) => sum + value, 0))
+        ? numericColumnValues.reduce((sum, value) => sum + Math.abs(value), 0)
         : numericColumnValues.reduce(
             (max, value) => (value > max ? value : max),
             -Infinity,

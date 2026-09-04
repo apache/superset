@@ -1494,7 +1494,7 @@ test('getColorFunction NONE falls back to automatic bounds for a non-positive co
   expect(colorFunction(-5)).toEqual('#FF0000FF');
 });
 
-test('getColorFunction NONE degrades a zero-sum percent denominator to the data-derived range instead of full saturation', () => {
+test('getColorFunction NONE uses the sum of magnitudes for mixed-sign values', () => {
   const colorFunction = getColorFunction(
     {
       operator: Comparator.None,
@@ -1505,18 +1505,14 @@ test('getColorFunction NONE degrades a zero-sum percent denominator to the data-
       minBound: 0,
       maxBound: 100,
     },
-    [100, -100],
+    [500, -499, 400, -400],
   );
-  // sum of [100,-100] is 0, which previously collapsed both resolved bounds
-  // to the same point (0) -- getOpacity's own cutoffValue===extremeValue
-  // guard then returns full opacity for every value, coloring the whole
-  // column at maximum intensity regardless of its actual spread. Treating a
-  // zero denominator as "unset" instead falls back to this column's own
-  // data-derived min/max ([-100,100]), producing a real gradient -- see PR
-  // review finding #2.
-  expect(colorFunction(-100)).toEqual('#FF000000');
-  expect(colorFunction(0)).toEqual('#FF000080');
-  expect(colorFunction(100)).toEqual('#FF0000FF');
+  // The signed sum is 1, but the magnitude sum is 1799. Using the signed sum
+  // would make every positive value saturate at the upper endpoint.
+  expect(colorFunction(-400)).toEqual('#FF000000');
+  expect(colorFunction(0)).toEqual('#FF000000');
+  expect(colorFunction(899.5)).toEqual('#FF000080');
+  expect(colorFunction(1799)).toEqual('#FF0000FF');
 });
 
 test('getColorFunction GREATER_THAN ignores diverging fields even when fully set', () => {

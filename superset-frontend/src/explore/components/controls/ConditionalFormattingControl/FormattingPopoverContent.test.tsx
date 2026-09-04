@@ -814,6 +814,40 @@ test('hides Center value and color fields on string columns', () => {
   expect(screen.queryByLabelText('Low color')).not.toBeInTheDocument();
 });
 
+test.each([
+  [10, 'Center value should be greater than min bound'],
+  [40, 'Center value should be smaller than max bound'],
+])(
+  'rejects Center value %s when it equals a bound',
+  async (centerValue, expectedError) => {
+    const onChange = jest.fn();
+    render(
+      <FormattingPopoverContent
+        onChange={onChange}
+        columns={columns}
+        extraColorChoices={extraColorChoices}
+      />,
+    );
+
+    const { minBoundInput, maxBoundInput } = getBoundInputs();
+    await userEvent.type(minBoundInput, '10');
+    fireEvent.blur(minBoundInput);
+    await userEvent.type(maxBoundInput, '40');
+    fireEvent.blur(maxBoundInput);
+
+    const centerValueInput = screen.getByLabelText(
+      'Center value',
+      boundLabelOptions,
+    );
+    await userEvent.type(centerValueInput, String(centerValue));
+    fireEvent.blur(centerValueInput);
+    fireEvent.click(screen.getByText('Apply'));
+
+    expect(await screen.findByText(expectedError)).toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
+  },
+);
+
 test('validates Center value against Min bound and Max bound when both are set', async () => {
   render(
     <FormattingPopoverContent
@@ -1010,7 +1044,7 @@ test('submits boundUnit and percentDenominator to onChange with the correct fiel
   );
 
   await selectFieldOption('% of column', 'Bound unit');
-  await selectFieldOption('Column sum', 'Percent denominator');
+  await selectFieldOption('Sum of magnitudes', 'Percent denominator');
 
   fireEvent.click(screen.getByText('Apply'));
 
