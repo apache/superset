@@ -86,6 +86,32 @@ test('falls back to administrator guidance when no owners are known', () => {
   expect(screen.queryByRole('link', { name: 'Request access' })).toBeNull();
 });
 
+test('treats a pre-is_access_denial payload as an access denial', () => {
+  // During a rolling deploy an older API pod answers with `datasource` and
+  // `datasource_name` and no `is_access_denial` flag. The request-access
+  // guidance must still render, and the dataset name must stay hidden.
+  const props = {
+    ...baseProps,
+    error: {
+      ...baseProps.error,
+      extra: {
+        datasource: 12,
+        datasource_name: 'Quarterly Sales',
+        owners: ['Jane Doe'],
+      },
+      message: 'This endpoint requires the datasource 12',
+    },
+  };
+  render(<DatasourceSecurityAccessErrorMessage {...props} />);
+  expect(
+    screen.getByText("You don't have access to this chart's data"),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(/reach out to the chart owner: Jane Doe/),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(/Quarterly Sales/)).toBeNull();
+});
+
 test('explains table access for TABLE_SECURITY_ACCESS_ERROR', () => {
   const props = {
     ...baseProps,

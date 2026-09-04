@@ -160,7 +160,11 @@ export default function ExplorePage() {
       const exploreUrlParams = getParsedExploreURLParams(loc);
       const dashboardContextFormData = getDashboardContextFormData(loc.search);
 
-      const isStale = () => generation !== fetchGeneration.current;
+      // A superseded fetch and an aborted one are equally unusable: the abort
+      // fires on unmount without touching `fetchGeneration`, so results must be
+      // dropped on either signal rather than dispatched into a torn-down page.
+      const isStale = () =>
+        generation !== fetchGeneration.current || controller.signal.aborted;
 
       fetchExploreData(exploreUrlParams, controller.signal)
         .then(({ result }) => {
@@ -228,7 +232,16 @@ export default function ExplorePage() {
             t('Failed to load chart data.');
           dispatch(addDangerToast(errorMesage));
 
-          if (err.extra?.is_access_denial) {
+          // `extra.datasource` is the pre-`is_access_denial` shape of this
+          // payload; accepting it keeps the request-access UI working while a
+          // rolling deploy still has older API pods answering.
+          if (err.extra?.is_access_denial || isDefined(err.extra?.datasource)) {
+            // An API pod that predates the fix still names the dataset in
+            // `extra`. Drop it before the error is stored — `DatasourceControl`
+            // renders this object, and Explore's state must not carry the name
+            // of a dataset the user was just denied. Deleted in place rather
+            // than spread into a copy, which would lose `Error.message`.
+            delete err.extra?.datasource_name;
             const exploreData = {
               ...fallbackExploreInitialData,
               dataset: {
@@ -250,7 +263,26 @@ export default function ExplorePage() {
             )
               .then(
                 ({
-                  result: { id, url, editors, viewers, form_data: _, ...data },
+                  result: {
+                    id,
+                    url,
+                    editors,
+                    viewers,
+                    form_data: _,
+                    // `GET /api/v1/chart/<id>` is granted to any chart viewer
+                    // regardless of dataset access, so its payload describes
+                    // the dataset this user was just denied: the name/url/uuid
+                    // identify it, and params/query_context carry its columns,
+                    // metric SQL and filter values. Explore reads none of them
+                    // on this path — drop them rather than spreading them into
+                    // state. Only the chart's own name and owners are needed.
+                    datasource_name_text: _datasourceNameText,
+                    datasource_url: _datasourceUrl,
+                    datasource_uuid: _datasourceUuid,
+                    params: _params,
+                    query_context: _queryContext,
+                    ...data
+                  },
                 }) => {
                   if (isStale()) {
                     return;
@@ -281,7 +313,7 @@ export default function ExplorePage() {
           return Promise.resolve();
         })
         .finally(() => {
-          if (!isStale() && !controller.signal.aborted) {
+          if (!isStale()) {
             setIsLoaded(true);
           }
         });

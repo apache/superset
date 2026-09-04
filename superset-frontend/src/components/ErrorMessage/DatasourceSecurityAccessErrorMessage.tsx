@@ -18,6 +18,7 @@
  */
 import { ReactNode } from 'react';
 import { t, tn } from '@apache-superset/core/translation';
+import { isDefined } from '@superset-ui/core';
 import { Typography } from '@superset-ui/core/components';
 
 import type { ErrorMessageComponentProps } from './types';
@@ -55,7 +56,14 @@ export function DatasourceSecurityAccessErrorMessage({
   // (e.g. virtual-dataset SQL validation: "Only SELECT statements are
   // allowed"). Those errors carry no access payload — render them plainly
   // rather than misleading the user with request-access guidance.
-  const isAccessDenial = !!extra?.tables?.length || !!extra?.is_access_denial;
+  //
+  // `datasource` is the pre-`is_access_denial` shape of the payload; accepting
+  // it keeps this guidance working while a rolling deploy still has older API
+  // pods answering. It never appears on the non-access failures above.
+  const isAccessDenial =
+    !!extra?.tables?.length ||
+    !!extra?.is_access_denial ||
+    isDefined(extra?.datasource);
   if (!isAccessDenial) {
     return (
       <ErrorAlert

@@ -26,6 +26,17 @@ assists people when migrating to a new version.
 
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 
+### `PERMISSION_INSTRUCTIONS_LINK` no longer supports `{datasource_name}`
+
+The datasource access-denied error is returned to a user who was just denied that
+dataset, so the dataset's name is no longer templated into the "Request access"
+link — nor included in the error message or its `extra` payload. Deployments whose
+`PERMISSION_INSTRUCTIONS_LINK` still contains `{datasource_name}` get the
+placeholder back verbatim in the rendered URL and a warning in the logs; the
+substitution is deliberately not blanked so the broken link is visible rather than
+silently truncated. Use `{datasource_id}` (still supported) to identify the dataset
+to your access-request system, and resolve the name there.
+
 ### MCP tool results preserve stored string values
 
 Structured MCP tool results no longer add `<UNTRUSTED-CONTENT>` wrappers or
