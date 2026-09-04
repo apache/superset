@@ -52,3 +52,11 @@ test('formDataOverrides consumes four metrics for open, close, high, and low', (
   expect(newFormData.low).toBe('lowMetric');
   expect(mockShiftMetric).toHaveBeenCalledTimes(4);
 });
+
+test('overrides series to a single optional dimension', () => {
+  expect(controlPanel.controlOverrides?.series).toEqual(
+    expect.objectContaining({
+      multi: false,
+    }),
+  );
+});

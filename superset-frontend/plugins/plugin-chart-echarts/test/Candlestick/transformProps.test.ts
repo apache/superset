@@ -64,6 +64,30 @@ const extractSeries = (props: CandlestickChartTransformedProps) => {
   return series;
 };
 
+const transform = (
+  rows: Record<string, unknown>[],
+  extraFormData: Record<string, unknown> = {},
+) =>
+  transformProps(
+    new ChartProps({
+      formData: { ...formData, ...extraFormData },
+      width: 800,
+      height: 600,
+      queriesData: [{ data: rows }],
+      theme: supersetTheme,
+    }) as unknown as EchartsCandlestickChartProps,
+  );
+
+const getTooltipHtml = (
+  props: CandlestickChartTransformedProps,
+  params: unknown,
+) =>
+  (
+    props.echartOptions.tooltip as {
+      formatter: (value: unknown) => string;
+    }
+  ).formatter(params);
+
 test('maps rows to ECharts candlestick [open, close, low, high] values', () => {
   const series = extractSeries(buildProps());
   expect(series).toHaveLength(1);
@@ -209,9 +233,14 @@ test('overlays MA lines of the close price', () => {
     'MA2',
     'MA3',
   ]);
-  // calculateMA matches the ECharts example: first `period` points are '-'.
-  expect(series[1].data).toEqual(['-', '-', 36.5, 26.5]);
-  expect(series[2].data).toEqual(['-', '-', '-', 29.333333333333332]);
+  // MA is available after N observations: first `period - 1` points are '-'.
+  expect(series[1].data).toEqual(['-', 34.5, 36.5, 26.5]);
+  expect(series[2].data).toEqual([
+    '-',
+    '-',
+    35.666666666666664,
+    29.333333333333332,
+  ]);
   expect(series[1]).toEqual(
     expect.objectContaining({
       type: 'line',
@@ -385,4 +414,133 @@ test('formats tooltip dates from the category, not the raw row index', () => {
   ]);
   expect(tooltipHtml).toContain('2017-10-25');
   expect(tooltipHtml).not.toContain('2017-10-24');
+});
+
+test('drops incomplete OHLC rows', () => {
+  const series = extractSeries(
+    transform([
+      { date: '2017-10-24', open: 20, close: 34, low: 10, high: 38 },
+      { date: '2017-10-25', open: 40, close: 35, low: 30 },
+    ]),
+  );
+  expect(series[0].data).toEqual([[20, 34, 10, 38], []]);
+});
+
+test('returns no points for empty query data', () => {
+  const props = transform([]);
+  expect((props.echartOptions.xAxis as { data: string[] }).data).toEqual([]);
+  expect(extractSeries(props)[0].data).toEqual([]);
+});
+
+test('enables data zoom when zoomable is set', () => {
+  const { echartOptions } = buildProps({ zoomable: true });
+  expect(echartOptions.dataZoom).toHaveLength(2);
+  expect((echartOptions.toolbox as { show: boolean }).show).toBe(true);
+});
+
+test('hides the tooltip while a context menu is open', () => {
+  const props = transformProps({
+    ...new ChartProps({
+      formData,
+      width: 800,
+      height: 600,
+      queriesData: [{ data }],
+      theme: supersetTheme,
+    }),
+    inContextMenu: true,
+  } as unknown as EchartsCandlestickChartProps);
+  expect((props.echartOptions.tooltip as { show: boolean }).show).toBe(false);
+});
+
+test('tooltip heading uses increase or decrease based on open vs close', () => {
+  const props = buildProps({
+    increase_label: 'Up',
+    decrease_label: 'Down',
+  });
+  expect(
+    getTooltipHtml(props, [
+      {
+        dataIndex: 0,
+        name: '2017-10-24',
+        seriesType: 'candlestick',
+        value: [20, 34, 10, 38],
+        data: [20, 34, 10, 38],
+      },
+    ]),
+  ).toContain('Up');
+  expect(
+    getTooltipHtml(props, [
+      {
+        dataIndex: 3,
+        name: '2017-10-27',
+        seriesType: 'candlestick',
+        value: [38, 15, 5, 42],
+        data: [38, 15, 5, 42],
+      },
+    ]),
+  ).toContain('Down');
+});
+
+test('tooltip includes moving-average line values', () => {
+  const tooltipHtml = getTooltipHtml(buildProps({ moving_averages: [2] }), [
+    {
+      dataIndex: 1,
+      name: '2017-10-25',
+      seriesType: 'candlestick',
+      value: [40, 35, 30, 50],
+      data: [40, 35, 30, 50],
+    },
+    {
+      dataIndex: 1,
+      seriesType: 'line',
+      seriesName: 'MA2',
+      value: 34.5,
+    },
+  ]);
+  expect(tooltipHtml).toContain('MA2');
+  expect(tooltipHtml).toContain('34.5');
+});
+
+test('tooltip returns an empty string when there is nothing to show', () => {
+  expect(getTooltipHtml(buildProps(), [])).toBe('');
+});
+
+test('sorts legend items when legendSort is set', () => {
+  const props = transform(
+    [
+      {
+        date: '2017-10-24',
+        symbol: 'AAPL',
+        open: 20,
+        close: 34,
+        low: 10,
+        high: 38,
+      },
+      {
+        date: '2017-10-24',
+        symbol: 'GOOG',
+        open: 40,
+        close: 35,
+        low: 30,
+        high: 50,
+      },
+    ],
+    { series: 'symbol', legend_sort: 'desc' },
+  );
+  expect((props.echartOptions.legend as { data: string[] }).data).toEqual([
+    'GOOG',
+    'AAPL',
+  ]);
+});
+
+test('merges custom echart options and ignores invalid JSON', () => {
+  const merged = buildProps({
+    echart_options: '{"title":{"text":"OHLC"}}',
+  });
+  expect(
+    (merged.echartOptions.title as { text: string } | undefined)?.text,
+  ).toBe('OHLC');
+
+  const invalid = buildProps({ echart_options: 'not-json' });
+  expect(extractSeries(invalid)[0].data).toHaveLength(4);
 });

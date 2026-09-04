@@ -48,9 +48,9 @@ export function parseMovingAveragePeriods(value: unknown): number[] {
 }
 
 /**
- * Simple moving average of close prices, matching the ECharts candlestick
- * example: the first `period` points are omitted, then each value is the
- * mean of the current close and the previous `period - 1` closes.
+ * Simple moving average of close prices: the first `period - 1` points
+ * are omitted, then each value is the mean of the current close and the
+ * previous `period - 1` closes.
  */
 export function calculateMA(
   closes: Array<number | null>,
@@ -58,7 +58,7 @@ export function calculateMA(
 ): Array<number | '-'> {
   const result: Array<number | '-'> = [];
   for (let i = 0; i < closes.length; i += 1) {
-    if (i < period) {
+    if (i < period - 1) {
       result.push('-');
       continue;
     }

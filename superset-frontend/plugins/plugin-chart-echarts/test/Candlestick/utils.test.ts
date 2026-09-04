@@ -26,6 +26,7 @@ test('parses numeric and MA-prefixed periods', () => {
   expect(parseMovingAveragePeriods([5, 'MA10', '15', 'MA15'])).toEqual([
     5, 10, 15,
   ]);
+  expect(parseMovingAveragePeriods([' ma7 ', 'MA20'])).toEqual([7, 20]);
 });
 
 test('drops invalid moving-average periods', () => {
@@ -35,10 +36,11 @@ test('drops invalid moving-average periods', () => {
   ).toEqual([]);
 });
 
-test('calculateMA matches the ECharts candlestick example', () => {
-  // First `period` points are '-', then mean of close[i] .. close[i-period+1].
+test('calculateMA is available after N observations', () => {
+  // First `period - 1` points are '-', then mean of close[i] .. close[i-period+1].
   const closes = [10, 20, 30, 40, 50, 60, 70, 80];
-  expect(calculateMA(closes, 5)).toEqual(['-', '-', '-', '-', '-', 40, 50, 60]);
+  expect(calculateMA(closes, 5)).toEqual(['-', '-', '-', '-', 30, 40, 50, 60]);
+  expect(calculateMA([10, 20, 30], 2)).toEqual(['-', 15, 25]);
 });
 
 test('calculateMA skips windows that contain missing closes', () => {
