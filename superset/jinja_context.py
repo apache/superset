@@ -1293,7 +1293,7 @@ def get_dataset_id_from_context(metric_key: str) -> int:
     """
     # pylint: disable=import-outside-toplevel
     from superset.daos.chart import ChartDAO
-    from superset.views.utils import loads_request_json
+    from superset.views.utils import get_request_json_body, loads_request_json
 
     form_data: dict[str, Any] = {}
     exc_message = _(
@@ -1302,7 +1302,7 @@ def get_dataset_id_from_context(metric_key: str) -> int:
     )
 
     if has_request_context():
-        if payload := request.get_json(cache=True) if request.is_json else None:
+        if payload := get_request_json_body():
             if dataset_id := payload.get("datasource", {}).get("id"):
                 return dataset_id
             form_data.update(payload.get("form_data", {}))

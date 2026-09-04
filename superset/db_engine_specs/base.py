@@ -2976,6 +2976,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return name
 
     @classmethod
+    def prepare_identifier(
+        cls,
+        name: str,
+        normalize_columns: bool = False,
+    ) -> str:
+        """
+        Prepare a physical identifier for SQLAlchemy column construction.
+
+        The default preserves SQLAlchemy's automatic identifier-quoting behavior.
+        """
+        return name
+
+    @classmethod
     def quote_table(cls, table: Table, dialect: Dialect) -> str:
         """
         Fully quote a table name, including the schema and catalog.

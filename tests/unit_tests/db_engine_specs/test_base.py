@@ -291,6 +291,13 @@ def test_get_default_catalog(mocker: MockerFixture) -> None:
     assert BaseEngineSpec.get_default_catalog(database) is None
 
 
+def test_prepare_identifier_returns_name_unchanged() -> None:
+    name = "physical_column"
+
+    assert BaseEngineSpec.prepare_identifier(name, normalize_columns=False) is name
+    assert BaseEngineSpec.prepare_identifier(name, normalize_columns=True) is name
+
+
 def test_quote_table() -> None:
     """
     Test the `quote_table` function.
