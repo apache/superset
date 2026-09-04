@@ -2180,6 +2180,43 @@ def test_is_mutating_postgres_command_constructs(sql: str, expected: bool) -> No
 
 
 @pytest.mark.parametrize(
+    "sql, expected",
+    [
+        # A persistent catalog function has no structured sqlglot grammar and
+        # falls back to an opaque exp.Command("CREATE"), which the generic
+        # exp.Create check does not catch. Without the Trino-specific
+        # exp.Command check, this would slip past a read-only (allow_dml=False)
+        # gate and still create a function on the Trino cluster.
+        (
+            "CREATE FUNCTION meaning_of_life() RETURNS tinyint BEGIN RETURN 42; END",
+            True,
+        ),
+        (
+            "CREATE OR REPLACE FUNCTION meaning_of_life() RETURNS tinyint "
+            "BEGIN RETURN 42; END",
+            True,
+        ),
+        # An inline `WITH FUNCTION` UDF is scoped to the query and does not
+        # persist anything server-side, so it must stay non-mutating.
+        (
+            "WITH FUNCTION meaning_of_life() RETURNS tinyint "
+            "BEGIN RETURN 42; END "
+            "SELECT meaning_of_life()",
+            False,
+        ),
+    ],
+)
+def test_is_mutating_trino_create_function(sql: str, expected: bool) -> None:
+    """
+    Trino `CREATE [OR REPLACE] FUNCTION ... BEGIN ... END` creates a
+    persistent catalog function and must be classified as mutating, even
+    though sqlglot represents it as an opaque `exp.Command` rather than a
+    structured `exp.Create` node.
+    """
+    assert SQLStatement(sql, "trino").is_mutating() == expected
+
+
+@pytest.mark.parametrize(
     "sql, engine, functions, expected",
     [
         # MySQL `@@<name>` syntax parses as exp.SessionParameter, which is
