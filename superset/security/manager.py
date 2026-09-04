@@ -1721,7 +1721,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     """Set to False in subclasses that provide their own auth view."""
     register_superset_registeruser_view = True
     """Set to False in subclasses that provide their own register user view."""
-    READ_ONLY_MODEL_VIEWS = {"Database", "DynamicPlugin"}
+    READ_ONLY_MODEL_VIEWS = {
+        "Database",
+        "DynamicPlugin",
+        # A semantic layer is a credentialed connection to an external
+        # system --- structurally a Database: its configuration carries
+        # authentication material. Database parity: writes are admin-only,
+        # reads are broadly visible but return masked secrets.
+        "SemanticLayer",
+    }
 
     role_api = SupersetRoleApi
     user_api = SupersetUserApi
@@ -1743,6 +1751,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "CssTemplate",
         "Dataset",
         "Datasource",
+        # A semantic view is a queryable model definition on top of a
+        # layer's connection, with no credentials of its own --- structurally
+        # a Dataset: writes are Alpha-tier, reads Gamma-tier.
+        "SemanticView",
         "Theme",
     } | READ_ONLY_MODEL_VIEWS
 
