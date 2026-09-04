@@ -72,6 +72,7 @@ from superset_core.common.models import Dataset as CoreDataset
 from superset import db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.partition_mapping import (
+    FEATURE_FLAG as PARTITION_FILTER_MAPPING_FLAG,
     is_transform_active,
     resolve_partition_mapping,
 )
@@ -1991,8 +1992,15 @@ class SqlaTable(
         would advertise a mapping that never mirrors a filter. The parse this
         costs is memoized on `(transform, engine)` in `is_transform_active`, and
         datasets without a partition column never reach it.
+
+        Gated on the feature flag for the same reason `resolve_partition_mapping`
+        is: with the flag off nothing is mirrored, so reporting an active mapping
+        would have the Explore indicator promise a predicate the query never
+        carries.
         """
-        if not self.partition_column:
+        if not self.partition_column or not is_feature_enabled(
+            PARTITION_FILTER_MAPPING_FLAG
+        ):
             return None
 
         columns_by_name = {column.column_name: column for column in self.columns}

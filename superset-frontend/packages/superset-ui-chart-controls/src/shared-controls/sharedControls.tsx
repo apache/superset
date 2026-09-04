@@ -211,6 +211,12 @@ const time_grain_sqla: SharedControlConfig<'SelectControl'> = {
 const time_range: SharedControlConfig<'DateFilterControl'> = {
   type: 'DateFilterControl',
   freeForm: true,
+  // The indicator needs to know whether this filter is mirrored onto a
+  // partition column; the summary is self-contained on the datasource so this
+  // does not have to reach into `columns`.
+  mapStateToProps: ({ datasource }) => ({
+    partitionMapping: (datasource as Dataset)?.partition_filter_mapping ?? null,
+  }),
   label: TIME_FILTER_LABELS.time_range,
   default: NO_TIME_RANGE, // this value is an empty filter constant so shouldn't translate it.
   description: t(
