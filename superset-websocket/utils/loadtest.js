@@ -23,11 +23,15 @@ const redis = new Redis(config.redis);
 
 const numClients = 256;
 
-// The single Pub/Sub channel the server tails; a fixed wire-protocol contract
-// with the Superset producer, mirrored from superset-websocket/src/index.ts.
-// Every browser-bound message rides this channel as a self-describing
+// The single Pub/Sub channel the server tails, mirrored from
+// superset-websocket/src/index.ts: `<REALTIME_CHANNEL_PREFIX>realtime`. Resolve
+// the prefix the same way the server does (env override, else config.json, else
+// empty) so a loadtest points at a prefixed server's channel. Every
+// browser-bound message rides this channel as a self-describing
 // `{topic, scope, routes, payload}` envelope.
-const realtimeChannel = 'realtime';
+const realtimeChannelPrefix =
+  process.env.REALTIME_CHANNEL_PREFIX || config.realtimeChannelPrefix || '';
+const realtimeChannel = `${realtimeChannelPrefix}realtime`;
 
 let entityId = 0;
 

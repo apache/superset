@@ -27,6 +27,8 @@
 # StatsD, etc.). The values that MUST match the Flask app's config are:
 #   JWT_SECRET      == WEBSOCKET_JWT_SECRET
 #   JWT_COOKIE_NAME == WEBSOCKET_JWT_COOKIE_NAME (default superset-ws-token)
+#   REALTIME_CHANNEL_PREFIX == Flask REALTIME_CHANNEL_PREFIX (default empty; set a
+#     per-deployment value on both sides to isolate a shared Redis/Valkey)
 # Optional rotation setting:
 #   PREVIOUS_JWT_SECRET == old WEBSOCKET_JWT_SECRET accepted for verification
 # and the Redis connection (REDIS_HOST/REDIS_PORT/...) must point at the same

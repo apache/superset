@@ -39,12 +39,14 @@ same browser-visible host.
 
 ### The `realtime` Pub/Sub channel and the message envelope
 
-Realtime events are published to a single Redis **Pub/Sub** channel, `realtime`,
-by the Superset Flask app (`superset/tasks/manager.py`). Pub/Sub is intentionally
-best-effort (fire-and-forget, at-most-once — no replay): it accelerates each
-feature's authoritative REST/poll path rather than guaranteeing delivery, so a
-message missed during a disconnect is reconciled by a frontend catch-up / REST
-refetch.
+Realtime events are published to a single Redis **Pub/Sub** channel,
+`<REALTIME_CHANNEL_PREFIX>realtime` (just `realtime` with the default empty
+prefix), by the Superset Flask app (`superset/tasks/manager.py`). Pub/Sub is
+intentionally best-effort (fire-and-forget, at-most-once — no replay): it
+accelerates each feature's authoritative REST/poll path rather than guaranteeing
+delivery, so a message missed during a disconnect is reconciled by a frontend
+catch-up / REST refetch. See [Superset Configuration](#superset-configuration)
+for the prefix and its Redis ACL implications.
 
 Each Redis message is a self-describing envelope that separates **what** a message
 is from **who** receives it:
@@ -233,7 +235,7 @@ Note also that `localhost` and `127.0.0.1` are not considered the same host. For
 example, if you're pointing your browser to `localhost:<port>` for Superset,
 then the WebSocket url will need to be configured as `localhost:<port>`.
 
-The following auth values must be coordinated between the Flask app config and
+The following values must be coordinated between the Flask app config and
 this server's `config.json` (or its environment-variable overrides):
 
 | Purpose                     | Flask app config            | WebSocket server config                     |
@@ -241,13 +243,20 @@ this server's `config.json` (or its environment-variable overrides):
 | Current signing/verify key  | `WEBSOCKET_JWT_SECRET`      | `jwtSecret` / `JWT_SECRET`                  |
 | Previous verify-only key    | not needed                  | `previousJwtSecret` / `PREVIOUS_JWT_SECRET` |
 | Cookie name                 | `WEBSOCKET_JWT_COOKIE_NAME` | `jwtCookieName` / `JWT_COOKIE_NAME`         |
+| Realtime channel prefix     | `REALTIME_CHANNEL_PREFIX`   | `realtimeChannelPrefix` / `REALTIME_CHANNEL_PREFIX` |
 
 The Redis connection (`redis` / `REDIS_*`) must point at the same Redis instance
 Superset publishes to (`DISTRIBUTED_COORDINATION_CONFIG`). The channel the server
-**subscribes** to (`realtime`) is a fixed wire-protocol contract with the backend
-producer and is not configurable; the server forwards each envelope to browsers as
-`{topic, payload}`. A Redis ACL for this server must therefore allow subscribing to
-`realtime`.
+**subscribes** to is `<REALTIME_CHANNEL_PREFIX>realtime` — the prefix is empty by
+default (channel `realtime`), and the resulting name is a wire-protocol contract
+with the backend producer, so the prefix **must be set identically** on both
+sides (`REALTIME_CHANNEL_PREFIX` in Superset and `REALTIME_CHANNEL_PREFIX` /
+`realtimeChannelPrefix` here). The server forwards each envelope to browsers as
+`{topic, payload}`. A Redis ACL for this server must therefore allow subscribing
+to the **resulting** channel — `realtime` by default, or e.g. `tenant-a:realtime`
+when `REALTIME_CHANNEL_PREFIX=tenant-a:`. Set a per-deployment prefix to keep
+deployments that share one Redis/Valkey from cross-delivering realtime nudges
+(Redis pub/sub is not scoped by DB number).
 
 ## StatsD monitoring
 

@@ -36,6 +36,7 @@ test('buildConfig() builds configuration and applies env var overrides', () => {
   expect(config.statsd.host).toEqual('127.0.0.1');
   expect(config.statsd.port).toEqual(8125);
   expect(config.statsd.globalTags).toEqual([]);
+  expect(config.realtimeChannelPrefix).toEqual('');
 
   process.env.JWT_SECRET = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
   process.env.PREVIOUS_JWT_SECRET = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
@@ -47,6 +48,7 @@ test('buildConfig() builds configuration and applies env var overrides', () => {
   process.env.STATSD_HOST = '15.15.15.15';
   process.env.STATSD_PORT = '8000';
   process.env.STATSD_GLOBAL_TAGS = 'tag-1,tag-2';
+  process.env.REALTIME_CHANNEL_PREFIX = 'tenant-a:';
 
   config = buildConfig();
 
@@ -60,6 +62,7 @@ test('buildConfig() builds configuration and applies env var overrides', () => {
   expect(config.statsd.host).toEqual('15.15.15.15');
   expect(config.statsd.port).toEqual(8000);
   expect(config.statsd.globalTags).toEqual(['tag-1', 'tag-2']);
+  expect(config.realtimeChannelPrefix).toEqual('tenant-a:');
 
   delete process.env.JWT_SECRET;
   delete process.env.PREVIOUS_JWT_SECRET;
@@ -71,6 +74,7 @@ test('buildConfig() builds configuration and applies env var overrides', () => {
   delete process.env.STATSD_HOST;
   delete process.env.STATSD_PORT;
   delete process.env.STATSD_GLOBAL_TAGS;
+  delete process.env.REALTIME_CHANNEL_PREFIX;
 });
 
 test('buildConfig() performs deep merge between configs', () => {

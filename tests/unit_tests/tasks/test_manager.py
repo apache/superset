@@ -38,6 +38,7 @@ def _reset_prefixes() -> None:
     TaskManager._initialized = False
     TaskManager._channel_prefix = "gtf:abort:"
     TaskManager._completion_channel_prefix = "gtf:complete:"
+    TaskManager._realtime_channel_prefix = ""
 
 
 class TestTaskManagerInitApp:
@@ -55,6 +56,7 @@ class TestTaskManagerInitApp:
         app.config.get.side_effect = lambda key, default=None: {
             "TASKS_ABORT_CHANNEL_PREFIX": "custom:abort:",
             "TASKS_COMPLETION_CHANNEL_PREFIX": "custom:complete:",
+            "REALTIME_CHANNEL_PREFIX": "custom:",
         }.get(key, default)
 
         TaskManager.init_app(app)
@@ -62,6 +64,18 @@ class TestTaskManagerInitApp:
         assert TaskManager._initialized is True
         assert TaskManager._channel_prefix == "custom:abort:"
         assert TaskManager._completion_channel_prefix == "custom:complete:"
+        assert TaskManager._realtime_channel_prefix == "custom:"
+
+    def test_init_app_resolves_callable_realtime_prefix(self):
+        """A callable REALTIME_CHANNEL_PREFIX is resolved once to a string."""
+        app = MagicMock()
+        app.config.get.side_effect = lambda key, default=None: {
+            "REALTIME_CHANNEL_PREFIX": lambda: "tenant-b:",
+        }.get(key, default)
+
+        TaskManager.init_app(app)
+
+        assert TaskManager._realtime_channel_prefix == "tenant-b:"
 
     def test_init_app_skips_if_already_initialized(self):
         """Test init_app is idempotent"""
@@ -98,6 +112,13 @@ class TestTaskManagerChannels:
             TaskManager.get_completion_channel("test-uuid")
             == "custom:complete:test-uuid"
         )
+
+    def test_get_realtime_channel(self):
+        assert TaskManager.get_realtime_channel() == "realtime"
+
+    def test_get_realtime_channel_custom_prefix(self):
+        TaskManager._realtime_channel_prefix = "tenant-a:"
+        assert TaskManager.get_realtime_channel() == "tenant-a:realtime"
 
 
 class TestTaskManagerPublish:
@@ -194,6 +215,30 @@ class TestTaskManagerEntityChange:
             "scope": "authenticated_global",
             "payload": {"entity_type": "task", "id": 42},
         }
+
+    @patch(GET_ID, return_value=42)
+    @patch(PUBLISH)
+    @patch(IS_DEFINED, return_value=True)
+    def test_publishes_on_configured_prefixed_channel(
+        self, mock_defined, mock_publish, mock_get_id
+    ):
+        """A configured REALTIME_CHANNEL_PREFIX reaches the published channel.
+
+        Drives init_app and the public publisher end to end, so it guards the
+        _publish_realtime wiring (not just the get_realtime_channel helper): were
+        the publish to revert to the literal ``realtime``, the producer would
+        diverge from a websocket server subscribed to ``tenant-a:realtime``.
+        """
+        app = MagicMock()
+        app.config.get.side_effect = lambda key, default=None: {
+            "REALTIME_CHANNEL_PREFIX": "tenant-a:",
+        }.get(key, default)
+        TaskManager.init_app(app)
+
+        assert TaskManager.publish_entity_change(uuid.uuid4()) is True
+
+        channel = mock_publish.call_args.args[0]
+        assert channel == "tenant-a:realtime"
 
     @patch(GET_ID, return_value=None)
     @patch(PUBLISH)

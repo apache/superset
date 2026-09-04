@@ -3015,6 +3015,15 @@ WEBSOCKET_JWT_COOKIE_SAMESITE: None | (Literal["None", "Lax", "Strict"]) = None
 WEBSOCKET_JWT_COOKIE_DOMAIN = None
 WEBSOCKET_JWT_EXPIRATION_SECONDS = int(timedelta(minutes=15).total_seconds())
 
+# Prefix for the realtime pub/sub channel (default ""). Redis pub/sub is not
+# scoped by DB number, so deployments sharing one Redis/Valkey would cross-deliver
+# realtime envelopes (opaque entity-change + task-status nudges) — cross-tenant id
+# leakage and spurious refetches. Set a per-deployment value (e.g. "<keyPrefix>:")
+# here AND on the websocket server (REALTIME_CHANNEL_PREFIX env) to isolate them.
+# May be a string or a zero-argument callable, resolved once at startup, mirroring
+# Superset's other cache-key helpers. Empty is a no-op for single-instance setups.
+REALTIME_CHANNEL_PREFIX: Callable[[], str] | str = ""
+
 # Embedded config options
 GUEST_ROLE_NAME = "Public"
 GUEST_TOKEN_JWT_SECRET = CHANGE_ME_GUEST_TOKEN_JWT_SECRET

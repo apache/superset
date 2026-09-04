@@ -298,6 +298,24 @@ describe('server', () => {
       expect(messageHandlers()).toHaveLength(1);
     });
 
+    test('subscribes to the prefixed channel when REALTIME_CHANNEL_PREFIX is set', async () => {
+      mockSubscribe.mockResolvedValue(1);
+      process.env.REALTIME_CHANNEL_PREFIX = 'tenant-a:';
+      vi.resetModules();
+      try {
+        // Re-import so the module re-reads config: REALTIME_CHANNEL is derived
+        // from opts at load time, so the prefix must flow env -> config -> the
+        // subscribed channel name.
+        const freshServer = await import('../src/index');
+        await freshServer.subscribeToChannels();
+
+        expect(mockSubscribe).toHaveBeenCalledWith('tenant-a:realtime');
+      } finally {
+        delete process.env.REALTIME_CHANNEL_PREFIX;
+        vi.resetModules();
+      }
+    });
+
     test('retries a rejected subscription without stacking a second router', async () => {
       vi.useFakeTimers();
       try {
