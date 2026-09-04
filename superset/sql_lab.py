@@ -110,6 +110,15 @@ def handle_query_error(
     # setup, cancel-ID acquisition, parsing, or a per-block failure), not
     # just ones caused by the stop itself. A terminal stop must stay
     # terminal, so don't let an unrelated error overwrite it with FAILED.
+    #
+    # flush() first: refresh() does NOT autoflush (verified against
+    # SQLAlchemy 2.0 behavior) -- it discards any pending, uncommitted
+    # attribute changes on `query` and reloads straight from the DB. Without
+    # flushing first, a pending change made earlier in the caller (e.g.
+    # query.executed_sql, set just before a statement that then raised)
+    # would be silently lost instead of persisted alongside this function's
+    # own db.session.commit() below.
+    db.session.flush()
     db.session.refresh(query)
     if query.status == QueryStatus.STOPPED:
         payload.update({"status": query.status})
@@ -623,6 +632,13 @@ def execute_sql_statements(  # noqa: C901
     # query row, neither of which is meaningfully verifiable against the
     # sqlite backend this codebase tests against, and is deliberately not
     # attempted here.
+    #
+    # flush() first: refresh() does NOT autoflush -- without this, any
+    # pending, uncommitted attribute set earlier in this iteration (e.g.
+    # query.executed_sql, set just before execute_query() ran) would be
+    # silently discarded and reloaded back to its previous committed value
+    # instead of surviving to the function's own later commits.
+    db.session.flush()
     db.session.refresh(query)
     if query.status == QueryStatus.STOPPED:
         payload.update({"status": query.status})
@@ -722,6 +738,15 @@ def execute_sql_statements(  # noqa: C901
                     # STOPPED must stay terminal, not be overwritten just
                     # because the backend write also failed to complete
                     # around the same time.
+                    #
+                    # flush() first: refresh() does NOT autoflush -- without
+                    # this, the result metadata already set earlier in this
+                    # function (rows, progress, extra "columns", select_sql,
+                    # end_time) plus the results_key = None set just above
+                    # would be silently discarded and reloaded back to their
+                    # previous (pre-execution) values instead of surviving to
+                    # this branch's own commit below.
+                    db.session.flush()
                     db.session.refresh(query)
                     if query.status == QueryStatus.STOPPED:
                         # A fresh, minimal payload -- not `payload.update()`.
@@ -767,6 +792,16 @@ def execute_sql_statements(  # noqa: C901
     # backstop for the DB row specifically (the payload/results-write
     # consistency check already happened above); it doesn't reopen or
     # re-narrow the same disclosed race window from that check.
+    #
+    # flush() first: refresh() does NOT autoflush -- without this, every
+    # result field set on the success path above (rows, progress, extra
+    # "columns", select_sql, end_time, results_key) would be silently
+    # discarded and reloaded back to their pre-execution (typically None)
+    # values on EVERY successful query, since nothing before this point
+    # commits them. This was a real regression caught by CI integration
+    # tests across all three DB backends (sqlite/mysql/postgres) that the
+    # unit-test suite driving this fix never exercised.
+    db.session.flush()
     db.session.refresh(query)
     if query.status not in (QueryStatus.FAILED, QueryStatus.STOPPED):
         query.status = QueryStatus.SUCCESS

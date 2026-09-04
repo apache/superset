@@ -564,6 +564,7 @@ def test_stopped_before_worker_start_never_dispatches(
 
     # The statement itself was never sent to the database.
     execute_query_spy.assert_not_called()
+    assert payload is not None
     assert payload["status"] == QueryStatus.STOPPED
 
     final_query = harness.fresh_query(query_id)
@@ -763,9 +764,7 @@ def test_handle_query_error_preserves_already_stopped_status(
     db.session.flush()
     db.session.expire_all()
     refreshed = (
-        db.session.query(Query)
-        .filter_by(client_id="already-stopped-error-path")
-        .one()
+        db.session.query(Query).filter_by(client_id="already-stopped-error-path").one()
     )
     assert refreshed.status == QueryStatus.STOPPED
     assert refreshed.error_message is None
@@ -792,9 +791,7 @@ def test_stop_racing_results_backend_write_failure_keeps_stopped_not_failed(
     from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
     harness = _RaceHarness(mocker)
-    query_id, client_id = harness.make_query(
-        "stop-races-results-backend-write-failure"
-    )
+    query_id, client_id = harness.make_query("stop-races-results-backend-write-failure")
 
     # Give this engine real cancel support so the stop below actually
     # succeeds (the normal/existing path) -- this test is about what happens
@@ -882,8 +879,7 @@ def test_stop_racing_results_backend_write_failure_keeps_stopped_not_failed(
     payload = execution_result["payload"]
     assert payload["status"] == QueryStatus.STOPPED
     assert "data" not in payload, (
-        f"STOPPED payload must not carry result data, got keys: "
-        f"{list(payload.keys())}"
+        f"STOPPED payload must not carry result data, got keys: {list(payload.keys())}"
     )
     assert "query" not in payload or "resultsKey" not in payload.get("query", {}), (
         "STOPPED payload must not carry a resultsKey for a results-backend "
@@ -896,3 +892,105 @@ def test_stop_racing_results_backend_write_failure_keeps_stopped_not_failed(
         f"expected a fresh, minimal STOPPED payload, got: {payload}"
     )
 
+
+def test_execute_sql_statements_success_path_persists_result_metadata(
+    mocker: MockerFixture, app: Any
+) -> None:
+    """
+    Regression test for a real CI failure (round 6): db.session.refresh()
+    does NOT autoflush pending changes (verified empirically against actual
+    SQLAlchemy 2.0 behavior, not assumed) -- every refresh() this fix added
+    silently discarded whatever result metadata had been set, but not yet
+    committed, earlier in execute_sql_statements()'s success path
+    (query.rows, progress, extra "columns", select_sql for CTAS, end_time,
+    results_key), reverting them to their stale pre-execution values
+    (typically None) right before the function's own final commit persisted
+    that stale state instead.
+
+    This broke ordinary, never-stopped, non-mocked query execution across
+    sqlite/mysql/postgres in real CI
+    (tests/integration_tests/celery_tests.py's CTAS tests and
+    tests/integration_tests/sql_lab/test_execute_sql_statements.py::
+    test_results_backend_write_success) -- none of which this sandbox can
+    run (its Docker/Celery stack is documented broken independent of this
+    fix). This is the best available substitute, not a replacement: a real
+    (unmocked) execute_sql_statements() call against a real SQLite-backed
+    Query/Database, covering a CTAS query (to exercise query.select_sql,
+    the same field the CI failures were about) with a results-backend write
+    that succeeds (to exercise query.results_key), asserting the DB row and
+    the response payload both end up with the correct values instead of the
+    stale ones the unconditional final refresh() used to silently restore.
+
+    Uses _RaceHarness purely for its real scoped_session setup (no threading
+    here -- this is a plain, synchronous call): execute_query() calls
+    warm_and_release_connection(), which calls db.session() as Flask-
+    SQLAlchemy's real scoped_session proxy would; the stock `session`
+    fixture is a plain Session, not a scoped_session, so it isn't callable
+    and breaks that call.
+    """
+    from superset import sql_lab
+    from superset.common.db_query_status import QueryStatus
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+    from superset.sql.parse import CTASMethod
+    from superset.utils.dates import now_as_float
+
+    harness = _RaceHarness(mocker)
+
+    database = Database(database_name="ctas_db", sqlalchemy_uri="sqlite://")
+    query_obj = Query(
+        client_id="ctas-success-path",
+        database=database,
+        tab_name="test_tab",
+        sql_editor_id="test_editor_id",
+        sql="select 1",
+        select_sql="select 1",
+        limit=100,
+        select_as_cta=True,
+        ctas_method=CTASMethod.TABLE.name,
+        tmp_table_name="ctas_tmp_table",
+        start_time=now_as_float(),
+        user_id=1,
+    )
+    harness.Session.add(database)
+    harness.Session.add(query_obj)
+    harness.Session.commit()
+    query_id = query_obj.id
+
+    results_backend_mock = mocker.MagicMock()
+    results_backend_mock.set.return_value = True
+    mocker.patch("superset.sql_lab.results_backend", results_backend_mock)
+
+    with app.app_context():
+        payload = sql_lab.execute_sql_statements(
+            query_id=query_id,
+            rendered_query="select 1",
+            return_results=True,
+            store_results=True,
+            start_time=None,
+            expand_data=False,
+            log_params=None,
+        )
+
+    assert payload is not None
+    assert "status" in payload, f"payload missing 'status' key entirely: {payload}"
+    assert payload["status"] == QueryStatus.SUCCESS
+
+    final_query = harness.fresh_query(query_id)
+
+    assert final_query.status == QueryStatus.SUCCESS
+    assert final_query.select_sql is not None, (
+        "select_sql (set for CTAS queries) must survive to the persisted "
+        "row, not be silently discarded by a refresh() that ran after it "
+        "was set but before it was ever flushed"
+    )
+    assert "select" in final_query.select_sql.lower()
+    assert final_query.rows is not None
+    assert final_query.progress == 100
+    assert final_query.extra.get("columns") is not None
+    assert final_query.end_time is not None
+    assert final_query.results_key is not None, (
+        "results_key must survive to the persisted row when the "
+        "results-backend write succeeds, not be silently discarded"
+    )
+    results_backend_mock.set.assert_called_once()
