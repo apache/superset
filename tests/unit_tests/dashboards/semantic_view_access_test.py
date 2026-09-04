@@ -73,6 +73,10 @@ def access_fixtures(session: Session) -> SimpleNamespace:
     )
     session.add(layer)
     session.flush()
+    # An insert listener stamps the computed perm on flush (overwriting any
+    # fixture-supplied value); tests granting the layer perm must use it.
+    layer_perm = layer.perm
+    assert layer_perm
 
     view = SemanticView(
         id=1,
@@ -191,6 +195,7 @@ def access_fixtures(session: Session) -> SimpleNamespace:
 
     return SimpleNamespace(
         session=session,
+        layer_perm=layer_perm,
         view=view,
         table=table,
         semantic_slice=semantic_slice,
@@ -336,6 +341,26 @@ def test_gate_allows_semantic_dashboard_for_entitled_user(
     sm = _gate_sm()
     with _gate_patches(sm, granted_perms={VIEW_PERM}):
         sm.raise_for_access(dashboard=access_fixtures.semantic_dashboard)
+
+
+def test_gate_allows_semantic_dashboard_for_layer_grant(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """sc-119501: a datasource_access grant on the PARENT LAYER (not the
+    view) admits the user to the dashboard, matching the data path's
+    layer-perm fallback in SemanticView.raise_for_access."""
+    sm = _gate_sm()
+    with _gate_patches(sm, granted_perms={access_fixtures.layer_perm}):
+        sm.raise_for_access(dashboard=access_fixtures.semantic_dashboard)
+
+
+def test_gate_allows_semantic_chart_for_layer_grant(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """sc-119501: the standalone chart gate honors the layer grant too."""
+    sm = _gate_sm()
+    with _gate_patches(sm, granted_perms={access_fixtures.layer_perm}):
+        sm.raise_for_access(chart=access_fixtures.semantic_slice)
 
 
 def test_gate_denies_regular_dashboard_without_grant(
@@ -528,6 +553,17 @@ def test_list_filter_entitled_visibility_survives_id_collision(
     grant holder — the type constraint must not lose entitled visibility."""
     titles = _apply_list_filter(datasource_perms={VIEW_PERM}, accessible_databases=[])
     assert titles == {"semantic only"}
+
+
+def test_list_filter_layer_grant_lists_all_layer_dashboards(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """sc-119501: a layer-level grant surfaces every dashboard built on the
+    layer's views — both semantic dashboards here share one parent layer."""
+    titles = _apply_list_filter(
+        datasource_perms={access_fixtures.layer_perm}, accessible_databases=[]
+    )
+    assert titles == {"semantic only", "semantic nocollide"}
 
 
 def test_list_filter_hides_everything_without_grants(

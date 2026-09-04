@@ -2218,6 +2218,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # Non-SQL explorables don't have schema hierarchy
         return False
 
+    @staticmethod
+    def _parent_semantic_layer_perm(datasource: Any) -> str:
+        """Perm of a semantic view's parent layer, or '' when not applicable.
+
+        A ``datasource_access`` grant on a semantic layer covers every view
+        under it — the data path enforces this in
+        ``SemanticView.raise_for_access``; object authorization mirrors the
+        same fallback (sc-119501).
+        """
+        layer = getattr(datasource, "semantic_layer", None)
+        return getattr(layer, "perm", None) or ""
+
     def can_access_datasource(self, datasource: "BaseDatasource") -> bool:
         """
         Return True if the user can access the specified datasource, False otherwise.
@@ -4645,6 +4657,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
+                # A grant on a semantic view's parent layer covers the view,
+                # matching SemanticView.raise_for_access (sc-119501).
+                or self.can_access(
+                    "datasource_access",
+                    self._parent_semantic_layer_perm(datasource),
+                )
                 or self.is_editor(datasource)
                 or (
                     # Grant access to the datasource only if dashboard RBAC is enabled

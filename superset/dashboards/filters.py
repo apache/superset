@@ -26,6 +26,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.subjects.filters import (
     EditableFilter,
 )
@@ -191,6 +192,23 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
                 isouter=True,
             )
             .join(Database, SqlaTable.database_id == Database.id, isouter=True)
+            # A datasource_access grant on a semantic LAYER covers its views,
+            # as SemanticView.raise_for_access enforces on the data path
+            # (sc-119501) — surface those dashboards here too, through the
+            # same type-guarded outer-join shape as the SqlaTable join.
+            .join(
+                SemanticView,
+                and_(
+                    Slice.datasource_id == SemanticView.id,
+                    Slice.datasource_type == DatasourceType.SEMANTIC_VIEW,
+                ),
+                isouter=True,
+            )
+            .join(
+                SemanticLayer,
+                SemanticView.semantic_layer_uuid == SemanticLayer.uuid,
+                isouter=True,
+            )
             .filter(
                 and_(
                     Dashboard.published.is_(True),
@@ -198,6 +216,9 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
                     get_dataset_access_filters(
                         Slice,
                         security_manager.can_access_all_datasources(),
+                        SemanticLayer.perm.in_(
+                            security_manager.user_view_menu_names("datasource_access")
+                        ),
                     ),
                 )
             )
