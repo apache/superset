@@ -390,6 +390,7 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     [GenericDataType.String]: undefined,
     [GenericDataType.Temporal]: tooltipTimeFormatter,
     [GenericDataType.Boolean]: undefined,
+    [GenericDataType.MultiValue]: undefined,
   };
 
   const echartOptions: EChartsCoreOption = {

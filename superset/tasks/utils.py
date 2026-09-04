@@ -20,13 +20,12 @@ from __future__ import annotations
 import logging
 import traceback
 from http.client import HTTPResponse
-from typing import Any, cast, TYPE_CHECKING
+from typing import cast, TYPE_CHECKING
 from urllib import request
 from uuid import UUID, uuid4
 
 from celery.utils.log import get_task_logger
 from flask import g
-from sqlalchemy import or_, select
 from superset_core.tasks.types import TaskProperties, TaskScope
 
 from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
@@ -41,8 +40,6 @@ from superset.utils.hashing import hash_from_str
 from superset.utils.urls import get_url_path
 
 if TYPE_CHECKING:
-    from flask_appbuilder.security.sqla.models import User
-
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.reports.models import ReportSchedule
@@ -50,55 +47,6 @@ if TYPE_CHECKING:
 
 logger = get_task_logger(__name__)
 logger.setLevel(logging.INFO)
-
-
-def _get_indirect_editor_user(editors: list[Any]) -> User | None:
-    """Return a deterministic user represented by role/group editor subjects."""
-    from flask_appbuilder.security.sqla.models import (
-        assoc_user_group,
-        assoc_user_role,
-        User,
-    )
-
-    from superset import db
-    from superset.subjects.types import SubjectType
-
-    role_ids = [
-        editor.role_id
-        for editor in editors
-        if editor.type == SubjectType.ROLE and editor.role_id
-    ]
-    group_ids = [
-        editor.group_id
-        for editor in editors
-        if editor.type == SubjectType.GROUP and editor.group_id
-    ]
-    conditions = []
-    if role_ids:
-        conditions.append(
-            User.id.in_(
-                select(assoc_user_role.c.user_id).where(
-                    assoc_user_role.c.role_id.in_(role_ids)
-                )
-            )
-        )
-    if group_ids:
-        conditions.append(
-            User.id.in_(
-                select(assoc_user_group.c.user_id).where(
-                    assoc_user_group.c.group_id.in_(group_ids)
-                )
-            )
-        )
-    if not conditions:
-        return None
-
-    return (
-        db.session.query(User)
-        .filter(User.active.is_(True), or_(*conditions))
-        .order_by(User.id)
-        .first()
-    )
 
 
 # pylint: disable=too-many-branches
@@ -112,9 +60,14 @@ def get_executor(  # noqa: C901
     types extract the user from the underlying object (e.g. CREATOR), a fixed user
     account, or the user that initiated the request.
 
-    The EDITOR, CREATOR_EDITOR, and MODIFIER_EDITOR types resolve users from the model's
-    editors (subjects). These check both direct user-type subjects and indirect
-    membership through role/group subjects.
+    The CREATOR_EDITOR, MODIFIER_EDITOR, and EDITOR types additionally require the
+    resolved user (the model's creator or modifier) to be an editor of the model,
+    directly (user-type subject) or indirectly (through a role/group subject). They
+    never resolve to any *other* attached editor: editor subjects can be attached to
+    a model by whoever creates or edits it with no consent from the attached user, so
+    resolving to an arbitrary attached editor would let a low-privileged creator or
+    modifier arrange for the task to execute as a different, potentially
+    higher-privileged, user.
 
     :param executors: The requested executor in descending order. When the
            first user is found it is returned.
@@ -128,7 +81,6 @@ def get_executor(  # noqa: C901
     :raises ExecutorNotFoundError: If no users were found in after
             iterating through all entries in `executors`
     """
-    from superset.subjects.types import SubjectType
     from superset.subjects.utils import get_user_subject_ids
 
     # Build set of all subject IDs that are editors of this model
@@ -139,13 +91,6 @@ def get_executor(  # noqa: C901
         if not user_id or not editor_subject_ids:
             return False
         return bool(set(get_user_subject_ids(user_id)) & editor_subject_ids)
-
-    # Direct user-type editors (for EDITOR fallback resolution)
-    editor_users = [
-        e.user
-        for e in getattr(model, "editors", [])
-        if e.type == SubjectType.USER and e.user is not None
-    ]
 
     for executor in executors:
         if isinstance(executor, FixedExecutor):
@@ -167,11 +112,15 @@ def get_executor(  # noqa: C901
             if (user := model.changed_by) and user.is_active:
                 return executor, user.username
         if executor == ExecutorType.EDITOR:
-            # Priority: modifier → creator → direct user editor → indirect editor.
-            # Inactive users are skipped at every step so that scheduling can
-            # fall through to another active owner/editor instead of failing
-            # outright (see: ExecutorNotFoundError only once no active
-            # candidate remains).
+            # Priority: modifier -> creator. Resolves only to whoever authored
+            # the model's current state -- changed_by/created_by are set by the
+            # framework from the authenticated session on write, so a caller
+            # who edits the object becomes changed_by themselves and cannot
+            # point this at a victim. Deliberately does NOT fall through to an
+            # arbitrary other attached editor (direct or via role/group
+            # membership): that would let a low-privileged creator/modifier
+            # attach a higher-privileged user as an editor with no consent and
+            # have the task execute with that victim's credentials.
             if (
                 (modifier := model.changed_by)
                 and modifier.is_active
@@ -184,14 +133,6 @@ def get_executor(  # noqa: C901
                 and _is_editor(creator.id)
             ):
                 return executor, creator.username
-            if active_editor_user := next(
-                (user for user in editor_users if user.is_active), None
-            ):
-                return executor, active_editor_user.username
-            if indirect_editor := _get_indirect_editor_user(
-                getattr(model, "editors", [])
-            ):
-                return executor, indirect_editor.username
 
     raise ExecutorNotFoundError()
 

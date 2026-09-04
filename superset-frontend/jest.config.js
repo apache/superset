@@ -18,6 +18,19 @@
  */
 // timezone for unit tests
 process.env.TZ = 'America/New_York';
+
+const reporters = ['default'];
+
+// HTML reporter is not used on CI so skipping its generation for saving time
+if (!process.env.CI) {
+  reporters.push([
+    './node_modules/jest-html-reporter',
+    {
+      pageTitle: 'Test Report',
+    },
+  ]);
+}
+
 module.exports = {
   // [/\\] matches both path separators so the suite also collects on
   // native Windows, where jest hands the regex backslash-separated paths.
@@ -77,7 +90,7 @@ module.exports = {
     // @ant-design/colors and @ant-design/fast-color are allowed through because
     // @ant-design/icons >= 6.3 deep-imports the ESM build of @ant-design/colors
     // from its CJS output, so babel-jest must transform those files.
-    'node_modules/(?!@ant-design/(colors|fast-color)|@formatjs/.*|d3-(array|interpolate|color|time|scale|time-format|format|selection)|internmap|@mapbox/tiny-sdf|remark-gfm|(?!@ngrx|(?!deck.gl)|d3-scale)|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp|nanoid|uuid|@rjsf/*.|@x0k/.*|echarts|zrender|fetch-mock|pretty-ms|parse-ms|ol|@babel/runtime|@emotion|cheerio|cheerio/lib|parse5|dom-serializer|entities|htmlparser2|rehype-sanitize|hast-util-sanitize|unified|unist-.*|hast-.*|hastscript|refractor|rehype-.*|remark-.*|mdast-.*|micromark-.*|parse-entities|character-reference-invalid|is-alphanumerical|is-alphabetical|is-decimal|is-hexadecimal|property-information|space-separated-tokens|comma-separated-tokens|bail|devlop|zwitch|longest-streak|geostyler|geostyler-.*|(?!geostyler)lodash|react-error-boundary|react-json-tree|react-base16-styling|lodash-es|rbush|quickselect|react-diff-viewer-continued|storybook/*.|json-stringify-pretty-compact|@x0k/json-schema-merge)',
+    'node_modules/(?!@ant-design/(colors|fast-color)|@formatjs/.*|d3-(array|interpolate|color|time|scale|time-format|format|selection)|internmap|@mapbox/tiny-sdf|remark-gfm|(?!@ngrx|(?!deck.gl)|d3-scale)|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp|nanoid|uuid|@rjsf/*.|@x0k/.*|echarts|zrender|fetch-mock|pretty-ms|parse-ms|ol|@babel/runtime|@emotion|cheerio|cheerio/lib|parse5|dom-serializer|entities|htmlparser2|rehype-sanitize|hast-util-sanitize|unified|unist-.*|hast-.*|hastscript|refractor|rehype-.*|remark-.*|mdast-.*|micromark-.*|parse-entities|character-reference-invalid|is-alphanumerical|is-alphabetical|is-decimal|is-hexadecimal|property-information|space-separated-tokens|comma-separated-tokens|bail|devlop|zwitch|longest-streak|geostyler|geostyler-.*|(?!geostyler)lodash|react-error-boundary|react-json-tree|react-base16-styling|lodash-es|rbush|quickselect|react-diff-viewer-continued|storybook/*.|json-stringify-pretty-compact|@x0k/json-schema-merge|content-disposition)',
   ],
   preset: 'ts-jest',
   transform: {
@@ -88,14 +101,6 @@ module.exports = {
     __DEV__: true,
     caches: true,
   },
-  reporters: [
-    'default',
-    [
-      './node_modules/jest-html-reporter',
-      {
-        pageTitle: 'Test Report',
-      },
-    ],
-  ],
+  reporters: reporters,
   testTimeout: 20000,
 };

@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { screen, render, waitFor } from 'spec/helpers/testing-library';
+import {
+  screen,
+  render,
+  waitFor,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ResultsPaneOnDashboard } from '../components';
@@ -157,6 +162,42 @@ describe('useResultsPane query data reuse', () => {
     expect(screen.queryByText('Sci-Fi')).not.toBeInTheDocument();
     expect(screen.getByText('2 rows')).toBeVisible();
     expect(mockedGetChartDataRequest).not.toHaveBeenCalled();
+
+    userEvent.hover(screen.getByText('2 rows'));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      'The row limit set for the chart was reached',
+    );
+  });
+
+  test("warns about this pane's own row limit, not the chart's, when the pane's selector is what caps the result", async () => {
+    // chart row_limit (2000) is well above this pane's default 1000-row
+    // selector, so the selector - not the chart - is what truncates here.
+    const props = createResultsPaneOnDashboardProps({
+      sliceId: 208,
+      rowLimit: 2000,
+      queriesResponse: [
+        {
+          colnames: ['genre'],
+          coltypes: [1],
+          data: Array.from({ length: 1500 }, (_, i) => ({
+            genre: `genre-${i}`,
+          })),
+          rowcount: 1500,
+        },
+      ],
+    });
+
+    render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
+
+    const rowCountLabel = await screen.findByTestId('row-count-label');
+    expect(rowCountLabel).toHaveTextContent('1k rows');
+
+    userEvent.hover(rowCountLabel);
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip).toHaveTextContent(
+      'The row limit selected for this pane was reached',
+    );
+    expect(tooltip).not.toHaveTextContent('for the chart');
   });
 
   test('renders an empty (0 rows) result from reused data without an API call', async () => {

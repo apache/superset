@@ -105,10 +105,17 @@ export const SamplesPane = ({
         1,
       )
         .then(response => {
-          setData(ensureIsArray(response.data));
-          setColnames(ensureIsArray(response.colnames));
-          setColtypes(ensureIsArray(response.coltypes));
-          setRowCount(response.rowcount);
+          // A 200 that carries no `result` payload resolves to undefined here.
+          // Read through it so the pane falls back to its empty state instead
+          // of throwing a TypeError that surfaces as an internal error message.
+          const rows = ensureIsArray(response?.data);
+          setData(rows);
+          setColnames(ensureIsArray(response?.colnames));
+          setColtypes(ensureIsArray(response?.coltypes));
+          // Fall back to the rows actually returned rather than to zero: the
+          // controls only render when there are rows, and a hardcoded 0 would
+          // label a populated table as "0 rows".
+          setRowCount(response?.rowcount ?? rows.length);
           setResponseError('');
           cache.set(queryFormData, true);
           if (queryForce) {
@@ -129,6 +136,12 @@ export const SamplesPane = ({
 
   const columns = useGridColumns(colnames, coltypes, data);
   const keywordFilter = useKeywordFilter(filterText);
+  // Samples aren't capped by a chart's row_limit, just this pane's own
+  // page-size selector, so RowCountLabel's default "chart" wording is wrong here.
+  const limitReachedMessage = t(
+    'The sample row limit was reached. This %s may contain more rows.',
+    datasetLabelLower(),
+  );
 
   const handleInputChange = useCallback(
     (input: string) => setFilterText(input),
@@ -154,6 +167,7 @@ export const SamplesPane = ({
           canDownload={canDownload}
           rowLimit={rowLimit}
           rowLimitOptions={ROW_LIMIT_OPTIONS}
+          limitReachedMessage={limitReachedMessage}
           onRowLimitChange={handleRowLimitChange}
         />
         <ErrorAlertWrapper>
@@ -190,6 +204,7 @@ export const SamplesPane = ({
         canDownload={canDownload}
         rowLimit={rowLimit}
         rowLimitOptions={ROW_LIMIT_OPTIONS}
+        limitReachedMessage={limitReachedMessage}
         onRowLimitChange={handleRowLimitChange}
       />
       <GridContainer>

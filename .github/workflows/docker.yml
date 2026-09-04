@@ -266,7 +266,7 @@ jobs:
   actions-timeline:
     needs: [docker-build, docker-compose-image-tag]
     if: always()
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     permissions:
       actions: read
     steps:

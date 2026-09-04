@@ -127,24 +127,6 @@ class ModelConfig:
     user_groups: dict[int, list[int]] = field(default_factory=dict)
 
 
-def _get_mock_indirect_editor_user(
-    editors: list[MagicMock],
-    model_config: ModelConfig,
-) -> User | None:
-    editor_role_ids = {
-        editor.role_id for editor in editors if getattr(editor, "role_id", None)
-    }
-    editor_group_ids = {
-        editor.group_id for editor in editors if getattr(editor, "group_id", None)
-    }
-    for user_id in sorted(set(model_config.user_roles) | set(model_config.user_groups)):
-        if editor_role_ids & set(model_config.user_roles.get(user_id, [])):
-            return User(id=user_id, username=str(user_id))
-        if editor_group_ids & set(model_config.user_groups.get(user_id, [])):
-            return User(id=user_id, username=str(user_id))
-    return None
-
-
 class ModelType(int, Enum):
     DASHBOARD = 1
     CHART = 2
@@ -205,7 +187,10 @@ class ModelType(int, Enum):
             ],
             ModelConfig(editors=EditorSpec(user_ids=[2]), modifier=1),
             None,
-            (ExecutorType.EDITOR, 2),
+            # Modifier (1) is not an editor and there is no creator, so EDITOR
+            # no longer falls through to the unrelated attached editor (2) --
+            # it falls through to the next executor in the chain instead.
+            (ExecutorType.MODIFIER, 1),
         ),
         (
             ModelType.REPORT_SCHEDULE,
@@ -420,7 +405,8 @@ class ModelType(int, Enum):
             None,
             (ExecutorType.FIXED_USER, FIXED_USER_ID),
         ),
-        # Role editor fallback resolves a deterministic physical user.
+        # No modifier/creator set: EDITOR no longer falls through to an
+        # arbitrary user reachable via a role editor subject.
         (
             ModelType.REPORT_SCHEDULE,
             [ExecutorType.EDITOR],
@@ -429,9 +415,10 @@ class ModelType(int, Enum):
                 user_roles={8: [10], 6: [10]},
             ),
             None,
-            (ExecutorType.EDITOR, 6),
+            ExecutorNotFoundError(),
         ),
-        # Group editor fallback resolves a deterministic physical user.
+        # No modifier/creator set: EDITOR no longer falls through to an
+        # arbitrary user reachable via a group editor subject.
         (
             ModelType.REPORT_SCHEDULE,
             [ExecutorType.EDITOR],
@@ -440,9 +427,11 @@ class ModelType(int, Enum):
                 user_groups={9: [20], 7: [20]},
             ),
             None,
-            (ExecutorType.EDITOR, 7),
+            ExecutorNotFoundError(),
         ),
-        # Direct user editors are preferred over role/group fallback users.
+        # No modifier/creator set: EDITOR no longer falls through to an
+        # unrelated directly-attached user editor either -- resolution is
+        # limited to whoever authored the model (modifier/creator).
         (
             ModelType.REPORT_SCHEDULE,
             [ExecutorType.EDITOR],
@@ -451,7 +440,22 @@ class ModelType(int, Enum):
                 user_roles={4: [10]},
             ),
             None,
-            (ExecutorType.EDITOR, 5),
+            ExecutorNotFoundError(),
+        ),
+        # Attacker scenario: a low-privileged creator/modifier (99) attaches a
+        # victim (5) as an editor with no consent. EDITOR must not resolve to
+        # the victim -- 99 is not itself an editor, so scheduling fails
+        # instead of silently executing as user 5.
+        (
+            ModelType.REPORT_SCHEDULE,
+            [ExecutorType.EDITOR],
+            ModelConfig(
+                editors=EditorSpec(user_ids=[5]),
+                creator=99,
+                modifier=99,
+            ),
+            None,
+            ExecutorNotFoundError(),
         ),
         # Mixed editors with MODIFIER_EDITOR: modifier is a user-type editor
         (
@@ -587,11 +591,12 @@ class ModelType(int, Enum):
             None,
             ExecutorNotFoundError(),
         ),
-        # EDITOR: creator (the only editor) is inactive, so scheduling falls
-        # through to the still-active direct-user editor instead of failing.
-        # This is the scenario from #33584: the original report creator has
-        # gone inactive but a currently-active owner/editor should still be
-        # usable as the executor.
+        # EDITOR: creator (the only author) is inactive, so scheduling fails
+        # rather than falling through to an unrelated attached editor. This is
+        # a deliberate behavior break from the prior #33584 fallback: EDITOR
+        # only ever resolves to whoever authored the model's state, so an
+        # inactive author is no longer patched over by scheduling the task
+        # under a different, merely-attached editor's credentials.
         (
             ModelType.REPORT_SCHEDULE,
             [ExecutorType.EDITOR],
@@ -601,11 +606,11 @@ class ModelType(int, Enum):
                 creator_active=False,
             ),
             None,
-            (ExecutorType.EDITOR, 2),
+            ExecutorNotFoundError(),
         ),
-        # EDITOR: both modifier and creator are inactive editors, and the only
-        # direct-user editor is also inactive → falls through to the indirect
-        # (role/group) editor resolution.
+        # EDITOR: both modifier and creator are inactive, so scheduling fails
+        # rather than falling through to an indirect (role/group) editor that
+        # never authored the model.
         (
             ModelType.REPORT_SCHEDULE,
             [ExecutorType.EDITOR],
@@ -620,7 +625,7 @@ class ModelType(int, Enum):
                 user_roles={6: [10]},
             ),
             None,
-            (ExecutorType.EDITOR, 6),
+            ExecutorNotFoundError(),
         ),
         # EDITOR: modifier is an inactive editor, creator is an active editor →
         # resolves to the creator instead of failing outright.
@@ -701,20 +706,14 @@ def test_get_executor(
         "superset.subjects.utils.get_user_subject_ids",
         side_effect=mock_get_user_subject_ids,
     ):
-        with patch(
-            "superset.tasks.utils._get_indirect_editor_user",
-            side_effect=lambda editors: _get_mock_indirect_editor_user(
-                editors, model_config
-            ),
-        ):
-            with cm:
-                executor_type, executor = get_executor(
-                    executors=executors,
-                    model=obj,
-                    current_user=str(current_user) if current_user else None,
-                )
-                assert executor_type == expected_executor_type
-                assert executor == expected_executor
+        with cm:
+            executor_type, executor = get_executor(
+                executors=executors,
+                model=obj,
+                current_user=str(current_user) if current_user else None,
+            )
+            assert executor_type == expected_executor_type
+            assert executor == expected_executor
 
 
 @pytest.mark.parametrize(

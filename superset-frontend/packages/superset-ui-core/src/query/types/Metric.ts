@@ -25,8 +25,11 @@ export type Aggregate =
   | 'COUNT'
   | 'COUNT_DISTINCT'
   | 'MAX'
+  | 'MEDIAN'
   | 'MIN'
-  | 'SUM';
+  | 'STDDEV_SAMP'
+  | 'SUM'
+  | 'VAR_SAMP';
 
 export interface AdhocMetricBase {
   hasCustomLabel?: boolean;

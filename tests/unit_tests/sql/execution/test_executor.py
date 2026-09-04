@@ -2449,3 +2449,180 @@ def test_build_statement_blocks_skips_validation_for_unparseable_mutated_sql(
 
     assert len(blocks) == 1
     assert blocks[0].count("ENGINE SPECIFIC") == 2
+
+
+# =============================================================================
+# Cache Key Identity Tests
+# =============================================================================
+
+
+def test_generate_cache_key_ignores_user_without_impersonation(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """
+    When the connection does not carry per-user identity, the cache key
+    must not depend on the calling user -- unrelated users legitimately
+    share cache entries for identical queries.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+
+    executor = SQLExecutor(database)
+    options = QueryOptions()
+
+    mocker.patch("superset.sql.execution.executor.utils.get_user_id", return_value=1)
+    key_user_1 = executor._generate_cache_key("SELECT * FROM salaries", options)
+
+    mocker.patch("superset.sql.execution.executor.utils.get_user_id", return_value=2)
+    key_user_2 = executor._generate_cache_key("SELECT * FROM salaries", options)
+
+    assert key_user_1 is not None
+    assert key_user_1 == key_user_2
+
+
+def test_generate_cache_key_scopes_by_user_when_impersonation_enabled(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """
+    Regression: when the database impersonates the connecting user (or
+    uses per-user OAuth2), the effective identity the database sees
+    differs per user even for byte-identical SQL text. The cache key must
+    incorporate that identity so one user's cached rows can never be
+    served to another user the database itself would have denied.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+
+    database.impersonate_user = True
+    executor = SQLExecutor(database)
+    options = QueryOptions()
+
+    mocker.patch("superset.sql.execution.executor.utils.get_user_id", return_value=1)
+    key_analyst_a = executor._generate_cache_key("SELECT * FROM salaries", options)
+
+    mocker.patch("superset.sql.execution.executor.utils.get_user_id", return_value=2)
+    key_analyst_b = executor._generate_cache_key("SELECT * FROM salaries", options)
+
+    assert key_analyst_a is not None
+    assert key_analyst_b is not None
+    assert key_analyst_a != key_analyst_b
+
+
+def test_generate_cache_key_includes_impersonation_key_when_present(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """
+    The executor's result cache mirrors the chart-data cache-key path:
+    when CACHE_IMPERSONATION / CACHE_QUERY_BY_USER / per_user_caching
+    resolves an impersonation key for the connection, that key must be
+    folded into the generated cache key so it can't collide with a key
+    generated for a different impersonated identity.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+
+    executor = SQLExecutor(database)
+    options = QueryOptions()
+
+    mocker.patch(
+        "superset.utils.cache_keys.add_impersonation_cache_key_if_needed",
+        side_effect=lambda db, cache_dict: cache_dict.__setitem__(
+            "impersonation_key", "engineer_a"
+        ),
+    )
+    key_engineer_a = executor._generate_cache_key("SELECT * FROM salaries", options)
+
+    mocker.patch(
+        "superset.utils.cache_keys.add_impersonation_cache_key_if_needed",
+        side_effect=lambda db, cache_dict: cache_dict.__setitem__(
+            "impersonation_key", "engineer_b"
+        ),
+    )
+    key_engineer_b = executor._generate_cache_key("SELECT * FROM salaries", options)
+
+    mocker.patch(
+        "superset.utils.cache_keys.add_impersonation_cache_key_if_needed",
+        side_effect=lambda db, cache_dict: None,
+    )
+    key_no_impersonation = executor._generate_cache_key(
+        "SELECT * FROM salaries", options
+    )
+
+    assert key_engineer_a is not None
+    assert key_engineer_b is not None
+    assert key_no_impersonation is not None
+    assert len({key_engineer_a, key_engineer_b, key_no_impersonation}) == 3
+
+
+def test_generate_cache_key_none_when_identity_unknown(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """
+    If the database carries per-user identity but the effective user
+    cannot be determined (e.g. no request context), the query must be
+    treated as uncacheable rather than risk a shared cache entry.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+
+    database.impersonate_user = True
+    executor = SQLExecutor(database)
+    options = QueryOptions()
+
+    mocker.patch("superset.sql.execution.executor.utils.get_user_id", return_value=None)
+
+    assert executor._generate_cache_key("SELECT * FROM salaries", options) is None
+
+
+def test_get_from_cache_skips_when_identity_unknown(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """
+    ``_get_from_cache`` must not read from the cache backend at all when
+    ``_generate_cache_key`` reports the query as uncacheable.
+    """
+    from superset.extensions import cache_manager
+    from superset.sql.execution.executor import SQLExecutor
+
+    database.impersonate_user = True
+    executor = SQLExecutor(database)
+    mocker.patch("superset.sql.execution.executor.utils.get_user_id", return_value=None)
+    mock_cache_get = mocker.patch.object(cache_manager.data_cache, "get")
+
+    result = executor._get_from_cache("SELECT * FROM salaries", QueryOptions())
+
+    assert result is None
+    mock_cache_get.assert_not_called()
+
+
+def test_store_in_cache_skips_when_identity_unknown(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """
+    ``_store_in_cache`` must not write to the cache backend at all when
+    ``_generate_cache_key`` reports the query as uncacheable.
+    """
+    from superset_core.queries.types import (
+        QueryResult as QueryResultType,
+        StatementResult,
+    )
+
+    from superset.extensions import cache_manager
+    from superset.sql.execution.executor import SQLExecutor
+
+    database.impersonate_user = True
+    executor = SQLExecutor(database)
+    mocker.patch("superset.sql.execution.executor.utils.get_user_id", return_value=None)
+    mock_cache_set = mocker.patch.object(cache_manager.data_cache, "set")
+
+    result = QueryResultType(
+        status=QueryStatus.SUCCESS,
+        statements=[
+            StatementResult(
+                original_sql="SELECT * FROM salaries",
+                executed_sql="SELECT * FROM salaries",
+                data=pd.DataFrame({"salary": [1]}),
+                row_count=1,
+            )
+        ],
+    )
+
+    executor._store_in_cache(result, "SELECT * FROM salaries", QueryOptions())
+
+    mock_cache_set.assert_not_called()

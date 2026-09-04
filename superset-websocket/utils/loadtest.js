@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const Redis = require('ioredis');
-const config = require('../config.json');
-const { randomUUID } = require('crypto');
+import Redis from 'ioredis';
+import config from '../config.json' with { type: 'json' };
+import { randomUUID } from 'crypto';
+
 const redis = new Redis(config.redis);
 
 const numClients = 256;

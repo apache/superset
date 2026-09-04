@@ -639,6 +639,91 @@ class TestWebDriverPlaywrightErrorHandling:
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.take_tiled_screenshot")
+    def test_large_report_dashboard_tiles_even_when_measured_height_is_short(
+        self, mock_take_tiled, mock_browser_manager
+    ):
+        """Regression: the GOOD (full) report path is the tiled one; BAD
+        (blank/partial) runs mis-route a large dashboard to the single-shot
+        non-tiled capture because ``scrollHeight`` is measured while charts are
+        still virtualized/collapsed (<= one tile). A scheduled report whose
+        dashboard is large by chart count must take the tiled path regardless
+        of that stale height measurement, so every region is scrolled into
+        view and waited on instead of captured as a windowed partial.
+        """
+        mock_user = MagicMock()
+        mock_user.username = "test_user"
+
+        mock_browser = MagicMock()
+        mock_context = MagicMock()
+        mock_page = MagicMock()
+        mock_element = MagicMock()
+        mock_chart_container = MagicMock()
+
+        mock_browser_manager.get_browser.return_value = mock_browser
+        mock_browser.new_context.return_value = mock_context
+        mock_context.new_page.return_value = mock_page
+
+        def locator_side_effect(selector):
+            if selector == ".chart-container":
+                locator = MagicMock()
+                locator.all.return_value = [mock_chart_container]
+                return locator
+            return mock_element
+
+        mock_page.locator.side_effect = locator_side_effect
+        mock_take_tiled.return_value = b"tiled_screenshot"
+
+        def evaluate_side_effect(script):
+            if script == 'document.querySelectorAll(".chart-container").length':
+                return 52  # mounted containers
+            if "const target = document.querySelector" in script:
+                # Non-zero but <= one tile: the classic mid-layout measurement
+                # that previously vetoed tiling and dropped to the non-tiled
+                # path.
+                return 1500
+            return None
+
+        mock_page.evaluate.side_effect = evaluate_side_effect
+
+        with patch("superset.utils.webdriver.app") as mock_app:
+            mock_app.config = {
+                "WEBDRIVER_OPTION_ARGS": [],
+                "WEBDRIVER_WINDOW": {"pixel_density": 1},
+                "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
+                "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
+                "SCREENSHOT_SELENIUM_HEADSTART": 1,
+                "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 1,
+                "SCREENSHOT_LOCATE_WAIT": 10,
+                "SCREENSHOT_LOAD_WAIT": 10,
+                "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+                "SCREENSHOT_TILED_ENABLED": True,
+                "SCREENSHOT_TILED_CHART_THRESHOLD": 20,
+                "SCREENSHOT_TILED_HEIGHT_THRESHOLD": 5000,
+                # Larger than the measured 1500px height, so only the new
+                # report-mode branch (not `dashboard_height > tile_height`) can
+                # select tiling here.
+                "SCREENSHOT_TILED_VIEWPORT_HEIGHT": 2000,
+            }
+
+            with patch.object(WebDriverPlaywright, "auth") as mock_auth:
+                mock_auth.return_value = mock_context
+
+                driver = WebDriverPlaywright("chrome")
+                result = driver.get_screenshot(
+                    "http://example.com/dashboard/805",
+                    "standalone",
+                    mock_user,
+                    report_execution_context=_report_context(),
+                )
+
+        assert result == b"tiled_screenshot"
+        mock_take_tiled.assert_called_once()
+        # The non-tiled single-shot capture must not run for this large report.
+        mock_page.screenshot.assert_not_called()
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
     @patch("superset.utils.webdriver.logger")
     def test_chart_container_timeout_logs_warning_with_progress_and_raises(
         self, mock_logger, mock_browser_manager
@@ -1167,6 +1252,103 @@ class TestWebDriverPlaywrightChartReadiness:
 
         page.wait_for_function.assert_not_called()
         page.screenshot.assert_not_called()
+
+    def test_report_readiness_forces_below_fold_render_and_waits_for_all_holders(
+        self,
+    ):
+        """Regression for blank/partial report PDFs.
+
+        The non-tiled report capture takes a single full-page screenshot that
+        includes below-the-fold holders, so the readiness gate must (a) force
+        every virtualized row to render up front and (b) require *all* mounted
+        holders -- not just the viewport-visible ones -- to reach a terminal
+        state. Otherwise an off-screen holder that never rendered is captured
+        blank and silently delivered as a Success.
+        """
+        from superset.utils.screenshot_utils import (
+            FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS,
+            REPORT_ALL_CHART_HOLDERS_READY_JS,
+        )
+
+        page = MagicMock()
+        page.evaluate.return_value = [{"chartId": "7", "state": "rendered"}]
+
+        WebDriverPlaywright._wait_for_charts_ready(
+            page,
+            "http://example.com/dashboard/805",
+            5,
+            "standalone",
+            report_execution_context=_report_context(),
+        )
+
+        # (a) Off-screen rows are forced to render before the wait.
+        assert any(
+            call.args and call.args[0] == FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS
+            for call in page.evaluate.call_args_list
+        )
+        # (b) The readiness predicate is the all-holders variant: it must not
+        # skip below-the-fold holders (no viewport-intersection test), so a
+        # virtualized/unrendered off-screen holder cannot satisfy the gate.
+        predicate = page.wait_for_function.call_args.args[0]
+        assert predicate == REPORT_ALL_CHART_HOLDERS_READY_JS
+        assert "getBoundingClientRect" not in predicate
+        assert "window.innerHeight" not in predicate
+
+    @patch("superset.utils.webdriver.logger")
+    def test_report_readiness_below_fold_unrendered_fails_loudly(self, mock_logger):
+        """When an off-screen holder never renders within budget the report
+        must fail loudly (raise) rather than capture/deliver a blank
+        screenshot, and the terminal log must surface the below-the-fold
+        unready holders that the viewport-scoped diagnostic hides as
+        'virtualized'.
+        """
+        from superset.utils.screenshot_utils import (
+            FIND_ALL_UNREADY_CHART_HOLDERS_JS,
+            FIND_CHART_HOLDER_STATES_JS,
+        )
+        from superset.utils.webdriver import PlaywrightTimeout
+
+        page = MagicMock()
+        # 22 on-screen rendered holders + 30 off-screen holders that the
+        # viewport-scoped diagnostic labels 'virtualized' (and would otherwise
+        # count as "ready").
+        holder_states = [
+            {"chartId": str(i), "state": "rendered"} for i in range(22)
+        ] + [{"chartId": str(i), "state": "virtualized"} for i in range(22, 52)]
+        below_fold_unready = [
+            {"chartId": str(i), "state": "nothing_mounted"} for i in range(22, 52)
+        ]
+
+        def _evaluate(script, *args):
+            if script == FIND_ALL_UNREADY_CHART_HOLDERS_JS:
+                return below_fold_unready
+            if script == FIND_CHART_HOLDER_STATES_JS:
+                return holder_states
+            return None
+
+        page.evaluate.side_effect = _evaluate
+        page.wait_for_function.side_effect = PlaywrightTimeout(
+            "below-fold holders never rendered"
+        )
+
+        with pytest.raises(PlaywrightTimeout):
+            WebDriverPlaywright._wait_for_charts_ready(
+                page,
+                "http://example.com/dashboard/805",
+                5,
+                "standalone",
+                report_execution_context=_report_context(),
+            )
+
+        terminal_call = next(
+            call
+            for call in mock_logger.warning.call_args_list
+            if call.args and call.args[0].startswith("report_readiness_terminal")
+        )
+        assert "terminal_reason=readiness_timeout" in terminal_call.args[0]
+        # The below-the-fold offenders are surfaced explicitly.
+        assert "all_unready_holders=" in terminal_call.args[0]
+        assert below_fold_unready in terminal_call.args
 
     @patch("superset.utils.webdriver.logger")
     def test_chart_capture_ready_logs_container_state_not_holder_counts(

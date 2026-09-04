@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import inspect
 from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
@@ -327,6 +328,10 @@ def test_send_chart_response_strips_guest_query_after_timing_projection(
                 "superset.charts.data.api.security_manager.is_guest_user",
                 return_value=True,
             ),
+            patch(
+                "superset.charts.data.api.security_manager.can_access",
+                return_value=False,
+            ),
         ):
             response = api._send_chart_response(result)
     finally:
@@ -336,6 +341,35 @@ def test_send_chart_response_strips_guest_query_after_timing_projection(
     assert "query" not in query
     assert "timing" in query
     assert "query" in query_payload
+
+
+def test_send_chart_response_keeps_guest_query_when_permitted(
+    app: SupersetApp,
+) -> None:
+    """
+    A guest whose role carries "can view query on Dashboard" must receive the
+    generated SQL, otherwise "View query" is empty on embedded dashboards.
+    """
+    query_payload = {"data": [{"col1": 1}], "query": "SELECT 1"}
+    result = _json_execution_result(query_payload)
+
+    api = ChartDataRestApi()
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch(
+            "superset.charts.data.api.security_manager.is_guest_user",
+            return_value=True,
+        ),
+        patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=True,
+        ) as can_access,
+    ):
+        response = api._send_chart_response(result)
+
+    query = json.loads(response.get_data(as_text=True))["result"][0]
+    assert query["query"] == "SELECT 1"
+    can_access.assert_called_once_with("can_view_query", "Dashboard")
 
 
 def test_send_chart_response_redacts_guest_query_error(app: SupersetApp) -> None:
@@ -355,10 +389,50 @@ def test_send_chart_response_redacts_guest_query_error(app: SupersetApp) -> None
             "superset.charts.data.api.security_manager.is_guest_user",
             return_value=True,
         ),
+        patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=False,
+        ),
     ):
         response = api._send_chart_response(result)
 
     query = json.loads(response.get_data(as_text=True))["result"][0]
+    assert query["error"] == str(GENERIC_ERROR_MESSAGE)
+    assert "stacktrace" not in query
+
+
+def test_send_chart_response_still_redacts_guest_errors_when_query_permitted(
+    app: SupersetApp,
+) -> None:
+    """
+    "can view query on Dashboard" only unlocks the generated SQL; stacktraces
+    and driver errors describe the deployment and stay redacted for guests.
+    """
+    result = _json_execution_result(
+        {
+            "error": "Table mydb.myschema.mytable was not found",
+            "stacktrace": "Traceback ...",
+            "query": "SELECT 1",
+        },
+        result_type=ChartDataResultType.QUERY,
+    )
+
+    api = ChartDataRestApi()
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch(
+            "superset.charts.data.api.security_manager.is_guest_user",
+            return_value=True,
+        ),
+        patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=True,
+        ),
+    ):
+        response = api._send_chart_response(result)
+
+    query = json.loads(response.get_data(as_text=True))["result"][0]
+    assert query["query"] == "SELECT 1"
     assert query["error"] == str(GENERIC_ERROR_MESSAGE)
     assert "stacktrace" not in query
 
@@ -858,3 +932,253 @@ def test_send_chart_response_does_not_double_extension_for_csv_filename() -> Non
     content_disposition = response.headers["Content-Disposition"]
     assert "my_export.csv.csv" not in content_disposition
     assert "my_export.csv" in content_disposition
+
+
+def test_default_export_filename_prefers_explicit_slice_name() -> None:
+    """An explicit slice_name in the form data wins over the chart object."""
+    filename = ChartDataRestApi._get_default_export_filename(
+        {"slice_name": "Explicit Name", "viz_type": "table"},
+        MagicMock(slice_name="Saved Chart"),
+    )
+
+    assert filename.startswith("superset_Explicit_Name_")
+
+
+def test_default_export_filename_uses_chart_name() -> None:
+    """
+    Regression test: the chart's own name must be used for the export
+    filename. Real clients never place slice_name inside the form data
+    (Slice.form_data only injects slice_id, viz_type and datasource), so
+    the name has to come from the resolved Slice object.
+    """
+    filename = ChartDataRestApi._get_default_export_filename(
+        {"viz_type": "table"},
+        MagicMock(slice_name="Revenue by Region"),
+    )
+
+    assert filename.startswith("superset_Revenue_by_Region_")
+
+
+def test_default_export_filename_ignores_non_string_chart_name() -> None:
+    """
+    A slice whose name is not a plain string (e.g. a mock in tests, or an
+    unloaded attribute) must not leak its repr into the filename.
+    """
+    filename = ChartDataRestApi._get_default_export_filename(
+        {"viz_type": "table"},
+        MagicMock(),  # slice_name is itself a MagicMock, not a str
+    )
+
+    assert filename.startswith("superset_table_")
+
+
+def test_default_export_filename_falls_back_when_name_sanitizes_to_nothing() -> None:
+    """
+    secure_filename reduces a chart name written entirely in a non-latin
+    alphabet to an empty string; the viz_type must be used instead so the
+    filename keeps a meaningful segment.
+    """
+    filename = ChartDataRestApi._get_default_export_filename(
+        {"viz_type": "table"},
+        MagicMock(slice_name="销售报表"),
+    )
+
+    assert filename.startswith("superset_table_")
+
+
+def test_default_export_filename_without_any_candidate() -> None:
+    """With no form data and no slice the generic fallback is preserved."""
+    filename = ChartDataRestApi._get_default_export_filename(None, None)
+
+    assert filename.startswith("superset_export_")
+
+
+def test_default_export_filename_caps_very_long_chart_names() -> None:
+    """
+    Chart names can be up to 250 characters; the generated filename must
+    stay within the 255-character single-component limit of common
+    filesystems once the extension is appended, or consumers that honor
+    Content-Disposition verbatim (curl -OJ, wget) fail to save the file.
+    """
+    filename = ChartDataRestApi._get_default_export_filename(
+        {"viz_type": "table"},
+        MagicMock(slice_name="x" * 250),
+    )
+
+    assert filename.startswith("superset_" + "x" * 150)
+    assert "x" * 151 not in filename
+    assert len(filename) + len(".xlsx") <= 255
+
+
+def test_send_chart_response_uses_query_context_slice_name() -> None:
+    """
+    POST /api/v1/chart/data: when the submitted form data carries a
+    slice_id, the query context factory resolves the Slice, and its name
+    must reach the CSV filename even though slice_name itself is absent
+    from the form data.
+    """
+    query_context = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.result_format = ChartDataResultFormat.CSV
+    query_context.slice_ = MagicMock(slice_name="Quarterly Revenue")
+
+    result = {
+        "query_context": query_context,
+        "queries": [{"data": "col_a,col_b\n1,2\n"}],
+    }
+
+    api = ChartDataRestApi()
+    with (
+        patch("superset.charts.data.api.security_manager") as mock_security_manager,
+        patch("superset.charts.data.api.is_feature_enabled", return_value=False),
+    ):
+        mock_security_manager.can_access.return_value = True
+        response = api._send_chart_response(
+            result, form_data={"viz_type": "table", "row_limit": 10}
+        )
+
+    assert "Quarterly_Revenue" in response.headers["Content-Disposition"]
+
+
+def test_send_chart_response_uses_route_slice_when_context_has_none() -> None:
+    """
+    GET /api/v1/chart/<pk>/data/: a chart's saved query context rarely
+    carries a slice_id, so the route passes the chart it loaded and that
+    name must be used for the filename.
+    """
+    query_context = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.result_format = ChartDataResultFormat.CSV
+    query_context.slice_ = None
+
+    result = {
+        "query_context": query_context,
+        "queries": [{"data": "col_a,col_b\n1,2\n"}],
+    }
+
+    api = ChartDataRestApi()
+    with (
+        patch("superset.charts.data.api.security_manager") as mock_security_manager,
+        patch("superset.charts.data.api.is_feature_enabled", return_value=False),
+    ):
+        mock_security_manager.can_access.return_value = True
+        response = api._send_chart_response(
+            result,
+            form_data={"viz_type": "table", "row_limit": 10},
+            slice_=MagicMock(slice_name="Saved Chart"),
+        )
+
+    assert "Saved_Chart" in response.headers["Content-Disposition"]
+
+
+def test_send_chart_response_prefers_route_slice_over_query_context() -> None:
+    """The chart the route loaded wins over the factory-resolved slice."""
+    query_context = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.result_format = ChartDataResultFormat.CSV
+    query_context.slice_ = MagicMock(slice_name="Context Chart")
+
+    result = {
+        "query_context": query_context,
+        "queries": [{"data": "col_a,col_b\n1,2\n"}],
+    }
+
+    api = ChartDataRestApi()
+    with (
+        patch("superset.charts.data.api.security_manager") as mock_security_manager,
+        patch("superset.charts.data.api.is_feature_enabled", return_value=False),
+    ):
+        mock_security_manager.can_access.return_value = True
+        response = api._send_chart_response(
+            result,
+            form_data={"viz_type": "table", "row_limit": 10},
+            slice_=MagicMock(slice_name="Route Chart"),
+        )
+
+    content_disposition = response.headers["Content-Disposition"]
+    assert "Route_Chart" in content_disposition
+    assert "Context_Chart" not in content_disposition
+
+
+def test_streaming_csv_response_uses_chart_name(app: SupersetApp) -> None:
+    """
+    The generated streaming CSV filename (used when the client didn't
+    supply one) must include the chart's name, matching the non-streaming
+    path.
+    """
+    query_context = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.result_format = ChartDataResultFormat.CSV
+    query_context.slice_ = MagicMock(slice_name="Quarterly Revenue")
+
+    result = {
+        "query_context": query_context,
+        "queries": [{"data": "col_a,col_b\n1,2\n"}],
+    }
+
+    api = ChartDataRestApi()
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch("superset.charts.data.api.security_manager") as mock_security_manager,
+        patch("superset.charts.data.api.is_feature_enabled", return_value=False),
+        patch.object(ChartDataRestApi, "_should_use_streaming", return_value=True),
+        patch("superset.charts.data.api.StreamingCSVExportCommand"),
+    ):
+        mock_security_manager.can_access.return_value = True
+        response = api._send_chart_response(
+            result, form_data={"viz_type": "table", "row_limit": 10}
+        )
+
+    assert "Quarterly_Revenue" in response.headers["Content-Disposition"]
+
+
+def test_get_data_response_forwards_slice_to_chart_response(
+    app: SupersetApp,
+) -> None:
+    """The slice_ passed by a route must reach _send_chart_response."""
+    command = MagicMock()
+    chart = MagicMock(slice_name="Saved Chart")
+    api = ChartDataRestApi()
+
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch.object(ChartDataRestApi, "_send_chart_response") as mock_send,
+    ):
+        api._get_data_response(command, slice_=chart)
+
+    assert mock_send.call_args.kwargs["slice_"] is chart
+
+
+def test_get_data_route_passes_loaded_chart_to_data_response(
+    app: SupersetApp,
+) -> None:
+    """
+    Mutation guard: GET /api/v1/chart/<pk>/data/ must hand the chart it
+    loaded to _get_data_response. A chart's saved query context rarely
+    carries a slice_id for the query context factory to resolve, so
+    dropping this wiring silently regresses the export filename to the
+    viz_type while every other test stays green.
+    """
+    chart = MagicMock(slice_name="Saved Chart")
+    chart.query_context = json.dumps({"datasource": {"id": 1, "type": "table"}})
+    chart.params = "{}"
+
+    api = ChartDataRestApi()
+    api.datamodel = MagicMock()
+    api.datamodel.get.return_value = chart
+    api._base_filters = []
+
+    # Reach past the route decorators (protect, statsd, event logger) to
+    # exercise the route body itself.
+    get_data = inspect.unwrap(ChartDataRestApi.get_data)
+
+    with (
+        app.test_request_context("/api/v1/chart/1/data/?format=csv"),
+        patch.object(ChartDataRestApi, "_create_query_context_from_form"),
+        patch("superset.charts.data.api.ChartDataCommand"),
+        patch("superset.charts.data.api.is_feature_enabled", return_value=False),
+        patch.object(ChartDataRestApi, "_get_data_response") as mock_response,
+    ):
+        get_data(api, 1)
+
+    assert mock_response.call_args.kwargs["slice_"] is chart

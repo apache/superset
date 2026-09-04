@@ -18,11 +18,15 @@
  */
 import '@testing-library/jest-dom';
 import {
+  BoundUnit,
+  Comparator,
   getTextColorForBackground,
   ObjectFormattingEnum,
+  ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 import { supersetTheme } from '@apache-superset/core/theme';
 import {
+  act,
   render,
   screen,
   fireEvent,
@@ -148,6 +152,33 @@ test('sanitizeHeaderId should handle inputs with only special characters', () =>
   expect(sanitizeHeaderId('#')).toBe('hash');
   expect(sanitizeHeaderId('△')).toBe('delta');
   expect(sanitizeHeaderId('% # △')).toBe('percent_hash_delta');
+});
+
+test('transformProps retains percentage rules with automatic bounds under server pagination', () => {
+  const transformedProps = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      server_pagination: true,
+      conditional_formatting: [
+        {
+          column: 'sum__num',
+          operator: Comparator.None,
+          colorScheme: '#FF0000',
+          useGradient: true,
+          boundUnit: BoundUnit.Percent,
+          minBound: 0,
+          maxBound: 200,
+        },
+      ],
+    },
+  });
+
+  expect(transformedProps.columnColorFormatters).toHaveLength(1);
+  const formatter = transformedProps.columnColorFormatters?.[0];
+  expect(formatter?.column).toBe('sum__num');
+  expect(formatter?.getColorFromValue(2467)).toBe('#FF000000');
+  expect(formatter?.getColorFromValue(2467063)).toBe('#FF0000FF');
 });
 
 describe('plugin-chart-table', () => {
@@ -2075,6 +2106,82 @@ describe('plugin-chart-table', () => {
         });
       });
 
+      test('does not crash when a comparison-color-formatter array has no entry for a rendered row', () => {
+        // Regression test: the per-cell comparison-color lookups in the Cell
+        // renderer (`basicColorFormatters`/`basicColorColumnFormatters`,
+        // indexed by `row.index`) must stay safe even if those arrays ever
+        // end up with fewer entries than the number of rendered rows -- e.g.
+        // when "Show summary" is combined with time comparison and a
+        // comparison-based conditional color scheme ("Green for increase,
+        // red for decrease") applied to a Time Comparison column. Without
+        // the `?.` guard on the array-index lookup, this throws
+        // `TypeError: Cannot read properties of undefined (reading 'Main
+        // metric_1')`.
+        const propsInput = {
+          ...testData.comparison,
+          rawFormData: {
+            ...testData.comparison.rawFormData,
+            conditional_formatting: [
+              { column: 'Main metric_1', colorScheme: ColorSchemeEnum.Green },
+            ],
+          },
+        };
+        const transformedProps = transformProps(propsInput);
+        expect(transformedProps.data).toHaveLength(2);
+        expect(transformedProps.basicColorColumnFormatters).toHaveLength(2);
+
+        // Simulate the row-count mismatch: the formatter array has an entry
+        // for only the first row, matching the shape of the bug (an entry
+        // missing for one of the rendered rows).
+        const propsWithMissingFormatterEntry = {
+          ...transformedProps,
+          basicColorColumnFormatters:
+            transformedProps.basicColorColumnFormatters!.slice(0, 1),
+        };
+
+        expect(() =>
+          render(
+            ProviderWrapper({
+              children: (
+                <TableChart
+                  {...propsWithMissingFormatterEntry}
+                  sticky={false}
+                />
+              ),
+            }),
+          ),
+        ).not.toThrow();
+
+        // the row that still has a formatter entry keeps its comparison
+        // background color and arrow: the "Main metric_1" cell for the
+        // first row (value 100) renders before the derived "△ metric_1"
+        // cell that happens to share the same value and aria label.
+        const [styledCell] = screen.getAllByTitle('100');
+        expect(styledCell).toHaveTextContent('↑100');
+        expect(getComputedStyle(styledCell).background).toContain(
+          'rgba(0, 150, 0, 0.2)',
+        );
+
+        // the row missing a formatter entry falls back to the row-level
+        // comparison arrow instead of losing it: before the fix, this row's
+        // arrow was silently cleared (and its color, computed the same way,
+        // would have flipped to the "decrease" color) whenever the
+        // column-specific lookup for this row was undefined.
+        const arrowCell = screen
+          .getAllByTitle('110')
+          .find(cell => cell.querySelector('span'));
+        expect(arrowCell).toHaveTextContent('↑110');
+        expect(getComputedStyle(arrowCell!).background).toContain(
+          'rgba(0, 150, 0, 0.2)',
+        );
+        // the fallback arrow itself must also keep the "increase" color --
+        // asserting only the cell background would still pass if the arrow's
+        // own color had regressed to the "decrease" color.
+        expect(arrowCell!.querySelector('span')).toHaveStyle({
+          color: supersetTheme.colorSuccess,
+        });
+      });
+
       test('preserves client-side search text across temporal table rerenders', async () => {
         const formDataWithSearch = {
           ...testData.basic.formData,
@@ -2580,6 +2687,253 @@ describe('plugin-chart-table', () => {
     );
     expect(screen.queryByText('Search by')).toBeInTheDocument();
   });
+
+  test.each([
+    {
+      eventOrder: 'change before compositionend',
+      commitComposition: (searchInput: HTMLElement) => {
+        fireEvent.change(searchInput, { target: { value: '你好' } });
+        fireEvent.compositionEnd(searchInput);
+      },
+    },
+    {
+      eventOrder: 'compositionend carrying the committed value',
+      commitComposition: (searchInput: HTMLElement) => {
+        fireEvent.compositionEnd(searchInput, {
+          target: { value: '你好' },
+        });
+      },
+    },
+  ])(
+    'defers server-side search until IME composition ends ($eventOrder)',
+    async ({ commitComposition }) => {
+      jest.useFakeTimers();
+      try {
+        const setDataMask = jest.fn();
+        const props = transformProps({
+          ...testData.raw,
+          rawFormData: {
+            ...testData.raw.rawFormData,
+            server_pagination: true,
+            include_search: true,
+          },
+          hooks: { setDataMask },
+          queriesData: [
+            {
+              ...testData.raw.queriesData[0],
+              colnames: ['name'],
+              coltypes: [GenericDataType.String],
+              data: [{ name: 'Michael' }, { name: 'John' }],
+            },
+          ],
+        });
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart {...props} setDataMask={setDataMask} sticky={false} />
+            ),
+          }),
+        );
+
+        const searchInput = screen.getByRole('textbox');
+        const searchCalls = () =>
+          setDataMask.mock.calls.filter(([mask]) =>
+            Object.prototype.hasOwnProperty.call(
+              mask?.ownState ?? {},
+              'searchText',
+            ),
+          );
+
+        fireEvent.compositionStart(searchInput);
+        fireEvent.change(searchInput, { target: { value: 'nihao' } });
+
+        await act(async () => {
+          jest.advanceTimersByTime(300);
+        });
+        await act(async () => {
+          jest.advanceTimersByTime(900);
+        });
+        expect(searchInput).toHaveValue('nihao');
+        expect(searchCalls()).toHaveLength(0);
+
+        commitComposition(searchInput);
+
+        await act(async () => {
+          jest.advanceTimersByTime(300);
+        });
+        await act(async () => {
+          jest.advanceTimersByTime(900);
+        });
+
+        const calls = searchCalls();
+        expect(calls).toHaveLength(1);
+        expect(calls[0][0].ownState.searchText).toBe('你好');
+      } finally {
+        jest.useRealTimers();
+      }
+    },
+  );
+
+  test('restores server-side search after composition is interrupted by blur', async () => {
+    jest.useFakeTimers();
+    try {
+      const setDataMask = jest.fn();
+      const props = transformProps({
+        ...testData.raw,
+        rawFormData: {
+          ...testData.raw.rawFormData,
+          server_pagination: true,
+          include_search: true,
+        },
+        hooks: { setDataMask },
+        queriesData: [
+          {
+            ...testData.raw.queriesData[0],
+            colnames: ['name'],
+            coltypes: [GenericDataType.String],
+            data: [{ name: 'Michael' }, { name: 'John' }],
+          },
+        ],
+      });
+      render(
+        ProviderWrapper({
+          children: (
+            <TableChart {...props} setDataMask={setDataMask} sticky={false} />
+          ),
+        }),
+      );
+
+      const searchInput = screen.getByRole('textbox');
+      const searchCalls = () =>
+        setDataMask.mock.calls.filter(([mask]) =>
+          Object.prototype.hasOwnProperty.call(
+            mask?.ownState ?? {},
+            'searchText',
+          ),
+        );
+
+      fireEvent.compositionStart(searchInput);
+      fireEvent.change(searchInput, { target: { value: 'nihao' } });
+
+      await act(async () => {
+        jest.advanceTimersByTime(300);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(900);
+      });
+      expect(searchInput).toHaveValue('nihao');
+      expect(searchCalls()).toHaveLength(0);
+
+      fireEvent.blur(searchInput);
+      expect(searchCalls()).toHaveLength(0);
+
+      fireEvent.change(searchInput, { target: { value: 'hello' } });
+
+      await act(async () => {
+        jest.advanceTimersByTime(300);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(900);
+      });
+
+      const calls = searchCalls();
+      expect(calls).toHaveLength(1);
+      expect(calls[0][0].ownState.searchText).toBe('hello');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test.each([
+    {
+      eventOrder: 'compositionend before blur',
+      pauseBeforeLeaving: 50,
+      leaveInput: (searchInput: HTMLElement) => {
+        fireEvent.compositionEnd(searchInput, {
+          target: { value: 'nihao' },
+        });
+        fireEvent.blur(searchInput);
+      },
+    },
+    {
+      eventOrder: 'blur without compositionend',
+      pauseBeforeLeaving: 50,
+      leaveInput: (searchInput: HTMLElement) => {
+        fireEvent.blur(searchInput);
+      },
+    },
+    {
+      eventOrder: 'blur without compositionend after the debounce fired',
+      pauseBeforeLeaving: 300,
+      leaveInput: (searchInput: HTMLElement) => {
+        fireEvent.blur(searchInput);
+      },
+    },
+  ])(
+    'searches the input value after blur mid-composition ($eventOrder)',
+    async ({ pauseBeforeLeaving, leaveInput }) => {
+      jest.useFakeTimers();
+      try {
+        const setDataMask = jest.fn();
+        const props = transformProps({
+          ...testData.raw,
+          rawFormData: {
+            ...testData.raw.rawFormData,
+            server_pagination: true,
+            include_search: true,
+          },
+          hooks: { setDataMask },
+          queriesData: [
+            {
+              ...testData.raw.queriesData[0],
+              colnames: ['name'],
+              coltypes: [GenericDataType.String],
+              data: [{ name: 'Michael' }, { name: 'John' }],
+            },
+          ],
+        });
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart {...props} setDataMask={setDataMask} sticky={false} />
+            ),
+          }),
+        );
+
+        const searchInput = screen.getByRole('textbox');
+        const searchCalls = () =>
+          setDataMask.mock.calls.filter(([mask]) =>
+            Object.prototype.hasOwnProperty.call(
+              mask?.ownState ?? {},
+              'searchText',
+            ),
+          );
+
+        fireEvent.compositionStart(searchInput);
+        fireEvent.change(searchInput, { target: { value: 'nihao' } });
+
+        await act(async () => {
+          jest.advanceTimersByTime(pauseBeforeLeaving);
+        });
+        leaveInput(searchInput);
+        expect(searchCalls()).toHaveLength(0);
+
+        await act(async () => {
+          jest.advanceTimersByTime(300);
+        });
+        await act(async () => {
+          jest.advanceTimersByTime(900);
+        });
+
+        expect(searchInput).toHaveValue('nihao');
+        const calls = searchCalls();
+        expect(calls).toHaveLength(1);
+        expect(calls[0][0].ownState.searchText).toBe('nihao');
+      } finally {
+        jest.useRealTimers();
+      }
+    },
+  );
 
   test(
     'should read the totals row from the correct query when percent metrics ' +

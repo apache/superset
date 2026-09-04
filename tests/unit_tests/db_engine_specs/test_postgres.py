@@ -31,6 +31,7 @@ from superset.db_engine_specs.postgres import (
     _check_not_redshift,
     PostgresEngineSpec as spec,  # noqa: N813
 )
+from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.sql.parse import Table
 from superset.utils.core import GenericDataType
@@ -501,3 +502,325 @@ def test_get_schema_names_excludes_only_actual_system_schemas(
         "pgstats",
         "information_schema",
     }
+
+
+def _basic_parameters(**overrides: Any) -> dict[str, Any]:
+    parameters: dict[str, Any] = {
+        "username": "user",
+        "password": "pwd",
+        "host": "localhost",
+        "port": 5432,
+        "database": "db",
+        "query": {},
+    }
+    parameters.update(overrides)
+    return parameters
+
+
+def test_build_sqlalchemy_uri_defaults_missing_port_to_5432() -> None:
+    """
+    DB Eng Specs (postgres): ``build_sqlalchemy_uri`` defaults a missing
+    ``port`` key to the class's own declared default (5432) instead of
+    raising a ``KeyError``, so the dynamic form can connect without a port.
+    """
+    parameters = _basic_parameters()
+    del parameters["port"]
+
+    uri = spec.build_sqlalchemy_uri(parameters)  # type: ignore[arg-type]
+
+    assert make_url(uri).port == 5432
+    assert spec.metadata["default_port"] == 5432
+
+
+def test_build_sqlalchemy_uri_defaults_blank_port_to_5432() -> None:
+    """
+    DB Eng Specs (postgres): ``build_sqlalchemy_uri`` defaults a blank
+    (``None``) ``port`` value to 5432 rather than emitting ``port=None``.
+    """
+    parameters = _basic_parameters(port=None)
+
+    uri = spec.build_sqlalchemy_uri(parameters)  # type: ignore[arg-type]
+
+    assert make_url(uri).port == 5432
+
+
+def test_build_sqlalchemy_uri_respects_explicit_port() -> None:
+    """
+    DB Eng Specs (postgres): an explicitly provided port is still honored
+    and not overridden by the default.
+    """
+    parameters = _basic_parameters(port=5433)
+
+    uri = spec.build_sqlalchemy_uri(parameters)  # type: ignore[arg-type]
+
+    assert make_url(uri).port == 5433
+
+
+def test_build_sqlalchemy_uri_preserves_explicit_port_zero() -> None:
+    """
+    DB Eng Specs (postgres): an explicitly supplied port of ``0`` (a value
+    the schema's ``Range(min=0, ...)`` validator accepts) must not be
+    silently overwritten by the default port. A truthiness check like
+    ``port or default`` would incorrectly replace ``0`` with 5432.
+    """
+    parameters = _basic_parameters(port=0)
+
+    uri = spec.build_sqlalchemy_uri(parameters)  # type: ignore[arg-type]
+
+    assert make_url(uri).port == 0
+
+
+def test_build_sqlalchemy_uri_defaults_empty_string_port_to_5432() -> None:
+    """
+    DB Eng Specs (postgres): ``build_sqlalchemy_uri`` may be called directly
+    with raw, non-schema-loaded parameters (see
+    ``ValidateDatabaseParametersCommand``), where a cleared number input
+    submits ``""`` rather than ``null``. That must default to 5432 rather
+    than raising when SQLAlchemy tries to parse ``""`` as a port.
+    """
+    parameters = _basic_parameters(port="")
+
+    uri = spec.build_sqlalchemy_uri(parameters)  # type: ignore[arg-type]
+
+    assert make_url(uri).port == 5432
+
+
+def test_parameters_schema_blank_port_string_loads_as_none() -> None:
+    """
+    DB Eng Specs (postgres): the Connect Database form's Port field is a
+    number input; clearing it submits ``""`` (HTML input values are always
+    strings), not ``null``. The schema must normalize that to ``None``
+    instead of rejecting it with "Not a valid integer.", so the dynamic
+    form's CONNECT flow (which loads through ``parameters_schema`` before
+    calling ``build_sqlalchemy_uri``) succeeds with a blank port.
+    """
+    loaded = spec.parameters_schema.load(_basic_parameters(port=""))
+
+    assert loaded["port"] is None
+
+
+def test_validate_parameters_blank_port_is_not_a_missing_parameter(
+    mocker: MockerFixture,
+) -> None:
+    """
+    DB Eng Specs (postgres): a blank/missing ``port`` must not trigger
+    ``CONNECTION_MISSING_PARAMETERS_ERROR``, since ``build_sqlalchemy_uri``
+    falls back to the default Postgres port.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_hostname_valid", return_value=True)
+
+    properties = {"parameters": _basic_parameters(port=None)}
+    errors = spec.validate_parameters(properties)  # type: ignore[arg-type]
+
+    for error in errors:
+        assert "port" not in (error.extra or {}).get("missing", [])
+        assert error.error_type != SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR
+
+
+def test_validate_parameters_missing_host_still_errors(
+    mocker: MockerFixture,
+) -> None:
+    """
+    DB Eng Specs (postgres): omitting ``host`` still reports it as missing;
+    only ``port`` was made optional.
+    """
+    properties = {"parameters": _basic_parameters(host="", port=None)}
+    errors = spec.validate_parameters(properties)  # type: ignore[arg-type]
+
+    assert len(errors) == 1
+    assert errors[0].error_type == SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR
+    assert (errors[0].extra or {})["missing"] == ["host"]
+
+
+def test_validate_parameters_missing_other_required_field_still_errors(
+    mocker: MockerFixture,
+) -> None:
+    """
+    DB Eng Specs (postgres): omitting a still-required field (``database``)
+    continues to be reported, even though ``port`` is blank too.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_hostname_valid", return_value=True)
+
+    properties = {"parameters": _basic_parameters(database="", port=None)}
+    errors = spec.validate_parameters(properties)  # type: ignore[arg-type]
+
+    missing_errors = [
+        error
+        for error in errors
+        if error.error_type == SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR
+    ]
+    assert len(missing_errors) == 1
+    assert (missing_errors[0].extra or {})["missing"] == ["database"]
+
+
+def test_validate_parameters_explicit_valid_port_checks_open(
+    mocker: MockerFixture,
+) -> None:
+    """
+    DB Eng Specs (postgres): when a port IS supplied, format/range/open
+    validation is preserved unchanged.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_hostname_valid", return_value=True)
+    is_port_open = mocker.patch(
+        "superset.db_engine_specs.base.is_port_open", return_value=True
+    )
+
+    properties = {"parameters": _basic_parameters(port=5432)}
+    errors = spec.validate_parameters(properties)  # type: ignore[arg-type]
+
+    assert errors == []
+    is_port_open.assert_called_once_with("localhost", 5432)
+
+
+def test_validate_parameters_invalid_port_still_errors(
+    mocker: MockerFixture,
+) -> None:
+    """
+    DB Eng Specs (postgres): an out-of-range port supplied by the user
+    still produces ``CONNECTION_INVALID_PORT_ERROR``, exactly as before.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_hostname_valid", return_value=True)
+
+    properties = {"parameters": _basic_parameters(port=70000)}
+    errors = spec.validate_parameters(properties)  # type: ignore[arg-type]
+
+    assert len(errors) == 1
+    assert errors[0].error_type == SupersetErrorType.CONNECTION_INVALID_PORT_ERROR
+
+
+def test_validate_parameters_explicit_zero_port_is_validated(
+    mocker: MockerFixture,
+) -> None:
+    """
+    DB Eng Specs (postgres): an explicit ``port=0`` must not be silently
+    treated as blank. ``0`` is falsy in Python, so a naive ``if not port``
+    short-circuit (the base method's original bug, inherited by Postgres)
+    would skip the int/range/``is_port_open`` checks entirely for a real,
+    explicitly-supplied port value of ``0`` -- which the schema's own
+    ``Range(min=0, ...)`` validator accepts as valid. This confirms
+    ``is_port_open`` is actually called (i.e. validation ran) for ``port=0``.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_hostname_valid", return_value=True)
+    is_port_open = mocker.patch(
+        "superset.db_engine_specs.base.is_port_open", return_value=True
+    )
+
+    properties = {"parameters": _basic_parameters(port=0)}
+    errors = spec.validate_parameters(properties)  # type: ignore[arg-type]
+
+    is_port_open.assert_called_once_with("localhost", 0)
+    assert errors == []
+
+
+def test_validate_parameters_explicit_zero_port_reports_closed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    DB Eng Specs (postgres): the other side of the ``port=0`` fix above --
+    when the (now-actually-run) open-port check for an explicit ``port=0``
+    fails, ``CONNECTION_PORT_CLOSED_ERROR`` is reported like it would be for
+    any other supplied port.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_hostname_valid", return_value=True)
+    is_port_open = mocker.patch(
+        "superset.db_engine_specs.base.is_port_open", return_value=False
+    )
+
+    properties = {"parameters": _basic_parameters(port=0)}
+    errors = spec.validate_parameters(properties)  # type: ignore[arg-type]
+
+    is_port_open.assert_called_once_with("localhost", 0)
+    assert len(errors) == 1
+    assert errors[0].error_type == SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR
+
+
+@pytest.mark.parametrize("blank_port", [None, ""])
+def test_validate_parameters_blank_port_never_calls_is_port_open(
+    blank_port: Optional[str],
+    mocker: MockerFixture,
+) -> None:
+    """
+    DB Eng Specs (postgres): regression lock for the blank-port UX this
+    whole ticket exists to fix -- ``None`` (an omitted/null port) and ``""``
+    (what a cleared HTML number input submits) must both keep
+    short-circuiting ``validate_parameters`` with zero errors *before* any
+    port validation runs, and must not be conflated with the ``port=0`` fix
+    above: ``is_port_open`` must never be called for either blank form.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_hostname_valid", return_value=True)
+    is_port_open = mocker.patch("superset.db_engine_specs.base.is_port_open")
+
+    properties = {"parameters": _basic_parameters(port=blank_port)}
+    errors = spec.validate_parameters(properties)  # type: ignore[arg-type]
+
+    assert errors == []
+    is_port_open.assert_not_called()
+
+
+def test_validate_parameters_non_integer_port_matches_base_parity(
+    mocker: MockerFixture,
+) -> None:
+    """
+    DB Eng Specs (postgres): a non-integer port must produce BOTH errors
+    that ``BasicParametersMixin.validate_parameters`` produces -- the
+    "Port must be a valid integer." error from the failed ``int()``
+    conversion, AND the "must be an integer between 0 and 65535" range
+    error, since the base method does not return early after the former
+    and falls through to the range check (which is also False for a
+    non-int value). ``PostgresEngineSpec`` inherits ``validate_parameters``
+    directly from the base (it only overrides ``required_parameters``), so
+    this guards that the inherited behavior keeps producing both errors.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_hostname_valid", return_value=True)
+
+    properties = {"parameters": _basic_parameters(port="not-a-port")}
+    errors = spec.validate_parameters(properties)  # type: ignore[arg-type]
+
+    assert len(errors) == 2
+    assert errors[0].message == "Port must be a valid integer."
+    assert errors[0].error_type == SupersetErrorType.CONNECTION_INVALID_PORT_ERROR
+    assert (
+        errors[1].message
+        == "The port must be an integer between 0 and 65535 (inclusive)."
+    )
+    assert errors[1].error_type == SupersetErrorType.CONNECTION_INVALID_PORT_ERROR
+
+
+def test_parameters_schema_port_is_not_required() -> None:
+    """
+    DB Eng Specs (postgres): the JSON schema exposed to the frontend for the
+    Connect Database dynamic form must not mark ``port`` as required, so the
+    modal doesn't block client-side submission when the field is left blank.
+    """
+    json_schema = spec.parameters_json_schema()
+
+    assert "port" not in json_schema.get("required", [])
+    assert "host" in json_schema.get("required", [])
+    assert "database" in json_schema.get("required", [])
+
+
+@pytest.mark.parametrize(
+    ("aggregate", "expected_sql"),
+    [
+        ("MEDIAN", "percentile_cont(0.5) WITHIN GROUP (ORDER BY sales)"),
+        ("STDDEV_SAMP", "stddev_samp(sales)"),
+        ("VAR_SAMP", "var_samp(sales)"),
+    ],
+)
+def test_extended_aggregation_func_compiles_expected_sql(
+    aggregate: str, expected_sql: str
+) -> None:
+    """
+    Verified against a live postgres:16 instance (including under GROUPING
+    SETS): these expressions compute the correct database-wide statistic, not
+    an aggregate-of-per-group-aggregates.
+    """
+    func = spec.get_extended_aggregation_func(aggregate)
+    assert func is not None
+
+    compiled = str(
+        func(column("sales")).compile(
+            dialect=postgresql.dialect(), compile_kwargs={"literal_binds": True}
+        )
+    )
+    assert compiled == expected_sql

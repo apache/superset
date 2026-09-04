@@ -76,6 +76,27 @@ value defined in `DATA_CACHE_CONFIG`.
 Note, that by setting the cache timeout to `-1`, caching for charting data can be disabled, either
 per chart, dataset or database, or by default if set in `DATA_CACHE_CONFIG`.
 
+Native filter option queries (the dropdown values for native filters) go through this same
+chart-data cache, but their freshness needs often differ from regular chart queries, especially for
+datasets whose visible values change frequently, including RLS-constrained datasets. Set
+`NATIVE_FILTER_OPTIONS_CACHE_TIMEOUT` in `superset_config.py` to give these queries a dedicated
+timeout, checked before the chart/dataset/database chain and the `DATA_CACHE_CONFIG` default above:
+
+```python
+NATIVE_FILTER_OPTIONS_CACHE_TIMEOUT = 60  # seconds
+```
+
+- `None` (default): native filter option queries fall through to the normal
+  chart/dataset/database/`DATA_CACHE_CONFIG` resolution chain.
+- `-1`: disables caching for native filter option queries entirely.
+- `0`: passed directly to the cache backend; behavior is backend-specific, so use `-1` if the intent
+  is to disable caching.
+- A positive integer: cache native filter option queries for that many seconds.
+
+This setting only applies to requests detected as native filter option queries. It takes precedence
+over the per-chart/dataset/database timeouts, but not over an explicit per-request
+`custom_cache_timeout` override (e.g. "Force refresh").
+
 ## Limiting Cached Result Size
 
 Very large chart or SQL query results can flood the cache backend (Redis/Memcached), evicting many

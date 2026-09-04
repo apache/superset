@@ -37,7 +37,7 @@ export type StreamResult = [
 
 // sync with superset-frontend/src/components/ErrorMessage/types
 export type ErrorLevel = 'info' | 'warning' | 'error';
-// eslint-disable-next-line  @typescript-eslint/no-explicit-any
+// oxlint-disable-next-line no-explicit-any
 export type SupersetError<ExtraType = Record<string, any> | null> = {
   error_type: string;
   extra: ExtraType;
@@ -321,7 +321,7 @@ export const subscribeToGlobalStream = async (
   stream: string,
   listener: ListenerFunction,
 ) => {
-  /*eslint no-constant-condition: ["error", { "checkLoops": false }]*/
+  /* oxlint no-constant-condition: ["error", { "checkLoops": false }]*/
   while (true) {
     try {
       const reply = await redis.xread(
@@ -475,12 +475,18 @@ export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
   // init event handler for `pong` events (connection management)
   ws.on('pong', function pong(data: Buffer) {
     const socketId = data.toString();
-    const socketInstance = sockets[socketId];
-    if (!socketInstance) {
+    // `sockets` is a plain object, so an unsolicited pong carrying an
+    // inherited key ('__proto__', 'constructor', 'hasOwnProperty', ...) as
+    // its payload would otherwise resolve through the prototype chain
+    // instead of missing outright, letting a client write an enumerable
+    // `pongTs` onto Object.prototype (tripped over by the for...in loops in
+    // checkSockets/cleanChannel on every GC pass). Guarding with an
+    // own-property check rejects every such key in one place.
+    if (!Object.prototype.hasOwnProperty.call(sockets, socketId)) {
       logger.warn(`pong received for nonexistent socket ${socketId}`);
-    } else {
-      socketInstance.pongTs = Date.now();
+      return;
     }
+    sockets[socketId].pongTs = Date.now();
   });
 };
 

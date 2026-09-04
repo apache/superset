@@ -28,13 +28,12 @@ from marshmallow import (
     validates_schema,
     ValidationError,
 )
-from marshmallow.validate import Length, OneOf
+from marshmallow.validate import Length, OneOf, Range
 
 from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetMarshmallowValidationError
 from superset.models.sql_types import parse_currency_string
-from superset.subjects.schemas import SubjectResponseSchema
 from superset.utils import json
 
 get_delete_ids_schema = {
@@ -260,6 +259,58 @@ class DatasetRelatedObjectsResponse(Schema):
     dashboards = fields.Nested(DatasetRelatedDashboards)
 
 
+class DatasetPurgeRequestSchema(Schema):
+    """Validate a dataset purge confirmation payload."""
+
+    confirmed_impact_token: fields.String = fields.String(
+        required=True,
+        allow_none=False,
+        validate=Length(min=1),
+    )
+
+
+class DatasetPurgeImpactObjectSchema(Schema):
+    """Describe one dependent object visible to the caller."""
+
+    uuid: fields.UUID = fields.UUID(required=True)
+    name: fields.String = fields.String(required=True)
+    archived: fields.Boolean = fields.Boolean(required=True)
+    url: fields.String = fields.String(required=True, allow_none=True)
+
+
+class DatasetPurgeImpactCollectionSchema(Schema):
+    """Validate totals and visible results for one dependent object type."""
+
+    count: fields.Integer = fields.Integer(required=True, validate=Range(min=0))
+    restricted_count: fields.Integer = fields.Integer(
+        required=True, validate=Range(min=0)
+    )
+    result: fields.List = fields.List(
+        fields.Nested(DatasetPurgeImpactObjectSchema), required=True
+    )
+
+    @validates_schema
+    def validate_totals(self, data: dict[str, Any], **kwargs: Any) -> None:
+        """Require visible and restricted records to equal the total."""
+        count: int = data["count"]
+        restricted_count: int = data["restricted_count"]
+        result: list[dict[str, Any]] = data["result"]
+        if restricted_count > count or len(result) + restricted_count != count:
+            raise ValidationError("Impact totals do not match the result")
+
+
+class DatasetPurgeImpactSchema(Schema):
+    """Describe the authoritative, access-filtered dataset purge impact."""
+
+    impact_token: fields.String = fields.String(required=True)
+    charts: fields.Nested = fields.Nested(
+        DatasetPurgeImpactCollectionSchema, required=True
+    )
+    dashboards: fields.Nested = fields.Nested(
+        DatasetPurgeImpactCollectionSchema, required=True
+    )
+
+
 class ImportV1ColumnSchema(Schema):
     # pylint: disable=unused-argument
     @pre_load
@@ -480,16 +531,32 @@ class DatasetColumnDrillInfoSchema(Schema):
 
 
 class UserSchema(Schema):
+    # Deliberately excludes ``email``: drill_info is reachable by any user
+    # with read access to the dataset (and, via the dashboard fallback, by
+    # embedded guests), so exposing maintainer emails here would leak user
+    # PII across an access boundary. Mirrors the dashboard/RLS user schemas,
+    # which expose names only.
     first_name = fields.String()
     last_name = fields.String()
-    email = fields.String()
+
+
+class DrillInfoEditorSchema(Schema):
+    # Deliberately excludes ``secondary_label``: for a user-backed Subject,
+    # user-subject synchronization (superset.subjects.sync.sync_user_subject)
+    # stores that user's email in this field, so including it here would
+    # leak the same maintainer PII that ``UserSchema`` above excludes
+    # ``email`` to avoid, just through a different field name.
+    id = fields.Int()
+    label = fields.String()
+    img = fields.String()
+    type = fields.Integer()
 
 
 class DatasetDrillInfoSchema(Schema):
     id = fields.Integer()
     columns = fields.List(fields.Nested(DatasetColumnDrillInfoSchema))
     table_name = fields.String()
-    editors = fields.List(fields.Nested(SubjectResponseSchema))
+    editors = fields.List(fields.Nested(DrillInfoEditorSchema))
     created_by = fields.Nested(UserSchema)
     created_on_humanized = fields.String()
     changed_by = fields.Nested(UserSchema)

@@ -146,6 +146,36 @@ def test_csv_upload_dataset():
     assert user_is_editor(security_manager.find_user("admin"), dataset)
 
 
+@only_postgresql
+@pytest.mark.usefixtures("setup_csv_upload_with_context_schema")
+def test_csv_upload_dataset_catalog():
+    admin_user = security_manager.find_user(username="admin")
+    upload_database = get_upload_db()
+
+    with override_user(admin_user):
+        UploadCommand(
+            upload_database.id,
+            CSV_UPLOAD_TABLE_W_SCHEMA,
+            create_csv_file(CSV_FILE_1),
+            "public",
+            CSVReader({}),
+        ).run()
+
+    dataset = (
+        db.session.query(SqlaTable)
+        .filter_by(
+            database_id=upload_database.id,
+            table_name=CSV_UPLOAD_TABLE_W_SCHEMA,
+        )
+        .one()
+    )
+    catalog = upload_database.get_default_catalog()
+    assert dataset.catalog == catalog
+    assert dataset.schema_perm == (
+        f"[{upload_database.database_name}].[{catalog}].[public]"
+    )
+
+
 @pytest.mark.usefixtures("setup_csv_upload_with_context")
 def test_csv_upload_with_index():
     admin_user = security_manager.find_user(username="admin")

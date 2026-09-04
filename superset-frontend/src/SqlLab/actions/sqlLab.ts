@@ -1553,7 +1553,9 @@ export function popPermalink(key: string): SqlLabThunkAction<Promise<unknown>> {
             dbId: json.dbId ? parseInt(json.dbId, 10) : undefined,
             catalog: json.catalog ?? null,
             schema: json.schema ?? undefined,
-            autorun: json.autorun ? json.autorun : false,
+            // The recipient must review the prefilled query and press
+            // Run; a permalink payload never auto-runs.
+            autorun: false,
             sql: json.sql ? json.sql : 'SELECT ...',
             templateParams: json.templateParams,
           }),
@@ -1577,7 +1579,9 @@ export function popStoredQuery(
             dbId: json.dbId ? parseInt(json.dbId, 10) : undefined,
             catalog: json.catalog ?? null,
             schema: json.schema ?? undefined,
-            autorun: json.autorun ? json.autorun : false,
+            // Same rule as popPermalink above — stored payloads never
+            // auto-run.
+            autorun: false,
             sql: json.sql ? json.sql : 'SELECT ...',
             templateParams: json.templateParams,
           }),
@@ -1656,7 +1660,9 @@ export function popDatasourceQuery(
             name: `${QUERY_TEXT} ${json.result.name}`,
             dbId: json.result.database.id,
             schema: json.result.schema,
-            autorun: sql !== undefined,
+            // `sql` here can come straight from the URL, so its mere
+            // presence must never imply auto-execution.
+            autorun: false,
             sql: sql || json.result.select_star,
           }),
         ),

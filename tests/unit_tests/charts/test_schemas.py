@@ -15,12 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import pandas as pd
 import pytest
 from flask import current_app
+from jsonschema import validate as validate_json_schema
+from jsonschema.exceptions import ValidationError as JSONSchemaValidationError
 from marshmallow import ValidationError
+from pytest_mock import MockerFixture
 
 from superset.charts.schemas import (
+    chart_get_list_schema,
+    ChartDataAdhocMetricSchema,
     ChartDataExtrasSchema,
+    ChartDataPostProcessingOperationSchema,
     ChartDataProphetOptionsSchema,
     ChartDataQueryObjectSchema,
     ChartDataResponseResult,
@@ -31,7 +38,46 @@ from superset.charts.schemas import (
     DEFAULT_MAX_PROPHET_PERIODS,
     get_max_prophet_periods,
     get_time_grain_choices,
+    MAX_VIZ_TYPE_LENGTH,
+    MAX_VIZ_TYPE_ORDER_LENGTH,
 )
+
+
+def test_chart_get_list_schema_accepts_viz_type_display_order() -> None:
+    validate_json_schema(
+        instance={
+            "order_column": "viz_type",
+            "viz_type_order": ["slug_z", "slug_a"],
+        },
+        schema=chart_get_list_schema,
+    )
+    validate_json_schema(
+        instance={"order_column": "viz_type", "viz_type_order": []},
+        schema=chart_get_list_schema,
+    )
+
+
+@pytest.mark.parametrize(
+    "viz_type_order",
+    [
+        "slug_a",
+        [1],
+        ["slug_a", "slug_a"],
+        ["a" * (MAX_VIZ_TYPE_LENGTH + 1)],
+        [f"slug_{index}" for index in range(MAX_VIZ_TYPE_ORDER_LENGTH + 1)],
+    ],
+)
+def test_chart_get_list_schema_rejects_invalid_viz_type_display_order(
+    viz_type_order: object,
+) -> None:
+    with pytest.raises(JSONSchemaValidationError):
+        validate_json_schema(
+            instance={
+                "order_column": "viz_type",
+                "viz_type_order": viz_type_order,
+            },
+            schema=chart_get_list_schema,
+        )
 
 
 def test_get_time_grain_choices(app_context: None) -> None:
@@ -478,3 +524,91 @@ def test_chart_data_extras_rejects_system_sampling(app_context: None) -> None:
     with pytest.raises(ValidationError) as exc_info:
         ChartDataExtrasSchema().load({"system_sampling": True})
     assert "system_sampling" in exc_info.value.messages
+
+
+def _no_config_app(mocker: MockerFixture) -> None:
+    """Make ``current_app.config`` raise as it does outside an app context."""
+    app = mocker.MagicMock()
+    type(app).config = mocker.PropertyMock(
+        side_effect=RuntimeError("Working outside of application context.")
+    )
+    mocker.patch("superset.charts.schemas.current_app", app)
+
+
+def test_post_processing_builtin_op_does_not_read_config(
+    mocker: MockerFixture,
+) -> None:
+    """A built-in operation validates without dereferencing ``current_app``.
+
+    Chart query schemas are loaded in places that have no app context (for
+    example OpenAPI spec generation), so validating a built-in must not depend
+    on one.
+    """
+    _no_config_app(mocker)
+    schema = ChartDataPostProcessingOperationSchema()
+
+    assert schema.load({"operation": "aggregate"})["operation"] == "aggregate"
+
+
+def test_post_processing_unknown_op_outside_app_context(
+    mocker: MockerFixture,
+) -> None:
+    """Outside an app context an unknown operation is a ValidationError.
+
+    The missing config is treated as "no extra ops registered" rather than
+    surfacing a RuntimeError to the caller.
+    """
+    _no_config_app(mocker)
+    schema = ChartDataPostProcessingOperationSchema()
+
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({"operation": "not_a_real_op"})
+    assert "operation" in exc_info.value.messages
+
+
+def _custom_op(df: pd.DataFrame, **options: object) -> pd.DataFrame:
+    """Named callable registered as an extra op — used in tests only."""
+    return df
+
+
+@pytest.mark.parametrize(
+    "app",
+    [{"EXTRA_PANDAS_POSTPROCESSING_OPS": [_custom_op]}],
+    indirect=True,
+)
+def test_post_processing_extra_op_is_accepted(app_context: None) -> None:
+    """An op registered via EXTRA_PANDAS_POSTPROCESSING_OPS validates by name."""
+    schema = ChartDataPostProcessingOperationSchema()
+
+    assert schema.load({"operation": "_custom_op"})["operation"] == "_custom_op"
+
+
+@pytest.mark.parametrize("aggregate", ["MEDIAN", "STDDEV_SAMP", "VAR_SAMP"])
+def test_chart_data_adhoc_metric_schema_accepts_extended_aggregates(
+    app_context: None, aggregate: str
+) -> None:
+    """
+    The chart-data REST schema's ``aggregate`` enum must stay in sync with
+    ``EXTENDED_METRIC_AGGREGATES``, otherwise Swagger/generated clients
+    reject requests using these compiler-supported aggregates.
+    """
+    schema = ChartDataAdhocMetricSchema()
+    result = schema.load(
+        {
+            "expressionType": "SIMPLE",
+            "aggregate": aggregate,
+            "column": {"column_name": "value"},
+        }
+    )
+    assert result["aggregate"] == aggregate
+
+
+@pytest.mark.parametrize("operation", ["escape_separator", "unescape_separator"])
+def test_post_processing_operation_schema_rejects_string_helpers(
+    app_context: None, operation: str
+) -> None:
+    """`escape_separator`/`unescape_separator` are internal str -> str helpers,
+    not DataFrame post-processing operations, and shouldn't validate as one."""
+    schema = ChartDataPostProcessingOperationSchema()
+    with pytest.raises(ValidationError):
+        schema.load({"operation": operation, "options": {}})

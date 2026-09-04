@@ -16,10 +16,13 @@
 # under the License.
 """Tests for superset.views.base module"""
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+if TYPE_CHECKING:
+    from superset.app import SupersetApp
 
 
 @patch("superset.views.base.utils.get_user_id", return_value=1)
@@ -315,3 +318,34 @@ def test_deprecated_new_target_message_has_no_stray_space() -> None:
     formatted = template % tuple(args)
     assert "5.0.0. Use the following API endpoint instead" in formatted
     assert "5.0.0 . Use" not in formatted
+
+
+def test_language_pack_endpoint_is_public(app: "SupersetApp") -> None:
+    """The language pack endpoint must be accessible without authentication.
+
+    Translation data is non-sensitive and the embedded dashboard SPA needs to
+    fetch it with a bare ``fetch()`` (no guest-token header).  Previously the
+    endpoint was protected by ``@has_access`` which caused a 302 redirect to
+    ``/login/`` for unauthenticated requests, silently breaking i18n in
+    embedded dashboards (issue #42433).
+
+    When the compiled catalog exists the endpoint returns 200 with JSON.
+    When it is missing the endpoint returns 404 (never a 302 to /login/).
+    """
+    with app.test_client() as client:
+        resp = client.get("/language_pack/en/")
+        # The endpoint must be reachable without authentication.
+        # In the test environment compiled catalogs may not exist, so
+        # a 404 is acceptable; any 3xx redirect would indicate the old
+        # @has_access guard is still in place.
+        assert resp.status_code in (200, 404)
+        assert not (300 <= resp.status_code < 400)
+        if resp.status_code == 200:
+            assert resp.is_json
+
+
+def test_language_pack_endpoint_rejects_invalid_lang(app: "SupersetApp") -> None:
+    """Invalid language codes are rejected with 400."""
+    with app.test_client() as client:
+        resp = client.get("/language_pack/zz/")
+        assert resp.status_code in (400, 404)

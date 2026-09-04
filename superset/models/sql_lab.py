@@ -437,6 +437,8 @@ class Query(
         col: "AdhocColumn",  # type: ignore  # noqa: F821
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
+        apply_dataset_offset: bool = False,
+        sql_shifted_temporal_labels: set[str] | None = None,
     ) -> tuple[ColumnElement, Optional[GenericDataType]]:
         """
         Turn an adhoc column into a sqlalchemy column.

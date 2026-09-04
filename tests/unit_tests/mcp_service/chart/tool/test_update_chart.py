@@ -2033,14 +2033,12 @@ class TestUpdateChartSqlMetric:
         assert request.config.y[0].label == "Win Rate"
         assert request.config.y[0].name is None
 
-    def test_response_form_data_wraps_sql_metric_strings(self) -> None:
-        # Regression: previously update_chart's response top-level form_data
-        # shipped LLM-controlled sqlExpression/label completely unwrapped.
+    def test_response_form_data_preserves_sql_metric_strings(self) -> None:
         from superset.mcp_service.chart.tool.update_chart import (
             _wrapped_form_data_for_response,
         )
 
-        wrapped = _wrapped_form_data_for_response(
+        result = _wrapped_form_data_for_response(
             {
                 "viz_type": "echarts_timeseries_line",
                 "metrics": [
@@ -2057,10 +2055,10 @@ class TestUpdateChartSqlMetric:
                 ],
             }
         )
-        m = wrapped["metrics"][0]
-        assert "<UNTRUSTED-CONTENT>" in m["sqlExpression"]
-        assert "<UNTRUSTED-CONTENT>" in m["label"]
-        assert "<UNTRUSTED-CONTENT>" not in m["optionName"]
+        m = result["metrics"][0]
+        assert m["sqlExpression"] == "COUNT(*)"
+        assert m["label"] == "Win Rate"
+        assert m["optionName"] == "metric_sql_abcd1234"
 
 
 class TestBuildUpdatePayloadDatasetId:

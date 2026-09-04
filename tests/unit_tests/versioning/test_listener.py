@@ -41,9 +41,9 @@ class LifecycleRow(Base):
 @pytest.fixture
 def lifecycle_session() -> Iterator[Session]:
     """Yield an isolated SQLAlchemy session backed by in-memory SQLite."""
-    engine = sa.create_engine("sqlite://", future=True)
+    engine = sa.create_engine("sqlite://")
     Base.metadata.create_all(engine)
-    session = sessionmaker(bind=engine, future=True)()
+    session = sessionmaker(bind=engine)()
     try:
         yield session
     finally:
@@ -188,6 +188,7 @@ def test_terminal_event_clears_transaction_state(
             listener.ACTION_META_KEY: {"headline": "restored"},
             listener._INITIAL_STATES_KEY: {("chart", 7): object()},
             listener._FINALIZING_KEY: True,
+            listener.NORMALIZATION_CONTEXT_KEY: {"pending": True},
             "unrelated": "preserved",
         }
     )

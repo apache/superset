@@ -84,6 +84,17 @@ export const useResultsPane = ({
   // Never exceed the chart's own row_limit
   const effectiveRowLimit = Math.min(rowLimit, chartRowLimit);
 
+  // When this pane's own row-limit selector is stricter than the chart's
+  // row_limit, it - not the chart - is what caps the result, so
+  // RowCountLabel's default "chart" wording would be misleading (the chart's
+  // configured row_limit was never actually reached).
+  const limitReachedMessage =
+    rowLimit < chartRowLimit
+      ? t(
+          'The row limit selected for this pane was reached. There may be more matching rows.',
+        )
+      : undefined;
+
   const cappedFormData = useMemo(
     () => ({ ...queryFormData, row_limit: effectiveRowLimit }),
     [queryFormData, effectiveRowLimit],
@@ -236,6 +247,8 @@ export const useResultsPane = ({
         columnDisplayNames={columnDisplayNames}
         rowLimit={rowLimit}
         rowLimitOptions={ROW_LIMIT_OPTIONS}
+        effectiveRowLimit={effectiveRowLimit}
+        limitReachedMessage={limitReachedMessage}
         onRowLimitChange={handleRowLimitChange}
       />
     </StyledDiv>
