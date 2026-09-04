@@ -118,8 +118,8 @@ test('renders each item accordingly', () => {
   expect(screen.getAllByTestId('DatasourcePanelDragOption').length).toEqual(5);
 });
 
-test('can collapse metrics and columns', () => {
+test('can collapse metrics and columns', async () => {
   setup();
-  userEvent.click(screen.getAllByRole('button')[0]);
+  await userEvent.click(screen.getAllByRole('button')[0]);
   expect(mockData.onToggleCollapse).toHaveBeenCalled();
 });

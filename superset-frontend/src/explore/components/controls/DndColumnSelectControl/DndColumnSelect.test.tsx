@@ -135,7 +135,7 @@ test('warn selected custom metric when metric gets removed from dataset', async 
     screen.getByText('column1').parentElement ?? container,
   ).getByRole('button');
   expect(warningIcon).toBeInTheDocument();
-  userEvent.hover(warningIcon);
+  await userEvent.hover(warningIcon);
   const warningTooltip = await screen.findByText(
     'This column might be incompatible with current dataset',
   );
@@ -175,7 +175,7 @@ test('should allow selecting columns via click interface', async () => {
   const dropArea = screen.getByText('Drop columns here or click');
   expect(dropArea).toBeInTheDocument();
 
-  userEvent.click(dropArea);
+  await userEvent.click(dropArea);
 
   expect(dropArea).toBeInTheDocument();
 });
@@ -380,7 +380,7 @@ test('should complete full column selection workflow like original Cypress test'
 
   // Open ColumnSelectPopover
   const dropArea = screen.getByText(/Drop columns here or click/i);
-  userEvent.click(dropArea);
+  await userEvent.click(dropArea);
 
   // Wait for popover tabs
   await waitFor(() => {
@@ -394,15 +394,15 @@ test('should complete full column selection workflow like original Cypress test'
   const columnCombobox = await screen.findByRole('combobox', {
     name: /Columns and metrics/i,
   });
-  userEvent.click(columnCombobox);
+  await userEvent.click(columnCombobox);
 
   const stateOption = await screen.findByRole('option', { name: 'state' });
-  userEvent.click(stateOption);
+  await userEvent.click(stateOption);
 
   // Save column selection
   const saveButton = await screen.findByTestId('ColumnEdit#save');
   await waitFor(() => expect(saveButton).toBeEnabled());
-  userEvent.click(saveButton);
+  await userEvent.click(saveButton);
 
   // Verify onChange callback fires
   await waitFor(() => {
@@ -456,7 +456,7 @@ test('should create adhoc column via Custom SQL tab workflow', async () => {
 
   // Open popover modal
   const dropArea = screen.getByText(/Drop columns here or click/i);
-  userEvent.click(dropArea);
+  await userEvent.click(dropArea);
 
   // Wait for popover tabs
   await waitFor(() => {
@@ -465,17 +465,17 @@ test('should create adhoc column via Custom SQL tab workflow', async () => {
 
   // Switch to Custom SQL tab
   const customSqlTab = screen.getByRole('tab', { name: 'Custom SQL' });
-  userEvent.click(customSqlTab);
+  await userEvent.click(customSqlTab);
 
   // Enter SQL expression in mocked textarea
   const sqlEditor = await screen.findByRole('textbox', { name: 'Custom SQL' });
-  userEvent.clear(sqlEditor);
-  userEvent.type(sqlEditor, "state || '_total'");
+  await userEvent.clear(sqlEditor);
+  await userEvent.type(sqlEditor, "state || '_total'");
 
   // Save adhoc column
   const saveButton = await screen.findByTestId('ColumnEdit#save');
   await waitFor(() => expect(saveButton).toBeEnabled());
-  userEvent.click(saveButton);
+  await userEvent.click(saveButton);
 
   // Verify onChange fires with adhoc column object
   await waitFor(() => {

@@ -36,9 +36,14 @@ const loadComponent = (mockCurrentTime?: string) => {
 const getSelectOptions = () =>
   document.querySelectorAll('.ant-select-item-option-content');
 
-const openSelectMenu = () => {
+// user-event's default `delay` between simulated events relies on real
+// timers; this file uses `jest.useFakeTimers()`, so disable the delay to
+// avoid interactions hanging until the fake clock is advanced.
+const user = userEvent.setup({ delay: null });
+
+const openSelectMenu = async () => {
   const searchInput = screen.getByRole('combobox');
-  userEvent.click(searchInput);
+  await user.click(searchInput);
 };
 
 jest.spyOn(extendedDayjs.tz, 'guess').mockReturnValue('America/New_York');
@@ -102,7 +107,7 @@ test('render timezones in correct order for standard time', async () => {
   );
   // Wait for loading to complete by waiting for expected timezone text
   await screen.findByText('GMT -05:00 (Eastern Standard Time)');
-  openSelectMenu();
+  await openSelectMenu();
   const options = await getSelectOptions();
   expect(options[0]).toHaveTextContent('GMT -05:00 (Eastern Standard Time)');
   expect(options[1]).toHaveTextContent('GMT -11:00 (Pacific/Midway)');
@@ -120,14 +125,14 @@ test('can select a timezone values and returns canonical timezone name', async (
   );
   // Wait for loading to complete by waiting for timezone text to appear
   await screen.findByText('GMT +00:00 (GMT Standard Time)');
-  openSelectMenu();
+  await openSelectMenu();
 
   const searchInput = screen.getByRole('combobox');
   // search for mountain time
-  await userEvent.type(searchInput, 'mou');
+  await user.type(searchInput, 'mou');
   const findTitle = 'GMT -07:00 (Mountain Standard Time)';
   const selectOption = await screen.findByTitle(findTitle);
-  await userEvent.click(selectOption);
+  await user.click(selectOption);
   expect(onTimezoneChange).toHaveBeenCalledTimes(1);
   expect(onTimezoneChange).toHaveBeenLastCalledWith('America/Boise');
 });

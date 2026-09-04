@@ -124,13 +124,13 @@ describe('RangeFilterPlugin', () => {
     const fromInput = inputs[0];
     const toInput = inputs[1];
 
-    userEvent.clear(fromInput);
-    userEvent.type(fromInput, '20');
+    await userEvent.clear(fromInput);
+    await userEvent.type(fromInput, '20');
 
-    userEvent.clear(toInput);
-    userEvent.type(toInput, '10');
+    await userEvent.clear(toInput);
+    await userEvent.type(toInput, '10');
 
-    userEvent.tab();
+    await userEvent.tab();
 
     expect(setDataMask).toHaveBeenCalledWith({
       extraFormData: {},
