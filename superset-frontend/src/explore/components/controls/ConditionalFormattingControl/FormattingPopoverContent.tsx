@@ -313,7 +313,7 @@ const renderBoundFields = (
                     'Value: type the exact numbers used for coloring below. % of column is unavailable with Server pagination enabled, since each page would compute a different percentage. Existing percentage rules use the automatic data range while Server pagination is enabled.',
                   )
                 : t(
-                    'Value: type the exact numbers used for coloring below. % of column: type a percentage of the column maximum or the sum of value magnitudes selected below, so the rule keeps working as the data changes.',
+                    'Value: type the exact numbers used for coloring below. % of column: type a percentage of the column maximum or sum selected below, so the rule keeps working as the data changes. Column sum adds the absolute values so positive and negative values do not cancel each other out.',
                   )
             }
           >
@@ -394,7 +394,7 @@ const renderDivergingFields = () => (
           normalize={normalizeOptionalNumber}
           validateTrigger="onBlur"
           tooltip={t(
-            'Optional. When set together with Low color, Mid color, and High color below, colors diverge from Mid color at this value toward Low color below it and High color above it, instead of a single color fading in and out.',
+            'Optional. When set together with Low color, Mid color, and High color below, colors diverge from Mid color at this value toward Low color below it and High color above it, instead of a single color fading in and out. For % of column with Column sum, the resolved center must still fall inside the color range; otherwise the rule uses its single color.',
           )}
         >
           <FullWidthInputNumber />

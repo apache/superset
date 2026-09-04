@@ -1044,7 +1044,7 @@ test('submits boundUnit and percentDenominator to onChange with the correct fiel
   );
 
   await selectFieldOption('% of column', 'Bound unit');
-  await selectFieldOption('Sum of magnitudes', 'Percent denominator');
+  await selectFieldOption('Column sum', 'Percent denominator');
 
   fireEvent.click(screen.getByText('Apply'));
 
