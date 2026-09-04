@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const express = require('express');
+import express from 'express';
+import jwt from 'jsonwebtoken';
+import config from '../../../config.json' with { type: 'json' };
+
 const router = express.Router();
-const jwt = require('jsonwebtoken');
-const config = require('../../../config.json');
 
 router.get('/', function (req, res) {
   let numTokens = req.query.sockets ? Number(req.query.sockets) : 100;
@@ -50,4 +51,4 @@ router.get('/', function (req, res) {
   });
 });
 
-module.exports = router;
+export default router;

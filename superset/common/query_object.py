@@ -648,10 +648,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     raise InvalidPostProcessingError(
                         _("`operation` property of post processing object undefined")
                     )
-                # ``__all__`` is the authoritative list of built-in operations.
-                # ``hasattr`` would also match module internals (helpers, imported
-                # submodules, typing aliases), shadowing a like-named custom op.
-                if operation in pandas_postprocessing.__all__:
+                # ``OPERATIONS`` is the authoritative list of built-in operations;
+                # excludes escape_separator/unescape_separator (str -> str helpers
+                # used by flatten, not DataFrame post-processing operations).
+                if operation in pandas_postprocessing.OPERATIONS:
                     func = getattr(pandas_postprocessing, operation)
                 else:
                     extra_ops = pandas_postprocessing.build_extra_ops_map(
