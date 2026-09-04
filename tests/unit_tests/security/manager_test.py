@@ -1380,6 +1380,31 @@ def test_query_context_modified_tampered(
     assert query_context_modified(query_context)
 
 
+def test_query_context_modified_malformed_stored_query_context(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A stored ``query_context`` that is not valid JSON (which the query-context-only
+    chart update path can persist) must be treated as modified/tampered rather than
+    crashing with a raw ``JSONDecodeError``. Returning ``True`` lets
+    ``raise_for_access`` deny the guest with the intended 403.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = "not valid json"
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+    }
+    query_context.queries = [QueryObject(metrics=stored_metrics)]  # type: ignore
+    assert query_context_modified(query_context)
+
+
 def test_query_context_modified_singular_metric_param(
     mocker: MockerFixture,
 ) -> None:
@@ -4017,3 +4042,60 @@ def test_is_editor_other_model_with_user_id_not_editor(
 
     tab_state = TabState(user_id=100)
     assert sm.is_editor(tab_state) is False
+
+
+def _pvm(permission: str, view_menu: str) -> SimpleNamespace:
+    """A minimal PermissionView stand-in for the role classifiers."""
+    return SimpleNamespace(
+        permission=SimpleNamespace(name=permission),
+        view_menu=SimpleNamespace(name=view_menu),
+    )
+
+
+def _classifier() -> SupersetSecurityManager:
+    """An uninitialized manager: the classifiers read only class-level sets."""
+    return SupersetSecurityManager.__new__(SupersetSecurityManager)
+
+
+def test_semantic_layer_classified_like_database() -> None:
+    """A semantic layer is a credentialed connection: Database parity.
+
+    Writes are admin-only; reads are not admin-only (they reach Gamma with
+    the configuration masked). Membership is asserted alongside behaviour
+    so a set refactor cannot silently drop the classification.
+    """
+    sm = _classifier()
+    assert "SemanticLayer" in sm.READ_ONLY_MODEL_VIEWS
+    assert sm._is_admin_only(_pvm("can_write", "SemanticLayer"))
+    assert not sm._is_admin_only(_pvm("can_read", "SemanticLayer"))
+    assert not sm._is_alpha_only(_pvm("can_read", "SemanticLayer"))
+    # Same rule that governs Database:
+    assert sm._is_admin_only(_pvm("can_write", "Database"))
+
+
+def test_semantic_view_classified_like_dataset() -> None:
+    """A semantic view carries no credentials: Dataset parity.
+
+    Writes are Alpha-tier (alpha-only, not admin-only); reads reach Gamma.
+    """
+    sm = _classifier()
+    assert "SemanticView" in sm.GAMMA_READ_ONLY_MODEL_VIEWS
+    assert sm._is_alpha_only(_pvm("can_write", "SemanticView"))
+    assert not sm._is_admin_only(_pvm("can_write", "SemanticView"))
+    assert not sm._is_alpha_only(_pvm("can_read", "SemanticView"))
+    # Same rule that governs Dataset:
+    assert sm._is_alpha_only(_pvm("can_write", "Dataset"))
+
+
+def test_gamma_receives_no_semantic_write_pvm() -> None:
+    """Negative control for the Gamma role classifier.
+
+    ``sync_role_definitions`` builds Gamma from ``_is_gamma_pvm``; neither
+    write pvm may pass it, while both read pvms must (reads return masked
+    configurations for layers).
+    """
+    sm = _classifier()
+    assert not sm._is_gamma_pvm(_pvm("can_write", "SemanticLayer"))
+    assert not sm._is_gamma_pvm(_pvm("can_write", "SemanticView"))
+    assert sm._is_gamma_pvm(_pvm("can_read", "SemanticLayer"))
+    assert sm._is_gamma_pvm(_pvm("can_read", "SemanticView"))
