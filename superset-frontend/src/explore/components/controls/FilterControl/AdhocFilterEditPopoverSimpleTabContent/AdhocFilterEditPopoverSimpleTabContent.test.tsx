@@ -176,10 +176,22 @@ fetchMock.get(ADVANCED_DATA_TYPE_ENDPOINT_INVALID, {
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
+// Either a JSON body ({ result, limit }), a fetch-mock response config
+// ({ status, body } / { throws }) so a test can make the server fail, or a
+// per-call function for stateful routes. fetch-mock reads this lazily at
+// request-match time -- reassigning the variable changes what EARLIER,
+// still-unmatched requests resolve with -- so a test whose earlier request
+// must still be IN FLIGHT at reassignment time has to use the function
+// form. Once the earlier response has settled, plain reassignment is safe.
+let columnValuesResponse: unknown = { result: [], limit: 10000 };
+
 let isFeatureEnabledMock: jest.SpyInstance;
 
 beforeEach(() => {
   fetchMock.clearHistory();
+  // Reset the shared route: a prior test's stateful function (with its
+  // closed-over call counter) must not serve the next test's requests.
+  columnValuesResponse = { result: [], limit: 10000 };
   isFeatureEnabledMock = mockedIsFeatureEnabled.mockImplementation(
     (featureFlag: FeatureFlag) =>
       featureFlag === FeatureFlag.EnableAdvancedDataTypes,
@@ -959,13 +971,8 @@ test('filters the subject select by column verbose_name as well as column_name',
 const COLUMN_VALUES_ENDPOINT =
   'glob:*/api/v1/datasource/*/column/value/values/*';
 
-// Either a JSON body ({ result, limit }), a fetch-mock response config
-// ({ status, body } / { throws }) so a test can make the server fail, or a
-// per-call function for stateful routes. fetch-mock reads this lazily at
-// request-match time -- reassigning the variable between requests changes
-// what EARLIER, still-unmatched requests resolve with, so any test that
-// needs two requests with different fates must use the function form.
-let columnValuesResponse: unknown = { result: [], limit: 10000 };
+// Route for COLUMN_VALUES_ENDPOINT; the response contract and its
+// lazy-read trap are documented at columnValuesResponse's declaration.
 fetchMock.get(COLUMN_VALUES_ENDPOINT, (...args: unknown[]) =>
   typeof columnValuesResponse === 'function'
     ? columnValuesResponse(...args)
@@ -1196,11 +1203,10 @@ test('ignores a stale failing response that loses the race to a newer success', 
   // succeeded. The loser must not stamp its note over the winner.
   //
   // The route is STATEFUL (routed by call count): only the function form
-  // makes the base request genuinely pend while the newer one succeeds. A
-  // reassigned shared response would be read lazily when the base request
-  // is matched -- the base request would resolve with the newer success
-  // value, only one request would ever exist, and this test would pass
-  // with the staleness guard deleted.
+  // (see the route comment above) makes the base request genuinely pend
+  // while the newer one succeeds -- with a plain reassignment only one
+  // request would ever exist and this test would pass with the staleness
+  // guard deleted.
   let resolveSlowFailure: (value: unknown) => void = () => {};
   const firstPending = new Promise(resolve => {
     resolveSlowFailure = resolve;
@@ -1224,7 +1230,9 @@ test('ignores a stale failing response that loses the race to a newer success', 
 
   // Now the original request fails -- too late to matter. Flush it all the
   // way through explicitly: a waitFor on a negative assertion would pass
-  // on the first tick, before the late rejection could land.
+  // on the first tick, before the late rejection could land. (The single
+  // macrotask assumes the rejection pipeline is microtask-only; after a
+  // fetch-mock upgrade, re-run the guard-deleted control to reverify.)
   resolveSlowFailure({ status: 500, body: { message: 'Fatal error' } });
   await act(async () => {
     await firstPending;
@@ -1275,7 +1283,9 @@ test('drops the note once suggestions load again', async () => {
   const comparator = await openComparator();
   expect(await screen.findByText(SUGGESTIONS_UNAVAILABLE)).toBeInTheDocument();
 
-  // A new search term is a new request; the server is back.
+  // A new search term is a new request; the server is back. Safe as a
+  // plain reassignment: the first response has fully settled (the note is
+  // already on screen), so the lazy read cannot hand it this value.
   columnValuesResponse = { result: ['alpha'], limit: 10000 };
   userEvent.type(comparator, 'al');
   expect(
