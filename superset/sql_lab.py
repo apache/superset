@@ -113,14 +113,25 @@ def handle_query_error(
     #
     # Deliberately NOT a flush()-then-refresh(query) here, unlike the other
     # STOPPED-preservation checks in this module: the exception that got us
-    # here may itself have already set query.status locally (e.g.
-    # SoftTimeLimitExceeded's own handler sets TIMED_OUT without
-    # committing). Flushing first would push that stale local status to the
-    # DB, clobbering a concurrently-committed STOPPED before this check ever
-    # gets to observe it. A targeted, status-only refresh reloads just that
-    # one column from the DB -- correctly observing a concurrent STOPPED --
-    # without writing this handler's own possibly-stale local state first.
-    db.session.refresh(query, attribute_names=["status"])
+    # here may itself have already set query.status (or other attributes)
+    # locally (e.g. SoftTimeLimitExceeded's own handler sets TIMED_OUT
+    # without committing). Flushing first would push that stale local state
+    # to the DB, clobbering a concurrently-committed STOPPED before this
+    # check ever gets to observe it.
+    #
+    # A targeted refresh(attribute_names=["status"]) alone isn't enough:
+    # verified empirically that even though it expires and reloads only the
+    # named attribute (so a dirty `status` itself is correctly discarded
+    # rather than written), the reload's own SELECT still triggers a normal
+    # autoflush of any OTHER dirty attribute on the session first -- e.g. a
+    # pending query.tmp_table_name or query.executed_sql set earlier would
+    # still get written before the status read. no_autoflush suppresses
+    # that: verified it emits only the targeted SELECT, with no UPDATE
+    # beforehand, and leaves other pending attributes exactly as dirty as
+    # they were (to be flushed normally by this function's own commit()
+    # below, once we're past the STOPPED check).
+    with db.session.no_autoflush:
+        db.session.refresh(query, attribute_names=["status"])
     if query.status == QueryStatus.STOPPED:
         payload.update({"status": query.status})
         return payload

@@ -1051,8 +1051,14 @@ def test_timed_out_exception_racing_stop_keeps_stopped_not_resurrected(
         reached_pause.set()
         assert release_execution.wait(timeout=5), "test deadlocked waiting for release"
         # Mirrors execute_query()'s own `except SoftTimeLimitExceeded`
-        # handler exactly: set status locally (uncommitted), then raise.
+        # handler exactly: set status locally (uncommitted), then raise. Also
+        # dirties an unrelated field the same way real code paths would
+        # (e.g. executed_sql set just before a statement runs) -- proves
+        # handle_query_error()'s status-only refresh doesn't prematurely
+        # flush it either, alongside the status-clobber this test already
+        # covers.
         query.status = QueryStatus.TIMED_OUT
+        query.tmp_table_name = "should_not_be_flushed_before_stopped_check"
         raise SupersetErrorException(
             SupersetError(
                 message="simulated soft time limit exceeded",
@@ -1096,3 +1102,116 @@ def test_timed_out_exception_racing_stop_keeps_stopped_not_resurrected(
     assert final_query.error_message is None
     assert execution_result["payload"] is not None
     assert execution_result["payload"]["status"] == QueryStatus.STOPPED
+    # The other field dirtied alongside TIMED_OUT never got committed either
+    # -- handle_query_error() returned on the STOPPED check before ever
+    # reaching its own commit, and no_autoflush stopped the targeted status
+    # refresh from writing it prematurely along the way.
+    assert final_query.tmp_table_name is None
+
+
+def test_handle_query_error_status_refresh_does_not_autoflush_other_state(
+    app: Any, session: Session
+) -> None:
+    """
+    Round 8 review: refresh(query, attribute_names=["status"]) alone isn't
+    enough -- verified empirically (SQLAlchemy 2.0.52) that even though it
+    correctly discards a dirty `status` itself rather than writing it (the
+    named attribute is expired before the reload), the reload's own SELECT
+    still triggers a normal autoflush of any OTHER dirty attribute on the
+    object first. With a second field (tmp_table_name) also dirty, the
+    unwrapped call emits `UPDATE ... SET tmp_table_name=?` before
+    `SELECT ... status` -- so a pending, unrelated field set earlier in
+    execute_sql_statements() (e.g. executed_sql, results_key) would still
+    get prematurely persisted, which is exactly the class of bug this
+    module's flush()-then-refresh() sites are designed to avoid, just via a
+    different mechanism (autoflush instead of an explicit flush() call).
+
+    Direct proof, following the reviewer's own scratch-check method
+    (comparing emitted SQL with/without no_autoflush): capture every SQL
+    statement handle_query_error() emits via a real SQLAlchemy event
+    listener (not mocked), and assert no UPDATE/INSERT appears before the
+    targeted status SELECT.
+    """
+    from sqlalchemy import event
+
+    from superset import db
+    from superset.common.db_query_status import QueryStatus
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+    from superset.sql_lab import handle_query_error
+
+    engine = db.session.get_bind()
+    Query.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    query_obj = Query(
+        client_id="no-premature-autoflush",
+        database=database,
+        tab_name="test_tab",
+        sql_editor_id="test_editor_id",
+        sql="select 1",
+        select_sql="select 1",
+        executed_sql="select 1",
+        limit=100,
+        select_as_cta=False,
+        status=QueryStatus.RUNNING,
+    )
+    db.session.add(database)
+    db.session.add(query_obj)
+    db.session.commit()
+
+    # Simulate an exception handler that already dirtied two fields locally
+    # without committing -- status (as SoftTimeLimitExceeded's handler
+    # does) and an unrelated one, mirroring how execute_sql_statements()
+    # routinely has pending fields set when a failure interrupts it.
+    query_obj.status = QueryStatus.TIMED_OUT
+    query_obj.tmp_table_name = "should_not_be_flushed_early"
+
+    statements: list[str] = []
+
+    def _capture(
+        conn: Any,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any,
+        executemany: Any,
+    ) -> None:
+        statements.append(statement)
+
+    event.listen(engine, "before_cursor_execute", _capture)
+    try:
+        handle_query_error(RuntimeError("simulated unrelated failure"), query_obj)
+    finally:
+        event.remove(engine, "before_cursor_execute", _capture)
+
+    def _is_single_column_status_select(stmt: str) -> bool:
+        # Distinguishes the *targeted* refresh(attribute_names=["status"])
+        # SELECT (selects only the status column) from the full-row SELECT
+        # the ORM also happens to emit elsewhere (which selects `status`
+        # too, just as one of many columns) -- a naive "SELECT ... status"
+        # substring match would wrongly match that first, unrelated
+        # full-row SELECT instead.
+        upper = stmt.strip().upper()
+        if not upper.startswith("SELECT"):
+            return False
+        from_index = upper.find("FROM")
+        if from_index == -1:
+            return False
+        column_clause = upper[len("SELECT") : from_index]
+        return "STATUS" in column_clause and "," not in column_clause
+
+    status_select_indexes = [
+        i for i, stmt in enumerate(statements) if _is_single_column_status_select(stmt)
+    ]
+    assert status_select_indexes, (
+        f"expected a targeted, single-column status SELECT among the "
+        f"emitted statements, got: {statements}"
+    )
+    preceding = statements[: status_select_indexes[0]]
+    assert not any(
+        stmt.strip().upper().startswith(("UPDATE", "INSERT")) for stmt in preceding
+    ), (
+        f"expected no write before the targeted status SELECT, but found "
+        f"one: {preceding}"
+    )
