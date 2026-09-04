@@ -114,6 +114,9 @@ dependencies = [
     "sqlalchemy>=2.0.52, <2.1",
     "sqlalchemy-continuum>=1.6.0, <2.0.0",
     "sqlalchemy-utils>=0.42.1, <0.43", # expanding lowerbound to work with pydoris
+    # Dialect-specific gaps/bugs against this pin are worked around in
+    # superset/sql/dialects/ (e.g. starrocks.py); check there for anything
+    # that can be cleaned up when bumping
     "sqlglot>=30.17.0, <31", # 30.16.0 adds Trino inline UDF IF/CASE routine statement parsing
     # newer pandas needs 0.9+
     "tabulate>=0.10.0, <1.0",

@@ -21,6 +21,7 @@ from .firebolt import Firebolt, FireboltOld
 from .hana import Hana
 from .opensearch import OpenSearch
 from .pinot import Pinot
+from .starrocks import StarRocks
 from .vertica import Vertica
 
 __all__ = [
@@ -31,5 +32,6 @@ __all__ = [
     "Hana",
     "OpenSearch",
     "Pinot",
+    "StarRocks",
     "Vertica",
 ]
