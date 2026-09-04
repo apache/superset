@@ -316,7 +316,7 @@ test('excludes Green/Red color-scheme rules from columnColorFormatters', () => {
   expect(formattedColumns).not.toContain('metric_a');
 });
 
-test('suppresses saved percentage rules when server pagination is enabled', () => {
+test('retains saved percentage rules with automatic bounds when server pagination is enabled', () => {
   const props = createMockChartProps({
     rawFormData: {
       viz_type: 'table',
@@ -369,5 +369,5 @@ test('suppresses saved percentage rules when server pagination is enabled', () =
   const result = transformProps(props);
   expect(
     result.columnColorFormatters.map(formatter => formatter.column),
-  ).toEqual(['metric_b']);
+  ).toEqual(['metric_a', 'metric_b']);
 });

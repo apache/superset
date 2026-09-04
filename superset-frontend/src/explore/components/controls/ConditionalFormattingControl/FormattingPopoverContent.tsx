@@ -292,7 +292,7 @@ const renderBoundFields = (
   const minDependencies = useCrossFieldRules ? minBoundDeps : targetValueDeps;
   const maxDependencies = useCrossFieldRules ? maxBoundDeps : targetValueDeps;
   // Percentage bounds require the complete result set. Existing percentage
-  // configurations remain editable here, but the formatter suppresses them
+  // configurations remain editable here, but formatters use automatic bounds
   // while server pagination is enabled.
   const boundUnitSelectOptions = serverPagination
     ? boundUnitOptions.map(option =>
@@ -313,10 +313,10 @@ const renderBoundFields = (
             tooltip={
               serverPagination
                 ? t(
-                    'Value: type the exact numbers used for coloring below. % of column is unavailable with Server pagination enabled, since each page would compute a different percentage.',
+                    'Value: type the exact numbers used for coloring below. % of column is unavailable with Server pagination enabled, since each page would compute a different percentage. Existing percentage rules use the automatic data range while Server pagination is enabled.',
                   )
                 : t(
-                    'Value: type the exact numbers used for coloring below. % of column: type a percentage of the column total instead, so the rule keeps working as the data changes.',
+                    'Value: type the exact numbers used for coloring below. % of column: type a percentage of the column maximum or sum selected below, so the rule keeps working as the data changes.',
                   )
             }
           >

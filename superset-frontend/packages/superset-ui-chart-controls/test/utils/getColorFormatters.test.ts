@@ -737,16 +737,17 @@ test('correct column config', () => {
   expect(colorFormatters[2].getColorFromValue(100)).toEqual('#FF000087');
 });
 
-test('getColorFormatters suppresses saved percentage rules when requested', () => {
+test('getColorFormatters falls back to automatic bounds for saved percentage rules when requested', () => {
   const colorFormatters = getColorFormatters(
     [
       {
         operator: Comparator.None,
         colorScheme: '#FF0000',
         column: 'count',
+        useGradient: true,
         boundUnit: BoundUnit.Percent,
         minBound: 0,
-        maxBound: 100,
+        maxBound: 200,
       },
       {
         operator: Comparator.None,
@@ -761,8 +762,11 @@ test('getColorFormatters suppresses saved percentage rules when requested', () =
     true,
   );
 
-  expect(colorFormatters).toHaveLength(1);
-  expect(colorFormatters[0].column).toBe('sum');
+  expect(colorFormatters).toHaveLength(2);
+  expect(colorFormatters[0].column).toBe('count');
+  expect(colorFormatters[0].getColorFromValue(50)).toEqual('#FF000000');
+  expect(colorFormatters[0].getColorFromValue(100)).toEqual('#FF0000FF');
+  expect(colorFormatters[1].column).toBe('sum');
 });
 
 test('undefined column config', () => {
@@ -1464,7 +1468,7 @@ test('getColorFunction NONE degrades percent bounds to unset when the column has
   expect(colorFunction(50)).toBeUndefined();
 });
 
-test('getColorFunction NONE preserves the sign of a negative column max', () => {
+test('getColorFunction NONE falls back to automatic bounds for a non-positive column max', () => {
   const colorFunction = getColorFunction(
     {
       operator: Comparator.None,
@@ -1472,12 +1476,13 @@ test('getColorFunction NONE preserves the sign of a negative column max', () => 
       column: 'count',
       boundUnit: BoundUnit.Percent,
       percentDenominator: PercentDenominator.Max,
+      minBound: 0,
       maxBound: 100,
     },
     [-100, -5],
   );
-  // The maximum is -5, so 100% resolves to -5 rather than +5. The automatic
-  // lower endpoint remains the column minimum.
+  // A negative denominator would reverse the configured 0%-100% bounds.
+  // Treating both as unset preserves an ordered, data-derived range.
   expect(colorFunction(-100)).toEqual('#FF000000');
   expect(colorFunction(-5)).toEqual('#FF0000FF');
 });

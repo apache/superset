@@ -161,8 +161,8 @@ export const getColorFunction = (
       return undefined;
     }
     // A sum uses its magnitude so a negative total does not reverse the
-    // scale. Column max retains its sign because it represents the actual
-    // maximum value in the column.
+    // scale. A non-positive column maximum cannot produce ordered percentage
+    // bounds, so it falls back to the automatic data range below.
     const denominatorValue =
       percentDenominator === PercentDenominator.Sum
         ? Math.abs(numericColumnValues.reduce((sum, value) => sum + value, 0))
@@ -170,7 +170,7 @@ export const getColorFunction = (
             (max, value) => (value > max ? value : max),
             -Infinity,
           );
-    if (denominatorValue === 0) {
+    if (denominatorValue <= 0) {
       return undefined;
     }
     return (bound / 100) * denominatorValue;
@@ -491,9 +491,16 @@ export const getColorFormatters = memoizeOne(
   ) =>
     columnConfig?.reduce(
       (acc: ColorFormatters, config: ConditionalFormattingConfig) => {
-        if (disablePercentBounds && config.boundUnit === BoundUnit.Percent) {
-          return acc;
-        }
+        const colorFunctionConfig =
+          disablePercentBounds && config.boundUnit === BoundUnit.Percent
+            ? {
+                ...config,
+                boundUnit: BoundUnit.Value,
+                minBound: undefined,
+                maxBound: undefined,
+                centerValue: undefined,
+              }
+            : config;
         let resolvedColorScheme = config.colorScheme;
         if (
           theme &&
@@ -520,7 +527,7 @@ export const getColorFormatters = memoizeOne(
             columnFormatting: config?.columnFormatting,
             objectFormatting: config?.objectFormatting,
             getColorFromValue: getColorFunction(
-              { ...config, colorScheme: resolvedColorScheme },
+              { ...colorFunctionConfig, colorScheme: resolvedColorScheme },
               data.map(row => row[config.column!] as number),
               alpha,
             ),
