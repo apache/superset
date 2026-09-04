@@ -1,0 +1,14 @@
+{
+  "redis": {
+    "db": 10,
+    "password": "some pwd"
+  },
+  "statsd": {
+    "host": "127.0.0.1",
+    "port": 8125,
+    "globalTags": []
+  },
+  "redisStreamPrefix": "test-async-events-",
+  "jwtSecret": "test123-test123-test123-test123-test123-test123-test123",
+  "jwtCookieName": "test-async-token"
+}

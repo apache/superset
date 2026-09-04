@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "baseUrl": ".",
+    "allowSyntheticDefaultImports": true,
+    "moduleResolution": "Node",
+    "strict": true,
+    "target": "es2019",
+    "lib": ["es2019", "DOM"],
+    "types": ["cypress", "node"],
+    "allowJs": true,
+    "noEmit": true
+  },
+  "files": ["cypress/support/index.d.ts"],
+  "include": ["cypress/**/*.ts", "./cypress.config.ts"],
+  "exclude": ["node_modules"]
+}

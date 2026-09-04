@@ -1,0 +1,173 @@
+{{/*
+
+ Licensed to the Apache Software Foundation (ASF) under one or more
+ contributor license agreements.  See the NOTICE file distributed with
+ this work for additional information regarding copyright ownership.
+ The ASF licenses this file to You under the Apache License, Version 2.0
+ (the "License"); you may not use this file except in compliance with
+ the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+
+*/}}
+
+{{- if .Values.supersetCeleryBeat.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "superset.fullname" . }}-celerybeat
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "superset.name" . }}-celerybeat
+    chart: {{ template "superset.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    {{- if .Values.extraLabels }}
+      {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
+  {{- if .Values.supersetCeleryBeat.deploymentAnnotations }}
+  annotations: {{- toYaml .Values.supersetCeleryBeat.deploymentAnnotations | nindent 4 }}
+  {{- end }}
+spec:
+  # This must be a singleton
+  replicas: 1
+  selector:
+    matchLabels:
+    {{- include "supersetCeleryBeat.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/superset_config.py: {{ include "superset-config" . | sha256sum }}
+        checksum/superset_bootstrap.sh: {{ tpl .Values.bootstrapScript . | sha256sum }}
+        checksum/connections: {{ .Values.supersetNode.connections | toYaml | sha256sum }}
+        checksum/extraConfigs: {{ .Values.extraConfigs | toYaml | sha256sum }}
+        checksum/extraSecrets: {{ .Values.extraSecrets | toYaml | sha256sum }}
+        checksum/extraSecretEnv: {{ .Values.extraSecretEnv | toYaml | sha256sum }}
+        checksum/configOverrides: {{ .Values.configOverrides | toYaml | sha256sum }}
+        checksum/configOverridesFiles: {{ .Values.configOverridesFiles | toYaml | sha256sum }}
+        {{- if .Values.supersetCeleryBeat.forceReload }}
+        # Optionally force the thing to reload
+        force-reload: {{ randAlphaNum 5 | quote }}
+        {{- end }}
+        {{- if .Values.supersetCeleryBeat.podAnnotations }}
+          {{- toYaml .Values.supersetCeleryBeat.podAnnotations | nindent 8 }}
+        {{- end }}
+      labels:
+        app: "{{ template "superset.name" . }}-celerybeat"
+        release: {{ .Release.Name }}
+        {{- if .Values.extraLabels }}
+          {{- toYaml .Values.extraLabels | nindent 8 }}
+        {{- end }}
+        {{- if .Values.supersetCeleryBeat.podLabels }}
+          {{- toYaml .Values.supersetCeleryBeat.podLabels | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- if or (.Values.serviceAccount.create) (.Values.serviceAccountName) }}
+      serviceAccountName: {{ template "superset.serviceAccountName" . }}
+      {{- end }}
+      securityContext:
+        runAsUser: {{ .Values.runAsUser }}
+        {{- if .Values.supersetCeleryBeat.podSecurityContext }}
+          {{- toYaml .Values.supersetCeleryBeat.podSecurityContext | nindent 8 }}
+        {{- end }}
+      {{- if .Values.supersetCeleryBeat.initContainers }}
+      initContainers: {{-  tpl (toYaml .Values.supersetCeleryBeat.initContainers) . | nindent 6 }}
+      {{- end }}
+      {{- with .Values.hostAliases }}
+      hostAliases: {{- toYaml . | nindent 6 }}
+      {{- end }}
+      containers:
+        - name: "{{ .Chart.Name }}-celerybeat"
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          {{- if .Values.supersetCeleryBeat.containerSecurityContext }}
+          securityContext: {{- toYaml .Values.supersetCeleryBeat.containerSecurityContext | nindent 12 }}
+          {{- end }}
+          command: {{  tpl (toJson .Values.supersetCeleryBeat.command) . }}
+          env:
+            - name: "SUPERSET_PORT"
+              value: {{ .Values.service.port | quote}}
+            {{- range $key, $value := .Values.extraEnv }}
+            - name: {{ $key | quote}}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- if .Values.extraEnvRaw }}
+              {{- toYaml .Values.extraEnvRaw | nindent 12 }}
+            {{- end }}
+          envFrom:
+            - secretRef:
+                name: {{ tpl .Values.envFromSecret . | quote }}
+            {{- range .Values.envFromSecrets }}
+            - secretRef:
+                name: {{ tpl . $ | quote }}
+            {{- end }}
+          volumeMounts:
+            - name: superset-config
+              mountPath: {{ .Values.configMountPath | quote }}
+              readOnly: true
+            {{- if .Values.extraConfigs }}
+            - name: superset-extra-config
+              mountPath: {{ .Values.extraConfigMountPath | quote }}
+              readOnly: true
+            {{- end }}
+            {{- with .Values.extraVolumeMounts }}
+              {{- tpl (toYaml .) $ | nindent 12 }}
+            {{- end }}
+          resources:
+            {{- if .Values.supersetCeleryBeat.resources }}
+              {{- toYaml .Values.supersetCeleryBeat.resources | nindent 12 }}
+            {{- else }}
+              {{- toYaml .Values.resources | nindent 12 }}
+            {{- end }}
+        {{- if .Values.supersetCeleryBeat.extraContainers }}
+            {{- toYaml .Values.supersetCeleryBeat.extraContainers | nindent 8 }}
+        {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if or .Values.affinity .Values.supersetCeleryBeat.affinity }}
+      affinity:
+        {{- with .Values.affinity }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.supersetCeleryBeat.affinity }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      {{- if .Values.supersetCeleryBeat.priorityClassName }}
+      priorityClassName: {{ .Values.supersetCeleryBeat.priorityClassName }}
+      {{- end }}
+      {{- if or .Values.topologySpreadConstraints .Values.supersetCeleryBeat.topologySpreadConstraints }}
+      topologySpreadConstraints:
+        {{- with .Values.topologySpreadConstraints }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with .Values.supersetCeleryBeat.topologySpreadConstraints }}
+          {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations: {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets: {{- toYaml .Values.imagePullSecrets | nindent 8 }}
+      {{- end }}
+      volumes:
+        - name: superset-config
+          secret:
+            secretName: {{ tpl .Values.configFromSecret . }}
+        {{- if .Values.extraConfigs }}
+        - name: superset-extra-config
+          configMap:
+            name: {{ template "superset.fullname" . }}-extra-config
+        {{- end }}
+        {{- with .Values.extraVolumes }}
+          {{- tpl (toYaml .) $ | nindent 8 -}}
+        {{- end }}
+{{- end -}}

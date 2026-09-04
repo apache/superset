@@ -1,0 +1,131 @@
+---
+title: Embedding Superset
+sidebar_position: 6
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+
+# Embedding Superset
+
+Superset dashboards can be embedded directly in host applications using the `@superset-ui/embedded-sdk` package.
+
+:::info Prerequisites
+- The `EMBEDDED_SUPERSET` feature flag must be enabled.
+- The embedding domain and allowed origins must be configured by an admin.
+:::
+
+## Quick Start
+
+Install the SDK:
+
+```bash
+npm install @superset-ui/embedded-sdk
+```
+
+Embed a dashboard:
+
+```javascript
+import { embedDashboard } from '@superset-ui/embedded-sdk';
+
+embedDashboard({
+  id: 'dashboard-uuid-here',          // from Dashboard → Embed
+  supersetDomain: 'https://superset.example.com',
+  mountPoint: document.getElementById('superset-container'),
+  fetchGuestToken: () => fetchTokenFromYourBackend(),
+  dashboardUiConfig: {
+    hideTitle: true,
+    filters: { expanded: false },
+  },
+});
+```
+
+`fetchGuestToken` must return a **guest token** obtained from your server by calling Superset's `/api/v1/security/guest_token/` endpoint with a service account. Do not call this endpoint from client-side code.
+
+---
+
+## Callbacks
+
+### `resolvePermalinkUrl`
+
+When a user copies a permalink from an embedded dashboard, Superset generates a URL on its own domain. In an embedded context this URL is usually not meaningful to the host application's users — the dashboard is rendered inside the host app, not at the Superset URL.
+
+The `resolvePermalinkUrl` callback lets the host app intercept permalink generation and return a URL on the host domain instead:
+
+```javascript
+embedDashboard({
+  id: 'my-dashboard-uuid',
+  supersetDomain: 'https://superset.example.com',
+  mountPoint: document.getElementById('superset-container'),
+  fetchGuestToken: () => fetchGuestToken(),
+  /**
+   * Called when Superset generates a permalink.
+   * @param {Object} args - { key: string } — the permalink key
+   * @returns {string | null} - your host URL, or null to use Superset's default
+   */
+  resolvePermalinkUrl: ({ key }) => {
+    return `https://myapp.example.com/dashboard?permalink=${key}`;
+  },
+});
+```
+
+If the callback returns `null` or is not provided, Superset uses its own permalink URL as a fallback.
+
+---
+
+## Feature Flags for Embedded Mode
+
+### `DISABLE_EMBEDDED_SUPERSET_LOGOUT`
+
+Hides the logout button when Superset is embedded in a host application. This is useful when the host application manages the session lifecycle and you do not want users to accidentally log out of the embedded Superset session:
+
+```python
+# superset_config.py
+FEATURE_FLAGS = {
+    "EMBEDDED_SUPERSET": True,
+    "DISABLE_EMBEDDED_SUPERSET_LOGOUT": True,
+}
+```
+
+When enabled, the **Logout** menu item is removed from the user avatar dropdown in the embedded view. The session can still be invalidated server-side by revoking the guest token.
+
+### `EMBEDDED_SUPERSET`
+
+Must be `True` to enable the embedded SDK and the guest token endpoint. Without this flag, `embedDashboard` will fail to load.
+
+---
+
+## URL Parameters
+
+The following URL parameters can be passed through the `urlParams` option in `dashboardUiConfig` or appended to the embedded iframe URL:
+
+| Parameter | Values | Effect |
+|-----------|--------|--------|
+| `standalone` | `0`, `1`, `2`, `3` | `0`: normal; `1`: hide nav; `2`: hide nav + title; `3`: hide nav + title + tabs |
+| `show_filters` | `0`, `1` | Show or hide the native filter bar |
+| `expand_filters` | `0`, `1` | Start with filter bar expanded or collapsed |
+
+---
+
+## Security Notes
+
+- **Guest tokens expire** — their lifetime is controlled by the `GUEST_TOKEN_JWT_EXP_SECONDS` config (default: 5 minutes). Refresh tokens before they expire using a token refresh mechanism in your host app.
+- **Row-level security** — pass `rls` rules in the guest token request to restrict which rows are visible to the embedded user.
+- **Allowed domains** — restrict which host origins can embed a dashboard by setting **Allowed Domains** per-dashboard in the *Embed* settings modal. Superset checks the request's `Referer` header against this list before serving the embedded view; an empty list allows any origin, so configure this explicitly for production.

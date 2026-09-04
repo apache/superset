@@ -1,0 +1,28 @@
+name: Hold Label Check
+
+on:
+  pull_request:
+    types: [labeled, unlabeled, opened, reopened, synchronize]
+
+permissions:
+  pull-requests: read
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  check-hold-label:
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Check for 'hold' label
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          const payload = context.payload.pull_request
+          const holdLabelPresent = !!payload.labels.find(label => label.name.includes('hold'))
+          if (holdLabelPresent) {
+            core.setFailed('Hold label is present, merge is blocked.')
+          }

@@ -1,0 +1,46 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: 69e9de42-fe7f-4948-946a-f7913227aee8
+description: null
+params:
+  compare_lag: '10'
+  compare_suffix: o10Y
+  country_fieldtype: cca3
+  entity: country_code
+  granularity_sqla: year
+  groupby:
+  - region
+  limit: '25'
+  markup_type: markdown
+  metrics:
+  - sum__SP_POP_TOTL
+  row_limit: 50000
+  show_bubbles: true
+  since: '1960-01-01'
+  time_range: '2014-01-01 : 2014-01-02'
+  until: now
+  viz_type: box_plot
+  whisker_options: Min/max (no outliers)
+  x_ticks_layout: staggered
+query_context: null
+slice_name: Box plot
+uuid: 53c450c6-98bf-435a-8ebb-2a237bccfd09
+version: 1.0.0
+viz_type: box_plot

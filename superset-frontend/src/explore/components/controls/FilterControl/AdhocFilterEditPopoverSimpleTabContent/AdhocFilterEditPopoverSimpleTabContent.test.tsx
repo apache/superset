@@ -1,0 +1,714 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import * as redux from 'react-redux';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import thunk from 'redux-thunk';
+import configureStore from 'redux-mock-store';
+
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import {
+  AGGREGATES,
+  Operators,
+  OPERATOR_ENUM_TO_OPERATOR_TYPE,
+} from 'src/explore/constants';
+import AdhocMetric from 'src/explore/components/controls/MetricControl/AdhocMetric';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import fetchMock from 'fetch-mock';
+
+import { TestDataset, Dataset } from '@superset-ui/chart-controls';
+import AdhocFilterEditPopoverSimpleTabContent, {
+  useSimpleTabFilterProps,
+  Props,
+} from '.';
+import { Clauses, ExpressionTypes } from '../types';
+
+const simpleAdhocFilter = new AdhocFilter({
+  expressionType: ExpressionTypes.Simple,
+  subject: 'value',
+  operatorId: Operators.GreaterThan,
+  operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThan].operation,
+  comparator: '10',
+  clause: Clauses.Where,
+});
+
+const advancedTypeTestAdhocFilterTest = new AdhocFilter({
+  expressionType: ExpressionTypes.Simple,
+  subject: 'advancedDataType',
+  operatorId: undefined,
+  operator: undefined,
+  comparator: undefined,
+  clause: undefined,
+});
+
+const simpleMultiAdhocFilter = new AdhocFilter({
+  expressionType: ExpressionTypes.Simple,
+  subject: 'value',
+  operatorId: Operators.In,
+  operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.In].operation,
+  comparator: ['10'],
+  clause: Clauses.Where,
+});
+
+const sumValueAdhocMetric = new AdhocMetric({
+  expressionType: ExpressionTypes.Simple,
+  column: { type: 'VARCHAR(255)', column_name: 'source', id: 5 },
+  aggregate: AGGREGATES.SUM,
+  label: 'test-AdhocMetric',
+});
+
+const simpleCustomFilter = new AdhocFilter({
+  expressionType: ExpressionTypes.Simple,
+  subject: 'ds',
+  operator: 'LATEST PARTITION',
+  operatorId: Operators.LatestPartition,
+});
+
+const options = [
+  { type: 'VARCHAR(255)', column_name: 'source', id: 1 },
+  { type: 'VARCHAR(255)', column_name: 'target', id: 2 },
+  { type: 'DOUBLE', column_name: 'value', id: 3 },
+  { saved_metric_name: 'my_custom_metric', id: 4 },
+  sumValueAdhocMetric,
+];
+
+const getAdvancedDataTypeTestProps = (overrides?: Record<string, unknown>) => {
+  const onChange = jest.fn();
+  const validHandler = jest.fn();
+  const props = {
+    adhocFilter: advancedTypeTestAdhocFilterTest,
+    onChange,
+    options: [{ type: 'DOUBLE', column_name: 'advancedDataType', id: 5 }],
+    datasource: {
+      ...TestDataset,
+
+      columns: [],
+      filter_select: false,
+    },
+    partitionColumn: 'test',
+    ...overrides,
+    validHandler,
+  };
+  return props;
+};
+
+function setup(overrides?: Record<string, unknown>) {
+  const onChange = jest.fn();
+  const validHandler = jest.fn();
+  const spy = jest.spyOn(redux, 'useSelector');
+  spy.mockReturnValue({});
+  const props = {
+    adhocFilter: simpleAdhocFilter,
+    onChange,
+    options,
+    datasource: {
+      ...TestDataset,
+
+      columns: [],
+      filter_select: false,
+    },
+    partitionColumn: 'test',
+    ...overrides,
+    validHandler,
+  };
+  render(
+    <AdhocFilterEditPopoverSimpleTabContent {...(props as unknown as Props)} />,
+  );
+  return props;
+}
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
+
+const ADVANCED_DATA_TYPE_ENDPOINT_VALID =
+  'glob:*/api/v1/advanced_data_type/convert?q=(type:type,values:!(v))';
+const ADVANCED_DATA_TYPE_ENDPOINT_INVALID =
+  'glob:*/api/v1/advanced_data_type/convert?q=(type:type,values:!(e))';
+
+fetchMock.get(ADVANCED_DATA_TYPE_ENDPOINT_VALID, {
+  result: {
+    display_value: 'VALID',
+    error_message: '',
+    valid_filter_operators: [Operators.Equals],
+    values: ['VALID'],
+  },
+});
+fetchMock.get(ADVANCED_DATA_TYPE_ENDPOINT_INVALID, {
+  result: {
+    display_value: '',
+    error_message: 'error',
+    valid_filter_operators: [],
+    values: [],
+  },
+});
+
+const mockStore = configureStore([thunk]);
+const store = mockStore({});
+
+let isFeatureEnabledMock: jest.SpyInstance;
+
+beforeEach(() => {
+  fetchMock.clearHistory();
+  isFeatureEnabledMock = mockedIsFeatureEnabled.mockImplementation(
+    (featureFlag: FeatureFlag) =>
+      featureFlag === FeatureFlag.EnableAdvancedDataTypes,
+  );
+});
+
+afterAll(() => {
+  if (isFeatureEnabledMock) {
+    isFeatureEnabledMock.mockRestore();
+  }
+});
+
+test('can render the simple tab form', () => {
+  expect(() => setup()).not.toThrow();
+});
+
+test('shows boolean only operators when subject is boolean', () => {
+  const props = setup({
+    adhocFilter: new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'value',
+      operatorId: undefined,
+      operator: undefined,
+      comparator: undefined,
+      clause: undefined,
+    }),
+    datasource: {
+      columns: [
+        {
+          id: 3,
+          column_name: 'value',
+          type: 'BOOL',
+        },
+      ],
+    },
+  });
+  const { isOperatorRelevant } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  [
+    Operators.IsTrue,
+    Operators.IsFalse,
+    Operators.IsNull,
+    Operators.IsFalse,
+  ].map(operator => expect(isOperatorRelevant(operator, 'value')).toBe(true));
+});
+
+test('shows boolean only operators when subject is number', () => {
+  const props = setup({
+    adhocFilter: new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: 'value',
+      operatorId: undefined,
+      operator: undefined,
+      comparator: undefined,
+      clause: undefined,
+    }),
+    datasource: {
+      columns: [
+        {
+          id: 3,
+          column_name: 'value',
+          type: 'INT',
+        },
+      ],
+    },
+  });
+  const { isOperatorRelevant } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  [
+    Operators.IsTrue,
+    Operators.IsFalse,
+    Operators.IsNull,
+    Operators.IsNotNull,
+  ].map(operator => expect(isOperatorRelevant(operator, 'value')).toBe(true));
+});
+
+test('will convert from individual comparator to array if the operator changes to multi', () => {
+  const props = setup();
+  const { onOperatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onOperatorChange(Operators.In);
+  expect(props.onChange.mock.calls.length === 1).toBe(true);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+      .comparator,
+  ).toEqual(['10']);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+      .operatorId,
+  ).toEqual(Operators.In);
+});
+
+test('will preserve boolean false comparator when converting to multi operator', () => {
+  const booleanFalseFilter = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'value',
+    operatorId: Operators.Equals,
+    operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.Equals].operation,
+    comparator: false,
+    clause: Clauses.Where,
+  });
+  const props = setup({ adhocFilter: booleanFalseFilter });
+  const { onOperatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onOperatorChange(Operators.In);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+      .comparator,
+  ).toEqual([false]);
+});
+
+test('will convert from array to individual comparators if the operator changes from multi', () => {
+  const props = setup({
+    adhocFilter: simpleMultiAdhocFilter,
+  });
+  const { onOperatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onOperatorChange(Operators.LessThan);
+  expect(props.onChange.mock.calls.length === 1).toBe(true);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0],
+  ).toEqual(
+    simpleMultiAdhocFilter.duplicateWith({
+      operatorId: Operators.LessThan,
+      operator: '<',
+      comparator: '10',
+    }),
+  );
+});
+
+test('passes the new adhocFilter to onChange after onComparatorChange', () => {
+  const props = setup();
+  const { onComparatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onComparatorChange('20');
+  expect(props.onChange.mock.calls.length === 1).toBe(true);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0],
+  ).toEqual(simpleAdhocFilter.duplicateWith({ comparator: '20' }));
+});
+
+test('will filter operators for table datasources', () => {
+  const props = setup({ datasource: { type: 'table' as const } });
+  const { isOperatorRelevant } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  expect(isOperatorRelevant(Operators.Like, 'value')).toBe(true);
+});
+
+test('will show LATEST PARTITION operator', () => {
+  const props = setup({
+    datasource: {
+      type: 'table' as const,
+      datasource_name: 'table1',
+      schema: 'schema',
+    },
+    adhocFilter: simpleCustomFilter,
+    partitionColumn: 'ds',
+  });
+  const { isOperatorRelevant } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  expect(isOperatorRelevant(Operators.LatestPartition, 'ds')).toBe(true);
+  expect(isOperatorRelevant(Operators.LatestPartition, 'value')).toBe(false);
+});
+
+test('will generate custom sqlExpression for LATEST PARTITION operator', () => {
+  const testAdhocFilter = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'ds',
+  });
+  const props = setup({
+    datasource: {
+      type: 'table' as const,
+      datasource_name: 'table1',
+      schema: 'schema',
+    },
+    adhocFilter: testAdhocFilter,
+    partitionColumn: 'ds',
+  });
+  const { onOperatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onOperatorChange(Operators.LatestPartition);
+  expect(props.onChange.mock.calls.length === 1).toBe(true);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0],
+  ).toEqual(
+    testAdhocFilter.duplicateWith({
+      subject: 'ds',
+      operator: 'LATEST PARTITION',
+      operatorId: Operators.LatestPartition,
+      comparator: null,
+      clause: 'WHERE',
+      expressionType: 'SQL',
+      sqlExpression: "ds = '{{ presto.latest_partition('schema.table1') }}'",
+    }),
+  );
+});
+
+test('will not display boolean operators when column type is string', () => {
+  const props = setup({
+    datasource: {
+      type: 'table' as const,
+      datasource_name: 'table1',
+      schema: 'schema',
+      columns: [{ column_name: 'value', type: 'STRING' }],
+    },
+    adhocFilter: simpleAdhocFilter,
+  });
+  const { isOperatorRelevant } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  const booleanOnlyOperators = [Operators.IsTrue, Operators.IsFalse];
+  booleanOnlyOperators.forEach(operator => {
+    expect(isOperatorRelevant(operator, 'value')).toBe(false);
+  });
+});
+
+test('will display boolean operators when column is an expression', () => {
+  const props = setup({
+    datasource: {
+      type: 'table' as const,
+      datasource_name: 'table1',
+      schema: 'schema',
+      columns: [
+        {
+          column_name: 'value',
+          expression: 'case when value is 0 then "NO"',
+        },
+      ],
+    },
+    adhocFilter: simpleAdhocFilter,
+  });
+  const { isOperatorRelevant } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  const booleanOnlyOperators = [Operators.IsTrue, Operators.IsFalse];
+  booleanOnlyOperators.forEach(operator => {
+    expect(isOperatorRelevant(operator, 'value')).toBe(true);
+  });
+});
+
+test('sets comparator to undefined when operator is IS_TRUE', () => {
+  const props = setup();
+  const { onOperatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onOperatorChange(Operators.IsTrue);
+  expect(props.onChange.mock.calls.length === 1).toBe(true);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+      .operatorId,
+  ).toBe(Operators.IsTrue);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0].operator,
+  ).toBe('IS TRUE');
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+      .comparator,
+  ).toBe(undefined);
+});
+
+test('sets comparator to undefined when operator is IS_FALSE', () => {
+  const props = setup();
+  const { onOperatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onOperatorChange(Operators.IsFalse);
+  expect(props.onChange.mock.calls.length === 1).toBe(true);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+      .operatorId,
+  ).toBe(Operators.IsFalse);
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0].operator,
+  ).toBe('IS FALSE');
+  expect(
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+      .comparator,
+  ).toBe(undefined);
+});
+
+test('sets comparator to undefined when operator is IS_NULL or IS_NOT_NULL', () => {
+  const props = setup();
+  const { onOperatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  [Operators.IsNull, Operators.IsNotNull].forEach(op => {
+    onOperatorChange(op);
+    expect(props.onChange.mock.calls.length > 0).toBe(true);
+    expect(
+      props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+        .operatorId,
+    ).toBe(op);
+    expect(
+      props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+        .operator,
+    ).toBe(OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation);
+    expect(
+      props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0]
+        .comparator,
+    ).toBe(undefined);
+  });
+});
+
+test('should not call API when column has no advanced data type', async () => {
+  const props = getAdvancedDataTypeTestProps();
+
+  await act(async () => {
+    render(
+      <AdhocFilterEditPopoverSimpleTabContent
+        {...(props as unknown as Props)}
+      />,
+      {
+        store,
+      },
+    );
+  });
+
+  const filterValueField = screen.getByPlaceholderText(
+    'Filter value (case sensitive)',
+  );
+  await act(async () => {
+    userEvent.type(filterValueField, 'v');
+  });
+
+  await act(async () => {
+    userEvent.type(filterValueField, '{enter}');
+  });
+
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID),
+    ).toHaveLength(0),
+  );
+});
+
+test('should call API when column has advanced data type', async () => {
+  const props = getAdvancedDataTypeTestProps({
+    options: [
+      {
+        type: 'DOUBLE',
+        column_name: 'advancedDataType',
+        id: 5,
+        advanced_data_type: 'type',
+      },
+    ],
+  });
+
+  await act(async () => {
+    render(
+      <AdhocFilterEditPopoverSimpleTabContent
+        {...(props as unknown as Props)}
+      />,
+      {
+        store,
+      },
+    );
+  });
+
+  const filterValueField = screen.getByPlaceholderText(
+    'Filter value (case sensitive)',
+  );
+  await act(async () => {
+    userEvent.type(filterValueField, 'v');
+  });
+
+  await act(async () => {
+    userEvent.type(filterValueField, '{enter}');
+  });
+
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID),
+    ).toHaveLength(1),
+  );
+  expect(
+    props.validHandler.mock.calls[props.validHandler.mock.calls.length - 1][0],
+  ).toBe(true);
+});
+
+test('save button should be disabled if error message from API is returned', async () => {
+  const props = getAdvancedDataTypeTestProps({
+    options: [
+      {
+        type: 'DOUBLE',
+        column_name: 'advancedDataType',
+        id: 5,
+        advanced_data_type: 'type',
+      },
+    ],
+  });
+
+  await act(async () => {
+    render(
+      <AdhocFilterEditPopoverSimpleTabContent
+        {...(props as unknown as Props)}
+      />,
+      {
+        store,
+      },
+    );
+  });
+
+  const filterValueField = screen.getByPlaceholderText(
+    'Filter value (case sensitive)',
+  );
+  await act(async () => {
+    userEvent.type(filterValueField, 'e');
+  });
+
+  await act(async () => {
+    userEvent.type(filterValueField, '{enter}');
+  });
+
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(ADVANCED_DATA_TYPE_ENDPOINT_INVALID),
+    ).toHaveLength(1),
+  );
+  expect(
+    props.validHandler.mock.calls[props.validHandler.mock.calls.length - 1][0],
+  ).toBe(false);
+});
+
+test('advanced data type operator list should update after API response', async () => {
+  const props = getAdvancedDataTypeTestProps({
+    options: [
+      {
+        type: 'DOUBLE',
+        column_name: 'advancedDataType',
+        id: 5,
+        advanced_data_type: 'type',
+      },
+    ],
+  });
+
+  await act(async () => {
+    render(
+      <AdhocFilterEditPopoverSimpleTabContent
+        {...(props as unknown as Props)}
+      />,
+      {
+        store,
+      },
+    );
+  });
+
+  const filterValueField = screen.getByPlaceholderText(
+    'Filter value (case sensitive)',
+  );
+  await act(async () => {
+    userEvent.type(filterValueField, 'v');
+  });
+
+  await act(async () => {
+    userEvent.type(filterValueField, '{enter}');
+  });
+
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(ADVANCED_DATA_TYPE_ENDPOINT_VALID),
+    ).toHaveLength(1),
+  );
+  expect(
+    props.validHandler.mock.calls[props.validHandler.mock.calls.length - 1][0],
+  ).toBe(true);
+
+  const operatorValueField = screen.getByRole('combobox', {
+    name: 'Select operator',
+  });
+
+  userEvent.click(operatorValueField);
+
+  await act(async () => {
+    userEvent.type(operatorValueField, '{enter}');
+  });
+
+  expect(
+    await screen.findByText('Equal to (=)', {
+      selector: '.ant-select-selection-item',
+    }),
+  ).toBeInTheDocument();
+});
+
+test('dropdown should remain open when clicked after filter is configured', async () => {
+  const onChange = jest.fn();
+  const validHandler = jest.fn();
+  const spy = jest.spyOn(redux, 'useSelector');
+  spy.mockReturnValue({});
+
+  const filterWithSubjectAndOperator = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'value',
+    operatorId: Operators.Equals,
+    operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.Equals].operation,
+    comparator: '10',
+    clause: Clauses.Where,
+  });
+
+  const props = {
+    adhocFilter: filterWithSubjectAndOperator,
+    onChange,
+    options,
+    datasource: {
+      ...TestDataset,
+      columns: [{ column_name: 'value', type: 'DOUBLE', id: 3 }],
+      filter_select: false,
+    } as Dataset,
+    partitionColumn: 'test',
+    validHandler,
+  };
+
+  render(
+    <AdhocFilterEditPopoverSimpleTabContent {...(props as unknown as Props)} />,
+  );
+
+  const operatorDropdown = screen.getByRole('combobox', {
+    name: 'Select operator',
+  });
+
+  await act(async () => {
+    userEvent.click(operatorDropdown);
+  });
+
+  await waitFor(() => {
+    expect(operatorDropdown).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  expect(operatorDropdown).toHaveAttribute('aria-expanded', 'true');
+});

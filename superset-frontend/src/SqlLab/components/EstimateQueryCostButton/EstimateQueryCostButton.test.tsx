@@ -1,0 +1,139 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import configureStore from 'redux-mock-store';
+import thunk from 'redux-thunk';
+import { fireEvent, render } from 'spec/helpers/testing-library';
+import { Store } from 'redux';
+import {
+  initialState,
+  defaultQueryEditor,
+  extraQueryEditor1,
+} from 'src/SqlLab/fixtures';
+
+import EstimateQueryCostButton, {
+  EstimateQueryCostButtonProps,
+} from 'src/SqlLab/components/EstimateQueryCostButton';
+
+const middlewares = [thunk];
+const mockStore = configureStore(middlewares);
+
+jest.mock('@superset-ui/core/components/Select/Select', () => () => (
+  <div data-test="mock-deprecated-select-select" />
+));
+jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
+  <div data-test="mock-deprecated-async-select" />
+));
+
+const setup = (props: Partial<EstimateQueryCostButtonProps>, store?: Store) =>
+  render(
+    <EstimateQueryCostButton
+      queryEditorId={defaultQueryEditor.id}
+      getEstimate={jest.fn()}
+      {...props}
+    />,
+    {
+      useRedux: true,
+      ...(store && { store }),
+    },
+  );
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('EstimateQueryCostButton', () => {
+  test('renders EstimateQueryCostButton', async () => {
+    const { queryByLabelText } = setup({}, mockStore(initialState));
+
+    expect(queryByLabelText('Estimate cost')).toBeInTheDocument();
+  });
+
+  test('renders label for selected query', async () => {
+    const { queryByLabelText } = setup(
+      { queryEditorId: extraQueryEditor1.id },
+      mockStore(initialState),
+    );
+
+    expect(
+      queryByLabelText('Estimate selected query cost'),
+    ).toBeInTheDocument();
+  });
+
+  test('renders label for selected query from unsaved', async () => {
+    const { queryByLabelText } = setup(
+      {},
+      mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          unsavedQueryEditor: {
+            id: defaultQueryEditor.id,
+            selectedText: 'SELECT',
+          },
+        },
+      }),
+    );
+
+    expect(
+      queryByLabelText('Estimate selected query cost'),
+    ).toBeInTheDocument();
+  });
+
+  test('renders estimation error result', async () => {
+    const { queryByLabelText, queryByText, getByLabelText } = setup(
+      {},
+      mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queryCostEstimates: {
+            [defaultQueryEditor.id]: {
+              error: 'Estimate error',
+            },
+          },
+        },
+      }),
+    );
+
+    expect(queryByLabelText('Estimate cost')).toBeInTheDocument();
+    fireEvent.click(getByLabelText('Estimate cost'));
+
+    expect(queryByText('Estimate error')).toBeInTheDocument();
+  });
+
+  test('renders estimation success result', async () => {
+    const { queryByLabelText, getByLabelText, findByTitle } = setup(
+      {},
+      mockStore({
+        ...initialState,
+        sqlLab: {
+          ...initialState.sqlLab,
+          queryCostEstimates: {
+            [defaultQueryEditor.id]: {
+              completed: true,
+              cost: [{ 'Total cost': '1.2' }],
+            },
+          },
+        },
+      }),
+    );
+
+    expect(queryByLabelText('Estimate cost')).toBeInTheDocument();
+    fireEvent.click(getByLabelText('Estimate cost'));
+    const totalCostTitle = await findByTitle('Total cost');
+    expect(totalCostTitle).toBeInTheDocument();
+  });
+});

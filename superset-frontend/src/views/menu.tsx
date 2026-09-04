@@ -1,0 +1,71 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import 'src/public-path';
+
+// Menu App. Used in views that do not already include the Menu component in the layout.
+// eg, backend rendered views
+import { Provider } from 'react-redux';
+import { createRoot } from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import { CacheProvider } from '@emotion/react';
+import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import createCache from '@emotion/cache';
+import { ThemeProvider } from '@apache-superset/core/theme';
+import { theme } from '@apache-superset/core/theme';
+import Menu from 'src/features/home/Menu';
+import getBootstrapData from 'src/utils/getBootstrapData';
+import { setupStore } from './store';
+import querystring from 'query-string';
+
+// Disable connecting to redux debugger so that the React app injected
+// Below the menu like SqlLab or Explore can connect its redux store to the debugger
+const store = setupStore({ disableDebugger: true });
+const bootstrapData = getBootstrapData();
+const menu = { ...bootstrapData.common.menu_data };
+
+const emotionCache = createCache({
+  key: 'menu',
+});
+
+const app = (
+  <CacheProvider value={emotionCache}>
+    <ThemeProvider theme={theme}>
+      <Provider store={store}>
+        <BrowserRouter>
+          <QueryParamProvider
+            adapter={ReactRouter5Adapter}
+            options={{
+              searchStringToObject: querystring.parse,
+              objectToSearchString: (object: Record<string, any>) =>
+                querystring.stringify(object, { encode: false }),
+            }}
+          >
+            <Menu data={menu} />
+          </QueryParamProvider>
+        </BrowserRouter>
+      </Provider>
+    </ThemeProvider>
+  </CacheProvider>
+);
+
+const menuMountPoint = document.getElementById('app-menu');
+if (menuMountPoint) {
+  createRoot(menuMountPoint).render(app);
+}

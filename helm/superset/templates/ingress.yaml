@@ -1,0 +1,77 @@
+{{/*
+
+ Licensed to the Apache Software Foundation (ASF) under one or more
+ contributor license agreements.  See the NOTICE file distributed with
+ this work for additional information regarding copyright ownership.
+ The ASF licenses this file to You under the Apache License, Version 2.0
+ (the "License"); you may not use this file except in compliance with
+ the License.  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing, software
+ distributed under the License is distributed on an "AS IS" BASIS,
+ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ See the License for the specific language governing permissions and
+ limitations under the License.
+
+*/}}
+
+{{ if .Values.ingress.enabled -}}
+{{- $fullName := include "superset.fullname" . -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ template "superset.name" . }}
+    chart: {{ template "superset.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    {{- if .Values.extraLabels }}
+      {{- toYaml .Values.extraLabels | nindent 4 }}
+    {{- end }}
+  {{- with .Values.ingress.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.ingressClassName }}
+  ingressClassName: {{ .Values.ingress.ingressClassName }}
+  {{- end }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- range .Values.ingress.tls }}
+    - hosts:
+      {{- range .hosts }}
+        - {{ . }}
+      {{- end }}
+      secretName: {{ .secretName }}
+    {{- end }}
+  {{- end }}
+  rules:
+    {{- range .Values.ingress.hosts }}
+    - host: {{ . }}
+      http:
+        paths:
+          - path: {{ $.Values.ingress.path }}
+            pathType: {{ $.Values.ingress.pathType }}
+            backend:
+              service:
+                name: {{ $fullName }}
+                port:
+                  name: http
+          {{- if $.Values.supersetWebsockets.enabled }}
+          - path: {{ $.Values.supersetWebsockets.ingress.path }}
+            pathType: {{ $.Values.supersetWebsockets.ingress.pathType }}
+            backend:
+              service:
+                name: "{{ template "superset.fullname" $ }}-ws"
+                port:
+                  name: ws
+          {{- end }}
+    {{- end }}
+  {{- if .Values.ingress.extraHostsRaw }}
+    {{- toYaml .Values.ingress.extraHostsRaw | nindent 4 }}
+  {{- end }}
+{{- end }}
