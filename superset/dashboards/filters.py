@@ -32,10 +32,13 @@ from superset.subjects.filters import (
 )
 from superset.subjects.models import dashboard_editors, dashboard_viewers
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
-from superset.utils.core import DatasourceType, get_user_id
+from superset.utils.core import get_user_id
 from superset.utils.filters import (
     get_dataset_access_filters,
     guest_embedded_dashboard_filter,
+    semantic_layer_grant_clause,
+    semantic_view_layer_join,
+    semantic_view_slice_join,
     table_backed_slice_join,
 )
 from superset.views.base import BaseFilter
@@ -169,19 +172,12 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
             filters.append(Dashboard.id.in_(viewer_query))
 
         # (C) No-viewer fallback: dashboards with no viewers → dataset-based access
-        # A datasource_access grant on a parent semantic layer covers its
-        # views (sc-119501). The datasource_access perms are fetched here and
-        # again inside get_dataset_access_filters — an accepted cost, shared
-        # with ChartFilter: deduping would need the helper to accept
-        # prefetched perm sets.
-        layer_grant_clause = SemanticLayer.perm.in_(
-            security_manager.user_view_menu_names("datasource_access")
-        )
+        layer_grant_clause = semantic_layer_grant_clause()
         # Note: for ordinary users a dashboard with no charts is never yielded
         # here (every access predicate is NULL-false after the outer joins)
         # even though the object gate allows opening it — a deliberate,
         # pre-existing asymmetry. For ``all_datasource_access`` holders the
-        # spliced literal True below yields such rows, matching the gate.
+        # ``include_all`` flag below yields such rows, matching the gate.
         dashboard_has_viewers = Dashboard.viewers.any()
         no_viewer_query = (
             db.session.query(Dashboard.id)
@@ -198,23 +194,11 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
                 isouter=True,
             )
             .join(Database, SqlaTable.database_id == Database.id, isouter=True)
-            # A datasource_access grant on a semantic LAYER covers its views,
-            # as SemanticView.raise_for_access enforces on the data path
-            # (sc-119501) — surface those dashboards here too, through the
-            # same type-guarded outer-join shape as the SqlaTable join.
-            .join(
-                SemanticView,
-                and_(
-                    Slice.datasource_id == SemanticView.id,
-                    Slice.datasource_type == DatasourceType.SEMANTIC_VIEW,
-                ),
-                isouter=True,
-            )
-            .join(
-                SemanticLayer,
-                SemanticView.semantic_layer_uuid == SemanticLayer.uuid,
-                isouter=True,
-            )
+            # A layer-level grant covers the layer's views (sc-119501) —
+            # surface those dashboards too, through the same type-guarded
+            # outer-join shape as the SqlaTable join.
+            .join(SemanticView, semantic_view_slice_join(), isouter=True)
+            .join(SemanticLayer, semantic_view_layer_join(), isouter=True)
             .filter(
                 and_(
                     Dashboard.published.is_(True),

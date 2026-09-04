@@ -79,12 +79,13 @@ def test_get_dataset_access_filters_extra_clauses(mocker: MockerFixture) -> None
     )
 
     clause = get_dataset_access_filters(SqlaTable, column("x") == 1)
-    assert "x = :x_1" in str(clause)
+    assert " OR x = :x_1" in str(clause)
 
 
 def test_get_dataset_access_filters_include_all(mocker: MockerFixture) -> None:
-    """``include_all`` splices an always-true clause so callers that already
-    established ``all_datasource_access`` keep rows no grant clause matches."""
+    """``include_all`` yields an explicit always-true clause (and skips the
+    grant lookups) for callers that already established
+    ``all_datasource_access``."""
     # pylint: disable=import-outside-toplevel
     from superset.connectors.sqla.models import SqlaTable
     from superset.extensions import security_manager
@@ -96,8 +97,6 @@ def test_get_dataset_access_filters_include_all(mocker: MockerFixture) -> None:
         side_effect=[{"[db].[t](id:1)"}, set(), set()],
     )
 
-    # or_ short-circuits on the spliced true(): the whole filter collapses
-    # to an always-true clause instead of rendering every grant predicate.
     assert str(get_dataset_access_filters(SqlaTable, include_all=True)) == "true"
 
 
