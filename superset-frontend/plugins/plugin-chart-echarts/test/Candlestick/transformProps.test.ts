@@ -25,6 +25,7 @@ import {
 } from '../../src/Candlestick/types';
 import transformProps from '../../src/Candlestick/transformProps';
 import { CANDLESTICK_SERIES_NAME } from '../../src/Candlestick/constants';
+import { NULL_STRING } from '../../src/constants';
 
 const data = [
   { date: '2017-10-24', open: 20, close: 34, low: 10, high: 38 },
@@ -350,6 +351,50 @@ test('keeps series and x-axis values distinct when they contain the same charact
   expect(series.map(item => item.name)).toEqual(['foo', 'foo::bar']);
   expect(series[0].data).toEqual([[20, 34, 10, 38], []]);
   expect(series[1].data).toEqual([[], [40, 35, 30, 50]]);
+});
+
+test('keeps a SQL null x value distinct from a literal <NULL> category', () => {
+  const props = transform([
+    { date: null, open: 20, close: 34, low: 10, high: 38 },
+    { date: NULL_STRING, open: 40, close: 35, low: 30, high: 50 },
+  ]);
+  expect((props.echartOptions.xAxis as { data: string[] }).data).toEqual([
+    NULL_STRING,
+    NULL_STRING,
+  ]);
+  expect(extractSeries(props)[0].data).toEqual([
+    [20, 34, 10, 38],
+    [40, 35, 30, 50],
+  ]);
+});
+
+test('keeps a SQL null series value distinct from a literal <NULL> series', () => {
+  const series = extractSeries(
+    transform(
+      [
+        {
+          date: '2017-10-24',
+          symbol: null,
+          open: 20,
+          close: 34,
+          low: 10,
+          high: 38,
+        },
+        {
+          date: '2017-10-24',
+          symbol: NULL_STRING,
+          open: 40,
+          close: 35,
+          low: 30,
+          high: 50,
+        },
+      ],
+      { series: 'symbol' },
+    ),
+  );
+  expect(series).toHaveLength(2);
+  expect(series[0].data).toEqual([[20, 34, 10, 38]]);
+  expect(series[1].data).toEqual([[40, 35, 30, 50]]);
 });
 
 test('formats tooltip dates from the category, not the raw row index', () => {

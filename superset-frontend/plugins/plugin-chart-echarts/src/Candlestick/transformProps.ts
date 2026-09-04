@@ -36,6 +36,8 @@ import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
   CandlestickChartTransformedProps,
   EchartsCandlestickChartProps,
+  OhlcValue,
+  LookupKey,
 } from './types';
 import {
   CANDLESTICK_SERIES_NAME,
@@ -44,6 +46,7 @@ import {
   DEFAULT_INCREASE_COLOR,
   DIRECTION_LABELS,
   OHLC_LABELS,
+  NULL_LOOKUP_KEY,
 } from './constants';
 import { defaultGrid, defaultYAxis } from '../defaults';
 import { getDefaultTooltip } from '../utils/tooltip';
@@ -56,7 +59,7 @@ import {
 import { convertInteger } from '../utils/convertInteger';
 import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
 import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
-import { NULL_STRING, TIMESERIES_CONSTANTS } from '../constants';
+import { TIMESERIES_CONSTANTS } from '../constants';
 import { LegendOrientation, LegendType, Refs } from '../types';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -66,7 +69,6 @@ import {
   parseMovingAveragePeriods,
 } from './utils';
 
-type OhlcValue = [number, number, number, number];
 type CandlestickDatum = NonNullable<CandlestickSeriesOption['data']>[number];
 
 function toNumber(value: unknown): number | null {
@@ -84,8 +86,8 @@ function getOwnValue<T extends object>(
   return key && Object.hasOwn(object, key) ? object[key as keyof T] : undefined;
 }
 
-function toCategoryKey(value: unknown): string {
-  return value == null ? NULL_STRING : String(value);
+function toLookupKey(value: unknown): LookupKey {
+  return value == null ? NULL_LOOKUP_KEY : String(value);
 }
 
 function getOhlc(
@@ -271,13 +273,12 @@ export default function transformProps(
   const upLabel = increaseLabel || DIRECTION_LABELS.INCREASE;
   const downLabel = decreaseLabel || DIRECTION_LABELS.DECREASE;
 
-  const xKeys: string[] = [];
+  const xKeys: LookupKey[] = [];
   const xLabels: string[] = [];
   const xRecords: DataRecord[] = [];
-  const xKeySet = new Set<string>();
+  const xKeySet = new Set<LookupKey>();
   data.forEach(datum => {
-    const raw = getOwnValue(datum, xAxisName);
-    const key = toCategoryKey(raw);
+    const key = toLookupKey(getOwnValue(datum, xAxisName));
     if (xKeySet.has(key)) {
       return;
     }
@@ -300,20 +301,36 @@ export default function transformProps(
     );
   });
 
-  const seriesNames = seriesName
-    ? [
-        ...new Set(
-          data.map(datum => toCategoryKey(getOwnValue(datum, seriesName))),
-        ),
-      ]
-    : [CANDLESTICK_SERIES_NAME];
+  const seriesKeys: LookupKey[] = [];
+  const seriesNames: string[] = [];
+  if (seriesName) {
+    const seriesKeySet = new Set<LookupKey>();
+    data.forEach(datum => {
+      const key = toLookupKey(getOwnValue(datum, seriesName));
+      if (seriesKeySet.has(key)) {
+        return;
+      }
+      seriesKeySet.add(key);
+      seriesKeys.push(key);
+      seriesNames.push(
+        extractGroupbyLabel({
+          datum,
+          groupby: [seriesName],
+          coltypeMapping,
+        }),
+      );
+    });
+  } else {
+    seriesKeys.push(CANDLESTICK_SERIES_NAME);
+    seriesNames.push(CANDLESTICK_SERIES_NAME);
+  }
 
-  const recordsBySeriesAndX = new Map<string, Map<string, DataRecord>>();
+  const recordsBySeriesAndX = new Map<LookupKey, Map<LookupKey, DataRecord>>();
   data.forEach(datum => {
-    const xKey = toCategoryKey(getOwnValue(datum, xAxisName));
+    const xKey = toLookupKey(getOwnValue(datum, xAxisName));
     const seriesKey = seriesName
-      ? toCategoryKey(getOwnValue(datum, seriesName))
-      : seriesNames[0];
+      ? toLookupKey(getOwnValue(datum, seriesName))
+      : CANDLESTICK_SERIES_NAME;
     let byX = recordsBySeriesAndX.get(seriesKey);
     if (!byX) {
       byX = new Map();
@@ -322,13 +339,13 @@ export default function transformProps(
     byX.set(xKey, datum);
   });
 
-  const candlestickSeries: CandlestickSeriesOption[] = seriesNames.map(
-    name => ({
-      name,
+  const candlestickSeries: CandlestickSeriesOption[] = seriesKeys.map(
+    (key, index) => ({
+      name: seriesNames[index],
       type: 'candlestick',
       data: xKeys.map(xKey =>
         toCandlestickDatum(
-          recordsBySeriesAndX.get(name)?.get(xKey),
+          recordsBySeriesAndX.get(key)?.get(xKey),
           openLabel,
           closeLabel,
           lowLabel,

@@ -57,6 +57,9 @@ export type EchartsCandlestickFormData = QueryFormData &
     echartOptions?: string;
   };
 
+export type OhlcValue = [number, number, number, number];
+export type LookupKey = string | symbol;
+
 export interface EchartsCandlestickChartProps extends BaseChartProps<EchartsCandlestickFormData> {
   formData: EchartsCandlestickFormData;
   queriesData: ChartDataResponseResult[];
