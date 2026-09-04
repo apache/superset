@@ -1539,7 +1539,25 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :return: The parsed predicate.
         """
         _check_script_length(predicate, self.engine)
-        return sqlglot.parse_one(predicate, dialect=self._dialect)
+        try:
+            return sqlglot.parse_one(predicate, dialect=self._dialect)
+        except sqlglot.errors.ParseError as ex:
+            kwargs = (
+                {
+                    "highlight": ex.errors[0]["highlight"],
+                    "line": ex.errors[0]["line"],
+                    "column": ex.errors[0]["col"],
+                }
+                if ex.errors
+                else {}
+            )
+            raise SupersetParseError(predicate, self.engine, **kwargs) from ex
+        except sqlglot.errors.SqlglotError as ex:
+            raise SupersetParseError(
+                predicate,
+                self.engine,
+                message="Unable to parse predicate",
+            ) from ex
 
     def apply_rls(
         self,

@@ -4699,6 +4699,83 @@ def test_simple_metric_quotes_column_requiring_quoting(database: Database) -> No
     )
 
 
+def test_explore_mixin_adhoc_metric_quotes_snowflake_case_sensitive_identifier(
+    database: Database,
+) -> None:
+    """``ExploreMixin.adhoc_metric_to_sqla`` quotes exact-case Snowflake columns.
+
+    Unlike the ``SqlaTable`` override, this implementation builds the aggregate
+    from a bare ``sa.column()`` unconditionally, so every SIMPLE adhoc metric on
+    the query-object path bypassed identifier preparation.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    datasource = MagicMock()
+    datasource.database = database
+    datasource.db_engine_spec = SnowflakeEngineSpec
+    datasource.normalize_columns = False
+    datasource.sqla_aggregations = ExploreMixin.sqla_aggregations
+    for method in ("adhoc_metric_to_sqla", "make_sqla_column_compatible"):
+        setattr(datasource, method, getattr(ExploreMixin, method).__get__(datasource))
+
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "aggregate": "SUM",
+        "column": {"column_name": "amount"},
+        "label": "total",
+    }
+
+    with database.get_sqla_engine() as engine:
+        dialect = engine.dialect
+
+    rendered = str(
+        datasource.adhoc_metric_to_sqla(metric, {}).compile(
+            dialect=dialect,
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+
+    assert '"amount"' in rendered, (
+        f"Expected the exact-case column to be quoted, got: {rendered}"
+    )
+    assert "(amount)" not in rendered, f"Column was aggregated unquoted: {rendered}"
+
+
+def test_convert_tbl_column_quotes_snowflake_case_sensitive_identifier(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    """The chart query-object path quotes exact-case Snowflake physical columns."""
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    mocker.patch.object(
+        Database,
+        "get_db_engine_spec",
+        return_value=SnowflakeEngineSpec,
+    )
+    table = SqlaTable(
+        database=database,
+        table_name="bug_test",
+        normalize_columns=False,
+    )
+    tbl_column = TableColumn(column_name="name", type="VARCHAR", table=table)
+
+    with database.get_sqla_engine() as engine:
+        dialect = engine.dialect
+
+    rendered = str(
+        table.convert_tbl_column_to_sqla_col(tbl_column).compile(
+            dialect=dialect,
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+
+    assert rendered == '"name"'
+
+
 @pytest.mark.parametrize(
     "native_type",
     [
@@ -5054,3 +5131,56 @@ def test_adhoc_type_probe_does_not_get_sampling_retry(
     table.adhoc_column_to_sqla(adhoc_col)
 
     retry.assert_not_called()
+
+
+def test_filter_adhoc_column(database: Database) -> None:
+    """
+    Test that filter works with adhoc column labels.
+    When filter contains a string that matches the label of an adhoc column
+    in the columns list, it should correctly convert to a SQLAlchemy column
+    instead of raising QueryObjectValidationError.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[
+            TableColumn(column_name="name", type="TEXT"),
+            TableColumn(column_name="real_name", type="TEXT"),
+        ],
+    )
+
+    # Should not raise QueryObjectValidationError
+    result = table.get_sqla_query(
+        columns=[
+            "name",
+            {
+                "expressionType": "SQL",
+                "label": "full_name",
+                "sqlExpression": "real_name",
+            },
+        ],
+        orderby=[],
+        metrics=[],
+        extras={},
+        filter=[
+            {"col": "full_name", "op": "ILIKE", "val": "Zona%"}
+        ],  # Filter by adhoc column label
+        granularity=None,
+        is_timeseries=False,
+    )
+    assert result is not None
+
+    # Verify the WHERE predicate uses the resolved adhoc expression and value.
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "real_name AS full_name" in sql
+    assert "WHERE" in sql
+    assert "lower(real_name) LIKE lower('Zona%')" in sql

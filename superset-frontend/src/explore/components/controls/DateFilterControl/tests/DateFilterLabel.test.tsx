@@ -29,6 +29,10 @@ import {
 } from 'spec/helpers/testing-library';
 
 import { NO_TIME_RANGE, fetchTimeRange } from '@superset-ui/core';
+import {
+  PopoverProps,
+  SHIFT_INTO_VIEWPORT,
+} from '../../ControlPopover/ControlPopover';
 import DateFilterLabel from '..';
 import { DateFilterControlProps } from '../types';
 import { DateFilterTestKey } from '../utils';
@@ -46,6 +50,18 @@ const FIELD_TOOLTIP = '2024-01-01 ≤ col < 2024-01-08';
 const DESCRIPTION_TOOLTIP =
   'This control filters the whole chart based on the selected time range.';
 
+const mockPopoverProps: PopoverProps[] = [];
+jest.mock('@superset-ui/core/components', () => {
+  const actual = jest.requireActual('@superset-ui/core/components');
+  const Probe = (props: PopoverProps) => {
+    mockPopoverProps.push(props);
+    return <actual.Popover {...props} />;
+  };
+  return new Proxy(actual, {
+    get: (target, name) => (name === 'Popover' ? Probe : target[name]),
+  });
+});
+
 const mockStore = configureMockStore([thunk]);
 
 const defaultProps = {
@@ -57,6 +73,7 @@ const defaultProps = {
 beforeEach(() => {
   mockedFetchTimeRange.mockReset();
   mockedFetchTimeRange.mockResolvedValue({ value: FIELD_TOOLTIP });
+  mockPopoverProps.length = 0;
 });
 
 function setup(
@@ -123,8 +140,27 @@ test('DateFilter popover should attach to document.body when not overflowing', (
 
   userEvent.click(screen.getByText(NO_TIME_RANGE));
 
-  const popover = document.querySelector('.time-range-popover');
+  const popover = document.querySelector<HTMLElement>('.time-range-popover');
   expect(popover?.parentElement).toBe(document.body);
+  expect(popover).toHaveStyle({
+    width: 'min(600px, calc(100vw - 32px))',
+  });
+});
+
+test('DateFilter popover shifts into the viewport', async () => {
+  render(setup());
+
+  userEvent.click(screen.getByText(NO_TIME_RANGE));
+
+  await waitFor(() => {
+    expect(mockPopoverProps).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          autoAdjustOverflow: SHIFT_INTO_VIEWPORT,
+        }),
+      ]),
+    );
+  });
 });
 
 test('DateFilter popover should attach to parent node when overflowing in filter bar', () => {
@@ -132,10 +168,13 @@ test('DateFilter popover should attach to parent node when overflowing in filter
 
   userEvent.click(screen.getByText(NO_TIME_RANGE));
 
-  const popover = document.querySelector('.time-range-popover');
+  const popover = document.querySelector<HTMLElement>('.time-range-popover');
   const trigger = screen.getByTestId(DateFilterTestKey.PopoverOverlay);
 
   expect(popover?.parentElement).toBe(trigger.parentElement);
+  expect(popover).toHaveStyle({
+    width: 'min(600px, calc(100vw - 32px))',
+  });
 });
 
 test('DateFilter should properly handle isOverflowingFilterBar prop changes', () => {
