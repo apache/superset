@@ -207,6 +207,12 @@ class GetCombinedDatasourceListCommand(BaseCommand):
                 return "empty"
             return "database"
         if not self._can_read_datasets:
+            # A schema filter is dataset-only, so a semantic-views-only user
+            # matches nothing under AND semantics; return "empty" rather than
+            # showing schema-less views (mirrors the not-can_read_semantic_views
+            # branch above and the schema/Type="Semantic View" case below).
+            if schema_filter is not None:
+                return "empty"
             return "semantic_layer"
         # An explicit source_type selection ("database" or "semantic_layer") always
         # wins. This prevents e.g. Type="Semantic View" from overriding an explicit

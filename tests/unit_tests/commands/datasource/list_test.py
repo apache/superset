@@ -229,6 +229,42 @@ def test_resolve_source_type_semantic_view_type_plus_schema_is_empty() -> None:
     assert source_type == "empty"
 
 
+def test_resolve_source_type_views_only_user_with_schema_is_empty() -> None:
+    command = GetCombinedDatasourceListCommand(
+        args={},
+        can_read_datasets=False,
+        can_read_semantic_views=True,
+    )
+
+    # A user who can only read semantic views matches nothing when a
+    # (dataset-only) schema filter is applied, so the honest result is empty.
+    source_type = command._resolve_source_type(
+        source_type="all",
+        sql_filter=None,
+        type_filter=None,
+        schema_filter="main",
+    )
+
+    assert source_type == "empty"
+
+
+def test_resolve_source_type_views_only_user_without_schema_is_semantic_layer() -> None:
+    command = GetCombinedDatasourceListCommand(
+        args={},
+        can_read_datasets=False,
+        can_read_semantic_views=True,
+    )
+
+    # Without a schema filter the views-only user still sees semantic views.
+    source_type = command._resolve_source_type(
+        source_type="all",
+        sql_filter=None,
+        type_filter=None,
+    )
+
+    assert source_type == "semantic_layer"
+
+
 @pytest.mark.parametrize(
     "order_column",
     ["unknown", "database.database_name", "id"],
