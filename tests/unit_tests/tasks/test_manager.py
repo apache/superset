@@ -66,6 +66,17 @@ class TestTaskManagerInitApp:
         assert TaskManager._completion_channel_prefix == "custom:complete:"
         assert TaskManager._realtime_channel_prefix == "custom:"
 
+    def test_init_app_resolves_callable_realtime_prefix(self):
+        """A callable REALTIME_CHANNEL_PREFIX is resolved once to a string."""
+        app = MagicMock()
+        app.config.get.side_effect = lambda key, default=None: {
+            "REALTIME_CHANNEL_PREFIX": lambda: "tenant-b:",
+        }.get(key, default)
+
+        TaskManager.init_app(app)
+
+        assert TaskManager._realtime_channel_prefix == "tenant-b:"
+
     def test_init_app_skips_if_already_initialized(self):
         """Test init_app is idempotent"""
         TaskManager._initialized = True
@@ -108,10 +119,6 @@ class TestTaskManagerChannels:
     def test_get_realtime_channel_custom_prefix(self):
         TaskManager._realtime_channel_prefix = "tenant-a:"
         assert TaskManager.get_realtime_channel() == "tenant-a:realtime"
-
-    def test_get_realtime_channel_callable_prefix(self):
-        TaskManager._realtime_channel_prefix = lambda: "tenant-b:"
-        assert TaskManager.get_realtime_channel() == "tenant-b:realtime"
 
 
 class TestTaskManagerPublish:

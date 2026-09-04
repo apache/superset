@@ -75,7 +75,7 @@ class TaskManager:
     # Class-level state (initialized once via init_app)
     _channel_prefix: str = "gtf:abort:"
     _completion_channel_prefix: str = "gtf:complete:"
-    _realtime_channel_prefix: Callable[[], str] | str = ""
+    _realtime_channel_prefix: str = ""
     _initialized: bool = False
 
     @classmethod
@@ -94,7 +94,14 @@ class TaskManager:
         cls._completion_channel_prefix = app.config.get(
             "TASKS_COMPLETION_CHANNEL_PREFIX", "gtf:complete:"
         )
-        cls._realtime_channel_prefix = app.config.get("REALTIME_CHANNEL_PREFIX", "")
+        # The realtime prefix may be configured as a string or a zero-argument
+        # callable; resolve it once here so the channel is fixed for the process
+        # lifetime (the consumer subscribes to a single channel and cannot follow
+        # a value that changes between publishes).
+        realtime_prefix = app.config.get("REALTIME_CHANNEL_PREFIX", "")
+        cls._realtime_channel_prefix = (
+            realtime_prefix() if callable(realtime_prefix) else realtime_prefix
+        )
 
         cls._initialized = True
 
@@ -135,16 +142,14 @@ class TaskManager:
 
     @classmethod
     def get_realtime_channel(cls) -> str:
-        """Resolve the realtime pub/sub channel name (prefix + base).
+        """Return the realtime pub/sub channel name (prefix + base).
 
-        The prefix may be a string or a zero-argument callable (resolved here at
-        call time), so a deployment sharing a Redis/Valkey with others can
-        namespace the channel to avoid cross-tenant delivery.
+        The prefix is resolved once from config in ``init_app`` (string, or a
+        zero-argument callable evaluated there), so the channel is stable for the
+        process lifetime and stays in lockstep with the consumer's single
+        subscription.
         """
-        prefix = cls._realtime_channel_prefix
-        if callable(prefix):
-            prefix = prefix()
-        return f"{prefix}{cls._REALTIME_CHANNEL_BASE}"
+        return f"{cls._realtime_channel_prefix}{cls._REALTIME_CHANNEL_BASE}"
 
     @classmethod
     def _publish_realtime(
