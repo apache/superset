@@ -93,6 +93,12 @@ test('getDivergingColor parses string color endpoints', () => {
   ).toEqual('#ff8080');
 });
 
+test('getDivergingColor returns the segment endpoint outright when its range has zero width', () => {
+  expect(
+    getDivergingColor(10, 10, 10, 20, '#ff0000', '#ffffff', '#008000'),
+  ).toEqual('#ffffff');
+});
+
 test('getColorFunction GREATER_THAN', () => {
   const colorFunction = getColorFunction(
     {
@@ -1158,6 +1164,21 @@ test('should strip alpha channel when alpha is false and colorScheme has 9 chars
   expect(colorFunction(100)).toHaveLength(7);
 });
 
+test('should discard the fixed alpha of a 9-char colorScheme before applying gradient opacity', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.GreaterThan,
+      targetValue: 50,
+      colorScheme: '#FF000080',
+      useGradient: true,
+      column: 'count',
+    },
+    countValues,
+  );
+
+  expect(colorFunction(75)).toEqual('#FF000087');
+});
+
 test('getColorFunction GREATER_THAN respects manual maxBound', () => {
   const colorFunction = getColorFunction(
     {
@@ -1513,6 +1534,24 @@ test('getColorFunction NONE uses the sum of magnitudes for mixed-sign values', (
   expect(colorFunction(0)).toEqual('#FF000000');
   expect(colorFunction(899.5)).toEqual('#FF000080');
   expect(colorFunction(1799)).toEqual('#FF0000FF');
+});
+
+test('getColorFunction NONE keeps the running column max when a later value is smaller', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+      boundUnit: BoundUnit.Percent,
+      percentDenominator: PercentDenominator.Max,
+      minBound: 0,
+      maxBound: 100,
+    },
+    [90, 10, 40],
+  );
+  // max = 90 regardless of position in the array, so maxBound 100% -> 90.
+  expect(colorFunction(45)).toEqual('#FF000080');
+  expect(colorFunction(90)).toEqual('#FF0000FF');
 });
 
 test('getColorFunction GREATER_THAN ignores diverging fields even when fully set', () => {
