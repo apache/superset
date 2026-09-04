@@ -61,11 +61,14 @@ afterEach(() => {
   appRoot()?.setAttribute('data-bootstrap', '');
 });
 
-const renderChart = (formData: Partial<HandlebarsProps['formData']>) =>
+const renderChart = (
+  formData: Partial<HandlebarsProps['formData']>,
+  data: Record<string, unknown>[] = [],
+) =>
   render(
     <Handlebars
       {...({
-        data: [],
+        data,
         height: 100,
         width: 100,
         formData,
@@ -163,6 +166,24 @@ test('lets the CSS control override a style block in the template', async () => 
     'td { color: blue; }',
     STYLE_TEMPLATE,
   ]);
+});
+
+test('expands Handlebars expressions in the CSS against the chart data', async () => {
+  const { container } = renderChart(
+    {
+      handlebarsTemplate: '{{#each data}}<p>{{name}}</p>{{/each}}',
+      styleTemplate: 'p {\n  color: {{data.[0].color}};\n}',
+    },
+    [{ name: 'Alpha', color: 'rebeccapurple' }],
+  );
+  expect(await screen.findByText('Alpha')).toBeInTheDocument();
+
+  // The CSS is compiled on its own, but against the same context as the
+  // template, so expressions in it keep resolving to the chart's data.
+  expect(container.querySelector('style')).toHaveProperty(
+    'textContent',
+    'p {\n  color: rebeccapurple;\n}',
+  );
 });
 
 test('renders no style block when no CSS is configured', async () => {
