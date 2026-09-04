@@ -25,6 +25,15 @@ import { gotoWithRetry } from '../helpers/navigation';
 import { html5DragAndDrop } from '../helpers/dnd';
 import { TIMEOUT } from '../utils/constants';
 
+/**
+ * URL query param carrying the server-side `filter_state` key the native
+ * filter bar publishes. Mirrors `URL_PARAMS.nativeFiltersKey.name` in
+ * `src/constants.ts`, which cannot be imported here: it pulls in
+ * `@superset-ui/core`, whose source graph is ESM-only under the Playwright
+ * runner.
+ */
+const NATIVE_FILTERS_KEY_PARAM = 'native_filters_key';
+
 /** Tabs of the dashboard builder side pane, by their rendered label. */
 type BuilderTab = 'Charts' | 'Layout elements';
 
@@ -236,29 +245,31 @@ export class DashboardPage {
   }
 
   /**
-   * Read the `native_filters_key` query param from the current dashboard URL,
-   * or null if absent. This key references the server-side filter_state entry
-   * the native filter bar creates when it publishes its data mask.
+   * Wait for a non-empty `native_filters_key` query param in the URL and return
+   * it. The filter bar stamps the key via `history.replace` once its data mask
+   * has been published to the backend `filter_state` store; Playwright treats
+   * that History API change as a navigation, so `waitForURL` resolves only
+   * after the driver-side frame URL has been updated.
+   *
+   * Only the URL is observed: on a page whose URL already carries the param
+   * (a permalink, or `page.reload()`) this resolves immediately without any
+   * publish having happened.
    */
-  getNativeFiltersKey(): string | null {
-    return new URL(this.page.url()).searchParams.get('native_filters_key');
-  }
-
-  /**
-   * Wait until the native filter bar has published its state to the backend and
-   * the resulting `native_filters_key` appears in the URL, then return it.
-   */
-  async waitForNativeFiltersKey(options?: { timeout?: number }): Promise<string> {
+  async waitForNativeFiltersKey(options?: {
+    timeout?: number;
+  }): Promise<string> {
     const timeout = options?.timeout ?? TIMEOUT.API_RESPONSE;
-    await this.page.waitForFunction(
-      () =>
-        new URLSearchParams(window.location.search).has('native_filters_key'),
-      undefined,
+    await this.page.waitForURL(
+      url => !!url.searchParams.get(NATIVE_FILTERS_KEY_PARAM),
       { timeout },
     );
-    const key = this.getNativeFiltersKey();
+    const key = new URL(this.page.url()).searchParams.get(
+      NATIVE_FILTERS_KEY_PARAM,
+    );
     if (!key) {
-      throw new Error('native_filters_key not found in URL after publish');
+      throw new Error(
+        `${NATIVE_FILTERS_KEY_PARAM} not found in URL after publish`,
+      );
     }
     return key;
   }

@@ -18,8 +18,10 @@
  */
 
 /**
- * E2E migration of the Cypress "nativefilter url param key" suite
- * (dashboard/key_value.test.ts).
+ * E2E migration of the Cypress "nativefilter url param key" suite (formerly
+ * `cypress-base/cypress/integration/dashboard/key_value.test.ts`; it was
+ * disabled as `_skip.key_value.test.ts` and later deleted, so there is nothing
+ * left to remove on master).
  *
  * When a dashboard with native filters loads, the filter bar publishes its data
  * mask to the backend `filter_state` key-value store and stamps the returned
@@ -29,11 +31,12 @@
  * persisted server-side — so it is migrated here, but strengthened to assert the
  * round-trip rather than just the URL shape:
  *
- *   1. A POST /api/v1/dashboard/<id>/filter_state mints the key, and that key is
- *      what lands in the URL.
+ *   1. A POST /api/v1/dashboard/<id>/filter_state mints the key, and the key in
+ *      that response is the one that lands in the URL.
  *   2. The key resolves server-side: GET /api/v1/dashboard/<id>/filter_state/<key>
- *      returns the stored data mask (200). A client-only token would not resolve.
- *   3. Reloading reuses the same resolvable key for the session/tab.
+ *      returns the stored data mask (200), keyed by the dashboard's native
+ *      filter. A client-only token would not resolve.
+ *   3. A second, fresh navigation to the same dashboard reuses the same key.
  *
  * The original suite's second case ("should have different key when page
  * reloads") was non-functional: it compared `native_filters_key` against an
@@ -43,181 +46,138 @@
  * (session, tab, dashboard) via a contextual cache — so this migration asserts
  * the true behaviour (reuse) instead of the bug it inherited.
  *
+ * The second visit is deliberately a fresh `page.goto` to the bare dashboard
+ * URL, not `page.reload()`: a reload keeps `?native_filters_key=` in the
+ * address bar, so the wait for the key would resolve against the pre-existing
+ * param and take the PUT (update) branch instead of re-exercising the create
+ * path. The bare URL forces a new POST, and the backend still answers with the
+ * same key because its contextual cache is keyed on the tab id (persisted in
+ * sessionStorage across the navigation), not on the URL. Per-tab and
+ * per-session scoping of that cache is asserted by the backend integration
+ * tests (tests/integration_tests/dashboards/filter_state/api_tests.py), so
+ * this spec only covers the reuse leg.
+ *
+ * Key reuse also requires every request to reach the same filter_state cache.
+ * The test config uses a per-process SimpleCache, and CI runs a single gunicorn
+ * worker without recycling, so reuse is deterministic there; a multi-worker or
+ * worker-recycling backend would make the reuse assertion flaky.
+ *
  * The dashboard is built hermetically (one native filter + one chart on
  * birth_names), replacing the original's dependency on the seeded world_health
  * dashboard (whose example charts are flaky under load).
  *
- * CI green => the filter bar minted a persisted, server-resolvable key and
- *             reloading reused that same resolvable key.
- * CI red   => no key was published, or the key did not resolve server-side.
+ * CI green => the filter bar minted a persisted, server-resolvable key and a
+ *             fresh navigation reused that same resolvable key.
+ * CI red   => no key was published, the URL key was not the POSTed key, or the
+ *             key did not resolve server-side.
  */
 import { testWithAssets, expect } from '../../helpers/fixtures';
-import { apiPost, apiPut } from '../../helpers/api/requests';
-import { apiPostDashboard } from '../../helpers/api/dashboard';
-import { getDatasetByName } from '../../helpers/api/dataset';
+import {
+  apiGetDashboardFilterState,
+  ENDPOINTS,
+} from '../../helpers/api/dashboard';
+import { expectStatus } from '../../helpers/api/assertions';
+import { waitForPost } from '../../helpers/api/intercepts';
 import { TIMEOUT } from '../../utils/constants';
 import { DashboardPage } from '../../pages/DashboardPage';
+import {
+  buildFilterJsonMetadata,
+  buildSelectFilter,
+  createDashboardWithCharts,
+} from './dashboard-test-helpers';
 
 const DATASET_NAME = 'birth_names';
 const FILTER_COLUMN = 'gender';
 
 testWithAssets(
-  'native filter bar mints a persisted, server-resolvable filter_state key and reuses it on reload',
-  async ({ page, testAssets }) => {
+  'native filter bar mints a persisted, server-resolvable filter_state key and reuses it on a fresh navigation',
+  async ({ page, testAssets }, testInfo) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 
-    const dataset = await getDatasetByName(page, DATASET_NAME);
-    if (!dataset) {
-      throw new Error(`Dataset ${DATASET_NAME} not found`);
-    }
-    const datasetId = dataset.id;
-
-    // A single chart for the native filter to target.
-    const chartParams = {
-      datasource: `${datasetId}__table`,
-      viz_type: 'big_number_total',
-      metric: 'count',
-      adhoc_filters: [],
-    };
-    const chartResp = await apiPost(page, 'api/v1/chart/', {
-      slice_name: `nf_key_${Date.now()}`,
-      viz_type: 'big_number_total',
-      datasource_id: datasetId,
-      datasource_type: 'table',
-      params: JSON.stringify(chartParams),
-    });
-    expect(chartResp.ok()).toBe(true);
-    const chart = await chartResp.json();
-    const chartId: number = chart.id ?? chart.result?.id;
-    testAssets.trackChart(chartId);
-
-    const filterId = `NATIVE_FILTER-${Math.random().toString(36).slice(2, 10)}`;
-    const chartLayoutKey = `CHART-${chartId}`;
-    const positionJson = {
-      DASHBOARD_VERSION_KEY: 'v2',
-      ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['GRID_ID'] },
-      GRID_ID: {
-        type: 'GRID',
-        id: 'GRID_ID',
-        children: ['ROW-1'],
-        parents: ['ROOT_ID'],
-      },
-      'ROW-1': {
-        type: 'ROW',
-        id: 'ROW-1',
-        children: [chartLayoutKey],
-        parents: ['ROOT_ID', 'GRID_ID'],
-        meta: { background: 'BACKGROUND_TRANSPARENT' },
-      },
-      [chartLayoutKey]: {
-        type: 'CHART',
-        id: chartLayoutKey,
-        children: [],
-        parents: ['ROOT_ID', 'GRID_ID', 'ROW-1'],
-        meta: { chartId, width: 6, height: 50, sliceName: 'nf_key' },
-      },
-    };
-
-    const jsonMetadata = {
-      native_filter_configuration: [
-        {
-          id: filterId,
-          name: 'Gender',
-          filterType: 'filter_select',
-          type: 'NATIVE_FILTER',
-          targets: [{ datasetId, column: { name: FILTER_COLUMN } }],
-          controlValues: {
-            multiSelect: false,
-            enableEmptyFilter: false,
-            defaultToFirstItem: false,
-            inverseSelection: false,
-            searchAllOptions: false,
+    // The filter id is generated by the builder; capture it so the stored data
+    // mask can be checked for this dashboard's filter specifically.
+    let filterId = '';
+    const { dashboardId } = await createDashboardWithCharts(
+      page,
+      testAssets,
+      testInfo,
+      {
+        datasetName: DATASET_NAME,
+        chartNamePrefix: 'nf_key',
+        dashboardTitlePrefix: 'nf_key',
+        chartSpecs: [
+          {
+            viz_type: 'big_number_total',
+            params: { metric: 'count', adhoc_filters: [] },
           },
-          defaultDataMask: { filterState: {}, extraFormData: {} },
-          cascadeParentIds: [],
-          scope: { rootPath: ['ROOT_ID'], excluded: [] },
-          chartsInScope: [chartId],
+        ],
+        buildJsonMetadata: ({ charts, datasetId }) => {
+          const chartsInScope = charts.map(chart => chart.id);
+          const filter = buildSelectFilter({
+            datasetId,
+            column: FILTER_COLUMN,
+            chartsInScope,
+            name: 'Gender',
+          });
+          filterId = filter.id;
+          return buildFilterJsonMetadata({
+            chartsInScope,
+            nativeFilters: [filter],
+          });
         },
-      ],
-      chart_configuration: {},
-      cross_filters_enabled: false,
-      global_chart_configuration: {
-        scope: { rootPath: ['ROOT_ID'], excluded: [] },
-        chartsInScope: [chartId],
       },
-    };
-
-    const dashResp = await apiPostDashboard(page, {
-      dashboard_title: `nf_key_${Date.now()}`,
-      published: true,
-      position_json: JSON.stringify(positionJson),
-      json_metadata: JSON.stringify(jsonMetadata),
-    });
-    expect(dashResp.ok()).toBe(true);
-    const dashBody = await dashResp.json();
-    const dashboardId: number = dashBody.result?.id ?? dashBody.id;
-    testAssets.trackDashboard(dashboardId);
-
-    const linkResp = await apiPut(page, `api/v1/chart/${chartId}`, {
-      dashboards: [dashboardId],
-    });
-    expect(linkResp.ok()).toBe(true);
+    );
 
     const dashboard = new DashboardPage(page);
+    const filterStateEndpoint = `${ENDPOINTS.DASHBOARD}${dashboardId}/filter_state`;
 
-    // Confirm the key resolves to a stored data mask via the backend
-    // filter_state GET endpoint — proving it is a real server-side entry, not a
-    // client token. A client-only token would not resolve.
-    const assertKeyResolves = async (key: string) => {
-      const stateResp = await page.request.get(
-        `api/v1/dashboard/${dashboardId}/filter_state/${key}`,
-      );
-      expect(
-        stateResp.status(),
-        `filter_state key ${key} should resolve server-side`,
-      ).toBe(200);
-      const stateBody = await stateResp.json();
-      // The stored value is the serialized data mask (valid JSON).
-      expect(
-        () => JSON.parse(stateBody.value),
-        `filter_state key ${key} should carry a stored data mask`,
-      ).not.toThrow();
+    // Load the dashboard and return the URL key together with the key the
+    // filter_state POST minted, so the two can be compared.
+    const visitAndCaptureKeys = async () => {
+      const created = waitForPost(page, filterStateEndpoint, {
+        timeout: TIMEOUT.API_RESPONSE,
+      });
+      await dashboard.gotoById(dashboardId);
+      await dashboard.waitForLoad();
+      const urlKey = await dashboard.waitForNativeFiltersKey();
+      const { key: postedKey } = await expectStatus(await created, 201).json();
+      return { urlKey, postedKey };
     };
 
-    // The filter bar mints the key via a POST to filter_state on load.
-    let createPosted = false;
-    page.on('response', response => {
-      const req = response.request();
-      if (
-        req.method() === 'POST' &&
-        /\/api\/v1\/dashboard\/\d+\/filter_state(\?|$)/.test(response.url())
-      ) {
-        createPosted = true;
-      }
-    });
+    // Confirm the key resolves to this dashboard's stored data mask via the
+    // backend filter_state GET endpoint — proving it is a real server-side
+    // entry, not a client token. A client-only token would not resolve.
+    const assertKeyResolves = async (key: string) => {
+      const stateResp = await apiGetDashboardFilterState(
+        page,
+        dashboardId,
+        key,
+        { failOnStatusCode: false },
+      );
+      expectStatus(stateResp, 200);
+      const stateBody = await stateResp.json();
+      // The stored value is the serialized data mask, keyed by filter id.
+      expect(
+        JSON.parse(stateBody.value),
+        `filter_state key ${key} should carry the data mask for filter ${filterId}`,
+      ).toHaveProperty(filterId);
+    };
 
-    await dashboard.gotoById(dashboardId);
-    await dashboard.waitForLoad();
-    const firstKey = await dashboard.waitForNativeFiltersKey();
-
-    expect(firstKey).toEqual(expect.any(String));
-    expect(firstKey.length).toBeGreaterThan(0);
-    // The key was minted by a real create round-trip, not invented client-side.
+    const first = await visitAndCaptureKeys();
     expect(
-      createPosted,
-      'a POST to filter_state should mint the key on load',
-    ).toBe(true);
-    await assertKeyResolves(firstKey);
+      first.urlKey,
+      'the key in the URL should be the one minted by the filter_state POST',
+    ).toBe(first.postedKey);
+    await assertKeyResolves(first.urlKey);
 
-    // Reload: the backend reuses the existing key for this (session, tab,
-    // dashboard), and it still resolves server-side.
-    await dashboard.gotoById(dashboardId);
-    await dashboard.waitForLoad();
-    const reloadKey = await dashboard.waitForNativeFiltersKey();
+    // Fresh navigation: the backend reuses the existing key for this
+    // (session, tab, dashboard), and the overwritten entry still resolves.
+    const second = await visitAndCaptureKeys();
+    expect(second.urlKey).toBe(second.postedKey);
     expect(
-      reloadKey,
-      'reloading should reuse the same filter_state key for the session/tab',
-    ).toEqual(firstKey);
-    await assertKeyResolves(reloadKey);
+      second.urlKey,
+      'a fresh navigation should reuse the same filter_state key for the session/tab',
+    ).toBe(first.urlKey);
+    await assertKeyResolves(second.urlKey);
   },
 );
