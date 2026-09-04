@@ -13719,6 +13719,111 @@
         ],
         "type": "object"
       },
+      "chart_get_list_schema": {
+        "properties": {
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "filters": {
+            "items": {
+              "properties": {
+                "col": {
+                  "type": "string"
+                },
+                "opr": {
+                  "type": "string"
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      },
+                      "type": "array"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "col",
+                "opr",
+                "value"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "keys": {
+            "items": {
+              "enum": [
+                "list_columns",
+                "order_columns",
+                "label_columns",
+                "description_columns",
+                "list_title",
+                "none"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "order_column": {
+            "type": "string"
+          },
+          "order_direction": {
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "select_columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "viz_type_order": {
+            "description": "Visualization type slugs in display-name order. Used only when order_column is viz_type.",
+            "items": {
+              "maxLength": 250,
+              "type": "string"
+            },
+            "maxItems": 256,
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        "type": "object"
+      },
       "database_catalogs_query_schema": {
         "properties": {
           "force": {
@@ -15680,10 +15785,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/get_list_schema"
+                  "$ref": "#/components/schemas/chart_get_list_schema"
                 }
               }
             },
+            "description": "Rison-encoded list query. viz_type_order may contain up to 256 unique visualization type slugs, each at most 250 characters, in the display-name order to use when sorting by viz_type.",
             "in": "query",
             "name": "q"
           }
@@ -15695,57 +15801,15 @@
                 "schema": {
                   "properties": {
                     "count": {
-                      "description": "The total record count on the backend",
-                      "type": "number"
-                    },
-                    "description_columns": {
-                      "properties": {
-                        "column_name": {
-                          "description": "The description for the column name. Will be translated by babel",
-                          "example": "A Nice description for the column",
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
+                      "type": "integer"
                     },
                     "ids": {
-                      "description": "A list of item ids, useful when you don't know the column id",
                       "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "label_columns": {
-                      "properties": {
-                        "column_name": {
-                          "description": "The label for the column name. Will be translated by babel",
-                          "example": "A Nice label for the column",
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    },
-                    "list_columns": {
-                      "description": "A list of columns",
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "list_title": {
-                      "description": "A title to render. Will be translated by babel",
-                      "example": "List Items",
-                      "type": "string"
-                    },
-                    "order_columns": {
-                      "description": "A list of allowed columns to sort",
-                      "items": {
-                        "type": "string"
+                        "type": "integer"
                       },
                       "type": "array"
                     },
                     "result": {
-                      "description": "The result from the get list query",
                       "items": {
                         "$ref": "#/components/schemas/ChartRestApi.get_list"
                       },
@@ -15756,7 +15820,7 @@
                 }
               }
             },
-            "description": "Items from Model"
+            "description": "Charts"
           },
           "400": {
             "$ref": "#/components/responses/400"
