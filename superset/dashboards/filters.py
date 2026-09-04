@@ -36,6 +36,7 @@ from superset.utils.core import DatasourceType, get_user_id
 from superset.utils.filters import (
     get_dataset_access_filters,
     guest_embedded_dashboard_filter,
+    table_backed_slice_join,
 )
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
@@ -169,9 +170,10 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
 
         # (C) No-viewer fallback: dashboards with no viewers → dataset-based access
         # A datasource_access grant on a parent semantic layer covers its
-        # views (sc-119501; the double perm fetch alongside
-        # get_dataset_access_filters is accepted until sc-119500 reworks the
-        # helper's signature for the chart-list mirror of this clause).
+        # views (sc-119501). The datasource_access perms are fetched here and
+        # again inside get_dataset_access_filters — an accepted cost, shared
+        # with ChartFilter: deduping would need the helper to accept
+        # prefetched perm sets.
         layer_grant_clause = SemanticLayer.perm.in_(
             security_manager.user_view_menu_names("datasource_access")
         )
@@ -192,10 +194,7 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
             # columns denormalized onto Slice by ``set_related_perm``.
             .join(
                 SqlaTable,
-                and_(
-                    Slice.datasource_id == SqlaTable.id,
-                    Slice.datasource_type == DatasourceType.TABLE,
-                ),
+                table_backed_slice_join(SqlaTable),
                 isouter=True,
             )
             .join(Database, SqlaTable.database_id == Database.id, isouter=True)
@@ -222,8 +221,8 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
                     ~dashboard_has_viewers,
                     get_dataset_access_filters(
                         Slice,
-                        security_manager.can_access_all_datasources(),
                         layer_grant_clause,
+                        include_all=security_manager.can_access_all_datasources(),
                     ),
                 )
             )
