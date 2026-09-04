@@ -145,6 +145,17 @@ def write_ahead(
     write itself fails (which must not block the purge)."""
     session = _dedicated_session()
     try:
+        # Lock BEFORE stamping the clock: this ordering is load-bearing, not
+        # incidental. Acquiring the coordination lock first serializes this write
+        # against a concurrent pruning batch (which holds the same lock across its
+        # DELETE), so a write_ahead that loses the race commits only after the
+        # batch and is never visible to that batch's SELECT. Because ``utc_now()``
+        # below is read only after the batch commits, the new row's ``created_on``
+        # also sorts after the batch's run cutoff under bounded clock skew -- but
+        # the module's streak invariants, not wall-clock ordering alone, are the
+        # primary safeguard against a row landing in an already-pruned streak.
+        # Reordering the lock and the ``created_on=utc_now()`` stamp would
+        # reintroduce the race.
         acquire_coordination_lock(session)
         record = PurgeAuditLog(
             status=STATUS_PENDING,

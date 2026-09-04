@@ -527,6 +527,26 @@ def _delete_batch(select_candidates: Callable[[int], sa.sql.Select]) -> int:
     survivor, boundary, status, and age predicate sees the same committed
     database state as the mutation. The extra SELECT layer is required by
     MySQL, which rejects a direct self-referencing subquery in DELETE.
+
+    The coordination lock is held across the whole DELETE, not just a prelude,
+    and that scope is deliberate. It is the same singleton lock ``write_ahead``
+    takes before stamping ``created_on`` (see ``audit.py``), so an audit row
+    committed after this batch is invisible to the batch's SELECT and, under
+    bounded clock skew, timestamped after the run cutoff -- it does not land in
+    the streak this batch just pruned. (The module's streak invariants are the
+    primary safeguard; the lock adds this serialization.) Narrowing the lock to a
+    timestamp-only prelude would reintroduce that race, so the window is bounded
+    instead: ``BATCH_SIZE`` caps the rows removed per statement, and the pruning
+    indexes back the boundary and per-entity subqueries so each batch stays short.
+
+    Liveness tradeoff (mechanism; the operator-facing note lives in UPDATING.md):
+    because the lock is held across the DELETE, a concurrent scheduled purge's
+    ``write_ahead`` cannot stamp its row until the batch commits. Where the write
+    just waits (e.g. PostgreSQL, whose ``lock_timeout`` is disabled by default) it
+    then succeeds; where a lock or statement timeout is configured -- or on SQLite,
+    which does not wait, and MySQL's ``innodb_lock_wait_timeout`` -- it fails closed
+    instead, so that purge cycle is skipped and retried next run rather than losing
+    data. Either way it is a bounded liveness cost, not data loss.
     """
     acquire_coordination_lock(db.session)
     execution_result: Any = db.session.execute(_delete_statement(select_candidates))
