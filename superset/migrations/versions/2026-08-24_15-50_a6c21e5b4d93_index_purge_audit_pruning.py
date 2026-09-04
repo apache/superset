@@ -17,7 +17,7 @@
 """Index purge-audit pruning predicates.
 
 Revision ID: a6c21e5b4d93
-Revises: 8f31c5d726ab
+Revises: b3e9c1a75d24
 Create Date: 2026-08-24 15:50:00.000000
 
 """
@@ -26,7 +26,7 @@ from superset.migrations.shared.utils import create_index, drop_index
 
 # revision identifiers, used by Alembic.
 revision: str = "a6c21e5b4d93"
-down_revision: str = "8f31c5d726ab"
+down_revision: str = "b3e9c1a75d24"
 
 _TABLE_NAME: str = "purge_audit_log"
 _INDEX_NAME: str = "ix_purge_audit_log_pruning"
