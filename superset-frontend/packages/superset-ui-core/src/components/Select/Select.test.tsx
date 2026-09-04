@@ -1227,7 +1227,7 @@ test('stableSelectAll pins the "Select all" count to the full option set while s
       />,
     );
     const select = getSelect();
-    userEvent.click(select);
+    await userEvent.click(select);
     // Baseline: the full-column count is shown before any search.
     expect(
       await screen.findByText(selectAllButtonText(STABLE_OPTIONS.length)),
@@ -1257,7 +1257,7 @@ test('without stableSelectAll the "Select all" count narrows to the searched sub
       <Select {...defaultProps} options={STABLE_OPTIONS} mode="multiple" />,
     );
     const select = getSelect();
-    userEvent.click(select);
+    await userEvent.click(select);
     expect(
       await screen.findByText(selectAllButtonText(STABLE_OPTIONS.length)),
     ).toBeInTheDocument();
@@ -1292,7 +1292,7 @@ test('stableSelectAll selects the entire option set even while a search is activ
       />,
     );
     const select = getSelect();
-    userEvent.click(select);
+    await userEvent.click(select);
     await screen.findByText(selectAllButtonText(STABLE_OPTIONS.length));
 
     await userEvent.type(select, 'Ap');
@@ -1327,7 +1327,7 @@ test('stableSelectAll excludes disabled options from the full-set count while se
       />,
     );
     const select = getSelect();
-    userEvent.click(select);
+    await userEvent.click(select);
     expect(await screen.findByText(selectAllButtonText(5))).toBeInTheDocument();
 
     await userEvent.type(select, 'Ap');
@@ -1361,7 +1361,7 @@ test('stableSelectAll deduplicates already-selected values when selecting the fu
       />,
     );
     const select = getSelect();
-    userEvent.click(select);
+    await userEvent.click(select);
     await screen.findByText(selectAllButtonText(STABLE_OPTIONS.length));
 
     await userEvent.type(select, 'Ap');
@@ -1401,7 +1401,7 @@ test('stableSelectAll keeps "Clear" counting and clearing the full selection whi
       />,
     );
     const select = getSelect();
-    userEvent.click(select);
+    await userEvent.click(select);
     expect(
       await screen.findByText(deselectAllButtonText(2)),
     ).toBeInTheDocument();
@@ -1447,7 +1447,7 @@ test('stableSelectAll "Clear" count matches the action for a selected <NULL> val
       />,
     );
     const select = getSelect();
-    userEvent.click(select);
+    await userEvent.click(select);
     expect(
       await screen.findByText(deselectAllButtonText(2)),
     ).toBeInTheDocument();
@@ -1493,7 +1493,7 @@ test('stableSelectAll does not read a normal selection as the "Select all" senti
       />,
     );
     const select = getSelect();
-    userEvent.click(select);
+    await userEvent.click(select);
 
     await userEvent.type(select, 'erry');
     act(() => {
@@ -1523,7 +1523,7 @@ test('stableSelectAll counts and selects grouped options by their leaf values', 
     />,
   );
   const select = getSelect();
-  userEvent.click(select);
+  await userEvent.click(select);
 
   // Five leaf options across two groups. The group headers carry no value, so
   // without flattening the full set the count collapses to zero and the bulk

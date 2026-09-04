@@ -542,7 +542,7 @@ describe('SaveDatasetModal', () => {
     fireEvent.change(screen.getByDisplayValue(/unimportant/i), {
       target: { value: 'my dataset' },
     });
-    userEvent.click(screen.getByRole('button', { name: /save/i }));
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
     // `createStore` builds its reducer map at runtime, so state isn't typed.
     const toasts = () =>
