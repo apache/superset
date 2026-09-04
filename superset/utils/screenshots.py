@@ -74,6 +74,7 @@ class ScreenshotCachePayloadType(TypedDict):
     image: str | None
     timestamp: str
     status: str
+    scope: str | None
 
 
 # Magic bytes for a cheap image sanity check. This is intentionally not a full
@@ -102,10 +103,12 @@ class ScreenshotCachePayload:
         image: bytes | None = None,
         status: StatusValues = StatusValues.PENDING,
         timestamp: str = "",
+        scope: str | None = None,
     ):
         self._image = image
         self._timestamp = timestamp or datetime.now().isoformat()
         self.status = StatusValues.UPDATED if image else status
+        self._scope = scope
 
     @classmethod
     def from_dict(cls, payload: ScreenshotCachePayloadType) -> ScreenshotCachePayload:
@@ -113,6 +116,9 @@ class ScreenshotCachePayload:
             image=base64.b64decode(payload["image"]) if payload["image"] else None,
             status=StatusValues(payload["status"]),
             timestamp=payload["timestamp"],
+            # `.get` rather than `payload["scope"]`: entries cached before this
+            # field existed won't have the key.
+            scope=payload.get("scope"),
         )
 
     def to_dict(self) -> ScreenshotCachePayloadType:
@@ -122,7 +128,14 @@ class ScreenshotCachePayload:
             else None,
             "timestamp": self._timestamp,
             "status": self.status.value,
+            "scope": self._scope,
         }
+
+    def get_scope(self) -> str | None:
+        return self._scope
+
+    def set_scope(self, scope: str | None) -> None:
+        self._scope = scope
 
     def update_timestamp(self) -> None:
         self._timestamp = datetime.now().isoformat()
@@ -178,13 +191,31 @@ class ScreenshotCachePayload:
             datetime.now() - datetime.fromisoformat(self.get_timestamp())
         ).total_seconds() >= computing_ttl
 
-    def should_trigger_task(self, force: bool = False) -> bool:
+    def should_trigger_task(
+        self, force: bool = False, expected_scope: str | None = None
+    ) -> bool:
+        """
+        :param expected_scope: The scope (e.g. "dashboard:<id>") the caller
+            requires this entry to carry. Entries written before scope
+            tracking existed -- or by a stale/mismatched caller -- deserialize
+            with no scope (or a different one) and are otherwise
+            indistinguishable from a fresh, valid ``UPDATED`` entry, which
+            would leave them permanently un-refreshed: the scope check at
+            read time rejects them, but nothing ever re-triggers computation.
+            Treat a scope mismatch on an ``UPDATED`` entry as a cache miss so
+            it gets recomputed and re-scoped.
+        """
         return (
             force
             or self.status == StatusValues.PENDING
             or (self.status == StatusValues.ERROR and self.is_error_cache_ttl_expired())
             or (self.status == StatusValues.COMPUTING and self.is_computing_stale())
             or (self.status == StatusValues.UPDATED and self._image is None)
+            or (
+                self.status == StatusValues.UPDATED
+                and expected_scope is not None
+                and self._scope != expected_scope
+            )
         )
 
 
@@ -313,7 +344,9 @@ class BaseScreenshot:
                 cache_payload = (
                     self.get_from_cache_key(cache_key) or ScreenshotCachePayload()
                 )
-                if not cache_payload.should_trigger_task(force=force):
+                if not cache_payload.should_trigger_task(
+                    force=force, expected_scope=self.cache_scope
+                ):
                     logger.info(
                         "Skipping compute - already processed for thumbnail: %s",
                         cache_key,
@@ -323,6 +356,7 @@ class BaseScreenshot:
                 window_size = window_size or self.window_size
                 thumb_size = thumb_size or self.thumb_size
                 logger.info("Processing url for thumbnail: %s", cache_key)
+                cache_payload.set_scope(self.cache_scope)
                 cache_payload.computing()
                 self.cache.set(cache_key, cache_payload.to_dict())
                 image = None
