@@ -465,8 +465,8 @@ class TestPruneAudit(SupersetTestCase):
         assert set(self.remaining_ids("ua")) == {blocked_since, attempt, later_block}
 
         # Once the attempt finalizes, the boundary is real: the later block
-        # is the new streak's survivor and stays; the older block is now a
-        # resolved-streak row that ages out on the normal window.
+        # is the new streak's survivor and stays; the older block has become
+        # a resolved-streak row that ages out on the normal window.
         db.session.execute(
             sa.update(PurgeAuditLog.__table__)
             .where(PurgeAuditLog.__table__.c.id == attempt)
