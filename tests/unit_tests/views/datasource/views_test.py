@@ -665,3 +665,46 @@ def test_samples_proceeds_for_supported_datasource_type(
 
     mock_get_samples.assert_called_once()
     view.json_response.assert_called_once_with({"result": {"rows": []}})
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.get_samples")
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+def test_samples_authenticated_dataset_access_denied_returns_403_before_fetch(
+    mock_security_manager: MagicMock,
+    mock_json_error_response: MagicMock,
+    mock_get_datasource: MagicMock,
+    mock_get_samples: MagicMock,
+) -> None:
+    """An authenticated user denied access to a dataset short-circuits to 403
+    from ``raise_for_access`` on the pre-fetched dataset, and ``get_samples`` is
+    never reached — authorization runs before any sample fetch. (The
+    authenticated per-object check only runs for dataset-backed types, which
+    always support samples, so this pins authorization-before-fetch rather than
+    a race against the ``supports_samples`` gate.)"""
+    from flask import Flask
+
+    mock_security_manager.is_guest_user.return_value = False
+    mock_dataset = MagicMock()
+    mock_get_datasource.return_value = mock_dataset
+    mock_security_manager.raise_for_access.side_effect = _security_exception()
+    mock_json_error_response.return_value = "error-response"
+
+    app = Flask(__name__)
+    with app.test_request_context(
+        "/datasource/samples?datasource_type=table&datasource_id=1",
+        method="POST",
+        json={},
+    ):
+        result = _get_view_func("samples")(_view_self())
+
+    assert result == "error-response"
+    # The per-object gate runs on the pre-fetched dataset, and its denial
+    # short-circuits to a single 403 before any sample fetching.
+    mock_security_manager.raise_for_access.assert_called_once_with(
+        datasource=mock_dataset
+    )
+    mock_json_error_response.assert_called_once_with("Forbidden", status=403)
+    mock_get_samples.assert_not_called()
