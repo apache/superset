@@ -304,7 +304,11 @@ const renderBoundFields = (operator?: Comparator) => {
           <FormItem noStyle shouldUpdate={boundUnitShouldUpdate}>
             {({ getFieldValue }: GetFieldValue) =>
               getFieldValue('boundUnit') === boundUnitOptions[1].value ? (
-                <FormItem name="percentDenominator" label={t('% of')}>
+                <FormItem
+                  name="percentDenominator"
+                  label={t('% of')}
+                  initialValue={percentDenominatorOptions[0].value}
+                >
                   <Select
                     ariaLabel={t('Percent denominator')}
                     options={percentDenominatorOptions}

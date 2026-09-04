@@ -943,6 +943,34 @@ test('submits boundUnit and percentDenominator to onChange with the correct fiel
   expect(payload.percentDenominator).toBe('sum');
 });
 
+test('defaults percentDenominator to Column max once switched to percent mode without picking one', async () => {
+  const onChange = jest.fn();
+  render(
+    <FormattingPopoverContent
+      onChange={onChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  await selectFieldOption('% of column', 'Bound unit');
+
+  // Left untouched -- the select must show Column max explicitly rather than
+  // a blank/placeholder state, since getColorFunction already treats an
+  // unset percentDenominator as Column max (see PR review finding #4: an
+  // invisible default reads as an ambiguous, unset configuration).
+  expect(screen.getByText('Column max')).toBeInTheDocument();
+
+  fireEvent.click(screen.getByText('Apply'));
+
+  await waitFor(() => {
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  const payload = onChange.mock.calls[0][0];
+  expect(payload.percentDenominator).toBe('max');
+});
+
 test('defaults to Value and Column max when never touched', async () => {
   const onChange = jest.fn();
   render(
