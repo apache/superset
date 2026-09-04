@@ -81,8 +81,14 @@ class QueryDAO(BaseDAO[Query]):
         if not sql_lab.cancel_query(query):
             raise SupersetCancelQueryException("Could not cancel query")
 
+        # cancel_query() may have staged an early-cancel flag on query.extra
+        # without committing it (see its docstring/comments); committing it
+        # together with status=STOPPED here, in one transaction, closes the
+        # window where another request could observe the flag set but the
+        # status still RUNNING.
         query.status = QueryStatus.STOPPED
         query.end_time = now_as_float()
+        db.session.commit()
 
 
 class SavedQueryDAO(BaseDAO[SavedQuery]):
