@@ -58,7 +58,7 @@ cffi==2.0.0
     #   pynacl
 charset-normalizer==3.4.2
     # via requests
-click==8.4.2
+click==8.5.0
     # via
     #   apache-superset (pyproject.toml)
     #   celery
@@ -240,7 +240,7 @@ msgpack==1.2.1
     # via apache-superset (pyproject.toml)
 msgspec==0.19.0
     # via flask-session
-nh3==0.3.6
+nh3==0.3.7
     # via apache-superset (pyproject.toml)
 numexpr==2.10.2
     # via -r requirements/base.in
@@ -370,7 +370,7 @@ setuptools==84.0.0
     # via -r requirements/base.in
 shillelagh==1.4.5
     # via apache-superset (pyproject.toml)
-simplejson==4.1.1
+simplejson==4.1.2
     # via apache-superset (pyproject.toml)
 six==1.17.0
     # via

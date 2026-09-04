@@ -350,10 +350,17 @@ def execute_sql_task(
     with app.test_request_context():
         with override_user(security_manager.find_user(username)):
             try:
-                return _execute_sql_statements(
-                    query_id,
-                    rendered_query,
-                    start_time=start_time,
+                from superset.utils.oauth2 import execute_with_oauth2_retry
+
+                query = _get_query(query_id=query_id)
+                return execute_with_oauth2_retry(
+                    query.database,
+                    lambda: _execute_sql_statements(
+                        query_id,
+                        rendered_query,
+                        start_time=start_time,
+                    ),
+                    can_retry=lambda: not query.progress,
                 )
             except Exception as ex:
                 logger.exception("Query %d: %s", query_id, ex)

@@ -18,6 +18,8 @@
  */
 import '@testing-library/jest-dom';
 import {
+  BoundUnit,
+  Comparator,
   getTextColorForBackground,
   ObjectFormattingEnum,
   ColorSchemeEnum,
@@ -149,6 +151,33 @@ test('sanitizeHeaderId should handle inputs with only special characters', () =>
   expect(sanitizeHeaderId('#')).toBe('hash');
   expect(sanitizeHeaderId('△')).toBe('delta');
   expect(sanitizeHeaderId('% # △')).toBe('percent_hash_delta');
+});
+
+test('transformProps retains percentage rules with automatic bounds under server pagination', () => {
+  const transformedProps = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      server_pagination: true,
+      conditional_formatting: [
+        {
+          column: 'sum__num',
+          operator: Comparator.None,
+          colorScheme: '#FF0000',
+          useGradient: true,
+          boundUnit: BoundUnit.Percent,
+          minBound: 0,
+          maxBound: 200,
+        },
+      ],
+    },
+  });
+
+  expect(transformedProps.columnColorFormatters).toHaveLength(1);
+  const formatter = transformedProps.columnColorFormatters?.[0];
+  expect(formatter?.column).toBe('sum__num');
+  expect(formatter?.getColorFromValue(2467)).toBe('#FF000000');
+  expect(formatter?.getColorFromValue(2467063)).toBe('#FF0000FF');
 });
 
 describe('plugin-chart-table', () => {

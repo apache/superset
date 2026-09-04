@@ -56,10 +56,19 @@ from superset.commands.dataset.refresh import RefreshDatasetCommand
 from superset.commands.dataset.restore import RestoreDatasetCommand
 from superset.commands.dataset.update import UpdateDatasetCommand
 from superset.commands.dataset.warm_up_cache import DatasetWarmUpCacheCommand
+from superset.commands.deletion_retention.purge_impact import (
+    DatasetPurgeImpact,
+    PurgeImpactChangedError,
+)
 from superset.commands.exceptions import CommandException
 from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
-from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
+from superset.commands.purge import (
+    collect_dataset_impact,
+    PurgeArchivedCommand,
+    serialize_dataset_purge_impact,
+    SoftDeleteBinding,
+)
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO
@@ -78,6 +87,8 @@ from superset.datasets.schemas import (
     DatasetDrillInfoSchema,
     DatasetDuplicateSchema,
     DatasetPostSchema,
+    DatasetPurgeImpactSchema,
+    DatasetPurgeRequestSchema,
     DatasetPutSchema,
     DatasetRelatedObjectsResponse,
     get_delete_ids_schema,
@@ -87,8 +98,10 @@ from superset.datasets.schemas import (
     openapi_spec_methods_override,
 )
 from superset.exceptions import (
+    OAuth2RedirectError,
     SupersetSyntaxErrorException,
     SupersetTemplateException,
+    SupersetTimeoutException,
 )
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
@@ -132,6 +145,7 @@ _DATASET_PURGE_BINDING = SoftDeleteBinding(
     not_found=DatasetNotFoundError,
     forbidden=DatasetForbiddenError,
     delete_failed=DatasetDeleteFailedError,
+    impact_collector=collect_dataset_impact,
 )
 
 
@@ -154,6 +168,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "restore": "write",
         "restore_version": "write",
         "purge": "write",
+        "purge_impact": "write",
     }
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.EXPORT,
@@ -163,6 +178,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "bulk_delete",
         "restore",
         "purge",
+        "purge_impact",
         "refresh",
         "related_objects",
         "duplicate",
@@ -400,6 +416,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         DatasetCacheWarmUpRequestSchema,
         DatasetCacheWarmUpResponseSchema,
         DatasetRelatedObjectsResponse,
+        DatasetPurgeImpactSchema,
+        DatasetPurgeRequestSchema,
         DatasetDuplicateSchema,
         GetOrCreateDatasetSchema,
         VersionListItemSchema,
@@ -459,7 +477,6 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
     @expose("/", methods=("POST",))
     @protect()
-    @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post",
@@ -514,6 +531,12 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 data=new_model.data,
                 uuid=new_model.uuid,
             )
+        except OAuth2RedirectError:
+            # Must reach the client unchanged to start the OAuth2 dance;
+            # ``@safe`` isn't used on this endpoint since it would otherwise
+            # swallow this into an opaque 500 that drops the ``url``/``tab_id``
+            # extras the frontend needs.
+            raise
         except DatasetSoftDeletedTwinExistsError as ex:
             return self.response_422(message=str(ex))
         except DatasetInvalidError as ex:
@@ -526,6 +549,24 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except SupersetTimeoutException as ex:
+            # ``CreateDatasetCommand`` deliberately re-raises this, along with
+            # other infra-level failures, unchanged instead of coercing it
+            # into a 422 "invalid table"/"invalid sql" error. Of that group,
+            # only the timeout has a status (408) worth surfacing distinctly;
+            # the ``SupersetDBAPIError`` subclasses inherit the base class's
+            # 500 and fall through to the broad ``except Exception`` below so
+            # their raw driver/connection text isn't echoed to the client.
+            logger.warning("Error creating dataset: %s", ex, exc_info=True)
+            return self.response(ex.status, message=str(ex))
+        except Exception:  # pylint: disable=broad-except
+            # ``@safe`` isn't used on this endpoint (it would swallow the
+            # ``OAuth2RedirectError`` re-raised above into an opaque 500), so
+            # replicate its behavior here for any other unexpected exception:
+            # log the full error server-side, but don't echo internal details
+            # (ORM/driver error text, connection info) back to the caller.
+            logger.exception("Unexpected error in DatasetRestApi.post")
+            return self.response_500(message="Fatal error")
 
     @expose("/<pk>", methods=("PUT",))
     @protect()
@@ -1275,6 +1316,63 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
+    @expose("/<uuid>/purge-impact", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.purge_impact"
+        ),
+        log_to_statsd=False,
+    )
+    def purge_impact(self, uuid: str) -> Response:
+        """Preview the dependency impact of purging an archived dataset.
+        ---
+        get:
+          summary: Preview the dependency impact of purging an archived dataset
+          description: >-
+            Report the charts and dashboards that depend on an archived
+            dataset, with an impact token that must be echoed back on the
+            purge request. Limited to owners and admins (same audience as
+            restore).
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid
+          responses:
+            200:
+              description: Dependency impact of purging the dataset
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/DatasetPurgeImpactSchema'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            impact: DatasetPurgeImpact = PurgeArchivedCommand(
+                uuid, _DATASET_PURGE_BINDING
+            ).preview_dataset_impact()
+            return self.response(200, **serialize_dataset_purge_impact(impact))
+        except DatasetNotFoundError:
+            return self.response_404()
+        except DatasetForbiddenError:
+            return self.response_403()
+        except Exception:  # noqa: BLE001
+            logger.exception("Unable to collect dataset purge impact")
+            return self.response_500(
+                message="The dependency impact could not be determined"
+            )
+
     @expose("/<uuid>/purge", methods=("POST",))
     @protect()
     @safe
@@ -1283,6 +1381,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.purge",
         log_to_statsd=False,
     )
+    @requires_json
     def purge(self, uuid: str) -> Response:
         """Permanently delete a soft-deleted (archived) dataset.
         ---
@@ -1297,6 +1396,13 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
               type: string
               format: uuid
             name: uuid
+          requestBody:
+            description: Confirmed dependency impact
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/DatasetPurgeRequestSchema'
           responses:
             200:
               description: Dataset permanently deleted
@@ -1307,20 +1413,52 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                     properties:
                       message:
                         type: string
+            400:
+              $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
             403:
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            409:
+              description: Dataset dependency impact changed
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    required: [message, reason, impact]
+                    properties:
+                      message:
+                        type: string
+                      reason:
+                        type: string
+                        enum: [purge_impact_changed]
+                      impact:
+                        $ref: '#/components/schemas/DatasetPurgeImpactSchema'
             422:
               $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
         """
         try:
-            PurgeArchivedCommand(uuid, _DATASET_PURGE_BINDING).run()
+            body: dict[str, Any] = DatasetPurgeRequestSchema().load(request.json)
+            confirmed_impact_token: str = body["confirmed_impact_token"]
+            PurgeArchivedCommand(
+                uuid,
+                _DATASET_PURGE_BINDING,
+                confirmed_impact_token=confirmed_impact_token,
+            ).run()
             return self.response(200, message="OK")
+        except ValidationError as ex:
+            return self.response_400(message=ex.messages)
+        except PurgeImpactChangedError as ex:
+            return self.response(
+                409,
+                message=str(ex),
+                reason="purge_impact_changed",
+                impact=serialize_dataset_purge_impact(ex.impact),
+            )
         except DatasetNotFoundError:
             return self.response_404()
         except DatasetForbiddenError:
@@ -1715,7 +1853,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         response["id"] = table.id
         response[API_RESULT_RES_KEY] = show_model_schema.dump(table, many=False)
 
-        # remove folders from resposne if `DATASET_FOLDERS` is disabled, so that it's
+        # remove folders from response if `DATASET_FOLDERS` is disabled, so that it's
         # possible to inspect if the feature is supported or not
         if (
             not is_feature_enabled("DATASET_FOLDERS")
@@ -2015,11 +2153,12 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         """Return the activity stream for a dataset.
         ---
         get:
-          summary: Activity stream — dataset's own edits only.
-            Datasets have no transitive layer in V2 — chart and
-            dashboard edits that touch this dataset do NOT appear here.
-            ``?include=self`` and ``?include=all`` return the dataset's
-            own edits; ``?include=related`` returns an empty stream
+          summary: Get a dataset's activity stream
+          description: >-
+            A dataset's own edits only. Datasets have no transitive layer in
+            V2 — chart and dashboard edits that touch this dataset do NOT
+            appear here. ``?include=self`` and ``?include=all`` return the
+            dataset's own edits; ``?include=related`` returns an empty stream
             (a dataset has no related entities to fan out to).
           parameters:
           - in: path
