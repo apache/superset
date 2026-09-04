@@ -959,10 +959,18 @@ test('filters the subject select by column verbose_name as well as column_name',
 const COLUMN_VALUES_ENDPOINT =
   'glob:*/api/v1/datasource/*/column/value/values/*';
 
-// Either a JSON body ({ result, limit }) or a fetch-mock response config
-// ({ status, body } / { throws }), so a test can make the server fail.
+// Either a JSON body ({ result, limit }), a fetch-mock response config
+// ({ status, body } / { throws }) so a test can make the server fail, or a
+// per-call function for stateful routes. fetch-mock reads this lazily at
+// request-match time -- reassigning the variable between requests changes
+// what EARLIER, still-unmatched requests resolve with, so any test that
+// needs two requests with different fates must use the function form.
 let columnValuesResponse: unknown = { result: [], limit: 10000 };
-fetchMock.get(COLUMN_VALUES_ENDPOINT, () => columnValuesResponse);
+fetchMock.get(COLUMN_VALUES_ENDPOINT, (...args: unknown[]) =>
+  typeof columnValuesResponse === 'function'
+    ? columnValuesResponse(...args)
+    : columnValuesResponse,
+);
 
 const setupWithFilterValuesResponse = (response: unknown) => {
   columnValuesResponse = response;
@@ -1186,25 +1194,45 @@ test('ignores a stale failing response that loses the race to a newer success', 
   // The outage the note exists for is a slow endpoint -- which is exactly
   // when a failing response can resolve AFTER a newer search already
   // succeeded. The loser must not stamp its note over the winner.
+  //
+  // The route is STATEFUL (routed by call count): only the function form
+  // makes the base request genuinely pend while the newer one succeeds. A
+  // reassigned shared response would be read lazily when the base request
+  // is matched -- the base request would resolve with the newer success
+  // value, only one request would ever exist, and this test would pass
+  // with the staleness guard deleted.
   let resolveSlowFailure: (value: unknown) => void = () => {};
-  columnValuesResponse = new Promise(resolve => {
+  const firstPending = new Promise(resolve => {
     resolveSlowFailure = resolve;
   });
-  setupWithFilterValuesResponse(columnValuesResponse);
+  let landedCalls = 0;
+  setupWithFilterValuesResponse(() => {
+    landedCalls += 1;
+    return landedCalls === 1
+      ? firstPending
+      : { result: ['alpha'], limit: 10000 };
+  });
   const comparator = await openComparator();
+  await waitFor(() => expect(landedCalls).toBe(1));
 
   // A newer request succeeds while the first is still pending.
-  columnValuesResponse = { result: ['alpha'], limit: 10000 };
   userEvent.type(comparator, 'al');
   expect(
     await screen.findByTitle('alpha', {}, { timeout: 3000 }),
   ).toBeInTheDocument();
+  expect(landedCalls).toBe(2);
 
-  // Now the original request fails -- too late to matter.
+  // Now the original request fails -- too late to matter. Flush it all the
+  // way through explicitly: a waitFor on a negative assertion would pass
+  // on the first tick, before the late rejection could land.
   resolveSlowFailure({ status: 500, body: { message: 'Fatal error' } });
-  await waitFor(() =>
-    expect(screen.queryByText(SUGGESTIONS_UNAVAILABLE)).not.toBeInTheDocument(),
-  );
+  await act(async () => {
+    await firstPending;
+    await new Promise(resolve => {
+      setTimeout(resolve, 0);
+    });
+  });
+  expect(screen.queryByText(SUGGESTIONS_UNAVAILABLE)).not.toBeInTheDocument();
 });
 
 test('does not carry the note to a different column', async () => {
