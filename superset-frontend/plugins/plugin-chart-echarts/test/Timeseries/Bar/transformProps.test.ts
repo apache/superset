@@ -43,11 +43,6 @@ import {
   OrientationType,
   EchartsTimeseriesSeriesType,
 } from '../../../src/Timeseries/types';
-import { getPadding } from '../../../src/Timeseries/transformers';
-import {
-  getHorizontalLegendAvailableWidth,
-  getLegendLayoutResult,
-} from '../../../src/utils/series';
 import { createEchartsTimeseriesTestChartProps } from '../../helpers';
 
 function createTestQueryData(
@@ -646,6 +641,41 @@ describe('Bar Chart X-axis Time Formatting', () => {
       expect(legend.selector).toBe(false);
     });
 
+    test('marks custom Plain legend items non-interactive when color by x-axis is enabled', () => {
+      const chartProps = new ChartProps({
+        ...baseChartPropsConfig,
+        formData: {
+          ...baseFormData,
+          colorByPrimaryAxis: true,
+          groupby: [],
+          legendOrientation: LegendOrientation.Top,
+          legendType: LegendType.Plain,
+          metric: 'value',
+          showLegend: true,
+          x_axis: 'category',
+        },
+        queriesData: categoricalData,
+      });
+
+      const transformedProps = transformProps(
+        chartProps as unknown as EchartsTimeseriesChartProps,
+      );
+      const { customLegend } = transformedProps as unknown as {
+        customLegend?: {
+          items: { interactive: boolean; name: string }[];
+          showSelectors: boolean;
+        };
+      };
+
+      expect(customLegend?.showSelectors).toBe(false);
+      expect(customLegend?.items.map(item => item.name)).toEqual([
+        'A',
+        'B',
+        'C',
+      ]);
+      expect(customLegend?.items.every(item => !item.interactive)).toBe(true);
+    });
+
     test('should work without stacking enabled', () => {
       const formData = {
         ...baseFormData,
@@ -922,39 +952,7 @@ describe('Bar Chart X-axis Time Formatting', () => {
   });
 
   describe('Legend layout regressions', () => {
-    const getBottomLegendLayout = (
-      chartWidth: number,
-      legendItems: string[],
-      legendMargin?: string | number | null,
-    ) =>
-      getLegendLayoutResult({
-        availableWidth: getHorizontalLegendAvailableWidth({
-          chartWidth,
-          orientation: LegendOrientation.Bottom,
-          padding: getPadding(
-            true,
-            LegendOrientation.Bottom,
-            false,
-            false,
-            legendMargin,
-            false,
-            undefined,
-            undefined,
-            undefined,
-            true,
-          ),
-        }),
-        chartHeight: baseChartPropsConfig.height,
-        chartWidth,
-        legendItems,
-        legendMargin,
-        orientation: LegendOrientation.Bottom,
-        show: true,
-        theme: supersetTheme,
-        type: LegendType.Plain,
-      });
-
-    test('honors an explicit List selection for horizontal bottom legends and reserves margin', () => {
+    test('honors an explicit List selection with a custom horizontal bottom legend', () => {
       const legendLabels = [
         'This is a long sales legend',
         'This is a long marketing legend',
@@ -1019,58 +1017,26 @@ describe('Bar Chart X-axis Time Formatting', () => {
       const legend = transformedProps.echartOptions
         .legend as LegendComponentOption;
       const grid = transformedProps.echartOptions.grid as GridComponentOption;
-      const legendItems = (legend.data as Array<string | { name: string }>).map(
-        item => (typeof item === 'string' ? item : item.name),
-      );
-
-      const layout = getBottomLegendLayout(chartWidth, legendItems, null);
-      const basePadding = getPadding(
-        true,
-        LegendOrientation.Bottom,
-        false,
-        false,
-        null,
-        false,
-        undefined,
-        undefined,
-        undefined,
-        true,
-      );
-      [basePadding.bottom, basePadding.left] = [
-        basePadding.left,
-        basePadding.bottom,
-      ];
+      const { customLegend } = transformedProps as unknown as {
+        customLegend?: {
+          items: { name: string }[];
+          orientation: LegendOrientation;
+        };
+      };
+      const resolvedLegendItems = (
+        legend.data as Array<string | { name: string }>
+      ).map(item => (typeof item === 'string' ? item : item.name));
 
       // The explicit List selection is honored end-to-end (never flips).
       expect(legend.type).toBe(LegendType.Plain);
-      expect(layout.effectiveType).toBe(LegendType.Plain);
-
-      // #38675's margin reservation is retained: the wrapped rows reserve a
-      // finite margin beyond the single-row baseline, so the grid shrinks to
-      // reduce clipping instead of the legend flipping to scroll.
-      expect(Number.isFinite(layout.effectiveMargin)).toBe(true);
-
-      const reservedPadding = getPadding(
-        true,
-        LegendOrientation.Bottom,
-        false,
-        false,
-        layout.effectiveMargin,
-        false,
-        undefined,
-        undefined,
-        undefined,
-        true,
+      expect(legend.show).toBe(false);
+      expect(customLegend?.orientation).toBe(LegendOrientation.Bottom);
+      expect(customLegend?.items.map(item => item.name)).toEqual(
+        resolvedLegendItems,
       );
-      [reservedPadding.bottom, reservedPadding.left] = [
-        reservedPadding.left,
-        reservedPadding.bottom,
-      ];
-
-      expect(grid.bottom).toBe(reservedPadding.bottom);
-      expect(grid.bottom as number).toBeGreaterThan(
-        basePadding.bottom as number,
-      );
+      // The plot canvas no longer reserves native legend rows; the independently
+      // scrolling HTML legend consumes space outside the ECharts grid.
+      expect(grid.bottom).toBe(20);
     });
   });
 
