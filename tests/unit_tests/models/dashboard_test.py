@@ -602,3 +602,99 @@ def test_tabs_keeps_nodes_that_are_not_usable_tabs_out_of_the_tree(
     assert all("value" in node and "title" in node for node in tabs["tab_tree"])
     for node_id in ("TAB-1", "ROW-1"):
         assert f"keeping layout node {node_id} out of the tab tree" in caplog.text
+
+
+def test_tabs_stops_at_a_layout_that_reaches_itself(
+    app_context: None, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A self-referencing layout must not queue the same node forever.
+
+    The walk is a queue, so a node listed among its own descendants is
+    re-enqueued on every pass and the walk never ends. A dashboard stored with
+    such a layout could not be read or written again, because an update reads
+    the stored tabs to find the deleted ones.
+    """
+    dash = Dashboard()
+    dash.id = 1
+    dash.position_json = json.dumps(
+        {"ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["ROOT_ID"]}}
+    )
+
+    caplog.set_level(logging.WARNING, logger=LOGGER)
+    tabs = dash.tabs
+
+    assert tabs == {"all_tabs": {}, "tab_tree": []}
+    assert "skipping layout node ROOT_ID, the layout reaches it more than once" in (
+        caplog.text
+    )
+
+
+def test_tabs_keeps_the_tabs_above_a_cycle(
+    app_context: None, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A cycle deeper in the layout costs only the nodes below it."""
+    dash = Dashboard()
+    dash.id = 1
+    dash.position_json = json.dumps(
+        {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {"id": "GRID_ID", "type": "GRID", "children": ["TABS-1"]},
+            "TABS-1": {"id": "TABS-1", "type": "TABS", "children": ["TAB-1"]},
+            # Points back at its own tab bar.
+            "TAB-1": {
+                "id": "TAB-1",
+                "type": "TAB",
+                "meta": {"text": "First"},
+                "children": ["TABS-1"],
+            },
+        }
+    )
+
+    caplog.set_level(logging.WARNING, logger=LOGGER)
+    tabs = dash.tabs
+
+    assert tabs["all_tabs"] == {"TAB-1": "First"}
+    assert [node["id"] for node in tabs["tab_tree"]] == ["TAB-1"]
+    assert "skipping layout node TABS-1, the layout reaches it more than once" in (
+        caplog.text
+    )
+
+
+def test_tabs_places_a_node_the_layout_reaches_twice_only_once(
+    app_context: None, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A node reached from two parents is placed where it is reached first.
+
+    This is not a cycle, but it is not a tree either — a node cannot render in
+    two places — and the walk writes `title`, `value` and `children` onto each
+    node it visits, so a second visit would overwrite the first.
+    """
+    dash = Dashboard()
+    dash.id = 1
+    dash.position_json = json.dumps(
+        {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {
+                "id": "GRID_ID",
+                "type": "GRID",
+                "children": ["TABS-1", "TABS-2"],
+            },
+            "TABS-1": {"id": "TABS-1", "type": "TABS", "children": ["TAB-1"]},
+            "TABS-2": {"id": "TABS-2", "type": "TABS", "children": ["TAB-1"]},
+            "TAB-1": {
+                "id": "TAB-1",
+                "type": "TAB",
+                "meta": {"text": "Shared"},
+                "children": [],
+            },
+        }
+    )
+
+    caplog.set_level(logging.WARNING, logger=LOGGER)
+    tabs = dash.tabs
+
+    assert tabs["all_tabs"] == {"TAB-1": "Shared"}
+    assert [node["id"] for node in tabs["tab_tree"]] == ["TAB-1"]
+    assert "skipping layout node TAB-1, the layout reaches it more than once" in (
+        caplog.text
+    )

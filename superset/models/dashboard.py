@@ -395,6 +395,29 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
             """
             return self.position.get(node_id)
 
+        def resolve_child(child_id: Any) -> Optional[dict[str, Any]]:
+            """
+            Helper function for reading a child id, or None if it cannot be walked
+            """
+            child = get_node(child_id) if isinstance(child_id, str) else None
+            if not isinstance(child, dict):
+                logger.warning(
+                    "Dashboard %s: skipping layout node %s, missing or malformed",
+                    self.id,
+                    child_id,
+                )
+                return None
+            if child_id in visited:
+                logger.warning(
+                    "Dashboard %s: skipping layout node %s, the layout reaches "
+                    "it more than once",
+                    self.id,
+                    child_id,
+                )
+                return None
+            visited.add(child_id)
+            return child
+
         def register_tab(node: dict[str, Any]) -> None:
             """
             Helper function for titling a TAB node and adding it to all_tabs
@@ -448,13 +471,8 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
             new_children: list[dict[str, Any]] = []
             # new children to overwrite parent's children
             for child_id in child_ids:
-                child = get_node(child_id) if isinstance(child_id, str) else None
-                if not isinstance(child, dict):
-                    logger.warning(
-                        "Dashboard %s: skipping layout node %s, missing or malformed",
-                        self.id,
-                        child_id,
-                    )
+                child = resolve_child(child_id)
+                if child is None:
                     continue
                 if node_type == "TABS":
                     # Only a node that will register as a tab belongs in the
@@ -487,6 +505,10 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
 
         tab_tree: list[dict[str, Any]] = []
         all_tabs: dict[str, str] = {}
+        # A layout is a tree, so every node is reached once. A stored layout
+        # that reaches one twice would walk it twice, and a cycle would never
+        # stop, so the walk keeps track of what it has already reached.
+        visited: set[str] = {"ROOT_ID"}
         queue: deque[tuple[dict[str, Any], list[dict[str, Any]]]] = deque()
         queue.append((root, tab_tree))
         while queue:
