@@ -872,6 +872,21 @@ def _native_filter_query_modified(
     return False
 
 
+def _any_row_expanding_result_type(query_context: "QueryContext") -> bool:
+    """
+    Whether any query in the context asks for a result type that has the
+    server return every column on the datasource
+    (see ``_ROW_EXPANDING_RESULT_TYPES``).
+    """
+    return any(
+        _effective_result_type(
+            getattr(query, "result_type", None), query_context.result_type
+        )
+        in _ROW_EXPANDING_RESULT_TYPES
+        for query in query_context.queries
+    )
+
+
 def _drill_by_row_expanding_result_type(query_context: "QueryContext") -> bool:
     """
     Whether a chartless Drill By request (``slice_id`` sentinel ``0`` plus a
@@ -890,13 +905,7 @@ def _drill_by_row_expanding_result_type(query_context: "QueryContext") -> bool:
     form_data = query_context.form_data or {}
     if not (form_data.get("slice_id") == 0 and form_data.get("chart_id")):
         return False
-    return any(
-        _effective_result_type(
-            getattr(query, "result_type", None), query_context.result_type
-        )
-        in _ROW_EXPANDING_RESULT_TYPES
-        for query in query_context.queries
-    )
+    return _any_row_expanding_result_type(query_context)
 
 
 def _native_filter_request_modified(query_context: "QueryContext") -> bool:
@@ -942,13 +951,7 @@ def _native_filter_request_modified(query_context: "QueryContext") -> bool:
     # column on the datasource - bypassing the target-column allowlist below
     # entirely - so reject those result types outright; a native filter never
     # legitimately needs them.
-    if any(
-        _effective_result_type(
-            getattr(query, "result_type", None), query_context.result_type
-        )
-        in _ROW_EXPANDING_RESULT_TYPES
-        for query in query_context.queries
-    ):
+    if _any_row_expanding_result_type(query_context):
         return True
 
     return any(
