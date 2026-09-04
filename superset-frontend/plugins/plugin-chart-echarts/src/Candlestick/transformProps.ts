@@ -46,7 +46,6 @@ import {
   DEFAULT_INCREASE_COLOR,
   DIRECTION_LABELS,
   OHLC_LABELS,
-  NULL_LOOKUP_KEY,
 } from './constants';
 import { defaultGrid, defaultYAxis } from '../defaults';
 import { getDefaultTooltip } from '../utils/tooltip';
@@ -70,6 +69,7 @@ import {
 } from './utils';
 
 type CandlestickDatum = NonNullable<CandlestickSeriesOption['data']>[number];
+const NULL_LOOKUP_KEY = Symbol('candlestick-null');
 
 function toNumber(value: unknown): number | null {
   if (value === null || value === undefined || value === '') {
