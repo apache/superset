@@ -73,6 +73,8 @@ import {
   TimeFilterPlugin,
   TimeColumnFilterPlugin,
   TimeGrainFilterPlugin,
+  DateTimeFilterPlugin,
+  CheckboxRadioFilterPlugin,
 } from 'src/filters/components';
 import {
   ChartCustomizationTimeGrainPlugin,
@@ -177,6 +179,12 @@ export default class MainPreset extends Preset {
         }),
         new TimeGrainFilterPlugin().configure({
           key: FilterPlugins.TimeGrain,
+        }),
+        new DateTimeFilterPlugin().configure({
+          key: FilterPlugins.DateTime,
+        }),
+        new CheckboxRadioFilterPlugin().configure({
+          key: FilterPlugins.CheckboxRadio,
         }),
         new ChartCustomizationTimeGrainPlugin().configure({
           key: ChartCustomizationPlugins.TimeGrain,

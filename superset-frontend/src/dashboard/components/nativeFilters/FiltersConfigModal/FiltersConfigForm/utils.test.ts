@@ -69,7 +69,8 @@ const createChartsState = (
 const createColumn = (
   column_name: string,
   type_generic?: GenericDataType,
-): Column => ({ column_name, type_generic }) as Column;
+  is_dttm?: boolean,
+): Column => ({ column_name, type_generic, is_dttm }) as Column;
 
 test('hasTemporalColumns returns true when column_types is undefined (precautionary default)', () => {
   const dataset = createDataset(undefined);
@@ -229,6 +230,30 @@ test('doesColumnMatchFilterType returns false when column type does not match fi
 test('doesColumnMatchFilterType returns true when column type matches filter_time', () => {
   const temporalColumn = createColumn('created_at', GenericDataType.Temporal);
   expect(doesColumnMatchFilterType('filter_time', temporalColumn)).toBe(true);
+});
+
+test('doesColumnMatchFilterType returns true when column has is_dttm: true for filter_time', () => {
+  const dttmColumn = createColumn('created_at', undefined, true);
+  expect(doesColumnMatchFilterType('filter_time', dttmColumn)).toBe(true);
+});
+
+test('doesColumnMatchFilterType returns true when column has is_dttm: true for filter_datetime', () => {
+  const dttmColumn = createColumn('created_at', undefined, true);
+  expect(doesColumnMatchFilterType('filter_datetime', dttmColumn)).toBe(true);
+});
+
+test('doesColumnMatchFilterType returns true when column type is Temporal for filter_datetime', () => {
+  const temporalColumn = createColumn('created_at', GenericDataType.Temporal);
+  expect(doesColumnMatchFilterType('filter_datetime', temporalColumn)).toBe(
+    true,
+  );
+});
+
+test('doesColumnMatchFilterType returns false when column is not temporal and has is_dttm: false for filter_datetime', () => {
+  const stringColumn = createColumn('name', GenericDataType.String, false);
+  expect(doesColumnMatchFilterType('filter_datetime', stringColumn)).toBe(
+    false,
+  );
 });
 
 test('doesColumnMatchFilterType returns false when column type does not match filter_time', () => {

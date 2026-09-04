@@ -94,12 +94,28 @@ export const shouldShowTimeRangePicker = (
   currentDataset: (Dataset & { column_types: GenericDataType[] }) | undefined,
 ): boolean => (currentDataset ? hasTemporalColumns(currentDataset) : true);
 
-export const doesColumnMatchFilterType = (filterType: string, column: Column) =>
-  !column.type_generic ||
-  !(filterType in FILTER_SUPPORTED_TYPES) ||
-  FILTER_SUPPORTED_TYPES[
-    filterType as keyof typeof FILTER_SUPPORTED_TYPES
-  ]?.includes(column.type_generic);
+export const doesColumnMatchFilterType = (
+  filterType: string,
+  column: Column,
+) => {
+  const supportedTypes =
+    FILTER_SUPPORTED_TYPES[filterType as keyof typeof FILTER_SUPPORTED_TYPES];
+  if (!supportedTypes) {
+    return true;
+  }
+  const isTemporal =
+    Boolean(column.is_dttm) || column.type_generic === GenericDataType.Temporal;
+  if (
+    supportedTypes.length === 1 &&
+    supportedTypes.includes(GenericDataType.Temporal)
+  ) {
+    return isTemporal;
+  }
+  if (!column.type_generic) {
+    return true;
+  }
+  return supportedTypes.includes(column.type_generic);
+};
 
 export const mapSemanticTypeToGenericDataType = (
   semanticType?: string | null,

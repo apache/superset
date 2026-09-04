@@ -38,6 +38,7 @@ export interface PopoverDropdownProps {
   value: string;
   renderButton?: RenderElementHandler;
   renderOption?: RenderElementHandler;
+  overlayStyle?: React.CSSProperties;
 }
 
 interface HandleSelectProps {
@@ -83,6 +84,7 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
     renderOption = (option: OptionProps) => (
       <div className={option.className}>{option.label}</div>
     ),
+    overlayStyle,
   } = props;
 
   const theme = useTheme();
@@ -90,7 +92,10 @@ const PopoverDropdown = (props: PopoverDropdownProps) => {
   return (
     <Dropdown
       trigger={['click']}
-      overlayStyle={{ zIndex: theme.zIndexBase }}
+      overlayStyle={{
+        zIndex: theme.zIndexPopupBase || 3100,
+        ...overlayStyle,
+      }}
       menu={{
         onClick: ({ key }: HandleSelectProps) => onChange(key),
         items: options.map(option => ({

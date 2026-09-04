@@ -28,6 +28,7 @@ export const FILTER_SUPPORTED_TYPES = {
   filter_time: [GenericDataType.Temporal],
   filter_timegrain: [GenericDataType.Temporal],
   filter_timecolumn: [GenericDataType.Temporal],
+  filter_datetime: [GenericDataType.Temporal],
   filter_select: [
     GenericDataType.Boolean,
     GenericDataType.String,
@@ -35,6 +36,12 @@ export const FILTER_SUPPORTED_TYPES = {
     GenericDataType.Temporal,
   ],
   filter_range: [GenericDataType.Numeric],
+  filter_checkbox_radio: [
+    GenericDataType.Boolean,
+    GenericDataType.String,
+    GenericDataType.Numeric,
+    GenericDataType.Temporal,
+  ],
 };
 
 export const CHART_CUSTOMIZATION_SUPPORTED_TYPES = {

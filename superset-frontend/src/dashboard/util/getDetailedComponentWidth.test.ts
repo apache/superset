@@ -89,6 +89,12 @@ describe('getDetailedComponentWidth', () => {
         }),
         // note: occupiedWidth is zero for columns/see test below
       ).toEqual({ width: 3, occupiedWidth: 0, minimumWidth: 1 });
+
+      expect(
+        getDetailedComponentWidth({
+          component: { id: '', type: types.FILTER_TYPE, meta: { width: 4 } },
+        }),
+      ).toEqual({ width: 4, occupiedWidth: 4, minimumWidth: 1 });
     });
 
     test('should be GRID_COLUMN_COUNT for row components WITHOUT parents', () => {

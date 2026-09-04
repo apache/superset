@@ -23,6 +23,8 @@ import {
   FormItem,
   InfoTooltip,
   Tooltip,
+  Select,
+  Input,
   type FormInstance,
 } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
@@ -175,19 +177,133 @@ export default function getControlItemsMap({
         controlItem.name !== 'operatorType',
     )
     .forEach(controlItem => {
+      const currentControlValues = {
+        ...filterToEdit?.controlValues,
+        ...customizationToEdit?.controlValues,
+        ...formFilter?.controlValues,
+        ...form.getFieldValue(['filters', filterId, 'controlValues']),
+      };
+
+      if (typeof controlItem.config?.visibility === 'function') {
+        const isVisible = controlItem.config.visibility(
+          {
+            controls: Object.fromEntries(
+              Object.entries(currentControlValues).map(([k, v]) => [
+                k,
+                { value: v },
+              ]),
+            ),
+            form_data: currentControlValues,
+          } as any,
+          controlItem as any,
+        );
+        if (!isVisible) {
+          return;
+        }
+      }
+
       const initialValue =
         filterToEdit?.controlValues?.[controlItem.name] ??
         customizationToEdit?.controlValues?.[controlItem.name] ??
         controlItem?.config?.default;
-      const element = (
-        <>
-          <CleanFormItem
-            name={['filters', filterId, 'requiredFirst', controlItem.name]}
-            hidden
-            initialValue={
-              controlItem?.config?.requiredFirst && filterToEdit?.requiredFirst
-            }
-          />
+
+      const isSelect =
+        controlItem?.config?.type === 'SelectControl' ||
+        Boolean(controlItem?.config?.choices);
+      const isText = controlItem?.config?.type === 'TextControl';
+
+      const updateValue = (val: unknown) => {
+        setNativeFilterFieldValues(form, filterId, {
+          controlValues: {
+            ...formFilter?.controlValues,
+            [controlItem.name]: val,
+          },
+        });
+        if (controlItem.config?.resetConfig) {
+          setNativeFilterFieldValues(form, filterId, {
+            defaultDataMask: null,
+          });
+        }
+        formChanged();
+        forceUpdate();
+      };
+
+      const labelContent =
+        typeof controlItem.config?.label === 'function'
+          ? (controlItem.config.label as () => ReactNode)()
+          : controlItem.config?.label;
+      const descriptionContent =
+        typeof controlItem.config?.description === 'function'
+          ? (controlItem.config.description as () => ReactNode)()
+          : controlItem.config?.description;
+
+      const label = (
+        <StyledLabel>
+          {labelContent}&nbsp;
+          {descriptionContent && (
+            <InfoTooltip placement="top" tooltip={descriptionContent} />
+          )}
+        </StyledLabel>
+      );
+
+      let controlNode: ReactNode;
+
+      if (isSelect) {
+        const rawChoices =
+          (controlItem.config.choices as (string | [string, string])[]) || [];
+        const options = rawChoices.map(choice =>
+          Array.isArray(choice)
+            ? { value: choice[0], label: choice[1] }
+            : { value: choice, label: choice },
+        );
+
+        controlNode = (
+          <StyledFormItem
+            expanded={expanded}
+            key={controlItem.name}
+            name={['filters', filterId, 'controlValues', controlItem.name]}
+            initialValue={initialValue}
+            label={label}
+          >
+            <Select
+              options={options}
+              value={
+                form.getFieldValue([
+                  'filters',
+                  filterId,
+                  'controlValues',
+                  controlItem.name,
+                ]) ?? initialValue
+              }
+              onChange={updateValue}
+              placeholder={t('Select...')}
+            />
+          </StyledFormItem>
+        );
+      } else if (isText) {
+        controlNode = (
+          <StyledFormItem
+            expanded={expanded}
+            key={controlItem.name}
+            name={['filters', filterId, 'controlValues', controlItem.name]}
+            initialValue={initialValue}
+            label={label}
+          >
+            <Input
+              value={
+                form.getFieldValue([
+                  'filters',
+                  filterId,
+                  'controlValues',
+                  controlItem.name,
+                ]) ?? initialValue
+              }
+              onChange={e => updateValue(e.target.value)}
+            />
+          </StyledFormItem>
+        );
+      } else {
+        controlNode = (
           <Tooltip
             key={controlItem.name}
             placement="left"
@@ -228,29 +344,27 @@ export default function getControlItemsMap({
                     forceUpdate();
                   }}
                 >
-                  <>
-                    {typeof controlItem.config.label === 'function'
-                      ? (controlItem.config.label as Function)()
-                      : controlItem.config.label}
-                    &nbsp;
-                    {controlItem.config.description && (
-                      <InfoTooltip
-                        placement="top"
-                        tooltip={
-                          typeof controlItem.config.description === 'function'
-                            ? (controlItem.config.description as Function)()
-                            : (controlItem.config
-                                .description as React.ReactNode)
-                        }
-                      />
-                    )}
-                  </>
+                  {label}
                 </Checkbox>
               </StyledRowFormItem>
             </span>
           </Tooltip>
+        );
+      }
+
+      const element = (
+        <>
+          <CleanFormItem
+            name={['filters', filterId, 'requiredFirst', controlItem.name]}
+            hidden
+            initialValue={
+              controlItem?.config?.requiredFirst && filterToEdit?.requiredFirst
+            }
+          />
+          {controlNode}
         </>
       );
+
       mapControlItems[controlItem.name] = { element, checked: initialValue };
     });
   return {
