@@ -48,7 +48,7 @@
     "typescript": "^7.0.2",
     "vitest": "^4.0.18",
     "webpack": "^5.110.0",
-    "webpack-cli": "^7.2.2"
+    "webpack-cli": "^7.2.3"
   },
   "repository": {
     "type": "git",
