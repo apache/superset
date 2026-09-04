@@ -66,7 +66,10 @@ from superset.utils.core import (
     get_user_id,
 )
 from superset.utils.decorators import logs_context
-from superset.utils.error_sanitization import sanitize_error_message
+from superset.utils.error_sanitization import (
+    is_sanitization_required,
+    sanitize_error_message,
+)
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
 from superset.views.base_api import statsd_metrics
 
@@ -584,7 +587,13 @@ class ChartDataRestApi(ChartRestApi):
                 ):
                     query["timing"] = query_result.timing.as_public_dict()
 
-            if security_manager.is_guest_user():
+            # Resolve the redaction decision once so the stacktrace pop and the
+            # error-message sanitization below stay consistent: the guarded
+            # ``is_sanitization_required`` cannot raise the request into a 500 and
+            # fails closed for a guest whose principal can't be resolved, so the
+            # block never half-redacts (popping ``stacktrace`` while leaking the
+            # raw ``error``).
+            if sanitize_required := is_sanitization_required():
                 # Guests may see the generated SQL only when the role attached to
                 # their guest token has been granted "can view query on Dashboard",
                 # mirroring the permission the frontend uses to expose the
@@ -598,7 +607,9 @@ class ChartDataRestApi(ChartRestApi):
                         query.pop("query", None)
                     query.pop("stacktrace", None)
                     if query.get("error"):
-                        query["error"] = sanitize_error_message(query["error"])
+                        query["error"] = sanitize_error_message(
+                            query["error"], required=sanitize_required
+                        )
 
             payload: dict[str, Any] = {"result": queries}
             if dashboard_filter_context is not None:

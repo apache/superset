@@ -338,6 +338,10 @@ class TestErrorHandlerNeverTurnsErrorsInto500s:
     user loaders do (e.g. a JWT request loader that raises when a request carries
     no valid credential) -- Flask discards the intended status and returns a bare
     500. The check must therefore swallow that failure and keep the real status.
+    Swallowing it is a deliberate availability-over-confidentiality trade-off: an
+    anonymous request (no guest token) keeps its status and message here, while a
+    request that carries a token is still redacted (covered in
+    ``test_error_sanitization``).
     """
 
     def _build_app_with_handlers(self) -> Flask:
@@ -384,3 +388,33 @@ class TestErrorHandlerNeverTurnsErrorsInto500s:
 
         assert response.status_code == 504
         assert json.loads(response.data)["error"] == "upstream took too long"
+
+    def test_unexpected_exception_returns_json_body_when_500_html_is_absent(
+        self,
+    ) -> None:
+        """
+        The last-resort ``show_unexpected_exception`` handler serves ``500.html``
+        for HTML clients, but that webpack artifact is absent in API-only/unbuilt
+        deployments. Like its siblings it must fall back to a SIP-40 JSON body
+        rather than let ``send_file`` raise ``FileNotFoundError`` and collapse the
+        response to a bare 500 with no body.
+        """
+        test_app = self._build_app_with_handlers()
+
+        @test_app.route("/boom")
+        def boom() -> FlaskResponse:
+            raise RuntimeError("something unexpected")
+
+        client = test_app.test_client()
+        with patch(
+            "superset.views.error_handling.send_file",
+            side_effect=FileNotFoundError,
+        ):
+            response = client.get("/boom", headers={"Accept": "text/html"})
+
+        assert response.status_code == 500
+        payload = json.loads(response.data)
+        assert (
+            payload["errors"][0]["error_type"]
+            == SupersetErrorType.GENERIC_BACKEND_ERROR.value
+        )
