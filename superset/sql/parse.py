@@ -129,6 +129,7 @@ SQLGLOT_DIALECTS = {
     # "firebird": ???
     "firebolt": Firebolt,
     "gsheets": Dialects.SQLITE,
+    "greenplum": Dialects.POSTGRES,
     "hana": Hana,
     "hive": Dialects.HIVE,
     # "ibmi": ???
@@ -147,6 +148,7 @@ SQLGLOT_DIALECTS = {
     "parseable": Dialects.POSTGRES,
     "pinot": Pinot,
     "postgresql": Dialects.POSTGRES,
+    "postgres": Dialects.POSTGRES,
     "presto": Dialects.PRESTO,
     "pydoris": Dialects.DORIS,
     "redshift": Dialects.REDSHIFT,

@@ -23,6 +23,7 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pandas as pd
 import pytest
+from flask.ctx import AppContext
 from pandas import DateOffset
 
 from superset import db
@@ -31,6 +32,7 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.common.query_context import QueryContext
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
+from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.extensions import cache_manager
@@ -1218,6 +1220,43 @@ def test_date_adhoc_column(app_context, physical_dataset):
     # 0   2022-01-01     10
     assert df["ADHOC COLUMN"][0].strftime("%Y-%m-%d") == "2022-01-01"
     assert df["count"][0] == 10
+
+
+@only_postgresql
+def test_date_trunc_metric_matches_quarter_grouping(
+    app_context: AppContext,
+    physical_dataset: SqlaTable,
+) -> None:
+    metric: dict[str, Any] = {
+        "expressionType": "SQL",
+        "sqlExpression": (
+            "CASE WHEN DATE_TRUNC('QUARTER', col6) = TIMESTAMP '2002-01-01' "
+            "THEN SUM(col1) ELSE 0 END"
+        ),
+        "label": "quarter_metric",
+        "hasCustomLabel": True,
+    }
+    qc: QueryContext = QueryContextFactory().create(
+        datasource={"type": physical_dataset.type, "id": physical_dataset.id},
+        queries=[
+            {
+                "columns": [],
+                "extras": {"time_grain_sqla": "P3M"},
+                "granularity": "col6",
+                "is_timeseries": True,
+                "metrics": [metric],
+            }
+        ],
+        result_type=ChartDataResultType.FULL,
+        force=True,
+    )
+
+    payload: dict[str, Any] = qc.get_df_payload(qc.queries[0])
+    df: pd.DataFrame = payload["df"].sort_values("__timestamp").reset_index(drop=True)
+
+    assert "DATE_TRUNC('QUARTER'" not in payload["query"]
+    assert payload["query"].count("DATE_TRUNC('quarter'") >= 2
+    assert df["quarter_metric"].tolist() == [3, 0, 0, 0]
 
 
 @only_postgresql
