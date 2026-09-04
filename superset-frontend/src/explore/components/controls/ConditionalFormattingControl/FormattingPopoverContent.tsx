@@ -135,9 +135,8 @@ const isOperatorNone = (operator?: Comparator) =>
 
 type BoundVisibility = { showMin: boolean; showMax: boolean };
 
-// getColorFunction only reads maxBound for `>`/`>=` and minBound for `<`/`<=`
-// (the other end of the scale comes from targetValue), so only the bound(s)
-// that actually affect rendering are shown for each operator.
+// `>`/`>=` only use maxBound and `<`/`<=` only use minBound; targetValue
+// covers the other end, so only show the bound that actually applies.
 const getBoundVisibility = (operator?: Comparator): BoundVisibility => {
   if (isOperatorNone(operator)) {
     return { showMin: true, showMax: true };
@@ -278,22 +277,16 @@ const renderBoundFields = (
   if (!showMin && !showMax) {
     return null;
   }
-  // Cross-field validation only makes sense when both bounds are user-facing;
-  // when only one bound renders for the operator, there is nothing to
-  // cross-validate it against. Directional bounds are validated against the
-  // target value that forms the other end of their scale.
+  // Cross-validate min/max only when both are shown; a lone bound
+  // validates against targetValue instead, its other end of the scale.
   const useCrossFieldRules = showMin && showMax;
   const minRules = useCrossFieldRules ? rulesMinBound : rulesMinBoundTarget;
   const maxRules = useCrossFieldRules ? rulesMaxBound : rulesMaxBoundTarget;
   const minDependencies = useCrossFieldRules ? minBoundDeps : targetValueDeps;
   const maxDependencies = useCrossFieldRules ? maxBoundDeps : targetValueDeps;
-  // % of column resolves its denominator from whatever rows are currently
-  // loaded. Under server pagination that's one page at a time, so the same
-  // rule would compute a different denominator -- and therefore different
-  // colors -- on each page. Disable picking it in that mode rather than
-  // shipping a scale that silently drifts per page; an already-saved config
-  // keeps working (and stays visible here) since disabling an option only
-  // blocks new selections, not an existing value.
+  // % of column derives its denominator from the loaded rows, which under
+  // server pagination is just the current page -- disable picking it there
+  // so the scale doesn't drift per page. Existing saved configs keep working.
   const boundUnitSelectOptions = serverPagination
     ? boundUnitOptions.map(option =>
         option.value === boundUnitOptions[1].value
@@ -606,14 +599,11 @@ export const FormattingPopoverContent = ({
   );
   const defaultColorToken = colors[0]?.colors?.[0];
 
-  // The diverging low/mid/high scale always interpolates a color -- it has
-  // no "solid, non-gradient" rendering to fall back to -- so "Use gradient"
-  // has no effect once diverging mode is active. Hide it in that state
-  // instead of leaving a checkbox visible that silently does nothing (see
-  // PR review finding #3): a config counts as "diverging" here using the
-  // same field-presence check getColorFunction uses, without replicating
-  // its center-value-in-range validation, since this only decides whether
-  // to show an unrelated checkbox, not whether diverging colors apply.
+  // Diverging colors always interpolate, so "Use gradient" has no effect
+  // once diverging mode is active -- hide it rather than leave a no-op
+  // checkbox. Mirrors getColorFunction's own diverging field-presence
+  // check, minus its center-value range validation, since this only
+  // toggles checkbox visibility, not whether diverging colors apply.
   const divergingOperator = Form.useWatch('operator', form);
   const divergingCenterValue = Form.useWatch('centerValue', form);
   const divergingLowColor = Form.useWatch('lowColor', form);
