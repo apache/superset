@@ -281,9 +281,6 @@ const renderBoundFields = (
   serverPagination?: boolean,
 ) => {
   const { showMin, showMax } = getBoundVisibility(operator);
-  if (!showMin && !showMax) {
-    return null;
-  }
   // Cross-validate min/max only when both are shown; a lone bound
   // validates against targetValue instead, its other end of the scale.
   const useCrossFieldRules = showMin && showMax;

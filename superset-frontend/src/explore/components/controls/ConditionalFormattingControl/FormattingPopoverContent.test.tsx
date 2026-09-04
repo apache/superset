@@ -735,6 +735,30 @@ test('does not compare a percentage max bound directly with an absolute target',
   await waitFor(() => expect(onChange).toHaveBeenCalled());
 });
 
+test('does not compare a percentage min bound directly with an absolute target', async () => {
+  const onChange = jest.fn();
+  render(
+    <FormattingPopoverContent
+      onChange={onChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  await selectFieldOption('<', 'Operator');
+  await userEvent.type(await screen.findByLabelText('Target value'), '-1000');
+  await selectFieldOption('% of column', 'Bound unit');
+  const minBoundInput = screen.getByLabelText('Min bound', boundLabelOptions);
+  await userEvent.type(minBoundInput, '100');
+  fireEvent.blur(minBoundInput);
+
+  expect(
+    screen.queryByText('Min bound should be smaller than target value'),
+  ).not.toBeInTheDocument();
+  fireEvent.click(screen.getByText('Apply'));
+  await waitFor(() => expect(onChange).toHaveBeenCalled());
+});
+
 test('shows Center value and Low/Mid/High color fields for the default None operator on a numeric column', () => {
   render(
     <FormattingPopoverContent

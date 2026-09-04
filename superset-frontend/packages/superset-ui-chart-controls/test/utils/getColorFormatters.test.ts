@@ -21,12 +21,13 @@ import {
   Comparator,
   getOpacity,
   round,
-  getColorFormatters,
   getColorFunction,
+  getDivergingColor,
   BoundUnit,
   PercentDenominator,
 } from '../../src';
 import {
+  getColorFormatters,
   getReadableTextColor,
   getNormalizedTextColor,
   getTextColorForBackground,
@@ -84,6 +85,12 @@ test('getOpacity', () => {
   expect(getOpacity(50, NaN, '100')).toEqual(1);
   expect(getOpacity(50, '75', NaN)).toEqual(1);
   expect(getOpacity(50, 75, NaN)).toEqual(1);
+});
+
+test('getDivergingColor parses string color endpoints', () => {
+  expect(
+    getDivergingColor(25, 0, 50, 100, '#ff0000', '#ffffff', '#008000'),
+  ).toEqual('#ff8080');
 });
 
 test('getColorFunction GREATER_THAN', () => {

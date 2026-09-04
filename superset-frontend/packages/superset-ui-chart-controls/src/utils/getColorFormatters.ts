@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import memoizeOne from 'memoize-one';
+import memoizeOne, { type MemoizedFn } from 'memoize-one';
 import { isString, isBoolean } from 'lodash-es';
 import { isBlank } from '@apache-superset/core/utils';
 import { addAlpha, DataRecord, rgbaToHex } from '@superset-ui/core';
@@ -481,7 +481,15 @@ export const getColorFunction = (
   };
 };
 
-export const getColorFormatters = memoizeOne(
+type GetColorFormatters = (
+  columnConfig: ConditionalFormattingConfig[] | undefined,
+  data: DataRecord[],
+  theme?: Record<string, any>,
+  alpha?: boolean,
+  disablePercentBounds?: boolean,
+) => ColorFormatters;
+
+export const getColorFormatters: MemoizedFn<GetColorFormatters> = memoizeOne(
   (
     columnConfig: ConditionalFormattingConfig[] | undefined,
     data: DataRecord[],
