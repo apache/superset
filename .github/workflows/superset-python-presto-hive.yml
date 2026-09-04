@@ -165,7 +165,7 @@ jobs:
   actions-timeline:
     needs: [test-postgres-presto, test-postgres-hive]
     if: always()
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     permissions:
       actions: read
     steps:

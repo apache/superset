@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import memoizeOne from 'memoize-one';
+import memoizeOne, { type MemoizedFn } from 'memoize-one';
 import { isString, isBoolean } from 'lodash-es';
 import { isBlank } from '@apache-superset/core/utils';
 import { addAlpha, DataRecord, rgbaToHex } from '@superset-ui/core';
+import { type RGBColor } from '@superset-ui/core/components';
 import tinycolor from 'tinycolor2';
 import {
   ColorFormatters,
@@ -28,6 +29,8 @@ import {
   MultipleValueComparators,
   ResolvedColorFormatterResult,
   ColorSchemeEnum,
+  BoundUnit,
+  PercentDenominator,
 } from '../types';
 
 export const round = (num: number, precision = 0) =>
@@ -72,6 +75,58 @@ export const getOpacity = (
   );
 };
 
+const parseColorToRgb = (color: RGBColor | string) => {
+  if (typeof color === 'string') {
+    const { r, g, b } = tinycolor(color).toRgb();
+    return { r, g, b };
+  }
+  return { r: color.r, g: color.g, b: color.b };
+};
+
+export const getDivergingColor = (
+  value: number,
+  cutoffValue: number,
+  centerValue: number,
+  extremeValue: number,
+  lowColor: RGBColor | string,
+  midColor: RGBColor | string,
+  highColor: RGBColor | string,
+): string => {
+  const clampedValue = Math.min(Math.max(value, cutoffValue), extremeValue);
+  const belowCenter = clampedValue <= centerValue;
+  const from = parseColorToRgb(belowCenter ? lowColor : midColor);
+  const to = parseColorToRgb(belowCenter ? midColor : highColor);
+  const rangeStart = belowCenter ? cutoffValue : centerValue;
+  const rangeEnd = belowCenter ? centerValue : extremeValue;
+  const ratio =
+    rangeEnd === rangeStart
+      ? 1
+      : (clampedValue - rangeStart) / (rangeEnd - rangeStart);
+  return rgbaToHex({
+    r: from.r + (to.r - from.r) * ratio,
+    g: from.g + (to.g - from.g) * ratio,
+    b: from.b + (to.b - from.b) * ratio,
+    a: 1,
+  });
+};
+
+const isValidDivergingConfig = (
+  centerValue: number | undefined,
+  lowColor: RGBColor | string | undefined,
+  midColor: RGBColor | string | undefined,
+  highColor: RGBColor | string | undefined,
+  cutoffValue: number | string,
+  extremeValue: number | string,
+): centerValue is number =>
+  centerValue !== undefined &&
+  lowColor !== undefined &&
+  midColor !== undefined &&
+  highColor !== undefined &&
+  typeof cutoffValue === 'number' &&
+  typeof extremeValue === 'number' &&
+  centerValue > cutoffValue &&
+  centerValue < extremeValue;
+
 const isSpecialColor = (value: unknown): value is ColorSchemeEnum =>
   Object.values(ColorSchemeEnum).includes(value as ColorSchemeEnum);
 
@@ -83,17 +138,61 @@ export const getColorFunction = (
     targetValueRight,
     colorScheme,
     useGradient,
+    minBound: rawMinBound,
+    maxBound: rawMaxBound,
+    centerValue: rawCenterValue,
+    lowColor,
+    midColor,
+    highColor,
+    boundUnit,
+    percentDenominator,
   }: ConditionalFormattingConfig,
   columnValues: number[] | string[] | (boolean | null)[],
   alpha?: boolean,
 ) => {
+  const resolvePercentBound = (bound: number | undefined) => {
+    if (boundUnit !== BoundUnit.Percent || bound === undefined) {
+      return bound;
+    }
+    const numericColumnValues = (
+      columnValues as (number | string | boolean | null)[]
+    ).filter((value): value is number => typeof value === 'number');
+    if (numericColumnValues.length === 0) {
+      return undefined;
+    }
+    // Sum magnitudes independently so mixed signs do not cancel into an
+    // unstable denominator. A non-positive column maximum cannot produce
+    // ordered percentage bounds, so it falls back to the automatic range.
+    const denominatorValue =
+      percentDenominator === PercentDenominator.Sum
+        ? numericColumnValues.reduce((sum, value) => sum + Math.abs(value), 0)
+        : numericColumnValues.reduce(
+            (max, value) => (value > max ? value : max),
+            -Infinity,
+          );
+    if (denominatorValue <= 0) {
+      return undefined;
+    }
+    return (bound / 100) * denominatorValue;
+  };
+
+  const minBound = resolvePercentBound(rawMinBound);
+  const maxBound = resolvePercentBound(rawMaxBound);
+  const centerValue = resolvePercentBound(rawCenterValue);
+
   let minOpacity = MIN_OPACITY_BOUNDED;
   const maxOpacity = MAX_OPACITY;
 
   let comparatorFunction: (
     value: number | string | boolean | null,
     allValues: number[] | string[] | (boolean | null)[],
-  ) => false | { cutoffValue: number | string; extremeValue: number | string };
+  ) =>
+    | false
+    | {
+        cutoffValue: number | string;
+        extremeValue: number | string;
+        opacityValue?: number;
+      };
   if (operator === undefined || colorScheme === undefined) {
     return () => undefined;
   }
@@ -117,8 +216,19 @@ export const getColorFunction = (
         if (typeof value !== 'number') {
           return { cutoffValue: value!, extremeValue: value! };
         }
-        const cutoffValue = Math.min(...allValues);
-        const extremeValue = Math.max(...allValues);
+        const cutoffValue = minBound ?? Math.min(...allValues);
+        const extremeValue = maxBound ?? Math.max(...allValues);
+        const hasManualBound = minBound !== undefined || maxBound !== undefined;
+        if (cutoffValue > extremeValue) {
+          return false;
+        }
+        if (hasManualBound) {
+          return {
+            cutoffValue,
+            extremeValue,
+            opacityValue: Math.min(Math.max(value, cutoffValue), extremeValue),
+          };
+        }
         return value >= cutoffValue && value <= extremeValue
           ? { cutoffValue, extremeValue }
           : false;
@@ -129,7 +239,10 @@ export const getColorFunction = (
         typeof targetValue === 'number' && value > targetValue!
           ? {
               cutoffValue: targetValue!,
-              extremeValue: Math.max(...allValues),
+              extremeValue:
+                maxBound !== undefined && maxBound > targetValue
+                  ? maxBound
+                  : Math.max(...allValues),
             }
           : false;
       break;
@@ -138,7 +251,10 @@ export const getColorFunction = (
         typeof targetValue === 'number' && value < targetValue!
           ? {
               cutoffValue: targetValue!,
-              extremeValue: Math.min(...allValues),
+              extremeValue:
+                minBound !== undefined && minBound < targetValue
+                  ? minBound
+                  : Math.min(...allValues),
             }
           : false;
       break;
@@ -147,7 +263,10 @@ export const getColorFunction = (
         typeof targetValue === 'number' && value >= targetValue!
           ? {
               cutoffValue: targetValue!,
-              extremeValue: Math.max(...allValues),
+              extremeValue:
+                maxBound !== undefined && maxBound > targetValue
+                  ? maxBound
+                  : Math.max(...allValues),
             }
           : false;
       break;
@@ -156,7 +275,10 @@ export const getColorFunction = (
         typeof targetValue === 'number' && value <= targetValue!
           ? {
               cutoffValue: targetValue!,
-              extremeValue: Math.min(...allValues),
+              extremeValue:
+                minBound !== undefined && minBound < targetValue
+                  ? minBound
+                  : Math.min(...allValues),
             }
           : false;
       break;
@@ -272,7 +394,32 @@ export const getColorFunction = (
     }
     const compareResult = comparatorFunction(value, columnValues);
     if (compareResult === false) return undefined;
-    const { cutoffValue, extremeValue } = compareResult;
+    const { cutoffValue, extremeValue, opacityValue } = compareResult;
+    const resolvedValue = opacityValue ?? value;
+
+    if (
+      useGradient !== false &&
+      operator === Comparator.None &&
+      typeof resolvedValue === 'number' &&
+      isValidDivergingConfig(
+        centerValue,
+        lowColor,
+        midColor,
+        highColor,
+        cutoffValue,
+        extremeValue,
+      )
+    ) {
+      return getDivergingColor(
+        resolvedValue,
+        cutoffValue as number,
+        centerValue,
+        extremeValue as number,
+        lowColor!,
+        midColor!,
+        highColor!,
+      );
+    }
 
     if (typeof colorScheme === 'string') {
       if (isSpecialColor(colorScheme)) {
@@ -297,7 +444,13 @@ export const getColorFunction = (
       if (alpha === undefined || alpha) {
         return addAlpha(
           cleanHex,
-          getOpacity(value, cutoffValue, extremeValue, minOpacity, maxOpacity),
+          getOpacity(
+            opacityValue ?? value,
+            cutoffValue,
+            extremeValue,
+            minOpacity,
+            maxOpacity,
+          ),
         );
       }
       return colorScheme;
@@ -315,22 +468,47 @@ export const getColorFunction = (
     if (alpha === undefined || alpha) {
       return addAlpha(
         baseHexColor,
-        getOpacity(value, cutoffValue, extremeValue, minOpacity, maxOpacity),
+        getOpacity(
+          opacityValue ?? value,
+          cutoffValue,
+          extremeValue,
+          minOpacity,
+          maxOpacity,
+        ),
       );
     }
     return baseHexColor;
   };
 };
 
-export const getColorFormatters = memoizeOne(
+type GetColorFormatters = (
+  columnConfig: ConditionalFormattingConfig[] | undefined,
+  data: DataRecord[],
+  theme?: Record<string, any>,
+  alpha?: boolean,
+  disablePercentBounds?: boolean,
+) => ColorFormatters;
+
+export const getColorFormatters: MemoizedFn<GetColorFormatters> = memoizeOne(
   (
     columnConfig: ConditionalFormattingConfig[] | undefined,
     data: DataRecord[],
     theme?: Record<string, any>,
     alpha?: boolean,
+    disablePercentBounds = false,
   ) =>
     columnConfig?.reduce(
       (acc: ColorFormatters, config: ConditionalFormattingConfig) => {
+        const colorFunctionConfig =
+          disablePercentBounds && config.boundUnit === BoundUnit.Percent
+            ? {
+                ...config,
+                boundUnit: BoundUnit.Value,
+                minBound: undefined,
+                maxBound: undefined,
+                centerValue: undefined,
+              }
+            : config;
         let resolvedColorScheme = config.colorScheme;
         if (
           theme &&
@@ -357,7 +535,7 @@ export const getColorFormatters = memoizeOne(
             columnFormatting: config?.columnFormatting,
             objectFormatting: config?.objectFormatting,
             getColorFromValue: getColorFunction(
-              { ...config, colorScheme: resolvedColorScheme },
+              { ...colorFunctionConfig, colorScheme: resolvedColorScheme },
               data.map(row => row[config.column!] as number),
               alpha,
             ),
