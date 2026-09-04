@@ -1892,7 +1892,9 @@ def test_values_for_column_sorts_list_values_with_null_elements(
 
     assert values[0] is None
     assert len(values) == 4
-    assert [None, "a"] in values and ["a"] in values and ["b", None] in values
+    assert [None, "a"] in values
+    assert ["a"] in values
+    assert ["b", None] in values
 
 
 def test_values_for_column_normalizes_non_finite_floats(
