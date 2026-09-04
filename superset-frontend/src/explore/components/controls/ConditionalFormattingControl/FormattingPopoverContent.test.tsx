@@ -880,6 +880,38 @@ test('selecting Low/Mid/High colors submits the exact colors clicked to onChange
   expect(tinycolor(payload.highColor).toHexString()).toEqual(highExpected);
 });
 
+test('hides Use gradient once a complete diverging config is set, since diverging always interpolates', async () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      allColumns={columns}
+      extraColorChoices={extraColorChoices}
+    />,
+  );
+
+  expect(screen.getByText('Use gradient')).toBeInTheDocument();
+
+  const centerValueInput = screen.getByLabelText(
+    'Center value',
+    boundLabelOptions,
+  );
+  await userEvent.type(centerValueInput, '50');
+  fireEvent.blur(centerValueInput);
+
+  await pickPresetColorAt('Low color', 0);
+  await pickPresetColorAt('Mid color', 1);
+  await pickPresetColorAt('High color', 2);
+
+  // Diverging mode always interpolates a color and has no solid,
+  // non-gradient rendering to fall back to, so once it's fully configured
+  // the checkbox that previously stayed visible while silently having no
+  // effect on it must no longer be shown (see PR review finding #3).
+  await waitFor(() => {
+    expect(screen.queryByText('Use gradient')).not.toBeInTheDocument();
+  });
+});
+
 test('shows the percent denominator select only when Bound unit is set to percent, for both None and a directional operator', async () => {
   const { rerender } = render(
     <FormattingPopoverContent

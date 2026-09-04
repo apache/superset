@@ -606,13 +606,43 @@ export const FormattingPopoverContent = ({
   );
   const defaultColorToken = colors[0]?.colors?.[0];
 
+  // The diverging low/mid/high scale always interpolates a color -- it has
+  // no "solid, non-gradient" rendering to fall back to -- so "Use gradient"
+  // has no effect once diverging mode is active. Hide it in that state
+  // instead of leaving a checkbox visible that silently does nothing (see
+  // PR review finding #3): a config counts as "diverging" here using the
+  // same field-presence check getColorFunction uses, without replicating
+  // its center-value-in-range validation, since this only decides whether
+  // to show an unrelated checkbox, not whether diverging colors apply.
+  const divergingOperator = Form.useWatch('operator', form);
+  const divergingCenterValue = Form.useWatch('centerValue', form);
+  const divergingLowColor = Form.useWatch('lowColor', form);
+  const divergingMidColor = Form.useWatch('midColor', form);
+  const divergingHighColor = Form.useWatch('highColor', form);
+  const isDivergingActive = useMemo(
+    () =>
+      isOperatorNone(divergingOperator) &&
+      divergingCenterValue !== undefined &&
+      divergingLowColor !== undefined &&
+      divergingMidColor !== undefined &&
+      divergingHighColor !== undefined,
+    [
+      divergingOperator,
+      divergingCenterValue,
+      divergingLowColor,
+      divergingMidColor,
+      divergingHighColor,
+    ],
+  );
+
   const visibleUseGradient = useMemo(
     () =>
       numericColumns.length > 0
         ? numericColumns.some((col: ColumnOption) => col.value === column) &&
-          objectFormatting === ObjectFormattingEnum.BACKGROUND_COLOR
+          objectFormatting === ObjectFormattingEnum.BACKGROUND_COLOR &&
+          !isDivergingActive
         : false,
-    [column, numericColumns, objectFormatting],
+    [column, numericColumns, objectFormatting, isDivergingActive],
   );
 
   const handleObjectChange = (value: ObjectFormattingEnum) => {
