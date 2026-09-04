@@ -360,10 +360,11 @@ def test_import_dedupes_datasets_with_same_uuid(
 ):
     """_import() must import a given dataset uuid at most once per run.
 
-    Some examples re-export the same physical table under a different
-    folder (e.g. "world_health" and "misc_charts" both ship a dataset
-    config for "wb_health_population" with an identical uuid). Importing
-    it twice repeats the same column/metric sync for no benefit.
+    Two example folders can ship a dataset config for the same
+    underlying table with an identical uuid (e.g. "world_health" and
+    "misc_charts" both shipping a config for "wb_health_population").
+    Importing it twice repeats the same column/metric sync for no
+    benefit.
     """
     from superset.commands.importers.v1.examples import ImportExamplesCommand
 

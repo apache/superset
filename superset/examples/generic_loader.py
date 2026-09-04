@@ -152,11 +152,13 @@ def load_parquet_table(  # noqa: C901
 
         # Write to target database. Scale the row chunksize down for wide
         # tables so a single batch's bound-parameter count (rows * columns)
-        # stays reasonable -- a flat chunksize=500 on a 328-column table
-        # generates ~164k params per batch, close to some backends' limits
-        # and slower to plan than a right-sized batch.
+        # stays under stock SQLite's default SQLITE_MAX_VARIABLE_NUMBER of
+        # 32766 -- a flat chunksize=500 on a 328-column table generates
+        # ~164k params per batch, which only some builds raise the limit
+        # for (e.g. Debian's SQLite package). A right-sized batch also
+        # plans faster than an oversized one.
         num_cols = max(len(pdf.columns), 1)
-        chunksize = max(50, min(500, 50_000 // num_cols))
+        chunksize = max(50, min(500, 30_000 // num_cols))
 
         with database.get_sqla_engine() as engine:
             pdf.to_sql(

@@ -63,8 +63,13 @@ def _load_dataset(
     try:
         loader(**params)
     except Exception as e:
-        logger.warning("Failed to load %s: %s", dataset_name, e)
-    finally:
+        logger.warning(
+            "Failed to load %s after %.2fs: %s",
+            dataset_name,
+            time.perf_counter() - start,
+            e,
+        )
+    else:
         logger.info("Finished [%s] in %.2fs", dataset_name, time.perf_counter() - start)
 
 
