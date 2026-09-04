@@ -1441,6 +1441,31 @@ def test_metric_macro_no_dataset_id_no_context(mocker: MockerFixture) -> None:
         DatasetDAO.find_by_id.assert_not_called()
 
 
+def test_metric_macro_no_dataset_id_non_json_body_with_json_content_type(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the ``metric_macro`` when the request context's Content-Type claims
+    JSON but the body isn't parseable JSON -- the shape of the request an MCP
+    tool call runs in. Previously ``request.get_json()`` let a raw Werkzeug
+    ``BadRequest`` escape here instead of falling through to the
+    dataset-not-specified path.
+    """
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {}
+    env = SandboxedEnvironment(undefined=DebugUndefined)
+    with current_app.test_request_context(
+        data="not-json-at-all", content_type="application/json"
+    ):
+        with pytest.raises(SupersetTemplateException) as excinfo:
+            metric_macro(env, {}, "macro_key")
+        assert str(excinfo.value) == (
+            "Please specify the Dataset ID for the ``macro_key`` metric in the Jinja macro."  # noqa: E501
+        )
+        DatasetDAO.find_by_id.assert_not_called()
+
+
 def test_metric_macro_no_dataset_id_with_context_missing_info(
     mocker: MockerFixture,
 ) -> None:

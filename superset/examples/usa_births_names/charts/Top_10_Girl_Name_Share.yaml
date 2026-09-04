@@ -29,7 +29,7 @@ params:
   compare_lag: '10'
   compare_suffix: o10Y
   comparison_type: values
-  granularity: ds
+  x_axis: ds
   groupby:
   - name
   limit: 10
@@ -47,7 +47,7 @@ params:
   time_grain_sqla: P1D
   time_range: '100 years ago : now'
   viz_type: echarts_area
-  x_axis_forma: smart_date
+  x_axis_time_format: smart_date
 query_context: null
 slice_name: Top 10 Girl Name Share
 uuid: 44c4c16f-216d-44c8-b033-6876b8c51fd2

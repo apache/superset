@@ -24,7 +24,7 @@ params:
   compare_suffix: o10Y
   country_fieldtype: cca3
   entity: country_code
-  granularity: year
+  x_axis: year
   groupby:
   - country_name
   limit: '25'

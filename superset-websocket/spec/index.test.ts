@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const jwt = require('jsonwebtoken');
-const config = require('../config.test.json');
 
+import jwt from 'jsonwebtoken';
+import config from '../config.test.json' with { type: 'json' };
 import {
   describe,
   expect,
@@ -645,7 +645,7 @@ describe('server', () => {
       pongHandler(Buffer.from('constructor'));
       pongHandler(Buffer.from('hasOwnProperty'));
 
-      // eslint-disable-next-line no-prototype-builtins
+      // oxlint-disable-next-line no-prototype-builtins
       expect(Object.prototype.hasOwnProperty('pongTs')).toBe(false);
       expect(({} as Record<string, unknown>).pongTs).toBeUndefined();
 

@@ -188,7 +188,7 @@ jobs:
   actions-timeline:
     needs: playwright-tests-experimental
     if: always()
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     permissions:
       actions: read
     steps:

@@ -74,7 +74,7 @@ jobs:
   actions-timeline:
     needs: test-superset-extensions-cli-package
     if: always()
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     steps:
       - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
         with:
