@@ -240,7 +240,7 @@ msgpack==1.2.1
     # via apache-superset (pyproject.toml)
 msgspec==0.19.0
     # via flask-session
-nh3==0.3.6
+nh3==0.3.7
     # via apache-superset (pyproject.toml)
 numexpr==2.10.2
     # via -r requirements/base.in

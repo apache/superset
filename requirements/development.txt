@@ -569,7 +569,7 @@ msgspec==0.19.0
     #   flask-session
 mysqlclient==2.2.8
     # via apache-superset
-nh3==0.3.6
+nh3==0.3.7
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
