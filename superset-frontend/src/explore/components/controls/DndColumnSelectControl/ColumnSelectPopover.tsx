@@ -299,8 +299,25 @@ const ColumnSelectPopover = ({
     [setLabel, availableMetrics],
   );
 
+  // Full reset for the combined pickers' clear (×). antd's ``allowClear``
+  // fires ``onChange(undefined)``, which the item dispatchers below can't map
+  // to a column or metric, so an explicit clear branch is what returns the
+  // control to empty: it drops every selection (column/metric/adhoc) and
+  // resets the label.
+  const resetSelection = useCallback(() => {
+    setSelectedCalculatedColumn(undefined);
+    setSelectedSimpleColumn(undefined);
+    setSelectedMetric(undefined);
+    setAdhocColumn(undefined);
+    setLabel('');
+  }, [setLabel]);
+
   const onSimpleItemChange = useCallback(
-    (selectedValue: string) => {
+    (selectedValue?: string) => {
+      if (!selectedValue) {
+        resetSelection();
+        return;
+      }
       const selectedColumn = columnMap[selectedValue];
       if (selectedColumn) {
         onSimpleColumnChange(selectedValue);
@@ -312,14 +329,24 @@ const ColumnSelectPopover = ({
         onSimpleMetricChange(selectedValue);
       }
     },
-    [columnMap, metricMap, onSimpleColumnChange, onSimpleMetricChange],
+    [
+      columnMap,
+      metricMap,
+      onSimpleColumnChange,
+      onSimpleMetricChange,
+      resetSelection,
+    ],
   );
 
   // With Saved classification the combined column/metric controls surface
   // their metrics in the Saved mode (Simple is disabled), so metric
   // selection keeps working there.
   const onSavedItemChange = useCallback(
-    (selectedValue: string) => {
+    (selectedValue?: string) => {
+      if (!selectedValue) {
+        resetSelection();
+        return;
+      }
       if (calculatedColumns.some(col => col.column_name === selectedValue)) {
         onCalculatedColumnChange(selectedValue);
         return;
@@ -333,6 +360,7 @@ const ColumnSelectPopover = ({
       metricMap,
       onCalculatedColumnChange,
       onSimpleMetricChange,
+      resetSelection,
     ],
   );
 

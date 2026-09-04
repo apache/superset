@@ -742,6 +742,25 @@ def test_semantic_view_data_features_declared(
     assert all(column["expression"] is None for column in data["columns"])
 
 
+def test_semantic_view_data_features_tolerates_raw_string(
+    mock_implementation: MagicMock,
+    semantic_view: SemanticView,
+) -> None:
+    """A provider may hand back a raw string instead of a SemanticViewFeature
+    member; the payload degrades to the string value rather than 500-ing
+    Explore for that datasource (new providers stay safe by default)."""
+    mock_implementation.features = frozenset(
+        {SemanticViewFeature.GROUP_LIMIT, "CUSTOM_PROVIDER_FEATURE"}
+    )
+
+    data = semantic_view.data
+
+    assert data["semantic_view_features"] == [
+        "CUSTOM_PROVIDER_FEATURE",
+        "GROUP_LIMIT",
+    ]
+
+
 @pytest.fixture
 def mock_grain_variant_dimensions() -> list[Dimension]:
     """Time column exposed as multiple Dimension variants, one per grain."""

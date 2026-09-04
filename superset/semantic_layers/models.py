@@ -414,9 +414,13 @@ class SemanticView(AuditMixinNullable, Model):
             "uid": self.uid,
             "type": "semantic_view",
             # Sorted for a deterministic payload; values are the stable
-            # SemanticViewFeature strings, never provider identity.
+            # SemanticViewFeature strings, never provider identity. A provider
+            # may hand back a raw string instead of the enum member, so fall
+            # back to the value itself rather than 500-ing Explore for that
+            # datasource (a new provider must stay safe by default).
             "semantic_view_features": sorted(
-                feature.value for feature in self.implementation.features
+                getattr(feature, "value", feature)
+                for feature in self.implementation.features
             ),
             "name": self.name,
             "columns": [

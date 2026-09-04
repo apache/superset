@@ -463,6 +463,59 @@ test('reopens an existing semantic dimension on Saved with the item selected', (
   ).toBeInTheDocument();
 });
 
+test('clearing the Saved-only dimension resets the selection', async () => {
+  // In Saved-only mode Simple and Custom SQL are disabled, so the Saved
+  // picker's clear (×) is the user's only reset control. It must actually
+  // reset — antd fires onChange(undefined), which onSavedItemChange now maps
+  // to a full reset (clearing the label back to '').
+  const setLabel = jest.fn();
+  renderSemanticPopover({ editedColumn: SEMANTIC_COLUMNS[1], setLabel });
+
+  const savedPanel = screen.getByRole('tabpanel', { name: 'Saved' });
+  const clearButton = savedPanel.querySelector(
+    '.ant-select-clear',
+  ) as HTMLElement;
+  expect(clearButton).toBeInTheDocument();
+
+  userEvent.click(clearButton);
+
+  await waitFor(() => expect(setLabel).toHaveBeenCalledWith(''));
+});
+
+test('clearing the Simple-mode item resets the selection', async () => {
+  // onSimpleItemChange shares onSavedItemChange's clear branch; pin it too so
+  // the combined Simple picker's clear (×) can't regress independently.
+  const setLabel = jest.fn();
+  const columns = [{ column_name: 'year' }];
+  const store = mockStore({ explore: { datasource: { type: 'table' } } });
+
+  render(
+    <ColumnSelectPopover
+      hasCustomLabel
+      isTemporal
+      label="Custom Label"
+      onClose={jest.fn()}
+      setDatasetModal={jest.fn()}
+      setLabel={setLabel}
+      columns={columns}
+      editedColumn={columns[0]}
+      getCurrentTab={jest.fn()}
+      onChange={jest.fn()}
+    />,
+    { store },
+  );
+
+  const simplePanel = screen.getByRole('tabpanel', { name: 'Simple' });
+  const clearButton = simplePanel.querySelector(
+    '.ant-select-clear',
+  ) as HTMLElement;
+  expect(clearButton).toBeInTheDocument();
+
+  userEvent.click(clearButton);
+
+  await waitFor(() => expect(setLabel).toHaveBeenCalledWith(''));
+});
+
 test('disables Saved dimensions absent from a verified compatibility result', () => {
   renderSemanticPopover(
     {},
