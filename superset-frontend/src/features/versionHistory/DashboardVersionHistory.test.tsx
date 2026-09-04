@@ -300,7 +300,5 @@ test('renders the panel in place while open — the closed-state discriminator',
   const store = makeStore();
   const { container } = renderAdapter(store);
   expect(container).not.toBeEmptyDOMElement();
-  expect(
-    screen.getByTestId('mock-version-history-panel'),
-  ).toBeInTheDocument();
+  expect(screen.getByTestId('mock-version-history-panel')).toBeInTheDocument();
 });
