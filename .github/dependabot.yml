@@ -84,6 +84,18 @@ updates:
           - "@swc/core"
           - "@swc/plugin-emotion"
           - "@swc/plugin-transform-imports"
+      jsonforms:
+        patterns:
+          - "@jsonforms/*"
+      visx:
+        patterns:
+          - "@visx/*"
+      emotion:
+        patterns:
+          - "@emotion/*"
+      fontsource:
+        patterns:
+          - "@fontsource/*"
     open-pull-requests-limit: 30
     versioning-strategy: increase
     cooldown:
