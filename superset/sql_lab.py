@@ -111,15 +111,16 @@ def handle_query_error(
     # just ones caused by the stop itself. A terminal stop must stay
     # terminal, so don't let an unrelated error overwrite it with FAILED.
     #
-    # flush() first: refresh() does NOT autoflush (verified against
-    # SQLAlchemy 2.0 behavior) -- it discards any pending, uncommitted
-    # attribute changes on `query` and reloads straight from the DB. Without
-    # flushing first, a pending change made earlier in the caller (e.g.
-    # query.executed_sql, set just before a statement that then raised)
-    # would be silently lost instead of persisted alongside this function's
-    # own db.session.commit() below.
-    db.session.flush()
-    db.session.refresh(query)
+    # Deliberately NOT a flush()-then-refresh(query) here, unlike the other
+    # STOPPED-preservation checks in this module: the exception that got us
+    # here may itself have already set query.status locally (e.g.
+    # SoftTimeLimitExceeded's own handler sets TIMED_OUT without
+    # committing). Flushing first would push that stale local status to the
+    # DB, clobbering a concurrently-committed STOPPED before this check ever
+    # gets to observe it. A targeted, status-only refresh reloads just that
+    # one column from the DB -- correctly observing a concurrent STOPPED --
+    # without writing this handler's own possibly-stale local state first.
+    db.session.refresh(query, attribute_names=["status"])
     if query.status == QueryStatus.STOPPED:
         payload.update({"status": query.status})
         return payload

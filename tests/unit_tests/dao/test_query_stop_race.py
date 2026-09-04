@@ -994,3 +994,105 @@ def test_execute_sql_statements_success_path_persists_result_metadata(
         "results-backend write succeeds, not be silently discarded"
     )
     results_backend_mock.set.assert_called_once()
+
+
+def test_timed_out_exception_racing_stop_keeps_stopped_not_resurrected(
+    mocker: MockerFixture, app: Any
+) -> None:
+    """
+    Regression test for round 7: the flush() added to handle_query_error()
+    to fix the round-6 metadata-loss bug reintroduced exactly the race
+    rounds 2-3 already closed, for this one call site specifically.
+
+    execute_query()'s own `except SoftTimeLimitExceeded` handler sets
+    query.status = TIMED_OUT *locally, without committing*, then raises --
+    the per-block loop's exception handler feeds that straight into
+    handle_query_error(). If a stop commits STOPPED for real while that
+    local TIMED_OUT is still only pending, handle_query_error()'s flush()
+    would push the stale local TIMED_OUT to the DB -- clobbering the
+    concurrently-committed STOPPED -- before the very next line's refresh()
+    ever got a chance to observe it, so the STOPPED-check incorrectly fell
+    through and the query ended up FAILED instead of staying STOPPED.
+
+    Fixed by replacing flush()+refresh(query) with a targeted
+    refresh(query, attribute_names=["status"]) in handle_query_error()
+    specifically: it reloads only the status column from the DB -- correctly
+    observing the concurrently-committed STOPPED -- without first writing
+    this handler's own possibly-stale local state (the very thing that
+    caused the clobber).
+
+    The exception here is deliberately "SoftTimeLimitExceeded-shaped"
+    (mirrors exactly what that handler does: set status locally, then raise
+    a SupersetErrorException) rather than importing Celery's real exception
+    class, matching how other tests in this file simulate an unrelated
+    failure (e.g. a plain RuntimeError) without needing the real exception
+    type -- what matters is the "local status set without committing, then
+    an exception propagates into handle_query_error()" shape, not the
+    specific exception class.
+    """
+    from superset.common.db_query_status import QueryStatus
+    from superset.daos.query import QueryDAO
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetErrorException
+
+    harness = _RaceHarness(mocker)
+    query_id, client_id = harness.make_query("timed-out-races-stop")
+
+    mocker.patch.object(
+        SqliteEngineSpec, "get_cancel_query_id", return_value="fake-cancel-id"
+    )
+    mocker.patch.object(SqliteEngineSpec, "cancel_query", return_value=True)
+
+    reached_pause = threading.Event()
+    release_execution = threading.Event()
+
+    def paused_timed_out_execute_query(query: Any, cursor: Any, log_params: Any) -> Any:
+        reached_pause.set()
+        assert release_execution.wait(timeout=5), "test deadlocked waiting for release"
+        # Mirrors execute_query()'s own `except SoftTimeLimitExceeded`
+        # handler exactly: set status locally (uncommitted), then raise.
+        query.status = QueryStatus.TIMED_OUT
+        raise SupersetErrorException(
+            SupersetError(
+                message="simulated soft time limit exceeded",
+                error_type=SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+
+    mocker.patch(
+        "superset.sql_lab.execute_query", side_effect=paused_timed_out_execute_query
+    )
+
+    execution_result: dict[str, Any] = {}
+    worker = harness.run_execution(app, query_id, execution_result)
+
+    try:
+        assert reached_pause.wait(timeout=5), "execution never reached the pause point"
+
+        query = harness.fresh_query(query_id)
+        assert query.status == QueryStatus.RUNNING
+
+        # Succeeds: a real cancel ID is on record and the (mocked) real
+        # cancel attempt succeeds -- the normal/existing path.
+        QueryDAO.stop_query(client_id)
+
+        stopped_query = harness.fresh_query(query_id)
+        assert stopped_query.status == QueryStatus.STOPPED
+    finally:
+        release_execution.set()
+
+    worker.join(timeout=10)
+    assert not worker.is_alive(), "execute_sql_statements did not finish in time"
+
+    final_query = harness.fresh_query(query_id)
+    assert final_query.status == QueryStatus.STOPPED, (
+        f"expected the concurrently-committed STOPPED to survive the "
+        f"TIMED_OUT-shaped exception's own handle_query_error() call "
+        f"instead of being clobbered and resurrected as FAILED, got "
+        f"status={final_query.status!r}"
+    )
+    assert final_query.error_message is None
+    assert execution_result["payload"] is not None
+    assert execution_result["payload"]["status"] == QueryStatus.STOPPED
