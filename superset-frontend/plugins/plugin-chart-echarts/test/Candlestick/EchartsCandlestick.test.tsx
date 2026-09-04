@@ -54,7 +54,9 @@ test('forwards legend selection changes', () => {
       height: 600,
       queriesData: [
         {
-          data: [{ date: '2017-10-24', open: 20, close: 34, low: 10, high: 38 }],
+          data: [
+            { date: '2017-10-24', open: 20, close: 34, low: 10, high: 38 },
+          ],
         },
       ],
       theme: supersetTheme,
