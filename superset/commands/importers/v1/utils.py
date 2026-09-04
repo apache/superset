@@ -19,6 +19,7 @@ from typing import Any, Callable, Dict, Optional, Type
 from zipfile import ZipFile
 
 import yaml
+from flask import current_app
 from marshmallow import fields, Schema, validate
 from marshmallow.exceptions import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
@@ -594,3 +595,17 @@ def clear_soft_deleted_for_import(existing: Any) -> None:
     """
     db.session.delete(existing)
     db.session.flush()
+
+
+def apply_extra_import_fields(
+    model: Any, asset_type: str, extra: dict[str, Any] | None
+) -> None:
+    """Hand the exported ``extra`` mapping to the deployment's import handler.
+
+    No-op unless ``EXTRA_ASSET_IMPORT_HANDLER`` is configured, so imports are
+    unchanged by default. Called once the asset exists and has an id.
+    """
+    if not extra:
+        return
+    if handler := current_app.config.get("EXTRA_ASSET_IMPORT_HANDLER"):
+        handler(model, asset_type, extra)
