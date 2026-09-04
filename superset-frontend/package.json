@@ -321,7 +321,7 @@
     "html-webpack-plugin": "^5.6.8",
     "imports-loader": "^5.0.0",
     "jest": "^30.4.2",
-    "jest-environment-jsdom": "^30.4.1",
+    "jest-environment-jsdom": "^30.5.0",
     "jest-html-reporter": "^4.4.0",
     "jest-websocket-mock": "^2.5.0",
     "js-yaml-loader": "^1.2.2",
