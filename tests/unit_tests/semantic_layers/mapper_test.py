@@ -80,7 +80,7 @@ class MockSemanticView:
     Deliberately exposes NO public ``metrics``/``dimensions`` attributes —
     the ABC declares only ``get_metrics()``/``get_dimensions()`` — so every
     test in this file exercises the method contract; mapper code that
-    duck-types the undeclared attributes fails here (sc-119510).
+    duck-types the undeclared attributes fails here (apache/superset#43886).
     """
 
     def __init__(
@@ -106,8 +106,9 @@ class MockSemanticView:
 class AbcOnlyView(SemanticView):
     """Strictly ABC-compliant view: implements ONLY the abstract surface.
 
-    sc-119510 regression fixture — no ``metrics``/``dimensions`` attributes
-    exist on it, so mapper code that duck-types those names (instead of
+    Regression fixture for apache/superset#43886 — no ``metrics`` or
+    ``dimensions`` attributes exist on it, so mapper code that duck-types
+    those names (instead of
     calling the declared ``get_metrics()``/``get_dimensions()``) raises
     AttributeError here. A provider built exactly to the documented ABC
     used to 500 on its first chart query.
@@ -117,6 +118,9 @@ class AbcOnlyView(SemanticView):
     name = "abc_only"
 
     def __init__(self, dimensions: set[Dimension], metrics: set[Metric]) -> None:
+        # Name-mangled on purpose (unlike MockSemanticView's _-prefixed
+        # storage): guarantees no duck-typable metrics/dimensions — or even
+        # _metrics/_dimensions — attribute exists on this fixture.
         self.__dimensions = dimensions
         self.__metrics = metrics
 
@@ -2879,8 +2883,11 @@ def test_validate_metrics_adhoc_error(
         "total_sales", "total_sales", pa.float64(), "SUM(amount)", "Sales"
     )
 
-    mock_datasource.implementation._dimensions = {category_dim}
-    mock_datasource.implementation._metrics = {sales_metric}
+    mock_datasource.implementation = MockSemanticView(
+        dimensions={category_dim},
+        metrics={sales_metric},
+        features=frozenset(),
+    )
 
     # Manually create a query object with an adhoc metric
     query_object = mocker.Mock()
@@ -4113,7 +4120,7 @@ def test_mapper_accepts_grain_column_built_by_tabular_query(
 
 
 def test_abc_only_provider_validates_and_maps(mocker: MockerFixture) -> None:
-    """sc-119510 regression: a provider implementing ONLY the SemanticView
+    """apache/superset#43886 regression: a provider implementing ONLY the SemanticView
     ABC — the abstract methods, no undeclared attributes — must pass
     validation and mapping. The mapper used to read bare
     ``.metrics``/``.dimensions`` and crash with AttributeError (an HTTP 500

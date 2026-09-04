@@ -346,9 +346,8 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
     visualization and more on semantics.
     """
     semantic_view = query_object.datasource.implementation
-    # The ABC contract is the get_metrics()/get_dimensions() methods — call
-    # them (once per mapping) instead of reading undeclared attributes that
-    # only shipped providers happen to define (sc-119510).
+    # The SemanticView ABC contract is the get_metrics()/get_dimensions()
+    # methods; never read undeclared attributes off the provider view.
     view_metrics = semantic_view.get_metrics()
     view_dimensions = semantic_view.get_dimensions()
 
