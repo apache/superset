@@ -88,7 +88,16 @@ unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
   recovery, and pruning batches use a shared database coordination row held
   through commit. This serializes timestamp assignment with candidate deletion
   so an uncommitted writer cannot later publish a row into pruning's logical
-  past. A missing coordination row fails pruning closed.
+  past. A missing coordination row fails pruning closed. Because a pruning batch
+  holds this lock across its DELETE, on a very large audit table a concurrent
+  scheduled purge's audit write can block on it until the batch commits. On
+  PostgreSQL that write then succeeds (``lock_timeout`` is disabled by default);
+  where a lock or statement timeout is configured — and on MySQL
+  (``innodb_lock_wait_timeout``) or SQLite (which does not wait) — the write
+  instead fails closed, so the affected purge cycle is skipped and retried on its
+  next run rather than losing data. Batches are bounded (500 rows) and
+  index-backed to keep the window short — run pruning off-peak if the overlap is
+  noticeable.
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 - The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed should `pip uninstall cockroachdb && pip install sqlalchemy-cockroachdb` (or simply reinstall the extra) to restore CockroachDB connectivity.
 
