@@ -72,19 +72,21 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
 
     // Load extensions without blocking the initial render (see #40915);
     // surface any load failure as a warning toast instead of failing silently.
+    // ExtensionsLoader already logs the details of each failure, so only the
+    // user-facing toast is raised here.
     if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
       ExtensionsLoader.getInstance()
         .initializeExtensions()
-        .then(() =>
-          supersetCore.utils.logging.info(
-            'Extensions initialized successfully.',
-          ),
-        )
+        .then(failed => {
+          if (failed.length > 0) {
+            dispatch(
+              addWarningToast(
+                t('Some extensions failed to load: %s', failed.join(', ')),
+              ),
+            );
+          }
+        })
         .catch((error: unknown) => {
-          supersetCore.utils.logging.error(
-            'Error setting up extensions:',
-            error,
-          );
           dispatch(
             addWarningToast(t('Extensions failed to load: %s', String(error))),
           );

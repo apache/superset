@@ -338,7 +338,19 @@ const SqlEditor: FC<Props> = ({
     return readNorthPaneStorage(NORTH_PANE_VIEW_KEY(northPaneStorageId));
   });
 
+  // Tracks the storage id last written so that, when a tab syncs to the
+  // backend and `tabViewId` arrives, the entry under the old id-keyed key is
+  // removed rather than left orphaned in localStorage.
+  const northPaneStorageIdRef = useRef(northPaneStorageId);
+
   useEffect(() => {
+    if (northPaneStorageIdRef.current !== northPaneStorageId) {
+      writeNorthPaneStorage(
+        NORTH_PANE_VIEW_KEY(northPaneStorageIdRef.current),
+        null,
+      );
+      northPaneStorageIdRef.current = northPaneStorageId;
+    }
     writeNorthPaneStorage(
       NORTH_PANE_VIEW_KEY(northPaneStorageId),
       northPaneViewId,
