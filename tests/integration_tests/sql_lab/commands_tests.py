@@ -212,6 +212,28 @@ class TestSqlResultExportCommand(SupersetTestCase):
             )
 
     @pytest.mark.usefixtures("create_database_and_query")
+    def test_validation_malformed_jinja(self) -> None:
+        # ``raise_for_access`` re-parses the query's unrendered Jinja via
+        # ``process_jinja_sql`` and can raise a raw ``TemplateError`` (e.g. an
+        # unclosed ``{% if %}``). ``TemplateSyntaxError`` is a subclass of
+        # ``TemplateError``. It must surface as a 400, not an opaque 500.
+        assert issubclass(TemplateSyntaxError, TemplateError)
+
+        command = export.SqlResultExportCommand("test")
+
+        with mock.patch(
+            "superset.models.sql_lab.Query.raise_for_access",
+            side_effect=TemplateSyntaxError("unexpected end of template", lineno=1),
+        ):
+            with pytest.raises(SupersetErrorException) as ex_info:
+                command.run()
+            assert (
+                ex_info.value.error.error_type
+                == SupersetErrorType.GENERIC_COMMAND_ERROR
+            )
+            assert ex_info.value.status == 400
+
+    @pytest.mark.usefixtures("create_database_and_query")
     @patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
     @patch("superset.models.core.Database.get_df")
     def test_run_no_results_backend_select_sql(self, get_df_mock: Mock) -> None:
