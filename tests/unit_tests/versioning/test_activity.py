@@ -225,6 +225,13 @@ def test_decoration_redacts_record_from_reused_entity_id() -> None:
     assert record["entity_name"] == ""
     assert record["from_value"] is None
     assert record["to_value"] is None
+    # The editor identity of the deleted related entity must be redacted at the
+    # decoration layer (render.py sets ``changed_by = None``), so the seeded
+    # author "Ada Lovelace" is suppressed and cannot be surfaced or searched.
+    # Without this assertion the redaction can regress silently.
+    assert record["changed_by"] is None
+    assert "first_name" not in record
+    assert "last_name" not in record
 
 
 def test_bounded_heap_merges_newer_rows_from_later_id_chunks() -> None:
