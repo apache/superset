@@ -160,13 +160,23 @@ export const getColorFunction = (
     if (numericColumnValues.length === 0) {
       return undefined;
     }
-    const denominatorValue =
+    // A negative denominator (e.g. an all-losses column) would flip which
+    // end of the resolved range is the cutoff vs. the extreme, and a zero
+    // denominator collapses both bounds onto the same point -- take the
+    // magnitude, and treat zero the same as "no numeric values" (bound
+    // stays unset, falling back to this column's own data-derived range),
+    // rather than silently producing an inverted or fully-saturated scale.
+    const denominatorValue = Math.abs(
       percentDenominator === PercentDenominator.Sum
         ? numericColumnValues.reduce((sum, value) => sum + value, 0)
         : numericColumnValues.reduce(
             (max, value) => (value > max ? value : max),
             -Infinity,
-          );
+          ),
+    );
+    if (denominatorValue === 0) {
+      return undefined;
+    }
     return (bound / 100) * denominatorValue;
   };
 

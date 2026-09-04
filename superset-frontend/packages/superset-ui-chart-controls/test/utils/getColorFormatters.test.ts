@@ -1417,6 +1417,55 @@ test('getColorFunction NONE degrades percent bounds to unset when the column has
   expect(colorFunction(50)).toBeUndefined();
 });
 
+test('getColorFunction NONE resolves a negative percent Max denominator via its absolute magnitude', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+      boundUnit: BoundUnit.Percent,
+      percentDenominator: PercentDenominator.Max,
+      minBound: 0,
+      maxBound: 100,
+    },
+    [-10, -5],
+  );
+  // max of [-10,-5] is -5. Resolving maxBound to -5 directly would make
+  // cutoffValue (0) > extremeValue (-5), which the None branch's own guard
+  // treats as an invalid range and disables coloring entirely. Taking the
+  // magnitude (5) instead keeps cutoffValue < extremeValue, so both values
+  // clamp into [0, 5] and render (both at the low end, since neither is
+  // positive) rather than the whole rule going dark -- see PR review
+  // finding #2.
+  expect(colorFunction(-10)).toEqual('#FF000000');
+  expect(colorFunction(-5)).toEqual('#FF000000');
+});
+
+test('getColorFunction NONE degrades a zero-sum percent denominator to the data-derived range instead of full saturation', () => {
+  const colorFunction = getColorFunction(
+    {
+      operator: Comparator.None,
+      colorScheme: '#FF0000',
+      column: 'count',
+      boundUnit: BoundUnit.Percent,
+      percentDenominator: PercentDenominator.Sum,
+      minBound: 0,
+      maxBound: 100,
+    },
+    [100, -100],
+  );
+  // sum of [100,-100] is 0, which previously collapsed both resolved bounds
+  // to the same point (0) -- getOpacity's own cutoffValue===extremeValue
+  // guard then returns full opacity for every value, coloring the whole
+  // column at maximum intensity regardless of its actual spread. Treating a
+  // zero denominator as "unset" instead falls back to this column's own
+  // data-derived min/max ([-100,100]), producing a real gradient -- see PR
+  // review finding #2.
+  expect(colorFunction(-100)).toEqual('#FF000000');
+  expect(colorFunction(0)).toEqual('#FF000080');
+  expect(colorFunction(100)).toEqual('#FF0000FF');
+});
+
 test('getColorFunction GREATER_THAN ignores diverging fields even when fully set', () => {
   const colorFunction = getColorFunction(
     {
