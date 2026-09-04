@@ -135,6 +135,35 @@ test('structure failure yields error and empty columns with no cross-type fallba
   );
 });
 
+// The hook scopes `error` to the current binding so a one-render-stale failure
+// never surfaces against a new binding. That guard only bites during the single
+// render between a binding change and the clearing effect — which renderHook's
+// act()-wrapped rerender flushes past — so it cannot be observed here. It is
+// guarded end-to-end where it matters, in GroupByFilterCard.test.tsx
+// ('switching from a failed binding to a healthy one never toasts ...'), which
+// fails if the gate is removed.
+
+test('dataset-branch failure evicts the cache so a retry re-issues the request', async () => {
+  // cachedSupersetGet caches the in-flight promise and never evicts a
+  // rejected one; without eviction a single 500 poisons the endpoint for the
+  // whole page session. A fresh consumer for the same id must hit the network
+  // again rather than re-await the cached rejected promise.
+  fetchMock.get('glob:*/api/v1/dataset/405', 500);
+
+  const first = renderHook(() => useDisplayControlDatasource(405));
+  await waitFor(() => expect(first.result.current.error).toBeDefined());
+  const callsAfterFirst = fetchMock.callHistory.calls(
+    'glob:*/api/v1/dataset/405',
+  ).length;
+
+  renderHook(() => useDisplayControlDatasource(405));
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/dataset/405').length,
+    ).toBeGreaterThan(callsAfterFirst),
+  );
+});
+
 test('nullish id is inert: no fetch, empty columns, not loading', async () => {
   fetchMock.get('glob:*', 200);
 

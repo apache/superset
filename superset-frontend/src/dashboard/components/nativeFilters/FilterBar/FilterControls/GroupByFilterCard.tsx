@@ -50,7 +50,10 @@ import { setPendingChartCustomization } from 'src/dashboard/actions/chartCustomi
 import { TooltipWithTruncation } from 'src/dashboard/components/nativeFilters/FilterCard/TooltipWithTruncation';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { dispatchChartCustomizationHoverAction } from './utils';
-import { useDisplayControlDatasource } from '../../useDisplayControlDatasource';
+import {
+  displayControlBindingKey,
+  useDisplayControlDatasource,
+} from '../../useDisplayControlDatasource';
 import {
   datasetLabel as getDatasetLabel,
   datasetLabelLower,
@@ -333,7 +336,14 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     if (!datasourceError || normalizedDatasetId === undefined) {
       return;
     }
-    const binding = `${normalizedDatasetId}__${datasourceType || 'table'}`;
+    // The hook scopes `error` to the current binding, so a truthy error here
+    // always belongs to this datasource — no cross-binding mis-toast. The key
+    // is only used to toast a given binding's failure once, across the hook's
+    // re-renders and StrictMode's double-invoked effects.
+    const binding = displayControlBindingKey(
+      normalizedDatasetId,
+      datasourceType,
+    );
     if (toastedBindingRef.current === binding) {
       return;
     }

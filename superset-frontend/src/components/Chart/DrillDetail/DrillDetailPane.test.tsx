@@ -380,10 +380,17 @@ test('should use verbose_map for column headers when available', async () => {
 });
 
 /**
- * sc-111089 T013: a semantic-view drill resource shows the view's name; the
- * metadata rows the structure payload cannot fill render their explicit
- * "Not available" state — an accepted, pinned degradation, never another
- * object's values.
+ * sc-111089 T013: given a semantic-view-shaped resource, the pane shows the
+ * view's name and renders the metadata rows the structure payload cannot fill
+ * in their explicit "Not available" state — an accepted, pinned degradation,
+ * never another object's values.
+ *
+ * Scope note: DrillDetailPane receives its `dataset` as a prop, so this test
+ * pins only that rendering degradation. The type-aware RESOLUTION that keeps a
+ * semantic view off the colliding regular-dataset id lives upstream in
+ * useDatasetDrillInfo and is guarded directly in
+ * hooks/apiResources/datasets.test.ts (T012); it is deliberately not
+ * re-exercised here.
  */
 test('renders a semantic-view resource with Not available metadata rows', async () => {
   fetchWithNoData();

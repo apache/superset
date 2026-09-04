@@ -322,6 +322,40 @@ test('semantic structure failure renders empty options and toasts exactly once w
   );
 });
 
+test('switching from a failed binding to a healthy one never toasts the healthy datasource', async () => {
+  // Regression for the toast/binding mismatch: the hook clears its error one
+  // render after a binding change, so the render right after the switch pairs
+  // the PREVIOUS binding's error with the NEW binding's id. Un-guarded, that
+  // fires a danger toast naming the healthy datasource (sc-111089 review).
+  fetchMock.get('glob:*/api/v1/dataset/310', 500);
+  fetchMock.get('glob:*/api/v1/dataset/311', {
+    result: { table_name: 'Healthy', columns: [{ column_name: 'city' }] },
+  });
+
+  const { rerender } = renderCard([{ datasetId: 310 }]);
+
+  await waitFor(() => expect(mockedAddDangerToast).toHaveBeenCalledTimes(1));
+  expect(String(mockedAddDangerToast.mock.calls[0][0])).toMatch(/310/);
+
+  // Rebind to the healthy datasource.
+  rerender(
+    <GroupByFilterCard
+      customizationItem={customization([{ datasetId: 311 }])}
+    />,
+  );
+
+  // The healthy binding resolves and renders its columns — this render is
+  // strictly after the switch, so any spurious toast would already have fired
+  // and been counted by the time it settles (no wall-clock sleep needed).
+  const combobox = await screen.findByRole('combobox');
+  userEvent.click(combobox);
+  expect(await screen.findByText('city')).toBeInTheDocument();
+
+  // No toast ever names the healthy datasource 311.
+  expect(mockedAddDangerToast).toHaveBeenCalledTimes(1);
+  expect(String(mockedAddDangerToast.mock.calls[0][0])).not.toMatch(/311/);
+});
+
 /**
  * Upstream #42879 muted the column-loading spinner. Re-expressed here in this
  * suite's fetchMock idiom: a never-resolving dataset route pins the card in

@@ -63,7 +63,11 @@ import { LOG_ACTIONS_CHANGE_DASHBOARD_FILTER } from 'src/logger/LogUtils';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { isChartCustomization } from '../FiltersConfigModal/utils';
-import { checkIsApplyDisabled, getFiltersToApply } from './utils';
+import {
+  checkIsApplyDisabled,
+  clearedCustomizationTarget,
+  getFiltersToApply,
+} from './utils';
 import { extractLabel } from '../selectors';
 import { FiltersBarProps } from './types';
 import {
@@ -482,17 +486,11 @@ const FilterBar: FC<FiltersBarProps> = ({
     } else if (hasClearedChartCustomizations) {
       const clearedChartCustomizations = chartCustomizationValues.map(item => ({
         ...item,
-        targets: [
-          {
-            datasetId: item.targets?.[0]?.datasetId,
-            // Keep the datasource type through a clear: dropping it would
-            // silently rebind a semantic view to the regular dataset that
-            // shares its numeric id on the next resolution (sc-111089).
-            ...(item.targets?.[0]?.datasourceType
-              ? { datasourceType: item.targets[0].datasourceType }
-              : {}),
-          },
-        ] as [Partial<NativeFilterTarget>],
+        // Keep the datasource type through a clear (sc-111089) — the invariant
+        // and its regression test live in clearedCustomizationTarget.
+        targets: [clearedCustomizationTarget(item.targets?.[0])] as [
+          Partial<NativeFilterTarget>,
+        ],
       }));
 
       chartCustomizationValues.forEach(item => {

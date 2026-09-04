@@ -18,7 +18,10 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { DatasourceType } from '@superset-ui/core';
-import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
+import {
+  cachedSupersetGet,
+  supersetGetCache,
+} from 'src/utils/cachedSupersetGet';
 import {
   fetchSemanticViewStructure,
   semanticViewDimensionsToColumns,
@@ -37,8 +40,26 @@ export interface DisplayControlDatasource {
   name: string | undefined;
   columns: DisplayControlColumn[];
   loading: boolean;
+  /**
+   * Set only while it belongs to the CURRENT (id, type) binding. The error
+   * state lags a binding change by one render (the hook clears it in an
+   * effect), so the hook gates it here rather than leak that timing to every
+   * consumer — a stale failure from a previous binding never surfaces against
+   * the new one.
+   */
   error: Error | undefined;
 }
+
+/**
+ * Stable identity for an (id, type) binding. Used by the hook to gate a lagging
+ * error to the binding that produced it, and shared with consumers that need
+ * the same key (e.g. de-duplicating a per-binding toast). Absent type resolves
+ * to a regular dataset, matching the resolution branch.
+ */
+export const displayControlBindingKey = (
+  datasetId: number | string,
+  datasourceType?: DatasourceType,
+): string => `${datasetId}__${datasourceType || DatasourceType.Table}`;
 
 /**
  * The single, type-aware datasource resolution point for dashboard display
@@ -66,6 +87,7 @@ export function useDisplayControlDatasource(
   const [columns, setColumns] = useState<DisplayControlColumn[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | undefined>();
+  const [errorBinding, setErrorBinding] = useState<string | undefined>();
   const requestIdRef = useRef(0);
 
   useEffect(() => {
@@ -84,11 +106,14 @@ export function useDisplayControlDatasource(
       setColumns([]);
       setLoading(false);
       setError(undefined);
+      setErrorBinding(undefined);
       return undefined;
     }
 
     setLoading(true);
     setError(undefined);
+    setErrorBinding(undefined);
+    const binding = displayControlBindingKey(datasetId, datasourceType);
 
     const load = async (): Promise<{
       name: string | undefined;
@@ -101,13 +126,22 @@ export function useDisplayControlDatasource(
           columns: semanticViewDimensionsToColumns(structure.dimensions),
         };
       }
-      const { json } = await cachedSupersetGet({
-        endpoint: `/api/v1/dataset/${datasetId}`,
-      });
-      return {
-        name: json?.result?.table_name,
-        columns: json?.result?.columns ?? [],
-      };
+      const endpoint = `/api/v1/dataset/${datasetId}`;
+      try {
+        const { json } = await cachedSupersetGet({ endpoint });
+        return {
+          name: json?.result?.table_name,
+          columns: json?.result?.columns ?? [],
+        };
+      } catch (err) {
+        // cachedSupersetGet caches the in-flight promise but never evicts a
+        // rejected one, so a single 500 would poison this endpoint for the
+        // whole page session — a later type-flip or retry would re-await the
+        // same failure. Evict on rejection, mirroring the semantic-view branch
+        // (sc-111089 review).
+        supersetGetCache.delete(endpoint);
+        throw err;
+      }
     };
 
     load()
@@ -121,6 +155,7 @@ export function useDisplayControlDatasource(
         setName(undefined);
         setColumns([]);
         setError(err);
+        setErrorBinding(binding);
       })
       .finally(() => {
         if (requestId === requestIdRef.current) {
@@ -133,5 +168,14 @@ export function useDisplayControlDatasource(
     };
   }, [datasetId, datasourceType]);
 
-  return { name, columns, loading, error };
+  // Encapsulate the one-render error lag: `error`/`errorBinding` clear a render
+  // after a binding change, so surface the error only while it still belongs to
+  // the live binding. Consumers — and future adopters of this single resolution
+  // point — then never have to re-derive that guard.
+  const currentBinding = datasetId
+    ? displayControlBindingKey(datasetId, datasourceType)
+    : undefined;
+  const scopedError = errorBinding === currentBinding ? error : undefined;
+
+  return { name, columns, loading, error: scopedError };
 }
