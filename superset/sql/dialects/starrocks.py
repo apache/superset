@@ -753,8 +753,7 @@ class StarRocksGenerator(_StarRocksGenerator):
         if expression.args.get("force"):
             sql += " FORCE"
 
-        mode = expression.args.get("mode")
-        if mode:
+        if mode := expression.args.get("mode"):
             sql += f" WITH {mode} MODE"
 
         return sql
@@ -798,8 +797,7 @@ class StarRocksGenerator(_StarRocksGenerator):
             this=expression.args.get("expression"), unit=expression.args.get("unit")
         )
         args = [expression.this, interval]
-        kind = expression.args.get("kind")
-        if kind:
+        if kind := expression.args.get("kind"):
             args.append(kind)
         return self.func("TIME_SLICE", *args)
 
