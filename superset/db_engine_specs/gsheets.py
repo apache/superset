@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import re
+from datetime import datetime
 from re import Pattern
 from typing import Any, TYPE_CHECKING, TypedDict
 
@@ -32,7 +33,7 @@ from marshmallow.exceptions import ValidationError
 from requests import Session
 from shillelagh.adapters.api.gsheets.lib import SCOPES
 from shillelagh.exceptions import UnauthenticatedError
-from sqlalchemy import text
+from sqlalchemy import text, types
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -154,6 +155,27 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
     )
     oauth2_token_request_uri = "https://oauth2.googleapis.com/token"  # noqa: S105
     oauth2_exception = (UnauthenticatedError, OAuth2TokenRefreshError)
+
+    @classmethod
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
+        """
+        Convert a datetime to a SQL literal understood by shillelagh's GSheets
+        adapter.
+
+        ``SqliteEngineSpec.convert_dttm`` (inherited via ``ShillelaghEngineSpec``)
+        has no case for ``types.Date`` and returns ``None``, which makes Superset
+        fall back to a literal that still carries a time-of-day component. The
+        GSheets adapter's virtual table layer parses that literal with
+        ``datetime.date.fromisoformat``, which rejects the trailing time and
+        silently drops the filter value, producing an invalid query against the
+        Google Sheets API. A bare ``YYYY-MM-DD`` literal is required instead.
+        """
+        sqla_type = cls.get_sqla_column_type(target_type)
+        if isinstance(sqla_type, types.Date):
+            return f"'{dttm.date().isoformat()}'"
+        return super().convert_dttm(target_type, dttm, db_extra=db_extra)
 
     @classmethod
     def get_oauth2_authorization_uri(
@@ -371,7 +393,22 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         # On create the encrypted credentials are a string,
         # at all other times they are a dict
         if isinstance(encrypted_credentials, str):
-            encrypted_credentials = json.loads(encrypted_credentials)
+            try:
+                encrypted_credentials = json.loads(encrypted_credentials)
+            except json.JSONDecodeError:
+                errors.append(
+                    SupersetError(
+                        message=(
+                            "The service account credentials are not valid JSON. "
+                            "Please check that the field contains a valid service "
+                            "account key."
+                        ),
+                        error_type=SupersetErrorType.INVALID_PAYLOAD_FORMAT_ERROR,
+                        level=ErrorLevel.ERROR,
+                        extra={"invalid": ["service_account_info"]},
+                    ),
+                )
+                return errors
 
         # We need a subject in case domain wide delegation is set, otherwise the
         # check will fail. This means that the admin will be able to add sheets
@@ -389,7 +426,6 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                     }
                 }
             },
-            future=True,
         )
         conn = engine.connect()
         idx = 0

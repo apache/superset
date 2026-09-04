@@ -5,6 +5,10 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
     cooldown:
       default-days: 7
 
@@ -20,14 +24,6 @@ updates:
       - dependency-name: "@types/react-dom"
         update-types: ["version-update:semver-major"]
       - dependency-name: "react-icons"
-      # JSDOM v30 doesn't play well with Jest v30
-      # Source: https://jestjs.io/blog#known-issues
-      # GH thread: https://github.com/jsdom/jsdom/issues/3492
-      - dependency-name: "jest-environment-jsdom"
-      # `@swc/plugin-transform-imports` doesn't work with current Webpack-SWC hybrid setup
-      # See https://github.com/apache/superset/pull/37384#issuecomment-3793991389
-      # TODO: remove the plugin once Lodash usage has been migrated to a more readily tree-shakeable alternative
-      - dependency-name: "@swc/plugin-transform-imports"
       # deck.gl and luma.gl share strict peer constraints across the root and
       # plugin workspaces, and root overrides pin their transitive versions.
       # Upgrade both families together in a manually validated change.
@@ -61,6 +57,9 @@ updates:
       - npm
       - dependabot
     groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
       rjsf:
         patterns:
           - "@rjsf/*"
@@ -80,6 +79,11 @@ updates:
         patterns:
           - "ag-grid-react"
           - "ag-grid-community"
+      swc:
+        patterns:
+          - "@swc/core"
+          - "@swc/plugin-emotion"
+          - "@swc/plugin-transform-imports"
     open-pull-requests-limit: 30
     versioning-strategy: increase
     cooldown:
@@ -98,6 +102,10 @@ updates:
     labels:
       - pip
       - dependabot
+    groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
     cooldown:
       default-days: 7
 
@@ -105,6 +113,10 @@ updates:
     directory: ".github/actions"
     schedule:
       interval: "daily"
+    groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
     open-pull-requests-limit: 10
     versioning-strategy: increase
     cooldown:
@@ -115,6 +127,9 @@ updates:
     schedule:
       interval: "daily"
     groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
       storybook:
         patterns:
           - "@storybook/*"
@@ -142,6 +157,10 @@ updates:
     labels:
       - npm
       - dependabot
+    groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
     versioning-strategy: increase
     cooldown:
       default-days: 7
@@ -153,6 +172,10 @@ updates:
     labels:
       - npm
       - dependabot
+    groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
     open-pull-requests-limit: 10
     versioning-strategy: increase
     cooldown:

@@ -73,7 +73,7 @@ def _contaminated_query_context() -> str:
 
 @pytest.fixture
 def engine():
-    engine = create_engine("sqlite:///:memory:", future=True)
+    engine = create_engine("sqlite:///:memory:")
     migration.Base.metadata.create_all(engine)
     return engine
 
@@ -146,7 +146,7 @@ def test_strip_query_context_noop_on_invalid_json() -> None:
 def test_upgrade_strips_both_fields(engine) -> None:
     """upgrade() must strip _FIELD from params and query_context for ag_grid_table
     slices, and must not touch slices of other viz types."""
-    with Session(engine, future=True) as seed:
+    with Session(engine) as seed:
         seed.add_all(
             [
                 Slice(
@@ -172,7 +172,7 @@ def test_upgrade_strips_both_fields(engine) -> None:
     # UPDATEs before the connection is committed; without it the outer commit
     # has nothing to write and the data is left unchanged.
     with engine.begin() as conn:
-        upgrade_session = Session(bind=conn, future=True)
+        upgrade_session = Session(bind=conn)
         with (
             patch.object(migration, "op") as mock_op,
             patch.object(migration, "db") as mock_db,
@@ -181,7 +181,7 @@ def test_upgrade_strips_both_fields(engine) -> None:
             mock_db.Session.return_value = upgrade_session
             migration.upgrade()
 
-    with Session(engine, future=True) as verify:
+    with Session(engine) as verify:
         slc1 = verify.get(Slice, 1)
         params1 = json.loads(slc1.params)
         assert _FIELD not in params1["extra_form_data"], (

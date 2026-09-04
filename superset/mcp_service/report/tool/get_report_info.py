@@ -44,6 +44,7 @@ logger = logging.getLogger(__name__)
         title="Get report info",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_report_info(

@@ -613,6 +613,9 @@ def test_is_parseable_human_timedelta() -> None:
 def test_is_constant_human_timedelta() -> None:
     # phrases that shift every source time by the same amount
     assert is_constant_human_timedelta("1 week ago")
+    assert is_constant_human_timedelta("1 month ago")
+    assert is_constant_human_timedelta("52 weeks ago")
+    assert is_constant_human_timedelta("1 year ago")
     assert is_constant_human_timedelta("one year ago")
     assert is_constant_human_timedelta("1 quarter ago")
     assert is_constant_human_timedelta("2 days later")
@@ -623,6 +626,8 @@ def test_is_constant_human_timedelta() -> None:
     assert not is_constant_human_timedelta("yesterday")
     assert not is_constant_human_timedelta("last month")
     assert not is_constant_human_timedelta("noon")
+    assert not is_constant_human_timedelta("friday")
+    assert not is_constant_human_timedelta("june")
     # a phrase nothing can parse is not a delta either
     assert not is_constant_human_timedelta("not a real offset")
     assert not is_constant_human_timedelta("")

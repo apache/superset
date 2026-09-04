@@ -22,7 +22,7 @@ import {
   FeatureFlag,
   SupersetClient,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/theme';
+import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
 import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -38,8 +38,10 @@ import Subject from 'src/types/Subject';
 import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelectLabel';
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
+import { useIsMobile } from 'src/hooks/useIsMobile';
 import {
   ActionButton,
+  Button,
   CertifiedBadge,
   ConfirmStatusChange,
   DeleteModal,
@@ -120,6 +122,8 @@ export interface Dashboard {
   description?: string;
   thumbnail_url?: string | null;
   editors?: Subject[];
+  // Bare subject ids from a deployment's EXTRA_EDITORS_RESOLVER.
+  extra_editors?: number[];
   viewers?: Subject[];
   tags: TagType[];
   created_by: object;
@@ -177,6 +181,9 @@ const DASHBOARD_COLUMNS_TO_FETCH = [
 
 function DashboardList(props: DashboardListProps) {
   const { addDangerToast, addSuccessToast, user } = props;
+  const isMobile = useIsMobile();
+  const theme = useTheme();
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -500,7 +507,11 @@ function DashboardList(props: DashboardListProps) {
       },
       {
         Cell: ({ row: { original } }: CellProps<Dashboard>) => {
-          const allowEdit = isUserEditorOrAdmin(user, original.editors);
+          const allowEdit = isUserEditorOrAdmin(
+            user,
+            original.editors,
+            original.extra_editors,
+          );
           const handleDelete = () =>
             handleDashboardDelete(
               original,
@@ -850,7 +861,25 @@ function DashboardList(props: DashboardListProps) {
   }
   return (
     <>
-      <SubMenu name={t('Dashboards')} buttons={subMenuButtons} />
+      <SubMenu
+        name={t('Dashboards')}
+        buttons={subMenuButtons}
+        leftIcon={
+          isMobile ? (
+            <Button
+              buttonStyle="link"
+              onClick={() => setMobileFiltersOpen(true)}
+              aria-label={t('Search')}
+              css={css`
+                padding: 0;
+                margin-right: ${theme.sizeUnit * 2}px;
+              `}
+            >
+              <Icons.SearchOutlined iconSize="l" />
+            </Button>
+          ) : undefined
+        }
+      />
       <ConfirmStatusChange
         recoverable={softDelete}
         title={
@@ -944,8 +973,14 @@ function DashboardList(props: DashboardListProps) {
                     ? 'card'
                     : 'table'
                 }
+                forceViewMode={isMobile ? 'card' : undefined}
                 enableBulkTag={enableBulkTag}
                 bulkTagResourceName="dashboard"
+                mobileFiltersOpen={mobileFiltersOpen}
+                setMobileFiltersOpen={
+                  isMobile ? setMobileFiltersOpen : undefined
+                }
+                mobileFiltersDrawerTitle={t('Search Dashboards')}
               />
             </>
           );

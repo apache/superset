@@ -28,7 +28,9 @@ from superset.exceptions import QueryClauseValidationException, SupersetParseErr
 from superset.jinja_context import JinjaTemplateProcessor
 from superset.sql.parse import (
     _check_script_length,
+    _count_weighted_table_references,
     BaseSQLStatement,
+    count_referenced_tables,
     CTASMethod,
     extract_tables_from_statement,
     has_aggregate,
@@ -232,6 +234,170 @@ def test_extract_tables_from_sql() -> None:
     assert extract_tables_from_sql(
         "select * from (select * from forbidden_table) forbidden_table"
     ) == {Table("forbidden_table")}
+
+
+def test_count_referenced_tables() -> None:
+    """
+    Test that ``count_referenced_tables`` counts table reference occurrences
+    (not distinct tables), ignoring dotted quoted aliases, and falls back to
+    1 for unparseable SQL.
+    """
+    assert count_referenced_tables('SELECT * FROM "db.table1"', Dialects.SQLITE) == 1
+    assert (
+        count_referenced_tables(
+            'SELECT COUNT(id) AS "metric.value" FROM "db.table1"', Dialects.SQLITE
+        )
+        == 1
+    )
+    assert (
+        count_referenced_tables(
+            'SELECT t1.b, t2.b FROM "db.table1" AS t1 '
+            'JOIN "db.table2" AS t2 ON t1.a = t2.a',
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+    assert count_referenced_tables("this is not valid sql (((", Dialects.SQLITE) == 1
+    assert count_referenced_tables("SHOW CREATE TABLE s1.t1", "mysql") == 1
+
+
+def test_count_referenced_tables_self_join() -> None:
+    """
+    A self-join references the same physical table twice via two aliases;
+    it must still count as 2 (a join), not 1 (deduplicated to a single
+    table), or the caller's multi-table detection would incorrectly treat
+    it as single-table.
+    """
+    assert (
+        count_referenced_tables(
+            'SELECT l.a, r.a FROM "db.table1" AS l JOIN "db.table1" AS r ON l.a = r.a',
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+
+
+def test_count_referenced_tables_cte_self_join() -> None:
+    """
+    A CTE that reads a single virtual table and is then self-joined must
+    count as 2, matching the direct self-join case, since the CTE is
+    inlined at each of its two consumption sites and triggers a read of
+    that table for both sides of the join.
+    """
+    assert (
+        count_referenced_tables(
+            'WITH cte AS (SELECT a FROM "db.table1") '
+            "SELECT l.a, r.a FROM cte AS l JOIN cte AS r ON l.a = r.a",
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+    # A CTE used exactly once, with no join, still counts as a single table.
+    assert (
+        count_referenced_tables(
+            'WITH cte AS (SELECT a FROM "db.table1") SELECT a FROM cte',
+            Dialects.SQLITE,
+        )
+        == 1
+    )
+    # A CTE joined against a distinct real table also counts as 2.
+    assert (
+        count_referenced_tables(
+            'WITH cte AS (SELECT a FROM "db.table1") '
+            'SELECT l.a, r.a FROM cte AS l JOIN "db.table2" AS r ON l.a = r.a',
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+    # Nested CTEs: a CTE built on top of another CTE, then self-joined,
+    # still weights the base CTE's own table by the self-join count.
+    assert (
+        count_referenced_tables(
+            'WITH base AS (SELECT a FROM "db.table1"), derived AS (SELECT a FROM base) '
+            "SELECT l.a, r.a FROM derived AS l JOIN derived AS r ON l.a = r.a",
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+
+
+def test_count_referenced_tables_describe() -> None:
+    """
+    ``DESCRIBE`` (and other ``exp.Describe``/``exp.Command`` statements) has
+    no join semantics for a per-table row cap to interact with, so it takes
+    the plain unweighted table-extraction path rather than
+    ``_count_weighted_table_references``.
+    """
+    assert count_referenced_tables("DESCRIBE table1", Dialects.SQLITE) == 1
+
+
+def test_count_referenced_tables_derived_subqueries() -> None:
+    """
+    Two distinct derived (non-CTE) subqueries joined together must each
+    resolve their own tables directly, without recursing as if they were
+    CTE sources -- covering the branch in ``_count_weighted_table_references``
+    where a selected source is a ``Scope`` but not a CTE.
+    """
+    assert (
+        count_referenced_tables(
+            'SELECT l.a, r.a FROM (SELECT a FROM "db.table1") AS l '
+            'JOIN (SELECT a FROM "db.table1") AS r ON l.a = r.a',
+            Dialects.SQLITE,
+        )
+        == 2
+    )
+
+
+def test_count_weighted_table_references_self_referential_scope_guard(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``_count_weighted_table_references`` must not recurse forever on a
+    self-referential ``Scope`` graph, the shape a ``WITH RECURSIVE`` CTE
+    could in principle produce if sqlglot ever resolved its own
+    self-reference to the same ``Scope`` object instead of a bare
+    ``exp.Table``. The ``seen`` guard must catch the repeat visit and treat
+    it as contributing no further table reads.
+    """
+    from sqlglot.optimizer.scope import Scope, ScopeType  # noqa: PLC0415
+
+    cte_scope = Scope.__new__(Scope)
+    cte_scope.scope_type = ScopeType.CTE
+    # The CTE's own body references itself.
+    cte_scope._selected_sources = {"t": (None, cte_scope)}  # noqa: SLF001
+
+    root_scope = Scope.__new__(Scope)
+    root_scope.scope_type = ScopeType.ROOT
+    root_scope._selected_sources = {"t": (None, cte_scope)}  # noqa: SLF001
+
+    mocker.patch(
+        "superset.sql.parse.traverse_scope",
+        return_value=[cte_scope, root_scope],
+    )
+
+    assert _count_weighted_table_references(mocker.MagicMock()) == 0
+
+
+def test_count_referenced_tables_respects_parse_length_cap(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``count_referenced_tables`` must not bypass ``SQL_MAX_PARSE_LENGTH``: an
+    oversized statement should fail the length check before reaching
+    sqlglot, and fall back to the conservative single-table count. The
+    statement references two tables so that bypassing the guard (and
+    reaching sqlglot) would produce a different, detectable result.
+    """
+    mocker.patch("superset.config.SQL_MAX_PARSE_LENGTH", 100)
+    mocker.patch("superset.sql.parse.has_app_context", return_value=False)
+    padding = "1, " * 50
+    statement = (
+        'SELECT * FROM "db.table1" AS t1 '  # noqa: S608
+        'JOIN "db.table2" AS t2 ON t1.a = t2.a '
+        f"WHERE t1.a IN ({padding}1)"
+    )
+    assert len(statement.encode("utf-8")) > 100
+    assert count_referenced_tables(statement, Dialects.SQLITE) == 1
 
 
 def test_extract_tables_subselect() -> None:
@@ -2537,6 +2703,10 @@ def test_set_limit_value(
 
 
 @pytest.mark.parametrize(
+    "method",
+    [LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL],
+)
+@pytest.mark.parametrize(
     "engine",
     [
         # Engines whose sqlglot dialect parses `SHOW` into a real `exp.Show`
@@ -2556,10 +2726,10 @@ def test_set_limit_value(
     ],
 )
 def test_set_limit_value_leaves_show_statements_unchanged(
-    sql: str, engine: str
+    sql: str, engine: str, method: LimitMethod
 ) -> None:
     """
-    Regression for #36939: FORCE_LIMIT must not touch ``SHOW`` statements.
+    Regression for #36939: no limit method may touch ``SHOW`` statements.
 
     ``SHOW`` statements have no `LIMIT` clause in sqlglot's expression tree,
     so forcing one via ``args["limit"]`` doesn't reject cleanly, it produces
@@ -2570,16 +2740,74 @@ def test_set_limit_value_leaves_show_statements_unchanged(
     left untouched instead, matching how ``SELECT`` statements without a
     scannable row source aren't force-limited either.
 
+    ``WRAP_SQL`` is wrong on a ``SHOW`` for the same reason but fails more
+    quietly, rewriting it as ``SELECT * FROM (SHOW DATABASES)``, so both
+    methods are covered here.
+
     Covers multiple engines, not just StarRocks: the fix guards on the AST
-    node type (``exp.Show``), not the dialect, so any engine whose sqlglot
-    dialect parses ``SHOW`` into a real ``Show`` node (e.g. MySQL, Snowflake)
-    is equally exposed and must be equally protected.
+    node category (``exp.Query``), not the dialect, so any engine whose
+    sqlglot dialect parses ``SHOW`` into a real ``Show`` node (e.g. MySQL,
+    Snowflake) is equally exposed and must be equally protected.
     """
     statement = SQLStatement(sql, engine)
     original = statement.format()
-    statement.set_limit_value(1000, LimitMethod.FORCE_LIMIT)
+    statement.set_limit_value(1000, method)
     assert statement.format() == original
     assert "LIMIT" not in statement.format()
+
+
+@pytest.mark.parametrize(
+    "method",
+    [LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL],
+)
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "DESCRIBE test.will_test1",
+        "USE test",
+        "SET time_zone = 'UTC'",
+        "GRANT SELECT ON t1 TO u1",
+    ],
+)
+def test_set_limit_value_leaves_non_query_statements_unchanged(
+    sql: str, method: LimitMethod
+) -> None:
+    """
+    ``SHOW`` is not the only statement with nowhere to put a `LIMIT`.
+
+    `apply_limit()` only skips *mutating* statements, so every read-only
+    non-query statement reaches ``set_limit_value``. These happen to survive
+    a forced limit today only because their sqlglot generators ignore an
+    unexpected ``limit`` arg -- a silent dependency on generator internals.
+    Guarding on ``exp.Query`` makes leaving them alone explicit, so a future
+    sqlglot that starts rendering `limit` for one of these node types can't
+    reintroduce the ``SHOW`` bug under a different keyword.
+    """
+    statement = SQLStatement(sql, "starrocks")
+    original = statement.format()
+    statement.set_limit_value(1000, method)
+    assert statement.format() == original
+    assert "LIMIT" not in statement.format()
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        # `UNION` parses as `exp.Union` and a parenthesized query as
+        # `exp.Subquery` -- neither is an `exp.Select`, so narrowing the guard
+        # to `is_select()` would silently stop limiting them.
+        "SELECT 1 UNION SELECT 2",
+        "(SELECT 1)",
+        "WITH t AS (SELECT 1) SELECT * FROM t",
+    ],
+)
+def test_set_limit_value_limits_non_select_query_expressions(sql: str) -> None:
+    """
+    Query expressions that aren't `SELECT` must still be limited.
+    """
+    statement = SQLStatement(sql, "starrocks")
+    statement.set_limit_value(1000, LimitMethod.FORCE_LIMIT)
+    assert "LIMIT 1000" in statement.format()
 
 
 @pytest.mark.parametrize(
@@ -2760,6 +2988,22 @@ def test_as_cte_called_twice() -> None:
     stmt.as_cte()
     assert stmt.has_cte() is False
     stmt.as_cte()
+
+
+@pytest.mark.parametrize(
+    ("sql", "removed"),
+    [
+        ("SELECT value FROM source ORDER BY value", True),
+        ("SELECT TOP 1 value FROM source ORDER BY value", False),
+        ("SELECT value FROM source ORDER BY value OFFSET 0 ROWS", False),
+        ("SELECT value FROM source ORDER BY value FOR JSON AUTO", False),
+    ],
+)
+def test_remove_unbounded_top_level_order_by(sql: str, removed: bool) -> None:
+    statement = SQLStatement(sql, "mssql")
+
+    assert statement.remove_unbounded_top_level_order_by() is removed
+    assert ("ORDER BY" not in statement.format()) is removed
 
 
 @pytest.mark.parametrize(
@@ -5332,6 +5576,41 @@ def test_parse_predicate_length_check() -> None:
     stmt = SQLStatement("SELECT 1", "postgresql")
     with pytest.raises(SupersetParseError):
         stmt.parse_predicate("x" * 101)
+
+
+def test_parse_predicate_invalid_sql_raises_superset_parse_error() -> None:
+    """
+    A syntactically invalid RLS predicate raises ``SupersetParseError``.
+
+    ``parse_predicate`` is reachable via ``apply_rls`` for any RLS clause
+    configured on a queried table; an invalid clause must surface as the
+    typed 422 parse error rather than leaking a raw ``sqlglot`` exception.
+    """
+    stmt = SQLStatement("SELECT 1", "postgresql")
+    with pytest.raises(SupersetParseError) as excinfo:
+        stmt.parse_predicate("a >")
+    assert excinfo.value.status == 422
+
+
+def test_parse_predicate_sqlglot_error_raises_superset_parse_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A non-``ParseError`` ``sqlglot`` failure also surfaces as a typed error.
+
+    ``parse_predicate`` catches the generic ``SqlglotError`` base class as a
+    fallback so any sqlglot failure (e.g. tokenize errors) is converted into a
+    ``SupersetParseError`` rather than leaking a raw sqlglot exception.
+    """
+    # Build the statement before patching, since the constructor also parses.
+    stmt = SQLStatement("SELECT 1", "postgresql")
+    mocker.patch(
+        "sqlglot.parse_one",
+        side_effect=sqlglot.errors.SqlglotError("boom"),
+    )
+    with pytest.raises(SupersetParseError) as excinfo:
+        stmt.parse_predicate("a > 1")
+    assert excinfo.value.status == 422
 
 
 @pytest.mark.usefixtures("_small_parse_cap")

@@ -44,7 +44,7 @@ cachelib==0.13.0
     # via
     #   flask-caching
     #   flask-session
-cachetools==7.1.6
+cachetools==7.1.7
     # via apache-superset (pyproject.toml)
 cattrs==25.1.1
     # via requests-cache
@@ -163,16 +163,16 @@ google-auth==2.53.0
     # via
     #   -r requirements/base.in
     #   shillelagh
-greenlet==3.5.4
+greenlet==3.5.5
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
     #   sqlalchemy
-gunicorn==26.0.0
+gunicorn==26.2.0
     # via apache-superset (pyproject.toml)
 hashids==1.3.1
     # via apache-superset (pyproject.toml)
-holidays==0.102
+holidays==0.103
     # via apache-superset (pyproject.toml)
 humanize==4.12.3
     # via apache-superset (pyproject.toml)
@@ -207,7 +207,7 @@ kombu==5.6.2
     # via celery
 limits==5.1.0
     # via flask-limiter
-mako==1.3.12
+mako==1.4.1
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
@@ -222,7 +222,7 @@ markupsafe==3.0.2
     #   mako
     #   werkzeug
     #   wtforms
-marshmallow==4.3.0
+marshmallow==4.3.1
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
@@ -263,7 +263,6 @@ packaging==25.0
     #   apache-superset (pyproject.toml)
     #   apispec
     #   deprecation
-    #   gunicorn
     #   kombu
     #   limits
     #   shillelagh
@@ -287,7 +286,7 @@ prison==0.2.1
     # via flask-appbuilder
 prompt-toolkit==3.0.51
     # via click-repl
-pyarrow==25.0.0
+pyarrow==25.0.1
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
@@ -367,7 +366,7 @@ rpds-py==0.25.0
     # via
     #   jsonschema
     #   referencing
-setuptools==80.9.0
+setuptools==84.0.0
     # via -r requirements/base.in
 shillelagh==1.4.5
     # via apache-superset (pyproject.toml)
@@ -381,7 +380,7 @@ six==1.17.0
     #   wtforms-json
 slack-sdk==3.43.0
     # via apache-superset (pyproject.toml)
-sqlalchemy==2.0.51
+sqlalchemy==2.0.52
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
@@ -399,7 +398,7 @@ sqlalchemy-utils==0.42.1
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==30.16.0
+sqlglot==30.17.0
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core

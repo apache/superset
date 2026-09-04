@@ -17,13 +17,21 @@
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
-import inspect
 from typing import Any, TYPE_CHECKING
 
 from flask import current_app
+from flask_appbuilder.api.schemas import get_list_schema
 from flask_babel import gettext as _
-from marshmallow import EXCLUDE, fields, post_load, Schema, validate
-from marshmallow.validate import Length, Range
+from marshmallow import (
+    EXCLUDE,
+    fields,
+    post_load,
+    Schema,
+    validate,
+    validates,
+    ValidationError,
+)
+from marshmallow.validate import Length, NoneOf, Range
 from marshmallow_union import Union
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -35,6 +43,7 @@ from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
     AnnotationType,
     DatasourceType,
+    EXTENDED_METRIC_AGGREGATES,
     FilterOperator,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
@@ -105,6 +114,26 @@ def validate_prophet_periods(value: int) -> None:
 #
 # RISON/JSON schemas for query parameters
 #
+MAX_VIZ_TYPE_ORDER_LENGTH = 256
+MAX_VIZ_TYPE_LENGTH = 250
+
+chart_get_list_schema = {
+    **get_list_schema,
+    "properties": {
+        **get_list_schema["properties"],
+        "viz_type_order": {
+            "type": "array",
+            "items": {"type": "string", "maxLength": MAX_VIZ_TYPE_LENGTH},
+            "maxItems": MAX_VIZ_TYPE_ORDER_LENGTH,
+            "uniqueItems": True,
+            "description": (
+                "Visualization type slugs in display-name order. Used only when "
+                "order_column is viz_type."
+            ),
+        },
+    },
+}
+
 get_delete_ids_schema = {
     "type": "array",
     "items": {"type": "integer"},
@@ -360,6 +389,30 @@ class ChartPutSchema(Schema):
     external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
     tags = fields.List(fields.Integer(metadata={"description": tags_description}))
     uuid = fields.UUID(allow_none=True)
+    normalization_changes: fields.Raw = fields.Raw(
+        load_only=True,
+        allow_none=True,
+        metadata={
+            "description": (
+                "Optional advisory Explore hydration transitions used only to "
+                "remove exact automatic normalization changes from human-readable "
+                "version history. Invalid metadata is ignored."
+            ),
+            "type": "array",
+            "maxItems": 256,
+            "items": {
+                "type": "object",
+                "required": ["control", "from_present", "to_present"],
+                "properties": {
+                    "control": {"type": "string", "maxLength": 256},
+                    "from_present": {"type": "boolean"},
+                    "from_value": {},
+                    "to_present": {"type": "boolean"},
+                    "to_value": {},
+                },
+            },
+        },
+    )
 
 
 class ChartGetDatasourceObjectDataResponseSchema(Schema):
@@ -427,7 +480,15 @@ class ChartDataAdhocMetricSchema(Schema):
             "Only required for simple expression types."
         },
         validate=validate.OneOf(
-            choices=("AVG", "COUNT", "COUNT_DISTINCT", "MAX", "MIN", "SUM")
+            choices=(
+                "AVG",
+                "COUNT",
+                "COUNT_DISTINCT",
+                "MAX",
+                "MIN",
+                "SUM",
+                *sorted(EXTENDED_METRIC_AGGREGATES),
+            )
         ),
     )
     column = fields.Nested(ChartDataColumnSchema)
@@ -972,21 +1033,45 @@ class ChartDataGeodeticParseOptionsSchema(
 
 
 class ChartDataPostProcessingOperationSchema(Schema):
+    # OPERATIONS excludes escape_separator/unescape_separator: those are
+    # internal str -> str helpers used by flatten, not DataFrame
+    # post-processing operations, so dispatching one against a DataFrame
+    # raises a confusing TypeError instead of the intended clean validation
+    # error. No field-level `validate=` here: it would run before, and thus
+    # reject, any EXTRA_PANDAS_POSTPROCESSING_OPS-registered custom
+    # operation, which `validate_operation` below is responsible for
+    # allowing.
+    _builtin_ops = pandas_postprocessing.OPERATIONS
+
     operation = fields.String(
         metadata={
             "description": "Post processing operation type",
             "example": "aggregate",
         },
         required=True,
-        validate=validate.OneOf(
-            choices=[
-                name
-                for name, value in inspect.getmembers(
-                    pandas_postprocessing, inspect.isfunction
-                )
-            ]
-        ),
     )
+
+    @validates("operation")
+    def validate_operation(self, value: str, **kwargs: object) -> None:
+        # Built-in operations validate without reading the config, so schemas can
+        # still be loaded outside of an app context.
+        if value in self._builtin_ops:
+            return
+
+        try:
+            extra = current_app.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
+        except RuntimeError:
+            # Outside app context, only built-in operations are known
+            extra = []
+
+        allowed = set(self._builtin_ops) | set(
+            pandas_postprocessing.build_extra_ops_map(extra)
+        )
+        if value not in allowed:
+            raise ValidationError(
+                f"Must be one of: {sorted(allowed)!r}.",
+            )
+
     options = fields.Dict(
         metadata={
             "description": "Options specifying how to perform the operation. Please "
@@ -1532,7 +1617,21 @@ class ChartDataQueryContextSchema(Schema):
     )
 
     result_type = fields.Enum(ChartDataResultType, by_value=True)
-    result_format = fields.Enum(ChartDataResultFormat, by_value=True)
+    result_format = fields.Enum(
+        ChartDataResultFormat,
+        by_value=True,
+        # Arrow is served only by the datasource query endpoint;
+        # ``_send_chart_response`` has no Arrow branch. Rejecting it here fails
+        # fast, rather than executing the query and only then returning
+        # "Unsupported result_format".
+        validate=NoneOf(
+            [ChartDataResultFormat.ARROW],
+            error=(
+                "result_format 'arrow' is not supported by this endpoint; use "
+                "POST /api/v1/datasource/<type>/<id>/query."
+            ),
+        ),
+    )
 
     form_data = fields.Raw(allow_none=True, required=False)
 
@@ -1816,6 +1915,7 @@ class ImportV1ChartSchema(Schema):
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
     tags = fields.List(fields.String(), allow_none=True)
+    extra = fields.Dict(allow_none=True, load_only=True)
 
 
 class ChartCacheWarmUpRequestSchema(Schema):

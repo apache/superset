@@ -791,16 +791,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         Must be called after all versioned model classes have been imported so
         that VERSIONED_MODELS can be populated and configure_mappers() has run.
 
-        ``ENABLE_VERSIONING_CAPTURE`` (ships default ``False``) gates the two
-        before-flush listener registrations. The flag is operational, not
-        feature: with it off the infrastructure is inert (no save writes
-        shadow rows); flipping it on activates capture. The switch also lets
-        an operator who observes a versioning-induced regression (e.g. a
-        save-path slowdown attributable to the change-record listener)
-        disable capture in ``superset_config.py`` and restart workers — a
-        30-second recovery instead of revert-and-redeploy. Shadow tables
-        already created by the migration stay; they just stop accumulating
-        new rows.
+        ``ENABLE_VERSIONING_CAPTURE`` gates the baseline and change-record
+        listener registrations. When disabled, initialization also detaches
+        SQLAlchemy-Continuum's write listeners.
 
         The fallback here is ``False`` so that any app-factory path that
         does not load ``superset.config`` (some test factories, embedded
@@ -1184,9 +1177,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         and ``docs/sip/authenticated-encryption-at-rest.md``).
         """
         # pylint: disable=import-outside-toplevel
-        from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine
-
         from superset.utils.encrypt import (
+            BackwardCompatibleAesEngine,
             DEFAULT_ENCRYPTION_ENGINE_NAME,
             resolve_encryption_engine,
         )
@@ -1200,7 +1192,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             # An unrecognized value already fails closed at field construction
             # (see ``resolve_encryption_engine``); nothing more to warn about.
             return
-        if engine_cls is not AesEngine:
+        # "aes" resolves to BackwardCompatibleAesEngine (see superset.utils.encrypt),
+        # not the raw sqlalchemy_utils AesEngine, so check against that subclass.
+        if engine_cls is not BackwardCompatibleAesEngine:
             return
         self._log_config_warning(
             "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE is set to the legacy 'aes' "
@@ -1302,7 +1296,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     default=json.pessimistic_json_iso_dttm_ser,
                 )
 
-            return {"bootstrap_data": serialize_bootstrap_data}
+            return {
+                "bootstrap_data": serialize_bootstrap_data,
+                "is_feature_enabled": feature_flag_manager.is_feature_enabled,
+            }
 
     def check_and_warn_database_connection(self) -> None:
         """Check database connection and warn if unavailable"""
@@ -1361,6 +1358,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_cache()
         self.set_db_default_isolation()
         self.configure_sqlglot_dialects()
+        self.configure_extra_post_processing_ops()
 
         with self.superset_app.app_context():
             self.init_app_in_ctx()
@@ -1433,6 +1431,22 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             extensions = extensions()
 
         SQLGLOT_DIALECTS.update(extensions)
+
+    def configure_extra_post_processing_ops(self) -> None:
+        from superset.utils.pandas_postprocessing import (
+            __all__ as builtin_ops,
+            build_extra_ops_map,
+        )
+
+        extra = self.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
+        for name in build_extra_ops_map(extra):
+            if name in builtin_ops:
+                logger.warning(
+                    "EXTRA_PANDAS_POSTPROCESSING_OPS: '%s' conflicts with a "
+                    "built-in post-processing operation and will never fire. "
+                    "Rename the custom function to avoid the conflict.",
+                    name,
+                )
 
     @transaction()
     def configure_fab(self) -> None:

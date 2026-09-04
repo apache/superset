@@ -66,14 +66,6 @@ DEFAULT_DATASET_COLUMNS = [
     "changed_on_humanized",
 ]
 
-SORTABLE_DATASET_COLUMNS = [
-    "id",
-    "table_name",
-    "schema",
-    "changed_on",
-    "created_on",
-]
-
 _DEFAULT_LIST_DATASETS_REQUEST = ListDatasetsRequest()
 
 
@@ -84,6 +76,7 @@ _DEFAULT_LIST_DATASETS_REQUEST = ListDatasetsRequest()
         title="List datasets",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 @requires_data_model_metadata_access
@@ -115,7 +108,8 @@ async def list_datasets(
         ``created_by_fk``, ``changed_by_fk``
 
     Sortable columns for ``order_column``:
-        ``id``, ``table_name``, ``schema``, ``changed_on``, ``created_on``
+        ``id``, ``table_name``, ``schema``, ``changed_on``,
+        ``changed_on_delta_humanized`` (alias for ``changed_on``), ``created_on``
 
     To filter by a person, call find_users to resolve the name to a user ID,
     then pass it as a filter: filters=[{"col": "created_by_fk", "opr": "eq",

@@ -40,6 +40,7 @@ import {
   getExtensionsRegistry,
   QueryResponse,
   Query,
+  QueryState,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
@@ -363,7 +364,7 @@ const SqlEditor: FC<Props> = ({
     getItem(LocalStorageKeys.SqllabIsAutocompleteEnabled, true),
   );
   const [renderHTMLEnabled, setRenderHTMLEnabled] = useState(
-    getItem(LocalStorageKeys.SqllabIsRenderHtmlEnabled, true),
+    getItem(LocalStorageKeys.SqllabIsRenderHtmlEnabled, false),
   );
   const [showCreateAsModal, setShowCreateAsModal] = useState(false);
   const [createAs, setCreateAs] = useState('');
@@ -374,6 +375,9 @@ const SqlEditor: FC<Props> = ({
   );
 
   const SqlFormExtension = extensionsRegistry.get('sqleditor.extension.form');
+
+  const successful = latestQuery?.state === QueryState.Success;
+  const resultColumns = latestQuery?.results?.columns || [];
 
   const startQuery = useCallback(
     (
@@ -792,7 +796,6 @@ const SqlEditor: FC<Props> = ({
 
   const getSecondaryMenuItems = () => {
     const qe = queryEditor;
-    const successful = latestQuery?.state === 'success';
     const scheduleToolTip = successful
       ? t('Schedule the query periodically')
       : t('You must run the query successfully first');
@@ -938,7 +941,7 @@ const SqlEditor: FC<Props> = ({
           )}
         <SaveQuery
           queryEditorId={queryEditor.id}
-          columns={latestQuery?.results?.columns || []}
+          columns={resultColumns}
           onSave={onSaveQuery}
           onUpdate={(query, remoteId) =>
             dispatch(updateSavedQuery(query, remoteId))

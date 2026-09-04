@@ -802,6 +802,64 @@ def _truncate_rows_field(
     return None
 
 
+def _truncate_chart_query_results(
+    data: Dict[str, Any], token_limit: int, advice: str
+) -> list[str] | None:
+    """Apply one response-wide row cap to every result of a multi-query chart."""
+    from superset.utils import json as utils_json
+
+    query_results = data.get("query_results")
+    if not isinstance(query_results, list) or not query_results:
+        return None
+
+    row_lists = [data.get("data", [])]
+    row_lists.extend(
+        result.get("data", [])
+        for result in query_results
+        if isinstance(result, dict) and isinstance(result.get("data"), list)
+    )
+    originals = [list(rows) for rows in row_lists]
+    if not any(originals):
+        return None
+
+    original_count = sum(len(rows) for rows in originals[1:])
+    data["_response_truncated"] = True
+    data["_truncation_notes"] = [
+        f"Result truncated: {original_count} of {original_count} rows returned "
+        f"across multiple queries "
+        f"(limit ~{token_limit:,} tokens). {advice}"
+    ]
+
+    lo, hi = 0, max(len(rows) for rows in originals)
+    while lo < hi:
+        cap = (lo + hi + 1) // 2
+        for rows, original in zip(row_lists, originals, strict=False):
+            rows[:] = original[:cap]
+        if estimate_token_count(utils_json.dumps(data)) <= token_limit:
+            lo = cap
+        else:
+            hi = cap - 1
+
+    cap = max(lo, 1)
+    for rows, original in zip(row_lists, originals, strict=False):
+        rows[:] = original[:cap]
+    kept_count = sum(len(rows) for rows in row_lists[1:])
+    if kept_count >= original_count:
+        del data["_response_truncated"]
+        del data["_truncation_notes"]
+        return None
+
+    data["row_count"] = len(row_lists[0])
+    for result in query_results:
+        if isinstance(result, dict) and isinstance(result.get("data"), list):
+            result["row_count"] = len(result["data"])
+    data["_truncation_notes"] = [
+        f"Result truncated: {kept_count} of {original_count} rows returned "
+        f"across multiple queries (limit ~{token_limit:,} tokens). {advice}"
+    ]
+    return data["_truncation_notes"]
+
+
 def _truncate_csv_data_field(
     data: Dict[str, Any],
     token_limit: int,
@@ -900,7 +958,9 @@ def truncate_query_result(
     if estimate_token_count(utils_json.dumps(data)) <= token_limit:
         return data, False, []
 
-    notes = _truncate_rows_field(data, row_field, token_limit, advice)
+    notes = _truncate_chart_query_results(data, token_limit, advice)
+    if notes is None:
+        notes = _truncate_rows_field(data, row_field, token_limit, advice)
     if notes is None:
         notes = _truncate_csv_data_field(data, token_limit, advice)
 
