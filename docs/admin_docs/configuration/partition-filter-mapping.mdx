@@ -53,12 +53,14 @@ off read a cached chart result that was produced from pruned SQL by a user with 
 
 ## Configuring a mapping
 
-In the dataset editor's **Settings** tab, pick a **Partition column**. By default the
-mapping follows the dataset's default datetime column, so re-pointing that column moves the
-mapping with it; set an explicit override if you want it pinned to a different column.
+In the dataset editor's **Columns** tab, under *Default Column Settings*, pick a
+**Partition column**. By default the mapping follows the dataset's default datetime column,
+so re-pointing that column moves the mapping with it; set an explicit override if you want it
+pinned to a different column.
 
-On the mapped column's row, set the **value transform**: a SQL expression containing a
-`:value` placeholder, which stands for the filter value being mirrored.
+Expand the mapped column's row in *Column Settings* and set the **value transform**: a SQL
+expression containing a `:value` placeholder, which stands for the filter value being
+mirrored. The **Transform preserves ordering** checkbox sits directly beneath it.
 
 | Mapped column | Partition column | Transform |
 |---|---|---|
