@@ -41,7 +41,7 @@
     "@babel/core": "^8.0.1",
     "@babel/preset-env": "^8.0.1",
     "@babel/preset-typescript": "^8.0.1",
-    "@types/node": "^25.4.0",
+    "@types/node": "^26.4.0",
     "babel-loader": "^10.1.1",
     "jsdom": "^30.0.1",
     "tscw-config": "^1.1.2",
