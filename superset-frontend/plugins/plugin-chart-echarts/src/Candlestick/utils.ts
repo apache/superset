@@ -57,22 +57,35 @@ export function calculateMA(
   period: number,
 ): Array<number | '-'> {
   const result: Array<number | '-'> = [];
+  if (period <= 0) return result;
+
+  let sum = 0;
+  let nullCount = 0;
+
   for (let i = 0; i < closes.length; i += 1) {
-    if (i < period - 1) {
-      result.push('-');
-      continue;
+    const current = closes[i];
+
+    if (current === null) {
+      nullCount += 1;
+    } else {
+      sum += current;
     }
-    let sum = 0;
-    let valid = true;
-    for (let j = 0; j < period; j += 1) {
-      const close = closes[i - j];
-      if (close === null) {
-        valid = false;
-        break;
+
+    if (i >= period) {
+      const outgoing = closes[i - period];
+      if (outgoing === null) {
+        nullCount -= 1;
+      } else {
+        sum -= outgoing;
       }
-      sum += close;
     }
-    result.push(valid ? sum / period : '-');
+
+    if (i >= period - 1) {
+      result.push(nullCount > 0 ? '-' : sum / period);
+    } else {
+      result.push('-');
+    }
   }
+
   return result;
 }
