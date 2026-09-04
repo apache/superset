@@ -1869,82 +1869,68 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     # Use ``is not None`` so an empty-but-present stored context reads as present.
     stored_context_state = "present" if stored_query_context is not None else "missing"
 
-    # Reject result types that would have the server expand the query to raw
-    # datasource rows regardless of the stored chart's columns and metrics.
-    if _result_type_modified(query_context, stored_query_context):
-        logger.warning(
-            "Guest chart payload rejected for slice %s: result type expands "
-            "the chart to raw datasource rows (stored query_context %s)",
-            stored_chart.id,
-            stored_context_state,
-        )
-        return True
-
-    # compare columns and metrics in form_data with stored values. Order-by is
-    # handled separately: a strict subset check there would reject a guest
-    # legitimately sorting an embedded chart by one of its existing columns.
-    if _columns_metrics_modified(
-        query_context, form_data, stored_chart, stored_query_context
-    ):
-        logger.warning(
-            "Guest chart payload rejected for slice %s: columns/metrics/group-by "
-            "not a subset of the stored chart (stored query_context %s)",
-            stored_chart.id,
-            stored_context_state,
-        )
-        return True
-
-    if _series_limit_metric_modified(
-        query_context,
-        form_data,
-        stored_chart,
-        stored_query_context,
-    ):
-        logger.warning(
-            "Guest chart payload rejected for slice %s: series-limit metric not "
-            "on the stored chart (stored query_context %s)",
-            stored_chart.id,
-            stored_context_state,
-        )
-        return True
-
-    # Order-by may sort only by columns/metrics already present in the stored
-    # chart; new expressions (e.g. ``random()``) are still rejected.
-    if _orderby_modified(query_context, stored_chart, stored_query_context):
-        logger.warning(
-            "Guest chart payload rejected for slice %s: order-by references a "
-            "term not on the stored chart (stored query_context %s)",
-            stored_chart.id,
-            stored_context_state,
-        )
-        return True
-
-    # SQL predicates (extras.where/having, SQL adhoc filters) must match
-    # what was saved on the chart; injected custom SQL is rejected.
-    if _sql_filters_modified(
-        query_context, form_data, stored_chart, stored_query_context
-    ):
-        logger.warning(
-            "Guest chart payload rejected for slice %s: SQL filter/extras "
-            "not on the stored chart (stored query_context %s)",
-            stored_chart.id,
-            stored_context_state,
-        )
-        return True
-
-    # Native annotation layers resolve every annotation of each referenced
-    # layer with no further access check on this path, so a layer the chart
-    # was not saved with reads data that was never shared with the guest.
-    if _annotation_layers_modified(
-        query_context, form_data, stored_chart, stored_query_context
-    ):
-        logger.warning(
-            "Guest chart payload rejected for slice %s: annotation layer not "
-            "on the stored chart (stored query_context %s)",
-            stored_chart.id,
-            stored_context_state,
-        )
-        return True
+    # Each comparator guards one facet of the payload against the stored chart;
+    # the first one that objects rejects the request, with its reason logged
+    # server-side (no payload values) so a 403 is diagnosable.
+    #
+    # - result type: reject types that would have the server expand the query
+    #   to raw datasource rows regardless of the stored chart's columns/metrics.
+    # - columns/metrics/group-by: must be a subset of the stored chart. Order-by
+    #   is handled separately, since a strict subset check there would reject a
+    #   guest legitimately sorting an embedded chart by one of its own columns.
+    # - order-by: may sort only by columns/metrics already on the stored chart;
+    #   new expressions (e.g. ``random()``) are still rejected.
+    # - SQL predicates (extras.where/having, SQL adhoc filters): must match what
+    #   was saved on the chart; injected custom SQL is rejected.
+    # - annotation layers: native layers resolve every annotation of each
+    #   referenced layer with no further access check on this path, so a layer
+    #   the chart was not saved with reads data never shared with the guest.
+    comparators: list[tuple[Callable[[], bool], str]] = [
+        (
+            lambda: _result_type_modified(query_context, stored_query_context),
+            "result type expands the chart to raw datasource rows",
+        ),
+        (
+            lambda: _columns_metrics_modified(
+                query_context, form_data, stored_chart, stored_query_context
+            ),
+            "columns/metrics/group-by not a subset of the stored chart",
+        ),
+        (
+            lambda: _series_limit_metric_modified(
+                query_context, form_data, stored_chart, stored_query_context
+            ),
+            "series-limit metric not on the stored chart",
+        ),
+        (
+            lambda: _orderby_modified(
+                query_context, stored_chart, stored_query_context
+            ),
+            "order-by references a term not on the stored chart",
+        ),
+        (
+            lambda: _sql_filters_modified(
+                query_context, form_data, stored_chart, stored_query_context
+            ),
+            "SQL filter/extras not on the stored chart",
+        ),
+        (
+            lambda: _annotation_layers_modified(
+                query_context, form_data, stored_chart, stored_query_context
+            ),
+            "annotation layer not on the stored chart",
+        ),
+    ]
+    for is_modified, reason in comparators:
+        if is_modified():
+            logger.warning(
+                "Guest chart payload rejected for slice %s: %s "
+                "(stored query_context %s)",
+                stored_chart.id,
+                reason,
+                stored_context_state,
+            )
+            return True
 
     return False
 
