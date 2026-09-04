@@ -110,8 +110,11 @@ class TestAsyncQueries(SupersetTestCase):
             "status": "pending",
             "errors": [],
         }
-        with pytest.raises(ChartDataQueryFailedError):
-            load_chart_data_into_cache(job_metadata, query_context)
+        # ChartDataQueryFailedError mirrors the synchronous chart/data endpoint's
+        # 400 (see ChartDataRestApi._get_data_response) - an expected validation
+        # failure, not a bug, so the task reports it via update_job and does not
+        # re-raise (see superset/tasks/async_queries.py).
+        load_chart_data_into_cache(job_metadata, query_context)
 
         mock_run_command.assert_called_once_with(cache=True)
         errors = [{"message": "Error: foo"}]

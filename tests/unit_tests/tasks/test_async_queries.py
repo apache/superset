@@ -21,7 +21,10 @@ import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 from flask_babel import lazy_gettext as _
 
-from superset.commands.chart.exceptions import ChartDataQueryFailedError
+from superset.commands.chart.exceptions import (
+    ChartDataCacheLoadError,
+    ChartDataQueryFailedError,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
@@ -43,7 +46,7 @@ def test_load_chart_data_into_cache_with_error(
     job_metadata = {"user_id": 1}
     form_data = {}
     err_message = "Something went wrong"
-    err = ChartDataQueryFailedError(_(err_message))
+    err = RuntimeError(err_message)
 
     mock_user = mock.MagicMock()
     mock_query_context_schema = mock.MagicMock()
@@ -54,13 +57,83 @@ def test_load_chart_data_into_cache_with_error(
 
     mock_query_context_schema.load.side_effect = err
 
-    with pytest.raises(ChartDataQueryFailedError):
+    with pytest.raises(RuntimeError):
         load_chart_data_into_cache(job_metadata, form_data)
 
     expected_errors = [{"message": err_message}]
 
     mock_async_query_manager.update_job.assert_called_once_with(
         job_metadata, "error", errors=expected_errors
+    )
+
+
+@mock.patch("superset.tasks.async_queries.security_manager")
+@mock.patch("superset.tasks.async_queries.async_query_manager")
+@mock.patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@mock.patch("superset.tasks.async_queries.ChartDataQueryContextSchema")
+def test_load_chart_data_into_cache_with_query_failed_error_does_not_reraise(
+    mock_query_context_schema_cls: mock.MagicMock,
+    mock_command_cls: mock.MagicMock,
+    mock_async_query_manager: mock.MagicMock,
+    mock_security_manager: mock.MagicMock,
+) -> None:
+    """
+    ChartDataQueryFailedError maps to a 400 in the synchronous chart/data
+    endpoint (see ChartDataRestApi._get_data_response) - an expected,
+    client-facing validation failure (e.g. a chart still referencing columns
+    a customer has since dropped from the dataset), not an application bug.
+    The task must still report it to the client via update_job, but must not
+    re-raise it - that would surface it a second time as an unhandled Celery
+    task exception.
+    """
+    from superset.tasks.async_queries import load_chart_data_into_cache
+
+    job_metadata = {"user_id": 1}
+    form_data: dict[str, Any] = {}
+    err_message = "Columns missing in dataset: ['foo']"
+
+    mock_security_manager.get_user_by_id.return_value = mock.MagicMock()
+    mock_async_query_manager.STATUS_ERROR = "error"
+    mock_query_context_schema_cls.return_value.load.return_value = mock.MagicMock()
+    mock_command_cls.return_value.run.side_effect = ChartDataQueryFailedError(
+        _(err_message)
+    )
+
+    # Should not raise.
+    load_chart_data_into_cache(job_metadata, form_data)
+
+    mock_async_query_manager.update_job.assert_called_once_with(
+        job_metadata, "error", errors=[{"message": err_message}]
+    )
+
+
+@mock.patch("superset.tasks.async_queries.security_manager")
+@mock.patch("superset.tasks.async_queries.async_query_manager")
+@mock.patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@mock.patch("superset.tasks.async_queries.ChartDataQueryContextSchema")
+def test_load_chart_data_into_cache_with_cache_load_error_does_not_reraise(
+    mock_query_context_schema_cls: mock.MagicMock,
+    mock_command_cls: mock.MagicMock,
+    mock_async_query_manager: mock.MagicMock,
+    mock_security_manager: mock.MagicMock,
+) -> None:
+    """Same as above, for the sibling 422-mapped ChartDataCacheLoadError."""
+    from superset.tasks.async_queries import load_chart_data_into_cache
+
+    job_metadata = {"user_id": 1}
+    form_data: dict[str, Any] = {}
+    err_message = "Cache load failed"
+
+    mock_security_manager.get_user_by_id.return_value = mock.MagicMock()
+    mock_async_query_manager.STATUS_ERROR = "error"
+    mock_query_context_schema_cls.return_value.load.return_value = mock.MagicMock()
+    mock_command_cls.return_value.run.side_effect = ChartDataCacheLoadError(err_message)
+
+    # Should not raise.
+    load_chart_data_into_cache(job_metadata, form_data)
+
+    mock_async_query_manager.update_job.assert_called_once_with(
+        job_metadata, "error", errors=[{"message": err_message}]
     )
 
 
