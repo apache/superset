@@ -75,6 +75,7 @@ class TaskManager:
     # Class-level state (initialized once via init_app)
     _channel_prefix: str = "gtf:abort:"
     _completion_channel_prefix: str = "gtf:complete:"
+    _realtime_channel_prefix: Callable[[], str] | str = ""
     _initialized: bool = False
 
     @classmethod
@@ -93,6 +94,7 @@ class TaskManager:
         cls._completion_channel_prefix = app.config.get(
             "TASKS_COMPLETION_CHANNEL_PREFIX", "gtf:complete:"
         )
+        cls._realtime_channel_prefix = app.config.get("REALTIME_CHANNEL_PREFIX", "")
 
         cls._initialized = True
 
@@ -112,12 +114,15 @@ class TaskManager:
     # This separates the semantic topic (what a message is) from the route (who
     # receives it): a new surface adds a topic without inventing channel names or
     # overloading payload shapes. The channel name and envelope shape are a
-    # wire-protocol contract with the Node server. Pub/Sub is best-effort, so no
-    # message here may carry a signal a receiver must not miss — each feature's
-    # authorized REST poll/fetch is the correctness backstop. Moving a surface to
-    # websocket-only (retiring its poll) requires guaranteed, replayable delivery
-    # first (e.g. Redis Streams with a per-consumer cursor).
-    REALTIME_CHANNEL = "realtime"
+    # wire-protocol contract with the Node server. The name is
+    # ``<REALTIME_CHANNEL_PREFIX>realtime``: Redis Pub/Sub is not scoped by DB
+    # number, so deployments sharing one Redis/Valkey set a per-deployment prefix
+    # (identically on both sides) to keep their channels isolated. Pub/Sub is
+    # best-effort, so no message here may carry a signal a receiver must not miss —
+    # each feature's authorized REST poll/fetch is the correctness backstop. Moving
+    # a surface to websocket-only (retiring its poll) requires guaranteed,
+    # replayable delivery first (e.g. Redis Streams with a per-consumer cursor).
+    _REALTIME_CHANNEL_BASE = "realtime"
 
     # Envelope topics.
     TOPIC_TASK_STATUS = "task.status"
@@ -127,6 +132,19 @@ class TaskManager:
     SCOPE_AUTHENTICATED_GLOBAL = "authenticated_global"
     SCOPE_PRINCIPAL = "principal"
     SCOPE_TAB = "tab"
+
+    @classmethod
+    def get_realtime_channel(cls) -> str:
+        """Resolve the realtime pub/sub channel name (prefix + base).
+
+        The prefix may be a string or a zero-argument callable (resolved here at
+        call time), so a deployment sharing a Redis/Valkey with others can
+        namespace the channel to avoid cross-tenant delivery.
+        """
+        prefix = cls._realtime_channel_prefix
+        if callable(prefix):
+            prefix = prefix()
+        return f"{prefix}{cls._REALTIME_CHANNEL_BASE}"
 
     @classmethod
     def _publish_realtime(
@@ -151,7 +169,7 @@ class TaskManager:
         envelope: dict[str, Any] = {"topic": topic, "scope": scope, "payload": payload}
         if routes is not None:
             envelope["routes"] = routes
-        CoordinationService.publish(cls.REALTIME_CHANNEL, json.dumps(envelope))
+        CoordinationService.publish(cls.get_realtime_channel(), json.dumps(envelope))
         return True
 
     @staticmethod

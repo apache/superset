@@ -193,11 +193,13 @@ export const wss = new WebSocketServer({
 const SOCKET_ACTIVE_STATES: number[] = [WebSocket.OPEN, WebSocket.CONNECTING];
 
 // The single Pub/Sub channel the server tails. This is a wire-protocol contract
-// with the Superset producer (superset/tasks/manager.py: REALTIME_CHANNEL), NOT a
-// deployment knob - an independent override on this side with no matching producer
-// config would silently subscribe to a channel nothing publishes to, so it is a
-// fixed constant that must stay in lockstep with the producer.
-const REALTIME_CHANNEL = 'realtime';
+// with the Superset producer (superset/tasks/manager.py). The name is
+// `${prefix}realtime`, where the prefix comes from REALTIME_CHANNEL_PREFIX (empty
+// by default). Redis Pub/Sub is not scoped by DB number, so deployments sharing
+// one Redis/Valkey set a per-deployment prefix to isolate their channels — it MUST
+// be set identically here and on the producer (Flask REALTIME_CHANNEL_PREFIX),
+// since a mismatch would subscribe to a channel nothing publishes to.
+const REALTIME_CHANNEL = `${opts.realtimeChannelPrefix}realtime`;
 
 // Envelope scopes (delivery breadth), mirrored from the producer. A message is
 // broadcast to every authenticated socket when its scope is `authenticated_global`,

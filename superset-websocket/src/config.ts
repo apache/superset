@@ -46,6 +46,7 @@ type ConfigType = {
   jwtSecret: string;
   previousJwtSecret: string;
   jwtCookieName: string;
+  realtimeChannelPrefix: string;
   allowedOrigins: string[];
   socketResponseTimeoutMs: number;
   pingSocketsIntervalMs: number;
@@ -65,6 +66,7 @@ function defaultConfig(): ConfigType {
     jwtSecret: '',
     previousJwtSecret: '',
     jwtCookieName: 'superset-ws-token',
+    realtimeChannelPrefix: '',
     allowedOrigins: [],
     socketResponseTimeoutMs: 60 * 1000,
     pingSocketsIntervalMs: 20 * 1000,
@@ -144,6 +146,7 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
     JWT_SECRET: val => (config.jwtSecret = val),
     PREVIOUS_JWT_SECRET: val => (config.previousJwtSecret = val),
     JWT_COOKIE_NAME: val => (config.jwtCookieName = val),
+    REALTIME_CHANNEL_PREFIX: val => (config.realtimeChannelPrefix = val),
     ALLOWED_ORIGINS: val => (config.allowedOrigins = toStringArray(val)),
     SOCKET_RESPONSE_TIMEOUT_MS: val =>
       (config.socketResponseTimeoutMs = toNonNegativeNumber(

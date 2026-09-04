@@ -38,6 +38,7 @@ def _reset_prefixes() -> None:
     TaskManager._initialized = False
     TaskManager._channel_prefix = "gtf:abort:"
     TaskManager._completion_channel_prefix = "gtf:complete:"
+    TaskManager._realtime_channel_prefix = ""
 
 
 class TestTaskManagerInitApp:
@@ -55,6 +56,7 @@ class TestTaskManagerInitApp:
         app.config.get.side_effect = lambda key, default=None: {
             "TASKS_ABORT_CHANNEL_PREFIX": "custom:abort:",
             "TASKS_COMPLETION_CHANNEL_PREFIX": "custom:complete:",
+            "REALTIME_CHANNEL_PREFIX": "custom:",
         }.get(key, default)
 
         TaskManager.init_app(app)
@@ -62,6 +64,7 @@ class TestTaskManagerInitApp:
         assert TaskManager._initialized is True
         assert TaskManager._channel_prefix == "custom:abort:"
         assert TaskManager._completion_channel_prefix == "custom:complete:"
+        assert TaskManager._realtime_channel_prefix == "custom:"
 
     def test_init_app_skips_if_already_initialized(self):
         """Test init_app is idempotent"""
@@ -98,6 +101,17 @@ class TestTaskManagerChannels:
             TaskManager.get_completion_channel("test-uuid")
             == "custom:complete:test-uuid"
         )
+
+    def test_get_realtime_channel(self):
+        assert TaskManager.get_realtime_channel() == "realtime"
+
+    def test_get_realtime_channel_custom_prefix(self):
+        TaskManager._realtime_channel_prefix = "tenant-a:"
+        assert TaskManager.get_realtime_channel() == "tenant-a:realtime"
+
+    def test_get_realtime_channel_callable_prefix(self):
+        TaskManager._realtime_channel_prefix = lambda: "tenant-b:"
+        assert TaskManager.get_realtime_channel() == "tenant-b:realtime"
 
 
 class TestTaskManagerPublish:
