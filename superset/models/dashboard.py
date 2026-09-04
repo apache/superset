@@ -286,11 +286,18 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
         export/thumbnail/dataset-payload consumers and must not be used for
         membership checks: it silently omits every non-table datasource.
         """
-        candidate = (getattr(datasource, "type", None), datasource.id)
-        if candidate[0] is None or candidate[1] is None:
+        # ``type`` is duck-typed on purpose: drill entry points hand this
+        # method loosely-typed datasources, and an object with no type or no
+        # id is simply no member — fail closed. Ids are compared as-is: an
+        # explorable with a string id never matches the integer
+        # ``datasource_id`` column, which is likewise fail closed.
+        candidate_type = getattr(datasource, "type", None)
+        candidate_id = datasource.id
+        if candidate_type is None or candidate_id is None:
             return False
         return any(
-            (slc.datasource_type, slc.datasource_id) == candidate for slc in self.slices
+            (slc.datasource_type, slc.datasource_id) == (candidate_type, candidate_id)
+            for slc in self.slices
         )
 
     @property

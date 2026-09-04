@@ -34,10 +34,13 @@ from superset.subjects.filters import (
 )
 from superset.subjects.models import chart_editors
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
-from superset.utils.core import DatasourceType, get_user_id
+from superset.utils.core import get_user_id
 from superset.utils.filters import (
     get_dataset_access_filters,
     guest_embedded_dashboard_filter,
+    semantic_layer_grant_clause,
+    semantic_view_layer_join,
+    semantic_view_slice_join,
     table_backed_slice_join,
 )
 from superset.views.base import BaseFilter
@@ -152,14 +155,7 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             filters.append(Slice.id.in_(viewer_query))
 
         # (C) No-viewer fallback: charts with no viewers → dataset-based access
-        # A datasource_access grant on a parent semantic layer covers its
-        # views (sc-119501). The datasource_access perms are fetched here and
-        # again inside get_dataset_access_filters — an accepted cost, shared
-        # with DashboardAccessFilter: deduping would need the helper to
-        # accept prefetched perm sets.
-        layer_grant_clause = SemanticLayer.perm.in_(
-            security_manager.user_view_menu_names("datasource_access")
-        )
+        layer_grant_clause = semantic_layer_grant_clause()
         chart_has_viewers = Slice.viewers.any()
         table_alias = aliased(SqlaTable)
         no_viewer_query = (
@@ -180,26 +176,18 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                 table_alias.database_id == models.Database.id,
                 isouter=True,
             )
-            # A datasource_access grant on a semantic LAYER covers its views,
-            # as SemanticView.raise_for_access enforces on the data path
-            # (sc-119501) — list those charts here too, through the same
-            # type-guarded outer-join shape as the SqlaTable join.
-            .join(
-                SemanticView,
-                and_(
-                    Slice.datasource_id == SemanticView.id,
-                    Slice.datasource_type == DatasourceType.SEMANTIC_VIEW,
-                ),
-                isouter=True,
-            )
-            .join(
-                SemanticLayer,
-                SemanticView.semantic_layer_uuid == SemanticLayer.uuid,
-                isouter=True,
-            )
+            # A layer-level grant covers the layer's views (sc-119501) —
+            # list those charts too, through the same type-guarded
+            # outer-join shape as the SqlaTable join.
+            .join(SemanticView, semantic_view_slice_join(), isouter=True)
+            .join(SemanticLayer, semantic_view_layer_join(), isouter=True)
             .filter(
                 and_(
                     ~chart_has_viewers,
+                    # No include_all here: ``apply`` already returned the
+                    # unfiltered query for all_datasource_access holders
+                    # before this fallback runs (unlike the dashboard
+                    # filter, which needs the flag for chart-less rows).
                     get_dataset_access_filters(Slice, layer_grant_clause),
                 )
             )

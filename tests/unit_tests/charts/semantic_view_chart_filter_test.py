@@ -341,8 +341,9 @@ def test_list_query_chart_participates_uniformly(
 def test_list_all_datasource_access_lists_everything(
     chart_fixtures: SimpleNamespace, app_context: None
 ) -> None:
-    """all_datasource_access short-circuits the fallback and lists every
-    chart, including NULL-perm rows the fallback itself can never match."""
+    """all_datasource_access holders get the unfiltered query — ``apply``
+    returns before the fallback ever runs — so every chart is listed,
+    including NULL-perm rows the fallback itself can never match."""
     names = _apply_chart_filter(
         datasource_perms=set(), accessible_databases=[], all_datasources=True
     )
