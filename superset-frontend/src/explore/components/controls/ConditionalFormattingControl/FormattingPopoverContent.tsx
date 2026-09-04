@@ -270,7 +270,10 @@ const renderOperator = ({
   );
 };
 
-const renderBoundFields = (operator?: Comparator) => {
+const renderBoundFields = (
+  operator?: Comparator,
+  serverPagination?: boolean,
+) => {
   const { showMin, showMax } = getBoundVisibility(operator);
   if (!showMin && !showMax) {
     return null;
@@ -284,6 +287,20 @@ const renderBoundFields = (operator?: Comparator) => {
   const maxRules = useCrossFieldRules ? rulesMaxBound : rulesMaxBoundTarget;
   const minDependencies = useCrossFieldRules ? minBoundDeps : targetValueDeps;
   const maxDependencies = useCrossFieldRules ? maxBoundDeps : targetValueDeps;
+  // % of column resolves its denominator from whatever rows are currently
+  // loaded. Under server pagination that's one page at a time, so the same
+  // rule would compute a different denominator -- and therefore different
+  // colors -- on each page. Disable picking it in that mode rather than
+  // shipping a scale that silently drifts per page; an already-saved config
+  // keeps working (and stays visible here) since disabling an option only
+  // blocks new selections, not an existing value.
+  const boundUnitSelectOptions = serverPagination
+    ? boundUnitOptions.map(option =>
+        option.value === boundUnitOptions[1].value
+          ? { ...option, disabled: true }
+          : option,
+      )
+    : boundUnitOptions;
 
   return (
     <>
@@ -293,11 +310,20 @@ const renderBoundFields = (operator?: Comparator) => {
             name="boundUnit"
             label={t('Bound unit')}
             initialValue={boundUnitOptions[0].value}
-            tooltip={t(
-              'Value: type the exact numbers used for coloring below. % of column: type a percentage of the column total instead, so the rule keeps working as the data changes.',
-            )}
+            tooltip={
+              serverPagination
+                ? t(
+                    'Value: type the exact numbers used for coloring below. % of column is unavailable with Server pagination enabled, since each page would compute a different percentage.',
+                  )
+                : t(
+                    'Value: type the exact numbers used for coloring below. % of column: type a percentage of the column total instead, so the rule keeps working as the data changes.',
+                  )
+            }
           >
-            <Select ariaLabel={t('Bound unit')} options={boundUnitOptions} />
+            <Select
+              ariaLabel={t('Bound unit')}
+              options={boundUnitSelectOptions}
+            />
           </FormItem>
         </Col>
         <Col span={12}>
@@ -401,6 +427,7 @@ const renderDivergingFields = () => (
 const renderOperatorFields = (
   { getFieldValue }: GetFieldValue,
   columnType?: GenericDataType,
+  serverPagination?: boolean,
 ) => {
   const columnTypeString = columnType === GenericDataType.String;
   const columnTypeBoolean = columnType === GenericDataType.Boolean;
@@ -432,7 +459,7 @@ const renderOperatorFields = (
       <Row gutter={12}>
         <Col span={operatorColSpan}>{renderOperator({ columnType })}</Col>
       </Row>
-      {showBoundFields && renderBoundFields(operator)}
+      {showBoundFields && renderBoundFields(operator, serverPagination)}
       {showDivergingFields && renderDivergingFields()}
     </>
   ) : isOperatorMultiValue(operator) ? (
@@ -477,7 +504,7 @@ const renderOperatorFields = (
           </FormItem>
         </Col>
       </Row>
-      {showBoundFields && renderBoundFields(operator)}
+      {showBoundFields && renderBoundFields(operator, serverPagination)}
     </>
   );
 };
@@ -488,12 +515,14 @@ export const FormattingPopoverContent = ({
   columns = [],
   extraColorChoices = [],
   allColumns = [],
+  serverPagination = false,
 }: {
   config?: ConditionalFormattingConfig;
   onChange: (config: ConditionalFormattingConfig) => void;
   columns: { label: string; value: string; dataType: GenericDataType }[];
   extraColorChoices?: { label: string; colors: string[] }[];
   allColumns?: ColumnOption[];
+  serverPagination?: boolean;
 }) => {
   const [form] = Form.useForm();
   const colors = colorScheme();
@@ -737,7 +766,8 @@ export const FormattingPopoverContent = ({
       )}
       <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
         {showOperatorFields ? (
-          (props: GetFieldValue) => renderOperatorFields(props, columnType)
+          (props: GetFieldValue) =>
+            renderOperatorFields(props, columnType, serverPagination)
         ) : (
           <Row gutter={12}>
             <Col span={6}>

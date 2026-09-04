@@ -61,6 +61,7 @@ export type ConditionalFormattingControlProps = ControlComponentProps<
   description: string;
   extraColorChoices?: { label: string; colors: string[] }[];
   allColumns?: ColumnOption[];
+  serverPagination?: boolean;
 };
 
 export type FormattingPopoverProps = PopoverProps & {
@@ -71,6 +72,7 @@ export type FormattingPopoverProps = PopoverProps & {
   children: ReactNode;
   extraColorChoices?: { label: string; colors: string[] }[];
   allColumns?: ColumnOption[];
+  serverPagination?: boolean;
 };
 
 export interface ColumnOption {

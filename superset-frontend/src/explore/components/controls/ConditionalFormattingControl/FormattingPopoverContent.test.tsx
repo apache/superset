@@ -991,3 +991,36 @@ test('defaults to Value and Column max when never touched', async () => {
   expect(payload.boundUnit).toBe('value');
   expect(payload.percentDenominator).toBeUndefined();
 });
+
+test('disables the % of column option when serverPagination is true', async () => {
+  const onChange = jest.fn();
+  render(
+    <FormattingPopoverContent
+      onChange={onChange}
+      columns={columns}
+      extraColorChoices={extraColorChoices}
+      serverPagination
+    />,
+  );
+
+  const trigger = await screen.findByRole('combobox', { name: 'Bound unit' });
+  await userEvent.click(trigger);
+  const option = await screen.findByText('% of column');
+  await userEvent.click(option);
+
+  // The option is disabled (server pagination makes % of column resolve a
+  // different denominator per page -- see PR review finding #1), so clicking
+  // it must not select it: the denominator select never appears and the
+  // submitted config keeps Bound unit at its Value default.
+  expect(
+    screen.queryByLabelText('Percent denominator'),
+  ).not.toBeInTheDocument();
+
+  fireEvent.click(screen.getByText('Apply'));
+
+  await waitFor(() => {
+    expect(onChange).toHaveBeenCalled();
+  });
+
+  expect(onChange.mock.calls[0][0].boundUnit).toBe('value');
+});
