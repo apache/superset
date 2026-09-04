@@ -104,6 +104,36 @@ function createDimensionFilter(
   };
 }
 
+function isAdhocFilterArray(value: unknown): value is AdhocFilter[] {
+  return Array.isArray(value);
+}
+
+/**
+ * Append the given filters to the primary `adhoc_filters` collection as well as
+ * every query-specific `adhoc_filters_*` collection present on the formData.
+ * Charts with more than one query (e.g. Mixed Chart) read each query's filters
+ * from a separate collection (`adhoc_filters_b`, `adhoc_filters_c`, ...), so a
+ * cell's dimension filter must be added to all of them to slice every query.
+ */
+function appendMatrixifyFilters(
+  formData: QueryFormData & MatrixifyFormData,
+  additionalFilters: AdhocFilter[],
+): void {
+  const filterFields: Record<string, unknown> = formData;
+  const filterKeys = [
+    'adhoc_filters',
+    ...Object.keys(filterFields).filter(key => /^adhoc_filters_.+$/u.test(key)),
+  ];
+
+  filterKeys.forEach(key => {
+    const existingFilters = filterFields[key];
+    filterFields[key] = [
+      ...(isAdhocFilterArray(existingFilters) ? existingFilters : []),
+      ...additionalFilters,
+    ];
+  });
+}
+
 /**
  * Generate form data for a specific grid cell
  */
@@ -169,12 +199,9 @@ function generateCellFormData(
     }
   }
 
-  // Add filters to existing adhoc_filters
+  // Add filters to the primary and query-specific adhoc filter collections.
   if (additionalFilters.length > 0) {
-    cellFormData.adhoc_filters = [
-      ...(cellFormData.adhoc_filters || []),
-      ...additionalFilters,
-    ];
+    appendMatrixifyFilters(cellFormData, additionalFilters);
   }
 
   // Set metrics based on row/column configuration
