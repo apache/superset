@@ -198,12 +198,16 @@ testWithAssets(
 
     // "girl" ran once already, so this repeat may be a synchronous cache hit
     // rather than a fresh 202. Either proves the round-trip happened, which is
-    // all that is being established here.
+    // all that is being established here -- but it has to be one of those two.
+    // Merely asserting a status was recorded would accept a 4xx/5xx, and since
+    // the chart keeps displaying the previous "girl" value while a query is in
+    // flight, the text assertion below would then pass on stale pixels and the
+    // test would be green without a successful round trip.
     await expect(() => {
       expect(
-        signals.submitStatusFor(chartId),
-        '"girl"\'s fast chart-data submission should have gotten a real response (200 cache-hit or 202 async-accepted)',
-      ).toBeDefined();
+        [200, 202],
+        '"girl"\'s fast chart-data submission should have succeeded (200 cache-hit or 202 async-accepted)',
+      ).toContain(signals.submitStatusFor(chartId));
     }).toPass({ timeout: RACE_DELAY_MS - 500 });
 
     await expect(value).toHaveText(expectedGirlText ?? '', {
