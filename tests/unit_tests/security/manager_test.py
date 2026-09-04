@@ -1380,6 +1380,31 @@ def test_query_context_modified_tampered(
     assert query_context_modified(query_context)
 
 
+def test_query_context_modified_malformed_stored_query_context(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A stored ``query_context`` that is not valid JSON (which the query-context-only
+    chart update path can persist) must be treated as modified/tampered rather than
+    crashing with a raw ``JSONDecodeError``. Returning ``True`` lets
+    ``raise_for_access`` deny the guest with the intended 403.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = "not valid json"
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+    }
+    query_context.queries = [QueryObject(metrics=stored_metrics)]  # type: ignore
+    assert query_context_modified(query_context)
+
+
 def test_query_context_modified_singular_metric_param(
     mocker: MockerFixture,
 ) -> None:
@@ -3019,6 +3044,112 @@ def test_get_catalogs_accessible_by_user_schema_access(
     catalogs = {"catalog1", "catalog2"}
 
     assert sm.get_catalogs_accessible_by_user(database, catalogs) == {"catalog2"}
+
+
+def test_get_schemas_accessible_by_user_cached_list(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that `get_schemas_accessible_by_user` handles candidate names that a cache
+    serializer deserialized as a list instead of a set. Before normalization this
+    raised `TypeError: unsupported operand type(s) for &: 'list' and 'set'` for users
+    with only schema-level access.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(
+        sm,
+        "user_view_menu_names",
+        side_effect=[
+            {"[db1].[schema2]"},  # schema_access
+            set(),  # datasource_access
+        ],
+    )
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = None
+    database.get_default_schema.return_value = None
+
+    schemas = ["schema1", "schema2"]
+
+    assert sm.get_schemas_accessible_by_user(database, None, schemas) == {"schema2"}
+
+
+def test_get_schemas_accessible_by_user_hierarchical_cached_list(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that the hierarchical early return normalizes a list-typed candidate
+    collection to a set, so callers always receive a `set` regardless of the cache
+    serializer.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=True)
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = None
+    database.get_default_schema.return_value = None
+
+    schemas = ["schema1", "schema2"]
+
+    result = sm.get_schemas_accessible_by_user(database, None, schemas)
+    assert result == {"schema1", "schema2"}
+    assert isinstance(result, set)
+
+
+def test_get_catalogs_accessible_by_user_cached_list(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that `get_catalogs_accessible_by_user` handles candidate names that a cache
+    serializer deserialized as a list instead of a set.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(
+        sm,
+        "user_view_menu_names",
+        side_effect=[
+            set(),  # catalog_access
+            {"[db1].[catalog2].[schema1]"},  # schema_access
+            set(),  # datasource_access
+        ],
+    )
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = "catalog2"
+
+    catalogs = ["catalog1", "catalog2"]
+
+    assert sm.get_catalogs_accessible_by_user(database, catalogs) == {"catalog2"}
+
+
+def test_get_catalogs_accessible_by_user_hierarchical_cached_list(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that the hierarchical early return for catalogs normalizes a list-typed
+    candidate collection to a set.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=True)
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = "catalog2"
+
+    catalogs = ["catalog1", "catalog2"]
+
+    result = sm.get_catalogs_accessible_by_user(database, catalogs)
+    assert result == {"catalog1", "catalog2"}
+    assert isinstance(result, set)
 
 
 def test_get_rls_filters_uses_table_id_directly(
