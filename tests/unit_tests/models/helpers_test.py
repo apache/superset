@@ -791,7 +791,6 @@ def test_process_orderby_expression_basic(
 
     result = table._process_orderby_expression(
         expression="column_name DESC",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -824,7 +823,6 @@ def test_process_orderby_expression_with_case_insensitive_order_by(
 
     result = table._process_orderby_expression(
         expression="column_name ASC",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -857,7 +855,6 @@ def test_process_orderby_expression_complex(
 
     result = table._process_orderby_expression(
         expression=complex_orderby,
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -890,7 +887,6 @@ def test_process_orderby_expression_none(
 
     result = table._process_orderby_expression(
         expression=None,
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -923,7 +919,6 @@ def test_process_orderby_expression_empty_string(
 
     result = table._process_orderby_expression(
         expression="",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -956,7 +951,6 @@ def test_process_orderby_expression_strips_whitespace(
 
     result = table._process_orderby_expression(
         expression="column_name DESC",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -994,7 +988,6 @@ def test_process_orderby_expression_with_template_processor(
 
     result = table._process_orderby_expression(
         expression="column_name DESC",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=template_processor,
@@ -1002,9 +995,9 @@ def test_process_orderby_expression_with_template_processor(
 
     # Verify _process_sql_expression was called with SELECT prefix
     mock_process.assert_called_once()
-    call_args = mock_process.call_args[1]
-    assert call_args["expression"] == "SELECT 1 ORDER BY column_name DESC"
-    assert call_args["template_processor"] is template_processor
+    expression_arg, context_arg = mock_process.call_args.args
+    assert expression_arg == "SELECT 1 ORDER BY column_name DESC"
+    assert context_arg.template_processor is template_processor
 
     assert result == "processed_column DESC"
 
@@ -1145,7 +1138,6 @@ def test_process_select_expression_basic(
 
     result = table._process_select_expression(
         expression="COUNT(*)",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -1178,7 +1170,6 @@ def test_process_select_expression_with_case_insensitive_select(
 
     result = table._process_select_expression(
         expression="column_name",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -1211,7 +1202,6 @@ def test_process_select_expression_complex(
 
     result = table._process_select_expression(
         expression=complex_select,
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -1244,7 +1234,6 @@ def test_process_select_expression_none(
 
     result = table._process_select_expression(
         expression=None,
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -1277,7 +1266,6 @@ def test_process_select_expression_empty_string(
 
     result = table._process_select_expression(
         expression="",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -1310,7 +1298,6 @@ def test_process_select_expression_strips_whitespace(
 
     result = table._process_select_expression(
         expression="column_name",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -1348,7 +1335,6 @@ def test_process_select_expression_with_template_processor(
 
     result = table._process_select_expression(
         expression="some_expression",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=template_processor,
@@ -1356,9 +1342,9 @@ def test_process_select_expression_with_template_processor(
 
     # Verify _process_sql_expression was called with SELECT prefix
     mock_process.assert_called_once()
-    call_args = mock_process.call_args[1]
-    assert call_args["expression"] == "SELECT some_expression"
-    assert call_args["template_processor"] is template_processor
+    expression_arg, context_arg = mock_process.call_args.args
+    assert expression_arg == "SELECT some_expression"
+    assert context_arg.template_processor is template_processor
 
     assert result == "processed_expression"
 
@@ -1390,7 +1376,6 @@ def test_process_select_expression_distinct_column(
 
     result = table._process_select_expression(
         expression="distinct owners",
-        database_id=database.id,
         engine="sqlite",
         schema="",
         template_processor=None,
@@ -1431,7 +1416,6 @@ def test_process_select_expression_end_to_end(database: Database) -> None:
     for expression, expected in test_cases:
         result = table._process_select_expression(
             expression=expression,
-            database_id=database.id,
             engine="sqlite",
             schema="",
             template_processor=None,
@@ -2620,6 +2604,124 @@ def test_get_sqla_query_virtual_dataset_filter_values_drill_to_detail(
         "filter directly into the virtual dataset's own templated SQL, "
         f"not just the outer query. Rendered SQL: {rendered_inner_sql}"
     )
+
+
+def test_adhoc_metric_normalizes_rendered_sql_once(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    normalizer: MagicMock = mocker.patch.object(
+        table.db_engine_spec,
+        "normalize_custom_sql_metric",
+        return_value="SELECT DATE_TRUNC('quarter', a)",
+    )
+    template_processor: MagicMock = MagicMock()
+
+    def render_unit(expression: str) -> str:
+        return expression.replace("{{ unit }}", "QUARTER")
+
+    template_processor.process_template.side_effect = render_unit
+    metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "DATE_TRUNC('{{ unit }}', a)",
+        "label": "quarter",
+    }
+
+    result: ColumnElement = table.adhoc_metric_to_sqla(
+        metric,
+        {},
+        template_processor=template_processor,
+    )
+
+    assert "DATE_TRUNC('quarter', a)" in str(result)
+    normalizer.assert_called_once_with("SELECT DATE_TRUNC('QUARTER', a)")
+
+
+def test_processed_orderby_uses_metric_normalizer_once(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    normalizer: MagicMock = MagicMock(
+        return_value="SELECT 1 ORDER BY DATE_TRUNC('quarter', a)"
+    )
+    mocker.patch.object(
+        table.database.db_engine_spec,
+        "normalize_custom_sql_metric",
+        normalizer,
+    )
+
+    expression: str | None = table._process_metric_orderby_expression(
+        expression="DATE_TRUNC('QUARTER', a)",
+        engine=database.backend,
+        schema="",
+        template_processor=None,
+    )
+
+    assert expression == "DATE_TRUNC('quarter', a)"
+    normalizer.assert_called_once_with("SELECT 1 ORDER BY DATE_TRUNC('QUARTER', a)")
+
+
+def test_metric_normalization_preserves_post_validation_rls_expression(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    mocker.patch.object(
+        table.database.db_engine_spec,
+        "normalize_custom_sql_metric",
+        PostgresEngineSpec.normalize_custom_sql_metric,
+    )
+    mocker.patch(
+        "superset.models.helpers.validate_adhoc_subquery",
+        return_value=(
+            "SELECT (SELECT DATE_TRUNC('QUARTER', created_at) FROM orders "
+            "WHERE tenant_id = 7)"
+        ),
+    )
+
+    result = table._process_metric_select_expression(
+        expression="(SELECT DATE_TRUNC('QUARTER', created_at) FROM orders)",
+        engine="postgresql",
+        schema="public",
+        template_processor=None,
+    )
+
+    assert result is not None
+    assert "tenant_id = 7" in result
+    assert "DATE_TRUNC('quarter', created_at)" in result
+
+
+def test_generic_postgresql_expression_does_not_use_metric_normalizer(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    from superset.connectors.sqla.models import SqlaTable
+
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    normalizer: MagicMock = mocker.patch.object(
+        table.database.db_engine_spec,
+        "normalize_custom_sql_metric",
+    )
+
+    result: str | None = table._process_select_expression(
+        expression="created_at -- trailing",
+        engine="postgresql",
+        schema="public",
+        template_processor=None,
+    )
+
+    assert result is not None
+    assert "/* trailing */" in result
+    normalizer.assert_not_called()
 
 
 def test_extras_where_is_parenthesized(
@@ -4160,16 +4262,14 @@ def test_process_sql_expression_rejects_disallowed_function(
     before the rendered SQL is handed to the database."""
     from superset.connectors.sqla.models import SqlaTable
     from superset.exceptions import SupersetDisallowedSQLFunctionException
+    from superset.models.helpers import SqlExpressionContext
 
     _patch_disallowed(mocker, functions={"postgresql": {"version"}})
     table = SqlaTable(database=database, schema=None, table_name="t")
     with pytest.raises(SupersetDisallowedSQLFunctionException):
         table._process_sql_expression(
-            expression="version()",
-            database_id=database.id,
-            engine="postgresql",
-            schema="",
-            template_processor=None,
+            "version()",
+            SqlExpressionContext("postgresql", "", None),
         )
 
 
@@ -4181,16 +4281,14 @@ def test_process_sql_expression_rejects_disallowed_function_in_aggregate(
     bypass attempt."""
     from superset.connectors.sqla.models import SqlaTable
     from superset.exceptions import SupersetDisallowedSQLFunctionException
+    from superset.models.helpers import SqlExpressionContext
 
     _patch_disallowed(mocker, functions={"postgresql": {"version"}})
     table = SqlaTable(database=database, schema=None, table_name="t")
     with pytest.raises(SupersetDisallowedSQLFunctionException):
         table._process_sql_expression(
-            expression="MAX(version())",
-            database_id=database.id,
-            engine="postgresql",
-            schema="",
-            template_processor=None,
+            "MAX(version())",
+            SqlExpressionContext("postgresql", "", None),
         )
 
 
@@ -4206,6 +4304,7 @@ def test_process_sql_expression_rejects_disallowed_table(
     the subquery first."""
     from superset.connectors.sqla.models import SqlaTable
     from superset.exceptions import SupersetDisallowedSQLTableException
+    from superset.models.helpers import SqlExpressionContext
 
     _patch_disallowed(
         mocker, tables={"postgresql": {"pg_authid", "pg_shadow", "pg_stat_activity"}}
@@ -4213,11 +4312,8 @@ def test_process_sql_expression_rejects_disallowed_table(
     table = SqlaTable(database=database, schema=None, table_name="t")
     with pytest.raises(SupersetDisallowedSQLTableException) as exc_info:
         table._process_sql_expression(
-            expression="(SELECT id FROM pg_authid)",
-            database_id=database.id,
-            engine="postgresql",
-            schema="",
-            template_processor=None,
+            "(SELECT id FROM pg_authid)",
+            SqlExpressionContext("postgresql", "", None),
         )
     # Assert on substring (set repr ordering): only the offending table is
     # echoed back to the user, not the full operator denylist.
@@ -4233,6 +4329,7 @@ def test_process_sql_expression_allows_benign_expression(
     """Negative control: a benign aggregate over a regular column must pass
     even when denylists are configured."""
     from superset.connectors.sqla.models import SqlaTable
+    from superset.models.helpers import SqlExpressionContext
 
     _patch_disallowed(
         mocker,
@@ -4241,11 +4338,8 @@ def test_process_sql_expression_allows_benign_expression(
     )
     table = SqlaTable(database=database, schema=None, table_name="t")
     result = table._process_sql_expression(
-        expression="SUM(amount)",
-        database_id=database.id,
-        engine="postgresql",
-        schema="",
-        template_processor=None,
+        "SUM(amount)",
+        SqlExpressionContext("postgresql", "", None),
     )
     assert result is not None
     assert "SUM" in result.upper()
@@ -4259,15 +4353,13 @@ def test_process_sql_expression_no_gate_when_denylists_empty(
     SQL that passes the pre-existing `sanitize_clause` validation is
     accepted."""
     from superset.connectors.sqla.models import SqlaTable
+    from superset.models.helpers import SqlExpressionContext
 
     _patch_disallowed(mocker, functions={}, tables={})
     table = SqlaTable(database=database, schema=None, table_name="t")
     result = table._process_sql_expression(
-        expression="version()",
-        database_id=database.id,
-        engine="postgresql",
-        schema="",
-        template_processor=None,
+        "version()",
+        SqlExpressionContext("postgresql", "", None),
     )
     assert result is not None
 
