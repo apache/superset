@@ -35,12 +35,17 @@ and remain admin-only to edit.
 
 Behavioral changes:
 
-- **Theme creation is no longer admin-only.** Any principal with `can_write`
-  on `Theme` may create a theme; the creator is automatically added as an
-  editor. Theme creation now flows through a new `CreateThemeCommand`.
-- **Editing and deleting a theme requires editorship.** Non-editors receive a
-  `403`. Admins bypass the check and remain able to edit or delete any theme.
-  A non-editor cannot add themselves to a theme's editors via `PUT`.
+- **[BREAKING] Editing and deleting a theme is tightened to editors or
+  Admins.** Previously any principal with `can_write` on `Theme` (which the
+  built-in **Alpha** role holds, since `Theme` is in
+  `GAMMA_READ_ONLY_MODEL_VIEWS`) could edit or delete any non-system theme.
+  Editing and deleting now require the caller to be an editor of that theme;
+  non-editors receive a `403`. Admins bypass the check and remain able to
+  edit or delete any theme. A non-editor cannot add themselves to a theme's
+  editors via `PUT`.
+- **Theme creation is unchanged** and still requires `can_write` on `Theme`.
+  The creator is automatically added as an editor, and creation now flows
+  through a new `CreateThemeCommand`.
 - **System themes remain protected** and the system-default/dark theme
   administration endpoints continue to require an admin plus
   `ENABLE_UI_THEME_ADMINISTRATION`.
