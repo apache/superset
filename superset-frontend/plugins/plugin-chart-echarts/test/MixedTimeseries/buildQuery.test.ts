@@ -212,7 +212,10 @@ test('should compile Matrixify filters for both mixed timeseries queries', () =>
   };
   const formData = {
     ...formDataMixedChart,
-    adhoc_filters: [...formDataMixedChart.adhoc_filters, matrixifyCountryFilter],
+    adhoc_filters: [
+      ...formDataMixedChart.adhoc_filters,
+      matrixifyCountryFilter,
+    ],
     adhoc_filters_b: [
       ...formDataMixedChart.adhoc_filters_b,
       matrixifyCountryFilter,
