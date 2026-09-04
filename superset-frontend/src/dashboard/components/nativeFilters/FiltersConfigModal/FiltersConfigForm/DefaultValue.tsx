@@ -62,6 +62,25 @@ const DefaultValue: FC<DefaultValueProps> = ({
   const value = formFilter?.defaultDataMask?.filterState?.value;
   const isMissingRequiredValue =
     hasDefaultValue && (value === null || value === undefined);
+  const baseFilterState = formFilter?.defaultDataMask?.filterState;
+
+  // Every DefaultValue render used to spread `baseFilterState` into a brand
+  // new object literal here, so the `filterState` prop the underlying Select
+  // receives got a new identity on every render (e.g. while the user is
+  // typing/searching), even when its actual contents were unchanged. Select
+  // resets its internal selection whenever that identity changes, which is
+  // what wiped out already-chosen default values. Memoizing on the
+  // underlying reference plus the two derived validation fields keeps the
+  // object stable across renders that don't actually change anything.
+  const filterState = useMemo(
+    () => ({
+      ...baseFilterState,
+      validateMessage: isMissingRequiredValue && t('Value is required'),
+      validateStatus: isMissingRequiredValue && 'error',
+    }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [baseFilterState, isMissingRequiredValue],
+  );
 
   return loading ? (
     <Loading position="inline-centered" />
@@ -76,11 +95,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
       chartType={chartType}
       hooks={{ setDataMask }}
       enableNoResults={enableNoResults}
-      filterState={{
-        ...formFilter?.defaultDataMask?.filterState,
-        validateMessage: isMissingRequiredValue && t('Value is required'),
-        validateStatus: isMissingRequiredValue && 'error',
-      }}
+      filterState={filterState}
     />
   );
 };
