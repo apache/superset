@@ -35,8 +35,10 @@ import {
   Divider,
   Tooltip,
   Select,
+  Flex,
 } from '@superset-ui/core/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import PartitionPruningIndicator from 'src/explore/components/PartitionPruningIndicator';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { noOp } from 'src/utils/common';
@@ -406,7 +408,12 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         {...props}
         onDescriptionHoverChange={setIsDescriptionHovered}
       />
-      {popoverContent}
+      {/* The glyph sits outside the popover trigger so clicking it opens the
+          tooltip rather than the time-range editor. */}
+      <Flex align="center" gap={theme.sizeUnit}>
+        {popoverContent}
+        <PartitionPruningIndicator mapping={props.partitionMapping} />
+      </Flex>
     </>
   );
 }
