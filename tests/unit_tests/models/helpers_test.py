@@ -3064,6 +3064,413 @@ def test_multiple_calculated_columns_each_parenthesized(
     )
 
 
+CALC_EXPR = "state = 'CA' OR state = 'NY'"
+
+
+def _calc_table(database: Database) -> Any:
+    """A table with a boolean/OR calculated column and a ``count`` metric."""
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    return SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(
+                column_name="is_ca_or_ny",
+                expression=CALC_EXPR,
+                type="BOOLEAN",
+            ),
+        ],
+        metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
+    )
+
+
+def _compile(database: Database, sqla_query: Any) -> str:
+    with database.get_sqla_engine() as engine:
+        return str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+
+def test_calculated_column_dimension_is_parenthesized_in_select(
+    database: Database,
+) -> None:
+    """
+    A calculated column used as a SELECT dimension is parenthesized, so a bare
+    ``OR`` inside the expression cannot leak into surrounding SQL.
+    """
+    table = _calc_table(database)
+
+    sqla_query = table.get_sqla_query(
+        columns=["is_ca_or_ny"],
+        metrics=[],
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    assert f"({CALC_EXPR}) AS" in sql, (
+        f"Calculated dimension should be parenthesized in SELECT. SQL: {sql}"
+    )
+
+
+def test_physical_column_is_not_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Only expression (calculated) columns are wrapped; a physical column must be
+    emitted unchanged, with no ``(col)``. Guards against a future hoist of the
+    ``Grouping`` wrap outside the ``if expression:`` branch of the converters.
+    """
+    table = _calc_table(database)
+
+    sqla_query = table.get_sqla_query(
+        columns=["a"],
+        metrics=[],
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    assert "a AS a" in sql, f"Physical column should be selected as-is. SQL: {sql}"
+    assert "(a)" not in sql, f"Physical column must not be parenthesized. SQL: {sql}"
+
+
+def test_calculated_column_groupby_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    A calculated column used in GROUP BY is parenthesized.
+    """
+    table = _calc_table(database)
+
+    sqla_query = table.get_sqla_query(
+        groupby=["is_ca_or_ny"],
+        metrics=["count"],
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    group_by = sql.split("GROUP BY", 1)[1]
+    assert f"({CALC_EXPR})" in group_by, (
+        f"Calculated column should be parenthesized in GROUP BY. SQL: {sql}"
+    )
+
+
+def test_calculated_column_orderby_parenthesized_with_alias_allowed(
+    database: Database,
+) -> None:
+    """
+    With ``allows_alias_in_orderby`` (default), the calculated column stays a
+    ``Label`` in ORDER BY; both the SELECT projection and the ORDER BY carry the
+    parenthesized expression.
+    """
+    table = _calc_table(database)
+
+    sqla_query = table.get_sqla_query(
+        groupby=["is_ca_or_ny"],
+        metrics=["count"],
+        orderby=[("is_ca_or_ny", False)],
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    assert f"({CALC_EXPR}) AS is_ca_or_ny" in sql, (
+        f"Calculated dimension should be parenthesized in SELECT. SQL: {sql}"
+    )
+    order_by = sql.split("ORDER BY", 1)[1]
+    assert f"({CALC_EXPR})" in order_by, (
+        f"ORDER BY should carry the parenthesized expression. SQL: {sql}"
+    )
+
+
+def test_calculated_column_orderby_is_parenthesized_raw_expression(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    """
+    When the engine does not allow aliases in ORDER BY, the raw calculated
+    expression is emitted there and must be parenthesized.
+    """
+    table = _calc_table(database)
+    mocker.patch.object(table.db_engine_spec, "allows_alias_in_orderby", False)
+
+    sqla_query = table.get_sqla_query(
+        groupby=["is_ca_or_ny"],
+        metrics=["count"],
+        orderby=[("is_ca_or_ny", False)],
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    order_by = sql.split("ORDER BY", 1)[1]
+    assert f"({CALC_EXPR})" in order_by, (
+        f"Raw calculated expression in ORDER BY should be parenthesized. SQL: {sql}"
+    )
+
+
+def test_calculated_column_orderby_parenthesized_without_alias_in_select(
+    database: Database,
+    mocker: MockerFixture,
+) -> None:
+    """
+    On engines where ``get_allows_alias_in_select`` is False, the calculated
+    column is emitted as a bare ``Grouping`` (no ``Label``) and must still be
+    parenthesized in both SELECT and ORDER BY.
+    """
+    table = _calc_table(database)
+    mocker.patch.object(
+        table.db_engine_spec, "get_allows_alias_in_select", return_value=False
+    )
+
+    sqla_query = table.get_sqla_query(
+        groupby=["is_ca_or_ny"],
+        metrics=["count"],
+        orderby=[("is_ca_or_ny", False)],
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    assert f"({CALC_EXPR})" in sql, (
+        f"Bare-Grouping calculated column should be parenthesized. SQL: {sql}"
+    )
+    assert f"({CALC_EXPR}) AS is_ca_or_ny" not in sql, (
+        f"No SELECT alias expected when aliases are disabled. SQL: {sql}"
+    )
+    order_by = sql.split("ORDER BY", 1)[1]
+    assert f"({CALC_EXPR})" in order_by, (
+        f"ORDER BY should carry the parenthesized expression. SQL: {sql}"
+    )
+
+
+def test_calculated_column_series_limit_join_on_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Correctness regression: when a boolean/OR calculated column is a series
+    (top-N) dimension, the series-limit JOIN ON predicate is
+    ``(<expr>) = <inner col>``.  Without the parentheses it mis-parses as
+    ``state = 'CA' OR state = 'NY' = <inner col>`` -> ``state = 'CA' OR
+    (state = 'NY' = <inner col>)``, which changes the join membership.
+    """
+    table = _calc_table(database)
+
+    sqla_query = table.get_sqla_query(
+        groupby=["is_ca_or_ny"],
+        metrics=["count"],
+        series_columns=["is_ca_or_ny"],
+        series_limit=10,
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    assert f"({CALC_EXPR}) = is_ca_or_ny__" in sql, (
+        f"Series-limit JOIN ON should compare the parenthesized expression. SQL: {sql}"
+    )
+    # The bare (mis-parsing) form must be absent.
+    assert "OR state = 'NY' = is_ca_or_ny__" not in sql, (
+        f"Series-limit JOIN ON must not emit the bare, mis-parsing form. SQL: {sql}"
+    )
+
+
+def test_calculated_column_top_groups_predicate_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Correctness regression for the series top-N prequery predicate built by
+    ``_get_top_groups`` (``<groupby expr> == value``).  The calculated column
+    expression must be parenthesized so ``(<expr>) = <value>`` is produced.
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import TableColumn
+
+    table = _calc_table(database)
+    calc_col = next(c for c in table.columns if c.column_name == "is_ca_or_ny")
+    assert isinstance(calc_col, TableColumn)
+
+    gby_obj = table.convert_tbl_column_to_sqla_col(tbl_column=calc_col)
+    df = pd.DataFrame({"is_ca_or_ny": [1]})
+
+    predicate = table._get_top_groups(
+        df,
+        ["is_ca_or_ny"],
+        {"is_ca_or_ny": gby_obj},
+        {"is_ca_or_ny": calc_col},
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            predicate.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert f"({CALC_EXPR}) = 1" in sql, (
+        f"Top-N prequery predicate should be parenthesized. SQL: {sql}"
+    )
+    assert "OR state = 'NY' = 1" not in sql, (
+        f"Top-N prequery predicate must not emit the bare form. SQL: {sql}"
+    )
+
+
+def test_calculated_column_reference_adhoc_filter_single_parenthesized(
+    database: Database,
+) -> None:
+    """
+    A WHERE filter whose ``col`` is an adhoc column referencing a saved
+    calculated column (``isColumnReference=True``) is parenthesized exactly
+    once: the converter wraps it and the filter loop's ``_is_parenthesized``
+    guard prevents a redundant second ``Grouping`` (``((...))``).
+    """
+    table = _calc_table(database)
+
+    sqla_query = table.get_sqla_query(
+        columns=["a"],
+        filter=[
+            {
+                "col": {
+                    "label": "is_ca_or_ny",
+                    "sqlExpression": "is_ca_or_ny",
+                    "isColumnReference": True,
+                },
+                "op": "==",
+                "val": 1,
+            },
+        ],
+        metrics=[],
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    assert f"({CALC_EXPR}) = 1" in sql, (
+        f"Adhoc calc-column-reference filter should be parenthesized. SQL: {sql}"
+    )
+    assert f"(({CALC_EXPR}))" not in sql, (
+        f"Adhoc calc-column-reference filter must not be double-wrapped. SQL: {sql}"
+    )
+
+
+def test_calculated_column_adhoc_expression_filter_by_label_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    A bare adhoc SQL-expression column (containing ``OR``, not a column
+    reference) that is selected as a dimension and then filtered by its
+    *label* must be parenthesized in the WHERE clause. Here ``flt_col`` is a
+    label string rather than an adhoc dict, so the wrap is gated on whether
+    ``sqla_col`` itself came from an adhoc expression, not on
+    ``is_adhoc_column(flt_col)``.
+    """
+    table = _calc_table(database)
+    adhoc_col: Any = {
+        "label": "or_expr",
+        "sqlExpression": CALC_EXPR,
+    }
+
+    sqla_query = table.get_sqla_query(
+        columns=[adhoc_col],
+        filter=[{"col": "or_expr", "op": "==", "val": 1}],
+        metrics=[],
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    where = sql.split("WHERE", 1)[1]
+    assert f"({CALC_EXPR}) = 1" in where, (
+        f"Adhoc expression filtered by label should be parenthesized. SQL: {sql}"
+    )
+    assert "OR state = 'NY' = 1" not in where, (
+        f"Adhoc expression filtered by label must not emit the bare form. SQL: {sql}"
+    )
+
+
+def test_calculated_column_query_dimension_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    SQL Lab virtual datasets (``superset.models.sql_lab.Query``) inherit
+    ``ExploreMixin.convert_tbl_column_to_sqla_col``; a calculated column
+    resolved through that path is parenthesized (edit #1 blast radius).
+    """
+    from superset.connectors.sqla.models import TableColumn
+    from superset.models.sql_lab import Query
+
+    query = Query(database=database, sql="SELECT state FROM t")
+    calc_col = TableColumn(
+        column_name="is_ca_or_ny",
+        expression=CALC_EXPR,
+        type="BOOLEAN",
+    )
+
+    col = query.convert_tbl_column_to_sqla_col(tbl_column=calc_col)
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            col.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert f"({CALC_EXPR})" in sql, (
+        f"Query (SQL Lab) calculated column should be parenthesized. SQL: {sql}"
+    )
+
+
+def test_calculated_column_with_trailing_comment_closes_paren_on_new_line(
+    database: Database,
+) -> None:
+    """
+    A calculated column whose expression ends in a single-line comment must not
+    have ``Grouping``'s closing paren swallowed by that comment. The paren is
+    emitted on a new line so the SQL stays valid (``(expr -- c\\n)``).
+    """
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(
+                column_name="is_ca_or_ny",
+                expression=f"{CALC_EXPR} -- coasts",
+                type="BOOLEAN",
+            ),
+        ],
+        metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["is_ca_or_ny"],
+        metrics=[],
+        extras={},
+        is_timeseries=False,
+    )
+    sql = _compile(database, sqla_query)
+
+    # The closing paren (and the AS alias) land on the line after the comment,
+    # not inside it — otherwise the paren would be commented out.
+    assert "-- coasts\n) AS" in sql, (
+        f"Closing paren must not be swallowed by the trailing comment. SQL: {sql}"
+    )
+
+
 def _run_probe(
     database: Database,
     type_probe_needs_row: bool = False,
@@ -5183,4 +5590,6 @@ def test_filter_adhoc_column(database: Database) -> None:
 
     assert "real_name AS full_name" in sql
     assert "WHERE" in sql
-    assert "lower(real_name) LIKE lower('Zona%')" in sql
+    # The adhoc column resolved by label is parenthesized in the WHERE clause,
+    # consistent with inline adhoc columns, to guard operator precedence.
+    assert "lower((real_name)) LIKE lower('Zona%')" in sql
