@@ -539,7 +539,8 @@ export const routeRedisMessage = (
 };
 
 /**
- * Subscribes the Redis connection to the single `realtime` channel that carries
+ * Subscribes the Redis connection to the single realtime channel
+ * (`REALTIME_CHANNEL`, i.e. `<REALTIME_CHANNEL_PREFIX>realtime`) that carries
  * every browser-bound message (broadcast and targeted, distinguished by each
  * envelope's scope).
  *
