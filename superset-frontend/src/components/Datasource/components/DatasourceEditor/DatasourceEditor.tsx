@@ -36,6 +36,7 @@ import {
   SupersetClient,
   getClientErrorObject,
   getExtensionsRegistry,
+  formatSpecifier,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { t } from '@apache-superset/core/translation';
@@ -108,6 +109,10 @@ import {
 } from '../../FoldersEditor/treeUtils';
 import FoldersEditor from '../../FoldersEditor';
 import { DatasourceFolder } from 'src/explore/components/DatasourcePanel/types';
+import {
+  getDatasetCertification,
+  isDatasetExtraValid,
+} from './datasetCertification';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -184,6 +189,9 @@ interface DatasourceObject {
   description?: string;
   default_endpoint?: string;
   extra?: string;
+  certified_by?: string;
+  certification_details?: string;
+  dataset_certification_changed?: boolean;
   datasource_type?: string;
   type?: string;
   offset?: number;
@@ -827,6 +835,78 @@ function EditorsSelector({
 const ResultTable =
   extensionsRegistry.get('sqleditor.extension.resultTable') ?? FilterableTable;
 
+// D3's '%' and 'p' types both multiply by 100; parsed via d3-format's own
+// grammar so garbage like "foo%" is rejected rather than matched by suffix.
+// The stored value is trimmed before parsing because
+// NumberFormatterRegistry.get() trims it the same way before rendering, so
+// this check agrees with what the renderer actually sees.
+export const isPercentD3Format = (d3format?: string): boolean => {
+  if (!d3format) {
+    return false;
+  }
+  try {
+    const { type } = formatSpecifier(d3format.trim());
+    return type === '%' || type === 'p';
+  } catch {
+    return false;
+  }
+};
+
+// Matches the outermost COUNT(...) call's parens by depth, so a ratio like
+// `COUNT(*) / COUNT(*)` isn't misclassified but a nested call like
+// `COUNT(DISTINCT COALESCE(a, b))` is still recognized. Parens inside a
+// quoted string literal (single- or double-quoted, with a doubled quote as
+// an escaped quote) are ignored so they don't desync the depth count.
+export const isCountExpression = (expression?: string): boolean => {
+  const trimmed = expression?.trim();
+  if (!trimmed || !/^count\s*\(/i.test(trimmed) || !trimmed.endsWith(')')) {
+    return false;
+  }
+  let depth = 0;
+  let stringDelimiter: string | null = null;
+  for (let i = trimmed.indexOf('('); i < trimmed.length; i += 1) {
+    const char = trimmed[i];
+    if (stringDelimiter) {
+      if (char === stringDelimiter && trimmed[i + 1] === stringDelimiter) {
+        i += 1;
+      } else if (char === stringDelimiter) {
+        stringDelimiter = null;
+      }
+    } else if (char === "'" || char === '"') {
+      stringDelimiter = char;
+    } else if (char === '(') {
+      depth += 1;
+    } else if (char === ')') {
+      depth -= 1;
+      if (depth === 0) {
+        return i === trimmed.length - 1;
+      }
+    }
+  }
+  return false;
+};
+
+function renderMetricFormatWarning(item: Record<string, any>): ReactNode {
+  if (
+    !isCountExpression(item.expression) ||
+    !isPercentD3Format(item.d3format)
+  ) {
+    return null;
+  }
+  return (
+    <Alert
+      css={themeParam => ({ marginBottom: themeParam.sizeUnit * 4 })}
+      type="warning"
+      showIcon
+      message={t(
+        'This metric is a count, but its D3 format is a percentage. ' +
+          'Percent formats multiply the value by 100, which will make a ' +
+          'raw count render as a misleadingly large number.',
+      )}
+    />
+  );
+}
+
 // Redux connector types
 interface QueryPayload {
   client_id?: string;
@@ -899,6 +979,7 @@ function DatasourceEditor({
   // Initialize datasource state with transformed editors and metrics
   const [datasource, setDatasource] = useState<DatasourceObject>(() => ({
     ...propsDatasource,
+    ...getDatasetCertification(propsDatasource.extra),
     editors: normalizeSubjectsToPickerValues(propsDatasource.editors || []),
     metrics: propsDatasource.metrics?.map(hydrateMetricExtra),
   }));
@@ -1631,12 +1712,67 @@ function DatasourceEditor({
     onDatasourceChange,
   ]);
 
+  const renderCertificationFieldset = useCallback(() => {
+    const certificationError = !isDatasetExtraValid(datasource.extra)
+      ? t('Fix the Extra JSON to edit certification')
+      : undefined;
+
+    return isSqla ? (
+      <Fieldset
+        title={t('Certification')}
+        item={datasource}
+        onFieldChange={(fieldKey, value) => {
+          if (
+            fieldKey !== 'certified_by' &&
+            fieldKey !== 'certification_details'
+          ) {
+            return;
+          }
+          setDatasource(previousDatasource => ({
+            ...previousDatasource,
+            [fieldKey]: typeof value === 'string' ? value : undefined,
+            dataset_certification_changed: true,
+          }));
+        }}
+      >
+        <Field
+          fieldKey="certified_by"
+          label={t('Certified by')}
+          description={t('Person or group that has certified this dataset')}
+          errorMessage={certificationError}
+          control={
+            <TextControl
+              controlId="dataset_certified_by"
+              placeholder={t('Certified by')}
+              disabled={Boolean(certificationError)}
+            />
+          }
+        />
+        <Field
+          fieldKey="certification_details"
+          label={t('Certification details')}
+          description={t('Details of the dataset certification')}
+          errorMessage={certificationError}
+          control={
+            <TextControl
+              controlId="dataset_certification_details"
+              placeholder={t('Certification details')}
+              disabled={Boolean(certificationError)}
+            />
+          }
+        />
+      </Fieldset>
+    ) : null;
+  }, [datasource, isSqla]);
+
   const renderSettingsFieldset = useCallback(
     () => (
       <Fieldset
         title={t('Basic')}
         item={datasource}
-        onChange={onDatasourceChange}
+        onFieldChange={(fieldKey, value) =>
+          onDatasourcePropChange(String(fieldKey), value)
+        }
       >
         <Field
           fieldKey="description"
@@ -1690,15 +1826,20 @@ function DatasourceEditor({
             }
           />
         )}
+        <EditorsSelector
+          datasource={datasource}
+          onChange={newEditors => {
+            onDatasourcePropChange('editors', newEditors);
+          }}
+        />
         {isSqla && (
           <Field
             fieldKey="extra"
             label={t('Extra')}
             description={t(
-              'Extra data to specify table metadata. Currently supports ' +
-                'metadata of the format: `{ "certification": { "certified_by": ' +
-                '"Data Platform Team", "details": "This table is the source of truth." ' +
-                '}, "warning_markdown": "This is a warning." }`.',
+              'Extra data to specify table metadata, such as ' +
+                '`{ "warning_markdown": "This is a warning." }`. ' +
+                'Use the Certification fields below for certification metadata.',
             )}
             control={
               <TextAreaControl
@@ -1710,15 +1851,9 @@ function DatasourceEditor({
             }
           />
         )}
-        <EditorsSelector
-          datasource={datasource}
-          onChange={newEditors => {
-            onDatasourceChange({ ...datasource, editors: newEditors });
-          }}
-        />
       </Fieldset>
     ),
-    [datasource, onDatasourceChange, isSqla],
+    [datasource, onDatasourcePropChange, isSqla],
   );
 
   const renderAdvancedFieldset = useCallback(
@@ -1726,7 +1861,9 @@ function DatasourceEditor({
       <Fieldset
         title={t('Advanced')}
         item={datasource}
-        onChange={onDatasourceChange}
+        onFieldChange={(fieldKey, value) =>
+          onDatasourcePropChange(String(fieldKey), value)
+        }
       >
         <Field
           fieldKey="cache_timeout"
@@ -1774,7 +1911,7 @@ function DatasourceEditor({
         />
       </Fieldset>
     ),
-    [datasource, onDatasourceChange, isSqla],
+    [datasource, onDatasourcePropChange, isSqla],
   );
 
   const renderSourceFieldset = useCallback(
@@ -2170,7 +2307,7 @@ function DatasourceEditor({
           }}
           expandFieldset={
             <FormContainer>
-              <Fieldset compact>
+              <Fieldset compact renderWarning={renderMetricFormatWarning}>
                 <Field
                   fieldKey="expression"
                   label={t('SQL expression')}
@@ -2548,7 +2685,10 @@ function DatasourceEditor({
         children: (
           <Row gutter={16}>
             <Col xs={24} md={12}>
-              <FormContainer>{renderSettingsFieldset()}</FormContainer>
+              <FormContainer>
+                {renderSettingsFieldset()}
+                {renderCertificationFieldset()}
+              </FormContainer>
             </Col>
             <Col xs={24} md={12}>
               <FormContainer>{renderAdvancedFieldset()}</FormContainer>
@@ -2578,6 +2718,7 @@ function DatasourceEditor({
       folders,
       folderCount,
       handleFoldersChange,
+      renderCertificationFieldset,
       renderSettingsFieldset,
       renderAdvancedFieldset,
       // `renderSpatialTab` is intentionally retained (see its definition above)

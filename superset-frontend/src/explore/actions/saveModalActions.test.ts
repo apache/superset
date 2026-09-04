@@ -250,6 +250,50 @@ test('matches normalization metadata against finalized payload filters', async (
   ]);
 });
 
+test('updateSlice keeps values stashed by a hidden control section in the saved params', async () => {
+  fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
+    name: updateSliceEndpoint,
+  });
+  const dispatch = jest.fn();
+  const getState = () => ({
+    explore: {
+      // The Advanced analytics section is hidden (e.g. the x-axis column
+      // lost is_dttm), so StashFormDataContainer removed time_compare and
+      // comparison_type from form_data...
+      form_data: {
+        datasource: `${datasourceId}__${datasourceType}`,
+        viz_type: vizType,
+      },
+      // ...and holds their previously-saved values here until the section
+      // becomes visible again.
+      hiddenFormData: {
+        time_compare: ['1 year ago'],
+        comparison_type: 'values',
+      },
+    },
+  });
+
+  await updateSlice(
+    {
+      ...sliceResponsePayload,
+      slice_id: sliceId,
+      form_data: {
+        ...formData,
+        time_compare: ['1 year ago'],
+        comparison_type: 'values',
+      },
+    } as never,
+    sliceName,
+    [],
+  )(dispatch, getState);
+
+  const request = fetchMock.callHistory.lastCall(updateSliceEndpoint);
+  const body = JSON.parse(request?.options.body as string);
+  const savedParams = JSON.parse(body.params);
+  expect(savedParams.time_compare).toEqual(['1 year ago']);
+  expect(savedParams.comparison_type).toEqual('values');
+});
+
 /**
  * Tests updateSlice action
  */
@@ -375,6 +419,33 @@ test('createSlice handles success', async () => {
   );
 
   expect(slice).toEqual(sliceResponsePayload);
+});
+
+test('createSlice keeps values stashed by a hidden control section in the saved params', async () => {
+  fetchMock.post(createSliceEndpoint, sliceResponsePayload, {
+    name: createSliceEndpoint,
+  });
+  const dispatch = jest.fn();
+  const getState = () => ({
+    explore: {
+      form_data: {
+        datasource: `${datasourceId}__${datasourceType}`,
+        viz_type: vizType,
+      },
+      hiddenFormData: {
+        time_compare: ['1 year ago'],
+        comparison_type: 'values',
+      },
+    },
+  });
+
+  await createSlice(sliceName, [])(dispatch, getState as never);
+
+  const request = fetchMock.callHistory.lastCall(createSliceEndpoint);
+  const body = JSON.parse(request?.options.body as string);
+  const savedParams = JSON.parse(body.params);
+  expect(savedParams.time_compare).toEqual(['1 year ago']);
+  expect(savedParams.comparison_type).toEqual('values');
 });
 
 test('createSlice handles failure', async () => {
@@ -885,7 +956,7 @@ describe('getSlicePayload', () => {
   });
 });
 
-test('existing-chart overwrite covers stash-removed keys as drop transitions', async () => {
+test('existing-chart overwrite restores a stash-held value instead of dropping it', async () => {
   mockedIsFeatureEnabled.mockReturnValue(true);
   fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
     name: updateSliceEndpoint,
@@ -926,55 +997,9 @@ test('existing-chart overwrite covers stash-removed keys as drop transitions', a
 
   const request = fetchMock.callHistory.lastCall(updateSliceEndpoint);
   const body = JSON.parse(request?.options.body as string);
-  expect(body.normalization_changes).toEqual([
-    {
-      control: 'order_desc',
-      from_present: true,
-      from_value: true,
-      to_present: false,
-    },
-  ]);
-});
-
-test('a stashed value the user changed before hiding is not covered', async () => {
-  mockedIsFeatureEnabled.mockReturnValue(true);
-  fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
-    name: updateSliceEndpoint,
-  });
-  const dispatch = jest.fn();
-  const getState = () => ({
-    explore: {
-      form_data: {
-        datasource: `${datasourceId}__${datasourceType}`,
-        viz_type: vizType,
-        row_limit: 10000,
-      },
-      // Stash holds a USER-edited value; persisted differs, so the removal
-      // stays recorded.
-      hiddenFormData: { order_desc: false },
-    },
-    versionHistory: {
-      chartNormalization: {
-        chartId: sliceId,
-        hydrationSessionId: 'hydration-drop-2',
-        saveAttemptId: null,
-        invalidatedControls: {},
-        transitions: {},
-      },
-    },
-  });
-
-  await updateSlice(
-    {
-      ...sliceResponsePayload,
-      slice_id: sliceId,
-      form_data: { ...formData, order_desc: true },
-    } as never,
-    sliceName,
-    [],
-  )(dispatch, getState);
-
-  const request = fetchMock.callHistory.lastCall(updateSliceEndpoint);
-  const body = JSON.parse(request?.options.body as string);
+  const savedParams = JSON.parse(body.params);
+  // The stashed value is written back into the saved params, so there is no
+  // drop for the normalization tracker to report.
+  expect(savedParams.order_desc).toBe(true);
   expect(body.normalization_changes).toBeUndefined();
 });
