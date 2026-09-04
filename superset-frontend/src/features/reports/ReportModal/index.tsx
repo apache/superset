@@ -170,13 +170,16 @@ function ReportModal({
   const dispatch = useDispatch();
   // Report fetch logic
   const report = useSelector<any, ReportObject>(state => {
-    const resourceType = dashboardId
-      ? CreationMethod.Dashboards
-      : CreationMethod.Charts;
-    return (
-      reportSelector(state, resourceType, dashboardId || chart?.id) ||
-      EMPTY_OBJECT
-    );
+    // Resolve the existing report with the same scope the save payload uses
+    // (`creationMethod`). Explore can carry a `dashboardId` context prop even for
+    // a chart-scoped report, so keying off `dashboardId` first would load an
+    // unrelated dashboard report and a later save would target the wrong id.
+    const isChartReport = creationMethod === CreationMethod.Charts;
+    const resourceType = isChartReport
+      ? CreationMethod.Charts
+      : CreationMethod.Dashboards;
+    const resourceId = isChartReport ? chart?.id : dashboardId;
+    return reportSelector(state, resourceType, resourceId) || EMPTY_OBJECT;
   });
   const isEditMode = report && Object.keys(report).length;
 
@@ -194,8 +197,13 @@ function ReportModal({
       active: true,
       force_screenshot: false,
       custom_width: currentReport.custom_width,
-      dashboard: dashboardId,
-      chart: chart?.id,
+      // A report belongs to either a chart or a dashboard, never both. Explore can
+      // carry dashboard context even for a chart-scoped report, so send only the
+      // entity that matches the creation method; a payload with both `chart` and
+      // `dashboard` is rejected by the backend with a 422 error.
+      ...(creationMethod === CreationMethod.Charts
+        ? { chart: chart?.id }
+        : { dashboard: dashboardId }),
       name: currentReport.name,
       description: currentReport.description,
       crontab: currentReport.crontab,
