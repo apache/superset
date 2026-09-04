@@ -559,7 +559,7 @@ more-itertools==10.8.0
     # via
     #   jaraco-classes
     #   jaraco-functools
-msgpack==1.2.1
+msgpack==1.2.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
