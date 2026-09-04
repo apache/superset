@@ -139,6 +139,25 @@ The following URL parameters can be passed through the `urlParams` option in `da
 
 ---
 
+## Embedding a Single Chart
+
+Individual charts can also be embedded standalone, outside of a dashboard, using a chart permalink. From Explore, generate a permalink for the chart, then append URL parameters to it:
+
+```
+/explore/p/<permalink-key>/?standalone=1&show_download=1
+```
+
+| Parameter       | Values   | Effect                                                                     |
+| --------------- | -------- | -------------------------------------------------------------------------- |
+| `standalone`    | `0`, `1` | `0`: normal Explore view; `1`: hide the Explore header and controls        |
+| `show_download` | `0`, `1` | Show a compact download control (CSV, JSON, Excel) on the standalone chart |
+
+`show_download` is opt-in and has no effect outside of `standalone=1`. The download control still respects the viewer's `can_download` permission — it's hidden for users who lack it even when the parameter is set.
+
+Unlike dashboard embedding above, this standalone chart URL is a plain page load rather than an iframe embed managed by `@superset-ui/embedded-sdk`, so it doesn't go through guest tokens or the `dashboardUiConfig` options.
+
+---
+
 ## Security Notes
 
 - **Guest tokens expire** — their lifetime is controlled by the `GUEST_TOKEN_JWT_EXP_SECONDS` config (default: 5 minutes). Refresh tokens before they expire using a token refresh mechanism in your host app.
