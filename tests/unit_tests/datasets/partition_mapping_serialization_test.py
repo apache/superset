@@ -295,3 +295,22 @@ def test_the_engine_transform_default_is_readable_over_the_api() -> None:
     from superset.datasets.api import DatasetRestApi
 
     assert "partition_value_transform_default" in DatasetRestApi.show_columns
+
+
+def test_the_mapping_summary_is_gated_on_the_feature_flag(app: Flask) -> None:
+    """
+    With the flag off nothing is mirrored, so an "active" summary would have the
+    Explore indicator promise a predicate the query never carries -- worse than
+    showing nothing at all.
+    """
+    table = _table()
+
+    with app.app_context():
+        app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = False
+        assert table.partition_filter_mapping_summary is None
+
+        app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = True
+        summary = table.partition_filter_mapping_summary
+
+    assert summary is not None
+    assert summary["active"] is True
