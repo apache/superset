@@ -38,6 +38,7 @@ import {
   queries,
   table,
   defaultQueryEditor,
+  extraQueryEditor1,
 } from 'src/SqlLab/fixtures';
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import { api } from 'src/hooks/apiResources/queryApi';
@@ -444,6 +445,44 @@ describe('SqlEditor', () => {
       expect(localStorage.getItem(PENDING_NORTH_PANE_VIEW_KEY)).toBeNull();
       // ...and the chosen view is persisted under the per-tab key.
       expect(localStorage.getItem(storageKey)).toEqual('test.northPane');
+    } finally {
+      disposable.dispose();
+      localStorage.removeItem(storageKey);
+      localStorage.removeItem(PENDING_NORTH_PANE_VIEW_KEY);
+    }
+  });
+
+  test('leaves PENDING_NORTH_PANE_VIEW_KEY untouched when the editor is not the active tab', () => {
+    const { queryEditor } = mockedProps;
+    const storageKey = `sqllab.northPaneView.${queryEditor.id}`;
+    localStorage.setItem(PENDING_NORTH_PANE_VIEW_KEY, 'test.northPane');
+    const disposable = views.registerView(
+      { id: 'test.northPane', name: 'Test North Pane' },
+      ViewLocations.sqllab.northPane,
+      () => <div data-test="np-view">NorthPane content</div>,
+    );
+    // Another tab is active, so this editor mounts as a background tab (as
+    // happens when a reload restores several tabs at once).
+    const inactiveStore = createStore({
+      ...mockInitialState,
+      sqlLab: {
+        ...mockInitialState.sqlLab,
+        tabHistory: [extraQueryEditor1.id],
+      },
+    });
+
+    try {
+      const { container, queryByTestId } = setup(mockedProps, inactiveStore);
+      // The editor pane itself only mounts for the active tab, so check the
+      // surrounding layout to know the component has rendered.
+      expect(container.querySelector('.north-pane')).toBeInTheDocument();
+      expect(queryByTestId('np-view')).not.toBeInTheDocument();
+      // The pending key is left for the active tab to consume...
+      expect(localStorage.getItem(PENDING_NORTH_PANE_VIEW_KEY)).toEqual(
+        'test.northPane',
+      );
+      // ...and nothing is persisted under this tab's own key.
+      expect(localStorage.getItem(storageKey)).toBeNull();
     } finally {
       disposable.dispose();
       localStorage.removeItem(storageKey);

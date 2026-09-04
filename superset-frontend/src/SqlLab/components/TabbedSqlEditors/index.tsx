@@ -98,9 +98,6 @@ const TabTitle = styled.span`
 // Get the user's OS
 const userOS = detectOS();
 
-const newTabTooltip =
-  userOS === 'Windows' ? t('New tab (Ctrl + q)') : t('New tab (Ctrl + t)');
-
 const PlusIcon = (
   <Icons.PlusOutlined
     iconSize="l"
@@ -113,6 +110,11 @@ const PlusIcon = (
 
 function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
   const [open, setOpen] = useState(false);
+
+  // Resolved at render time rather than module load so `t()` runs after the
+  // translator has been configured.
+  const newTabTooltip =
+    userOS === 'Windows' ? t('New tab (Ctrl + q)') : t('New tab (Ctrl + t)');
 
   const dropdownItems = useMemo<MenuItemType[]>(() => {
     if (!open) return [];
@@ -172,6 +174,40 @@ function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
   }, [onAddSqlEditor]);
 
   const anchorRef = useRef<HTMLSpanElement>(null);
+  const popupRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+    // `trigger={[]}` opts the Dropdown out of rc-trigger's own outside-click
+    // handling (it derives that from the trigger actions), so provide the
+    // equivalent here: a mousedown anywhere outside the "+" button and the
+    // menu, or an Escape keypress, closes the dropdown. Mousedowns on the
+    // button and on menu items are left to their click handlers.
+    const handleMouseDown = (e: MouseEvent) => {
+      const target = e.target as Node | null;
+      const button = anchorRef.current?.closest('button') ?? anchorRef.current;
+      if (
+        target &&
+        (button?.contains(target) || popupRef.current?.contains(target))
+      ) {
+        return;
+      }
+      setOpen(false);
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', handleMouseDown, true);
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => {
+      window.removeEventListener('mousedown', handleMouseDown, true);
+      window.removeEventListener('keydown', handleKeyDown, true);
+    };
+  }, [open]);
 
   useEffect(() => {
     // Antd's Tabs wraps addIcon in its own <button onClick={() => onEdit('add')}>,
@@ -204,6 +240,7 @@ function NewTabButton({ onAddSqlEditor }: { onAddSqlEditor: () => void }) {
         onOpenChange={setOpen}
         menu={{ items: dropdownItems }}
         trigger={[]}
+        popupRender={node => <div ref={popupRef}>{node}</div>}
       >
         <span ref={anchorRef}>{PlusIcon}</span>
       </Dropdown>
@@ -301,10 +338,12 @@ function TabbedSqlEditors({
   );
 
   const onTabClicked = useCallback(() => {
-    Logger.markTimeOrigin();
     const noQueryEditors = queryEditors?.length === 0;
     if (noQueryEditors) {
+      // newQueryEditor marks the timing origin itself.
       newQueryEditor();
+    } else {
+      Logger.markTimeOrigin();
     }
   }, [queryEditors, newQueryEditor]);
 
