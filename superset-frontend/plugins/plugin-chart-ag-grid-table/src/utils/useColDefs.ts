@@ -25,7 +25,11 @@ import {
   CellClassParams,
 } from '@superset-ui/core/components/ThemedAgGridReact';
 import { useCallback, useMemo } from 'react';
-import { DataRecordValue, JsonObject } from '@superset-ui/core';
+import {
+  DataRecordValue,
+  DateWithFormatter,
+  JsonObject,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useTheme } from '@apache-superset/core/theme';
 import { ColorFormatters } from '@superset-ui/chart-controls';
@@ -42,7 +46,6 @@ import htmlTextFilterValueGetter, {
   htmlTextComparator,
 } from './htmlTextFilterValueGetter';
 import dateFilterComparator from './dateFilterComparator';
-import DateWithFormatter from './DateWithFormatter';
 import { getAggFunc } from './getAggFunc';
 import { TextCellRenderer } from '../renderers/TextCellRenderer';
 import { NumericCellRenderer } from '../renderers/NumericCellRenderer';

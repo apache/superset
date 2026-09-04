@@ -16,15 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  DataRecordValue,
-  normalizeTimestamp,
-  TimeFormatFunction,
-} from '@superset-ui/core';
+import type { DataRecordValue } from '../query/types/QueryResponse';
+import type { TimeFormatFunction } from './types';
+import normalizeTimestamp from './utils/normalizeTimestamp';
 
 /**
  * Extended Date object with a custom formatter, and retains the original input
  * when the formatter is simple `String(..)`.
+ *
+ * `toString()` never formats an Invalid Date: it returns the original input
+ * instead. `stringifyTimeInput` relies on that when it falls back to
+ * `${value}` for an unparseable input, otherwise the two would call each other
+ * forever.
  */
 export default class DateWithFormatter extends Date {
   formatter: TimeFormatFunction;
