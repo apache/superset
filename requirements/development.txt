@@ -943,7 +943,7 @@ six==1.17.0
     #   python-dateutil
     #   rfc3339-validator
     #   wtforms-json
-slack-sdk==3.43.0
+slack-sdk==3.44.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
