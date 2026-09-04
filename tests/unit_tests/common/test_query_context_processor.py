@@ -2399,6 +2399,121 @@ def test_relative_offset_preserves_inner_bounds(
     assert captured[0]["inner_to_dttm"] == pd.Timestamp("2026-05-28")
 
 
+def test_is_summable_accepts_decimal_columns():
+    """Decimal metrics must be summable for the contribution totals.
+
+    `decimal.Decimal` values -- how drivers such as psycopg2 hand back
+    NUMERIC/DECIMAL columns -- live in an object-dtype column, so the
+    `dtype.kind in "biufc"` test dropped them even though they sum and
+    divide fine. Columns holding anything else non-numeric must stay out.
+    """
+    from decimal import Decimal
+
+    from superset.common.query_context_processor import _is_summable
+
+    assert _is_summable(pd.Series([1.0, 2.0]))
+    assert _is_summable(pd.Series([1, 2]))
+    assert _is_summable(pd.Series([Decimal("1.5"), Decimal("2.5")]))
+    # a Decimal column that also carries nulls is still a Decimal column
+    assert _is_summable(pd.Series([Decimal("1.5"), None]))
+
+    assert not _is_summable(pd.Series(["a", "b"]))
+    assert not _is_summable(pd.Series([{"a": 1}, {"b": 2}]))
+    assert not _is_summable(pd.Series(pd.to_datetime(["2021-01-01", "2021-01-02"])))
+
+
+def test_ensure_totals_available_includes_decimal_metrics():
+    """A Decimal metric must reach `contribution_totals`.
+
+    When it is missing, `contribution()` looks the metric up, gets `None`
+    back and writes a zero contribution -- so the chart silently renders 0%
+    for every row of that metric rather than erroring.
+    """
+    from decimal import Decimal
+
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    mock_datasource.uid = "test_datasource"
+    mock_datasource.database.db_engine_spec.engine = "postgresql"
+    mock_datasource.cache_timeout = None
+    mock_datasource.changed_on = None
+
+    main_query = QueryObject(
+        datasource=mock_datasource,
+        columns=["brokerage"],
+        metrics=["decimal_metric", "float_metric"],
+        post_processing=[
+            {
+                "operation": "contribution",
+                "options": {"columns": ["decimal_metric", "float_metric"]},
+            }
+        ],
+    )
+    totals_query = QueryObject(
+        datasource=mock_datasource,
+        columns=[],
+        metrics=["decimal_metric", "float_metric"],
+        post_processing=[],
+    )
+
+    mock_query_context = MagicMock()
+    mock_query_context.queries = [main_query, totals_query]
+
+    mock_query_result = MagicMock()
+    mock_query_result.df = pd.DataFrame(
+        {
+            # what psycopg2 hands back for a NUMERIC column
+            "decimal_metric": [Decimal("40.0")],
+            "float_metric": [10.0],
+            # a non-numeric column must still be left out
+            "label": ["total"],
+        }
+    )
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+
+    with patch.object(
+        mock_query_context, "get_query_result", return_value=mock_query_result
+    ):
+        processor.ensure_totals_available()
+
+    totals = main_query.post_processing[0]["options"]["contribution_totals"]
+    assert totals == {"decimal_metric": Decimal("40.0"), "float_metric": 10.0}
+    assert "label" not in totals
+
+
+def test_contribution_uses_decimal_totals_rather_than_zero():
+    """End to end: the totals a Decimal metric produces yield real percentages."""
+    from decimal import Decimal
+
+    from superset.utils.core import PostProcessingContributionOrientation
+    from superset.utils.pandas_postprocessing import contribution
+
+    df = pd.DataFrame({"decimal_metric": [Decimal("10.0"), Decimal("30.0")]})
+
+    # totals as built by `ensure_totals_available`
+    processed = contribution(
+        df,
+        orientation=PostProcessingContributionOrientation.COLUMN,
+        columns=["decimal_metric"],
+        rename_columns=["%decimal_metric"],
+        contribution_totals={"decimal_metric": Decimal("40.0")},
+    )
+    assert processed["%decimal_metric"].tolist() == [0.25, 0.75]
+
+    # the pre-fix behaviour: the metric absent from totals collapses to zero
+    collapsed = contribution(
+        df,
+        orientation=PostProcessingContributionOrientation.COLUMN,
+        columns=["decimal_metric"],
+        rename_columns=["%decimal_metric"],
+        contribution_totals={"unrelated_metric": Decimal("40.0")},
+    )
+    assert collapsed["%decimal_metric"].tolist() == [0, 0]
+
+
 def test_get_native_annotation_data_requires_annotation_read_access():
     """Native annotation layers are only served to users who can read them."""
     query_obj = MagicMock()
