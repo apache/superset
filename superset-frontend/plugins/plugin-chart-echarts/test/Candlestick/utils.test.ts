@@ -30,6 +30,9 @@ test('parses numeric and MA-prefixed periods', () => {
 
 test('drops invalid moving-average periods', () => {
   expect(parseMovingAveragePeriods([1, 0, -5, 'foo', 2.5, 5])).toEqual([5]);
+  expect(
+    parseMovingAveragePeriods(['MAfoo15', '-5', '2.5', '15foo', 'foo15']),
+  ).toEqual([]);
 });
 
 test('calculateMA matches the ECharts candlestick example', () => {

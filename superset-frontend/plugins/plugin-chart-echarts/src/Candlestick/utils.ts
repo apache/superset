@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ensureIsArray } from "@superset-ui/core";
+import { ensureIsArray } from '@superset-ui/core';
 
 export const MOVING_AVERAGE_PERIODS = [5, 10, 15, 20, 30, 60];
 export const MA_LINE_OPACITY = 0.5;
@@ -26,16 +26,24 @@ export function movingAverageName(period: number, seriesName?: string): string {
   return seriesName ? `${seriesName} ${label}` : label;
 }
 
+function parseMovingAveragePeriod(item: unknown): number | null {
+  if (typeof item === 'number') {
+    return Number.isInteger(item) && item > 1 ? item : null;
+  }
+  const match = String(item)
+    .trim()
+    .match(/^(?:MA)?(\d+)$/i);
+  if (!match) {
+    return null;
+  }
+  const period = Number(match[1]);
+  return Number.isInteger(period) && period > 1 ? period : null;
+}
+
 export function parseMovingAveragePeriods(value: unknown): number[] {
   const periods = ensureIsArray(value)
-    .map((item) => {
-      if (typeof item === "number") {
-        return item;
-      }
-      const match = String(item).match(/(\d+)/);
-      return match ? Number(match[1]) : Number.NaN;
-    })
-    .filter((period) => Number.isInteger(period) && period > 1);
+    .map(parseMovingAveragePeriod)
+    .filter((period): period is number => period !== null);
   return [...new Set(periods)].sort((left, right) => left - right);
 }
 
@@ -47,11 +55,11 @@ export function parseMovingAveragePeriods(value: unknown): number[] {
 export function calculateMA(
   closes: Array<number | null>,
   period: number,
-): Array<number | "-"> {
-  const result: Array<number | "-"> = [];
+): Array<number | '-'> {
+  const result: Array<number | '-'> = [];
   for (let i = 0; i < closes.length; i += 1) {
     if (i < period) {
-      result.push("-");
+      result.push('-');
       continue;
     }
     let sum = 0;
@@ -64,7 +72,7 @@ export function calculateMA(
       }
       sum += close;
     }
-    result.push(valid ? sum / period : "-");
+    result.push(valid ? sum / period : '-');
   }
   return result;
 }

@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ChartProps } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
 import {
   CandlestickChartTransformedProps,
@@ -271,4 +272,117 @@ test('qualifies MA names when multiple candlestick series are present', () => {
     'AAPL MA2',
     'GOOG MA2',
   ]);
+});
+
+test('keeps series and x-axis values distinct when they contain the same characters', () => {
+  const seriesData = [
+    {
+      date: 'bar::baz',
+      symbol: 'foo',
+      open: 20,
+      close: 34,
+      low: 10,
+      high: 38,
+    },
+    {
+      date: 'baz',
+      symbol: 'foo::bar',
+      open: 40,
+      close: 35,
+      low: 30,
+      high: 50,
+    },
+  ];
+  const props = transformProps(
+    new ChartProps({
+      formData: { ...formData, series: 'symbol' },
+      width: 800,
+      height: 600,
+      queriesData: [{ data: seriesData }],
+      theme: supersetTheme,
+    }) as unknown as EchartsCandlestickChartProps,
+  );
+  const series = extractSeries(props);
+  expect(series.map(item => item.name)).toEqual(['foo', 'foo::bar']);
+  expect(series[0].data).toEqual([[20, 34, 10, 38], []]);
+  expect(series[1].data).toEqual([[], [40, 35, 30, 50]]);
+});
+
+test('formats tooltip dates from the category, not the raw row index', () => {
+  const seriesData = [
+    {
+      date: '2017-10-24',
+      symbol: 'AAPL',
+      open: 20,
+      close: 34,
+      low: 10,
+      high: 38,
+    },
+    {
+      date: '2017-10-24',
+      symbol: 'GOOG',
+      open: 40,
+      close: 35,
+      low: 30,
+      high: 50,
+    },
+    {
+      date: '2017-10-25',
+      symbol: 'AAPL',
+      open: 31,
+      close: 38,
+      low: 33,
+      high: 44,
+    },
+    {
+      date: '2017-10-25',
+      symbol: 'GOOG',
+      open: 38,
+      close: 15,
+      low: 5,
+      high: 42,
+    },
+  ];
+  const props = transformProps(
+    new ChartProps({
+      formData: {
+        ...formData,
+        series: 'symbol',
+        tooltip_time_format: '%Y-%m-%d',
+      },
+      width: 800,
+      height: 600,
+      queriesData: [
+        {
+          data: seriesData,
+          colnames: ['date', 'symbol', 'open', 'close', 'high', 'low'],
+          coltypes: [
+            GenericDataType.Temporal,
+            GenericDataType.String,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+          ],
+        },
+      ],
+      theme: supersetTheme,
+    }) as unknown as EchartsCandlestickChartProps,
+  );
+  const tooltipFormatter = (
+    props.echartOptions.tooltip as {
+      formatter: (params: unknown) => string;
+    }
+  ).formatter;
+  const tooltipHtml = tooltipFormatter([
+    {
+      dataIndex: 1,
+      name: '2017-10-25',
+      seriesType: 'candlestick',
+      value: [31, 38, 33, 44],
+      data: [31, 38, 33, 44],
+    },
+  ]);
+  expect(tooltipHtml).toContain('2017-10-25');
+  expect(tooltipHtml).not.toContain('2017-10-24');
 });

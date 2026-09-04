@@ -262,6 +262,7 @@ export default function transformProps(
 
   const xKeys: string[] = [];
   const xLabels: string[] = [];
+  const xRecords: DataRecord[] = [];
   const xKeySet = new Set<string>();
   data.forEach(datum => {
     const raw = datum[xAxisName];
@@ -271,6 +272,7 @@ export default function transformProps(
     }
     xKeySet.add(key);
     xKeys.push(key);
+    xRecords.push(datum);
     xLabels.push(
       coltypeMapping[xAxisName] === GenericDataType.Temporal
         ? extractGroupbyLabel({
@@ -297,7 +299,7 @@ export default function transformProps(
       ]
     : [CANDLESTICK_SERIES_NAME];
 
-  const recordsBySeriesAndX = new Map<string, DataRecord>();
+  const recordsBySeriesAndX = new Map<string, Map<string, DataRecord>>();
   data.forEach(datum => {
     const xKey =
       datum[xAxisName] == null ? NULL_STRING : String(datum[xAxisName]);
@@ -306,7 +308,12 @@ export default function transformProps(
         ? NULL_STRING
         : String(datum[seriesName])
       : seriesNames[0];
-    recordsBySeriesAndX.set(`${seriesKey}::${xKey}`, datum);
+    let byX = recordsBySeriesAndX.get(seriesKey);
+    if (!byX) {
+      byX = new Map();
+      recordsBySeriesAndX.set(seriesKey, byX);
+    }
+    byX.set(xKey, datum);
   });
 
   const candlestickSeries: CandlestickSeriesOption[] = seriesNames.map(
@@ -315,7 +322,7 @@ export default function transformProps(
       type: 'candlestick',
       data: xKeys.map(xKey =>
         toCandlestickDatum(
-          recordsBySeriesAndX.get(`${name}::${xKey}`),
+          recordsBySeriesAndX.get(name)?.get(xKey),
           openLabel,
           closeLabel,
           lowLabel,
@@ -459,7 +466,7 @@ export default function transformProps(
         const title =
           coltypeMapping[xAxisName] === GenericDataType.Temporal
             ? extractGroupbyLabel({
-                datum: data[item.dataIndex] ?? {},
+                datum: xRecords[item.dataIndex] ?? {},
                 groupby: [xAxisName],
                 coltypeMapping,
                 timeFormatter,
