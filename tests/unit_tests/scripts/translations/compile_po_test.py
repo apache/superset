@@ -39,6 +39,16 @@ def test_run_command_success() -> None:
         assert rc == 0
 
 
+def test_run_command_shell_flag() -> None:
+    """run_command passes shell=_SHELL to subprocess.run."""
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0)
+        compile_po.run_command(["echo", "hello"])
+        mock_run.assert_called_once()
+        _, kwargs = mock_run.call_args
+        assert kwargs["shell"] == compile_po._SHELL
+
+
 def test_run_command_failure() -> None:
     """run_command returns nonzero returncode on failure."""
     with patch("subprocess.run") as mock_run:
