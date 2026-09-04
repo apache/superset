@@ -455,7 +455,7 @@ export default function transformProps(
     },
     tooltip: {
       ...getDefaultTooltip(refs),
-      trigger: 'axis',
+      trigger: 'item',
       axisPointer: { type: 'shadow' },
       show: !inContextMenu,
       formatter: (params: CallbackDataParams | CallbackDataParams[]) => {
