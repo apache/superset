@@ -97,6 +97,37 @@ This setting only applies to requests detected as native filter option queries. 
 over the per-chart/dataset/database timeouts, but not over an explicit per-request
 `custom_cache_timeout` override (e.g. "Force refresh").
 
+## Async Query Result Cache TTL
+
+When [Global Async Queries](/admin-docs/configuration/configuring-superset#feature-flags) is
+enabled, a chart-data request that runs asynchronously does not return the result inline. Instead the
+query executes on a background task that **writes the result to the data cache**, and the browser
+then re-issues the same request to read that result back out of the cache once the task succeeds.
+
+This read-back is what makes the result-cache TTL matter for correctness, not just performance: if
+the effective TTL is shorter than the full async round trip (task execution + the client's poll
+interval + the re-fetch), the entry can be **evicted before the client reads it**, leaving the chart
+stuck re-running instead of loading. To prevent this, async requests floor their result-cache TTL to
+`GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL` (seconds, default `300` — five minutes):
+
+```python
+GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL = 300  # seconds
+```
+
+How the floor interacts with the timeouts above:
+
+- It applies **only to async execution**. Synchronous `/chart/data` requests keep their normal
+  chart/dataset/database/`DATA_CACHE_CONFIG` timeout even when Global Async Queries is enabled.
+- A **longer** effective TTL from that chain is kept as-is — the floor only raises TTLs that are
+  shorter than it.
+- A TTL of `0` ("cache forever") is left untouched.
+
+Tuning guidance: raise this value if your workload's async round trip can exceed five minutes (very
+long-running queries or slow warehouses), otherwise those charts may intermittently fail to load. Be
+aware of the trade-off — because the floor can raise an async result's TTL above a shorter cache
+retention policy, it keeps async results in the cache longer and modestly increases cache
+(Redis/Valkey) usage. Do not lower it below your worst-case async round trip.
+
 ## Limiting Cached Result Size
 
 Very large chart or SQL query results can flood the cache backend (Redis/Memcached), evicting many
