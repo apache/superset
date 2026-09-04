@@ -701,3 +701,104 @@ class TestPruneAudit(SupersetTestCase):
 
         assert result.blocked_duplicates == 1
         assert set(self.remaining_ids("ts")) == {first, twin}
+
+    # -- Committer (sadpandajoe) over-deletion findings on #43490 -----------
+
+    def test_pending_tied_to_later_block_protects_it(self) -> None:
+        """blocked(T0) -> pending(T1) -> blocked(T1), pending tied to the block.
+
+        Simulates MySQL second-granularity: the pending shares the later
+        block's exact timestamp. The later block must SURVIVE — an unresolved
+        attempt at a tied timestamp counts as preceding it.
+        """
+        b0 = self.add_row(STATUS_BLOCKED, age_days=6, reason=_REASON_A)
+        pending = self.add_row(STATUS_PENDING, age_days=5)
+        t1 = self.created_on_of(pending)
+        b1 = self.add_row(STATUS_BLOCKED, reason=_REASON_A, at=t1)
+
+        self.run_prune()
+        survivors = set(self.remaining_ids())
+        assert b0 in survivors
+        assert pending in survivors
+        assert b1 in survivors, "later block tied with a pending was pruned"
+
+    def test_reason_transition_survives_amid_repeats(self) -> None:
+        """blocked(B) -> blocked(A=report_schedule) -> blocked(A).
+
+        The report_schedule block follows a different-reason block, so it is a
+        reason transition and must SURVIVE even though a later same-reason
+        repeat exists; only the trailing repeat is pruned.
+        """
+        a = self.add_row(STATUS_BLOCKED, age_days=6, reason=_REASON_B)
+        transition = self.add_row(STATUS_BLOCKED, age_days=5, reason=_REASON_A)
+        repeat = self.add_row(STATUS_BLOCKED, age_days=4, reason=_REASON_A)
+
+        self.run_prune()
+        survivors = set(self.remaining_ids())
+        assert a in survivors
+        assert transition in survivors, "reason-transition block was pruned"
+        assert repeat not in survivors
+
+    def test_force_block_after_scheduled_same_reason_survives(self) -> None:
+        """blocked(scheduled, R) -> blocked(force, R).
+
+        The force attempt is a distinct operator action that audit.py retains
+        independently; the pruner must not erase it as a duplicate of the
+        earlier scheduled block.
+        """
+        scheduled = self.add_row(
+            STATUS_BLOCKED,
+            age_days=5,
+            reason=_REASON_A,
+            trigger=audit.TRIGGER_RETENTION,
+        )
+        force = self.add_row(
+            STATUS_BLOCKED, age_days=4, reason=_REASON_A, trigger=audit.TRIGGER_FORCE
+        )
+
+        self.run_prune()
+        survivors = set(self.remaining_ids())
+        assert scheduled in survivors
+        assert force in survivors, "force-purge block was pruned as a duplicate"
+
+    def test_force_anchor_still_collapses_a_later_scheduled_repeat(self) -> None:
+        """force(R) -> scheduled(R): the force row is retained AND anchors the
+        streak, so the later same-reason SCHEDULED repeat is still pruned. Proves
+        the force exemption protects only force rows, not legitimate collapsing.
+        """
+        force = self.add_row(
+            STATUS_BLOCKED, age_days=5, reason=_REASON_A, trigger=audit.TRIGGER_FORCE
+        )
+        scheduled_repeat = self.add_row(
+            STATUS_BLOCKED,
+            age_days=4,
+            reason=_REASON_A,
+            trigger=audit.TRIGGER_RETENTION,
+        )
+
+        self.run_prune()
+        survivors = set(self.remaining_ids())
+        assert force in survivors
+        assert scheduled_repeat not in survivors, (
+            "a later scheduled same-reason repeat should still be pruned"
+        )
+
+    def test_resolved_streak_force_block_ages_on_operational_window(self) -> None:
+        """Scope boundary of the force exemption (characterization).
+
+        The exemption protects a force block from duplicate collapse and, while
+        its streak is current, from operational aging. It is NOT blanket
+        immortality: once a confirmed/target_absent row breaks the streak, a
+        force block behind that boundary ages on the operational window like any
+        resolved-streak blocked row — the boundary is the durable evidence. If
+        this boundary is ever revisited, this is the test that pins it.
+        """
+        force = self.add_row(
+            STATUS_BLOCKED, age_days=100, reason=_REASON_A, trigger=audit.TRIGGER_FORCE
+        )
+        boundary = self.add_row(STATUS_CONFIRMED, age_days=50, reason=_REASON_A)
+
+        self.run_prune(**{OPERATIONAL_RETENTION_KEY: 90})
+        survivors = set(self.remaining_ids())
+        assert force not in survivors
+        assert boundary in survivors
