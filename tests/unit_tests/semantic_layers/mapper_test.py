@@ -40,7 +40,7 @@ from superset_core.semantic_layers.types import (
     SemanticRequest,
     SemanticResult,
 )
-from superset_core.semantic_layers.view import SemanticViewFeature
+from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
 
 from superset.semantic_layers.mapper import (
     _coerce_scalar_filter_value,
@@ -75,7 +75,12 @@ Feature = SemanticViewFeature
 
 class MockSemanticView:
     """
-    Mock implementation of SemanticView protocol.
+    Mock implementation of the SemanticView ABC surface.
+
+    Deliberately exposes NO public ``metrics``/``dimensions`` attributes —
+    the ABC declares only ``get_metrics()``/``get_dimensions()`` — so every
+    test in this file exercises the method contract; mapper code that
+    duck-types the undeclared attributes fails here (sc-119510).
     """
 
     def __init__(
@@ -84,18 +89,66 @@ class MockSemanticView:
         metrics: set[Metric],
         features: frozenset[SemanticViewFeature],
     ):
-        self.dimensions = dimensions
-        self.metrics = metrics
+        self._dimensions = dimensions
+        self._metrics = metrics
         self.features = features
 
     def uid(self) -> str:
         return "mock_semantic_view"
 
     def get_dimensions(self) -> set[Dimension]:
-        return self.dimensions
+        return self._dimensions
 
     def get_metrics(self) -> set[Metric]:
-        return self.metrics
+        return self._metrics
+
+
+class AbcOnlyView(SemanticView):
+    """Strictly ABC-compliant view: implements ONLY the abstract surface.
+
+    sc-119510 regression fixture — no ``metrics``/``dimensions`` attributes
+    exist on it, so mapper code that duck-types those names (instead of
+    calling the declared ``get_metrics()``/``get_dimensions()``) raises
+    AttributeError here. A provider built exactly to the documented ABC
+    used to 500 on its first chart query.
+    """
+
+    features: frozenset[SemanticViewFeature] = frozenset()
+    name = "abc_only"
+
+    def __init__(self, dimensions: set[Dimension], metrics: set[Metric]) -> None:
+        self.__dimensions = dimensions
+        self.__metrics = metrics
+
+    def uid(self) -> str:
+        return "abc_only"
+
+    def get_dimensions(self) -> set[Dimension]:
+        return self.__dimensions
+
+    def get_metrics(self) -> set[Metric]:
+        return self.__metrics
+
+    def get_values(
+        self, dimension: Dimension, filters: set[Filter] | None = None
+    ) -> SemanticResult:
+        raise NotImplementedError
+
+    def get_table(self, query: SemanticQuery) -> SemanticResult:
+        raise NotImplementedError
+
+    def get_row_count(self, query: SemanticQuery) -> SemanticResult:
+        raise NotImplementedError
+
+    def get_compatible_metrics(
+        self, selected_metrics: set[Metric], selected_dimensions: set[Dimension]
+    ) -> set[Metric]:
+        raise NotImplementedError
+
+    def get_compatible_dimensions(
+        self, selected_metrics: set[Metric], selected_dimensions: set[Dimension]
+    ) -> set[Dimension]:
+        raise NotImplementedError
 
 
 @pytest.fixture
@@ -289,7 +342,7 @@ def test_get_time_filter_no_granularity(mock_datasource: MagicMock) -> None:
     )
 
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     result = _get_time_filter(query_object, None, all_dimensions)
@@ -314,7 +367,7 @@ def test_get_time_filter_with_granularity(mock_datasource: MagicMock) -> None:
     )
 
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     result = _get_time_filter(query_object, None, all_dimensions)
@@ -356,7 +409,7 @@ def test_convert_query_object_filter_in(mock_datasource: MagicMock) -> None:
     Test conversion of IN filter.
     """
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
     filter_: ValidatedQueryObjectFilterClause = {
         "op": FilterOperator.IN.value,
@@ -386,7 +439,7 @@ def test_convert_query_object_filter_ilike(
     reject the operator for every provider.
     """
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
     for op, expected in (
         (FilterOperator.ILIKE.value, Operator.ILIKE),
@@ -411,7 +464,7 @@ def test_convert_query_object_filter_is_null(mock_datasource: MagicMock) -> None
     Test conversion of IS_NULL filter.
     """
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
     filter_: ValidatedQueryObjectFilterClause = {
         "op": FilterOperator.IS_NULL.value,
@@ -445,7 +498,7 @@ def test_get_filters_from_query_object_basic(mock_datasource: MagicMock) -> None
     )
 
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     result = _get_filters_from_query_object(query_object, None, all_dimensions)
@@ -481,7 +534,7 @@ def test_get_filters_from_query_object_with_extras(mock_datasource: MagicMock) -
     )
 
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     result = _get_filters_from_query_object(query_object, None, all_dimensions)
@@ -527,7 +580,7 @@ def test_get_filters_from_query_object_with_fetch_values(
     )
 
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     result = _get_filters_from_query_object(query_object, None, all_dimensions)
@@ -559,10 +612,10 @@ def test_get_order_from_query_object_metric(mock_datasource: MagicMock) -> None:
     Test order extraction with metric.
     """
     all_metrics = {
-        metric.name: metric for metric in mock_datasource.implementation.metrics
+        metric.name: metric for metric in mock_datasource.implementation.get_metrics()
     }
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     query_object = ValidatedQueryObject(
@@ -582,10 +635,10 @@ def test_get_order_from_query_object_dimension(mock_datasource: MagicMock) -> No
     Test order extraction with dimension.
     """
     all_metrics = {
-        metric.name: metric for metric in mock_datasource.implementation.metrics
+        metric.name: metric for metric in mock_datasource.implementation.get_metrics()
     }
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     query_object = ValidatedQueryObject(
@@ -605,10 +658,10 @@ def test_get_order_from_query_object_adhoc(mock_datasource: MagicMock) -> None:
     Test order extraction with adhoc expression.
     """
     all_metrics = {
-        metric.name: metric for metric in mock_datasource.implementation.metrics
+        metric.name: metric for metric in mock_datasource.implementation.get_metrics()
     }
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     query_object = ValidatedQueryObject(
@@ -636,10 +689,10 @@ def test_get_group_limit_from_query_object_none(mock_datasource: MagicMock) -> N
     Test that None is returned with no columns.
     """
     all_metrics = {
-        metric.name: metric for metric in mock_datasource.implementation.metrics
+        metric.name: metric for metric in mock_datasource.implementation.get_metrics()
     }
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     query_object = ValidatedQueryObject(
@@ -662,10 +715,10 @@ def test_get_group_limit_from_query_object_basic(mock_datasource: MagicMock) -> 
     Test basic group limit creation.
     """
     all_metrics = {
-        metric.name: metric for metric in mock_datasource.implementation.metrics
+        metric.name: metric for metric in mock_datasource.implementation.get_metrics()
     }
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     query_object = ValidatedQueryObject(
@@ -701,10 +754,10 @@ def test_get_group_limit_from_query_object_with_group_others(
     Test group limit with group_others enabled.
     """
     all_metrics = {
-        metric.name: metric for metric in mock_datasource.implementation.metrics
+        metric.name: metric for metric in mock_datasource.implementation.get_metrics()
     }
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     query_object = ValidatedQueryObject(
@@ -732,7 +785,7 @@ def test_get_group_limit_filters_no_inner_bounds(mock_datasource: MagicMock) -> 
     Test that None is returned when no inner bounds.
     """
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     query_object = ValidatedQueryObject(
@@ -755,7 +808,7 @@ def test_get_group_limit_filters_same_bounds(mock_datasource: MagicMock) -> None
     Test that None is returned when inner bounds equal outer bounds.
     """
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     from_dttm = datetime(2025, 10, 15)
@@ -782,7 +835,7 @@ def test_get_group_limit_filters_different_bounds(mock_datasource: MagicMock) ->
     Test filter creation when inner bounds differ.
     """
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     query_object = ValidatedQueryObject(
@@ -819,7 +872,7 @@ def test_get_group_limit_filters_with_extras(mock_datasource: MagicMock) -> None
     Test that extras filters are included in group limit filters.
     """
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     query_object = ValidatedQueryObject(
@@ -1416,7 +1469,7 @@ def test_convert_query_object_filter_unknown_operator(
     Test filter with unknown operator raises ValueError.
     """
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     filter_: ValidatedQueryObjectFilterClause = {
@@ -1515,9 +1568,11 @@ def test_validate_query_object_group_limit_not_supported_error(
         "total_sales", "total_sales", pa.float64(), "SUM(amount)", "Sales"
     )
 
-    mock_datasource.implementation.dimensions = {time_dim, category_dim}
-    mock_datasource.implementation.metrics = {sales_metric}
-    mock_datasource.implementation.features = frozenset()  # No GROUP_LIMIT feature
+    mock_datasource.implementation = MockSemanticView(
+        dimensions={time_dim, category_dim},
+        metrics={sales_metric},
+        features=frozenset(),  # No GROUP_LIMIT feature
+    )
 
     query_object = ValidatedQueryObject(
         datasource=mock_datasource,
@@ -2351,7 +2406,7 @@ def test_get_filters_from_query_object_with_filter_clauses(
     )
 
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     result = _get_filters_from_query_object(query_object, None, all_dimensions)
@@ -2378,7 +2433,7 @@ def test_get_time_filter_unknown_granularity(mock_datasource: MagicMock) -> None
     )
 
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     result = _get_time_filter(query_object, None, all_dimensions)
@@ -2400,7 +2455,7 @@ def test_get_time_filter_missing_bounds(mock_datasource: MagicMock) -> None:
     )
 
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     result = _get_time_filter(query_object, None, all_dimensions)
@@ -2643,10 +2698,10 @@ def test_get_order_adhoc_with_none_sql_expression(mock_datasource: MagicMock) ->
     Test order extraction skips adhoc expression with None sqlExpression.
     """
     all_metrics = {
-        metric.name: metric for metric in mock_datasource.implementation.metrics
+        metric.name: metric for metric in mock_datasource.implementation.get_metrics()
     }
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     query_object = ValidatedQueryObject(
@@ -2669,10 +2724,10 @@ def test_get_order_unknown_element(mock_datasource: MagicMock) -> None:
     Test order extraction skips unknown elements.
     """
     all_metrics = {
-        metric.name: metric for metric in mock_datasource.implementation.metrics
+        metric.name: metric for metric in mock_datasource.implementation.get_metrics()
     }
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     query_object = ValidatedQueryObject(
@@ -2697,7 +2752,7 @@ def test_get_group_limit_filters_with_granularity_no_time_dimension(
     Test group limit filters when granularity doesn't match any dimension.
     """
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     query_object = ValidatedQueryObject(
@@ -2726,7 +2781,7 @@ def test_get_group_limit_filters_with_fetch_values_predicate(
     mock_datasource.fetch_values_predicate = "tenant_id = 123"
 
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     query_object = ValidatedQueryObject(
@@ -2762,7 +2817,7 @@ def test_get_group_limit_filters_with_filter_clauses(
     Test group limit filters include converted filter clauses.
     """
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
     query_object = ValidatedQueryObject(
@@ -2824,8 +2879,8 @@ def test_validate_metrics_adhoc_error(
         "total_sales", "total_sales", pa.float64(), "SUM(amount)", "Sales"
     )
 
-    mock_datasource.implementation.dimensions = {category_dim}
-    mock_datasource.implementation.metrics = {sales_metric}
+    mock_datasource.implementation._dimensions = {category_dim}
+    mock_datasource.implementation._metrics = {sales_metric}
 
     # Manually create a query object with an adhoc metric
     query_object = mocker.Mock()
@@ -2949,11 +3004,11 @@ def test_validate_query_object_group_others_not_supported_error(
         "total_sales", "total_sales", pa.float64(), "SUM(amount)", "Sales"
     )
 
-    mock_datasource.implementation.dimensions = {time_dim, category_dim}
-    mock_datasource.implementation.metrics = {sales_metric}
-    # Has GROUP_LIMIT but not GROUP_OTHERS
-    mock_datasource.implementation.features = frozenset(
-        {SemanticViewFeature.GROUP_LIMIT}
+    mock_datasource.implementation = MockSemanticView(
+        dimensions={time_dim, category_dim},
+        metrics={sales_metric},
+        # Has GROUP_LIMIT but not GROUP_OTHERS
+        features=frozenset({SemanticViewFeature.GROUP_LIMIT}),
     )
 
     query_object = ValidatedQueryObject(
@@ -2983,11 +3038,11 @@ def test_validate_query_object_adhoc_orderby_not_supported_error(
         "total_sales", "total_sales", pa.float64(), "SUM(amount)", "Sales"
     )
 
-    mock_datasource.implementation.dimensions = {category_dim}
-    mock_datasource.implementation.metrics = {sales_metric}
-    mock_datasource.implementation.features = (
-        frozenset()
-    )  # No ADHOC_EXPRESSIONS_IN_ORDERBY
+    mock_datasource.implementation = MockSemanticView(
+        dimensions={category_dim},
+        metrics={sales_metric},
+        features=frozenset(),  # No ADHOC_EXPRESSIONS_IN_ORDERBY
+    )
 
     query_object = ValidatedQueryObject(
         datasource=mock_datasource,
@@ -3204,7 +3259,9 @@ def test_validate_granularity_valid(mocker: MockerFixture) -> None:
         "order_date", "order_date", pa.utf8(), "order_date", "Date", Grains.DAY
     )
 
-    mock_datasource.implementation.dimensions = {time_dim}
+    mock_datasource.implementation = MockSemanticView(
+        dimensions={time_dim}, metrics=set(), features=frozenset()
+    )
 
     query_object = mocker.Mock()
     query_object.datasource = mock_datasource
@@ -3226,10 +3283,12 @@ def test_validate_group_limit_valid(mocker: MockerFixture) -> None:
         "total_sales", "total_sales", pa.float64(), "SUM(amount)", "Sales"
     )
 
-    mock_datasource.implementation.dimensions = {category_dim}
-    mock_datasource.implementation.metrics = {sales_metric}
-    mock_datasource.implementation.features = frozenset(
-        {SemanticViewFeature.GROUP_LIMIT, SemanticViewFeature.GROUP_OTHERS}
+    mock_datasource.implementation = MockSemanticView(
+        dimensions={category_dim},
+        metrics={sales_metric},
+        features=frozenset(
+            {SemanticViewFeature.GROUP_LIMIT, SemanticViewFeature.GROUP_OTHERS}
+        ),
     )
 
     query_object = mocker.Mock()
@@ -4048,6 +4107,29 @@ def test_mapper_accepts_grain_column_built_by_tabular_query(
     assert base_axis["columnType"] == "BASE_AXIS"
 
     all_dimensions = {
-        dim.name: dim for dim in mock_datasource.implementation.dimensions
+        dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
     assert _normalize_column(base_axis, set(all_dimensions)) == "order_date"
+
+
+def test_abc_only_provider_validates_and_maps(mocker: MockerFixture) -> None:
+    """sc-119510 regression: a provider implementing ONLY the SemanticView
+    ABC — the abstract methods, no undeclared attributes — must pass
+    validation and mapping. The mapper used to read bare
+    ``.metrics``/``.dimensions`` and crash with AttributeError (an HTTP 500
+    on the first chart query) for exactly such a provider."""
+    datasource = mocker.Mock()
+    category = Dimension("category", "category", pa.utf8(), "category", "Category")
+    sales = Metric("total_sales", "total_sales", pa.float64(), "SUM(amount)", "Sales")
+    datasource.implementation = AbcOnlyView(dimensions={category}, metrics={sales})
+    query_object = ValidatedQueryObject(
+        datasource=datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+    )
+
+    assert validate_query_object(query_object)
+    queries = map_query_object(query_object)
+
+    assert {metric.name for metric in queries[0].metrics} == {"total_sales"}
+    assert {dim.name for dim in queries[0].dimensions} == {"category"}
