@@ -308,7 +308,7 @@ class TestAbortHandlerRegistration:
 
         with (
             patch.object(TaskContext, "_set_abortable") as mock_set_abortable,
-            patch.object(TaskContext, "start_abort_polling"),
+            patch.object(TaskContext, "_start_abort_listener"),
         ):
             ctx = TaskContext(mock_task)
 
@@ -330,7 +330,7 @@ class TestAbortHandlerRegistration:
 
         with (
             patch.object(TaskContext, "_set_abortable") as mock_set_abortable,
-            patch.object(TaskContext, "start_abort_polling"),
+            patch.object(TaskContext, "_start_abort_listener"),
         ):
             ctx = TaskContext(mock_task)
 
