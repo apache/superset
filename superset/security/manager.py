@@ -2259,7 +2259,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return True
 
     def can_drill_dataset_via_dashboard_access(
-        self, dataset: "BaseDatasource", dashboard: "Dashboard"
+        self, dataset: "BaseDatasource | Explorable", dashboard: "Dashboard"
     ) -> bool:
         """
         Return True if an embedded user or viewer (in promiscuous mode) can
@@ -2279,7 +2279,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 and self.is_viewer(dashboard)
                 and dashboard.published
             )
-        ) and dataset.id in {dataset.id for dataset in dashboard.datasources}:
+        ) and dashboard.has_member_datasource(dataset):
             return True
 
         return False
@@ -2332,7 +2332,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if (
             form_data.get("slice_id") is None
             and form_data.get("chart_id") is None
-            and datasource in dashboard.datasources
+            and dashboard.has_member_datasource(datasource)
         ):
             return True
 
