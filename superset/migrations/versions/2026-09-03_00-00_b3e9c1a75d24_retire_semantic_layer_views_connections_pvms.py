@@ -17,7 +17,7 @@
 """retire stale can_views / can_connections PVMs on the SemanticLayer view menu
 
 The ``views`` (POST ``/<uuid>/views``) and ``connections`` (GET
-``/connections/``) methods on ``SemanticLayerRestApi`` are now mapped to
+``/connections/``) methods on ``SemanticLayerRestApi`` are mapped to
 ``can_read`` in ``method_permission_name``. Earlier builds left those methods
 unmapped, so Flask-AppBuilder derived ``can_views`` and ``can_connections``
 permission-view-menus (PVMs) on the ``SemanticLayer`` view menu. Current code
@@ -26,10 +26,17 @@ can no longer create them, and once ``SemanticLayer`` joined
 everyone but Admin anyway.
 
 This migration migrates any role holding the stale PVMs onto the live
-``can_read`` PVM, then removes the stale rows. On a clean install (or one where
-the default-off ``SEMANTIC_LAYERS`` flag was never enabled, so the API was
-never registered and the PVMs never existed) ``migrate_roles`` resolves the old
-PVMs to ``None`` and this is a no-op, so it is safe to run everywhere.
+``can_read`` PVM, then removes the stale rows. ``add_pvms`` runs first so
+``can_read`` exists as a ``migrate_roles`` target. On a clean install (or one
+where the default-off ``SEMANTIC_LAYERS`` flag was never enabled, so the API
+was never registered and the stale PVMs never existed) ``migrate_roles`` is a
+no-op — the old PVMs resolve to ``None`` and no role is rewritten — but the
+migration as a whole is not: ``add_pvms`` still seeds the ``SemanticLayer``
+view menu and its ``can_read`` PVM, which ``sync_role_definitions`` then grants
+to Gamma. That is benign rather than a no-op: the endpoints 404 while the flag
+is off, but a fresh install does gain those rows. It is safe to run everywhere;
+guarding the calls on the stale PVMs actually being present would make it a
+literal no-op there, at the cost of the unconditional seed.
 
 Revision ID: b3e9c1a75d24
 Revises: 8f31c5d726ab
@@ -53,7 +60,7 @@ from superset.migrations.shared.security_converge import (  # noqa: E402
 
 VIEW_MENU = "SemanticLayer"
 
-# The live permission the two read endpoints now use. Ensure it exists before
+# The live permission the two read endpoints use. Ensure it exists before
 # reassigning roles to it so the lookup in ``migrate_roles`` cannot resolve to
 # ``None`` (FAB normally creates it on startup once the API is registered).
 NEW_PVMS = {VIEW_MENU: ("can_read",)}

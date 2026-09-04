@@ -37,8 +37,16 @@ assists people when migrating to a new version.
   Gamma users creating or editing semantic layers/views must grant those
   permissions through a custom role. A migration retires the now-unused
   `can_views` / `can_connections` permissions left on the `SemanticLayer`
-  view menu by earlier builds. The feature remains gated behind the
-  default-off `SEMANTIC_LAYERS` flag.
+  view menu by earlier builds. Two upgrade-time notes on that migration:
+  it seeds the `SemanticLayer` view menu and its `can_read` PVM if absent, so
+  even a fresh or flag-off install gains that permission (harmless — the
+  endpoints 404 while `SEMANTIC_LAYERS` is off); and retiring the stale
+  permissions remaps any role that held them onto `can_read`, a small
+  widening — a custom role granted only `can_views` or `can_connections` gains
+  `can_read` (the semantic-layer list and its masked-configuration detail),
+  which it could not previously reach. Operators who hand-rolled semantic-layer
+  roles should re-audit them after upgrading. The feature remains gated behind
+  the default-off `SEMANTIC_LAYERS` flag.
 
 ### Archived dataset purge requires impact confirmation
 
