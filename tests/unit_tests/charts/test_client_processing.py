@@ -16,6 +16,7 @@
 # under the License.
 
 from io import BytesIO, StringIO
+from typing import Any
 from unittest.mock import MagicMock
 
 import pandas as pd
@@ -522,11 +523,11 @@ def test_pivot_df_single_row_null_values():
     assert (
         pivoted.to_markdown()
         == """
-|                  |   ('SUM(num)',) |   ('MAX(num)',) | ('Total (Sum)',)   |
-|:-----------------|----------------:|----------------:|:-------------------|
-| ('boy',)         |             nan |             nan | nannan             |
-| ('girl',)        |          118065 |            2588 | 120653.0           |
-| ('Total (Sum)',) |          118065 |            2588 | 120653.0           |
+|                  |   ('SUM(num)',) |   ('MAX(num)',) |   ('Total (Sum)',) |
+|:-----------------|----------------:|----------------:|-------------------:|
+| ('boy',)         |             nan |             nan |                  0 |
+| ('girl',)        |          118065 |            2588 |             120653 |
+| ('Total (Sum)',) |          118065 |            2588 |             120653 |
     """.strip()
     )
 
@@ -546,15 +547,12 @@ def test_pivot_df_single_row_null_values():
     assert (
         pivoted.to_markdown()
         == f"""
-|                          |   ('{_("Total")} (Sum)',) |
-|:-------------------------|-------------------:|
-| ('SUM(num)', 'boy')      |                nan |
-| ('SUM(num)', 'girl')     |             118065 |
-| ('SUM(num)', 'Subtotal') |             118065 |
-| ('MAX(num)', 'boy')      |                nan |
-| ('MAX(num)', 'girl')     |               2588 |
-| ('MAX(num)', 'Subtotal') |               2588 |
-| ('{_("Total")} (Sum)', '')      |             120653 |
+|                      |   ('{_("Total")} (Sum)',) |
+|:---------------------|-------------------:|
+| ('SUM(num)', 'boy')  |                nan |
+| ('SUM(num)', 'girl') |             118065 |
+| ('MAX(num)', 'boy')  |                nan |
+| ('MAX(num)', 'girl') |               2588 |
     """.strip()
     )
 
@@ -692,11 +690,11 @@ def test_pivot_df_single_row_null_mix_values_strings():
     assert (
         pivoted.to_markdown()
         == """
-|                  | ('SUM(num)',)   |   ('MAX(num)',) | ('Total (Sum)',)   |
-|:-----------------|:----------------|----------------:|:-------------------|
-| ('boy',)         | NULL            |             nan | NULLnan            |
-| ('girl',)        | 118065          |            2588 | 120653.0           |
-| ('Total (Sum)',) | 118065.0        |            2588 | 120653.0           |
+|                  | ('SUM(num)',)   |   ('MAX(num)',) |   ('Total (Sum)',) |
+|:-----------------|:----------------|----------------:|-------------------:|
+| ('boy',)         | NULL            |             nan |                  0 |
+| ('girl',)        | 118065          |            2588 |             120653 |
+| ('Total (Sum)',) | 118065.0        |            2588 |             120653 |
     """.strip()
     )
 
@@ -720,8 +718,11 @@ def test_pivot_df_single_row_null_mix_values_strings():
 |:---------------------|:-------------------|
 | ('boy', 'SUM(num)')  | NULL               |
 | ('boy', 'MAX(num)')  | nan                |
+| ('boy', 'Subtotal')  | 0.0                |
 | ('girl', 'SUM(num)') | 118065             |
 | ('girl', 'MAX(num)') | 2588.0             |
+| ('girl', 'Subtotal') | 120653.0           |
+| ('Total (Sum)', '')  | 120653.0           |
     """.strip()
     )
 
@@ -853,12 +854,15 @@ def test_pivot_df_single_row_null_mix_values_numbers():
     assert (
         pivoted.to_markdown()
         == """
-|                      |   ('Total (Sum)',) |
-|:---------------------|-------------------:|
-| ('SUM(num)', 'boy')  |                 21 |
-| ('SUM(num)', 'girl') |             118065 |
-| ('MAX(num)', 'boy')  |                nan |
-| ('MAX(num)', 'girl') |               2588 |
+|                          |   ('Total (Sum)',) |
+|:-------------------------|-------------------:|
+| ('SUM(num)', 'boy')      |                 21 |
+| ('SUM(num)', 'girl')     |             118065 |
+| ('SUM(num)', 'Subtotal') |             118086 |
+| ('MAX(num)', 'boy')      |                nan |
+| ('MAX(num)', 'girl')     |               2588 |
+| ('MAX(num)', 'Subtotal') |               2588 |
+| ('Total (Sum)', '')      |             120674 |
     """.strip()
     )
 
@@ -882,8 +886,11 @@ def test_pivot_df_single_row_null_mix_values_numbers():
 |:---------------------|-------------------:|
 | ('boy', 'SUM(num)')  |                 21 |
 | ('boy', 'MAX(num)')  |                nan |
+| ('boy', 'Subtotal')  |                 21 |
 | ('girl', 'SUM(num)') |             118065 |
 | ('girl', 'MAX(num)') |               2588 |
+| ('girl', 'Subtotal') |             120653 |
+| ('{_("Total")} (Sum)', '')  |             120674 |
     """.strip()
     )
 
@@ -1801,6 +1808,558 @@ def test_pivot_df_complex_null_values():
 | ('girl', 'Subtotal')                       |           0.714731  |           0.791317  |
 | ('Total (Sum as Fraction of Columns)', '') |           1         |           1         |
     """.strip()  # noqa: E501
+    )
+
+
+# --- `showValuesAs` percent modes (#42809) -----------------------------------
+#
+# Exports and scheduled reports render server-side, so they have to reproduce
+# the client's `fractionOf` aggregator: each cell over its row, column, or grand
+# total, computed per metric, with totals dividing by their own rollup rather
+# than summing the fractions around them.
+
+SHOW_VALUES_AS_OPTIONS: dict[str, Any] = {
+    "rows": ["nation"],
+    "columns": ["gender"],
+    "metrics": ["SUM(num)"],
+    "aggfunc": "Sum",
+    "transpose_pivot": False,
+    "combine_metrics": False,
+    "show_rows_total": True,
+    "show_columns_total": True,
+    "apply_metrics_on_rows": False,
+}
+
+
+def show_values_as_df() -> pd.DataFrame:
+    """A 2x2 pivot: row totals 40/40, column totals 30/50, grand total 80."""
+    return pd.DataFrame(
+        {
+            "nation": ["US", "US", "UK", "UK"],
+            "gender": ["boy", "girl", "boy", "girl"],
+            "SUM(num)": [10, 30, 20, 20],
+        }
+    )
+
+
+def total_label() -> str:
+    return f"{_('Total')} (Sum)"
+
+
+def test_pivot_df_show_values_as_percent_row():
+    pivoted = pivot_df(
+        show_values_as_df(), **SHOW_VALUES_AS_OPTIONS, show_values_as="percent_row"
+    )
+    total = total_label()
+
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.25
+    assert pivoted.loc[("US",), ("SUM(num)", "girl")] == 0.75
+    assert pivoted.loc[("UK",), ("SUM(num)", "boy")] == 0.5
+    # a row is always 100% of itself
+    assert pivoted.loc[("US",), (total, "")] == 1
+    # the totals row shows each column's share of the grand total (30/80 and
+    # 50/80), not the sum of the fractions above it
+    assert pivoted.loc[(total,), ("SUM(num)", "boy")] == 0.375
+    assert pivoted.loc[(total,), ("SUM(num)", "girl")] == 0.625
+    assert pivoted.loc[(total,), (total, "")] == 1
+
+
+def test_pivot_df_show_values_as_percent_col():
+    pivoted = pivot_df(
+        show_values_as_df(), **SHOW_VALUES_AS_OPTIONS, show_values_as="percent_col"
+    )
+    total = total_label()
+
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == pytest.approx(1 / 3)
+    assert pivoted.loc[("UK",), ("SUM(num)", "boy")] == pytest.approx(2 / 3)
+    assert pivoted.loc[("US",), ("SUM(num)", "girl")] == 0.6
+    # a column is always 100% of itself
+    assert pivoted.loc[(total,), ("SUM(num)", "boy")] == 1
+    # the totals column shows each row's share of the grand total
+    assert pivoted.loc[("US",), (total, "")] == 0.5
+
+
+def test_pivot_df_show_values_as_percent_total():
+    pivoted = pivot_df(
+        show_values_as_df(), **SHOW_VALUES_AS_OPTIONS, show_values_as="percent_total"
+    )
+    total = total_label()
+
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.125
+    assert pivoted.loc[("US",), ("SUM(num)", "girl")] == 0.375
+    assert pivoted.loc[("UK",), ("SUM(num)", "boy")] == 0.25
+    assert pivoted.loc[(total,), ("SUM(num)", "boy")] == 0.375
+    assert pivoted.loc[("US",), (total, "")] == 0.5
+    assert pivoted.loc[(total,), (total, "")] == 1
+
+
+def test_pivot_df_show_values_as_keeps_metrics_separate():
+    """One metric's cells are never divided by another metric's total."""
+    df = show_values_as_df()
+    df["MAX(num)"] = [1, 3, 6, 10]
+    pivoted = pivot_df(
+        df,
+        **{**SHOW_VALUES_AS_OPTIONS, "metrics": ["SUM(num)", "MAX(num)"]},
+        show_values_as="percent_row",
+    )
+
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.25
+    assert pivoted.loc[("UK",), ("MAX(num)", "boy")] == 0.375
+    assert pivoted.loc[("UK",), ("MAX(num)", "girl")] == 0.625
+    # a total collapsing the metric axis resolves to one metric, as the
+    # renderer does, so it still divides by itself
+    assert pivoted.loc[("US",), (total_label(), "")] == 1
+
+
+def test_pivot_df_show_values_as_with_combined_metrics():
+    """`combineMetric` moves the metric to the lowest column level."""
+    df = show_values_as_df()
+    df["MAX(num)"] = [1, 3, 6, 10]
+    pivoted = pivot_df(
+        df,
+        **{
+            **SHOW_VALUES_AS_OPTIONS,
+            "metrics": ["SUM(num)", "MAX(num)"],
+            "combine_metrics": True,
+            "show_rows_total": False,
+            "show_columns_total": False,
+        },
+        show_values_as="percent_row",
+    )
+
+    assert pivoted.loc[("US",), ("boy", "SUM(num)")] == 0.25
+    assert pivoted.loc[("US",), ("girl", "SUM(num)")] == 0.75
+    # each metric keeps its own denominator across the combined layout
+    assert pivoted.loc[("UK",), ("boy", "MAX(num)")] == 0.375
+    assert pivoted.loc[("UK",), ("girl", "MAX(num)")] == 0.625
+
+
+def test_pivot_table_v2_show_values_as_uses_min_max_rollups():
+    """A MIN/MAX metric divides by the row's extreme, not its sum.
+
+    Mirrors `additiveReducerFor` in the plugin's `plugin/utilities.ts`: the
+    chart rolls a MAX metric up with max, so a row of [6, 10] reads 60%/100%.
+    """
+    df = pd.DataFrame(
+        {
+            "nation": ["US", "US", "UK", "UK"],
+            "gender": ["boy", "girl", "boy", "girl"],
+            "MAX(num)": [1, 3, 6, 10],
+        }
+    )
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": [
+            {
+                "expressionType": "SIMPLE",
+                "aggregate": "MAX",
+                "column": {"column_name": "num"},
+                "label": "MAX(num)",
+            }
+        ],
+        "showValuesAs": "percent_row",
+        "rowTotals": True,
+    }
+
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+
+    assert pivoted.loc[("UK",), ("MAX(num)", "boy")] == 0.6
+    assert pivoted.loc[("UK",), ("MAX(num)", "girl")] == 1
+    # the total divides by itself whatever the reducer
+    assert pivoted.loc[("UK",), (total_label(), "")] == 1
+
+
+def grouping_sets_df() -> pd.DataFrame:
+    """A GROUPING SETS result whose rollups differ from any leaf reduction.
+
+    Leaves are 10 and 20, so a leaf-derived total would be 30 (sum) or 15
+    (mean). The database rollups are deliberately none of those: 18 down the
+    column, 11/21 across the rows, 19 overall -- as a weighted average or a
+    distinct count would be.
+    """
+    return pd.DataFrame(
+        {
+            "nation": ["US", "UK", None, "US", "UK", None],
+            "gender": ["boy", "boy", "boy", None, None, None],
+            "nation__superset_grouping": [0, 0, 1, 0, 0, 1],
+            "gender__superset_grouping": [0, 0, 0, 1, 1, 1],
+            "AVG(num)": [10, 20, 18, 11, 21, 19],
+        }
+    )
+
+
+def nested_grouping_sets_df() -> pd.DataFrame:
+    """Two row dimensions, so prefix subtotal rows appear beside the rollups.
+
+    Every level holds a value no leaf reduction would produce: the `{region}`
+    rollups are 17 and 24, `{region, nation}` are 18 and 25, `{gender}` are 26
+    and 24, and the grand total is 21.
+    """
+    records = [
+        # (region, nation, gender, rolled-up markers, value)
+        ("EU", "UK", "boy", (0, 0, 0), 10),
+        ("EU", "UK", "girl", (0, 0, 0), 30),
+        ("NA", "US", "boy", (0, 0, 0), 40),
+        ("NA", "US", "girl", (0, 0, 0), 20),
+        ("EU", "UK", None, (0, 0, 1), 18),
+        ("NA", "US", None, (0, 0, 1), 25),
+        ("EU", None, "boy", (0, 1, 0), 10),
+        ("EU", None, "girl", (0, 1, 0), 30),
+        ("NA", None, "boy", (0, 1, 0), 40),
+        ("NA", None, "girl", (0, 1, 0), 20),
+        ("EU", None, None, (0, 1, 1), 17),
+        ("NA", None, None, (0, 1, 1), 24),
+        (None, None, "boy", (1, 1, 0), 26),
+        (None, None, "girl", (1, 1, 0), 24),
+        (None, None, None, (1, 1, 1), 21),
+    ]
+    return pd.DataFrame(
+        [
+            {
+                "region": region,
+                "nation": nation,
+                "gender": gender,
+                "region__superset_grouping": markers[0],
+                "nation__superset_grouping": markers[1],
+                "gender__superset_grouping": markers[2],
+                "AVG(num)": value,
+            }
+            for region, nation, gender, markers, value in records
+        ]
+    )
+
+
+NESTED_FORM_DATA = {
+    "groupbyRows": ["region", "nation"],
+    "groupbyColumns": ["gender"],
+    "metrics": ["AVG(num)"],
+    "showValuesAs": "percent_row",
+    "rowTotals": True,
+    "colTotals": True,
+}
+
+
+def test_row_subtotal_keeps_its_total_column_cell():
+    """A subtotal row is not a whole-axis total; it must not be looked up as one."""
+    pivoted = pivot_table_v2(
+        nested_grouping_sets_df(), NESTED_FORM_DATA, apply_number_format=False
+    )
+
+    assert not pd.isna(pivoted.loc[("EU", "Subtotal"), (total_label(), "")])
+
+
+def test_row_subtotal_divides_by_its_own_rollup():
+    """An "EU" subtotal divides by the {region} rollup, not the grand total."""
+    pivoted = pivot_table_v2(
+        nested_grouping_sets_df(), NESTED_FORM_DATA, apply_number_format=False
+    )
+
+    assert pivoted.loc[("EU", "Subtotal"), ("AVG(num)", "boy")] == pytest.approx(
+        10 / 17
+    )
+    assert pivoted.loc[("NA", "Subtotal"), ("AVG(num)", "boy")] == pytest.approx(
+        40 / 24
+    )
+
+
+def test_nested_leaf_rows_still_divide_by_database_rollups():
+    """Regression guard: the leaf and whole-axis behaviour is unchanged."""
+    pivoted = pivot_table_v2(
+        nested_grouping_sets_df(), NESTED_FORM_DATA, apply_number_format=False
+    )
+
+    assert pivoted.loc[("EU", "UK"), ("AVG(num)", "boy")] == pytest.approx(10 / 18)
+    assert pivoted.loc[("NA", "US"), ("AVG(num)", "boy")] == pytest.approx(40 / 25)
+    assert pivoted.loc[("EU", "UK"), (total_label(), "")] == 1
+    assert pivoted.loc[(total_label(), ""), (total_label(), "")] == 1
+
+
+def test_pivot_table_v2_pivots_only_grouping_sets_leaf_rows():
+    """Rollup levels must not be pivoted as if they were leaf rows."""
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "showValuesAs": "percent_col",
+    }
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+
+    # the rollup rows would otherwise add phantom rows for their NULL dimensions
+    assert len(pivoted.index) == 2
+
+
+@pytest.mark.parametrize(
+    "mode,expected",
+    [
+        # each leaf divides by the rollup the database computed, never by a
+        # total re-derived from the leaves
+        ("percent_col", 20 / 18),
+        ("percent_row", 20 / 21),
+        ("percent_total", 20 / 19),
+    ],
+)
+def test_pivot_table_v2_divides_by_database_rollups(mode: str, expected: float):
+    """For a non-additive metric the DB rollup is the only correct total."""
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "showValuesAs": mode,
+    }
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+
+    assert pivoted.loc[("UK",), ("AVG(num)", "boy")] == pytest.approx(expected)
+
+
+def _axis_has_total(axis) -> bool:
+    return any(
+        total_label() in (label if isinstance(label, tuple) else (label,))
+        for label in axis
+    )
+
+
+@pytest.mark.parametrize("layout", ["COLUMNS", "ROWS"])
+@pytest.mark.parametrize("toggle", ["rowTotals", "colTotals"])
+def test_pivot_table_v2_totals_land_on_the_displayed_axis(layout: str, toggle: str):
+    """`rowTotals` is always the right-hand column, whatever the metrics layout.
+
+    Moving metrics to rows transposes the frame on the way out, which would
+    otherwise flip the axis each total was inserted on.
+    """
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "showValuesAs": "percent_row",
+        "metricsLayout": layout,
+        toggle: True,
+    }
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+
+    assert _axis_has_total(pivoted.columns) is (toggle == "rowTotals")
+    assert _axis_has_total(pivoted.index) is (toggle == "colTotals")
+
+
+def test_pivot_table_v2_uses_database_rollups_with_metrics_on_rows():
+    """The metrics layout moves the displayed axes but not the rollup levels."""
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "showValuesAs": "percent_col",
+        "metricsLayout": "ROWS",
+    }
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+
+    # 20/18 and 10/18 from the database rollup, not 20/30 from the leaf sum
+    assert pivoted.loc[("AVG(num)", "UK"), ("boy",)] == pytest.approx(20 / 18)
+    assert pivoted.loc[("AVG(num)", "US"), ("boy",)] == pytest.approx(10 / 18)
+
+
+def test_pivot_table_v2_keeps_a_null_rollup_blank():
+    """A NULL rollup is not a missing one: it blanks the cell, as the chart does."""
+    df = grouping_sets_df()
+    df.loc[df["nation"].isna() & df["gender"].notna(), "AVG(num)"] = None
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "showValuesAs": "percent_col",
+    }
+
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+
+    # falling back to the leaf-derived total would have produced 10/30 here
+    assert pd.isna(pivoted.loc[("US",), ("AVG(num)", "boy")])
+
+
+def test_pivot_table_v2_rollup_totals_divide_by_themselves():
+    """A whole-axis total takes its value from the same level as its denominator."""
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "showValuesAs": "percent_row",
+        "rowTotals": True,
+    }
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+
+    # 21/21, not the leaf sum over the database row rollup
+    assert pivoted.loc[("UK",), (total_label(), "")] == 1
+
+
+def test_pivot_df_show_values_as_metrics_on_rows():
+    pivoted = pivot_df(
+        show_values_as_df(),
+        **{**SHOW_VALUES_AS_OPTIONS, "apply_metrics_on_rows": True},
+        show_values_as="percent_col",
+    )
+    total = total_label()
+
+    assert pivoted.loc[("SUM(num)", "US"), ("boy",)] == pytest.approx(1 / 3)
+    assert pivoted.loc[("SUM(num)", "US"), ("girl",)] == 0.6
+    assert pivoted.loc[("SUM(num)", "US"), (total,)] == 0.5
+    assert pivoted.loc[(total, ""), ("boy",)] == 1
+
+
+def test_pivot_df_show_values_as_zero_denominator_is_blank():
+    """A zero total renders blank rather than infinity."""
+    df = show_values_as_df()
+    df.loc[df["nation"] == "UK", "SUM(num)"] = 0
+    pivoted = pivot_df(df, **SHOW_VALUES_AS_OPTIONS, show_values_as="percent_row")
+
+    assert pd.isna(pivoted.loc[("UK",), ("SUM(num)", "boy")])
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.25
+
+
+def test_pivot_df_show_values_as_skips_empty_cells_in_denominators():
+    """A sparse pivot leaves NaN cells; they must not blank the whole table."""
+    df = show_values_as_df()
+    # drop UK/girl entirely, so that cell has no rows and pivots to NaN
+    sparse = df[~((df["nation"] == "UK") & (df["gender"] == "girl"))]
+    options = {**SHOW_VALUES_AS_OPTIONS, "show_rows_total": False}
+
+    pivoted = pivot_df(sparse, **options, show_values_as="percent_total")
+
+    # grand total is 10 + 30 + 20 = 60, the NaN cell contributing nothing
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == pytest.approx(10 / 60)
+    assert pivoted.loc[("UK",), ("SUM(num)", "boy")] == pytest.approx(20 / 60)
+    assert pd.isna(pivoted.loc[("UK",), ("SUM(num)", "girl")])
+
+
+@pytest.mark.parametrize("aggfunc", ["Sum", "Average", "Maximum"])
+def test_pivot_df_show_values_as_ignores_legacy_aggregate_function(aggfunc: str):
+    """A total always divides by itself, whatever `aggregateFunction` says.
+
+    The chart ignores `aggregateFunction` post-SIP-216, so a percent export must
+    too: computing totals with it while the denominators sum leaves the Total
+    row/column reading something other than 100%.
+    """
+    pivoted = pivot_df(
+        show_values_as_df(),
+        **{**SHOW_VALUES_AS_OPTIONS, "aggfunc": aggfunc},
+        show_values_as="percent_row",
+    )
+    total = total_label()
+
+    assert pivoted.loc[("US",), (total, "")] == 1
+    assert pivoted.loc[(total,), (total, "")] == 1
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.25
+
+
+def test_pivot_df_show_values_as_supersedes_legacy_fraction_aggfunc():
+    """`showValuesAs` wins over a pre-SIP-216 fraction aggregate function."""
+    pivoted = pivot_df(
+        show_values_as_df(),
+        **{**SHOW_VALUES_AS_OPTIONS, "aggfunc": "Sum as Fraction of Total"},
+        show_values_as="percent_row",
+    )
+
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == 0.25
+
+
+def test_pivot_table_v2_show_values_as_formats_as_percent() -> None:
+    """A ratio ignores the configured value format and currency, as the chart does."""
+    result = pivot_table_v2(
+        show_values_as_df(),
+        {
+            "groupbyRows": ["nation"],
+            "groupbyColumns": ["gender"],
+            "metrics": ["SUM(num)"],
+            "showValuesAs": "percent_total",
+            "valueFormat": "$,.2f",
+            "currencyFormat": {"symbol": "USD", "symbolPosition": "prefix"},
+        },
+    )
+
+    assert result.loc[("US",), ("SUM(num)", "boy")] == "12.5%"
+    assert result.loc[("US",), ("SUM(num)", "girl")] == "37.5%"
+
+
+def test_pivot_table_v2_show_values_as_actual_keeps_raw_values() -> None:
+    result = pivot_table_v2(
+        show_values_as_df(),
+        {
+            "groupbyRows": ["nation"],
+            "groupbyColumns": ["gender"],
+            "metrics": ["SUM(num)"],
+            "showValuesAs": "actual",
+            "valueFormat": ",d",
+        },
+    )
+
+    assert result.loc[("US",), ("SUM(num)", "boy")] == "10"
+
+
+def test_apply_client_processing_xlsx_formats_percentages_as_cells():
+    """The workbook shows percentages without giving up numeric cells.
+
+    A scheduled XLSX report and the browser's pivoted-Excel download have to
+    agree; writing formatted text would match the download but stop Excel from
+    summing the column.
+    """
+    import openpyxl  # noqa: PLC0415
+
+    source = pd.DataFrame(
+        {"nation": ["US", "US"], "gender": ["boy", "girl"], "SUM(num)": [1, 99]}
+    )
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source, index=False),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "showValuesAs": "percent_row",
+        "metricsLayout": "COLUMNS",
+    }
+
+    processed = apply_client_processing(result, form_data)
+
+    workbook = openpyxl.load_workbook(BytesIO(processed["queries"][0]["data"]))
+    sheet = workbook.active
+    assert sheet.cell(row=2, column=2).value == pytest.approx(0.01)
+    assert sheet.cell(row=2, column=2).number_format == "0.0%"
+
+
+def test_apply_client_processing_csv_format_show_values_as():
+    """CSV exports carry the percentages the chart displays."""
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": (
+                    "nation,gender,SUM(num)\n"
+                    "US,boy,10\nUS,girl,30\nUK,boy,20\nUK,girl,20\n"
+                ),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "showValuesAs": "percent_row",
+        "metricsLayout": "COLUMNS",
+    }
+
+    processed = apply_client_processing(result, form_data)
+
+    assert processed["queries"][0]["data"] == (
+        ",SUM(num) boy,SUM(num) girl\nUK,0.5,0.5\nUS,0.25,0.75\n"
     )
 
 
@@ -2931,6 +3490,88 @@ def test_apply_client_processing_csv_format_escapes_formula_values():
     assert "\n=SUM(1+1)" not in processed["queries"][0]["data"]
 
 
+def test_apply_client_processing_csv_format_bytes_data():
+    """
+    Regression for #32370: "Export to pivoted .csv" fails with a 505 error.
+
+    For a real ``resultType=post_processed``/``resultFormat=csv`` request,
+    the query's ``data`` is CSV *bytes* by the time it reaches
+    ``apply_client_processing`` --
+    ``QueryContextProcessor.get_data`` encodes it to bytes for any CSV
+    result_format (``superset/common/query_context_processor.py``), and
+    that's the exact payload ``ChartDataRestApi._send_chart_response`` hands
+    to ``apply_client_processing`` for a POST_PROCESSED result. The CSV
+    branch here passes that straight into ``StringIO(data)``, which raises
+    ``TypeError: initial_value must be str or None, not bytes`` -- a crash
+    that reproduces for every pivoted CSV export, not only the reporter's
+    special-character metric labels (this test uses one anyway, to also
+    pin the originally reported symptom).
+    """
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": b"name,% of total\nA,1\nB,2\n",
+            }
+        ]
+    }
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "groupbyColumns": [],
+        "groupbyRows": ["name"],
+        "metrics": ["% of total"],
+        "metricsLayout": "COLUMNS",
+        "aggregateFunction": "Sum",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "result_format": "csv",
+        "result_type": "post_processed",
+    }
+
+    processed = apply_client_processing(result, form_data)
+    assert "% of total" in processed["queries"][0]["data"]
+
+
+@with_config({"CSV_EXPORT": {"encoding": "latin-1"}})
+def test_apply_client_processing_csv_format_bytes_data_non_default_encoding():
+    """
+    Regression for #32370: the CSV bytes payload must be decoded with the
+    configured ``CSV_EXPORT.encoding``, not a hardcoded ``utf-8``, since
+    ``QueryContextProcessor.get_data`` encodes with that same config value.
+    A UTF-8 decode of latin-1 bytes containing e.g. "é" (0xE9) would raise
+    ``UnicodeDecodeError`` instead of the intended CSV text.
+    """
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": "name,city\nA,Montr\xe9al\n".encode("latin-1"),
+            }
+        ]
+    }
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "pivot_table_v2",
+        "slice_id": 69,
+        "groupbyColumns": [],
+        "groupbyRows": ["name"],
+        "metrics": ["city"],
+        "metricsLayout": "COLUMNS",
+        "aggregateFunction": "Sum",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "result_format": "csv",
+        "result_type": "post_processed",
+    }
+
+    processed = apply_client_processing(result, form_data)
+    assert "Montréal" in processed["queries"][0]["data"]
+
+
 def test_apply_client_processing_csv_format_empty_string():
     """
     It should be able to process csv results with no data
@@ -3002,10 +3643,14 @@ def test_apply_client_processing_csv_format_empty_string():
     }
 
 
-@pytest.mark.parametrize("data", [None, "", "\n"])
+@pytest.mark.parametrize("data", [None, "", "\n", b"", b"\n"])
 def test_apply_client_processing_csv_format_no_data(data):
     """
-    It should be able to process csv results with no data
+    It should be able to process csv results with no data, including the
+    bytes forms ``QueryContextProcessor.get_data`` actually produces for a
+    columnless frame (e.g. a bare newline), which must be decoded before
+    the empty-data check runs or they'd reach ``pd.read_csv`` and raise
+    ``EmptyDataError``.
     """
 
     result = {"queries": [{"result_format": ChartDataResultFormat.CSV, "data": data}]}

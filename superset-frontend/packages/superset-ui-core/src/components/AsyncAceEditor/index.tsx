@@ -57,6 +57,9 @@ export interface AceCompleterKeywordData {
   meta: string;
   docText?: string;
   docHTML?: string;
+  // The label Ace displays in the autocomplete popup and passes back to
+  // `insertMatch`; may differ from `value`, the text actually inserted.
+  caption?: string;
 }
 
 export type TextMode = OrigTextMode & { $id: string };

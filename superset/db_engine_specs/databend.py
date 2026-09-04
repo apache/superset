@@ -282,17 +282,19 @@ class DatabendEngineSpec(BasicParametersMixin, DatabendBaseEngineSpec):
             else cls.encryption_disable_parameters
         )
 
-        return str(
-            URL.create(
-                cls.engine,
-                username=parameters.get("username"),
-                password=parameters.get("password"),
-                host=parameters.get("host"),
-                port=parameters.get("port"),
-                database=parameters.get("database") or "__default__",
-                query=query,
-            )
-        )
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return URL.create(
+            cls.engine,
+            username=parameters.get("username"),
+            password=parameters.get("password"),
+            host=parameters.get("host"),
+            port=parameters.get("port"),
+            database=parameters.get("database") or "__default__",
+            query=query,
+        ).render_as_string(hide_password=False)
 
     @classmethod
     def _encryption_from_tls_parameters(

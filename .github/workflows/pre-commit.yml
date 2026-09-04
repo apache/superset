@@ -53,6 +53,15 @@ jobs:
       - name: Install helm-docs
         run: go install github.com/norwoodj/helm-docs/cmd/helm-docs@v1.14.2
 
+      # Spike: run the existing .pre-commit-config.yaml through prek (a Rust
+      # reimplementation of pre-commit) instead of pre-commit itself, to see
+      # whether it's viable to speed up this job. CI-only — contributors keep
+      # installing/running `pre-commit` locally exactly as documented; nothing
+      # here changes that.
+      - name: Install prek
+        run: |
+          curl --proto '=https' --tlsv1.2 -LsSf https://github.com/j178/prek/releases/download/v0.4.11/prek-installer.sh | sh
+
       - name: Setup Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
@@ -70,13 +79,13 @@ jobs:
           cd docs
           yarn install --immutable
 
-      - name: Cache pre-commit environments
+      - name: Cache prek environments
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: ~/.cache/pre-commit
-          key: pre-commit-v2-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}
+          path: ~/.cache/prek
+          key: prek-v1-${{ runner.os }}-py${{ matrix.python-version }}-${{ hashFiles('.pre-commit-config.yaml') }}
           restore-keys: |
-            pre-commit-v2-${{ runner.os }}-py${{ matrix.python-version }}-
+            prek-v1-${{ runner.os }}-py${{ matrix.python-version }}-
 
       - name: Determine changed files
         id: changed_files
@@ -142,7 +151,7 @@ jobs:
             } >> "$GITHUB_OUTPUT"
           fi
 
-      - name: pre-commit
+      - name: pre-commit (via prek)
         env:
           MODE: ${{ steps.changed_files.outputs.mode }}
           CHANGED_FILES: ${{ steps.changed_files.outputs.files }}
@@ -152,22 +161,22 @@ jobs:
 
           case "${MODE}" in
             all)
-              echo "ℹ️ Running pre-commit on all files."
-              pre-commit run --all-files
+              echo "ℹ️ Running prek on all files."
+              prek run --all-files
               ;;
             files)
-              echo "ℹ️ Running pre-commit on changed files:"
+              echo "ℹ️ Running prek on changed files:"
               echo "${CHANGED_FILES}"
               # shellcheck disable=SC2086
-              pre-commit run --files ${CHANGED_FILES}
+              prek run --files ${CHANGED_FILES}
               ;;
             none)
-              echo "ℹ️ No source files changed; nothing for pre-commit to check."
+              echo "ℹ️ No source files changed; nothing for prek to check."
               exit 0
               ;;
             *)
               echo "⚠️ Unrecognized changed-files mode '${MODE}'; checking all files."
-              pre-commit run --all-files
+              prek run --all-files
               ;;
           esac
           PRE_COMMIT_EXIT_CODE=$?

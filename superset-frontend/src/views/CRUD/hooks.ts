@@ -61,6 +61,15 @@ interface ListViewResourceState<D extends object = any> {
   lastFetched?: string;
 }
 
+const reservedListQueryParams = new Set([
+  'filters',
+  'order_column',
+  'order_direction',
+  'page',
+  'page_size',
+  'select_columns',
+]);
+
 const parsedErrorMessage = (
   errorMessage: Record<string, string[] | string> | string,
 ) => {
@@ -148,6 +157,7 @@ export function useListViewResource<D extends object = any>(
   );
 
   const lastFetchDataConfigRef = useRef<FetchDataConfig | null>(null);
+  const latestRequestIdRef = useRef(0);
 
   const fetchData = useCallback(
     ({
@@ -155,12 +165,17 @@ export function useListViewResource<D extends object = any>(
       pageSize,
       sortBy,
       filters: filterValues,
+      extraQueryParams,
     }: FetchDataConfig) => {
+      const requestId = latestRequestIdRef.current + 1;
+      latestRequestIdRef.current = requestId;
+      const isLatest = () => latestRequestIdRef.current === requestId;
       const config: FetchDataConfig = {
         filters: filterValues,
         pageIndex,
         pageSize,
         sortBy,
+        extraQueryParams,
       };
       lastFetchDataConfigRef.current = config;
       // set loading state, cache the last config for refreshing data.
@@ -182,7 +197,13 @@ export function useListViewResource<D extends object = any>(
               : value,
         }));
 
+      const safeExtraQueryParams = Object.fromEntries(
+        Object.entries(extraQueryParams ?? {}).filter(
+          ([key]) => !reservedListQueryParams.has(key),
+        ),
+      );
       const queryParams = rison.encode_uri({
+        ...safeExtraQueryParams,
         order_column: sortBy[0].id,
         order_direction: sortBy[0].desc ? 'desc' : 'asc',
         page: pageIndex,
@@ -196,24 +217,31 @@ export function useListViewResource<D extends object = any>(
       })
         .then(
           ({ json = {} }) => {
+            if (!isLatest()) {
+              return;
+            }
             updateState({
               collection: json.result,
               count: json.count,
               lastFetched: new Date().toISOString(),
             });
           },
-          createErrorHandler(errMsg =>
-            handleErrorMsg(
-              t(
-                'An error occurred while fetching %ss: %s',
-                resourceLabel,
-                errMsg,
-              ),
-            ),
-          ),
+          createErrorHandler(errMsg => {
+            if (isLatest()) {
+              handleErrorMsg(
+                t(
+                  'An error occurred while fetching %ss: %s',
+                  resourceLabel,
+                  errMsg,
+                ),
+              );
+            }
+          }),
         )
         .finally(() => {
-          updateState({ loading: false });
+          if (isLatest()) {
+            updateState({ loading: false });
+          }
         });
     },
     [

@@ -224,6 +224,69 @@ def test_raise_for_access_guest_user_ok_subset(
     sm.raise_for_access(query_context=query_context)
 
 
+def test_raise_for_access_guest_user_deck_multi_child_requires_child_datasource(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The deck.gl multi-layer child leg must bind the requested datasource to
+    the child chart: a valid parent/child pair does not authorize querying
+    an arbitrary dataset.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "can_access_schema", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "can_access_dashboard", return_value=True)
+    mocker.patch.object(sm, "get_current_guest_user_if_guest", return_value=None)
+    mocker.patch(
+        "superset.is_feature_enabled",
+        side_effect=lambda feature: feature == "EMBEDDED_SUPERSET",
+    )
+    mocker.patch(
+        "superset.security.manager.query_context_modified",
+        return_value=False,
+    )
+
+    child_datasource = mocker.MagicMock()
+    other_datasource = mocker.MagicMock()
+
+    parent_slc = mocker.MagicMock()
+    parent_slc.params = json.dumps({"viz_type": "deck_multi", "deck_slices": [42]})
+    child_slc = mocker.MagicMock()
+    child_slc.datasource = child_datasource
+
+    dashboard = mocker.MagicMock()
+    dashboard.slices = [parent_slc]
+
+    query_mock = mocker.patch.object(sm.session, "query")
+    query_mock.return_value.filter.return_value.one_or_none.side_effect = [
+        dashboard,
+        parent_slc,
+        child_slc,
+        dashboard,
+        parent_slc,
+        child_slc,
+    ]
+
+    query_context = mocker.MagicMock()
+    query_context.form_data = {
+        "dashboardId": 10,
+        "slice_id": 42,
+        "parent_slice_id": 41,
+    }
+
+    # Requesting the child's own datasource is allowed.
+    query_context.datasource = child_datasource
+    sm.raise_for_access(query_context=query_context)
+
+    # The same chart context with any other datasource is rejected.
+    query_context.datasource = other_datasource
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query_context=query_context)
+
+
 def test_raise_for_access_guest_user_tampered_id(
     mocker: MockerFixture,
     app_context: None,
@@ -1317,6 +1380,31 @@ def test_query_context_modified_tampered(
     assert query_context_modified(query_context)
 
 
+def test_query_context_modified_malformed_stored_query_context(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A stored ``query_context`` that is not valid JSON (which the query-context-only
+    chart update path can persist) must be treated as modified/tampered rather than
+    crashing with a raw ``JSONDecodeError``. Returning ``True`` lets
+    ``raise_for_access`` deny the guest with the intended 403.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = "not valid json"
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+    }
+    query_context.queries = [QueryObject(metrics=stored_metrics)]  # type: ignore
+    assert query_context_modified(query_context)
+
+
 def test_query_context_modified_singular_metric_param(
     mocker: MockerFixture,
 ) -> None:
@@ -1539,6 +1627,32 @@ def test_query_context_modified_native_filter_arbitrary_saved_metric_blocked(
     """A saved metric other than the filter's configured sort metric is modified."""
     query = SimpleNamespace(columns=["region"], metrics=["salary_total"], groupby=[])
     qc = _native_filter_ctx(mocker, [query], control_values={"sortMetric": "total"})
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_series_limit_terms_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """A series-limit metric or series column beyond the target is modified."""
+    query = SimpleNamespace(
+        columns=["region"],
+        metrics=[],
+        groupby=[],
+        series_columns=["region"],
+        series_limit=5,
+        series_limit_metric={
+            "expressionType": "SIMPLE",
+            "column": {"column_name": "salary"},
+            "aggregate": "MAX",
+        },
+    )
+    qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
+
+    query = SimpleNamespace(
+        columns=["region"], metrics=[], groupby=[], series_columns=["ssn"]
+    )
+    qc = _native_filter_ctx(mocker, [query])
     assert query_context_modified(qc)
 
 
@@ -2932,6 +3046,112 @@ def test_get_catalogs_accessible_by_user_schema_access(
     assert sm.get_catalogs_accessible_by_user(database, catalogs) == {"catalog2"}
 
 
+def test_get_schemas_accessible_by_user_cached_list(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that `get_schemas_accessible_by_user` handles candidate names that a cache
+    serializer deserialized as a list instead of a set. Before normalization this
+    raised `TypeError: unsupported operand type(s) for &: 'list' and 'set'` for users
+    with only schema-level access.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(
+        sm,
+        "user_view_menu_names",
+        side_effect=[
+            {"[db1].[schema2]"},  # schema_access
+            set(),  # datasource_access
+        ],
+    )
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = None
+    database.get_default_schema.return_value = None
+
+    schemas = ["schema1", "schema2"]
+
+    assert sm.get_schemas_accessible_by_user(database, None, schemas) == {"schema2"}
+
+
+def test_get_schemas_accessible_by_user_hierarchical_cached_list(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that the hierarchical early return normalizes a list-typed candidate
+    collection to a set, so callers always receive a `set` regardless of the cache
+    serializer.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=True)
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = None
+    database.get_default_schema.return_value = None
+
+    schemas = ["schema1", "schema2"]
+
+    result = sm.get_schemas_accessible_by_user(database, None, schemas)
+    assert result == {"schema1", "schema2"}
+    assert isinstance(result, set)
+
+
+def test_get_catalogs_accessible_by_user_cached_list(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that `get_catalogs_accessible_by_user` handles candidate names that a cache
+    serializer deserialized as a list instead of a set.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(
+        sm,
+        "user_view_menu_names",
+        side_effect=[
+            set(),  # catalog_access
+            {"[db1].[catalog2].[schema1]"},  # schema_access
+            set(),  # datasource_access
+        ],
+    )
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = "catalog2"
+
+    catalogs = ["catalog1", "catalog2"]
+
+    assert sm.get_catalogs_accessible_by_user(database, catalogs) == {"catalog2"}
+
+
+def test_get_catalogs_accessible_by_user_hierarchical_cached_list(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that the hierarchical early return for catalogs normalizes a list-typed
+    candidate collection to a set.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=True)
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = "catalog2"
+
+    catalogs = ["catalog1", "catalog2"]
+
+    result = sm.get_catalogs_accessible_by_user(database, catalogs)
+    assert result == {"catalog1", "catalog2"}
+    assert isinstance(result, set)
+
+
 def test_get_rls_filters_uses_table_id_directly(
     mocker: MockerFixture,
     app_context: None,
@@ -3702,3 +3922,123 @@ def test_validate_guest_token_resources_accepts_embedded_int_id(
     sm.validate_guest_token_resources(
         [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
     )
+
+
+def test_is_editor_query_owner(mocker: MockerFixture, app_context: None) -> None:
+    """
+    Test that a Query owner is considered an editor via Subject resolution.
+    """
+    from superset.models.sql_lab import Query
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch(
+        "superset.security.manager.get_user_id",
+        return_value=100,
+    )
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject_ids",
+        return_value={1000},
+    )
+    mocker.patch(
+        "superset.security.manager.get_extra_editor_subject_ids",
+        return_value=set(),
+    )
+
+    subject_user_100 = mocker.MagicMock(id=1000)
+    subject_user_200 = mocker.MagicMock(id=2000)
+
+    def mock_get_user_subject(uid: int):
+        if uid == 100:
+            return subject_user_100
+        if uid == 200:
+            return subject_user_200
+        return None
+
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject",
+        side_effect=mock_get_user_subject,
+    )
+
+    query = Query(user_id=100)
+    assert sm.is_editor(query) is True
+
+    other_query = Query(user_id=200)
+    assert sm.is_editor(other_query) is False
+
+
+def test_is_editor_saved_query_owner(mocker: MockerFixture, app_context: None) -> None:
+    """
+    Test that a SavedQuery owner is considered an editor via Subject resolution.
+    """
+    from superset.models.sql_lab import SavedQuery
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch(
+        "superset.security.manager.get_user_id",
+        return_value=100,
+    )
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject_ids",
+        return_value={1000},
+    )
+    mocker.patch(
+        "superset.security.manager.get_extra_editor_subject_ids",
+        return_value=set(),
+    )
+
+    subject_user_100 = mocker.MagicMock(id=1000)
+    subject_user_200 = mocker.MagicMock(id=2000)
+
+    def mock_get_user_subject(uid: int):
+        if uid == 100:
+            return subject_user_100
+        if uid == 200:
+            return subject_user_200
+        return None
+
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject",
+        side_effect=mock_get_user_subject,
+    )
+
+    saved_query = SavedQuery(user_id=100)
+    assert sm.is_editor(saved_query) is True
+
+    other_saved_query = SavedQuery(user_id=200)
+    assert sm.is_editor(other_saved_query) is False
+
+
+def test_is_editor_other_model_with_user_id_not_editor(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    Test that a model with user_id that is NOT Query or SavedQuery
+    does NOT receive the fallback and is not considered an editor.
+    """
+    from superset.models.sql_lab import TabState
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch(
+        "superset.security.manager.get_user_id",
+        return_value=100,
+    )
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject_ids",
+        return_value={1000},
+    )
+    mocker.patch(
+        "superset.security.manager.get_extra_editor_subject_ids",
+        return_value=set(),
+    )
+
+    subject_user_100 = mocker.MagicMock(id=1000)
+    mocker.patch(
+        "superset.subjects.utils.get_user_subject",
+        return_value=subject_user_100,
+    )
+
+    tab_state = TabState(user_id=100)
+    assert sm.is_editor(tab_state) is False

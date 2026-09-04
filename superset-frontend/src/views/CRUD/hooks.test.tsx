@@ -17,6 +17,7 @@
  * under the License.
  */
 import { renderHook, act } from '@testing-library/react';
+import rison from 'rison';
 import { waitFor } from 'spec/helpers/testing-library';
 import { JsonResponse, SupersetClient } from '@superset-ui/core';
 
@@ -41,6 +42,21 @@ function findEndpoint(spy: jest.SpyInstance, substring: string): string {
   }
 
   return (match[0] as Record<string, string>).endpoint;
+}
+
+function deferredJsonResponse() {
+  let resolveResponse: ((value: JsonResponse) => void) | undefined;
+  let rejectResponse: ((reason?: unknown) => void) | undefined;
+  const promise = new Promise<JsonResponse>((resolve, reject) => {
+    resolveResponse = resolve;
+    rejectResponse = reject;
+  });
+
+  if (!resolveResponse || !rejectResponse) {
+    throw new Error('Deferred response handlers were not initialized');
+  }
+
+  return { promise, resolve: resolveResponse, reject: rejectResponse };
 }
 
 beforeEach(() => {
@@ -282,6 +298,147 @@ test('useListViewResource: fetchData sets loading to true then false', async () 
   });
 });
 
+test('useListViewResource: ignores an older response that resolves last', async () => {
+  const older = deferredJsonResponse();
+  const newer = deferredJsonResponse();
+  const toISOString = jest
+    .spyOn(Date.prototype, 'toISOString')
+    .mockReturnValueOnce('newer-response-time')
+    .mockReturnValueOnce('older-response-time');
+  jest
+    .spyOn(SupersetClient, 'get')
+    .mockReturnValueOnce(older.promise)
+    .mockReturnValueOnce(newer.promise);
+
+  const { result } = renderHook(() =>
+    useListViewResource('chart', 'Charts', jest.fn(), false),
+  );
+
+  act(() => {
+    result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'name' }],
+      filters: [],
+    });
+    result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'name' }],
+      filters: [{ id: 'name', operator: 'ct', value: 'newer' }],
+    });
+  });
+
+  await act(async () => {
+    newer.resolve({
+      json: { result: [], count: 0 },
+    } as unknown as JsonResponse);
+  });
+  expect(result.current.state.resourceCollection).toEqual([]);
+  expect(result.current.state.resourceCount).toBe(0);
+  expect(result.current.state.lastFetched).toBe('newer-response-time');
+
+  await act(async () => {
+    older.resolve({
+      json: { result: [{ id: 1 }, { id: 2 }], count: 2 },
+    } as unknown as JsonResponse);
+  });
+
+  expect(result.current.state.resourceCollection).toEqual([]);
+  expect(result.current.state.resourceCount).toBe(0);
+  expect(result.current.state.lastFetched).toBe('newer-response-time');
+  expect(toISOString).toHaveBeenCalledTimes(1);
+});
+
+test('useListViewResource: stale completion keeps the latest request loading', async () => {
+  const older = deferredJsonResponse();
+  const newer = deferredJsonResponse();
+  jest
+    .spyOn(SupersetClient, 'get')
+    .mockReturnValueOnce(older.promise)
+    .mockReturnValueOnce(newer.promise);
+
+  const { result } = renderHook(() =>
+    useListViewResource('chart', 'Charts', jest.fn(), false),
+  );
+
+  act(() => {
+    result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'name' }],
+      filters: [],
+    });
+    result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'name' }],
+      filters: [{ id: 'name', operator: 'ct', value: 'newer' }],
+    });
+  });
+
+  await act(async () => {
+    older.resolve({
+      json: { result: [{ id: 1 }], count: 1 },
+    } as unknown as JsonResponse);
+  });
+
+  expect(result.current.state.resourceCollection).toEqual([]);
+  expect(result.current.state.loading).toBe(true);
+
+  await act(async () => {
+    newer.resolve({
+      json: { result: [{ id: 2 }], count: 1 },
+    } as unknown as JsonResponse);
+  });
+
+  expect(result.current.state.resourceCollection).toEqual([{ id: 2 }]);
+  expect(result.current.state.loading).toBe(false);
+});
+
+test('useListViewResource: only the latest request reports an error', async () => {
+  const older = deferredJsonResponse();
+  const newer = deferredJsonResponse();
+  const handleErrorMsg = jest.fn();
+  jest
+    .spyOn(SupersetClient, 'get')
+    .mockReturnValueOnce(older.promise)
+    .mockReturnValueOnce(newer.promise);
+
+  const { result } = renderHook(() =>
+    useListViewResource('chart', 'Charts', handleErrorMsg, false),
+  );
+
+  act(() => {
+    result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'name' }],
+      filters: [],
+    });
+    result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'name' }],
+      filters: [{ id: 'name', operator: 'ct', value: 'newer' }],
+    });
+  });
+
+  await act(async () => {
+    older.reject('older request failed');
+  });
+
+  expect(handleErrorMsg).not.toHaveBeenCalled();
+  expect(result.current.state.loading).toBe(true);
+
+  await act(async () => {
+    newer.reject('newer request failed');
+  });
+
+  expect(handleErrorMsg).toHaveBeenCalledTimes(1);
+  expect(result.current.state.loading).toBe(false);
+});
+
 test('useListViewResource: refreshData re-fetches with last config', async () => {
   const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: [], count: 0 },
@@ -393,6 +550,107 @@ test('useListViewResource: uses desc sort direction when desc is true', async ()
 
   const endpoint = findEndpoint(getSpy, '/api/v1/chart/?q=');
   expect(endpoint).toContain('order_direction:desc');
+});
+
+test('useListViewResource: includes extra list query parameters', async () => {
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: { result: [], count: 0 },
+  } as unknown as JsonResponse);
+
+  const { result } = renderHook(() =>
+    useListViewResource('chart', 'Charts', jest.fn()),
+  );
+
+  await act(async () => {
+    await result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'viz_type' }],
+      filters: [],
+      extraQueryParams: {
+        viz_type_order: ['slug_z', 'slug_a'],
+      },
+    });
+  });
+
+  const endpoint = findEndpoint(getSpy, '/api/v1/chart/?q=');
+  const query = new URL(endpoint, 'http://localhost').searchParams.get('q');
+  expect(rison.decode(query!)).toMatchObject({
+    order_column: 'viz_type',
+    viz_type_order: ['slug_z', 'slug_a'],
+  });
+});
+
+test('useListViewResource: refresh reuses extra list query parameters', async () => {
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: { result: [], count: 0 },
+  } as unknown as JsonResponse);
+
+  const { result } = renderHook(() =>
+    useListViewResource('chart', 'Charts', jest.fn()),
+  );
+
+  await act(async () => {
+    await result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'viz_type' }],
+      filters: [],
+      extraQueryParams: { viz_type_order: ['slug_z', 'slug_a'] },
+    });
+    await result.current.refreshData();
+  });
+
+  const listQueries = getSpy.mock.calls
+    .map(call => (call[0] as { endpoint: string }).endpoint)
+    .filter(endpoint => endpoint.includes('/api/v1/chart/?q='))
+    .map(endpoint => {
+      const query = new URL(endpoint, 'http://localhost').searchParams.get('q');
+      return rison.decode(query!);
+    });
+  expect(listQueries).toHaveLength(2);
+  expect(listQueries).toEqual([
+    expect.objectContaining({ viz_type_order: ['slug_z', 'slug_a'] }),
+    expect.objectContaining({ viz_type_order: ['slug_z', 'slug_a'] }),
+  ]);
+});
+
+test('useListViewResource: extra parameters cannot replace list controls', async () => {
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: { result: [], count: 0 },
+  } as unknown as JsonResponse);
+
+  const { result } = renderHook(() =>
+    useListViewResource('chart', 'Charts', jest.fn()),
+  );
+
+  await act(async () => {
+    await result.current.fetchData({
+      pageIndex: 0,
+      pageSize: 25,
+      sortBy: [{ id: 'viz_type' }],
+      filters: [],
+      extraQueryParams: {
+        custom_param: 'preserved',
+        filters: [{ col: 'slice_name', opr: 'eq', value: 'injected' }],
+        order_column: 'slice_name',
+        order_direction: 'desc',
+        page: 99,
+        page_size: 1,
+        select_columns: ['slice_name'],
+      },
+    });
+  });
+
+  const endpoint = findEndpoint(getSpy, '/api/v1/chart/?q=');
+  const query = new URL(endpoint, 'http://localhost').searchParams.get('q');
+  expect(rison.decode(query!)).toEqual({
+    custom_param: 'preserved',
+    order_column: 'viz_type',
+    order_direction: 'asc',
+    page: 0,
+    page_size: 25,
+  });
 });
 
 // useSingleViewResource

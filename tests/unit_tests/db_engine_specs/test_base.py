@@ -291,6 +291,13 @@ def test_get_default_catalog(mocker: MockerFixture) -> None:
     assert BaseEngineSpec.get_default_catalog(database) is None
 
 
+def test_prepare_identifier_returns_name_unchanged() -> None:
+    name = "physical_column"
+
+    assert BaseEngineSpec.prepare_identifier(name, normalize_columns=False) is name
+    assert BaseEngineSpec.prepare_identifier(name, normalize_columns=True) is name
+
+
 def test_quote_table() -> None:
     """
     Test the `quote_table` function.
@@ -366,6 +373,66 @@ def test_unmask_encrypted_extra() -> None:
     )
 
 
+def test_mask_encrypted_extra_oauth2_client_info_with_narrow_override() -> None:
+    """
+    Test that the OAuth2 client secret is masked even when an engine spec
+    overrides `encrypted_extra_sensitive_fields` without including it.
+    """
+
+    class NarrowFieldsSpec(BaseEngineSpec):
+        encrypted_extra_sensitive_fields = {"$.auth_params.password"}
+
+    config = json.dumps(
+        {
+            "auth_params": {"password": "my_password"},
+            "oauth2_client_info": {
+                "id": "my_client_id",
+                "secret": "my_client_secret",
+            },
+        }
+    )
+
+    assert NarrowFieldsSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "auth_params": {"password": "XXXXXXXXXX"},
+            "oauth2_client_info": {
+                "id": "my_client_id",
+                "secret": "XXXXXXXXXX",
+            },
+        }
+    )
+
+
+def test_mask_encrypted_extra_oauth2_client_info_without_sensitive_fields() -> None:
+    """
+    Test that the OAuth2 client secret is masked even when an engine spec
+    declares no sensitive fields at all.
+    """
+
+    class NoFieldsSpec(BaseEngineSpec):
+        encrypted_extra_sensitive_fields: set[str] = set()
+
+    config = json.dumps(
+        {
+            "auth_params": {"password": "my_password"},
+            "oauth2_client_info": {
+                "id": "my_client_id",
+                "secret": "my_client_secret",
+            },
+        }
+    )
+
+    assert NoFieldsSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "auth_params": {"password": "my_password"},
+            "oauth2_client_info": {
+                "id": "my_client_id",
+                "secret": "XXXXXXXXXX",
+            },
+        }
+    )
+
+
 @pytest.mark.parametrize(
     "masked_encrypted_extra,expected_result",
     [
@@ -377,6 +444,7 @@ def test_unmask_encrypted_extra() -> None:
             {
                 "$.credentials_info.private_key",
                 "$.access_token",
+                "$.oauth2_client_info.secret",
             },
         ),
         (
@@ -387,11 +455,12 @@ def test_unmask_encrypted_extra() -> None:
             {
                 "$.credentials_info.private_key",
                 "$.access_token",
+                "$.oauth2_client_info.secret",
             },
         ),
         (
             None,
-            {"$.*"},
+            {"$.*", "$.oauth2_client_info.secret"},
         ),
     ],
 )
@@ -1148,21 +1217,19 @@ def test_get_oauth2_fresh_token_success(mocker: MockerFixture) -> None:
     assert result == {"access_token": "new-access-token", "expires_in": 3600}
 
 
-@pytest.mark.parametrize("status_code", [400, 401, 403])
 @with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})
-def test_get_oauth2_fresh_token_raises_on_auth_error(
+def test_get_oauth2_fresh_token_raises_on_invalid_grant(
     mocker: MockerFixture,
-    status_code: int,
 ) -> None:
     """
-    Test that get_oauth2_fresh_token raises OAuth2TokenRefreshError on 400/401/403.
+    Test that a definitive refresh-token rejection requests interactive OAuth2.
     """
     from superset.db_engine_specs.base import BaseEngineSpec
     from superset.exceptions import OAuth2TokenRefreshError
 
     mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
-    mock_post.return_value.status_code = status_code
-    mock_post.return_value.text = '{"error": "invalid_grant"}'
+    mock_post.return_value.status_code = 400
+    mock_post.return_value.json.return_value = {"error": "invalid_grant"}
 
     config: OAuth2ClientConfig = {
         "id": "client-id",
@@ -1177,7 +1244,40 @@ def test_get_oauth2_fresh_token_raises_on_auth_error(
     with pytest.raises(OAuth2TokenRefreshError) as exc_info:
         BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
 
-    assert exc_info.value.error.extra["error"] == '{"error": "invalid_grant"}'
+    assert "invalid_grant" not in str(exc_info.value.to_dict())
+
+
+@pytest.mark.parametrize(
+    "status_code,error", [(400, "temporarily_unavailable"), (401, "invalid_client")]
+)
+@with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})
+def test_get_oauth2_fresh_token_preserves_token_on_ambiguous_error(
+    mocker: MockerFixture,
+    status_code: int,
+    error: str,
+) -> None:
+    """Non-invalid_grant responses remain ordinary provider failures."""
+    from requests.exceptions import HTTPError
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post.return_value.status_code = status_code
+    mock_post.return_value.json.return_value = {"error": error}
+    mock_post.return_value.raise_for_status.side_effect = HTTPError()
+
+    config: OAuth2ClientConfig = {
+        "id": "client-id",
+        "secret": "client-secret",
+        "scope": "read write",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "https://oauth.example.com/authorize",
+        "token_request_uri": "https://oauth.example.com/token",
+        "request_content_type": "json",
+    }
+
+    with pytest.raises(HTTPError):
+        BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
 
 
 @with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})
@@ -1480,3 +1580,50 @@ def test_get_parameters_from_uri_keeps_unrelated_query_parameters() -> None:
     )
 
     assert parameters["query"] == {"application_name": "superset"}
+
+
+def test_get_public_information_exposes_ansi_identifier_quote() -> None:
+    """The base spec advertises ANSI double quotes for identifier quoting,
+    escaped by doubling the closing character."""
+    assert BaseEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": '"',
+        "end": '"',
+        "escape_by_doubling": True,
+    }
+
+
+def test_multivalue_columns_disabled_by_default() -> None:
+    """Engines must opt in to multi-value support; base defaults to off."""
+    assert BaseEngineSpec.supports_multivalue_columns is False
+
+
+@pytest.mark.parametrize(
+    "method", ["array_contains_any", "array_contains_all", "array_length"]
+)
+def test_array_capabilities_raise_when_unsupported(method: str) -> None:
+    """Array capability methods raise NotImplementedError unless overridden."""
+    from sqlalchemy import column
+
+    fn = getattr(BaseEngineSpec, method)
+    args = (column("c"), ["v"]) if "contains" in method else (column("c"),)
+    with pytest.raises(NotImplementedError):
+        fn(*args)
+
+
+@pytest.mark.parametrize("aggregate", ["MEDIAN", "STDDEV_SAMP", "VAR_SAMP"])
+def test_base_spec_extended_aggregation_func_defaults_to_unsupported(
+    aggregate: str,
+) -> None:
+    """
+    By default, an engine spec has no verified expression for the "extended"
+    aggregates (MEDIAN/STDDEV_SAMP/VAR_SAMP) -- they must be explicitly opted
+    into per engine spec, the same way `supports_grouping_sets` and
+    `_time_grain_expressions` work. Silence here means "unsupported", not
+    "untested" -- callers must not fall back to guessing SQL.
+    """
+    assert BaseEngineSpec.get_extended_aggregation_func(aggregate) is None
+
+
+def test_base_spec_extended_aggregation_func_unknown_name_is_unsupported() -> None:
+    """An aggregate name outside the known extended set is also just None."""
+    assert BaseEngineSpec.get_extended_aggregation_func("NOT_A_REAL_AGGREGATE") is None

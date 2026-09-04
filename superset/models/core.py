@@ -32,7 +32,6 @@ from datetime import datetime
 from functools import lru_cache
 from inspect import signature
 from typing import Any, Callable, cast, Optional, TYPE_CHECKING
-from urllib.parse import quote
 
 import numpy
 import pandas as pd
@@ -506,7 +505,14 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             # do not over-write the password with the password mask
             self.password = conn.password
         conn = conn.set(password=PASSWORD_MASK if conn.password else None)
-        self.sqlalchemy_uri = str(conn)  # hides the password
+        # Store the literal PASSWORD_MASK sentinel (not the real secret -
+        # that already went to self.password above), so later code that
+        # compares conn.password against PASSWORD_MASK to detect an
+        # unchanged password keeps working. SQLAlchemy 2.0 changed
+        # str(URL) to substitute its own "***" for any password rather
+        # than rendering the value verbatim (str(conn) under 1.4), so
+        # render_as_string(hide_password=False) is required here.
+        self.sqlalchemy_uri = conn.render_as_string(hide_password=False)
 
     def get_effective_user(self, object_url: URL) -> str | None:
         """
@@ -709,15 +715,20 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         if cacheable and self.id is not None:
             cache_key = (
                 self.id,
-                str(sqlalchemy_url),
+                # SQLAlchemy 2.0 changed str(URL) to always substitute
+                # "***" for the password rather than rendering the real
+                # value (str(url) under 1.4). Using it here would make
+                # the cache key blind to password rotation - the module
+                # comment above depends on the key changing when the
+                # password does, so render_as_string(hide_password=False)
+                # is required to preserve that behavior.
+                sqlalchemy_url.render_as_string(hide_password=False),
                 repr(sorted(engine_kwargs.items())),
             )
             with _ENGINE_CACHE_LOCK:
                 if cached := _ENGINE_CACHE.get(cache_key):
                     return cached
         try:
-            if "future" not in engine_kwargs:
-                engine_kwargs["future"] = True
             engine = create_engine(sqlalchemy_url, **engine_kwargs)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
@@ -1027,7 +1038,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             if engine.dialect.identifier_preparer._double_percents:  # noqa
                 sql = sql.replace("%%", "%")
 
-        # for nwo we only optimize queries on virtual datasources, since the only
+        # for now we only optimize queries on virtual datasources, since the only
         # optimization available is predicate pushdown
         if is_feature_enabled("OPTIMIZE_SQL") and is_virtual:
             script = SQLScript(sql, self.db_engine_spec.engine).optimize()
@@ -1379,13 +1390,15 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         else:
             raw_password = self.password
 
-        # Encode the password such that special characters
-        # are preserved when rendering to string and reparsing the URL.
-        if raw_password is not None:
-            encoded_password = quote(raw_password, safe="")
-            conn = conn.set(password=encoded_password)
-        else:
-            conn = conn.set(password=None)
+        # URL.render_as_string() percent-encodes the password itself, so pass
+        # the raw, un-encoded password straight through. Pre-encoding it here
+        # (as this used to do) is safe under SQLAlchemy 1.4, whose
+        # render_as_string() treats URL.password as literal, but SQLAlchemy
+        # 2.0 always encodes on render - double-encoding a pre-escaped
+        # password (e.g. "%" -> "%25") turns it into "%2525" on write, which
+        # then decodes back to the wrong value ("%25" instead of "%") on the
+        # next reparse.
+        conn = conn.set(password=raw_password)
 
         # render_as_string preserves the URL encoding of special
         # characters in passwords
@@ -1592,7 +1605,9 @@ class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):
     """
 
     __tablename__ = "database_user_oauth2_tokens"
-    __table_args__ = (sqla.Index("idx_user_id_database_id", "user_id", "database_id"),)
+    __table_args__ = (
+        sqla.Index("idx_user_id_database_id", "user_id", "database_id", unique=True),
+    )
 
     id = Column(Integer, primary_key=True)
 

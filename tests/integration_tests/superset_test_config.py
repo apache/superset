@@ -21,6 +21,7 @@ from copy import copy
 from datetime import timedelta
 
 from sqlalchemy.engine import make_url
+from sqlalchemy.pool import NullPool
 
 from superset.config import *  # noqa: F403
 from superset.config import DATA_DIR
@@ -58,6 +59,23 @@ if make_url(SQLALCHEMY_DATABASE_URI).get_backend_name() == "sqlite":
         "SQLite Database support for metadata databases will be "
         "removed in a future version of Superset."
     )
+    # SQLAlchemy 2.0 changed the default poolclass for file-based SQLite
+    # engines from NullPool to QueuePool (SQLAlchemy 1.4 always created a
+    # fresh low-level connection per checkout for sqlite files, so a pooled
+    # connection was never handed to a thread other than the one that opened
+    # it). QueuePool reuses connections across checkouts, including checkouts
+    # from background threads (e.g. the GTF task framework's deferred-flush
+    # timer in superset/tasks/context.py). Combined with our
+    # `?check_same_thread=true` test URIs, a connection opened on the main
+    # thread can now be handed to a timer thread, which pysqlite rejects with
+    # "SQLite objects created in a thread can only be used in that same
+    # thread." Pin poolclass back to NullPool to restore the 1.4 behavior for
+    # the test suite specifically; Superset's non-test default config uses
+    # `check_same_thread=false`, which is unaffected by this pool reuse.
+    SQLALCHEMY_ENGINE_OPTIONS = {  # noqa: F405
+        **SQLALCHEMY_ENGINE_OPTIONS,  # noqa: F405
+        "poolclass": NullPool,  # noqa: F405
+    }
 
 # Speeding up the tests.integration_tests.
 PRESTO_POLL_INTERVAL = 0.1

@@ -511,8 +511,11 @@ def test_execute_query_raises_when_executor_user_missing(
     username, rather than swallowing it into an opaque ``AlertQueryError`` (or
     surfacing a NoneType/AttributeError from the downstream auth flow).
     """
+    template_processor_mock = mocker.Mock()
+    template_processor_mock.process_template.return_value = "SELECT value FROM metrics"
     mocker.patch(
         "superset.commands.report.alert.jinja_context.get_template_processor",
+        return_value=template_processor_mock,
     )
     mocker.patch(
         "superset.commands.report.alert.get_executor",
@@ -526,6 +529,8 @@ def test_execute_query_raises_when_executor_user_missing(
     report_schedule_mock = mocker.Mock()
     report_schedule_mock.id = 1
     report_schedule_mock.sql = "SELECT value FROM metrics"
+    report_schedule_mock.database.backend = "sqlite"
+    report_schedule_mock.database.allow_dml = False
 
     command = AlertCommand(
         report_schedule=report_schedule_mock,
