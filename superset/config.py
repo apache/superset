@@ -539,6 +539,12 @@ CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY"]
 #   - stable: Production-ready, tested and supported
 #   - deprecated: Will be removed in a future major release
 
+# Whether this process registers the MCP host tools at startup. Only processes
+# that serve MCP (the web app and the standalone MCP service) need them;
+# deployments can set this to False for processes that never serve MCP (e.g.
+# Celery workers) to avoid the memory cost of importing the MCP stack.
+CORE_MCP_HOST_TOOLS_ENABLED = True
+
 DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # =================================================================
     # IN DEVELOPMENT

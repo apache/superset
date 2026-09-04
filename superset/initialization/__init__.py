@@ -558,7 +558,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
 
         initialize_core_api_dependencies()
-        initialize_core_mcp_dependencies()
+        # MCP host tools only need to be registered in processes that serve MCP
+        # (the web app and the standalone MCP service). Deployments can disable
+        # this in processes that never serve MCP -- e.g. Celery workers -- to
+        # avoid importing the MCP stack where it is unused.
+        if self.config.get("CORE_MCP_HOST_TOOLS_ENABLED", True):
+            initialize_core_mcp_dependencies()
 
     def init_all_dependencies_and_extensions(self) -> None:
         """
