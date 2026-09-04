@@ -26,6 +26,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.subjects.filters import (
     EditableFilter,
 )
@@ -35,6 +36,10 @@ from superset.utils.core import get_user_id
 from superset.utils.filters import (
     get_dataset_access_filters,
     guest_embedded_dashboard_filter,
+    semantic_layer_grant_clause,
+    semantic_view_layer_join,
+    semantic_view_slice_join,
+    table_backed_slice_join,
 )
 from superset.views.base import BaseFilter
 from superset.views.base_api import BaseFavoriteFilter
@@ -167,19 +172,41 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
             filters.append(Dashboard.id.in_(viewer_query))
 
         # (C) No-viewer fallback: dashboards with no viewers → dataset-based access
+        layer_grant_clause = semantic_layer_grant_clause()
+        # Note: for ordinary users a dashboard with no charts is never yielded
+        # here (every access predicate is NULL-false after the outer joins)
+        # even though the object gate allows opening it — a deliberate,
+        # pre-existing asymmetry. For ``all_datasource_access`` holders the
+        # ``include_all`` flag below yields such rows, matching the gate.
         dashboard_has_viewers = Dashboard.viewers.any()
         no_viewer_query = (
             db.session.query(Dashboard.id)
             .join(Dashboard.slices, isouter=True)
-            .join(SqlaTable, Slice.datasource_id == SqlaTable.id)
-            .join(Database, SqlaTable.database_id == Database.id)
+            # Type-aware datasource joins: the SqlaTable join is constrained
+            # to table-backed charts (an unconstrained id join can bind a
+            # semantic-view chart to an unrelated table sharing its numeric
+            # id) and kept outer so charts on other datasource types survive
+            # into the access filter — their access matches through the perm
+            # columns denormalized onto Slice by ``set_related_perm``.
+            .join(
+                SqlaTable,
+                table_backed_slice_join(SqlaTable),
+                isouter=True,
+            )
+            .join(Database, SqlaTable.database_id == Database.id, isouter=True)
+            # A layer-level grant covers the layer's views (sc-119501) —
+            # surface those dashboards too, through the same type-guarded
+            # outer-join shape as the SqlaTable join.
+            .join(SemanticView, semantic_view_slice_join(), isouter=True)
+            .join(SemanticLayer, semantic_view_layer_join(), isouter=True)
             .filter(
                 and_(
                     Dashboard.published.is_(True),
                     ~dashboard_has_viewers,
                     get_dataset_access_filters(
                         Slice,
-                        security_manager.can_access_all_datasources(),
+                        layer_grant_clause,
+                        include_all=security_manager.can_access_all_datasources(),
                     ),
                 )
             )

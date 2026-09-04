@@ -19,7 +19,7 @@ from __future__ import annotations
 import logging
 import uuid
 from collections import defaultdict, deque
-from typing import Any, Callable
+from typing import Any, Callable, TYPE_CHECKING
 
 import sqlalchemy as sqla
 from flask import current_app as app, has_request_context, url_for
@@ -61,6 +61,9 @@ from superset.tasks.thumbnails import cache_dashboard_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.thumbnails.digest import get_dashboard_digest
 from superset.utils import core as utils, json
+
+if TYPE_CHECKING:
+    from superset.explorables.base import Explorable
 
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
@@ -271,6 +274,31 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
     @property
     def datasources(self) -> set[BaseDatasource]:
         return {slc.datasource for slc in self.slices if slc.datasource}
+
+    def has_member_datasource(self, datasource: BaseDatasource | Explorable) -> bool:
+        """Type-aware membership: does a member chart reference this datasource?
+
+        A *member datasource* is the ``(datasource_type, datasource_id)``
+        pair a member chart references. Comparing the pair — never the bare
+        numeric id — makes the test immune to id collisions across
+        datasource types, and it needs no datasource resolution (zero
+        queries). ``datasources`` above stays table-shaped for its
+        export/thumbnail/dataset-payload consumers and must not be used for
+        membership checks: it silently omits every non-table datasource.
+        """
+        # ``type`` is duck-typed on purpose: drill entry points hand this
+        # method loosely-typed datasources, and an object with no type or no
+        # id is simply no member — fail closed. Ids are compared as-is: an
+        # explorable with a string id never matches the integer
+        # ``datasource_id`` column, which is likewise fail closed.
+        candidate_type = getattr(datasource, "type", None)
+        candidate_id = datasource.id
+        if candidate_type is None or candidate_id is None:
+            return False
+        return any(
+            (slc.datasource_type, slc.datasource_id) == (candidate_type, candidate_id)
+            for slc in self.slices
+        )
 
     @property
     def charts(self) -> list[str]:
