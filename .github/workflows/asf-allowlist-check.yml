@@ -8,6 +8,7 @@ name: ASF Allowlist Check
 on:
   workflow_dispatch:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     paths:
       - ".github/**"
   push:
@@ -40,3 +41,6 @@ jobs:
 
       - name: Check action refs against the ASF allowlist
         uses: apache/infrastructure-actions/allowlist-check@61dcea11f19e2bbe1263f14d72235e8da17d3ad0 # allowlist-check/v1.0.0
+        with:
+          # Default scan-glob is .github/**/*.yml, which misses .yaml files.
+          scan-glob: ".github/**/*.y*ml"
