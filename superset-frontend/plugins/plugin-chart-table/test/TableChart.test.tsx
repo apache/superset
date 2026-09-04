@@ -2818,6 +2818,7 @@ describe('plugin-chart-table', () => {
   test.each([
     {
       eventOrder: 'compositionend before blur',
+      pauseBeforeLeaving: 50,
       leaveInput: (searchInput: HTMLElement) => {
         fireEvent.compositionEnd(searchInput, {
           target: { value: 'nihao' },
@@ -2827,13 +2828,21 @@ describe('plugin-chart-table', () => {
     },
     {
       eventOrder: 'blur without compositionend',
+      pauseBeforeLeaving: 50,
+      leaveInput: (searchInput: HTMLElement) => {
+        fireEvent.blur(searchInput);
+      },
+    },
+    {
+      eventOrder: 'blur without compositionend after the debounce fired',
+      pauseBeforeLeaving: 300,
       leaveInput: (searchInput: HTMLElement) => {
         fireEvent.blur(searchInput);
       },
     },
   ])(
     'searches the input value after blur mid-composition ($eventOrder)',
-    async ({ leaveInput }) => {
+    async ({ pauseBeforeLeaving, leaveInput }) => {
       jest.useFakeTimers();
       try {
         const setDataMask = jest.fn();
@@ -2875,7 +2884,7 @@ describe('plugin-chart-table', () => {
         fireEvent.change(searchInput, { target: { value: 'nihao' } });
 
         await act(async () => {
-          jest.advanceTimersByTime(50);
+          jest.advanceTimersByTime(pauseBeforeLeaving);
         });
         leaveInput(searchInput);
         expect(searchCalls()).toHaveLength(0);

@@ -22,6 +22,8 @@ import {
   ChangeEventHandler,
   CompositionEvent,
   CompositionEventHandler,
+  FocusEvent,
+  FocusEventHandler,
   useRef,
   useEffect,
   Ref,
@@ -35,7 +37,7 @@ export interface SearchInputProps {
   count: number;
   value: string;
   onChange: ChangeEventHandler<HTMLInputElement>;
-  onBlur?: () => void;
+  onBlur?: FocusEventHandler<HTMLInputElement>;
   onCompositionStart?: CompositionEventHandler<HTMLInputElement>;
   onCompositionEnd?: CompositionEventHandler<HTMLInputElement>;
   inputRef?: Ref<InputRef>;
@@ -126,9 +128,12 @@ export default (memo as <T>(fn: T) => T)(function GlobalFilter<
     setValue(target.value);
   };
 
-  const handleBlur = () => {
+  const handleBlur = (e: FocusEvent<HTMLInputElement>) => {
     isSearchFocused.set(id, false);
-    isComposingRef.current = false;
+    if (isComposingRef.current) {
+      isComposingRef.current = false;
+      setValue(e.currentTarget.value);
+    }
   };
 
   const handleCompositionStart = () => {
