@@ -2226,12 +2226,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         A ``datasource_access`` grant on a semantic layer covers every view
         under it — the data path enforces this in
         ``SemanticView.raise_for_access``; object authorization mirrors the
-        same fallback (sc-119501). Datasources without a parent layer resolve
-        to no perm and return False without a permission lookup, matching the
-        data path's ``if layer_perm and …`` guard.
+        same fallback (sc-119501). Only a ``SemanticView`` is ever consulted:
+        the isinstance guard (rather than attribute sniffing) keeps
+        mock-shaped or future ``semantic_layer``-bearing datasources from
+        reaching the permission lookup, and a view with no layer or layer
+        perm returns False, matching the data path's ``if layer_perm and …``
+        guard.
         """
-        layer = getattr(datasource, "semantic_layer", None)
-        layer_perm: str | None = getattr(layer, "perm", None)
+        # pylint: disable=import-outside-toplevel
+        from superset.semantic_layers.models import SemanticView
+
+        if not isinstance(datasource, SemanticView):
+            return False
+        layer_perm: str | None = getattr(datasource.semantic_layer, "perm", None)
         if not layer_perm:
             return False
         return self.can_access("datasource_access", layer_perm)

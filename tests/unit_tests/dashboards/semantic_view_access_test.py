@@ -509,6 +509,26 @@ def test_gate_denies_dashboard_of_unsupported_datasource_type(
         sm.raise_for_access(dashboard=dashboard)
 
 
+def test_layer_fallback_never_consults_grants_for_non_semantic_datasource(
+    app_context: None,
+) -> None:
+    """CI regression pin (#43781): integration tests pass MagicMock
+    datasources with ``__class__`` reassigned to ``SqlaTable``; the mock
+    auto-creates a truthy ``semantic_layer.perm`` child, which duck-typed
+    attribute sniffing would bind as a SQL parameter inside ``can_access``.
+    The layer fallback must type-check the datasource and answer False
+    without any permission lookup."""
+    # pylint: disable=import-outside-toplevel
+    from superset.connectors.sqla.models import SqlaTable
+
+    fake = MagicMock()
+    fake.__class__ = SqlaTable
+    sm = _gate_sm()
+    with patch.object(sm, "can_access") as can_access:
+        assert sm._semantic_layer_grant_allows(fake) is False
+        can_access.assert_not_called()
+
+
 def test_gate_denies_semantic_chart_without_grant(
     access_fixtures: SimpleNamespace, app_context: None
 ) -> None:
