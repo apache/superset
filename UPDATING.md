@@ -24,8 +24,51 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **[BREAKING] `SemanticLayer` and `SemanticView` are now classified in the
+  Flask-AppBuilder role sets**, so `sync_role_definitions` (run on
+  `superset init` and on startup) stops granting the built-in **Gamma** role
+  write access to them. `SemanticLayer` is treated like `Database`
+  (`READ_ONLY_MODEL_VIEWS`): create/edit/delete become **admin-only**, while
+  read stays broadly available (its configuration is returned masked).
+  `SemanticView` is treated like `Dataset` (`GAMMA_READ_ONLY_MODEL_VIEWS`):
+  writes are Alpha-tier, reads Gamma-tier. Its custom read endpoints
+  (`views`, `connections`) are mapped to `can_read` so they remain
+  accessible under the read-only classification. A deployment relying on
+  Gamma users creating or editing semantic layers/views must grant those
+  permissions through a custom role. A migration retires the now-unused
+  `can_views` / `can_connections` permissions left on the `SemanticLayer`
+  view menu by earlier builds. Two upgrade-time notes on that migration:
+  it seeds the `SemanticLayer` view menu and its `can_read` PVM if absent, so
+  even a fresh or flag-off install gains that permission (harmless — the
+  endpoints 404 while `SEMANTIC_LAYERS` is off); and retiring the stale
+  permissions remaps any role that held them onto `can_read`, a small
+  widening — a custom role granted only `can_views` or `can_connections` gains
+  `can_read` (the semantic-layer list and its masked-configuration detail),
+  which it could not previously reach. Operators who hand-rolled semantic-layer
+  roles should re-audit them after upgrading. The feature remains gated behind
+  the default-off `SEMANTIC_LAYERS` flag.
+
+### Archived dataset purge requires impact confirmation
+
+`GET /api/v1/dataset/<uuid>/purge-impact` returns the charts and distinct
+dashboards affected by permanently deleting an archived dataset, together with
+an opaque `impact_token`. The dataset purge endpoint now requires that token in
+the JSON body as `confirmed_impact_token`. API clients that call
+`POST /api/v1/dataset/<uuid>/purge` must fetch and display the impact first;
+requests with a missing or malformed token are rejected with 400.
+
+The server rechecks the dependency identities immediately before mutation. If
+they changed, purge performs no deletion and returns 409 with a refreshed impact
+payload. Clients must display the new impact and obtain renewed confirmation
+before retrying. Preview or recheck failures fail closed rather than treating
+unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
+
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 - The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed should `pip uninstall cockroachdb && pip install sqlalchemy-cockroachdb` (or simply reinstall the extra) to restore CockroachDB connectivity.
+
+### Native Value filter "Select all" always targets the whole column
+
+The native "Value" filter's bulk "Select all" / "Clear" controls now operate on the entire loaded set of column values regardless of any text typed into the filter's search box. Previously the "Select all (N)" count briefly flickered to the search-scoped count before settling on the full-column count, and clicking "Select all" while searching could select only the currently matching subset. Search-scoped bulk selection was never a supported feature; the count is now stable and always matches what "Select all" selects (the full column). No configuration change is required.
 
 ### MCP tool results preserve stored string values
 
@@ -230,8 +273,10 @@ Behavior changes to be aware of:
   fail fast at the first phase check rather than erroring at setup.
 - Dashboard reports whose charts have not mounted are no longer captured
   blank: readiness is polled until the deadline, and the report fails loudly
-  if charts never mount. Thumbnails and non-report screenshots keep their
-  previous behavior.
+  if charts never mount. Large tiled reports also retry Chromium screenshot
+  stalls and suspicious uniform tiles, while persistent screenshot timeouts
+  fail loudly. Large tiled thumbnails use the same bounded retries, but retain
+  their previous failure contract after a persistent timeout.
 
 ### Embedded (guest token) API responses no longer echo database errors
 
