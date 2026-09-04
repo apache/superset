@@ -26,7 +26,10 @@ from superset.commands.chart.query_context_generator import (
     get_query_context_generator,
 )
 from superset.commands.exceptions import ImportFailedError
-from superset.commands.importers.v1.utils import find_existing_for_import
+from superset.commands.importers.v1.utils import (
+    apply_extra_import_fields,
+    find_existing_for_import,
+)
 from superset.migrations.shared.migrate_viz import processors
 from superset.migrations.shared.migrate_viz.base import MigrateViz
 from superset.models.slice import Slice
@@ -290,6 +293,7 @@ def import_chart(
     # query_context (already patched by migrate_chart) is never overwritten.
     _synthesize_query_context_if_absent(config)
 
+    extra = config.pop("extra", None)
     chart = Slice.import_from_dict(config, recursive=False, allow_reparenting=True)
     if chart.id is None:
         db.session.flush()
@@ -317,6 +321,8 @@ def import_chart(
         for viewer in viewers:
             if viewer not in chart.viewers:
                 chart.viewers.append(viewer)
+
+    apply_extra_import_fields(chart, "chart", extra)
 
     return chart
 

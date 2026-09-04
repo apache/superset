@@ -752,6 +752,97 @@ test('displays an error message when an exception is thrown while fetching', asy
   expect(screen.getByText(error)).toBeInTheDocument();
 });
 
+test('clears a previous fetch error once a later fetch succeeds', async () => {
+  const error = 'Fetch error';
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === 'fail') {
+      throw new Error(error);
+    }
+    // Report more results than are loaded so every new search hits the server.
+    return { data: [{ label: search, value: search }], totalCount: 100 };
+  });
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await type('fail');
+  expect(await screen.findByText(error)).toBeInTheDocument();
+
+  await type('retry');
+  expect(await findSelectOption('retry')).toBeInTheDocument();
+  expect(screen.queryByText(error)).not.toBeInTheDocument();
+});
+
+test('clears a previous fetch error when the next page comes from cache', async () => {
+  const error = 'Fetch error';
+  const loadOptions = jest.fn(
+    async (search: string, page: number, pageSize: number) => {
+      if (search === 'fail') {
+        throw new Error(error);
+      }
+      return defaultProps.options(search, page, pageSize);
+    },
+  );
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await findSelectOption(OPTIONS[0].label);
+
+  await type('fail');
+  expect(await screen.findByText(error)).toBeInTheDocument();
+
+  // Clearing the input re-requests the first page, which is already cached
+  // and therefore never reaches the network.
+  await userEvent.clear(getSelect());
+  expect(await findSelectOption(OPTIONS[0].label)).toBeInTheDocument();
+  expect(screen.queryByText(error)).not.toBeInTheDocument();
+});
+
+test('ignores a late failure from a search the user has moved on from', async () => {
+  const error = 'Fetch error';
+  let rejectSlow: (reason: Error) => void = () => {};
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === 'slow') {
+      return new Promise<never>((_, reject) => {
+        rejectSlow = reject;
+      });
+    }
+    return { data: [{ label: search, value: search }], totalCount: 100 };
+  });
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await type('slow');
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('slow', 0, 10));
+
+  await type('fast');
+  expect(await findSelectOption('fast')).toBeInTheDocument();
+
+  rejectSlow(new Error(error));
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(3));
+  expect(screen.queryByText(error)).not.toBeInTheDocument();
+  expect(await findSelectOption('fast')).toBeInTheDocument();
+});
+
+test('still surfaces a base-fetch failure that lands mid-search', async () => {
+  const error = 'Fetch error';
+  let rejectBase: (reason: Error) => void = () => {};
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === '') {
+      // Defer the base page so it can fail after the user starts searching.
+      return new Promise<never>((_, reject) => {
+        rejectBase = reject;
+      });
+    }
+    return { data: [{ label: search, value: search }], totalCount: 100 };
+  });
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await type('abc');
+  expect(await findSelectOption('abc')).toBeInTheDocument();
+
+  // Base fetches keep the accumulator and allValuesLoaded up to date even
+  // mid-search, so their failures must surface too.
+  rejectBase(new Error(error));
+  expect(await screen.findByText(error)).toBeInTheDocument();
+});
+
 test('does not fire a new request for the same search input', async () => {
   const loadOptions = jest.fn(async () => ({ data: [], totalCount: 0 }));
   render(

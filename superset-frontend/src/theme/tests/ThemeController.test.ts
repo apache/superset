@@ -100,6 +100,7 @@ const createMockBootstrapData = (
 const mockThemeObject = {
   setConfig: mockSetConfig,
   theme: DEFAULT_THEME,
+  toSerializedConfig: jest.fn(() => DEFAULT_THEME),
 } as unknown as Theme;
 
 // Helper to create a fresh ThemeController with common setup
@@ -2209,4 +2210,335 @@ test('bootstrapDefaultMode: explicit initialMode takes precedence over bootstrap
   );
   const controller = createController({ initialMode: ThemeMode.DEFAULT });
   expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+});
+
+// refreshSystemThemes tests
+test('refreshSystemThemes applies a new system default live and notifies subscribers', async () => {
+  const callback = jest.fn();
+  const controller = createController({ onChange: callback });
+  callback.mockClear();
+  mockSetConfig.mockClear();
+
+  const NEW_DEFAULT: AnyThemeConfig = {
+    token: { colorBgBase: '#abcdef', colorPrimary: '#123456' },
+  };
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: {
+      result: {
+        default: NEW_DEFAULT,
+        dark: DARK_THEME,
+        defaultMode: 'default',
+      },
+    },
+  } as any);
+
+  await controller.refreshSystemThemes();
+
+  expect(getSpy).toHaveBeenCalledWith({ endpoint: '/api/v1/theme/system' });
+  // A subscriber fired, proving the app re-rendered without a reload.
+  expect(callback).toHaveBeenCalled();
+  // The refresh must not trip the embedded-SDK precedence flag.
+  expect(controller.hasThemeConfigOverride()).toBe(false);
+  const lastConfig =
+    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1][0];
+  expect(lastConfig.token.colorBgBase).toBe('#abcdef');
+
+  getSpy.mockRestore();
+});
+
+test('refreshSystemThemes preserves an active dev theme override', async () => {
+  const controller = createController();
+  controller.setTemporaryTheme({ token: { colorPrimary: '#dev' } }, 42);
+  expect(controller.hasDevOverride()).toBe(true);
+
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: {
+      result: {
+        default: DEFAULT_THEME,
+        dark: DARK_THEME,
+        defaultMode: 'default',
+      },
+    },
+  } as any);
+
+  await controller.refreshSystemThemes();
+
+  expect(controller.hasDevOverride()).toBe(true);
+  expect(controller.hasThemeConfigOverride()).toBe(false);
+
+  getSpy.mockRestore();
+});
+
+test('refreshSystemThemes removes the OS listener when dark is unset and does not double-register', async () => {
+  const mockMediaQuery = {
+    matches: false,
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+  };
+  mockMatchMedia.mockReturnValue(mockMediaQuery);
+
+  // Dark present at construction → listener registered once.
+  const controller = createController();
+  expect(mockMediaQuery.addEventListener).toHaveBeenCalledTimes(1);
+
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: {
+      result: { default: DEFAULT_THEME, dark: {}, defaultMode: 'default' },
+    },
+  } as any);
+
+  await controller.refreshSystemThemes();
+
+  expect(controller.canDetectOSPreference()).toBe(false);
+  expect(controller.canSetMode()).toBe(false);
+  expect(mockMediaQuery.removeEventListener).toHaveBeenCalledTimes(1);
+
+  // A second refresh with dark still unset must not re-register the listener.
+  await controller.refreshSystemThemes();
+  expect(mockMediaQuery.addEventListener).toHaveBeenCalledTimes(1);
+
+  getSpy.mockRestore();
+});
+
+test('refreshSystemThemes registers the OS listener once when dark is set for the first time', async () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({ default: DEFAULT_THEME, dark: {} }),
+  );
+  const mockMediaQuery = {
+    matches: false,
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+  };
+  mockMatchMedia.mockReturnValue(mockMediaQuery);
+
+  // No dark at construction → no listener registered.
+  const controller = createController();
+  expect(mockMediaQuery.addEventListener).not.toHaveBeenCalled();
+  expect(controller.canDetectOSPreference()).toBe(false);
+
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: {
+      result: {
+        default: DEFAULT_THEME,
+        dark: DARK_THEME,
+        defaultMode: 'system',
+      },
+    },
+  } as any);
+
+  await controller.refreshSystemThemes();
+
+  expect(controller.canDetectOSPreference()).toBe(true);
+  expect(mockMediaQuery.addEventListener).toHaveBeenCalledTimes(1);
+
+  getSpy.mockRestore();
+});
+
+test('refreshSystemThemes falls back to the built-in default when the server default is empty', async () => {
+  const BUILT_IN: AnyThemeConfig = {
+    token: { colorBgBase: '#builtin', colorPrimary: '#000fff' },
+  };
+  const controller = createController({ defaultTheme: BUILT_IN });
+  mockSetConfig.mockClear();
+
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: { result: { default: {}, dark: DARK_THEME, defaultMode: 'default' } },
+  } as any);
+
+  await controller.refreshSystemThemes();
+
+  const lastConfig =
+    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1][0];
+  expect(lastConfig.token.colorBgBase).toBe('#builtin');
+
+  getSpy.mockRestore();
+});
+
+test('refreshSystemThemes does not throw and leaves the theme unchanged when the request fails', async () => {
+  const controller = createController();
+  mockSetConfig.mockClear();
+  const getSpy = jest
+    .spyOn(SupersetClient, 'get')
+    .mockRejectedValue(new Error('boom'));
+
+  await expect(controller.refreshSystemThemes()).resolves.toBeUndefined();
+
+  expect(mockSetConfig).not.toHaveBeenCalled();
+  expect(consoleSpy).toHaveBeenCalledWith(
+    'Failed to refresh system themes:',
+    expect.any(Error),
+  );
+
+  getSpy.mockRestore();
+});
+
+test('refreshSystemThemes is a no-op when the server returns no result', async () => {
+  const controller = createController();
+  mockSetConfig.mockClear();
+  const getSpy = jest
+    .spyOn(SupersetClient, 'get')
+    .mockResolvedValue({ json: {} } as any);
+
+  await controller.refreshSystemThemes();
+
+  expect(mockSetConfig).not.toHaveBeenCalled();
+
+  getSpy.mockRestore();
+});
+
+test('refreshSystemThemes is skipped when an embedded theme-config override is active', async () => {
+  const controller = createController();
+  controller.setThemeConfig({
+    theme_default: DEFAULT_THEME,
+    theme_dark: DARK_THEME,
+  });
+  expect(controller.hasThemeConfigOverride()).toBe(true);
+
+  mockSetConfig.mockClear();
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: { result: { default: DEFAULT_THEME, dark: DARK_THEME } },
+  } as any);
+
+  await controller.refreshSystemThemes();
+
+  // An SDK-provided theme must not be clobbered: no fetch, no re-apply.
+  expect(getSpy).not.toHaveBeenCalled();
+  expect(mockSetConfig).not.toHaveBeenCalled();
+
+  getSpy.mockRestore();
+});
+
+test('refreshSystemThemes ignores a stale out-of-order response', async () => {
+  const controller = createController();
+  mockSetConfig.mockClear();
+
+  const NEW_DEFAULT: AnyThemeConfig = {
+    token: { colorBgBase: '#new111', colorPrimary: '#111' },
+  };
+  const STALE_DEFAULT: AnyThemeConfig = {
+    token: { colorBgBase: '#old999', colorPrimary: '#999' },
+  };
+
+  let resolveStale: (value: unknown) => void = () => {};
+  const stalePending = new Promise(resolve => {
+    resolveStale = resolve;
+  });
+
+  const getSpy = jest
+    .spyOn(SupersetClient, 'get')
+    // The first (older) request stays pending until we resolve it last.
+    .mockImplementationOnce(() => stalePending as any)
+    // The second (newer) request resolves immediately and should win.
+    .mockResolvedValueOnce({
+      json: {
+        result: {
+          default: NEW_DEFAULT,
+          dark: DARK_THEME,
+          defaultMode: 'default',
+        },
+      },
+    } as any);
+
+  const older = controller.refreshSystemThemes(); // seq 1, pending
+  const newer = controller.refreshSystemThemes(); // seq 2, applies NEW_DEFAULT
+  await newer;
+
+  // Deliver the stale response last; it must be dropped, not applied.
+  resolveStale({
+    json: {
+      result: {
+        default: STALE_DEFAULT,
+        dark: DARK_THEME,
+        defaultMode: 'default',
+      },
+    },
+  });
+  await older;
+
+  const lastConfig =
+    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1][0];
+  expect(lastConfig.token.colorBgBase).toBe('#new111');
+
+  getSpy.mockRestore();
+});
+
+test('refreshSystemThemes applies a valid earlier response when a newer refresh fails', async () => {
+  const controller = createController();
+  mockSetConfig.mockClear();
+
+  const EARLIER_DEFAULT: AnyThemeConfig = {
+    token: { colorBgBase: '#aaa111', colorPrimary: '#a1' },
+  };
+
+  let resolveEarlier: (value: unknown) => void = () => {};
+  const earlierPending = new Promise(resolve => {
+    resolveEarlier = resolve;
+  });
+
+  const getSpy = jest
+    .spyOn(SupersetClient, 'get')
+    // Earlier request (seq 1) stays pending.
+    .mockImplementationOnce(() => earlierPending as any)
+    // Newer request (seq 2) fails outright.
+    .mockRejectedValueOnce(new Error('newer refresh failed'));
+
+  const earlier = controller.refreshSystemThemes(); // seq 1, pending
+  const newer = controller.refreshSystemThemes(); // seq 2, rejects, applies nothing
+  await newer;
+
+  // The earlier request now resolves with a valid slice. Because the newer one
+  // never applied, the earlier (still-valid) response must not be discarded.
+  resolveEarlier({
+    json: {
+      result: {
+        default: EARLIER_DEFAULT,
+        dark: DARK_THEME,
+        defaultMode: 'default',
+      },
+    },
+  });
+  await earlier;
+
+  const lastConfig =
+    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1][0];
+  expect(lastConfig.token.colorBgBase).toBe('#aaa111');
+
+  getSpy.mockRestore();
+});
+
+test('refreshSystemThemes does not clobber an override applied while its fetch was in flight', async () => {
+  const controller = createController();
+
+  let resolveGet: (value: unknown) => void = () => {};
+  const pending = new Promise(resolve => {
+    resolveGet = resolve;
+  });
+  const getSpy = jest
+    .spyOn(SupersetClient, 'get')
+    .mockImplementationOnce(() => pending as any);
+
+  // Override is inactive at entry, so the refresh proceeds and awaits the GET.
+  const refresh = controller.refreshSystemThemes();
+
+  // An embedded theme-config override is applied while the request is in flight.
+  controller.setThemeConfig({
+    theme_default: DEFAULT_THEME,
+    theme_dark: DARK_THEME,
+  });
+  expect(controller.hasThemeConfigOverride()).toBe(true);
+  mockSetConfig.mockClear();
+
+  // The in-flight refresh resolves; the post-await guard must drop it so the
+  // SDK-provided theme is preserved.
+  resolveGet({
+    json: {
+      result: { default: { token: { colorBgBase: '#stale' } }, dark: {} },
+    },
+  });
+  await refresh;
+
+  expect(mockSetConfig).not.toHaveBeenCalled();
+  expect(controller.hasThemeConfigOverride()).toBe(true);
+
+  getSpy.mockRestore();
 });
