@@ -1044,7 +1044,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             if engine.dialect.identifier_preparer._double_percents:  # noqa
                 sql = sql.replace("%%", "%")
 
-        # for nwo we only optimize queries on virtual datasources, since the only
+        # for now we only optimize queries on virtual datasources, since the only
         # optimization available is predicate pushdown
         if is_feature_enabled("OPTIMIZE_SQL") and is_virtual:
             script = SQLScript(sql, self.db_engine_spec.engine).optimize()

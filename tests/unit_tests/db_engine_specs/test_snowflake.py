@@ -703,6 +703,18 @@ def test_custom_snowflake_auth_error_matches_raw_dbapi_exception() -> None:
     assert isinstance(raw_error, CustomSnowflakeAuthError)
 
 
+def test_custom_snowflake_auth_error_matches_snowflake_error_code() -> None:
+    """Snowflake's documented OAuth access-token error code is authoritative."""
+    from superset.db_engine_specs.snowflake import (
+        CustomSnowflakeAuthError,
+        DatabaseError,
+    )
+
+    raw_error = DatabaseError("authentication failed")
+    raw_error.errno = 390303
+    assert isinstance(raw_error, CustomSnowflakeAuthError)
+
+
 def test_custom_snowflake_auth_error_matches_sqlalchemy_wrapped_exception() -> None:
     """
     Some call sites execute through SQLAlchemy's `Engine`, which wraps the

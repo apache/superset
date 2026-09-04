@@ -71,6 +71,13 @@ class Slice(  # pylint: disable=too-many-public-methods
     query_context_factory: QueryContextFactory | None = None
 
     __tablename__ = "slices"
+    __table_args__: tuple[sqla.Index, ...] = (
+        sqla.Index(
+            "ix_slices_datasource_type_datasource_id",
+            "datasource_type",
+            "datasource_id",
+        ),
+    )
     # query_context is excluded: it is a cached/regenerated field, not user-authored.
     # deleted_at is deletion-state metadata (SoftDeleteMixin), tracked by soft
     # delete, not content versioning; it is also absent from the slices_version

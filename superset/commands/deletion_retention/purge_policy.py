@@ -988,17 +988,13 @@ def dangling_chart_uuids(
     """Return chart UUIDs left by the dataset preservation policy."""
     if policy.entity_type != "dataset":
         return []
-    # avoid circular import: the chart model participates in registry assembly
-    from superset.models.slice import Slice
+    from superset.commands.deletion_retention.purge_impact import (
+        collect_dataset_purge_impact,
+        DatasetPurgeImpact,
+    )
 
-    return [
-        str(chart_uuid)
-        for (chart_uuid,) in session.execute(
-            sa.select(Slice.uuid)
-            .where(Slice.datasource_id == entity_id)
-            .where(Slice.datasource_type == "table")
-        )
-    ]
+    impact: DatasetPurgeImpact = collect_dataset_purge_impact(session, entity_id)
+    return [chart.uuid for chart in impact.charts]
 
 
 def delete_associations(

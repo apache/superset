@@ -22,13 +22,15 @@ import hashlib
 import logging
 import secrets
 from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import datetime, timedelta, timezone
-from typing import Any, Iterator, TYPE_CHECKING
+from typing import Any, Callable, Iterator, TYPE_CHECKING, TypeVar
 
 import backoff
 import jwt
-from flask import current_app as app, url_for
+from flask import current_app as app, g, url_for
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
+from sqlalchemy.orm import Session
 from werkzeug.routing import BuildError
 
 from superset import db
@@ -47,6 +49,10 @@ if TYPE_CHECKING:
 JWT_EXPIRATION = timedelta(minutes=5)
 
 logger = logging.getLogger(__name__)
+T = TypeVar("T")
+_oauth2_retry_active: ContextVar[bool] = ContextVar(
+    "oauth2_retry_active", default=False
+)
 
 # PKCE code verifier length (RFC 7636 recommends 43-128 characters)
 PKCE_CODE_VERIFIER_LENGTH = 64
@@ -102,7 +108,7 @@ def get_oauth2_access_token(
     return a fresh token and store it in the database for further requests. The function
     has a retry decorator, in case a dashboard with multiple charts triggers
     simultaneous requests for refreshing a stale token; in that case only the first
-    process to acquire the lock will perform the refresh, and othe process should find a
+    process to acquire the lock will perform the refresh, and other processes should find
     a valid token when they retry.
     """  # noqa: E501
     # pylint: disable=import-outside-toplevel
@@ -128,12 +134,44 @@ def get_oauth2_access_token(
     return None
 
 
-def refresh_oauth2_token(
+def refresh_oauth2_token(  # noqa: C901
     config: OAuth2ClientConfig,
     database_id: int,
     user_id: int,
     db_engine_spec: type[BaseEngineSpec],
+    *,
+    force: bool = False,
+    rejected_access_token: str | None = None,
 ) -> str | None:
+    # Forced refreshes use an isolated transaction so rotated tokens become durable
+    # without committing unrelated work in the caller's scoped session.
+    token_session = Session(bind=db.session.get_bind()) if force else db.session
+    try:
+        return _refresh_oauth2_token_locked(
+            config,
+            database_id,
+            user_id,
+            db_engine_spec,
+            token_session,
+            force=force,
+            rejected_access_token=rejected_access_token,
+        )
+    finally:
+        if force:
+            token_session.close()
+
+
+def _refresh_oauth2_token_locked(  # noqa: C901
+    config: OAuth2ClientConfig,
+    database_id: int,
+    user_id: int,
+    db_engine_spec: type[BaseEngineSpec],
+    token_session: Session,
+    *,
+    force: bool,
+    rejected_access_token: str | None,
+) -> str | None:
+    """Refresh a token while serializing and durably persisting the exchange."""
     # pylint: disable=import-outside-toplevel
     from superset.models.core import DatabaseUserOAuth2Tokens
 
@@ -145,19 +183,34 @@ def refresh_oauth2_token(
         database_id=database_id,
     ):
         # Short circuit in case another request already deleted the token
-        token = (
-            db.session.query(DatabaseUserOAuth2Tokens)
-            .filter_by(user_id=user_id, database_id=database_id)
-            .one_or_none()
-        )
+        query = token_session.query(DatabaseUserOAuth2Tokens)
+        if force:
+            query = query.populate_existing()
+        token = query.filter_by(user_id=user_id, database_id=database_id).one_or_none()
         if token is None:
             return None
 
-        if token.access_token and datetime.now() < token.access_token_expiration:
+        # Another request may have refreshed the token while this caller waited
+        # for the distributed lock. Reuse the winner rather than exchanging a
+        # rotating/single-use refresh token again.
+        if (
+            force
+            and rejected_access_token is not None
+            and token.access_token != rejected_access_token
+        ):
+            return token.access_token
+
+        if (
+            not force
+            and token.access_token
+            and datetime.now() < token.access_token_expiration
+        ):
             return token.access_token
 
         if not token.refresh_token:
-            db.session.delete(token)
+            token_session.delete(token)
+            if force:
+                token_session.commit()  # pylint: disable=consider-using-transaction
             return None
 
         try:
@@ -174,8 +227,10 @@ def refresh_oauth2_token(
                 db_engine_spec.engine,
                 type(ex).__name__,
             )
-            db.session.delete(token)
-            db.session.flush()
+            token_session.delete(token)
+            token_session.flush()
+            if force:
+                token_session.commit()  # pylint: disable=consider-using-transaction
             raise OAuth2TokenRefreshError() from None
         # Engine specs can delegate to arbitrary provider clients that do not share an
         # exception base class. Sanitize every other provider-boundary failure while
@@ -202,9 +257,109 @@ def refresh_oauth2_token(
         if new_refresh_token := token_response.get("refresh_token"):
             token.refresh_token = new_refresh_token
 
-        db.session.add(token)
+        token_session.add(token)
+        if force:
+            # Make rotated access and refresh tokens visible to other workers before
+            # releasing the distributed lock. Query execution already commits its
+            # audit/progress state, so this does not introduce a new transaction
+            # boundary for the query paths using forced refresh.
+            token_session.commit()  # pylint: disable=consider-using-transaction
 
     return token.access_token
+
+
+def execute_with_oauth2_retry(  # noqa: C901
+    database: Database,
+    operation: Callable[[], T],
+    can_retry: Callable[[], bool] | None = None,
+) -> T:
+    """Refresh a rejected access token and retry an operation once."""
+    # pylint: disable=import-outside-toplevel
+    from superset.models.core import DatabaseUserOAuth2Tokens
+
+    user = getattr(g, "user", None)
+    user_id = getattr(user, "id", None)
+    rejected_access_token = None
+    if user_id is not None:
+        with db.session.no_autoflush:
+            token = (
+                db.session.query(DatabaseUserOAuth2Tokens)
+                .filter_by(user_id=user_id, database_id=database.id)
+                .one_or_none()
+            )
+        rejected_access_token = token.access_token if token is not None else None
+
+    retry_context = _oauth2_retry_active.set(True)
+    try:
+        try:
+            return operation()
+        finally:
+            _oauth2_retry_active.reset(retry_context)
+    except Exception as ex:
+        is_oauth2_error = (
+            database.is_oauth2_enabled() and database.db_engine_spec.needs_oauth2(ex)
+        )
+        if not is_oauth2_error:
+            raise
+        if can_retry is not None and not can_retry():
+            app.config["STATS_LOGGER"].incr(
+                "oauth2.forced_refresh.query_retry_skipped_progress"
+            )
+            database.start_oauth2_dance()
+            raise
+
+        config = database.get_oauth2_config()
+        if config is None or user_id is None:
+            app.config["STATS_LOGGER"].incr("oauth2.forced_refresh.unavailable")
+            raise
+
+        stats_logger = app.config["STATS_LOGGER"]
+        stats_logger.incr("oauth2.forced_refresh.exchange_attempt")
+        logger.info(
+            "Forcing OAuth2 token refresh after authentication failure: "
+            "database_id=%s engine=%s",
+            database.id,
+            database.db_engine_spec.engine,
+        )
+        try:
+            access_token = refresh_oauth2_token(
+                config,
+                database.id,
+                user_id,
+                database.db_engine_spec,
+                force=True,
+                rejected_access_token=rejected_access_token,
+            )
+        except OAuth2TokenRefreshError:
+            stats_logger.incr("oauth2.forced_refresh.exchange_rejected")
+            database.start_oauth2_dance()
+            raise
+        except Exception:
+            stats_logger.incr("oauth2.forced_refresh.exchange_transient_failure")
+            raise
+
+        if access_token is None:
+            stats_logger.incr("oauth2.forced_refresh.unavailable")
+            database.start_oauth2_dance()
+
+        # The forced refresh commits through an isolated session. Expire the token
+        # loaded above so connection creation for the retry observes that commit.
+        if token is not None:
+            db.session.expire(token)
+
+        stats_logger.incr("oauth2.forced_refresh.exchange_success")
+        try:
+            result = operation()
+        except Exception:
+            stats_logger.incr("oauth2.forced_refresh.query_retry_failure")
+            raise
+        stats_logger.incr("oauth2.forced_refresh.query_retry_success")
+        return result
+
+
+def is_oauth2_retry_active() -> bool:
+    """Return whether an outer query execution can retry an OAuth2 failure."""
+    return _oauth2_retry_active.get()
 
 
 def encode_oauth2_state(state: OAuth2State) -> str:
@@ -322,9 +477,13 @@ def check_for_oauth2(database: Database) -> Iterator[None]:
     try:
         yield
     except Exception as ex:
-        if database.is_oauth2_enabled() and (
-            isinstance(ex, OAuth2TokenRefreshError)
-            or database.db_engine_spec.needs_oauth2(ex)
+        if (
+            not is_oauth2_retry_active()
+            and database.is_oauth2_enabled()
+            and (
+                isinstance(ex, OAuth2TokenRefreshError)
+                or database.db_engine_spec.needs_oauth2(ex)
+            )
         ):
             database.db_engine_spec.start_oauth2_dance(database)
         raise
