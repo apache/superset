@@ -179,17 +179,84 @@ def test_access_status_selects_the_denial_message(
     assert sanitize_error_message(DB_ERROR, 404) == str(GENERIC_ERROR_MESSAGE)
 
 
-def test_unresolvable_principal_is_treated_as_non_guest(app: SupersetApp) -> None:
+def test_unresolvable_anonymous_principal_is_not_redacted(app: SupersetApp) -> None:
     """
     ``is_sanitization_required`` runs inside the HTTP error handler, which has no
     handler of its own: a raising user loader (e.g. a JWT request loader that
     raises when no credential is present) would otherwise turn every error
-    response into a bare 500. The lookup must swallow the failure and fall back
-    to treating the request as a non-guest one, leaving the message untouched.
+    response into a bare 500. The lookup must swallow the failure -- but instead
+    of guessing "not a guest" it falls back to whether the request carries a
+    guest token. A genuinely anonymous request (no token) is left untouched, so
+    ordinary failures are not over-sanitized. This is a deliberate
+    availability-over-confidentiality trade-off, not a definitional truth: an
+    unresolvable principal is not "by definition" a non-guest.
     """
-    with patch(
+    is_guest_user = patch(
         "superset.security.SupersetSecurityManager.is_guest_user",
         side_effect=RuntimeError("no valid credential on request"),
-    ):
+    )
+    with app.test_request_context("/"), is_guest_user as mock_is_guest_user:
         assert is_sanitization_required() is False
         assert sanitize_error_message(DB_ERROR) == DB_ERROR
+        assert mock_is_guest_user.called
+
+
+def test_unresolvable_principal_with_guest_token_is_redacted(app: SupersetApp) -> None:
+    """
+    Locks the fail-closed direction: a request that *carries* a guest token whose
+    resolution raises (e.g. ``find_role`` hitting a broken DB session while
+    resolving a valid token, or the ``EMBEDDED_SUPERSET`` feature hook raising)
+    must still be redacted. Reading the token header cannot raise, so the guard
+    fails closed for the one principal whose errors it exists to protect rather
+    than disclosing the raw engine error to a genuine embedded guest.
+    """
+    header = app.config["GUEST_TOKEN_HEADER_NAME"]
+    is_guest_user = patch(
+        "superset.security.SupersetSecurityManager.is_guest_user",
+        side_effect=RuntimeError("find_role on a broken session"),
+    )
+    with (
+        app.test_request_context("/", headers={header: "a.guest.token"}),
+        is_guest_user as mock_is_guest_user,
+    ):
+        assert is_sanitization_required() is True
+        assert sanitize_error_message(DB_ERROR) == str(GENERIC_ERROR_MESSAGE)
+        assert mock_is_guest_user.called
+
+
+def test_unresolvable_principal_with_form_guest_token_is_redacted(
+    app: SupersetApp,
+) -> None:
+    """The token can also arrive in the ``guest_token`` form field, not a header."""
+    is_guest_user = patch(
+        "superset.security.SupersetSecurityManager.is_guest_user",
+        side_effect=RuntimeError("find_role on a broken session"),
+    )
+    with (
+        app.test_request_context(
+            "/", method="POST", data={"guest_token": "a.guest.token"}
+        ),
+        is_guest_user as mock_is_guest_user,
+    ):
+        assert is_sanitization_required() is True
+        assert sanitize_error_message(DB_ERROR) == str(GENERIC_ERROR_MESSAGE)
+        assert mock_is_guest_user.called
+
+
+def test_unresolvable_principal_without_request_context_fails_closed(
+    app: SupersetApp,
+) -> None:
+    """
+    In a Celery worker there is no request context: ``sanitize_error_dicts`` runs
+    inside ``override_user`` while writing the async job payload delivered to the
+    embedded viewer. There is no token to read and no handler-of-a-handler
+    concern, so an unresolvable principal fails closed and redacts.
+    """
+    is_guest_user = patch(
+        "superset.security.SupersetSecurityManager.is_guest_user",
+        side_effect=RuntimeError("no request context in a worker"),
+    )
+    with app.app_context(), is_guest_user as mock_is_guest_user:
+        assert is_sanitization_required() is True
+        assert sanitize_error_message(DB_ERROR) == str(GENERIC_ERROR_MESSAGE)
+        assert mock_is_guest_user.called
