@@ -109,6 +109,11 @@ const TYPES: TypeConfig[] = [
 async function openArchive(page: Page, typeLabel: string, name: string) {
   await page.goto('archived/');
   await expect(page.getByTestId('archived-list-view')).toBeVisible();
+  // The list container mounts before the first page of rows arrives, so any
+  // filter interaction that lands before the data (and the filter machinery
+  // wired to it) has settled races the fetch and gets swallowed. Wait for the
+  // loading indicator to clear so the request has actually resolved.
+  await expect(page.getByTestId('loading-indicator')).toHaveCount(0);
   // Select the object type, then narrow to the unique name. The antd Select's
   // value chip overlays the combobox input, so force the click to open it, then
   // pick the option from the portal listbox.
@@ -194,6 +199,10 @@ test('shows an empty message and no rows when the search matches nothing', async
 }) => {
   await page.goto('archived/');
   await expect(page.getByTestId('archived-list-view')).toBeVisible();
+  // Same race as openArchive(): wait for the initial fetch to resolve before
+  // typing, or the search can land before the filter state is wired up and
+  // the unfiltered first page stays on screen. See #43200.
+  await expect(page.getByTestId('loading-indicator')).toHaveCount(0);
 
   const search = page.getByPlaceholder(/type a value/i);
   await search.click();
