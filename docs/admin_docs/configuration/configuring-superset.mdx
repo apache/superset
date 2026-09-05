@@ -167,8 +167,8 @@ content-addressed:
   fetches that language's pack once and reuses it across sessions.
 - If a cached HTML page references a version that's since changed (e.g. after
   a translation update or upgrade), the endpoint still serves the current
-  pack, but with `Cache-Control: no-cache` so that response isn't cached under
-  the now-stale URL.
+  pack, but with `Cache-Control: no-cache` so any copy stored under the
+  now-stale URL must be revalidated with the server before it's reused.
 - English pages emit no script tag; there's no pack to load.
 
 This endpoint is intentionally unauthenticated. Translation catalogs are
