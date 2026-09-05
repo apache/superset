@@ -496,7 +496,26 @@ def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) ->
     # pylint: disable=import-outside-toplevel
     from superset.daos.datasource import DatasourceDAO
 
-    src_class = DatasourceDAO.sources[target.datasource_type]
+    src_class = DatasourceDAO.sources.get(target.datasource_type)
+    if src_class is None:
+        # An unknown ``datasource_type`` (a legacy connector, a typo, or an
+        # extension type core does not know yet) has no resolvable datasource.
+        # Guard with ``.get()`` so this before_insert/before_update listener
+        # does not raise KeyError and 500 every save of such a chart. Fail
+        # closed by clearing the denormalized perm columns: a chart whose type
+        # is mutated to an unknown value loses access instead of resolving under
+        # its former datasource's stale perm (a null perm matches no permission
+        # view, so ``raise_for_access`` denies).
+        logger.warning(
+            "Slice %r references unknown datasource_type %r; clearing perm "
+            "columns (fail closed).",
+            target.slice_name,
+            target.datasource_type,
+        )
+        target.perm = None
+        target.catalog_perm = None
+        target.schema_perm = None
+        return
     if id_ := target.datasource_id:
         ds = db.session.query(src_class).filter_by(id=int(id_)).first()
         if ds:
