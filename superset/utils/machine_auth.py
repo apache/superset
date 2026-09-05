@@ -38,6 +38,11 @@ if TYPE_CHECKING:
     except ModuleNotFoundError:
         BrowserContext = Any
 
+try:
+    from playwright.sync_api import TimeoutError as PlaywrightTimeout
+except ImportError:
+    PlaywrightTimeout = Exception
+
 
 class MachineAuthProvider:
     def __init__(
@@ -63,7 +68,19 @@ class MachineAuthProvider:
 
         # Setting cookies requires doing a request first
         page = browser_context.new_page()
-        page.goto(headless_url("/login/"))
+        login_url = headless_url("/login/")
+
+        try:
+            page.goto(
+                login_url,
+                wait_until=app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
+            )
+        except PlaywrightTimeout:
+            logger.exception(
+                "Web event %s not detected. Page %s might not have been fully loaded",
+                app.config["SCREENSHOT_PLAYWRIGHT_WAIT_EVENT"],
+                login_url,
+            )
 
         cookies = self.get_cookies(user)
 

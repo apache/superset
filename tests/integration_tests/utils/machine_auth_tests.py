@@ -18,7 +18,7 @@
 from unittest.mock import MagicMock, patch
 
 from superset.extensions import machine_auth_provider_factory
-from superset.utils.machine_auth import MachineAuthProvider
+from superset.utils.machine_auth import MachineAuthProvider, PlaywrightTimeout
 from tests.integration_tests.base_tests import SupersetTestCase
 
 
@@ -35,6 +35,28 @@ class MachineAuthProviderTests(SupersetTestCase):
 
         mock_context = MagicMock()
         mock_page = MagicMock()
+        mock_context.new_page.return_value = mock_page
+
+        with patch.object(provider, "get_cookies", return_value={"session": "abc123"}):
+            result = provider.authenticate_browser_context(mock_context, user)
+
+        assert result is mock_context
+        mock_page.goto.assert_called_once()
+        mock_context.clear_cookies.assert_called_once()
+        mock_context.add_cookies.assert_called_once()
+        cookies_added = mock_context.add_cookies.call_args[0][0]
+        assert any(
+            c["name"] == "session" and c["value"] == "abc123" for c in cookies_added
+        )
+
+    def test_authenticate_browser_context_sets_cookies_after_navigation_timeout(self):
+        """Navigation timeouts do not prevent auth cookies from being set."""
+        user = self.get_user("admin")
+        provider = machine_auth_provider_factory.instance
+
+        mock_context = MagicMock()
+        mock_page = MagicMock()
+        mock_page.goto.side_effect = PlaywrightTimeout("Navigation timed out")
         mock_context.new_page.return_value = mock_page
 
         with patch.object(provider, "get_cookies", return_value={"session": "abc123"}):
