@@ -48,6 +48,7 @@ import {
   getHorizontalLegendAvailableWidth,
   getLegendProps,
   groupData,
+  measureTextWidth,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -58,7 +59,12 @@ import { defaultGrid } from '../defaults';
 import { getPadding } from '../Timeseries/transformers';
 import { convertInteger } from '../utils/convertInteger';
 import { getTooltipLabels } from '../utils/tooltip';
-import { Dimension, ELEMENT_HEIGHT_SCALE } from './constants';
+import {
+  CATEGORY_LABEL_GAP,
+  Dimension,
+  ELEMENT_HEIGHT_SCALE,
+  MAX_CATEGORY_LABEL_WIDTH_RATIO,
+} from './constants';
 
 const renderItem: CustomSeriesRenderItem = (params, api) => {
   const startX = api.value(Dimension.StartTime);
@@ -219,6 +225,23 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     prevSum = sum;
   });
 
+  // Category names are rendered as markLine labels, and `grid.containLabel`
+  // only reserves room for axis labels, so a name longer than the default left
+  // padding was drawn into -- and clipped by -- the left edge of the plot.
+  // Measure the widest name and reserve that much, capped so a very long
+  // category cannot eat the chart; anything past the cap is truncated with an
+  // ellipsis by the label itself.
+  const categoryLabelWidth = Math.min(
+    Math.ceil(
+      categoryLines.reduce(
+        (maxWidth, { name }) =>
+          name ? Math.max(maxWidth, measureTextWidth(name, theme)) : maxWidth,
+        0,
+      ),
+    ),
+    Math.floor(width * MAX_CATEGORY_LABEL_WIDTH_RATIO),
+  );
+
   const xAxisFormatter = getXAxisFormatter(xAxisTimeFormat);
   const tooltipTimeFormatter = getTooltipTimeFormatter(tooltipTimeFormat);
   const tooltipValuesFormatter = getNumberFormatter(tooltipValuesFormat);
@@ -333,6 +356,8 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
           position: 'start',
           formatter: '{b}',
           color: theme.colorText,
+          width: categoryLabelWidth,
+          overflow: 'truncate',
         },
         data: categoryLines,
       },
@@ -427,6 +452,9 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     grid: {
       ...defaultGrid,
       ...padding,
+      left:
+        padding.left +
+        (categoryLabelWidth > 0 ? categoryLabelWidth + CATEGORY_LABEL_GAP : 0),
     },
     dataZoom: zoomable && [
       {

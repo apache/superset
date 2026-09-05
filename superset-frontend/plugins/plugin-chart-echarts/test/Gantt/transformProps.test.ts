@@ -259,6 +259,9 @@ describe('Gantt transformProps', () => {
           position: 'start',
           formatter: '{b}',
           color: 'rgba(0,0,0,0.88)',
+          // room reserved for the category name, truncated past the cap
+          width: expect.any(Number),
+          overflow: 'truncate',
         },
         lineStyle: expect.objectContaining({
           color: '#00000000',
@@ -371,4 +374,50 @@ describe('legend sorting', () => {
 
     expect((result.echartOptions.legend as any).show).toBe(true);
   });
+});
+
+test('reserves grid room for category names so they are not clipped (#38844)', () => {
+  // The names are drawn as markLine labels, which `grid.containLabel` ignores.
+  const longCategory = 'A very long category name that would be clipped';
+  const props = new ChartProps({
+    ...chartPropsConfig,
+    width: 800,
+    queriesData: [
+      {
+        ...queriesData[0],
+        data: queriesData[0].data.map(datum => ({
+          ...datum,
+          'Y Axis': longCategory,
+        })),
+      },
+    ],
+  });
+
+  const result = transformProps(props as EchartsGanttChartProps);
+  const grid = result.echartOptions.grid as { left: number };
+  const categoryMarkLine = (result.echartOptions.series as any[]).find(
+    series => series.markLine?.label?.formatter === '{b}',
+  );
+
+  const baseline = transformProps(
+    new ChartProps({
+      ...chartPropsConfig,
+      width: 800,
+      queriesData: [
+        {
+          ...queriesData[0],
+          data: queriesData[0].data.map(datum => ({ ...datum, 'Y Axis': 'a' })),
+        },
+      ],
+    }) as EchartsGanttChartProps,
+  );
+
+  // a longer category reserves more left padding than a short one
+  expect(grid.left).toBeGreaterThan(
+    (baseline.echartOptions.grid as { left: number }).left,
+  );
+  // and the label truncates instead of overflowing whatever was reserved
+  expect(categoryMarkLine.markLine.label.overflow).toBe('truncate');
+  expect(categoryMarkLine.markLine.label.width).toBeGreaterThan(0);
+  expect(categoryMarkLine.markLine.label.width).toBeLessThanOrEqual(800 * 0.25);
 });
