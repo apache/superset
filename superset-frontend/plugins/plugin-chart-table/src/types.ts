@@ -32,10 +32,10 @@ import type {
   BasicColorFormatterType,
   ColorFormatters,
   DataColumnMeta,
+  HeaderGroupConfig,
   ServerPaginationData,
   TableColumnConfig,
 } from '@superset-ui/chart-controls';
-import type { HeaderGroupConfig } from './utils/headerGroups';
 
 export type { HeaderGroupConfig };
 

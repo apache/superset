@@ -39,6 +39,7 @@ import {
   shouldSkipMetricColumn,
   isRegularMetric,
   isPercentMetric,
+  getHeaderGroupsControlProps,
   ConditionalFormattingConfig,
   ObjectFormattingEnum,
   ColorSchemeEnum,
@@ -46,13 +47,10 @@ import {
 import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
-  getColumnLabel,
-  getMetricLabel,
   isAdhocColumn,
   isPhysicalColumn,
   validateInteger,
   QueryFormColumn,
-  QueryFormMetric,
   QueryMode,
   SMART_DATE_ID,
   validateMaxValue,
@@ -599,84 +597,7 @@ const config: ControlPanelConfig = {
                 return true;
               },
               mapStateToProps(explore, _, chart) {
-                const verboseMap = explore?.datasource?.hasOwnProperty(
-                  'verbose_map',
-                )
-                  ? (explore?.datasource as Dataset)?.verbose_map
-                  : {};
-                const { colnames: queryColnames } =
-                  chart?.queriesResponse?.[0] ?? {};
-                const formData = explore?.form_data ?? {};
-                const timeCompareValue = explore?.controls?.time_compare?.value;
-                const hasTimeComparison = !isEmpty(timeCompareValue);
-                const metricKeys = [
-                  ...ensureIsArray(formData.metrics).map(metric =>
-                    getMetricLabel(metric as QueryFormMetric),
-                  ),
-                  ...ensureIsArray(formData.percent_metrics).map(
-                    metric => `%${getMetricLabel(metric as QueryFormMetric)}`,
-                  ),
-                ].filter(Boolean);
-                const fallbackKeys = [
-                  ...ensureIsArray(formData.groupby).map(col =>
-                    getColumnLabel(col as QueryFormColumn),
-                  ),
-                  ...ensureIsArray(formData.all_columns).map(col =>
-                    getColumnLabel(col as QueryFormColumn),
-                  ),
-                  ...metricKeys,
-                ].filter(Boolean);
-                let colnames =
-                  Array.isArray(queryColnames) && queryColnames.length > 0
-                    ? [...queryColnames]
-                    : [...new Set(fallbackKeys)];
-
-                if (hasTimeComparison) {
-                  const sourceColnames = colnames;
-                  colnames = colnames.flatMap((colname: string) => {
-                    if (last(colname.split('__')) === timeCompareValue) {
-                      return [];
-                    }
-                    if (
-                      shouldSkipMetricColumn({
-                        colname,
-                        colnames: sourceColnames,
-                        formData,
-                      })
-                    ) {
-                      return [];
-                    }
-                    if (
-                      isRegularMetric(colname, formData) ||
-                      isPercentMetric(colname, formData)
-                    ) {
-                      return generateComparisonColumns(colname);
-                    }
-                    return [colname];
-                  });
-                }
-
-                const columnLabel = (colname: string) =>
-                  Array.isArray(verboseMap)
-                    ? colname
-                    : (verboseMap?.[colname] ?? colname);
-
-                return {
-                  columnOptions: colnames.map((colname: string) => ({
-                    value: colname,
-                    label: columnLabel(colname),
-                  })),
-                  timeComparisonGroups: hasTimeComparison
-                    ? metricKeys.map(key => ({
-                        id: `time-compare-${key}`,
-                        label: columnLabel(key),
-                        columns: generateComparisonColumns(key),
-                        labelAlign: 'center',
-                        placement: 'right',
-                        source: 'time_compare',
-                      }))
-                    : [],
-                };
+                return getHeaderGroupsControlProps(explore, chart);
               },
             },
           },

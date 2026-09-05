@@ -18,6 +18,7 @@
  */
 import { HeaderGroupConfig } from './types';
 import {
+  canSaveHeaderGroup,
   collectHeaderGroupColumns,
   createHeaderGroup,
   headerGroupsHaveSameColumns,
@@ -43,6 +44,19 @@ const groups: HeaderGroupConfig[] = [
     ],
   },
 ];
+
+test('canSaveHeaderGroup requires a name and at least one column', () => {
+  expect(canSaveHeaderGroup(createHeaderGroup())).toBe(false);
+  expect(
+    canSaveHeaderGroup({ id: '1', label: '   ', columns: ['SUM(sales)'] }),
+  ).toBe(false);
+  expect(canSaveHeaderGroup({ id: '1', label: 'Sales', columns: [] })).toBe(
+    false,
+  );
+  expect(
+    canSaveHeaderGroup({ id: '1', label: 'Sales', columns: ['SUM(sales)'] }),
+  ).toBe(true);
+});
 
 test('createHeaderGroup returns an empty group with an id', () => {
   const group = createHeaderGroup();

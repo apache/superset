@@ -30,6 +30,7 @@ import {
   MAX_HEADER_GROUP_DEPTH,
 } from './types';
 import {
+  canSaveHeaderGroup,
   createHeaderGroup,
   removeHeaderGroupAt,
   updateHeaderGroupAt,
@@ -177,7 +178,8 @@ function HeaderGroupForm({
       (group.columns ?? []).includes(option.value) ||
       !usedColumns.has(option.value),
   );
-  const hasName = Boolean(group.label?.trim());
+  const canSave = canSaveHeaderGroup(group);
+  const isTimeCompareGroup = group.source === 'time_compare';
   const isTopLevel = path.length === 1;
 
   return (
@@ -210,18 +212,22 @@ function HeaderGroupForm({
         <Select
           ariaLabel={t('Group columns')}
           mode="multiple"
-          allowClear
-          showSearch
+          allowClear={!isTimeCompareGroup}
+          showSearch={!isTimeCompareGroup}
+          disabled={isTimeCompareGroup}
           value={group.columns ?? []}
           options={availableOptions}
           placeholder={t('Select columns')}
           maxTagCount={3}
-          onChange={columns =>
+          onChange={columns => {
+            if (isTimeCompareGroup) {
+              return;
+            }
             onChange(path, {
               ...group,
               columns: Array.isArray(columns) ? columns : [],
-            })
-          }
+            });
+          }}
         />
       </FieldRow>
       <InlineFields>
@@ -290,14 +296,14 @@ function HeaderGroupForm({
           ))}
         </FieldRow>
       )}
-      {path.length < MAX_HEADER_GROUP_DEPTH && (
+      {path.length < MAX_HEADER_GROUP_DEPTH && !isTimeCompareGroup && (
         <Button
           buttonStyle="dashed"
           buttonSize="small"
-          disabled={!hasName}
+          disabled={!canSave}
           icon={<Icons.PlusOutlined iconSize="s" />}
           onClick={() => {
-            if (hasName) {
+            if (canSave) {
               onAddChild(path);
             }
           }}
@@ -307,7 +313,7 @@ function HeaderGroupForm({
       )}
       {onApply && (
         <ApplyRow>
-          <Button buttonStyle="primary" onClick={onApply}>
+          <Button buttonStyle="primary" disabled={!canSave} onClick={onApply}>
             {t('Apply')}
           </Button>
         </ApplyRow>
@@ -376,6 +382,9 @@ export default function HeaderGroupEditor({
   };
 
   const handleApply = () => {
+    if (!canSaveHeaderGroup(draft)) {
+      return;
+    }
     onSave?.(draft);
     setVisible(false);
     setDraft(createHeaderGroup());

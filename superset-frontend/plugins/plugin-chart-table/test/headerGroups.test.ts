@@ -262,6 +262,28 @@ test('uses the configured label alignment on group cells', () => {
   );
 });
 
+test('builds header rows when a metric group expands to time comparison columns', () => {
+  const rows = buildHeaderGroupRows(
+    [
+      {
+        id: 'sales',
+        label: 'Sales',
+        columns: ['revenue'],
+      },
+    ],
+    ['region', 'Main revenue', '# revenue', '△ revenue', '% revenue'],
+  );
+
+  expect(rows[0]).toEqual([
+    expect.objectContaining({ label: '', columnIndex: 0 }),
+    expect.objectContaining({
+      label: 'Sales',
+      colSpan: 4,
+      columnIndex: 1,
+    }),
+  ]);
+});
+
 test('hasRenderableHeaderGroups is false for empty groups', () => {
   expect(hasRenderableHeaderGroups([])).toBe(false);
   expect(hasRenderableHeaderGroups([{ id: '1', label: '', columns: [] }])).toBe(

@@ -28,7 +28,12 @@ import { useCallback, useMemo } from 'react';
 import { DataRecordValue, JsonObject } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useTheme } from '@apache-superset/core/theme';
-import { ColorFormatters } from '@superset-ui/chart-controls';
+import {
+  ColorFormatters,
+  hasRenderableHeaderGroups,
+  nestColDefsInHeaderGroups,
+  type HeaderGroupConfig,
+} from '@superset-ui/chart-controls';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
 import {
   BasicColorFormatterType,
@@ -73,6 +78,7 @@ type UseColDefsProps = {
   emitCrossFilters?: boolean;
   alignPositiveNegative: boolean;
   slice_id: number;
+  headerGroups?: HeaderGroupConfig[];
 };
 
 function getValueRange(
@@ -238,6 +244,7 @@ export const useColDefs = ({
   emitCrossFilters,
   alignPositiveNegative,
   slice_id,
+  headerGroups = [],
 }: UseColDefsProps) => {
   const theme = useTheme();
   const getCommonColProps = useCallback(
@@ -443,6 +450,12 @@ export const useColDefs = ({
   const stringifiedCols = JSON.stringify(columns);
 
   const colDefs = useMemo(() => {
+    if (hasRenderableHeaderGroups(headerGroups)) {
+      return nestColDefsInHeaderGroups(columns, headerGroups, col =>
+        getCommonColProps(col),
+      ) as ColDef[];
+    }
+
     const groupIndexMap = new Map<string, number>();
 
     return columns.reduce<ColDef[]>((acc, col) => {
@@ -468,7 +481,7 @@ export const useColDefs = ({
 
       return acc;
     }, []);
-  }, [stringifiedCols, getCommonColProps]);
+  }, [stringifiedCols, getCommonColProps, headerGroups]);
 
   const rawPageSize = serverPaginationData?.pageSize ?? serverPageLength;
   const pageSize = rawPageSize && rawPageSize > 0 ? rawPageSize : data.length;

@@ -17,26 +17,19 @@
  * under the License.
  */
 import { ControlComponentProps } from 'src/explore/components/Control';
+import type {
+  HeaderGroupConfig,
+  HeaderGroupLabelAlign,
+  HeaderGroupPlacement,
+} from '@superset-ui/chart-controls';
 
 export const MAX_HEADER_GROUP_DEPTH = 3;
+
+export type { HeaderGroupConfig, HeaderGroupLabelAlign, HeaderGroupPlacement };
 
 export type HeaderGroupColumnOption = {
   value: string;
   label: string;
-};
-
-export type HeaderGroupLabelAlign = 'left' | 'center' | 'right';
-
-export type HeaderGroupPlacement = 'left' | 'right';
-
-export type HeaderGroupConfig = {
-  id: string;
-  label: string;
-  columns: string[];
-  labelAlign?: HeaderGroupLabelAlign;
-  placement?: HeaderGroupPlacement;
-  source?: 'time_compare';
-  children?: HeaderGroupConfig[];
 };
 
 export type HeaderGroupsControlProps = ControlComponentProps<

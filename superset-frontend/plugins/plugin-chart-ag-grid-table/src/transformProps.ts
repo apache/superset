@@ -526,6 +526,7 @@ const transformProps = (
     comparison_color_enabled: comparisonColorEnabled = false,
     comparison_color_scheme: comparisonColorScheme = ColorSchemeEnum.Green,
     show_numbered_column: showNumberedColumn = false,
+    header_groups: headerGroups = [],
   } = formData;
 
   const allowRearrangeColumns = true;
@@ -871,6 +872,7 @@ const transformProps = (
     chartState,
     onChartStateChange,
     showNumberedColumn,
+    headerGroups,
   };
 };
 

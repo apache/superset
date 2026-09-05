@@ -30,6 +30,10 @@ export function createHeaderGroup(): HeaderGroupConfig {
   };
 }
 
+export function canSaveHeaderGroup(group: HeaderGroupConfig): boolean {
+  return Boolean(group.label?.trim()) && (group.columns ?? []).length > 0;
+}
+
 export function moveHeaderGroup(
   groups: HeaderGroupConfig[],
   fromIndex: number,

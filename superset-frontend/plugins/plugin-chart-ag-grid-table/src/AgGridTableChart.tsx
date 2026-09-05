@@ -88,6 +88,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     metricSqlExpressions,
     rawSummaryColumns,
     showNumberedColumn,
+    headerGroups = [],
   } = props;
 
   const [searchOptions, setSearchOptions] = useState<SearchOption[]>([]);
@@ -278,6 +279,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     emitCrossFilters,
     alignPositiveNegative,
     slice_id,
+    headerGroups,
   });
 
   const gridHeight = getGridHeight(height, includeSearch);

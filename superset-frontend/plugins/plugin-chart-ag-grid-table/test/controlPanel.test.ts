@@ -68,6 +68,23 @@ function mkProps(
   } as unknown as ControlPanelsContainerProps;
 }
 
+test('header_groups is always present without a visibility gate', () => {
+  const item = (config.controlPanelSections || [])
+    .flatMap(section => section?.controlSetRows || [])
+    .flat()
+    .find(
+      control =>
+        typeof control === 'object' &&
+        control !== null &&
+        'name' in control &&
+        control.name === 'header_groups',
+    ) as CustomControlItem | undefined;
+
+  expect(item).toBeDefined();
+  expect(item?.config.visibility).toBeUndefined();
+  expect(item?.config.type).toBe('HeaderGroupsControl');
+});
+
 test('time_grain_sqla visibility should be case-insensitive', () => {
   const vis = getVisibility(config, 'time_grain_sqla');
   const controlState = {} as ControlState;
