@@ -327,9 +327,12 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
     def _rename_deprecated_fields(self, kwargs: dict[str, Any]) -> None:
         # rename deprecated fields
+        # Logged at info: a chart saved before the field was renamed hits this
+        # on every render, so a warning would repeat for as long as the chart
+        # is not resaved, without anything new to report.
         for field in DEPRECATED_FIELDS:
             if field.old_name in kwargs:
-                logger.warning(
+                logger.info(
                     "The field `%s` is deprecated, please use `%s` instead.",
                     field.old_name,
                     field.new_name,
@@ -337,7 +340,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 value = kwargs[field.old_name]
                 if value:
                     if hasattr(self, field.new_name):
-                        logger.warning(
+                        logger.info(
                             "The field `%s` is already populated, "
                             "replacing value with contents from `%s`.",
                             field.new_name,
@@ -347,9 +350,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
 
     def _move_deprecated_extra_fields(self, kwargs: dict[str, Any]) -> None:
         # move deprecated extras fields to extras
+        # Logged at info: same rationale as `_rename_deprecated_fields` above.
         for field in DEPRECATED_EXTRAS_FIELDS:
             if field.old_name in kwargs:
-                logger.warning(
+                logger.info(
                     "The field `%s` is deprecated and should "
                     "be passed to `extras` via the `%s` property.",
                     field.old_name,
@@ -358,7 +362,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 value = kwargs[field.old_name]
                 if value:
                     if hasattr(self.extras, field.new_name):
-                        logger.warning(
+                        logger.info(
                             "The field `%s` is already populated in "
                             "`extras`, replacing value with contents "
                             "from `%s`.",
