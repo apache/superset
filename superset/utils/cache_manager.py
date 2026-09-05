@@ -27,7 +27,7 @@ from markupsafe import Markup
 from superset.utils.core import DatasourceType
 
 if TYPE_CHECKING:
-    from superset.async_events.cache_backend import (
+    from superset.coordination.cache_backend import (
         RedisCacheBackend,
         RedisSentinelCacheBackend,
     )
@@ -257,7 +257,7 @@ class CacheManager:
 
     def _init_distributed_coordination(self, app: Flask) -> None:
         """Initialize the distributed coordination backend (pub/sub, locks, streams)."""
-        from superset.async_events.cache_backend import (
+        from superset.coordination.cache_backend import (
             RedisCacheBackend,
             RedisSentinelCacheBackend,
         )

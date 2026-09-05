@@ -58,7 +58,7 @@ cffi==2.0.0
     #   pynacl
 charset-normalizer==3.4.2
     # via requests
-click==8.4.2
+click==8.5.0
     # via
     #   apache-superset (pyproject.toml)
     #   celery
@@ -84,7 +84,7 @@ cron-descriptor==1.4.5
     # via apache-superset (pyproject.toml)
 croniter==6.2.4
     # via apache-superset (pyproject.toml)
-cryptography==50.0.0
+cryptography==50.0.1
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
@@ -236,11 +236,11 @@ marshmallow-union==0.1.15.post1
     # via apache-superset (pyproject.toml)
 mdurl==0.1.2
     # via markdown-it-py
-msgpack==1.2.1
+msgpack==1.2.2
     # via apache-superset (pyproject.toml)
 msgspec==0.19.0
     # via flask-session
-nh3==0.3.6
+nh3==0.3.7
     # via apache-superset (pyproject.toml)
 numexpr==2.10.2
     # via -r requirements/base.in
@@ -297,11 +297,11 @@ pyasn1-modules==0.4.2
     # via google-auth
 pycparser==2.22
     # via cffi
-pydantic==2.13.4
+pydantic==2.13.5
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
-pydantic-core==2.46.4
+pydantic-core==2.46.5
     # via pydantic
 pygeohash==3.2.2
     # via apache-superset (pyproject.toml)
@@ -370,7 +370,7 @@ setuptools==84.0.0
     # via -r requirements/base.in
 shillelagh==1.4.5
     # via apache-superset (pyproject.toml)
-simplejson==4.1.1
+simplejson==4.1.2
     # via apache-superset (pyproject.toml)
 six==1.17.0
     # via
@@ -378,7 +378,7 @@ six==1.17.0
     #   python-dateutil
     #   rfc3339-validator
     #   wtforms-json
-slack-sdk==3.43.0
+slack-sdk==3.44.1
     # via apache-superset (pyproject.toml)
 sqlalchemy==2.0.52
     # via

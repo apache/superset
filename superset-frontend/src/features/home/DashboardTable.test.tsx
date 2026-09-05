@@ -249,8 +249,16 @@ test('handles create dashboard button click', async () => {
   );
 
   const createButton = screen.getByRole('button', { name: /dashboard$/i });
+  // No pending state before the click — the button is idle.
+  expect(createButton).not.toHaveClass('ant-btn-loading');
   await userEvent.click(createButton);
   expect(assignMock).toHaveBeenCalledWith('/dashboard/new/');
+  // /dashboard/new/ is a hard navigation whose GET creates the dashboard
+  // server-side; the button must show a loading state for the whole
+  // round-trip instead of looking dead (issue #43385).
+  await waitFor(() => {
+    expect(createButton).toHaveClass('ant-btn-loading');
+  });
   locationSpy.mockRestore();
 });
 

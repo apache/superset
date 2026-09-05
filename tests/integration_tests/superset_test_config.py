@@ -155,7 +155,6 @@ EXPLORE_FORM_DATA_CACHE_CONFIG = {
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(minutes=10).total_seconds()),
 }
 
-GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me-test-secret-change-me"  # noqa: S105
 
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True
 

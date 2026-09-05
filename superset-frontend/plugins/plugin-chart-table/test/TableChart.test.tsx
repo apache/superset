@@ -16,41 +16,44 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import '@testing-library/jest-dom';
+import "@testing-library/jest-dom";
 import {
+  BoundUnit,
+  Comparator,
   getTextColorForBackground,
   ObjectFormattingEnum,
   ColorSchemeEnum,
-} from '@superset-ui/chart-controls';
-import { supersetTheme } from '@apache-superset/core/theme';
+} from "@superset-ui/chart-controls";
+import { supersetTheme } from "@apache-superset/core/theme";
 import {
+  act,
   render,
   screen,
   fireEvent,
   waitFor,
   within,
-} from '@superset-ui/core/spec';
-import { cloneDeep } from 'lodash-es';
+} from "@superset-ui/core/spec";
+import { cloneDeep } from "lodash-es";
 import {
   type DataMask,
   QueryMode,
   TimeGranularity,
   SMART_DATE_ID,
   getTimeFormatterForGranularity,
-} from '@superset-ui/core';
-import { CellProps, Column, HeaderProps } from 'react-table';
-import DataTable from '../src/DataTable/DataTable';
-import TableChart, { sanitizeHeaderId } from '../src/TableChart';
-import { GenericDataType } from '@apache-superset/core/common';
-import transformProps from '../src/transformProps';
-import DateWithFormatter from '../src/utils/DateWithFormatter';
-import testData from './testData';
-import { ProviderWrapper } from './testHelpers';
+} from "@superset-ui/core";
+import { CellProps, Column, HeaderProps } from "react-table";
+import DataTable from "../src/DataTable/DataTable";
+import TableChart, { sanitizeHeaderId } from "../src/TableChart";
+import { GenericDataType } from "@apache-superset/core/common";
+import transformProps from "../src/transformProps";
+import DateWithFormatter from "../src/utils/DateWithFormatter";
+import testData from "./testData";
+import { ProviderWrapper } from "./testHelpers";
 
 const expectValidAriaLabels = (container: HTMLElement) => {
-  const allCells = container.querySelectorAll('tbody td');
+  const allCells = container.querySelectorAll("tbody td");
   const cellsWithLabels = container.querySelectorAll(
-    'tbody td[aria-labelledby]',
+    "tbody td[aria-labelledby]",
   );
 
   // Table must render data cells (catch empty table regression)
@@ -60,8 +63,8 @@ const expectValidAriaLabels = (container: HTMLElement) => {
   expect(cellsWithLabels.length).toBe(allCells.length);
 
   // ALL aria-labelledby values should be valid
-  cellsWithLabels.forEach(cell => {
-    const labelledBy = cell.getAttribute('aria-labelledby');
+  cellsWithLabels.forEach((cell) => {
+    const labelledBy = cell.getAttribute("aria-labelledby");
     expect(labelledBy).not.toBeNull();
     expect(labelledBy).toEqual(expect.stringMatching(/\S/));
     const labelledByValue = labelledBy as string;
@@ -74,141 +77,168 @@ const expectValidAriaLabels = (container: HTMLElement) => {
   });
 };
 
-test('sanitizeHeaderId should sanitize percent sign', () => {
-  expect(sanitizeHeaderId('%pct_nice')).toBe('percentpct_nice');
+test("sanitizeHeaderId should sanitize percent sign", () => {
+  expect(sanitizeHeaderId("%pct_nice")).toBe("percentpct_nice");
 });
 
-test('sanitizeHeaderId should sanitize hash/pound sign', () => {
-  expect(sanitizeHeaderId('# metric_1')).toBe('hash_metric_1');
+test("sanitizeHeaderId should sanitize hash/pound sign", () => {
+  expect(sanitizeHeaderId("# metric_1")).toBe("hash_metric_1");
 });
 
-test('sanitizeHeaderId should sanitize delta symbol', () => {
-  expect(sanitizeHeaderId('△ delta')).toBe('delta_delta');
+test("sanitizeHeaderId should sanitize delta symbol", () => {
+  expect(sanitizeHeaderId("△ delta")).toBe("delta_delta");
 });
 
-test('sanitizeHeaderId should replace spaces with underscores', () => {
-  expect(sanitizeHeaderId('Main metric_1')).toBe('Main_metric_1');
-  expect(sanitizeHeaderId('multiple  spaces')).toBe('multiple_spaces');
+test("sanitizeHeaderId should replace spaces with underscores", () => {
+  expect(sanitizeHeaderId("Main metric_1")).toBe("Main_metric_1");
+  expect(sanitizeHeaderId("multiple  spaces")).toBe("multiple_spaces");
 });
 
-test('sanitizeHeaderId should handle multiple special characters', () => {
-  expect(sanitizeHeaderId('% #△ test')).toBe('percent_hashdelta_test');
-  expect(sanitizeHeaderId('% # △ test')).toBe('percent_hash_delta_test');
+test("sanitizeHeaderId should handle multiple special characters", () => {
+  expect(sanitizeHeaderId("% #△ test")).toBe("percent_hashdelta_test");
+  expect(sanitizeHeaderId("% # △ test")).toBe("percent_hash_delta_test");
 });
 
-test('sanitizeHeaderId should preserve alphanumeric, underscore, and hyphen', () => {
-  expect(sanitizeHeaderId('valid-name_123')).toBe('valid-name_123');
+test("sanitizeHeaderId should preserve alphanumeric, underscore, and hyphen", () => {
+  expect(sanitizeHeaderId("valid-name_123")).toBe("valid-name_123");
 });
 
-test('sanitizeHeaderId should replace other special characters with underscore', () => {
-  expect(sanitizeHeaderId('col@name!test')).toBe('col_name_test');
-  expect(sanitizeHeaderId('test.column')).toBe('test_column');
+test("sanitizeHeaderId should replace other special characters with underscore", () => {
+  expect(sanitizeHeaderId("col@name!test")).toBe("col_name_test");
+  expect(sanitizeHeaderId("test.column")).toBe("test_column");
 });
 
-test('sanitizeHeaderId should handle edge cases', () => {
-  expect(sanitizeHeaderId('')).toBe('');
-  expect(sanitizeHeaderId('simple')).toBe('simple');
+test("sanitizeHeaderId should handle edge cases", () => {
+  expect(sanitizeHeaderId("")).toBe("");
+  expect(sanitizeHeaderId("simple")).toBe("simple");
 });
 
-test('sanitizeHeaderId should collapse consecutive underscores', () => {
-  expect(sanitizeHeaderId('test @@ space')).toBe('test_space');
-  expect(sanitizeHeaderId('col___name')).toBe('col_name');
-  expect(sanitizeHeaderId('a  b  c')).toBe('a_b_c');
-  expect(sanitizeHeaderId('test@@name')).toBe('test_name');
+test("sanitizeHeaderId should collapse consecutive underscores", () => {
+  expect(sanitizeHeaderId("test @@ space")).toBe("test_space");
+  expect(sanitizeHeaderId("col___name")).toBe("col_name");
+  expect(sanitizeHeaderId("a  b  c")).toBe("a_b_c");
+  expect(sanitizeHeaderId("test@@name")).toBe("test_name");
 });
 
-test('sanitizeHeaderId should remove leading underscores', () => {
-  expect(sanitizeHeaderId('@col')).toBe('col');
-  expect(sanitizeHeaderId('!revenue')).toBe('revenue');
-  expect(sanitizeHeaderId('@@test')).toBe('test');
-  expect(sanitizeHeaderId('   leading_spaces')).toBe('leading_spaces');
+test("sanitizeHeaderId should remove leading underscores", () => {
+  expect(sanitizeHeaderId("@col")).toBe("col");
+  expect(sanitizeHeaderId("!revenue")).toBe("revenue");
+  expect(sanitizeHeaderId("@@test")).toBe("test");
+  expect(sanitizeHeaderId("   leading_spaces")).toBe("leading_spaces");
 });
 
-test('sanitizeHeaderId should remove trailing underscores', () => {
-  expect(sanitizeHeaderId('col@')).toBe('col');
-  expect(sanitizeHeaderId('revenue!')).toBe('revenue');
-  expect(sanitizeHeaderId('test@@')).toBe('test');
-  expect(sanitizeHeaderId('trailing_spaces   ')).toBe('trailing_spaces');
+test("sanitizeHeaderId should remove trailing underscores", () => {
+  expect(sanitizeHeaderId("col@")).toBe("col");
+  expect(sanitizeHeaderId("revenue!")).toBe("revenue");
+  expect(sanitizeHeaderId("test@@")).toBe("test");
+  expect(sanitizeHeaderId("trailing_spaces   ")).toBe("trailing_spaces");
 });
 
-test('sanitizeHeaderId should remove leading and trailing underscores', () => {
-  expect(sanitizeHeaderId('@col@')).toBe('col');
-  expect(sanitizeHeaderId('!test!')).toBe('test');
-  expect(sanitizeHeaderId('  spaced  ')).toBe('spaced');
-  expect(sanitizeHeaderId('@@multiple@@')).toBe('multiple');
+test("sanitizeHeaderId should remove leading and trailing underscores", () => {
+  expect(sanitizeHeaderId("@col@")).toBe("col");
+  expect(sanitizeHeaderId("!test!")).toBe("test");
+  expect(sanitizeHeaderId("  spaced  ")).toBe("spaced");
+  expect(sanitizeHeaderId("@@multiple@@")).toBe("multiple");
 });
 
-test('sanitizeHeaderId should handle inputs with only special characters', () => {
-  expect(sanitizeHeaderId('@')).toBe('');
-  expect(sanitizeHeaderId('@@')).toBe('');
-  expect(sanitizeHeaderId('   ')).toBe('');
-  expect(sanitizeHeaderId('!@$')).toBe('');
-  expect(sanitizeHeaderId('!@#$')).toBe('hash'); // # is replaced with 'hash' (semantic replacement)
+test("sanitizeHeaderId should handle inputs with only special characters", () => {
+  expect(sanitizeHeaderId("@")).toBe("");
+  expect(sanitizeHeaderId("@@")).toBe("");
+  expect(sanitizeHeaderId("   ")).toBe("");
+  expect(sanitizeHeaderId("!@$")).toBe("");
+  expect(sanitizeHeaderId("!@#$")).toBe("hash"); // # is replaced with 'hash' (semantic replacement)
   // Semantic replacements produce readable output even when alone
-  expect(sanitizeHeaderId('%')).toBe('percent');
-  expect(sanitizeHeaderId('#')).toBe('hash');
-  expect(sanitizeHeaderId('△')).toBe('delta');
-  expect(sanitizeHeaderId('% # △')).toBe('percent_hash_delta');
+  expect(sanitizeHeaderId("%")).toBe("percent");
+  expect(sanitizeHeaderId("#")).toBe("hash");
+  expect(sanitizeHeaderId("△")).toBe("delta");
+  expect(sanitizeHeaderId("% # △")).toBe("percent_hash_delta");
 });
 
-test('renders multi-level header groups above column names', () => {
+test("transformProps retains percentage rules with automatic bounds under server pagination", () => {
+  const transformedProps = transformProps({
+    ...testData.basic,
+    rawFormData: {
+      ...testData.basic.rawFormData,
+      server_pagination: true,
+      conditional_formatting: [
+        {
+          column: "sum__num",
+          operator: Comparator.None,
+          colorScheme: "#FF0000",
+          useGradient: true,
+          boundUnit: BoundUnit.Percent,
+          minBound: 0,
+          maxBound: 200,
+        },
+      ],
+    },
+  });
+
+  expect(transformedProps.columnColorFormatters).toHaveLength(1);
+  const formatter = transformedProps.columnColorFormatters?.[0];
+  expect(formatter?.column).toBe("sum__num");
+  expect(formatter?.getColorFromValue(2467)).toBe("#FF000000");
+  expect(formatter?.getColorFromValue(2467063)).toBe("#FF0000FF");
+});
+
+test("renders multi-level header groups above column names", () => {
   const props = {
     ...transformProps(testData.basic),
     headerGroups: [
       {
-        id: 'metrics',
-        label: 'Metrics',
-        columns: ['sum__num'],
+        id: "metrics",
+        label: "Metrics",
+        columns: ["sum__num"],
         children: [],
       },
     ],
   };
 
   const { container } = render(<TableChart {...props} sticky={false} />);
-  const headerRows = container.querySelectorAll('thead tr');
+  const headerRows = container.querySelectorAll("thead tr");
 
   expect(headerRows.length).toBeGreaterThanOrEqual(2);
-  expect(headerRows[0].textContent).toContain('Metrics');
+  expect(headerRows[0].textContent).toContain("Metrics");
   expect(
-    Array.from(headerRows[0].querySelectorAll('th')).some(
-      th => th.textContent === 'Metrics',
+    Array.from(headerRows[0].querySelectorAll("th")).some(
+      (th) => th.textContent === "Metrics",
     ),
   ).toBe(true);
 
-  const extraHeaderCells = headerRows[0].querySelectorAll('th');
-  extraHeaderCells.forEach(th => {
-    if (th.textContent !== 'Metrics') {
-      expect(th.getAttribute('data-dimension-separator')).toBe('true');
-      expect(Number(th.getAttribute('rowspan') ?? '1')).toBe(1);
+  const extraHeaderCells = headerRows[0].querySelectorAll("th");
+  extraHeaderCells.forEach((th) => {
+    if (th.textContent !== "Metrics") {
+      expect(th.getAttribute("data-dimension-separator")).toBe("true");
+      expect(Number(th.getAttribute("rowspan") ?? "1")).toBe(1);
     }
   });
 });
 
-describe('plugin-chart-table', () => {
-  describe('transformProps', () => {
-    test('should parse pageLength to pageSize', () => {
+describe("plugin-chart-table", () => {
+  describe("transformProps", () => {
+    test("should parse pageLength to pageSize", () => {
       expect(transformProps(testData.basic).pageSize).toBe(20);
       expect(
         transformProps({
           ...testData.basic,
-          rawFormData: { ...testData.basic.rawFormData, page_length: '20' },
+          rawFormData: { ...testData.basic.rawFormData, page_length: "20" },
         }).pageSize,
       ).toBe(20);
       expect(
         transformProps({
           ...testData.basic,
-          rawFormData: { ...testData.basic.rawFormData, page_length: '' },
+          rawFormData: { ...testData.basic.rawFormData, page_length: "" },
         }).pageSize,
       ).toBe(0);
     });
 
-    test('should memoize data records', () => {
+    test("should memoize data records", () => {
       expect(transformProps(testData.basic).data).toBe(
         transformProps(testData.basic).data,
       );
     });
 
-    test('should memoize columns meta', () => {
+    test("should memoize columns meta", () => {
       expect(transformProps(testData.basic).columns).toBe(
         transformProps({
           ...testData.basic,
@@ -217,36 +247,36 @@ describe('plugin-chart-table', () => {
       );
     });
 
-    test('should format timestamp', () => {
+    test("should format timestamp", () => {
       // eslint-disable-next-line no-underscore-dangle
       const parsedDate = transformProps(testData.basic).data[0]
         .__timestamp as DateWithFormatter;
-      expect(String(parsedDate)).toBe('2020-01-01 12:34:56');
+      expect(String(parsedDate)).toBe("2020-01-01 12:34:56");
       expect(parsedDate.getTime()).toBe(1577882096000);
     });
-    test('should process comparison columns when time_compare and comparison_type are set', () => {
+    test("should process comparison columns when time_compare and comparison_type are set", () => {
       const transformedProps = transformProps(testData.comparison);
       const comparisonColumns = transformedProps.columns.filter(
-        col =>
-          col.originalLabel === 'metric_1' ||
-          col.originalLabel === 'metric_2' ||
-          col.label === '#' ||
-          col.label === '△' ||
-          col.label === '%',
+        (col) =>
+          col.originalLabel === "metric_1" ||
+          col.originalLabel === "metric_2" ||
+          col.label === "#" ||
+          col.label === "△" ||
+          col.label === "%",
       );
       expect(comparisonColumns.length).toBeGreaterThan(0);
       expect(
-        comparisonColumns.some(col => col.originalLabel === 'metric_1'),
+        comparisonColumns.some((col) => col.originalLabel === "metric_1"),
       ).toBe(true);
       expect(
-        comparisonColumns.some(col => col.originalLabel === 'metric_2'),
+        comparisonColumns.some((col) => col.originalLabel === "metric_2"),
       ).toBe(true);
-      expect(comparisonColumns.some(col => col.label === '#')).toBe(true);
-      expect(comparisonColumns.some(col => col.label === '△')).toBe(true);
-      expect(comparisonColumns.some(col => col.label === '%')).toBe(true);
+      expect(comparisonColumns.some((col) => col.label === "#")).toBe(true);
+      expect(comparisonColumns.some((col) => col.label === "△")).toBe(true);
+      expect(comparisonColumns.some((col) => col.label === "%")).toBe(true);
     });
 
-    test('should not process comparison columns when time_compare is empty', () => {
+    test("should not process comparison columns when time_compare is empty", () => {
       const propsWithoutTimeCompare = {
         ...testData.comparison,
         rawFormData: {
@@ -259,172 +289,172 @@ describe('plugin-chart-table', () => {
 
       // Check if comparison columns are not processed
       const comparisonColumns = transformedProps.columns.filter(
-        col =>
-          col.label === 'Main' ||
-          col.label === '#' ||
-          col.label === '△' ||
-          col.label === '%',
+        (col) =>
+          col.label === "Main" ||
+          col.label === "#" ||
+          col.label === "△" ||
+          col.label === "%",
       );
 
       expect(comparisonColumns.length).toBe(0);
     });
 
-    test('should correctly apply column configuration for comparison columns', () => {
+    test("should correctly apply column configuration for comparison columns", () => {
       const transformedProps = transformProps(testData.comparisonWithConfig);
 
       const comparisonColumns = transformedProps.columns.filter(
-        col =>
-          col.key.startsWith('Main') ||
-          col.key.startsWith('#') ||
-          col.key.startsWith('△') ||
-          col.key.startsWith('%'),
+        (col) =>
+          col.key.startsWith("Main") ||
+          col.key.startsWith("#") ||
+          col.key.startsWith("△") ||
+          col.key.startsWith("%"),
       );
 
       expect(comparisonColumns).toHaveLength(4);
 
       const mainMetricConfig = comparisonColumns.find(
-        col => col.key === 'Main metric_1',
+        (col) => col.key === "Main metric_1",
       );
       expect(mainMetricConfig).toBeDefined();
-      expect(mainMetricConfig?.config).toEqual({ d3NumberFormat: '.2f' });
+      expect(mainMetricConfig?.config).toEqual({ d3NumberFormat: ".2f" });
 
       const hashMetricConfig = comparisonColumns.find(
-        col => col.key === '# metric_1',
+        (col) => col.key === "# metric_1",
       );
       expect(hashMetricConfig).toBeDefined();
-      expect(hashMetricConfig?.config).toEqual({ d3NumberFormat: '.1f' });
+      expect(hashMetricConfig?.config).toEqual({ d3NumberFormat: ".1f" });
 
       const deltaMetricConfig = comparisonColumns.find(
-        col => col.key === '△ metric_1',
+        (col) => col.key === "△ metric_1",
       );
       expect(deltaMetricConfig).toBeDefined();
-      expect(deltaMetricConfig?.config).toEqual({ d3NumberFormat: '.0f' });
+      expect(deltaMetricConfig?.config).toEqual({ d3NumberFormat: ".0f" });
 
       const percentMetricConfig = comparisonColumns.find(
-        col => col.key === '% metric_1',
+        (col) => col.key === "% metric_1",
       );
       expect(percentMetricConfig).toBeDefined();
-      expect(percentMetricConfig?.config).toEqual({ d3NumberFormat: '.3f' });
+      expect(percentMetricConfig?.config).toEqual({ d3NumberFormat: ".3f" });
     });
 
-    test('should correctly format comparison columns using getComparisonColFormatter', () => {
+    test("should correctly format comparison columns using getComparisonColFormatter", () => {
       const transformedProps = transformProps(testData.comparisonWithConfig);
       const comparisonColumns = transformedProps.columns.filter(
-        col =>
-          col.key.startsWith('Main') ||
-          col.key.startsWith('#') ||
-          col.key.startsWith('△') ||
-          col.key.startsWith('%'),
+        (col) =>
+          col.key.startsWith("Main") ||
+          col.key.startsWith("#") ||
+          col.key.startsWith("△") ||
+          col.key.startsWith("%"),
       );
 
       const formattedMainMetric = comparisonColumns
-        .find(col => col.key === 'Main metric_1')
+        .find((col) => col.key === "Main metric_1")
         ?.formatter?.(12345.678);
-      expect(formattedMainMetric).toBe('12345.68');
+      expect(formattedMainMetric).toBe("12345.68");
 
       const formattedHashMetric = comparisonColumns
-        .find(col => col.key === '# metric_1')
+        .find((col) => col.key === "# metric_1")
         ?.formatter?.(12345.678);
-      expect(formattedHashMetric).toBe('12345.7');
+      expect(formattedHashMetric).toBe("12345.7");
 
       const formattedDeltaMetric = comparisonColumns
-        .find(col => col.key === '△ metric_1')
+        .find((col) => col.key === "△ metric_1")
         ?.formatter?.(12345.678);
-      expect(formattedDeltaMetric).toBe('12346');
+      expect(formattedDeltaMetric).toBe("12346");
 
       const formattedPercentMetric = comparisonColumns
-        .find(col => col.key === '% metric_1')
+        .find((col) => col.key === "% metric_1")
         ?.formatter?.(0.123456);
-      expect(formattedPercentMetric).toBe('0.123');
+      expect(formattedPercentMetric).toBe("0.123");
     });
 
-    test('should set originalLabel for comparison columns when time_compare and comparison_type are set', () => {
+    test("should set originalLabel for comparison columns when time_compare and comparison_type are set", () => {
       const transformedProps = transformProps(testData.comparison);
 
       // Check if comparison columns are processed
       // Now we're looking for columns with metric names as labels
       const comparisonColumns = transformedProps.columns.filter(
-        col =>
-          col.originalLabel === 'metric_1' ||
-          col.originalLabel === 'metric_2' ||
-          col.label === '#' ||
-          col.label === '△' ||
-          col.label === '%',
+        (col) =>
+          col.originalLabel === "metric_1" ||
+          col.originalLabel === "metric_2" ||
+          col.label === "#" ||
+          col.label === "△" ||
+          col.label === "%",
       );
 
       expect(comparisonColumns.length).toBeGreaterThan(0);
       expect(
-        comparisonColumns.some(col => col.originalLabel === 'metric_1'),
+        comparisonColumns.some((col) => col.originalLabel === "metric_1"),
       ).toBe(true);
       expect(
-        comparisonColumns.some(col => col.originalLabel === 'metric_2'),
+        comparisonColumns.some((col) => col.originalLabel === "metric_2"),
       ).toBe(true);
-      expect(comparisonColumns.some(col => col.label === '#')).toBe(true);
-      expect(comparisonColumns.some(col => col.label === '△')).toBe(true);
-      expect(comparisonColumns.some(col => col.label === '%')).toBe(true);
+      expect(comparisonColumns.some((col) => col.label === "#")).toBe(true);
+      expect(comparisonColumns.some((col) => col.label === "△")).toBe(true);
+      expect(comparisonColumns.some((col) => col.label === "%")).toBe(true);
       // Verify originalLabel for metric_1 comparison columns
       const metric1Column = transformedProps.columns.find(
-        col =>
-          col.originalLabel === 'metric_1' &&
-          !col.key.startsWith('#') &&
-          !col.key.startsWith('△') &&
-          !col.key.startsWith('%'),
+        (col) =>
+          col.originalLabel === "metric_1" &&
+          !col.key.startsWith("#") &&
+          !col.key.startsWith("△") &&
+          !col.key.startsWith("%"),
       );
       expect(metric1Column).toBeDefined();
-      expect(metric1Column?.originalLabel).toBe('metric_1');
-      expect(metric1Column?.label).toBe('Main');
+      expect(metric1Column?.originalLabel).toBe("metric_1");
+      expect(metric1Column?.label).toBe("Main");
 
       const hashMetric1 = transformedProps.columns.find(
-        col => col.key === '# metric_1',
+        (col) => col.key === "# metric_1",
       );
       expect(hashMetric1).toBeDefined();
-      expect(hashMetric1?.originalLabel).toBe('metric_1');
+      expect(hashMetric1?.originalLabel).toBe("metric_1");
 
       const deltaMetric1 = transformedProps.columns.find(
-        col => col.key === '△ metric_1',
+        (col) => col.key === "△ metric_1",
       );
       expect(deltaMetric1).toBeDefined();
-      expect(deltaMetric1?.originalLabel).toBe('metric_1');
+      expect(deltaMetric1?.originalLabel).toBe("metric_1");
 
       const percentMetric1 = transformedProps.columns.find(
-        col => col.key === '% metric_1',
+        (col) => col.key === "% metric_1",
       );
       expect(percentMetric1).toBeDefined();
-      expect(percentMetric1?.originalLabel).toBe('metric_1');
+      expect(percentMetric1?.originalLabel).toBe("metric_1");
 
       // Verify originalLabel for metric_2 comparison columns
       const metric2Column = transformedProps.columns.find(
-        col =>
-          col.originalLabel === 'metric_2' &&
-          !col.key.startsWith('#') &&
-          !col.key.startsWith('△') &&
-          !col.key.startsWith('%'),
+        (col) =>
+          col.originalLabel === "metric_2" &&
+          !col.key.startsWith("#") &&
+          !col.key.startsWith("△") &&
+          !col.key.startsWith("%"),
       );
       expect(metric2Column).toBeDefined();
-      expect(metric2Column?.originalLabel).toBe('metric_2');
+      expect(metric2Column?.originalLabel).toBe("metric_2");
 
-      expect(metric2Column?.label).toBe('Main');
+      expect(metric2Column?.label).toBe("Main");
 
       const hashMetric2 = transformedProps.columns.find(
-        col => col.key === '# metric_2',
+        (col) => col.key === "# metric_2",
       );
       expect(hashMetric2).toBeDefined();
-      expect(hashMetric2?.originalLabel).toBe('metric_2');
+      expect(hashMetric2?.originalLabel).toBe("metric_2");
 
       const deltaMetric2 = transformedProps.columns.find(
-        col => col.key === '△ metric_2',
+        (col) => col.key === "△ metric_2",
       );
       expect(deltaMetric2).toBeDefined();
-      expect(deltaMetric2?.originalLabel).toBe('metric_2');
+      expect(deltaMetric2?.originalLabel).toBe("metric_2");
 
       const percentMetric2 = transformedProps.columns.find(
-        col => col.key === '% metric_2',
+        (col) => col.key === "% metric_2",
       );
       expect(percentMetric2).toBeDefined();
-      expect(percentMetric2?.originalLabel).toBe('metric_2');
+      expect(percentMetric2?.originalLabel).toBe("metric_2");
     });
 
-    test('should not apply time grain formatting in Raw Records mode', () => {
+    test("should not apply time grain formatting in Raw Records mode", () => {
       const rawRecordsProps = {
         ...testData.basic,
         rawFormData: {
@@ -437,22 +467,22 @@ describe('plugin-chart-table', () => {
 
       const transformedProps = transformProps(rawRecordsProps);
       const timestampColumn = transformedProps.columns.find(
-        col => col.key === '__timestamp',
+        (col) => col.key === "__timestamp",
       );
 
       expect(timestampColumn).toBeDefined();
-      const testValue = new Date('2023-01-15T10:30:45');
+      const testValue = new Date("2023-01-15T10:30:45");
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const formatted = (timestampColumn?.formatter as any)?.(testValue);
       const granularityFormatted = getTimeFormatterForGranularity(
         TimeGranularity.MONTH,
       )(testValue as number | Date | null);
       expect(formatted).not.toBe(granularityFormatted);
-      expect(typeof formatted).toBe('string');
-      expect(formatted).toContain('2023');
+      expect(typeof formatted).toBe("string");
+      expect(formatted).toContain("2023");
     });
 
-    test('should handle null/undefined timestamp values correctly', () => {
+    test("should handle null/undefined timestamp values correctly", () => {
       const rawRecordsProps = {
         ...testData.basic,
         rawFormData: {
@@ -465,50 +495,50 @@ describe('plugin-chart-table', () => {
       expect(transformedProps.isRawRecords).toBe(true);
 
       const timestampColumn = transformedProps.columns.find(
-        col => col.key === '__timestamp',
+        (col) => col.key === "__timestamp",
       );
       expect(timestampColumn).toBeDefined();
     });
 
-    describe('TableChart', () => {
-      test('render basic data', () => {
+    describe("TableChart", () => {
+      test("render basic data", () => {
         render(
           <TableChart {...transformProps(testData.basic)} sticky={false} />,
         );
 
-        const firstDataRow = screen.getAllByRole('rowgroup')[1];
-        const cells = firstDataRow.querySelectorAll('td');
+        const firstDataRow = screen.getAllByRole("rowgroup")[1];
+        const cells = firstDataRow.querySelectorAll("td");
         expect(cells).toHaveLength(12);
         // Date is rendered as ISO string format
-        expect(cells[0]).toHaveTextContent('2020-01-01T12:34:56');
-        expect(cells[1]).toHaveTextContent('Michael');
+        expect(cells[0]).toHaveTextContent("2020-01-01T12:34:56");
+        expect(cells[1]).toHaveTextContent("Michael");
         // number is not in `metrics` list, so it should output raw value
         // (in real world Superset, this would mean the column is used in GROUP BY)
-        expect(cells[2]).toHaveTextContent('2467063');
+        expect(cells[2]).toHaveTextContent("2467063");
         // should not render column with `.` in name as `undefined`
-        expect(cells[3]).toHaveTextContent('foo');
-        expect(cells[6]).toHaveTextContent('2467');
-        expect(cells[8]).toHaveTextContent('N/A');
+        expect(cells[3]).toHaveTextContent("foo");
+        expect(cells[6]).toHaveTextContent("2467");
+        expect(cells[8]).toHaveTextContent("N/A");
       });
 
-      test('render advanced data', () => {
+      test("render advanced data", () => {
         render(
           <TableChart {...transformProps(testData.advanced)} sticky={false} />,
         );
-        const secondColumnHeader = screen.getByText('Sum of Num');
+        const secondColumnHeader = screen.getByText("Sum of Num");
         expect(secondColumnHeader).toBeInTheDocument();
-        expect(secondColumnHeader?.getAttribute('data-column-name')).toEqual(
-          '1',
+        expect(secondColumnHeader?.getAttribute("data-column-name")).toEqual(
+          "1",
         );
 
-        const firstDataRow = screen.getAllByRole('rowgroup')[1];
-        const cells = firstDataRow.querySelectorAll('td');
-        expect(cells[0]).toHaveTextContent('Michael');
-        expect(cells[2]).toHaveTextContent('12.346%');
-        expect(cells[4]).toHaveTextContent('2.47k');
+        const firstDataRow = screen.getAllByRole("rowgroup")[1];
+        const cells = firstDataRow.querySelectorAll("td");
+        expect(cells[0]).toHaveTextContent("Michael");
+        expect(cells[2]).toHaveTextContent("12.346%");
+        expect(cells[4]).toHaveTextContent("2.47k");
       });
 
-      test('render advanced data with currencies', () => {
+      test("render advanced data with currencies", () => {
         render(
           ProviderWrapper({
             children: (
@@ -519,16 +549,16 @@ describe('plugin-chart-table', () => {
             ),
           }),
         );
-        const cells = document.querySelectorAll('td');
-        expect(document.querySelectorAll('th')[1]).toHaveTextContent(
-          'Sum of Num',
+        const cells = document.querySelectorAll("td");
+        expect(document.querySelectorAll("th")[1]).toHaveTextContent(
+          "Sum of Num",
         );
-        expect(cells[0]).toHaveTextContent('Michael');
-        expect(cells[2]).toHaveTextContent('12.346%');
-        expect(cells[4]).toHaveTextContent('$ 2.47k');
+        expect(cells[0]).toHaveTextContent("Michael");
+        expect(cells[2]).toHaveTextContent("12.346%");
+        expect(cells[4]).toHaveTextContent("$ 2.47k");
       });
 
-      test('render data with a bigint value in a raw record mode', () => {
+      test("render data with a bigint value in a raw record mode", () => {
         render(
           ProviderWrapper({
             children: (
@@ -540,16 +570,16 @@ describe('plugin-chart-table', () => {
             ),
           }),
         );
-        const cells = document.querySelectorAll('td');
-        expect(document.querySelectorAll('th')[0]).toHaveTextContent('name');
-        expect(document.querySelectorAll('th')[1]).toHaveTextContent('id');
-        expect(cells[0]).toHaveTextContent('Michael');
-        expect(cells[1]).toHaveTextContent('4312');
-        expect(cells[2]).toHaveTextContent('John');
-        expect(cells[3]).toHaveTextContent('1234567890123456789');
+        const cells = document.querySelectorAll("td");
+        expect(document.querySelectorAll("th")[0]).toHaveTextContent("name");
+        expect(document.querySelectorAll("th")[1]).toHaveTextContent("id");
+        expect(cells[0]).toHaveTextContent("Michael");
+        expect(cells[1]).toHaveTextContent("4312");
+        expect(cells[2]).toHaveTextContent("John");
+        expect(cells[3]).toHaveTextContent("1234567890123456789");
       });
 
-      test('render raw data', () => {
+      test("render raw data", () => {
         const props = transformProps({
           ...testData.raw,
           rawFormData: { ...testData.raw.rawFormData },
@@ -559,21 +589,21 @@ describe('plugin-chart-table', () => {
             children: <TableChart {...props} sticky={false} />,
           }),
         );
-        const cells = document.querySelectorAll('td');
-        expect(document.querySelectorAll('th')[0]).toHaveTextContent('num');
-        expect(cells[0]).toHaveTextContent('1234');
-        expect(cells[1]).toHaveTextContent('10000');
-        expect(cells[1]).toHaveTextContent('0');
+        const cells = document.querySelectorAll("td");
+        expect(document.querySelectorAll("th")[0]).toHaveTextContent("num");
+        expect(cells[0]).toHaveTextContent("1234");
+        expect(cells[1]).toHaveTextContent("10000");
+        expect(cells[1]).toHaveTextContent("0");
       });
 
-      test('render raw data with currencies', () => {
+      test("render raw data with currencies", () => {
         const props = transformProps({
           ...testData.raw,
           rawFormData: {
             ...testData.raw.rawFormData,
             column_config: {
               num: {
-                currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
+                currencyFormat: { symbol: "USD", symbolPosition: "prefix" },
               },
             },
           },
@@ -583,23 +613,23 @@ describe('plugin-chart-table', () => {
             children: <TableChart {...props} sticky={false} />,
           }),
         );
-        const cells = document.querySelectorAll('td');
+        const cells = document.querySelectorAll("td");
 
-        expect(document.querySelectorAll('th')[0]).toHaveTextContent('num');
-        expect(cells[0]).toHaveTextContent('$ 1.23k');
-        expect(cells[1]).toHaveTextContent('$ 10k');
-        expect(cells[2]).toHaveTextContent('$ 0');
+        expect(document.querySelectorAll("th")[0]).toHaveTextContent("num");
+        expect(cells[0]).toHaveTextContent("$ 1.23k");
+        expect(cells[1]).toHaveTextContent("$ 10k");
+        expect(cells[2]).toHaveTextContent("$ 0");
       });
 
-      test('render small formatted data with currencies', () => {
+      test("render small formatted data with currencies", () => {
         const props = transformProps({
           ...testData.raw,
           rawFormData: {
             ...testData.raw.rawFormData,
             column_config: {
               num: {
-                d3SmallNumberFormat: '.2r',
-                currencyFormat: { symbol: 'USD', symbolPosition: 'prefix' },
+                d3SmallNumberFormat: ".2r",
+                currencyFormat: { symbol: "USD", symbolPosition: "prefix" },
               },
             },
           },
@@ -625,22 +655,22 @@ describe('plugin-chart-table', () => {
             children: <TableChart {...props} sticky={false} />,
           }),
         );
-        const cells = document.querySelectorAll('td');
+        const cells = document.querySelectorAll("td");
 
-        expect(document.querySelectorAll('th')[0]).toHaveTextContent('num');
-        expect(cells[0]).toHaveTextContent('$ 1.23k');
-        expect(cells[1]).toHaveTextContent('$ 0.50');
-        expect(cells[2]).toHaveTextContent('$ 0.61');
+        expect(document.querySelectorAll("th")[0]).toHaveTextContent("num");
+        expect(cells[0]).toHaveTextContent("$ 1.23k");
+        expect(cells[1]).toHaveTextContent("$ 0.50");
+        expect(cells[2]).toHaveTextContent("$ 0.61");
       });
 
-      test('render empty data', () => {
+      test("render empty data", () => {
         render(
           <TableChart {...transformProps(testData.empty)} sticky={false} />,
         );
-        expect(screen.getByText('No records found')).toBeInTheDocument();
+        expect(screen.getByText("No records found")).toBeInTheDocument();
       });
 
-      test('render color with column color formatter', () => {
+      test("render color with column color formatter", () => {
         render(
           ProviderWrapper({
             children: (
@@ -651,9 +681,9 @@ describe('plugin-chart-table', () => {
                     ...testData.advanced.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'sum__num',
-                        operator: '>',
+                        colorScheme: "#ACE1C4",
+                        column: "sum__num",
+                        operator: ">",
                         targetValue: 2467,
                       },
                     ],
@@ -664,22 +694,22 @@ describe('plugin-chart-table', () => {
           }),
         );
 
-        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByTitle("2467063")).background).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
-          'rgba(0, 0, 0, 0)',
+        expect(getComputedStyle(screen.getByTitle("2467")).background).toBe(
+          "rgba(0, 0, 0, 0)",
         );
       });
 
-      test('render cell without color', () => {
+      test("render cell without color", () => {
         const dataWithEmptyCell = cloneDeep(testData.advanced.queriesData[0]);
         dataWithEmptyCell.data.push({
           __timestamp: null,
-          name: 'Noah',
+          name: "Noah",
           sum__num: null,
-          '%pct_nice': 0.643,
-          'abc.com': 'bazzinga',
+          "%pct_nice": 0.643,
+          "abc.com": "bazzinga",
         });
 
         render(
@@ -693,9 +723,9 @@ describe('plugin-chart-table', () => {
                     ...testData.advanced.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'sum__num',
-                        operator: '<',
+                        colorScheme: "#ACE1C4",
+                        column: "sum__num",
+                        operator: "<",
                         targetValue: 12342,
                       },
                     ],
@@ -705,25 +735,25 @@ describe('plugin-chart-table', () => {
             ),
           }),
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
-          'rgba(172, 225, 196, 0.81)',
+        expect(getComputedStyle(screen.getByTitle("2467")).background).toBe(
+          "rgba(172, 225, 196, 0.81)",
         );
-        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgba(0, 0, 0, 0)',
+        expect(getComputedStyle(screen.getByTitle("2467063")).background).toBe(
+          "rgba(0, 0, 0, 0)",
         );
-        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
-          'rgba(0, 0, 0, 0)',
+        expect(getComputedStyle(screen.getByText("N/A")).background).toBe(
+          "rgba(0, 0, 0, 0)",
         );
       });
 
-      test('preserves muted null styling when no formatter resolves text color', () => {
+      test("preserves muted null styling when no formatter resolves text color", () => {
         const dataWithEmptyCell = cloneDeep(testData.advanced.queriesData[0]);
         dataWithEmptyCell.data.push({
           __timestamp: null,
-          name: 'Noah',
+          name: "Noah",
           sum__num: null,
-          '%pct_nice': 0.643,
-          'abc.com': 'bazzinga',
+          "%pct_nice": 0.643,
+          "abc.com": "bazzinga",
         });
 
         render(
@@ -737,9 +767,9 @@ describe('plugin-chart-table', () => {
                     ...testData.advanced.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'sum__num',
-                        operator: '<',
+                        colorScheme: "#ACE1C4",
+                        column: "sum__num",
+                        operator: "<",
                         targetValue: 12342,
                       },
                     ],
@@ -750,60 +780,60 @@ describe('plugin-chart-table', () => {
           }),
         );
 
-        const noahRow = screen.getByText('Noah').closest('tr');
+        const noahRow = screen.getByText("Noah").closest("tr");
         expect(noahRow).not.toBeNull();
 
-        const nullCell = noahRow?.querySelector('td.dt-is-null');
+        const nullCell = noahRow?.querySelector("td.dt-is-null");
         expect(nullCell).not.toBeNull();
-        expect((nullCell as HTMLElement).style.color).toBe('');
+        expect((nullCell as HTMLElement).style.color).toBe("");
         expect(getComputedStyle(nullCell as Element).color).toBe(
-          'rgba(0, 0, 0, 0.45)',
+          "rgba(0, 0, 0, 0.45)",
         );
       });
 
-      test('should display original label in grouped headers', () => {
+      test("should display original label in grouped headers", () => {
         const props = transformProps(testData.comparison);
 
         render(<TableChart {...props} sticky={false} />);
-        const groupHeaders = screen.getAllByRole('columnheader');
+        const groupHeaders = screen.getAllByRole("columnheader");
         expect(groupHeaders.length).toBeGreaterThan(0);
         const hasMetricHeaders = groupHeaders.some(
-          header =>
+          (header) =>
             header.textContent &&
-            (header.textContent.includes('metric') ||
-              header.textContent.includes('Metric')),
+            (header.textContent.includes("metric") ||
+              header.textContent.includes("Metric")),
         );
         expect(hasMetricHeaders).toBe(true);
       });
 
-      test('should set meaningful header IDs for time-comparison columns', () => {
+      test("should set meaningful header IDs for time-comparison columns", () => {
         // Test time-comparison columns have proper IDs
         // Uses originalLabel (e.g., "metric_1") which is sanitized for CSS safety
         const props = transformProps(testData.comparison);
 
         render(<TableChart {...props} sticky={false} />);
 
-        const headers = screen.getAllByRole('columnheader');
+        const headers = screen.getAllByRole("columnheader");
 
         // All headers should have IDs
-        const headersWithIds = headers.filter(header => header.id);
+        const headersWithIds = headers.filter((header) => header.id);
         expect(headersWithIds.length).toBeGreaterThan(0);
 
         // None should have "header-undefined"
-        const undefinedHeaders = headersWithIds.filter(header =>
-          header.id.includes('undefined'),
+        const undefinedHeaders = headersWithIds.filter((header) =>
+          header.id.includes("undefined"),
         );
         expect(undefinedHeaders).toHaveLength(0);
 
         // Should have IDs based on sanitized originalLabel (e.g., "metric_1")
         const hasMetricHeaders = headersWithIds.some(
-          header =>
-            header.id.includes('metric_1') || header.id.includes('metric_2'),
+          (header) =>
+            header.id.includes("metric_1") || header.id.includes("metric_2"),
         );
         expect(hasMetricHeaders).toBe(true);
 
         // CRITICAL: Verify sanitization - no spaces or special chars in any header ID
-        headersWithIds.forEach(header => {
+        headersWithIds.forEach((header) => {
           // IDs must not contain spaces (would break CSS selectors and ARIA)
           expect(header.id).not.toMatch(/\s/);
           // IDs must not contain special chars like %, #, △
@@ -813,7 +843,7 @@ describe('plugin-chart-table', () => {
         });
       });
 
-      test('should validate ARIA references for time-comparison table cells', () => {
+      test("should validate ARIA references for time-comparison table cells", () => {
         // Test that ALL cells with aria-labelledby have valid references
         // This is critical for screen reader accessibility
         const props = transformProps(testData.comparison);
@@ -823,7 +853,7 @@ describe('plugin-chart-table', () => {
         expectValidAriaLabels(container);
       });
 
-      test('should align group headers correctly when some comparison columns are hidden (#37074)', () => {
+      test("should align group headers correctly when some comparison columns are hidden (#37074)", () => {
         // Test that group headers align correctly when columns have visible: false
         // This reproduces issue #37074 where headers became misaligned
         const props = transformProps(testData.comparisonWithHiddenColumns);
@@ -831,25 +861,25 @@ describe('plugin-chart-table', () => {
         const { container } = render(<TableChart {...props} sticky={false} />);
 
         // Get all header rows - first row contains group headers, second row contains column headers
-        const headerRows = container.querySelectorAll('thead tr');
+        const headerRows = container.querySelectorAll("thead tr");
         expect(headerRows.length).toBe(2);
 
         // Get group headers from the first row (th elements with colSpan > 1 or group headers)
         const groupHeaderRow = headerRows[0];
-        const groupHeaders = groupHeaderRow.querySelectorAll('th');
+        const groupHeaders = groupHeaderRow.querySelectorAll("th");
 
         // Extract group header text content (filter out empty placeholder headers)
         const groupHeaderTexts = Array.from(groupHeaders)
-          .map(th => th.textContent?.trim())
-          .filter(text => text && text.length > 0);
+          .map((th) => th.textContent?.trim())
+          .filter((text) => text && text.length > 0);
 
         // Verify metric_1 group header appears before metric_2
         // With hidden columns: metric_1 has 2 visible columns (△, %), metric_2 has 4 (Main, #, △, %)
         const metric1Index = groupHeaderTexts.findIndex(
-          text => text?.includes('metric_1') || text?.includes('Metric 1'),
+          (text) => text?.includes("metric_1") || text?.includes("Metric 1"),
         );
         const metric2Index = groupHeaderTexts.findIndex(
-          text => text?.includes('metric_2') || text?.includes('Metric 2'),
+          (text) => text?.includes("metric_2") || text?.includes("Metric 2"),
         );
 
         // Both headers should exist and metric_1 should come before metric_2
@@ -859,26 +889,26 @@ describe('plugin-chart-table', () => {
 
         // Verify colSpan values match the number of visible columns
         const metric1Header = Array.from(groupHeaders).find(
-          th =>
-            th.textContent?.includes('metric_1') ||
-            th.textContent?.includes('Metric 1'),
+          (th) =>
+            th.textContent?.includes("metric_1") ||
+            th.textContent?.includes("Metric 1"),
         );
         const metric2Header = Array.from(groupHeaders).find(
-          th =>
-            th.textContent?.includes('metric_2') ||
-            th.textContent?.includes('Metric 2'),
+          (th) =>
+            th.textContent?.includes("metric_2") ||
+            th.textContent?.includes("Metric 2"),
         );
 
         // metric_1 should span 2 columns (△ and % are visible, Main and # are hidden)
-        expect(metric1Header?.getAttribute('colspan')).toBe('2');
+        expect(metric1Header?.getAttribute("colspan")).toBe("2");
         // metric_2 should span 4 columns (all visible)
-        expect(metric2Header?.getAttribute('colspan')).toBe('4');
+        expect(metric2Header?.getAttribute("colspan")).toBe("4");
 
         // Verify ARIA labels are still valid after filtering
         expectValidAriaLabels(container);
       });
 
-      test('should set meaningful header IDs for regular table columns', () => {
+      test("should set meaningful header IDs for regular table columns", () => {
         // Test regular (non-time-comparison) columns have proper IDs
         // Uses fallback to column.key since originalLabel is undefined
         const props = transformProps(testData.advanced);
@@ -889,14 +919,14 @@ describe('plugin-chart-table', () => {
           }),
         );
 
-        const headers = screen.getAllByRole('columnheader');
+        const headers = screen.getAllByRole("columnheader");
 
         // Test 1: "name" column (regular string column)
-        const nameHeader = headers.find(header =>
-          header.textContent?.includes('name'),
+        const nameHeader = headers.find((header) =>
+          header.textContent?.includes("name"),
         );
         expect(nameHeader).toBeDefined();
-        expect(nameHeader?.id).toBe('header-name'); // Falls back to column.key
+        expect(nameHeader?.id).toBe("header-name"); // Falls back to column.key
 
         // Verify cells reference this header correctly
         const nameCells = container.querySelectorAll(
@@ -905,11 +935,11 @@ describe('plugin-chart-table', () => {
         expect(nameCells.length).toBeGreaterThan(0);
 
         // Test 2: "sum__num" column (metric with verbose map "Sum of Num")
-        const sumHeader = headers.find(header =>
-          header.textContent?.includes('Sum of Num'),
+        const sumHeader = headers.find((header) =>
+          header.textContent?.includes("Sum of Num"),
         );
         expect(sumHeader).toBeDefined();
-        expect(sumHeader?.id).toBe('header-sum_num'); // Falls back to column.key, consecutive underscores collapsed
+        expect(sumHeader?.id).toBe("header-sum_num"); // Falls back to column.key, consecutive underscores collapsed
 
         // Verify cells reference this header correctly
         const sumCells = container.querySelectorAll(
@@ -918,17 +948,17 @@ describe('plugin-chart-table', () => {
         expect(sumCells.length).toBeGreaterThan(0);
 
         // Test 3: Verify NO headers have "undefined" in their ID
-        const undefinedHeaders = headers.filter(header =>
-          header.id?.includes('undefined'),
+        const undefinedHeaders = headers.filter((header) =>
+          header.id?.includes("undefined"),
         );
         expect(undefinedHeaders).toHaveLength(0);
 
         // Test 4: Verify ALL headers have proper IDs (no missing IDs)
-        const headersWithIds = headers.filter(header => header.id);
+        const headersWithIds = headers.filter((header) => header.id);
         expect(headersWithIds.length).toBe(headers.length);
 
         // Test 5: Verify ALL header IDs are properly sanitized
-        headersWithIds.forEach(header => {
+        headersWithIds.forEach((header) => {
           // IDs must not contain spaces
           expect(header.id).not.toMatch(/\s/);
           // IDs must not contain special chars like % (from %pct_nice column)
@@ -938,7 +968,7 @@ describe('plugin-chart-table', () => {
         });
       });
 
-      test('should validate ARIA references for regular table cells', () => {
+      test("should validate ARIA references for regular table cells", () => {
         // Test that ALL cells with aria-labelledby have valid references
         // This is critical for screen reader accessibility
         const props = transformProps(testData.advanced);
@@ -952,7 +982,7 @@ describe('plugin-chart-table', () => {
         expectValidAriaLabels(container);
       });
 
-      test('render cell bars properly, and only when it is toggled on in both regular and percent metrics', () => {
+      test("render cell bars properly, and only when it is toggled on in both regular and percent metrics", () => {
         const props = transformProps({
           ...testData.raw,
           rawFormData: { ...testData.raw.rawFormData },
@@ -965,9 +995,9 @@ describe('plugin-chart-table', () => {
             children: <TableChart {...props} sticky={false} />,
           }),
         );
-        let cells = document.querySelectorAll('div.cell-bar');
-        cells.forEach(cell => {
-          expect(cell).toHaveClass('positive');
+        let cells = document.querySelectorAll("div.cell-bar");
+        cells.forEach((cell) => {
+          expect(cell).toHaveClass("positive");
         });
         props.columns[0].isMetric = false;
         props.columns[0].isPercentMetric = true;
@@ -977,9 +1007,9 @@ describe('plugin-chart-table', () => {
             children: <TableChart {...props} sticky={false} />,
           }),
         );
-        cells = document.querySelectorAll('div.cell-bar');
-        cells.forEach(cell => {
-          expect(cell).toHaveClass('positive');
+        cells = document.querySelectorAll("div.cell-bar");
+        cells.forEach((cell) => {
+          expect(cell).toHaveClass("positive");
         });
 
         props.showCellBars = false;
@@ -989,7 +1019,7 @@ describe('plugin-chart-table', () => {
             children: <TableChart {...props} sticky={false} />,
           }),
         );
-        cells = document.querySelectorAll('td');
+        cells = document.querySelectorAll("td");
 
         props.columns[0].isPercentMetric = false;
         props.columns[0].isMetric = true;
@@ -999,16 +1029,16 @@ describe('plugin-chart-table', () => {
             children: <TableChart {...props} sticky={false} />,
           }),
         );
-        cells = document.querySelectorAll('td');
+        cells = document.querySelectorAll("td");
       });
 
-      test('render cell bars even when column contains NULL values', () => {
+      test("render cell bars even when column contains NULL values", () => {
         const props = transformProps({
           ...testData.raw,
           queriesData: [
             {
               ...testData.raw.queriesData[0],
-              colnames: ['category', 'value1', 'value2', 'value3', 'value4'],
+              colnames: ["category", "value1", "value2", "value3", "value4"],
               coltypes: [
                 GenericDataType.String,
                 GenericDataType.Numeric,
@@ -1018,21 +1048,21 @@ describe('plugin-chart-table', () => {
               ],
               data: [
                 {
-                  category: 'Category A',
+                  category: "Category A",
                   value1: 10,
                   value2: 20,
                   value3: 30,
                   value4: null,
                 },
                 {
-                  category: 'Category B',
+                  category: "Category B",
                   value1: 15,
                   value2: 25,
                   value3: 35,
                   value4: 100,
                 },
                 {
-                  category: 'Category C',
+                  category: "Category C",
                   value1: 18,
                   value2: 28,
                   value3: 38,
@@ -1044,7 +1074,7 @@ describe('plugin-chart-table', () => {
           rawFormData: {
             ...testData.raw.rawFormData,
             show_cell_bars: true,
-            metrics: ['value1', 'value2', 'value3', 'value4'],
+            metrics: ["value1", "value2", "value3", "value4"],
           },
         });
 
@@ -1055,7 +1085,7 @@ describe('plugin-chart-table', () => {
         );
 
         // Get all cell bars - should exist for both columns with and without NULL values
-        const cellBars = container.querySelectorAll('div.cell-bar');
+        const cellBars = container.querySelectorAll("div.cell-bar");
 
         // Should have cell bars in all numeric columns, even those with NULL values
         // value1, value2, value3 all have 3 values, value4 has 1 non-NULL value
@@ -1063,17 +1093,17 @@ describe('plugin-chart-table', () => {
         expect(cellBars.length).toBeGreaterThan(0);
 
         // Specifically check that value4 column (which has NULLs) still renders bars for non-NULL cells
-        const rows = container.querySelectorAll('tbody tr');
+        const rows = container.querySelectorAll("tbody tr");
         expect(rows.length).toBe(3);
 
         // Row 2 should have a cell bar in value4 column (value: 100)
-        const row2Cells = rows[1].querySelectorAll('td');
+        const row2Cells = rows[1].querySelectorAll("td");
         const value4Cell = row2Cells[4]; // 5th column (0-indexed)
-        const value4Bar = value4Cell.querySelector('div.cell-bar');
+        const value4Bar = value4Cell.querySelector("div.cell-bar");
         expect(value4Bar).toBeTruthy();
       });
 
-      test('render color with string column color formatter(operator begins with)', () => {
+      test("render color with string column color formatter(operator begins with)", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1084,10 +1114,10 @@ describe('plugin-chart-table', () => {
                     ...testData.advanced.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'name',
-                        operator: 'begins with',
-                        targetValue: 'J',
+                        colorScheme: "#ACE1C4",
+                        column: "name",
+                        operator: "begins with",
+                        targetValue: "J",
                       },
                     ],
                   },
@@ -1097,15 +1127,15 @@ describe('plugin-chart-table', () => {
           }),
         );
 
-        expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByText("Joe")).background).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          'rgba(0, 0, 0, 0)',
+        expect(getComputedStyle(screen.getByText("Michael")).background).toBe(
+          "rgba(0, 0, 0, 0)",
         );
       });
 
-      test('render color with string column color formatter (operator ends with)', () => {
+      test("render color with string column color formatter (operator ends with)", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1116,10 +1146,10 @@ describe('plugin-chart-table', () => {
                     ...testData.advanced.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'name',
-                        operator: 'ends with',
-                        targetValue: 'ia',
+                        colorScheme: "#ACE1C4",
+                        column: "name",
+                        operator: "ends with",
+                        targetValue: "ia",
                       },
                     ],
                   },
@@ -1128,15 +1158,15 @@ describe('plugin-chart-table', () => {
             ),
           }),
         );
-        expect(getComputedStyle(screen.getByText('Maria')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByText("Maria")).background).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgba(0, 0, 0, 0)',
+        expect(getComputedStyle(screen.getByText("Joe")).background).toBe(
+          "rgba(0, 0, 0, 0)",
         );
       });
 
-      test('render color with string column color formatter (operator containing)', () => {
+      test("render color with string column color formatter (operator containing)", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1147,10 +1177,10 @@ describe('plugin-chart-table', () => {
                     ...testData.advanced.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'name',
-                        operator: 'containing',
-                        targetValue: 'c',
+                        colorScheme: "#ACE1C4",
+                        column: "name",
+                        operator: "containing",
+                        targetValue: "c",
                       },
                     ],
                   },
@@ -1159,15 +1189,15 @@ describe('plugin-chart-table', () => {
             ),
           }),
         );
-        expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByText("Michael")).background).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgba(0, 0, 0, 0)',
+        expect(getComputedStyle(screen.getByText("Joe")).background).toBe(
+          "rgba(0, 0, 0, 0)",
         );
       });
 
-      test('render color with string column color formatter (operator not containing)', () => {
+      test("render color with string column color formatter (operator not containing)", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1178,10 +1208,10 @@ describe('plugin-chart-table', () => {
                     ...testData.advanced.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'name',
-                        operator: 'not containing',
-                        targetValue: 'i',
+                        colorScheme: "#ACE1C4",
+                        column: "name",
+                        operator: "not containing",
+                        targetValue: "i",
                       },
                     ],
                   },
@@ -1190,15 +1220,15 @@ describe('plugin-chart-table', () => {
             ),
           }),
         );
-        expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByText("Joe")).background).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          'rgba(0, 0, 0, 0)',
+        expect(getComputedStyle(screen.getByText("Michael")).background).toBe(
+          "rgba(0, 0, 0, 0)",
         );
       });
 
-      test('render color with string column color formatter (operator =)', () => {
+      test("render color with string column color formatter (operator =)", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1209,10 +1239,10 @@ describe('plugin-chart-table', () => {
                     ...testData.advanced.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'name',
-                        operator: '=',
-                        targetValue: 'Joe',
+                        colorScheme: "#ACE1C4",
+                        column: "name",
+                        operator: "=",
+                        targetValue: "Joe",
                       },
                     ],
                   },
@@ -1221,15 +1251,15 @@ describe('plugin-chart-table', () => {
             ),
           }),
         );
-        expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByText("Joe")).background).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          'rgba(0, 0, 0, 0)',
+        expect(getComputedStyle(screen.getByText("Michael")).background).toBe(
+          "rgba(0, 0, 0, 0)",
         );
       });
 
-      test('render color with string column color formatter (operator None)', () => {
+      test("render color with string column color formatter (operator None)", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1240,9 +1270,9 @@ describe('plugin-chart-table', () => {
                     ...testData.advanced.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'name',
-                        operator: 'None',
+                        colorScheme: "#ACE1C4",
+                        column: "name",
+                        operator: "None",
                       },
                     ],
                   },
@@ -1251,18 +1281,18 @@ describe('plugin-chart-table', () => {
             ),
           }),
         );
-        expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByText("Joe")).background).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByText("Michael")).background).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByText('Maria')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByText("Maria")).background).toBe(
+          "rgb(172, 225, 196)",
         );
       });
 
-      test('render color with boolean column color formatter (operator is true)', () => {
+      test("render color with boolean column color formatter (operator is true)", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1273,10 +1303,10 @@ describe('plugin-chart-table', () => {
                     ...testData.nameAndBoolean.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'is_adult',
-                        operator: 'is true',
-                        targetValue: '',
+                        colorScheme: "#ACE1C4",
+                        column: "is_adult",
+                        operator: "is true",
+                        targetValue: "",
                       },
                     ],
                   },
@@ -1285,15 +1315,15 @@ describe('plugin-chart-table', () => {
             ),
           }),
         );
-        expect(getComputedStyle(screen.getByText('true')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByText("true")).background).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByText('false')).background).toBe(
-          'rgba(0, 0, 0, 0)',
+        expect(getComputedStyle(screen.getByText("false")).background).toBe(
+          "rgba(0, 0, 0, 0)",
         );
       });
 
-      test('render color with boolean column color formatter (operator is false)', () => {
+      test("render color with boolean column color formatter (operator is false)", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1304,10 +1334,10 @@ describe('plugin-chart-table', () => {
                     ...testData.nameAndBoolean.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'is_adult',
-                        operator: 'is false',
-                        targetValue: '',
+                        colorScheme: "#ACE1C4",
+                        column: "is_adult",
+                        operator: "is false",
+                        targetValue: "",
                       },
                     ],
                   },
@@ -1316,15 +1346,15 @@ describe('plugin-chart-table', () => {
             ),
           }),
         );
-        expect(getComputedStyle(screen.getByText('false')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByText("false")).background).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByText('true')).background).toBe(
-          'rgba(0, 0, 0, 0)',
+        expect(getComputedStyle(screen.getByText("true")).background).toBe(
+          "rgba(0, 0, 0, 0)",
         );
       });
 
-      test('render color with boolean column color formatter (operator is null)', () => {
+      test("render color with boolean column color formatter (operator is null)", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1335,10 +1365,10 @@ describe('plugin-chart-table', () => {
                     ...testData.nameAndBoolean.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'is_adult',
-                        operator: 'is null',
-                        targetValue: '',
+                        colorScheme: "#ACE1C4",
+                        column: "is_adult",
+                        operator: "is null",
+                        targetValue: "",
                       },
                     ],
                   },
@@ -1347,18 +1377,18 @@ describe('plugin-chart-table', () => {
             ),
           }),
         );
-        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByText("N/A")).background).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByText('true')).background).toBe(
-          'rgba(0, 0, 0, 0)',
+        expect(getComputedStyle(screen.getByText("true")).background).toBe(
+          "rgba(0, 0, 0, 0)",
         );
-        expect(getComputedStyle(screen.getByText('false')).background).toBe(
-          'rgba(0, 0, 0, 0)',
+        expect(getComputedStyle(screen.getByText("false")).background).toBe(
+          "rgba(0, 0, 0, 0)",
         );
       });
 
-      test('render color with boolean column color formatter (operator is not null)', () => {
+      test("render color with boolean column color formatter (operator is not null)", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1369,10 +1399,10 @@ describe('plugin-chart-table', () => {
                     ...testData.nameAndBoolean.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'is_adult',
-                        operator: 'is not null',
-                        targetValue: '',
+                        colorScheme: "#ACE1C4",
+                        column: "is_adult",
+                        operator: "is not null",
+                        targetValue: "",
                       },
                     ],
                   },
@@ -1381,20 +1411,20 @@ describe('plugin-chart-table', () => {
             ),
           }),
         );
-        const trueElements = screen.getAllByText('true');
-        const falseElements = screen.getAllByText('false');
+        const trueElements = screen.getAllByText("true");
+        const falseElements = screen.getAllByText("false");
         expect(getComputedStyle(trueElements[0]).background).toBe(
-          'rgb(172, 225, 196)',
+          "rgb(172, 225, 196)",
         );
         expect(getComputedStyle(falseElements[0]).background).toBe(
-          'rgb(172, 225, 196)',
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
-          'rgba(0, 0, 0, 0)',
+        expect(getComputedStyle(screen.getByText("N/A")).background).toBe(
+          "rgba(0, 0, 0, 0)",
         );
       });
 
-      test('render color with column color formatter to entire row', () => {
+      test("render color with column color formatter to entire row", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1405,9 +1435,9 @@ describe('plugin-chart-table', () => {
                     ...testData.advanced.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'sum__num',
-                        operator: '>',
+                        colorScheme: "#ACE1C4",
+                        column: "sum__num",
+                        operator: ">",
                         targetValue: 2467,
                         columnFormatting: ObjectFormattingEnum.ENTIRE_ROW,
                       },
@@ -1419,18 +1449,18 @@ describe('plugin-chart-table', () => {
           }),
         );
 
-        expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByText("Michael")).background).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByTitle("2467063")).background).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByTitle('0.123456')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByTitle("0.123456")).background).toBe(
+          "rgb(172, 225, 196)",
         );
       });
 
-      test('display text color using column color formatter', () => {
+      test("display text color using column color formatter", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1441,9 +1471,9 @@ describe('plugin-chart-table', () => {
                     ...testData.advanced.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'sum__num',
-                        operator: '>',
+                        colorScheme: "#ACE1C4",
+                        column: "sum__num",
+                        operator: ">",
                         targetValue: 2467,
                         objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
                       },
@@ -1455,13 +1485,13 @@ describe('plugin-chart-table', () => {
           }),
         );
 
-        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByTitle("2467063")).color).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect((screen.getByTitle('2467') as HTMLElement).style.color).toBe('');
+        expect((screen.getByTitle("2467") as HTMLElement).style.color).toBe("");
       });
 
-      test('display text color using column color formatter for entire row', () => {
+      test("display text color using column color formatter for entire row", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1472,9 +1502,9 @@ describe('plugin-chart-table', () => {
                     ...testData.advanced.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'sum__num',
-                        operator: '>',
+                        colorScheme: "#ACE1C4",
+                        column: "sum__num",
+                        operator: ">",
                         targetValue: 2467,
                         columnFormatting: ObjectFormattingEnum.ENTIRE_ROW,
                         objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
@@ -1487,18 +1517,18 @@ describe('plugin-chart-table', () => {
           }),
         );
 
-        expect(getComputedStyle(screen.getByText('Michael')).color).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByText("Michael")).color).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByTitle("2467063")).color).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByTitle('0.123456')).color).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByTitle("0.123456")).color).toBe(
+          "rgb(172, 225, 196)",
         );
       });
 
-      test('derive readable text color from dark background formatting', () => {
+      test("derive readable text color from dark background formatting", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1509,9 +1539,9 @@ describe('plugin-chart-table', () => {
                     ...testData.advanced.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#111111',
-                        column: 'sum__num',
-                        operator: '>',
+                        colorScheme: "#111111",
+                        column: "sum__num",
+                        operator: ">",
                         targetValue: 2467,
                         useGradient: false,
                       },
@@ -1523,15 +1553,15 @@ describe('plugin-chart-table', () => {
           }),
         );
 
-        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgb(17, 17, 17)',
+        expect(getComputedStyle(screen.getByTitle("2467063")).background).toBe(
+          "rgb(17, 17, 17)",
         );
-        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
-          'rgb(255, 255, 255)',
+        expect(getComputedStyle(screen.getByTitle("2467063")).color).toBe(
+          "rgb(255, 255, 255)",
         );
       });
 
-      test('keep explicit text color over adaptive contrast', () => {
+      test("keep explicit text color over adaptive contrast", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1542,16 +1572,16 @@ describe('plugin-chart-table', () => {
                     ...testData.advanced.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#111111',
-                        column: 'sum__num',
-                        operator: '>',
+                        colorScheme: "#111111",
+                        column: "sum__num",
+                        operator: ">",
                         targetValue: 2467,
                         useGradient: false,
                       },
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'sum__num',
-                        operator: '>',
+                        colorScheme: "#ACE1C4",
+                        column: "sum__num",
+                        operator: ">",
                         targetValue: 2467,
                         objectFormatting: ObjectFormattingEnum.TEXT_COLOR,
                       },
@@ -1563,15 +1593,15 @@ describe('plugin-chart-table', () => {
           }),
         );
 
-        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgb(17, 17, 17)',
+        expect(getComputedStyle(screen.getByTitle("2467063")).background).toBe(
+          "rgb(17, 17, 17)",
         );
-        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByTitle("2467063")).color).toBe(
+          "rgb(172, 225, 196)",
         );
       });
 
-      test('support legacy toTextColor formatters', () => {
+      test("support legacy toTextColor formatters", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1582,16 +1612,16 @@ describe('plugin-chart-table', () => {
                     ...testData.advanced.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#111111',
-                        column: 'sum__num',
-                        operator: '>',
+                        colorScheme: "#111111",
+                        column: "sum__num",
+                        operator: ">",
                         targetValue: 2467,
                         useGradient: false,
                       },
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'sum__num',
-                        operator: '>',
+                        colorScheme: "#ACE1C4",
+                        column: "sum__num",
+                        operator: ">",
                         targetValue: 2467,
                         toTextColor: true,
                       },
@@ -1603,19 +1633,19 @@ describe('plugin-chart-table', () => {
           }),
         );
 
-        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgb(17, 17, 17)',
+        expect(getComputedStyle(screen.getByTitle("2467063")).background).toBe(
+          "rgb(17, 17, 17)",
         );
-        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByTitle("2467063")).color).toBe(
+          "rgb(172, 225, 196)",
         );
       });
 
-      test('use striped row surface when deriving adaptive text color', () => {
+      test("use striped row surface when deriving adaptive text color", () => {
         const backgroundColor = Array.from(
           { length: 0xff },
-          (_, index) => `#000000${(index + 1).toString(16).padStart(2, '0')}`,
-        ).find(candidate => {
+          (_, index) => `#000000${(index + 1).toString(16).padStart(2, "0")}`,
+        ).find((candidate) => {
           const baseColor = getTextColorForBackground(
             { backgroundColor: candidate },
             supersetTheme.colorBgBase,
@@ -1640,8 +1670,8 @@ describe('plugin-chart-table', () => {
                     conditional_formatting: [
                       {
                         colorScheme: backgroundColor,
-                        column: 'sum__num',
-                        operator: '>',
+                        column: "sum__num",
+                        operator: ">",
                         targetValue: 2000,
                         useGradient: false,
                       },
@@ -1653,13 +1683,13 @@ describe('plugin-chart-table', () => {
           }),
         );
 
-        expect(getComputedStyle(screen.getByTitle('2467063')).color).toBe(
+        expect(getComputedStyle(screen.getByTitle("2467063")).color).toBe(
           getTextColorForBackground(
             { backgroundColor },
             supersetTheme.colorBgLayout,
           ),
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).color).toBe(
+        expect(getComputedStyle(screen.getByTitle("2467")).color).toBe(
           getTextColorForBackground(
             { backgroundColor },
             supersetTheme.colorBgBase,
@@ -1667,7 +1697,7 @@ describe('plugin-chart-table', () => {
         );
       });
 
-      test('render color with useGradient false returns solid color', () => {
+      test("render color with useGradient false returns solid color", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1678,9 +1708,9 @@ describe('plugin-chart-table', () => {
                     ...testData.advanced.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'sum__num',
-                        operator: '>',
+                        colorScheme: "#ACE1C4",
+                        column: "sum__num",
+                        operator: ">",
                         targetValue: 2467,
                         useGradient: false,
                       },
@@ -1694,15 +1724,15 @@ describe('plugin-chart-table', () => {
 
         // When useGradient is false, should return solid color (no opacity variation)
         // The color should be the same for all matching values
-        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByTitle("2467063")).background).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
-          'rgba(0, 0, 0, 0)',
+        expect(getComputedStyle(screen.getByTitle("2467")).background).toBe(
+          "rgba(0, 0, 0, 0)",
         );
       });
 
-      test('render color with useGradient true returns gradient color', () => {
+      test("render color with useGradient true returns gradient color", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1713,9 +1743,9 @@ describe('plugin-chart-table', () => {
                     ...testData.advanced.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'sum__num',
-                        operator: '>',
+                        colorScheme: "#ACE1C4",
+                        column: "sum__num",
+                        operator: ">",
                         targetValue: 2467,
                         useGradient: true,
                       },
@@ -1728,15 +1758,15 @@ describe('plugin-chart-table', () => {
         );
 
         // When useGradient is true, should return gradient color with opacity
-        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByTitle("2467063")).background).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
-          'rgba(0, 0, 0, 0)',
+        expect(getComputedStyle(screen.getByTitle("2467")).background).toBe(
+          "rgba(0, 0, 0, 0)",
         );
       });
 
-      test('render color with useGradient undefined defaults to gradient (backward compatibility)', () => {
+      test("render color with useGradient undefined defaults to gradient (backward compatibility)", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1747,9 +1777,9 @@ describe('plugin-chart-table', () => {
                     ...testData.advanced.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'sum__num',
-                        operator: '>',
+                        colorScheme: "#ACE1C4",
+                        column: "sum__num",
+                        operator: ">",
                         targetValue: 2467,
                       },
                     ],
@@ -1761,15 +1791,15 @@ describe('plugin-chart-table', () => {
         );
 
         // When useGradient is undefined, should default to gradient for backward compatibility
-        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByTitle("2467063")).background).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
-          'rgba(0, 0, 0, 0)',
+        expect(getComputedStyle(screen.getByTitle("2467")).background).toBe(
+          "rgba(0, 0, 0, 0)",
         );
       });
 
-      test('render color with useGradient false and None operator returns solid color', () => {
+      test("render color with useGradient false and None operator returns solid color", () => {
         render(
           ProviderWrapper({
             children: (
@@ -1780,9 +1810,9 @@ describe('plugin-chart-table', () => {
                     ...testData.advanced.rawFormData,
                     conditional_formatting: [
                       {
-                        colorScheme: '#ACE1C4',
-                        column: 'sum__num',
-                        operator: 'None',
+                        colorScheme: "#ACE1C4",
+                        column: "sum__num",
+                        operator: "None",
                         useGradient: false,
                       },
                     ],
@@ -1794,15 +1824,15 @@ describe('plugin-chart-table', () => {
         );
 
         // When useGradient is false with None operator, all values should have solid color
-        expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByTitle("2467063")).background).toBe(
+          "rgb(172, 225, 196)",
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
-          'rgb(172, 225, 196)',
+        expect(getComputedStyle(screen.getByTitle("2467")).background).toBe(
+          "rgb(172, 225, 196)",
         );
       });
 
-      test('clicking a cell emits cross-filter, clicking again clears it', () => {
+      test("clicking a cell emits cross-filter, clicking again clears it", () => {
         const setDataMask = jest.fn();
         const props = transformProps({
           ...testData.basic,
@@ -1821,7 +1851,7 @@ describe('plugin-chart-table', () => {
         );
 
         // Click a string cell to apply cross-filter
-        const nameCell = screen.getByText('Michael');
+        const nameCell = screen.getByText("Michael");
         fireEvent.click(nameCell);
 
         // Find the cross-filter call (not the ownState call)
@@ -1832,14 +1862,14 @@ describe('plugin-chart-table', () => {
         const firstCallArg = crossFilterCall![0];
         // Should set the filter
         expect(firstCallArg.filterState.filters).toEqual({
-          name: ['Michael'],
+          name: ["Michael"],
         });
         expect(firstCallArg.extraFormData.filters).toEqual(
           expect.arrayContaining([
             expect.objectContaining({
-              col: 'name',
-              op: 'IN',
-              val: ['Michael'],
+              col: "name",
+              op: "IN",
+              val: ["Michael"],
             }),
           ]),
         );
@@ -1852,19 +1882,19 @@ describe('plugin-chart-table', () => {
               {...props}
               emitCrossFilters
               setDataMask={setDataMask}
-              filters={{ name: ['Michael'] }}
+              filters={{ name: ["Michael"] }}
               sticky={false}
             />
           </ProviderWrapper>,
         );
 
         // The cell should now have the active filter class
-        const activeCells = document.querySelectorAll('.dt-is-active-filter');
+        const activeCells = document.querySelectorAll(".dt-is-active-filter");
         expect(activeCells.length).toBeGreaterThan(0);
 
         // Click same cell again to clear cross-filter
         setDataMask.mockClear();
-        const sameCellAgain = screen.getByText('Michael');
+        const sameCellAgain = screen.getByText("Michael");
         fireEvent.click(sameCellAgain);
 
         // Find the cross-filter clearing call
@@ -1878,7 +1908,7 @@ describe('plugin-chart-table', () => {
         expect(secondCallArg.extraFormData.filters).toEqual([]);
       });
 
-      test('clicking a temporal numeric-string cell emits numeric cross-filter values', () => {
+      test("clicking a temporal numeric-string cell emits numeric cross-filter values", () => {
         const setDataMask = jest.fn<void, [DataMask]>();
         const timestamp = 1777248000000;
         const props = transformProps({
@@ -1894,8 +1924,8 @@ describe('plugin-chart-table', () => {
               data={[{ install_date: String(timestamp) }]}
               columns={[
                 {
-                  key: 'install_date',
-                  label: 'install_date',
+                  key: "install_date",
+                  label: "install_date",
                   dataType: GenericDataType.Temporal,
                   isNumeric: false,
                   isMetric: false,
@@ -1914,19 +1944,19 @@ describe('plugin-chart-table', () => {
         fireEvent.click(screen.getByText(String(timestamp)));
 
         const crossFilterCall = setDataMask.mock.calls.find(
-          call => call[0].filterState?.filters,
+          (call) => call[0].filterState?.filters,
         );
         expect(crossFilterCall).toBeDefined();
         expect(crossFilterCall?.[0].extraFormData?.filters).toEqual([
           {
-            col: 'install_date',
-            op: 'IN',
+            col: "install_date",
+            op: "IN",
             val: [timestamp],
           },
         ]);
       });
 
-      test('cross-filter toggle works with DateWithFormatter values', () => {
+      test("cross-filter toggle works with DateWithFormatter values", () => {
         const setDataMask = jest.fn();
         const props = transformProps({
           ...testData.basic,
@@ -1951,7 +1981,7 @@ describe('plugin-chart-table', () => {
         );
 
         // Click a timestamp cell - find it by text content
-        const timestampCell = screen.getByText('2020-01-01 12:34:56');
+        const timestampCell = screen.getByText("2020-01-01 12:34:56");
         fireEvent.click(timestampCell);
 
         const crossFilterCall = setDataMask.mock.calls.find(
@@ -1976,12 +2006,12 @@ describe('plugin-chart-table', () => {
         );
 
         // The timestamp cell should be active
-        const activeCells = document.querySelectorAll('.dt-is-active-filter');
+        const activeCells = document.querySelectorAll(".dt-is-active-filter");
         expect(activeCells.length).toBeGreaterThan(0);
 
         // Click the same timestamp cell again to clear
         setDataMask.mockClear();
-        const sameCell = screen.getByText('2020-01-01 12:34:56');
+        const sameCell = screen.getByText("2020-01-01 12:34:56");
         fireEvent.click(sameCell);
 
         const clearCall = setDataMask.mock.calls.find(
@@ -1993,7 +2023,7 @@ describe('plugin-chart-table', () => {
         expect(clearCall![0].extraFormData.filters).toEqual([]);
       });
 
-      test('cross-filter toggle clears when DateWithFormatter references differ', () => {
+      test("cross-filter toggle clears when DateWithFormatter references differ", () => {
         // Regression test: when memoizeOne cache misses between renders,
         // new DateWithFormatter instances are created with different references.
         // isActiveFilterValue must compare by time value, not reference.
@@ -2008,7 +2038,7 @@ describe('plugin-chart-table', () => {
         expect(timestampVal).toBeInstanceOf(DateWithFormatter);
 
         // Build filters with a DIFFERENT DateWithFormatter instance (same time value)
-        const filterKey = '__timestamp';
+        const filterKey = "__timestamp";
         const differentRef = new DateWithFormatter(timestampVal.input, {
           formatter: timestampVal.formatter,
         });
@@ -2028,12 +2058,12 @@ describe('plugin-chart-table', () => {
         );
 
         // The cell should show active filter despite different reference
-        const activeCells = container.querySelectorAll('.dt-is-active-filter');
+        const activeCells = container.querySelectorAll(".dt-is-active-filter");
         expect(activeCells.length).toBeGreaterThan(0);
 
         // Clicking should CLEAR the filter, not re-apply it
         setDataMask.mockClear();
-        const timestampCell = screen.getByText('2020-01-01 12:34:56');
+        const timestampCell = screen.getByText("2020-01-01 12:34:56");
         fireEvent.click(timestampCell);
 
         const clearCall = setDataMask.mock.calls.find(
@@ -2044,7 +2074,7 @@ describe('plugin-chart-table', () => {
         expect(clearCall![0].extraFormData.filters).toEqual([]);
       });
 
-      test('page size selector arrow stays above resize handles (#39305)', () => {
+      test("page size selector arrow stays above resize handles (#39305)", () => {
         // .resize-handle elements in dashboard ResizableContainer sit at
         // z-index: 10 — the page size arrow must stack above them or it
         // gets covered on dashboard charts.
@@ -2057,19 +2087,19 @@ describe('plugin-chart-table', () => {
         );
 
         const arrow = container.querySelector(
-          '.dt-select-page-size .ant-select .ant-select-suffix',
+          ".dt-select-page-size .ant-select .ant-select-suffix",
         );
         expect(arrow).not.toBeNull();
-        expect(getComputedStyle(arrow as HTMLElement).zIndex).toBe('11');
+        expect(getComputedStyle(arrow as HTMLElement).zIndex).toBe("11");
       });
 
-      test('recalculates totals when user filters data', async () => {
+      test("recalculates totals when user filters data", async () => {
         const formDataWithTotals = {
           ...testData.basic.formData,
           show_totals: true,
           include_search: true,
           server_pagination: false,
-          metrics: ['sum__num'],
+          metrics: ["sum__num"],
         };
 
         const { data } = testData.basic.queriesData[0];
@@ -2078,7 +2108,7 @@ describe('plugin-chart-table', () => {
           0,
         );
         const totalAfterFilter =
-          data.find(item => item.name === 'Michael')?.sum__num || 0;
+          data.find((item) => item.name === "Michael")?.sum__num || 0;
 
         const props = transformProps({
           ...testData.basic,
@@ -2092,14 +2122,14 @@ describe('plugin-chart-table', () => {
           </ProviderWrapper>,
         );
 
-        const table = screen.getByRole('table');
+        const table = screen.getByRole("table");
         const totalCellBefore = within(table).getByText(
           String(totalBeforeFilter),
         );
         expect(totalCellBefore).toBeInTheDocument();
 
-        const searchInput = screen.getByRole('textbox');
-        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+        const searchInput = screen.getByRole("textbox");
+        fireEvent.change(searchInput, { target: { value: "Michael" } });
 
         await waitFor(() => {
           const totalCellAfter = within(table).getByText(
@@ -2109,7 +2139,7 @@ describe('plugin-chart-table', () => {
         });
       });
 
-      test('does not crash when a comparison-color-formatter array has no entry for a rendered row', () => {
+      test("does not crash when a comparison-color-formatter array has no entry for a rendered row", () => {
         // Regression test: the per-cell comparison-color lookups in the Cell
         // renderer (`basicColorFormatters`/`basicColorColumnFormatters`,
         // indexed by `row.index`) must stay safe even if those arrays ever
@@ -2125,7 +2155,7 @@ describe('plugin-chart-table', () => {
           rawFormData: {
             ...testData.comparison.rawFormData,
             conditional_formatting: [
-              { column: 'Main metric_1', colorScheme: ColorSchemeEnum.Green },
+              { column: "Main metric_1", colorScheme: ColorSchemeEnum.Green },
             ],
           },
         };
@@ -2159,10 +2189,10 @@ describe('plugin-chart-table', () => {
         // background color and arrow: the "Main metric_1" cell for the
         // first row (value 100) renders before the derived "△ metric_1"
         // cell that happens to share the same value and aria label.
-        const [styledCell] = screen.getAllByTitle('100');
-        expect(styledCell).toHaveTextContent('↑100');
+        const [styledCell] = screen.getAllByTitle("100");
+        expect(styledCell).toHaveTextContent("↑100");
         expect(getComputedStyle(styledCell).background).toContain(
-          'rgba(0, 150, 0, 0.2)',
+          "rgba(0, 150, 0, 0.2)",
         );
 
         // the row missing a formatter entry falls back to the row-level
@@ -2171,21 +2201,21 @@ describe('plugin-chart-table', () => {
         // would have flipped to the "decrease" color) whenever the
         // column-specific lookup for this row was undefined.
         const arrowCell = screen
-          .getAllByTitle('110')
-          .find(cell => cell.querySelector('span'));
-        expect(arrowCell).toHaveTextContent('↑110');
+          .getAllByTitle("110")
+          .find((cell) => cell.querySelector("span"));
+        expect(arrowCell).toHaveTextContent("↑110");
         expect(getComputedStyle(arrowCell!).background).toContain(
-          'rgba(0, 150, 0, 0.2)',
+          "rgba(0, 150, 0, 0.2)",
         );
         // the fallback arrow itself must also keep the "increase" color --
         // asserting only the cell background would still pass if the arrow's
         // own color had regressed to the "decrease" color.
-        expect(arrowCell!.querySelector('span')).toHaveStyle({
+        expect(arrowCell!.querySelector("span")).toHaveStyle({
           color: supersetTheme.colorSuccess,
         });
       });
 
-      test('preserves client-side search text across temporal table rerenders', async () => {
+      test("preserves client-side search text across temporal table rerenders", async () => {
         const formDataWithSearch = {
           ...testData.basic.formData,
           include_search: true,
@@ -2208,23 +2238,23 @@ describe('plugin-chart-table', () => {
 
         const { rerender } = render(renderChart());
 
-        const searchInput = screen.getByRole('textbox');
-        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+        const searchInput = screen.getByRole("textbox");
+        fireEvent.change(searchInput, { target: { value: "Michael" } });
 
         await waitFor(() => {
-          expect(searchInput).toHaveValue('Michael');
-          expect(screen.getByText('Michael')).toBeInTheDocument();
+          expect(searchInput).toHaveValue("Michael");
+          expect(screen.getByText("Michael")).toBeInTheDocument();
         });
 
         rerender(renderChart());
 
         await waitFor(() => {
-          expect(screen.getByRole('textbox')).toHaveValue('Michael');
-          expect(screen.getByText('Michael')).toBeInTheDocument();
+          expect(screen.getByRole("textbox")).toHaveValue("Michael");
+          expect(screen.getByText("Michael")).toBeInTheDocument();
         });
       });
 
-      test('preserves client-side search text when rerendered with empty data', async () => {
+      test("preserves client-side search text when rerendered with empty data", async () => {
         const formDataWithSearch = {
           ...testData.basic.formData,
           include_search: true,
@@ -2253,25 +2283,25 @@ describe('plugin-chart-table', () => {
 
         const { rerender } = render(renderChart());
 
-        const searchInput = screen.getByRole('textbox');
-        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+        const searchInput = screen.getByRole("textbox");
+        fireEvent.change(searchInput, { target: { value: "Michael" } });
 
         await waitFor(() => {
-          expect(searchInput).toHaveValue('Michael');
-          expect(screen.getByText('Michael')).toBeInTheDocument();
+          expect(searchInput).toHaveValue("Michael");
+          expect(screen.getByText("Michael")).toBeInTheDocument();
         });
 
         rerender(renderChart([]));
 
         await waitFor(() => {
-          expect(screen.getByRole('textbox')).toHaveValue('Michael');
-          expect(screen.getByLabelText('Search records')).toHaveValue(
-            'Michael',
+          expect(screen.getByRole("textbox")).toHaveValue("Michael");
+          expect(screen.getByLabelText("Search records")).toHaveValue(
+            "Michael",
           );
         });
       });
 
-      test('preserves client-side search text for function accessor columns', async () => {
+      test("preserves client-side search text for function accessor columns", async () => {
         type DataRow = {
           city: string;
           firstName: string;
@@ -2283,7 +2313,7 @@ describe('plugin-chart-table', () => {
               <th data-column-name={column.id}>First name</th>
             ),
             Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
-            id: 'firstName',
+            id: "firstName",
             accessor: ((row: DataRow) => row.firstName) as never,
           },
           {
@@ -2291,14 +2321,14 @@ describe('plugin-chart-table', () => {
               <th data-column-name={column.id}>City</th>
             ),
             Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
-            id: 'city',
+            id: "city",
             accessor: ((row: DataRow) => row.city) as never,
           },
         ];
 
         const data: DataRow[] = [
-          { firstName: 'Michael', city: 'Paris' },
-          { firstName: 'Jordan', city: 'London' },
+          { firstName: "Michael", city: "Paris" },
+          { firstName: "Jordan", city: "London" },
         ];
 
         const renderDataTable = () => (
@@ -2321,23 +2351,23 @@ describe('plugin-chart-table', () => {
 
         const { rerender } = render(renderDataTable());
 
-        const searchInput = screen.getByRole('textbox');
-        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+        const searchInput = screen.getByRole("textbox");
+        fireEvent.change(searchInput, { target: { value: "Michael" } });
 
         await waitFor(() => {
-          expect(searchInput).toHaveValue('Michael');
-          expect(screen.getByText('Michael')).toBeInTheDocument();
+          expect(searchInput).toHaveValue("Michael");
+          expect(screen.getByText("Michael")).toBeInTheDocument();
         });
 
         rerender(renderDataTable());
 
         await waitFor(() => {
-          expect(screen.getByRole('textbox')).toHaveValue('Michael');
-          expect(screen.getByText('Michael')).toBeInTheDocument();
+          expect(screen.getByRole("textbox")).toHaveValue("Michael");
+          expect(screen.getByText("Michael")).toBeInTheDocument();
         });
       });
 
-      test('preserves client-side search text for string accessor columns without ids', async () => {
+      test("preserves client-side search text for string accessor columns without ids", async () => {
         type DataRow = {
           city: string;
           firstName: string;
@@ -2349,20 +2379,20 @@ describe('plugin-chart-table', () => {
               <th data-column-name={column.id}>First name</th>
             ),
             Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
-            accessor: 'firstName',
+            accessor: "firstName",
           },
           {
             Header: ({ column }: HeaderProps<DataRow>) => (
               <th data-column-name={column.id}>City</th>
             ),
             Cell: ({ value }: CellProps<DataRow>) => <td>{value}</td>,
-            accessor: 'city',
+            accessor: "city",
           },
         ];
 
         const data: DataRow[] = [
-          { firstName: 'Michael', city: 'Paris' },
-          { firstName: 'Jordan', city: 'London' },
+          { firstName: "Michael", city: "Paris" },
+          { firstName: "Jordan", city: "London" },
         ];
 
         const renderDataTable = () => (
@@ -2385,24 +2415,24 @@ describe('plugin-chart-table', () => {
 
         const { rerender } = render(renderDataTable());
 
-        const searchInput = screen.getByRole('textbox');
-        fireEvent.change(searchInput, { target: { value: 'Michael' } });
+        const searchInput = screen.getByRole("textbox");
+        fireEvent.change(searchInput, { target: { value: "Michael" } });
 
         await waitFor(() => {
-          expect(searchInput).toHaveValue('Michael');
-          expect(screen.getByText('Michael')).toBeInTheDocument();
+          expect(searchInput).toHaveValue("Michael");
+          expect(screen.getByText("Michael")).toBeInTheDocument();
         });
 
         rerender(renderDataTable());
 
         await waitFor(() => {
-          expect(screen.getByRole('textbox')).toHaveValue('Michael');
-          expect(screen.getByText('Michael')).toBeInTheDocument();
+          expect(screen.getByRole("textbox")).toHaveValue("Michael");
+          expect(screen.getByText("Michael")).toBeInTheDocument();
         });
       });
     });
 
-    test('should not reset pagination when a cell is clicked and data re-renders (#42010)', async () => {
+    test("should not reset pagination when a cell is clicked and data re-renders (#42010)", async () => {
       const setDataMask = jest.fn();
       const data30 = Array.from({ length: 30 }, (_, i) => ({
         name: `User ${i + 1}`,
@@ -2415,13 +2445,13 @@ describe('plugin-chart-table', () => {
         rawFormData: {
           ...testData.basic.rawFormData,
           page_length: 10,
-          metrics: ['sum__num'],
-          groupby: ['name'],
+          metrics: ["sum__num"],
+          groupby: ["name"],
         },
         queriesData: [
           {
             ...testData.basic.queriesData[0],
-            colnames: ['name', 'sum__num'],
+            colnames: ["name", "sum__num"],
             coltypes: [GenericDataType.String, GenericDataType.Numeric],
             data: data30,
           },
@@ -2441,8 +2471,8 @@ describe('plugin-chart-table', () => {
         </ProviderWrapper>,
       );
 
-      expect(screen.getByText('User 1')).toBeInTheDocument();
-      expect(screen.queryByText('User 11')).not.toBeInTheDocument();
+      expect(screen.getByText("User 1")).toBeInTheDocument();
+      expect(screen.queryByText("User 11")).not.toBeInTheDocument();
 
       // The pagination bar is styled `visibility: hidden` until sticky
       // height is measured, which jsdom never reports. Accessible-name
@@ -2454,10 +2484,10 @@ describe('plugin-chart-table', () => {
       fireEvent.click(page2Link);
 
       await waitFor(() => {
-        expect(screen.getByText('User 11')).toBeInTheDocument();
+        expect(screen.getByText("User 11")).toBeInTheDocument();
       });
 
-      fireEvent.click(screen.getByText('User 11'));
+      fireEvent.click(screen.getByText("User 11"));
       expect(setDataMask).toHaveBeenCalled();
 
       const filteredProps = transformProps({
@@ -2465,13 +2495,13 @@ describe('plugin-chart-table', () => {
         rawFormData: {
           ...testData.basic.rawFormData,
           page_length: 10,
-          metrics: ['sum__num'],
-          groupby: ['name'],
+          metrics: ["sum__num"],
+          groupby: ["name"],
         },
         queriesData: [
           {
             ...testData.basic.queriesData[0],
-            colnames: ['name', 'sum__num'],
+            colnames: ["name", "sum__num"],
             coltypes: [GenericDataType.String, GenericDataType.Numeric],
             data: filteredData,
           },
@@ -2492,15 +2522,15 @@ describe('plugin-chart-table', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText('User 11')).toBeInTheDocument();
-        expect(screen.queryByText('User 1')).not.toBeInTheDocument();
+        expect(screen.getByText("User 11")).toBeInTheDocument();
+        expect(screen.queryByText("User 1")).not.toBeInTheDocument();
       });
 
-      const activePage = container.querySelector('li.active button')!;
-      expect(activePage).toHaveTextContent('2');
+      const activePage = container.querySelector("li.active button")!;
+      expect(activePage).toHaveTextContent("2");
     });
 
-    test('should build columnLabelToNameMap for adhoc columns with custom labels', () => {
+    test("should build columnLabelToNameMap for adhoc columns with custom labels", () => {
       const result = transformProps({
         ...testData.basic,
         rawFormData: {
@@ -2508,51 +2538,51 @@ describe('plugin-chart-table', () => {
           query_mode: QueryMode.Aggregate,
           groupby: [
             {
-              sqlExpression: 'name',
-              label: 'Name_Renamed',
-              expressionType: 'SQL',
+              sqlExpression: "name",
+              label: "Name_Renamed",
+              expressionType: "SQL",
             },
           ],
-          metrics: ['sum__num'],
+          metrics: ["sum__num"],
         },
         emitCrossFilters: true,
         queriesData: [
           {
             ...testData.basic.queriesData[0],
-            colnames: ['Name_Renamed', 'sum__num'],
+            colnames: ["Name_Renamed", "sum__num"],
             coltypes: [GenericDataType.String, GenericDataType.Numeric],
-            data: [{ Name_Renamed: 'Michael', sum__num: 2467063 }],
+            data: [{ Name_Renamed: "Michael", sum__num: 2467063 }],
           },
         ],
       });
       expect(result.columnLabelToNameMap).toEqual({
-        Name_Renamed: 'name',
+        Name_Renamed: "name",
       });
     });
 
-    test('should not populate columnLabelToNameMap for physical columns', () => {
+    test("should not populate columnLabelToNameMap for physical columns", () => {
       const result = transformProps({
         ...testData.basic,
         rawFormData: {
           ...testData.basic.rawFormData,
           query_mode: QueryMode.Aggregate,
-          groupby: ['name'],
-          metrics: ['sum__num'],
+          groupby: ["name"],
+          metrics: ["sum__num"],
         },
         emitCrossFilters: true,
         queriesData: [
           {
             ...testData.basic.queriesData[0],
-            colnames: ['name', 'sum__num'],
+            colnames: ["name", "sum__num"],
             coltypes: [GenericDataType.String, GenericDataType.Numeric],
-            data: [{ name: 'Michael', sum__num: 2467063 }],
+            data: [{ name: "Michael", sum__num: 2467063 }],
           },
         ],
       });
       expect(result.columnLabelToNameMap).toEqual({});
     });
 
-    test('should not populate columnLabelToNameMap when adhoc label matches sqlExpression', () => {
+    test("should not populate columnLabelToNameMap when adhoc label matches sqlExpression", () => {
       const result = transformProps({
         ...testData.basic,
         rawFormData: {
@@ -2560,27 +2590,27 @@ describe('plugin-chart-table', () => {
           query_mode: QueryMode.Aggregate,
           groupby: [
             {
-              sqlExpression: 'name',
-              label: 'name',
-              expressionType: 'SQL',
+              sqlExpression: "name",
+              label: "name",
+              expressionType: "SQL",
             },
           ],
-          metrics: ['sum__num'],
+          metrics: ["sum__num"],
         },
         emitCrossFilters: true,
         queriesData: [
           {
             ...testData.basic.queriesData[0],
-            colnames: ['name', 'sum__num'],
+            colnames: ["name", "sum__num"],
             coltypes: [GenericDataType.String, GenericDataType.Numeric],
-            data: [{ name: 'Michael', sum__num: 2467063 }],
+            data: [{ name: "Michael", sum__num: 2467063 }],
           },
         ],
       });
       expect(result.columnLabelToNameMap).toEqual({});
     });
 
-    test('cross-filter on adhoc column with custom label emits original column name', () => {
+    test("cross-filter on adhoc column with custom label emits original column name", () => {
       const setDataMask = jest.fn();
       const baseProps = transformProps({
         ...testData.basic,
@@ -2589,12 +2619,12 @@ describe('plugin-chart-table', () => {
           query_mode: QueryMode.Aggregate,
           groupby: [
             {
-              sqlExpression: 'name',
-              label: 'Name_Renamed',
-              expressionType: 'SQL',
+              sqlExpression: "name",
+              label: "Name_Renamed",
+              expressionType: "SQL",
             },
           ],
-          metrics: ['sum__num'],
+          metrics: ["sum__num"],
         },
         filterState: { filters: {} },
         ownState: {},
@@ -2607,11 +2637,11 @@ describe('plugin-chart-table', () => {
         queriesData: [
           {
             ...testData.basic.queriesData[0],
-            colnames: ['Name_Renamed', 'sum__num'],
+            colnames: ["Name_Renamed", "sum__num"],
             coltypes: [GenericDataType.String, GenericDataType.Numeric],
             data: [
-              { Name_Renamed: 'Michael', sum__num: 2467063 },
-              { Name_Renamed: 'Joe', sum__num: 2467 },
+              { Name_Renamed: "Michael", sum__num: 2467063 },
+              { Name_Renamed: "Joe", sum__num: 2467 },
             ],
           },
         ],
@@ -2624,10 +2654,10 @@ describe('plugin-chart-table', () => {
       );
 
       // Verify the table rendered with data
-      expect(screen.getByText('Michael')).toBeInTheDocument();
+      expect(screen.getByText("Michael")).toBeInTheDocument();
 
       // Find the td cell containing "Michael" and click it
-      const cell = screen.getByText('Michael').closest('td')!;
+      const cell = screen.getByText("Michael").closest("td")!;
       fireEvent.click(cell);
 
       expect(setDataMask).toHaveBeenCalled();
@@ -2636,8 +2666,8 @@ describe('plugin-chart-table', () => {
       const { filters } = lastCall.extraFormData;
       expect(filters).toHaveLength(1);
       // Should emit the original column name, not the label
-      expect(filters[0].col).toBe('name');
-      expect(filters[0].val).toEqual(['Michael']);
+      expect(filters[0].col).toBe("name");
+      expect(filters[0].val).toEqual(["Michael"]);
     });
   });
 
@@ -2652,7 +2682,7 @@ describe('plugin-chart-table', () => {
       queriesData: [
         {
           ...testData.raw.queriesData[0],
-          colnames: ['num'],
+          colnames: ["num"],
           coltypes: [GenericDataType.Numeric],
           data: [{ num: 1 }, { num: 2 }],
         },
@@ -2663,7 +2693,7 @@ describe('plugin-chart-table', () => {
         children: <TableChart {...props} sticky={false} />,
       }),
     );
-    expect(screen.queryByText('Search by')).not.toBeInTheDocument();
+    expect(screen.queryByText("Search by")).not.toBeInTheDocument();
   });
 
   test('renders "Search by" if include_search is true and there are search options (server pagination enabled)', () => {
@@ -2677,9 +2707,9 @@ describe('plugin-chart-table', () => {
       queriesData: [
         {
           ...testData.raw.queriesData[0],
-          colnames: ['name'],
+          colnames: ["name"],
           coltypes: [GenericDataType.String],
-          data: [{ name: 'Michael' }, { name: 'John' }],
+          data: [{ name: "Michael" }, { name: "John" }],
         },
       ],
     });
@@ -2688,11 +2718,258 @@ describe('plugin-chart-table', () => {
         children: <TableChart {...props} sticky={false} />,
       }),
     );
-    expect(screen.queryByText('Search by')).toBeInTheDocument();
+    expect(screen.queryByText("Search by")).toBeInTheDocument();
   });
 
+  test.each([
+    {
+      eventOrder: "change before compositionend",
+      commitComposition: (searchInput: HTMLElement) => {
+        fireEvent.change(searchInput, { target: { value: "你好" } });
+        fireEvent.compositionEnd(searchInput);
+      },
+    },
+    {
+      eventOrder: "compositionend carrying the committed value",
+      commitComposition: (searchInput: HTMLElement) => {
+        fireEvent.compositionEnd(searchInput, {
+          target: { value: "你好" },
+        });
+      },
+    },
+  ])(
+    "defers server-side search until IME composition ends ($eventOrder)",
+    async ({ commitComposition }) => {
+      jest.useFakeTimers();
+      try {
+        const setDataMask = jest.fn();
+        const props = transformProps({
+          ...testData.raw,
+          rawFormData: {
+            ...testData.raw.rawFormData,
+            server_pagination: true,
+            include_search: true,
+          },
+          hooks: { setDataMask },
+          queriesData: [
+            {
+              ...testData.raw.queriesData[0],
+              colnames: ["name"],
+              coltypes: [GenericDataType.String],
+              data: [{ name: "Michael" }, { name: "John" }],
+            },
+          ],
+        });
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart {...props} setDataMask={setDataMask} sticky={false} />
+            ),
+          }),
+        );
+
+        const searchInput = screen.getByRole("textbox");
+        const searchCalls = () =>
+          setDataMask.mock.calls.filter(([mask]) =>
+            Object.prototype.hasOwnProperty.call(
+              mask?.ownState ?? {},
+              "searchText",
+            ),
+          );
+
+        fireEvent.compositionStart(searchInput);
+        fireEvent.change(searchInput, { target: { value: "nihao" } });
+
+        await act(async () => {
+          jest.advanceTimersByTime(300);
+        });
+        await act(async () => {
+          jest.advanceTimersByTime(900);
+        });
+        expect(searchInput).toHaveValue("nihao");
+        expect(searchCalls()).toHaveLength(0);
+
+        commitComposition(searchInput);
+
+        await act(async () => {
+          jest.advanceTimersByTime(300);
+        });
+        await act(async () => {
+          jest.advanceTimersByTime(900);
+        });
+
+        const calls = searchCalls();
+        expect(calls).toHaveLength(1);
+        expect(calls[0][0].ownState.searchText).toBe("你好");
+      } finally {
+        jest.useRealTimers();
+      }
+    },
+  );
+
+  test("restores server-side search after composition is interrupted by blur", async () => {
+    jest.useFakeTimers();
+    try {
+      const setDataMask = jest.fn();
+      const props = transformProps({
+        ...testData.raw,
+        rawFormData: {
+          ...testData.raw.rawFormData,
+          server_pagination: true,
+          include_search: true,
+        },
+        hooks: { setDataMask },
+        queriesData: [
+          {
+            ...testData.raw.queriesData[0],
+            colnames: ["name"],
+            coltypes: [GenericDataType.String],
+            data: [{ name: "Michael" }, { name: "John" }],
+          },
+        ],
+      });
+      render(
+        ProviderWrapper({
+          children: (
+            <TableChart {...props} setDataMask={setDataMask} sticky={false} />
+          ),
+        }),
+      );
+
+      const searchInput = screen.getByRole("textbox");
+      const searchCalls = () =>
+        setDataMask.mock.calls.filter(([mask]) =>
+          Object.prototype.hasOwnProperty.call(
+            mask?.ownState ?? {},
+            "searchText",
+          ),
+        );
+
+      fireEvent.compositionStart(searchInput);
+      fireEvent.change(searchInput, { target: { value: "nihao" } });
+
+      await act(async () => {
+        jest.advanceTimersByTime(300);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(900);
+      });
+      expect(searchInput).toHaveValue("nihao");
+      expect(searchCalls()).toHaveLength(0);
+
+      fireEvent.blur(searchInput);
+      expect(searchCalls()).toHaveLength(0);
+
+      fireEvent.change(searchInput, { target: { value: "hello" } });
+
+      await act(async () => {
+        jest.advanceTimersByTime(300);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(900);
+      });
+
+      const calls = searchCalls();
+      expect(calls).toHaveLength(1);
+      expect(calls[0][0].ownState.searchText).toBe("hello");
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test.each([
+    {
+      eventOrder: "compositionend before blur",
+      pauseBeforeLeaving: 50,
+      leaveInput: (searchInput: HTMLElement) => {
+        fireEvent.compositionEnd(searchInput, {
+          target: { value: "nihao" },
+        });
+        fireEvent.blur(searchInput);
+      },
+    },
+    {
+      eventOrder: "blur without compositionend",
+      pauseBeforeLeaving: 50,
+      leaveInput: (searchInput: HTMLElement) => {
+        fireEvent.blur(searchInput);
+      },
+    },
+    {
+      eventOrder: "blur without compositionend after the debounce fired",
+      pauseBeforeLeaving: 300,
+      leaveInput: (searchInput: HTMLElement) => {
+        fireEvent.blur(searchInput);
+      },
+    },
+  ])(
+    "searches the input value after blur mid-composition ($eventOrder)",
+    async ({ pauseBeforeLeaving, leaveInput }) => {
+      jest.useFakeTimers();
+      try {
+        const setDataMask = jest.fn();
+        const props = transformProps({
+          ...testData.raw,
+          rawFormData: {
+            ...testData.raw.rawFormData,
+            server_pagination: true,
+            include_search: true,
+          },
+          hooks: { setDataMask },
+          queriesData: [
+            {
+              ...testData.raw.queriesData[0],
+              colnames: ["name"],
+              coltypes: [GenericDataType.String],
+              data: [{ name: "Michael" }, { name: "John" }],
+            },
+          ],
+        });
+        render(
+          ProviderWrapper({
+            children: (
+              <TableChart {...props} setDataMask={setDataMask} sticky={false} />
+            ),
+          }),
+        );
+
+        const searchInput = screen.getByRole("textbox");
+        const searchCalls = () =>
+          setDataMask.mock.calls.filter(([mask]) =>
+            Object.prototype.hasOwnProperty.call(
+              mask?.ownState ?? {},
+              "searchText",
+            ),
+          );
+
+        fireEvent.compositionStart(searchInput);
+        fireEvent.change(searchInput, { target: { value: "nihao" } });
+
+        await act(async () => {
+          jest.advanceTimersByTime(pauseBeforeLeaving);
+        });
+        leaveInput(searchInput);
+        expect(searchCalls()).toHaveLength(0);
+
+        await act(async () => {
+          jest.advanceTimersByTime(300);
+        });
+        await act(async () => {
+          jest.advanceTimersByTime(900);
+        });
+
+        expect(searchInput).toHaveValue("nihao");
+        const calls = searchCalls();
+        expect(calls).toHaveLength(1);
+        expect(calls[0][0].ownState.searchText).toBe("nihao");
+      } finally {
+        jest.useRealTimers();
+      }
+    },
+  );
+
   test(
-    'should read the totals row from the correct query when percent metrics ' +
+    "should read the totals row from the correct query when percent metrics " +
       'use the "all records" calculation mode',
     () => {
       // When `percent_metric_calculation` is `all_records`, buildQuery adds an
@@ -2704,36 +2981,36 @@ describe('plugin-chart-table', () => {
         rawFormData: {
           ...testData.basic.rawFormData,
           query_mode: QueryMode.Aggregate,
-          metrics: ['sum__num'],
-          percent_metrics: ['count'],
-          percent_metric_calculation: 'all_records',
+          metrics: ["sum__num"],
+          percent_metrics: ["count"],
+          percent_metric_calculation: "all_records",
           show_totals: true,
           column_config: {
-            sum__num: { d3NumberFormat: '.0%' },
+            sum__num: { d3NumberFormat: ".0%" },
           },
         },
         queriesData: [
           {
             ...testData.basic.queriesData[0],
-            colnames: ['name', 'sum__num', '%count'],
+            colnames: ["name", "sum__num", "%count"],
             coltypes: [
               GenericDataType.String,
               GenericDataType.Numeric,
               GenericDataType.Numeric,
             ],
-            data: [{ name: 'Michael', sum__num: 0.1, '%count': 0.05 }],
+            data: [{ name: "Michael", sum__num: 0.1, "%count": 0.05 }],
           },
           // extra "all records" query used only to compute percent metrics
           {
             ...testData.basic.queriesData[0],
-            colnames: ['count'],
+            colnames: ["count"],
             coltypes: [GenericDataType.Numeric],
             data: [{ count: 999 }],
           },
           // actual totals query
           {
             ...testData.basic.queriesData[0],
-            colnames: ['sum__num'],
+            colnames: ["sum__num"],
             coltypes: [GenericDataType.Numeric],
             data: [{ sum__num: 0.27 }],
           },
@@ -2750,7 +3027,7 @@ describe('plugin-chart-table', () => {
 /**
  * DRILL-TO-DETAIL FIX VERIFICATION (#23847)
  */
-describe('Drill-to-Detail Temporal Range Logic', () => {
+describe("Drill-to-Detail Temporal Range Logic", () => {
   const renderChartAndOpenContextMenu = (
     timeGrain?: TimeGranularity,
     timestampValue?: string | number | null,
@@ -2772,50 +3049,50 @@ describe('Drill-to-Detail Temporal Range Logic', () => {
     });
     render(<TableChart {...props} sticky={false} />);
 
-    const tbody = screen.getAllByRole('rowgroup')[1];
-    fireEvent.contextMenu(tbody.querySelectorAll('td')[0]);
+    const tbody = screen.getAllByRole("rowgroup")[1];
+    fireEvent.contextMenu(tbody.querySelectorAll("td")[0]);
 
     const [, , { drillToDetail }] = onContextMenu.mock.calls[0];
-    return drillToDetail.find((f: any) => f.col === '__timestamp');
+    return drillToDetail.find((f: any) => f.col === "__timestamp");
   };
 
-  test('uses TEMPORAL_RANGE for monthly grain', () => {
+  test("uses TEMPORAL_RANGE for monthly grain", () => {
     const filter = renderChartAndOpenContextMenu(TimeGranularity.MONTH);
 
-    expect(filter.op).toBe('TEMPORAL_RANGE');
+    expect(filter.op).toBe("TEMPORAL_RANGE");
     expect(filter.val).toContain(
-      '2020-01-01T12:34:56.000Z : 2020-02-01T00:00:00.000Z',
+      "2020-01-01T12:34:56.000Z : 2020-02-01T00:00:00.000Z",
     );
   });
 
-  test('uses the full bucket for week ending sunday grain', () => {
+  test("uses the full bucket for week ending sunday grain", () => {
     const filter = renderChartAndOpenContextMenu(
       TimeGranularity.WEEK_ENDING_SUNDAY,
-      '2020-01-05T00:00:00',
+      "2020-01-05T00:00:00",
     );
 
-    expect(filter.op).toBe('TEMPORAL_RANGE');
+    expect(filter.op).toBe("TEMPORAL_RANGE");
     expect(filter.val).toBe(
-      '2019-12-30T00:00:00.000Z : 2020-01-06T00:00:00.000Z',
+      "2019-12-30T00:00:00.000Z : 2020-01-06T00:00:00.000Z",
     );
   });
 
-  test('uses the full bucket for week ending saturday grain', () => {
+  test("uses the full bucket for week ending saturday grain", () => {
     const filter = renderChartAndOpenContextMenu(
       TimeGranularity.WEEK_ENDING_SATURDAY,
-      '2020-01-04T00:00:00',
+      "2020-01-04T00:00:00",
     );
 
-    expect(filter.op).toBe('TEMPORAL_RANGE');
+    expect(filter.op).toBe("TEMPORAL_RANGE");
     expect(filter.val).toBe(
-      '2019-12-29T00:00:00.000Z : 2020-01-05T00:00:00.000Z',
+      "2019-12-29T00:00:00.000Z : 2020-01-05T00:00:00.000Z",
     );
   });
 
-  test('correctly handles NULL values by emitting IS NULL instead of 1970 timestamp', () => {
+  test("correctly handles NULL values by emitting IS NULL instead of 1970 timestamp", () => {
     const filter = renderChartAndOpenContextMenu(TimeGranularity.MONTH, null);
 
-    expect(filter.op).toBe('IS NULL');
+    expect(filter.op).toBe("IS NULL");
     expect(filter.val).toBeNull();
   });
 });
@@ -2823,21 +3100,21 @@ describe('Drill-to-Detail Temporal Range Logic', () => {
 // Numeric values with String dataType (e.g. backend mis-reports type for computed columns)
 // get 'alphanumeric' sort, which treats raw numbers as non-strings and produces unstable order.
 // They should sort numerically regardless of display format.
-test('sorts numeric-backed percentage column numerically when dataType is String', async () => {
+test("sorts numeric-backed percentage column numerically when dataType is String", async () => {
   const props = transformProps({
     ...testData.raw,
     rawFormData: {
       ...testData.raw.rawFormData,
       order_desc: false,
-      metrics: ['pct'],
+      metrics: ["pct"],
       column_config: {
-        pct: { d3NumberFormat: '.1%' },
+        pct: { d3NumberFormat: ".1%" },
       },
     },
     queriesData: [
       {
         ...testData.raw.queriesData[0],
-        colnames: ['pct'],
+        colnames: ["pct"],
         coltypes: [GenericDataType.String],
         data: [
           { pct: 0.4 },
@@ -2856,29 +3133,29 @@ test('sorts numeric-backed percentage column numerically when dataType is String
     }),
   );
 
-  const header = screen.getByText('pct');
+  const header = screen.getByText("pct");
   fireEvent.click(header);
 
-  const cells = document.querySelectorAll('tbody td');
-  const values = Array.from(cells).map(td => td.textContent);
-  expect(values).toEqual(['5.6%', '6.6%', '40.0%', '41.0%', '50.6%']);
+  const cells = document.querySelectorAll("tbody td");
+  const values = Array.from(cells).map((td) => td.textContent);
+  expect(values).toEqual(["5.6%", "6.6%", "40.0%", "41.0%", "50.6%"]);
 });
 
-test('sorts genuinely string columns alphanumerically', () => {
+test("sorts genuinely string columns alphanumerically", () => {
   const props = transformProps({
     ...testData.raw,
     rawFormData: {
       ...testData.raw.rawFormData,
       order_desc: false,
       metrics: [],
-      columns: ['label'],
+      columns: ["label"],
     },
     queriesData: [
       {
         ...testData.raw.queriesData[0],
-        colnames: ['label'],
+        colnames: ["label"],
         coltypes: [GenericDataType.String],
-        data: [{ label: 'banana' }, { label: 'apple' }, { label: 'cherry' }],
+        data: [{ label: "banana" }, { label: "apple" }, { label: "cherry" }],
       },
     ],
   });
@@ -2889,21 +3166,21 @@ test('sorts genuinely string columns alphanumerically', () => {
     }),
   );
 
-  const header = screen.getByText('label');
+  const header = screen.getByText("label");
   fireEvent.click(header);
 
-  const cells = document.querySelectorAll('tbody td');
-  const values = Array.from(cells).map(td => td.textContent);
-  expect(values).toEqual(['apple', 'banana', 'cherry']);
+  const cells = document.querySelectorAll("tbody td");
+  const values = Array.from(cells).map((td) => td.textContent);
+  expect(values).toEqual(["apple", "banana", "cherry"]);
 });
 
-test('TableChart should NOT emit cross-filter when clicking a cell in a not-filterable column', () => {
+test("TableChart should NOT emit cross-filter when clicking a cell in a not-filterable column", () => {
   const setDataMask = jest.fn();
   const props = transformProps({
     ...testData.basic,
     datasource: {
       ...testData.basic.datasource,
-      columns: [{ column_name: 'name', filterable: false } as any],
+      columns: [{ column_name: "name", filterable: false } as any],
     },
     hooks: { setDataMask },
     emitCrossFilters: true,
@@ -2919,7 +3196,7 @@ test('TableChart should NOT emit cross-filter when clicking a cell in a not-filt
     </ProviderWrapper>,
   );
 
-  fireEvent.click(screen.getByText('Michael'));
+  fireEvent.click(screen.getByText("Michael"));
 
   const crossFilterCall = setDataMask.mock.calls.find(
     (call: any[]) => call[0]?.filterState?.filters,

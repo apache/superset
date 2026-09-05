@@ -761,6 +761,8 @@ const transformProps = (
       ),
       passedData,
       theme,
+      undefined,
+      serverPagination,
     ) ?? defaultColorFormatters;
 
   const basicColorColumnFormatters = getBasicColorFormatterForColumn(

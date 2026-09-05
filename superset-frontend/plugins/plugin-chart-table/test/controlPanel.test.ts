@@ -16,8 +16,9 @@ import {
   ControlPanelsContainerProps,
   ControlState,
   CustomControlItem,
-} from '@superset-ui/chart-controls';
-import config from '../src/controlPanel';
+} from "@superset-ui/chart-controls";
+import { QueryMode } from "@superset-ui/core";
+import config from "../src/controlPanel";
 
 type VisibilityFn = (
   props: ControlPanelsContainerProps,
@@ -27,14 +28,14 @@ type VisibilityFn = (
 function isControlWithVisibility(
   controlItem: unknown,
 ): controlItem is CustomControlItem & {
-  config: Required<CustomControlItem['config']> & { visibility: VisibilityFn };
+  config: Required<CustomControlItem["config"]> & { visibility: VisibilityFn };
 } {
   return (
-    typeof controlItem === 'object' &&
+    typeof controlItem === "object" &&
     controlItem !== null &&
-    'name' in controlItem &&
-    'config' in controlItem &&
-    typeof (controlItem as CustomControlItem).config?.visibility === 'function'
+    "name" in controlItem &&
+    "config" in controlItem &&
+    typeof (controlItem as CustomControlItem).config?.visibility === "function"
   );
 }
 
@@ -43,9 +44,9 @@ function getVisibility(
   controlName: string,
 ): VisibilityFn {
   const item = (panel.controlPanelSections || [])
-    .flatMap(section => section?.controlSetRows || [])
+    .flatMap((section) => section?.controlSetRows || [])
     .flat()
-    .find(c => isControlWithVisibility(c) && c.name === controlName);
+    .find((c) => isControlWithVisibility(c) && c.name === controlName);
 
   if (!isControlWithVisibility(item)) {
     throw new Error(`Control "${controlName}" with visibility not found`);
@@ -56,8 +57,8 @@ function getVisibility(
 function mkProps(
   groupbyValue: string[],
   options = [
-    { column_name: 'ORDERDATE', is_dttm: true },
-    { column_name: 'some_other_col', is_dttm: false },
+    { column_name: "ORDERDATE", is_dttm: true },
+    { column_name: "some_other_col", is_dttm: false },
   ],
 ): ControlPanelsContainerProps {
   return {
@@ -67,24 +68,34 @@ function mkProps(
   } as unknown as ControlPanelsContainerProps;
 }
 
-test('header_groups is always present without a visibility gate', () => {
+function withControls(
+  props: ControlPanelsContainerProps,
+  controls: Record<string, unknown>,
+): ControlPanelsContainerProps {
+  return {
+    ...props,
+    controls: { ...props.controls, ...controls },
+  } as unknown as ControlPanelsContainerProps;
+}
+
+test("header_groups is always present without a visibility gate", () => {
   const item = (config.controlPanelSections || [])
-    .flatMap(section => section?.controlSetRows || [])
+    .flatMap((section) => section?.controlSetRows || [])
     .flat()
     .find(
-      control =>
-        typeof control === 'object' &&
+      (control) =>
+        typeof control === "object" &&
         control !== null &&
-        'name' in control &&
-        control.name === 'header_groups',
+        "name" in control &&
+        control.name === "header_groups",
     ) as CustomControlItem | undefined;
 
   expect(item).toBeDefined();
   expect(item?.config.visibility).toBeUndefined();
 });
 
-test('allow_rearrange_columns is hidden when time comparison or header groups are set', () => {
-  const vis = getVisibility(config, 'allow_rearrange_columns');
+test("allow_rearrange_columns is hidden when time comparison or header groups are set", () => {
+  const vis = getVisibility(config, "allow_rearrange_columns");
   expect(
     vis({
       controls: { time_compare: { value: [] }, header_groups: { value: [] } },
@@ -93,7 +104,7 @@ test('allow_rearrange_columns is hidden when time comparison or header groups ar
   expect(
     vis({
       controls: {
-        time_compare: { value: '1 year ago' },
+        time_compare: { value: "1 year ago" },
         header_groups: { value: [] },
       },
     } as unknown as ControlPanelsContainerProps),
@@ -102,17 +113,79 @@ test('allow_rearrange_columns is hidden when time comparison or header groups ar
     vis({
       controls: {
         time_compare: { value: [] },
-        header_groups: { value: [{ id: 'g1' }] },
+        header_groups: { value: [{ id: "g1" }] },
       },
     } as unknown as ControlPanelsContainerProps),
   ).toBe(false);
 });
 
-test('time_grain_sqla visibility should be case-insensitive', () => {
-  const vis = getVisibility(config, 'time_grain_sqla');
+test("time_grain_sqla visibility should be case-insensitive", () => {
+  const vis = getVisibility(config, "time_grain_sqla");
   const controlState = {} as ControlState;
 
-  expect(vis(mkProps(['orderdate']), controlState)).toBe(true);
-  expect(vis(mkProps(['ORDERDATE']), controlState)).toBe(true);
-  expect(vis(mkProps(['some_other_col']), controlState)).toBe(false);
+  expect(vis(mkProps(["orderdate"]), controlState)).toBe(true);
+  expect(vis(mkProps(["ORDERDATE"]), controlState)).toBe(true);
+  expect(vis(mkProps(["some_other_col"]), controlState)).toBe(false);
+});
+
+test("time_grain_sqla is hidden in raw records mode", () => {
+  const vis = getVisibility(config, "time_grain_sqla");
+  const controlState = {} as ControlState;
+  const temporalGroupby = mkProps(["ORDERDATE"]);
+
+  expect(
+    vis(
+      withControls(temporalGroupby, {
+        query_mode: { value: QueryMode.Aggregate },
+      }),
+      controlState,
+    ),
+  ).toBe(true);
+
+  // `groupby` is kept when the query mode switches to raw records, both in the
+  // control state and in a saved chart's form data, so a temporal dimension on
+  // its own must not bring the control back.
+  expect(
+    vis(
+      withControls(temporalGroupby, { query_mode: { value: QueryMode.Raw } }),
+      controlState,
+    ),
+  ).toBe(false);
+
+  // Charts saved before the query mode control existed are inferred as raw
+  // records from their columns.
+  expect(
+    vis(
+      withControls(temporalGroupby, { all_columns: { value: ["name"] } }),
+      controlState,
+    ),
+  ).toBe(false);
+});
+
+test("time_grain_sqla is hidden in raw records mode for an adhoc dimension", () => {
+  const vis = getVisibility(config, "time_grain_sqla");
+  const controlState = {} as ControlState;
+
+  // An adhoc column reports temporal without the lookup, so it needs the guard too.
+  const adhocGroupby = withControls(mkProps([]), {
+    groupby: {
+      value: [{ sqlExpression: "ds", label: "ds", expressionType: "SQL" }],
+      options: [],
+    },
+  });
+
+  expect(
+    vis(
+      withControls(adhocGroupby, {
+        query_mode: { value: QueryMode.Aggregate },
+      }),
+      controlState,
+    ),
+  ).toBe(true);
+  expect(
+    vis(
+      withControls(adhocGroupby, { query_mode: { value: QueryMode.Raw } }),
+      controlState,
+    ),
+  ).toBe(false);
 });
