@@ -18,7 +18,11 @@
  */
 export { useItemStateManager } from './useItemStateManager';
 export type { ItemStateManager } from './useItemStateManager';
-export { useFilterOperations, ALLOW_DEPENDENCIES } from './useFilterOperations';
+export {
+  useFilterOperations,
+  filterCanBeDependencyParent,
+  filterCanHaveDependencies,
+} from './useFilterOperations';
 export type {
   FilterOperations,
   FilterOperationsParams,
