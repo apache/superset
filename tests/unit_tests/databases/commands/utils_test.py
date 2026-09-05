@@ -78,14 +78,20 @@ def test_add_permissions_get_default_catalog(mocker: MockerFixture):
 
 def test_add_permissions_handle_failures(mocker: MockerFixture) -> None:
     """
-    Test adding permissions to a database when it's created in case
-    the request to get all schemas for one fo the catalogs fail.
+    Test adding permissions to a database when it's created in case the
+    request to get all schemas for one of the catalogs keeps failing --
+    each failing catalog is retried once before being given up on.
     """
     database = mocker.MagicMock()
     database.database_name = "my_db"
     database.db_engine_spec.supports_catalog = True
     database.get_all_catalog_names.return_value = ["catalog1", "catalog2", "catalog3"]
-    database.get_all_schema_names.side_effect = [["schema1"], Exception, ["schema3"]]
+    database.get_all_schema_names.side_effect = [
+        ["schema1"],
+        Exception,
+        Exception,
+        ["schema3"],
+    ]
     add_permission_view_menu = mocker.patch(
         "superset.commands.database.importers.v1.utils.security_manager."
         "add_permission_view_menu"
@@ -100,5 +106,38 @@ def test_add_permissions_handle_failures(mocker: MockerFixture) -> None:
             mocker.call("catalog_access", "[my_db].[catalog3]"),
             mocker.call("schema_access", "[my_db].[catalog1].[schema1]"),
             mocker.call("schema_access", "[my_db].[catalog3].[schema3]"),
+        ]
+    )
+
+
+def test_add_permissions_retries_transient_failure(mocker: MockerFixture) -> None:
+    """
+    A catalog whose schema listing fails only once (eg a transient driver
+    hiccup) must still get its schema permissions granted via the retry,
+    instead of being permanently skipped like a genuinely unlistable
+    catalog would be.
+    """
+    database = mocker.MagicMock()
+    database.database_name = "my_db"
+    database.db_engine_spec.supports_catalog = True
+    database.get_all_catalog_names.return_value = ["catalog1", "catalog2"]
+    database.get_all_schema_names.side_effect = [
+        ["schema1"],
+        Exception,
+        ["schema2"],
+    ]
+    add_permission_view_menu = mocker.patch(
+        "superset.commands.database.importers.v1.utils.security_manager."
+        "add_permission_view_menu"
+    )
+
+    add_permissions(database)
+
+    add_permission_view_menu.assert_has_calls(
+        [
+            mocker.call("catalog_access", "[my_db].[catalog1]"),
+            mocker.call("catalog_access", "[my_db].[catalog2]"),
+            mocker.call("schema_access", "[my_db].[catalog1].[schema1]"),
+            mocker.call("schema_access", "[my_db].[catalog2].[schema2]"),
         ]
     )

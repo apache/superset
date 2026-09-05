@@ -82,8 +82,20 @@ def add_permissions(database: Database) -> None:
         catalogs = [None]
 
     for catalog in catalogs:
-        try:
-            for schema in database.get_all_schema_names(catalog=catalog, cache=False):
+        # A single failure while listing a catalog's schemas is tolerated (some
+        # catalogs are visible but not listable, eg the ``rdsadmin`` catalog on
+        # AWS RDS), but the exception caught here doesn't distinguish that from
+        # a one-off transient hiccup (eg schema metadata not yet visible right
+        # after it was created). Retry once, immediately, so a schema that
+        # needs a first-time grant isn't permanently skipped over a fluke.
+        for attempt in range(2):
+            try:
+                schemas = database.get_all_schema_names(catalog=catalog, cache=False)
+            except GenericDBException:  # pylint: disable=broad-except
+                if attempt:
+                    logger.warning("Error processing catalog '%s'", catalog)
+                continue
+            for schema in schemas:
                 security_manager.add_permission_view_menu(
                     "schema_access",
                     security_manager.get_schema_perm(
@@ -92,9 +104,7 @@ def add_permissions(database: Database) -> None:
                         schema,
                     ),
                 )
-        except GenericDBException:  # pylint: disable=broad-except
-            logger.warning("Error processing catalog '%s'", catalog)
-            continue
+            break
 
 
 def add_vm(
