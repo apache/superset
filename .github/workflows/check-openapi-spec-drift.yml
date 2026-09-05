@@ -23,10 +23,8 @@ on:
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
 
-# No `paths:` filter on purpose, matching enforce-single-migration-head: a
-# required check that never runs for a given PR blocks that PR forever. The
-# job is ~10s, so it fires on every PR rather than guessing which file edits
-# can move the spec.
+# Deliberately unfiltered by `paths`: a required check that does not run on a
+# PR blocks it from merging forever.
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
@@ -46,16 +44,12 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
         with:
-          # base.txt pins apispec, which decides the generated output: 6.10.0
-          # renders marshmallow 4's unknown=RAISE as "additionalProperties":
-          # false while the pinned 6.6.1 does not. Regenerating off-pin
-          # produces a spec no CI run can reproduce.
+          # The generated output depends on the pinned apispec version.
           requirements-type: base
       - name: Regenerate the spec
         env:
-          # No SUPERSET_CONFIG_PATH: the published spec documents the routes a
-          # default deployment registers. A config enabling feature flags adds
-          # paths that would 404 for everyone who has not enabled them.
+          # No config file: the spec documents what a default deployment
+          # registers, so feature flags must stay off.
           SUPERSET__SQLALCHEMY_DATABASE_URI: "sqlite:///:memory:"
           FLASK_APP: "superset.app:create_app()"
         run: superset update-api-docs
@@ -67,21 +61,18 @@ jobs:
             exit 0
           fi
 
-          # Staged to a file rather than piped: under pipefail, `head` closing
-          # the pipe SIGPIPE-kills `git diff`, which aborts this step before it
-          # writes the rest of the summary.
+          # Staged to a file, not piped: `head` closing the pipe would
+          # SIGPIPE-kill `git diff` under pipefail and abort this step.
           diff_file="$RUNNER_TEMP/openapi.diff"
           git diff -- "$SPEC" > "$diff_file"
 
-          echo "::error::$SPEC is stale."
-          echo "Regenerate it on the pinned requirements, with no config file:"
-          echo "  SUPERSET__SQLALCHEMY_DATABASE_URI='sqlite:///:memory:' \\"
-          echo "    FLASK_APP='superset.app:create_app()' superset update-api-docs"
+          regen="SUPERSET__SQLALCHEMY_DATABASE_URI='sqlite:///:memory:' FLASK_APP='superset.app:create_app()' superset update-api-docs"
+
+          echo "::error::$SPEC is stale. Regenerate it on the pinned requirements:"
+          echo "$regen"
           git diff --stat -- "$SPEC"
 
-          # Step summaries cap at 1 MiB and a full regeneration runs to tens of
-          # thousands of lines, so the rendered copy is truncated and the log
-          # keeps the whole thing.
+          # Summaries cap at 1 MiB, well under a full regeneration.
           {
             echo '### OpenAPI spec is stale'
             echo
@@ -90,8 +81,7 @@ jobs:
             echo 'Regenerate with:'
             echo
             echo '```bash'
-            echo "SUPERSET__SQLALCHEMY_DATABASE_URI='sqlite:///:memory:' \\"
-            echo "  FLASK_APP='superset.app:create_app()' superset update-api-docs"
+            echo "$regen"
             echo '```'
             echo
             echo '```diff'
