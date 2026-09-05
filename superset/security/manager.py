@@ -705,10 +705,19 @@ def freeze_value(value: Any) -> str:
 
 def _ensure_list(value: Any) -> list[Any]:
     """
-    Ensure value is returned as a list.
+    Normalize a value to a list for iteration.
 
-    Scalar values (strings, numbers, dicts) are wrapped in a single-element list.
-    Empty strings or None return an empty list.
+    Some viz types (e.g. heatmap_v2's 'groupby' control) store a single
+    value as a bare string rather than a one-item list. Iterating a string
+    directly yields its individual characters, which silently breaks the
+    guest payload comparison for any such chart.
+
+    ``None`` and an empty string are treated as "no value set" (mirroring
+    ``_stored_param_values``'s treatment of an unset control) and return
+    ``[]`` — an unset scalar control must not be compared as if the guest
+    had explicitly requested an empty string. A ``list``/``tuple`` is
+    filtered the same way, element by element; any other scalar is wrapped
+    in a single-item list.
     """
     if value is None or value == "":
         return []
@@ -1537,28 +1546,6 @@ def _stored_param_values(params: dict[str, Any], keys: tuple[str, ...]) -> set[s
             freeze_value(item) for item in items if item is not None and item != ""
         )
     return values
-
-
-def _ensure_list(value: Any) -> list[Any]:
-    """
-    Normalize a value to a list for iteration.
-
-    Some viz types (e.g. heatmap_v2's 'groupby' control) store a single
-    value as a bare string rather than a one-item list. Iterating a string
-    directly yields its individual characters, which silently breaks the
-    guest payload comparison for any such chart.
-
-    ``None`` and an empty string are treated as "no value set" (mirroring
-    ``_stored_param_values``'s treatment of an unset control) and return
-    ``[]`` — an unset scalar control must not be compared as if the guest
-    had explicitly requested an empty string. A ``list``/``tuple`` is
-    filtered the same way, element by element; any other scalar is wrapped
-    in a single-item list.
-    """
-    if value is None:
-        return []
-    items = value if isinstance(value, (list, tuple)) else [value]
-    return [item for item in items if item is not None and item != ""]
 
 
 def _columns_metrics_modified(
