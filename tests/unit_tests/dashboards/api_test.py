@@ -57,6 +57,7 @@ def mock_dashboard() -> MagicMock:
     dash.editors = []
     dash.viewers = []
     dash.tags = []
+    dash.custom_tags = []
     dash.is_managed_externally = False
     dash.uuid = None
     return dash
