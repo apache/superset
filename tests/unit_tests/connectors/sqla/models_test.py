@@ -15,10 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from datetime import datetime
 from unittest.mock import MagicMock
 
 import pandas as pd
 import pytest
+from freezegun import freeze_time
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.dialects import sqlite
@@ -931,6 +933,205 @@ def test_fetch_metadata_empty_comment_field_handling(mocker: MockerFixture) -> N
 
     # Valid comment should be set
     assert columns_by_name["col_with_valid_comment"].description == "Valid comment"
+
+
+def _table_for_fetch_metadata(
+    mocker: MockerFixture,
+    source_columns: list[dict[str, str]],
+    existing: list[dict[str, str]] | None = None,
+) -> SqlaTable:
+    """Build a SqlaTable whose ``fetch_metadata`` reads *source_columns*."""
+    database = mocker.MagicMock()
+    database.get_metrics.return_value = []
+    database.db_engine_spec = mocker.MagicMock()
+    table = SqlaTable(table_name="test_table", database=database)
+    table.id = 1
+    existing_cols = [
+        TableColumn(
+            column_name=spec["column_name"],
+            type=spec["type"],
+            table=table,
+            expression=spec.get("expression") or "",
+        )
+        for spec in existing or []
+    ]
+    table.columns = existing_cols
+    mock_session = mocker.patch("superset.connectors.sqla.models.db.session")
+    mock_session.query.return_value.filter.return_value.all.return_value = existing_cols
+    mocker.patch.object(table, "external_metadata", return_value=source_columns)
+    return table
+
+
+def test_fetch_metadata_bumps_changed_on_when_column_type_changes(
+    mocker: MockerFixture,
+) -> None:
+    """Schema drift on an existing column must bump ``changed_on``.
+
+    ``query_cache_key`` includes ``datasource.changed_on``; without this bump
+    a Refresh-columns action would keep serving chart results computed
+    against the previous type. See #43918.
+    """
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "revenue", "type": "INTEGER"}],
+        existing=[{"column_name": "revenue", "type": "VARCHAR"}],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.modified == ["revenue"]
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_bumps_changed_on_when_column_added(
+    mocker: MockerFixture,
+) -> None:
+    """A newly discovered source column must bump ``changed_on``."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[
+            {"column_name": "id", "type": "INTEGER"},
+            {"column_name": "name", "type": "VARCHAR"},
+        ],
+        existing=[{"column_name": "id", "type": "INTEGER"}],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.added == ["name"]
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_bumps_changed_on_when_physical_column_removed(
+    mocker: MockerFixture,
+) -> None:
+    """Dropping a physical source column must bump ``changed_on``."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "id", "type": "INTEGER"}],
+        existing=[
+            {"column_name": "id", "type": "INTEGER"},
+            {"column_name": "name", "type": "VARCHAR"},
+        ],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.removed == ["name"]
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_drops_nested_physical_column_and_bumps_changed_on(
+    mocker: MockerFixture,
+) -> None:
+    """A dropped nested ROW field has an expression but is still physical.
+
+    Keeping it would leave a stale TableColumn and skip the changed_on bump.
+    """
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "id", "type": "INTEGER"}],
+        existing=[
+            {"column_name": "id", "type": "INTEGER"},
+            {
+                "column_name": "metadata.uuid",
+                "type": "VARCHAR",
+                "expression": '"metadata"."uuid"',
+            },
+        ],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert "metadata.uuid" in result.removed
+    assert all(col.column_name != "metadata.uuid" for col in table.columns)
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_bumps_changed_on_when_expression_changes(
+    mocker: MockerFixture,
+) -> None:
+    """A physical expression change is schema drift and must bump ``changed_on``."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[
+            {
+                "column_name": "metadata.uuid",
+                "type": "VARCHAR",
+                "expression": '"metadata"."uuid"',
+            }
+        ],
+        existing=[
+            {
+                "column_name": "metadata.uuid",
+                "type": "VARCHAR",
+                "expression": "",
+            }
+        ],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.modified == ["metadata.uuid"]
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
+def test_fetch_metadata_does_not_bump_changed_on_when_schema_unchanged(
+    mocker: MockerFixture,
+) -> None:
+    """A no-op refresh must not invalidate chart cache keys."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "revenue", "type": "INTEGER"}],
+        existing=[{"column_name": "revenue", "type": "INTEGER"}],
+    )
+    original_changed_on = datetime(2024, 6, 1, 12, 0, 0)
+    table.changed_on = original_changed_on
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert result.added == []
+    assert result.modified == []
+    assert result.removed == []
+    assert table.changed_on == original_changed_on
+
+
+def test_fetch_metadata_does_not_bump_changed_on_for_kept_virtual_columns(
+    mocker: MockerFixture,
+) -> None:
+    """Calculated columns are reported in ``removed`` but kept; that is not drift."""
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "id", "type": "INTEGER"}],
+        existing=[
+            {"column_name": "id", "type": "INTEGER"},
+            {
+                "column_name": "profit",
+                "type": "INTEGER",
+                "expression": "revenue - cost",
+            },
+        ],
+    )
+    original_changed_on = datetime(2024, 6, 1, 12, 0, 0)
+    table.changed_on = original_changed_on
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert "profit" in result.removed
+    assert any(col.column_name == "profit" for col in table.columns)
+    assert table.changed_on == original_changed_on
 
 
 @pytest.mark.parametrize(
