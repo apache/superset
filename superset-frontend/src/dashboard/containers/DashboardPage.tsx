@@ -83,6 +83,30 @@ type NativeFilterConfigEntry = Partial<Filter> & { id: string };
 
 export const DashboardPageIdContext = createContext('');
 
+const DASHBOARD_FILTERS_STORAGE_PREFIX = 'superset_dashboard_filters_';
+
+function getSavedDashboardFilters(dashboardId: number) {
+  try {
+    const raw = localStorage.getItem(
+      `${DASHBOARD_FILTERS_STORAGE_PREFIX}${dashboardId}`,
+    );
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null; // localStorage disabled, quota exceeded, corrupt JSON, etc.
+  }
+}
+
+function saveDashboardFilters(dashboardId: number, dataMask: unknown) {
+  try {
+    localStorage.setItem(
+      `${DASHBOARD_FILTERS_STORAGE_PREFIX}${dashboardId}`,
+      JSON.stringify(dataMask),
+    );
+  } catch {
+    // fail silently — persistence is a nice-to-have, not critical path
+  }
+}
+
 const DashboardBuilder = lazy(
   () =>
     import(
@@ -157,20 +181,26 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const isNotFoundError = (error as SupersetApiError | null)?.status === 404;
   const readyToRender = Boolean(dashboard && charts);
   const { dashboard_title, id = 0 } = dashboard || {};
+  const hydratedDashboardId = useSelector<RootState, number | undefined>(
+    state => state.dashboardInfo?.id,
+  );
+  const fullDataMask = useSelector(selectDataMask);
 
+  useEffect(() => {
+    if (!id || hydratedDashboardId !== id) return;
+    saveDashboardFilters(id, fullDataMask);
+  }, [id, hydratedDashboardId, fullDataMask]);
   // The live title is edited in Redux and persisted via an in-SPA save with no
   // full reload, so the useDashboard() API result can be stale. Track the live
   // title so the browser tab stays in sync after a rename.
   const liveDashboardTitle = useSelector<RootState, string | undefined>(
     state => state.dashboardLayout?.present?.[DASHBOARD_HEADER_ID]?.meta?.text,
   );
+
   // Only trust the live layout title once the layout belongs to the dashboard
   // being shown. During SPA dashboard-to-dashboard navigation the previous
   // dashboard's layout lingers until the new one hydrates, so fall back to the
   // freshly fetched API title until the hydrated dashboard matches.
-  const hydratedDashboardId = useSelector<RootState, number | undefined>(
-    state => state.dashboardInfo?.id,
-  );
   const pageTitle =
     (hydratedDashboardId === id ? liveDashboardTitle : undefined) ||
     dashboard_title;
@@ -226,6 +256,11 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         }
       } else if (nativeFilterKeyValue) {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
+      } else {
+        const savedFilters = getSavedDashboardFilters(id);
+        if (savedFilters) {
+          dataMask = savedFilters;
+        }
       }
       if (isOldRison) {
         // Normalize legacy `currentState` → `filterState`. Pre-2021 URLs stored
