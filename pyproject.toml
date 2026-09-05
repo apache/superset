@@ -288,7 +288,7 @@ development = [
     "docker",
     "flask-testing",
     "freezegun",
-    "grpcio>=1.82.1",
+    "grpcio>=1.83.1",
     "openapi-spec-validator",
     "parameterized",
     "pip",
