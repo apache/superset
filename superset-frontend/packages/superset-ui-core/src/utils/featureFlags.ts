@@ -42,6 +42,7 @@ export enum FeatureFlag {
   /** @deprecated */
   DrillToDetail = 'DRILL_TO_DETAIL',
   DrillBy = 'DRILL_BY',
+  DrillDown = 'DRILL_DOWN',
   DynamicPlugins = 'DYNAMIC_PLUGINS',
   EmbeddableCharts = 'EMBEDDABLE_CHARTS',
   EmbeddedSuperset = 'EMBEDDED_SUPERSET',

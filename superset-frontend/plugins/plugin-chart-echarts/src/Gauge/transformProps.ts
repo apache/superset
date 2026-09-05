@@ -226,7 +226,7 @@ export default function transformProps(
     },
   );
 
-  const { setDataMask = () => {}, onContextMenu } = hooks;
+  const { setDataMask = () => {}, onContextMenu, onDrillDown } = hooks;
 
   const isValidNumber = (
     val: number | null | undefined | string,
@@ -377,6 +377,7 @@ export default function transformProps(
     groupby,
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
+    onDrillDown,
     refs,
     coltypeMapping,
   };

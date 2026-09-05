@@ -19,6 +19,7 @@
 import { RefObject, Ref } from 'react';
 
 import {
+  BinaryQueryObjectFilterClause,
   ChartDataResponseResult,
   ChartProps,
   ContextMenuFilters,
@@ -151,6 +152,15 @@ export interface BaseTransformedProps<F> {
   emitCrossFilters?: boolean;
   coltypeMapping?: Record<string, number>;
   onLegendScroll?: (currentIndex: number) => void;
+  /**
+   * Drill-down hook. When the chart has a `drilldown_hierarchy` configured,
+   * the host provides this callback. Plugins should call it on left-click
+   * instead of emitting a cross-filter.
+   */
+  onDrillDown?: (
+    filters: BinaryQueryObjectFilterClause[],
+    label: string,
+  ) => void;
 }
 
 export type CrossFilterTransformedProps = {
