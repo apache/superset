@@ -33,7 +33,7 @@
     "@testing-library/react": "*",
     "@testing-library/user-event": "*",
     "@types/jest": "^30.0.0",
-    "jest": "^30.4.2"
+    "jest": "^30.5.0"
   },
   "peerDependencies": {
     "@ant-design/icons": "^5.6.1",

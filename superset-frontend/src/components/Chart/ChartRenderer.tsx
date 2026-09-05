@@ -46,6 +46,7 @@ import {
   DataRecordFilters,
   BinaryQueryObjectFilterClause,
 } from '@superset-ui/core';
+import type { Hooks } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
@@ -58,6 +59,8 @@ import ChartContextMenu, {
   ChartContextMenuRef,
 } from './ChartContextMenu/ChartContextMenu';
 import { handleChartDataResponse } from './chartAction';
+import { AsyncModeOverride, resolveAsyncMode } from 'src/utils/asyncMode';
+import { getTabId } from 'src/hooks/useTabId';
 
 // Types for filter values
 type FilterValue = string | number | boolean | null | undefined;
@@ -151,10 +154,19 @@ export interface ChartRendererProps {
     filters: BinaryQueryObjectFilterClause[],
     label: string,
   ) => void;
+  asyncModeOverride?: AsyncModeOverride;
 }
 
+// Async resolution is injected for self-contained chart components in
+// superset-ui-core (e.g. StatefulChart), which read these off `Hooks` and cannot
+// import app-level async-event middleware themselves.
+type AsyncChartHooks = Pick<
+  Hooks,
+  'handleAsyncChartData' | 'resolveAsyncMode' | 'getTabId'
+>;
+
 // Hooks interface
-interface ChartHooks {
+interface ChartHooks extends AsyncChartHooks {
   onAddFilter: (
     col: string,
     vals: FilterValue[],
@@ -183,14 +195,6 @@ interface ChartHooks {
     filters: BinaryQueryObjectFilterClause[],
     label: string,
   ) => void;
-  // Resolve async (HTTP 202 / GLOBAL_ASYNC_QUERIES) chart-data responses for
-  // self-contained chart components in superset-ui-core (e.g. StatefulChart),
-  // which cannot import app-level async-event middleware.
-  handleAsyncChartData?: (
-    response: Response,
-    json: JsonObject,
-    signal?: AbortSignal,
-  ) => Promise<QueryData[]> | QueryData[];
 }
 
 const BLANK = {};
@@ -235,6 +239,7 @@ function ChartRendererComponent({
     emitCrossFilters,
     onChartStateChange,
     onDrillDown,
+    asyncModeOverride,
   } = restProps;
 
   const theme = useTheme();
@@ -420,6 +425,15 @@ function ChartRendererComponent({
       // StatefulChart) resolve async (202) chart-data responses without
       // depending on app-level async-event middleware.
       handleAsyncChartData: handleChartDataResponse,
+      // Shares the async opt-in policy (feature flag + deployment default, plus
+      // the per-dashboard `async_mode` override) with those self-contained
+      // producers so they don't always run synchronously and honor the
+      // dashboard override like the Redux chart path.
+      resolveAsyncMode: () => resolveAsyncMode(asyncModeOverride),
+      // Lets those producers send this tab's id on an async request so the
+      // backend ref-counts the tab (per-tab cancel/detach), matching the Redux
+      // chart path (see chartAction.ts).
+      getTabId: () => getTabId(),
     }),
     [
       handleAddFilter,
@@ -434,6 +448,7 @@ function ChartRendererComponent({
       onFilterMenuOpen,
       setDataMaskCallback,
       showContextMenu,
+      asyncModeOverride,
     ],
   );
 

@@ -559,7 +559,7 @@ more-itertools==10.8.0
     # via
     #   jaraco-classes
     #   jaraco-functools
-msgpack==1.2.1
+msgpack==1.2.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -943,7 +943,7 @@ six==1.17.0
     #   python-dateutil
     #   rfc3339-validator
     #   wtforms-json
-slack-sdk==3.43.0
+slack-sdk==3.44.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
