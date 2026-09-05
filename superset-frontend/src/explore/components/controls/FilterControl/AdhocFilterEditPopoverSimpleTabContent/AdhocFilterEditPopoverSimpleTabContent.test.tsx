@@ -1115,3 +1115,55 @@ test('does not say the list is partial when it is complete', async () => {
   expect(await screen.findByTitle('alpha')).toBeInTheDocument();
   expect(screen.queryByText(/Only the first/)).not.toBeInTheDocument();
 });
+
+test('Filter subject lists and commits an expression-less Cube dimension', async () => {
+  const semanticDimensions = [
+    {
+      column_name: 'order_date',
+      verbose_name: 'Order Date',
+      type: 'TIMESTAMP',
+      expression: null,
+      id: 10,
+    },
+    {
+      column_name: 'category',
+      verbose_name: 'Product Category',
+      type: 'VARCHAR(255)',
+      expression: null,
+      id: 11,
+    },
+  ];
+  const props = setup({
+    options: semanticDimensions,
+    datasource: {
+      ...TestDataset,
+      type: 'semantic_view',
+      semantic_view_features: [],
+      columns: semanticDimensions,
+      filter_select: false,
+    },
+  });
+
+  const subjectSelect = screen.getByRole('combobox', {
+    name: 'Select subject',
+  });
+  userEvent.click(subjectSelect);
+
+  const dropdown = await waitFor(() => {
+    const list = document.querySelector(
+      '.ant-select-dropdown-list',
+    ) as HTMLElement;
+    if (!list) throw new Error('dropdown not open');
+    return list;
+  });
+  expect(within(dropdown).getByText('Order Date')).toBeInTheDocument();
+  expect(within(dropdown).getByText('Product Category')).toBeInTheDocument();
+
+  userEvent.click(within(dropdown).getByText('Product Category'));
+
+  await waitFor(() => {
+    expect(props.onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ subject: 'category' }),
+    );
+  });
+});
