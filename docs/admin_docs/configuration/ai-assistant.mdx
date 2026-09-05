@@ -1,0 +1,499 @@
+---
+title: AI Assistant
+hide_title: true
+sidebar_position: 17
+version: 1
+---
+
+# AI Assistant
+
+The AI Assistant is a conversational interface for exploring your data. A user
+asks a question in plain language; the assistant finds relevant datasets,
+inspects their schema, writes and runs read-only SQL, and answers with both the
+result and the query it used.
+
+Superset ships **no model provider and talks to no model vendor by default**.
+The feature is disabled, and even when enabled it returns `404` until you point
+it at a provider you control. Nothing is sent anywhere until you configure it.
+
+## Enabling it
+
+Two things are required: the feature flag, and a provider.
+
+```python
+# superset_config.py
+FEATURE_FLAGS = {
+    "AI_ASSISTANT": True,
+}
+
+AI_LLM_PROVIDER_CLASS = "superset.ai.llm.anthropic.AnthropicProvider"
+AI_LLM_PROVIDER_CONFIG = {
+    "api_key": os.environ["ANTHROPIC_API_KEY"],
+    "models": {
+        "default": "claude-sonnet-4-5",
+        "fast": "claude-haiku-4-5",
+        "reasoning": "claude-opus-4-1",
+    },
+}
+```
+
+Install the matching extra:
+
+```bash
+pip install "apache-superset[ai-anthropic]"   # or [ai-openai]
+```
+
+Then run `superset init` so the assistant's permissions are created and assigned
+to roles. Without this the endpoints return `403`.
+
+Conversations are stored in Superset's metadata database, so no extra
+infrastructure is needed for the default configuration.
+
+### Which roles get access
+
+`superset init` grants `can_read`/`can_write` on `AIAssistant` to **Admin** and
+**Alpha** only. "Write" here means writing one's own conversation — the
+assistant's tools are read-only and it cannot create or modify assets.
+
+**Gamma does not get it by default.** The assistant runs queries and costs
+money per question, so it is granted deliberately rather than inherited. To
+give it to Gamma users, add `can_read`/`can_write` on `AIAssistant` to Gamma or
+to a custom role.
+
+Every query the assistant runs is subject to the *user's own* database and
+dataset permissions. It cannot read anything the person chatting with it could
+not read themselves.
+
+Because it is not in Gamma, it is also not inherited by the Public role when
+`PUBLIC_ROLE_LIKE = "Gamma"` — an anonymous visitor cannot reach the assistant
+unless you grant it explicitly.
+
+## Choosing a provider
+
+`AI_LLM_PROVIDER_CLASS` is a dotted path to a
+`superset.ai.llm.base.BaseLLMProvider` subclass. Two are bundled:
+
+| Class | Use for |
+| --- | --- |
+| `superset.ai.llm.anthropic.AnthropicProvider` | The Anthropic Messages API |
+| `superset.ai.llm.openai_compatible.OpenAICompatibleProvider` | OpenAI, and anything exposing an OpenAI-compatible endpoint — vLLM, Ollama, a private gateway |
+
+`AI_LLM_PROVIDER_CONFIG` is passed to the provider's constructor and its
+contents are provider-defined. For the OpenAI-compatible provider, `base_url`
+points it anywhere:
+
+```python
+AI_LLM_PROVIDER_CLASS = "superset.ai.llm.openai_compatible.OpenAICompatibleProvider"
+AI_LLM_PROVIDER_CONFIG = {
+    "base_url": "https://llm.internal.example.com/v1",
+    "api_key": os.environ["MY_GATEWAY_KEY"],
+    "models": {"default": "our-hosted-model"},
+}
+```
+
+Everything vendor-specific — URLs, authentication, model naming — lives in the
+provider. Superset core contains none of it, so a self-hosted model or a private
+gateway needs configuration rather than a fork.
+
+### Model tiers and selection
+
+Profiles and prompts refer to capability *tiers* (`default`, `fast`,
+`reasoning`), never to a vendor's model names. The provider maps tiers to
+concrete models via the `models` dict. A tier you do not configure is an error
+when requested, never a silent substitution — so cost and answer quality stay
+attributable to the model actually used.
+
+Users may also pin a specific model per turn. Only models present in your
+`models` mapping are accepted; anything else is rejected.
+
+## Agent profiles
+
+A profile bundles the decisions that differ between a quick answer and a careful
+investigation: which tools are available, which model tier, and how many steps.
+Two ship by default — `default` and `analyst`.
+
+**Which tools a model may invoke is a decision each deployment makes**, so
+profiles are fully configurable. `AI_AGENT_PROFILES` maps a profile key to the
+fields you want to override, leaving the rest alone:
+
+```python
+AI_AGENT_PROFILES = {
+    # Let the assistant search and inspect, but never run SQL.
+    "default": {"tools": ["search_assets", "list_databases", "get_schema"]},
+
+    # Let the analyst profile think harder and longer.
+    "analyst": {"model_alias": "reasoning", "max_turns": 60},
+
+    # Add a profile only some users may select.
+    "deep": {
+        "name": "Deep analysis",
+        "description": "Slow, thorough, multi-step.",
+        "tools": ["search_assets", "get_schema", "execute_sql"],
+        "required_permission": ("can_write", "AIAssistant"),
+    },
+}
+```
+
+A tool name that does not exist is an error naming the typo and listing the
+valid names, rather than an assistant that quietly lacks a capability. An empty
+`tools` list is valid and means conversation with no data access.
+
+`required_permission` is enforced on both the listing *and* the run path, so a
+profile a user cannot see is also one they cannot invoke by posting its key.
+
+### Available tools
+
+| Tool | What it does |
+| --- | --- |
+| `search_assets` | Finds datasets, charts and dashboards the user can see |
+| `list_databases` | Lists database connections exposed to SQL Lab |
+| `get_schema` | Lists schemas, tables and columns |
+| `execute_sql` | Runs a **read-only** query |
+| `validate_sql` | Checks a query without running it |
+| `get_chart_context` | Reads a chart's definition |
+| `get_dashboard_context` | Reads a dashboard's definition |
+
+## Customising the prompt
+
+Three levers, in increasing order of bluntness.
+
+**Add to it.** `AI_EXTRA_PROMPT_SECTIONS` appends your own sections. This is
+where deployment-specific knowledge belongs — your table conventions, your
+warehouse's dialect quirks, how your business defines a metric. The shipped
+prompt is deliberately generic and mentions no particular database engine.
+
+**Remove from it.** `AI_DISABLED_PROMPT_SECTIONS` drops a shipped section by
+key, for when you disagree with one. The safety section cannot be disabled.
+
+**Replace it.** `AI_SYSTEM_PROMPT` substitutes the whole thing.
+
+:::warning
+Setting `AI_SYSTEM_PROMPT` discards the shipped safety and prompt-injection
+rules along with everything else. Your deployment then owns them.
+:::
+
+`AI_SYSTEM_PROMPT_MUTATOR` is a last-mile callable applied after assembly,
+mirroring `SQL_QUERY_MUTATOR`.
+
+## Where turns execute
+
+`AI_ASSISTANT_EXECUTION_MODE` decides where the work happens.
+
+**`"inline"`** (default) runs the turn in the web process. Nothing extra to
+deploy.
+
+**`"worker"`** hands it to Celery. Web workers stay free, and a browser that
+loses its connection can rejoin a run in progress. It requires Celery and a
+Redis event bus:
+
+```python
+AI_ASSISTANT_EXECUTION_MODE = "worker"
+AI_ASSISTANT_EVENT_BUS = "redis"
+AI_ASSISTANT_EVENT_BUS_CACHE_CONFIG = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_REDIS_HOST": "redis",
+    "CACHE_REDIS_PORT": 6379,
+    "CACHE_REDIS_DB": 0,
+}
+
+class CeleryConfig:
+    imports = (
+        # ... your existing imports ...
+        "superset.ai.tasks",
+    )
+```
+
+Streams need Redis commands the general-purpose cache client does not expose,
+which is why the bus is configured separately rather than reusing `CACHE_CONFIG`.
+
+Selecting `"worker"` with the in-memory event bus raises rather than leaving
+every stream silently empty, and so does selecting the Redis bus without a
+usable connection.
+
+A turn is deliberately **not** retried after a worker crash: inference costs
+money, and re-running a turn the user may already have partly seen would charge
+twice. The message records that it failed and the user can ask again.
+
+## Safety and limits
+
+Guards are applied before any tool runs, configured via
+`AI_AGENT_TOOL_POLICIES`:
+
+- **Read-only SQL.** Enforced using Superset's own SQL parser, not pattern
+  matching — so a write hidden behind a comment, a CTE, a second statement, or
+  an unparseable construct is refused. `EXPLAIN`, `SHOW` and `DESCRIBE` are
+  permitted; everything the parser cannot vouch for is not.
+- **Identifier safety.** Table and column names are resolved against metadata
+  the user may see rather than interpolated into SQL.
+
+These bound blast radius; they do not replace authorization. Every tool that
+touches a data-bearing object performs the same permission check the REST API
+does.
+
+Result sizes are capped by `AI_AGENT_MAX_RESULT_ROWS` and
+`AI_AGENT_MAX_RESULT_BYTES`, and truncation is reported rather than hidden. Turn
+length is bounded by `AI_AGENT_MAX_TURNS` and `AI_AGENT_TIMEOUT_SECONDS`; a run
+that exhausts either answers with what it has.
+
+Content that arrives from your warehouse or asset metadata — table comments,
+chart titles, column labels — is marked as untrusted in the prompt, because a
+value in a database is data and not an instruction.
+
+### Cancellation
+
+Cancellation is cooperative: a run stops at its next step boundary. A run inside
+a single long model call or a single long query will not stop until that call
+returns.
+
+## Monitoring and tracing
+
+Superset bundles **no integration with any AI monitoring product**. Instead it
+exposes a small sink interface, `AITelemetry`, and calls it once per run, once
+per model round trip and once per tool call. Whatever you already use —
+Braintrust, LangSmith, Langfuse, Arize Phoenix, an OpenTelemetry collector, a
+self-hosted alternative, or a table in your own warehouse — you connect by
+implementing that interface and listing it in `AI_TELEMETRY`.
+
+Entries are instances or dotted paths, exactly as for `EVENT_LOGGER` and
+`STATS_LOGGER`. Two sinks ship in-tree and depend on nothing external:
+
+```python
+# superset_config.py
+import logging
+
+from superset.ai.telemetry import LoggingAITelemetry, StatsLoggerAITelemetry
+
+AI_TELEMETRY = [
+    # One structured line per span, at the level you choose.
+    LoggingAITelemetry(level=logging.INFO),
+    # Counters and timings through your configured STATS_LOGGER.
+    StatsLoggerAITelemetry(),
+]
+```
+
+`StatsLoggerAITelemetry` emits under a `superset.ai.` prefix: `run.start`,
+`run.end`, `run.outcome.<outcome>`, `run.duration_ms`, `run.turns`,
+`run.tokens.input`, `run.tokens.output`, `model_call`,
+`model_call.duration_ms`, `model_call.error`, `error`, and per tool
+`tool_call.<tool>`, `tool_call.<tool>.duration_ms`, `tool_call.<tool>.error`
+and `tool_call.<tool>.truncated`. User, run and thread identifiers deliberately
+never appear in a metric name — a metric per user is how a metrics backend gets
+brought down. That detail belongs in a trace, which is what a custom sink is
+for.
+
+### The content trade-off
+
+`AI_TELEMETRY_REDACT_CONTENT` defaults to `True`, and telemetry then carries
+**structure and measurements only**: durations, token counts, model names, tool
+names, outcomes, error classes, and the run, thread and user identifiers. No
+question, no answer, no SQL, no row of data. Redaction is applied where the
+trace is built, so a sink cannot receive content by accident even if it looks
+for it.
+
+Setting it to `False` is what makes a trace genuinely useful for debugging
+answer quality — you can read the prompt that produced a wrong answer and the
+statement it ran. It also means the text of business questions and values from
+your warehouse leave Superset for whichever service your sinks talk to. In many
+organisations that is a decision for someone other than the person editing the
+config file. `AI_TELEMETRY_MAX_CONTENT_CHARS` (default 10,000) caps any single
+content field so one large result cannot dominate a payload.
+
+### A custom sink
+
+Every method has a no-op default, so implement only the ones you need — a sink
+that only wants token counts overrides `on_model_call` and nothing else.
+
+```python
+from superset.ai.telemetry import AITelemetry, ModelCallTrace, RunTrace
+
+
+class TracingServiceTelemetry(AITelemetry):
+    """Forwards runs to an external tracing service."""
+
+    def __init__(self, client):
+        self._client = client
+
+    def on_run_start(self, run: RunTrace) -> None:
+        self._client.start_span(run.run_id, name="superset.ai.run", attributes={
+            "thread": run.thread_uuid,
+            "user": run.user_id,
+        })
+
+    def on_model_call(self, run: RunTrace, call: ModelCallTrace) -> None:
+        self._client.event(run.run_id, "model_call", {
+            "turn": call.turn,
+            "model": call.model,
+            "input_tokens": call.input_tokens,
+            "output_tokens": call.output_tokens,
+            # None unless you have turned redaction off.
+            "prompt": call.system_prompt,
+        })
+
+    def on_run_end(self, run: RunTrace) -> None:
+        self._client.end_span(run.run_id, status=str(run.outcome), attributes={
+            "duration_ms": run.duration_ms,
+            "turns": run.turns,
+            "usage": run.usage,
+        })
+
+
+AI_TELEMETRY = [TracingServiceTelemetry(client=my_tracing_client)]
+```
+
+Three things to know before you write one:
+
+- **Sinks are called on the thread answering the user.** Anything that makes a
+  network call should hand off to a queue or a background thread; otherwise a
+  slow monitoring backend becomes slow answers.
+- **A sink that raises cannot break a run.** Failures are logged once and
+  ignored, and the other configured sinks still receive everything. The same
+  applies to a dotted path that will not import: it is skipped with a warning
+  rather than taking the assistant down, because a missing observer loses the
+  record of a run and not the run itself.
+- **`agent_key`, `model` and `question` are resolved after the run starts**, so
+  a `RunTrace` passed to `on_run_start` may carry less than the one passed to
+  the later hooks. Read those on `on_run_end`.
+
+## Connecting your own MCP servers
+
+The assistant's built-in tools cover Superset itself. To let it reach anything
+else — your data catalog, a metrics service, a ticketing system — attach an
+[MCP](https://modelcontextprotocol.io) server. Superset bundles no third-party
+integration and connects to nothing by default; you name the servers.
+
+```bash
+pip install "apache-superset[ai-mcp]"
+```
+
+```python
+AI_AGENT_MCP_SERVERS = {
+    "acme_catalog": {
+        "url": "https://mcp.acme.internal/mcp",
+        "transport": "streamable_http",       # or "sse"
+        "headers": {"Authorization": f"Bearer {os.environ['ACME_MCP_TOKEN']}"},
+        "timeout_seconds": 30,
+        "tool_allowlist": ["search_tables"],  # omit to offer every tool
+    },
+}
+
+# Then let a profile use it.
+AI_AGENT_PROFILES = {
+    "default": {"mcp_servers": ["acme_catalog"]},
+}
+```
+
+Its tools appear to the model as `mcp__acme_catalog__search_tables`. The
+namespace means a foreign tool can never shadow a built-in one, and it is the
+name to use in `tool_allowlist` and `tool_denylist`.
+
+### What Superset does to keep a foreign server contained
+
+A third-party server is untrusted input, and possibly untrusted intent:
+
+- **Everything it returns is marked as untrusted** before the model sees it, so
+  text in a tool result is treated as data rather than instructions. Tool
+  *descriptions* get the same treatment, since they enter the prompt every turn.
+- **No Superset credential is ever forwarded.** Only the headers you configured
+  for that server are sent — never the user's session cookie, CSRF token, or an
+  inbound authorization header.
+- **SQL execution through a foreign server is refused by default.** Superset's
+  read-only enforcement and per-dataset authorization cannot apply to a query
+  another system runs, so allowing it would silently bypass both. Set
+  `AI_AGENT_MCP_DENY_FOREIGN_SQL = False` to accept that trade deliberately.
+- **Results obey the same size cap** as built-in tools, and the cap is applied
+  while reading, so a hostile server cannot exhaust memory before truncation.
+- **A server being down does not break the assistant.** Discovery failure means
+  that server contributes no tools for the turn; the built-ins keep working.
+
+A profile naming a server you have not configured is an error, because a typo
+there is indistinguishable at runtime from an agent that has quietly lost a
+capability. Note that discovery happens per turn, so a slow server adds its
+latency to every turn that uses it.
+
+## Retention
+
+Conversations are kept for `AI_ASSISTANT_MESSAGE_RETENTION_DAYS` (default 30).
+Pruning is not automatic — schedule it if you want it enforced.
+
+## Trying it locally
+
+The development `docker compose` stack can bring the assistant up against the
+example data. Put the settings in `docker/.env-local`, which is untracked:
+
+```bash
+# docker/.env-local
+
+# Point at any OpenAI-compatible endpoint, including a private gateway.
+SUPERSET_AI_LLM_BASE_URL=https://your-gateway/v1
+SUPERSET_AI_LLM_API_KEY=your-token
+SUPERSET_AI_MODEL_DEFAULT=your-model-name
+```
+
+```bash
+docker compose up
+```
+
+The assistant appears once both a URL and a key are present; with neither set the
+stack behaves exactly as it did before. The model providers are optional extras,
+so add whichever one you need to `docker/requirements-local.txt`:
+
+```
+openai>=1.60.0,<2
+```
+
+The local stack also logs traces to the container output and, unlike the
+production default, includes prompts and SQL in them.
+
+## Full configuration reference
+
+| Setting | Default | Purpose |
+| --- | --- | --- |
+| `AI_LLM_PROVIDER_CLASS` | `None` | Provider class path. Unset means the feature is off. |
+| `AI_LLM_PROVIDER_CONFIG` | `{}` | Provider constructor arguments. |
+| `AI_AGENT_RUNTIME_CLASS` | `MessagesApiRuntime` | The tool-use loop. |
+| `AI_AGENT_PROFILES` | `{}` | Per-profile overrides, including tool allowlists. |
+| `AI_AGENT_MAX_TURNS` | `20` | Model round trips per turn. |
+| `AI_AGENT_TIMEOUT_SECONDS` | `300` | Wall-clock budget per turn. |
+| `AI_AGENT_TOOL_POLICIES` | read-only + identifier | Pre-tool-use guards. |
+| `AI_AGENT_MAX_RESULT_ROWS` | `500` | Rows a tool may return. |
+| `AI_AGENT_MAX_RESULT_BYTES` | `262144` | Bytes a tool may return. |
+| `AI_ASSISTANT_EXECUTION_MODE` | `"inline"` | `inline` or `worker`. |
+| `AI_ASSISTANT_EVENT_BUS` | `"memory"` | `memory` or `redis`. |
+| `AI_ASSISTANT_EVENT_BUS_CACHE_CONFIG` | local Redis | Redis connection for the event bus. |
+| `AI_ASSISTANT_EVENT_TTL_SECONDS` | `900` | Event stream retention. |
+| `AI_ASSISTANT_MAX_HISTORY_MESSAGES` | `25` | Turns sent to the model. |
+| `AI_ASSISTANT_MAX_HISTORY_CHARS` | `100000` | Character budget for history. |
+| `AI_ASSISTANT_TIMEZONE` | `"UTC"` | Timezone for the date given to the model. |
+| `AI_ASSISTANT_MESSAGE_RETENTION_DAYS` | `30` | Conversation retention. |
+| `AI_SUGGESTED_PROMPTS_ENABLED` | `False` | Generate contextual starter prompts when the panel is empty. |
+| `AI_SUGGESTED_PROMPTS_COUNT` | `3` | Number of starter prompts to request. |
+| `AI_SUGGESTED_PROMPTS_MODEL_ALIAS` | `"fast"` | Model tier used for starter prompts. |
+| `AI_SUGGESTED_PROMPTS_MODEL` | `None` | Optional concrete model override for starter prompts. |
+| `AI_SUGGESTED_PROMPTS_MAX_TOKENS` | `300` | Output-token cap for starter prompts. |
+| `AI_SUGGESTED_PROMPTS_PROMPT` | `None` | Optional replacement prompt for starter-prompt generation. |
+| `AI_SYSTEM_PROMPT` | `None` | Replace the whole system prompt. |
+| `AI_EXTRA_PROMPT_SECTIONS` | `[]` | Append prompt sections. |
+| `AI_DISABLED_PROMPT_SECTIONS` | `[]` | Drop shipped sections by key. |
+| `AI_SYSTEM_PROMPT_MUTATOR` | `None` | Last-mile prompt hook. |
+| `AI_KNOWLEDGE_PROVIDERS` | `[]` | Deployment domain knowledge. |
+| `AI_AGENT_MCP_SERVERS` | `{}` | External MCP servers to attach. |
+| `AI_AGENT_MCP_DENY_FOREIGN_SQL` | `True` | Refuse SQL execution via a foreign server. |
+| `AI_TELEMETRY` | `[]` | Telemetry sinks, as instances or dotted paths. |
+| `AI_TELEMETRY_REDACT_CONTENT` | `True` | Withhold prompts, answers, SQL and data from telemetry. |
+| `AI_TELEMETRY_MAX_CONTENT_CHARS` | `10000` | Cap per content field when redaction is off. |
+
+Suggested prompts are disabled by default. Enabling them makes one additional
+model call when an empty panel requests suggestions, so it has the same provider
+cost and data-governance implications as any other model request.
+
+## Things worth knowing before you turn it on
+
+- **A language model can be confidently wrong.** The assistant shows the SQL it
+  ran precisely so that answers can be checked. Treat output as a starting
+  point, not an authority.
+- **Every question costs money** at your provider. There is no per-user quota
+  built in; use profiles and role grants to control who can spend.
+- **Answer quality tracks your metadata.** A warehouse with described tables and
+  documented datasets produces far better answers than one without. If the
+  assistant picks the wrong table, the usual fix is better descriptions or an
+  `AI_EXTRA_PROMPT_SECTIONS` entry, not a different model.

@@ -681,6 +681,15 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables Table V2 (AG Grid) viz plugin
     # @lifecycle: development
     "AG_GRID_TABLE_ENABLED": False,
+    # Enables the conversational AI assistant: an experimental feature that
+    # answers questions about your data by running read-only queries.
+    #
+    # Off by default and inert until a model provider is configured via
+    # AI_LLM_PROVIDER_CLASS — with the flag on but no provider the endpoints
+    # still return 404, so enabling the flag alone sends nothing anywhere. The
+    # assistant's own tools are read-only; it cannot create or modify assets.
+    # @lifecycle: development
+    "AI_ASSISTANT": False,
     # Enables experimental tabs UI for Alerts and Reports
     # @lifecycle: development
     "ALERT_REPORT_TABS": False,
@@ -1805,6 +1814,13 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "superset.tasks.slack",
         "superset.tasks.export_dashboard_excel",
         "superset.tasks.version_history_retention",
+        # Imported unconditionally, like the rest: importing the module only
+        # registers the task, and nothing enqueues it unless the AI assistant is
+        # switched on and configured for worker execution. Leaving it out meant a
+        # deployment that did switch worker mode on got
+        # "Received unregistered task of type 'ai.run_turn'" and a stream that
+        # never produced a frame.
+        "superset.ai.tasks",
     )
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_prefetch_multiplier = 1
@@ -3023,6 +3039,326 @@ WEBSOCKET_JWT_EXPIRATION_SECONDS = int(timedelta(minutes=15).total_seconds())
 # May be a string or a zero-argument callable, resolved once at startup, mirroring
 # Superset's other cache-key helpers. Empty is a no-op for single-instance setups.
 REALTIME_CHANNEL_PREFIX: Callable[[], str] | str = ""
+
+# ---------------------------------------------------------
+# AI assistant
+# ---------------------------------------------------------
+# Requires the AI_ASSISTANT feature flag. Superset ships no model provider and
+# talks to no model vendor by default: until AI_LLM_PROVIDER_CLASS names a
+# usable provider the assistant's endpoints return 404.
+#
+# Dotted path to a superset.ai.llm.base.BaseLLMProvider subclass. Point this at
+# a vendor provider, an OpenAI-compatible endpoint, a self-hosted model, or a
+# private gateway. Everything vendor-specific — base URLs, authentication,
+# model naming — belongs in the provider, not here.
+AI_LLM_PROVIDER_CLASS: str | None = None
+
+# Keyword arguments passed to the provider's constructor. Contents are entirely
+# provider-defined. Keep credentials out of this file: read them from the
+# environment or a secret store in your own config.
+#
+#   AI_LLM_PROVIDER_CONFIG = {
+#       "api_key": os.environ["MY_LLM_API_KEY"],
+#       "base_url": "https://llm.internal.example.com/v1",
+#       "models": {
+#           "default": "some-balanced-model",
+#           "fast": "some-small-model",
+#           "reasoning": "some-large-model",
+#       },
+#   }
+AI_LLM_PROVIDER_CONFIG: dict[str, Any] = {}
+
+# Dotted path to a superset.ai.runtime.base.BaseAgentRuntime subclass driving
+# the tool-use loop.
+AI_AGENT_RUNTIME_CLASS = "superset.ai.runtime.messages.MessagesApiRuntime"
+
+# Where a turn is executed.
+#
+#   "inline"  — in the web worker handling the request. No extra infrastructure,
+#               but a turn occupies a worker for its whole duration.
+#   "worker"  — handed to Celery; the request streams events from the event bus.
+#               Survives a browser reconnect and keeps web workers free, at the
+#               cost of requiring Celery and a shared event bus.
+AI_ASSISTANT_EXECUTION_MODE: Literal["inline", "worker"] = "inline"
+
+# How streamed events travel from producer to the HTTP response.
+#
+#   "memory" — an in-process queue. Correct only when the producer and the
+#              streaming request are the same process, i.e. inline execution.
+#   "redis"  — Redis streams, via the same cache backend the async-query
+#              channel uses. Required for "worker" execution mode.
+AI_ASSISTANT_EVENT_BUS: Literal["memory", "redis"] = "memory"
+
+# Redis connection for the AI event bus. Required when AI_ASSISTANT_EVENT_BUS is
+# "redis". Streams need commands the general-purpose cache client does not
+# expose, so this is configured separately rather than borrowed from
+# CACHE_CONFIG. The accepted shape matches
+# GLOBAL_ASYNC_QUERIES_CACHE_BACKEND; point both at the same Redis if you like.
+AI_ASSISTANT_EVENT_BUS_CACHE_CONFIG: dict[str, Any] = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_REDIS_HOST": "localhost",
+    "CACHE_REDIS_PORT": 6379,
+    "CACHE_REDIS_USER": "",
+    "CACHE_REDIS_PASSWORD": "",
+    "CACHE_REDIS_DB": 0,
+    "CACHE_DEFAULT_TIMEOUT": 300,
+    "CACHE_REDIS_SSL": False,
+}
+
+# Key prefix for AI event streams when the Redis bus is in use.
+AI_ASSISTANT_EVENT_STREAM_PREFIX = "ai-events-"
+
+# How long a run's event stream is retained, in seconds. Bounds how late a
+# reconnecting browser can still pick up a run it lost.
+AI_ASSISTANT_EVENT_TTL_SECONDS = 900
+
+# Named agent profiles, merged over the built-ins by key. Each value is a dict
+# of fields to override, so narrowing one profile does not mean restating the
+# rest. The most important field is "tools": which tools that profile may
+# invoke. An unknown tool name is a startup error, not a silent omission.
+#
+#   AI_AGENT_PROFILES = {
+#       # Take the shipped default but forbid raw SQL.
+#       "default": {"tools": ["search_assets", "get_schema"]},
+#       # Let the analyst profile think harder and longer.
+#       "analyst": {"model_alias": "reasoning", "max_turns": 60},
+#       # Add a profile only some users may select.
+#       "deep": {
+#           "name": "Deep analysis",
+#           "tools": ["search_assets", "get_schema", "execute_sql"],
+#           "required_permission": ("can_write", "AIAssistant"),
+#       },
+#   }
+AI_AGENT_PROFILES: dict[str, Any] = {}
+
+# Ceiling on model round trips in a single turn. A turn that needs more than
+# this is answered with what it has rather than looping indefinitely.
+AI_AGENT_MAX_TURNS = 20
+
+# Wall-clock budget for one turn, in seconds.
+AI_AGENT_TIMEOUT_SECONDS = 300
+
+# Pre-tool-use guards, applied in order. Each is a dotted path to a
+# superset.ai.policy.ToolPolicy implementation. These bound blast radius; they
+# do not replace the per-object authorization checks inside each tool.
+AI_AGENT_TOOL_POLICIES: list[str] = [
+    "superset.ai.policy.ReadOnlySqlPolicy",
+    "superset.ai.policy.IdentifierPolicy",
+    "superset.ai.policy.ForeignToolPolicy",
+]
+
+# Rows and bytes a single tool result may return before it is truncated.
+# Model context is finite, and an unbounded result set exhausts it.
+AI_AGENT_MAX_RESULT_ROWS = 500
+AI_AGENT_MAX_RESULT_BYTES = 256 * 1024
+
+# External MCP servers whose tools may be offered to an agent profile. Superset
+# ships none and integrates with no third-party service: with this empty, nothing
+# in superset.ai.mcp is ever reached and the assistant behaves exactly as it does
+# without it.
+#
+# A server listed here is only *available*. It is used by an agent profile that
+# names it in its "mcp_servers" field, via AI_AGENT_PROFILES. A profile naming a
+# server that is not configured here is an error, not a silently shorter tool
+# list.
+#
+#   AI_AGENT_MCP_SERVERS = {
+#       # The key is the server name. It becomes part of every tool name this
+#       # server contributes, so keep it short: letters, digits, hyphens and
+#       # underscores, and no double underscore.
+#       "acme_catalog": {
+#           # Required. Absolute http:// or https:// endpoint.
+#           "url": "https://mcp.acme.internal/mcp",
+#           # "streamable_http" (default) or "sse".
+#           "transport": "streamable_http",
+#           # The ONLY headers sent to this server. Superset never forwards the
+#           # user's session cookie, CSRF token or any Superset auth header: an
+#           # external server is not a party to the user's Superset session.
+#           # Read secrets from the environment rather than writing them here.
+#           "headers": {"Authorization": f"Bearer {os.environ['ACME_MCP_TOKEN']}"},
+#           # Per-call budget. Bounds how long one call may occupy the worker
+#           # running the turn. Defaults to 30.
+#           "timeout_seconds": 30,
+#           # Which of the server's tools to take. Absent or None means every
+#           # tool it offers, which lets the server decide what the agent can do.
+#           # Either the server's own name ("search_tables") or the namespaced
+#           # name Superset assigns ("mcp__acme_catalog__search_tables") matches.
+#           "tool_allowlist": ["search_tables"],
+#           # Refused regardless of the allowlist.
+#           "tool_denylist": [],
+#       },
+#   }
+#
+#   AI_AGENT_PROFILES = {
+#       "default": {"mcp_servers": ["acme_catalog"]},
+#   }
+#
+# Every tool from a server is namespaced "mcp__<server>__<tool>". The namespace is
+# stable, appears in stored conversation history, and is what makes it impossible
+# for a server offering "execute_sql" to displace Superset's own tool of that
+# name. Foreign results pass through the same AI_AGENT_MAX_RESULT_BYTES bound and
+# the same AI_AGENT_TOOL_POLICIES chain as built-in ones, and are wrapped as
+# untrusted content before the model sees them.
+#
+# A server that is unreachable, slow or unreadable contributes no tools and the
+# agent keeps working with the built-ins. Discovery happens while assembling the
+# registry for a turn, so a slow server costs up to its timeout at the start of
+# each turn that uses it.
+#
+# Requires the 'mcp' package; it is imported only once a server is configured.
+AI_AGENT_MCP_SERVERS: dict[str, Any] = {}
+
+# Refuse any external MCP tool whose name advertises SQL execution — anything
+# containing "execute_sql", "run_sql" or "query" by default. Enforced by
+# superset.ai.policy.ForeignToolPolicy.
+#
+# On by default because Superset's read-only enforcement and its per-datasource
+# authorization can only apply to SQL Superset itself runs. A third-party server
+# executing SQL goes through neither, so permitting it silently removes both
+# controls rather than merely widening the surface. Set this False only if you
+# have satisfied yourself that the servers you have configured enforce
+# equivalent controls of their own.
+AI_AGENT_MCP_DENY_FOREIGN_SQL = True
+
+# Conversation history sent to the model: the most recent N messages, further
+# trimmed oldest-first until under the character budget.
+AI_ASSISTANT_MAX_HISTORY_MESSAGES = 25
+AI_ASSISTANT_MAX_HISTORY_CHARS = 100_000
+
+# Timezone for the authoritative date given to the model, so it never has to
+# infer today's date or weekday.
+AI_ASSISTANT_TIMEZONE = "UTC"
+
+# Days a conversation is retained. Pruning is performed by the
+# ``ai.prune_conversations`` Celery task, which must be scheduled to run.
+AI_ASSISTANT_MESSAGE_RETENTION_DAYS = 30
+
+# Ordered KnowledgeProvider instances or dotted paths contributing
+# deployment-specific domain knowledge — table catalogs, metric definitions,
+# house SQL conventions. Superset core ships none of this.
+AI_KNOWLEDGE_PROVIDERS: list[Any] = []
+
+# Last-mile hook applied after the system prompt is assembled, mirroring
+# SQL_QUERY_MUTATOR. Lets a deployment append or redact without owning the
+# whole builder.
+#
+#   def AI_SYSTEM_PROMPT_MUTATOR(prompt: str, **kwargs: Any) -> str:
+#       return prompt + "\n\n" + house_style_rules()
+AI_SYSTEM_PROMPT_MUTATOR: Callable[..., str] | None = None
+
+# ---------------------------------------------------------
+# AI assistant: observability
+# ---------------------------------------------------------
+# Sinks receiving traces, metrics and logs for every assistant run. Each entry
+# is either an instance of superset.ai.telemetry.AITelemetry or a dotted path to
+# one, following the precedent set by EVENT_LOGGER and STATS_LOGGER.
+#
+# Superset bundles no vendor integration. Two sinks ship in-tree and depend on
+# nothing external:
+#
+#   from superset.ai.telemetry import LoggingAITelemetry, StatsLoggerAITelemetry
+#   AI_TELEMETRY = [LoggingAITelemetry(), StatsLoggerAITelemetry()]
+#
+# To send traces to a hosted or self-hosted tracing product — Braintrust,
+# LangSmith, Langfuse, Arize Phoenix, an OpenTelemetry collector, or your own
+# warehouse — subclass AITelemetry and add it to this list. Several sinks may be
+# configured at once; each is called independently and one failing does not
+# affect the others or the run.
+AI_TELEMETRY: list[Any] = []
+
+# Whether prompts, answers, SQL and query results are withheld from telemetry.
+#
+# True (the default) sends structure and measurements only: durations, token
+# counts, model names, tool names, outcomes, error classes. It does not send the
+# user's question, the assistant's answer, the SQL it ran, or any row of data.
+#
+# Set to False to include content, which is what makes a trace genuinely useful
+# for debugging answer quality. Do that deliberately: it sends the text of
+# business questions and warehouse values to whatever sinks are configured, and
+# in many organisations that is a decision for someone other than the person
+# editing this file.
+AI_TELEMETRY_REDACT_CONTENT = True
+
+# Bound on any single content field forwarded to telemetry when redaction is
+# off, so one large result cannot dominate a trace payload.
+AI_TELEMETRY_MAX_CONTENT_CHARS = 10_000
+
+# Extra always-on prompt sections, appended to the ones Superset ships. Each is
+# a superset.ai.prompts.PromptSection, or a mapping with keys "key", "body",
+# "kind" and optionally "source" and "order".
+#
+# Must declare kind "skill" or "knowledge": the safety, persona, process and
+# format layers are reserved for Superset so that they stay portable, and a
+# section here may not claim "superset.core" as its source. Anything large
+# belongs behind a KnowledgeProvider domain instead — every token here is paid
+# on every request.
+#
+#   AI_EXTRA_PROMPT_SECTIONS = [
+#       {
+#           "key": "house.sql_style",
+#           "kind": "skill",
+#           "source": "house",
+#           "body": "Prefer CTEs over subqueries in anything you hand back.",
+#       },
+#   ]
+AI_EXTRA_PROMPT_SECTIONS: list[Any] = []
+
+# Keys of shipped prompt sections to leave out, for a deployment that disagrees
+# with one and would otherwise have to fork. Current core keys are
+# "core.safety", "core.persona", "core.sql_conventions",
+# "core.superset_product" and "core.time_anchor".
+#
+# The safety section cannot be disabled and naming it raises at assembly time.
+# It is the only section whose absence changes what the assistant is permitted
+# to do — including its prompt-injection defences — rather than how well it
+# does it.
+AI_DISABLED_PROMPT_SECTIONS: list[str] = []
+
+# Complete replacement for the assembled system prompt. When set, NO section
+# Superset ships is included, and AI_EXTRA_PROMPT_SECTIONS and
+# AI_DISABLED_PROMPT_SECTIONS are ignored. AI_SYSTEM_PROMPT_MUTATOR still runs.
+#
+# WARNING: this opts out of every rule Superset ships — the safety limits, the
+# prompt-injection defence that treats tool output as data rather than
+# instructions, the grounding contract that forbids reporting an unverified
+# number, and the Superset product behaviour the assistant would otherwise rely
+# on. A deployment that sets this owns all of it. Prefer
+# AI_EXTRA_PROMPT_SECTIONS or AI_SYSTEM_PROMPT_MUTATOR unless you genuinely
+# intend to replace the whole thing.
+AI_SYSTEM_PROMPT: str | None = None
+
+# -----------------------------------------------------------------------------
+# Suggested opening prompts
+# -----------------------------------------------------------------------------
+# When enabled, opening the assistant on a page asks the model for a few
+# questions worth asking about that page, which lets the suggestions name the
+# actual charts, columns and filters on screen.
+#
+# Off by default because it costs one model round trip every time an empty panel
+# is opened. With it off, the client still shows suggestions derived locally from
+# the same page context, so the affordance does not disappear — it is just less
+# specific.
+AI_SUGGESTED_PROMPTS_ENABLED = False
+
+# How many to ask for. Capped at 3 by the suggestion row's width.
+AI_SUGGESTED_PROMPTS_COUNT = 3
+
+# Capability tier for the request. The cheapest tier by default: this produces
+# three one-line questions, not analysis.
+AI_SUGGESTED_PROMPTS_MODEL_ALIAS = "fast"
+
+# Pin an exact model identifier instead of resolving the alias above. Leave as
+# None unless you specifically want suggestions on a different model from the
+# rest of the assistant.
+AI_SUGGESTED_PROMPTS_MODEL: str | None = None
+
+# Output ceiling for the suggestion request.
+AI_SUGGESTED_PROMPTS_MAX_TOKENS = 300
+
+# Replace the instruction used to ask for suggestions. Receives `{count}` and
+# `{max_chars}`. Leave as None to use the shipped instruction, which asks for a
+# bare JSON array of questions.
+AI_SUGGESTED_PROMPTS_PROMPT: str | None = None
 
 # Embedded config options
 GUEST_ROLE_NAME = "Public"
