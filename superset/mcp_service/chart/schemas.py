@@ -1045,6 +1045,61 @@ class PieChartConfig(BaseChartConfig):
         return self
 
 
+class HeatmapChartConfig(BaseChartConfig):
+    """Config for heatmap charts (viz_type ``heatmap_v2``).
+
+    Matches the frontend Heatmap buildQuery contract: an ``x_axis`` column, a
+    single ``groupby`` column for the Y axis, and one ``metric`` colouring each
+    cell. ``normalize_across`` drives the server-side rank normalization
+    (whole heatmap, per-x, or per-y).
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["heatmap_v2"] = "heatmap_v2"
+    x_axis: ColumnRef = Field(
+        ...,
+        description="Column along the X axis",
+    )
+    y_axis: ColumnRef = Field(
+        ...,
+        description="Column along the Y axis (form_data 'groupby'; single-select)",
+        validation_alias=AliasChoices("y_axis", "groupby"),
+    )
+    metric: ColumnRef = Field(
+        ...,
+        description="Value metric colouring each cell (use aggregate e.g. SUM, "
+        "COUNT for ad-hoc, or set saved_metric=True for a saved dataset metric)",
+    )
+    normalize_across: Literal["heatmap", "x", "y"] = Field(
+        "heatmap",
+        description="Range the cell colour is normalized against: the whole "
+        "'heatmap', each 'x' column, or each 'y' row (frontend default: "
+        "'heatmap')",
+    )
+    row_limit: int = Field(
+        10000, description="Max rows queried (cells = X × Y)", ge=1, le=100000
+    )
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+
+    @model_validator(mode="after")
+    def reject_metric_style_dimensions(self) -> "HeatmapChartConfig":
+        """x_axis and y_axis are dimensions, not metrics."""
+        for col, name in ((self.x_axis, "x_axis"), (self.y_axis, "y_axis")):
+            _reject_sql_expression_on_dimension(col, name)
+            if col and col.is_metric:
+                raise ValueError(
+                    f"{name} must be a plain column, not a metric; drop "
+                    "'aggregate'/'saved_metric' (metrics belong in the 'metric' "
+                    "field)"
+                )
+        return self
+
+
 class PivotTableChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -2287,6 +2342,7 @@ ChartConfig = Annotated[
     XYChartConfig
     | TableChartConfig
     | PieChartConfig
+    | HeatmapChartConfig
     | PivotTableChartConfig
     | InteractivePivotChartConfig
     | MixedTimeseriesChartConfig
@@ -2299,7 +2355,8 @@ ChartConfig = Annotated[
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'pivot_table', 'interactive_pivot', 'mixed_timeseries', "
+            "'pie', 'heatmap_v2', 'pivot_table', 'interactive_pivot', "
+            "'mixed_timeseries', "
             "'handlebars', "
             "'big_number', 'histogram', 'box_plot', or 'waterfall'"
         ),

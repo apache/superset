@@ -617,7 +617,11 @@ def build_query_dicts_from_form_data(
     )
 
     x_axis_col: str | None = None
-    if is_timeseries:
+    # Fold x_axis into the GROUP BY columns for viz types whose frontend
+    # buildQuery adds it to ``columns``: time-series charts and heatmap_v2,
+    # whose X axis lives under the ``x_axis`` key rather than ``groupby``.
+    # Without this the X dimension is silently dropped and the grain is wrong.
+    if is_timeseries or viz_type == "heatmap_v2":
         x_axis_col = extract_x_axis_col(form_data)
         if x_axis_col and x_axis_col not in groupby:
             groupby = [x_axis_col] + groupby
