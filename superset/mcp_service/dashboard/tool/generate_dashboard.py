@@ -145,6 +145,66 @@ def _create_dashboard_layout(chart_objects: List[Any]) -> Dict[str, Any]:
     return layout
 
 
+def _is_valid_dashboard_layout(layout: Dict[str, Any], chart_ids: set[int]) -> bool:
+    """Return whether an explicit layout is safe for frontend hydration."""
+    components = {
+        component_id: component
+        for component_id, component in layout.items()
+        if isinstance(component, dict) and "type" in component
+    }
+    children_by_id: dict[str, list[str]] = {}
+    for component_id, component in components.items():
+        children = component.get("children")
+        if component.get("type") == "HEADER" and children is None:
+            children = []
+        if (
+            component.get("id") != component_id
+            or not isinstance(component.get("type"), str)
+            or not isinstance(children, list)
+            or any(
+                not isinstance(child_id, str) or child_id not in components
+                for child_id in children
+            )
+        ):
+            return False
+        if component["type"] == "CHART":
+            meta = component.get("meta")
+            if not isinstance(meta, dict) or meta.get("chartId") not in chart_ids:
+                return False
+        children_by_id[component_id] = children
+
+    root = components.get("ROOT_ID")
+    if (
+        layout.get("DASHBOARD_VERSION_KEY") != "v2"
+        or not isinstance(root, dict)
+        or root.get("id") != "ROOT_ID"
+        or root.get("type") != "ROOT"
+        or len(children_by_id["ROOT_ID"]) != 1
+    ):
+        return False
+
+    pending = ["ROOT_ID"]
+    seen: set[str] = set()
+    while pending:
+        component_id = pending.pop()
+        if component_id in seen:
+            return False
+        seen.add(component_id)
+        pending.extend(children_by_id[component_id])
+
+    root_child = components[children_by_id["ROOT_ID"][0]]
+    if root_child["type"] == "GRID":
+        return True
+    return (
+        root_child["type"] == "TABS"
+        and bool(children_by_id[root_child["id"]])
+        and all(
+            components[child_id]["type"] == "TAB"
+            for child_id in children_by_id[root_child["id"]]
+        )
+    )
+
+
 _DEFAULT_DASHBOARD_TITLE = "Dashboard"
 _MAX_TITLE_LENGTH = 150
 
@@ -206,9 +266,9 @@ def generate_dashboard(  # noqa: C901
       Never use this tool as a fallback when add_chart_to_existing_dashboard fails.
     - All charts must exist and be accessible to current user
     - Layout: by default, charts are arranged in an auto-generated 2-column
-      grid. When ``position_json`` is supplied, that explicit layout is
-      written verbatim and the auto-generated grid is skipped — use this to
-      compose custom rows, header bands, or MARKDOWN/HEADER components.
+      grid. A valid ``position_json`` replaces that grid for custom rows,
+      header bands, or MARKDOWN/HEADER components. Invalid explicit layouts
+      fall back to the auto-generated grid and return a warning.
 
     Returns:
     - Dashboard ID and URL
@@ -216,7 +276,7 @@ def generate_dashboard(  # noqa: C901
     # Advisory messages (e.g. title sanitization) surfaced to the caller
     # alongside the created dashboard so they can tell when their input
     # was altered.
-    sanitization_warnings = list(getattr(request, "sanitization_warnings", []) or [])
+    warnings = list(getattr(request, "sanitization_warnings", []) or [])
 
     try:
         # avoids ImportError before Flask app initialisation:
@@ -264,13 +324,19 @@ def generate_dashboard(  # noqa: C901
                     )
 
         # Create dashboard layout with chart objects.
-        # If the caller provided an explicit position_json, use it verbatim;
-        # otherwise auto-generate a packed-grid layout from the chart ids.
+        # Invalid explicit layouts make frontend hydration fail before chart
+        # queries start, so fall back to the known-good packed grid.
         with event_logger.log_context(action="mcp.generate_dashboard.layout"):
-            if request.position_json:
+            if request.position_json and _is_valid_dashboard_layout(
+                request.position_json, set(found_chart_ids)
+            ):
                 layout = request.position_json
             else:
                 layout = _create_dashboard_layout(chart_objects)
+                if request.position_json:
+                    warnings.append(
+                        "position_json was invalid; used an auto-generated layout."
+                    )
 
         # Resolve dashboard title: use provided title or derive from chart names
         dashboard_title = (
@@ -486,7 +552,7 @@ def generate_dashboard(  # noqa: C901
                 ),
                 dashboard_url=dashboard_url,
                 error=None,
-                warnings=sanitization_warnings
+                warnings=warnings
                 + [
                     "Dashboard created but response metadata is partial "
                     "(post-create refresh failed); some fields are omitted. "
@@ -542,7 +608,7 @@ def generate_dashboard(  # noqa: C901
             dashboard=dashboard_info,
             dashboard_url=dashboard_url,
             error=None,
-            warnings=sanitization_warnings,
+            warnings=warnings,
         )
 
     except (SQLAlchemyError, ValueError, AttributeError, ValidationError) as e:

@@ -675,7 +675,8 @@ class GenerateDashboardRequest(BaseModel):
             "dict). When set, replaces the auto-generated layout entirely. "
             "Pass this when you need custom row composition, MARKDOWN "
             "blocks, HEADER components, or specific chart widths/heights. "
-            "Omit to let the tool auto-generate a packed grid from chart_ids."
+            "Invalid layouts fall back to the auto-generated packed grid. "
+            "Omit this field to use that grid directly."
         ),
     )
     json_metadata_overrides: Dict[str, Any] | None = Field(

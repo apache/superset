@@ -745,17 +745,31 @@ class TestGenerateDashboard:
         )
 
         custom_layout = {
-            "ROOT_ID": {"type": "ROOT", "children": ["GRID_ID"]},
-            "GRID_ID": {"type": "GRID", "children": ["ROW-custom"]},
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {
+                "id": "ROOT_ID",
+                "type": "ROOT",
+                "children": ["GRID_ID"],
+            },
+            "GRID_ID": {
+                "id": "GRID_ID",
+                "type": "GRID",
+                "children": ["ROW-custom"],
+                "parents": ["ROOT_ID"],
+            },
             "ROW-custom": {
+                "id": "ROW-custom",
                 "type": "ROW",
                 "children": ["CHART-1"],
                 "meta": {"background": "BACKGROUND_TRANSPARENT"},
+                "parents": ["ROOT_ID", "GRID_ID"],
             },
             "CHART-1": {
+                "id": "CHART-1",
                 "type": "CHART",
                 "children": [],
                 "meta": {"chartId": 1, "width": 12, "height": 100},
+                "parents": ["ROOT_ID", "GRID_ID", "ROW-custom"],
             },
         }
         request = {
@@ -778,6 +792,52 @@ class TestGenerateDashboard:
             # `ROW-custom`; this sanity-check guards against regressions
             # where the override silently merges with the default.
             assert "ROW-custom" in stored
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_invalid_position_json_falls_back(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """An LLM-shaped nested layout cannot create an unloadable dashboard."""
+        charts = [_mock_chart(id=1, slice_name="Sales")]
+        dashboard = _mock_dashboard(id=71, title="Safe Layout Dashboard")
+        _setup_generate_dashboard_mocks(
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            dashboard,
+        )
+        request = {
+            "chart_ids": [1],
+            "dashboard_title": "Safe Layout Dashboard",
+            "position_json": {
+                "ROOT": {
+                    "id": "ROOT",
+                    "type": "ROW",
+                    "children": [
+                        {"id": "1", "type": "CHART", "metadata": {"chart_id": 1}}
+                    ],
+                }
+            },
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+        stored = json.loads(mock_dashboard_cls.return_value.position_json)
+        assert stored["ROOT_ID"]["type"] == "ROOT"
+        assert stored["ROOT_ID"]["children"] == ["GRID_ID"]
+        assert stored["CHART-1"]["meta"]["chartId"] == 1
+        assert result.structured_content["warnings"] == [
+            "position_json was invalid; used an auto-generated layout."
+        ]
 
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
