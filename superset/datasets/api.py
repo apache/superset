@@ -1674,7 +1674,10 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         # physical Postgres/MySQL table stored with a non-NULL schema).
         # If two datasets share the ``table_name`` across schemas and the
         # caller omits ``schema``, surface a 400 with an actionable message
-        # instead of the original 500 ``MultipleResultsFound``.
+        # instead of the original 500 ``MultipleResultsFound``. The same guard
+        # applies when the caller supplies ``schema`` but two legacy rows still
+        # match with ``catalog=None`` (the composite unique constraint treats
+        # NULL catalogs as distinct), so both branches catch the exception.
         # Catalog follows the same literal-pass rule: existing datasets
         # created before multi-catalog support landed are stored with
         # ``catalog=None``, so applying ``database.get_default_catalog()``
@@ -1682,9 +1685,20 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         schema = body.get("schema") or None
         catalog = body.get("catalog") or None
         if schema:
-            table = DatasetDAO.get_table_by_catalog_schema_and_name(
-                database_id, schema, table_name, catalog=catalog
-            )
+            try:
+                table = DatasetDAO.get_table_by_catalog_schema_and_name(
+                    database_id, schema, table_name, catalog=catalog
+                )
+            except MultipleResultsFound:
+                return self.response_400(
+                    message=(
+                        f"Multiple datasets named '{table_name}' exist in "
+                        f"schema '{schema}' of this database, differing only "
+                        "by catalog. Specify the 'catalog' field to "
+                        "disambiguate, or contact an admin about removing "
+                        "duplicate legacy datasets."
+                    )
+                )
         else:
             try:
                 table = DatasetDAO.get_table_by_name(database_id, table_name)
