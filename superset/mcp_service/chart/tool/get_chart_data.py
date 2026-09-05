@@ -150,6 +150,7 @@ _VIZ_CATEGORY: dict[str, str] = {
     "area": "area",
     "scatter": "scatter",
     "bubble": "bubble",
+    "bubble_v2": "bubble",
     "treemap_v2": "treemap",
     "sunburst_v2": "treemap",
     "heatmap_v2": "heatmap",
