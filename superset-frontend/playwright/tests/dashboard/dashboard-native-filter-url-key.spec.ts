@@ -18,27 +18,15 @@
  */
 
 /**
- * The original Cypress suite's second case ("should have different key when
- * page reloads") was non-functional: it compared `native_filters_key` against
- * an `initialFilterKey` variable that was declared but never assigned, so it
- * asserted against `undefined` and passed vacuously. The real backend
- * contract is the opposite — CreateFilterStateCommand reuses the existing key
- * for a given (session, tab, dashboard) via a contextual cache — so this
- * migration asserts the true behaviour (reuse), not the inherited bug.
+ * A fresh navigation is expected to reuse the same filter_state key, not mint
+ * a new one: CreateFilterStateCommand caches by (session, tab, dashboard), so
+ * this test uses `page.goto` on the bare dashboard URL rather than
+ * `page.reload()` — a reload keeps `?native_filters_key=` in the address bar,
+ * which would take the PUT (update) branch instead of re-exercising create.
  *
- * The second visit is deliberately a fresh `page.goto` to the bare dashboard
- * URL, not `page.reload()`: a reload keeps `?native_filters_key=` in the
- * address bar, so the wait for the key would resolve against the pre-existing
- * param and take the PUT (update) branch instead of re-exercising the create
- * path. The bare URL forces a new POST, and the backend still answers with
- * the same key because its contextual cache is keyed on the tab id (persisted
- * in sessionStorage across the navigation), not on the URL.
- *
- * Key reuse also requires every request to reach the same filter_state cache.
- * The test config uses a per-process SimpleCache, and CI runs a single
- * gunicorn worker without recycling, so reuse is deterministic there; a
- * multi-worker or worker-recycling backend would make the reuse assertion
- * flaky.
+ * Reuse also requires every request to hit the same cache: the test config
+ * uses a per-process SimpleCache behind a single non-recycling gunicorn
+ * worker, so this is only deterministic under that setup.
  */
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import {
