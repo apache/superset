@@ -118,6 +118,7 @@ const formData: EchartsMixedTimeseriesFormData = {
   minorTicks: false,
   gridlines: true,
   axisTicks: true,
+  valueAxisLabels: true,
   opacity: 0,
   opacityB: 0,
   orderDesc: false,
@@ -1762,4 +1763,18 @@ test('hides the ticks on the x axis and both y axes', () => {
   expect(xAxis.axisTick.show).toBe(false);
   expect(yAxis[0].axisTick.show).toBe(false);
   expect(yAxis[1].axisTick.show).toBe(false);
+});
+
+test('hides the labels on both value axes', () => {
+  const { yAxis } = transformWithChrome({ valueAxisLabels: false });
+
+  expect(yAxis[0].axisLabel.show).toBe(false);
+  expect(yAxis[1].axisLabel.show).toBe(false);
+});
+
+test('shows the labels on both value axes when enabled', () => {
+  const { yAxis } = transformWithChrome({ valueAxisLabels: true });
+
+  expect(yAxis[0].axisLabel.show).toBe(true);
+  expect(yAxis[1].axisLabel.show).toBe(true);
 });

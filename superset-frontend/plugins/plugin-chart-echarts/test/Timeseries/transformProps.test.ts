@@ -3576,3 +3576,63 @@ test('boundary label alignment is dropped when the orientation moves the time ax
   expect(horizontal.axisLabel.showMinLabel).toBe(true);
   expect(horizontal.axisLabel.showMaxLabel).toBe(true);
 });
+
+type AxisLabelOptions = {
+  axisLabel: {
+    show?: boolean;
+    showMinLabel?: boolean;
+    showMaxLabel?: boolean;
+  };
+  splitLine?: { show?: boolean };
+};
+
+test('shows the value axis labels by default', () => {
+  const { echartOptions } = transformProps(createTestChartProps({}));
+  const { axisLabel } = echartOptions.yAxis as AxisLabelOptions;
+
+  expect(axisLabel.show).toBe(true);
+  expect(axisLabel.showMinLabel).toBe(true);
+  expect(axisLabel.showMaxLabel).toBe(true);
+});
+
+test('hides the value axis labels including the boundary ones', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({ formData: { valueAxisLabels: false } }),
+  );
+  const yAxis = echartOptions.yAxis as AxisLabelOptions;
+  const xAxis = echartOptions.xAxis as AxisLabelOptions;
+
+  expect(yAxis.axisLabel.show).toBe(false);
+  expect(yAxis.axisLabel.showMinLabel).toBe(false);
+  expect(yAxis.axisLabel.showMaxLabel).toBe(false);
+  expect(yAxis.splitLine?.show).toBe(true);
+  expect(xAxis.axisLabel.show).toBeUndefined();
+});
+
+test('keeps the value axis labels off on a micro chart even when enabled', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({
+      height: TIMESERIES_CONSTANTS.microChartHeight - 1,
+      formData: { valueAxisLabels: true },
+    }),
+  );
+  const { axisLabel } = echartOptions.yAxis as AxisLabelOptions;
+
+  expect(axisLabel.show).toBe(false);
+  expect(axisLabel.showMinLabel).toBe(false);
+  expect(axisLabel.showMaxLabel).toBe(false);
+});
+
+test('hides the value axis labels after a horizontal orientation swaps the axis', () => {
+  const { echartOptions } = transformProps(
+    createTestChartProps({
+      formData: {
+        orientation: OrientationType.Horizontal,
+        valueAxisLabels: false,
+      },
+    }),
+  );
+  const xAxis = echartOptions.xAxis as AxisLabelOptions;
+
+  expect(xAxis.axisLabel.show).toBe(false);
+});
