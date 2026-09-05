@@ -161,21 +161,28 @@ class QueryEstimationCommand(BaseCommand):
     ) -> list[dict[str, Any]]:
         self.validate()
 
-        sql = self._sql
-        if self._template_params:
-            # Access is already checked in validate() before any rendering.
-            template_processor = get_template_processor(self._database)
-            try:
-                sql = template_processor.process_template(sql, **self._template_params)
-            except TemplateError as ex:
-                raise SupersetErrorException(
-                    SupersetError(
-                        message=str(ex),
-                        error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
-                        level=ErrorLevel.ERROR,
-                    ),
-                    status=400,
-                ) from ex
+        # Access is already checked in validate() before any rendering.
+        #
+        # Rendered whether or not `template_params` was supplied, the way
+        # `validate()` above already jinja-processes for authorization and the
+        # execution path does in `SqlQueryRenderImpl.render`. A query needs no
+        # declared parameter to need rendering -- `get_time_filter()`,
+        # `current_username()`, `url_param()` take none -- and SQL Lab posts an
+        # empty `template_params` for an estimate, so those never rendered.
+        template_processor = get_template_processor(self._database)
+        try:
+            sql = template_processor.process_template(
+                self._sql, **self._template_params
+            )
+        except TemplateError as ex:
+            raise SupersetErrorException(
+                SupersetError(
+                    message=str(ex),
+                    error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                status=400,
+            ) from ex
 
         # Apply the same SQL security controls used by the execution path
         # (sql_lab.execute_sql_statements) so cost estimation cannot be used to
