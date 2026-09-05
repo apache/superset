@@ -31,6 +31,7 @@ from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
+    FunnelChartConfig,
     HandlebarsChartConfig,
     HistogramChartConfig,
     InteractivePivotChartConfig,
@@ -49,6 +50,7 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "xy": TypeAdapter(XYChartConfig),
     "table": TypeAdapter(TableChartConfig),
     "pie": TypeAdapter(PieChartConfig),
+    "funnel": TypeAdapter(FunnelChartConfig),
     "pivot_table": TypeAdapter(PivotTableChartConfig),
     "interactive_pivot": TypeAdapter(InteractivePivotChartConfig),
     "mixed_timeseries": TypeAdapter(MixedTimeseriesChartConfig),
@@ -204,6 +206,13 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "show_total": True,
         },
     ],
+    "funnel": [
+        {
+            "chart_type": "funnel",
+            "dimension": {"name": "stage"},
+            "metric": {"name": "leads", "aggregate": "SUM"},
+        },
+    ],
 }
 
 
@@ -291,7 +300,7 @@ def get_chart_type_schema(
     for a chart configuration before calling generate_chart or update_chart.
 
     Valid chart_type values depend on the host deployment. Core types are xy,
-    table, pie, pivot_table, mixed_timeseries, handlebars, big_number,
+    table, pie, funnel, pivot_table, mixed_timeseries, handlebars, big_number,
     histogram, box_plot, and waterfall. Deployments that enable an AG Grid
     pivot extension also expose interactive_pivot.
 

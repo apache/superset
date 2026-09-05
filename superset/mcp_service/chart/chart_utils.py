@@ -43,6 +43,7 @@ from superset.mcp_service.chart.schemas import (
     ColumnRef,
     CurrencyFormat,
     FilterConfig,
+    FunnelChartConfig,
     HandlebarsChartConfig,
     HistogramChartConfig,
     MixedTimeseriesChartConfig,
@@ -1044,6 +1045,25 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
     return form_data
 
 
+def map_funnel_config(config: FunnelChartConfig) -> Dict[str, Any]:
+    """Map funnel config to Superset form_data (viz_type ``funnel``).
+
+    Matches the frontend Funnel buildQuery contract: a single ``groupby``
+    dimension (the funnel stages) and one ``metric``; when ``sort_by_metric``
+    is set the query orders by that metric descending.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "funnel",
+        "groupby": [config.dimension.name],
+        "metric": create_metric_object(config.metric),
+        "sort_by_metric": config.sort_by_metric,
+        "row_limit": config.row_limit,
+        "color_scheme": config.color_scheme or "supersetColors",
+    }
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
 def map_histogram_config(config: "HistogramChartConfig") -> Dict[str, Any]:
     """Map histogram config to Superset form_data (viz_type histogram_v2).
 
@@ -1547,6 +1567,15 @@ def _xy_chart_context(config: XYChartConfig) -> str | None:
 
 def _pie_chart_what(config: PieChartConfig) -> str:
     """Build the 'what' portion for a pie chart name."""
+    dim = config.dimension.name
+    metric_label = (
+        config.metric.label or config.metric.name or config.metric.sql_expression
+    )
+    return f"{dim} by {metric_label}"
+
+
+def _funnel_chart_what(config: FunnelChartConfig) -> str:
+    """Build the 'what' portion for a funnel chart name."""
     dim = config.dimension.name
     metric_label = (
         config.metric.label or config.metric.name or config.metric.sql_expression
