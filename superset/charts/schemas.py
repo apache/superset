@@ -48,6 +48,7 @@ from superset.utils.core import (
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
 )
+from superset.utils.pandas_postprocessing.utils import PROPHET_TIME_GRAIN_MAP
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -71,6 +72,18 @@ def get_time_grain_choices() -> Any:
         }.keys()
         if i
     ]
+
+
+def get_prophet_time_grain_choices() -> list[str]:
+    """Get the time grains Prophet forecasting can actually resolve.
+
+    Deliberately narrower than :func:`get_time_grain_choices`: ``prophet()``
+    resolves a grain through the static ``PROPHET_TIME_GRAIN_MAP``, so an
+    operator-configured ``TIME_GRAIN_ADDONS`` key has no pandas frequency to
+    resolve to. Advertising one here would document a forecast the API
+    cannot serve.
+    """
+    return list(PROPHET_TIME_GRAIN_MAP)
 
 
 # Fallback upper bound for the number of Prophet forecast periods when the
@@ -778,7 +791,7 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        validate=validate.OneOf(choices=get_time_grain_choices()),
+        validate=validate.OneOf(choices=get_prophet_time_grain_choices()),
         required=True,
     )
     periods = fields.Integer(
