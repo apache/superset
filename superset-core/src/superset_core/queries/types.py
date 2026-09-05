@@ -66,8 +66,6 @@ class QueryOptions:
     - Templates: Jinja2 template parameters
     - Caching: Cache timeout and refresh control
     - Dry run: Return transformed SQL without execution
-    - CTAS/CVAS: create the results as a table/view (SQL Lab)
-    - Result handling: nested-column expansion and results-backend persistence
     """
 
     # Basic options
@@ -84,31 +82,6 @@ class QueryOptions:
 
     # Dry run option
     dry_run: bool = False  # Return transformed SQL without executing
-
-    # CREATE TABLE/VIEW AS SELECT. When ``select_as_cta`` is set the last (CTAS)
-    # or sole (CVAS) SELECT is rewritten to materialize into
-    # ``tmp_schema_name.tmp_table_name`` using ``ctas_method`` ("TABLE"/"VIEW").
-    select_as_cta: bool = False
-    ctas_method: str | None = None
-    tmp_table_name: str | None = None
-    tmp_schema_name: str | None = None
-
-    # Result handling. ``expand_data`` expands nested columns (Presto/Trino).
-    # ``store_results`` persists the serialized result to the results backend and
-    # returns its handle on ``QueryResult.results_key`` (the SQL Lab path);
-    # otherwise results are returned inline as DataFrames on each StatementResult.
-    expand_data: bool = False
-    store_results: bool = False
-
-    # Execute against a pre-created Query row (SQL Lab creates its own row with
-    # client_id/sql_editor_id/tab_name/CTAS fields, the UI's source of truth)
-    # instead of the executor creating a minimal audit row.
-    existing_query_id: int | None = None
-
-    # When True the caller owns the execution timeout (e.g. a GTF ``@task``
-    # timeout wrapping the async path), so the executor skips its own in-process
-    # ``utils.timeout`` to avoid a double timeout.
-    caller_owns_timeout: bool = False
 
 
 @dataclass
@@ -144,11 +117,6 @@ class QueryResult:
         total_execution_time_ms: Total execution time across all statements
         is_cached: Whether result came from cache
         error_message: Query-level error (e.g., "Statement 2 of 3: error")
-        results_key: Results-backend handle when executed with
-            ``QueryOptions.store_results`` (the serialized result is written to
-            the results backend rather than returned inline); None otherwise.
-        limiting_factor: Which limit applied to the result (SQL Lab), e.g.
-            "DROPDOWN"/"QUERY"/"NOT_LIMITED"; None when not tracked.
     """
 
     status: QueryStatus
@@ -157,8 +125,6 @@ class QueryResult:
     total_execution_time_ms: float | None = None
     is_cached: bool = False
     error_message: str | None = None
-    results_key: str | None = None
-    limiting_factor: str | None = None
 
 
 @dataclass

@@ -450,18 +450,11 @@ class SQLExecutor:
                 final_sql, opts, catalog, schema, status=QueryStatus.RUNNING
             )
 
-            # 6. Execute with timeout. The caller (e.g. a GTF task wrapping this
-            # execution with its own @task timeout) may own the timeout, in which
-            # case we skip the in-process signal timeout to avoid a double timeout.
+            # 6. Execute with timeout
             timeout = opts.timeout_seconds or app.config.get("SQLLAB_TIMEOUT", 30)
             timeout_msg = f"Query exceeded the {timeout} seconds timeout."
-            timeout_ctx: Any = (
-                contextlib.nullcontext()
-                if getattr(opts, "caller_owns_timeout", False)
-                else utils.timeout(seconds=timeout, error_message=timeout_msg)
-            )
 
-            with timeout_ctx:
+            with utils.timeout(seconds=timeout, error_message=timeout_msg):
                 statement_results = self._execute_statements(
                     original_script,
                     transformed_script,
@@ -972,13 +965,7 @@ class SQLExecutor:
         status: QueryStatus,
     ) -> Any:
         """
-        Create — or reuse — the Query model for audit/tracking.
-
-        When ``opts.existing_query_id`` is set (the SQL Lab path, where the row is
-        already created with client_id/sql_editor_id/tab_name/CTAS fields and is
-        the UI's source of truth), that row is loaded and advanced to ``status``
-        rather than creating a minimal one. Otherwise a fresh audit row is created
-        (the MCP / generic path).
+        Create Query model for audit/tracking.
 
         :param sql: SQL to execute
         :param opts: Query options
@@ -988,14 +975,6 @@ class SQLExecutor:
         :returns: Query model instance
         """
         from superset.models.sql_lab import Query as QueryModel
-
-        if getattr(opts, "existing_query_id", None) is not None:
-            query = (
-                db.session.query(QueryModel).filter_by(id=opts.existing_query_id).one()
-            )
-            query.status = status.value
-            db.session.commit()  # pylint: disable=consider-using-transaction
-            return query
 
         user_id = None
         if has_app_context() and hasattr(g, "user") and g.user:
