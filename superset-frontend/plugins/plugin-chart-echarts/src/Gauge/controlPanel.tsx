@@ -20,6 +20,7 @@ import { t } from '@apache-superset/core/translation';
 import {
   sharedControls,
   ControlPanelConfig,
+  ControlPanelState,
   ControlSubSectionHeader,
   D3_FORMAT_OPTIONS,
   getStandardizedControls,
@@ -278,15 +279,26 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'interval_color_indices',
+            name: 'interval_colors',
             config: {
-              type: 'TextControl',
+              type: 'IntervalColorsControl',
               label: t('Interval colors'),
               description: t(
-                'Comma-separated color picks for the intervals, e.g. 1,2,4. Integers denote colors from the chosen color scheme and are 1-indexed. Length must be matching that of interval bounds.',
+                'Pick a color for each interval band defined above by its upper bound. Charts saved with the legacy 1-indexed "Interval colors" text field are automatically resolved against the chosen color scheme the first time this panel is opened.',
               ),
               renderTrigger: true,
-              default: DEFAULT_FORM_DATA.intervalColorIndices,
+              default: DEFAULT_FORM_DATA.intervalColors,
+              shouldMapStateToProps: () => true,
+              mapStateToProps: (state: ControlPanelState) => ({
+                intervals: state?.controls?.intervals?.value as string,
+                // `interval_color_indices` is no longer a registered control
+                // (replaced by this one), so it never appears under
+                // `state.controls`. Read it from the raw persisted
+                // `form_data` instead, where legacy charts still carry it.
+                legacyIntervalColorIndices: state?.form_data
+                  ?.interval_color_indices as string,
+                colorScheme: state?.controls?.color_scheme?.value as string,
+              }),
             },
           },
         ],

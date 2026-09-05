@@ -279,6 +279,82 @@ describe('Echarts Gauge transformProps', () => {
     expect(seriesData[1].name).toBe('year: 2008, platform: PC');
     expect(seriesData[1].itemStyle.color).toBe('#ff7f0e');
   });
+
+  test('should use interval_colors (real hex values) instead of legacy interval_color_indices when present', () => {
+    const formData: SqlaFormData = {
+      ...baseFormData,
+      groupby: ['year', 'platform'],
+      intervals: '60,100',
+      // Legacy field is intentionally still set to verify the new field
+      // takes precedence rather than requiring the old one to be cleared.
+      intervalColorIndices: '1,2',
+      intervalColors: ['#ff0000', '#00ff00'],
+      minVal: 20,
+    };
+    const queriesData = [
+      {
+        colnames: ['year', 'platform', 'count'],
+        data: [
+          { year: 2011, platform: 'PC', count: 140 },
+          { year: 2008, platform: 'PC', count: 76 },
+        ],
+      },
+    ];
+
+    const chartProps = new ChartProps({
+      formData,
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    });
+
+    const result = transformProps(chartProps as EchartsGaugeChartProps);
+    const { axisLine } = (result.echartOptions as any).series[0];
+
+    expect(axisLine.lineStyle.color).toEqual([
+      [0.5, '#ff0000'],
+      [1, '#00ff00'],
+    ]);
+  });
+
+  test('a chart saved before interval_colors existed still renders using legacy interval_color_indices', () => {
+    // Simulates form_data persisted by a Gauge chart saved before this
+    // feature: only the legacy fields are present, `intervalColors` is
+    // absent entirely (not just empty).
+    const formData: SqlaFormData = {
+      ...baseFormData,
+      groupby: ['year', 'platform'],
+      intervals: '60,100',
+      intervalColorIndices: '1,2',
+      minVal: 20,
+    };
+    const queriesData = [
+      {
+        colnames: ['year', 'platform', 'count'],
+        data: [
+          { year: 2011, platform: 'PC', count: 140 },
+          { year: 2008, platform: 'PC', count: 76 },
+        ],
+      },
+    ];
+
+    const chartProps = new ChartProps({
+      formData,
+      width: 800,
+      height: 600,
+      queriesData,
+      theme: supersetTheme,
+    });
+
+    const result = transformProps(chartProps as EchartsGaugeChartProps);
+    const { axisLine } = (result.echartOptions as any).series[0];
+
+    expect(axisLine.lineStyle.color).toEqual([
+      [0.5, '#1f77b4'],
+      [1, '#ff7f0e'],
+    ]);
+  });
 });
 
 describe('Min/Max calculation and axis labels', () => {
@@ -687,40 +763,93 @@ describe('Min/Max calculation and axis labels', () => {
 });
 
 describe('getIntervalBoundsAndColors', () => {
-  test('should generate correct interval bounds and colors', () => {
+  test('should generate correct interval bounds and colors from legacy indices', () => {
     const colorFn = CategoricalColorNamespace.getScale(
       'supersetColors' as string,
     );
-    expect(getIntervalBoundsAndColors('', '', colorFn, 0, 10)).toEqual([]);
-    expect(getIntervalBoundsAndColors('4, 10', '1, 2', colorFn, 0, 10)).toEqual(
-      [
-        [0.4, '#1f77b4'],
-        [1, '#ff7f0e'],
-      ],
-    );
     expect(
-      getIntervalBoundsAndColors('4, 8, 10', '9, 8, 7', colorFn, 0, 10),
+      getIntervalBoundsAndColors('', '', undefined, colorFn, 0, 10),
+    ).toEqual([]);
+    expect(
+      getIntervalBoundsAndColors('4, 10', '1, 2', undefined, colorFn, 0, 10),
+    ).toEqual([
+      [0.4, '#1f77b4'],
+      [1, '#ff7f0e'],
+    ]);
+    expect(
+      getIntervalBoundsAndColors(
+        '4, 8, 10',
+        '9, 8, 7',
+        undefined,
+        colorFn,
+        0,
+        10,
+      ),
     ).toEqual([
       [0.4, '#bcbd22'],
       [0.8, '#7f7f7f'],
       [1, '#e377c2'],
     ]);
-    expect(getIntervalBoundsAndColors('4, 10', '1, 2', colorFn, 2, 10)).toEqual(
-      [
-        [0.25, '#1f77b4'],
-        [1, '#ff7f0e'],
-      ],
-    );
     expect(
-      getIntervalBoundsAndColors('-4, 0', '1, 2', colorFn, -10, 0),
+      getIntervalBoundsAndColors('4, 10', '1, 2', undefined, colorFn, 2, 10),
+    ).toEqual([
+      [0.25, '#1f77b4'],
+      [1, '#ff7f0e'],
+    ]);
+    expect(
+      getIntervalBoundsAndColors('-4, 0', '1, 2', undefined, colorFn, -10, 0),
     ).toEqual([
       [0.6, '#1f77b4'],
       [1, '#ff7f0e'],
     ]);
     expect(
-      getIntervalBoundsAndColors('-4, -2', '1, 2', colorFn, -10, -2),
+      getIntervalBoundsAndColors('-4, -2', '1, 2', undefined, colorFn, -10, -2),
     ).toEqual([
       [0.75, '#1f77b4'],
+      [1, '#ff7f0e'],
+    ]);
+  });
+
+  test('should prefer interval_colors (real hex values) over legacy indices when present', () => {
+    const colorFn = CategoricalColorNamespace.getScale(
+      'supersetColors' as string,
+    );
+    expect(
+      getIntervalBoundsAndColors(
+        '4, 10',
+        '1, 2',
+        ['#ff0000', '#00ff00'],
+        colorFn,
+        0,
+        10,
+      ),
+    ).toEqual([
+      [0.4, '#ff0000'],
+      [1, '#00ff00'],
+    ]);
+  });
+
+  test('should fall back to the color scheme for bounds missing an explicit interval_colors entry', () => {
+    const colorFn = CategoricalColorNamespace.getScale(
+      'supersetColors' as string,
+    );
+    expect(
+      getIntervalBoundsAndColors('4, 8, 10', '', ['#ff0000'], colorFn, 0, 10),
+    ).toEqual([
+      [0.4, '#ff0000'],
+      [0.8, colorFn.colors[1]],
+      [1, colorFn.colors[2]],
+    ]);
+  });
+
+  test('an empty interval_colors array falls back to legacy indices', () => {
+    const colorFn = CategoricalColorNamespace.getScale(
+      'supersetColors' as string,
+    );
+    expect(
+      getIntervalBoundsAndColors('4, 10', '1, 2', [], colorFn, 0, 10),
+    ).toEqual([
+      [0.4, '#1f77b4'],
       [1, '#ff7f0e'],
     ]);
   });

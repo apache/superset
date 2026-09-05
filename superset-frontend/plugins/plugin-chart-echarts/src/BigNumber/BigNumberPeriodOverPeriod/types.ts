@@ -72,7 +72,21 @@ export type PopKPIProps = PopKPIStylesProps &
     percentDifferenceFormattedString: string;
     compType: string;
     percentDifferenceNumber: number;
+    /**
+     * @deprecated Superset versions before `increaseColor`/`decreaseColor`
+     * existed stored a single 2-choice scheme ('Green' | 'Red') here. Still
+     * read at render time (see `PopKPI.tsx`) whenever the newer fields are
+     * absent, so charts saved with this shape keep rendering identically.
+     */
     comparisonColorScheme?: string;
+    /** Color used for the arrow/symbols when the metric increased. Either a
+     * semantic token name ('Green' | 'Red') or a literal hex color chosen
+     * via the `increase_color` ColorPickerControl. */
+    increaseColor?: string;
+    /** Color used for the arrow/symbols when the metric decreased. Either a
+     * semantic token name ('Green' | 'Red') or a literal hex color chosen
+     * via the `decrease_color` ColorPickerControl. */
+    decreaseColor?: string;
     currentTimeRangeFilter?: SimpleAdhocFilter;
     startDateOffset?: string;
     shift: string;
