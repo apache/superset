@@ -80,7 +80,7 @@ spec:
       {{- if or .Values.supersetMcp.initContainers .Values.supersetMcp.extraInitContainers }}
       initContainers:
       {{- if .Values.supersetMcp.initContainers }}
-      {{-  tpl (toYaml .Values.supersetMcp.initContainers) . | nindent 6 }}
+      {{- tpl (include "superset.initContainers" (dict "containers" .Values.supersetMcp.initContainers "context" $)) . | trim | nindent 6 }}
       {{- end }}
       {{- if .Values.supersetMcp.extraInitContainers }}
       {{-  tpl (toYaml .Values.supersetMcp.extraInitContainers) . | nindent 6 }}

@@ -63,7 +63,7 @@ spec:
       {{- if or .Values.init.initContainers .Values.init.extraInitContainers }}
       initContainers:
       {{- if .Values.init.initContainers }}
-      {{-  tpl (toYaml .Values.init.initContainers) . | nindent 6 }}
+      {{- tpl (include "superset.initContainers" (dict "containers" .Values.init.initContainers "context" $)) . | trim | nindent 6 }}
       {{- end }}
       {{- if .Values.init.extraInitContainers }}
       {{-  tpl (toYaml .Values.init.extraInitContainers) . | nindent 6 }}
