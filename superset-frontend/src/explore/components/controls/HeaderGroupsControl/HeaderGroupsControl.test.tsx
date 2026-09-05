@@ -42,7 +42,7 @@ const createGroup = (
 const baseProps = {
   name: 'header_groups',
   label: 'Column groups',
-  type: 'HeaderGroupsControl',
+  type: 'HeaderGroupsControl' as const,
   actions: { setControlValue: jest.fn() },
   columnOptions,
 };

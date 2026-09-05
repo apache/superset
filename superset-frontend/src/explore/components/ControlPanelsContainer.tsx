@@ -55,8 +55,12 @@ import {
   Dataset,
   ExpandedControlItem,
   isCustomControlItem,
+  getHeaderGroupsControlProps,
+  headerGroupsHaveSameColumns,
   isTemporalColumn,
   sections,
+  syncTimeComparisonGroups,
+  type HeaderGroupConfig,
 } from '@superset-ui/chart-controls';
 import { useSelector } from 'react-redux';
 import { kebabCase, isEqual } from 'lodash-es';
@@ -324,6 +328,34 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const { x_axis, adhoc_filters } = form_data;
 
   const previousXAxis = usePrevious(x_axis);
+
+  // HeaderGroupsControl is on the Customize tab and is not mounted until that
+  // tab is opened. Sync time-comparison auto-groups into form_data here so
+  // enabling Time Comparison updates the chart without visiting Customize.
+  useEffect(() => {
+    if (!props.controls.header_groups || !setControlValue) {
+      return;
+    }
+    const current = ensureIsArray(
+      props.controls.header_groups.value,
+    ) as HeaderGroupConfig[];
+    const { timeComparisonGroups } = getHeaderGroupsControlProps(
+      props.exploreState,
+      props.chart,
+    );
+    const next = syncTimeComparisonGroups(current, timeComparisonGroups);
+    if (!headerGroupsHaveSameColumns(current, next)) {
+      setControlValue('header_groups', next, undefined, {
+        programmatic: true,
+      });
+    }
+  }, [
+    props.chart,
+    props.controls.header_groups,
+    props.controls.time_compare?.value,
+    props.exploreState,
+    setControlValue,
+  ]);
 
   useEffect(() => {
     if (

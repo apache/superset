@@ -21,6 +21,8 @@ import {
   expandGroupColumnKey,
   getHeaderGroupsControlProps,
   nestColDefsInHeaderGroups,
+  resolveHeaderGroups,
+  syncTimeComparisonGroups,
   type HeaderGroupConfig,
 } from './headerGroups';
 
@@ -155,6 +157,73 @@ test('nestColDefsInHeaderGroups expands a user group onto comparison columns', (
       children: [{ field: `${t('Main')} revenue` }, { field: '# revenue' }],
     },
   ]);
+});
+
+test('syncTimeComparisonGroups adds missing auto groups and keeps edits', () => {
+  const existing: HeaderGroupConfig[] = [
+    {
+      id: 'custom',
+      label: 'Custom',
+      columns: ['region'],
+    },
+    {
+      id: 'time-compare-revenue',
+      label: 'Renamed',
+      columns: [`${t('Main')} revenue`],
+      source: 'time_compare',
+    },
+  ];
+  const next = syncTimeComparisonGroups(existing, [
+    {
+      id: 'time-compare-revenue',
+      label: 'Revenue',
+      columns: comparisonRevenueColumns,
+      source: 'time_compare',
+    },
+    {
+      id: 'time-compare-profit',
+      label: 'Profit',
+      columns: [`${t('Main')} profit`],
+      source: 'time_compare',
+    },
+  ]);
+
+  expect(next.map(group => group.id)).toEqual([
+    'custom',
+    'time-compare-revenue',
+    'time-compare-profit',
+  ]);
+  expect(next[1].label).toBe('Renamed');
+});
+
+test('resolveHeaderGroups derives time comparison groups without saved header_groups', () => {
+  expect(
+    resolveHeaderGroups([], {
+      timeCompareEnabled: true,
+      metricKeys: ['revenue'],
+      verboseMap: { revenue: 'Revenue' },
+    }),
+  ).toEqual([
+    expect.objectContaining({
+      id: 'time-compare-revenue',
+      label: 'Revenue',
+      source: 'time_compare',
+      columns: comparisonRevenueColumns,
+    }),
+  ]);
+  expect(
+    resolveHeaderGroups(
+      [
+        {
+          id: 'time-compare-revenue',
+          label: 'Renamed',
+          columns: comparisonRevenueColumns,
+          source: 'time_compare',
+        },
+      ],
+      { timeCompareEnabled: false, metricKeys: ['revenue'] },
+    ),
+  ).toEqual([]);
 });
 
 test('getHeaderGroupsControlProps builds time comparison groups', () => {

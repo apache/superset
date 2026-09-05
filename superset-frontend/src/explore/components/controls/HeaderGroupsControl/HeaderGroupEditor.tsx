@@ -223,9 +223,17 @@ function HeaderGroupForm({
             if (isTimeCompareGroup) {
               return;
             }
+            const nextColumns = (Array.isArray(columns) ? columns : []).map(
+              column =>
+                typeof column === 'object' &&
+                column !== null &&
+                'value' in column
+                  ? String(column.value)
+                  : String(column),
+            );
             onChange(path, {
               ...group,
-              columns: Array.isArray(columns) ? columns : [],
+              columns: nextColumns,
             });
           }}
         />

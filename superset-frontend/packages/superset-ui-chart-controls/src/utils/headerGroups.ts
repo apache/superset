@@ -94,6 +94,72 @@ export function buildTimeComparisonHeaderGroups(
   }));
 }
 
+export function syncTimeComparisonGroups(
+  groups: HeaderGroupConfig[],
+  timeComparisonGroups: HeaderGroupConfig[] = [],
+): HeaderGroupConfig[] {
+  const autoIds = new Set(timeComparisonGroups.map(group => group.id));
+  const existingAutoIds = new Set(
+    groups
+      .filter(group => group.source === 'time_compare')
+      .map(group => group.id),
+  );
+  const kept = groups.filter(
+    group => group.source !== 'time_compare' || autoIds.has(group.id),
+  );
+  const missing = timeComparisonGroups.filter(
+    group => !existingAutoIds.has(group.id),
+  );
+  return missing.length === 0 ? kept : [...kept, ...missing];
+}
+
+export function headerGroupsHaveSameColumns(
+  left: HeaderGroupConfig[],
+  right: HeaderGroupConfig[],
+): boolean {
+  if (left.length !== right.length) {
+    return false;
+  }
+  return left.every((group, index) => {
+    const other = right[index];
+    if (
+      group.id !== other.id ||
+      group.columns.length !== other.columns.length ||
+      group.columns.some(
+        (column, colIndex) => column !== other.columns[colIndex],
+      )
+    ) {
+      return false;
+    }
+    return headerGroupsHaveSameColumns(
+      group.children ?? [],
+      other.children ?? [],
+    );
+  });
+}
+
+export function resolveHeaderGroups(
+  headerGroups: HeaderGroupConfig[] | undefined,
+  options: {
+    timeCompareEnabled: boolean;
+    metricKeys: string[];
+    verboseMap?: Record<string, string> | string[] | null;
+  },
+): HeaderGroupConfig[] {
+  const labelFor = (key: string) =>
+    options.verboseMap &&
+    !Array.isArray(options.verboseMap) &&
+    options.verboseMap[key]
+      ? options.verboseMap[key]
+      : key;
+  return syncTimeComparisonGroups(
+    headerGroups ?? [],
+    options.timeCompareEnabled
+      ? buildTimeComparisonHeaderGroups(options.metricKeys, labelFor)
+      : [],
+  );
+}
+
 export function collectHeaderGroupLeaves(group: HeaderGroupConfig): string[] {
   return [
     ...(group.columns ?? []),

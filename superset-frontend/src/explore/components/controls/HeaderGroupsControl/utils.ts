@@ -17,7 +17,13 @@
  * under the License.
  */
 import { nanoid } from 'nanoid';
+import {
+  headerGroupsHaveSameColumns,
+  syncTimeComparisonGroups,
+} from '@superset-ui/chart-controls';
 import { HeaderGroupColumnOption, HeaderGroupConfig } from './types';
+
+export { headerGroupsHaveSameColumns, syncTimeComparisonGroups };
 
 export function createHeaderGroup(): HeaderGroupConfig {
   return {
@@ -128,46 +134,3 @@ export function pruneStaleHeaderGroupColumns(
   });
 }
 
-export function syncTimeComparisonGroups(
-  groups: HeaderGroupConfig[],
-  timeComparisonGroups: HeaderGroupConfig[] = [],
-): HeaderGroupConfig[] {
-  const autoIds = new Set(timeComparisonGroups.map(group => group.id));
-  const existingAutoIds = new Set(
-    groups
-      .filter(group => group.source === 'time_compare')
-      .map(group => group.id),
-  );
-  const kept = groups.filter(
-    group => group.source !== 'time_compare' || autoIds.has(group.id),
-  );
-  const missing = timeComparisonGroups.filter(
-    group => !existingAutoIds.has(group.id),
-  );
-  return missing.length === 0 ? kept : [...kept, ...missing];
-}
-
-export function headerGroupsHaveSameColumns(
-  left: HeaderGroupConfig[],
-  right: HeaderGroupConfig[],
-): boolean {
-  if (left.length !== right.length) {
-    return false;
-  }
-  return left.every((group, index) => {
-    const other = right[index];
-    if (
-      group.id !== other.id ||
-      group.columns.length !== other.columns.length ||
-      group.columns.some(
-        (column, colIndex) => column !== other.columns[colIndex],
-      )
-    ) {
-      return false;
-    }
-    return headerGroupsHaveSameColumns(
-      group.children ?? [],
-      other.children ?? [],
-    );
-  });
-}
