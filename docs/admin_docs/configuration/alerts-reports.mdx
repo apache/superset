@@ -472,6 +472,65 @@ ALERT_REPORTS_ENABLE_LINK_REDIRECT = False
 The feature uses `WEBDRIVER_BASEURL_USER_FRIENDLY` (or `WEBDRIVER_BASEURL`)
 to determine which hosts are internal.
 
+## Retry on Failure
+
+This feature is gated behind the `ALERT_REPORTS_RETRY` feature flag, which is
+disabled by default:
+
+```python
+FEATURE_FLAGS = {
+    "ALERT_REPORTS_RETRY": True,
+}
+```
+
+With the flag enabled, reports (not alerts) can be configured to
+automatically retry when sending fails — this covers rendering/export
+failures (e.g. a chart screenshot or CSV export erroring out) as well as
+delivery failures such as a transient SMTP or Slack error — instead of
+moving straight to an `Error` state. This is configured per report in the
+**Error Handling** section of the report modal:
+
+- **Enable Retries** – turn on automatic retries for this report.
+- **Maximum Retry Attempts** – how many times to retry before giving up (1–10, default 3).
+- **Send Failed Reports** – send a final failure notification to the report's recipients once all retries fail (default off).
+- **Failure Notifications** – choose whether **Owners** and/or **Report Recipients** get a notification after a failed retry attempt (not the initial failure). Owners are notified by email; report recipients are notified on their configured channel (email, Slack, etc).
+
+While a retry is pending, the report's status shows as **Retrying**
+(`RETRYING` in `ReportState`) rather than `Error`. Each retry uses
+exponential backoff — the delay doubles after every attempt, up to a
+configurable cap:
+
+```python
+# Delay before the first retry, in seconds. Each subsequent retry doubles
+# this value, up to ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS.
+ALERT_REPORTS_RETRY_BASE_DELAY_SECONDS = 60
+
+# Maximum delay between retries, in seconds.
+ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS = 3600
+```
+
+Both values are read as-is with no validation, so keep them positive and
+make sure the max is greater than or equal to the base delay — otherwise
+retries will fire immediately or the exponential backoff won't behave as
+advertised.
+
+If the report's regular schedule fires again while a previous run is still
+retrying, Superset skips the new run and lets the in-flight retries finish,
+unless that retry chain looks abandoned (no activity for longer than
+`ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS`), in which case the new run proceeds
+with a fresh retry budget.
+
+Once all retries are exhausted, the report moves to the `Error` state. With
+Send Failed Reports enabled, a final failure notification (not the report's
+screenshot/PDF/CSV/XLSX content) is sent to the report's normal recipients
+even though the final state is `Error`.
+
+This per-report retry budget is independent of the
+[Slack delivery retry budget](#slack-delivery-timeouts-and-retries) and the
+[webhook retry behavior](#retry-behavior) described above, which retry
+individual delivery requests within a single execution rather than
+re-running the whole report.
+
 ## Troubleshooting
 
 There are many reasons that reports might not be working. Try these steps to check for specific issues.
