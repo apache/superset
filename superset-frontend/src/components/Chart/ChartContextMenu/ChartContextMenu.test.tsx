@@ -210,3 +210,79 @@ test('drill by modal uses the scope selected in the submenu over the raw context
   );
   expect(modalConfig.filters).toEqual([{ col: 'selected_scope' }]);
 });
+
+/**
+ * sc-111089 T014: a semantic-view datasource resolves its drill metadata
+ * from the view's structure — never from the colliding regular dataset's
+ * drill_info — and the menu renders cleanly against the narrowed
+ * (dimension-derived) column shape. Without the drillby extension, the
+ * view's dimensions pass the drillable filter, which is deliberate:
+ * dimensions are the view's groupable surface.
+ */
+test('semantic-view datasource resolves via the structure endpoint and renders the menu', async () => {
+  mockCachedSupersetGet.mockResolvedValue({
+    response: {} as Response,
+    json: {
+      result: {
+        name: 'orders',
+        dimensions: [{ name: 'Orders Status', type: 'VARCHAR' }],
+        metrics: [],
+      },
+    },
+  });
+
+  const SemanticWrapper = () => {
+    const contextMenuRef = useRef<ChartContextMenuRef>(null);
+    return (
+      <>
+        <button
+          type="button"
+          onClick={() => contextMenuRef.current?.open(100, 100, {})}
+          data-test="open-semantic-context-menu"
+        >
+          Open
+        </button>
+        <ChartContextMenu
+          ref={contextMenuRef}
+          id={sliceId}
+          formData={{ datasource: '1__semantic_view', viz_type: VizType.Pie }}
+          onSelection={jest.fn()}
+          onClose={jest.fn()}
+          displayedItems={ContextMenuItem.All}
+        />
+      </>
+    );
+  };
+
+  render(<SemanticWrapper />, {
+    useRedux: true,
+    initialState: {
+      ...mockState,
+      user: {
+        ...mockState.user,
+        roles: {
+          Admin: [
+            ['can_explore', 'Superset'],
+            ['can_samples', 'Datasource'],
+            ['can_write', 'ExploreFormDataRestApi'],
+            ['can_get_drill_info', 'Dataset'],
+          ],
+        },
+      },
+    },
+  });
+
+  userEvent.click(screen.getByTestId('open-semantic-context-menu'));
+  // The menu opens without crashing on the dimension-derived shape.
+  expect(await screen.findByRole('menu')).toBeInTheDocument();
+
+  await waitFor(() =>
+    expect(mockCachedSupersetGet).toHaveBeenCalledWith({
+      endpoint: '/api/v1/semantic_view/1/structure',
+    }),
+  );
+  const drillInfoCalls = mockCachedSupersetGet.mock.calls.filter(call =>
+    String(call[0]?.endpoint).includes('/drill_info/'),
+  );
+  expect(drillInfoCalls).toHaveLength(0);
+});
