@@ -171,6 +171,11 @@ content-addressed:
   now-stale URL must be revalidated with the server before it's reused.
 - English pages emit no script tag; there's no pack to load.
 
+Each worker caches a locale's pack and version hash in memory for its
+lifetime, so a translation file changed on disk isn't picked up, and doesn't
+produce a new version hash, until the worker restarts. Restart (or roll)
+Superset after deploying a translation update so clients get the new pack.
+
 This endpoint is intentionally unauthenticated. Translation catalogs are
 static, public content shipped in the Superset repo, and the login page and
 embedded dashboards need them to load before a user session exists.
