@@ -28,7 +28,7 @@ import getBootstrapData from 'src/utils/getBootstrapData';
 export type AsyncModeOverride = 'default' | 'force_on' | 'force_off';
 
 /** State shape the override is read from; matches any store holding dashboard info. */
-type StateWithAsyncModeOverride = {
+export type StateWithAsyncModeOverride = {
   dashboardInfo?: { metadata?: { async_mode?: AsyncModeOverride } };
 };
 

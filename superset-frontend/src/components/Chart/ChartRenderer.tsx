@@ -58,7 +58,7 @@ import ChartContextMenu, {
   ChartContextMenuRef,
 } from './ChartContextMenu/ChartContextMenu';
 import { handleChartDataResponse } from './chartAction';
-import { resolveAsyncMode } from 'src/utils/asyncMode';
+import { AsyncModeOverride, resolveAsyncMode } from 'src/utils/asyncMode';
 import { getTabId } from 'src/hooks/useTabId';
 
 // Types for filter values
@@ -143,6 +143,7 @@ export interface ChartRendererProps {
   cacheBusterProp?: string;
   onChartStateChange?: (chartState: AgGridChartState) => void;
   suppressLoadingSpinner?: boolean;
+  asyncModeOverride?: AsyncModeOverride;
 }
 
 // Async resolution is injected for self-contained chart components in
@@ -217,6 +218,7 @@ function ChartRendererComponent({
     source,
     emitCrossFilters,
     onChartStateChange,
+    asyncModeOverride,
   } = restProps;
 
   const theme = useTheme();
@@ -401,9 +403,11 @@ function ChartRendererComponent({
       // StatefulChart) resolve async (202) chart-data responses without
       // depending on app-level async-event middleware.
       handleAsyncChartData: handleChartDataResponse,
-      // Shares the async opt-in policy (feature flag + deployment default) with
-      // those self-contained producers so they don't always run synchronously.
-      resolveAsyncMode: () => resolveAsyncMode(),
+      // Shares the async opt-in policy (feature flag + deployment default, plus
+      // the per-dashboard `async_mode` override) with those self-contained
+      // producers so they don't always run synchronously and honor the
+      // dashboard override like the Redux chart path.
+      resolveAsyncMode: () => resolveAsyncMode(asyncModeOverride),
       // Lets those producers send this tab's id on an async request so the
       // backend ref-counts the tab (per-tab cancel/detach), matching the Redux
       // chart path (see chartAction.ts).
@@ -421,6 +425,7 @@ function ChartRendererComponent({
       onFilterMenuOpen,
       setDataMaskCallback,
       showContextMenu,
+      asyncModeOverride,
     ],
   );
 
