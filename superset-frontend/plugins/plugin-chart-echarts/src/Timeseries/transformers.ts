@@ -1002,3 +1002,76 @@ export function getPadding(
     isHorizontal,
   );
 }
+
+const MIN_ECHARTS_GRID_HEIGHT = 1;
+
+export function resolveTimeseriesGridOffset(
+  offset: unknown,
+  chartHeight: number,
+) {
+  if (typeof offset === 'number') {
+    return Number.isFinite(offset) ? Math.max(offset, 0) : 0;
+  }
+  if (typeof offset !== 'string') {
+    return 0;
+  }
+
+  const percentage = offset.match(/^\s*(-?\d+(?:\.\d+)?)%\s*$/);
+  const pixels = percentage
+    ? (Number(percentage[1]) / 100) * chartHeight
+    : Number(offset);
+  return Number.isFinite(pixels) ? Math.max(pixels, 0) : 0;
+}
+
+export function getViableTimeseriesEchartOptions<Options extends object>(
+  options: Options,
+  chartHeight: number,
+  zoomable: boolean,
+): Options {
+  const optionWithGrid = options as Options & { grid?: unknown };
+  const gridOption = Array.isArray(optionWithGrid.grid)
+    ? optionWithGrid.grid[0]
+    : optionWithGrid.grid;
+  if (!gridOption || typeof gridOption !== 'object') {
+    return options;
+  }
+
+  const grid = gridOption as Record<string, unknown>;
+  const rawTop = resolveTimeseriesGridOffset(grid.top, chartHeight);
+  const rawBottom = resolveTimeseriesGridOffset(grid.bottom, chartHeight);
+  const isCompact = chartHeight <= TIMESERIES_CONSTANTS.compactChartHeight;
+  const requestedTop = isCompact ? Math.min(rawTop, 12) : rawTop;
+  const requestedBottom =
+    isCompact && !zoomable ? Math.min(rawBottom, 5) : rawBottom;
+  // Cap both reservations so even a tiny canvas retains a coordinate region.
+  const reservationBudget = Math.max(chartHeight - MIN_ECHARTS_GRID_HEIGHT, 0);
+  const top = Math.min(requestedTop, reservationBudget);
+  const bottom = Math.min(
+    requestedBottom,
+    Math.max(reservationBudget - top, 0),
+  );
+  const mustDisableContainLabel =
+    isCompact || requestedTop + requestedBottom > reservationBudget;
+
+  if (
+    top === rawTop &&
+    bottom === rawBottom &&
+    (!mustDisableContainLabel || grid.containLabel === false)
+  ) {
+    return options;
+  }
+
+  const viableGrid = {
+    ...grid,
+    bottom,
+    ...(mustDisableContainLabel ? { containLabel: false } : {}),
+    top,
+  };
+
+  return {
+    ...options,
+    grid: Array.isArray(optionWithGrid.grid)
+      ? [viableGrid, ...optionWithGrid.grid.slice(1)]
+      : viableGrid,
+  } as Options;
+}

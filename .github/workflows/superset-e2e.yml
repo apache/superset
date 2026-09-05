@@ -354,7 +354,7 @@ jobs:
   actions-timeline:
     needs: [cypress-matrix, playwright-tests, cypress-matrix-required, playwright-tests-required]
     if: always()
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     permissions:
       actions: read
     steps:

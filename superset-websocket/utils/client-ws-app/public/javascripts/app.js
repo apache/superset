@@ -32,7 +32,7 @@ function connect() {
   if (socketCount >= tokens.length) return;
 
   // using https://github.com/js-cookie/js-cookie
-  // eslint-disable-next-line no-undef
+  // oxlint-disable-next-line no-undef
   Cookies.set(cookieName, tokens[socketCount], { path: '' });
 
   // Create WebSocket connection.
