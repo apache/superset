@@ -280,7 +280,7 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 | `update_chart`          | Modify an existing chart's configuration (pass `generate_preview=False` to persist immediately instead of returning a preview URL)               |
 | `update_chart_preview`  | Update a cached chart preview without saving                                                                                                      |
 | `generate_explore_link` | Generate an Explore URL for interactive visualization                                                                                             |
-| `delete_chart`          | Delete a chart by ID or UUID (soft-deletes to trash when `SOFT_DELETE` is enabled; returns `permission_denied` if the caller isn't owner/Admin)   |
+| `delete_chart`          | Delete a chart by ID or UUID (soft-deletes to trash when `SOFT_DELETE` is enabled; returns `permission_denied` if the caller isn't an editor of the chart — owners, Admins, and explicitly granted editors qualify)   |
 
 ### Dashboards
 
@@ -290,7 +290,7 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 | `get_dashboard_info`              | Get dashboard metadata and layout                                                                                                                                                    |
 | `generate_dashboard`              | Create a new dashboard with specified charts                                                                                                                                         |
 | `add_chart_to_existing_dashboard` | Add a chart to an existing dashboard                                                                                                                                                 |
-| `delete_dashboard`                | Delete a dashboard by ID, UUID, or slug; leaves its charts intact (soft-deletes to trash when `SOFT_DELETE` is enabled; returns `permission_denied` if the caller isn't owner/Admin) |
+| `delete_dashboard`                | Delete a dashboard by ID, UUID, or slug; leaves its charts intact (soft-deletes to trash when `SOFT_DELETE` is enabled; returns `permission_denied` if the caller isn't an editor of the dashboard — owners, Admins, and explicitly granted editors qualify) |
 
 ### SQL
 
