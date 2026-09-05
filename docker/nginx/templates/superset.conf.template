@@ -37,7 +37,15 @@ server {
         proxy_set_header Host $host;
     }
 
-    location ${SUPERSET_APP_ROOT}/static {
+    # Webpack bakes the /static/assets/ publicPath into the bundle (see
+    # AppRootMiddleware in superset/app.py), so lazily loaded chunks and the
+    # assets they reference are always requested unprefixed even when the app
+    # root mounts the app under a subpath. Match both the app-root-prefixed
+    # and the bare /static/ path so neither 404s; the optional group also
+    # covers the default app root of a single slash, where concatenating it
+    # onto /static would otherwise render as a double-slash path that matches
+    # nothing.
+    location ~ ^(?:${SUPERSET_APP_ROOT})?/static(?:/|$) {
         proxy_pass http://host.docker.internal:9000;  # Proxy to superset-node
         proxy_http_version 1.1;
         proxy_set_header Host $host;
