@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from pandas import DataFrame
+
 from superset.utils.pandas_postprocessing import aggregate
 from tests.unit_tests.fixtures.dataframes import categories_df
 from tests.unit_tests.pandas_postprocessing.utils import series_to_list
@@ -66,3 +68,21 @@ def test_aggregate_count_includes_nulls():
     df = aggregate(df=categories_df, groupby=["constant"], aggregates=aggregates)
     # idx_nulls has 101 rows total; np.ma.count returns all 101 (NaN included)
     assert series_to_list(df["null_count"])[0] == 101
+
+
+def test_aggregate_preserves_null_groupby_values():
+    df = DataFrame(
+        {
+            "category": ["alpha", None, None],
+            "value": [1, 2, 3],
+        }
+    )
+
+    result = aggregate(
+        df=df,
+        groupby=["category"],
+        aggregates={"total": {"column": "value", "operator": "sum"}},
+    )
+
+    assert series_to_list(result["category"]) == ["alpha", None]
+    assert series_to_list(result["total"]) == [1, 5]

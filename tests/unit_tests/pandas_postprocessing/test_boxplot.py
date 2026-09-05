@@ -44,7 +44,7 @@ def test_boxplot_tukey():
         "cars__outliers",
         "region",
     }
-    assert len(df) == 4
+    assert len(df) == 5
 
 
 def test_boxplot_mean_median_no_future_warning():
@@ -52,7 +52,7 @@ def test_boxplot_mean_median_no_future_warning():
     GroupBy.agg, else pandas raises a FutureWarning. Also verify the values
     match a plain pandas groupby, since the string and callable forms could
     silently diverge on a future pandas version."""
-    expected = names_df.groupby("region")["cars"].agg(["mean", "median"])
+    expected = names_df.groupby("region", dropna=False)["cars"].agg(["mean", "median"])
 
     with warnings.catch_warnings():
         warnings.simplefilter("error", FutureWarning)
@@ -74,7 +74,7 @@ def test_boxplot_minmax_no_future_warning():
     raises a FutureWarning. Also verify the values match a plain pandas
     groupby, since the string and callable forms could silently diverge on a
     future pandas version."""
-    expected = names_df.groupby("region")["cars"].agg(["max", "min"])
+    expected = names_df.groupby("region", dropna=False)["cars"].agg(["max", "min"])
 
     with warnings.catch_warnings():
         warnings.simplefilter("error", FutureWarning)
@@ -109,7 +109,7 @@ def test_boxplot_min_max():
         "cars__outliers",
         "region",
     }
-    assert len(df) == 4
+    assert len(df) == 5
 
 
 def test_boxplot_percentile():
@@ -132,7 +132,7 @@ def test_boxplot_percentile():
         "cars__outliers",
         "region",
     }
-    assert len(df) == 4
+    assert len(df) == 5
 
 
 def test_boxplot_percentile_incorrect_params():
@@ -194,4 +194,4 @@ def test_boxplot_type_coercion():
         "cars__outliers",
         "region",
     }
-    assert len(df) == 4
+    assert len(df) == 5
