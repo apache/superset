@@ -90,9 +90,7 @@ const getTooltipHtml = (
   ).formatter(params);
 
 test('uses a custom series name when no series dimension is set', () => {
-  const series = extractSeries(
-    buildProps({ candlestick_series_name: 'OHLC' }),
-  );
+  const series = extractSeries(buildProps({ candlestick_series_name: 'OHLC' }));
   expect(series[0].name).toBe('OHLC');
 });
 
