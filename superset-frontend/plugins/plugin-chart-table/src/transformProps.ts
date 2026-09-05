@@ -43,6 +43,7 @@ import {
   ConditionalFormattingConfig,
   getColorFormatters,
   ColorSchemeEnum,
+  resolveHeaderGroups,
 } from '@superset-ui/chart-controls';
 
 import { isEmpty, merge } from 'lodash-es';
@@ -531,6 +532,7 @@ const transformProps = (
     conditional_formatting: conditionalFormatting,
     allow_rearrange_columns: allowRearrangeColumns,
     allow_render_html: allowRenderHtml,
+    header_groups: headerGroups = [],
     time_compare,
     comparison_color_enabled: comparisonColorEnabled = false,
     comparison_color_scheme: comparisonColorScheme = ColorSchemeEnum.Green,
@@ -698,6 +700,11 @@ const transformProps = (
     : '';
 
   const [metrics, percentMetrics, columns] = processColumns(chartProps);
+  const resolvedHeaderGroups = resolveHeaderGroups(headerGroups, {
+    timeCompareEnabled: isUsingTimeComparison,
+    metricKeys: [...metrics, ...percentMetrics],
+    verboseMap: chartProps.datasource?.verboseMap,
+  });
   let comparisonColumns: DataColumnMeta[] = [];
   if (isUsingTimeComparison) {
     comparisonColumns = processComparisonColumns(
@@ -828,6 +835,7 @@ const transformProps = (
     allowRenderHtml,
     onContextMenu,
     isUsingTimeComparison,
+    headerGroups: resolvedHeaderGroups,
     basicColorFormatters,
     startDateOffset,
     basicColorColumnFormatters,

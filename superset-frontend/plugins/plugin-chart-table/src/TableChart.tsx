@@ -99,6 +99,11 @@ import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 import { updateTableOwnState } from './DataTable/utils/externalAPIs';
 import getScrollBarSize from './DataTable/utils/getScrollBarSize';
 import DateWithFormatter from './utils/DateWithFormatter';
+import {
+  buildHeaderGroupRows,
+  hasRenderableHeaderGroups,
+  orderColumnsByHeaderGroups,
+} from './utils/headerGroups';
 
 type ValueRange = [number, number];
 
@@ -423,6 +428,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     onContextMenu,
     emitCrossFilters,
     isUsingTimeComparison,
+    headerGroups = [],
     basicColorFormatters,
     basicColorColumnFormatters,
     hasServerPageLengthChanged,
@@ -869,10 +875,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   // Compute visible columns before groupHeaderColumns to ensure index consistency.
   // This filters out columns with config.visible === false.
-  const visibleColumnsMeta = useMemo(
-    () => filteredColumnsMeta.filter(col => col.config?.visible !== false),
-    [filteredColumnsMeta],
-  );
+  const visibleColumnsMeta = useMemo(() => {
+    const visible = filteredColumnsMeta.filter(
+      col => col.config?.visible !== false,
+    );
+    if (hasRenderableHeaderGroups(headerGroups)) {
+      return orderColumnsByHeaderGroups(visible, headerGroups);
+    }
+    return visible;
+  }, [filteredColumnsMeta, headerGroups]);
 
   // Use visibleColumnsMeta for groupHeaderColumns to ensure indices match the actual
   // table columns. This fixes header misalignment when columns are filtered.
@@ -881,7 +892,81 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     [visibleColumnsMeta, getHeaderColumns, isUsingTimeComparison],
   );
 
+  const groupingHeaderRowStyles = css`
+    th {
+      border-right: 1px solid ${theme.colorSplit};
+      text-align: center;
+    }
+    th:first-of-type {
+      border-left: none;
+    }
+    th:last-child {
+      border-right: none;
+    }
+  `;
+
+  const multiLevelHeaderRowStyles = css`
+    th {
+      border-right: 1px solid ${theme.colorSplit};
+    }
+    th:first-of-type {
+      border-left: none;
+    }
+    th[data-dimension-separator='true'] {
+      border-right: 2px solid ${theme.colorSplit};
+    }
+    th[data-last-column='true'] {
+      border-right: none;
+    }
+  `;
+
+  const renderMultiLevelHeaders = (): JSX.Element => {
+    const rows = buildHeaderGroupRows(
+      headerGroups,
+      visibleColumnsMeta.map(column => column.key),
+    );
+    return (
+      <>
+        {rows.map((row, rowIndex) => (
+          <tr
+            key={`multi-header-row-${rowIndex}`}
+            css={multiLevelHeaderRowStyles}
+          >
+            {row.map(cell => {
+              const lastColumn =
+                visibleColumnsMeta[cell.columnIndex + cell.colSpan - 1];
+              const hasDimensionSeparator = Boolean(
+                lastColumn &&
+                !lastColumn.isMetric &&
+                !lastColumn.isPercentMetric,
+              );
+              return (
+                <th
+                  key={cell.key}
+                  colSpan={cell.colSpan}
+                  rowSpan={cell.rowSpan}
+                  data-last-column={cell.isLastColumn || undefined}
+                  data-dimension-separator={hasDimensionSeparator || undefined}
+                  style={{
+                    borderBottom: cell.label ? undefined : 0,
+                    textAlign: cell.labelAlign ?? 'center',
+                  }}
+                >
+                  {cell.label}
+                </th>
+              );
+            })}
+          </tr>
+        ))}
+      </>
+    );
+  };
+
   const renderGroupingHeaders = (): JSX.Element => {
+    if (hasRenderableHeaderGroups(headerGroups)) {
+      return renderMultiLevelHeaders();
+    }
+
     // TODO: Make use of ColumnGroup to render the aditional headers
     const headers: any = [];
     let currentColumnIndex = 0;
@@ -951,23 +1036,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       currentColumnIndex = startPosition + colSpan;
     });
 
-    return (
-      <tr
-        css={css`
-          th {
-            border-right: 1px solid ${theme.colorSplit};
-          }
-          th:first-of-type {
-            border-left: none;
-          }
-          th:last-child {
-            border-right: none;
-          }
-        `}
-      >
-        {headers}
-      </tr>
-    );
+    return <tr css={groupingHeaderRowStyles}>{headers}</tr>;
   };
 
   const getColumnConfigs = useCallback(
@@ -1673,7 +1742,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         // not in use in Superset, but needed for unit tests
         sticky={sticky}
         renderGroupingHeaders={
-          !isEmpty(groupHeaderColumns) ? renderGroupingHeaders : undefined
+          !isEmpty(groupHeaderColumns) ||
+          hasRenderableHeaderGroups(headerGroups)
+            ? renderGroupingHeaders
+            : undefined
         }
         renderTimeComparisonDropdown={
           isUsingTimeComparison ? renderTimeComparisonDropdown : undefined

@@ -181,6 +181,39 @@ test('transformProps retains percentage rules with automatic bounds under server
   expect(formatter?.getColorFromValue(2467063)).toBe('#FF0000FF');
 });
 
+test('renders multi-level header groups above column names', () => {
+  const props = {
+    ...transformProps(testData.basic),
+    headerGroups: [
+      {
+        id: 'metrics',
+        label: 'Metrics',
+        columns: ['sum__num'],
+        children: [],
+      },
+    ],
+  };
+
+  const { container } = render(<TableChart {...props} sticky={false} />);
+  const headerRows = container.querySelectorAll('thead tr');
+
+  expect(headerRows.length).toBeGreaterThanOrEqual(2);
+  expect(headerRows[0].textContent).toContain('Metrics');
+  expect(
+    Array.from(headerRows[0].querySelectorAll('th')).some(
+      th => th.textContent === 'Metrics',
+    ),
+  ).toBe(true);
+
+  const extraHeaderCells = headerRows[0].querySelectorAll('th');
+  extraHeaderCells.forEach(th => {
+    if (th.textContent !== 'Metrics') {
+      expect(th.getAttribute('data-dimension-separator')).toBe('true');
+      expect(Number(th.getAttribute('rowspan') ?? '1')).toBe(1);
+    }
+  });
+});
+
 describe('plugin-chart-table', () => {
   describe('transformProps', () => {
     test('should parse pageLength to pageSize', () => {

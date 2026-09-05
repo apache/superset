@@ -43,6 +43,7 @@ import {
   ConditionalFormattingConfig,
   getColorFormatters,
   ColorSchemeEnum,
+  resolveHeaderGroups,
 } from '@superset-ui/chart-controls';
 import isEqualColumns from './utils/isEqualColumns';
 import DateWithFormatter from './utils/DateWithFormatter';
@@ -526,6 +527,7 @@ const transformProps = (
     comparison_color_enabled: comparisonColorEnabled = false,
     comparison_color_scheme: comparisonColorScheme = ColorSchemeEnum.Green,
     show_numbered_column: showNumberedColumn = false,
+    header_groups: headerGroups = [],
   } = formData;
 
   const allowRearrangeColumns = true;
@@ -682,7 +684,12 @@ const transformProps = (
     hasServerPageLengthChanged = true;
   }
 
-  const [, percentMetrics, columns] = processColumns(chartProps);
+  const [metrics, percentMetrics, columns] = processColumns(chartProps);
+  const resolvedHeaderGroups = resolveHeaderGroups(headerGroups, {
+    timeCompareEnabled: isUsingTimeComparison,
+    metricKeys: [...metrics, ...percentMetrics],
+    verboseMap: chartProps.datasource?.verboseMap,
+  });
 
   const timeGrain = extractTimegrain(formData);
 
@@ -873,6 +880,7 @@ const transformProps = (
     chartState,
     onChartStateChange,
     showNumberedColumn,
+    headerGroups: resolvedHeaderGroups,
   };
 };
 

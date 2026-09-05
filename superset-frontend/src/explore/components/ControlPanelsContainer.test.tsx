@@ -623,4 +623,41 @@ describe('ControlPanelsContainer', () => {
     getChartControlPanelRegistry().remove('bar');
     getChartControlPanelRegistry().remove('pie');
   });
+
+  test('syncs time comparison header groups without opening Customize', async () => {
+    const setControlValue = jest.fn();
+    const props = getDefaultProps();
+    props.actions = { setControlValue };
+    props.controls = {
+      ...props.controls,
+      header_groups: {
+        type: 'HeaderGroupsControl',
+        value: [],
+      },
+      time_compare: {
+        type: 'SelectControl',
+        value: '1 year ago',
+      },
+    };
+    props.exploreState = {
+      form_data: { metrics: ['revenue'] },
+      controls: { time_compare: { value: '1 year ago' } },
+    };
+
+    render(<ControlPanelsContainer {...props} />, { useRedux: true });
+
+    await waitFor(() => {
+      expect(setControlValue).toHaveBeenCalledWith(
+        'header_groups',
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: 'time-compare-revenue',
+            source: 'time_compare',
+          }),
+        ]),
+        undefined,
+        { programmatic: true },
+      );
+    });
+  });
 });

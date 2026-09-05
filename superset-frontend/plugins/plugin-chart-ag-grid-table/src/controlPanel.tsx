@@ -40,6 +40,7 @@ import {
   isRegularMetric,
   isPercentMetric,
   ColorSchemeEnum,
+  getHeaderGroupsControlProps,
 } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -478,6 +479,29 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: false,
               description: t('Whether to include a client-side search box'),
+            },
+          },
+        ],
+      ],
+    },
+    {
+      label: t('Multi-level header'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'header_groups',
+            config: {
+              type: 'HeaderGroupsControl',
+              label: t('Column groups'),
+              default: [],
+              renderTrigger: true,
+              shouldMapStateToProps() {
+                return true;
+              },
+              mapStateToProps(explore, _, chart) {
+                return getHeaderGroupsControlProps(explore, chart);
+              },
             },
           },
         ],

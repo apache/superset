@@ -39,6 +39,7 @@ import {
   shouldSkipMetricColumn,
   isRegularMetric,
   isPercentMetric,
+  getHeaderGroupsControlProps,
   ConditionalFormattingConfig,
   ObjectFormattingEnum,
   ColorSchemeEnum,
@@ -565,7 +566,8 @@ const config: ControlPanelConfig = {
                 "Allow end user to drag-and-drop column headers to rearrange them. Note their changes won't persist for the next time they open the chart.",
               ),
               visibility: ({ controls }) =>
-                isEmpty(controls?.time_compare?.value),
+                isEmpty(controls?.time_compare?.value) &&
+                isEmpty(controls?.header_groups?.value),
             },
           },
         ],
@@ -580,6 +582,29 @@ const config: ControlPanelConfig = {
               description: t(
                 'Renders table cells as HTML when applicable. For example, HTML <a> tags will be rendered as hyperlinks.',
               ),
+            },
+          },
+        ],
+      ],
+    },
+    {
+      label: t('Multi-level header'),
+      expanded: true,
+      controlSetRows: [
+        [
+          {
+            name: 'header_groups',
+            config: {
+              type: 'HeaderGroupsControl',
+              label: t('Column groups'),
+              default: [],
+              renderTrigger: true,
+              shouldMapStateToProps() {
+                return true;
+              },
+              mapStateToProps(explore, _, chart) {
+                return getHeaderGroupsControlProps(explore, chart);
+              },
             },
           },
         ],
@@ -910,7 +935,7 @@ const config: ControlPanelConfig = {
         showCalculationType: false,
         showFullChoices: false,
       }),
-      visibility: isAggMode,
+      visibility: ({ controls }) => isAggMode({ controls }),
     },
     sections.matrixifyRowSection,
     sections.matrixifyColumnSection,

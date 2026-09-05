@@ -367,6 +367,16 @@ export const StyledChartContainer = styled.div<{
       font-weight: ${theme.fontWeightStrong};
     }
 
+    .ag-header-cell,
+    .ag-header-group-cell {
+      border-right: 1px solid ${theme.colorSplit};
+    }
+
+    .ag-header-cell.ag-column-last,
+    .ag-header-group-cell.ag-column-last {
+      border-right: none;
+    }
+
     .ag-row {
       font-size: ${theme.fontSizeSM}px;
     }
@@ -444,6 +454,27 @@ export const StyledChartContainer = styled.div<{
     .ag-header-center {
       .ag-header-cell-label {
         justify-content: center;
+      }
+    }
+
+    .ag-header-align-left {
+      .ag-header-group-cell-label,
+      .ag-header-cell-label {
+        justify-content: flex-start;
+      }
+    }
+
+    .ag-header-align-center {
+      .ag-header-group-cell-label,
+      .ag-header-cell-label {
+        justify-content: center;
+      }
+    }
+
+    .ag-header-align-right {
+      .ag-header-group-cell-label,
+      .ag-header-cell-label {
+        justify-content: flex-end;
       }
     }
   `}
