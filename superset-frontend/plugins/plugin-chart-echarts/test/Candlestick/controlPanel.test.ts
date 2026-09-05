@@ -17,6 +17,7 @@
  * under the License.
  */
 import { SqlaFormData } from '@superset-ui/core';
+import { ControlPanelsContainerProps } from '@superset-ui/chart-controls/types';
 
 const mockPopAllMetrics = jest.fn();
 
@@ -79,4 +80,61 @@ test('overrides series to a single optional dimension', () => {
       multi: false,
     }),
   );
+});
+
+type VisibilityControl = {
+  name: string;
+  config: { visibility: (props: ControlPanelsContainerProps) => boolean };
+};
+
+const getControl = (controlName: string) => {
+  for (const section of controlPanel.controlPanelSections) {
+    if (!section?.controlSetRows) {
+      continue;
+    }
+    for (const row of section.controlSetRows) {
+      for (const control of row) {
+        if (
+          typeof control === 'object' &&
+          control !== null &&
+          'name' in control &&
+          control.name === controlName
+        ) {
+          return control;
+        }
+      }
+    }
+  }
+  return null;
+};
+
+test('shows series name only when the default candlestick series is used', () => {
+  const seriesNameControl = getControl(
+    'candlestick_series_name',
+  ) as VisibilityControl | null;
+  expect(seriesNameControl).not.toBeNull();
+  expect(seriesNameControl?.config.visibility).toBeDefined();
+
+  const visibility = seriesNameControl!.config.visibility;
+
+  expect(
+    visibility({
+      controls: {},
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
+  expect(
+    visibility({
+      controls: { series: { value: null } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
+  expect(
+    visibility({
+      controls: { series: { value: [] } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
+  expect(
+    visibility({
+      controls: { series: { value: 'symbol' } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(false);
 });

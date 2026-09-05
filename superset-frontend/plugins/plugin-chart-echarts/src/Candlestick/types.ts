@@ -40,6 +40,7 @@ export type EchartsCandlestickFormData = QueryFormData &
     high: QueryFormMetric;
     low: QueryFormMetric;
     series?: QueryFormColumn | QueryFormColumn[];
+    candlestickSeriesName?: string;
     increaseColor: RgbaColor;
     decreaseColor: RgbaColor;
     increaseLabel?: string;

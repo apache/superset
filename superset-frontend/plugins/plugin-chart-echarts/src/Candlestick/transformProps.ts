@@ -209,6 +209,7 @@ export default function transformProps(
     high,
     low,
     series: seriesControl,
+    candlestickSeriesName,
     increaseColor = DEFAULT_INCREASE_COLOR,
     decreaseColor = DEFAULT_DECREASE_COLOR,
     increaseLabel,
@@ -239,6 +240,8 @@ export default function transformProps(
   const xAxisName = xAxis ? getColumnLabel(xAxis) : '';
   const seriesColumns = ensureIsArray(seriesControl).map(getColumnLabel);
   const [seriesName] = seriesColumns;
+  const defaultSeriesLabel =
+    candlestickSeriesName?.trim() || CANDLESTICK_SERIES_NAME;
   const openLabel = open ? getMetricLabel(open) : '';
   const closeLabel = close ? getMetricLabel(close) : '';
   const highLabel = high ? getMetricLabel(high) : '';
@@ -320,7 +323,7 @@ export default function transformProps(
     });
   } else {
     seriesKeys.push(CANDLESTICK_SERIES_NAME);
-    seriesNames.push(CANDLESTICK_SERIES_NAME);
+    seriesNames.push(defaultSeriesLabel);
   }
 
   const recordsBySeriesAndX = new Map<LookupKey, Map<LookupKey, DataRecord>>();

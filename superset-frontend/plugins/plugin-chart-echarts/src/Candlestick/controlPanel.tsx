@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { validateNonEmpty } from '@superset-ui/core';
+import { ensureIsArray, validateNonEmpty } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -35,7 +35,11 @@ import {
   xAxisLabelInterval,
   xAxisLabelRotation,
 } from '../controls';
-import { DEFAULT_DECREASE_COLOR, DEFAULT_INCREASE_COLOR } from './constants';
+import {
+  CANDLESTICK_SERIES_NAME,
+  DEFAULT_DECREASE_COLOR,
+  DEFAULT_INCREASE_COLOR,
+} from './constants';
 import { MOVING_AVERAGE_PERIODS } from './utils';
 
 const config: ControlPanelConfig = {
@@ -91,6 +95,22 @@ const config: ControlPanelConfig = {
           },
         ],
         ['series'],
+        [
+          {
+            name: 'candlestick_series_name',
+            config: {
+              type: 'TextControl',
+              label: t('Series name'),
+              default: CANDLESTICK_SERIES_NAME,
+              renderTrigger: true,
+              description: t(
+                'Name used for the candlestick series in the legend and tooltip when no series dimension is set.',
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                ensureIsArray(controls?.series?.value).length === 0,
+            },
+          },
+        ],
         ['adhoc_filters'],
         ['row_limit'],
       ],

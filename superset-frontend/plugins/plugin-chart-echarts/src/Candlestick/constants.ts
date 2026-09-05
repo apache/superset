@@ -44,6 +44,7 @@ export const DEFAULT_DECREASE_COLOR = { r: 224, g: 67, b: 85, a: 1 };
 export const DEFAULT_FORM_DATA: Partial<EchartsCandlestickFormData> = {
   ...DEFAULT_LEGEND_FORM_DATA,
   ...DEFAULT_TITLE_FORM_DATA,
+  candlestickSeriesName: CANDLESTICK_SERIES_NAME,
   increaseColor: DEFAULT_INCREASE_COLOR,
   decreaseColor: DEFAULT_DECREASE_COLOR,
   showXAxis: true,

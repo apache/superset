@@ -89,6 +89,47 @@ const getTooltipHtml = (
     }
   ).formatter(params);
 
+test('uses a custom series name when no series dimension is set', () => {
+  const series = extractSeries(
+    buildProps({ candlestick_series_name: 'OHLC' }),
+  );
+  expect(series[0].name).toBe('OHLC');
+});
+
+test('falls back to the default series name when the custom name is blank', () => {
+  const series = extractSeries(buildProps({ candlestick_series_name: '   ' }));
+  expect(series[0].name).toBe(CANDLESTICK_SERIES_NAME);
+});
+
+test('ignores the custom series name when a series dimension is set', () => {
+  const seriesData = [
+    {
+      date: '2017-10-24',
+      symbol: 'AAPL',
+      open: 20,
+      close: 34,
+      low: 10,
+      high: 38,
+    },
+    {
+      date: '2017-10-24',
+      symbol: 'GOOG',
+      open: 40,
+      close: 35,
+      low: 30,
+      high: 50,
+    },
+  ];
+  const series = extractSeries(
+    transform(seriesData, {
+      series: 'symbol',
+      candlestick_series_name: 'OHLC',
+    }),
+  );
+  expect(series.map(item => item.name)).toEqual(['AAPL', 'GOOG']);
+  expect(series.map(item => item.name)).not.toContain('OHLC');
+});
+
 test('maps rows to ECharts candlestick [open, close, low, high] values', () => {
   const series = extractSeries(buildProps());
   expect(series).toHaveLength(1);
