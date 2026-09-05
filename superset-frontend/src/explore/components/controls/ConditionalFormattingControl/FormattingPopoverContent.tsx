@@ -538,28 +538,54 @@ export const FormattingPopoverContent = ({
 }) => {
   const [form] = Form.useForm();
   const colors = colorScheme();
-  // Watch the colorScheme form field; trend color schemes hide the
-  // operator fields
+  const defaultColorToken = colors[0]?.colors?.[0];
+
+  // Initial values for the form fields, and the fallback for the watched
+  // values below (Form.useWatch reads an empty store on the first render)
+  const initialColumn = config?.column || columns[0]?.value;
+  const initialColumnFormatting =
+    config?.columnFormatting ??
+    (Array.isArray(allColumns)
+      ? allColumns.find(item => item.value === initialColumn)?.value
+      : undefined);
+  const initialObjectFormatting =
+    config?.objectFormatting || formattingOptions[0].value;
+  const formInitialValues = useMemo(
+    () => (metricOnly && config ? omitFormattingTargets(config) : config),
+    [config, metricOnly],
+  );
+
+  const column = Form.useWatch('column', form) ?? initialColumn;
+  const objectFormatting =
+    Form.useWatch<ObjectFormattingEnum>('objectFormatting', form) ??
+    initialObjectFormatting;
   const colorSchemeValue =
     Form.useWatch('colorScheme', form) ?? config?.colorScheme;
   const showOperatorFields =
     colorSchemeValue !== ColorSchemeEnum.Green &&
     colorSchemeValue !== ColorSchemeEnum.Red;
 
-  // Mirrors the column form field; the form store is the source of truth,
-  // the fallback applies before the field is registered
-  const column =
-    Form.useWatch('column', form) ?? (config?.column || columns[0]?.value);
+  const columnType = useMemo(
+    () => columns.find(item => item.value === column)?.dataType,
+    [columns, column],
+  );
   const visibleAllColumns = useMemo(
     () =>
       !metricOnly &&
       !!(allColumns && Array.isArray(allColumns) && allColumns.length),
     [allColumns, metricOnly],
   );
-
-  const formInitialValues = useMemo(
-    () => (metricOnly && config ? omitFormattingTargets(config) : config),
-    [config, metricOnly],
+  const numericColumns = useMemo(
+    () => allColumns.filter(col => col.dataType === GenericDataType.Numeric),
+    [allColumns],
+  );
+  const visibleUseGradient = useMemo(
+    () =>
+      numericColumns.length > 0
+        ? numericColumns.some((col: ColumnOption) => col.value === column) &&
+          objectFormatting === ObjectFormattingEnum.BACKGROUND_COLOR
+        : false,
+    [column, numericColumns, objectFormatting],
   );
 
   const handleFinish = useCallback(
@@ -568,27 +594,6 @@ export const FormattingPopoverContent = ({
     },
     [metricOnly, onChange],
   );
-
-  // Initial value of the formatting column field; the form store is the
-  // source of truth once the user interacts
-  const initialColumn = config?.column || columns[0]?.value;
-  const initialColumnFormatting =
-    config?.columnFormatting ??
-    (Array.isArray(allColumns)
-      ? allColumns.find(item => item.value === initialColumn)?.value
-      : undefined);
-
-  // Mirrors the objectFormatting form field; the form store is the source
-  // of truth, the fallback applies before the field is registered
-  const objectFormatting =
-    Form.useWatch<ObjectFormattingEnum>('objectFormatting', form) ??
-    (config?.objectFormatting || formattingOptions[0].value);
-
-  const columnType = useMemo(
-    () => columns.find(item => item.value === column)?.dataType,
-    [columns, column],
-  );
-
   const handleColumnChange = (value: string) => {
     const newColumnType = columns.find(item => item.value === value)?.dataType;
     const currentColumnType = columns.find(
@@ -615,21 +620,6 @@ export const FormattingPopoverContent = ({
       });
     }
   };
-
-  const numericColumns = useMemo(
-    () => allColumns.filter(col => col.dataType === GenericDataType.Numeric),
-    [allColumns],
-  );
-
-  const defaultColorToken = colors[0]?.colors?.[0];
-  const visibleUseGradient = useMemo(
-    () =>
-      numericColumns.length > 0
-        ? numericColumns.some((col: ColumnOption) => col.value === column) &&
-          objectFormatting === ObjectFormattingEnum.BACKGROUND_COLOR
-        : false,
-    [column, numericColumns, objectFormatting],
-  );
 
   const handleObjectChange = (value: ObjectFormattingEnum) => {
     if (value === ObjectFormattingEnum.CELL_BAR) {
@@ -678,7 +668,7 @@ export const FormattingPopoverContent = ({
             name="column"
             label={t('Column')}
             rules={rulesRequired}
-            initialValue={config?.column || columns[0]?.value}
+            initialValue={initialColumn}
           >
             <Select
               ariaLabel={t('Select column')}
@@ -726,7 +716,7 @@ export const FormattingPopoverContent = ({
               name="objectFormatting"
               label={t('Formatting object')}
               rules={rulesRequired}
-              initialValue={config?.objectFormatting || formattingOptions[0].value}
+              initialValue={initialObjectFormatting}
               tooltip={
                 objectFormatting === ObjectFormattingEnum.CELL_BAR
                   ? t(
