@@ -24,12 +24,14 @@ import {
   userEvent,
   within,
 } from 'spec/helpers/testing-library';
-import {
-  Comparator,
-  ColorSchemeEnum,
-  ObjectFormattingEnum,
-} from '@superset-ui/chart-controls';
 import tinycolor from 'tinycolor2';
+import {
+  BoundUnit,
+  ColorSchemeEnum,
+  Comparator,
+  ObjectFormattingEnum,
+  PercentDenominator,
+} from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/common';
 import { FormattingPopoverContent } from './FormattingPopoverContent';
 
@@ -1290,5 +1292,48 @@ test('keeps the gradient selection when the gradient row remounts', async () => 
 
   await waitFor(() => {
     expect(findUseGradientCheckbox()).not.toBeChecked();
+  });
+});
+
+test('opens a saved rule with the stored operator, target value, bound unit, and percent denominator', async () => {
+  render(
+    <FormattingPopoverContent
+      config={{
+        column: 'column1',
+        operator: Comparator.GreaterThan,
+        targetValue: 5,
+        boundUnit: BoundUnit.Percent,
+        percentDenominator: PercentDenominator.Sum,
+      }}
+      columns={columns}
+      allColumns={columns}
+      onChange={mockOnChange}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(
+      screen
+        .getByLabelText('Operator')
+        .closest('.ant-select')
+        ?.querySelector('.ant-select-content'),
+    ).toHaveTextContent('>');
+  });
+  expect(screen.getByLabelText('Target value')).toHaveValue('5');
+  await waitFor(() => {
+    expect(
+      screen
+        .getByLabelText('Bound unit')
+        .closest('.ant-select')
+        ?.querySelector('.ant-select-content'),
+    ).toHaveTextContent('% of column');
+  });
+  await waitFor(() => {
+    expect(
+      screen
+        .getByLabelText('Percent denominator')
+        .closest('.ant-select')
+        ?.querySelector('.ant-select-content'),
+    ).toHaveTextContent('Column sum');
   });
 });
