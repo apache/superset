@@ -45,6 +45,10 @@ interface ColumnSelectProps {
   value?: string | string[];
   onChange?: (value: string) => void;
   mode?: 'multiple';
+  // Called with the names of the columns that back the rendered options
+  // (already narrowed by `filterValues`) whenever a dataset's columns load.
+  // Lets a parent seed a default selection that matches the options exactly.
+  onColumnsLoaded?: (columnNames: string[]) => void;
 }
 
 /** Special purpose AsyncSelect that selects a column from a dataset */
@@ -60,6 +64,7 @@ export function ColumnSelect({
   value,
   onChange,
   mode,
+  onColumnsLoaded,
 }: ColumnSelectProps) {
   const [columns, setColumns] = useState<Column[]>();
   const [loading, setLoading] = useState(false);
@@ -70,13 +75,24 @@ export function ColumnSelect({
     ]);
   }, [form, filterId, formField]);
 
+  // The names backing the rendered options: the loaded columns narrowed by
+  // `filterValues`. Shared by both the option list and the onColumnsLoaded
+  // callback so a seeded default matches the available options exactly.
+  const filterColumnNames = useCallback(
+    (cols: Column[]) =>
+      ensureIsArray(cols)
+        .filter(filterValues)
+        .map((col: Column) => col.column_name),
+    [filterValues],
+  );
+
   const options = useMemo(
     () =>
-      ensureIsArray(columns)
-        .filter(filterValues)
-        .map((col: Column) => col.column_name)
-        .map((column: string) => ({ label: column, value: column })),
-    [columns, filterValues],
+      filterColumnNames(ensureIsArray(columns)).map((column: string) => ({
+        label: column,
+        value: column,
+      })),
+    [columns, filterColumnNames],
   );
 
   const currentFilterType =
@@ -141,6 +157,7 @@ export function ColumnSelect({
               resetColumnField();
             }
             setColumns(cols);
+            onColumnsLoaded?.(filterColumnNames(cols));
           }, handleError)
           .finally(() => setLoading(false));
       } else {
@@ -163,6 +180,7 @@ export function ColumnSelect({
               resetColumnField();
             }
             setColumns(result.columns);
+            onColumnsLoaded?.(filterColumnNames(result.columns));
           }, handleError)
           .finally(() => setLoading(false));
       }
