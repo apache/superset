@@ -1047,8 +1047,18 @@
               }
             },
             "type": "object"
+          },
+          "groupby": {
+            "items": {
+              "description": "Columns by which to group by",
+              "type": "string"
+            },
+            "type": "array"
           }
         },
+        "required": [
+          "groupby"
+        ],
         "type": "object"
       },
       "ChartDataAsyncResponseSchema": {
@@ -1405,6 +1415,14 @@
             "description": "Do not include columns whose entries are all missing (default: `true`).",
             "type": "boolean"
           },
+          "index": {
+            "description": "Columns to group by on the table index (=rows)",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
           "marginal_distribution_name": {
             "description": "Name of marginal distribution row/column. (default: `All`)",
             "type": "string"
@@ -1418,6 +1436,9 @@
             "type": "number"
           }
         },
+        "required": [
+          "index"
+        ],
         "type": "object"
       },
       "ChartDataPostProcessingOperation": {
@@ -2578,6 +2599,13 @@
             "example": false,
             "type": "boolean"
           },
+          "columns": {
+            "description": "columns on which to perform rolling, mapping source column to target column. For instance, `{'y': 'y'}` will replace the column `y` with the rolling value in `y`, while `{'y': 'y2'}` will add a column `y2` based on rolling values calculated from `y`, leaving the original column `y` unchanged.",
+            "example": {
+              "weekly_rolling_sales": "sales"
+            },
+            "type": "object"
+          },
           "min_periods": {
             "description": "The minimum amount of periods required for a row to be included in the result set.",
             "example": 7,
@@ -2646,6 +2674,7 @@
           }
         },
         "required": [
+          "columns",
           "rolling_type",
           "window"
         ],

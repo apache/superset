@@ -15,18 +15,23 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import inspect
+
 import pandas as pd
 import pytest
 from flask import current_app
 from jsonschema import validate as validate_json_schema
 from jsonschema.exceptions import ValidationError as JSONSchemaValidationError
-from marshmallow import ValidationError
+from marshmallow import fields as marshmallow_fields, Schema, ValidationError
 from pytest_mock import MockerFixture
 
+from superset.charts import schemas as chart_schemas
 from superset.charts.schemas import (
     chart_get_list_schema,
     ChartDataAdhocMetricSchema,
+    ChartDataAggregateOptionsSchema,
     ChartDataExtrasSchema,
+    ChartDataPivotOptionsSchema,
     ChartDataPostProcessingOperationSchema,
     ChartDataProphetOptionsSchema,
     ChartDataQueryObjectSchema,
@@ -239,7 +244,10 @@ def test_chart_data_rolling_options_schema_window_range(
 ) -> None:
     """`window` must be a bounded positive integer."""
     schema = ChartDataRollingOptionsSchema()
-    base = {"rolling_type": "mean"}
+    # `columns` is required alongside `rolling_type`; both are parameters of
+    # `rolling()` that have no default. This test is about `window`, so the
+    # base payload just has to be otherwise valid.
+    base = {"rolling_type": "mean", "columns": {"y": "y"}}
 
     # Valid value passes
     assert schema.load({**base, "window": 7})["window"] == 7
@@ -612,3 +620,83 @@ def test_post_processing_operation_schema_rejects_string_helpers(
     schema = ChartDataPostProcessingOperationSchema()
     with pytest.raises(ValidationError):
         schema.load({"operation": operation, "options": {}})
+
+
+def test_schema_attributes_are_fields_not_tuples(app_context: None) -> None:
+    """A trailing comma must not silently disable a field declaration.
+
+    `groupby = (fields.List(...),)` is a one-element tuple, not a `Field`.
+    Marshmallow only collects `Field` instances, so such an attribute is
+    dropped from the schema entirely: it never reaches the OpenAPI spec and
+    its `required=True` is never applied. Three declarations in this module
+    had picked up that stray comma -- `ChartDataAggregateOptionsSchema.groupby`,
+    `ChartDataRollingOptionsSchema.columns` and
+    `ChartDataPivotOptionsSchema.index` -- each of them the parameter its
+    post-processing operation cannot run without.
+    """
+    disabled: dict[str, list[str]] = {}
+    for name, schema_cls in vars(chart_schemas).items():
+        if not (inspect.isclass(schema_cls) and issubclass(schema_cls, Schema)):
+            continue
+        for attribute, value in vars(schema_cls).items():
+            if isinstance(value, tuple) and any(
+                isinstance(item, marshmallow_fields.Field) for item in value
+            ):
+                disabled.setdefault(name, []).append(attribute)
+
+    assert not disabled, (
+        "schema attributes wrapped in a tuple, so marshmallow ignores them "
+        f"and they never reach the OpenAPI spec: {disabled}"
+    )
+
+
+def test_required_post_processing_options_are_documented(app_context: None) -> None:
+    """The parameters these operations cannot run without must be published.
+
+    `aggregate()`, `rolling()` and `pivot()` each take a parameter with no
+    default; a client cannot call them successfully without it, so it has to
+    appear in the spec.
+    """
+    assert "groupby" in ChartDataAggregateOptionsSchema().fields
+    assert ChartDataAggregateOptionsSchema().fields["groupby"].required
+
+    assert "index" in ChartDataPivotOptionsSchema().fields
+    assert ChartDataPivotOptionsSchema().fields["index"].required
+
+    assert "columns" in ChartDataRollingOptionsSchema().fields
+    assert ChartDataRollingOptionsSchema().fields["columns"].required
+
+
+def test_pivot_rejects_an_empty_index(app_context: None) -> None:
+    """An empty `index` must be rejected at the schema boundary.
+
+    `metadata={"minLength": 1}` is inert: metadata is not a validator, and
+    `minLength` is the OpenAPI keyword for strings, not arrays (`minItems`).
+    So the schema accepted `index=[]` while `pivot()` raises "Pivot operation
+    requires at least one index".
+    """
+    with pytest.raises(ValidationError) as exc_info:
+        ChartDataPivotOptionsSchema().load({"index": [], "aggregates": {}})
+    assert "index" in exc_info.value.messages
+
+    # a non-empty list still loads
+    assert ChartDataPivotOptionsSchema().load(
+        {"index": ["__timestamp"], "aggregates": {}}
+    )["index"] == ["__timestamp"]
+
+
+def test_aggregate_accepts_an_empty_groupby(app_context: None) -> None:
+    """`groupby: []` is the global-aggregation case, not a malformed request.
+
+    `aggregate()` branches on it explicitly -- an empty `groupby` groups the
+    frame as a whole via `df.groupby(lambda _: True)` -- and the frontend's
+    `aggregateOperator` emits `groupby: []` verbatim for every non-`LAST_VALUE`
+    aggregation. A lower bound on this field would publish `minItems: 1` and
+    so document Superset's own request as invalid.
+    """
+    assert (
+        ChartDataAggregateOptionsSchema().load({"groupby": [], "aggregates": {}})[
+            "groupby"
+        ]
+        == []
+    )
