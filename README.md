@@ -58,7 +58,7 @@ A modern, enterprise-ready business intelligence web application.
 
 [**Why Superset?**](#why-superset) |
 [**Supported Databases**](#supported-databases) |
-[**Release Notes**](https://github.com/apache/superset/blob/master/RELEASING/README.md#release-notes-for-recent-releases) |
+[**Release Notes**](https://github.com/apache/superset/releases) |
 [**Get Involved**](#get-involved) |
 [**Resources**](#resources) |
 [**Organizations Using Superset**](https://superset.apache.org/inTheWild)
