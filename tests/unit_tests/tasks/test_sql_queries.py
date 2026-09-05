@@ -106,10 +106,12 @@ def test_run_sql_lab_query_timeout_mirrors_timed_out(
 def test_cancel_hook_registers_abort_and_persists_handle(
     mocker: MockerFixture, app
 ) -> None:
-    """The cancel hook persists the engine handle and registers an abort handler."""
+    """The cancel hook persists the engine handle and registers an abort handler
+    that cancels the warehouse query over a fresh connection."""
     ctx = mocker.MagicMock(aborting_in_flight=False, timeout_triggered=False)
     _wire(mocker, ctx)
     entry = mocker.patch(_ENTRY)
+    cancel_chart_query = mocker.patch(f"{_MOD}.cancel_chart_query")
 
     run_sql_lab_query.func(1, "SELECT 1", username="admin")
     cancel_hook = entry.call_args.kwargs["cancel_hook"]
@@ -117,3 +119,8 @@ def test_cancel_hook_registers_abort_and_persists_handle(
     cancel_hook(7, "cancel-id-123")
     ctx.set_cancellation.assert_called_once_with(7, "cancel-id-123")
     ctx.on_abort.assert_called_once()
+
+    # Invoke the registered abort handler → it kills the query over a fresh conn.
+    abort_handler = ctx.on_abort.call_args.args[0]
+    abort_handler()
+    cancel_chart_query.assert_called_once()

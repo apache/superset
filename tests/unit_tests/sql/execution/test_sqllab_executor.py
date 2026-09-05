@@ -207,3 +207,44 @@ def test_empty_sql_raises_clean_error(mocker: MockerFixture, app) -> None:
             store_results=False,
             expand_data=False,
         )
+
+
+@with_config(_CONFIG)
+def test_cancel_hook_invoked_when_engine_cancel_id_captured(
+    mocker: MockerFixture, app
+) -> None:
+    """The cancel hook is called with (database_id, cancel_id) once captured."""
+    query = _make_query(mocker)
+    mocker.patch(f"{_MODULE}.db.session.refresh", return_value=None)
+    mocker.patch(f"{_MODULE}.results_backend", return_value=True)
+    hook = mocker.MagicMock()
+
+    execute_sql_lab_query(
+        query,
+        "SELECT 42 AS answer",
+        return_results=False,
+        store_results=False,
+        expand_data=False,
+        cancel_hook=hook,
+    )
+    hook.assert_called_once()
+
+
+@with_config(_CONFIG)
+def test_cancel_hook_failure_is_swallowed(mocker: MockerFixture, app) -> None:
+    """A raising cancel hook only forfeits cancellability; execution proceeds."""
+    query = _make_query(mocker)
+    mocker.patch(f"{_MODULE}.db.session.refresh", return_value=None)
+    mocker.patch(f"{_MODULE}.results_backend", return_value=True)
+    hook = mocker.MagicMock(side_effect=RuntimeError("hook boom"))
+
+    # Must not raise despite the hook failing.
+    execute_sql_lab_query(
+        query,
+        "SELECT 42 AS answer",
+        return_results=False,
+        store_results=False,
+        expand_data=False,
+        cancel_hook=hook,
+    )
+    hook.assert_called_once()
