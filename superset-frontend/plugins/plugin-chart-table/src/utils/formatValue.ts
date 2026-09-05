@@ -24,6 +24,7 @@ import {
   sanitizeHtml,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
+import { logging } from '@apache-superset/core/utils';
 import { DataColumnMeta } from '../types';
 import DateWithFormatter from './DateWithFormatter';
 
@@ -50,11 +51,16 @@ function formatValue(
     return [false, 'N/A'];
   }
   if (formatter) {
-    // If formatter is a CurrencyFormatter, pass row context for AUTO mode
-    if (formatter instanceof CurrencyFormatter) {
-      return [false, formatter(value as number, rowData, currencyColumn)];
+    try {
+      // If formatter is a CurrencyFormatter, pass row context for AUTO mode
+      if (formatter instanceof CurrencyFormatter) {
+        return [false, formatter(value as number, rowData, currencyColumn)];
+      }
+      return [false, formatter(value as number)];
+    } catch (e) {
+      logging.warn('Formatter failed, falling back to raw value', e);
+      return [false, String(value)];
     }
-    return [false, formatter(value as number)];
   }
   if (typeof value === 'string') {
     return isProbablyHTML(value) ? [true, sanitizeHtml(value)] : [false, value];
