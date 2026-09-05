@@ -39,6 +39,20 @@ export const Styles = styled.div<{ isDashboardEditMode: boolean }>`
       top: 0;
     }
 
+    /* Corner cell(s) sitting above the frozen row-label column: the
+     * placeholder cell spanning the column-attribute rows, and the
+     * row-attribute name cell(s) in the final header row. Needs a
+     * higher z-index than .pvtRowLabel so it stays on top when both
+     * stick at the same scroll position. */
+    table.pvtTable thead tr:first-of-type th[aria-hidden='true'],
+    table.pvtTable thead tr:last-of-type th.pvtAxisLabel {
+      position: ${isDashboardEditMode ? 'inherit' : 'sticky'};
+      top: 0;
+      left: 0;
+      z-index: 2;
+      background-color: ${theme.colorBgBase};
+    }
+
     table tbody tr {
       font-feature-settings: 'tnum' 1;
     }
@@ -120,6 +134,10 @@ export const Styles = styled.div<{ isDashboardEditMode: boolean }>`
 
     table.pvtTable tbody tr th.pvtRowLabel {
       vertical-align: baseline;
+      position: ${isDashboardEditMode ? 'inherit' : 'sticky'};
+      left: 0;
+      z-index: 1;
+      background-color: ${theme.colorBgBase};
     }
 
     table.pvtTable tbody tr th.pvtRowLabel.pvtRowLabelLast {
