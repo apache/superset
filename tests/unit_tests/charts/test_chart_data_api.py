@@ -41,6 +41,7 @@ from superset.common.chart_data_timing import (
 )
 from superset.common.query_context_factory import QueryContextFactory
 from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.jinja_context import ExtraCache
 from superset.models.core import Database
 from superset.utils import json
@@ -73,6 +74,160 @@ def _json_execution_result(
         query_context=query_context,
         queries=(QueryDataResult(payload=query_payload, timing=_query_timing()),),
     )
+
+
+def test_should_run_async_requires_async_mode_flag() -> None:
+    """`async_mode` is opt-in: absent/false runs sync even with the flag on."""
+    from flask_caching.backends import NullCache
+
+    api = ChartDataRestApi()
+    qc = MagicMock()
+    qc.result_format = ChartDataResultFormat.JSON
+    qc.result_type = ChartDataResultType.FULL
+    qc.get_cache_timeout.return_value = 300
+
+    with (
+        patch("superset.charts.data.api.is_feature_enabled", return_value=True),
+        patch("superset.charts.data.api.cache_manager") as cache_manager,
+        # A subscribe-able identity is required for async; an authenticated user
+        # satisfies it (the identity requirement is covered on its own below).
+        patch("superset.charts.data.api.get_user_id", return_value=1),
+        patch(
+            "superset.charts.data.api.get_current_guest_subscriber_key",
+            return_value=None,
+        ),
+        # The principal can read task status (covered on its own below).
+        patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=True,
+        ),
+    ):
+        # A real (non-null) DATA cache backend so async is viable.
+        cache_manager.data_cache.cache = MagicMock()
+
+        # Opted in → async.
+        assert api._should_run_async({"async_mode": True}, qc) is True
+        # Absent or false → synchronous (programmatic clients keep the 200 flow).
+        assert api._should_run_async({}, qc) is False
+        assert api._should_run_async({"async_mode": False}, qc) is False
+
+        # No configured chart/dataset/database TTL is not "cache disabled": the
+        # processor resolves a fallback, so async stays available.
+        qc.get_cache_timeout.return_value = None
+        assert api._should_run_async({"async_mode": True}, qc) is True
+
+        # Caching explicitly disabled → sync even when opted in (async reads from
+        # the cache).
+        qc.get_cache_timeout.return_value = CACHE_DISABLED_TIMEOUT
+        assert api._should_run_async({"async_mode": True}, qc) is False
+
+        # NullCache DATA backend → sync: async could never read the result back.
+        qc.get_cache_timeout.return_value = 300
+        cache_manager.data_cache.cache = NullCache()
+        assert api._should_run_async({"async_mode": True}, qc) is False
+
+    # Feature flag off → always sync.
+    with patch("superset.charts.data.api.is_feature_enabled", return_value=False):
+        assert api._should_run_async({"async_mode": True}, qc) is False
+
+
+def test_should_run_async_requires_subscribeable_identity() -> None:
+    """Async needs a user or guest identity to subscribe/observe the task.
+
+    A fully anonymous request (no login, no guest token) can neither poll nor
+    cancel the scheduled task, so it runs synchronously instead. An embedded
+    guest — which has a token-derived subscriber key — keeps async delivery.
+    """
+    from flask_caching.backends import NullCache  # noqa: F401
+
+    api = ChartDataRestApi()
+    qc = MagicMock()
+    qc.result_format = ChartDataResultFormat.JSON
+    qc.result_type = ChartDataResultType.FULL
+    qc.get_cache_timeout.return_value = 300
+
+    with (
+        patch("superset.charts.data.api.is_feature_enabled", return_value=True),
+        patch("superset.charts.data.api.cache_manager") as cache_manager,
+        # The principal can read task status (covered on its own below).
+        patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=True,
+        ),
+    ):
+        cache_manager.data_cache.cache = MagicMock()
+
+        # Fully anonymous → sync.
+        with (
+            patch("superset.charts.data.api.get_user_id", return_value=None),
+            patch(
+                "superset.charts.data.api.get_current_guest_subscriber_key",
+                return_value=None,
+            ),
+        ):
+            assert api._should_run_async({"async_mode": True}, qc) is False
+
+        # Authenticated user → async.
+        with (
+            patch("superset.charts.data.api.get_user_id", return_value=1),
+            patch(
+                "superset.charts.data.api.get_current_guest_subscriber_key",
+                return_value=None,
+            ),
+        ):
+            assert api._should_run_async({"async_mode": True}, qc) is True
+
+        # Embedded guest (no user id, but a subscriber key) → async.
+        with (
+            patch("superset.charts.data.api.get_user_id", return_value=None),
+            patch(
+                "superset.charts.data.api.get_current_guest_subscriber_key",
+                return_value="guest:abc",
+            ),
+        ):
+            assert api._should_run_async({"async_mode": True}, qc) is True
+
+
+def test_should_run_async_requires_task_read_permission() -> None:
+    """Async needs a principal that can observe task status.
+
+    Completion is read from ``status_changes`` (``can_read Task``); a principal that
+    can't — e.g. an embedded guest on the default ``Public`` role — would get a 202
+    it could never resolve, so it falls back to sync. An authenticated Gamma user
+    has ``can_read Task`` by default and keeps async.
+    """
+    api = ChartDataRestApi()
+    qc = MagicMock()
+    qc.result_format = ChartDataResultFormat.JSON
+    qc.result_type = ChartDataResultType.FULL
+    qc.get_cache_timeout.return_value = 300
+
+    with (
+        patch("superset.charts.data.api.is_feature_enabled", return_value=True),
+        patch("superset.charts.data.api.cache_manager") as cache_manager,
+        # An embedded guest has a subscribe-able identity...
+        patch("superset.charts.data.api.get_user_id", return_value=None),
+        patch(
+            "superset.charts.data.api.get_current_guest_subscriber_key",
+            return_value="guest:abc",
+        ),
+    ):
+        cache_manager.data_cache.cache = MagicMock()
+
+        # ...but without `can_read Task` it can't observe completion → sync.
+        with patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=False,
+        ):
+            assert api._should_run_async({"async_mode": True}, qc) is False
+
+        # With the grant → async.
+        with patch(
+            "superset.charts.data.api.security_manager.can_access",
+            return_value=True,
+        ) as can_access:
+            assert api._should_run_async({"async_mode": True}, qc) is True
+            can_access.assert_called_with("can_read", "Task")
 
 
 def test_get_data_sets_g_form_data_without_dashboard_filter() -> None:
@@ -661,15 +816,6 @@ def test_run_async_does_not_project_timing_onto_a_job_response(
 ) -> None:
     command = MagicMock()
     command.execute.side_effect = ChartDataCacheLoadError("cache miss")
-    async_command = MagicMock()
-    async_command.run.return_value = {
-        "channel_id": "channel",
-        "job_id": "job",
-        "user_id": 1,
-        "status": "pending",
-        "errors": [],
-        "result_url": "/api/v1/chart/data/job",
-    }
     api = ChartDataRestApi()
 
     original = app.config.get("CHART_DATA_INCLUDE_TIMING")
@@ -678,9 +824,12 @@ def test_run_async_does_not_project_timing_onto_a_job_response(
         with (
             app.test_request_context("/api/v1/chart/data", method="POST"),
             patch(
-                "superset.charts.data.api.CreateAsyncChartDataJobCommand",
-                return_value=async_command,
-            ),
+                "superset.charts.data.api.submit_chart_data_query_tasks",
+                return_value={
+                    "task_ids": ["task-1", "task-2"],
+                    "cursor": "2020-01-01T00:00:00",
+                },
+            ) as submit,
             patch("superset.charts.data.api.get_user_id", return_value=1),
         ):
             response = api._run_async({"force": False}, command)
@@ -688,8 +837,14 @@ def test_run_async_does_not_project_timing_onto_a_job_response(
         app.config["CHART_DATA_INCLUDE_TIMING"] = original
 
     assert response.status_code == 202
-    assert "timing" not in json.loads(response.get_data(as_text=True))
-    async_command.validate.assert_called_once()
+    body = json.loads(response.get_data(as_text=True))
+    # The 202 body is the async job the endpoint passes through: the query tasks
+    # to poll plus the pre-task poll cursor; no timing.
+    assert body == {
+        "task_ids": ["task-1", "task-2"],
+        "cursor": "2020-01-01T00:00:00",
+    }
+    submit.assert_called_once_with(command.query_context, 1)
 
 
 def test_run_async_projects_opt_in_timing_for_a_cached_result(

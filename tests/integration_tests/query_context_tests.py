@@ -37,6 +37,7 @@ from superset.daos.dataset import DatasetDAO
 from superset.daos.datasource import DatasourceDAO
 from superset.extensions import cache_manager
 from superset.superset_typing import AdhocColumn
+from superset.utils import json
 from superset.utils.core import (
     AdhocMetricExpressionType,
     backend,
@@ -277,6 +278,39 @@ class TestQueryContext(SupersetTestCase):
         assert rehydrated_qc.result_type == query_context.result_type
         assert rehydrated_qc.result_format == query_context.result_format
         assert not rehydrated_qc.force
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_serialize_query_round_trip_preserves_cache_key(self):
+        from superset.common.query_serialization import (
+            load_serialized_query,
+            serialize_query,
+        )
+
+        payload = get_query_context(
+            query_name="birth_names",
+            add_postprocessing_operations=True,
+        )
+        payload["force"] = True
+        payload["custom_cache_timeout"] = 321
+
+        query_context = ChartDataQueryContextSchema().load(payload)
+        original_key = query_context.query_cache_key(query_context.queries[0])
+
+        serialized = serialize_query(query_context, 0)
+        # JSON-safe payload — no custom encoder needed.
+        assert json.loads(json.dumps(serialized)) == serialized
+
+        rebuilt = load_serialized_query(serialized)
+
+        # Reconstruction yields a single-query context whose per-query key matches
+        # the original, so it reads/writes the same DATA-cache entry.
+        assert len(rebuilt.queries) == 1
+        assert rebuilt.query_cache_key(rebuilt.queries[0]) == original_key
+        # Context-level params that would otherwise be lost per query survive.
+        assert rebuilt.force is True
+        assert rebuilt.custom_cache_timeout == 321
+        assert rebuilt.result_type == query_context.result_type
+        assert rebuilt.result_format == query_context.result_format
 
     def test_query_cache_key_changes_when_datasource_is_updated(self):
         payload = get_query_context("birth_names")

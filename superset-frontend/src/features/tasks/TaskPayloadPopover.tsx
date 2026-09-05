@@ -19,8 +19,10 @@
 
 import { useState } from 'react';
 import { styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { Popover } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { type TaskPrivateProperties } from './types';
 
 const PayloadContainer = styled.div`
   max-width: 400px;
@@ -36,6 +38,20 @@ const PayloadPre = styled.pre`
   word-wrap: break-word;
 `;
 
+// Heading above a section; separates the results payload from the debug-only
+// internal section when both are shown.
+const SectionLabel = styled.div`
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+  color: ${({ theme }) => theme.colorTextSecondary};
+  margin: ${({ theme }) => theme.sizeUnit}px 0;
+
+  &:not(:first-child) {
+    margin-top: ${({ theme }) => theme.sizeUnit * 3}px;
+    border-top: 1px solid ${({ theme }) => theme.colorBorderSecondary};
+    padding-top: ${({ theme }) => theme.sizeUnit * 2}px;
+  }
+`;
+
 const InfoIconWrapper = styled.span`
   cursor: pointer;
   color: ${({ theme }) => theme.colorIcon};
@@ -46,17 +62,42 @@ const InfoIconWrapper = styled.span`
 `;
 
 interface TaskPayloadPopoverProps {
-  payload: Record<string, any>;
+  payload: Record<string, unknown>;
+  // Internal, debug-only state (present only in debug mode). Rendered as a
+  // separate section below the results payload; kept distinct because the
+  // payload may get custom renderers while `private` stays a raw dump.
+  taskPrivate?: TaskPrivateProperties;
 }
+
+const hasContent = (obj?: Record<string, unknown> | null): boolean =>
+  !!obj && Object.keys(obj).length > 0;
 
 export default function TaskPayloadPopover({
   payload,
+  taskPrivate,
 }: TaskPayloadPopoverProps) {
   const [visible, setVisible] = useState(false);
 
+  const hasPayload = hasContent(payload);
+  const hasPrivate =
+    hasContent(taskPrivate?.framework) ||
+    hasContent(taskPrivate?.task) ||
+    hasContent(taskPrivate?.subscription);
+
   const content = (
     <PayloadContainer>
-      <PayloadPre>{JSON.stringify(payload, null, 2)}</PayloadPre>
+      {hasPayload && (
+        <>
+          {hasPrivate && <SectionLabel>{t('Results')}</SectionLabel>}
+          <PayloadPre>{JSON.stringify(payload, null, 2)}</PayloadPre>
+        </>
+      )}
+      {hasPrivate && (
+        <>
+          <SectionLabel>{t('Internal')}</SectionLabel>
+          <PayloadPre>{JSON.stringify(taskPrivate, null, 2)}</PayloadPre>
+        </>
+      )}
     </PayloadContainer>
   );
 
