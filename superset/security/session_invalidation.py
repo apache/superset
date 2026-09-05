@@ -38,7 +38,7 @@ import math
 from datetime import datetime, timezone
 from typing import Any, Optional
 
-from flask import flash, session
+from flask import flash, has_request_context, request, session
 from flask_babel import gettext as __
 from flask_login import current_user, logout_user
 from sqlalchemy import event, inspect, or_
@@ -49,6 +49,12 @@ logger = logging.getLogger(__name__)
 
 #: Session key holding the epoch-seconds timestamp of when the session logged in.
 SESSION_LOGIN_AT_KEY = "_login_at"
+
+# Health checks are deliberately independent of authentication and the metadata
+# database. In multi-tenant deployments they also run without a tenant context,
+# so resolving ``current_user`` from these requests can fail before there is a
+# user whose session needs checking.
+_HEALTH_CHECK_PATHS = frozenset({"/health", "/healthcheck", "/ping"})
 
 
 def _utcnow() -> datetime:
@@ -108,6 +114,12 @@ def enforce_session_validity() -> Optional[Response]:
     Fails open — any error here logs a warning and allows the request rather
     than risk locking everyone out on a bug in the check.
     """
+    # Do this before touching current_user: it is a LocalProxy whose resolution
+    # may query the metadata DB. Probes neither carry a user session nor need
+    # session invalidation enforcement.
+    if has_request_context() and request.path in _HEALTH_CHECK_PATHS:
+        return None
+
     try:
         user = current_user
         if not user or not getattr(user, "is_authenticated", False):
