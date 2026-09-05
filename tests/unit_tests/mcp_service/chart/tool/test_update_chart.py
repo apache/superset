@@ -36,6 +36,7 @@ from superset.mcp_service.chart.schemas import (
     FilterConfig,
     GenerateChartResponse,
     LegendConfig,
+    MixedTimeseriesChartConfig,
     TableChartConfig,
     UpdateChartRequest,
     XYChartConfig,
@@ -738,6 +739,64 @@ class TestBuildUpdatePayload:
         # query_context must be cleared so get_chart_data uses updated params
         assert result["query_context"] is None
 
+    def test_config_update_preserves_unrelated_mixed_timeseries_settings(self):
+        """Save payload retains settings outside the simplified config schema."""
+        config = MixedTimeseriesChartConfig(
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="new_primary", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="new_secondary", aggregate="SUM")],
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock(
+            id=1,
+            datasource_id=7,
+            slice_name="Year-over-year metrics",
+            params=json.dumps(
+                {
+                    "viz_type": "mixed_timeseries",
+                    "time_compare": ["1 year ago"],
+                    "comparison_type_b": "percentage",
+                    "y_axis_format": ",.2f",
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart, parsed_config=config)
+
+        assert isinstance(result, dict)
+        saved_form_data = json.loads(result["params"])
+        assert saved_form_data["time_compare"] == ["1 year ago"]
+        assert saved_form_data["comparison_type_b"] == "percentage"
+        assert saved_form_data["y_axis_format"] == ",.2f"
+
+    def test_config_update_does_not_merge_settings_from_another_viz_type(self):
+        """Changing visualization types drops stale query-defining settings."""
+        config = XYChartConfig(
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock(
+            id=1,
+            datasource_id=7,
+            slice_name="Raw records",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "raw",
+                    "all_columns": ["ds", "revenue"],
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart, parsed_config=config)
+
+        assert isinstance(result, dict)
+        saved_form_data = json.loads(result["params"])
+        assert saved_form_data["viz_type"] == "echarts_timeseries_line"
+        assert "query_mode" not in saved_form_data
+        assert "all_columns" not in saved_form_data
+
     def test_add_columns_preserves_existing_columns_and_metrics(self):
         """An additive update does not require reconstructing the table."""
         request = UpdateChartRequest(
@@ -1251,7 +1310,7 @@ class TestBuildPreviewFormData:
         chart.id = 42
         chart.datasource_id = 7
         chart.slice_name = "Existing"
-        chart.params = '{"viz_type": "line", "custom_flag": true}'
+        chart.params = '{"viz_type": "table", "custom_flag": true}'
 
         result = _build_preview_form_data(request, chart, parsed_config=config)
 
@@ -2098,7 +2157,7 @@ class TestBuildUpdatePayloadDatasetId:
             columns=[ColumnRef(name="col1")],
         )
         request = UpdateChartRequest(identifier=1, config=config, dataset_id=99)
-        chart = Mock()
+        chart = Mock(params='{"viz_type":"table","datasource":"10__table"}')
         chart.datasource_id = 10
         chart.slice_name = "Old Name"
 
@@ -2109,6 +2168,7 @@ class TestBuildUpdatePayloadDatasetId:
         assert result["datasource_type"] == "table"
         assert "params" in result
         assert "viz_type" in result
+        assert json.loads(result["params"])["datasource"] == "99__table"
 
     def test_config_without_dataset_does_not_include_datasource(self):
         """When dataset_id is None, payload must NOT include datasource_id."""
