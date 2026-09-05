@@ -65,6 +65,7 @@ def generate_preview_from_form_data(
     """
     try:
         # Execute query to get data
+        from superset.charts.data.form_data import set_query_context_form_data
         from superset.commands.chart.data.get_data_command import ChartDataCommand
         from superset.connectors.sqla.models import SqlaTable
         from superset.extensions import db
@@ -113,6 +114,15 @@ def generate_preview_from_form_data(
             ],
             form_data=form_data,
         )
+
+        # Seed ``g.form_data`` so the Jinja macros that back a virtual
+        # dataset's SQL (``url_param``, ``filter_values``, ``get_filters``)
+        # can find the query's fields in the no-request-context branch of
+        # ``get_form_data()``. Mirrors what ``get_chart_data``/
+        # ``query_dataset`` already do; without this, any virtual dataset
+        # with Jinja in its SQL renders unrendered and the preview fails
+        # at compile time. See #40570.
+        set_query_context_form_data(query_context_obj, dataset_id, "table")
 
         # Execute query
         command = ChartDataCommand(query_context_obj)
