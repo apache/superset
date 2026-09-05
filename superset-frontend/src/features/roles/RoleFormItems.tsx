@@ -78,7 +78,7 @@ export const PermissionsField = ({
         // to the point of being indistinguishable. Let the popup size to its content
         // instead. See #40430.
         popupMatchSelectWidth={false}
-        getPopupContainer={trigger => trigger.closest('.ant-modal-container')}
+        getPopupContainer={() => document.body}
         data-test="permissions-select"
       />
     </FormItem>

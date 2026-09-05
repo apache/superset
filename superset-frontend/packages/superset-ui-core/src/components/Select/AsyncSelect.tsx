@@ -870,12 +870,7 @@ const AsyncSelect = forwardRef(
               b: BaseOptionType | DefaultOptionType,
             ) => number
           }
-          getPopupContainer={
-            getPopupContainer ||
-            ((triggerNode: HTMLElement) =>
-              (triggerNode?.closest('.ant-modal-container') as HTMLElement) ||
-              (triggerNode.parentNode as HTMLElement))
-          }
+          getPopupContainer={getPopupContainer}
           headerPosition={headerPosition}
           labelInValue
           maxTagCount={maxTagCount}
