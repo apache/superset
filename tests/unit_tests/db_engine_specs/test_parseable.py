@@ -81,3 +81,19 @@ def test_time_grain_expressions(time_grain: str | None, expected: str) -> None:
         ParseableEngineSpec._time_grain_expressions[time_grain].format(col="ts")
         == expected
     )
+
+
+def test_alter_new_orm_column() -> None:
+    """
+    DB Eng Specs (parseable): Test alter orm column
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    database = Database(database_name="parseable", sqlalchemy_uri="parseable://db")
+    tbl = SqlaTable(table_name="tbl", database=database)
+    col = TableColumn(column_name="p_timestamp", type="TIMESTAMP", table=tbl)
+    ParseableEngineSpec.alter_new_orm_column(col)
+    assert col.python_date_format == "epoch_ms"
+    assert col.is_dttm is True
+
