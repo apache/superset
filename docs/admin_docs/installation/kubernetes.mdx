@@ -87,6 +87,7 @@ The chart will publish appropriate services to expose the Superset UI internally
 
 - Configure the Service as a `LoadBalancer` or `NodePort`
 - Set up an `Ingress` for it - the chart includes a definition, but will need to be tuned to your needs (hostname, tls, annotations etc...)
+- Set up a Gateway API `HTTPRoute` for it - see [Exposing Superset via Gateway API (HTTPRoute)](#exposing-superset-via-gateway-api-httproute) below
 - Run `kubectl port-forward superset-xxxx-yyyy :8088` to directly tunnel one pod's port into your localhost
 
 Depending how you configured external access, the URL will vary. Once you've identified the appropriate URL you can log in with:
@@ -318,6 +319,53 @@ configOverrides:
     # The default user self registration role
     AUTH_USER_REGISTRATION_ROLE = "Admin"
 ```
+
+### Exposing Superset via Gateway API (HTTPRoute)
+
+As an alternative to `Ingress`, the chart can create a [Gateway API](https://gateway-api.sigs.k8s.io/)
+`HTTPRoute` that attaches to a Gateway already running in your cluster. This requires the Gateway
+API CRDs serving the configured `httproute.apiVersion` (`gateway.networking.k8s.io/v1` by default)
+to be installed, along with a Gateway resource for the route to attach to. If the Gateway lives in
+a different namespace than the `HTTPRoute` (as in the
+example below), its listener's `allowedRoutes` must explicitly permit routes from this release's
+namespace, or the `HTTPRoute` will install successfully but never attach.
+
+```yaml
+httproute:
+  enabled: true
+  parentRefs:
+    - name: my-gateway
+      namespace: gateway-system
+  hostnames:
+    - superset.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+```
+
+- `httproute.parentRefs` lists the Gateway(s) the route attaches to.
+- `httproute.hostnames` matches against the HTTP `Host` header; it's templated, so values like
+  `{{ .Release.Name }}` can be used.
+- `httproute.rules` are routing rules backed by the Superset service; each rule accepts standard
+  `matches`, `filters`, and `timeouts` fields, and an optional `weight` (defaults to `1`) applied to
+  its single backend reference. Since each rule maps to one backend, `weight` has no traffic-splitting
+  effect here; it only matters if you fork the template to add multiple `backendRefs` to a rule.
+  `timeouts` only joined the Gateway API Standard channel in v1.2, so it requires both v1.2+ CRDs
+  and a supporting controller; drop it if either predates that.
+- If `supersetWebsockets.enabled` is set, an extra rule routing `supersetWebsockets.ingress.path`
+  (default `/ws`) to the `-ws` service is appended automatically, mirroring the `Ingress` behavior.
+  WebSocket upgrade support is controller-dependent under Gateway API; check your Gateway
+  implementation's docs in case it needs an explicit protocol opt-in for global async queries to
+  keep working behind a Gateway.
+- If `supersetMcp.enabled` and `supersetMcp.httproute.enabled` are both set, an extra rule routing
+  `supersetMcp.httproute.path` to the `-mcp` service is appended as well. Don't expose this route
+  without first enabling MCP authentication — see the
+  [MCP Server Deployment & Authentication](/admin-docs/configuration/mcp-server#authentication) doc;
+  by default the MCP server runs in dev mode with auth disabled.
+- Set `httproute.apiVersion` to `gateway.networking.k8s.io/v1beta1` if your cluster's Gateway API
+  installation hasn't promoted `HTTPRoute` to `v1` yet.
 
 ### Enable Alerts and Reports
 
