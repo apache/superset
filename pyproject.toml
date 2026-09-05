@@ -20,8 +20,8 @@ requires = ["setuptools>=84.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "apache_superset"
-description = "A modern, enterprise-ready business intelligence web application"
+name = "plataforma_apache_superset"
+description = "Plataforma Apache Superset de exploracao e analise de dados"
 readme = "README.md"
 dynamic = ["version", "scripts", "entry-points"]
 requires-python = ">=3.11"
