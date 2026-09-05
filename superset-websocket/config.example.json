@@ -15,9 +15,9 @@
     "db": 0,
     "ssl": false
   },
-  "redisStreamPrefix": "async-events-",
   "jwtAlgorithms": ["HS256"],
   "jwtSecret": "CHANGE-ME",
-  "jwtCookieName": "async-token",
+  "previousJwtSecret": "",
+  "jwtCookieName": "superset-ws-token",
   "allowedOrigins": []
 }

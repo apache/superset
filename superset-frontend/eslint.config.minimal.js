@@ -37,9 +37,9 @@
 import 'tsx/cjs';
 
 import tsParser from '@typescript-eslint/parser';
-import themeColorsPlugin from 'eslint-plugin-theme-colors';
-import iconsPlugin from 'eslint-plugin-icons';
-import i18nStringsPlugin from 'eslint-plugin-i18n-strings';
+import themeColorsPlugin from '@superset-ui/eslint-plugin-theme-colors';
+import iconsPlugin from '@superset-ui/eslint-plugin-icons';
+import i18nStringsPlugin from '@superset-ui/eslint-plugin-i18n-strings';
 
 export default [
   // Files this config applies to. Flat config has no `--ext`; globs live here.

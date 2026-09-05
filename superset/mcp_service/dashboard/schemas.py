@@ -272,6 +272,15 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             "the shared active-tab and filter context; no identifier is required."
         ),
     )
+    filter_state: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Active filters supplied directly rather than via a permalink, so the "
+            "tool can describe the dashboard as the user currently views it, "
+            'filtered. Shape: {"applied_filters": [{"col", "op", "val"}]}. Ignored '
+            "when permalink_key is provided."
+        ),
+    )
     select_columns: Annotated[
         List[str],
         Field(

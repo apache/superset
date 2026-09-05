@@ -35,6 +35,7 @@ import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
 import Database from 'src/types/Database';
 import { UrlParamEntries } from 'src/utils/urlUtils';
+import { AsyncModeOverride } from 'src/utils/asyncMode';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import User from 'src/types/User';
@@ -197,6 +198,7 @@ export type DashboardInfo = {
     refresh_frequency?: number;
     positions?: JsonObject;
     filter_scopes?: JsonObject;
+    async_mode?: AsyncModeOverride;
   };
   crossFiltersEnabled: boolean;
   filterBarOrientation: FilterBarOrientation;
