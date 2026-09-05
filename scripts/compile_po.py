@@ -191,13 +191,11 @@ def compile_translations() -> int:  # noqa: C901
     )
     if json_files:
         print(f"Step 4: Running oxfmt on {len(json_files)} JSON files...")
-        # messages.json is gitignored (generated output); oxfmt respects
-        # .gitignore by default even for explicitly-passed paths.
-        # Passing --no-ignore bypasses ignore rules so the generated JSON
-        # files are actively formatted.
+        # messages.json is gitignored (generated output); pass --no-error-on-unmatched-pattern
+        # so oxfmt completes without error even when ignore rules match.
         if (
             run_command(
-                [*oxfmt_cmd, "--write", "--no-ignore", *json_files],
+                [*oxfmt_cmd, "--write", "--no-error-on-unmatched-pattern", *json_files],
                 cwd=root_dir,
                 timeout=300,
             )

@@ -314,8 +314,8 @@ def test_compile_translations_success(tmp_path: Path) -> None:
     ):
         rc = compile_po.compile_translations()
         assert rc == 0
-        # Verify oxfmt was called with --no-ignore
+        # Verify oxfmt was called with --no-error-on-unmatched-pattern
         oxfmt_calls = [c for c in executed_commands if any("oxfmt" in arg for arg in c)]
         assert len(oxfmt_calls) >= 1
-        assert "--no-ignore" in oxfmt_calls[0]
+        assert "--no-error-on-unmatched-pattern" in oxfmt_calls[0]
         assert "--write" in oxfmt_calls[0]
