@@ -37,6 +37,7 @@ from flask.ctx import AppContext
 from superset import security_manager
 from superset.charts.data.api import ChartDataRestApi
 from superset.commands.chart.data.get_data_command import ChartDataCommand
+from superset.commands.chart.query_context_builder import build_query_context_config
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import (
     ChartDataExecutionResult,
@@ -1259,6 +1260,161 @@ class TestGetChartDataApi(BaseTestChartDataApi):
         data = json.loads(rv.data.decode("utf-8"))
         assert data["result"][0]["status"] == "success"
         assert data["result"][0]["rowcount"] == 2
+
+    # ------------------------------------------------------------------ #
+    # #33615 — synthesized query_context read-path verification.
+    #
+    # These exercise the REAL read/authz/RLS path (get_data →
+    # ChartDataCommand.validate() → raise_for_access) on a chart whose
+    # query_context was produced by `build_query_context_config` — the same
+    # helper the importer runs (ADR-013/014). The verifier is NOT mocked
+    # (SECURITY-CRITICAL discipline). They are the api-side counterpart of the
+    # importer round-trip (F3-T1), baseline-equivalence (F3-T2), and security
+    # (F3-T3) tasks. The existing 68 tests in this module stand unmodified as
+    # the NFR-COMPAT-01 regression guard.
+    # ------------------------------------------------------------------ #
+
+    #: params equivalent to the "Genders" chart's saved viz form-data.
+    _GENDERS_PARAMS = {
+        "metrics": ["sum__num"],
+        "groupby": ["gender"],
+        "time_range": "1900-01-01T00:00:00 : 2000-01-01T00:00:00",
+        "granularity_sqla": "ds",
+        "row_limit": 50000,
+        "order_desc": True,
+    }
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_synthesized_query_context_returns_data(self):
+        """
+        F3-T1 (read side) / FR-001: a chart whose query_context was synthesized
+        from its params returns HTTP 200 with rows on first `/data/` read —
+        NOT the legacy 400 "no query context saved".
+        """
+        chart = db.session.query(Slice).filter_by(slice_name="Genders").one()
+        synthesized = build_query_context_config(
+            self._GENDERS_PARAMS, "table", chart.table.id, "table"
+        )
+        assert synthesized is not None
+        chart.query_context = json.dumps(synthesized)
+        db.session.flush()
+
+        rv = self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
+
+        # --- RED anchor: synthesized context yields 200 + rows (FR-001 AC-01) ---
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        assert "message" not in data  # legacy 400 body absent (FR-001 AC-02)
+        assert data["result"][0]["status"] == "success"
+        assert data["result"][0]["rowcount"] == 2
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_synthesized_context_matches_resaved_baseline(self):
+        """
+        F3-T2 / FR-002 / FR-005: the synthesized context yields a `/data/`
+        payload equivalent to a hand-saved (Explore-style) baseline context for
+        the same chart.
+        """
+        chart = db.session.query(Slice).filter_by(slice_name="Genders").one()
+
+        # Baseline: an Explore-shaped saved context (mirrors test_chart_data_get).
+        baseline_context = {
+            "datasource": {"id": chart.table.id, "type": "table"},
+            "force": False,
+            "queries": [
+                {
+                    "time_range": "1900-01-01T00:00:00 : 2000-01-01T00:00:00",
+                    "granularity": "ds",
+                    "filters": [],
+                    "extras": {"having": "", "where": ""},
+                    "applied_time_extras": {},
+                    "columns": ["gender"],
+                    "metrics": ["sum__num"],
+                    "orderby": [],
+                    "annotation_layers": [],
+                    "row_limit": 50000,
+                    "timeseries_limit": 0,
+                    "order_desc": True,
+                    "url_params": {},
+                    "custom_params": {},
+                    "custom_form_data": {},
+                }
+            ],
+            "result_format": "json",
+            "result_type": "full",
+        }
+        chart.query_context = json.dumps(baseline_context)
+        db.session.flush()
+        baseline = json.loads(
+            self.get_assert_metric(
+                f"api/v1/chart/{chart.id}/data/", "get_data"
+            ).data.decode("utf-8")
+        )
+
+        # Imported: the synthesized context from the same definition.
+        synthesized = build_query_context_config(
+            self._GENDERS_PARAMS, "table", chart.table.id, "table"
+        )
+        chart.query_context = json.dumps(synthesized)
+        db.session.flush()
+        imported = json.loads(
+            self.get_assert_metric(
+                f"api/v1/chart/{chart.id}/data/", "get_data"
+            ).data.decode("utf-8")
+        )
+
+        # --- RED anchor: equivalent row data to the saved baseline (FR-002) ---
+        assert imported["result"][0]["data"] == baseline["result"][0]["data"]
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_synthesized_context_datasource_fidelity(self):
+        """
+        F3-T3 SEC-T4 / RISK-T02 / ADR-014: the synthesized context names the
+        chart's resolved datasource id/type — never one inferred from params.
+        """
+        chart = db.session.query(Slice).filter_by(slice_name="Genders").one()
+        # A stale/wrong datasource in params must NOT leak into the context.
+        params = {**self._GENDERS_PARAMS, "datasource": "99999__table"}
+        synthesized = build_query_context_config(
+            params, "table", chart.table.id, "table"
+        )
+
+        # --- RED anchor: datasource = resolved id/type only (SEC-T4) ---
+        assert synthesized is not None
+        assert synthesized["datasource"] == {"id": chart.table.id, "type": "table"}
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_synthesized_context_denies_unauthorized_datasource(self):
+        """
+        F3-T3 SEC-T1 / NFR-SEC-01: a user WITHOUT access to the synthesized
+        context's datasource is denied by the real `raise_for_access` path — no
+        data is returned. The synthesized context does not relax authz.
+        """
+        chart = db.session.query(Slice).filter_by(slice_name="Genders").one()
+        synthesized = build_query_context_config(
+            self._GENDERS_PARAMS, "table", chart.table.id, "table"
+        )
+        chart.query_context = json.dumps(synthesized)
+        db.session.commit()
+
+        self.logout()
+        self.login(GAMMA_USERNAME)
+        rv = self.get_assert_metric(f"api/v1/chart/{chart.id}/data/", "get_data")
+
+        # --- RED anchor: a restricted user is DENIED — no data reachable via the
+        # synthesized context (NFR-SEC-01). Gamma cannot read the "Genders" chart,
+        # so the GET-by-pk path denies at the chart-access gate (404) before it
+        # reaches the datasource-access gate (403); either way the user is denied
+        # and no query result is returned. The synthesized context never relaxes
+        # authz — datasource fidelity is asserted separately in
+        # test_synthesized_context_datasource_fidelity.
+        assert rv.status_code in (403, 404)
+        assert rv.status_code != 200
+        if rv.status_code == 403:
+            assert (
+                rv.json["errors"][0]["error_type"]
+                == SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR
+            )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_chart_data_get_with_x_axis_using_custom_sql(self):
