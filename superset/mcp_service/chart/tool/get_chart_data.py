@@ -164,6 +164,7 @@ _VIZ_CATEGORY: dict[str, str] = {
     # Own category: cumulative-flow semantics differ from a plain bar, like
     # funnel/gauge carry distinct categories.
     "waterfall": "waterfall",
+    "gantt_chart": "gantt",
 }
 
 _MAX_RECOMMENDATIONS = 4

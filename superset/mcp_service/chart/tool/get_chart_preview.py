@@ -39,6 +39,10 @@ from superset.mcp_service.chart.chart_helpers import (
     find_chart_by_identifier,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.preview_utils import (
+    _generate_gantt_vega_lite_preview,
+)
+from superset.mcp_service.chart.query_result import query_result_failure
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -261,6 +265,9 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             command.validate()
             result = command.run()
 
+            if query_failure := query_result_failure(result):
+                return query_failure
+
             data: list[Any] = []
             if result and "queries" in result and len(result["queries"]) > 0:
                 data = result["queries"][0].get("data") or []
@@ -326,6 +333,9 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             command.validate()
             result = command.run()
 
+            if query_failure := query_result_failure(result):
+                return query_failure
+
             data: list[Any] = []
             if result and "queries" in result and len(result["queries"]) > 0:
                 data = result["queries"][0].get("data") or []
@@ -366,7 +376,26 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
         except (ValueError, TypeError):
             return None
 
-    def generate(self) -> VegaLitePreview | ChartError:
+    def _create_gantt_preview(
+        self, data: Any, form_data: Dict[str, Any]
+    ) -> VegaLitePreview | ChartError:
+        """Build the saved-chart wrapper around the shared Gantt preview."""
+        preview = _generate_gantt_vega_lite_preview(data, form_data)
+        if isinstance(preview, ChartError):
+            return preview
+        preview.specification.update(
+            {
+                "description": (
+                    "Chart preview for "
+                    f"{getattr(self.chart, 'slice_name', 'Untitled Chart')}"
+                ),
+                "width": self.request.width or 400,
+                "height": self.request.height or 300,
+            }
+        )
+        return preview
+
+    def generate(self) -> VegaLitePreview | ChartError:  # noqa: C901
         """Generate Vega-Lite JSON specification from chart data."""
         try:
             # Get chart data directly using the same logic as get_chart_data tool
@@ -418,12 +447,28 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             command.validate()
             result = command.run()
 
+            if query_failure := query_result_failure(result):
+                return query_failure
+
             # Extract data from result
             chart_data = []
             if result and "queries" in result and len(result["queries"]) > 0:
                 chart_data = result["queries"][0].get("data", [])
 
-            if not chart_data or not isinstance(chart_data, list):
+            viz_type = getattr(self.chart, "viz_type", None) or form_data.get(
+                "viz_type"
+            )
+            if viz_type == "gantt_chart":
+                return self._create_gantt_preview(chart_data, form_data)
+            if not isinstance(chart_data, list):
+                return ChartError(
+                    error="Chart result data is not an array of rows",
+                    error_type="InvalidResultData",
+                )
+            # An empty Gantt query is still a valid interval chart and has a
+            # useful, typed Vega-Lite spec. Other chart types retain the existing
+            # explicit no-data response.
+            if not chart_data and viz_type != "gantt_chart":
                 return ChartError(
                     error="No data available for Vega-Lite visualization",
                     error_type="NoDataError",
@@ -456,8 +501,17 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
     def _create_vega_lite_spec(self, data: List[Any]) -> Dict[str, Any]:
         """Create Vega-Lite specification from chart data."""
-        if not data:
-            return {"data": {"values": []}, "mark": "point"}
+        form_data = self._get_form_data() or {}
+        viz_type = (
+            getattr(self.chart, "viz_type", None)
+            or form_data.get("viz_type")
+            or "table"
+        )
+        if viz_type == "gantt_chart":
+            preview = self._create_gantt_preview(data, form_data)
+            if isinstance(preview, ChartError):
+                raise ValueError(preview.error)
+            return preview.specification
 
         # Get data fields and analyze types
         first_row = data[0] if data else {}
@@ -465,8 +519,6 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
         field_types = self._analyze_field_types(data, fields)
 
         # Determine chart type based on Superset viz_type
-        viz_type = getattr(self.chart, "viz_type", "table") or "table"
-
         # Basic Vega-Lite specification
         spec = {
             "$schema": "https://vega.github.io/schema/vega-lite/v5.json",

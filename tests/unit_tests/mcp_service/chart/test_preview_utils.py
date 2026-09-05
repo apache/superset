@@ -22,8 +22,10 @@ Tests for preview_utils query context column building.
 import ast
 import inspect
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from superset.mcp_service.chart import preview_utils
+from superset.mcp_service.chart.schemas import TablePreview
 
 
 def _imports_chart_data_command(node: ast.Import | ast.ImportFrom) -> bool:
@@ -209,3 +211,44 @@ def test_build_query_columns_empty_columns_key_keeps_groupby():
     assert preview_utils._build_query_columns(
         {"groupby": ["country"], "columns": []}
     ) == ["country"]
+
+
+def test_unsaved_big_number_preview_uses_temporal_query_contract():
+    form_data = {
+        "viz_type": "big_number",
+        "x_axis": {"column_name": "recorded_at"},
+        "granularity_sqla": "event_time",
+        "metric": "count",
+        "show_trend_line": True,
+        "time_range": "Last week",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "region",
+                "operator": "==",
+                "comparator": "EMEA",
+            }
+        ],
+    }
+    with (
+        patch("superset.extensions.db.session.get", return_value=object()),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+        patch("superset.common.query_context_factory.QueryContextFactory") as factory,
+    ):
+        factory.return_value.create.return_value = MagicMock()
+        command.return_value.run.return_value = {
+            "queries": [{"status": "success", "data": []}]
+        }
+
+        result = preview_utils.generate_preview_from_form_data(form_data, 1, "table")
+
+    assert isinstance(result, TablePreview)
+    query = factory.return_value.create.call_args.kwargs["queries"][0]
+    assert query["columns"] == ["recorded_at"]
+    assert query["metrics"] == ["count"]
+    assert query["time_range"] == "Last week"
+    assert query["filters"] == [{"col": "region", "op": "==", "val": "EMEA"}]
+    assert query["row_limit"] == 100

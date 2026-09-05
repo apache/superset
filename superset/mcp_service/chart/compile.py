@@ -33,6 +33,7 @@ tier(s) appropriate for its SLA.
 from __future__ import annotations
 
 import logging
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal
 
@@ -40,6 +41,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import CommandException
 from superset.errors import SupersetErrorType
+from superset.mcp_service.chart.query_result import query_result_failure
 from superset.mcp_service.chart.validation.dataset_validator import (
     build_dataset_context_from_orm,
     DatasetValidator,
@@ -116,39 +118,17 @@ def _compile_chart(
         ChartDataCacheLoadError,
         ChartDataQueryFailedError,
     )
-    from superset.common.query_context_factory import QueryContextFactory
-    from superset.mcp_service.chart.chart_utils import adhoc_filters_to_query_filters
-    from superset.mcp_service.chart.preview_utils import _build_query_columns
+    from superset.mcp_service.chart.chart_helpers import (
+        build_query_context_from_form_data,
+    )
 
     try:
-        columns = _build_query_columns(form_data)
-        query_filters = adhoc_filters_to_query_filters(
-            form_data.get("adhoc_filters", [])
-        )
-
-        # Big Number charts use singular "metric" instead of "metrics"
-        metrics = form_data.get("metrics", [])
-        if not metrics and form_data.get("metric"):
-            metrics = [form_data["metric"]]
-
-        # Big Number with trendline uses granularity_sqla as the time column
-        if not columns and form_data.get("granularity_sqla"):
-            columns = [form_data["granularity_sqla"]]
-
-        factory = QueryContextFactory()
-        query_context = factory.create(
-            datasource={"id": dataset_id, "type": "table"},
-            queries=[
-                {
-                    "columns": columns,
-                    "metrics": metrics,
-                    "orderby": form_data.get("orderby", []),
-                    "row_limit": 2,
-                    "filters": query_filters,
-                    "time_range": form_data.get("time_range", "No filter"),
-                }
-            ],
-            form_data=form_data,
+        query_form_data = deepcopy(form_data)
+        query_form_data["datasource"] = f"{dataset_id}__table"
+        query_context = build_query_context_from_form_data(
+            query_form_data,
+            row_limit=2,
+            force=False,
         )
 
         command = ChartDataCommand(query_context)
@@ -157,16 +137,17 @@ def _compile_chart(
 
         warnings: List[str] = []
         row_count = 0
+        if query_failure := query_result_failure(result):
+            error_str = query_failure.error
+            return CompileResult(
+                success=False,
+                error=error_str,
+                error_code="CHART_COMPILE_FAILED",
+                tier="compile",
+                error_obj=_build_compile_error(error_str),
+            )
+
         for query in result.get("queries", []):
-            if query.get("error"):
-                error_str = str(query["error"])
-                return CompileResult(
-                    success=False,
-                    error=error_str,
-                    error_code="CHART_COMPILE_FAILED",
-                    tier="compile",
-                    error_obj=_build_compile_error(error_str),
-                )
             row_count += len(query.get("data", []))
 
         return CompileResult(success=True, warnings=warnings, row_count=row_count)

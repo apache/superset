@@ -24,7 +24,8 @@ from __future__ import annotations
 import difflib
 import logging
 import re
-from datetime import datetime
+from collections.abc import Mapping
+from datetime import datetime, time
 from typing import Annotated, Any, Dict, List, Literal, Protocol
 
 from pydantic import (
@@ -56,6 +57,7 @@ from superset.mcp_service.common.pagination_schemas import (
     PaginatedListRequest,
     PaginatedResponse,
 )
+from superset.mcp_service.common.time_range_validation import validate_time_range
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
     strip_user_directory_fields_from_schema,
@@ -970,6 +972,35 @@ class SortByConfig(UnknownFieldCheckMixin):
     )
 
 
+class GanttSortByConfig(UnknownFieldCheckMixin):
+    """One physical-column ordering applied before Gantt rendering."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    column: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        validation_alias=AliasChoices("column", "col"),
+        description="Physical dataset column used to order Gantt tasks",
+    )
+    ascending: bool = Field(
+        True,
+        description="Sort this column ascending when true, descending when false",
+    )
+
+    @field_validator("column")
+    @classmethod
+    def sanitize_column(cls, value: str) -> str:
+        """Sanitize the order column like every other dimension name."""
+        return sanitize_user_input(
+            value,
+            "Gantt order column",
+            max_length=255,
+            check_sql_keywords=True,
+        )  # type: ignore[return-value]
+
+
 # Actual chart types
 class PieChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
@@ -1828,6 +1859,20 @@ def _reject_sql_expression_on_dimension(col: ColumnRef | None, position: str) ->
         )
 
 
+def _validate_distinct_gantt_roles(roles: Mapping[str, str | None]) -> None:
+    """Require Gantt query-result roles to have distinct canonical labels."""
+    seen: dict[str, str] = {}
+    for role, name in roles.items():
+        if name is None:
+            continue
+        canonical_name = name.casefold()
+        if previous_role := seen.get(canonical_name):
+            raise ValueError(
+                f"{previous_role} and {role} must reference different columns"
+            )
+        seen[canonical_name] = role
+
+
 def _metric_display_label(col: ColumnRef) -> str:
     """Return the display label for a metric column reference."""
     if col.sql_expression:
@@ -2282,6 +2327,755 @@ class WaterfallChartConfig(BaseChartConfig):
         return self
 
 
+class GanttChartConfig(BaseChartConfig):
+    """Typed contract for the ECharts Gantt visualization.
+
+    The field names intentionally describe Gantt semantics while validation
+    aliases accept the native keys used by ``Gantt/buildQuery.ts`` and saved
+    Explore ``form_data``.
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["gantt"] = "gantt"
+    start_time: ColumnRef = Field(
+        ...,
+        description="Temporal column containing each task's start timestamp",
+        validation_alias=AliasChoices("start_time", "startTime", "start"),
+    )
+    end_time: ColumnRef = Field(
+        ...,
+        description="Temporal column containing each task's end timestamp",
+        validation_alias=AliasChoices("end_time", "endTime", "end"),
+    )
+    category: ColumnRef = Field(
+        ...,
+        description=(
+            "Task/category dimension shown as the Gantt row label (native y_axis)"
+        ),
+        validation_alias=AliasChoices("category", "task", "y_axis", "yAxis"),
+    )
+    series: ColumnRef | None = Field(
+        None,
+        description="Optional dimension used for color series and legend entries",
+    )
+    subcategories: bool = Field(
+        False,
+        description=(
+            "Split each category into separate rows for series values; requires series"
+        ),
+    )
+    tooltip_columns: List[ColumnRef] = Field(
+        default_factory=list,
+        description="Additional physical columns included in task tooltips",
+        max_length=50,
+    )
+    tooltip_metrics: List[ColumnRef] = Field(
+        default_factory=list,
+        description=("Additional aggregate or saved metrics included in task tooltips"),
+        max_length=50,
+    )
+    order_by: List[GanttSortByConfig] = Field(
+        default_factory=list,
+        description=(
+            "Stable task ordering. Native order_by_cols JSON pairs are also "
+            "accepted for saved-form-data round trips."
+        ),
+        validation_alias=AliasChoices("order_by", "order_by_cols"),
+        max_length=100,
+    )
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description=(
+            "Structured filters (column/op/value). Native SIMPLE adhoc_filters "
+            "are adapted; free-form SQL filters are rejected."
+        ),
+    )
+    time_range: str | None = Field(
+        None,
+        max_length=1000,
+        description=(
+            "Optional bounded Superset time range applied to the chart, such as "
+            "'Last 30 days' or '2025-01-01 : 2025-12-31'"
+        ),
+    )
+    row_limit: int = Field(
+        10000,
+        ge=1,
+        le=50000,
+        description="Maximum number of task rows returned",
+    )
+
+    # Presentation controls read by Gantt/transformProps.ts.
+    color_scheme: str | None = Field(None, max_length=100)
+    show_legend: bool = True
+    legend_orientation: LEGEND_POSITION_LITERAL = Field(
+        "top",
+        validation_alias=AliasChoices("legend_orientation", "legendOrientation"),
+    )
+    legend_type: Literal["plain", "scroll"] = Field(
+        "scroll",
+        validation_alias=AliasChoices("legend_type", "legendType"),
+    )
+    legend_margin: int | None = Field(
+        None,
+        ge=0,
+        le=1000,
+        validation_alias=AliasChoices("legend_margin", "legendMargin"),
+    )
+    legend_sort: Literal["asc", "desc"] | None = Field(
+        None,
+        validation_alias=AliasChoices("legend_sort", "legendSort"),
+    )
+    zoomable: bool = False
+    show_extra_controls: bool = False
+    x_axis_time_bounds: tuple[str | None, str | None] | None = Field(
+        None,
+        description="Optional daily HH:MM:SS lower/upper bounds for the time axis",
+    )
+    x_axis_time_format: str = Field("smart_date", max_length=100)
+    tooltip_time_format: str = Field(
+        "smart_date",
+        max_length=100,
+        validation_alias=AliasChoices("tooltip_time_format", "tooltipTimeFormat"),
+    )
+    tooltip_values_format: str = Field(
+        "SMART_NUMBER",
+        max_length=100,
+        validation_alias=AliasChoices("tooltip_values_format", "tooltipValuesFormat"),
+    )
+    x_axis_title: str | None = Field(None, max_length=200)
+    x_axis_title_margin: int | None = Field(None, ge=0, le=1000)
+    y_axis_title: str | None = Field(None, max_length=200)
+    y_axis_title_margin: int | None = Field(None, ge=0, le=1000)
+
+    @model_validator(mode="before")
+    @classmethod
+    def adapt_native_form_data(cls, raw: Any) -> Any:  # noqa: C901
+        """Adapt bounded, recognized native Gantt form data without typo drops."""
+        if not isinstance(raw, dict):
+            return raw
+        data = dict(raw)
+
+        if "y_axis_title_position" in data:
+            raise ValueError(
+                "y_axis_title_position is unsupported by Gantt; the frontend "
+                "always centers the Y-axis title"
+            )
+
+        # Request normalization maps viz_type before this validator, while direct
+        # model validation may still carry the native discriminator.
+        if data.get("viz_type") == "gantt_chart":
+            data.setdefault("chart_type", "gantt")
+            data.pop("viz_type", None)
+        if data.get("chart_type") == "gantt_chart":
+            data["chart_type"] = "gantt"
+
+        # Saved chart transport metadata is not visualization configuration.
+        # Keep this allowlist deliberately narrow so misspelled controls still fail.
+        for key in (
+            "annotation_layers",
+            "dashboards",
+            "datasource",
+            "extra_form_data",
+            "slice_id",
+        ):
+            data.pop(key, None)
+
+        marker_key = "_mcp_dashboard_time_filter_subject"
+        marker_present = marker_key in data
+        marker = data.pop(marker_key, None)
+        if marker_present and (not isinstance(marker, str) or not marker):
+            raise ValueError(f"{marker_key} must be a non-empty physical column name")
+
+        for key in (
+            "start_time",
+            "startTime",
+            "start",
+            "end_time",
+            "endTime",
+            "end",
+            "category",
+            "task",
+            "y_axis",
+            "yAxis",
+            "series",
+        ):
+            if isinstance(data.get(key), str):
+                data[key] = {"name": data[key]}
+
+        for key in ("tooltip_columns",):
+            if key in data and isinstance(data[key], list):
+                data[key] = [
+                    {"name": item} if isinstance(item, str) else item
+                    for item in data[key]
+                ]
+        if isinstance(data.get("tooltip_metrics"), list):
+            data["tooltip_metrics"] = [
+                cls._adapt_native_tooltip_metric(item, index)
+                for index, item in enumerate(data["tooltip_metrics"])
+            ]
+
+        if "adhoc_filters" in data:
+            if "filters" in data:
+                raise ValueError(
+                    "Use either filters or native adhoc_filters for Gantt, not both"
+                )
+            native_filters = data.pop("adhoc_filters")
+            if not isinstance(native_filters, list):
+                raise ValueError("adhoc_filters must be an array")
+            if len(native_filters) > 100:
+                raise ValueError("adhoc_filters accepts at most 100 entries")
+            filters: list[dict[str, Any]] = []
+            temporal_filters: list[tuple[int, str, Any]] = []
+            allowed_filter_keys = {
+                "clause",
+                "comparator",
+                "datasourceWarning",
+                "expressionType",
+                "filterOptionName",
+                "isExtra",
+                "isNew",
+                "operator",
+                "operatorId",
+                "sqlExpression",
+                "subject",
+            }
+            for index, native_filter in enumerate(native_filters):
+                if not isinstance(native_filter, dict):
+                    raise ValueError(f"adhoc_filters[{index}] must be an object")
+                if native_filter.get("expressionType") != "SIMPLE":
+                    raise ValueError(
+                        f"adhoc_filters[{index}] must use expressionType='SIMPLE'; "
+                        "free-form SQL filters are not supported by typed Gantt"
+                    )
+                unknown_filter_keys = set(native_filter) - allowed_filter_keys
+                if unknown_filter_keys:
+                    raise ValueError(
+                        f"adhoc_filters[{index}] has unsupported fields: "
+                        f"{', '.join(sorted(unknown_filter_keys))}"
+                    )
+                if native_filter.get("clause") not in (None, "WHERE"):
+                    raise ValueError(f"adhoc_filters[{index}] must use clause='WHERE'")
+                for metadata_key in ("isExtra", "isNew", "datasourceWarning"):
+                    metadata_value = native_filter.get(metadata_key)
+                    if metadata_value is not None and not isinstance(
+                        metadata_value, bool
+                    ):
+                        raise ValueError(
+                            f"adhoc_filters[{index}].{metadata_key} must be boolean"
+                        )
+                for metadata_key, max_length in (
+                    ("filterOptionName", 500),
+                    ("operatorId", 100),
+                ):
+                    metadata_value = native_filter.get(metadata_key)
+                    if metadata_value is not None and (
+                        not isinstance(metadata_value, str)
+                        or not metadata_value
+                        or len(metadata_value) > max_length
+                    ):
+                        raise ValueError(
+                            f"adhoc_filters[{index}].{metadata_key} must be a "
+                            "non-empty string"
+                        )
+                if native_filter.get("sqlExpression") is not None:
+                    raise ValueError(
+                        f"adhoc_filters[{index}].sqlExpression must be null for "
+                        "expressionType='SIMPLE'"
+                    )
+                subject = native_filter.get("subject")
+                operator = native_filter.get("operator")
+                operator_id = native_filter.get("operatorId")
+                comparator = native_filter.get("comparator")
+                if not isinstance(operator, str) or not operator:
+                    raise ValueError(
+                        f"adhoc_filters[{index}].operator must be a non-empty string"
+                    )
+                operator_id_map: dict[str, str | None] = {
+                    "EQUALS": "==",
+                    "NOT_EQUALS": "!=",
+                    "LESS_THAN": "<",
+                    "LESS_THAN_OR_EQUAL": "<=",
+                    "GREATER_THAN": ">",
+                    "GREATER_THAN_OR_EQUAL": ">=",
+                    "IN": "IN",
+                    "NOT_IN": "NOT IN",
+                    "LIKE": "LIKE",
+                    "ILIKE": "ILIKE",
+                    "IS_NOT_NULL": "IS NOT NULL",
+                    "IS_NULL": "IS NULL",
+                    "TEMPORAL_RANGE": "TEMPORAL_RANGE",
+                    # These are real Explore operator IDs, but FilterConfig and
+                    # the shared query-filter contract cannot represent them
+                    # without changing their meaning. Reject them explicitly.
+                    "LATEST_PARTITION": None,
+                    "IS_TRUE": None,
+                    "IS_FALSE": None,
+                    "CONTAINS_ANY": None,
+                    "CONTAINS_ALL": None,
+                    "IS_EMPTY": None,
+                    "IS_NOT_EMPTY": None,
+                    "LENGTH_EQUALS": None,
+                    "LENGTH_GREATER_THAN": None,
+                    "LENGTH_LESS_THAN": None,
+                    "LENGTH_GREATER_THAN_OR_EQUALS": None,
+                    "LENGTH_LESS_THAN_OR_EQUALS": None,
+                }
+                if operator_id is not None:
+                    if operator_id not in operator_id_map:
+                        raise ValueError(
+                            f"adhoc_filters[{index}].operatorId {operator_id!r} "
+                            "is not a recognized Explore operator ID"
+                        )
+                    expected_operator = operator_id_map[operator_id]
+                    if expected_operator is None:
+                        raise ValueError(
+                            f"adhoc_filters[{index}].operatorId {operator_id!r} "
+                            "is not supported by typed Gantt filters"
+                        )
+                    if operator != expected_operator:
+                        raise ValueError(
+                            f"adhoc_filters[{index}] has contradictory operator "
+                            f"{operator!r} for operatorId {operator_id!r}; expected "
+                            f"{expected_operator!r}"
+                        )
+
+                supported_operators = {
+                    expected
+                    for expected in operator_id_map.values()
+                    if expected is not None
+                } | {"NOT LIKE"}
+                if operator not in supported_operators:
+                    raise ValueError(
+                        f"adhoc_filters[{index}].operator {operator!r} is not "
+                        "supported by typed Gantt filters"
+                    )
+                if operator == "TEMPORAL_RANGE":
+                    if not isinstance(subject, str) or not subject:
+                        raise ValueError(
+                            f"adhoc_filters[{index}] temporal filter needs subject"
+                        )
+                    if not isinstance(comparator, str) or not comparator:
+                        raise ValueError(
+                            f"adhoc_filters[{index}] temporal comparator must "
+                            "be a non-empty string"
+                        )
+                    temporal_filters.append((index, subject, comparator))
+                    continue
+                if not isinstance(subject, str) or not subject:
+                    raise ValueError(f"adhoc_filters[{index}] needs subject")
+                if operator in {"IS NULL", "IS NOT NULL"}:
+                    if comparator is not None:
+                        raise ValueError(
+                            f"adhoc_filters[{index}] operator {operator!r} must not "
+                            "define comparator"
+                        )
+                elif operator in {"IN", "NOT IN"}:
+                    if not isinstance(comparator, list) or not comparator:
+                        raise ValueError(
+                            f"adhoc_filters[{index}] operator {operator!r} requires "
+                            "a non-empty comparator array"
+                        )
+                elif comparator is None or isinstance(comparator, (dict, list)):
+                    raise ValueError(
+                        f"adhoc_filters[{index}] operator {operator!r} requires "
+                        "a scalar comparator"
+                    )
+                filters.append(
+                    {
+                        "column": subject,
+                        "op": "=" if operator == "==" else operator,
+                        "value": comparator,
+                    }
+                )
+            data["filters"] = filters or None
+
+            if len(temporal_filters) > 1:
+                indexes = ", ".join(str(item[0]) for item in temporal_filters)
+                raise ValueError(
+                    "Typed Gantt supports at most one TEMPORAL_RANGE adhoc filter; "
+                    f"found filters at indexes {indexes}"
+                )
+            if temporal_filters:
+                index, subject, comparator = temporal_filters[0]
+                configured_subject = data.get("temporal_column")
+                if configured_subject is not None and configured_subject != subject:
+                    raise ValueError(
+                        f"temporal_column conflicts with adhoc_filters[{index}].subject"
+                    )
+                data["temporal_column"] = subject
+                if marker_present and marker != subject:
+                    raise ValueError(
+                        f"{marker_key} conflicts with adhoc_filters[{index}].subject"
+                    )
+                if comparator not in (None, "", "No filter"):
+                    configured_range = data.get("time_range")
+                    if configured_range is not None and configured_range != comparator:
+                        raise ValueError(
+                            "time_range conflicts with "
+                            f"adhoc_filters[{index}].comparator"
+                        )
+                    data["time_range"] = comparator
+            elif marker_present:
+                raise ValueError(
+                    f"{marker_key} requires a matching TEMPORAL_RANGE adhoc filter"
+                )
+        elif marker_present:
+            raise ValueError(
+                f"{marker_key} requires a matching TEMPORAL_RANGE adhoc filter"
+            )
+        return data
+
+    @staticmethod
+    def _adapt_native_tooltip_metric(metric: Any, index: int) -> Any:  # noqa: C901
+        """Convert one bounded native QueryFormMetric into a typed metric ref."""
+        if isinstance(metric, str):
+            return {"name": metric, "saved_metric": True}
+        if not isinstance(metric, dict):
+            raise ValueError(
+                f"tooltip_metrics[{index}] must be a saved metric name or object"
+            )
+        # Typed ColumnRef objects do not carry the frontend discriminator and
+        # must continue through normal Pydantic validation unchanged.
+        if "expressionType" not in metric:
+            return metric
+
+        allowed_keys = {
+            "aggregate",
+            "column",
+            "datasourceWarning",
+            "expressionType",
+            "hasCustomLabel",
+            "isNew",
+            "label",
+            "optionName",
+            "sqlExpression",
+        }
+        if unknown := set(metric) - allowed_keys:
+            raise ValueError(
+                f"tooltip_metrics[{index}] has unsupported fields: "
+                f"{', '.join(sorted(unknown))}"
+            )
+        option_name = metric.get("optionName")
+        if option_name is not None and (
+            not isinstance(option_name, str)
+            or not option_name
+            or len(option_name) > 500
+        ):
+            raise ValueError(
+                f"tooltip_metrics[{index}].optionName must be a non-empty string"
+            )
+        datasource_warning = metric.get("datasourceWarning")
+        if datasource_warning is not None and not isinstance(datasource_warning, bool):
+            raise ValueError(
+                f"tooltip_metrics[{index}].datasourceWarning must be boolean"
+            )
+        custom_label = metric.get("hasCustomLabel")
+        if custom_label is not None and not isinstance(custom_label, bool):
+            raise ValueError(f"tooltip_metrics[{index}].hasCustomLabel must be boolean")
+        is_new = metric.get("isNew")
+        if is_new is not None and not isinstance(is_new, bool):
+            raise ValueError(f"tooltip_metrics[{index}].isNew must be boolean")
+
+        expression_type = metric.get("expressionType")
+        label = metric.get("label")
+        if label is not None and (not isinstance(label, str) or not label):
+            raise ValueError(
+                f"tooltip_metrics[{index}].label must be a non-empty string"
+            )
+        if expression_type == "SIMPLE":
+            aggregate = metric.get("aggregate")
+            column = metric.get("column")
+            if not isinstance(aggregate, str) or not aggregate:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] SIMPLE metric needs aggregate"
+                )
+            if not isinstance(column, dict):
+                raise ValueError(f"tooltip_metrics[{index}] SIMPLE metric needs column")
+            # QueryFormMetric embeds the selected frontend Column metadata.
+            # Keep this allowlist aligned with the frontend Column contract and
+            # the additional fields emitted by TableColumn.data.
+            allowed_column_keys = {
+                "advanced_data_type",
+                "certification_details",
+                "certified_by",
+                "columnName",
+                "column_name",
+                "database_expression",
+                "description",
+                "expression",
+                "filterBy",
+                "filterable",
+                "groupby",
+                "id",
+                "is_certified",
+                "is_dttm",
+                "optionName",
+                "python_date_format",
+                "type",
+                "type_generic",
+                "uuid",
+                "value",
+                "verbose_name",
+                "warning_markdown",
+            }
+            unknown_column_keys = set(column) - allowed_column_keys
+            if unknown_column_keys:
+                raise ValueError(
+                    f"tooltip_metrics[{index}].column has unsupported fields: "
+                    f"{', '.join(sorted(unknown_column_keys))}"
+                )
+            boolean_fields = {"filterable", "groupby", "is_certified", "is_dttm"}
+            for metadata_key in boolean_fields & column.keys():
+                if not isinstance(column[metadata_key], bool):
+                    raise ValueError(
+                        f"tooltip_metrics[{index}].column.{metadata_key} "
+                        "must be boolean"
+                    )
+            if "id" in column and (
+                isinstance(column["id"], bool)
+                or not isinstance(column["id"], int)
+                or column["id"] < 0
+            ):
+                raise ValueError(
+                    f"tooltip_metrics[{index}].column.id must be a non-negative integer"
+                )
+            if "type_generic" in column:
+                type_generic = column["type_generic"]
+                if type_generic is not None and (
+                    isinstance(type_generic, bool)
+                    or not isinstance(type_generic, int)
+                    or type_generic not in range(5)
+                ):
+                    raise ValueError(
+                        f"tooltip_metrics[{index}].column.type_generic must be "
+                        "null or a GenericDataType value from 0 through 4"
+                    )
+
+            nullable_string_fields = {
+                "advanced_data_type",
+                "certification_details",
+                "certified_by",
+                "database_expression",
+                "description",
+                "expression",
+                "python_date_format",
+                "type",
+                "uuid",
+                "verbose_name",
+                "warning_markdown",
+            }
+            for metadata_key in nullable_string_fields & column.keys():
+                metadata_value = column[metadata_key]
+                if metadata_value is not None and (
+                    not isinstance(metadata_value, str) or len(metadata_value) > 2000
+                ):
+                    raise ValueError(
+                        f"tooltip_metrics[{index}].column.{metadata_key} must be "
+                        "null or a string of at most 2000 characters"
+                    )
+
+            string_fields = {
+                "columnName",
+                "column_name",
+                "filterBy",
+                "optionName",
+                "value",
+            }
+            for metadata_key in string_fields & column.keys():
+                metadata_value = column[metadata_key]
+                if (
+                    not isinstance(metadata_value, str)
+                    or not metadata_value
+                    or len(metadata_value) > 2000
+                ):
+                    raise ValueError(
+                        f"tooltip_metrics[{index}].column.{metadata_key} must be "
+                        "a non-empty string of at most 2000 characters"
+                    )
+            column_name = column.get("column_name") or column.get("columnName")
+            if not isinstance(column_name, str) or not column_name:
+                raise ValueError(f"tooltip_metrics[{index}].column needs column_name")
+            if (
+                column.get("column_name") is not None
+                and column.get("columnName") is not None
+                and column["column_name"] != column["columnName"]
+            ):
+                raise ValueError(
+                    f"tooltip_metrics[{index}].column has conflicting column names"
+                )
+            column_type = column.get("type")
+            if isinstance(column_type, str) and len(column_type) > 255:
+                raise ValueError(
+                    f"tooltip_metrics[{index}].column.type must be at most 255 "
+                    "characters"
+                )
+            if metric.get("sqlExpression") is not None:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] SIMPLE metric cannot set sqlExpression"
+                )
+            if custom_label is True and label is None:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] custom label requires label"
+                )
+            default_label = f"{aggregate.upper()}({column_name})"
+            typed_label = label if custom_label or label != default_label else None
+            return {
+                "name": column_name,
+                "aggregate": aggregate,
+                "label": typed_label,
+            }
+        if expression_type == "SQL":
+            sql_expression = metric.get("sqlExpression")
+            if not isinstance(sql_expression, str) or not sql_expression:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] SQL metric needs sqlExpression"
+                )
+            if metric.get("aggregate") is not None or metric.get("column") is not None:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] SQL metric cannot set "
+                    "aggregate or column"
+                )
+            if custom_label is True and label is None:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] custom label requires label"
+                )
+            # ColumnRef requires an output alias for SQL metrics. The frontend's
+            # getMetricLabel uses sqlExpression when no custom label is present,
+            # so using that exact fallback keeps the query-result key stable.
+            return {"sql_expression": sql_expression, "label": label or sql_expression}
+        raise ValueError(
+            f"tooltip_metrics[{index}].expressionType must be 'SIMPLE' or 'SQL'"
+        )
+
+    @field_validator("start_time", "end_time", "category", "series", mode="before")
+    @classmethod
+    def coerce_single_column(cls, value: Any) -> Any:
+        """Accept native bare physical-column names."""
+        return {"name": value} if isinstance(value, str) else value
+
+    @field_validator("tooltip_columns", mode="before")
+    @classmethod
+    def coerce_tooltip_columns(cls, value: Any) -> Any:
+        if not isinstance(value, list):
+            return value
+        return [{"name": item} if isinstance(item, str) else item for item in value]
+
+    @field_validator("order_by", mode="before")
+    @classmethod
+    def parse_native_order_by(cls, value: Any) -> Any:
+        """Parse the frontend's JSON ``[column, ascending]`` strings safely."""
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise ValueError("order_by must be an array")
+        if len(value) > 100:
+            raise ValueError("order_by accepts at most 100 entries")
+
+        from superset.utils import json as utils_json
+
+        parsed: list[Any] = []
+        for index, item in enumerate(value):
+            if isinstance(item, str):
+                if len(item) > 1000:
+                    raise ValueError(f"order_by[{index}] is too long")
+                try:
+                    item = utils_json.loads(item)
+                except (TypeError, ValueError) as ex:
+                    raise ValueError(f"order_by[{index}] is not valid JSON") from ex
+            if isinstance(item, (list, tuple)):
+                if (
+                    len(item) != 2
+                    or not isinstance(item[0], str)
+                    or not item[0]
+                    or not isinstance(item[1], bool)
+                ):
+                    raise ValueError(
+                        f"order_by[{index}] must be [column, ascending_boolean]"
+                    )
+                item = {"column": item[0], "ascending": item[1]}
+            parsed.append(item)
+        return parsed
+
+    @field_validator("time_range")
+    @classmethod
+    def validate_gantt_time_range(cls, value: str | None) -> str | None:
+        return validate_time_range(value)
+
+    @field_validator("x_axis_time_bounds")
+    @classmethod
+    def validate_time_bounds(
+        cls, value: tuple[str | None, str | None] | None
+    ) -> tuple[str | None, str | None] | None:
+        if value is None:
+            return None
+        for bound in value:
+            if bound is None:
+                continue
+            try:
+                time.fromisoformat(bound)
+            except ValueError as ex:
+                raise ValueError("x_axis_time_bounds values must use HH:MM:SS") from ex
+            if len(bound) != 8:
+                raise ValueError("x_axis_time_bounds values must use HH:MM:SS")
+        return value
+
+    @model_validator(mode="after")
+    def validate_gantt_roles(self) -> "GanttChartConfig":
+        """Keep metric and dimension roles aligned with the frontend controls."""
+        dimension_fields: list[tuple[str, ColumnRef | None]] = [
+            ("start_time", self.start_time),
+            ("end_time", self.end_time),
+            ("category", self.category),
+            ("series", self.series),
+        ]
+        dimension_fields.extend(
+            (f"tooltip_columns[{index}]", column)
+            for index, column in enumerate(self.tooltip_columns)
+        )
+        for field_name, column in dimension_fields:
+            _reject_sql_expression_on_dimension(column, field_name)
+            if column is not None and column.saved_metric:
+                raise ValueError(
+                    f"{field_name} cannot use saved_metric=True; it is a dimension"
+                )
+            if column is not None and column.aggregate:
+                raise ValueError(
+                    f"{field_name} cannot define aggregate; it is a dimension"
+                )
+
+        for index, metric in enumerate(self.tooltip_metrics):
+            if not metric.is_metric:
+                raise ValueError(
+                    f"tooltip_metrics[{index}] must define aggregate, "
+                    "saved_metric=True, or sql_expression"
+                )
+
+        _validate_distinct_gantt_roles(
+            {
+                "start_time": self.start_time.name,
+                "end_time": self.end_time.name,
+                "category": self.category.name,
+            }
+        )
+
+        if self.subcategories and self.series is None:
+            raise ValueError("subcategories=True requires series")
+        if (
+            self.series is not None
+            and self.series.name is not None
+            and self.category.name is not None
+            and self.series.name.casefold() == self.category.name.casefold()
+        ):
+            raise ValueError("series and category must reference different columns")
+
+        order_names = [item.column.casefold() for item in self.order_by]
+        if len(order_names) != len(set(order_names)):
+            raise ValueError("order_by cannot contain duplicate columns")
+        return self
+
+
 # Discriminated union for runtime validation (not exposed in JSON Schema)
 ChartConfig = Annotated[
     XYChartConfig
@@ -2294,14 +3088,15 @@ ChartConfig = Annotated[
     | BigNumberChartConfig
     | HistogramChartConfig
     | BoxPlotChartConfig
-    | WaterfallChartConfig,
+    | WaterfallChartConfig
+    | GanttChartConfig,
     Field(
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
             "'pie', 'pivot_table', 'interactive_pivot', 'mixed_timeseries', "
             "'handlebars', "
-            "'big_number', 'histogram', 'box_plot', or 'waterfall'"
+            "'big_number', 'histogram', 'box_plot', 'waterfall', or 'gantt'"
         ),
     ),
 ]
@@ -2331,6 +3126,7 @@ _VIZ_TYPE_TO_CHART_TYPE: dict[str, tuple[str, str | None]] = {
     "pivot_table_v2": ("pivot_table", None),
     "ag-grid-pivot-table": ("interactive_pivot", None),
     "histogram_v2": ("histogram", None),
+    "gantt_chart": ("gantt", None),
 }
 
 

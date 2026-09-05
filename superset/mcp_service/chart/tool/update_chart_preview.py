@@ -39,9 +39,10 @@ from superset.mcp_service.chart.chart_utils import (
     generate_explore_link,
     map_config_to_form_data,
     MCP_DASHBOARD_TIME_FILTER_SUBJECT,
+    merge_gantt_ui_config,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
-    NO_TIME_RANGE,
+    validate_gantt_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.preview_utils import (
@@ -53,6 +54,9 @@ from superset.mcp_service.chart.schemas import (
     ChartError,
     PerformanceMetadata,
     UpdateChartPreviewRequest,
+)
+from superset.mcp_service.chart.validation.dataset_validator import (
+    GanttSemanticNormalizationError,
 )
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
@@ -116,17 +120,17 @@ def _preserve_previous_adhoc_filters(
 
     generated_filters = new_form_data.get("adhoc_filters", [])
     previous_binding = previous_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
-    new_binding = new_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+    # The marker identifies the mapper-owned temporal subject. Its comparator
+    # may be an active time range, so remove the prior binding regardless of
+    # comparator before adding the binding generated from the typed state.
     merged_filters = [
         filter_
         for filter_ in previous_filters
         if not (
             previous_binding
-            and previous_binding != new_binding
             and isinstance(filter_, dict)
             and filter_.get("operator") == "TEMPORAL_RANGE"
             and filter_.get("subject") == previous_binding
-            and filter_.get("comparator") == NO_TIME_RANGE
         )
     ]
     for generated_filter in generated_filters:
@@ -135,17 +139,21 @@ def _preserve_previous_adhoc_filters(
                 merged_filters.append(generated_filter)
             continue
 
-        is_same_filter = any(
-            isinstance(previous_filter, dict)
-            and previous_filter.get("clause") == generated_filter.get("clause")
-            and previous_filter.get("expressionType")
-            == generated_filter.get("expressionType")
-            and previous_filter.get("subject") == generated_filter.get("subject")
-            and previous_filter.get("operator") == generated_filter.get("operator")
+        # Replace an equivalent cached filter rather than deduplicating it: an
+        # unchanged temporal subject can still have a newly supplied comparator.
+        merged_filters = [
+            previous_filter
             for previous_filter in merged_filters
-        )
-        if not is_same_filter:
-            merged_filters.append(generated_filter)
+            if not (
+                isinstance(previous_filter, dict)
+                and previous_filter.get("clause") == generated_filter.get("clause")
+                and previous_filter.get("expressionType")
+                == generated_filter.get("expressionType")
+                and previous_filter.get("subject") == generated_filter.get("subject")
+                and previous_filter.get("operator") == generated_filter.get("operator")
+            )
+        ]
+        merged_filters.append(generated_filter)
 
     new_form_data["adhoc_filters"] = merged_filters
 
@@ -216,6 +224,20 @@ def update_chart_preview(  # noqa: C901
                 }
 
         with event_logger.log_context(action="mcp.update_chart_preview.form_data"):
+            # Validation accepts dataset columns case-insensitively, but native
+            # form_data and query-result metadata require the dataset's exact
+            # casing. Normalize before mapping just like generate/update.
+            from superset.mcp_service.chart.validation.dataset_validator import (
+                build_dataset_context_from_orm,
+                DatasetValidator,
+            )
+
+            config = DatasetValidator.normalize_column_names(
+                config,
+                request.dataset_id,
+                dataset_context=build_dataset_context_from_orm(dataset),
+            )
+
             # Map the new config to form_data format
             # Pass dataset_id to enable column type checking
             new_form_data = map_config_to_form_data(
@@ -240,6 +262,17 @@ def update_chart_preview(  # noqa: C901
             if previous_form_data:
                 merge_table_column_config(previous_form_data, new_form_data)
                 merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
+                merge_gantt_ui_config(previous_form_data, new_form_data)
+
+            merged_gantt_config = validate_gantt_form_data(
+                new_form_data,
+                request.dataset_id,
+                dataset_context=build_dataset_context_from_orm(dataset),
+            )
+            if merged_gantt_config is not None:
+                # Compile the final cached state rather than the pre-merge
+                # request, so preserved native fields cannot bypass semantics.
+                config = merged_gantt_config
 
             # Tier-1 schema validation against the dataset (no DB roundtrip).
             # Runs AFTER the filter merge so filter columns are also validated.
@@ -419,6 +452,30 @@ def update_chart_preview(  # noqa: C901
             "chart": None,
             "error": OAUTH2_CONFIG_ERROR_MESSAGE,
             "success": False,
+        }
+    except GanttSemanticNormalizationError as ex:
+        execution_time = int((time.time() - start_time) * 1000)
+        return {
+            "chart": None,
+            "error": {
+                "error_type": "gantt_semantic_validation_error",
+                "message": "Gantt chart column roles are invalid",
+                "details": str(ex),
+                "suggestions": [
+                    "Use different physical columns for start_time and end_time",
+                    "Use different physical columns for category and series",
+                    "Use exact dataset column casing when names differ only by case",
+                ],
+                "error_code": "GANTT_SEMANTIC_VALIDATION_ERROR",
+            },
+            "performance": {
+                "query_duration_ms": execution_time,
+                "cache_status": "error",
+                "optimization_suggestions": [],
+            },
+            "success": False,
+            "schema_version": "2.0",
+            "api_version": "v1",
         }
     except (
         SupersetException,
