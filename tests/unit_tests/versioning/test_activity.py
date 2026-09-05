@@ -44,6 +44,7 @@ from superset.versioning.activity import (
     Window,
 )
 from superset.versioning.activity.impact import (
+    ChartRef,
     collect_impact_pairs,
     impact_for_record,
 )
@@ -217,7 +218,7 @@ def test_decoration_redacts_record_from_reused_entity_id() -> None:
             return_value={("Slice", 7, 20): historical_uuid},
         ),
         patch(
-            "superset.versioning.activity.render.batch_chart_counts", return_value={}
+            "superset.versioning.activity.render.batch_chart_impacts", return_value={}
         ),
     ):
         apply_record_decoration([record], "Dashboard", 1)
@@ -478,46 +479,130 @@ def test_changed_by_projects_only_display_fields() -> None:
 # ---- impact_for_record (pure, post-batch) -------------------------------
 
 
-def test_impact_for_record_dashboard_path_dataset_related_uses_count() -> None:
+def test_impact_for_record_dashboard_path_dataset_related_uses_charts() -> None:
     """The only path/related shape that carries impact: ``Dashboard`` →
-    ``SqlaTable``. The count comes from the pre-batched lookup."""
+    ``SqlaTable``. Count and names both come from the pre-batched lookup
+    (sc-119775: the tooltip needs the names, not just the count)."""
     record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
-    counts = {(5, 100): 3}
-    assert impact_for_record(record, "Dashboard", counts) == {"charts": 3}
+    charts: list[ChartRef] = [
+        {"id": 11, "name": "Alpha"},
+        {"id": 12, "name": "Beta"},
+        {"id": 13, "name": "Gamma"},
+    ]
+    assert impact_for_record(record, "Dashboard", {(5, 100): charts}) == {
+        "charts": 3,
+        "chart_names": charts,
+    }
 
 
-def test_impact_for_record_missing_count_yields_none() -> None:
+def test_impact_for_record_missing_pair_yields_none() -> None:
     """A pair the batch query didn't return (no matching siblings)
     collapses to ``None`` rather than ``{"charts": 0}``."""
     record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
     assert impact_for_record(record, "Dashboard", {}) is None
 
 
-def test_impact_for_record_zero_count_yields_none() -> None:
-    """Explicit zero in the counts map is treated the same as missing —
-    no impact field on the wire."""
+def test_impact_for_record_empty_charts_yields_none() -> None:
+    """An explicit empty list in the impacts map is treated the same as
+    missing — no impact field on the wire."""
     record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
-    assert impact_for_record(record, "Dashboard", {(5, 100): 0}) is None
+    assert impact_for_record(record, "Dashboard", {(5, 100): []}) is None
 
 
 def test_impact_for_record_dashboard_path_chart_related_yields_none() -> None:
     """Dashboard → chart is a direct dependency; no further sibling
     layer to count."""
     record = {"entity_kind": "chart", "entity_id": 5, "transaction_id": 100}
-    assert impact_for_record(record, "Dashboard", {(5, 100): 999}) is None
+    charts: list[ChartRef] = [{"id": 9, "name": "X"}]
+    assert impact_for_record(record, "Dashboard", {(5, 100): charts}) is None
 
 
 def test_impact_for_record_chart_path_with_dataset_related_yields_none() -> None:
     """Chart → dataset: the chart is itself the only dependent of the
     dataset edit."""
     record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
-    assert impact_for_record(record, "Slice", {(5, 100): 999}) is None
+    charts: list[ChartRef] = [{"id": 9, "name": "X"}]
+    assert impact_for_record(record, "Slice", {(5, 100): charts}) is None
 
 
 def test_impact_for_record_dataset_path_yields_none() -> None:
     """Datasets have no transitive layer (AV-004)."""
     record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
-    assert impact_for_record(record, "SqlaTable", {(5, 100): 999}) is None
+    charts: list[ChartRef] = [{"id": 9, "name": "X"}]
+    assert impact_for_record(record, "SqlaTable", {(5, 100): charts}) is None
+
+
+def test_sorted_chart_refs_orders_case_insensitively_with_id_tiebreak() -> None:
+    """The wire order is deterministic: casefolded name, then id; empty
+    names sort first (they render as an Untitled fallback)."""
+    from superset.versioning.activity.impact import _sorted_chart_refs
+
+    refs = _sorted_chart_refs({(5, 100): {3: "beta", 1: "Alpha", 2: "alpha", 4: ""}})
+    assert refs == {
+        (5, 100): [
+            {"id": 4, "name": ""},
+            {"id": 1, "name": "Alpha"},
+            {"id": 2, "name": "alpha"},
+            {"id": 3, "name": "beta"},
+        ]
+    }
+
+
+def test_impact_for_record_caps_chart_names_but_not_the_count() -> None:
+    """A dataset feeding very many charts must not balloon the record: the
+    named refs are capped while ``charts`` keeps the full count."""
+    from superset.versioning.activity.impact import IMPACT_CHART_NAMES_CAP
+
+    record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
+    charts: list[ChartRef] = [
+        {"id": i, "name": f"chart {i:03d}"} for i in range(IMPACT_CHART_NAMES_CAP + 10)
+    ]
+    result = impact_for_record(record, "Dashboard", {(5, 100): charts})
+    assert result is not None
+    assert result["charts"] == IMPACT_CHART_NAMES_CAP + 10
+    assert len(result["chart_names"]) == IMPACT_CHART_NAMES_CAP
+    assert result["chart_names"] == charts[:IMPACT_CHART_NAMES_CAP]
+
+
+def test_related_record_impact_payload_carries_chart_names() -> None:
+    """End-to-end through record decoration: a dashboard-path dataset
+    record's wire ``impact`` carries the affected chart names alongside
+    the count (sc-119775 — the rollup tooltip's data source)."""
+    record = {
+        "entity_kind": "dataset",
+        "entity_id": 5,
+        "transaction_id": 100,
+        "kind": "metric",
+        "entity_name": "Sales",
+        "changed_by_id": None,
+        "from_value": "a",
+        "to_value": "b",
+    }
+    charts: list[ChartRef] = [
+        {"id": 11, "name": "Alpha"},
+        {"id": 12, "name": "Beta"},
+    ]
+    with (
+        patch(
+            "superset.versioning.activity.render.check_entity_tombstones",
+            return_value={("SqlaTable", 5): {"deleted": False, "deletion_state": None}},
+        ),
+        patch(
+            "superset.versioning.activity.render._lookup_entity_uuids",
+            return_value={},
+        ),
+        patch(
+            "superset.versioning.activity.render.resolve_historical_entity_uuids",
+            return_value={},
+        ),
+        patch(
+            "superset.versioning.activity.render.batch_chart_impacts",
+            return_value={(5, 100): charts},
+        ),
+    ):
+        apply_record_decoration([record], "Dashboard", 1)
+
+    assert record["impact"] == {"charts": 2, "chart_names": charts}
 
 
 # ---- collect_impact_pairs -----------------------------------------------

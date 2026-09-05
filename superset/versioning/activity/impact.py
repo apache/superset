@@ -17,28 +17,30 @@
 """Per-record impact computation for the activity DTO.
 
 Only dashboard-path activity records pointing at a ``SqlaTable``
-related entity carry an ``impact`` field — the number of charts on
-the dashboard at that transaction that were pointing at the dataset.
-This module computes that count in a single batched query per
-request:
+related entity carry an ``impact`` field — the charts on the
+dashboard at that transaction that were pointing at the dataset, as
+a count plus per-chart id/name references. This module computes that
+payload in a single batched query per request:
 
 * :func:`collect_impact_pairs` — pulls the distinct
   ``(dataset_id, transaction_id)`` pairs that need counts.
-* :func:`batch_chart_counts` — one SQL query joining
-  ``dashboard_slices_version`` and ``slices_version`` to count
-  the matching charts validity-strategy-style.
+* :func:`batch_chart_impacts` — one SQL query joining
+  ``dashboard_slices_version`` and ``slices_version`` to collect
+  the matching charts (id + name-at-transaction)
+  validity-strategy-style.
 * :func:`impact_for_record` — pure projection from the pre-fetched
-  counts onto each record (returns ``None`` for non-Dashboard paths
-  or non-SqlaTable kinds, matching the ``impact`` computation).
+  chart references onto each record (returns ``None`` for
+  non-Dashboard paths or non-SqlaTable kinds, matching the
+  ``impact`` computation).
 
-Splitting the count batching from the pure projection keeps the SQL
-inside one function (the batched read) and the per-record decoration
-inside another (no DB).
+Splitting the batched read from the pure projection keeps the SQL
+inside one function and the per-record decoration inside another
+(no DB).
 """
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TypedDict
 
 import sqlalchemy as sa
 
@@ -48,6 +50,19 @@ from superset.versioning.activity.kinds import (
     ENTITY_ID_CHUNK_SIZE,
     TABLE_KIND_TO_API,
 )
+
+
+class ChartRef(TypedDict):
+    """One affected chart in an ``impact`` payload: id plus name-at-transaction."""
+
+    id: int
+    name: str
+
+
+# The wire ``chart_names`` list is capped so one dataset feeding very many
+# charts cannot balloon every related record on the page (page sizes reach
+# 200 records); ``charts`` always carries the full count.
+IMPACT_CHART_NAMES_CAP = 50
 
 
 def collect_impact_pairs(
@@ -69,10 +84,10 @@ def collect_impact_pairs(
     }
 
 
-def batch_chart_counts(
+def batch_chart_impacts(
     dashboard_id: int, pairs: set[tuple[int, int]]
-) -> dict[tuple[int, int], int]:
-    """For every ``(dataset_id, target_tx)`` in *pairs*, count the
+) -> dict[tuple[int, int], list[ChartRef]]:
+    """For every ``(dataset_id, target_tx)`` in *pairs*, collect the
     distinct charts that were both on *dashboard_id* and pointing at
     *dataset_id* at *target_tx*.
 
@@ -83,9 +98,10 @@ def batch_chart_counts(
     predicate per pair. Replaces the previous N+1 shape that fired one
     COUNT per related record.
 
-    Returns ``{(dataset_id, target_tx): count}``; pairs whose count
-    would be zero are omitted so the caller's ``.get(key, 0)`` is
-    correct.
+    Returns ``{(dataset_id, target_tx): [ChartRef, ...]}`` with each
+    pair's charts sorted by name; the name is the chart's name at that
+    transaction (the matched version row). Pairs with no matching charts
+    are omitted so the caller's ``.get(key)`` falsiness check is correct.
     """
     if not pairs:
         return {}
@@ -117,6 +133,7 @@ def batch_chart_counts(
     for chunk in chunked_ids(dataset_ids, ENTITY_ID_CHUNK_SIZE):
         stmt = sa.select(
             m2m_tbl.c.slice_id,
+            slices_tbl.c.slice_name,
             slices_tbl.c.datasource_id,
             m2m_tbl.c.transaction_id.label("m2m_start"),
             m2m_tbl.c.end_transaction_id.label("m2m_end"),
@@ -142,9 +159,12 @@ def batch_chart_counts(
         )
         rows.extend(db.session.connection().execute(stmt).mappings().all())
 
-    # For each pair, collect the slice_ids whose two validity windows
-    # both straddle target_tx. ``set`` dedupes within a pair.
-    matches: dict[tuple[int, int], set[int]] = {}
+    # For each pair, collect the charts whose two validity windows both
+    # straddle target_tx, keyed by slice_id to dedupe within a pair. The
+    # matched slice version row carries the chart's name at that
+    # transaction, so the impact names read as they did when the change
+    # happened rather than as the live rows are named.
+    matches: dict[tuple[int, int], dict[int, str]] = {}
     pairs_by_dataset: dict[int, list[int]] = {}
     for dataset_id, target_tx in pairs:
         pairs_by_dataset.setdefault(dataset_id, []).append(target_tx)
@@ -159,28 +179,56 @@ def batch_chart_counts(
                 row["slice_end"] is None or row["slice_end"] > target_tx
             )
             if in_m2m and in_slice:
-                matches.setdefault((ds_id, target_tx), set()).add(row["slice_id"])
+                matches.setdefault((ds_id, target_tx), {})[row["slice_id"]] = (
+                    row["slice_name"] or ""
+                )
 
-    return {pair: len(slice_ids) for pair, slice_ids in matches.items()}
+    return _sorted_chart_refs(matches)
+
+
+def _sorted_chart_refs(
+    matches: dict[tuple[int, int], dict[int, str]],
+) -> dict[tuple[int, int], list[ChartRef]]:
+    """Order each pair's deduped charts by (casefolded name, id).
+
+    Pure function, split from the batched read so the ordering contract is
+    directly testable: names compare case-insensitively, ties break on id
+    for a deterministic wire order, and empty names sort first (they render
+    as an "Untitled" fallback downstream).
+    """
+    return {
+        pair: sorted(
+            (ChartRef(id=slice_id, name=name) for slice_id, name in charts.items()),
+            key=lambda chart: (chart["name"].casefold(), chart["id"]),
+        )
+        for pair, charts in matches.items()
+    }
 
 
 def impact_for_record(
     record: dict[str, Any],
     path_kind: str,
-    counts: dict[tuple[int, int], int],
-) -> dict[str, int] | None:
-    """Synthesize the ``impact`` field for one record using the pre-
-    fetched *counts* mapping. Pure function — no DB.
+    impacts: dict[tuple[int, int], list[ChartRef]],
+) -> dict[str, Any] | None:
+    """Synthesize the ``impact`` field for one record from *impacts*.
 
-    For the ``impact`` computation: only
+    Pure function — no DB. For the ``impact`` computation: only
     ``path=Dashboard`` and ``related=SqlaTable`` shapes carry an
-    impact; everything else returns ``None``.
+    impact; everything else returns ``None``. The payload keeps the
+    ``charts`` count and adds ``chart_names`` — the affected charts
+    (id + name) that the count summarizes — so the rollup entry's
+    hover tooltip can list them. ``chart_names`` is capped at
+    :data:`IMPACT_CHART_NAMES_CAP`; ``charts`` stays the full count so
+    the consumer can render an "and N more" overflow line.
     """
     api_kind = TABLE_KIND_TO_API.get(record["entity_kind"])
     if path_kind != "Dashboard" or api_kind != "SqlaTable":
         return None
     key = (record["entity_id"], record["transaction_id"])
-    chart_count = counts.get(key, 0)
-    if chart_count == 0:
+    charts = impacts.get(key) or []
+    if not charts:
         return None
-    return {"charts": chart_count}
+    return {
+        "charts": len(charts),
+        "chart_names": charts[:IMPACT_CHART_NAMES_CAP],
+    }

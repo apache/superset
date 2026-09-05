@@ -250,13 +250,27 @@ class ActivityChangedBySchema(Schema):
     last_name = fields.String()
 
 
-class ActivityImpactSchema(Schema):
-    """Dependent-count summary attached to ``source='related'`` records.
+class ActivityImpactChartSchema(Schema):
+    """One affected sibling chart inside an ``impact`` payload."""
 
-    Synthesized server-side at the time of the activity query — it counts
-    siblings affected by the same upstream change at the same transaction
-    (e.g., how many charts on the requested dashboard pointed at the
-    dataset whose edit this record represents).
+    id = fields.Integer(metadata={"description": "Chart id."})
+    name = fields.String(
+        metadata={
+            "description": (
+                "Chart name at the change's transaction — it may differ "
+                "from the live name if the chart was renamed since."
+            )
+        },
+    )
+
+
+class ActivityImpactSchema(Schema):
+    """Dependent summary attached to ``source='related'`` records.
+
+    Synthesized server-side at the time of the activity query — it
+    identifies siblings affected by the same upstream change at the same
+    transaction (e.g., which charts on the requested dashboard pointed at
+    the dataset whose edit this record represents).
     """
 
     charts = fields.Integer(
@@ -264,6 +278,17 @@ class ActivityImpactSchema(Schema):
             "description": (
                 "Number of sibling charts on the path entity affected by "
                 "the same related-record change at this transaction."
+            )
+        },
+    )
+    chart_names = fields.List(
+        fields.Nested(ActivityImpactChartSchema),
+        metadata={
+            "description": (
+                "The affected sibling charts (id + name), sorted by name — "
+                "the detail behind the ``charts`` count, rendered as the "
+                "rollup entry's hover tooltip. Capped at 50 entries; "
+                "``charts`` always carries the full count."
             )
         },
     )
