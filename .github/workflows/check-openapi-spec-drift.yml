@@ -63,37 +63,47 @@ jobs:
         env:
           SPEC: docs/static/resources/openapi.json
         run: |
-          if ! git diff --quiet -- "$SPEC"; then
-            echo "::error::$SPEC is stale."
-            echo "Regenerate it on the pinned requirements, with no config file:"
-            echo "  SUPERSET__SQLALCHEMY_DATABASE_URI='sqlite:///:memory:' \\"
-            echo "    FLASK_APP='superset.app:create_app()' superset update-api-docs"
-            git diff --stat -- "$SPEC"
-            # Step summaries cap at 1 MiB and a full regeneration runs to tens of
-            # thousands of lines, so the rendered copy is truncated and the log
-            # keeps the whole thing.
-            {
-              echo '### OpenAPI spec is stale'
-              echo
-              git diff --stat -- "$SPEC"
-              echo
-              echo 'Regenerate with:'
-              echo
-              echo '```bash'
-              echo "SUPERSET__SQLALCHEMY_DATABASE_URI='sqlite:///:memory:' \\"
-              echo "  FLASK_APP='superset.app:create_app()' superset update-api-docs"
-              echo '```'
-              echo
-              echo '```diff'
-              git diff -- "$SPEC" | head -300
-              echo '```'
-              if [ "$(git diff -- "$SPEC" | wc -l)" -gt 300 ]; then
-                echo
-                echo '_Truncated at 300 lines; see the job log for the full diff._'
-              fi
-            } >> "$GITHUB_STEP_SUMMARY"
-            echo "::group::Full diff"
-            git diff -- "$SPEC"
-            echo "::endgroup::"
-            exit 1
+          if git diff --quiet -- "$SPEC"; then
+            exit 0
           fi
+
+          # Staged to a file rather than piped: under pipefail, `head` closing
+          # the pipe SIGPIPE-kills `git diff`, which aborts this step before it
+          # writes the rest of the summary.
+          diff_file="$RUNNER_TEMP/openapi.diff"
+          git diff -- "$SPEC" > "$diff_file"
+
+          echo "::error::$SPEC is stale."
+          echo "Regenerate it on the pinned requirements, with no config file:"
+          echo "  SUPERSET__SQLALCHEMY_DATABASE_URI='sqlite:///:memory:' \\"
+          echo "    FLASK_APP='superset.app:create_app()' superset update-api-docs"
+          git diff --stat -- "$SPEC"
+
+          # Step summaries cap at 1 MiB and a full regeneration runs to tens of
+          # thousands of lines, so the rendered copy is truncated and the log
+          # keeps the whole thing.
+          {
+            echo '### OpenAPI spec is stale'
+            echo
+            git diff --stat -- "$SPEC"
+            echo
+            echo 'Regenerate with:'
+            echo
+            echo '```bash'
+            echo "SUPERSET__SQLALCHEMY_DATABASE_URI='sqlite:///:memory:' \\"
+            echo "  FLASK_APP='superset.app:create_app()' superset update-api-docs"
+            echo '```'
+            echo
+            echo '```diff'
+            head -300 "$diff_file"
+            echo '```'
+            if [ "$(wc -l < "$diff_file")" -gt 300 ]; then
+              echo
+              echo '_Truncated at 300 lines; see the job log for the full diff._'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "::group::Full diff"
+          cat "$diff_file"
+          echo "::endgroup::"
+          exit 1
