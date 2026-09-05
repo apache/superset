@@ -1745,6 +1745,11 @@ class QueryStringExtended(NamedTuple):
     sql: str
     sql_shifted_temporal_labels: set[str]
 
+    @property
+    def full_sql(self) -> str:
+        """The prequeries and the main query as one displayable statement."""
+        return ";\n\n".join([*self.prequeries, self.sql]) + ";"
+
 
 class SqlaQuery(NamedTuple):
     applied_template_filters: list[str]
@@ -3860,9 +3865,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return values
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
-        query_str_ext = self.get_query_str_extended(query_obj)
-        all_queries = query_str_ext.prequeries + [query_str_ext.sql]
-        return ";\n\n".join(all_queries) + ";"
+        return self.get_query_str_extended(query_obj).full_sql
 
     def _get_series_orderby(
         self,

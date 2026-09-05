@@ -38,6 +38,7 @@ from superset.mcp_service.chart.chart_helpers import (
     build_query_context_from_form_data,
     extract_x_axis_col,
     merge_extra_form_data_filters_into_query,
+    rejected_requested_filter_columns,
     resolve_form_data_datasource,
     resolve_groupby,
     resolve_metrics,
@@ -238,7 +239,11 @@ def _sql_from_saved_query_context(
         result = command.run()
 
         return _extract_sql_from_result(
-            result, chart.id, chart.slice_name, chart.datasource_name
+            result,
+            chart.id,
+            chart.slice_name,
+            chart.datasource_name,
+            extra_form_data=extra_form_data,
         )
     except SupersetSecurityException:
         raise  # Let access denials propagate for consistent error handling
@@ -326,6 +331,7 @@ def _sql_from_form_data(
         chart_id=getattr(chart, "id", None),
         chart_name=getattr(chart, "slice_name", None),
         datasource_name=_resolve_datasource_name(form_data, chart),
+        extra_form_data=extra_form_data,
     )
 
 
@@ -334,6 +340,7 @@ def _extract_sql_from_result(
     chart_id: int | None,
     chart_name: str | None,
     datasource_name: str | None,
+    extra_form_data: dict[str, Any] | None = None,
 ) -> ChartSql | ChartError:
     """Extract SQL query string(s) from the ChartDataCommand result.
 
@@ -348,6 +355,16 @@ def _extract_sql_from_result(
                 "No query results returned. The chart may have an empty configuration."
             ),
             error_type="EmptyQuery",
+        )
+
+    # A filter naming a column the dataset does not have is dropped during query
+    # construction. Returning the resulting unfiltered SQL as a success would
+    # misrepresent it as the SQL for the filters that were asked for.
+    if rejected := rejected_requested_filter_columns(result, extra_form_data):
+        rejected_columns = ", ".join(rejected)
+        return ChartError(
+            error=f"Unknown dataset column(s) in filters: {rejected_columns}",
+            error_type="ValidationError",
         )
 
     sql_parts: list[str] = []
