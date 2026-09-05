@@ -274,6 +274,107 @@ test('firing overflow with no active values keeps trigger count at 0 but supplie
   expect(latestProps().dropdownTriggerCount).toBe(0);
 });
 
+// Cross-filter chips are keyed by `${name}${emitterId}` (see FilterControls.tsx's
+// `items` memo) and sourced from `crossFiltersSelector`, which reads
+// `dashboardState.sliceIds` + `dashboardLayout.present` (for the chart's name) +
+// `dataMask` (for the emitted filter's column/value) — independent of the native
+// filter config used by `buildHorizontalState` above.
+const CROSS_FILTER_CHART_ID = 85;
+const CROSS_FILTER_CHART_NAME = 'Products Sold By Product Line';
+const CROSS_FILTER_ITEM_ID = `${CROSS_FILTER_CHART_NAME}${CROSS_FILTER_CHART_ID}`;
+
+const buildStateWithOneCrossFilter = () => ({
+  ...buildHorizontalState([]),
+  dashboardState: {
+    sliceIds: [CROSS_FILTER_CHART_ID],
+    activeTabs: ['ROOT_ID'],
+  },
+  dashboardLayout: {
+    present: {
+      ROOT_ID: {
+        type: 'ROOT',
+        id: 'ROOT_ID',
+        children: [`CHART-${CROSS_FILTER_CHART_ID}`],
+      },
+      [`CHART-${CROSS_FILTER_CHART_ID}`]: {
+        type: 'CHART',
+        id: `CHART-${CROSS_FILTER_CHART_ID}`,
+        parents: ['ROOT_ID'],
+        meta: {
+          chartId: CROSS_FILTER_CHART_ID,
+          sliceName: CROSS_FILTER_CHART_NAME,
+        },
+      },
+    },
+    past: [],
+    future: [],
+  },
+  dataMask: {
+    [CROSS_FILTER_CHART_ID]: {
+      id: CROSS_FILTER_CHART_ID,
+      filterState: {
+        value: 'Classic Cars',
+        filters: { product_line: 'Classic Cars' },
+      },
+      extraFormData: {},
+    },
+  },
+});
+
+test('an overflowed cross-filter chip stays in the items array handed to DropdownContainer', async () => {
+  // Regression guard for the FilterBar duplicate-chip bug: FilterControls
+  // reports which items overflowed (via onOverflowingStateChange -> the
+  // `overflowedCrossFilters` used to build `dropdownContent`'s popover), but
+  // the `items` memo that DropdownContainer renders the main row from is never
+  // filtered against that overflow state. Production DropdownContainer decides
+  // the main-row/popover split by array index, computed fresh each render,
+  // while FilterControls' popover content is built from a *stale*, one-render-
+  // late copy of "which ids are overflowed" (received asynchronously via
+  // onOverflowingStateChange). Nothing in FilterControls ever removes an
+  // overflowed cross-filter from `items`, so the identical chip can be handed
+  // to DropdownContainer as both "eligible for the main row" (via `items`) and
+  // "already overflowed" (via `dropdownContent`) at the same time — which is
+  // what makes the same cross-filter chip render twice in the real FilterBar.
+  render(
+    <FilterControls
+      dataMaskSelected={{}}
+      onFilterSelectionChange={jest.fn()}
+      onPendingCustomizationDataMaskChange={jest.fn()}
+      chartCustomizationValues={[]}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: buildStateWithOneCrossFilter(),
+    },
+  );
+
+  await waitFor(() => expect(callbackRef.current).toBeTruthy());
+  await waitFor(() =>
+    expect(latestProps().items.map((i: DropdownItem) => i.id)).toContain(
+      CROSS_FILTER_ITEM_ID,
+    ),
+  );
+
+  fireOverflow([CROSS_FILTER_ITEM_ID], []);
+
+  // Wait for the popover slot to actually pick up the overflowed cross-filter
+  // (ground truth: the rendered DOM, not an intermediate props snapshot).
+  await within(document.body).findByTestId('dropdown-content-mock');
+
+  // The cross-filter is now reported as overflowed (so FilterControls' own
+  // dropdownContent/popover renders it) — it must therefore be absent from
+  // `items`, or DropdownContainer's main row renders it too, producing two
+  // copies of the identical chip in the DOM at once.
+  const mainRowCopies = within(
+    await within(document.body).findByTestId('dropdown-items'),
+  ).queryAllByText(CROSS_FILTER_CHART_NAME);
+  const popoverCopies = within(
+    await within(document.body).findByTestId('dropdown-content-mock'),
+  ).queryAllByText(CROSS_FILTER_CHART_NAME);
+  expect(mainRowCopies.length + popoverCopies.length).toBe(1);
+});
+
 test('all 12 overflowed filters are reachable through dropdownContent', async () => {
   // Substitutes for the disabled Cypress "scroll within overflow" assertion:
   // jsdom has no real layout/scrolling, so we instead prove every overflowed
