@@ -84,7 +84,7 @@ cron-descriptor==1.4.5
     # via apache-superset (pyproject.toml)
 croniter==6.2.4
     # via apache-superset (pyproject.toml)
-cryptography==50.0.0
+cryptography==50.0.1
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
