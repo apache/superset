@@ -87,13 +87,11 @@ const ControlHeader: FC<ControlHeaderProps> = ({
 
     return (
       <span
-        css={() => css`
-          position: absolute;
-          top: 50%;
-          right: 0;
+        css={(theme: SupersetTheme) => css`
+          display: inline-flex;
+          align-items: center;
           z-index: 1;
           padding-left: ${theme.sizeUnit}px;
-          transform: translate(100%, -50%);
           white-space: nowrap;
           pointer-events: auto;
         `}
@@ -146,10 +144,17 @@ const ControlHeader: FC<ControlHeaderProps> = ({
 
   return (
     <div className="ControlHeader" data-test={`${name}-header`}>
-      <div className="pull-left">
+      <div
+        className="pull-left"
+        css={(theme: SupersetTheme) => css`
+          display: inline-flex;
+          align-items: center;
+          margin-bottom: ${theme.sizeUnit * 0.5}px;
+        `}
+      >
         <FormLabel
           css={(theme: SupersetTheme) => css`
-            margin-bottom: ${theme.sizeUnit * 0.5}px;
+            margin-bottom: 0;
             position: relative;
             font-size: ${theme.fontSizeSM}px;
             overflow: visible;
@@ -211,8 +216,8 @@ const ControlHeader: FC<ControlHeaderProps> = ({
               </Tooltip>{' '}
             </span>
           )}
-          {renderOptionalIcons()}
         </FormLabel>
+        {renderOptionalIcons()}
       </div>
       {rightNode && <div className="pull-right">{rightNode}</div>}
       <div className="clearfix" />

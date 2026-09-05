@@ -110,3 +110,20 @@ test('activates tooltipOnClick from the keyboard', () => {
   });
   expect(tooltipOnClick).toHaveBeenCalledTimes(1);
 });
+
+test('renders description icon outside label when hovered', async () => {
+  render(
+    <ControlHeader
+      name="time_range"
+      label="Date Range"
+      description={description}
+      hovered
+    />,
+  );
+  const label = screen.getByText('Date Range');
+  const infoIcon = screen.getByRole('button', { name: 'Show info tooltip' });
+  expect(infoIcon).toBeInTheDocument();
+  // Ensure info icon is not a descendant of FormLabel / label
+  const formLabel = label.closest('label');
+  expect(formLabel).not.toContainElement(infoIcon);
+});
