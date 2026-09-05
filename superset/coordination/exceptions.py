@@ -14,22 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""Exceptions raised by the coordination service."""
 
-from flask import Flask
-
-from superset.async_events.async_query_manager import AsyncQueryManager
-from superset.utils.class_utils import load_class_from_name
+from __future__ import annotations
 
 
-class AsyncQueryManagerFactory:
-    def __init__(self) -> None:
-        self._async_query_manager: AsyncQueryManager = None  # type: ignore
+class CoordinationBackendUnavailableError(Exception):
+    """Raised when a Valkey/Redis-only primitive is used without a backend.
 
-    def init_app(self, app: Flask) -> None:
-        self._async_query_manager = load_class_from_name(
-            app.config["GLOBAL_ASYNC_QUERY_MANAGER_CLASS"]
-        )()
-        self._async_query_manager.init_app(app)
-
-    def instance(self) -> AsyncQueryManager:
-        return self._async_query_manager
+    Pub/sub, streams, and key/value operations have no in-service fallback, so
+    calling them without a configured coordination backend is a programming or
+    configuration error rather than a silently-ignored no-op. Callers that have
+    their own fallback (e.g. database polling) should gate on
+    :meth:`superset.coordination.base.CoordinationService.is_backend_defined` instead of
+    catching this.
+    """

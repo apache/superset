@@ -173,14 +173,14 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
     def process_tab_diff(self) -> None:
         def find_deleted_tabs() -> list[str]:
             position_json = self._properties.get("position_json", "")
+            if not position_json:
+                return []
+            # ``tabs`` always answers with both keys, even for a layout it
+            # could not walk, so an empty ``all_tabs`` needs no guard of its
+            # own: nothing is diffed against the new layout.
             current_tabs = self._model.tabs  # type: ignore
-            if position_json and current_tabs:
-                position = json.loads(position_json)
-                deleted_tabs = [
-                    tab for tab in current_tabs["all_tabs"] if tab not in position
-                ]
-                return deleted_tabs
-            return []
+            position = json.loads(position_json)
+            return [tab for tab in current_tabs["all_tabs"] if tab not in position]
 
         def find_reports_containing_tabs(tabs: list[str]) -> list[ReportSchedule]:
             alert_reports_list = []

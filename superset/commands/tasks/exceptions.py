@@ -38,6 +38,13 @@ class TaskInvalidError(CommandInvalidError):
     message = _("Task parameters are invalid.")
 
 
+class TaskCyclicDependencyError(TaskInvalidError):
+    """A task's declared dependencies would introduce a cycle in the DAG."""
+
+    status = 400
+    message = _("Task dependencies would introduce a cycle.")
+
+
 class TaskCreateFailedError(CreateFailedError):
     """Task creation failed."""
 

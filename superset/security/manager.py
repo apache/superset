@@ -2266,6 +2266,31 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # Non-SQL explorables don't have schema hierarchy
         return False
 
+    def _semantic_layer_grant_allows(
+        self, datasource: "BaseDatasource | Explorable"
+    ) -> bool:
+        """True when a grant on a semantic view's parent layer covers it.
+
+        A ``datasource_access`` grant on a semantic layer covers every view
+        under it — the data path enforces this in
+        ``SemanticView.raise_for_access``; object authorization mirrors the
+        same fallback (sc-119501). Only a ``SemanticView`` is ever consulted:
+        the isinstance guard (rather than attribute sniffing) keeps
+        mock-shaped or future ``semantic_layer``-bearing datasources from
+        reaching the permission lookup, and a view with no layer or layer
+        perm returns False, matching the data path's ``if layer_perm and …``
+        guard.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.semantic_layers.models import SemanticView
+
+        if not isinstance(datasource, SemanticView):
+            return False
+        layer_perm: str | None = getattr(datasource.semantic_layer, "perm", None)
+        if not layer_perm:
+            return False
+        return self.can_access("datasource_access", layer_perm)
+
     def can_access_datasource(self, datasource: "BaseDatasource") -> bool:
         """
         Return True if the user can access the specified datasource, False otherwise.
@@ -2905,9 +2930,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Create custom FAB permissions.
         """
+        from superset.websocket.permissions import (
+            REALTIME_NOTIFICATION_PERMISSION,
+            REALTIME_NOTIFICATION_RESOURCE,
+        )
+
         self.add_permission_view_menu("all_datasource_access", "all_datasource_access")
         self.add_permission_view_menu("all_database_access", "all_database_access")
         self.add_permission_view_menu("all_query_access", "all_query_access")
+        self.add_permission_view_menu(
+            REALTIME_NOTIFICATION_PERMISSION,
+            REALTIME_NOTIFICATION_RESOURCE,
+        )
         self.add_permission_view_menu("can_csv", "Superset")
         self.add_permission_view_menu("can_export_data", "Superset")
         self.add_permission_view_menu("can_export_image", "Superset")
@@ -4693,6 +4727,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
+                # A grant on a semantic view's parent layer covers the view,
+                # matching SemanticView.raise_for_access (sc-119501).
+                or self._semantic_layer_grant_allows(datasource)
                 or self.is_editor(datasource)
                 or (
                     # Grant access to the datasource only if dashboard RBAC is enabled
@@ -4834,11 +4871,36 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if dashboard.viewers:
                 if dashboard.published and self.is_viewer(dashboard):
                     return
-            elif not dashboard.datasources or any(
-                self.can_access_datasource(datasource)
-                for datasource in dashboard.datasources
-            ):
-                return
+            else:
+                # Datasource-based fallback. Member chart datasources are
+                # resolved across datasource types via
+                # ``Slice.resolved_datasource`` — ``Dashboard.datasources``
+                # only ever contains SqlaTable-backed datasources, so an
+                # unqualified emptiness check would grant every authenticated
+                # user access to a dashboard composed solely of, e.g.,
+                # semantic-view charts. A dashboard with no charts remains
+                # accessible; a chart whose datasource cannot be resolved
+                # counts as inaccessible, never as absent. Resolution is
+                # lazy and deduplicated per (type, id) so the first
+                # accessible datasource short-circuits the remaining lookups.
+                member_slices = dashboard.slices
+
+                def member_datasource_accessible() -> bool:
+                    seen: set[tuple[str | None, int | None]] = set()
+                    for slc in member_slices:
+                        key = (slc.datasource_type, slc.datasource_id)
+                        if key in seen:
+                            continue
+                        seen.add(key)
+                        resolved = slc.resolved_datasource
+                        if resolved is not None and self.can_access_datasource(
+                            resolved
+                        ):
+                            return True
+                    return False
+
+                if not member_slices or member_datasource_accessible():
+                    return
 
             raise SupersetSecurityException(
                 self.get_dashboard_access_error_object(dashboard)
@@ -4851,7 +4913,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if chart.viewers:
                 if self.is_viewer(chart):
                     return
-            elif chart.datasource and self.can_access_datasource(chart.datasource):
+            elif (
+                # Resolved across datasource types: ``chart.datasource`` is
+                # SqlaTable-only, which silently denied entitled users of
+                # semantic-view charts here.
+                chart_datasource := chart.resolved_datasource
+            ) is not None and self.can_access_datasource(chart_datasource):
                 return
 
             # An embedded guest may access a member chart of a dashboard their
@@ -4867,6 +4934,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 and any(
                     self.has_guest_access(dashboard_) for dashboard_ in chart.dashboards
                 )
+                # Deliberately table-pinned: the guest token ``datasets``
+                # allowlist is dataset-id space, so resolving other
+                # datasource types here would reintroduce id-collision
+                # ambiguity — a semantic-view member chart under an
+                # allowlist therefore fails closed.
                 and self._guest_token_allows_dataset(
                     chart.datasource.id if chart.datasource else None
                 )

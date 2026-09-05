@@ -407,6 +407,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     _date_trunc_functions: dict[str, str] = {}
     _time_grain_expressions: dict[str | None, str] = {}
+
+    # Whether the output of ``normalize_custom_sql_metric`` may be embedded in
+    # generated SQL verbatim (after line comments are converted to block
+    # comments) instead of being re-rendered by ``sanitize_clause``. Specs that
+    # override ``normalize_custom_sql_metric`` with a source-preserving
+    # normalizer set this so re-rendering cannot undo the normalization.
+    preserves_custom_sql_metric_source = False
+
+    @classmethod
+    def normalize_custom_sql_metric(cls, expression: str) -> str:
+        """Return custom metric SQL in the engine's canonical form."""
+        return expression
+
     _default_column_type_mappings: tuple[ColumnTypeMapping, ...] = (
         (
             re.compile(r"^string", re.IGNORECASE),

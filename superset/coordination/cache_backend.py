@@ -22,10 +22,169 @@ import redis
 from flask_caching.backends.rediscache import RedisCache, RedisSentinelCache
 from redis.sentinel import Sentinel
 
+# Atomic compare-and-delete: delete the key only if its current value still
+# equals the caller's token. Runs server-side in one round trip, so it closes
+# the TTL-expiry race a separate GET-then-DEL leaves open (the key expiring and
+# being re-acquired by another holder between the two calls). Returns 1 if the
+# key was deleted, 0 otherwise.
+_COMPARE_AND_DELETE_LUA = """
+if redis.call('get', KEYS[1]) == ARGV[1] then
+    return redis.call('del', KEYS[1])
+else
+    return 0
+end
+"""
 
-class RedisCacheBackend(RedisCache):
+
+class RedisCommandsMixin:
+    """Coordination commands issued against the backend's ``redis.Redis`` client.
+
+    Both cache backends here wrap a plain ``redis.Redis`` handle in ``self._cache``
+    (a direct connection, or a Sentinel-resolved master), so every coordination
+    primitive is identical between them and lives here once. Each concrete backend
+    contributes only its connection setup (``__init__`` / ``from_config``).
+
+    Mixed in *before* the flask-caching base class so these implementations take
+    precedence over the cache-oriented ``get``/``set``/``delete`` it defines: the
+    coordination service needs the raw Redis semantics (``nx``/``xx``, byte values),
+    not flask-caching's serializing variants.
+    """
+
+    # Cap on entries returned by :meth:`xrange` when the caller gives no count.
     MAX_EVENT_COUNT = 100
 
+    _cache: redis.Redis
+
+    def set(
+        self,
+        name: str,
+        value: Any,
+        ex: int | None = None,
+        px: int | None = None,
+        nx: bool = False,
+        xx: bool = False,
+    ) -> bool | None:
+        """
+        Set the value at key ``name``.
+
+        :param name: Key name
+        :param value: Value to set
+        :param ex: Expire time in seconds
+        :param px: Expire time in milliseconds
+        :param nx: If True, set only if key does not exist
+        :param xx: If True, set only if key already exists
+        :returns: True if set successfully, None if nx/xx condition not met
+        """
+        return self._cache.set(name, value, ex=ex, px=px, nx=nx, xx=xx)
+
+    def get(self, name: str) -> Any:
+        """
+        Get the raw value at key ``name``.
+
+        :param name: Key name
+        :returns: The stored value (bytes), or None if the key is absent
+        """
+        return self._cache.get(name)
+
+    def delete(self, *names: str) -> int:
+        """
+        Delete one or more keys.
+
+        :param names: Key names to delete
+        :returns: Number of keys deleted
+        """
+        return self._cache.delete(*names)
+
+    def compare_and_delete(self, name: str, expected: str) -> int:
+        """
+        Atomically delete ``name`` only if its value still equals ``expected``.
+
+        :param name: Key name
+        :param expected: The value the key must currently hold to be deleted
+        :returns: 1 if the key was deleted, 0 otherwise
+        """
+        return int(self._cache.eval(_COMPARE_AND_DELETE_LUA, 1, name, expected))
+
+    def publish(self, channel: str, message: str) -> int:
+        """
+        Publish a message to a Redis pub/sub channel.
+
+        :param channel: The channel name to publish to
+        :param message: The message to publish
+        :returns: Number of subscribers that received the message
+        """
+        return self._cache.publish(channel, message)
+
+    def pubsub(self) -> redis.client.PubSub:
+        """
+        Create a pub/sub subscription object.
+
+        :returns: PubSub object for subscribing to channels
+        """
+        return self._cache.pubsub()
+
+    def xadd(
+        self,
+        stream_name: str,
+        event_data: dict[str, Any],
+        event_id: str = "*",
+        maxlen: int | None = None,
+    ) -> str:
+        return self._cache.xadd(stream_name, event_data, event_id, maxlen)
+
+    def xrange(
+        self,
+        stream_name: str,
+        start: str = "-",
+        end: str = "+",
+        count: int | None = None,
+    ) -> list[Any]:
+        count = count or self.MAX_EVENT_COUNT
+        return self._cache.xrange(stream_name, start, end, count)
+
+    def xread(
+        self,
+        streams: dict[str, str],
+        count: int | None = None,
+        block_ms: int | None = None,
+    ) -> list[Any]:
+        """
+        Read new entries from one or more streams, optionally blocking.
+
+        Reliable, event-driven delivery: pass the last id already seen per stream
+        and this returns only entries added *after* it — so a signal is never
+        missed, even across reconnects (unlike pub/sub). ``block_ms`` blocks up to
+        that many milliseconds waiting for a new entry (``None``/``0`` returns
+        immediately).
+
+        :param streams: mapping of ``{stream_name: last_id_seen}``
+        :param count: max entries to return
+        :param block_ms: milliseconds to block for a new entry (``None`` = no block)
+        :returns: redis-py XREAD reply — ``[[stream, [(id, {field: value}), ...]]]``
+            — or an empty list when nothing arrived before the block elapsed
+        """
+        return self._cache.xread(streams, count=count, block=block_ms) or []
+
+    def stream_last_id(self, stream_name: str) -> str:
+        """
+        Return the id of the last entry in a stream, or ``"0-0"`` if it is empty.
+
+        Used to capture a baseline before waiting so a subsequent blocking
+        :meth:`xread` from that id catches every entry added afterwards — closing
+        the publish-before-subscribe race that pub/sub cannot.
+        """
+        entries = self._cache.xrevrange(stream_name, count=1)
+        if not entries:
+            return "0-0"
+        last_id = entries[0][0]
+        return last_id.decode() if isinstance(last_id, bytes) else last_id
+
+    def expire(self, name: str, seconds: int) -> bool:
+        """Set a TTL (seconds) on a key; used to bound signal-stream growth."""
+        return bool(self._cache.expire(name, seconds))
+
+
+class RedisCacheBackend(RedisCommandsMixin, RedisCache):
     def __init__(  # pylint: disable=too-many-arguments
         self,
         host: str,
@@ -77,83 +236,6 @@ class RedisCacheBackend(RedisCache):
         }
         self._cache = redis.Redis(**connection_kwargs)
 
-    def set(
-        self,
-        name: str,
-        value: Any,
-        ex: int | None = None,
-        px: int | None = None,
-        nx: bool = False,
-        xx: bool = False,
-    ) -> bool | None:
-        """
-        Set the value at key ``name``.
-
-        :param name: Key name
-        :param value: Value to set
-        :param ex: Expire time in seconds
-        :param px: Expire time in milliseconds
-        :param nx: If True, set only if key does not exist
-        :param xx: If True, set only if key already exists
-        :returns: True if set successfully, None if nx/xx condition not met
-        """
-        return self._cache.set(name, value, ex=ex, px=px, nx=nx, xx=xx)
-
-    def get(self, name: str) -> Any:
-        """
-        Get the raw value at key ``name``.
-
-        :param name: Key name
-        :returns: The stored value (bytes), or None if the key is absent
-        """
-        return self._cache.get(name)
-
-    def delete(self, *names: str) -> int:
-        """
-        Delete one or more keys.
-
-        :param names: Key names to delete
-        :returns: Number of keys deleted
-        """
-        return self._cache.delete(*names)
-
-    def publish(self, channel: str, message: str) -> int:
-        """
-        Publish a message to a Redis pub/sub channel.
-
-        :param channel: The channel name to publish to
-        :param message: The message to publish
-        :returns: Number of subscribers that received the message
-        """
-        return self._cache.publish(channel, message)
-
-    def pubsub(self) -> redis.client.PubSub:
-        """
-        Create a pub/sub subscription object.
-
-        :returns: PubSub object for subscribing to channels
-        """
-        return self._cache.pubsub()
-
-    def xadd(
-        self,
-        stream_name: str,
-        event_data: dict[str, Any],
-        event_id: str = "*",
-        maxlen: int | None = None,
-    ) -> str:
-        return self._cache.xadd(stream_name, event_data, event_id, maxlen)
-
-    def xrange(
-        self,
-        stream_name: str,
-        start: str = "-",
-        end: str = "+",
-        count: int | None = None,
-    ) -> list[Any]:
-        count = count or self.MAX_EVENT_COUNT
-        return self._cache.xrange(stream_name, start, end, count)
-
     @classmethod
     def from_config(cls, config: dict[str, Any]) -> RedisCacheBackend:
         kwargs = {
@@ -181,9 +263,7 @@ class RedisCacheBackend(RedisCache):
         return cls(**kwargs)
 
 
-class RedisSentinelCacheBackend(RedisSentinelCache):
-    MAX_EVENT_COUNT = 100
-
+class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
     def __init__(  # pylint: disable=too-many-arguments
         self,
         sentinels: list[tuple[str, int]],
@@ -269,83 +349,6 @@ class RedisSentinelCacheBackend(RedisSentinelCache):
             key_prefix=key_prefix,
             **kwargs,
         )
-
-    def set(
-        self,
-        name: str,
-        value: Any,
-        ex: int | None = None,
-        px: int | None = None,
-        nx: bool = False,
-        xx: bool = False,
-    ) -> bool | None:
-        """
-        Set the value at key ``name``.
-
-        :param name: Key name
-        :param value: Value to set
-        :param ex: Expire time in seconds
-        :param px: Expire time in milliseconds
-        :param nx: If True, set only if key does not exist
-        :param xx: If True, set only if key already exists
-        :returns: True if set successfully, None if nx/xx condition not met
-        """
-        return self._cache.set(name, value, ex=ex, px=px, nx=nx, xx=xx)
-
-    def get(self, name: str) -> Any:
-        """
-        Get the raw value at key ``name``.
-
-        :param name: Key name
-        :returns: The stored value (bytes), or None if the key is absent
-        """
-        return self._cache.get(name)
-
-    def delete(self, *names: str) -> int:
-        """
-        Delete one or more keys.
-
-        :param names: Key names to delete
-        :returns: Number of keys deleted
-        """
-        return self._cache.delete(*names)
-
-    def publish(self, channel: str, message: str) -> int:
-        """
-        Publish a message to a Redis pub/sub channel.
-
-        :param channel: The channel name to publish to
-        :param message: The message to publish
-        :returns: Number of subscribers that received the message
-        """
-        return self._cache.publish(channel, message)
-
-    def pubsub(self) -> redis.client.PubSub:
-        """
-        Create a pub/sub subscription object.
-
-        :returns: PubSub object for subscribing to channels
-        """
-        return self._cache.pubsub()
-
-    def xadd(
-        self,
-        stream_name: str,
-        event_data: dict[str, Any],
-        event_id: str = "*",
-        maxlen: int | None = None,
-    ) -> str:
-        return self._cache.xadd(stream_name, event_data, event_id, maxlen)
-
-    def xrange(
-        self,
-        stream_name: str,
-        start: str = "-",
-        end: str = "+",
-        count: int | None = None,
-    ) -> list[Any]:
-        count = count or self.MAX_EVENT_COUNT
-        return self._cache.xrange(stream_name, start, end, count)
 
     @classmethod
     def from_config(cls, config: dict[str, Any]) -> RedisSentinelCacheBackend:

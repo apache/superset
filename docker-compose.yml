@@ -183,6 +183,8 @@ services:
         condition: service_started
     user: *superset-user
     volumes: *superset-volumes
+    environment:
+      SUPERSET_FORCE_LOAD_EXAMPLES: "${SUPERSET_FORCE_LOAD_EXAMPLES:-}"
     healthcheck:
       disable: true
 

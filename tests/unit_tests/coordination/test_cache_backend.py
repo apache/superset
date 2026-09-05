@@ -32,9 +32,9 @@ def test_redis_cache_backend_pins_protocol_and_timeout_defaults(
     mocker: MockerFixture,
 ) -> None:
     """RedisCacheBackend must default to RESP2 and no socket timeout."""
-    from superset.async_events.cache_backend import RedisCacheBackend
+    from superset.coordination.cache_backend import RedisCacheBackend
 
-    redis_mock = mocker.patch("superset.async_events.cache_backend.redis")
+    redis_mock = mocker.patch("superset.coordination.cache_backend.redis")
 
     RedisCacheBackend(host="localhost", port=6379)
 
@@ -49,9 +49,9 @@ def test_redis_cache_backend_allows_explicit_timeout_override(
     mocker: MockerFixture,
 ) -> None:
     """Callers can still opt into an explicit timeout if they want one."""
-    from superset.async_events.cache_backend import RedisCacheBackend
+    from superset.coordination.cache_backend import RedisCacheBackend
 
-    redis_mock = mocker.patch("superset.async_events.cache_backend.redis")
+    redis_mock = mocker.patch("superset.coordination.cache_backend.redis")
 
     RedisCacheBackend(
         host="localhost",
@@ -70,9 +70,9 @@ def test_redis_cache_backend_from_config_reads_timeout_keys(
     mocker: MockerFixture,
 ) -> None:
     """from_config should surface the new CACHE_REDIS_SOCKET_* keys."""
-    from superset.async_events.cache_backend import RedisCacheBackend
+    from superset.coordination.cache_backend import RedisCacheBackend
 
-    redis_mock = mocker.patch("superset.async_events.cache_backend.redis")
+    redis_mock = mocker.patch("superset.coordination.cache_backend.redis")
 
     RedisCacheBackend.from_config(
         {
@@ -94,9 +94,9 @@ def test_redis_sentinel_cache_backend_pins_protocol_and_timeout_defaults(
 ) -> None:
     """RedisSentinelCacheBackend must default to RESP2/no timeout on both
     the sentinel-node connections and the master data connection."""
-    from superset.async_events.cache_backend import RedisSentinelCacheBackend
+    from superset.coordination.cache_backend import RedisSentinelCacheBackend
 
-    sentinel_mock = mocker.patch("superset.async_events.cache_backend.Sentinel")
+    sentinel_mock = mocker.patch("superset.coordination.cache_backend.Sentinel")
     master_mock = mock.Mock()
     sentinel_mock.return_value.master_for.return_value = master_mock
 
@@ -122,9 +122,9 @@ def test_redis_sentinel_cache_backend_from_config_reads_timeout_keys(
     mocker: MockerFixture,
 ) -> None:
     """from_config should surface the new CACHE_REDIS_SOCKET_* keys."""
-    from superset.async_events.cache_backend import RedisSentinelCacheBackend
+    from superset.coordination.cache_backend import RedisSentinelCacheBackend
 
-    sentinel_mock = mocker.patch("superset.async_events.cache_backend.Sentinel")
+    sentinel_mock = mocker.patch("superset.coordination.cache_backend.Sentinel")
     master_mock = mock.Mock()
     sentinel_mock.return_value.master_for.return_value = master_mock
 
@@ -146,3 +146,72 @@ def test_redis_sentinel_cache_backend_from_config_reads_timeout_keys(
     assert master_kwargs["protocol"] == 2
     assert master_kwargs["socket_timeout"] == 20
     assert master_kwargs["socket_connect_timeout"] == 4
+
+
+def test_redis_cache_backend_stream_helpers(mocker: MockerFixture) -> None:
+    """xread / stream_last_id / expire delegate to the redis client correctly."""
+    from superset.coordination.cache_backend import RedisCacheBackend
+
+    redis_mock = mocker.patch("superset.coordination.cache_backend.redis")
+    client = redis_mock.Redis.return_value
+    backend = RedisCacheBackend(host="localhost", port=6379)
+
+    # xread passes block/count through and coalesces a None reply to []
+    client.xread.return_value = [["s", [(b"1-0", {})]]]
+    assert backend.xread({"s": "0-0"}, count=5, block_ms=100) == [["s", [(b"1-0", {})]]]
+    client.xread.assert_called_once_with({"s": "0-0"}, count=5, block=100)
+    client.xread.return_value = None
+    assert backend.xread({"s": "0-0"}) == []
+
+    # stream_last_id decodes the bytes id, and returns "0-0" for an empty stream
+    client.xrevrange.return_value = [(b"5-0", {b"m": b"x"})]
+    assert backend.stream_last_id("s") == "5-0"
+    client.xrevrange.return_value = []
+    assert backend.stream_last_id("s") == "0-0"
+
+    # expire delegates and coerces the reply to bool
+    client.expire.return_value = 1
+    assert backend.expire("s", 60) is True
+    client.expire.assert_called_once_with("s", 60)
+
+    # compare_and_delete runs the Lua script (1 key + expected value), int reply
+    client.eval.return_value = 1
+    assert backend.compare_and_delete("lock", "tok") == 1
+    eval_args = client.eval.call_args.args
+    assert eval_args[1:] == (1, "lock", "tok")  # numkeys, KEYS[1], ARGV[1]
+    client.eval.return_value = 0
+    assert backend.compare_and_delete("lock", "other") == 0
+
+
+def test_redis_sentinel_cache_backend_stream_helpers(mocker: MockerFixture) -> None:
+    """Sentinel backend routes the new stream helpers through its master client."""
+    from superset.coordination.cache_backend import RedisSentinelCacheBackend
+
+    sentinel_mock = mocker.patch("superset.coordination.cache_backend.Sentinel")
+    master = mock.Mock()
+    sentinel_mock.return_value.master_for.return_value = master
+    backend = RedisSentinelCacheBackend(
+        sentinels=[("sentinel1", 26379)], master="mymaster"
+    )
+
+    master.xread.return_value = [["s", [(b"1-0", {})]]]
+    assert backend.xread({"s": "0-0"}, count=5, block_ms=100) == [["s", [(b"1-0", {})]]]
+    master.xread.assert_called_once_with({"s": "0-0"}, count=5, block=100)
+    master.xread.return_value = None
+    assert backend.xread({"s": "0-0"}) == []
+
+    master.xrevrange.return_value = [(b"5-0", {b"m": b"x"})]
+    assert backend.stream_last_id("s") == "5-0"
+    master.xrevrange.return_value = []
+    assert backend.stream_last_id("s") == "0-0"
+
+    master.expire.return_value = 1
+    assert backend.expire("s", 60) is True
+    master.expire.assert_called_once_with("s", 60)
+
+    master.eval.return_value = 1
+    assert backend.compare_and_delete("lock", "tok") == 1
+    eval_args = master.eval.call_args.args
+    assert eval_args[1:] == (1, "lock", "tok")  # numkeys, KEYS[1], ARGV[1]
+    master.eval.return_value = 0
+    assert backend.compare_and_delete("lock", "other") == 0

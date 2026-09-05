@@ -180,12 +180,19 @@ def _parse_iso_datetime(value: str) -> datetime | None:
 def _record_matches(record: dict[str, Any], q: str) -> bool:
     """Case-insensitive substring match for the ``q`` search filter,
     over the human-meaningful surfaces of a decorated activity record:
-    ``summary``, ``entity_name``, ``kind``, the joined ``path`` segments,
-    and the JSON form of ``from_value`` / ``to_value`` (JSON, not Python
+    ``summary``, ``entity_name``, ``kind``, the change author's display
+    name (``changed_by`` first/last), the joined ``path`` segments, and
+    the JSON form of ``from_value`` / ``to_value`` (JSON, not Python
     ``str()``: the client searches the serialized text it renders, so
     ``false`` / ``null`` / double-quoted keys must match — and falsy
     values like ``False`` / ``0`` must not collapse to unsearchable
     empty strings).
+
+    The author name comes from the projected ``changed_by`` DTO, which
+    decoration redacts to ``None`` for a tombstoned related entity
+    (whose editor identity must not be disclosed) — so a redacted
+    record contributes no author text and stays unsearchable by author,
+    preserving that security contract.
     """
 
     def _value_text(value: Any) -> str:
@@ -196,11 +203,19 @@ def _record_matches(record: dict[str, Any], q: str) -> bool:
         except (TypeError, ValueError):
             return str(value)
 
+    changed_by = record.get("changed_by") or {}
+    author_name = " ".join(
+        str(part)
+        for part in (changed_by.get("first_name"), changed_by.get("last_name"))
+        if part
+    )
+
     needle = q.lower()
     haystacks = (
         record.get("summary") or "",
         record.get("entity_name") or "",
         record.get("kind") or "",
+        author_name,
         " ".join(str(seg) for seg in (record.get("path") or [])),
         _value_text(record.get("from_value")),
         _value_text(record.get("to_value")),
