@@ -703,6 +703,29 @@ def freeze_value(value: Any) -> str:
     return json.dumps(_strip_overridable_keys(value), sort_keys=True)
 
 
+def _ensure_list(value: Any) -> list[Any]:
+    """
+    Normalize a value to a list for iteration.
+
+    Some viz types (e.g. heatmap_v2's 'groupby' control) store a single
+    value as a bare string rather than a one-item list. Iterating a string
+    directly yields its individual characters, which silently breaks the
+    guest payload comparison for any such chart.
+
+    ``None`` and an empty string are treated as "no value set" (mirroring
+    ``_stored_param_values``'s treatment of an unset control) and return
+    ``[]`` — an unset scalar control must not be compared as if the guest
+    had explicitly requested an empty string. A ``list``/``tuple`` is
+    filtered the same way, element by element; any other scalar is wrapped
+    in a single-item list.
+    """
+    if value is None or value == "":
+        return []
+    if isinstance(value, (list, tuple, set)):
+        return [item for item in value if item is not None and item != ""]
+    return [value]
+
+
 # Frontend-only markers that ``normalizeTimeColumn`` adds when it synthesizes a
 # chart's x-axis into a ``BASE_AXIS`` column. Like ``timeGrain`` they decorate
 # the column without changing which data is queried, so they must not count as
@@ -848,10 +871,10 @@ def _native_filter_query_modified(
     # Columns, group-by, and series columns may only reference target column(s);
     # adhoc (free-form SQL) columns cannot be validated, so reject them.
     for key in ("columns", "groupby", "series_columns"):
-        for col in getattr(query, key, None) or []:
+        for col in _ensure_list(getattr(query, key, None)):
             if not isinstance(col, str) or col not in allowed_columns:
                 return True
-    for metric in getattr(query, "metrics", None) or []:
+    for metric in _ensure_list(getattr(query, "metrics", None)):
         if not _native_filter_term_allowed(metric, allowed_columns, allowed_metrics):
             return True
     # A series-limit metric ranks the top-N groups in the inner query, so it is
@@ -864,7 +887,7 @@ def _native_filter_query_modified(
     ):
         return True
     # order-by entries are ``(expression, asc)`` pairs.
-    for order in getattr(query, "orderby", None) or []:
+    for order in _ensure_list(getattr(query, "orderby", None)):
         expr = order[0] if isinstance(order, (list, tuple)) and order else order
         if not _native_filter_term_allowed(expr, allowed_columns, allowed_metrics):
             return True
@@ -1053,11 +1076,14 @@ def _collect_stored_orderby_entries(
     Frozen saved orderby entries a guest may replay exactly.
     """
     allowed: set[str] = {
-        freeze_value(entry) for entry in stored_chart.params_dict.get("orderby") or []
+        freeze_value(entry)
+        for entry in _ensure_list(stored_chart.params_dict.get("orderby"))
     }
     if stored_query_context:
         for query in stored_query_context.get("queries") or []:
-            allowed.update(freeze_value(entry) for entry in query.get("orderby") or [])
+            allowed.update(
+                freeze_value(entry) for entry in _ensure_list(query.get("orderby"))
+            )
     return allowed
 
 
@@ -1065,11 +1091,7 @@ def _metric_control_values(value: Any) -> list[Any]:
     """
     Return non-empty values from a metric-valued control.
     """
-    if value is None or value == "":
-        return []
-    if isinstance(value, (list, tuple)):
-        return [item for item in value if item is not None and item != ""]
-    return [value]
+    return _ensure_list(value)
 
 
 def _add_frozen_metric_control_values(allowed: set[str], value: Any) -> None:
@@ -1267,7 +1289,7 @@ def _add_allowed_sql_from_query_context(
             if composed:
                 extras_allowed.add(composed)
         for key in ("columns", "groupby"):
-            for col in query.get(key) or []:
+            for col in _ensure_list(query.get(key)):
                 if isinstance(col, dict) and col.get("sqlExpression"):
                     col_allowed.add(col["sqlExpression"])
 
@@ -1464,11 +1486,11 @@ def _sql_filters_modified(
     # Vector 2: SQL adhoc filters in form_data
     stored_sql_filters: set[str] = {
         freeze_value(flt)
-        for flt in stored_chart.params_dict.get("adhoc_filters") or []
+        for flt in _ensure_list(stored_chart.params_dict.get("adhoc_filters"))
         if isinstance(flt, dict) and flt.get("expressionType") == "SQL"
     }
 
-    for flt in form_data.get("adhoc_filters") or []:
+    for flt in _ensure_list(form_data.get("adhoc_filters")):
         if not isinstance(flt, dict):
             continue
         if flt.get("expressionType") == "SQL":
@@ -1519,36 +1541,11 @@ def _stored_param_values(params: dict[str, Any], keys: tuple[str, ...]) -> set[s
     """
     values: set[str] = set()
     for key in keys:
-        value = params.get(key)
-        if value is None or value == "":
-            continue
-        items = value if isinstance(value, (list, tuple)) else [value]
+        items = _ensure_list(params.get(key))
         values.update(
             freeze_value(item) for item in items if item is not None and item != ""
         )
     return values
-
-
-def _ensure_list(value: Any) -> list[Any]:
-    """
-    Normalize a value to a list for iteration.
-
-    Some viz types (e.g. heatmap_v2's 'groupby' control) store a single
-    value as a bare string rather than a one-item list. Iterating a string
-    directly yields its individual characters, which silently breaks the
-    guest payload comparison for any such chart.
-
-    ``None`` and an empty string are treated as "no value set" (mirroring
-    ``_stored_param_values``'s treatment of an unset control) and return
-    ``[]`` — an unset scalar control must not be compared as if the guest
-    had explicitly requested an empty string. A ``list``/``tuple`` is
-    filtered the same way, element by element; any other scalar is wrapped
-    in a single-item list.
-    """
-    if value is None:
-        return []
-    items = value if isinstance(value, (list, tuple)) else [value]
-    return [item for item in items if item is not None and item != ""]
 
 
 def _columns_metrics_modified(
@@ -1606,7 +1603,7 @@ def _columns_metrics_modified(
                 for equiv_key in equivalent:
                     stored_values.update(
                         _payload_value_identity(value, is_metric=is_metric)
-                        for value in query.get(equiv_key) or []
+                        for value in _ensure_list(query.get(equiv_key))
                     )
 
         if not queries_values.issubset(stored_values):
