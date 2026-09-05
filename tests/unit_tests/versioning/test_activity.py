@@ -225,6 +225,13 @@ def test_decoration_redacts_record_from_reused_entity_id() -> None:
     assert record["entity_name"] == ""
     assert record["from_value"] is None
     assert record["to_value"] is None
+    # The editor identity of the deleted related entity must be redacted at the
+    # decoration layer (render.py sets ``changed_by = None``), so the seeded
+    # author "Ada Lovelace" is suppressed and cannot be surfaced or searched.
+    # Without this assertion the redaction can regress silently.
+    assert record["changed_by"] is None
+    assert "first_name" not in record
+    assert "last_name" not in record
 
 
 def test_bounded_heap_merges_newer_rows_from_later_id_chunks() -> None:
@@ -798,6 +805,62 @@ def test_record_matches_falsy_values_and_json_form() -> None:
     assert _record_matches(zero, "0")
     nested = {**record, "to_value": {"label": "Revenue"}}
     assert _record_matches(nested, '"label"')  # JSON double-quoted key
+
+
+def test_record_matches_searches_author_name() -> None:
+    """The q filter also matches the change author's display name from the
+    projected ``changed_by`` DTO (sc-119374: author-scoped search returned
+    "No actions found" because the author was absent from the haystack)."""
+    from superset.versioning.activity.orchestrator import _record_matches
+
+    record = {
+        "summary": "",
+        "entity_name": "Sales",
+        "kind": "field",
+        "path": ["params"],
+        "from_value": None,
+        "to_value": None,
+        "changed_by": {
+            "id": 1,
+            "first_name": "Test Primary",
+            "last_name": "Contributor",
+        },
+    }
+    assert _record_matches(record, "Primary")  # first-name substring
+    assert _record_matches(record, "contributor")  # last name, case-insensitive
+    assert _record_matches(record, "Test Primary Contributor")  # full name
+    assert not _record_matches(record, "Nonexistent Author")
+
+
+def test_record_matches_author_partial_and_missing_name() -> None:
+    """A user with only one name part still matches on it, and a record
+    whose author is redacted/absent (``changed_by`` is None — the
+    tombstoned-related-entity security contract) contributes no author
+    text and is not matchable by author."""
+    from superset.versioning.activity.orchestrator import _record_matches
+
+    first_only = {
+        "summary": "",
+        "entity_name": "",
+        "kind": "field",
+        "path": [],
+        "from_value": None,
+        "to_value": None,
+        "changed_by": {"id": 2, "first_name": "Ada", "last_name": None},
+    }
+    assert _record_matches(first_only, "ada")
+
+    redacted = {**first_only, "changed_by": None}
+    assert not _record_matches(redacted, "ada")
+
+    # A present DTO with both name parts null (a user row with no names) is
+    # distinct from redaction: it yields an empty author name and is likewise
+    # unsearchable by author, without matching on the literal 'None'.
+    nameless = {
+        **first_only,
+        "changed_by": {"id": 3, "first_name": None, "last_name": None},
+    }
+    assert not _record_matches(nameless, "none")
 
 
 def test_build_summary_meta_headline_branches() -> None:
