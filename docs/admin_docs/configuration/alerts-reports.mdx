@@ -484,9 +484,11 @@ FEATURE_FLAGS = {
 ```
 
 With the flag enabled, reports (not alerts) can be configured to
-automatically retry when delivery fails — for example a transient SMTP or
-Slack error — instead of moving straight to an `Error` state. This is
-configured per report in the **Error Handling** section of the report modal:
+automatically retry when sending fails — this covers rendering/export
+failures (e.g. a chart screenshot or CSV export erroring out) as well as
+delivery failures such as a transient SMTP or Slack error — instead of
+moving straight to an `Error` state. This is configured per report in the
+**Error Handling** section of the report modal:
 
 - **Enable Retries** – turn on automatic retries for this report.
 - **Maximum Retry Attempts** – how many times to retry before giving up (1–10, default 3).
@@ -506,6 +508,11 @@ ALERT_REPORTS_RETRY_BASE_DELAY_SECONDS = 60
 # Maximum delay between retries, in seconds.
 ALERT_REPORTS_RETRY_MAX_DELAY_SECONDS = 3600
 ```
+
+Both values are read as-is with no validation, so keep them positive and
+make sure the max is greater than or equal to the base delay — otherwise
+retries will fire immediately or the exponential backoff won't behave as
+advertised.
 
 If the report's regular schedule fires again while a previous run is still
 retrying, Superset skips the new run and lets the in-flight retries finish,
