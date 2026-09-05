@@ -248,7 +248,12 @@ const boundUnitShouldUpdate = (
 const renderOperator = ({
   showOnlyNone,
   columnType,
-}: { showOnlyNone?: boolean; columnType?: GenericDataType } = {}) => {
+  config,
+}: {
+  showOnlyNone?: boolean;
+  columnType?: GenericDataType;
+  config?: ConditionalFormattingConfig;
+} = {}) => {
   let options;
   switch (columnType) {
     case GenericDataType.String:
@@ -266,7 +271,7 @@ const renderOperator = ({
       name="operator"
       label={t('Operator')}
       rules={rulesRequired}
-      initialValue={options[0].value}
+      initialValue={config?.operator ?? options[0].value}
     >
       <Select
         ariaLabel={t('Operator')}
@@ -279,6 +284,7 @@ const renderOperator = ({
 const renderBoundFields = (
   operator?: Comparator,
   serverPagination?: boolean,
+  config?: ConditionalFormattingConfig,
 ) => {
   const { showMin, showMax } = getBoundVisibility(operator);
   // Cross-validate min/max only when both are shown; a lone bound
@@ -306,7 +312,7 @@ const renderBoundFields = (
           <FormItem
             name="boundUnit"
             label={t('Bound unit')}
-            initialValue={boundUnitOptions[0].value}
+            initialValue={config?.boundUnit ?? boundUnitOptions[0].value}
             tooltip={
               serverPagination
                 ? t(
@@ -330,7 +336,10 @@ const renderBoundFields = (
                 <FormItem
                   name="percentDenominator"
                   label={t('% of')}
-                  initialValue={percentDenominatorOptions[0].value}
+                  initialValue={
+                    config?.percentDenominator ??
+                    percentDenominatorOptions[0].value
+                  }
                 >
                   <Select
                     ariaLabel={t('Percent denominator')}
@@ -425,6 +434,7 @@ const renderOperatorFields = (
   { getFieldValue }: GetFieldValue,
   columnType?: GenericDataType,
   serverPagination?: boolean,
+  config?: ConditionalFormattingConfig,
 ) => {
   const columnTypeString = columnType === GenericDataType.String;
   const columnTypeBoolean = columnType === GenericDataType.Boolean;
@@ -434,12 +444,14 @@ const renderOperatorFields = (
   if (columnTypeBoolean) {
     return (
       <Row gutter={12}>
-        <Col span={operatorColSpan}>{renderOperator({ columnType })}</Col>
+        <Col span={operatorColSpan}>
+          {renderOperator({ columnType, config })}
+        </Col>
         <Col span={valueColSpan}>
           <FormItem
             name="targetValue"
             label={t('Target value')}
-            initialValue=""
+            initialValue={config?.targetValue ?? ''}
             hidden
           />
         </Col>
@@ -454,9 +466,11 @@ const renderOperatorFields = (
   return isOperatorNone(operator) ? (
     <>
       <Row gutter={12}>
-        <Col span={operatorColSpan}>{renderOperator({ columnType })}</Col>
+        <Col span={operatorColSpan}>
+          {renderOperator({ columnType, config })}
+        </Col>
       </Row>
-      {showBoundFields && renderBoundFields(operator, serverPagination)}
+      {showBoundFields && renderBoundFields(operator, serverPagination, config)}
       {showDivergingFields && renderDivergingFields()}
     </>
   ) : isOperatorMultiValue(operator) ? (
@@ -473,7 +487,7 @@ const renderOperatorFields = (
           <FullWidthInputNumber />
         </FormItem>
       </Col>
-      <Col span={6}>{renderOperator({ columnType })}</Col>
+      <Col span={6}>{renderOperator({ columnType, config })}</Col>
       <Col span={9}>
         <FormItem
           name="targetValueRight"
@@ -501,7 +515,7 @@ const renderOperatorFields = (
           </FormItem>
         </Col>
       </Row>
-      {showBoundFields && renderBoundFields(operator, serverPagination)}
+      {showBoundFields && renderBoundFields(operator, serverPagination, config)}
     </>
   );
 };
@@ -730,11 +744,11 @@ export const FormattingPopoverContent = ({
       <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
         {showOperatorFields ? (
           (props: GetFieldValue) =>
-            renderOperatorFields(props, columnType, serverPagination)
+            renderOperatorFields(props, columnType, serverPagination, config)
         ) : (
           <Row gutter={12}>
             <Col span={6}>
-              {renderOperator({ showOnlyNone: true, columnType })}
+              {renderOperator({ showOnlyNone: true, columnType, config })}
             </Col>
           </Row>
         )}
