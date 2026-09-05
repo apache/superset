@@ -716,3 +716,12 @@ export declare function setCatalog(catalog: string | null): Promise<void>;
  * ```
  */
 export declare function setSchema(schema: string | null): Promise<void>;
+
+/**
+ * Extensions contribute a view to SQL Lab's left sidebar through the
+ * generic `views` API: register a container at the `sqllab.leftSidebar`
+ * location via `views.registerViewContainer`, then register the container's
+ * content via `views.registerView(view, containerId, component)`. See
+ * {@link import('../views').registerViewContainer} and
+ * {@link import('../views').registerView}.
+ */
