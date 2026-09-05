@@ -57,3 +57,34 @@ def test_build_dataset_query_excludes_soft_deleted(session: Session) -> None:
 
     assert "live_t" in names
     assert "hidden_t" not in names
+
+
+def test_build_dataset_query_filters_by_schema(session: Session) -> None:
+    """``build_dataset_query(schema_filter=...)`` restricts rows to that schema.
+
+    The existing fixtures above are all ``schema="main"``, so this test adds a
+    contrasting ``schema="public"`` row to prove non-matching schemas are excluded.
+    """
+    from superset import db, security_manager
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.daos.datasource import DatasourceDAO
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    database = Database(database_name="schema_db", sqlalchemy_uri="sqlite://")
+    main_t = SqlaTable(table_name="main_t", schema="main", database=database)
+    public_t = SqlaTable(table_name="public_t", schema="public", database=database)
+    db.session.add_all([database, main_t, public_t])
+    db.session.flush()
+
+    with patch.object(
+        security_manager, "can_access_all_datasources", return_value=True
+    ):
+        query = DatasourceDAO.build_dataset_query(
+            name_filter=None, sql_filter=None, schema_filter="main"
+        )
+        names = {row.table_name for row in session.execute(query)}
+
+    assert "main_t" in names
+    assert "public_t" not in names
