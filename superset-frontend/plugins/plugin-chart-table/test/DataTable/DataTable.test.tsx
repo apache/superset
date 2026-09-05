@@ -17,10 +17,13 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
+import { act } from 'react-dom/test-utils';
 import { render, screen } from '@superset-ui/core/spec';
 import { CellProps, Column, HeaderProps } from 'react-table';
 import DataTable from '../../src/DataTable/DataTable';
 import { ProviderWrapper } from '../testHelpers';
+
+const flushRaf = () => act(() => new Promise(resolve => setTimeout(resolve, 20)));
 
 type DataRow = {
   city: string;
@@ -101,4 +104,17 @@ test('does not crash when the column count drops to zero (#42978)', () => {
   ).not.toThrow();
 
   expect(screen.getByText('No data found')).toBeInTheDocument();
+});
+
+// The client-side emit effect used to run its signature check unconditionally,
+// so a zero-column render still queued an onFilteredRowsChange call once rows
+// changed. Columns being hidden doesn't change the underlying data, so nothing
+// should be emitted for it.
+test('does not emit filtered rows while the column count is zero', async () => {
+  const onFilteredRowsChange = jest.fn();
+  render(renderDataTable([], onFilteredRowsChange));
+
+  await flushRaf();
+
+  expect(onFilteredRowsChange).not.toHaveBeenCalled();
 });
