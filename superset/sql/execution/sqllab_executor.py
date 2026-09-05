@@ -223,12 +223,16 @@ def _store_results_in_backend(
     query: Query,
     payload: dict[str, Any],
     query_id: int,
+    return_results: bool,
 ) -> None:
     """Serialize the payload and persist it to the results backend.
 
-    Sets ``query.results_key`` on success; on a backend write failure clears it
-    and (for async, non-inline queries) fails the query, matching the classic
-    ``execute_sql_statements`` behavior so ``/sqllab/results`` never 410s.
+    Sets ``query.results_key`` on success. On a backend write failure it clears
+    ``results_key``; for an **async** query (``return_results`` is False) the
+    result is otherwise inaccessible, so the query is failed and the error is
+    raised, whereas for an **inline** query the data is still returned to the
+    caller — matching the classic ``execute_sql_statements`` so a transient
+    backend hiccup doesn't discard usable results.
     """
     key = str(uuid.uuid4())
     payload["query"]["resultsKey"] = key
@@ -254,24 +258,32 @@ def _store_results_in_backend(
                 "Query %s: Failed to store results in backend, key: %s", query_id, key
             )
             stats_logger.incr("sqllab.results_backend.write_failure")
+            # Don't leave a dangling key that would 410 on fetch.
             query.results_key = None
-            query.status = QueryStatus.FAILED
-            query.error_message = (
-                "Failed to store query results in the results backend. "
-                "Please try again or contact your administrator."
-            )
-            db.session.commit()
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__("Failed to store query results. Please try again."),
-                    error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
-                    level=ErrorLevel.ERROR,
+            if not return_results:
+                # Async: the result is only reachable via the backend, so a failed
+                # write means it's lost — fail the query.
+                query.status = QueryStatus.FAILED
+                query.error_message = (
+                    "Failed to store query results in the results backend. "
+                    "Please try again or contact your administrator."
                 )
+                db.session.commit()
+                raise SupersetErrorException(
+                    SupersetError(
+                        message=__("Failed to store query results. Please try again."),
+                        error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
+                        level=ErrorLevel.ERROR,
+                    )
+                )
+            # Inline: the caller still gets the data in the response payload.
+        else:
+            query.results_key = key
+            logger.info(
+                "Query %s: Successfully stored results in backend, key: %s",
+                query_id,
+                key,
             )
-        query.results_key = key
-        logger.info(
-            "Query %s: Successfully stored results in backend, key: %s", query_id, key
-        )
 
 
 def _check_payload_size(serialized_payload: Union[bytes, str]) -> None:
@@ -399,6 +411,18 @@ def execute_sql_lab_query(  # noqa: C901
         parsed_script, db_engine_spec, database
     )
 
+    # Empty / comment-only SQL yields no blocks under some engine × mutator
+    # configs; without this guard the statement loop below never runs and the
+    # success path reads an unbound ``result_set``. Fail cleanly instead.
+    if not blocks:
+        raise SupersetErrorException(
+            SupersetError(
+                message=__("The query does not contain any executable statements."),
+                error_type=SupersetErrorType.INVALID_SQL_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+
     with database.get_raw_connection(
         catalog=query.catalog,
         schema=query.schema,
@@ -477,7 +501,7 @@ def execute_sql_lab_query(  # noqa: C901
     payload["query"]["state"] = QueryStatus.SUCCESS
 
     if store_results and results_backend:
-        _store_results_in_backend(query, payload, query_id)
+        _store_results_in_backend(query, payload, query_id, return_results)
 
     if query.status != QueryStatus.FAILED:
         query.status = QueryStatus.SUCCESS

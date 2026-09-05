@@ -27,6 +27,14 @@ from tests.conftest import with_config
 
 _MODULE = "superset.sql.execution.sqllab_executor"
 
+
+class _FailingBackend:  # pylint: disable=too-few-public-methods
+    """A results backend whose write always fails (truthy object, ``set`` False)."""
+
+    def set(self, *args: object, **kwargs: object) -> bool:
+        return False
+
+
 _CONFIG = {
     "SQLLAB_PAYLOAD_MAX_MB": 50,
     "DISALLOWED_SQL_FUNCTIONS": {},
@@ -124,3 +132,78 @@ def test_execute_sql_lab_query_returns_stopped_when_query_stopped(
     )
     assert payload is not None
     assert payload["status"] == QueryStatus.STOPPED
+
+
+@with_config(_CONFIG)
+def test_inline_results_backend_write_failure_still_returns_results(
+    mocker: MockerFixture, app
+) -> None:
+    """An inline query whose results-backend write fails still returns its data
+    (results_key cleared, query not failed) — regression guard."""
+    from superset.common.db_query_status import QueryStatus
+
+    query = _make_query(mocker)
+    mocker.patch(f"{_MODULE}.db.session.refresh", return_value=None)
+    mocker.patch(
+        f"{_MODULE}._serialize_payload", side_effect=lambda payload, use_msgpack: "blob"
+    )
+    mocker.patch(f"{_MODULE}.results_backend", _FailingBackend())
+
+    payload = execute_sql_lab_query(
+        query,
+        "SELECT 42 AS answer",
+        return_results=True,
+        store_results=True,
+        expand_data=False,
+    )
+    assert payload is not None
+    assert payload["status"] == QueryStatus.SUCCESS
+    assert query.results_key is None
+    assert query.status != QueryStatus.FAILED
+
+
+@with_config(_CONFIG)
+def test_async_results_backend_write_failure_fails_query(
+    mocker: MockerFixture, app
+) -> None:
+    """An async query (no inline results) whose backend write fails is failed and
+    raises, since the result would otherwise be unreachable."""
+    from superset.common.db_query_status import QueryStatus
+
+    query = _make_query(mocker)
+    mocker.patch(f"{_MODULE}.db.session.refresh", return_value=None)
+    mocker.patch(
+        f"{_MODULE}._serialize_payload", side_effect=lambda payload, use_msgpack: "blob"
+    )
+    mocker.patch(f"{_MODULE}.results_backend", _FailingBackend())
+
+    with pytest.raises(SupersetErrorException):
+        execute_sql_lab_query(
+            query,
+            "SELECT 42 AS answer",
+            return_results=False,
+            store_results=True,
+            expand_data=False,
+        )
+    assert query.status == QueryStatus.FAILED
+
+
+@with_config(_CONFIG)
+def test_empty_sql_raises_clean_error(mocker: MockerFixture, app) -> None:
+    """SQL that yields no executable blocks fails cleanly rather than raising an
+    UnboundLocalError from the unassigned result set."""
+    query = _make_query(mocker)
+    mocker.patch(f"{_MODULE}.db.session.refresh", return_value=None)
+    mocker.patch(f"{_MODULE}.results_backend", return_value=True)
+    # Force the "no executable statements" case (e.g. comment-only SQL under
+    # certain engine × MUTATE_AFTER_SPLIT combinations).
+    mocker.patch(f"{_MODULE}.build_statement_blocks", return_value=(MagicMock(), []))
+
+    with pytest.raises(SupersetErrorException):
+        execute_sql_lab_query(
+            query,
+            "-- just a comment",
+            return_results=True,
+            store_results=False,
+            expand_data=False,
+        )
