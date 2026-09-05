@@ -3640,6 +3640,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     from_sql = parsed_script.format()
 
             except Exception as ex:  # pylint: disable=broad-except
+                # A caught DB error can leave db.session in "pending rollback"
+                # state, which would poison unrelated queries later in this request.
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+
                 # RLS injection failures fail closed: only continue when it is
                 # positively confirmed that no RLS predicates apply to the
                 # referenced tables; any other outcome aborts the query.
