@@ -36,6 +36,7 @@ import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
   CandlestickChartTransformedProps,
   EchartsCandlestickChartProps,
+  EchartsCandlestickFormData,
   OhlcValue,
   LookupKey,
 } from './types';
@@ -187,17 +188,14 @@ export default function transformProps(
   const {
     width,
     height,
-    formData: { echartOptions: customEchartOptionsInput, ...rawFormData },
+    formData: { echartOptions: _echartOptions, ...formData },
     hooks,
     queriesData,
     inContextMenu,
     theme,
     legendState = {},
   } = chartProps;
-  const formData = {
-    ...DEFAULT_FORM_DATA,
-    ...rawFormData,
-  };
+
   const [queryData] = queriesData;
   const { data = [] } = queryData;
   const { onLegendStateChanged } = hooks;
@@ -236,7 +234,7 @@ export default function transformProps(
     legendSort,
     zoomable,
     movingAverages,
-  } = formData;
+  }: EchartsCandlestickFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const xAxisName = xAxis ? getColumnLabel(xAxis) : '';
   const seriesColumns = ensureIsArray(seriesControl).map(getColumnLabel);
@@ -530,7 +528,7 @@ export default function transformProps(
 
   let customEchartOptions;
   try {
-    customEchartOptions = safeParseEChartOptions(customEchartOptionsInput);
+    customEchartOptions = safeParseEChartOptions(_echartOptions);
   } catch (_) {
     customEchartOptions = undefined;
   }
