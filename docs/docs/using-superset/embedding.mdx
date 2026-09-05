@@ -152,9 +152,9 @@ Individual charts can also be embedded standalone, outside of a dashboard, using
 | `standalone`    | `0`, `1` | `0`: normal Explore view; `1`: hide the Explore header and controls        |
 | `show_download` | `0`, `1` | Show a compact download control (CSV, JSON, Excel) on the standalone chart |
 
-`show_download` is opt-in and has no effect outside of `standalone=1`. The download control still respects the viewer's `can_download` permission — it's hidden for users who lack it even when the parameter is set.
+`show_download` is opt-in and has no effect outside of `standalone=1`. The download control still respects the viewer's export permissions — it's hidden for users who lack them even when the parameter is set. With the `GRANULAR_EXPORT_CONTROLS` feature flag enabled, this requires the `can_export_data` permission on `Superset`; otherwise it falls back to `can_csv` on `Superset`.
 
-Unlike dashboard embedding above, this standalone chart URL is a plain page load rather than an iframe embed managed by `@superset-ui/embedded-sdk`, so it doesn't go through guest tokens or the `dashboardUiConfig` options.
+Explore's **Embed Code** button on a chart also generates one of these permalink URLs wrapped in an `<iframe>`, giving you a session-authenticated iframe embed. That's a separate flow from dashboard embedding above: it doesn't go through `@superset-ui/embedded-sdk`, guest tokens, or the `dashboardUiConfig` options — the viewer just needs an existing Superset session with access to the chart.
 
 ---
 
