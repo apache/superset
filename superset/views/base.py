@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+import base64
 import copy
 import functools
 import logging
@@ -754,6 +755,15 @@ def _ensure_static_assets_prefix(url_or_path: str) -> str:
     return f"{normalized_prefix}{url_or_path}"
 
 
+def _svg_to_data_uri(svg: str | None) -> str | None:
+    """Encode SVG markup as a base64 data URI, or ``None`` if no SVG is given."""
+    if not svg:
+        return None
+    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode(
+        "ascii"
+    )
+
+
 def get_spa_template_context(
     entry: str | None = "spa",
     extra_bootstrap_data: dict[str, Any] | None = None,
@@ -823,6 +833,10 @@ def get_spa_template_context(
         # No custom URL either, use default SVG
         spinner_svg = get_default_spinner_svg()
 
+    # Serve the spinner as an <img> data URI (see spa.html). SVG loaded via <img>
+    # can't execute scripts, so rendering doesn't depend on sanitize_svg_content.
+    spinner_svg_data_uri = _svg_to_data_uri(spinner_svg)
+
     # Determine default title using the (potentially updated) brandAppName
     default_title = theme_tokens.get("brandAppName", "Superset")
 
@@ -837,7 +851,7 @@ def get_spa_template_context(
         ),
         "theme_tokens": theme_tokens,
         "dark_theme_bg": dark_theme_bg,
-        "spinner_svg": spinner_svg,
+        "spinner_svg_data_uri": spinner_svg_data_uri,
         "default_title": default_title,
         **get_language_pack_template_context(payload.get("common") or {}),
         **template_kwargs,
