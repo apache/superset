@@ -52,5 +52,3 @@ export interface Jed {
 
   options: JedOptions;
 }
-
-export default {};

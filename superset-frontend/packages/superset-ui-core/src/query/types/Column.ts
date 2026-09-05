@@ -82,5 +82,3 @@ export function isAdhocColumnReference(column?: any): column is AdhocColumn {
 export function isQueryFormColumn(column: any): column is QueryFormColumn {
   return isPhysicalColumn(column) || isAdhocColumn(column);
 }
-
-export default {};
