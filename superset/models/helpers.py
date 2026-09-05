@@ -89,6 +89,11 @@ from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
     get_since_until_from_time_range,
 )
+from superset.connectors.sqla.partition_mapping import (
+    build_mirrored_predicates,
+    PartitionMapping,
+    resolve_partition_mapping,
+)
 from superset.constants import (
     CacheRegion,
     EMPTY_STRING,
@@ -168,7 +173,7 @@ class ValidationResultDict(TypedDict):
 
 if TYPE_CHECKING:
     from superset.common.query_object import QueryObject
-    from superset.connectors.sqla.models import SqlMetric, TableColumn
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
     from superset.db_engine_specs import BaseEngineSpec
     from superset.models.core import Database
 
@@ -4070,36 +4075,124 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return f"""'{dttm.strftime("%Y-%m-%d %H:%M:%S.%f")}'"""
 
-    def get_time_filter(  # pylint: disable=too-many-arguments  # noqa: C901
+    def _collect_partition_mirror_range(
         self,
-        time_col: "TableColumn",
+        mapping: Optional["PartitionMapping"],
+        sink: list[tuple[utils.FilterOperator, Any]],
+        column_name: str,
         start_dttm: Optional[sa.DateTime],
         end_dttm: Optional[sa.DateTime],
-        time_grain: Optional[str] = None,
-        label: Optional[str] = "__time",
-        template_processor: Optional[BaseTemplateProcessor] = None,
-    ) -> Optional[ColumnElement]:
-        col = (
-            time_col.get_timestamp_expression(
-                time_grain=time_grain,
-                label=label,
-                template_processor=template_processor,
-            )
-            if time_grain
-            else self.convert_tbl_column_to_sqla_col(
-                time_col, label=label, template_processor=template_processor
-            )
-        )
+    ) -> None:
+        """
+        Record a time range for mirroring onto the partition column.
 
-        # Resolve dataset-level time-boundary adjustments. A configured
-        # `extra.timezone` (an IANA name, DST-aware) takes precedence: naive UI
-        # boundaries are interpreted in that zone and converted to UTC for
-        # comparison with UTC-stored data. When no timezone is configured, fall
-        # back to the legacy "Hour Offset" field instead: displayed values are
-        # shifted by +offset hours (see normalize_df / DateColumn in
-        # superset.utils.core), but the time filter compares raw stored values, so
-        # bounds are shifted by -offset to stay consistent with what's displayed
-        # (#104810).
+        The bounds are adjusted first, by the same helper `get_time_filter` uses:
+        the mirrored predicate has to describe the same instants as the
+        timestamp predicate it stands in for, or the pruning is wrong by exactly
+        the dataset's timezone offset -- silently.
+
+        Either bound may be `None` for an open-ended range, in which case only
+        the bound that exists is mirrored.
+        """
+        if mapping is None or column_name != mapping.mapped_column:
+            return
+        if not mapping.mirrors(utils.FilterOperator.TEMPORAL_RANGE):
+            return
+
+        # Resolve the column so the offset adjustment sees the same type
+        # `get_time_filter` does -- an offset the column's type cannot represent
+        # is dropped, and the mirrored bounds have to agree with the originals.
+        mapped_col = next(
+            (col for col in self.columns if col.column_name == column_name), None
+        )
+        start_dttm, end_dttm = self.adjust_time_bounds(start_dttm, end_dttm, mapped_col)
+        if start_dttm is not None:
+            sink.append((utils.FilterOperator.GREATER_THAN_OR_EQUALS, start_dttm))
+        if end_dttm is not None:
+            sink.append((utils.FilterOperator.LESS_THAN, end_dttm))
+
+    def _collect_partition_mirror_filter(
+        self,
+        mapping: Optional["PartitionMapping"],
+        sink: list[tuple[utils.FilterOperator, Any]],
+        column_name: str,
+        operator: utils.FilterOperator,
+        value: Any,
+    ) -> None:
+        """
+        Record a structured filter for mirroring onto the partition column.
+
+        Only operators the mapping declares safe are recorded; see the operator
+        matrix in `superset.connectors.sqla.partition_mapping`.
+        """
+        if mapping is None or column_name != mapping.mapped_column:
+            return
+        if not mapping.mirrors(operator):
+            return
+
+        if operator == utils.FilterOperator.IN:
+            if not isinstance(value, (list, tuple)) or not value:
+                return
+            if any(item is None for item in value):
+                # A `None` in the list widens the real predicate to
+                # `col IS NULL OR col IN (...)`. Mirroring only the non-null
+                # members would be *narrower* than the original filter and
+                # would drop rows it keeps.
+                return
+            sink.append((operator, tuple(value)))
+        elif value is not None:
+            sink.append((operator, value))
+
+    def _build_partition_mirror_predicates(
+        self,
+        mapping: "PartitionMapping",
+        requests: list[tuple[utils.FilterOperator, Any]],
+    ) -> list[ColumnElement]:
+        """
+        Resolve collected mirror requests into predicates on the partition column.
+
+        Requests are deduplicated first: a chart can reach both collection points
+        for the same column -- a `granularity` time filter *and* a
+        `TEMPORAL_RANGE` ad-hoc filter on the same column is a routine Explore
+        configuration -- and emitting the predicate twice is harmless SQL but
+        makes "View query" surprising.
+        """
+        if not requests:
+            return []
+
+        deduped: list[tuple[utils.FilterOperator, Any]] = []
+        seen: set[Any] = set()
+        for operator, value in requests:
+            key = (operator, value if isinstance(value, Hashable) else repr(value))
+            if key not in seen:
+                seen.add(key)
+                deduped.append((operator, value))
+
+        return build_mirrored_predicates(cast("SqlaTable", self), mapping, deduped)
+
+    def adjust_time_bounds(
+        self,
+        start_dttm: Optional[sa.DateTime],
+        end_dttm: Optional[sa.DateTime],
+        time_col: Optional["TableColumn"] = None,
+    ) -> tuple[Optional[sa.DateTime], Optional[sa.DateTime]]:
+        """
+        Apply the dataset's time-boundary adjustments to a pair of bounds.
+
+        A configured `extra.timezone` (an IANA name, DST-aware) takes
+        precedence: naive UI boundaries are interpreted in that zone and
+        converted to UTC for comparison with UTC-stored data. When no timezone
+        is configured, fall back to the legacy "Hour Offset" field instead:
+        displayed values are shifted by +offset hours (see normalize_df /
+        DateColumn in superset.utils.core), but the time filter compares raw
+        stored values, so bounds are shifted by -offset to stay consistent with
+        what's displayed (#104810).
+
+        Extracted so callers that need the *adjusted* bounds for something other
+        than building the clause -- partition filter mirroring resolves them
+        against the engine -- see exactly the instants the clause compares
+        against, rather than a copy of this logic that can drift.
+        """
         dataset_timezone = self.get_dataset_timezone()
 
         if dataset_timezone and (start_dttm or end_dttm):
@@ -4132,7 +4225,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if not dataset_timezone and (offset_hours := getattr(self, "offset", 0) or 0):
             offset_hours = get_effective_hours_offset(
                 self.db_engine_spec,
-                time_col.type,
+                time_col.type if time_col is not None else None,
                 offset_hours,
                 db_extra=self.db_extra,
             )
@@ -4140,6 +4233,31 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 start_dttm = start_dttm - timedelta(hours=offset_hours)
             if end_dttm is not None:
                 end_dttm = end_dttm - timedelta(hours=offset_hours)
+
+        return start_dttm, end_dttm
+
+    def get_time_filter(  # pylint: disable=too-many-arguments
+        self,
+        time_col: "TableColumn",
+        start_dttm: Optional[sa.DateTime],
+        end_dttm: Optional[sa.DateTime],
+        time_grain: Optional[str] = None,
+        label: Optional[str] = "__time",
+        template_processor: Optional[BaseTemplateProcessor] = None,
+    ) -> Optional[ColumnElement]:
+        col = (
+            time_col.get_timestamp_expression(
+                time_grain=time_grain,
+                label=label,
+                template_processor=template_processor,
+            )
+            if time_grain
+            else self.convert_tbl_column_to_sqla_col(
+                time_col, label=label, template_processor=template_processor
+            )
+        )
+
+        start_dttm, end_dttm = self.adjust_time_bounds(start_dttm, end_dttm, time_col)
 
         l = []  # noqa: E741
         if start_dttm:
@@ -4756,6 +4874,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         time_filters = []
 
+        # Partition filter mapping: mirror requests are collected here as
+        # `(operator, value)` pairs and resolved in a single probe round trip
+        # after the filter loop, rather than emitted inline at each of the eight
+        # append sites. `None` when the dataset has no usable mapping.
+        partition_mapping = resolve_partition_mapping(cast("SqlaTable", self))
+        partition_mirror: list[tuple[utils.FilterOperator, Any]] = []
+
         # Process FROM clause early to populate removed_filters from virtual dataset
         # templates before we decide whether to add time filters
         tbl, cte = self.get_from_clause(template_processor)
@@ -4795,6 +4920,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
                 if _main_dttm_filter is not None:
                     time_filters.append(_main_dttm_filter)
+                    # This block filters `main_dttm_col`, a *different* column
+                    # from `dttm_col`. Checking only `dttm_col` below would miss
+                    # it when the mapping tracks the main datetime column.
+                    self._collect_partition_mirror_range(
+                        partition_mapping,
+                        partition_mirror,
+                        self.main_dttm_col,
+                        from_dttm,
+                        to_dttm,
+                    )
 
             # Check if time filter should be skipped because it was handled in template.
             # Check both the actual column name and __timestamp alias
@@ -4812,6 +4947,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
                 if time_filter_column is not None:
                     time_filters.append(time_filter_column)
+                    self._collect_partition_mirror_range(
+                        partition_mapping,
+                        partition_mirror,
+                        dttm_col.column_name,
+                        from_dttm,
+                        to_dttm,
+                    )
 
         # Gate on `groupby_all_columns` rather than the raw dimensions: it is the
         # real GROUP BY signal and also captures the timeseries time bucket. A
@@ -5049,6 +5191,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     db_engine_spec=db_engine_spec,
                     db_extra=self.db_extra,
                 )
+
+                # Mirror onto the partition column. This single site covers
+                # ad-hoc filters, dashboard native filters and cross-filters,
+                # because they all arrive as entries in `filter`. `eq` rather
+                # than the raw `val`: it is the value the real predicate uses.
+                # `TEMPORAL_RANGE` is collected in its own branch below, where
+                # the range has been resolved into a pair of bounds.
+                if col_obj is not None and op != utils.FilterOperator.TEMPORAL_RANGE:
+                    self._collect_partition_mirror_filter(
+                        partition_mapping,
+                        partition_mirror,
+                        col_obj.column_name,
+                        op,
+                        eq,
+                    )
 
                 # Get ADVANCED_DATA_TYPES from config when needed
                 ADVANCED_DATA_TYPES = app.config.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
@@ -5327,6 +5484,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         )
                         if _temporal_filter is not None:
                             target_clause_list.append(_temporal_filter)
+                            self._collect_partition_mirror_range(
+                                partition_mapping,
+                                partition_mirror,
+                                col_obj.column_name,
+                                _since,
+                                _until,
+                            )
                     else:
                         raise QueryObjectValidationError(
                             _("Invalid filter operation type: %(op)s", op=op)
@@ -5335,6 +5499,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # col_obj is None and sqla_col is None - column not found!
                 # Silently skip - this can happen for removed columns or invalid filters
                 pass
+        if partition_mapping is not None:
+            where_clause_and += self._build_partition_mirror_predicates(
+                partition_mapping,
+                partition_mirror,
+            )
         where_clause_and += self.get_sqla_row_level_filters(template_processor)
         if extras:
             where = extras.get("where")
