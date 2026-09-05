@@ -345,6 +345,11 @@ export default function transformProps(
 
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);
+  // Series whose `label_map` entry led with a time offset, recorded before the shift
+  // below drops it. That leading column is the only structural marker distinguishing a
+  // derived comparison row from a base row whose dimension value happens to read like
+  // the offset, and it is gone from `labelMap` by the time the formatters run.
+  const derivedComparisonSeries = new Set<string>();
   const labelMap: { [key: string]: string[] } = Object.entries(
     label_map,
   ).reduce((acc, entry) => {
@@ -353,6 +358,7 @@ export default function transformProps(
       Array.isArray(timeCompare) &&
       timeCompare.includes(entry[1][0])
     ) {
+      derivedComparisonSeries.add(entry[0]);
       entry[1].shift();
     }
     return { ...acc, [entry[0]]: entry[1] };
@@ -622,9 +628,13 @@ export default function transformProps(
   // misread a base series whose dimension value happens to equal the offset — a region
   // literally named "1 week ago" gives 'sum__num, 1 week ago', which reads as derived.
   const isDerivedComparisonSeries = (seriesKey: string) => {
+    // Recorded above, before the offset was shifted off the `label_map` entry.
+    if (derivedComparisonSeries.has(seriesKey)) {
+      return true;
+    }
     const columns = labelMap?.[seriesKey];
-    // Without an entry there is nothing structured to go on, and the only name that can
-    // stand alone is the bare offset of an ungrouped single-metric chart.
+    // The shift only runs when `timeCompare` is populated; otherwise the entry still
+    // leads with the offset and can be read directly.
     return columns?.length
       ? array.includes(columns[0])
       : array.includes(seriesKey);
