@@ -63,7 +63,7 @@ from sqlalchemy.orm import (
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import column, ColumnElement, literal_column, quoted_name, table
-from sqlalchemy.sql.elements import ColumnClause, TextClause
+from sqlalchemy.sql.elements import ColumnClause, Grouping, TextClause
 from sqlalchemy.sql.expression import Label
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy.types import JSON
@@ -1235,7 +1235,15 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
                         self.table.schema if self.table else None,
                     )
             expression = self._validate_stored_expression(expression)
-            col = literal_column(expression, type_=type_)
+            if "--" in expression or "#" in expression:
+                # A trailing single-line comment (``--``/``#``) would otherwise
+                # let Grouping's closing paren be swallowed by the comment
+                # (``(... -- x)`` -> unclosed paren); emit it on a new line.
+                expression = f"{expression}\n"
+            # Parenthesize calculated-column expressions so a bare boolean
+            # operator (e.g. OR) inside the expression cannot leak into the
+            # surrounding operator precedence (e.g. COUNT(DISTINCT ...)).
+            col = Grouping(literal_column(expression, type_=type_))
         else:
             identifier = db_engine_spec.prepare_identifier(
                 cast(str, self.column_name),
