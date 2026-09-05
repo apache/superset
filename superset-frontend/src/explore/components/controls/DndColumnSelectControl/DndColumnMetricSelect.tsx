@@ -85,7 +85,11 @@ function fieldHasMultipleValues(
   return false;
 }
 
-const DND_ACCEPTED_TYPES = [DndItemType.Column, DndItemType.Metric];
+const DND_ACCEPTED_TYPES = [
+  DndItemType.Column,
+  DndItemType.Metric,
+  DndItemType.Folder,
+];
 
 type ColumnMetricValue =
   | string
@@ -255,6 +259,33 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
       return false;
     },
     [combinedOptionsMap, coercedValue, isMetricSelected],
+  );
+
+  const onDropFolder = useCallback(
+    (items: DatasourcePanelDndItem[]) => {
+      // Items are gated against `canDrop` before the whole batch is added, so
+      // a column and a same-named metric can both pass individually. Track
+      // names added so far in this batch to avoid adding the same string twice.
+      const seen = new Set(coercedValue.filter(isString));
+      const additions: string[] = [];
+      items.forEach(item => {
+        let itemName: string | undefined;
+        if (item.type === DndItemType.Column) {
+          itemName = (item.value as ColumnMeta).column_name;
+        } else if (item.type === DndItemType.Metric) {
+          itemName = (item.value as Metric).metric_name;
+        }
+        if (itemName && !seen.has(itemName)) {
+          seen.add(itemName);
+          additions.push(itemName);
+        }
+      });
+      if (additions.length === 0) {
+        return;
+      }
+      onChange(multi ? [...coercedValue, ...additions] : additions[0]);
+    },
+    [onChange, coercedValue, multi],
   );
 
   const onClickClose = useCallback(
@@ -437,6 +468,7 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
       <DndSelectLabel
         onDrop={onDrop}
         canDrop={canDrop}
+        onDropFolder={onDropFolder}
         valuesRenderer={valuesRenderer}
         accept={DND_ACCEPTED_TYPES}
         displayGhostButton={multi || coercedValue.length === 0}
