@@ -141,3 +141,48 @@ def test_add_permissions_retries_transient_failure(mocker: MockerFixture) -> Non
             mocker.call("schema_access", "[my_db].[catalog2].[schema2]"),
         ]
     )
+
+
+def test_add_permissions_tolerates_failure_creating_permission_view(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A failure while granting a schema's permission (as opposed to while
+    listing the catalog's schemas) must be tolerated the same way it was
+    before the schema-listing retry was introduced: the rest of that
+    catalog is abandoned, but the next catalog is still processed. The
+    retry is scoped to the schema-listing call only, so it must not narrow
+    this pre-existing tolerance.
+    """
+    database = mocker.MagicMock()
+    database.database_name = "my_db"
+    database.db_engine_spec.supports_catalog = True
+    database.get_all_catalog_names.return_value = ["catalog1", "catalog2"]
+    database.get_all_schema_names.side_effect = [
+        ["schema1a", "schema1b"],
+        ["schema2"],
+    ]
+    add_permission_view_menu = mocker.patch(
+        "superset.commands.database.importers.v1.utils.security_manager."
+        "add_permission_view_menu"
+    )
+    add_permission_view_menu.side_effect = [
+        None,  # catalog_access [catalog1]
+        None,  # catalog_access [catalog2]
+        Exception,  # schema_access [catalog1].[schema1a] -- fails
+        None,  # schema_access [catalog2].[schema2]
+    ]
+
+    add_permissions(database)
+
+    add_permission_view_menu.assert_has_calls(
+        [
+            mocker.call("catalog_access", "[my_db].[catalog1]"),
+            mocker.call("catalog_access", "[my_db].[catalog2]"),
+            mocker.call("schema_access", "[my_db].[catalog1].[schema1a]"),
+            mocker.call("schema_access", "[my_db].[catalog2].[schema2]"),
+        ]
+    )
+    # [catalog1].[schema1b] must never be attempted: the exception raised
+    # while granting [schema1a] aborts the rest of catalog1, same as before.
+    assert add_permission_view_menu.call_count == 4

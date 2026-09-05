@@ -51,6 +51,25 @@ def ping(engine: Engine) -> bool:
             return engine.dialect.do_ping(conn)
 
 
+def _get_all_schema_names_with_retry(
+    database: Database, catalog: str | None
+) -> set[str]:
+    """
+    Retry the live schema-listing call once before giving up on a catalog.
+
+    Some catalogs are visible but not listable (eg the ``rdsadmin`` catalog on
+    AWS RDS), but the exception caught by the caller doesn't distinguish that
+    from a one-off transient hiccup (eg schema metadata not yet visible right
+    after it was created). A single retry lets a schema that needs a
+    first-time grant survive a fluke without tolerating a persistently
+    unlistable catalog for any longer than before.
+    """
+    try:
+        return database.get_all_schema_names(catalog=catalog, cache=False)
+    except GenericDBException:  # pylint: disable=broad-except
+        return database.get_all_schema_names(catalog=catalog, cache=False)
+
+
 def add_permissions(database: Database) -> None:
     """
     Add DAR for catalogs and schemas.
@@ -82,19 +101,8 @@ def add_permissions(database: Database) -> None:
         catalogs = [None]
 
     for catalog in catalogs:
-        # A single failure while listing a catalog's schemas is tolerated (some
-        # catalogs are visible but not listable, eg the ``rdsadmin`` catalog on
-        # AWS RDS), but the exception caught here doesn't distinguish that from
-        # a one-off transient hiccup (eg schema metadata not yet visible right
-        # after it was created). Retry once, immediately, so a schema that
-        # needs a first-time grant isn't permanently skipped over a fluke.
-        for attempt in range(2):
-            try:
-                schemas = database.get_all_schema_names(catalog=catalog, cache=False)
-            except GenericDBException:  # pylint: disable=broad-except
-                if attempt:
-                    logger.warning("Error processing catalog '%s'", catalog)
-                continue
+        try:
+            schemas = _get_all_schema_names_with_retry(database, catalog)
             for schema in schemas:
                 security_manager.add_permission_view_menu(
                     "schema_access",
@@ -104,7 +112,9 @@ def add_permissions(database: Database) -> None:
                         schema,
                     ),
                 )
-            break
+        except GenericDBException:  # pylint: disable=broad-except
+            logger.warning("Error processing catalog '%s'", catalog)
+            continue
 
 
 def add_vm(
