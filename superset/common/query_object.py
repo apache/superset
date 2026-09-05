@@ -587,8 +587,15 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         if self.time_offsets:
             cache_dict["time_offsets"] = self.time_offsets
 
-        for k in ["from_dttm", "to_dttm"]:
-            del cache_dict[k]
+        # Resolved bounds are normally excluded so a relative range ("Last 7
+        # days") keeps one key as time passes; ``time_range`` stands in for them.
+        # Without it — a caller that passes the range only as a TEMPORAL_RANGE
+        # filter, which ``_apply_granularity`` then removes — they are all that
+        # distinguishes one range from another.
+        for key in ["from_dttm", "to_dttm"]:
+            bound = cache_dict.pop(key)
+            if bound is not None and not self.time_range:
+                cache_dict[key] = bound
 
         annotation_fields = [
             "annotationType",
