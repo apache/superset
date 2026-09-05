@@ -270,6 +270,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
         expressionType: ExpressionTypes.Simple,
         operatorId,
         comparator,
+        isExtra: false,
       }),
     );
   };
@@ -324,6 +325,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
           operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation,
           expressionType: ExpressionTypes.Sql,
           datasource: props.datasource,
+          isExtra: false,
         }),
       );
     } else {
@@ -333,6 +335,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
           operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation,
           comparator: newComparator,
           expressionType: ExpressionTypes.Simple,
+          isExtra: false,
         }),
       );
     }
@@ -342,6 +345,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
       props.adhocFilter.duplicateWith({
         comparator,
         expressionType: ExpressionTypes.Simple,
+        isExtra: false,
       }),
     );
   };
@@ -350,6 +354,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
       props.adhocFilter.duplicateWith({
         operatorId: undefined,
         operator: undefined,
+        isExtra: false,
       }),
     );
   };
@@ -360,6 +365,7 @@ export const useSimpleTabFilterProps = (props: Props) => {
         operator: Operators.TemporalRange,
         comparator: timeRange,
         expressionType: ExpressionTypes.Simple,
+        isExtra: false,
       }),
     );
   };
