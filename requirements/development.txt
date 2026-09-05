@@ -360,7 +360,7 @@ google-auth-oauthlib==1.2.1
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery==3.43.0
+google-cloud-bigquery==3.45.0
     # via
     #   apache-superset
     #   pandas-gbq
