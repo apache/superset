@@ -24,7 +24,12 @@ import {
   QueryFormMetric,
   RgbaColor,
 } from '@superset-ui/core';
-import { BaseTransformedProps, LegendFormData, TitleFormData } from '../types';
+import {
+  BaseTransformedProps,
+  LegendFormData,
+  TitleFormData,
+  CrossFilterTransformedProps,
+} from '../types';
 
 export type EchartsButterflyFormData = QueryFormData &
   LegendFormData &
@@ -49,4 +54,4 @@ export interface EchartsButterflyChartProps extends ChartProps {
 }
 
 export type ButterflyTransformedProps =
-  BaseTransformedProps<EchartsButterflyFormData>;
+  BaseTransformedProps<EchartsButterflyFormData> & CrossFilterTransformedProps;
