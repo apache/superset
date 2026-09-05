@@ -21,10 +21,13 @@ Comprehensive unit tests for MCP generate_explore_link tool
 
 import importlib
 import logging
+from collections.abc import Iterator, Mapping
 from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.exceptions import ToolError, ValidationError as FastMCPValidationError
+from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.schemas import (
@@ -156,6 +159,406 @@ def _mock_dataset(id: int = 1) -> Mock:
 
 class TestGenerateExploreLink:
     """Comprehensive tests for generate_explore_link MCP tool."""
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
+    async def test_sunburst_accepts_complete_frontend_column_meta(
+        self, mock_find_dataset, mcp_server
+    ) -> None:
+        """The real FastMCP boundary accepts the frontend's open ColumnMeta."""
+        mock_find_dataset.return_value = _mock_dataset(id=1)
+        column_meta = {
+            "advanced_data_type": None,
+            "certification_details": None,
+            "certified_by": None,
+            "column_name": "sales",
+            "columnName": "sales",
+            "description": None,
+            "expression": "",
+            "filterable": True,
+            "groupby": True,
+            "id": 332,
+            "is_certified": False,
+            "is_dttm": False,
+            "python_date_format": None,
+            "type": "DOUBLE",
+            "type_generic": 0,
+            "verbose_name": None,
+            "warning_markdown": None,
+            "future_metadata": {"nested": ["value", 1, True, None]},
+        }
+        request = {
+            "dataset_id": 1,
+            "config": {
+                "viz_type": "sunburst_v2",
+                "columns": ["region", "country"],
+                "metric": {
+                    "expressionType": "SIMPLE",
+                    "column": column_meta,
+                    "aggregate": "SUM",
+                    "hasCustomLabel": False,
+                    "label": "SUM(sales)",
+                },
+            },
+        }
+
+        with patch.object(
+            generate_explore_link_module.DatasetValidator,
+            "normalize_column_names",
+            side_effect=lambda config, _dataset_id: config,
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "generate_explore_link", {"request": request}
+                )
+
+        assert result.structured_content["success"] is True
+        metric = result.structured_content["form_data"]["metric"]
+        assert metric["column"] == {"column_name": "sales"}
+        assert "future_metadata" not in metric["column"]
+
+    @pytest.mark.parametrize(
+        "metric",
+        [
+            {
+                "expressionType": None,
+                "column": "sales",
+                "aggregate": "SUM",
+            },
+            {"column": "sales", "aggregate": "SUM"},
+            {
+                "expressionType": "OTHER",
+                "column": "sales",
+                "aggregate": "SUM",
+            },
+            {
+                "expressionType": "SIMPLE",
+                "column": {
+                    "column_name": "sales",
+                    "columnName": "profit",
+                    "future_metadata": {"enabled": True},
+                },
+                "aggregate": "SUM",
+            },
+            {
+                "expressionType": "SIMPLE",
+                "column": {"column_name": 7, "columnName": "sales"},
+                "aggregate": "SUM",
+            },
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_registered_fastmcp_rejects_malformed_native_metric_requests(
+        self, metric: dict[str, object], mcp_server
+    ) -> None:
+        request = {
+            "dataset_id": 1,
+            "config": {
+                "viz_type": "sunburst_v2",
+                "columns": ["region"],
+                "annotation_layers": [],
+                "metric": metric,
+            },
+        }
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError):
+                await client.call_tool("generate_explore_link", {"request": request})
+
+    @pytest.mark.parametrize(
+        "metric,expected_expression_type",
+        [
+            (
+                {
+                    "expressionType": "SIMPLE",
+                    "column": {
+                        "column_name": "sales",
+                        "columnName": "sales",
+                        "certification_details": None,
+                        "warning_markdown": None,
+                        "future_metadata": {"enabled": True},
+                    },
+                    "aggregate": "SUM",
+                },
+                "SIMPLE",
+            ),
+            (
+                {
+                    "expressionType": "SQL",
+                    "sqlExpression": "SUM(sales)",
+                    "label": "Sales",
+                },
+                "SQL",
+            ),
+        ],
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @pytest.mark.asyncio
+    async def test_registered_fastmcp_accepts_explicit_native_metric_types(
+        self,
+        mock_find_dataset,
+        metric: dict[str, object],
+        expected_expression_type: str,
+        mcp_server,
+    ) -> None:
+        mock_find_dataset.return_value = _mock_dataset(id=1)
+        request = {
+            "dataset_id": 1,
+            "config": {
+                "viz_type": "sunburst_v2",
+                "columns": ["region"],
+                "metric": metric,
+            },
+        }
+        with patch.object(
+            generate_explore_link_module.DatasetValidator,
+            "normalize_column_names",
+            side_effect=lambda config, _dataset_id: config,
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "generate_explore_link", {"request": request}
+                )
+        assert result.is_error is False
+        assert result.structured_content["success"] is True
+        assert (
+            result.structured_content["form_data"]["metric"]["expressionType"]
+            == expected_expression_type
+        )
+
+    @pytest.mark.asyncio
+    async def test_registered_fastmcp_sanitizes_all_hostile_native_metric_inputs(  # noqa: C901
+        self, mcp_server
+    ) -> None:
+        calls: list[str] = []
+
+        class HostileObject:
+            def __repr__(self) -> str:
+                calls.append("object.repr")
+                raise AssertionError
+
+            def __str__(self) -> str:
+                calls.append("object.str")
+                raise AssertionError
+
+            def __hash__(self) -> int:
+                calls.append("object.hash")
+                raise AssertionError
+
+            def __eq__(self, _other: object) -> bool:
+                calls.append("object.eq")
+                raise AssertionError
+
+            def __bool__(self) -> bool:
+                calls.append("object.bool")
+                raise AssertionError
+
+        class HostileStr(str):
+            def __hash__(self) -> int:
+                calls.append("str.hash")
+                return str.__hash__(self)
+
+            def __eq__(self, _other: object) -> bool:
+                calls.append("str.eq")
+                raise AssertionError
+
+            def __str__(self) -> str:
+                calls.append("str.str")
+                raise AssertionError
+
+            def __repr__(self) -> str:
+                calls.append("str.repr")
+                raise AssertionError
+
+        class HostileDict(dict[object, object]):
+            def __repr__(self) -> str:
+                calls.append("dict.repr")
+                raise AssertionError
+
+            def __iter__(self) -> Iterator[object]:
+                calls.append("dict.iter")
+                raise AssertionError
+
+            def items(self):
+                calls.append("dict.items")
+                raise AssertionError
+
+            def keys(self):
+                calls.append("dict.keys")
+                raise AssertionError
+
+            def get(self, _key: object, _default: object = None) -> object:
+                calls.append("dict.get")
+                raise AssertionError
+
+            def __getitem__(self, _key: object) -> object:
+                calls.append("dict.getitem")
+                raise AssertionError
+
+        class HostileList(list[object]):
+            def __repr__(self) -> str:
+                calls.append("list.repr")
+                raise AssertionError
+
+            def __iter__(self) -> Iterator[object]:
+                calls.append("list.iter")
+                raise AssertionError
+
+            def __getitem__(self, _key: object) -> object:  # type: ignore[override]
+                calls.append("list.getitem")
+                raise AssertionError
+
+        class HostileMapping(Mapping[object, object]):
+            def __repr__(self) -> str:
+                calls.append("mapping.repr")
+                raise AssertionError
+
+            def __iter__(self) -> Iterator[object]:
+                calls.append("mapping.iter")
+                raise AssertionError
+
+            def __len__(self) -> int:
+                calls.append("mapping.len")
+                raise AssertionError
+
+            def __getitem__(self, _key: object) -> object:
+                calls.append("mapping.getitem")
+                raise AssertionError
+
+        def simple(**overrides: object) -> dict[object, object]:
+            metric: dict[object, object] = {
+                "expressionType": "SIMPLE",
+                "column": "sales",
+                "aggregate": "SUM",
+            }
+            for key, value in overrides.items():
+                dict.__setitem__(metric, key, value)
+            return metric
+
+        hostile_key = HostileStr("expressionType")
+        cases: list[object] = [
+            simple(label=HostileStr("Sales")),
+            simple(aggregate=HostileStr("SUM")),
+            {
+                "expressionType": "SQL",
+                "sqlExpression": HostileStr("SUM(sales)"),
+                "label": "Sales",
+            },
+            simple(optionName=HostileStr("metric")),
+            simple(expressionType=HostileObject()),
+            simple(hasCustomLabel=HostileObject()),
+            simple(datasourceWarning=HostileObject()),
+            simple(column=HostileDict(column_name="sales")),
+            simple(column=HostileList(["sales"])),
+            simple(column={"column_name": "sales", "future": HostileObject()}),
+            simple(
+                column={
+                    "column_name": "sales",
+                    "future": HostileDict(enabled=True),
+                }
+            ),
+            simple(
+                column={
+                    "column_name": "sales",
+                    "future": HostileList([True]),
+                }
+            ),
+            HostileMapping(),
+            HostileList([]),
+            HostileDict(expressionType="SIMPLE", column="sales", aggregate="SUM"),
+            {
+                hostile_key: "SIMPLE",
+                "column": "sales",
+                "aggregate": "SUM",
+            },
+        ]
+        calls.clear()  # constructing the hostile-key dictionary needs hashing
+        for metric in cases:
+            request = {
+                "dataset_id": 1,
+                "config": {
+                    "viz_type": "sunburst_v2",
+                    "columns": ["region"],
+                    "annotation_layers": [],
+                    "metric": metric,
+                },
+            }
+            with (
+                patch("fastmcp.server.server.logger.warning"),
+                pytest.raises(
+                    (ValidationError, FastMCPValidationError)
+                ) as validation_error,
+            ):
+                await mcp_server.call_tool(
+                    "generate_explore_link",
+                    {"request": request},
+                    run_middleware=False,
+                )
+            assert calls == []
+            error = validation_error.value
+            outputs = [str(error), repr(error)]
+            if isinstance(error, ValidationError):
+                outputs.append(repr(error.errors()))
+            assert calls == []
+            assert all(len(output.encode()) < 64 * 1024 for output in outputs)
+
+    @pytest.mark.parametrize(
+        "metric_path",
+        ["metric", "secondary_metric", "secondaryMetric", "standardized metrics"],
+    )
+    @pytest.mark.asyncio
+    async def test_registered_fastmcp_sanitizes_every_native_metric_path(
+        self, metric_path: str, mcp_server
+    ) -> None:
+        calls: list[str] = []
+
+        class HostileStr(str):
+            def __repr__(self) -> str:
+                calls.append("repr")
+                raise AssertionError
+
+            def __str__(self) -> str:
+                calls.append("str")
+                raise AssertionError
+
+        hostile_metric = {
+            "expressionType": "SIMPLE",
+            "column": "sales",
+            "aggregate": "SUM",
+            "label": HostileStr("Sales"),
+        }
+        valid_metric = {
+            "expressionType": "SIMPLE",
+            "column": "sales",
+            "aggregate": "SUM",
+        }
+        config: dict[str, object] = {
+            "viz_type": "sunburst_v2",
+            "columns": ["region"],
+            "annotation_layers": [],
+            "metric": valid_metric,
+        }
+        if metric_path == "standardized metrics":
+            config["standardizedFormData"] = {"controls": {"metrics": [hostile_metric]}}
+        else:
+            config[metric_path] = hostile_metric
+        request = {"dataset_id": 1, "config": config}
+        with (
+            patch("fastmcp.server.server.logger.warning"),
+            pytest.raises(
+                (ValidationError, FastMCPValidationError)
+            ) as validation_error,
+        ):
+            await mcp_server.call_tool(
+                "generate_explore_link",
+                {"request": request},
+                run_middleware=False,
+            )
+        error = validation_error.value
+        outputs = [str(error), repr(error)]
+        if isinstance(error, ValidationError):
+            outputs.append(repr(error.errors()))
+        assert calls == []
+        assert all(len(output.encode()) < 64 * 1024 for output in outputs)
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @pytest.mark.asyncio

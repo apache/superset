@@ -36,6 +36,7 @@ from superset.mcp_service.chart.schemas import (
     FilterConfig,
     GenerateChartResponse,
     LegendConfig,
+    MixedTimeseriesChartConfig,
     TableChartConfig,
     UpdateChartRequest,
     XYChartConfig,
@@ -738,6 +739,45 @@ class TestBuildUpdatePayload:
         # query_context must be cleared so get_chart_data uses updated params
         assert result["query_context"] is None
 
+    def test_same_viz_mixed_timeseries_preserves_native_controls_in_both_paths(
+        self,
+    ) -> None:
+        """Simplified updates retain valid controls owned by the same plugin."""
+        config = MixedTimeseriesChartConfig(
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="profit", aggregate="SUM")],
+        )
+        request = UpdateChartRequest(identifier=11, config=config)
+        chart = Mock(
+            id=11,
+            datasource_id=7,
+            datasource_type="table",
+            slice_name="Comparison",
+            params=json.dumps(
+                {
+                    "viz_type": "mixed_timeseries",
+                    "metrics": ["old_primary"],
+                    "metrics_b": ["old_secondary"],
+                    "time_compare": ["1 year ago"],
+                    "comparison_type_b": "percentage",
+                    "y_axis_format": ",.2f",
+                }
+            ),
+        )
+
+        payload = _build_update_payload(request, chart, parsed_config=config)
+        preview = _build_preview_form_data(request, chart, parsed_config=config)
+
+        assert isinstance(payload, dict)
+        assert isinstance(preview, dict)
+        for form_data in (json.loads(payload["params"]), preview):
+            assert form_data["time_compare"] == ["1 year ago"]
+            assert form_data["comparison_type_b"] == "percentage"
+            assert form_data["y_axis_format"] == ",.2f"
+            assert form_data["metrics"][0]["column"] == {"column_name": "revenue"}
+            assert form_data["metrics_b"][0]["column"] == {"column_name": "profit"}
+
     def test_add_columns_preserves_existing_columns_and_metrics(self):
         """An additive update does not require reconstructing the table."""
         request = UpdateChartRequest(
@@ -768,14 +808,15 @@ class TestBuildUpdatePayload:
         assert params["metrics"][1]["label"] == "Earliest Go Live Date"
         assert params["metrics"][1]["aggregate"] == "MIN"
 
-    def test_add_columns_rebinds_requested_dataset(self):
-        """Additive saves validate and persist against the same dataset."""
+    def test_add_columns_rebind_requires_complete_config(self):
+        """An additive patch cannot safely replace old dataset-bound roles."""
         request = UpdateChartRequest(
             identifier=1,
             dataset_id=22,
             add_columns=[ColumnRef(name="region")],
         )
         chart = Mock(
+            datasource_id=10,
             slice_name="Existing",
             params=json.dumps(
                 {
@@ -789,12 +830,14 @@ class TestBuildUpdatePayload:
 
         result = _build_update_payload(request, chart)
 
-        assert isinstance(result, dict)
-        assert result["datasource_id"] == 22
-        assert result["datasource_type"] == "table"
-        assert result["slice_name"] == "Existing"
-        params = json.loads(result["params"])
-        assert params["groupby"] == ["employer", "region"]
+        preview = _build_preview_form_data(request, chart)
+
+        for response in (result, preview):
+            assert isinstance(response, GenerateChartResponse)
+            assert response.success is False
+            assert response.error is not None
+            assert response.error.error_type == "ValidationError"
+            assert "complete table configuration" in response.error.details
 
     def test_add_columns_recognizes_implicit_raw_query_mode(self) -> None:
         """A table with all_columns and no query_mode still has raw semantics."""
@@ -1256,8 +1299,9 @@ class TestBuildPreviewFormData:
         result = _build_preview_form_data(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
-        # Existing keys not touched by the new config are preserved
-        assert result["custom_flag"] is True
+        # A type change starts from mapped target state; arbitrary source-plugin
+        # keys must not leak into the new chart's query or UI controls.
+        assert "custom_flag" not in result
         # New config overrides existing keys
         assert result["viz_type"] == "table"
         # slice_id and datasource are always stamped onto the preview
@@ -2068,18 +2112,7 @@ class TestBuildUpdatePayloadDatasetId:
         """dataset_id alone produces a payload with datasource_id + datasource_type."""
         request = UpdateChartRequest(identifier=1, dataset_id=42)
         chart = Mock()
-        chart.datasource_id = 10
-
-        result = _build_update_payload(request, chart)
-
-        assert isinstance(result, dict)
-        assert result == {"datasource_id": 42, "datasource_type": "table"}
-
-    def test_dataset_and_name_update(self) -> None:
-        """dataset_id + chart_name: payload includes datasource fields
-        and slice_name."""
-        request = UpdateChartRequest(identifier=1, dataset_id=42, chart_name="Renamed")
-        chart = Mock()
+        chart.id = 1
         chart.datasource_id = 10
 
         result = _build_update_payload(request, chart)
@@ -2088,6 +2121,26 @@ class TestBuildUpdatePayloadDatasetId:
         assert result == {
             "datasource_id": 42,
             "datasource_type": "table",
+            "params": '{"datasource": "42__table", "slice_id": 1}',
+            "query_context": None,
+        }
+
+    def test_dataset_and_name_update(self) -> None:
+        """dataset_id + chart_name: payload includes datasource fields
+        and slice_name."""
+        request = UpdateChartRequest(identifier=1, dataset_id=42, chart_name="Renamed")
+        chart = Mock()
+        chart.id = 1
+        chart.datasource_id = 10
+
+        result = _build_update_payload(request, chart)
+
+        assert isinstance(result, dict)
+        assert result == {
+            "datasource_id": 42,
+            "datasource_type": "table",
+            "params": '{"datasource": "42__table", "slice_id": 1}',
+            "query_context": None,
             "slice_name": "Renamed",
         }
 
@@ -2181,6 +2234,224 @@ class TestBuildPreviewFormDataDatasetId:
         assert isinstance(result, dict)
         assert result["datasource"] == "10__table"
 
+    @pytest.mark.parametrize(
+        "saved_form_data",
+        [
+            {
+                "viz_type": "table",
+                "query_mode": "aggregate",
+                "groupby": ["region"],
+                "metrics": ["revenue"],
+                "order_by_cols": ['["revenue", false]'],
+                "adhoc_filters": [{"subject": "region"}],
+                "column_config": {"revenue": {"visible": False}},
+            },
+            {
+                "viz_type": "deck_path",
+                "line_column": "path",
+                "line_width": {"type": "metric", "value": "width"},
+                "breakpoint_metric": "breakpoint",
+                "dimension": "region",
+                "tooltip_contents": ["label"],
+                "adhoc_filters": [{"subject": "region"}],
+            },
+            {
+                "viz_type": "pie",
+                "groupby": ["region"],
+                "metric": "revenue",
+                "adhoc_filters": [{"subject": "region"}],
+                "color_scheme": "supersetColors",
+            },
+        ],
+        ids=["table", "deck", "registered-pie"],
+    )
+    @pytest.mark.parametrize("chart_name", [None, "Renamed chart"])
+    def test_same_dataset_id_preserves_all_populated_roles(
+        self, saved_form_data: dict[str, Any], chart_name: str | None
+    ) -> None:
+        """Idempotent datasource updates and renames never trigger a scrub."""
+        request = UpdateChartRequest(
+            identifier=11,
+            dataset_id=10,
+            chart_name=chart_name,
+        )
+        chart = Mock(
+            id=11,
+            datasource_id=10,
+            datasource_type="table",
+            slice_name="Original",
+            params=json.dumps(saved_form_data),
+        )
+
+        payload = _build_update_payload(request, chart)
+        preview = _build_preview_form_data(request, chart)
+
+        assert isinstance(payload, dict)
+        assert "params" not in payload
+        assert isinstance(preview, dict)
+        for key, value in saved_form_data.items():
+            assert preview[key] == value
+        assert preview["datasource"] == "10__table"
+        if chart_name:
+            assert payload["slice_name"] == chart_name
+            assert preview["slice_name"] == chart_name
+
+    def test_same_dataset_add_columns_preserves_table_roles(self) -> None:
+        """An additive update preserves filters, ordering, and saved roles."""
+        saved_form_data = {
+            "viz_type": "table",
+            "query_mode": "aggregate",
+            "groupby": ["region"],
+            "metrics": ["revenue"],
+            "order_by_cols": ['["revenue", false]'],
+            "adhoc_filters": [{"subject": "region"}],
+            "column_config": {"revenue": {"visible": False}},
+        }
+        request = UpdateChartRequest(
+            identifier=11,
+            dataset_id=10,
+            add_columns=[ColumnRef(name="country")],
+        )
+        chart = Mock(
+            id=11,
+            datasource_id=10,
+            datasource_type="table",
+            slice_name="Table",
+            params=json.dumps(saved_form_data),
+        )
+
+        payload = _build_update_payload(request, chart)
+        preview = _build_preview_form_data(request, chart)
+
+        assert isinstance(payload, dict)
+        assert isinstance(preview, dict)
+        for form_data in (json.loads(payload["params"]), preview):
+            assert form_data["groupby"] == ["region", "country"]
+            for key in (
+                "metrics",
+                "order_by_cols",
+                "adhoc_filters",
+                "column_config",
+            ):
+                assert form_data[key] == saved_form_data[key]
+
+    @pytest.mark.parametrize(
+        "saved_form_data,stale_roles",
+        [
+            (
+                {
+                    "viz_type": "deck_path",
+                    "line_column": "old_path",
+                    "line_width": {"type": "metric", "value": "old_width"},
+                    "breakpoint_metric": "old_breakpoint",
+                    "dimension": "old_dimension",
+                    "tooltip_contents": ["old_tooltip"],
+                    "adhoc_filters": [{"subject": "old_region"}],
+                    "color_scheme": "supersetColors",
+                },
+                {
+                    "line_column",
+                    "line_width",
+                    "breakpoint_metric",
+                    "dimension",
+                    "tooltip_contents",
+                    "adhoc_filters",
+                },
+            ),
+            (
+                {
+                    "viz_type": "table",
+                    "query_mode": "aggregate",
+                    "groupby": ["old_region"],
+                    "metrics": ["old_revenue"],
+                    "order_by_cols": ['["old_revenue", false]'],
+                    "column_config": {"old_revenue": {"visible": False}},
+                    "adhoc_filters": [{"subject": "old_region"}],
+                    "show_legend": True,
+                },
+                {
+                    "query_mode",
+                    "groupby",
+                    "metrics",
+                    "order_by_cols",
+                    "column_config",
+                    "adhoc_filters",
+                },
+            ),
+            (
+                {
+                    "viz_type": "pie",
+                    "groupby": ["old_region"],
+                    "metric": "old_revenue",
+                    "adhoc_filters": [{"subject": "old_region"}],
+                    "color_scheme": "supersetColors",
+                },
+                {"groupby", "metric", "adhoc_filters"},
+            ),
+        ],
+    )
+    def test_dataset_only_rebind_scrubs_populated_roles_in_preview_and_save(
+        self,
+        saved_form_data: dict[str, Any],
+        stale_roles: set[str],
+    ) -> None:
+        """Dataset-only preview and persistence share the same role scrub."""
+        request = UpdateChartRequest(identifier=11, dataset_id=99)
+        chart = Mock(
+            id=11,
+            datasource_id=10,
+            datasource_type="table",
+            slice_name="Rebound chart",
+            params=json.dumps(saved_form_data),
+        )
+
+        payload = _build_update_payload(request, chart)
+        preview = _build_preview_form_data(request, chart)
+
+        assert isinstance(payload, dict)
+        assert isinstance(preview, dict)
+        persisted = json.loads(payload["params"])
+        for form_data in (persisted, preview):
+            assert form_data["datasource"] == "99__table"
+            assert form_data["slice_id"] == 11
+            assert stale_roles.isdisjoint(form_data)
+        assert persisted["viz_type"] == saved_form_data["viz_type"]
+        assert preview["viz_type"] == saved_form_data["viz_type"]
+
+    def test_complete_config_rebind_replaces_roles_in_preview_and_save(self) -> None:
+        """Only roles explicitly mapped for the target dataset survive."""
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="new_region")]
+        )
+        request = UpdateChartRequest(identifier=12, dataset_id=99, config=config)
+        chart = Mock(
+            id=12,
+            datasource_id=10,
+            datasource_type="table",
+            slice_name="Rebound table",
+            params=json.dumps(
+                {
+                    "viz_type": "table",
+                    "query_mode": "aggregate",
+                    "groupby": ["old_region"],
+                    "metrics": ["old_revenue"],
+                    "column_config": {"old_revenue": {"visible": False}},
+                    "adhoc_filters": [{"subject": "old_region"}],
+                }
+            ),
+        )
+
+        payload = _build_update_payload(request, chart, parsed_config=config)
+        preview = _build_preview_form_data(request, chart, parsed_config=config)
+
+        assert isinstance(payload, dict)
+        assert isinstance(preview, dict)
+        for form_data in (json.loads(payload["params"]), preview):
+            assert form_data["all_columns"] == ["new_region"]
+            assert form_data["datasource"] == "99__table"
+            assert "old_region" not in json.dumps(form_data)
+            assert "old_revenue" not in json.dumps(form_data)
+
 
 class TestUpdateChartDatasetIdIntegration:
     """Integration test verifying dataset_id is plumbed into UpdateChartCommand."""
@@ -2248,6 +2519,84 @@ class TestUpdateChartDatasetIdIntegration:
             payload = call_args[0][1]
             assert payload.get("datasource_id") == 1041
             assert payload.get("datasource_type") == "table"
+            validated_form_data = mock_validate.call_args.args[1]
+            assert validated_form_data["datasource"] == "1041__table"
+            assert validated_form_data["slice_id"] == 55
+            assert mock_validate.call_args.kwargs.get("run_compile_check", True)
+
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch(
+        "superset.commands.chart.update.UpdateChartCommand",
+        new_callable=Mock,
+    )
+    @patch.object(
+        update_chart_module,
+        "_validate_update_against_dataset",
+        return_value=None,
+    )
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_same_dataset_save_validates_preserved_final_form_data(
+        self,
+        mock_db_session: Any,
+        mock_find_by_id: Mock,
+        mock_validate: Mock,
+        mock_update_cmd_cls: Mock,
+        mock_check_access: Mock,
+        mcp_server: Any,
+    ) -> None:
+        """The immediate-save path compiles preserved state without rewriting it."""
+        saved_form_data = {
+            "viz_type": "table",
+            "query_mode": "aggregate",
+            "groupby": ["region"],
+            "metrics": ["revenue"],
+            "order_by_cols": ['["revenue", false]'],
+            "adhoc_filters": [{"subject": "region"}],
+        }
+        chart = Mock(
+            id=55,
+            datasource_id=10,
+            datasource_type="table",
+            slice_name="Old Chart",
+            viz_type="table",
+            uuid="uuid-55",
+            params=json.dumps(saved_form_data),
+        )
+        mock_find_by_id.return_value = chart
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True,
+            dataset_id=10,
+            dataset_name="dataset",
+            warnings=[],
+        )
+        mock_update_cmd_cls.return_value.run.return_value = chart
+
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "update_chart",
+                {
+                    "request": {
+                        "identifier": 55,
+                        "dataset_id": 10,
+                        "chart_name": "Renamed",
+                        "generate_preview": False,
+                    }
+                },
+            )
+
+        assert result.structured_content["success"] is True
+        payload = mock_update_cmd_cls.call_args.args[1]
+        assert payload["slice_name"] == "Renamed"
+        assert "params" not in payload
+        validated_form_data = mock_validate.call_args.args[1]
+        for key, value in saved_form_data.items():
+            assert validated_form_data[key] == value
+        assert validated_form_data["datasource"] == "10__table"
 
     @patch(
         "superset.mcp_service.auth.check_chart_data_access",

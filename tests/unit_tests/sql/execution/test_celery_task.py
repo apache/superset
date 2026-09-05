@@ -17,10 +17,12 @@
 
 """Tests for celery_task.py - async SQL execution via Celery."""
 
+from decimal import Decimal
 from typing import Any
 from unittest.mock import MagicMock
 
 import msgpack
+import pandas as pd
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
@@ -29,6 +31,7 @@ from pytest_mock import MockerFixture
 from superset.common.db_query_status import QueryStatus as QueryStatusEnum
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException, SupersetErrorsException
+from superset.utils import json as superset_json
 
 # Note: mock_query, mock_database, mock_result_set, and mock_db_session
 # fixtures are imported from conftest.py
@@ -863,6 +866,43 @@ def test_serialize_result_set_json(
 
     assert data == [{"id": 1, "name": "Alice"}]
     assert columns == mock_result_set.columns
+
+
+def test_serialize_result_set_json_normalizes_decimal_nonfinite(
+    mocker: MockerFixture, app_context: None, mock_result_set: MagicMock
+) -> None:
+    """Async JSON results contain null, never bare Decimal non-finite tokens."""
+    from superset.sql.execution.celery_task import (
+        _serialize_payload,
+        _serialize_result_set,
+    )
+
+    finite = Decimal("0.10000000000000000001")
+    mocker.patch("superset.results_backend_use_msgpack", False)
+    mock_result_set.to_pandas_df.return_value = pd.DataFrame(
+        {
+            "value": pd.Series(
+                [
+                    Decimal("NaN"),
+                    Decimal("sNaN"),
+                    Decimal("Infinity"),
+                    Decimal("-Infinity"),
+                    finite,
+                ],
+                dtype=object,
+            )
+        }
+    )
+
+    data, _ = _serialize_result_set(mock_result_set)
+    assert isinstance(data, list)
+    assert [row["value"] for row in data] == [None, None, None, None, finite]
+
+    payload = _serialize_payload({"data": data})
+    payload_text = payload.decode() if isinstance(payload, bytes) else payload
+    assert "NaN" not in payload_text
+    assert "Infinity" not in payload_text
+    assert superset_json.loads(payload_text)["data"][:4] == [{"value": None}] * 4
 
 
 # =============================================================================

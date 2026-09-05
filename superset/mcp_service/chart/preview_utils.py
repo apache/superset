@@ -24,18 +24,80 @@ from form data without requiring a saved chart object.
 
 import logging
 import math
+from copy import deepcopy
+from datetime import date, datetime, time
+from decimal import Decimal
 from typing import Any, Dict, List
+from uuid import UUID
 
+from superset.mcp_service.chart.chart_helpers import canonicalize_operation_form_data
+from superset.mcp_service.chart.query_result import (
+    first_query_data,
+    MAX_RESULT_VALUE_DEPTH,
+)
 from superset.mcp_service.chart.schemas import (
     ASCIIPreview,
     ChartError,
     TablePreview,
     VegaLitePreview,
 )
+from superset.mcp_service.chart.sunburst import (
+    resolve_sunburst_result_roles,
+    unsupported_sunburst_preview,
+    validate_sunburst_result_data,
+)
 
 logger = logging.getLogger(__name__)
 
 SUPPORTED_FORM_DATA_PREVIEW_FORMATS = frozenset({"ascii", "table", "vega_lite"})
+MAX_PREVIEW_CELLS = 10_000
+MAX_PREVIEW_NESTED_ITEMS = 20
+MAX_PREVIEW_VALUE_LENGTH = 1_000
+
+
+def _canonical_preview_value(value: Any, *, depth: int = 0) -> Any:
+    """Convert validated exact values to bounded JSON-compatible primitives."""
+    value_type = type(value)
+    if value_type in {type(None), bool, int, float}:  # noqa: E721
+        return value
+    if value_type is str:
+        return value[:MAX_PREVIEW_VALUE_LENGTH]
+    if value_type is Decimal:
+        return format(value, "f")[:MAX_PREVIEW_VALUE_LENGTH]
+    if value_type in {date, datetime, time}:  # noqa: E721
+        return value.isoformat()[:MAX_PREVIEW_VALUE_LENGTH]
+    if value_type is UUID:
+        return str(value)
+    if value_type is list and depth < MAX_RESULT_VALUE_DEPTH:
+        return [
+            _canonical_preview_value(item, depth=depth + 1)
+            for item in value[:MAX_PREVIEW_NESTED_ITEMS]
+        ]
+    if value_type is dict and depth < MAX_RESULT_VALUE_DEPTH:
+        return {
+            key: _canonical_preview_value(item, depth=depth + 1)
+            for key, item in list(value.items())[:MAX_PREVIEW_NESTED_ITEMS]
+        }
+    return "[truncated]"
+
+
+def _canonical_preview_text(value: Any) -> str:
+    """Render a validated exact value with bounded nested work."""
+    canonical = _canonical_preview_value(value)
+    if type(canonical) is str:
+        return canonical
+    return repr(canonical)[:MAX_PREVIEW_VALUE_LENGTH]
+
+
+def _bounded_vega_data(data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Bound the rows, cells, and nested values embedded in a Vega spec."""
+    if not data:
+        return []
+    row_limit = max(1, MAX_PREVIEW_CELLS // max(len(data[0]), 1))
+    return [
+        {key: _canonical_preview_value(value) for key, value in row.items()}
+        for row in data[:row_limit]
+    ]
 
 
 def _build_query_columns(form_data: Dict[str, Any]) -> list[str]:
@@ -63,8 +125,12 @@ def generate_preview_from_form_data(
     Returns:
         Preview object or ChartError
     """
+    if form_data.get("viz_type") == "sunburst_v2" and preview_format == "vega_lite":
+        return unsupported_sunburst_preview("Vega-Lite")
+
     try:
         # Execute query to get data
+        from superset.charts.data.form_data import set_query_context_form_data
         from superset.commands.chart.data.get_data_command import ChartDataCommand
         from superset.connectors.sqla.models import SqlaTable
         from superset.extensions import db
@@ -75,57 +141,32 @@ def generate_preview_from_form_data(
                 error=f"Dataset {dataset_id} not found", error_type="DatasetNotFound"
             )
 
-        # Create query context from form data using factory
-        from superset.common.query_context_factory import QueryContextFactory
-        from superset.mcp_service.chart.chart_utils import (
-            adhoc_filters_to_query_filters,
+        # Use the same chart-aware builder as saved previews and get_chart_data.
+        from superset.mcp_service.chart.chart_helpers import (
+            build_query_context_from_form_data,
         )
 
-        # Build columns list: include x_axis and groupby for XY charts,
-        # fall back to form_data "columns" for table charts
-        columns = _build_query_columns(form_data)
-
-        query_filters = adhoc_filters_to_query_filters(
-            form_data.get("adhoc_filters", [])
+        query_form_data = canonicalize_operation_form_data(
+            deepcopy(form_data),
+            datasource_id=dataset_id,
         )
-
-        # Big Number charts use singular "metric" instead of "metrics"
-        metrics = form_data.get("metrics", [])
-        if not metrics and form_data.get("metric"):
-            metrics = [form_data["metric"]]
-
-        # Big Number with trendline uses granularity_sqla as the time column
-        if not columns and form_data.get("granularity_sqla"):
-            columns = [form_data["granularity_sqla"]]
-
-        factory = QueryContextFactory()
-        query_context_obj = factory.create(
-            datasource={"id": dataset_id, "type": "table"},
-            queries=[
-                {
-                    "columns": columns,
-                    "metrics": metrics,
-                    "orderby": form_data.get("orderby", []),
-                    "row_limit": form_data.get("row_limit", 100),
-                    "filters": query_filters,
-                    "time_range": form_data.get("time_range", "No filter"),
-                }
-            ],
-            form_data=form_data,
+        query_form_data["datasource"] = f"{dataset_id}__table"
+        query_context_obj = build_query_context_from_form_data(
+            query_form_data,
+            row_limit=form_data.get("row_limit", 100),
+            force=False,
         )
+        set_query_context_form_data(query_context_obj, dataset_id, "table")
 
         # Execute query
         command = ChartDataCommand(query_context_obj)
         command.validate()
         result = command.run()
 
-        if not result or not result.get("queries"):
-            return ChartError(
-                error="No data returned from query", error_type="EmptyResult"
-            )
-
-        query_result = result["queries"][0]
-        data = query_result.get("data", [])
+        data, result_error = first_query_data(result)
+        if result_error is not None:
+            return result_error
+        assert data is not None
 
         # Generate preview based on format
         if preview_format == "ascii":
@@ -148,8 +189,12 @@ def generate_preview_from_form_data(
 
 
 def _generate_ascii_preview_from_data(
-    data: List[Dict[str, Any]], form_data: Dict[str, Any]
-) -> ASCIIPreview:
+    data: List[Dict[str, Any]],
+    form_data: Dict[str, Any],
+    *,
+    width: int = 80,
+    height: int = 20,
+) -> ASCIIPreview | ChartError:
     """Generate ASCII preview from raw data."""
     viz_type = form_data.get("viz_type", "table")
 
@@ -160,11 +205,16 @@ def _generate_ascii_preview_from_data(
         content = _generate_safe_ascii_line_chart(data)
     elif viz_type == "pie":
         content = _generate_safe_ascii_pie_chart(data)
+    elif viz_type == "sunburst_v2":
+        _, error = validate_sunburst_result_data(data, form_data)
+        if error is not None:
+            return error
+        content = _generate_safe_ascii_sunburst(data, form_data)
     else:
         content = _generate_safe_ascii_table(data)
 
     return ASCIIPreview(
-        ascii_content=content, width=80, height=20, supports_color=False
+        ascii_content=content, width=width, height=height, supports_color=False
     )
 
 
@@ -175,17 +225,17 @@ def _calculate_column_widths(
     column_widths = {}
     for col in display_columns:
         # Start with column name length
-        max_width = len(str(col))
+        max_width = len(col)
 
         # Check data values to determine width
         for row in data[:20]:  # Sample first 20 rows
             val = row.get(col, "")
-            if isinstance(val, float):
+            if type(val) is float:
                 val_str = f"{val:.2f}"
-            elif isinstance(val, int):
+            elif type(val) is int:
                 val_str = str(val)
             else:
-                val_str = str(val)
+                val_str = _canonical_preview_text(val)
             max_width = max(max_width, len(val_str))
 
         # Set reasonable bounds
@@ -195,7 +245,7 @@ def _calculate_column_widths(
 
 def _format_value(val: Any, width: int) -> str:
     """Format a value based on its type."""
-    if isinstance(val, float):
+    if type(val) is float:
         if math.isnan(val):
             val_str = "N/A"
         elif math.isfinite(val) and val.is_integer():
@@ -207,12 +257,12 @@ def _format_value(val: Any, width: int) -> str:
             val_str = f"{val:,.2f}"  # Thousands separator
         else:
             val_str = f"{val:g}"
-    elif isinstance(val, int):
+    elif type(val) is int:
         val_str = str(val)
     elif val is None:
         val_str = "N/A"
     else:
-        val_str = str(val)
+        val_str = _canonical_preview_text(val)
 
     # Truncate if too long
     if len(val_str) > width:
@@ -222,8 +272,12 @@ def _format_value(val: Any, width: int) -> str:
 
 def _generate_table_preview_from_data(
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
-) -> TablePreview:
+) -> TablePreview | ChartError:
     """Generate table preview from raw data with improved formatting."""
+    if form_data.get("viz_type") == "sunburst_v2":
+        _, error = validate_sunburst_result_data(data, form_data)
+        if error is not None:
+            return error
     if not data:
         return TablePreview(
             table_data="No data available", row_count=0, supports_sorting=False
@@ -247,7 +301,7 @@ def _generate_table_preview_from_data(
     separator_parts = []
     for col in display_columns:
         width = column_widths[col]
-        col_name = str(col)
+        col_name = col
         if len(col_name) > width:
             col_name = col_name[: width - 2] + ".."
         header_parts.append(f"{col_name:<{width}}")
@@ -298,9 +352,9 @@ def _generate_safe_ascii_bar_chart(data: List[Dict[str, Any]]) -> str:
         value = None
 
         for _, val in row.items():
-            if isinstance(val, (int, float)) and not _is_nan(val) and value is None:
+            if _is_finite_number(val) and value is None:
                 value = val
-            elif isinstance(val, str) and label is None:
+            elif type(val) is str and label is None:
                 label = val
 
         if value is not None:
@@ -348,7 +402,7 @@ def _extract_numeric_values_safe(data: List[Dict[str, Any]]) -> List[float]:
     values = []
     for row in data[:20]:
         for _, val in row.items():
-            if isinstance(val, (int, float)) and not _is_nan(val):
+            if _is_finite_number(val):
                 values.append(val)
                 break
     return values
@@ -407,9 +461,9 @@ def _generate_safe_ascii_pie_chart(data: List[Dict[str, Any]]) -> str:
         value = None
 
         for _, val in row.items():
-            if isinstance(val, (int, float)) and not _is_nan(val) and value is None:
+            if _is_finite_number(val) and value is None:
                 value = val
-            elif isinstance(val, str) and label is None:
+            elif type(val) is str and label is None:
                 label = val
 
         if value is not None and value > 0:
@@ -433,6 +487,61 @@ def _generate_safe_ascii_pie_chart(data: List[Dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+def _generate_safe_ascii_sunburst(
+    data: List[Dict[str, Any]], form_data: Dict[str, Any]
+) -> str:
+    """Render hierarchy paths and both Sunburst metrics without flattening roles."""
+    if not data:
+        return "No data available for sunburst chart"
+
+    roles, error = resolve_sunburst_result_roles(form_data)
+    if error is not None or roles is None:
+        return "Malformed form data for sunburst chart"
+
+    lines = _sunburst_preview_lines(
+        data,
+        list(roles.hierarchy),
+        roles.primary_metric,
+        roles.secondary_metric,
+    )
+    rows_rendered = len(lines) - 2
+
+    if not rows_rendered:
+        return "Malformed data returned for sunburst chart"
+    if len(data) > rows_rendered:
+        lines.append(f"... {len(data) - rows_rendered} more rows")
+    return "\n".join(lines)
+
+
+def _sunburst_preview_lines(
+    data: List[Dict[str, Any]],
+    hierarchy: list[str],
+    primary_label: str,
+    secondary_label: str | None,
+) -> list[str]:
+    """Build safe Sunburst hierarchy rows for the ASCII representation."""
+    lines = ["ASCII Sunburst Hierarchy", "=" * 50]
+    for row in data[:20]:
+        if not isinstance(row, dict):
+            continue
+        path = " > ".join(
+            "N/A"
+            if row.get(column) is None
+            else _canonical_preview_text(row.get(column))
+            for column in hierarchy
+        )
+        values = [
+            f"{primary_label}={_canonical_preview_text(row.get(primary_label, 'N/A'))}"
+        ]
+        if secondary_label:
+            values.append(
+                f"{secondary_label}="
+                f"{_canonical_preview_text(row.get(secondary_label, 'N/A'))}"
+            )
+        lines.append(f"{path}: {', '.join(values)}")
+    return lines
+
+
 def _generate_safe_ascii_table(data: List[Dict[str, Any]]) -> str:
     """Generate ASCII table with safe formatting."""
     if not data:
@@ -444,13 +553,15 @@ def _generate_safe_ascii_table(data: List[Dict[str, Any]]) -> str:
     columns = list(data[0].keys()) if data else []
 
     # Format header
-    header = " | ".join(str(col)[:10] for col in columns[:5])
+    header = " | ".join(col[:10] for col in columns[:5])
     lines.append(header)
     lines.append("-" * len(header))
 
     # Format rows
     for row in data[:10]:
-        row_str = " | ".join(str(row.get(col, ""))[:10] for col in columns[:5])
+        row_str = " | ".join(
+            _canonical_preview_text(row.get(col, ""))[:10] for col in columns[:5]
+        )
         lines.append(row_str)
 
     if len(data) > 10:
@@ -461,19 +572,21 @@ def _generate_safe_ascii_table(data: List[Dict[str, Any]]) -> str:
 
 def _is_nan(value: Any) -> bool:
     """Check if a value is NaN."""
-    try:
-        import math
+    return type(value) is float and math.isnan(value)
 
-        return math.isnan(float(value))
-    except (ValueError, TypeError):
-        return False
+
+def _is_finite_number(value: Any) -> bool:
+    """Accept exact finite preview numerics without conversion hooks."""
+    return type(value) is int or (type(value) is float and math.isfinite(value))
 
 
 def _generate_vega_lite_preview_from_data(  # noqa: C901
     data: List[Dict[str, Any]], form_data: Dict[str, Any]
-) -> VegaLitePreview:
+) -> VegaLitePreview | ChartError:
     """Generate Vega-Lite preview from raw data and form_data."""
     viz_type = form_data.get("viz_type", "table")
+    if viz_type == "sunburst_v2":
+        return unsupported_sunburst_preview("Vega-Lite")
 
     # Map Superset viz types to Vega-Lite marks
     viz_to_mark = {
@@ -492,9 +605,10 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
     mark = viz_to_mark.get(viz_type, "bar")
 
     # Basic Vega-Lite spec
+    preview_data = _bounded_vega_data(data)
     spec = {
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
-        "data": {"values": data},
+        "data": {"values": preview_data},
         "mark": mark,
     }
 
@@ -512,13 +626,13 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
         field_type = "nominal"  # default
         if data and len(data) > 0:
             sample_val = data[0].get(x_axis)
-            if isinstance(sample_val, str):
+            if type(sample_val) is str:
                 # Check if it's a date/time
-                if any(char in str(sample_val) for char in ["-", "/", ":"]):
+                if any(char in sample_val for char in ["-", "/", ":"]):
                     field_type = "temporal"
                 else:
                     field_type = "nominal"
-            elif isinstance(sample_val, (int, float)):
+            elif _is_finite_number(sample_val):
                 field_type = "quantitative"
 
         encoding["x"] = {
@@ -534,13 +648,13 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
         for col in data[0].keys():
             # Check if this is a metric column (usually has aggregation in name)
             if any(
-                agg in str(col).upper()
+                agg in col.upper()
                 for agg in ["SUM", "AVG", "COUNT", "MIN", "MAX", "TOTAL"]
             ):
                 metric_col = col
                 break
             # Or check if it's numeric
-            elif isinstance(data[0].get(col), (int, float)):
+            elif _is_finite_number(data[0].get(col)):
                 metric_col = col
                 break
 

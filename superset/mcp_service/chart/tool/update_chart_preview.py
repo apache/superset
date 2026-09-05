@@ -31,22 +31,29 @@ from superset.commands.exceptions import CommandException
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
 from superset.mcp_service.auth import has_dataset_access
-from superset.mcp_service.chart.chart_helpers import extract_form_data_key_from_url
+from superset.mcp_service.chart.chart_helpers import (
+    canonicalize_operation_form_data,
+    extract_form_data_key_from_url,
+    resolve_form_data_datasource,
+)
 from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
     generate_chart_name,
     generate_explore_link,
     map_config_to_form_data,
-    MCP_DASHBOARD_TIME_FILTER_SUBJECT,
+    merge_form_data_for_update,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
-    NO_TIME_RANGE,
+    scrub_dataset_bound_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.preview_utils import (
     generate_preview_from_form_data,
     SUPPORTED_FORM_DATA_PREVIEW_FORMATS,
+)
+from superset.mcp_service.chart.response_preflight import (
+    finalize_update_chart_preview_response,
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
@@ -54,6 +61,7 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
     UpdateChartPreviewRequest,
 )
+from superset.mcp_service.chart.sunburst import normalize_sunburst_form_data_references
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -61,6 +69,12 @@ from superset.mcp_service.utils.oauth2_utils import (
 from superset.utils import json as utils_json
 
 logger = logging.getLogger(__name__)
+
+
+def _finalize_response(response: Dict[str, Any]) -> Dict[str, Any]:
+    """Preflight every public update-preview response."""
+    return finalize_update_chart_preview_response(response)
+
 
 INVALID_FORM_DATA_KEY_WARNING = (
     "Previous cached chart state could not be loaded from the previous "
@@ -70,10 +84,30 @@ INVALID_FORM_DATA_KEY_WARNING = (
 )
 
 
+def _validation_error_result(compile_result: Any) -> Dict[str, Any]:
+    """Build the structured response used for preview validation failures."""
+    if compile_result.error_obj is not None:
+        error_payload = compile_result.error_obj.model_dump()
+    else:
+        error_payload = {
+            "error_type": "validation_error",
+            "message": "Chart preview validation failed",
+            "details": compile_result.error or "",
+            "error_code": compile_result.error_code,
+            "suggestions": [],
+        }
+    return {
+        "chart": None,
+        "error": error_payload,
+        "success": False,
+        "schema_version": "2.0",
+        "api_version": "v1",
+    }
+
+
 def _find_dataset(dataset_id: int | str) -> Any | None:
-    """Look up a dataset by numeric ID or UUID and check access."""
+    """Look up a dataset by numeric ID or UUID."""
     from superset.daos.dataset import DatasetDAO
-    from superset.mcp_service.auth import has_dataset_access
 
     if isinstance(dataset_id, int) or (
         isinstance(dataset_id, str) and dataset_id.isdigit()
@@ -82,8 +116,6 @@ def _find_dataset(dataset_id: int | str) -> Any | None:
     else:
         dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
 
-    if dataset and not has_dataset_access(dataset):
-        return None
     return dataset
 
 
@@ -104,50 +136,6 @@ def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
     except (KeyError, ValueError, TypeError, CommandException):
         logger.debug("Could not retrieve previous form_data from cache")
     return None
-
-
-def _preserve_previous_adhoc_filters(
-    new_form_data: dict[str, Any], previous_form_data: dict[str, Any]
-) -> None:
-    """Preserve cached filters without dropping mapper-generated bindings."""
-    previous_filters = previous_form_data.get("adhoc_filters")
-    if not isinstance(previous_filters, list) or not previous_filters:
-        return
-
-    generated_filters = new_form_data.get("adhoc_filters", [])
-    previous_binding = previous_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
-    new_binding = new_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
-    merged_filters = [
-        filter_
-        for filter_ in previous_filters
-        if not (
-            previous_binding
-            and previous_binding != new_binding
-            and isinstance(filter_, dict)
-            and filter_.get("operator") == "TEMPORAL_RANGE"
-            and filter_.get("subject") == previous_binding
-            and filter_.get("comparator") == NO_TIME_RANGE
-        )
-    ]
-    for generated_filter in generated_filters:
-        if not isinstance(generated_filter, dict):
-            if generated_filter not in merged_filters:
-                merged_filters.append(generated_filter)
-            continue
-
-        is_same_filter = any(
-            isinstance(previous_filter, dict)
-            and previous_filter.get("clause") == generated_filter.get("clause")
-            and previous_filter.get("expressionType")
-            == generated_filter.get("expressionType")
-            and previous_filter.get("subject") == generated_filter.get("subject")
-            and previous_filter.get("operator") == generated_filter.get("operator")
-            for previous_filter in merged_filters
-        )
-        if not is_same_filter:
-            merged_filters.append(generated_filter)
-
-    new_form_data["adhoc_filters"] = merged_filters
 
 
 @tool(
@@ -178,6 +166,10 @@ def update_chart_preview(  # noqa: C901
     - Iterating on chart design without creating permanent charts
     - Testing different configurations
 
+    Sunburst uses chart_type="sunburst" and the exact frontend viz_type
+    ``sunburst_v2``. Supply hierarchy plus metric; omitted cached presentation
+    and filter controls are preserved, while explicit false/None/[] values win.
+
     Returns new form_data_key, preview images, and explore URL. The explore_url
     scheme matches the configured instance URL (HTTPS in production/staging,
     HTTP in local development).
@@ -192,36 +184,72 @@ def update_chart_preview(  # noqa: C901
         with event_logger.log_context(action="mcp.update_chart_preview.dataset_lookup"):
             dataset = _find_dataset(request.dataset_id)
 
+            if dataset is not None and not has_dataset_access(dataset):
+                return _finalize_response(
+                    {
+                        "chart": None,
+                        "error": {
+                            "error_type": "DatasetNotAccessible",
+                            "message": f"Dataset not found: {request.dataset_id}",
+                            "details": (
+                                f"Dataset {request.dataset_id} is missing or "
+                                "inaccessible."
+                            ),
+                        },
+                        "success": False,
+                        "schema_version": "2.0",
+                        "api_version": "v1",
+                    }
+                )
+
             if not dataset:
-                return {
-                    "chart": None,
-                    "error": {
-                        "error_type": "dataset_not_found",
-                        "message": (f"Dataset not found: {request.dataset_id}"),
-                        "details": (
-                            f"No dataset found with identifier "
-                            f"'{request.dataset_id}'. This could "
-                            f"be an invalid ID/UUID or a "
-                            f"permissions issue."
-                        ),
-                        "suggestions": [
-                            "Verify the dataset ID or UUID",
-                            "Check dataset access permissions",
-                            "Use list_datasets to find available datasets",
-                        ],
-                    },
-                    "success": False,
-                    "schema_version": "2.0",
-                    "api_version": "v1",
-                }
+                return _finalize_response(
+                    {
+                        "chart": None,
+                        "error": {
+                            "error_type": "dataset_not_found",
+                            "message": (f"Dataset not found: {request.dataset_id}"),
+                            "details": (
+                                f"No dataset found with identifier "
+                                f"'{request.dataset_id}'. This could "
+                                f"be an invalid ID/UUID or a "
+                                f"permissions issue."
+                            ),
+                            "suggestions": [
+                                "Verify the dataset ID or UUID",
+                                "Check dataset access permissions",
+                                "Use list_datasets to find available datasets",
+                            ],
+                        },
+                        "success": False,
+                        "schema_version": "2.0",
+                        "api_version": "v1",
+                    }
+                )
 
         with event_logger.log_context(action="mcp.update_chart_preview.form_data"):
+            from superset.mcp_service.chart.validation.dataset_validator import (
+                build_dataset_context_from_orm,
+                DatasetValidator,
+            )
+
+            dataset_context = build_dataset_context_from_orm(dataset)
+            config = DatasetValidator.normalize_column_names(
+                config,
+                dataset.id,
+                dataset_context=dataset_context,
+            )
+
             # Map the new config to form_data format
             # Pass dataset_id to enable column type checking
             new_form_data = map_config_to_form_data(
                 config, dataset_id=request.dataset_id
             )
             new_form_data.pop("_mcp_warnings", None)
+            new_form_data = canonicalize_operation_form_data(
+                new_form_data,
+                datasource_id=dataset.id,
+            )
             warnings: list[str] = []
             previous_form_data: dict[str, Any] | None = None
 
@@ -230,71 +258,56 @@ def update_chart_preview(  # noqa: C901
                 if previous_form_data is None:
                     warnings.append(INVALID_FORM_DATA_KEY_WARNING)
 
-            # Preserve adhoc filters from the previous cached form_data
-            # when the new config doesn't explicitly specify filters
-            if getattr(config, "filters", None) is None and previous_form_data:
-                _preserve_previous_adhoc_filters(
-                    new_form_data,
-                    previous_form_data,
-                )
             if previous_form_data:
-                merge_table_column_config(previous_form_data, new_form_data)
-                merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
+                previous_dataset_id, _ = resolve_form_data_datasource(
+                    previous_form_data
+                )
+                dataset_rebind = previous_dataset_id is None or str(
+                    previous_dataset_id
+                ) != str(dataset.id)
+                if dataset_rebind:
+                    # Cached roles have no usable provenance unless their
+                    # datasource identity matches the authorized target.
+                    previous_form_data = scrub_dataset_bound_form_data(
+                        previous_form_data
+                    )
+                else:
+                    merge_table_column_config(previous_form_data, new_form_data)
+                    merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
+                new_form_data = merge_form_data_for_update(
+                    previous_form_data,
+                    new_form_data,
+                    config,
+                    dataset_rebind=dataset_rebind,
+                )
+                if getattr(config, "filters", None) == []:
+                    new_form_data.pop("adhoc_filters", None)
 
-            # Tier-1 schema validation against the dataset (no DB roundtrip).
-            # Runs AFTER the filter merge so filter columns are also validated.
-            from superset.daos.dataset import DatasetDAO
+            # This tool owns an unsaved cache entry, not a chart update target.
+            # Rebind datasource state to the authorized dataset and remove any
+            # native/cached chart identity before compile and recaching.
+            new_form_data = canonicalize_operation_form_data(
+                new_form_data,
+                datasource_id=dataset.id,
+            )
 
-            if isinstance(request.dataset_id, int) or (
-                isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
+            if (
+                new_form_data.get("viz_type") == "sunburst_v2"
+                and dataset_context is not None
             ):
-                dataset = DatasetDAO.find_by_id(int(request.dataset_id))
-            else:
-                dataset = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
-
-            if dataset is None or not has_dataset_access(dataset):
-                return {
-                    "chart": None,
-                    "error": {
-                        "error_type": "DatasetNotAccessible",
-                        "message": (
-                            f"Dataset not found: {request.dataset_id}. "
-                            "Use list_datasets to find valid dataset IDs."
-                        ),
-                        "details": (
-                            f"Dataset {request.dataset_id} is missing or inaccessible."
-                        ),
-                    },
-                    "success": False,
-                    "schema_version": "2.0",
-                    "api_version": "v1",
-                }
+                new_form_data = normalize_sunburst_form_data_references(
+                    new_form_data, dataset_context
+                )
 
             compile_result = validate_and_compile(
-                config, new_form_data, dataset, run_compile_check=False
+                config, new_form_data, dataset, run_compile_check=True
             )
             if not compile_result.success:
                 logger.warning(
                     "update_chart_preview validation failed: %s",
                     compile_result.error,
                 )
-                if compile_result.error_obj is not None:
-                    error_payload = compile_result.error_obj.model_dump()
-                else:
-                    error_payload = {
-                        "error_type": "validation_error",
-                        "message": "Chart preview validation failed",
-                        "details": compile_result.error or "",
-                        "error_code": compile_result.error_code,
-                        "suggestions": [],
-                    }
-                return {
-                    "chart": None,
-                    "error": error_payload,
-                    "success": False,
-                    "schema_version": "2.0",
-                    "api_version": "v1",
-                }
+                return _finalize_response(_validation_error_result(compile_result))
 
             # Generate new explore link with updated form_data. This preview flow
             # extracts and re-caches the form_data_key, so force that URL shape.
@@ -305,17 +318,19 @@ def update_chart_preview(  # noqa: C901
         # Extract new form_data_key from the explore URL
         new_form_data_key = extract_form_data_key_from_url(explore_url)
         if not new_form_data_key:
-            return {
-                "chart": None,
-                "error": {
-                    "error_type": "PreviewError",
-                    "message": "Failed to generate preview: missing form_data_key",
-                    "details": "The explore URL did not contain a form_data_key",
-                },
-                "success": False,
-                "schema_version": "2.0",
-                "api_version": "v1",
-            }
+            return _finalize_response(
+                {
+                    "chart": None,
+                    "error": {
+                        "error_type": "PreviewError",
+                        "message": "Failed to generate preview: missing form_data_key",
+                        "details": "The explore URL did not contain a form_data_key",
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+            )
 
         with event_logger.log_context(action="mcp.update_chart_preview.metadata"):
             # Generate semantic analysis
@@ -339,6 +354,7 @@ def update_chart_preview(  # noqa: C901
         )
 
         previews: Dict[str, Any] = {}
+        preview_errors: Dict[str, Any] = {}
         if request.generate_preview:
             try:
                 with event_logger.log_context(
@@ -357,6 +373,9 @@ def update_chart_preview(  # noqa: C901
                         )
 
                         if isinstance(preview_result, ChartError):
+                            preview_errors[format_type] = preview_result.model_dump(
+                                mode="json"
+                            )
                             logger.warning(
                                 "Preview '%s' failed: %s",
                                 format_type,
@@ -386,6 +405,7 @@ def update_chart_preview(  # noqa: C901
             "error": None,
             # Enhanced fields for better LLM integration
             "previews": previews,
+            "preview_errors": preview_errors,
             "capabilities": capabilities.model_dump() if capabilities else None,
             "semantics": semantics.model_dump() if semantics else None,
             "explore_url": explore_url,
@@ -399,27 +419,31 @@ def update_chart_preview(  # noqa: C901
             "schema_version": "2.0",
             "api_version": "v1",
         }
-        return result
+        return _finalize_response(result)
 
     except OAuth2RedirectError as ex:
         logger.warning(
             "Chart preview update requires OAuth authentication: form_data_key=%s",
             request.form_data_key,
         )
-        return {
-            "chart": None,
-            "error": build_oauth2_redirect_message(ex),
-            "success": False,
-        }
+        return _finalize_response(
+            {
+                "chart": None,
+                "error": build_oauth2_redirect_message(ex),
+                "success": False,
+            }
+        )
     except OAuth2Error:
         logger.warning(
             "OAuth2 configuration error: form_data_key=%s", request.form_data_key
         )
-        return {
-            "chart": None,
-            "error": OAUTH2_CONFIG_ERROR_MESSAGE,
-            "success": False,
-        }
+        return _finalize_response(
+            {
+                "chart": None,
+                "error": OAUTH2_CONFIG_ERROR_MESSAGE,
+                "success": False,
+            }
+        )
     except (
         SupersetException,
         CommandException,
@@ -430,15 +454,17 @@ def update_chart_preview(  # noqa: C901
         AttributeError,
     ) as e:
         execution_time = int((time.time() - start_time) * 1000)
-        return {
-            "chart": None,
-            "error": f"Chart preview update failed: {str(e)}",
-            "performance": {
-                "query_duration_ms": execution_time,
-                "cache_status": "error",
-                "optimization_suggestions": [],
-            },
-            "success": False,
-            "schema_version": "2.0",
-            "api_version": "v1",
-        }
+        return _finalize_response(
+            {
+                "chart": None,
+                "error": f"Chart preview update failed: {str(e)}",
+                "performance": {
+                    "query_duration_ms": execution_time,
+                    "cache_status": "error",
+                    "optimization_suggestions": [],
+                },
+                "success": False,
+                "schema_version": "2.0",
+                "api_version": "v1",
+            }
+        )

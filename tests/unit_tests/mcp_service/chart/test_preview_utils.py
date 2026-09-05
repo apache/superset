@@ -22,8 +22,15 @@ Tests for preview_utils query context column building.
 import ast
 import inspect
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 from superset.mcp_service.chart import preview_utils
+from superset.mcp_service.chart.preview_utils import _canonical_preview_value
+from superset.mcp_service.chart.query_result import MAX_RESULT_VALUE_DEPTH
+from superset.mcp_service.chart.schemas import ChartError
+from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
+    chart_data_command_result,
+)
 
 
 def _imports_chart_data_command(node: ast.Import | ast.ImportFrom) -> bool:
@@ -59,6 +66,18 @@ def test_preview_utils_does_not_top_level_import_chart_data_command():
         {"ascii", "table", "vega_lite"}
     )
     assert not any(_imports_chart_data_command(node) for node in top_level_imports)
+
+
+def test_preview_projection_uses_the_validated_result_depth_limit() -> None:
+    value: object = "leaf"
+    for _ in range(MAX_RESULT_VALUE_DEPTH):
+        value = [value]
+
+    projected = _canonical_preview_value(value)
+    for _ in range(MAX_RESULT_VALUE_DEPTH):
+        assert isinstance(projected, list)
+        projected = projected[0]
+    assert projected == "leaf"
 
 
 class TestPreviewUtilsColumnBuilding:
@@ -209,3 +228,101 @@ def test_build_query_columns_empty_columns_key_keeps_groupby():
     assert preview_utils._build_query_columns(
         {"groupby": ["country"], "columns": []}
     ) == ["country"]
+
+
+def test_generate_preview_seeds_form_data_before_query_execution():
+    """Preview execution seeds the form data consumed by virtual-dataset Jinja."""
+    with (
+        patch(
+            "superset.charts.data.form_data.set_query_context_form_data"
+        ) as mock_set_form_data,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_cmd_cls,
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory"
+        ) as mock_factory,
+        patch("superset.extensions.db") as mock_db,
+    ):
+        mock_db.session.get.return_value = MagicMock(id=12)
+        query_context = MagicMock()
+        mock_factory.return_value.create.return_value = query_context
+        mock_cmd_cls.return_value.run.return_value = chart_data_command_result(
+            rows=[], columns=["value"]
+        )
+
+        preview_utils.generate_preview_from_form_data(
+            form_data={"metrics": [{"label": "count"}]},
+            dataset_id=12,
+            preview_format="table",
+        )
+
+    mock_set_form_data.assert_called_once_with(query_context, 12, "table")
+
+
+def test_unsaved_previews_strictly_validate_secondary_query_results():
+    class HostileList(list):
+        def __iter__(self):
+            raise AssertionError("hostile secondary list hook executed")
+
+    with (
+        patch("superset.charts.data.form_data.set_query_context_form_data"),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_cmd_cls,
+        patch("superset.common.query_context_factory.QueryContextFactory"),
+        patch("superset.extensions.db") as mock_db,
+    ):
+        mock_db.session.get.return_value = MagicMock(id=12)
+        mock_cmd_cls.return_value.run.return_value = {
+            "queries": [
+                {"data": [{"value": 1}]},
+                {"data": HostileList()},
+            ]
+        }
+
+        result = preview_utils.generate_preview_from_form_data(
+            form_data={"metrics": [{"label": "count"}]},
+            dataset_id=12,
+            preview_format="table",
+        )
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "InvalidQueryResult"
+
+
+def test_unsaved_preview_rejects_hostile_enum_without_dispatching_hooks():
+    from enum import Enum
+
+    class HostileEnum(Enum):
+        VALUE = "hostile"
+
+        def __getattribute__(self, name):
+            if name == "value":
+                raise AssertionError("hostile enum value hook executed")
+            return object.__getattribute__(self, name)
+
+        def __str__(self):
+            raise AssertionError("hostile enum string hook executed")
+
+    with (
+        patch("superset.charts.data.form_data.set_query_context_form_data"),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as mock_cmd_cls,
+        patch("superset.common.query_context_factory.QueryContextFactory"),
+        patch("superset.extensions.db") as mock_db,
+    ):
+        mock_db.session.get.return_value = MagicMock(id=12)
+        mock_cmd_cls.return_value.run.return_value = {
+            "queries": [{"data": [], "status": HostileEnum.VALUE}]
+        }
+
+        result = preview_utils.generate_preview_from_form_data(
+            form_data={"metrics": [{"label": "count"}]},
+            dataset_id=12,
+            preview_format="table",
+        )
+
+    assert isinstance(result, ChartError)
+    assert result.error_type == "InvalidQueryResult"

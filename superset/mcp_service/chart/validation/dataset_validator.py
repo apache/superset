@@ -24,11 +24,12 @@ import difflib
 import logging
 import re
 from collections.abc import Mapping
-from typing import Any, Dict, List, Tuple, TypeVar
+from typing import Any, Callable, Dict, Iterable, List, Tuple, TypeVar
 
 from superset.mcp_service.chart.schemas import (
     ChartConfig,
     ColumnRef,
+    SunburstChartConfig,
 )
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
@@ -37,6 +38,7 @@ from superset.mcp_service.common.error_schemas import (
 )
 
 _C = TypeVar("_C", bound=ChartConfig)
+_T = TypeVar("_T")
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +46,41 @@ _NUMERIC_TYPE_PATTERN = re.compile(
     r"\b(?:(?:TINY|SMALL|MEDIUM|BIG)?INT(?:EGER)?|INT[248]|FLOAT[48]?|"
     r"DOUBLE(?:\s+PRECISION)?|DECIMAL|NUMERIC|REAL|NUMBER|(?:SMALL)?MONEY)\b"
 )
+
+
+def resolve_exact_first_casefold(
+    reference: str,
+    candidates: Iterable[_T],
+    name_getter: Callable[[_T], str],
+) -> tuple[_T | None, list[str]]:
+    """Resolve an exact name, or one and only one Unicode-casefold match.
+
+    The exact pass makes resolution independent of metadata ordering when two
+    distinct names differ only by case.  A non-exact folded reference resolves
+    only when it identifies exactly one candidate; callers reject the returned
+    ambiguity list rather than selecting whichever metadata row came first.
+    """
+    materialized = list(candidates)
+    for candidate in materialized:
+        if name_getter(candidate) == reference:
+            return candidate, []
+
+    folded_reference = reference.casefold()
+    folded_matches = [
+        candidate
+        for candidate in materialized
+        if name_getter(candidate).casefold() == folded_reference
+    ]
+    if len(folded_matches) == 1:
+        return folded_matches[0], []
+    return None, [name_getter(candidate) for candidate in folded_matches]
+
+
+def metadata_entry_name(candidate: Mapping[str, Any] | None) -> str:
+    """Return the canonical name from one dataset metadata mapping."""
+    if candidate is None:
+        raise ValueError("Dataset metadata candidates must not be null")
+    return str(candidate["name"])
 
 
 def is_numeric_column(column: Mapping[str, Any]) -> bool:
@@ -146,6 +183,31 @@ class DatasetValidator:
     """Validates chart configuration against dataset schema."""
 
     @staticmethod
+    def _resolve_metadata_entry(
+        reference: str,
+        candidates: List[Dict[str, Any]],
+    ) -> tuple[Dict[str, Any] | None, list[str]]:
+        """Resolve metadata through the shared exact-first resolver."""
+        return resolve_exact_first_casefold(reference, candidates, metadata_entry_name)
+
+    @staticmethod
+    def _ambiguous_reference_error(
+        reference: str, matches: list[str]
+    ) -> ChartGenerationError:
+        """Build the common actionable error for ambiguous metadata names."""
+        joined = ", ".join(repr(name) for name in matches)
+        return ChartGenerationError(
+            error_type="ambiguous_dataset_reference",
+            message=f"Dataset reference {reference!r} is ambiguous",
+            details=(
+                "The case-insensitive reference matches multiple candidates: "
+                f"{joined}. Use the exact dataset spelling."
+            ),
+            suggestions=[f"Use the exact name {name!r}" for name in matches[:10]],
+            error_code="AMBIGUOUS_DATASET_REFERENCE",
+        )
+
+    @staticmethod
     def validate_against_dataset(
         config: ChartConfig,
         dataset_id: int | str,
@@ -173,14 +235,26 @@ class DatasetValidator:
 
             return False, ChartErrorBuilder.dataset_not_found_error(dataset_id)
 
+        # Collect all column references
+        column_refs = DatasetValidator._extract_column_references(config)
+
+        ambiguity_error = DatasetValidator._validate_unambiguous_references(
+            column_refs, dataset_context
+        )
+        if ambiguity_error:
+            return False, ambiguity_error
+
+        filter_error = DatasetValidator._validate_filter_references(
+            config, dataset_context
+        )
+        if filter_error:
+            return False, filter_error
+
         temporal_error = DatasetValidator._validate_temporal_column(
             config, dataset_context
         )
         if temporal_error:
             return False, temporal_error
-
-        # Collect all column references
-        column_refs = DatasetValidator._extract_column_references(config)
 
         # Validate saved metrics exist in dataset metrics specifically
         invalid_saved = DatasetValidator._validate_saved_metrics(
@@ -202,12 +276,42 @@ class DatasetValidator:
         # handlebars / big number slip through ``SUM(non_numeric)`` patterns
         # for the fast-path tools that skip Tier 2.
         aggregation_errors = DatasetValidator._validate_aggregations(
-            column_refs, dataset_context
+            column_refs,
+            dataset_context,
+            require_numeric_metrics=isinstance(config, SunburstChartConfig),
         )
         if aggregation_errors:
             return False, aggregation_errors[0]
 
         return True, None
+
+    @staticmethod
+    def _validate_filter_references(
+        config: ChartConfig, dataset_context: DatasetContext
+    ) -> ChartGenerationError | None:
+        """Validate typed WHERE subjects through the shared resolver."""
+        for filter_ in getattr(config, "filters", None) or []:
+            candidates = list(dataset_context.available_columns)
+            match, ambiguous = resolve_exact_first_casefold(
+                filter_.column,
+                candidates,
+                metadata_entry_name,
+            )
+            if ambiguous:
+                return DatasetValidator._ambiguous_reference_error(
+                    filter_.column, ambiguous
+                )
+            if match is None:
+                return DatasetValidator._build_column_error(
+                    [ColumnRef(name=filter_.column)],
+                    {
+                        filter_.column: DatasetValidator._get_column_suggestions(
+                            filter_.column, dataset_context
+                        )
+                    },
+                    dataset_context,
+                )
+        return None
 
     @staticmethod
     def _validate_temporal_column(
@@ -218,14 +322,13 @@ class DatasetValidator:
         if not temporal_column:
             return None
 
-        matching_column = next(
-            (
-                column
-                for column in dataset_context.available_columns
-                if column["name"].lower() == temporal_column.lower()
-            ),
-            None,
+        matching_column, ambiguous_matches = DatasetValidator._resolve_metadata_entry(
+            temporal_column, dataset_context.available_columns
         )
+        if ambiguous_matches:
+            return DatasetValidator._ambiguous_reference_error(
+                temporal_column, ambiguous_matches
+            )
         if matching_column is None:
             return ChartGenerationError(
                 error_type="missing_temporal_column",
@@ -267,13 +370,6 @@ class DatasetValidator:
         emit ``SUM(sum_boys)`` as an ad-hoc SIMPLE metric, producing the
         broken-SQL pattern this validator is meant to prevent.
         """
-        column_names_lower = {
-            col["name"].lower() for col in dataset_context.available_columns
-        }
-        metric_names_lower = {
-            metric["name"].lower() for metric in dataset_context.available_metrics
-        }
-
         invalid_columns: List[ColumnRef] = []
         saved_metric_typo: List[ColumnRef] = []
         for col_ref in column_refs:
@@ -285,10 +381,15 @@ class DatasetValidator:
             if col_ref.name is None:
                 # Should be unreachable per validate_metric_shape; defensive.
                 continue
-            name_lower = col_ref.name.lower()
-            if name_lower in column_names_lower:
+            column, _column_ambiguity = DatasetValidator._resolve_metadata_entry(
+                col_ref.name, dataset_context.available_columns
+            )
+            if column is not None:
                 continue
-            if name_lower in metric_names_lower:
+            metric, _metric_ambiguity = DatasetValidator._resolve_metadata_entry(
+                col_ref.name, dataset_context.available_metrics
+            )
+            if metric is not None:
                 # Name matches a saved metric but the ref didn't opt into
                 # saved-metric resolution. Surface a tailored hint so the
                 # caller (typically an LLM) can flip ``saved_metric=true``.
@@ -396,7 +497,7 @@ class DatasetValidator:
         if temporal_column and not any(
             not ref.saved_metric
             and ref.name
-            and ref.name.lower() == temporal_column.lower()
+            and ref.name.casefold() == temporal_column.casefold()
             for ref in refs
         ):
             refs.append(ColumnRef(name=temporal_column))
@@ -404,20 +505,37 @@ class DatasetValidator:
 
     @staticmethod
     def _column_exists(column_name: str, dataset_context: DatasetContext) -> bool:
-        """Check if column exists in dataset (case-insensitive)."""
-        column_lower = column_name.lower()
+        """Check for one exact-first physical-column or saved-metric match."""
+        column, _ = DatasetValidator._resolve_metadata_entry(
+            column_name, dataset_context.available_columns
+        )
+        if column is not None:
+            return True
+        metric, _ = DatasetValidator._resolve_metadata_entry(
+            column_name, dataset_context.available_metrics
+        )
+        return metric is not None
 
-        # Check regular columns
-        for col in dataset_context.available_columns:
-            if col["name"].lower() == column_lower:
-                return True
-
-        # Check metrics
-        for metric in dataset_context.available_metrics:
-            if metric["name"].lower() == column_lower:
-                return True
-
-        return False
+    @staticmethod
+    def _validate_unambiguous_references(
+        column_refs: List[ColumnRef], dataset_context: DatasetContext
+    ) -> ChartGenerationError | None:
+        """Reject non-exact case-folded references with multiple candidates."""
+        for ref in column_refs:
+            if ref.sql_expression or not ref.name:
+                continue
+            candidates = (
+                dataset_context.available_metrics
+                if ref.saved_metric
+                else dataset_context.available_columns
+            )
+            _entry, folded_matches = DatasetValidator._resolve_metadata_entry(
+                ref.name, candidates
+            )
+            if len(folded_matches) <= 1:
+                continue
+            return DatasetValidator._ambiguous_reference_error(ref.name, folded_matches)
+        return None
 
     @staticmethod
     def get_canonical_column_name(
@@ -438,17 +556,36 @@ class DatasetValidator:
             The canonical column name from the dataset, or the original name
             if no match is found.
         """
-        column_lower = column_name.lower()
+        # Resolve each namespace independently. Combining columns and metrics
+        # into one exact-first pass lets an exact saved-metric spelling steal a
+        # physical role from a unique casefold column (for example physical
+        # ``Sales`` plus saved metric ``sales``). Physical roles must finish
+        # column resolution before the compatibility metric fallback begins.
+        column, folded_matches = DatasetValidator._resolve_metadata_entry(
+            column_name, dataset_context.available_columns
+        )
+        if column is not None:
+            return str(column["name"])
+        if folded_matches:
+            raise ValueError(
+                f"Ambiguous column reference {column_name!r}; exact candidates: "
+                f"{', '.join(repr(name) for name in folded_matches)}"
+            )
 
-        # Check regular columns first
-        for col in dataset_context.available_columns:
-            if col["name"].lower() == column_lower:
-                return col["name"]
-
-        # Check metrics
-        for metric in dataset_context.available_metrics:
-            if metric["name"].lower() == column_lower:
-                return metric["name"]
+        # This helper predates explicit saved-metric roles, so retain its
+        # column-then-metric compatibility fallback only when no physical
+        # candidate exists. Callers with saved_metric=True must use the
+        # metric-only helper below.
+        metric, folded_matches = DatasetValidator._resolve_metadata_entry(
+            column_name, dataset_context.available_metrics
+        )
+        if metric is not None:
+            return str(metric["name"])
+        if folded_matches:
+            raise ValueError(
+                f"Ambiguous saved metric reference {column_name!r}; exact "
+                f"candidates: {', '.join(repr(name) for name in folded_matches)}"
+            )
 
         # Return original if not found (validation should catch this case)
         return column_name
@@ -466,10 +603,16 @@ class DatasetValidator:
         Returns the original name when no metric matches (validation catches
         the missing-metric case separately).
         """
-        metric_lower = metric_name.lower()
-        for metric in dataset_context.available_metrics:
-            if metric["name"].lower() == metric_lower:
-                return metric["name"]
+        entry, folded_matches = DatasetValidator._resolve_metadata_entry(
+            metric_name, dataset_context.available_metrics
+        )
+        if entry is not None:
+            return str(entry["name"])
+        if folded_matches:
+            raise ValueError(
+                f"Ambiguous saved metric reference {metric_name!r}; exact "
+                f"candidates: {', '.join(repr(name) for name in folded_matches)}"
+            )
         return metric_name
 
     @staticmethod
@@ -560,10 +703,10 @@ class DatasetValidator:
             all_names.append((metric["name"], "metric", "METRIC"))
 
         # Find close matches
-        column_lower = column_name.lower()
-        candidate_lookup = [name[0].lower() for name in all_names]
+        folded_column = column_name.casefold()
+        candidate_lookup = [str(name[0]).casefold() for name in all_names]
         close_matches = difflib.get_close_matches(
-            column_lower,
+            folded_column,
             candidate_lookup,
             n=max_suggestions,
             cutoff=0.6,
@@ -575,8 +718,8 @@ class DatasetValidator:
         suggestions = []
         for match in close_matches:
             for name, col_type, _data_type in all_names:
-                if name.lower() == match:
-                    score = difflib.SequenceMatcher(None, column_lower, match).ratio()
+                if str(name).casefold() == match:
+                    score = difflib.SequenceMatcher(None, folded_column, match).ratio()
                     suggestions.append(
                         ColumnSuggestion(
                             name=name,
@@ -640,15 +783,16 @@ class DatasetValidator:
         a regular column name marked as saved_metric would pass
         _column_exists (which checks both lists) but fail at query time.
         """
-        metric_names = {m["name"].lower() for m in dataset_context.available_metrics}
+        invalid: list[str] = []
         # ``saved_metric=True`` requires ``name`` per ColumnRef.validate_metric_shape.
-        invalid: list[str] = [
-            col_ref.name
-            for col_ref in column_refs
-            if col_ref.saved_metric
-            and col_ref.name is not None
-            and col_ref.name.lower() not in metric_names
-        ]
+        for col_ref in column_refs:
+            if not col_ref.saved_metric or col_ref.name is None:
+                continue
+            metric, _ambiguity = DatasetValidator._resolve_metadata_entry(
+                col_ref.name, dataset_context.available_metrics
+            )
+            if metric is None:
+                invalid.append(col_ref.name)
         if not invalid:
             return None
 
@@ -676,8 +820,11 @@ class DatasetValidator:
         )
 
     @staticmethod
-    def _validate_aggregations(
-        column_refs: List[ColumnRef], dataset_context: DatasetContext
+    def _validate_aggregations(  # noqa: C901
+        column_refs: List[ColumnRef],
+        dataset_context: DatasetContext,
+        *,
+        require_numeric_metrics: bool = False,
     ) -> List[ChartGenerationError]:
         """Validate that aggregations are appropriate for column types."""
         errors = []
@@ -694,20 +841,23 @@ class DatasetValidator:
                 # Should be unreachable per validate_metric_shape; defensive.
                 continue
 
-            # Find column info
-            col_info = None
-            for col in dataset_context.available_columns:
-                if col["name"].lower() == col_ref.name.lower():
-                    col_info = col
-                    break
+            col_info, ambiguous_matches = DatasetValidator._resolve_metadata_entry(
+                col_ref.name, dataset_context.available_columns
+            )
+            if ambiguous_matches:
+                errors.append(
+                    DatasetValidator._ambiguous_reference_error(
+                        col_ref.name, ambiguous_matches
+                    )
+                )
+                continue
 
             if col_info:
                 # Check numeric aggregates on non-numeric columns.
-                # MIN and MAX are intentionally excluded: they work on dates
-                # and text in most SQL engines, so restricting them here would
-                # produce false-positive errors.  Leave those to the Tier-2
-                # compile check.
-                numeric_aggs = [
+                # MIN and MAX remain valid on dates/text for generic charts.
+                # Sunburst metrics must size arcs numerically, so every physical
+                # aggregate other than COUNT variants requires numeric metadata.
+                numeric_aggs = {
                     "SUM",
                     "AVG",
                     "STDDEV_SAMP",
@@ -715,7 +865,12 @@ class DatasetValidator:
                     "MEDIAN",
                     "STDDEV",
                     "VAR",
-                ]
+                }
+                if require_numeric_metrics and col_ref.aggregate not in {
+                    "COUNT",
+                    "COUNT_DISTINCT",
+                }:
+                    numeric_aggs.add(col_ref.aggregate)
                 type_name = str(col_info.get("type") or "").strip().upper()
                 if (
                     col_ref.aggregate in numeric_aggs

@@ -30,8 +30,51 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any, ClassVar, Protocol, runtime_checkable
 
+from superset.common.form_data_query_context import (
+    MIXED_TIMESERIES_SECONDARY_QUERY_KEYS,
+    SHARED_FORM_DATA_QUERY_ROLE_KEYS,
+)
 from superset.mcp_service.chart.schemas import ColumnRef
 from superset.mcp_service.common.error_schemas import ChartGenerationError
+
+# Query builders intentionally accept multiple native and legacy role names.
+# A replacement config must clear the whole vocabulary before applying the
+# chart mapper's canonical roles; otherwise a hidden alias can win a fallback
+# (raw ``all_columns`` over aggregate metrics, plural ``metrics`` over a Pie's
+# singular ``metric``, or primary roles leaking into Mixed Timeseries query B).
+# Keeping the vocabulary here makes every registered native viz type acquire
+# identical alias-cleanup semantics without parallel per-tool allowlists.
+# Registered MCP builders add these roles outside the shared extractor.  They
+# form the backend half of the vocabulary: x-axis charts promote ``x_axis``,
+# Histogram promotes ``column``, Pivot consumes its two axis buckets, and Table
+# adds percent metrics to the selected metrics.  Every registered target drops
+# the union because the server fallback also sees a single form-data mapping;
+# a role left by another viz must never become an accidental query input.
+_REGISTERED_PRIMARY_QUERY_ROLE_KEYS = frozenset(
+    {
+        "column",
+        "entity",
+        "groupbyColumns",
+        "groupbyRows",
+        "percent_metrics",
+        "series_columns",
+        "x_axis",
+    }
+)
+REGISTERED_PLUGIN_QUERY_ROLE_KEYS = (
+    _REGISTERED_PRIMARY_QUERY_ROLE_KEYS
+    | {
+        # Mixed Timeseries constructs query B by retaining every ``*_b`` key and
+        # removing its suffix before calling the shared builder.  Deriving these
+        # names from the primary contract prevents the secondary vocabulary from
+        # drifting when a shared or registered role is added.
+        f"{key}_b"
+        for key in SHARED_FORM_DATA_QUERY_ROLE_KEYS
+        | _REGISTERED_PRIMARY_QUERY_ROLE_KEYS
+    }
+    | MIXED_TIMESERIES_SECONDARY_QUERY_KEYS
+)
+QUERY_ROLE_KEYS = SHARED_FORM_DATA_QUERY_ROLE_KEYS | REGISTERED_PLUGIN_QUERY_ROLE_KEYS
 
 
 @runtime_checkable
@@ -55,6 +98,12 @@ class ChartTypePlugin(Protocol):
     #: Used by the registry to resolve display names for existing charts without
     #: needing a separate JSON mapping file.
     native_viz_types: ClassVar[Mapping[str, str]]
+
+    #: Every form-data key that can act as a query field for this plugin,
+    #: including legacy aliases and mutually exclusive query-mode controls.
+    #: Same-viz replacement updates remove this complete set before overlaying
+    #: freshly mapped state so hidden controls cannot change the resulting query.
+    query_role_keys: ClassVar[frozenset[str]]
 
     def pre_validate(
         self,
@@ -199,6 +248,7 @@ class BaseChartPlugin:
     display_name: str = ""
     # Subclasses must override this with their own class attribute.
     native_viz_types: ClassVar[Mapping[str, str]] = {}
+    query_role_keys: ClassVar[frozenset[str]] = QUERY_ROLE_KEYS
 
     def is_available(self) -> bool:
         """Return whether the host deployment provides this visualization."""

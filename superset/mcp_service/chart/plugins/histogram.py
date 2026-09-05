@@ -43,6 +43,7 @@ class HistogramChartPlugin(BaseChartPlugin):
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "histogram_v2": "Histogram",
     }
+    query_role_keys = BaseChartPlugin.query_role_keys | {"column"}
 
     def pre_validate(
         self,
@@ -106,13 +107,8 @@ class HistogramChartPlugin(BaseChartPlugin):
         if dataset_context is None:
             return None
 
-        col_info = next(
-            (
-                col
-                for col in dataset_context.available_columns
-                if col["name"].lower() == (config.column.name or "").lower()
-            ),
-            None,
+        col_info, _ambiguity = DatasetValidator._resolve_metadata_entry(
+            config.column.name or "", dataset_context.available_columns
         )
         if col_info is None:
             # Column existence is validated separately; don't double-report.
@@ -151,7 +147,7 @@ class HistogramChartPlugin(BaseChartPlugin):
         return "histogram_v2"
 
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
-        config_dict = config.model_dump()
+        config_dict = config.model_dump(exclude_unset=True)
 
         column = config_dict.get("column")
         if column and not column.get("sql_expression"):
