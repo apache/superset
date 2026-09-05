@@ -635,11 +635,62 @@ export default function transformProps(
       ? [minMarkerSize, maxMarkerSize]
       : [maxMarkerSize, minMarkerSize];
 
+  // When stackDimension is configured, each series is assigned to a separate
+  // ECharts stack group keyed by the dimension value. Compute this mapping
+  // before calling extractShowValueIndexes so each group's topmost series is
+  // tracked independently (fixing the bug where only the last series across
+  // all groups was flagged to show the total label).
+  // When metrics.length > 1 the label-map tuple is [metric, dim0, dim1, ...],
+  // so the stackDimension sits at offset 1 + groupby.indexOf(stackDimension).
+  // When there is a single metric the tuple is [dim0, dim1, ...] with no
+  // metric prefix, so the offset is just groupby.indexOf(stackDimension).
+  const idxSelectedDimension =
+    stack === StackControlsValue.Stack &&
+    stackDimension &&
+    chartProps.rawFormData?.groupby
+      ? (formData.metrics.length > 1 ? 1 : 0) +
+        chartProps.rawFormData.groupby.indexOf(stackDimension)
+      : -1;
+
+  const seriesStackIds: string[] = rawSeries.map(entry => {
+    if (idxSelectedDimension >= 0 && entry.id) {
+      const dimensionValue = labelMap[entry.id]?.[idxSelectedDimension];
+      if (dimensionValue !== undefined) {
+        return String(dimensionValue);
+      }
+    }
+    return '__default__';
+  });
+
+  // Compute per-stack-group totalStackedValues so each group's "onlyTotal"
+  // label shows that group's own sum rather than the global sum across all
+  // groups. Group series by their stack group key and sum their data.
+  const perGroupTotalStackedValues: Record<string, number[]> = {};
+  if (stack && onlyTotal) {
+    rawSeries.forEach((entry, idx) => {
+      const group = seriesStackIds[idx];
+      if (!perGroupTotalStackedValues[group]) {
+        perGroupTotalStackedValues[group] = [];
+      }
+      const groupTotals = perGroupTotalStackedValues[group];
+      (entry.data as [any, number][] | undefined)?.forEach(
+        (datum, dataIndex) => {
+          if (entry.id && legendState && !legendState[entry.id]) return;
+          const val = isHorizontal ? datum[0] : datum[1];
+          if (typeof val === 'number') {
+            groupTotals[dataIndex] = (groupTotals[dataIndex] ?? 0) + val;
+          }
+        },
+      );
+    });
+  }
+
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
     stack,
     onlyTotal,
     isHorizontal,
     legendState,
+    seriesStackIds,
   });
   const seriesContexts = extractForecastSeriesContexts(
     rawSeries.map(series => series.name as string),
@@ -700,7 +751,7 @@ export default function transformProps(
   let dataMax: number | undefined;
   let dataMin: number | undefined;
 
-  rawSeries.forEach(entry => {
+  rawSeries.forEach((entry, seriesIdx) => {
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
     // isDerivedSeries checks for time comparison series patterns:
@@ -828,8 +879,12 @@ export default function transformProps(
         showValue,
         valueLabelPosition: resolvedValueLabelPosition,
         onlyTotal,
-        totalStackedValues: sortedTotalValues,
+        totalStackedValues:
+          onlyTotal && Object.keys(perGroupTotalStackedValues).length > 0
+            ? perGroupTotalStackedValues
+            : sortedTotalValues,
         showValueIndexes,
+        stackGroup: seriesStackIds[seriesIdx],
         thresholdValues,
         richTooltip,
         sliceId,
@@ -998,10 +1053,6 @@ export default function transformProps(
     stackDimension &&
     chartProps.rawFormData.groupby
   ) {
-    const idxSelectedDimension =
-      formData.metrics.length > 1
-        ? 1
-        : 0 + chartProps.rawFormData.groupby.indexOf(stackDimension);
     for (const s of series) {
       if (s.id) {
         const columnsArr = labelMap[s.id];
