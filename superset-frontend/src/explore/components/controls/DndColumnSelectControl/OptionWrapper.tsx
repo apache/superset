@@ -58,6 +58,7 @@ export default function OptionWrapper(
     canDelete = true,
     tooltipOverlay,
     multiValueWarningMessage,
+    partitionMapping,
     ...rest
   } = props;
   const labelRef = useRef<HTMLDivElement>(null);
@@ -166,6 +167,7 @@ export default function OptionWrapper(
         datasourceWarningMessage={datasourceWarningMessage}
         canDelete={canDelete}
         multiValueWarningMessage={multiValueWarningMessage}
+        partitionMapping={partitionMapping}
       >
         <Label />
       </Option>

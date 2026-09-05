@@ -71,7 +71,10 @@ from superset_core.common.models import Dataset as CoreDataset
 
 from superset import db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
-from superset.connectors.sqla.partition_mapping import resolve_partition_mapping
+from superset.connectors.sqla.partition_mapping import (
+    FEATURE_FLAG as PARTITION_FILTER_MAPPING_FLAG,
+    resolve_partition_mapping,
+)
 from superset.connectors.sqla.utils import (
     get_columns_description,
     get_physical_table_metadata,
@@ -1907,8 +1910,15 @@ class SqlaTable(
         on every chart and dashboard load, so parsing the transform here would
         put a per-request cost on a hot path for a value that only changes on
         save.
+
+        Gated on the feature flag for the same reason `resolve_partition_mapping`
+        is: with the flag off nothing is mirrored, so reporting an active mapping
+        would have the Explore indicator promise a predicate the query never
+        carries.
         """
-        if not self.partition_column:
+        if not self.partition_column or not is_feature_enabled(
+            PARTITION_FILTER_MAPPING_FLAG
+        ):
             return None
 
         columns_by_name = {column.column_name: column for column in self.columns}

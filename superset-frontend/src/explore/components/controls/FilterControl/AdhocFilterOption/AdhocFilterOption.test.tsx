@@ -108,3 +108,60 @@ test('should render the Popover on clicking the right caret', async () => {
   userEvent.click(rightCaret);
   expect(screen.getByRole('tooltip')).toBeInTheDocument();
 });
+
+test('a filter on the mapped column carries the partition pruning glyph', () => {
+  // Wireframe 1d: the chart author never configured any of this and only sees
+  // an explanation of why the query got faster.
+  render(
+    setup({
+      ...mockedProps,
+      datasource: {
+        partition_filter_mapping: {
+          partition_column: 'dt_epoch',
+          mapped_column: 'value',
+          active: true,
+        },
+      },
+    }),
+  );
+
+  expect(screen.getByTestId('partition-pruning-indicator')).toBeInTheDocument();
+});
+
+test('a filter on any other column carries no glyph', () => {
+  render(
+    setup({
+      ...mockedProps,
+      datasource: {
+        partition_filter_mapping: {
+          partition_column: 'dt_epoch',
+          mapped_column: 'some_other_column',
+          active: true,
+        },
+      },
+    }),
+  );
+
+  expect(
+    screen.queryByTestId('partition-pruning-indicator'),
+  ).not.toBeInTheDocument();
+});
+
+test('an inactive mapping leaves the chip alone', () => {
+  render(
+    setup({
+      ...mockedProps,
+      datasource: {
+        partition_filter_mapping: {
+          partition_column: 'dt_epoch',
+          mapped_column: 'value',
+          active: false,
+        },
+      },
+    }),
+  );
+
+  expect(
+    screen.queryByTestId('partition-pruning-indicator'),
+  ).not.toBeInTheDocument();
+});
