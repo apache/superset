@@ -116,6 +116,79 @@ test('should generate grid for dimensions mode', () => {
   );
 });
 
+test('should add dimension filters to every query-specific adhoc filter collection', () => {
+  // Multi-query charts (e.g. Mixed Chart) read each query's filters from a
+  // separate collection. The cell's dimension filter must reach all of them.
+  const formDataWithMultipleQueries: TestFormData = {
+    viz_type: 'mixed_timeseries',
+    datasource: '1__table',
+    matrixify_enable: true,
+    matrixify_mode_rows: 'dimensions',
+    matrixify_mode_columns: 'disabled',
+    matrixify_dimension_rows: {
+      dimension: 'country',
+      values: ['USA'],
+    },
+    adhoc_filters: [
+      {
+        expressionType: 'SIMPLE',
+        subject: 'year',
+        operator: 'TEMPORAL_RANGE',
+        comparator: '2024-01-01 : 2024-12-31',
+        clause: 'WHERE',
+      },
+    ],
+    adhoc_filters_b: [
+      {
+        expressionType: 'SIMPLE',
+        subject: 'region',
+        operator: '==',
+        comparator: 'North America',
+        clause: 'WHERE',
+      },
+    ],
+    adhoc_filters_c: [],
+    // A non-adhoc-filter field that must not be touched by the fan-out.
+    filters_b: [{ col: 'should_not_change', op: '==', val: 'unchanged' }],
+  };
+
+  const grid = generateMatrixifyGrid(formDataWithMultipleQueries);
+
+  expect(grid).not.toBeNull();
+  const cell = grid!.cells[0][0]!;
+
+  // The dimension filter is added to the primary and every query-specific
+  // collection, including one that started empty (`adhoc_filters_c`).
+  ['adhoc_filters', 'adhoc_filters_b', 'adhoc_filters_c'].forEach(key => {
+    expect(cell.formData[key]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          subject: 'country',
+          comparator: 'USA',
+        }),
+      ]),
+    );
+  });
+
+  // Pre-existing filters on each collection are preserved.
+  expect(cell.formData.adhoc_filters).toEqual(
+    expect.arrayContaining([expect.objectContaining({ subject: 'year' })]),
+  );
+  expect(cell.formData.adhoc_filters_b).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        subject: 'region',
+        comparator: 'North America',
+      }),
+    ]),
+  );
+
+  // Fields that merely look similar (`filters_b`) are left untouched.
+  expect(cell.formData.filters_b).toEqual(
+    formDataWithMultipleQueries.filters_b,
+  );
+});
+
 test('should generate grid for mixed mode (metrics rows, dimensions columns)', () => {
   const mixedFormData: TestFormData = {
     viz_type: 'table',
