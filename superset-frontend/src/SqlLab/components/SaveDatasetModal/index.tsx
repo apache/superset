@@ -198,6 +198,37 @@ const updateDataset = async ({
 
 const UNTITLED = t('Untitled Dataset');
 
+/**
+ * Datasets are unique by database, catalog, schema and table name, so a label
+ * built from anything less can be ambiguous — e.g. `examples.public.sales`.
+ */
+const qualifiedLabel = (dataset: {
+  database?: { database_name?: string };
+  catalog?: string | null;
+  schema?: string | null;
+  table_name: string;
+}) =>
+  [
+    dataset.database?.database_name,
+    dataset.catalog,
+    dataset.schema,
+    dataset.table_name,
+  ]
+    .filter(Boolean)
+    .join('.');
+
+/**
+ * Break a search typed against those labels into its parts. The trailing part
+ * is the table name, unless the user has just typed a separator.
+ */
+const parseQualifiedSearch = (input: string) => {
+  const parts = input.split('.').filter(Boolean);
+  return {
+    parts,
+    tableSearch: input.endsWith('.') ? '' : (parts[parts.length - 1] ?? ''),
+  };
+};
+
 // The filters param is only used to test jinja templates.
 // Remove the special filters entry from the templateParams
 // before saving the dataset.
@@ -324,12 +355,18 @@ export const SaveDatasetModal = ({
   };
 
   const loadDatasetOverwriteOptions = useCallback(async (input = '') => {
+    // Only the table part can be filtered server-side — `database` is a
+    // relationship the list endpoint cannot match on by name. Sending the
+    // whole search as a `table_name` filter matches nothing once the user
+    // types a separator; filterAutocompleteOption narrows the qualifiers.
+    const { tableSearch } = parseQualifiedSearch(input);
+
     const queryParams = rison.encode({
       filters: [
         {
           col: 'table_name',
           opr: 'ct',
-          value: input,
+          value: tableSearch,
         },
         {
           col: 'id',
@@ -345,9 +382,18 @@ export const SaveDatasetModal = ({
       endpoint: `/api/v1/dataset/?q=${queryParams}`,
     }).then(response => ({
       data: response.json.result.map(
-        (r: { table_name: string; id: number; editors: Subject[] }) => ({
-          value: r.table_name,
-          label: r.table_name,
+        (r: {
+          table_name: string;
+          id: number;
+          editors: Subject[];
+          database?: { database_name?: string };
+          catalog?: string | null;
+          schema?: string | null;
+        }) => ({
+          // `id` is unique; `table_name` is not. Keying by the table name
+          // collapses same-named datasets onto a single Select key.
+          value: r.id,
+          label: qualifiedLabel(r),
           datasetId: r.id,
           editors: r.editors,
         }),
@@ -436,7 +482,14 @@ export const SaveDatasetModal = ({
   const filterAutocompleteOption = (
     inputValue: string,
     option: DatasetOverwriteOption,
-  ) => option.value.toLowerCase().includes(inputValue.toLowerCase());
+  ) => {
+    const label = option.label.toLowerCase();
+    // Position-independent: a dataset may or may not have a catalog, and a
+    // search skipping a part (`examples.sales`) should still match.
+    return parseQualifiedSearch(inputValue.toLowerCase()).parts.every(part =>
+      label.includes(part),
+    );
+  };
 
   return (
     <Modal
