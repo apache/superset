@@ -125,7 +125,7 @@ jobs:
   unit-tests-required:
     needs: [changes, unit-tests]
     if: always()
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     timeout-minutes: 5
     permissions:
       contents: read

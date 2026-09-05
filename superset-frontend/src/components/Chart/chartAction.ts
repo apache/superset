@@ -48,7 +48,13 @@ import { logEvent } from 'src/logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
-import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { AsyncJob, waitForAsyncData } from 'src/middleware/asyncEvent';
+import { getTabId } from 'src/hooks/useTabId';
+import {
+  resolveAsyncMode,
+  selectAsyncModeOverride,
+  AsyncModeOverride,
+} from 'src/utils/asyncMode';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { safeStringify } from 'src/utils/safeStringify';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
@@ -71,6 +77,9 @@ export interface CommonState {
 
 export interface DashboardInfoState {
   common: CommonState;
+  // Parsed dashboard json_metadata (when rendering within a dashboard); its
+  // `async_mode` is the per-dashboard async override.
+  metadata?: { async_mode?: AsyncModeOverride } & JsonObject;
 }
 
 export interface DataMaskState {
@@ -247,6 +256,10 @@ export interface RequestParams {
   dashboard_id?: number;
   mode?: string;
   credentials?: RequestCredentials;
+  // Per-dashboard async-mode override (from json_metadata.async_mode). Resolves
+  // whether this render requests async execution; never sent to the server as a
+  // request option.
+  async_mode_override?: AsyncModeOverride;
   [key: string]: unknown;
 }
 
@@ -259,12 +272,13 @@ export interface QuerySettings extends RequestParams {
   body?: string;
 }
 
-// API response type for chart data request
+// API response type for chart data request. A 200 carries the query results in
+// `result`; a 202 carries the async job whose tasks must be awaited instead (its
+// body has no `result`, which only `requestChartDataResolved` has to reason
+// about — every other consumer reads a synchronous response).
 export interface ChartDataRequestResponse {
   response: Response;
-  json: {
-    result: QueryData[];
-  };
+  json: { result: QueryData[] } & Partial<AsyncJob>;
 }
 
 // getChartDataRequest params interface
@@ -274,8 +288,18 @@ export interface GetChartDataRequestParams {
   resultFormat?: string;
   resultType?: string;
   force?: boolean;
+  // Forced-refresh idempotency tokens for the synchronous read-back: each is the
+  // async task's UUID for the query at the same index (from the 202 `task_ids`),
+  // so a forced refresh reads the result its task warmed instead of recomputing
+  // (see requestChartDataResolved). Only meaningful with `force`.
+  queryForceNonces?: string[];
   requestParams?: RequestParams;
   ownState?: JsonObject;
+  // Opt into asynchronous execution. Only set by callers that handle an HTTP 202
+  // task response (via requestChartDataResolved / handleChartDataResponse);
+  // direct consumers that read `response.json.result` must leave this false so
+  // they keep the synchronous flow.
+  enableAsyncMode?: boolean;
 }
 
 // runAnnotationQuery params interface
@@ -411,13 +435,16 @@ const v1ChartDataRequest = async (
   requestParams: RequestParams,
   setDataMask: (dataMask: DataMask) => void,
   ownState: JsonObject,
-  parseMethod?: string,
+  parseMethod: string | undefined,
+  asyncMode: boolean,
+  queryForceNonces?: string[],
 ): Promise<ChartDataRequestResponse> => {
   const payload = await buildV1ChartDataPayload({
     formData: formData as QueryFormData,
     resultType,
     resultFormat,
     force,
+    queryForceNonces,
     setDataMask,
     ownState,
   });
@@ -441,11 +468,19 @@ const v1ChartDataRequest = async (
     allowDomainSharding,
   }).toString();
 
+  // In async mode, send the tab id so the backend can ref-count this tab as a
+  // consumer of the (shared) chart-data task — a later cancel/navigate-away from
+  // this tab then detaches only this tab rather than aborting a task another tab
+  // of the same user is still awaiting.
+  const body = JSON.stringify(
+    asyncMode ? { ...payload, async_mode: true, tab_id: getTabId() } : payload,
+  );
+
   const querySettings: QuerySettings = {
     ...requestParams,
     url,
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
+    body,
     parseMethod,
   };
 
@@ -460,12 +495,27 @@ export async function getChartDataRequest({
   resultFormat = 'json',
   resultType = 'full',
   force = false,
+  queryForceNonces,
   requestParams = {},
   ownState = {},
+  enableAsyncMode = false,
 }: GetChartDataRequestParams): Promise<ChartDataRequestResponse> {
-  let querySettings: RequestParams = {
-    ...requestParams,
-  };
+  // Keep the async-mode inputs out of the request options: they resolve the
+  // `async_mode` payload flag, they are not `SupersetClient.post` settings.
+  const { async_mode_override: asyncModeOverride, ...postParams } =
+    requestParams;
+
+  // Opt full JSON chart-data renders into async execution per the resolved policy
+  // (feature flag + deployment default + optional per-dashboard override). Only
+  // callers that handle a 202 task response set enableAsyncMode; the server treats
+  // an absent async_mode as synchronous, so this is additive.
+  const asyncMode =
+    enableAsyncMode &&
+    resultFormat === 'json' &&
+    resultType === 'full' &&
+    resolveAsyncMode(asyncModeOverride);
+
+  let querySettings: RequestParams = { ...postParams };
 
   if (domainShardingEnabled) {
     querySettings = {
@@ -484,6 +534,8 @@ export async function getChartDataRequest({
     setDataMask,
     ownState,
     parseMethod,
+    asyncMode,
+    queryForceNonces,
   );
 }
 
@@ -636,28 +688,30 @@ export function addChart(
   return { type: ADD_CHART, chart, key };
 }
 
+// An async-flow chart-data body is `{result: [...]}`, or the results themselves
+// when a caller (e.g. a chart component in superset-ui-core) has already
+// unwrapped them.
+const extractResult = (json: ChartDataRequestResponse['json']): QueryData[] =>
+  ('result' in json ? json.result : json) as QueryData[];
+
 export function handleChartDataResponse(
   response: Response,
-  json: { result: QueryData[] },
+  json: ChartDataRequestResponse['json'],
+  refetch: (queryForceNonces?: string[]) => Promise<QueryData[]>,
   signal?: AbortSignal,
 ): Promise<QueryData[]> | QueryData[] {
   if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
-    // deal with getChartDataRequest transforming the response data
-    const result = 'result' in json ? json.result : json;
     switch (response.status) {
       case 200:
         // Query results returned synchronously, meaning query was already cached.
-        return Promise.resolve(result);
+        return Promise.resolve(extractResult(json));
       case 202:
-        // Query is running asynchronously and we must await the results.
-        // When status is 202, result contains async event data (job_id, channel_id, etc.)
-        // which differs from QueryData. We cast through unknown to handle this safely.
-        // The optional signal lets a caller abort the wait (Stop pressed, chart
-        // superseded or unmounted), cancelling the job and avoiding leaked listeners.
-        return waitForAsyncData(
-          result as unknown as Parameters<typeof waitForAsyncData>[0],
-          signal,
-        ) as Promise<QueryData[]>;
+        // Query is running asynchronously as one GTF task per QueryObject. The
+        // 202 body is the async job ({task_ids}); await every task, then
+        // `refetch` to read the now-cached results. The optional signal lets a
+        // caller abort the wait (Stop pressed, chart superseded or unmounted),
+        // cancelling the outstanding tasks.
+        return waitForAsyncData(json as AsyncJob, refetch, signal);
       default:
         throw new Error(
           `Received unexpected response status (${response.status}) while fetching chart data`,
@@ -665,6 +719,56 @@ export function handleChartDataResponse(
     }
   }
   return json.result;
+}
+
+/**
+ * Issue a chart-data request and resolve it to query results, transparently
+ * awaiting asynchronous execution.
+ *
+ * On a 202 the body is the async job rather than data: every query task is
+ * awaited, then the same request is re-issued *synchronously* so the server
+ * serves it inline. Double execution (the async task computing, then the
+ * re-issue recomputing the identical query) is prevented by a forced-refresh
+ * idempotency nonce that IS the async task's UUID: the async submit carries no
+ * nonce (the worker stamps each query with its own task UUID and records a marker
+ * keyed by (task_uuid, cache_key) once cached), and the synchronous read-back
+ * carries each query's task id — returned in the 202 `task_ids`, in query order —
+ * as that query's `force_nonce`, so it reads the freshly-warmed cache instead of
+ * recomputing. Because the token is the task's identity, a concurrent force
+ * refresh that joins the same shared task (deduped by query cache key) reads back
+ * under the same id — so it does NOT double-execute either. Non-forced requests
+ * carry no nonce and keep the plain flow.
+ *
+ * `signal` aborts the wait (Stop pressed, chart superseded or unmounted) and
+ * cancels the outstanding tasks.
+ */
+export async function requestChartDataResolved(
+  params: Omit<GetChartDataRequestParams, 'enableAsyncMode'>,
+  signal?: AbortSignal,
+): Promise<QueryData[]> {
+  // The synchronous read-back of a forced refresh stamps each query with its
+  // task id (from the 202, index-aligned to queries) as the forced-refresh nonce.
+  const reissueSynchronously = async (
+    queryForceNonces?: string[],
+  ): Promise<QueryData[]> => {
+    const { response, json } = await getChartDataRequest({
+      ...params,
+      queryForceNonces: params.force ? queryForceNonces : undefined,
+      enableAsyncMode: false,
+    });
+    if (response.status !== 200) {
+      throw new Error(
+        `Received unexpected response status (${response.status}) while fetching chart data`,
+      );
+    }
+    return extractResult(json);
+  };
+
+  const { response, json } = await getChartDataRequest({
+    ...params,
+    enableAsyncMode: true,
+  });
+  return handleChartDataResponse(response, json, reissueSynchronously, signal);
 }
 
 export function exploreJSON(
@@ -691,6 +795,10 @@ export function exploreJSON(
       timeout: queryTimeout * 1000,
     };
     if (dashboardId) requestParams.dashboard_id = dashboardId;
+    // Honor the per-dashboard async override when rendering within a dashboard.
+    const asyncModeOverride = selectAsyncModeOverride(state);
+    if (asyncModeOverride)
+      requestParams.async_mode_override = asyncModeOverride;
 
     const setDataMask = (dataMask: DataMask): void => {
       dispatch(updateDataMask(formData.slice_id, dataMask));
@@ -705,20 +813,18 @@ export function exploreJSON(
       setTimeout(() => prevController.abort(), 0);
     }
 
-    const chartDataRequest = getChartDataRequest({
-      setDataMask,
-      formData,
-      resultFormat: 'json',
-      resultType: 'full',
-      force,
-      requestParams,
-      ownState,
-    });
-
-    const chartDataRequestCaught = chartDataRequest
-      .then(({ response, json }) =>
-        handleChartDataResponse(response, json, controller.signal),
-      )
+    const chartDataRequestCaught = requestChartDataResolved(
+      {
+        setDataMask,
+        formData,
+        resultFormat: 'json',
+        resultType: 'full',
+        force,
+        requestParams,
+        ownState,
+      },
+      controller.signal,
+    )
       .then(queriesResponse => {
         // Drop stale responses: if this request was aborted (Stop, or a newer
         // query that aborted ours), or a newer query has since replaced our
@@ -734,7 +840,7 @@ export function exploreJSON(
             return undefined;
           }
         }
-        (queriesResponse as QueryData[]).forEach(
+        queriesResponse.forEach(
           (resultItem: QueryData & { applied_filters?: JsonObject[] }) =>
             dispatch(
               logEvent(LOG_ACTIONS_LOAD_CHART, {
@@ -758,15 +864,13 @@ export function exploreJSON(
               }),
             ),
         );
-        (queriesResponse as QueryData[]).forEach(response => {
+        queriesResponse.forEach(response => {
           const { warning } = response as { warning?: string | null };
           if (warning) {
             dispatch(addWarningToast(warning, { noDuplicate: true }));
           }
         });
-        return dispatch(
-          chartUpdateSucceeded(queriesResponse as QueryData[], key as number),
-        );
+        return dispatch(chartUpdateSucceeded(queriesResponse, key as number));
       })
       .catch(
         (

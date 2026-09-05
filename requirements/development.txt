@@ -131,7 +131,7 @@ charset-normalizer==3.4.2
     # via
     #   -c requirements/base-constraint.txt
     #   requests
-click==8.4.2
+click==8.5.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -179,7 +179,7 @@ croniter==6.2.4
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-cryptography==50.0.0
+cryptography==50.0.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -360,7 +360,7 @@ google-auth-oauthlib==1.2.1
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery==3.43.0
+google-cloud-bigquery==3.45.0
     # via
     #   apache-superset
     #   pandas-gbq
@@ -384,7 +384,7 @@ greenlet==3.5.5
     #   sqlalchemy
 griffelib==2.0.2
     # via fastmcp-slim
-grpcio==1.83.0
+grpcio==1.83.1
     # via
     #   apache-superset
     #   google-api-core
@@ -559,7 +559,7 @@ more-itertools==10.8.0
     # via
     #   jaraco-classes
     #   jaraco-functools
-msgpack==1.2.1
+msgpack==1.2.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -569,7 +569,7 @@ msgspec==0.19.0
     #   flask-session
 mysqlclient==2.2.8
     # via apache-superset
-nh3==0.3.6
+nh3==0.3.7
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -639,7 +639,7 @@ pandas==2.3.3
     #   db-dtypes
     #   pandas-gbq
     #   prophet
-pandas-gbq==0.35.1
+pandas-gbq==0.35.2
     # via apache-superset
 parameterized==0.9.0
     # via apache-superset
@@ -731,7 +731,7 @@ pycparser==2.22
     # via
     #   -c requirements/base-constraint.txt
     #   cffi
-pydantic==2.13.4
+pydantic==2.13.5
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -740,7 +740,7 @@ pydantic==2.13.4
     #   mcp
     #   openapi-pydantic
     #   pydantic-settings
-pydantic-core==2.46.4
+pydantic-core==2.46.5
     # via
     #   -c requirements/base-constraint.txt
     #   pydantic
@@ -932,7 +932,7 @@ shillelagh==1.4.5
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-simplejson==4.1.1
+simplejson==4.1.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -943,7 +943,7 @@ six==1.17.0
     #   python-dateutil
     #   rfc3339-validator
     #   wtforms-json
-slack-sdk==3.43.0
+slack-sdk==3.44.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

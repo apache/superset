@@ -166,6 +166,108 @@ class TestLoadYaml:
             load_yaml("test.yaml", 'key: "unterminated string')
 
 
+class TestLoadConfigs:
+    """
+    load_configs() merges caller-supplied ``encrypted_extra_secrets`` into the
+    ``masked_encrypted_extra`` field of each config, which comes straight from
+    the imported YAML (before schema validation). A malformed value there used
+    to raise a raw simplejson.JSONDecodeError that escaped uncaught (opaque
+    500); it must instead be collected as a ValidationError like every other
+    per-file failure.
+    """
+
+    @staticmethod
+    def _trivial_schema():
+        from marshmallow import EXCLUDE, Schema
+
+        class TrivialSchema(Schema):
+            class Meta:
+                unknown = EXCLUDE
+
+        return TrivialSchema()
+
+    @patch("superset.commands.importers.v1.utils.db")
+    def test_invalid_json_in_masked_encrypted_extra_is_collected(
+        self, mock_db: object
+    ) -> None:
+        """A non-JSON ``masked_encrypted_extra`` is converted into a
+        ValidationError appended to ``exceptions`` rather than raising."""
+        from marshmallow.exceptions import ValidationError
+
+        from superset.commands.importers.v1.utils import load_configs
+
+        # No existing databases / ssh tunnels in the (mocked) metadata DB.
+        mock_db.session.query.return_value.all.return_value = []  # type: ignore[attr-defined]
+
+        file_name = "databases/db.yaml"
+        contents = {
+            file_name: (
+                "uuid: abc-123\n"
+                "password: secret\n"
+                "masked_encrypted_extra: not valid json\n"
+            )
+        }
+        exceptions: list[ValidationError] = []
+
+        configs = load_configs(
+            contents=contents,
+            schemas={"databases/": self._trivial_schema()},
+            passwords={},
+            exceptions=exceptions,
+            ssh_tunnel_passwords={},
+            ssh_tunnel_private_keys={},
+            ssh_tunnel_priv_key_passwords={},
+            encrypted_extra_secrets={file_name: {"$.foo": "actual_secret"}},
+        )
+
+        # The bad file is not added to configs, and a structured error is
+        # collected instead of a raw JSONDecodeError propagating out.
+        assert file_name not in configs
+        assert len(exceptions) == 1
+        assert isinstance(exceptions[0], ValidationError)
+        assert file_name in exceptions[0].messages
+        assert "masked_encrypted_extra" in exceptions[0].messages[file_name]
+
+    @patch("superset.commands.importers.v1.utils.db")
+    def test_valid_json_in_masked_encrypted_extra_still_merges(
+        self, mock_db: object
+    ) -> None:
+        """Control: valid JSON in ``masked_encrypted_extra`` still has the
+        secrets merged in and produces no exceptions."""
+        from marshmallow.exceptions import ValidationError
+
+        from superset.commands.importers.v1.utils import load_configs
+        from superset.utils import json
+
+        mock_db.session.query.return_value.all.return_value = []  # type: ignore[attr-defined]
+
+        file_name = "databases/db.yaml"
+        contents = {
+            file_name: (
+                "uuid: abc-123\n"
+                "password: secret\n"
+                'masked_encrypted_extra: \'{"foo": "XXXXXXXXXX"}\'\n'
+            )
+        }
+        exceptions: list[ValidationError] = []
+
+        configs = load_configs(
+            contents=contents,
+            schemas={"databases/": self._trivial_schema()},
+            passwords={},
+            exceptions=exceptions,
+            ssh_tunnel_passwords={},
+            ssh_tunnel_private_keys={},
+            ssh_tunnel_priv_key_passwords={},
+            encrypted_extra_secrets={file_name: {"$.foo": "actual_secret"}},
+        )
+
+        assert exceptions == []
+        assert file_name in configs
+        merged = json.loads(configs[file_name]["masked_encrypted_extra"])
+        assert merged == {"foo": "actual_secret"}
+
+
 class TestLoadConfigsNonMappingYaml:
     """A syntactically valid YAML document whose top-level value is a
     scalar or list (not a mapping) must be reported as a schema validation

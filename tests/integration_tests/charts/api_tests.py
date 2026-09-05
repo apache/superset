@@ -28,6 +28,7 @@ from parameterized import parameterized
 from sqlalchemy import and_
 from sqlalchemy.sql import func
 
+from superset.charts.schemas import chart_get_list_schema
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.connectors.sqla.models import SqlaTable
@@ -35,12 +36,14 @@ from superset.extensions import cache_manager, db, security_manager
 from superset.models.core import Database, FavStar, FavStarClassName
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.models.sql_lab import SavedQuery
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.tags.models import ObjectType, Tag, TaggedObject, TagType
 from superset.utils import json
 from superset.utils.core import get_example_default_schema
+from superset.utils.database import get_example_database
 from tests.integration_tests.base_api_tests import ApiEditorsTestCaseMixin
 from tests.integration_tests.base_tests import (
     subjects_from_users,
@@ -659,6 +662,47 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 422
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {"message": {"datasource_id": ["Datasource does not exist"]}}
+
+    def test_create_chart_from_saved_query_rejected_cleanly(self):
+        """
+        Chart API: creating a chart with datasource_type="saved_query" must
+        fail with a clean validation error, not the unhandled 500 "Fatal
+        error" reported in apache/superset#29697. Slice.datasource only
+        ever resolves the "table" relationship, so even a chart that
+        "created" successfully with this datasource_type could never
+        actually render -- "saved_query" is a real, existing row here
+        (not a bad ID), reproducing the original report exactly rather
+        than a not-found case.
+        """
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+        saved_query = SavedQuery(
+            db_id=example_db.id,
+            label="issue-29697-repro",
+            schema=get_example_default_schema(),
+            sql="SELECT 1 AS value",
+        )
+        db.session.add(saved_query)
+        db.session.commit()
+        saved_query_id = saved_query.id
+
+        chart_data = {
+            "slice_name": "issue-29697-repro-chart",
+            "datasource_id": saved_query_id,
+            "datasource_type": "saved_query",
+            "viz_type": "table",
+        }
+        try:
+            rv = self.post_assert_metric("/api/v1/chart/", chart_data, "post")
+
+            assert rv.status_code == 422
+            response = json.loads(rv.data.decode("utf-8"))
+            assert response == {
+                "message": {"datasource_type": ["Datasource type is invalid"]}
+            }
+        finally:
+            db.session.delete(db.session.query(SavedQuery).get(saved_query_id))
+            db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_create_chart_validate_user_is_dashboard_editor(self):
@@ -1501,6 +1545,119 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         assert data["count"] == 5
+
+    def test_chart_list_openapi_documents_viz_type_order(self):
+        """Chart API: display ordering is part of the documented list contract."""
+        self.login(ADMIN_USERNAME)
+        rv = self.client.get("api/v1/_openapi")
+
+        assert rv.status_code == 200
+        spec = json.loads(rv.data.decode("utf-8"))
+        query_parameter = spec["paths"]["/api/v1/chart/"]["get"]["parameters"][0]
+        assert query_parameter["content"]["application/json"]["schema"] == {
+            "$ref": "#/components/schemas/chart_get_list_schema"
+        }
+        viz_type_order = spec["components"]["schemas"]["chart_get_list_schema"][
+            "properties"
+        ]["viz_type_order"]
+        assert viz_type_order == chart_get_list_schema["properties"]["viz_type_order"]
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_get_charts_orders_display_viz_types_before_pagination(self):
+        """Chart API: display chart type ordering happens before pagination."""
+        admin = self.get_user("admin")
+        charts = [
+            self.insert_chart("display_type_sort_a", [admin.id], 1, viz_type="slug_a"),
+            self.insert_chart(
+                "display_type_sort_middle", [admin.id], 1, viz_type="middle"
+            ),
+            self.insert_chart("display_type_sort_z", [admin.id], 1, viz_type="slug_z"),
+            self.insert_chart(
+                "display_type_sort_unknown", [admin.id], 1, viz_type="unknown"
+            ),
+        ]
+        self.login(ADMIN_USERNAME)
+
+        arguments = {
+            "filters": [
+                {
+                    "col": "slice_name",
+                    "opr": "sw",
+                    "value": "display_type_sort_",
+                }
+            ],
+            "order_column": "viz_type",
+            "order_direction": "asc",
+            "page_size": 2,
+            "viz_type_order": ["slug_z", "middle", "slug_a"],
+        }
+
+        try:
+            for direction, expected in (
+                ("asc", ["slug_z", "middle", "slug_a", "unknown"]),
+                ("desc", ["unknown", "slug_a", "middle", "slug_z"]),
+            ):
+                arguments["order_direction"] = direction
+                pages = []
+                for page in (0, 1):
+                    arguments["page"] = page
+                    uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
+                    rv = self.get_assert_metric(uri, "get_list")
+                    assert rv.status_code == 200
+                    data = json.loads(rv.data.decode("utf-8"))
+                    assert data["count"] == 4
+                    pages.extend(item["viz_type"] for item in data["result"])
+
+                assert pages == expected
+
+            arguments.update(
+                {
+                    "order_column": "slice_name",
+                    "order_direction": "asc",
+                    "page": 0,
+                    "page_size": 4,
+                }
+            )
+            uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
+            rv = self.get_assert_metric(uri, "get_list")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            assert [item["slice_name"] for item in data["result"]] == sorted(
+                chart.slice_name for chart in charts
+            )
+
+            arguments.update(
+                {
+                    "order_column": "viz_type",
+                    "viz_type_order": [],
+                }
+            )
+            uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
+            rv = self.get_assert_metric(uri, "get_list")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            assert [item["viz_type"] for item in data["result"]] == [
+                "middle",
+                "slug_a",
+                "slug_z",
+                "unknown",
+            ]
+
+            arguments.pop("viz_type_order")
+            uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
+            rv = self.get_assert_metric(uri, "get_list")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            assert [item["viz_type"] for item in data["result"]] == [
+                "middle",
+                "slug_a",
+                "slug_z",
+                "unknown",
+            ]
+        finally:
+            for chart in charts:
+                db.session.delete(chart)
+            db.session.commit()
 
     @pytest.fixture
     def load_energy_charts(self):

@@ -36,9 +36,14 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticViewNotFoundError,
     SemanticViewUpdateFailedError,
 )
+from superset.constants import PASSWORD_MASK
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
-from superset.semantic_layers.api import SemanticLayerRestApi, SemanticViewRestApi
+from superset.semantic_layers.api import (
+    _mask_configuration,
+    SemanticLayerRestApi,
+    SemanticViewRestApi,
+)
 
 SEMANTIC_LAYERS_APP = pytest.mark.parametrize(
     "app",
@@ -618,6 +623,21 @@ def test_runtime_schema_exception(
     assert "Bad config" in response.json["message"]
 
 
+@pytest.mark.parametrize(
+    "app",
+    [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": False}}],
+    indirect=True,
+)
+def test_runtime_schema_flag_off_returns_404(
+    client: Any,
+    full_api_access: None,
+) -> None:
+    response = client.post(
+        f"/api/v1/semantic_layer/{uuid_lib.uuid4()}/schema/runtime",
+    )
+    assert response.status_code == 404
+
+
 @SEMANTIC_LAYERS_APP
 def test_post_semantic_layer(
     client: Any,
@@ -937,6 +957,11 @@ def test_get_list_semantic_layers(
     layer2.configuration = '{"account": "test"}'
     layer2.changed_on_delta_humanized.return_value = "2 hours ago"
 
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"snowflake": MagicMock(get_configuration_schema=lambda: {"properties": {}})},
+        clear=True,
+    )
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
     mock_dao.find_all.return_value = [layer1, layer2]
 
@@ -967,6 +992,19 @@ def test_get_list_semantic_layers_empty(
     assert response.json["result"] == []
 
 
+@pytest.mark.parametrize(
+    "app",
+    [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": False}}],
+    indirect=True,
+)
+def test_get_list_semantic_layers_flag_off_returns_404(
+    client: Any,
+    full_api_access: None,
+) -> None:
+    response = client.get("/api/v1/semantic_layer/")
+    assert response.status_code == 404
+
+
 @SEMANTIC_LAYERS_APP
 def test_get_semantic_layer(
     client: Any,
@@ -984,6 +1022,11 @@ def test_get_semantic_layer(
     layer.configuration = '{"account": "test"}'
     layer.changed_on_delta_humanized.return_value = "1 day ago"
 
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"snowflake": MagicMock(get_configuration_schema=lambda: {"properties": {}})},
+        clear=True,
+    )
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
     mock_dao.find_by_uuid.return_value = layer
 
@@ -1010,6 +1053,19 @@ def test_get_semantic_layer_not_found(
 
     response = client.get(f"/api/v1/semantic_layer/{uuid_lib.uuid4()}")
 
+    assert response.status_code == 404
+
+
+@pytest.mark.parametrize(
+    "app",
+    [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": False}}],
+    indirect=True,
+)
+def test_get_semantic_layer_flag_off_returns_404(
+    client: Any,
+    full_api_access: None,
+) -> None:
+    response = client.get(f"/api/v1/semantic_layer/{uuid_lib.uuid4()}")
     assert response.status_code == 404
 
 
@@ -1056,6 +1112,11 @@ def test_serialize_layer_string_config(
     layer.configuration = '{"account": "test"}'
     layer.changed_on_delta_humanized.return_value = "1 day ago"
 
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"snowflake": MagicMock(get_configuration_schema=lambda: {"properties": {}})},
+        clear=True,
+    )
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
     mock_dao.find_by_uuid.return_value = layer
 
@@ -1081,6 +1142,11 @@ def test_serialize_layer_dict_config(
     layer.configuration = {"account": "test"}
     layer.changed_on_delta_humanized.return_value = "1 day ago"
 
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"snowflake": MagicMock(get_configuration_schema=lambda: {"properties": {}})},
+        clear=True,
+    )
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
     mock_dao.find_by_uuid.return_value = layer
 
@@ -1113,6 +1179,141 @@ def test_serialize_layer_none_config(
 
     assert response.status_code == 200
     assert response.json["result"]["configuration"] == {}
+
+
+def test_mask_configuration_redacts_write_only_fields(mocker: MockerFixture) -> None:
+    """Test _mask_configuration redacts properties the schema marks writeOnly."""
+    layer = MagicMock()
+    layer.type = "snowflake"
+
+    mock_cls = MagicMock()
+    mock_cls.get_configuration_schema.return_value = {
+        "properties": {
+            "account": {"type": "string"},
+            "password": {"type": "string", "writeOnly": True},
+        },
+    }
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"snowflake": mock_cls},
+        clear=True,
+    )
+
+    result = _mask_configuration(layer, {"account": "test", "password": "hunter2"})
+
+    assert result == {"account": "test", "password": PASSWORD_MASK}
+
+
+def test_mask_configuration_skips_falsy_secret_values(
+    mocker: MockerFixture,
+) -> None:
+    """Test _mask_configuration leaves an unset write-only field alone."""
+    layer = MagicMock()
+    layer.type = "snowflake"
+
+    mock_cls = MagicMock()
+    mock_cls.get_configuration_schema.return_value = {
+        "properties": {"password": {"type": "string", "writeOnly": True}},
+    }
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"snowflake": mock_cls},
+        clear=True,
+    )
+
+    result = _mask_configuration(layer, {"password": ""})
+
+    assert result == {"password": ""}
+
+
+def test_mask_configuration_no_write_only_properties(mocker: MockerFixture) -> None:
+    """Test _mask_configuration is a no-op when the schema has no writeOnly fields."""
+    layer = MagicMock()
+    layer.type = "snowflake"
+
+    mock_cls = MagicMock()
+    mock_cls.get_configuration_schema.return_value = {
+        "properties": {"account": {"type": "string"}},
+    }
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"snowflake": mock_cls},
+        clear=True,
+    )
+
+    config = {"account": "test"}
+    result = _mask_configuration(layer, config)
+
+    assert result is config
+
+
+def test_mask_configuration_no_registered_class(mocker: MockerFixture) -> None:
+    """Test _mask_configuration fails closed when the type has no connector."""
+    layer = MagicMock()
+    layer.type = "unregistered"
+
+    mocker.patch.dict("superset.semantic_layers.api.registry", {}, clear=True)
+
+    config = {"account": "test", "password": "hunter2"}
+    result = _mask_configuration(layer, config)
+
+    assert result == {"account": PASSWORD_MASK, "password": PASSWORD_MASK}
+
+
+def test_mask_configuration_schema_error(mocker: MockerFixture) -> None:
+    """Test _mask_configuration fails closed if the schema can't load."""
+    layer = MagicMock()
+    layer.type = "snowflake"
+
+    mock_cls = MagicMock()
+    mock_cls.get_configuration_schema.side_effect = ValueError("boom")
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"snowflake": mock_cls},
+        clear=True,
+    )
+
+    config = {"account": "test", "password": "hunter2"}
+    result = _mask_configuration(layer, config)
+
+    assert result == {"account": PASSWORD_MASK, "password": PASSWORD_MASK}
+
+
+@SEMANTIC_LAYERS_APP
+def test_get_semantic_layer_masks_write_only_configuration(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Test GET /<uuid> redacts write-only configuration fields."""
+    layer = MagicMock()
+    layer.uuid = uuid_lib.uuid4()
+    layer.name = "Layer"
+    layer.description = None
+    layer.type = "snowflake"
+    layer.cache_timeout = None
+    layer.configuration = {"account": "test", "password": "hunter2"}
+    layer.changed_on_delta_humanized.return_value = "1 day ago"
+
+    mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
+    mock_dao.find_by_uuid.return_value = layer
+
+    mock_cls = MagicMock()
+    mock_cls.get_configuration_schema.return_value = {
+        "properties": {"password": {"type": "string", "writeOnly": True}},
+    }
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"snowflake": mock_cls},
+        clear=True,
+    )
+
+    response = client.get(f"/api/v1/semantic_layer/{layer.uuid}")
+
+    assert response.status_code == 200
+    configuration = response.json["result"]["configuration"]
+    assert configuration["account"] == "test"
+    assert configuration["password"] == PASSWORD_MASK
 
 
 def test_infer_discriminators_injects_discriminator() -> None:
@@ -2497,6 +2698,54 @@ def test_semantic_layer_views_flag_off_unwrapped() -> None:
         return_value=False,
     ):
         response = views_fn(api, str(uuid_lib.uuid4()))
+
+    assert response == ("404", 404)
+    api.response_404.assert_called_once()
+
+
+def test_semantic_layer_get_list_flag_off_unwrapped() -> None:
+    """Cover get_list() feature-flag guard without auth decorators."""
+    api = SemanticLayerRestApi()
+    api.response_404 = MagicMock(return_value=("404", 404))
+    get_list_fn = inspect.unwrap(SemanticLayerRestApi.get_list)
+
+    with patch(
+        "superset.semantic_layers.api.is_feature_enabled",
+        return_value=False,
+    ):
+        response = get_list_fn(api)
+
+    assert response == ("404", 404)
+    api.response_404.assert_called_once()
+
+
+def test_semantic_layer_get_flag_off_unwrapped() -> None:
+    """Cover get() feature-flag guard without auth decorators."""
+    api = SemanticLayerRestApi()
+    api.response_404 = MagicMock(return_value=("404", 404))
+    get_fn = inspect.unwrap(SemanticLayerRestApi.get)
+
+    with patch(
+        "superset.semantic_layers.api.is_feature_enabled",
+        return_value=False,
+    ):
+        response = get_fn(api, str(uuid_lib.uuid4()))
+
+    assert response == ("404", 404)
+    api.response_404.assert_called_once()
+
+
+def test_semantic_layer_runtime_schema_flag_off_unwrapped() -> None:
+    """Cover runtime_schema() feature-flag guard without auth decorators."""
+    api = SemanticLayerRestApi()
+    api.response_404 = MagicMock(return_value=("404", 404))
+    runtime_schema_fn = inspect.unwrap(SemanticLayerRestApi.runtime_schema)
+
+    with patch(
+        "superset.semantic_layers.api.is_feature_enabled",
+        return_value=False,
+    ):
+        response = runtime_schema_fn(api, str(uuid_lib.uuid4()))
 
     assert response == ("404", 404)
     api.response_404.assert_called_once()
