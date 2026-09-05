@@ -21,12 +21,25 @@ Tests for the get_chart_data request schema and chart type fallback handling.
 
 import importlib
 from contextlib import nullcontext
+from datetime import datetime, time as datetime_time, timedelta, timezone, tzinfo
+from decimal import Decimal
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock
+from uuid import UUID
+from zoneinfo import ZoneInfo
 
+import numpy as np
+import pandas as pd
 import pytest
+import pytz
+from dateutil import tz as dateutil_tz
 
+from superset.mcp_service.chart.query_result import (
+    MAX_QUERY_RESULT_VALUE_BYTES,
+    query_result_data,
+    response_json_failure,
+)
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -35,17 +48,44 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
 )
 from superset.mcp_service.chart.tool.get_chart_data import (
+    _build_data_columns,
     _build_query_results,
     _coerce_row_limit,
+    _export_data_as_csv,
+    _export_data_as_excel,
     _GENERIC_TYPE_MAP,
     _MAX_RECOMMENDATIONS,
     _query_from_form_data,
     _recommend_visualizations,
     _rejected_requested_filter_columns,
     _requested_filter_columns,
+    _safe_value_identity,
 )
 from superset.utils import json
 from superset.utils.core import ExtraFiltersReasonType, GenericDataType
+
+
+def _query_context_stub(form_data: dict[str, Any] | None = None) -> Any:
+    """Return the minimal real-shaped context needed by Jinja form-data seeding."""
+    return SimpleNamespace(form_data=form_data or {}, queries=[])
+
+
+def _reject_hostile_conversion(*_args: Any, **_kwargs: Any) -> Any:
+    raise AssertionError("hostile result conversion must not run")
+
+
+class _HostileResultRow(dict[str, Any]):
+    __contains__ = _reject_hostile_conversion
+    __getitem__ = _reject_hostile_conversion
+    __iter__ = _reject_hostile_conversion
+    __len__ = _reject_hostile_conversion
+    get = _reject_hostile_conversion
+
+
+class _HostileResultScalar(str):
+    __hash__ = _reject_hostile_conversion
+    __repr__ = _reject_hostile_conversion
+    __str__ = _reject_hostile_conversion
 
 
 def test_requested_filter_columns_supports_both_payload_shapes() -> None:
@@ -255,6 +295,65 @@ def test_query_context_form_data_supports_request_dependent_jinja_macros() -> No
         assert get_dataset_id_from_context("count") == 7
 
 
+@pytest.mark.asyncio
+async def test_unsaved_get_data_seeds_jinja_macros_immediately_before_run(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The cached form-data product path exposes all request-dependent macros."""
+    from flask import current_app
+
+    from superset.common.query_object import QueryObject
+    from superset.jinja_context import ExtraCache
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    query_context = SimpleNamespace(
+        queries=[
+            QueryObject(filters=[{"col": "region", "op": "IN", "val": ["North"]}])
+        ],
+        form_data={"url_params": {"tenant": "acme"}},
+    )
+    observed: dict[str, Any] = {}
+
+    class _Command:
+        def __init__(self, context: Any) -> None:
+            assert context is query_context
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            macros = ExtraCache()
+            observed["url_param"] = macros.url_param("tenant")
+            observed["filter_values"] = macros.filter_values("region")
+            observed["get_filters"] = macros.get_filters("region")
+            return {"queries": [{"data": [], "colnames": [], "rowcount": 0}]}
+
+    monkeypatch.setattr(
+        module, "build_query_context_from_form_data", lambda *_a, **_k: query_context
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **kwargs: nullcontext()),
+    )
+
+    with current_app.test_request_context():
+        await _query_from_form_data(
+            {"datasource": "7__table", "viz_type": "table"},
+            GetChartDataRequest(form_data_key="jinja"),
+            _AsyncContext(),
+        )
+
+    assert observed == {
+        "url_param": "acme",
+        "filter_values": ["North"],
+        "get_filters": [{"col": "region", "op": "IN", "val": ["North"]}],
+    }
+
+
 class TestBigNumberChartFallback:
     """Tests for big_number chart fallback query construction."""
 
@@ -413,6 +512,109 @@ class TestChartDataValuePreservation:
         assert result.data[0]["schema"] == ("customer-provided schema text")
         assert result.csv_data == ("region,amount\nEMEA,120\nLATAM,95\n")
 
+    def test_real_csv_export_allows_derived_string_over_cell_cap(self) -> None:
+        chart = cast(
+            Any, SimpleNamespace(id=7, slice_name="Large CSV", viz_type="table")
+        )
+        rows = [{"value": f"{index}:" + "x" * 700} for index in range(105)]
+
+        result = _export_data_as_csv(
+            chart,
+            rows,
+            ["value"],
+            None,
+            PerformanceMetadata(query_duration_ms=1, cache_status="fresh"),
+        )
+
+        assert isinstance(result, ChartData)
+        assert result.csv_data is not None
+        assert len(result.csv_data.encode()) > 70 * 1024
+        assert len(result.model_dump_json().encode()) < MAX_QUERY_RESULT_VALUE_BYTES
+
+    def test_real_excel_export_allows_reasonable_base64_over_cell_cap(self) -> None:
+        chart = cast(
+            Any, SimpleNamespace(id=8, slice_name="Large Excel", viz_type="table")
+        )
+        rows = [
+            {"index": index, "value": f"row-{index}-" + "x" * 120}
+            for index in range(3500)
+        ]
+
+        result = _export_data_as_excel(
+            chart,
+            rows,
+            ["index", "value"],
+            None,
+            PerformanceMetadata(query_duration_ms=1, cache_status="fresh"),
+        )
+
+        assert isinstance(result, ChartData)
+        assert result.excel_data is not None
+        assert len(result.excel_data.encode()) > 64 * 1024
+        assert len(result.model_dump_json().encode()) < MAX_QUERY_RESULT_VALUE_BYTES
+
+    def test_excel_export_maps_missing_engines_to_export_error(self) -> None:
+        from unittest.mock import patch
+
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        chart = cast(
+            Any, SimpleNamespace(id=9, slice_name="UUID export", viz_type="table")
+        )
+
+        with (
+            patch.object(
+                module, "_create_excel_with_openpyxl", side_effect=ImportError
+            ),
+            patch.object(
+                module, "_create_excel_with_xlsxwriter", side_effect=ImportError
+            ),
+        ):
+            result = _export_data_as_excel(
+                chart,
+                [{"id": UUID("12345678-1234-5678-1234-567812345678")}],
+                ["id"],
+                None,
+                PerformanceMetadata(query_duration_ms=1, cache_status="fresh"),
+            )
+
+        assert isinstance(result, ChartError)
+        assert result.error_type == "ExportError"
+
+    def test_uuid_csv_and_json_projection_remains_stable(self) -> None:
+        chart = cast(
+            Any, SimpleNamespace(id=10, slice_name="UUID export", viz_type="table")
+        )
+        identifier = UUID("12345678-1234-5678-1234-567812345678")
+        performance = PerformanceMetadata(query_duration_ms=1, cache_status="fresh")
+
+        csv_result = _export_data_as_csv(
+            chart, [{"id": identifier}], ["id"], None, performance
+        )
+        assert isinstance(csv_result, ChartData)
+        assert csv_result.csv_data == f"id\r\n{identifier}\r\n"
+
+        json_result = ChartData(
+            chart_id=chart.id,
+            chart_name=chart.slice_name,
+            chart_type=chart.viz_type,
+            columns=[],
+            data=[{"id": identifier}],
+            row_count=1,
+            total_rows=1,
+            summary="UUID JSON",
+            insights=[],
+            data_quality={},
+            recommended_visualizations=[],
+            data_freshness=None,
+            performance=performance,
+        )
+        assert json.loads(json_result.model_dump_json())["data"] == [
+            {"id": str(identifier)}
+        ]
+        assert response_json_failure(json_result) is None
+
     def test_chart_data_preserves_column_sample_values(self) -> None:
         """Column sample values remain exact even when they look operational."""
         chart_data = ChartData(
@@ -487,6 +689,208 @@ class _AsyncContext:
 
 class TestUnsavedChartDataQueryConstruction:
     @pytest.mark.asyncio
+    async def test_cached_deck_path_uses_layer_query_adapter(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        chart_data_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+        captured: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured.append(kwargs)
+                return _query_context_stub(kwargs.get("form_data"))
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None: ...
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"route": "LINESTRING(...)"}],
+                            "colnames": ["route"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        monkeypatch.setattr(
+            query_context_factory_module, "QueryContextFactory", QueryContextFactory
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+        monkeypatch.setattr(
+            chart_data_module,
+            "event_logger",
+            SimpleNamespace(log_context=lambda **kwargs: nullcontext()),
+        )
+        monkeypatch.setattr(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            lambda *_args: "base",
+        )
+
+        response = await _query_from_form_data(
+            {
+                "datasource": "1__table",
+                "viz_type": "deck_path",
+                "line_column": "route",
+                "dimension": "route_type",
+                "tooltip_contents": ["owner"],
+                "metric": "color_metric",
+                "line_width": {"type": "metric", "value": "width_metric"},
+                "breakpoint_metric": "break_metric",
+            },
+            GetChartDataRequest(form_data_key="cached-key", limit=20),
+            _AsyncContext(),
+        )
+
+        query = captured[0]["queries"][0]
+        assert query["columns"] == ["route_type", "owner"]
+        assert query["groupby"] == ["route", "owner"]
+        assert query["metrics"] == [
+            "color_metric",
+            "width_metric",
+            "break_metric",
+        ]
+        assert query["filters"] == [{"col": "route", "op": "IS NOT NULL"}]
+        assert query["row_limit"] == 20
+        assert "orderby" not in query
+        assert isinstance(response, ChartData)
+        assert response.data == [{"route": "LINESTRING(...)"}]
+        assert response.row_count == 1
+        assert [column.name for column in response.columns] == ["route"]
+
+    @pytest.mark.parametrize("explicit_axis", [False, True])
+    @pytest.mark.asyncio
+    async def test_cached_big_number_uses_timestamp_pivot_and_raw_overall_query(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        explicit_axis: bool,
+    ) -> None:
+        """The cached/unsaved get-data path uses the final frontend contract."""
+        chart_data_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+        captured_query_contexts: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured_query_contexts.append(kwargs)
+                return _query_context_stub(kwargs.get("form_data"))
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None: ...
+
+            def run(self) -> dict[str, Any]:
+                time_column = "event_time" if explicit_axis else "__timestamp"
+                return {
+                    "queries": [
+                        {
+                            "data": [{time_column: "2024-01-01", "Net revenue": 1.0}],
+                            "colnames": [time_column, "Net revenue"],
+                        },
+                        {
+                            "data": [{"Net revenue": 1.0}],
+                            "colnames": ["Net revenue"],
+                        },
+                    ]
+                }
+
+        monkeypatch.setattr(
+            query_context_factory_module, "QueryContextFactory", QueryContextFactory
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+        monkeypatch.setattr(
+            chart_data_module,
+            "event_logger",
+            SimpleNamespace(log_context=lambda **kwargs: nullcontext()),
+        )
+        monkeypatch.setattr(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            lambda *_args: "base",
+        )
+        metric = {
+            "expressionType": "SQL",
+            "sqlExpression": "SUM(revenue) - SUM(cost)",
+            "label": "Net revenue",
+        }
+        temporal_form_data = (
+            {"x_axis": "event_time", "granularity_sqla": "event_time"}
+            if explicit_axis
+            else {"granularity_sqla": "event_time"}
+        )
+
+        await _query_from_form_data(
+            {
+                "datasource": "1__table",
+                "viz_type": "big_number",
+                "metric": metric,
+                "time_grain_sqla": "P1D",
+                "aggregation": "raw",
+                **temporal_form_data,
+            },
+            GetChartDataRequest(form_data_key="cached-key"),
+            _AsyncContext(),
+        )
+
+        trend, raw = captured_query_contexts[0]["queries"]
+        expected_columns = (
+            [
+                {
+                    "timeGrain": "P1D",
+                    "columnType": "BASE_AXIS",
+                    "sqlExpression": "event_time",
+                    "label": "event_time",
+                    "expressionType": "SQL",
+                    "isColumnReference": True,
+                }
+            ]
+            if explicit_axis
+            else []
+        )
+        assert trend["columns"] == expected_columns
+        assert trend["series_columns"] == []
+        assert trend["metrics"] == [metric]
+        if explicit_axis:
+            assert "is_timeseries" not in trend
+        else:
+            assert trend["is_timeseries"] is True
+        assert trend["post_processing"][0]["options"] == {
+            "index": ["event_time" if explicit_axis else "__timestamp"],
+            "columns": [],
+            "aggregates": {"Net revenue": {"operator": "mean"}},
+            "drop_missing_columns": True,
+        }
+        assert raw["columns"] == []
+        assert raw["series_columns"] == []
+        assert raw["is_timeseries"] is False
+        assert raw["post_processing"] == []
+
+    @pytest.mark.asyncio
     async def test_form_data_key_adhoc_filters_become_query_filters(
         self,
         monkeypatch: pytest.MonkeyPatch,
@@ -507,7 +911,7 @@ class TestUnsavedChartDataQueryConstruction:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return _query_context_stub(kwargs.get("form_data"))
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -588,7 +992,7 @@ class TestUnsavedChartDataQueryConstruction:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return _query_context_stub(kwargs.get("form_data"))
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -647,11 +1051,32 @@ class TestUnsavedChartDataQueryConstruction:
 
         queries = captured_query_contexts[0]["queries"]
         assert len(queries) == 2
-        assert queries[0]["columns"] == ["ds", "country"]
+        expected_axis = {
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "ds",
+            "label": "ds",
+            "expressionType": "SQL",
+            "isColumnReference": True,
+        }
+        assert queries[0]["columns"] == [expected_axis, "country"]
         assert queries[0]["metrics"] == ["sum__sales"]
+        assert queries[0]["series_columns"] == ["country"]
+        assert queries[0]["post_processing"][0]["options"] == {
+            "index": ["ds"],
+            "columns": ["country"],
+            "aggregates": {"sum__sales": {"operator": "mean"}},
+            "drop_missing_columns": True,
+        }
         assert queries[0]["row_limit"] == 99
-        assert queries[1]["columns"] == ["ds", "state"]
+        assert queries[1]["columns"] == [expected_axis, "state"]
         assert queries[1]["metrics"] == ["sum__profit"]
+        assert queries[1]["series_columns"] == ["state"]
+        assert queries[1]["post_processing"][0]["options"] == {
+            "index": ["ds"],
+            "columns": ["state"],
+            "aggregates": {"sum__profit": {"operator": "mean"}},
+            "drop_missing_columns": True,
+        }
         assert queries[1]["row_limit"] == 99
 
 
@@ -1842,7 +2267,7 @@ class TestOAuthErrorRouting:
         monkeypatch.setattr(
             chart_data_module,
             "build_query_context_from_form_data",
-            lambda *args, **kwargs: object(),
+            lambda *args, **kwargs: _query_context_stub(),
         )
         monkeypatch.setattr(
             get_data_command_module,
@@ -1973,6 +2398,42 @@ def test_coltypes_populates_data_type():
     assert _GENERIC_TYPE_MAP[GenericDataType.BOOLEAN] == "boolean"
 
 
+@pytest.mark.parametrize(
+    "data",
+    [
+        [],
+        [
+            {
+                "event_time": "2024-01-01T00:00:00",
+                "enabled": True,
+                "amount": 3.5,
+                "label": "A",
+            }
+        ],
+    ],
+)
+def test_shared_column_builder_honors_aligned_coltypes_for_empty_and_full_data(
+    data: list[dict[str, Any]],
+) -> None:
+    columns = _build_data_columns(
+        data,
+        ["event_time", "enabled", "amount", "label"],
+        [
+            GenericDataType.TEMPORAL,
+            GenericDataType.BOOLEAN,
+            GenericDataType.NUMERIC,
+            GenericDataType.STRING,
+        ],
+    )
+
+    assert [column.data_type for column in columns] == [
+        "temporal",
+        "boolean",
+        "numeric",
+        "string",
+    ]
+
+
 def test_bool_isinstance_check_before_int():
     """bool is a subclass of int; verify bool check takes priority in fallback."""
 
@@ -2075,6 +2536,73 @@ def test_multi_query_row_count_reflects_limit() -> None:
     ]
 
 
+def _multi_query_chart_data(
+    query_results: list[dict[str, Any]],
+) -> ChartData:
+    nested_results = _build_query_results(query_results, None)
+    assert nested_results is not None
+    first_data = query_results[0]["data"]
+    return ChartData(
+        chart_id=1,
+        chart_name="Multi-query",
+        chart_type="mixed_timeseries",
+        columns=[],
+        data=first_data,
+        query_results=nested_results,
+        row_count=len(first_data),
+        total_rows=len(first_data),
+        summary="Multi-query result",
+        insights=[],
+        data_quality={},
+        recommended_visualizations=[],
+        data_freshness=None,
+        performance=PerformanceMetadata(query_duration_ms=1, cache_status="fresh"),
+    )
+
+
+def test_complete_response_budget_charges_multi_query_first_leg_alias(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    row = {f"c{index}": 0 for index in range(20)}
+    rows = [row] * 100
+    query_results = [
+        {"colnames": list(row), "data": rows, "rowcount": len(rows)},
+        {"colnames": list(row), "data": rows, "rowcount": len(rows)},
+    ]
+    source = {"queries": query_results}
+    source_bytes = len(json.dumps(source, separators=(",", ":")).encode())
+    monkeypatch.setattr(
+        importlib.import_module("superset.mcp_service.chart.query_result"),
+        "MAX_QUERY_RESULT_VALUE_BYTES",
+        source_bytes,
+    )
+
+    data, source_failure = query_result_data(source)
+    assert source_failure is None
+    assert data == [rows, rows]
+
+    response = _multi_query_chart_data(query_results)
+    assert len(response.model_dump_json().encode()) > source_bytes
+    response_failure = response_json_failure(response)
+
+    assert response_failure is not None
+    assert "response exceeds the total JSON-encoded byte limit" in (
+        response_failure.error
+    )
+
+
+def test_complete_response_preflight_matches_real_pydantic_serialization() -> None:
+    rows = [{"label": 'café "\n', "value": index} for index in range(100)]
+    query_results = [
+        {"colnames": ["label", "value"], "data": rows, "rowcount": len(rows)},
+        {"colnames": ["label", "value"], "data": rows, "rowcount": len(rows)},
+    ]
+    response = _multi_query_chart_data(query_results)
+
+    assert response_json_failure(response) is None
+    assert len(response.model_dump_json().encode()) <= MAX_QUERY_RESULT_VALUE_BYTES
+
+
 @pytest.mark.asyncio
 async def test_unsaved_mixed_timeseries_returns_nonempty_secondary_query(
     monkeypatch: pytest.MonkeyPatch,
@@ -2115,7 +2643,7 @@ async def test_unsaved_mixed_timeseries_returns_nonempty_secondary_query(
     monkeypatch.setattr(
         chart_data_module,
         "build_query_context_from_form_data",
-        lambda *_args, **_kwargs: object(),
+        lambda *_args, **_kwargs: _query_context_stub(),
     )
     monkeypatch.setattr(
         get_data_command_module, "ChartDataCommand", MultiQueryChartDataCommand
@@ -2139,6 +2667,934 @@ async def test_unsaved_mixed_timeseries_returns_nonempty_secondary_query(
         [],
         [{"secondary": 2}],
     ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"queries": None},
+        {"queries": []},
+        {"queries": [{}]},
+        {"queries": [{"data": None}]},
+        {"queries": [{"data": []}, {}]},
+        {"queries": [{"data": [{"value": 1}], "colnames": ["value"], "coltypes": []}]},
+    ],
+)
+async def test_unsaved_chart_data_rejects_malformed_query_envelopes(
+    monkeypatch: pytest.MonkeyPatch, payload: dict[str, Any]
+) -> None:
+    from unittest.mock import AsyncMock
+
+    chart_data_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    get_data_command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+
+    class MalformedChartDataCommand:
+        def __init__(self, query_context: object) -> None:
+            self.query_context = query_context
+
+        def validate(self) -> None:
+            pass
+
+        def run(self) -> dict[str, Any]:
+            return payload
+
+    monkeypatch.setattr(
+        chart_data_module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: _query_context_stub(),
+    )
+    monkeypatch.setattr(
+        chart_data_module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
+    )
+    monkeypatch.setattr(
+        get_data_command_module, "ChartDataCommand", MalformedChartDataCommand
+    )
+
+    response = await _query_from_form_data(
+        {"datasource_id": 1, "datasource_type": "table"},
+        GetChartDataRequest(form_data_key="malformed"),
+        AsyncMock(),
+    )
+
+    assert isinstance(response, ChartError)
+    assert response.error_type == "MalformedQueryResult"
+
+
+@pytest.mark.asyncio
+async def test_unsaved_chart_data_accepts_valid_empty_dataset(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from unittest.mock import AsyncMock
+
+    chart_data_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    get_data_command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    command = MagicMock()
+    command.run.return_value = {"queries": [{"data": [], "colnames": []}]}
+    monkeypatch.setattr(
+        chart_data_module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: _query_context_stub(),
+    )
+    monkeypatch.setattr(
+        chart_data_module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
+    )
+    monkeypatch.setattr(
+        get_data_command_module, "ChartDataCommand", lambda _context: command
+    )
+
+    response = await _query_from_form_data(
+        {"datasource_id": 1, "datasource_type": "table"},
+        GetChartDataRequest(form_data_key="empty"),
+        AsyncMock(),
+    )
+
+    assert isinstance(response, ChartError)
+    assert response.error_type == "NoData"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "row",
+    [
+        _HostileResultRow(value=1),
+        {"value": _HostileResultScalar("unsafe")},
+        object(),
+    ],
+)
+async def test_unsaved_get_data_rejects_hostile_rows_and_scalars(
+    monkeypatch: pytest.MonkeyPatch,
+    row: Any,
+) -> None:
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {"queries": [{"data": [row], "colnames": ["value"]}]}
+
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_a, **_k: _query_context_stub(),
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    response = await _query_from_form_data(
+        {"datasource": "1__table", "viz_type": "table"},
+        GetChartDataRequest(form_data_key="hostile"),
+        _AsyncContext(),
+    )
+
+    assert isinstance(response, ChartError)
+    assert response.error_type == "MalformedQueryResult"
+
+
+@pytest.mark.asyncio
+async def test_chart_metadata_distinguishes_booleans_from_equal_integers(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            values = (True, 1, False, 0)
+            return {
+                "queries": [
+                    {
+                        "data": [{"value": value} for value in values],
+                        "colnames": ["value"],
+                        "coltypes": [GenericDataType.BOOLEAN],
+                        "rowcount": len(values),
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: _query_context_stub(),
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    response = await _query_from_form_data(
+        {"datasource": "1__table", "viz_type": "table"},
+        GetChartDataRequest(form_data_key="boolean-identity"),
+        _AsyncContext(),
+    )
+
+    assert isinstance(response, ChartData)
+    assert response.columns[0].data_type == "boolean"
+    assert response.columns[0].unique_count == 4
+
+
+def test_numeric_metadata_identity_matches_bounded_value_semantics() -> None:
+    equivalent_groups = [
+        [0, -0.0, 0.0, Decimal("0"), Decimal("-0.000")],
+        [1, 1.0, Decimal("1"), Decimal("1.0"), Decimal("1.00")],
+        [0.5, Decimal("0.5"), Decimal("0.50")],
+        [float("inf"), Decimal("Infinity")],
+        [float("-inf"), Decimal("-Infinity")],
+    ]
+
+    for group in equivalent_groups:
+        identities = [_safe_value_identity(value) for value in group]
+        assert len(set(identities)) == 1
+
+    specials = [
+        Decimal("NaN"),
+        Decimal("-NaN42"),
+        Decimal("sNaN"),
+        Decimal("-sNaN7"),
+        float("nan"),
+    ]
+    identities = [_safe_value_identity(value) for value in specials]
+    assert len(set(identities)) == len(specials)
+    assert identities == [_safe_value_identity(value) for value in specials]
+
+
+def test_aware_datetime_and_time_identity_preserves_instant_semantics() -> None:
+    plus_one = timezone(timedelta(hours=1))
+    same_datetimes = [
+        datetime(2024, 1, 1, 12, tzinfo=timezone.utc),
+        datetime(2024, 1, 1, 13, tzinfo=plus_one),
+    ]
+    distinct_datetime = datetime(2024, 1, 1, 12, tzinfo=plus_one)
+    same_times = [
+        datetime_time(12, tzinfo=timezone.utc),
+        datetime_time(13, tzinfo=plus_one),
+    ]
+    distinct_time = datetime_time(12, tzinfo=plus_one)
+
+    assert len({_safe_value_identity(value) for value in same_datetimes}) == 1
+    assert _safe_value_identity(distinct_datetime) != _safe_value_identity(
+        same_datetimes[0]
+    )
+    assert len({_safe_value_identity(value) for value in same_times}) == 1
+    assert _safe_value_identity(distinct_time) != _safe_value_identity(same_times[0])
+
+
+def test_zoneinfo_time_without_offset_uses_python_naive_identity() -> None:
+    zone = ZoneInfo("America/New_York")
+    naive = datetime_time(12, 34, 56, 789)
+    zoned = datetime_time(12, 34, 56, 789, tzinfo=zone)
+    folded = datetime_time(12, 34, 56, 789, tzinfo=zone, fold=1)
+
+    assert zoned.utcoffset() is None
+    assert zoned == naive == folded
+    assert _safe_value_identity(zoned) == _safe_value_identity(naive)
+    assert _safe_value_identity(folded) == _safe_value_identity(naive)
+
+
+def test_zoneinfo_datetime_fold_matches_python_same_zone_semantics() -> None:
+    zone = ZoneInfo("America/New_York")
+    first = datetime(2024, 11, 3, 1, 30, tzinfo=zone, fold=0)
+    second = datetime(2024, 11, 3, 1, 30, tzinfo=zone, fold=1)
+
+    assert first.utcoffset() != second.utcoffset()
+    assert first == second
+    assert hash(first) == hash(second)
+    assert _safe_value_identity(first) == _safe_value_identity(second)
+
+
+def test_zoneinfo_interzone_ambiguity_matches_python_equality_and_hash() -> None:
+    new_york = ZoneInfo("America/New_York")
+    toronto = ZoneInfo("America/Toronto")
+    ambiguous = datetime(2024, 11, 3, 1, 30, tzinfo=new_york, fold=0)
+    same_utc_instant = datetime(2024, 11, 3, 5, 30, tzinfo=timezone.utc)
+    other_zone = datetime(2024, 11, 3, 1, 30, tzinfo=toronto, fold=0)
+    unambiguous = datetime(2024, 11, 3, 3, 30, tzinfo=new_york)
+    unambiguous_utc = datetime(2024, 11, 3, 8, 30, tzinfo=timezone.utc)
+
+    # PEP 495 makes an offset-dependent ambiguous value unequal across zones,
+    # even when one selected fold denotes the same UTC instant.
+    assert ambiguous != same_utc_instant
+    assert ambiguous != other_zone
+    assert _safe_value_identity(ambiguous) != _safe_value_identity(same_utc_instant)
+    assert _safe_value_identity(ambiguous) != _safe_value_identity(other_zone)
+
+    assert unambiguous == unambiguous_utc
+    assert hash(unambiguous) == hash(unambiguous_utc)
+    assert _safe_value_identity(unambiguous) == _safe_value_identity(unambiguous_utc)
+
+
+def test_time_fold_and_fixed_offset_identity_matches_python() -> None:
+    zone = ZoneInfo("America/New_York")
+    zoned_fold_zero = datetime_time(1, 30, tzinfo=zone, fold=0)
+    zoned_fold_one = datetime_time(1, 30, tzinfo=zone, fold=1)
+    naive = datetime_time(1, 30)
+    utc = datetime_time(12, tzinfo=timezone.utc)
+    plus_one = datetime_time(13, tzinfo=timezone(timedelta(hours=1)))
+
+    assert zoned_fold_zero == zoned_fold_one == naive
+    assert hash(zoned_fold_zero) == hash(zoned_fold_one) == hash(naive)
+    assert (
+        _safe_value_identity(zoned_fold_zero)
+        == _safe_value_identity(zoned_fold_one)
+        == _safe_value_identity(naive)
+    )
+    assert utc == plus_one
+    assert hash(utc) == hash(plus_one)
+    assert _safe_value_identity(utc) == _safe_value_identity(plus_one)
+
+
+def test_opaque_timezone_identity_does_not_execute_custom_offset() -> None:
+    class _HostileTimezone(tzinfo):
+        def utcoffset(self, _value: datetime | None) -> timedelta | None:
+            raise AssertionError("custom timezone hook must not execute")
+
+        def dst(self, _value: datetime | None) -> timedelta | None:
+            raise AssertionError("custom timezone hook must not execute")
+
+        def tzname(self, _value: datetime | None) -> str | None:
+            raise AssertionError("custom timezone hook must not execute")
+
+    hostile = _HostileTimezone()
+    value = datetime(2024, 1, 1, 12, tzinfo=hostile)
+    time_value = datetime_time(12, tzinfo=hostile)
+
+    assert _safe_value_identity(value) == _safe_value_identity(value)
+    assert _safe_value_identity(time_value) == _safe_value_identity(time_value)
+
+
+def test_oversized_numeric_identity_declines_unbounded_conversion() -> None:
+    huge_int = 1 << 100_000
+    scale_variant_a = Decimal("1e1000000")
+    scale_variant_b = Decimal("10e999999")
+    huge_decimal = Decimal("1" * 100_000)
+
+    int_identity = _safe_value_identity(huge_int)
+    decimal_identity = _safe_value_identity(huge_decimal)
+
+    assert int_identity[:2] == ("oversized_numeric", "integer")
+    assert decimal_identity[:2] == ("oversized_numeric", "decimal")
+    assert _safe_value_identity(scale_variant_a) == _safe_value_identity(
+        scale_variant_b
+    )
+    assert len(repr(int_identity)) < 200
+    assert len(repr(decimal_identity)) < 200
+
+
+def test_mixed_numeric_unique_count_uses_value_semantics() -> None:
+    values = [
+        0,
+        -0.0,
+        Decimal("-0.00"),
+        1,
+        1.0,
+        Decimal("1.000"),
+        Decimal("sNaN"),
+        Decimal("sNaN"),
+        Decimal("NaN"),
+        float("inf"),
+        Decimal("Infinity"),
+    ]
+
+    assert len({_safe_value_identity(value) for value in values}) == 5
+
+
+def test_chart_column_metadata_bounds_wide_sparse_statistics_work() -> None:
+    from superset.mcp_service.chart.tool.get_chart_data import _build_data_columns
+    from superset.mcp_service.utils.response_utils import (
+        data_column_stats_row_limit,
+    )
+
+    rows: list[dict[str, Any]] = [{} for _ in range(50_000)]
+    raw_columns = [f"column_{index}" for index in range(4096)]
+
+    columns = _build_data_columns(rows, raw_columns, [])
+
+    sampled_rows = data_column_stats_row_limit(len(rows), len(raw_columns))
+    assert len(columns) == len(raw_columns)
+    assert columns[0].statistics == {"sampled_rows": sampled_rows}
+    assert columns[-1].statistics == {"sampled_rows": sampled_rows}
+
+
+@pytest.mark.asyncio
+async def test_unsaved_generic_get_data_returns_finite_decimal_metadata(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    values = [
+        Decimal("1.25"),
+        Decimal("1.250"),
+        1.25,
+        0,
+        -0.0,
+        Decimal("-0.00"),
+    ]
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"value": value} for value in values],
+                        "colnames": ["value"],
+                        "rowcount": len(values),
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: _query_context_stub(),
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    response = await _query_from_form_data(
+        {"datasource": "1__table", "viz_type": "table"},
+        GetChartDataRequest(form_data_key="decimal"),
+        _AsyncContext(),
+    )
+
+    assert isinstance(response, ChartData)
+    assert response.columns[0].data_type == "numeric"
+    assert response.columns[0].unique_count == 2
+    assert response.columns[0].sample_values == values[:3]
+
+
+@pytest.mark.asyncio
+async def test_unsaved_get_data_canonicalizes_decimal_nonfinite_at_producer(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The public MCP ChartData wire never receives Decimal non-finite tokens."""
+    from fastmcp import Client
+
+    from superset.dataframe import df_to_records
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    form_data = {
+        "datasource_id": 7,
+        "datasource_type": "table",
+        "datasource": "7__table",
+        "viz_type": "table",
+        "all_columns": ["value"],
+    }
+    finite = Decimal("0.10000000000000000001")
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            rows = df_to_records(
+                pd.DataFrame(
+                    {
+                        "value": pd.Series(
+                            [
+                                Decimal("NaN"),
+                                Decimal("sNaN"),
+                                Decimal("Infinity"),
+                                Decimal("-Infinity"),
+                                finite,
+                            ],
+                            dtype=object,
+                        )
+                    }
+                ),
+                convert_big_integers=False,
+            )
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["value"],
+                        "coltypes": [GenericDataType.NUMERIC],
+                        "rowcount": len(rows),
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        module, "get_cached_form_data", lambda _key: json.dumps(form_data)
+    )
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: _query_context_stub(),
+    )
+    monkeypatch.setattr(module, "set_query_context_form_data", lambda *_args: None)
+    monkeypatch.setattr(
+        module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
+    )
+    monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_chart_data", {"request": {"form_data_key": "decimal-nonfinite"}}
+        )
+
+    payload = json.loads(result.content[0].text)
+    assert [row["value"] for row in payload["data"]] == [
+        None,
+        None,
+        None,
+        None,
+        "0.10000000000000000001",
+    ]
+
+
+@pytest.mark.asyncio
+async def test_unsaved_get_data_reports_sampled_all_null_completeness(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    row_count = 10_000
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"value": float("nan")} for _ in range(row_count)],
+                        "colnames": ["value"],
+                        "coltypes": [GenericDataType.NUMERIC],
+                        "rowcount": row_count,
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: _query_context_stub(),
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    response = await _query_from_form_data(
+        {"datasource": "1__table", "viz_type": "table"},
+        GetChartDataRequest(form_data_key="nulls"),
+        _AsyncContext(),
+    )
+
+    assert isinstance(response, ChartData)
+    assert response.columns[0].null_count == 5000
+    assert response.columns[0].statistics == {"sampled_rows": 5000}
+    assert response.data_quality == {
+        "completeness": 0.0,
+        "completeness_is_approximate": True,
+        "sampled_rows": 5000,
+    }
+    assert all(row["value"] is None for row in response.data)
+
+
+@pytest.mark.asyncio
+async def test_unsaved_get_data_round_trips_temporal_and_boolean_coltypes(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [
+                            {
+                                "event_time": datetime(
+                                    2024,
+                                    1,
+                                    1,
+                                    2,
+                                    3,
+                                    4,
+                                    tzinfo=dateutil_tz.tzoffset(
+                                        "east", 5 * 3600 + 30 * 60
+                                    ),
+                                ),
+                                "clock_time": datetime_time(
+                                    2, 3, 4, tzinfo=pytz.FixedOffset(-450)
+                                ),
+                                "enabled": True,
+                                "missing": np.float64("nan"),
+                            }
+                        ],
+                        "colnames": [
+                            "event_time",
+                            "clock_time",
+                            "enabled",
+                            "missing",
+                        ],
+                        "coltypes": [
+                            GenericDataType.TEMPORAL,
+                            GenericDataType.TEMPORAL,
+                            GenericDataType.BOOLEAN,
+                            GenericDataType.NUMERIC,
+                        ],
+                        "rowcount": 1,
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: _query_context_stub(),
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    response = await _query_from_form_data(
+        {"datasource": "1__table", "viz_type": "table"},
+        GetChartDataRequest(form_data_key="typed"),
+        _AsyncContext(),
+    )
+
+    assert isinstance(response, ChartData)
+    assert [column.data_type for column in response.columns] == [
+        "temporal",
+        "temporal",
+        "boolean",
+        "numeric",
+    ]
+    assert response.data == [
+        {
+            "event_time": "2024-01-01T02:03:04+05:30",
+            "clock_time": "02:03:04-07:30",
+            "enabled": True,
+            "missing": None,
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_unsaved_multi_query_consumes_canonical_cached_dttm(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    cached_dttm = (datetime.now(timezone.utc) - timedelta(minutes=90)).isoformat()
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"value": 1}],
+                        "colnames": ["value"],
+                        "rowcount": 1,
+                        "is_cached": True,
+                        "cached_dttm": cached_dttm,
+                    },
+                    {
+                        "data": [{"other": 2}],
+                        "colnames": ["other"],
+                        "rowcount": 1,
+                        "is_cached": True,
+                        "cached_dttm": cached_dttm,
+                    },
+                ]
+            }
+
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: _query_context_stub(),
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    response = await _query_from_form_data(
+        {"datasource": "1__table", "viz_type": "table"},
+        GetChartDataRequest(form_data_key="cached"),
+        _AsyncContext(),
+    )
+
+    assert isinstance(response, ChartData)
+    assert response.cache_status is not None
+    assert response.cache_status.cache_hit is True
+    assert response.cache_status.cache_age_seconds is not None
+    assert response.cache_status.cache_age_seconds >= 5_399
+    assert response.query_results is not None
+    assert len(response.query_results) == 2
+
+
+@pytest.mark.asyncio
+async def test_saved_get_data_accepts_real_postprocessing_null_and_large_full_sql(
+    mcp_server: Any, mock_auth: Any, app_context: None
+) -> None:
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    from tests.unit_tests.mcp_service.chart.query_result_test_utils import (
+        real_compare_command_result,
+    )
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    chart = SimpleNamespace(
+        id=13,
+        slice_name="Comparison",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params='{"viz_type": "table"}',
+    )
+    sql = 'SELECT "chart café"\\n' + "x" * (70 * 1024)
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return real_compare_command_result(sql)
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 13}}
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert payload["data"][0]["finite"] == 2.5
+    assert any(value is None for value in payload["data"][0].values())
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("engine", ["openpyxl", "xlsxwriter"])
+async def test_real_get_chart_data_excel_stringifies_uuid_with_both_engines(
+    engine: str, mcp_server: Any, mock_auth: Any
+) -> None:
+    import base64
+    import io
+    from contextlib import ExitStack
+    from unittest.mock import patch
+
+    from fastmcp import Client
+    from openpyxl import load_workbook
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    identifier = UUID("12345678-1234-5678-1234-567812345678")
+    chart = SimpleNamespace(
+        id=15,
+        slice_name="UUID export",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params='{"viz_type": "table"}',
+    )
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"id": identifier}],
+                        "colnames": ["id"],
+                        "rowcount": 1,
+                    }
+                ]
+            }
+
+    with ExitStack() as stack:
+        stack.enter_context(
+            patch.object(module, "find_chart_by_identifier", return_value=chart)
+        )
+        stack.enter_context(
+            patch.object(
+                module,
+                "validate_chart_dataset",
+                return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "superset.charts.schemas.ChartDataQueryContextSchema.load",
+                return_value=_query_context_stub(),
+            )
+        )
+        stack.enter_context(patch.object(command_module, "ChartDataCommand", _Command))
+        if engine == "xlsxwriter":
+            stack.enter_context(
+                patch.object(
+                    module, "_create_excel_with_openpyxl", side_effect=ImportError
+                )
+            )
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data",
+                {"request": {"identifier": 15, "format": "excel"}},
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert payload["format"] == "excel"
+    workbook = load_workbook(io.BytesIO(base64.b64decode(payload["excel_data"])))
+    assert workbook.active["A2"].value == str(identifier)
+
+
+@pytest.mark.asyncio
+async def test_saved_get_data_uses_production_cache_timestamp_for_insights(
+    mcp_server: Any,
+    mock_auth: Any,
+) -> None:
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    chart = SimpleNamespace(
+        id=14,
+        slice_name="Cached producer envelope",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params='{"viz_type": "table"}',
+    )
+    cached_dttm = (datetime.now(timezone.utc) - timedelta(hours=2)).isoformat()
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"value": 1}],
+                        "colnames": ["value"],
+                        "rowcount": 1,
+                        "is_cached": True,
+                        "cached_dttm": cached_dttm,
+                    }
+                ]
+            }
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 14}}
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert payload["cache_status"]["cache_hit"] is True
+    assert payload["cache_status"]["cache_age_seconds"] >= 7_199
+    assert any("2h old" in insight for insight in payload["insights"])
+    assert payload["performance"]["cache_status"] == "cache_hit"
+
+
+@pytest.mark.asyncio
+async def test_unsaved_bullet_get_data_uses_strict_render_model(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {"data": [{"Revenue": "not numeric"}], "colnames": ["Revenue"]}
+                ]
+            }
+
+    monkeypatch.setattr(
+        module,
+        "build_query_context_from_form_data",
+        lambda *_a, **_k: _query_context_stub(),
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    response = await _query_from_form_data(
+        {
+            "datasource": "1__table",
+            "viz_type": "bullet",
+            "metric": "Revenue",
+        },
+        GetChartDataRequest(form_data_key="bullet"),
+        _AsyncContext(),
+    )
+
+    assert isinstance(response, ChartError)
+    assert response.error_type == "MalformedBulletOutput"
 
 
 def _make_chart_data(**overrides: Any) -> ChartData:
@@ -2175,6 +3631,1052 @@ class TestChartDataTotalRowsCoercion:
         chart_data = _make_chart_data(total_rows=5.0)
         assert chart_data.total_rows == 5
         assert isinstance(chart_data.total_rows, int)
+
+    @pytest.mark.parametrize(
+        "value",
+        [-1, 5.9, float("nan"), float("inf"), True, "5", 1 << 1000],
+    )
+    def test_malformed_total_rows_is_rejected(self, value: Any) -> None:
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            _make_chart_data(total_rows=value)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "row",
+    [
+        _HostileResultRow(value=1),
+        {"value": _HostileResultScalar("unsafe")},
+        object(),
+    ],
+)
+async def test_saved_get_data_rejects_hostile_rows_and_scalars(
+    mcp_server: Any,
+    mock_auth: Any,
+    row: Any,
+) -> None:
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    chart = SimpleNamespace(
+        id=9,
+        slice_name="Hostile rows",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params='{"viz_type": "table"}',
+    )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {"queries": [{"data": [row], "colnames": ["value"]}]}
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 9}}
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert payload["error_type"] == "MalformedQueryResult"
+
+
+@pytest.mark.asyncio
+async def test_saved_generic_get_data_rejects_misaligned_coltypes(
+    mcp_server: Any,
+    mock_auth: Any,
+) -> None:
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    chart = SimpleNamespace(
+        id=12,
+        slice_name="Malformed metadata",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params='{"viz_type": "table"}',
+    )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"value": 1}],
+                        "colnames": ["value"],
+                        "coltypes": [],
+                    }
+                ]
+            }
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 12}}
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert payload["error_type"] == "MalformedQueryResult"
+
+
+@pytest.mark.asyncio
+async def test_saved_generic_get_data_returns_finite_decimal_metadata(
+    mcp_server: Any,
+    mock_auth: Any,
+) -> None:
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    chart = SimpleNamespace(
+        id=11,
+        slice_name="Decimal metadata",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params='{"viz_type": "table"}',
+    )
+    values = [
+        Decimal("1.25"),
+        Decimal("1.250"),
+        1.25,
+        0,
+        -0.0,
+        Decimal("-0.00"),
+    ]
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"value": value} for value in values],
+                        "colnames": ["value"],
+                        "rowcount": len(values),
+                    }
+                ]
+            }
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 11}}
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert payload["columns"][0]["data_type"] == "numeric"
+    assert payload["columns"][0]["unique_count"] == 2
+    assert payload["columns"][0]["sample_values"] == ["1.25", "1.250", 1.25]
+
+
+@pytest.mark.asyncio
+async def test_saved_get_data_round_trips_temporal_and_boolean_coltypes(
+    mcp_server: Any,
+    mock_auth: Any,
+) -> None:
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    chart = SimpleNamespace(
+        id=13,
+        slice_name="Typed metadata",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params='{"viz_type": "table"}',
+    )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [
+                            {
+                                "event_time": pd.Timestamp(
+                                    datetime(
+                                        2024,
+                                        1,
+                                        1,
+                                        2,
+                                        3,
+                                        4,
+                                        tzinfo=pytz.FixedOffset(-450),
+                                    )
+                                ),
+                                "enabled": False,
+                            }
+                        ],
+                        "colnames": ["event_time", "enabled"],
+                        "coltypes": [
+                            GenericDataType.TEMPORAL,
+                            GenericDataType.BOOLEAN,
+                        ],
+                        "rowcount": 1,
+                    }
+                ]
+            }
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 13}}
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert [column["data_type"] for column in payload["columns"]] == [
+        "temporal",
+        "boolean",
+    ]
+    assert payload["data"] == [
+        {"event_time": "2024-01-01T02:03:04-07:30", "enabled": False}
+    ]
+
+
+@pytest.mark.asyncio
+async def test_saved_bullet_get_data_uses_strict_render_model(
+    mcp_server: Any,
+    mock_auth: Any,
+) -> None:
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    chart = SimpleNamespace(
+        id=10,
+        slice_name="Strict Bullet",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params='{"viz_type": "bullet", "metric": "Revenue"}',
+    )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {"data": [{"Revenue": "not numeric"}], "colnames": ["Revenue"]}
+                ]
+            }
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 10}}
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert payload["error_type"] == "MalformedBulletOutput"
+
+
+@pytest.mark.asyncio
+async def test_saved_bullet_get_data_projects_dataframe_timestamps_to_epoch(
+    mcp_server: Any,
+    mock_auth: Any,
+) -> None:
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    from superset.dataframe import df_to_records
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    dateutil_dublin = dateutil_tz.gettz("Europe/Dublin")
+    dateutil_new_york = dateutil_tz.gettz("America/New_York")
+    assert dateutil_dublin is not None
+    assert dateutil_new_york is not None
+    dublin_fold = datetime(
+        2024,
+        10,
+        27,
+        1,
+        30,
+        0,
+        123456,
+        tzinfo=dateutil_dublin,
+        fold=1,
+    )
+    new_york_gap = datetime(2024, 3, 10, 2, 30, 0, 123456, tzinfo=dateutil_new_york)
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Category"],
+    }
+    chart = SimpleNamespace(
+        id=20,
+        slice_name="Timestamp Bullet",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params=json.dumps(form_data),
+    )
+    source_values = [
+        pd.Timestamp("2024-01-02 03:04:05.123456789"),
+        pd.Timestamp("2024-01-02 08:34:05.123456789+05:30"),
+        pd.Timestamp(
+            datetime(
+                2024,
+                11,
+                3,
+                1,
+                30,
+                tzinfo=ZoneInfo("America/New_York"),
+                fold=0,
+            )
+        ),
+        pd.Timestamp(
+            datetime(
+                2024,
+                11,
+                3,
+                1,
+                30,
+                tzinfo=ZoneInfo("America/New_York"),
+                fold=1,
+            )
+        ),
+        pd.Timestamp("1969-12-31 23:59:59.999999999"),
+        pd.NaT,
+        dublin_fold,
+        new_york_gap,
+        datetime(2040, 7, 1, 12, 0, 0, 123456, tzinfo=dateutil_new_york),
+        pd.Timestamp(dublin_fold),
+        pd.Timestamp(new_york_gap),
+    ]
+    rows = df_to_records(
+        pd.DataFrame(
+            {
+                "Category": pd.Series(source_values, dtype=object),
+                "Revenue": range(1, len(source_values) + 1),
+            }
+        ),
+        convert_big_integers=False,
+    )
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["Category", "Revenue"],
+                        "rowcount": len(rows),
+                    }
+                ]
+            }
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 20}}
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert [row["Category"] for row in payload["data"]] == [
+        1704164645123.456,
+        1704164645123.456,
+        1730611800000.0,
+        1730615400000.0,
+        -0.0010000000000287557,
+        None,
+        1729989000123.456,
+        1710052200123.456,
+        2224774800123.456,
+        1729989000123.456,
+        1710052200123.456,
+    ]
+
+
+@pytest.mark.asyncio
+async def test_transitionless_dateutil_dataframe_reaches_fastmcp_data(
+    mcp_server: Any,
+    mock_auth: Any,
+) -> None:
+    from unittest.mock import patch
+
+    from dateutil.zoneinfo import get_zonefile_instance
+    from fastmcp import Client
+
+    from superset.commands.chart.data.get_data_command import (
+        ChartDataCommand as ProducerChartDataCommand,
+    )
+    from superset.common.chart_data import ChartDataResultType
+    from superset.dataframe import df_to_records
+    from superset.utils.json import json_int_dttm_ser
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    names = [
+        "UTC",
+        "GMT",
+        "Universal",
+        "Zulu",
+        "EST",
+        "HST",
+        "MST",
+        "Etc/GMT+1",
+        "Etc/GMT-2",
+    ]
+    values = []
+    for getter in (dateutil_tz.gettz, get_zonefile_instance().get):
+        for name in names:
+            timezone_value = getter(name)
+            assert timezone_value is not None
+            values.append(
+                datetime(2040, 7, 1, 12, 34, 56, 123456, tzinfo=timezone_value)
+            )
+    rows = df_to_records(
+        pd.DataFrame(
+            {
+                "Category": pd.Series(values, dtype=object),
+                "Revenue": range(1, len(values) + 1),
+            }
+        ),
+        convert_big_integers=False,
+    )
+
+    class _ProducerContext:
+        result_type = ChartDataResultType.FULL
+
+        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["Category", "Revenue"],
+                        "rowcount": len(rows),
+                    }
+                ]
+            }
+
+    producer_result = ProducerChartDataCommand(
+        _ProducerContext()  # type: ignore[arg-type]
+    ).run()
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Category"],
+    }
+    chart = SimpleNamespace(
+        id=22,
+        slice_name="Transitionless timestamps",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params=json.dumps(form_data),
+    )
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return producer_result
+
+    with (
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 22}}
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert payload["row_count"] == len(values)
+    assert payload["total_rows"] == len(values)
+    assert [row["Category"] for row in payload["data"]] == [
+        json_int_dttm_ser(value) for value in values
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("format_", "excel_engine"),
+    [
+        ("json", None),
+        ("csv", None),
+        ("excel", "openpyxl"),
+        ("excel", "xlsxwriter"),
+    ],
+)
+async def test_saved_cached_bullet_duration_producer_reaches_fastmcp_exports(
+    mcp_server: Any,
+    mock_auth: Any,
+    format_: str,
+    excel_engine: str | None,
+) -> None:
+    import base64
+    import csv
+    import io
+    from contextlib import ExitStack
+    from unittest.mock import patch
+
+    from fastmcp import Client
+    from openpyxl import load_workbook
+
+    from superset.commands.chart.data.get_data_command import (
+        ChartDataCommand as ProducerChartDataCommand,
+    )
+    from superset.common.chart_data import ChartDataResultType
+    from superset.dataframe import df_to_records
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    source_values = [
+        timedelta(0),
+        timedelta(microseconds=-1),
+        timedelta(days=1, seconds=2, microseconds=3),
+        pd.Timedelta(-1, unit="ns"),
+        pd.Timedelta("1 days 00:00:02.000003004"),
+        np.timedelta64(123456789, "ns"),
+        np.timedelta64("NaT"),
+    ]
+    rows = df_to_records(
+        pd.DataFrame(
+            {
+                "Duration": pd.Series(source_values, dtype=object),
+                "Revenue": range(1, len(source_values) + 1),
+            }
+        ),
+        convert_big_integers=False,
+    )
+    assert type(rows[5]["Duration"]) is pd.Timedelta
+    assert rows[6]["Duration"] is None
+    expected = [
+        None
+        if row["Duration"] is None
+        else json.loads(json.dumps(row["Duration"], default=json.json_int_dttm_ser))
+        for row in rows
+    ]
+
+    class _ProducerContext:
+        result_type = ChartDataResultType.FULL
+
+        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["Duration", "Revenue"],
+                        "rowcount": len(rows),
+                        "is_cached": True,
+                        "cache_key": "duration-cache",
+                        "cached_dttm": "2026-09-03T00:00:00+00:00",
+                    }
+                ]
+            }
+
+    producer_result = ProducerChartDataCommand(
+        _ProducerContext()  # type: ignore[arg-type]
+    ).run()
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Duration"],
+    }
+    chart = SimpleNamespace(
+        id=23,
+        slice_name="Duration Bullet",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params=json.dumps(form_data),
+    )
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return producer_result
+
+    with ExitStack() as stack:
+        stack.enter_context(
+            patch.object(module, "find_chart_by_identifier", return_value=chart)
+        )
+        stack.enter_context(
+            patch.object(
+                module,
+                "validate_chart_dataset",
+                return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "superset.charts.schemas.ChartDataQueryContextSchema.load",
+                return_value=_query_context_stub(),
+            )
+        )
+        stack.enter_context(patch.object(command_module, "ChartDataCommand", _Command))
+        if excel_engine == "xlsxwriter":
+            stack.enter_context(
+                patch.object(
+                    module, "_create_excel_with_openpyxl", side_effect=ImportError
+                )
+            )
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data",
+                {"request": {"identifier": 23, "format": format_}},
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert payload["row_count"] == len(rows)
+    assert payload["total_rows"] == len(rows)
+    assert payload["cache_status"]["cache_hit"] is True
+    if format_ == "json":
+        assert [row["Duration"] for row in payload["data"]] == expected
+    elif format_ == "csv":
+        decoded = list(csv.DictReader(io.StringIO(payload["csv_data"])))
+        assert [row["Duration"] or None for row in decoded] == expected
+    else:
+        workbook = load_workbook(io.BytesIO(base64.b64decode(payload["excel_data"])))
+        assert [cell.value for cell in workbook.active[1]] == ["Duration", "Revenue"]
+        assert [
+            workbook.active.cell(row=index + 2, column=1).value
+            for index in range(len(expected))
+        ] == expected
+
+
+@pytest.mark.asyncio
+async def test_form_data_key_bullet_duration_producer_uses_chart_data_wire(
+    mcp_server: Any,
+    mock_auth: Any,
+) -> None:
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    from superset.commands.chart.data.get_data_command import (
+        ChartDataCommand as ProducerChartDataCommand,
+    )
+    from superset.common.chart_data import ChartDataResultType
+    from superset.dataframe import df_to_records
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    rows = df_to_records(
+        pd.DataFrame(
+            {
+                "Duration": pd.Series(
+                    [timedelta(days=1, microseconds=3), pd.Timedelta(-1, "ns")],
+                    dtype=object,
+                ),
+                "Revenue": [1, 2],
+            }
+        ),
+        convert_big_integers=False,
+    )
+    expected = [
+        json.loads(json.dumps(row["Duration"], default=json.json_int_dttm_ser))
+        for row in rows
+    ]
+
+    class _ProducerContext:
+        result_type = ChartDataResultType.FULL
+
+        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["Duration", "Revenue"],
+                        "rowcount": len(rows),
+                    }
+                ]
+            }
+
+    producer_result = ProducerChartDataCommand(
+        _ProducerContext()  # type: ignore[arg-type]
+    ).run()
+    form_data = {
+        "datasource": "1__table",
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Duration"],
+    }
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return producer_result
+
+    with (
+        patch.object(
+            module, "get_cached_form_data", return_value=json.dumps(form_data)
+        ),
+        patch.object(
+            module,
+            "build_query_context_from_form_data",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data",
+                {"request": {"form_data_key": "duration-bullet"}},
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert payload["chart_id"] == 0
+    assert [row["Duration"] for row in payload["data"]] == expected
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("grouped", "format_", "identifier_alias", "excel_engine"),
+    [
+        (False, "json", "id", None),
+        (True, "json", "chart_id", None),
+        (False, "csv", "id", None),
+        (True, "csv", "chart_id", None),
+        (False, "excel", "id", "openpyxl"),
+        (True, "excel", "id", "openpyxl"),
+        (False, "excel", "chart_id", "xlsxwriter"),
+        (True, "excel", "chart_id", "xlsxwriter"),
+    ],
+)
+async def test_saved_empty_bullet_get_data_fastmcp_returns_normalized_rows(
+    mcp_server: Any,
+    mock_auth: Any,
+    grouped: bool,
+    format_: str,
+    identifier_alias: str,
+    excel_engine: str | None,
+) -> None:
+    import base64
+    import io
+    from contextlib import ExitStack
+    from unittest.mock import patch
+
+    from fastmcp import Client
+    from openpyxl import load_workbook
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    form_data: dict[str, Any] = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+    }
+    if grouped:
+        form_data["groupby"] = ["Region"]
+    raw_columns = ["Revenue", *(["Region"] if grouped else [])]
+    chart = SimpleNamespace(
+        id=21,
+        slice_name="Empty Bullet",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        query_context='{"queries": []}',
+        params=json.dumps(form_data),
+    )
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": 2
+                * [
+                    {
+                        "data": [],
+                        "colnames": raw_columns,
+                        "rowcount": 0,
+                    }
+                ]
+            }
+
+    with ExitStack() as stack:
+        stack.enter_context(
+            patch.object(module, "find_chart_by_identifier", return_value=chart)
+        )
+        stack.enter_context(
+            patch.object(
+                module,
+                "validate_chart_dataset",
+                return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+            )
+        )
+        stack.enter_context(
+            patch(
+                "superset.charts.schemas.ChartDataQueryContextSchema.load",
+                return_value=_query_context_stub(),
+            )
+        )
+        stack.enter_context(patch.object(command_module, "ChartDataCommand", _Command))
+        if excel_engine == "xlsxwriter":
+            stack.enter_context(
+                patch.object(
+                    module, "_create_excel_with_openpyxl", side_effect=ImportError
+                )
+            )
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data",
+                {
+                    "request": {
+                        identifier_alias: 21,
+                        "format": format_,
+                    }
+                },
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert "error_type" not in payload
+    if format_ == "json":
+        assert payload["data"] == []
+        assert payload["row_count"] == 0
+        assert payload["total_rows"] == 0
+        assert len(payload["query_results"]) == 2
+        for query_result in payload["query_results"]:
+            assert query_result["data"] == []
+            assert query_result["row_count"] == 0
+            assert query_result["total_rows"] == 0
+    elif format_ == "csv":
+        assert payload["format"] == "csv"
+        assert payload["row_count"] == 0
+        assert payload["total_rows"] == 0
+        assert payload["csv_data"] == (
+            "Revenue,Region\r\n" if grouped else "Revenue\r\n"
+        )
+    else:
+        assert payload["format"] == "excel"
+        assert payload["row_count"] == 0
+        assert payload["total_rows"] == 0
+        workbook = load_workbook(io.BytesIO(base64.b64decode(payload["excel_data"])))
+        assert [cell.value for cell in workbook.active[1]] == raw_columns
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "grouped",
+    [
+        False,
+        True,
+    ],
+)
+async def test_form_data_key_empty_bullet_fastmcp_returns_normalized_rows(
+    mcp_server: Any,
+    mock_auth: Any,
+    grouped: bool,
+) -> None:
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    form_data: dict[str, Any] = {
+        "datasource": "1__table",
+        "viz_type": "bullet",
+        "metric": "Revenue",
+    }
+    if grouped:
+        form_data["groupby"] = ["Region"]
+    raw_columns = ["Revenue", *(["Region"] if grouped else [])]
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": 2
+                * [
+                    {
+                        "data": [],
+                        "colnames": raw_columns,
+                        "rowcount": 0,
+                    }
+                ]
+            }
+
+    with (
+        patch.object(
+            module, "get_cached_form_data", return_value=json.dumps(form_data)
+        ),
+        patch.object(
+            module,
+            "build_query_context_from_form_data",
+            return_value=_query_context_stub(),
+        ),
+        patch.object(command_module, "ChartDataCommand", _Command),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data",
+                {
+                    "request": {
+                        "form_data_key": "empty-bullet",
+                        "format": "json",
+                    }
+                },
+            )
+
+    payload = json.loads(result.content[0].text)
+    assert "error_type" not in payload
+    assert payload["chart_id"] == 0
+    assert payload["chart_type"] == "bullet"
+    assert payload["row_count"] == 0
+    assert payload["total_rows"] == 0
+    assert payload["data"] == []
+    assert len(payload["query_results"]) == 2
+    for query_result in payload["query_results"]:
+        assert query_result["data"] == []
+        assert query_result["row_count"] == 0
+        assert query_result["total_rows"] == 0
 
     def test_float_total_rows_serializes_without_error(self) -> None:
         import pydantic_core
@@ -2405,7 +4907,7 @@ async def test_query_from_form_data_zero_row_limit_falls_back_to_default(
 
     def fake_build(form_data: Any, **kwargs: Any) -> Any:
         captured["row_limit"] = kwargs.get("row_limit")
-        return object()
+        return _query_context_stub(form_data)
 
     class _Command:
         def __init__(self, query_context: Any) -> None: ...
@@ -2446,7 +4948,7 @@ async def test_query_from_form_data_string_row_limit_is_coerced(
 
     def fake_build(form_data: Any, **kwargs: Any) -> Any:
         captured["row_limit"] = kwargs.get("row_limit")
-        return object()
+        return _query_context_stub(form_data)
 
     class _Command:
         def __init__(self, query_context: Any) -> None: ...
@@ -2500,7 +5002,7 @@ async def test_query_from_form_data_use_cache_false_bypasses_cache(
     def fake_build(form_data: Any, **kwargs: Any) -> Any:
         captured["force"] = kwargs.get("force")
         captured["custom_cache_timeout"] = kwargs.get("custom_cache_timeout")
-        return object()
+        return _query_context_stub(form_data)
 
     class _Command:
         def __init__(self, query_context: Any) -> None: ...
@@ -2557,7 +5059,7 @@ async def test_query_from_form_data_refreshed_reflects_force_refresh_only(
     module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
 
     def fake_build(form_data: Any, **kwargs: Any) -> Any:
-        return object()
+        return _query_context_stub(form_data)
 
     class _Command:
         def __init__(self, query_context: Any) -> None: ...

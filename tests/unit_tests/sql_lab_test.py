@@ -17,11 +17,13 @@
 # pylint: disable=import-outside-toplevel, invalid-name, unused-argument, too-many-locals
 
 import json  # noqa: TID251
+from decimal import Decimal
 from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 from uuid import UUID
 
+import pandas as pd
 import pytest
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
@@ -30,12 +32,15 @@ from sqlalchemy.orm import Session
 
 from superset.app import SupersetApp
 from superset.common.db_query_status import QueryStatus
+from superset.db_engine_specs import BaseEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import OAuth2Error, SupersetErrorException
 from superset.models.core import Database
 from superset.sql.parse import SQLStatement, Table
 from superset.sql_lab import (
+    _serialize_and_expand_data,
+    _serialize_payload,
     execute_query,
     execute_sql_statements,
     get_query,
@@ -45,6 +50,54 @@ from superset.sql_lab import (
 from superset.utils.rls import apply_rls, get_predicates_for_table
 from tests.conftest import with_config
 from tests.unit_tests.models.core_test import oauth2_client_info
+
+
+def test_sql_lab_and_view_json_normalize_decimal_nonfinite() -> None:
+    """Sync SQL Lab and its view consumer share strict Decimal projection."""
+    from superset.views.utils import _deserialize_results_payload
+
+    finite = Decimal("0.10000000000000000001")
+    result_set = MagicMock()
+    result_set.columns = [{"name": "value"}]
+    result_set.to_pandas_df.return_value = pd.DataFrame(
+        {
+            "value": pd.Series(
+                [
+                    Decimal("NaN"),
+                    Decimal("sNaN"),
+                    Decimal("Infinity"),
+                    Decimal("-Infinity"),
+                    finite,
+                ],
+                dtype=object,
+            )
+        }
+    )
+
+    data, selected_columns, all_columns, expanded_columns = _serialize_and_expand_data(
+        result_set, BaseEngineSpec()
+    )
+    assert isinstance(data, list)
+    assert [row["value"] for row in data] == [None, None, None, None, finite]
+
+    payload = {
+        "data": data,
+        "selected_columns": selected_columns,
+        "columns": all_columns,
+        "expanded_columns": expanded_columns,
+    }
+    serialized = _serialize_payload(payload)
+    assert isinstance(serialized, str)
+    assert "NaN" not in serialized
+    assert "Infinity" not in serialized
+    deserialized = _deserialize_results_payload(serialized, MagicMock())
+    assert [row["value"] for row in deserialized["data"]] == [
+        None,
+        None,
+        None,
+        None,
+        0.1,
+    ]
 
 
 def test_execute_query(mocker: MockerFixture, app: None) -> None:

@@ -20,12 +20,20 @@ Unit tests for get_chart_preview MCP tool
 """
 
 import importlib
+from datetime import date, datetime, timedelta, timezone
+from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
+from zoneinfo import ZoneInfo
 
+import pandas as pd
 import pytest
+import pytz
+from dateutil import tz as dateutil_tz
+from dateutil.zoneinfo import get_zonefile_instance
 
+from superset.mcp_service.chart.query_result import MAX_QUERY_RESULT_VALUE_BYTES
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -45,10 +53,1133 @@ from superset.mcp_service.chart.tool.get_chart_preview import (
     _first_query_has_fields,
     _no_query_fields_error,
     ASCIIPreviewStrategy,
+    get_chart_preview,
     PreviewFormatStrategy,
     TablePreviewStrategy,
 )
 from superset.utils import json as utils_json
+
+
+def _query_context_stub(form_data: dict[str, Any] | None = None) -> Any:
+    """Return the minimal real-shaped context needed by Jinja form-data seeding."""
+    return SimpleNamespace(form_data=form_data or {}, queries=[])
+
+
+def _entrypoint_preview(content: str) -> ChartPreview:
+    return ChartPreview(
+        chart_id=1,
+        chart_name="",
+        chart_type="bullet",
+        explore_url="",
+        content=ASCIIPreview(ascii_content=content, width=80, height=20),
+        chart_description="",
+        accessibility=AccessibilityMetadata(
+            color_blind_safe=True,
+            alt_text="",
+            high_contrast_available=False,
+        ),
+        performance=PerformanceMetadata(
+            query_duration_ms=0,
+            cache_status="miss",
+            optimization_suggestions=[],
+        ),
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("request_payload", "extra", "expected_type"),
+    [
+        ({"id": 1, "format": "ascii"}, 0, ChartPreview),
+        ({"form_data_key": "cached-preview", "format": "ascii"}, 1, ChartError),
+    ],
+    ids=["identifier-alias-exact-limit", "cached-preview-limit-plus-one"],
+)
+async def test_get_chart_preview_entrypoint_preflights_complete_exact_wire_response(
+    request_payload: dict[str, object], extra: int, expected_type: type[object]
+) -> None:
+    empty = _entrypoint_preview("")
+    filler = "x" * (
+        MAX_QUERY_RESULT_VALUE_BYTES - len(empty.model_dump_json().encode()) + extra
+    )
+    candidate = _entrypoint_preview(filler)
+    request = GetChartPreviewRequest.model_validate(request_payload)
+    ctx = MagicMock()
+    ctx.info = AsyncMock()
+    ctx.debug = AsyncMock()
+    ctx.warning = AsyncMock()
+
+    user = MagicMock(id=1, username="admin", roles=[], groups=[])
+    with (
+        patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview."
+            "_get_chart_preview_internal",
+            new=AsyncMock(return_value=candidate),
+        ),
+    ):
+        result = await get_chart_preview(request, ctx=ctx)
+
+    assert isinstance(result, expected_type)
+    if extra == 0:
+        assert len(candidate.model_dump_json().encode()) == (
+            MAX_QUERY_RESULT_VALUE_BYTES
+        )
+        assert result is candidate
+    else:
+        assert isinstance(result, ChartError)
+        assert result.error_type == "MalformedQueryResult"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("format_", ["ascii", "vega_lite"])
+async def test_bullet_numeric_and_temporal_categories_reach_real_mcp_entrypoint(
+    format_: str,
+) -> None:
+    from contextlib import nullcontext
+
+    from fastmcp import Client
+
+    from superset.mcp_service.app import mcp
+
+    preview_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Category"],
+    }
+    chart = SimpleNamespace(
+        id=121,
+        slice_name="Number boundaries",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(form_data),
+    )
+    rows = [
+        {"Category": 9007199254740993, "Revenue": 1},
+        {"Category": Decimal("1.0000000000000001"), "Revenue": 2},
+        {"Category": Decimal("1.7976931348623159e308"), "Revenue": 3},
+        {"Category": date(2026, 9, 2), "Revenue": 4},
+        {
+            "Category": datetime(2026, 9, 2, 3, 4, 5, tzinfo=timezone.utc),
+            "Revenue": 5,
+        },
+        {
+            "Category": datetime(
+                2023,
+                11,
+                5,
+                1,
+                30,
+                tzinfo=ZoneInfo("America/New_York"),
+                fold=0,
+            ),
+            "Revenue": 6,
+        },
+        {
+            "Category": datetime(
+                2023,
+                11,
+                5,
+                1,
+                30,
+                tzinfo=ZoneInfo("America/New_York"),
+                fold=1,
+            ),
+            "Revenue": 7,
+        },
+    ]
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["Category", "Revenue"],
+                    }
+                ]
+            }
+
+    query_context = SimpleNamespace(
+        form_data={},
+        queries=[SimpleNamespace(metrics=["Revenue"], columns=["Category"])],
+    )
+    user = MagicMock(id=1, username="admin", roles=[], groups=[])
+    with (
+        patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
+        patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
+        patch.object(preview_module, "find_chart_by_identifier", return_value=chart),
+        patch.object(preview_module.db.session, "refresh", return_value=None),
+        patch.object(
+            preview_module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch.object(
+            preview_module.event_logger,
+            "log_context",
+            side_effect=lambda **_kwargs: nullcontext(),
+        ),
+        patch.object(
+            preview_module,
+            "build_query_context_from_form_data",
+            return_value=query_context,
+        ),
+        patch.object(preview_module, "set_query_context_form_data", return_value=None),
+        patch.object(command_module, "ChartDataCommand", _Command),
+        patch.object(
+            preview_module, "get_superset_base_url", return_value="http://localhost"
+        ),
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "get_chart_preview",
+                {"request": {"id": 121, "format": format_}},
+            )
+
+    payload = utils_json.loads(result.content[0].text)
+    if format_ == "ascii":
+        content = payload["content"]["ascii_content"]
+        assert "9007199254740992" in content
+        assert "Infinity" in content
+        assert "1788307200000" in content
+        assert "1699162200000" in content
+        assert "1699165800000" in content
+    else:
+        specification = payload["content"]["specification"]
+        bar = next(
+            layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
+        )
+        category_field = bar["encoding"]["y"]["field"]
+        assert [row[category_field] for row in specification["data"]["values"]] == [
+            "9007199254740992",
+            "1",
+            "Infinity",
+            "1788307200000",
+            "1788318245000",
+            "1699162200000",
+            "1699165800000",
+        ]
+        assert [row["Category"] for row in specification["data"]["values"][3:]] == [
+            1788307200000.0,
+            1788318245000.0,
+            1699162200000.0,
+            1699165800000.0,
+        ]
+        assert bar["encoding"]["tooltip"][0]["field"] == category_field
+        assert "transform" not in specification
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("format_", ["ascii", "vega_lite"])
+async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
+    format_: str,
+) -> None:
+    from contextlib import nullcontext
+
+    from fastmcp import Client
+
+    from superset.dataframe import df_to_records
+    from superset.mcp_service.app import mcp
+
+    preview_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    zoneinfo_tz = ZoneInfo("America/New_York")
+    pytz_tz = pytz.timezone("America/New_York")
+    dateutil_dublin = dateutil_tz.gettz("Europe/Dublin")
+    dateutil_new_york = dateutil_tz.gettz("America/New_York")
+    assert dateutil_dublin is not None
+    assert dateutil_new_york is not None
+    dublin_fold = datetime(
+        2024,
+        10,
+        27,
+        1,
+        30,
+        0,
+        123456,
+        tzinfo=dateutil_dublin,
+        fold=1,
+    )
+    new_york_gap = datetime(2024, 3, 10, 2, 30, 0, 123456, tzinfo=dateutil_new_york)
+    source_values = [
+        pd.Timestamp("2024-01-02 03:04:05.123456789"),
+        pd.Timestamp("2024-01-02 08:34:05.123456789+05:30"),
+        pd.Timestamp(datetime(2024, 11, 3, 1, 30, tzinfo=zoneinfo_tz, fold=0)),
+        pd.Timestamp(datetime(2024, 11, 3, 1, 30, tzinfo=zoneinfo_tz, fold=1)),
+        pd.Timestamp(pytz_tz.localize(datetime(2024, 11, 3, 1, 30), is_dst=True)),
+        pd.Timestamp(pytz_tz.localize(datetime(2024, 11, 3, 1, 30), is_dst=False)),
+        pd.Timestamp("1969-12-31 23:59:59.999999999"),
+        date(2024, 1, 2),
+        pd.NaT,
+        dublin_fold,
+        new_york_gap,
+        datetime(2040, 7, 1, 12, 0, 0, 123456, tzinfo=dateutil_new_york),
+        datetime(
+            2024,
+            3,
+            10,
+            2,
+            30,
+            0,
+            123456,
+            tzinfo=dateutil_tz.tzoffset("EDT", -4 * 3600),
+        ),
+        datetime(2024, 3, 10, 6, 30, 0, 123456, tzinfo=timezone.utc),
+        pd.Timestamp(dublin_fold),
+        pd.Timestamp(new_york_gap),
+    ]
+    rows = df_to_records(
+        pd.DataFrame(
+            {
+                "Category": pd.Series(source_values, dtype=object),
+                "Revenue": range(1, len(source_values) + 1),
+            }
+        ),
+        convert_big_integers=False,
+    )
+    if format_ == "ascii":
+        # ASCII intentionally displays at most ten categories. Keep every
+        # dateutil named-zone edge in this public-format invocation.
+        rows = rows[9:12]
+    expected = [
+        "1704164645123.456",
+        "1704164645123.456",
+        "1730611800000",
+        "1730615400000",
+        "1730611800000",
+        "1730615400000",
+        "-0.0010000000000287557",
+        "1704153600000",
+        "null",
+        "1729989000123.456",
+        "1710052200123.456",
+        "2224774800123.456",
+        "1710052200123.456",
+        "1710052200123.456",
+        "1729989000123.456",
+        "1710052200123.456",
+    ]
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Category"],
+    }
+    chart = SimpleNamespace(
+        id=122,
+        slice_name="Timestamp categories",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(form_data),
+    )
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["Category", "Revenue"],
+                    }
+                ]
+            }
+
+    query_context = SimpleNamespace(
+        form_data={},
+        queries=[SimpleNamespace(metrics=["Revenue"], columns=["Category"])],
+    )
+    user = MagicMock(id=1, username="admin", roles=[], groups=[])
+    with (
+        patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
+        patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
+        patch.object(preview_module, "find_chart_by_identifier", return_value=chart),
+        patch.object(preview_module.db.session, "refresh", return_value=None),
+        patch.object(
+            preview_module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch.object(
+            preview_module.event_logger,
+            "log_context",
+            side_effect=lambda **_kwargs: nullcontext(),
+        ),
+        patch.object(
+            preview_module,
+            "build_query_context_from_form_data",
+            return_value=query_context,
+        ),
+        patch.object(preview_module, "set_query_context_form_data", return_value=None),
+        patch.object(command_module, "ChartDataCommand", _Command),
+        patch.object(
+            preview_module, "get_superset_base_url", return_value="http://localhost"
+        ),
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "get_chart_preview",
+                {"request": {"id": 122, "format": format_}},
+            )
+
+    payload = utils_json.loads(result.content[0].text)
+    if format_ == "ascii":
+        content = payload["content"]["ascii_content"]
+        for category in set(expected[9:12]):
+            assert category[:20] in content
+    else:
+        specification = payload["content"]["specification"]
+        bar = next(
+            layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
+        )
+        category_field = bar["encoding"]["y"]["field"]
+        assert [row[category_field] for row in specification["data"]["values"]] == (
+            expected
+        )
+        assert bar["encoding"]["tooltip"][0]["field"] == category_field
+        assert [row["Category"] for row in specification["data"]["values"]] == [
+            1704164645123.456,
+            1704164645123.456,
+            1730611800000.0,
+            1730615400000.0,
+            1730611800000.0,
+            1730615400000.0,
+            -0.0010000000000287557,
+            1704153600000.0,
+            None,
+            1729989000123.456,
+            1710052200123.456,
+            2224774800123.456,
+            1710052200123.456,
+            1710052200123.456,
+            1729989000123.456,
+            1710052200123.456,
+        ]
+
+
+@pytest.mark.asyncio
+async def test_transitionless_dateutil_dataframe_reaches_fastmcp_preview() -> None:
+    from contextlib import nullcontext
+
+    from fastmcp import Client
+
+    from superset.commands.chart.data.get_data_command import (
+        ChartDataCommand as ProducerChartDataCommand,
+    )
+    from superset.common.chart_data import ChartDataResultType
+    from superset.dataframe import df_to_records
+    from superset.mcp_service.app import mcp
+    from superset.mcp_service.chart.preview_utils import _javascript_number_string
+    from superset.utils.json import json_int_dttm_ser
+
+    preview_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    names = [
+        "UTC",
+        "GMT",
+        "Universal",
+        "Zulu",
+        "EST",
+        "HST",
+        "MST",
+        "Etc/GMT+1",
+        "Etc/GMT-2",
+    ]
+    values = []
+    for getter in (dateutil_tz.gettz, get_zonefile_instance().get):
+        for name in names:
+            timezone_value = getter(name)
+            assert timezone_value is not None
+            values.append(
+                datetime(2040, 7, 1, 12, 34, 56, 123456, tzinfo=timezone_value)
+            )
+    rows = df_to_records(
+        pd.DataFrame(
+            {
+                "Category": pd.Series(values, dtype=object),
+                "Revenue": range(1, len(values) + 1),
+            }
+        ),
+        convert_big_integers=False,
+    )
+
+    class _ProducerContext:
+        result_type = ChartDataResultType.FULL
+
+        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["Category", "Revenue"],
+                        "rowcount": len(rows),
+                    }
+                ]
+            }
+
+    producer_result = ProducerChartDataCommand(
+        _ProducerContext()  # type: ignore[arg-type]
+    ).run()
+    expected_numbers = [json_int_dttm_ser(value) for value in values]
+    expected_categories = [
+        _javascript_number_string(float(value)) for value in expected_numbers
+    ]
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Category"],
+    }
+    chart = SimpleNamespace(
+        id=123,
+        slice_name="Transitionless timestamps",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(form_data),
+    )
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return producer_result
+
+    query_context = SimpleNamespace(
+        form_data={},
+        queries=[SimpleNamespace(metrics=["Revenue"], columns=["Category"])],
+    )
+    user = MagicMock(id=1, username="admin", roles=[], groups=[])
+    with (
+        patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
+        patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
+        patch.object(preview_module, "find_chart_by_identifier", return_value=chart),
+        patch.object(preview_module.db.session, "refresh", return_value=None),
+        patch.object(
+            preview_module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch.object(
+            preview_module.event_logger,
+            "log_context",
+            side_effect=lambda **_kwargs: nullcontext(),
+        ),
+        patch.object(
+            preview_module,
+            "build_query_context_from_form_data",
+            return_value=query_context,
+        ),
+        patch.object(preview_module, "set_query_context_form_data", return_value=None),
+        patch.object(command_module, "ChartDataCommand", _Command),
+        patch.object(
+            preview_module, "get_superset_base_url", return_value="http://localhost"
+        ),
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "get_chart_preview",
+                {"request": {"id": 123, "format": "vega_lite"}},
+            )
+
+    payload = utils_json.loads(result.content[0].text)
+    specification = payload["content"]["specification"]
+    bar = next(
+        layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
+    )
+    category_field = bar["encoding"]["y"]["field"]
+    assert [row["Category"] for row in specification["data"]["values"]] == (
+        expected_numbers
+    )
+    assert [row[category_field] for row in specification["data"]["values"]] == (
+        expected_categories
+    )
+    assert bar["encoding"]["tooltip"][0]["field"] == category_field
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("format_", ["ascii", "vega_lite"])
+async def test_duration_dataframe_reaches_fastmcp_bullet_preview(
+    format_: str,
+) -> None:
+    from contextlib import nullcontext
+
+    import numpy as np
+    from fastmcp import Client
+
+    from superset.commands.chart.data.get_data_command import (
+        ChartDataCommand as ProducerChartDataCommand,
+    )
+    from superset.common.chart_data import ChartDataResultType
+    from superset.dataframe import df_to_records
+    from superset.mcp_service.app import mcp
+
+    preview_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    source_values = [
+        timedelta(0),
+        timedelta(days=1, seconds=2, microseconds=3),
+        pd.Timedelta(-1, unit="ns"),
+        np.timedelta64(123456789, "ns"),
+        np.timedelta64("NaT"),
+    ]
+    rows = df_to_records(
+        pd.DataFrame(
+            {
+                "Duration": pd.Series(source_values, dtype=object),
+                "Revenue": [50, 120, 350, 0, 200],
+            }
+        ),
+        convert_big_integers=False,
+    )
+    assert type(rows[3]["Duration"]) is pd.Timedelta
+    assert rows[4]["Duration"] is None
+    expected = [
+        "null"
+        if row["Duration"] is None
+        else utils_json.loads(
+            utils_json.dumps(row["Duration"], default=utils_json.json_int_dttm_ser)
+        )
+        for row in rows
+    ]
+
+    class _ProducerContext:
+        result_type = ChartDataResultType.FULL
+
+        def get_payload(self, **_kwargs: Any) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["Duration", "Revenue"],
+                        "rowcount": len(rows),
+                    }
+                ]
+            }
+
+    producer_result = ProducerChartDataCommand(
+        _ProducerContext()  # type: ignore[arg-type]
+    ).run()
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Duration"],
+        "ranges": "100,200,300",
+        "range_labels": "Low,Mid,High",
+    }
+    chart = SimpleNamespace(
+        id=124,
+        slice_name="Duration categories",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(form_data),
+    )
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return producer_result
+
+    query_context = SimpleNamespace(
+        form_data={},
+        queries=[SimpleNamespace(metrics=["Revenue"], columns=["Duration"])],
+    )
+    user = MagicMock(id=1, username="admin", roles=[], groups=[])
+    with (
+        patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
+        patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
+        patch.object(preview_module, "find_chart_by_identifier", return_value=chart),
+        patch.object(preview_module.db.session, "refresh", return_value=None),
+        patch.object(
+            preview_module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch.object(
+            preview_module.event_logger,
+            "log_context",
+            side_effect=lambda **_kwargs: nullcontext(),
+        ),
+        patch.object(
+            preview_module,
+            "build_query_context_from_form_data",
+            return_value=query_context,
+        ),
+        patch.object(preview_module, "set_query_context_form_data", return_value=None),
+        patch.object(command_module, "ChartDataCommand", _Command),
+        patch.object(
+            preview_module, "get_superset_base_url", return_value="http://localhost"
+        ),
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "get_chart_preview",
+                {"request": {"id": 124, "format": format_}},
+            )
+
+    payload = utils_json.loads(result.content[0].text)
+    if format_ == "ascii":
+        for category in expected:
+            assert category[:20] in payload["content"]["ascii_content"]
+    else:
+        specification = payload["content"]["specification"]
+        bar = next(
+            layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
+        )
+        category_field = bar["encoding"]["y"]["field"]
+        range_tooltip = next(
+            item for item in bar["encoding"]["tooltip"] if item.get("title") == "Range"
+        )
+        assert [row[category_field] for row in specification["data"]["values"]] == (
+            expected
+        )
+        assert [
+            row[range_tooltip["field"]] for row in specification["data"]["values"]
+        ] == ["Low", "Mid", "> High", "Low", "Mid"]
+        range_layers = [
+            layer for layer in specification["layer"] if layer["mark"]["type"] == "rect"
+        ]
+        assert range_layers
+        assert all(
+            layer["encoding"]["y"] == bar["encoding"]["y"] for layer in range_layers
+        )
+
+
+def test_ascii_preview_accepts_real_postprocessing_null_and_large_full_sql(
+    monkeypatch: pytest.MonkeyPatch, app_context: None
+) -> None:
+    """Preview consumes a real producer envelope whose SQL exceeds 64 KiB."""
+    from tests.unit_tests.mcp_service.chart.query_result_test_utils import (
+        real_compare_command_result,
+    )
+
+    preview_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    sql = "SELECT 'café' -- " + "x" * (70 * 1024)
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return real_compare_command_result(sql)
+
+    monkeypatch.setattr(
+        preview_module,
+        "build_query_context_from_form_data",
+        lambda *_args, **_kwargs: SimpleNamespace(
+            queries=[SimpleNamespace(metrics=["source"], columns=[])]
+        ),
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        preview_module,
+        "set_query_context_form_data",
+        lambda *_args, **_kwargs: None,
+    )
+    chart = SimpleNamespace(
+        id=104,
+        slice_name="Comparison",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps({"viz_type": "table", "metrics": ["source"]}),
+    )
+
+    preview = ASCIIPreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=104, format="ascii")
+    ).generate()
+
+    assert isinstance(preview, ASCIIPreview)
+    assert "2.5" in preview.ascii_content
+    assert "None" in preview.ascii_content
+
+
+def test_saved_timeseries_preview_executes_final_frontend_query_contract(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from superset.common.query_object import QueryObject
+
+    query_context_factory_module = importlib.import_module(
+        "superset.common.query_context_factory"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    captured: dict[str, Any] = {}
+
+    class _Factory:
+        def create(self, **kwargs: Any) -> Any:
+            captured.update(kwargs)
+            return SimpleNamespace(
+                form_data=kwargs["form_data"],
+                queries=[QueryObject(**query) for query in kwargs["queries"]],
+            )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None:
+            self.query_context = query_context
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"event_time": "2024-01-01", "revenue": 1}],
+                        "colnames": ["event_time", "revenue"],
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(query_context_factory_module, "QueryContextFactory", _Factory)
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    chart = SimpleNamespace(
+        id=105,
+        slice_name="Ungrouped Timeseries",
+        viz_type="echarts_timeseries_bar",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {
+                "viz_type": "echarts_timeseries_bar",
+                "x_axis": "event_time",
+                "groupby": [],
+                "metrics": ["revenue"],
+                "timeseries_limit_metric": "ranking",
+                "x_axis_sort": "ranking",
+                "x_axis_sort_asc": True,
+                "contributionMode": "row",
+            }
+        ),
+    )
+
+    preview = ASCIIPreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=105, format="ascii")
+    ).generate()
+
+    assert isinstance(preview, ASCIIPreview)
+    query = captured["queries"][0]
+    assert query["series_columns"] == []
+    assert query["metrics"] == ["revenue", "ranking"]
+    assert query["series_limit_metric"] == "ranking"
+    assert query["post_processing"][0]["options"]["columns"] == []
+    assert [item["operation"] for item in query["post_processing"]] == [
+        "pivot",
+        "contribution",
+        "sort",
+        "flatten",
+    ]
+
+
+def test_saved_big_number_preview_executes_timestamp_pivot_without_series(
+    monkeypatch: pytest.MonkeyPatch,
+    app_context: None,
+) -> None:
+    from superset.common.query_object import QueryObject
+
+    query_context_factory_module = importlib.import_module(
+        "superset.common.query_context_factory"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    captured: dict[str, Any] = {}
+
+    class _Factory:
+        def create(self, **kwargs: Any) -> Any:
+            captured.update(kwargs)
+            return SimpleNamespace(
+                form_data=kwargs["form_data"],
+                queries=[QueryObject(**query) for query in kwargs["queries"]],
+            )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None:
+            self.query_context = query_context
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            query = self.query_context.queries[0]
+            processed = query.exec_post_processing(
+                pd.DataFrame(
+                    {
+                        "event_time": pd.Series(
+                            [
+                                datetime(
+                                    2024,
+                                    1,
+                                    1,
+                                    tzinfo=dateutil_tz.gettz("US/Pacific"),
+                                ),
+                                datetime(
+                                    2024,
+                                    2,
+                                    1,
+                                    tzinfo=dateutil_tz.gettz("US/Pacific"),
+                                ),
+                            ],
+                            dtype=object,
+                        ),
+                        "saved_revenue": [1.0, 2.0],
+                    }
+                )
+            )
+            assert list(processed.columns) == ["event_time", "saved_revenue"]
+            records = processed.to_dict("records")
+            records[0]["numeric_missing"] = float("nan")
+            result = {
+                "queries": [
+                    {
+                        "data": records,
+                        "colnames": ["event_time", "saved_revenue"],
+                    }
+                ]
+            }
+            captured["result"] = result
+            return result
+
+    monkeypatch.setattr(query_context_factory_module, "QueryContextFactory", _Factory)
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    chart = SimpleNamespace(
+        id=106,
+        slice_name="Revenue trend",
+        viz_type="big_number",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {
+                "viz_type": "big_number",
+                "metric": "saved_revenue",
+                "x_axis": "event_time",
+                "granularity_sqla": "event_time",
+                "time_grain_sqla": "P1M",
+            }
+        ),
+    )
+
+    preview = ASCIIPreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=106, format="ascii")
+    ).generate()
+
+    assert isinstance(preview, ASCIIPreview)
+    assert all(
+        type(row["event_time"]) is str
+        for row in captured["result"]["queries"][0]["data"]
+    )
+    assert captured["result"]["queries"][0]["data"][0]["numeric_missing"] is None
+    query = captured["queries"][0]
+    assert query["columns"] == [
+        {
+            "timeGrain": "P1M",
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "event_time",
+            "label": "event_time",
+            "expressionType": "SQL",
+            "isColumnReference": True,
+        }
+    ]
+    assert query["series_columns"] == []
+    assert "is_timeseries" not in query
+    assert query["post_processing"][0]["options"] == {
+        "index": ["event_time"],
+        "columns": [],
+        "aggregates": {"saved_revenue": {"operator": "mean"}},
+        "drop_missing_columns": True,
+    }
+
+
+def test_saved_deck_geojson_preview_uses_layer_query_adapter(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from superset.common.query_object import QueryObject
+
+    query_context_factory_module = importlib.import_module(
+        "superset.common.query_context_factory"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    captured: dict[str, Any] = {}
+
+    class _Factory:
+        def create(self, **kwargs: Any) -> Any:
+            captured.update(kwargs)
+            return SimpleNamespace(
+                form_data=kwargs["form_data"],
+                queries=[QueryObject(**query) for query in kwargs["queries"]],
+            )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None:
+            self.query_context = query_context
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [
+                            {
+                                "geom": '{"type":"Point","coordinates":[0,0]}',
+                                "region": "North",
+                                "name": "HQ",
+                            }
+                        ],
+                        "colnames": ["geom", "region", "name"],
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(query_context_factory_module, "QueryContextFactory", _Factory)
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda *_args: "base",
+    )
+    chart = SimpleNamespace(
+        id=107,
+        slice_name="Regions",
+        viz_type="deck_geojson",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {
+                "viz_type": "deck_geojson",
+                "geojson": "geom",
+                "cross_filter_column": "region",
+                "tooltip_contents": ["name"],
+            }
+        ),
+    )
+
+    preview = TablePreviewStrategy(
+        chart, GetChartPreviewRequest(identifier=107, format="table")
+    ).generate()
+
+    assert isinstance(preview, TablePreview)
+    query = captured["queries"][0]
+    assert query["columns"] == ["geom", "region", "name"]
+    assert query["metrics"] == []
+    assert query["groupby"] == []
+    assert query["filters"] == [{"col": "geom", "op": "IS NOT NULL"}]
+    assert query["is_timeseries"] is False
+
+
+@pytest.mark.parametrize("strategy_name", ["ascii", "table", "vega_lite"])
+def test_saved_preview_paths_seed_virtual_dataset_jinja_before_run(
+    monkeypatch: pytest.MonkeyPatch,
+    strategy_name: str,
+) -> None:
+    from flask import current_app
+
+    from superset.common.query_object import QueryObject
+    from superset.jinja_context import ExtraCache
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    query_context = SimpleNamespace(
+        queries=[
+            QueryObject(
+                columns=["region"],
+                filters=[{"col": "region", "op": "IN", "val": ["North"]}],
+            )
+        ],
+        form_data={"url_params": {"tenant": "acme"}},
+    )
+    observed: dict[str, Any] = {}
+
+    class _Command:
+        def __init__(self, context: Any) -> None:
+            assert context is query_context
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            macros = ExtraCache()
+            observed["url_param"] = macros.url_param("tenant")
+            observed["filter_values"] = macros.filter_values("region")
+            observed["get_filters"] = macros.get_filters("region")
+            return {
+                "queries": [{"data": [{"region": "North"}], "colnames": ["region"]}]
+            }
+
+    monkeypatch.setattr(
+        module, "build_query_context_from_form_data", lambda *_a, **_k: query_context
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    chart = SimpleNamespace(
+        id=42,
+        slice_name="Virtual dataset chart",
+        viz_type="table",
+        datasource_id=7,
+        datasource_type="table",
+        params=utils_json.dumps({"viz_type": "table", "groupby": ["region"]}),
+    )
+    request = GetChartPreviewRequest(identifier=42, format=strategy_name)
+    strategy_class = {
+        "ascii": module.ASCIIPreviewStrategy,
+        "table": module.TablePreviewStrategy,
+        "vega_lite": module.VegaLitePreviewStrategy,
+    }[strategy_name]
+
+    with current_app.test_request_context():
+        strategy_class(chart, request).generate()
+
+    assert observed == {
+        "url_param": "acme",
+        "filter_values": ["North"],
+        "get_filters": [{"col": "region", "op": "IN", "val": ["North"]}],
+    }
 
 
 class TestPreviewXAxisInQueryContext:
@@ -302,7 +1433,7 @@ class TestGetChartPreview:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return _query_context_stub(kwargs.get("form_data"))
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -315,8 +1446,18 @@ class TestGetChartPreview:
                 return {
                     "queries": [
                         {
-                            "data": [{"gender": "boy", "count": 1}],
-                            "colnames": ["gender", "count"],
+                            "data": [
+                                {
+                                    "event_time": pd.Timestamp(
+                                        "2024-01-01T00:00:00"
+                                    ).tz_localize(
+                                        dateutil_tz.tzoffset("east", 5 * 3600 + 30 * 60)
+                                    ),
+                                    "gender": "boy",
+                                    "count": 1,
+                                }
+                            ],
+                            "colnames": ["event_time", "gender", "count"],
                             "rowcount": 1,
                         }
                     ]
@@ -381,7 +1522,7 @@ class TestGetChartPreview:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return _query_context_stub(kwargs.get("form_data"))
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -452,7 +1593,7 @@ class TestGetChartPreview:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return _query_context_stub(kwargs.get("form_data"))
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -569,12 +1710,11 @@ class TestGetChartPreview:
         assert "no metrics or columns" in preview.error
         assert command_calls == []
 
-    def test_ascii_preview_handles_none_data_gracefully(
+    def test_ascii_preview_rejects_none_data_as_malformed_envelope(
         self,
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
-        """A query result with an explicit ``"data": None`` (as opposed to a
-        missing key) must not crash ASCII rendering."""
+        """An explicit ``data=None`` must return a structured envelope error."""
         query_context_factory_module = importlib.import_module(
             "superset.common.query_context_factory"
         )
@@ -584,7 +1724,7 @@ class TestGetChartPreview:
 
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
-                return object()
+                return _query_context_stub(kwargs.get("form_data"))
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -625,8 +1765,9 @@ class TestGetChartPreview:
             GetChartPreviewRequest(identifier=103, format="ascii"),
         ).generate()
 
-        assert isinstance(preview, ASCIIPreview)
-        assert "No data" in preview.ascii_content
+        assert isinstance(preview, ChartError)
+        assert preview.error_type == "MalformedQueryResult"
+        assert "data must be an array" in preview.error
 
     @pytest.mark.asyncio
     async def test_form_data_key_overrides_saved_params_for_table_preview(
@@ -670,7 +1811,7 @@ class TestGetChartPreview:
         class QueryContextFactory:
             def create(self, **kwargs: Any) -> object:
                 captured_query_contexts.append(kwargs)
-                return object()
+                return _query_context_stub(kwargs.get("form_data"))
 
         class ChartDataCommand:
             def __init__(self, query_context: object) -> None:
@@ -683,8 +1824,18 @@ class TestGetChartPreview:
                 return {
                     "queries": [
                         {
-                            "data": [{"gender": "boy", "count": 1}],
-                            "colnames": ["gender", "count"],
+                            "data": [
+                                {
+                                    "event_time": pd.Timestamp(
+                                        "2024-01-01T00:00:00"
+                                    ).tz_localize(
+                                        dateutil_tz.tzoffset("east", 5 * 3600 + 30 * 60)
+                                    ),
+                                    "gender": "boy",
+                                    "count": 1,
+                                }
+                            ],
+                            "colnames": ["event_time", "gender", "count"],
                             "rowcount": 1,
                         }
                     ]
@@ -782,6 +1933,8 @@ class TestGetChartPreview:
         )
 
         assert isinstance(result, ChartPreview)
+        assert isinstance(result.content, TablePreview)
+        assert "2024-01-01T00:00:00+05:30" in result.content.table_data
         query = captured_query_contexts[0]["queries"][0]
         assert query["filters"] == [{"col": "gender", "op": "==", "val": "boy"}]
 

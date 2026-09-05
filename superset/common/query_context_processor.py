@@ -41,6 +41,7 @@ from superset.common.utils.time_range_utils import get_since_until_from_time_ran
 from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
+from superset.dataframe import df_to_records
 from superset.exceptions import (
     QueryObjectValidationError,
     SupersetException,
@@ -568,7 +569,10 @@ class QueryContextProcessor:
                 )
             return result or ""
 
-        return df.to_dict(orient="records")
+        # QueryObject post-processing has completed before this materialization
+        # boundary. Canonicalize its trusted missing/non-finite scalar outputs,
+        # while downstream envelope validation still rejects injected infinity.
+        return df_to_records(df, convert_big_integers=False)
 
     @staticmethod
     def _to_arrow_ipc(df: pd.DataFrame) -> bytes:

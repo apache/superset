@@ -21,6 +21,8 @@ MCP tool: update_chart_preview
 
 import logging
 import time
+from collections.abc import Callable
+from functools import wraps
 from typing import Any, Dict
 
 from fastmcp import Context
@@ -38,15 +40,19 @@ from superset.mcp_service.chart.chart_utils import (
     generate_chart_name,
     generate_explore_link,
     map_config_to_form_data,
-    MCP_DASHBOARD_TIME_FILTER_SUBJECT,
     merge_interactive_pivot_ui_config,
+    merge_same_viz_form_data,
     merge_table_column_config,
-    NO_TIME_RANGE,
+    merge_update_form_data,
+    validate_merged_bullet_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.preview_utils import (
     generate_preview_from_form_data,
     SUPPORTED_FORM_DATA_PREVIEW_FORMATS,
+)
+from superset.mcp_service.chart.response_preflight import (
+    preflight_update_preview_response,
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
@@ -73,7 +79,6 @@ INVALID_FORM_DATA_KEY_WARNING = (
 def _find_dataset(dataset_id: int | str) -> Any | None:
     """Look up a dataset by numeric ID or UUID and check access."""
     from superset.daos.dataset import DatasetDAO
-    from superset.mcp_service.auth import has_dataset_access
 
     if isinstance(dataset_id, int) or (
         isinstance(dataset_id, str) and dataset_id.isdigit()
@@ -106,48 +111,16 @@ def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
     return None
 
 
-def _preserve_previous_adhoc_filters(
-    new_form_data: dict[str, Any], previous_form_data: dict[str, Any]
-) -> None:
-    """Preserve cached filters without dropping mapper-generated bindings."""
-    previous_filters = previous_form_data.get("adhoc_filters")
-    if not isinstance(previous_filters, list) or not previous_filters:
-        return
+def _preflight_update_preview_result(
+    function: Callable[[UpdateChartPreviewRequest, Context], Dict[str, Any]],
+) -> Callable[[UpdateChartPreviewRequest, Context], Dict[str, Any]]:
+    """Apply the final wire-size gate to every success and error return."""
 
-    generated_filters = new_form_data.get("adhoc_filters", [])
-    previous_binding = previous_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
-    new_binding = new_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
-    merged_filters = [
-        filter_
-        for filter_ in previous_filters
-        if not (
-            previous_binding
-            and previous_binding != new_binding
-            and isinstance(filter_, dict)
-            and filter_.get("operator") == "TEMPORAL_RANGE"
-            and filter_.get("subject") == previous_binding
-            and filter_.get("comparator") == NO_TIME_RANGE
-        )
-    ]
-    for generated_filter in generated_filters:
-        if not isinstance(generated_filter, dict):
-            if generated_filter not in merged_filters:
-                merged_filters.append(generated_filter)
-            continue
+    @wraps(function)
+    def wrapped(request: UpdateChartPreviewRequest, ctx: Context) -> Dict[str, Any]:
+        return preflight_update_preview_response(function(request, ctx))
 
-        is_same_filter = any(
-            isinstance(previous_filter, dict)
-            and previous_filter.get("clause") == generated_filter.get("clause")
-            and previous_filter.get("expressionType")
-            == generated_filter.get("expressionType")
-            and previous_filter.get("subject") == generated_filter.get("subject")
-            and previous_filter.get("operator") == generated_filter.get("operator")
-            for previous_filter in merged_filters
-        )
-        if not is_same_filter:
-            merged_filters.append(generated_filter)
-
-    new_form_data["adhoc_filters"] = merged_filters
+    return wrapped
 
 
 @tool(
@@ -162,6 +135,7 @@ def _preserve_previous_adhoc_filters(
         openWorldHint=False,
     ),
 )
+@_preflight_update_preview_result
 def update_chart_preview(  # noqa: C901
     request: UpdateChartPreviewRequest, ctx: Context
 ) -> Dict[str, Any]:
@@ -199,7 +173,7 @@ def update_chart_preview(  # noqa: C901
                         "error_type": "dataset_not_found",
                         "message": (f"Dataset not found: {request.dataset_id}"),
                         "details": (
-                            f"No dataset found with identifier "
+                            f"No accessible dataset found with identifier "
                             f"'{request.dataset_id}'. This could "
                             f"be an invalid ID/UUID or a "
                             f"permissions issue."
@@ -216,6 +190,34 @@ def update_chart_preview(  # noqa: C901
                 }
 
         with event_logger.log_context(action="mcp.update_chart_preview.form_data"):
+            from superset.mcp_service.chart.validation.dataset_validator import (
+                build_dataset_context_from_orm,
+                DatasetValidator,
+            )
+
+            dataset_context = build_dataset_context_from_orm(dataset)
+            try:
+                config = DatasetValidator.normalize_column_names(
+                    config,
+                    request.dataset_id,
+                    dataset_context=dataset_context,
+                )
+            except (AttributeError, KeyError, TypeError, ValueError) as ex:
+                return {
+                    "chart": None,
+                    "error": {
+                        "error_type": "ambiguous_column_reference",
+                        "message": "Chart references could not be canonicalized",
+                        "details": str(ex),
+                        "suggestions": [
+                            "Use get_dataset_info and copy exact-case field names"
+                        ],
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
+
             # Map the new config to form_data format
             # Pass dataset_id to enable column type checking
             new_form_data = map_config_to_form_data(
@@ -230,40 +232,29 @@ def update_chart_preview(  # noqa: C901
                 if previous_form_data is None:
                     warnings.append(INVALID_FORM_DATA_KEY_WARNING)
 
-            # Preserve adhoc filters from the previous cached form_data
-            # when the new config doesn't explicitly specify filters
-            if getattr(config, "filters", None) is None and previous_form_data:
-                _preserve_previous_adhoc_filters(
-                    new_form_data,
-                    previous_form_data,
-                )
             if previous_form_data:
+                merge_update_form_data(previous_form_data, new_form_data, config)
                 merge_table_column_config(previous_form_data, new_form_data)
                 merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
+                merge_same_viz_form_data(previous_form_data, new_form_data, config)
 
-            # Tier-1 schema validation against the dataset (no DB roundtrip).
-            # Runs AFTER the filter merge so filter columns are also validated.
-            from superset.daos.dataset import DatasetDAO
-
-            if isinstance(request.dataset_id, int) or (
-                isinstance(request.dataset_id, str) and request.dataset_id.isdigit()
-            ):
-                dataset = DatasetDAO.find_by_id(int(request.dataset_id))
-            else:
-                dataset = DatasetDAO.find_by_id(request.dataset_id, id_column="uuid")
-
-            if dataset is None or not has_dataset_access(dataset):
+            validation_config = config
+            try:
+                if merged_config := validate_merged_bullet_form_data(
+                    new_form_data, config
+                ):
+                    validation_config = DatasetValidator.normalize_column_names(
+                        merged_config,
+                        request.dataset_id,
+                        dataset_context=dataset_context,
+                    )
+            except (AttributeError, KeyError, TypeError, ValueError) as ex:
                 return {
                     "chart": None,
                     "error": {
-                        "error_type": "DatasetNotAccessible",
-                        "message": (
-                            f"Dataset not found: {request.dataset_id}. "
-                            "Use list_datasets to find valid dataset IDs."
-                        ),
-                        "details": (
-                            f"Dataset {request.dataset_id} is missing or inaccessible."
-                        ),
+                        "error_type": "invalid_merged_bullet_state",
+                        "message": "Merged Bullet chart state is invalid",
+                        "details": str(ex),
                     },
                     "success": False,
                     "schema_version": "2.0",
@@ -271,7 +262,7 @@ def update_chart_preview(  # noqa: C901
                 }
 
             compile_result = validate_and_compile(
-                config, new_form_data, dataset, run_compile_check=False
+                validation_config, new_form_data, dataset, run_compile_check=True
             )
             if not compile_result.success:
                 logger.warning(

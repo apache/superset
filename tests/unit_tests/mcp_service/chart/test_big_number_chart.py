@@ -17,12 +17,15 @@
 
 """Tests for Big Number chart type support in MCP service."""
 
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
 from pydantic import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
+from superset.common.query_object import QueryObject
+from superset.mcp_service.chart.chart_helpers import build_query_dicts_from_form_data
 from superset.mcp_service.chart.chart_utils import (
     _resolve_viz_type,
     analyze_chart_capabilities,
@@ -30,15 +33,105 @@ from superset.mcp_service.chart.chart_utils import (
     generate_chart_name,
     map_big_number_config,
     map_config_to_form_data,
+    merge_interactive_pivot_ui_config,
+    merge_same_viz_form_data,
+    merge_table_column_config,
+    merge_update_form_data,
 )
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     ColumnRef,
     FilterConfig,
+    UpdateChartRequest,
+)
+from superset.mcp_service.chart.tool.update_chart import (
+    _build_preview_form_data,
+    _build_update_payload,
 )
 from superset.mcp_service.chart.validation.schema_validator import (
     SchemaValidator,
 )
+from superset.utils import json as utils_json
+from superset.utils.core import DTTM_ALIAS
+
+
+@pytest.mark.parametrize("path", ["immediate", "preview_first", "cached"])
+def test_big_number_trendline_query_parity_on_every_update_path(path: str) -> None:
+    """Immediate, preview-first, and cached updates compile identically."""
+    existing = {
+        "viz_type": "big_number",
+        "metric": "saved_revenue",
+        "granularity_sqla": "event_time",
+        "time_grain_sqla": "P1M",
+        "show_trend_line": True,
+    }
+    config = BigNumberChartConfig(
+        chart_type="big_number",
+        metric=ColumnRef(
+            sql_expression="SUM(revenue) - SUM(cost)",
+            label="Net revenue",
+        ),
+        temporal_column="event_time",
+        time_grain="P1D",
+        show_trendline=True,
+        aggregation="raw",
+    )
+    chart = SimpleNamespace(
+        id=9,
+        datasource_id=7,
+        slice_name="Revenue trend",
+        params=utils_json.dumps(existing),
+    )
+    request = UpdateChartRequest(identifier=9, config=config)
+
+    with (
+        patch(
+            "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+            return_value=True,
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            return_value="base",
+        ),
+    ):
+        if path == "immediate":
+            payload = _build_update_payload(request, chart, config)
+            assert isinstance(payload, dict)
+            form_data = utils_json.loads(payload["params"])
+        elif path == "preview_first":
+            preview = _build_preview_form_data(request, chart, config)
+            assert isinstance(preview, dict)
+            form_data = preview
+        else:
+            form_data = map_config_to_form_data(config, dataset_id=7)
+            merge_update_form_data(existing, form_data, config)
+            merge_table_column_config(existing, form_data)
+            merge_interactive_pivot_ui_config(existing, form_data)
+            merge_same_viz_form_data(existing, form_data, config)
+
+        trend, raw = [
+            QueryObject(**query)
+            for query in build_query_dicts_from_form_data(form_data, 7, "table")
+        ]
+
+    assert trend.metrics is not None
+    metric = trend.metrics[0]
+    assert isinstance(metric, dict)
+    assert metric["label"] == "Net revenue"
+    assert trend.columns == []
+    assert trend.series_columns == []
+    assert trend.granularity == "event_time"
+    assert trend.extras["time_grain_sqla"] == "P1D"
+    assert trend.post_processing[0]["options"] == {
+        "index": [DTTM_ALIAS],
+        "columns": [],
+        "aggregates": {"Net revenue": {"operator": "mean"}},
+        "drop_missing_columns": True,
+    }
+    assert raw.columns == []
+    assert raw.series_columns == []
+    assert raw.is_timeseries is False
+    assert raw.post_processing == []
 
 
 class TestBigNumberChartConfig:

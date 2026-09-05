@@ -20,8 +20,9 @@ Unit tests for update_chart MCP tool
 """
 
 import importlib
+from types import SimpleNamespace
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client
@@ -30,14 +31,19 @@ from pydantic import ValidationError
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.chart_helpers import find_chart_by_identifier
 from superset.mcp_service.chart.chart_utils import DatasetValidationResult
+from superset.mcp_service.chart.compile import CompileResult
+from superset.mcp_service.chart.query_result import MAX_QUERY_RESULT_VALUE_BYTES
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
+    BulletChartConfig,
     ColumnRef,
     FilterConfig,
     GenerateChartResponse,
     LegendConfig,
+    MixedTimeseriesChartConfig,
     TableChartConfig,
     UpdateChartRequest,
+    WaterfallChartConfig,
     XYChartConfig,
 )
 from superset.mcp_service.chart.tool.update_chart import (
@@ -101,6 +107,87 @@ class TestUpdateChart:
         assert xy_request.config.x.name == "date"
         assert xy_request.config.y[0].aggregate == "SUM"
         assert xy_request.config.kind == "line"
+
+    @pytest.mark.asyncio
+    async def test_update_chart_preview_first_exact_limit_and_plus_one(self) -> None:
+        config = TableChartConfig(
+            chart_type="table", columns=[ColumnRef(name="region")]
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock(
+            id=1,
+            datasource_id=10,
+            datasource_type="table",
+            slice_name="Existing",
+            viz_type="table",
+            uuid="abc-123",
+            params='{"viz_type":"table","datasource":"10__table"}',
+        )
+        access = DatasetValidationResult(
+            is_valid=True,
+            dataset_id=10,
+            dataset_name="dataset",
+            warnings=[],
+        )
+        ctx = MagicMock()
+        ctx.info = AsyncMock()
+        ctx.debug = AsyncMock()
+        ctx.warning = AsyncMock()
+        ctx.error = AsyncMock()
+
+        async def run(warning: str) -> GenerateChartResponse:
+            user = Mock(id=1, username="admin", roles=[], groups=[])
+            with (
+                patch(
+                    "superset.mcp_service.auth.get_user_from_request",
+                    return_value=user,
+                ),
+                patch.object(
+                    update_chart_module,
+                    "find_chart_by_identifier",
+                    return_value=chart,
+                ),
+                patch(
+                    "superset.mcp_service.auth.check_chart_data_access",
+                    return_value=access,
+                ),
+                patch(
+                    "superset.mcp_service.chart.validation.dataset_validator."
+                    "DatasetValidator.normalize_column_names",
+                    return_value=config,
+                ),
+                patch.object(
+                    update_chart_module,
+                    "_validate_update_against_dataset",
+                    return_value=None,
+                ),
+                patch.object(
+                    update_chart_module,
+                    "_create_preview_url",
+                    return_value=(
+                        "http://localhost/explore/?form_data_key=bounded-key",
+                        "bounded-key",
+                        [warning],
+                    ),
+                ),
+                patch.object(update_chart_module.time, "time", return_value=1.0),
+            ):
+                return await update_chart_module.update_chart(request, ctx=ctx)
+
+        empty = await run("")
+        filler = "x" * (
+            MAX_QUERY_RESULT_VALUE_BYTES - len(empty.model_dump_json().encode())
+        )
+        boundary = await run(filler)
+        oversized = await run(filler + "x")
+
+        assert len(boundary.model_dump_json().encode()) == (
+            MAX_QUERY_RESULT_VALUE_BYTES
+        )
+        assert boundary.success is True
+        assert oversized.success is False
+        assert oversized.error is not None
+        assert oversized.error.error_code == "CHART_RESPONSE_TOO_LARGE"
 
     @pytest.mark.asyncio
     async def test_update_chart_with_chart_name(self):
@@ -738,6 +825,142 @@ class TestBuildUpdatePayload:
         # query_context must be cleared so get_chart_data uses updated params
         assert result["query_context"] is None
 
+    def test_same_viz_save_preserves_unmodeled_mixed_controls(self) -> None:
+        config = MixedTimeseriesChartConfig(
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="profit", aggregate="SUM")],
+        )
+        chart = Mock(
+            id=1,
+            datasource_id=7,
+            slice_name="Year over year",
+            params=json.dumps(
+                {
+                    "viz_type": "mixed_timeseries",
+                    "time_compare": ["1 year ago"],
+                    "comparison_type_b": "percentage",
+                    "y_axis_format": ",.2f",
+                    "truncate_metric": True,
+                }
+            ),
+        )
+
+        result = _build_update_payload(
+            UpdateChartRequest(identifier=1, config=config),
+            chart,
+            parsed_config=config,
+        )
+
+        assert isinstance(result, dict)
+        saved = json.loads(result["params"])
+        assert saved["time_compare"] == ["1 year ago"]
+        assert saved["comparison_type_b"] == "percentage"
+        assert saved["y_axis_format"] == ",.2f"
+        assert saved["truncate_metric"] is True
+
+    def test_same_viz_save_honors_explicit_false_and_null_controls(self) -> None:
+        existing = {
+            "viz_type": "mixed_timeseries",
+            "show_value": True,
+            "color_scheme": "lyftColors",
+            "currency_format": {"symbol": "USD", "symbolPosition": "prefix"},
+            "currency_format_secondary": {
+                "symbol": "EUR",
+                "symbolPosition": "suffix",
+            },
+            "yAxisTitle": "Saved title",
+            "y_axis_format": ",.2f",
+            "logAxis": True,
+        }
+        config = MixedTimeseriesChartConfig(
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="profit", aggregate="SUM")],
+            show_value=False,
+            color_scheme=None,
+            currency_format=None,
+            currency_format_secondary=None,
+            y_axis=None,
+        )
+        chart = Mock(
+            id=1,
+            datasource_id=7,
+            slice_name="Mixed",
+            params=json.dumps(existing),
+        )
+
+        result = _build_update_payload(
+            UpdateChartRequest(identifier=1, config=config), chart, config
+        )
+
+        assert isinstance(result, dict)
+        saved = json.loads(result["params"])
+        assert saved["show_value"] is False
+        assert saved["color_scheme"] is None
+        assert saved["currency_format"] is None
+        assert saved["currency_format_secondary"] is None
+        assert saved["yAxisTitle"] is None
+        assert saved["y_axis_format"] is None
+        assert saved["logAxis"] is None
+
+    @pytest.mark.parametrize("preview_first", [False, True])
+    def test_waterfall_rebind_clears_old_grain_and_keeps_active_provenance(
+        self, preview_first: bool
+    ) -> None:
+        config = WaterfallChartConfig(
+            x_axis=ColumnRef(name="new_time"),
+            metric=ColumnRef(name="sales", aggregate="SUM"),
+        )
+        chart = Mock(
+            id=1,
+            datasource_id=7,
+            slice_name="Waterfall",
+            params=json.dumps(
+                {
+                    "viz_type": "waterfall",
+                    "x_axis": "old_time",
+                    "granularity_sqla": "old_time",
+                    "time_grain_sqla": "P1M",
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "expressionType": "SIMPLE",
+                            "subject": "old_time",
+                            "operator": "TEMPORAL_RANGE",
+                            "comparator": "Last year",
+                        }
+                    ],
+                    "_mcp_dashboard_time_filter_subject": "old_time",
+                }
+            ),
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+
+        with (
+            patch(
+                "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+                return_value=True,
+            ),
+            patch(
+                "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+                return_value=Mock(main_dttm_col="new_time"),
+            ),
+        ):
+            result = (
+                _build_preview_form_data(request, chart, config)
+                if preview_first
+                else _build_update_payload(request, chart, config)
+            )
+
+        assert isinstance(result, dict)
+        form_data = result if preview_first else json.loads(result["params"])
+        assert form_data["granularity_sqla"] == "new_time"
+        assert form_data["time_grain_sqla"] is None
+        assert form_data["_mcp_dashboard_time_filter_subject"] == "new_time"
+        assert form_data["adhoc_filters"][0]["subject"] == "new_time"
+        assert form_data["adhoc_filters"][0]["comparator"] == "Last year"
+
     def test_add_columns_preserves_existing_columns_and_metrics(self):
         """An additive update does not require reconstructing the table."""
         request = UpdateChartRequest(
@@ -1256,14 +1479,93 @@ class TestBuildPreviewFormData:
         result = _build_preview_form_data(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
-        # Existing keys not touched by the new config are preserved
-        assert result["custom_flag"] is True
+        # Generic state does not cross visualization plugin boundaries.
+        assert "custom_flag" not in result
         # New config overrides existing keys
         assert result["viz_type"] == "table"
         # slice_id and datasource are always stamped onto the preview
         assert result["slice_id"] == 42
         assert result["datasource"] == "7__table"
         assert result["slice_name"] == "Existing"
+
+    def test_same_viz_preview_preserves_unmodeled_mixed_controls(self) -> None:
+        config = MixedTimeseriesChartConfig(
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="profit", aggregate="SUM")],
+        )
+        chart = Mock(
+            id=42,
+            datasource_id=7,
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "mixed_timeseries",
+                    "time_compare": ["1 year ago"],
+                    "comparison_type_b": "percentage",
+                    "y_axis_format": ",.2f",
+                }
+            ),
+        )
+
+        result = _build_preview_form_data(
+            UpdateChartRequest(identifier=42, config=config),
+            chart,
+            parsed_config=config,
+        )
+
+        assert isinstance(result, dict)
+        assert result["time_compare"] == ["1 year ago"]
+        assert result["comparison_type_b"] == "percentage"
+        assert result["y_axis_format"] == ",.2f"
+
+    def test_same_viz_preview_honors_explicit_false_and_null_controls(self) -> None:
+        config = MixedTimeseriesChartConfig(
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="profit", aggregate="SUM")],
+            show_value=False,
+            color_scheme=None,
+            currency_format=None,
+            currency_format_secondary=None,
+            y_axis=None,
+        )
+        chart = Mock(
+            id=42,
+            datasource_id=7,
+            slice_name="Mixed",
+            params=json.dumps(
+                {
+                    "viz_type": "mixed_timeseries",
+                    "show_value": True,
+                    "color_scheme": "lyftColors",
+                    "currency_format": {
+                        "symbol": "USD",
+                        "symbolPosition": "prefix",
+                    },
+                    "currency_format_secondary": {
+                        "symbol": "EUR",
+                        "symbolPosition": "suffix",
+                    },
+                    "yAxisTitle": "Saved title",
+                    "y_axis_format": ",.2f",
+                    "logAxis": True,
+                }
+            ),
+        )
+
+        result = _build_preview_form_data(
+            UpdateChartRequest(identifier=42, config=config), chart, config
+        )
+
+        assert isinstance(result, dict)
+        assert result["show_value"] is False
+        assert result["color_scheme"] is None
+        assert result["currency_format"] is None
+        assert result["currency_format_secondary"] is None
+        assert result["yAxisTitle"] is None
+        assert result["y_axis_format"] is None
+        assert result["logAxis"] is None
 
     def test_partial_column_config_merges_saved_ui_settings(self) -> None:
         config = TableChartConfig.model_validate(
@@ -1335,13 +1637,26 @@ class TestBuildPreviewFormData:
         chart.id = 5
         chart.datasource_id = 3
         chart.slice_name = "Old"
-        chart.params = '{"viz_type": "big_number", "metric": "count"}'
+        chart.params = json.dumps(
+            {
+                "viz_type": "big_number",
+                "metric": "count",
+                "x_axis": "event_time",
+                "granularity_sqla": "event_time",
+                "time_grain_sqla": "P1D",
+                "aggregation": "raw",
+            }
+        )
 
         result = _build_preview_form_data(request, chart)
 
         assert isinstance(result, dict)
         assert result["viz_type"] == "big_number"
         assert result["metric"] == "count"
+        assert result["x_axis"] == "event_time"
+        assert result["granularity_sqla"] == "event_time"
+        assert result["time_grain_sqla"] == "P1D"
+        assert result["aggregation"] == "raw"
         assert result["slice_name"] == "Brand New Name"
         assert result["slice_id"] == 5
 
@@ -1408,7 +1723,7 @@ class TestBuildPreviewFormData:
         result = _build_preview_form_data(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
-        assert "adhoc_filters" not in result
+        assert result["adhoc_filters"] == []
 
 
 class TestUpdateChartSaveWithConfig:
@@ -1872,7 +2187,7 @@ class TestUpdateChartColumnNormalization:
         ".DatasetValidator.normalize_column_names",
     )
     @pytest.mark.asyncio
-    async def test_normalization_exception_is_caught_gracefully(
+    async def test_ambiguous_normalization_is_rejected_before_update(
         self,
         mock_normalize,
         mock_db_session,
@@ -1882,7 +2197,7 @@ class TestUpdateChartColumnNormalization:
         mock_validate,
         mcp_server,
     ):
-        """A normalization failure must not propagate — chart update continues."""
+        """An ambiguous reference returns a structured error before mutation."""
         from superset.mcp_service.chart.compile import CompileResult
 
         chart = self._mock_chart(datasource_id=10)
@@ -1894,7 +2209,9 @@ class TestUpdateChartColumnNormalization:
             success=True, error=None, error_code=None, tier="validation", error_obj=None
         )
         mock_create_preview.return_value = ("http://example.com/explore", None, [])
-        mock_normalize.side_effect = ValueError("DB connection failed")
+        mock_normalize.side_effect = ValueError(
+            "Ambiguous column reference 'REGION'; candidates: Region, region"
+        )
 
         request = {
             "identifier": 1,
@@ -1907,11 +2224,16 @@ class TestUpdateChartColumnNormalization:
         }
 
         async with Client(mcp) as client:
-            # Should not raise; normalization failure is a warning only
-            await client.call_tool("update_chart", {"request": request})
+            result = await client.call_tool("update_chart", {"request": request})
 
-        # Normalization failed but tool still attempted the update path
         mock_normalize.assert_called_once()
+        assert result.structured_content["success"] is False
+        assert (
+            "could not be canonicalized"
+            in result.structured_content["error"]["message"]
+        )
+        assert "Region, region" in result.structured_content["error"]["details"]
+        mock_create_preview.assert_not_called()
 
     @patch(
         "superset.mcp_service.chart.validation.dataset_validator"
@@ -2073,7 +2395,10 @@ class TestBuildUpdatePayloadDatasetId:
         result = _build_update_payload(request, chart)
 
         assert isinstance(result, dict)
-        assert result == {"datasource_id": 42, "datasource_type": "table"}
+        assert result["datasource_id"] == 42
+        assert result["datasource_type"] == "table"
+        assert result["query_context"] is None
+        assert json.loads(result["params"])["datasource"] == "42__table"
 
     def test_dataset_and_name_update(self) -> None:
         """dataset_id + chart_name: payload includes datasource fields
@@ -2085,11 +2410,11 @@ class TestBuildUpdatePayloadDatasetId:
         result = _build_update_payload(request, chart)
 
         assert isinstance(result, dict)
-        assert result == {
-            "datasource_id": 42,
-            "datasource_type": "table",
-            "slice_name": "Renamed",
-        }
+        assert result["datasource_id"] == 42
+        assert result["datasource_type"] == "table"
+        assert result["slice_name"] == "Renamed"
+        assert result["query_context"] is None
+        assert json.loads(result["params"])["datasource"] == "42__table"
 
     def test_dataset_and_config_update_includes_datasource(self):
         """dataset_id + config: payload includes datasource_id and datasource_type."""
@@ -2109,6 +2434,8 @@ class TestBuildUpdatePayloadDatasetId:
         assert result["datasource_type"] == "table"
         assert "params" in result
         assert "viz_type" in result
+        assert json.loads(result["params"])["datasource"] == "99__table"
+        assert result["query_context"] is None
 
     def test_config_without_dataset_does_not_include_datasource(self):
         """When dataset_id is None, payload must NOT include datasource_id."""
@@ -2185,6 +2512,153 @@ class TestBuildPreviewFormDataDatasetId:
 class TestUpdateChartDatasetIdIntegration:
     """Integration test verifying dataset_id is plumbed into UpdateChartCommand."""
 
+    def test_configless_bullet_rebind_preserves_native_sql_and_having(self) -> None:
+        native_filters = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SQL",
+                "sqlExpression": "region <> 'unknown'",
+            },
+            {
+                "clause": "HAVING",
+                "expressionType": "SIMPLE",
+                "subject": "SavedRevenue",
+                "operator": "GREATER_THAN",
+                "comparator": 10,
+            },
+        ]
+        form_data = {
+            "viz_type": "bullet",
+            "metric": "SavedRevenue",
+            "groupby": ["Region"],
+            "adhoc_filters": native_filters,
+            "datasource": "1041__table",
+        }
+        chart = SimpleNamespace(id=55, datasource_id=10)
+        dataset = SimpleNamespace(id=1041)
+
+        def validate(
+            config: Any,
+            compiled_form_data: dict[str, Any],
+            target_dataset: Any,
+            *,
+            run_compile_check: bool,
+        ) -> CompileResult:
+            assert isinstance(config, BulletChartConfig)
+            assert not config.filters
+            assert compiled_form_data["adhoc_filters"] == native_filters
+            assert target_dataset is dataset
+            assert run_compile_check is True
+            return CompileResult(success=True)
+
+        with (
+            patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+            patch.object(
+                update_chart_module, "validate_and_compile", side_effect=validate
+            ),
+        ):
+            result = update_chart_module._validate_update_against_dataset(
+                None, form_data, chart, dataset_id=1041
+            )
+
+        assert result is None
+        assert form_data["adhoc_filters"] == native_filters
+
+    @pytest.mark.asyncio
+    async def test_fastmcp_configless_bullet_rebind_keeps_native_filters(
+        self, mcp_server: Any
+    ) -> None:
+        native_filters = [
+            {
+                "clause": "WHERE",
+                "expressionType": "SQL",
+                "sqlExpression": "region <> 'unknown'",
+            },
+            {
+                "clause": "HAVING",
+                "expressionType": "SIMPLE",
+                "subject": "SavedRevenue",
+                "operator": "GREATER_THAN",
+                "comparator": 10,
+            },
+        ]
+        form_data = {
+            "viz_type": "bullet",
+            "metric": "SavedRevenue",
+            "groupby": ["Region"],
+            "adhoc_filters": native_filters,
+            "datasource": "10__table",
+        }
+        chart = Mock(
+            id=55,
+            datasource_id=10,
+            slice_name="Saved Bullet",
+            viz_type="bullet",
+            uuid="uuid-55",
+            params=json.dumps(form_data),
+        )
+        updated_chart = Mock(
+            id=55,
+            datasource_id=1041,
+            slice_name="Saved Bullet",
+            viz_type="bullet",
+            uuid="uuid-55",
+        )
+        target_dataset = SimpleNamespace(id=1041)
+        update_command = Mock(return_value=Mock(run=Mock(return_value=updated_chart)))
+
+        def validate(
+            config: Any,
+            compiled_form_data: dict[str, Any],
+            dataset: Any,
+            *,
+            run_compile_check: bool,
+        ) -> CompileResult:
+            assert isinstance(config, BulletChartConfig)
+            assert not config.filters
+            assert compiled_form_data["adhoc_filters"] == native_filters
+            assert dataset is target_dataset
+            assert run_compile_check is True
+            return CompileResult(success=True)
+
+        with (
+            patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart),
+            patch(
+                "superset.mcp_service.auth.check_chart_data_access",
+                return_value=DatasetValidationResult(
+                    is_valid=True,
+                    dataset_id=10,
+                    dataset_name="old_dataset",
+                    warnings=[],
+                ),
+            ),
+            patch(
+                "superset.daos.dataset.DatasetDAO.find_by_id",
+                return_value=target_dataset,
+            ),
+            patch.object(
+                update_chart_module, "validate_and_compile", side_effect=validate
+            ),
+            patch("superset.commands.chart.update.UpdateChartCommand", update_command),
+        ):
+            async with Client(mcp) as client:
+                response = await client.call_tool(
+                    "update_chart",
+                    {
+                        "request": {
+                            "identifier": 55,
+                            "dataset_id": 1041,
+                            "generate_preview": False,
+                        }
+                    },
+                )
+
+        assert response.structured_content["success"] is True
+        saved_payload = update_command.call_args.args[1]
+        saved_form_data = json.loads(saved_payload["params"])
+        assert saved_form_data["adhoc_filters"] == native_filters
+        assert saved_form_data["datasource"] == "1041__table"
+
     @patch(
         "superset.mcp_service.auth.check_chart_data_access",
         new_callable=Mock,
@@ -2217,6 +2691,14 @@ class TestUpdateChartDatasetIdIntegration:
         mock_chart.slice_name = "Old Chart"
         mock_chart.viz_type = "table"
         mock_chart.uuid = "uuid-55"
+        mock_chart.params = json.dumps(
+            {
+                "viz_type": "table",
+                "query_mode": "raw",
+                "all_columns": ["region"],
+                "datasource": "10__table",
+            }
+        )
         mock_find_by_id.return_value = mock_chart
 
         mock_check_access.return_value = DatasetValidationResult(
@@ -2248,6 +2730,12 @@ class TestUpdateChartDatasetIdIntegration:
             payload = call_args[0][1]
             assert payload.get("datasource_id") == 1041
             assert payload.get("datasource_type") == "table"
+            validation_args = mock_validate.call_args
+            assert validation_args.args[0] is None
+            assert validation_args.args[1]["all_columns"] == ["region"]
+            assert validation_args.args[1]["datasource"] == "1041__table"
+            assert validation_args.kwargs["dataset_id"] == 1041
+            assert validation_args.kwargs.get("run_compile_check", True) is True
 
     @patch(
         "superset.mcp_service.auth.check_chart_data_access",

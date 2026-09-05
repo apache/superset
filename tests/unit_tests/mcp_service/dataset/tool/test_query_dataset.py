@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 import importlib
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
@@ -32,6 +32,7 @@ from superset.mcp_service.app import mcp
 from superset.mcp_service.auth import is_tool_visible_to_current_user
 from superset.mcp_service.privacy import tool_requires_data_model_metadata_access
 from superset.utils import json
+from superset.utils.core import GenericDataType
 from superset.utils.date_parser import get_since_until
 
 query_dataset_module = importlib.import_module(
@@ -116,18 +117,22 @@ def _make_dataset(
 def _mock_command_result(
     data: list[dict[str, Any]] | None = None,
     colnames: list[str] | None = None,
+    coltypes: list[int] | None = None,
 ) -> dict[str, Any]:
     """Build the result dict that ChartDataCommand.run() returns."""
-    data = data or [
-        {"category": "Electronics", "count": 42},
-        {"category": "Clothing", "count": 17},
-    ]
-    colnames = colnames or ["category", "count"]
+    if data is None:
+        data = [
+            {"category": "Electronics", "count": 42},
+            {"category": "Clothing", "count": 17},
+        ]
+    if colnames is None:
+        colnames = ["category", "count"]
     return {
         "queries": [
             {
                 "data": data,
                 "colnames": colnames,
+                **({"coltypes": coltypes} if coltypes is not None else {}),
                 "rowcount": len(data),
                 "cache_key": "abc123",
                 "is_cached": False,
@@ -136,6 +141,65 @@ def _mock_command_result(
             }
         ]
     }
+
+
+class _HostileResultScalar:
+    """A result scalar whose public conversion hook must never execute."""
+
+    def __str__(self) -> str:
+        raise AssertionError("hostile result scalar string hook executed")
+
+
+async def _call_query_dataset_with_result(
+    mcp_server: FastMCP, result_data: dict[str, Any]
+) -> dict[str, Any]:
+    """Call query_dataset with a concrete ChartDataCommand envelope."""
+    dataset = _make_dataset()
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate"
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=result_data,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=MagicMock(),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "columns": ["category"],
+                    }
+                },
+            )
+    return json.loads(result.content[0].text)
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_accepts_real_postprocessing_null_and_large_full_sql(
+    mcp_server: FastMCP, app_context: None
+) -> None:
+    """Dataset query consumes trusted nulls and SQL metadata above 64 KiB."""
+    from tests.unit_tests.mcp_service.chart.query_result_test_utils import (
+        real_compare_command_result,
+    )
+
+    result = real_compare_command_result(
+        "SELECT 'dataset café' -- " + "x" * (70 * 1024)
+    )
+
+    response = await _call_query_dataset_with_result(mcp_server, result)
+
+    assert response["data"][0]["finite"] == 2.5
+    assert any(value is None for value in response["data"][0].values())
 
 
 @pytest.mark.asyncio
@@ -180,6 +244,185 @@ async def test_query_dataset_success(mcp_server: FastMCP) -> None:
     assert data["row_count"] == 2
     assert len(data["data"]) == 2
     assert data["data"][0]["category"] == "Electronics"
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_normalizes_pandas_numpy_result_once(
+    mcp_server: FastMCP, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import numpy as np
+    import pandas as pd
+
+    real_normalizer = query_dataset_module.query_result_data
+    calls = 0
+
+    def count_normalization(result: Any) -> Any:
+        nonlocal calls
+        calls += 1
+        return real_normalizer(result)
+
+    monkeypatch.setattr(query_dataset_module, "query_result_data", count_normalization)
+    data = await _call_query_dataset_with_result(
+        mcp_server,
+        _mock_command_result(
+            data=[
+                {
+                    "category": pd.Timestamp("2024-01-02T03:04:05Z"),
+                    "count": np.int64(7),
+                    "missing": pd.NaT,
+                    "numeric_missing": np.float64("nan"),
+                }
+            ],
+            colnames=["category", "count", "missing", "numeric_missing"],
+        ),
+    )
+
+    assert calls == 1
+    assert data["dataset_id"] == 1
+    assert data["data"] == [
+        {
+            "category": "2024-01-02T03:04:05+00:00",
+            "count": 7,
+            "missing": None,
+            "numeric_missing": None,
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_marks_sampled_all_null_numeric_statistics(
+    mcp_server: FastMCP,
+) -> None:
+    row_count = 10_000
+    payload = await _call_query_dataset_with_result(
+        mcp_server,
+        _mock_command_result(
+            data=[{"count": float("nan")} for _ in range(row_count)],
+            colnames=["count"],
+            coltypes=[GenericDataType.NUMERIC],
+        ),
+    )
+
+    assert payload["row_count"] == row_count
+    assert payload["columns"][0]["data_type"] == "numeric"
+    assert payload["columns"][0]["null_count"] == 5000
+    assert payload["columns"][0]["statistics"] == {"sampled_rows": 5000}
+    assert all(row["count"] is None for row in payload["data"])
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_uses_authoritative_coltypes_and_late_samples(
+    mcp_server: FastMCP,
+) -> None:
+    import pandas as pd
+
+    rows: list[dict[str, Any]] = [
+        {"event_time": None, "enabled": None, "amount": None} for _ in range(5)
+    ]
+    rows.extend(
+        [
+            {
+                "event_time": pd.Timestamp("2024-01-02T03:04:05Z"),
+                "enabled": True,
+                "amount": 1,
+            },
+            {"event_time": None, "enabled": False, "amount": 1.0},
+            {"event_time": None, "enabled": True, "amount": "1"},
+        ]
+    )
+    payload = await _call_query_dataset_with_result(
+        mcp_server,
+        _mock_command_result(
+            data=rows,
+            colnames=["event_time", "enabled", "amount"],
+            coltypes=[
+                GenericDataType.TEMPORAL,
+                GenericDataType.BOOLEAN,
+                GenericDataType.NUMERIC,
+            ],
+        ),
+    )
+
+    assert [column["data_type"] for column in payload["columns"]] == [
+        "temporal",
+        "boolean",
+        "numeric",
+    ]
+    assert payload["columns"][0]["sample_values"] == ["2024-01-02T03:04:05+00:00"]
+    assert payload["columns"][1]["sample_values"] == [True, False, True]
+    assert payload["columns"][2]["unique_count"] == 2
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_metadata_distinguishes_boolean_integer_identity(
+    mcp_server: FastMCP,
+) -> None:
+    payload = await _call_query_dataset_with_result(
+        mcp_server,
+        _mock_command_result(
+            data=[{"value": value} for value in (True, 1, False, 0)],
+            colnames=["value"],
+            coltypes=[GenericDataType.BOOLEAN],
+        ),
+    )
+
+    assert payload["columns"][0]["data_type"] == "boolean"
+    assert payload["columns"][0]["unique_count"] == 4
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_preserves_typed_columns_for_empty_data(
+    mcp_server: FastMCP,
+) -> None:
+    payload = await _call_query_dataset_with_result(
+        mcp_server,
+        _mock_command_result(
+            data=[],
+            colnames=["event_time", "enabled"],
+            coltypes=[GenericDataType.TEMPORAL, GenericDataType.BOOLEAN],
+        ),
+    )
+
+    assert payload["data"] == []
+    assert [column["data_type"] for column in payload["columns"]] == [
+        "temporal",
+        "boolean",
+    ]
+
+
+@pytest.mark.parametrize(
+    "result_factory",
+    [
+        lambda: {"queries": [{"data": {}}]},
+        lambda: {"queries": [{"data": [{"category": "x" * (1024 * 1024)}]}]},
+        lambda: {"queries": [{"data": [{"category": _HostileResultScalar()}]}]},
+    ],
+)
+@pytest.mark.asyncio
+async def test_query_dataset_maps_invalid_result_without_formatting_hooks(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+    result_factory: Callable[[], dict[str, Any]],
+) -> None:
+    real_normalizer = query_dataset_module.query_result_data
+    calls = 0
+
+    def count_normalization(result: Any) -> Any:
+        nonlocal calls
+        calls += 1
+        return real_normalizer(result)
+
+    monkeypatch.setattr(query_dataset_module, "query_result_data", count_normalization)
+    monkeypatch.setattr(
+        query_dataset_module,
+        "format_data_columns",
+        lambda *_args: pytest.fail("invalid data must not reach formatting"),
+    )
+
+    data = await _call_query_dataset_with_result(mcp_server, result_factory())
+
+    assert calls == 1
+    assert data["error_type"] == "MalformedQueryResult"
 
 
 @pytest.mark.asyncio

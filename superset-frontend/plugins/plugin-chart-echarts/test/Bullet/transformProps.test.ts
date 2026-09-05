@@ -33,13 +33,16 @@ const formData: SqlaFormData = {
   markerLineLabels: 'stretch',
 };
 
-const chartProps = (overrides: Partial<SqlaFormData> = {}) =>
+const chartProps = (
+  overrides: Partial<SqlaFormData> = {},
+  data: Array<Record<string, number>> = [{ sum__num: 120 }],
+) =>
   new ChartProps({
     width: 800,
     height: 200,
     formData: { ...formData, ...overrides },
     theme: supersetTheme,
-    queriesData: [{ data: [{ sum__num: 120 }] }],
+    queriesData: [{ data }],
     hooks: {},
   }) as unknown as EchartsBulletChartProps;
 
@@ -149,6 +152,27 @@ test('marks a measure beyond every range as past the last label', () => {
   );
 });
 
+test('uses sorted inclusive range boundaries and omits unavailable labels', () => {
+  const tooltip = (measure: number, ranges: string, rangeLabels: string) => {
+    const { echartOptions } = transformProps(
+      chartProps({ ranges, rangeLabels }, [{ sum__num: measure }]),
+    );
+    const series = echartOptions.series as Array<{
+      tooltip: { formatter: () => string };
+    }>;
+    return series[0].tooltip.formatter();
+  };
+
+  expect(tooltip(100, '300,100,200', 'high,low,mid')).toContain('Range: low');
+  expect(tooltip(120, '300,100,200', 'high,low,mid')).toContain('Range: mid');
+  expect(tooltip(-5, '10,-10,0', 'positive,negative,zero')).toContain(
+    'Range: zero',
+  );
+  expect(tooltip(50, '100,200', ',high')).not.toContain('Range:');
+  expect(tooltip(250, '100,200', 'low,')).not.toContain('Range:');
+  expect(tooltip(120, '100,200', '')).not.toContain('Range:');
+});
+
 test('renders range labels inside the top-right corner of their bands', () => {
   const { echartOptions } = transformProps(chartProps({ showLabels: true }));
   const { series } = echartOptions as any;
@@ -220,6 +244,101 @@ test('handles an empty query result without crashing', () => {
   // the axis domain must not collapse to zero width
   const { min, max } = (echartOptions as any).xAxis;
   expect(max).toBeGreaterThan(min);
+});
+
+test('coerces grouped categories with JavaScript String semantics', () => {
+  const props = new ChartProps({
+    width: 800,
+    height: 400,
+    formData: { ...formData, groupby: ['state'] },
+    theme: supersetTheme,
+    queriesData: [
+      {
+        data: [
+          { state: null, sum__num: 1 },
+          { state: '', sum__num: 2 },
+          { state: true, sum__num: 3 },
+          { state: false, sum__num: 4 },
+          { state: 12.0, sum__num: 5 },
+          { state: 12.5, sum__num: 6 },
+          { state: -0, sum__num: 7 },
+          // Chart Data serializes date/datetime values as epoch-ms JSON
+          // numbers before ECharts applies String(value).
+          { state: JSON.parse('1788307200000'), sum__num: 8 },
+          { state: JSON.parse('1788318245000'), sum__num: 9 },
+          { state: JSON.parse('1699162200000'), sum__num: 10 },
+          { state: JSON.parse('1699165800000'), sum__num: 11 },
+          { state: '12345678-1234-5678-1234-567812345678', sum__num: 12 },
+        ],
+      },
+    ],
+    hooks: {},
+  }) as unknown as EchartsBulletChartProps;
+  const { echartOptions } = transformProps(props);
+  const { data } = (echartOptions as { yAxis: { data: string[] } }).yAxis;
+  expect(data).toEqual([
+    'null',
+    '',
+    'true',
+    'false',
+    '12',
+    '12.5',
+    '0',
+    '1788307200000',
+    '1788318245000',
+    '1699162200000',
+    '1699165800000',
+    '12345678-1234-5678-1234-567812345678',
+  ]);
+});
+
+test('coerces JSON number boundaries through IEEE-754 before String', () => {
+  const wireNumbers = [
+    '9007199254740993',
+    '9007199254740995',
+    '1.0000000000000001',
+    '1.0000000000000002',
+    '1e20',
+    '1e21',
+    '1e-6',
+    '1e-7',
+    '1.7976931348623157e308',
+    '1.7976931348623159e308',
+    '-1e309',
+    '-0',
+  ].map(value => JSON.parse(value) as number);
+  const props = new ChartProps({
+    width: 800,
+    height: 400,
+    formData: { ...formData, groupby: ['state'] },
+    theme: supersetTheme,
+    queriesData: [
+      {
+        data: wireNumbers.map((state, index) => ({
+          state,
+          sum__num: index + 1,
+        })),
+      },
+    ],
+    hooks: {},
+  }) as unknown as EchartsBulletChartProps;
+
+  const { echartOptions } = transformProps(props);
+  const { data } = (echartOptions as { yAxis: { data: string[] } }).yAxis;
+  expect(data).toEqual([
+    '9007199254740992',
+    '9007199254740996',
+    '1',
+    '1.0000000000000002',
+    '100000000000000000000',
+    '1e+21',
+    '0.000001',
+    '1e-7',
+    '1.7976931348623157e+308',
+    'Infinity',
+    '-Infinity',
+    '0',
+  ]);
 });
 
 test('splits into one bullet row per group value with shared markers', () => {

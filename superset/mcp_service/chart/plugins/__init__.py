@@ -29,6 +29,7 @@ To add a new chart type:
 
 from superset.mcp_service.chart.plugins.big_number import BigNumberChartPlugin
 from superset.mcp_service.chart.plugins.box_plot import BoxPlotChartPlugin
+from superset.mcp_service.chart.plugins.bullet import BulletChartPlugin
 from superset.mcp_service.chart.plugins.handlebars import HandlebarsChartPlugin
 from superset.mcp_service.chart.plugins.histogram import HistogramChartPlugin
 from superset.mcp_service.chart.plugins.interactive_pivot import (
@@ -46,6 +47,7 @@ from superset.mcp_service.chart.registry import register
 
 # Register all built-in chart type plugins
 register(XYChartPlugin())
+register(BulletChartPlugin())
 register(TableChartPlugin())
 register(PieChartPlugin())
 register(PivotTableChartPlugin())
@@ -60,6 +62,7 @@ register(WaterfallChartPlugin())
 __all__ = [
     "BigNumberChartPlugin",
     "BoxPlotChartPlugin",
+    "BulletChartPlugin",
     "HandlebarsChartPlugin",
     "HistogramChartPlugin",
     "InteractivePivotChartPlugin",

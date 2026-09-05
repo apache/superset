@@ -21,24 +21,27 @@ Unit tests for update_chart_preview MCP tool
 
 import importlib
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client
+from pydantic import RootModel
 
 from superset.extensions import feature_flag_manager
 from superset.mcp_service.app import mcp
-from superset.mcp_service.chart.chart_utils import map_big_number_config
+from superset.mcp_service.chart.query_result import MAX_QUERY_RESULT_VALUE_BYTES
 from superset.mcp_service.chart.schemas import (
+    ASCIIPreview,
     AxisConfig,
-    BigNumberChartConfig,
     ColumnRef,
     FilterConfig,
     InteractivePivotChartConfig,
     LegendConfig,
+    MixedTimeseriesChartConfig,
     TableChartConfig,
     TablePreview,
     UpdateChartPreviewRequest,
+    WaterfallChartConfig,
     XYChartConfig,
 )
 
@@ -82,6 +85,73 @@ def _mock_dataset(id: int = 1) -> Mock:
     dataset.metrics = []
     dataset.database = database
     return dataset
+
+
+def test_update_chart_preview_entrypoint_exact_limit_and_plus_one() -> None:
+    config = TableChartConfig(chart_type="table", columns=[ColumnRef(name="region")])
+    request = UpdateChartPreviewRequest(
+        dataset_id=3,
+        config=config,
+        generate_preview=True,
+        preview_formats=["ascii"],
+    )
+    dataset = _mock_dataset(id=3)
+
+    def run(content: str) -> dict[str, Any]:
+        user = Mock(id=1, username="admin", roles=[], groups=[])
+        with (
+            patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
+            patch.object(
+                update_chart_preview_module, "_find_dataset", return_value=dataset
+            ),
+            patch(
+                "superset.mcp_service.chart.validation.dataset_validator."
+                "build_dataset_context_from_orm",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "superset.mcp_service.chart.validation.dataset_validator."
+                "DatasetValidator.normalize_column_names",
+                return_value=config,
+            ),
+            patch.object(
+                update_chart_preview_module,
+                "validate_and_compile",
+                return_value=Mock(success=True),
+            ),
+            patch.object(
+                update_chart_preview_module,
+                "generate_explore_link",
+                return_value=(
+                    "http://localhost/explore/?form_data_key=bounded-preview-key"
+                ),
+            ),
+            patch.object(
+                update_chart_preview_module,
+                "generate_preview_from_form_data",
+                return_value=ASCIIPreview(ascii_content=content, width=80, height=20),
+            ),
+            patch.object(update_chart_preview_module.time, "time", return_value=1.0),
+        ):
+            return update_chart_preview_module.update_chart_preview(
+                request=request, ctx=MagicMock()
+            )
+
+    empty = run("")
+    empty_size = len(RootModel[dict[str, Any]](empty).model_dump_json().encode())
+    filler = "x" * (MAX_QUERY_RESULT_VALUE_BYTES - empty_size)
+    boundary = run(filler)
+    oversized = run(filler + "x")
+
+    assert (
+        len(RootModel[dict[str, Any]](boundary).model_dump_json().encode())
+        == MAX_QUERY_RESULT_VALUE_BYTES
+    )
+    assert boundary["success"] is True
+    assert oversized["success"] is False
+    error = oversized["error"]
+    assert isinstance(error, dict)
+    assert error["error_code"] == "CHART_RESPONSE_TOO_LARGE"
 
 
 class TestUpdateChartPreview:
@@ -591,268 +661,6 @@ class TestUpdateChartPreview:
 
         assert result is None
 
-    def test_preserves_generated_temporal_filter_with_cached_filters(self) -> None:
-        """Cached filters are merged without replacing the temporal binding."""
-        new_form_data = {
-            "adhoc_filters": [
-                {
-                    "clause": "WHERE",
-                    "comparator": "No filter",
-                    "expressionType": "SIMPLE",
-                    "operator": "TEMPORAL_RANGE",
-                    "subject": "ds",
-                }
-            ]
-        }
-        previous_form_data = {
-            "adhoc_filters": [
-                {
-                    "clause": "WHERE",
-                    "comparator": "North",
-                    "expressionType": "SIMPLE",
-                    "operator": "==",
-                    "subject": "region",
-                }
-            ]
-        }
-
-        update_chart_preview_module._preserve_previous_adhoc_filters(
-            new_form_data,
-            previous_form_data,
-        )
-
-        assert [filter_["subject"] for filter_ in new_form_data["adhoc_filters"]] == [
-            "region",
-            "ds",
-        ]
-
-    def test_cached_temporal_filter_takes_precedence_over_generated_default(
-        self,
-    ) -> None:
-        """A cached chart-specific time range is not duplicated or reset."""
-        new_form_data = {
-            "adhoc_filters": [
-                {
-                    "clause": "WHERE",
-                    "comparator": "No filter",
-                    "expressionType": "SIMPLE",
-                    "operator": "TEMPORAL_RANGE",
-                    "subject": "ds",
-                }
-            ]
-        }
-        cached_temporal_filter = {
-            "clause": "WHERE",
-            "comparator": "Last month",
-            "expressionType": "SIMPLE",
-            "operator": "TEMPORAL_RANGE",
-            "subject": "ds",
-        }
-
-        update_chart_preview_module._preserve_previous_adhoc_filters(
-            new_form_data,
-            {"adhoc_filters": [cached_temporal_filter]},
-        )
-
-        assert new_form_data["adhoc_filters"] == [cached_temporal_filter]
-
-    def test_replaces_cached_temporal_filter_when_column_changes(self) -> None:
-        """A newly selected temporal column replaces the cached binding."""
-        new_temporal_filter = {
-            "clause": "WHERE",
-            "comparator": "No filter",
-            "expressionType": "SIMPLE",
-            "operator": "TEMPORAL_RANGE",
-            "subject": "created_at",
-        }
-        region_filter = {
-            "clause": "WHERE",
-            "comparator": "North",
-            "expressionType": "SIMPLE",
-            "operator": "==",
-            "subject": "region",
-        }
-        previous_temporal_filter = {
-            "clause": "WHERE",
-            "comparator": "No filter",
-            "expressionType": "SIMPLE",
-            "operator": "TEMPORAL_RANGE",
-            "subject": "ds",
-        }
-        new_form_data: dict[str, Any] = {"adhoc_filters": [new_temporal_filter]}
-        new_form_data["_mcp_dashboard_time_filter_subject"] = "created_at"
-
-        update_chart_preview_module._preserve_previous_adhoc_filters(
-            new_form_data,
-            {
-                "adhoc_filters": [region_filter, previous_temporal_filter],
-                "_mcp_dashboard_time_filter_subject": "ds",
-            },
-        )
-
-        assert new_form_data["adhoc_filters"] == [
-            region_filter,
-            new_temporal_filter,
-        ]
-
-    def test_replaces_temporal_xy_binding_when_subject_changes(self) -> None:
-        """A temporal XY binding does not survive rebinding to a new subject."""
-        previous_binding = {
-            "clause": "WHERE",
-            "comparator": "No filter",
-            "expressionType": "SIMPLE",
-            "operator": "TEMPORAL_RANGE",
-            "subject": "event_time",
-        }
-        new_binding = {
-            **previous_binding,
-            "subject": "created_at",
-        }
-        new_form_data = {
-            "adhoc_filters": [new_binding],
-            "_mcp_dashboard_time_filter_subject": "created_at",
-        }
-
-        update_chart_preview_module._preserve_previous_adhoc_filters(
-            new_form_data,
-            {
-                "adhoc_filters": [previous_binding],
-                "_mcp_dashboard_time_filter_subject": "event_time",
-            },
-        )
-
-        assert new_form_data["adhoc_filters"] == [new_binding]
-
-    def test_replaces_big_number_fallback_binding_when_subject_changes(self) -> None:
-        """A Big Number fallback binding is replaced by a selected subject."""
-        dataset = Mock(
-            main_dttm_col=None,
-            columns=[Mock(column_name="order_date")],
-        )
-        config = BigNumberChartConfig(
-            chart_type="big_number",
-            metric=ColumnRef(name="revenue", aggregate="SUM"),
-        )
-        rebound_config = config.model_copy(update={"temporal_column": "created_at"})
-
-        with (
-            patch(
-                "superset.daos.dataset.DatasetDAO.find_by_id_or_uuid",
-                return_value=dataset,
-            ),
-            patch(
-                "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
-                return_value=True,
-            ),
-        ):
-            previous_form_data = map_big_number_config(config, dataset_id=42)
-            new_form_data = map_big_number_config(rebound_config, dataset_id=42)
-
-        update_chart_preview_module._preserve_previous_adhoc_filters(
-            new_form_data,
-            previous_form_data,
-        )
-
-        assert previous_form_data["_mcp_dashboard_time_filter_subject"] == "order_date"
-        assert new_form_data["_mcp_dashboard_time_filter_subject"] == "created_at"
-        assert [filter_["subject"] for filter_ in new_form_data["adhoc_filters"]] == [
-            "created_at"
-        ]
-
-    def test_removes_cached_temporal_filter_without_new_binding(self) -> None:
-        """A mapping without a temporal subject drops the cached binding."""
-        region_filter = {
-            "clause": "WHERE",
-            "comparator": "North",
-            "expressionType": "SIMPLE",
-            "operator": "==",
-            "subject": "region",
-        }
-        previous_temporal_filter = {
-            "clause": "WHERE",
-            "comparator": "No filter",
-            "expressionType": "SIMPLE",
-            "operator": "TEMPORAL_RANGE",
-            "subject": "ds",
-        }
-        new_form_data: dict[str, Any] = {}
-
-        update_chart_preview_module._preserve_previous_adhoc_filters(
-            new_form_data,
-            {
-                "adhoc_filters": [region_filter, previous_temporal_filter],
-                "_mcp_dashboard_time_filter_subject": "ds",
-            },
-        )
-
-        assert new_form_data["adhoc_filters"] == [region_filter]
-
-    def test_preserves_user_temporal_filter_on_generated_subject(self) -> None:
-        """A user-authored range on the binding subject is not generated state."""
-        generated_binding = {
-            "clause": "WHERE",
-            "comparator": "No filter",
-            "expressionType": "SIMPLE",
-            "operator": "TEMPORAL_RANGE",
-            "subject": "ds",
-        }
-        user_filter = {
-            "clause": "WHERE",
-            "comparator": "Last month",
-            "expressionType": "SIMPLE",
-            "operator": "TEMPORAL_RANGE",
-            "subject": "ds",
-        }
-
-        new_form_data: dict[str, Any] = {}
-        update_chart_preview_module._preserve_previous_adhoc_filters(
-            new_form_data,
-            {
-                "adhoc_filters": [generated_binding, user_filter],
-                "_mcp_dashboard_time_filter_subject": "ds",
-            },
-        )
-
-        assert new_form_data["adhoc_filters"] == [user_filter]
-
-    def test_rebinding_preserves_unrelated_cached_temporal_filter(self) -> None:
-        """Only the generated binding is replaced; user filters retain provenance."""
-        previous_binding = {
-            "expressionType": "SIMPLE",
-            "clause": "WHERE",
-            "operator": "TEMPORAL_RANGE",
-            "subject": "ds",
-            "comparator": "No filter",
-        }
-        unrelated_filter = {
-            "expressionType": "SIMPLE",
-            "clause": "WHERE",
-            "operator": "TEMPORAL_RANGE",
-            "subject": "processed_at",
-            "comparator": "Last year",
-        }
-        new_binding = {
-            "expressionType": "SIMPLE",
-            "clause": "WHERE",
-            "operator": "TEMPORAL_RANGE",
-            "subject": "created_at",
-            "comparator": "No filter",
-        }
-        new_form_data = {
-            "adhoc_filters": [new_binding],
-            "_mcp_dashboard_time_filter_subject": "created_at",
-        }
-
-        update_chart_preview_module._preserve_previous_adhoc_filters(
-            new_form_data,
-            {
-                "adhoc_filters": [previous_binding, unrelated_filter],
-                "_mcp_dashboard_time_filter_subject": "ds",
-            },
-        )
-
-        assert new_form_data["adhoc_filters"] == [unrelated_filter, new_binding]
-
     @patch.object(update_chart_preview_module, "validate_and_compile")
     @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
@@ -999,6 +807,149 @@ class TestUpdateChartPreview:
         assert result["error"] is None
         assert result["warnings"] == []
         mock_get_previous_form_data.assert_called_once_with("valid_key_12345")
+        assert mock_validate_and_compile.call_args.kwargs["run_compile_check"] is True
+
+    @patch.object(update_chart_preview_module, "validate_and_compile")
+    @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch.object(update_chart_preview_module, "analyze_chart_semantics")
+    @patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+    @patch.object(update_chart_preview_module, "generate_explore_link")
+    @patch.object(update_chart_preview_module, "_get_previous_form_data")
+    @patch.object(update_chart_preview_module, "_find_dataset")
+    @patch("superset.mcp_service.auth.get_user_from_request")
+    @pytest.mark.asyncio
+    async def test_cached_same_viz_preserves_unmodeled_mixed_controls(
+        self,
+        mock_get_user_from_request,
+        mock_find_dataset,
+        mock_get_previous_form_data,
+        mock_generate_explore_link,
+        mock_analyze_chart_capabilities,
+        mock_analyze_chart_semantics,
+        mock_find_by_id,
+        unused_access_mock,
+        mock_validate_and_compile,
+    ) -> None:
+        mock_get_user_from_request.return_value = Mock(id=1)
+        mock_find_dataset.return_value = _mock_dataset(id=3)
+        mock_find_by_id.return_value = _mock_dataset(id=3)
+        mock_validate_and_compile.return_value = Mock(success=True)
+        mock_get_previous_form_data.return_value = {
+            "viz_type": "mixed_timeseries",
+            "time_compare": ["1 year ago"],
+            "comparison_type_b": "percentage",
+            "y_axis_format": ",.2f",
+            "show_value": True,
+            "color_scheme": "lyftColors",
+            "currency_format": {"symbol": "USD", "symbolPosition": "prefix"},
+            "currency_format_secondary": {
+                "symbol": "EUR",
+                "symbolPosition": "suffix",
+            },
+        }
+        mock_generate_explore_link.return_value = (
+            "http://localhost:8088/explore/?form_data_key=new_preview_key"
+        )
+
+        result = update_chart_preview_module.update_chart_preview(
+            request=UpdateChartPreviewRequest(
+                form_data_key="valid_key_12345",
+                dataset_id=3,
+                config=MixedTimeseriesChartConfig(
+                    x=ColumnRef(name="ds"),
+                    y=[ColumnRef(name="sales", aggregate="SUM")],
+                    y_secondary=[ColumnRef(name="profit", aggregate="SUM")],
+                    show_value=False,
+                    color_scheme=None,
+                    currency_format=None,
+                    currency_format_secondary=None,
+                ),
+            ),
+            ctx=Mock(),
+        )
+
+        generated = mock_generate_explore_link.call_args.args[1]
+        assert generated["time_compare"] == ["1 year ago"]
+        assert generated["comparison_type_b"] == "percentage"
+        assert generated["y_axis_format"] == ",.2f"
+        assert generated["show_value"] is False
+        assert generated["color_scheme"] is None
+        assert generated["currency_format"] is None
+        assert generated["currency_format_secondary"] is None
+        assert result["success"] is True
+
+    @patch.object(update_chart_preview_module, "validate_and_compile")
+    @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch.object(update_chart_preview_module, "analyze_chart_semantics")
+    @patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+    @patch.object(update_chart_preview_module, "generate_explore_link")
+    @patch.object(update_chart_preview_module, "_get_previous_form_data")
+    @patch.object(update_chart_preview_module, "_find_dataset")
+    @patch("superset.mcp_service.auth.get_user_from_request")
+    @pytest.mark.asyncio
+    async def test_cached_waterfall_axis_rebind_keeps_active_provenance(
+        self,
+        mock_get_user_from_request,
+        mock_find_dataset,
+        mock_get_previous_form_data,
+        mock_generate_explore_link,
+        mock_analyze_chart_capabilities,
+        mock_analyze_chart_semantics,
+        mock_find_by_id,
+        unused_access_mock,
+        mock_validate_and_compile,
+    ) -> None:
+        dataset = _mock_dataset(id=3)
+        dataset.main_dttm_col = "ds"
+        mock_get_user_from_request.return_value = Mock(id=1)
+        mock_find_dataset.return_value = dataset
+        mock_find_by_id.return_value = dataset
+        mock_validate_and_compile.return_value = Mock(success=True)
+        mock_get_previous_form_data.return_value = {
+            "viz_type": "waterfall",
+            "x_axis": "old_time",
+            "granularity_sqla": "old_time",
+            "time_grain_sqla": "P1M",
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "expressionType": "SIMPLE",
+                    "subject": "old_time",
+                    "operator": "TEMPORAL_RANGE",
+                    "comparator": "Last year",
+                }
+            ],
+            "_mcp_dashboard_time_filter_subject": "old_time",
+        }
+        mock_generate_explore_link.return_value = (
+            "http://localhost:8088/explore/?form_data_key=new_preview_key"
+        )
+
+        with patch(
+            "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+            return_value=True,
+        ):
+            result = update_chart_preview_module.update_chart_preview(
+                request=UpdateChartPreviewRequest(
+                    form_data_key="valid_key_12345",
+                    dataset_id=3,
+                    config=WaterfallChartConfig(
+                        x_axis=ColumnRef(name="ds"),
+                        metric=ColumnRef(name="sales", aggregate="SUM"),
+                    ),
+                ),
+                ctx=Mock(),
+            )
+
+        generated = mock_generate_explore_link.call_args.args[1]
+        assert generated["granularity_sqla"] == "ds"
+        assert generated["time_grain_sqla"] is None
+        assert generated["_mcp_dashboard_time_filter_subject"] == "ds"
+        assert generated["adhoc_filters"][0]["subject"] == "ds"
+        assert generated["adhoc_filters"][0]["comparator"] == "Last year"
+        assert result["success"] is True
 
     @patch.object(update_chart_preview_module, "validate_and_compile")
     @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
@@ -1254,8 +1205,6 @@ class TestUpdateChartPreviewValidation:
             mock_create_form_data.assert_not_called()
 
     @patch.object(update_chart_preview_module, "_find_dataset")
-    @patch.object(update_chart_preview_module, "has_dataset_access", return_value=False)
-    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
         "superset.mcp_service.commands.create_form_data.MCPCreateFormDataCommand.run"
     )
@@ -1263,15 +1212,12 @@ class TestUpdateChartPreviewValidation:
     async def test_dataset_access_denied_short_circuits(
         self,
         mock_create_form_data,
-        mock_find_by_id,
-        unused_access_mock,
         mock_find_dataset,
         mcp_server,
         mock_auth,
     ):
-        """has_dataset_access=False → DatasetNotAccessible, no cache write."""
-        mock_find_dataset.return_value = _mock_dataset(id=3)
-        mock_find_by_id.return_value = _mock_dataset(id=3)
+        """An inaccessible dataset short-circuits before mapping or cache writes."""
+        mock_find_dataset.return_value = None
 
         config = TableChartConfig(
             chart_type="table", columns=[ColumnRef(name="region")]
@@ -1289,5 +1235,5 @@ class TestUpdateChartPreviewValidation:
             assert result.data["chart"] is None
             error = result.data["error"]
             assert isinstance(error, dict)
-            assert error["error_type"] == "DatasetNotAccessible"
+            assert error["error_type"] == "dataset_not_found"
             mock_create_form_data.assert_not_called()

@@ -38,6 +38,11 @@ from superset.common.tabular_query import (
 )
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
+from superset.mcp_service.chart.query_result import (
+    query_result_data,
+    response_json_failure,
+    safe_exception_message,
+)
 from superset.mcp_service.chart.schemas import PerformanceMetadata
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
@@ -52,6 +57,7 @@ from superset.mcp_service.semantic_layer.schemas import (
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
 from superset.mcp_service.utils.response_utils import format_data_columns
+from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
 
@@ -232,19 +238,21 @@ def _build_response(
     is_builtin: bool,
     display_name: str,
     query_result: dict[str, Any],
+    data: list[dict[str, Any]],
+    raw_columns: list[str],
+    coltypes: list[int | GenericDataType],
     query_duration_ms: int,
     warnings: list[str],
 ) -> GetTableResponse:
     """Format the query result into a GetTableResponse."""
-    data = query_result.get("data", [])
-    raw_columns = query_result.get("colnames", [])
     cache_status = get_cache_status_from_result(
         query_result, force_refresh=request.force_refresh
     )
+    columns_meta = format_data_columns(data, raw_columns, coltypes)
 
     if not data:
         return GetTableResponse(
-            columns=[],
+            columns=columns_meta,
             data=[],
             row_count=0,
             total_rows=0,
@@ -262,7 +270,6 @@ def _build_response(
             warnings=warnings,
         )
 
-    columns_meta = format_data_columns(data, raw_columns)
     cache_label = "cached" if cache_status and cache_status.cache_hit else "fresh"
     summary = (
         f"'{display_name}': {len(data)} rows, "
@@ -333,31 +340,63 @@ async def _run_get_table_query(
             use_cache=request.use_cache,
             force=request.force_refresh,
         )
+    queries_data, query_failure = query_result_data(result)
+    if query_failure is not None:
+        return SemanticLayerError.create(
+            error=query_failure.error,
+            error_type=query_failure.error_type,
+        )
+    if queries_data is None or type(result) is not dict:
+        return SemanticLayerError.create(
+            error="Malformed chart query result after validation",
+            error_type="MalformedQueryResult",
+        )
+    queries = dict.get(result, "queries")
+    if type(queries) is not list or not queries:
+        return SemanticLayerError.create(
+            error="Malformed chart query result after validation",
+            error_type="MalformedQueryResult",
+        )
+    query_result = list.__getitem__(queries, 0)
+    if type(query_result) is not dict:
+        return SemanticLayerError.create(
+            error="Malformed chart query result after validation",
+            error_type="MalformedQueryResult",
+        )
+    data = list.__getitem__(queries_data, 0)
+    raw_columns = dict.get(query_result, "colnames", [])
+    coltypes = dict.get(query_result, "coltypes", [])
+    if type(raw_columns) is not list or type(coltypes) is not list:
+        return SemanticLayerError.create(
+            error="Malformed chart query metadata after validation",
+            error_type="MalformedQueryResult",
+        )
 
     query_duration_ms = int((time.time() - start_time) * 1000)
 
-    if not result or "queries" not in result or not result["queries"]:
-        return SemanticLayerError.create(
-            error="Query returned no results.",
-            error_type="EmptyQuery",
-        )
-
     await ctx.report_progress(5, 5, "Formatting results")
-    query_result = result["queries"][0]
     response = _build_response(
         request,
         is_builtin,
         resolved.display_name,
         query_result,
+        data,
+        raw_columns,
+        coltypes,
         query_duration_ms,
         resolved.warnings,
     )
+    if response_failure := response_json_failure(response):
+        return SemanticLayerError.create(
+            error=response_failure.error,
+            error_type=response_failure.error_type,
+        )
 
     await ctx.info(
         "get_table complete: rows=%d, columns=%d, duration=%dms"
         % (
             response.row_count,
-            len(query_result.get("colnames", [])),
+            len(raw_columns),
             query_duration_ms,
         )
     )
@@ -474,32 +513,38 @@ async def get_table(
         )
 
     except OAuth2Error as exc:
-        await ctx.error("OAuth2 error: %s" % str(exc))
+        error_text = safe_exception_message(exc)
+        await ctx.error("OAuth2 error: %s" % error_text)
         return SemanticLayerError.create(
-            error=f"OAuth2 authentication error: {exc}",
+            error=f"OAuth2 authentication error: {error_text}",
             error_type="OAuth2Error",
         )
 
     except (CommandException, SupersetException) as exc:
-        await ctx.error("Query failed: %s" % str(exc))
+        error_text = safe_exception_message(exc)
+        await ctx.error("Query failed: %s" % error_text)
         return SemanticLayerError.create(
-            error=f"Query execution failed: {exc}",
+            error=f"Query execution failed: {error_text}",
             error_type="QueryError",
         )
 
     except SQLAlchemyError as exc:
-        await ctx.error("Database error: %s" % str(exc))
+        error_text = safe_exception_message(exc)
+        await ctx.error("Database error: %s" % error_text)
         return SemanticLayerError.create(
-            error=f"Database error: {exc}",
+            error=f"Database error: {error_text}",
             error_type="DatabaseError",
         )
 
     except Exception as exc:
+        error_text = safe_exception_message(exc)
         logger.exception(
-            "Unexpected error in get_table: %s: %s", type(exc).__name__, str(exc)
+            "Unexpected error in get_table: %s: %s",
+            type(exc).__name__,
+            error_text,
         )
-        await ctx.error("Unexpected error: %s: %s" % (type(exc).__name__, str(exc)))
+        await ctx.error("Unexpected error: %s: %s" % (type(exc).__name__, error_text))
         return SemanticLayerError.create(
-            error=f"Internal error executing get_table: {exc}",
+            error=f"Internal error executing get_table: {error_text}",
             error_type="InternalError",
         )

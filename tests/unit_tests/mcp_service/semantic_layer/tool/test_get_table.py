@@ -20,10 +20,11 @@
 from __future__ import annotations
 
 import importlib
-from collections.abc import Generator
-from types import ModuleType
+from collections.abc import Callable, Generator
+from contextlib import nullcontext
+from types import ModuleType, SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client, FastMCP
@@ -32,6 +33,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.app import mcp
 from superset.utils import json
+from superset.utils.core import GenericDataType
 
 get_table_module: ModuleType = importlib.import_module(
     "superset.mcp_service.semantic_layer.tool.get_table"
@@ -114,6 +116,372 @@ def _access_denied_exc(message: str = "Access denied") -> SupersetSecurityExcept
             level=ErrorLevel.ERROR,
         )
     )
+
+
+class _HostileResultScalar:
+    """A result scalar whose public conversion hook must never execute."""
+
+    def __str__(self) -> str:
+        raise AssertionError("hostile result scalar string hook executed")
+
+
+async def _run_with_command_result(
+    monkeypatch: pytest.MonkeyPatch, result: dict[str, Any]
+) -> Any:
+    """Execute the semantic command path with one concrete command envelope."""
+    from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    factory_module = importlib.import_module("superset.common.query_context_factory")
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return result
+
+    monkeypatch.setattr(
+        get_table_module,
+        "_resolve_builtin_dataset",
+        lambda _request: get_table_module._ResolvedDatasource(
+            "orders", None, {"category"}, {"count"}
+        ),
+    )
+    monkeypatch.setattr(
+        get_table_module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
+    )
+    monkeypatch.setattr(factory_module, "QueryContextFactory", MagicMock())
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+    return await get_table_module._run_get_table_query(
+        GetTableRequest(dataset_id=42, metrics=["count"], dimensions=["category"]),
+        AsyncMock(),
+        is_builtin=True,
+        datasource_id=42,
+        datasource_type="table",
+    )
+
+
+@pytest.mark.asyncio
+async def test_get_table_accepts_real_postprocessing_null_and_large_full_sql(
+    monkeypatch: pytest.MonkeyPatch, app_context: None
+) -> None:
+    """Semantic data consumes trusted nulls and SQL metadata above 64 KiB."""
+    from tests.unit_tests.mcp_service.chart.query_result_test_utils import (
+        real_compare_command_result,
+    )
+
+    result = real_compare_command_result(
+        'SELECT "semantic café"\\n' + "x" * (70 * 1024)
+    )
+
+    response = await _run_with_command_result(monkeypatch, result)
+
+    assert response.success is True
+    assert response.data[0]["finite"] == 2.5
+    assert any(value is None for value in response.data[0].values())
+
+
+@pytest.mark.asyncio
+async def test_get_table_seeds_virtual_dataset_jinja_before_command_construction(
+    app_context: None, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The final semantic query exposes URL and filter macros to virtual SQL."""
+    from flask import current_app
+
+    from superset.common.query_object import QueryObject
+    from superset.jinja_context import ExtraCache
+    from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    observed: dict[str, Any] = {}
+
+    class _Factory:
+        def create(self, **kwargs: Any) -> Any:
+            return SimpleNamespace(
+                form_data=kwargs["form_data"],
+                queries=[QueryObject(**query) for query in kwargs["queries"]],
+            )
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None:
+            macros = ExtraCache()
+            observed["url_param"] = macros.url_param("tenant")
+            observed["filter_values"] = macros.filter_values("region")
+            observed["get_filters"] = macros.get_filters("region")
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": [{"region": "North", "revenue": 10}],
+                        "colnames": ["region", "revenue"],
+                        "rowcount": 1,
+                    }
+                ]
+            }
+
+    monkeypatch.setattr(
+        get_table_module,
+        "_resolve_builtin_dataset",
+        lambda _request: get_table_module._ResolvedDatasource(
+            "virtual_sales", None, {"region"}, {"revenue"}
+        ),
+    )
+    monkeypatch.setattr(
+        get_table_module,
+        "event_logger",
+        SimpleNamespace(log_context=lambda **_kwargs: nullcontext()),
+    )
+    monkeypatch.setattr(
+        importlib.import_module("superset.common.query_context_factory"),
+        "QueryContextFactory",
+        _Factory,
+    )
+    monkeypatch.setattr(command_module, "ChartDataCommand", _Command)
+
+    request = GetTableRequest(
+        dataset_id=42,
+        metrics=["revenue"],
+        dimensions=["region"],
+        filters=[{"col": "region", "op": "IN", "val": ["North"]}],
+    )
+    with current_app.test_request_context("/?tenant=acme"):
+        response = await get_table_module._run_get_table_query(
+            request,
+            AsyncMock(),
+            is_builtin=True,
+            datasource_id=42,
+            datasource_type="table",
+        )
+
+    assert response.success is True
+    assert observed == {
+        "url_param": "acme",
+        "filter_values": ["North"],
+        "get_filters": [{"col": "region", "op": "IN", "val": ["North"]}],
+    }
+
+
+@pytest.mark.asyncio
+async def test_get_table_normalizes_pandas_numpy_result_once(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import numpy as np
+    import pandas as pd
+
+    real_normalizer = get_table_module.query_result_data
+    calls = 0
+
+    def count_normalization(result: Any) -> Any:
+        nonlocal calls
+        calls += 1
+        return real_normalizer(result)
+
+    monkeypatch.setattr(get_table_module, "query_result_data", count_normalization)
+    response = await _run_with_command_result(
+        monkeypatch,
+        {
+            "queries": [
+                {
+                    "data": [
+                        {
+                            "category": pd.Timestamp("2024-01-02T03:04:05Z"),
+                            "count": np.int64(7),
+                            "missing": pd.NaT,
+                            "numeric_missing": np.float64("nan"),
+                        }
+                    ],
+                    "colnames": [
+                        "category",
+                        "count",
+                        "missing",
+                        "numeric_missing",
+                    ],
+                    "rowcount": 1,
+                }
+            ]
+        },
+    )
+
+    assert calls == 1
+    assert response.success is True
+    assert response.data == [
+        {
+            "category": "2024-01-02T03:04:05+00:00",
+            "count": 7,
+            "missing": None,
+            "numeric_missing": None,
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_get_table_marks_sampled_all_null_numeric_statistics(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    row_count = 10_000
+    response = await _run_with_command_result(
+        monkeypatch,
+        {
+            "queries": [
+                {
+                    "data": [{"count": float("nan")} for _ in range(row_count)],
+                    "colnames": ["count"],
+                    "coltypes": [GenericDataType.NUMERIC],
+                    "rowcount": row_count,
+                }
+            ]
+        },
+    )
+
+    assert response.success is True
+    assert response.row_count == row_count
+    assert response.columns[0].data_type == "numeric"
+    assert response.columns[0].null_count == 5000
+    assert response.columns[0].statistics == {"sampled_rows": 5000}
+    assert all(row["count"] is None for row in response.data)
+
+
+@pytest.mark.asyncio
+async def test_get_table_uses_authoritative_coltypes_and_late_samples(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import pandas as pd
+
+    rows: list[dict[str, Any]] = [
+        {"event_time": None, "enabled": None, "amount": None} for _ in range(5)
+    ]
+    rows.extend(
+        [
+            {
+                "event_time": pd.Timestamp("2024-01-02T03:04:05Z"),
+                "enabled": True,
+                "amount": 1,
+            },
+            {"event_time": None, "enabled": False, "amount": 1.0},
+            {"event_time": None, "enabled": True, "amount": "1"},
+        ]
+    )
+    response = await _run_with_command_result(
+        monkeypatch,
+        {
+            "queries": [
+                {
+                    "data": rows,
+                    "colnames": ["event_time", "enabled", "amount"],
+                    "coltypes": [
+                        GenericDataType.TEMPORAL,
+                        GenericDataType.BOOLEAN,
+                        GenericDataType.NUMERIC,
+                    ],
+                    "rowcount": len(rows),
+                }
+            ]
+        },
+    )
+
+    assert [column.data_type for column in response.columns] == [
+        "temporal",
+        "boolean",
+        "numeric",
+    ]
+    assert response.columns[0].sample_values == ["2024-01-02T03:04:05+00:00"]
+    assert response.columns[1].sample_values == [True, False, True]
+    assert response.columns[2].unique_count == 2
+
+
+@pytest.mark.asyncio
+async def test_get_table_metadata_distinguishes_boolean_integer_identity(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    values = (True, 1, False, 0)
+    response = await _run_with_command_result(
+        monkeypatch,
+        {
+            "queries": [
+                {
+                    "data": [{"value": value} for value in values],
+                    "colnames": ["value"],
+                    "coltypes": [GenericDataType.BOOLEAN],
+                    "rowcount": len(values),
+                }
+            ]
+        },
+    )
+
+    assert response.columns[0].data_type == "boolean"
+    assert response.columns[0].unique_count == 4
+
+
+@pytest.mark.asyncio
+async def test_get_table_preserves_typed_columns_for_empty_data(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    response = await _run_with_command_result(
+        monkeypatch,
+        {
+            "queries": [
+                {
+                    "data": [],
+                    "colnames": ["event_time", "enabled"],
+                    "coltypes": [
+                        GenericDataType.TEMPORAL,
+                        GenericDataType.BOOLEAN,
+                    ],
+                    "rowcount": 0,
+                }
+            ]
+        },
+    )
+
+    assert response.data == []
+    assert [column.data_type for column in response.columns] == [
+        "temporal",
+        "boolean",
+    ]
+
+
+@pytest.mark.parametrize(
+    "result_factory",
+    [
+        lambda: {"queries": [{"data": {}}]},
+        lambda: {"queries": [{"data": [{"category": "x" * (1024 * 1024)}]}]},
+        lambda: {"queries": [{"data": [{"category": _HostileResultScalar()}]}]},
+    ],
+)
+@pytest.mark.asyncio
+async def test_get_table_maps_invalid_result_without_formatting_hooks(
+    monkeypatch: pytest.MonkeyPatch,
+    result_factory: Callable[[], dict[str, Any]],
+) -> None:
+    real_normalizer = get_table_module.query_result_data
+    calls = 0
+
+    def count_normalization(result: Any) -> Any:
+        nonlocal calls
+        calls += 1
+        return real_normalizer(result)
+
+    monkeypatch.setattr(get_table_module, "query_result_data", count_normalization)
+    monkeypatch.setattr(
+        get_table_module,
+        "format_data_columns",
+        lambda *_args: pytest.fail("invalid data must not reach formatting"),
+    )
+
+    response = await _run_with_command_result(monkeypatch, result_factory())
+
+    assert calls == 1
+    assert response.success is False
+    assert response.error_type == "MalformedQueryResult"
 
 
 @pytest.mark.asyncio

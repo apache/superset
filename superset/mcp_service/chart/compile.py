@@ -33,6 +33,7 @@ tier(s) appropriate for its SLA.
 from __future__ import annotations
 
 import logging
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Literal
 
@@ -40,9 +41,11 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import CommandException
 from superset.errors import SupersetErrorType
+from superset.mcp_service.chart.query_result import safe_exception_message
 from superset.mcp_service.chart.validation.dataset_validator import (
     build_dataset_context_from_orm,
     DatasetValidator,
+    resolve_dataset_column,
 )
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
@@ -111,45 +114,33 @@ def _compile_chart(
     Returns a :class:`CompileResult` with ``success=True`` when the
     query executes cleanly.
     """
+    from superset.charts.data.form_data import set_query_context_form_data
     from superset.commands.chart.data.get_data_command import ChartDataCommand
     from superset.commands.chart.exceptions import (
         ChartDataCacheLoadError,
         ChartDataQueryFailedError,
     )
-    from superset.common.query_context_factory import QueryContextFactory
-    from superset.mcp_service.chart.chart_utils import adhoc_filters_to_query_filters
-    from superset.mcp_service.chart.preview_utils import _build_query_columns
+    from superset.mcp_service.chart.chart_helpers import (
+        build_query_context_from_form_data,
+    )
+    from superset.mcp_service.chart.preview_utils import (
+        BulletOutputError,
+        resolve_bullet_render_model,
+    )
+    from superset.mcp_service.chart.query_result import query_result_data
 
     try:
-        columns = _build_query_columns(form_data)
-        query_filters = adhoc_filters_to_query_filters(
-            form_data.get("adhoc_filters", [])
+        query_form_data = deepcopy(form_data)
+        query_form_data["datasource"] = f"{dataset_id}__table"
+        query_context = build_query_context_from_form_data(
+            query_form_data,
+            row_limit=2,
+            force=False,
         )
 
-        # Big Number charts use singular "metric" instead of "metrics"
-        metrics = form_data.get("metrics", [])
-        if not metrics and form_data.get("metric"):
-            metrics = [form_data["metric"]]
-
-        # Big Number with trendline uses granularity_sqla as the time column
-        if not columns and form_data.get("granularity_sqla"):
-            columns = [form_data["granularity_sqla"]]
-
-        factory = QueryContextFactory()
-        query_context = factory.create(
-            datasource={"id": dataset_id, "type": "table"},
-            queries=[
-                {
-                    "columns": columns,
-                    "metrics": metrics,
-                    "orderby": form_data.get("orderby", []),
-                    "row_limit": 2,
-                    "filters": query_filters,
-                    "time_range": form_data.get("time_range", "No filter"),
-                }
-            ],
-            form_data=form_data,
-        )
+        # Seed the no-request-context form data used by virtual-dataset Jinja
+        # macros, matching the chart-data and dataset-query MCP paths.
+        set_query_context_form_data(query_context, dataset_id, "table")
 
         command = ChartDataCommand(query_context)
         command.validate()
@@ -157,60 +148,87 @@ def _compile_chart(
 
         warnings: List[str] = []
         row_count = 0
-        for query in result.get("queries", []):
-            if query.get("error"):
-                error_str = str(query["error"])
+        query_data, query_failure = query_result_data(
+            result,
+            temporal_json_numbers=form_data.get("viz_type") == "bullet",
+        )
+        if query_failure is not None:
+            error_str = query_failure.error
+            return CompileResult(
+                success=False,
+                error=error_str,
+                error_code="CHART_COMPILE_FAILED",
+                tier="compile",
+                error_obj=_build_compile_error(error_str),
+            )
+
+        if query_data is None:  # Defensive: failures return above.
+            query_data = []
+        row_count = sum(len(data) for data in query_data)
+
+        if form_data.get("viz_type") == "bullet":
+            data = query_data[0] if query_data else []
+            try:
+                resolve_bullet_render_model(data, form_data)
+            except BulletOutputError as ex:
+                error_text = safe_exception_message(ex)
                 return CompileResult(
                     success=False,
-                    error=error_str,
-                    error_code="CHART_COMPILE_FAILED",
+                    error=error_text,
+                    error_code="MALFORMED_BULLET_OUTPUT",
                     tier="compile",
-                    error_obj=_build_compile_error(error_str),
+                    error_obj=_build_bullet_output_error(error_text),
                 )
-            row_count += len(query.get("data", []))
 
         return CompileResult(success=True, warnings=warnings, row_count=row_count)
     except (ChartDataQueryFailedError, ChartDataCacheLoadError) as exc:
+        error_text = safe_exception_message(exc)
         if _classify_as_database_error(exc, dataset_id):
             logger.warning(
-                "Database connection error during chart compile check: %s: %s",
-                type(exc).__name__,
-                str(exc),
+                "Database connection error during chart compile check: %s",
+                error_text,
             )
             return CompileResult(
                 success=False,
-                error=f"Database connection error: {exc}",
+                error=f"Database connection error: {error_text}",
                 error_code="CHART_COMPILE_FAILED",
                 tier="compile",
-                error_obj=_build_database_error(str(exc)),
+                error_obj=_build_database_error(error_text),
             )
         return CompileResult(
             success=False,
-            error=str(exc),
+            error=error_text,
             error_code="CHART_COMPILE_FAILED",
             tier="compile",
-            error_obj=_build_compile_error(str(exc)),
+            error_obj=_build_compile_error(error_text),
         )
-    except (CommandException, ValueError, KeyError) as exc:
+    except (
+        CommandException,
+        ValueError,
+        KeyError,
+        OverflowError,
+        AssertionError,
+    ) as exc:
+        error_text = safe_exception_message(exc)
         return CompileResult(
             success=False,
-            error=str(exc),
+            error=error_text,
             error_code="CHART_COMPILE_FAILED",
             tier="compile",
-            error_obj=_build_compile_error(str(exc)),
+            error_obj=_build_compile_error(error_text),
         )
     except SQLAlchemyError as exc:
+        error_text = safe_exception_message(exc)
         logger.warning(
-            "Database connection error during chart compile check: %s: %s",
-            type(exc).__name__,
-            str(exc),
+            "Database connection error during chart compile check: %s",
+            error_text,
         )
         return CompileResult(
             success=False,
-            error=f"Database connection error: {exc}",
+            error=f"Database connection error: {error_text}",
             error_code="CHART_COMPILE_FAILED",
             tier="compile",
-            error_obj=_build_database_error(str(exc)),
+            error_obj=_build_database_error(error_text),
         )
 
 
@@ -222,12 +240,22 @@ def _adhoc_filter_column_valid(
     WHERE filters must reference a physical column; HAVING filters may also
     reference a saved metric because Superset resolves metric names there.
     """
-    if clause == "HAVING":
-        return DatasetValidator._column_exists(column, dataset_context)
-    return any(
-        col["name"].lower() == column.lower()
-        for col in dataset_context.available_columns
-    )
+    column_names = [item["name"] for item in dataset_context.available_columns]
+    metric_names = [metric["name"] for metric in dataset_context.available_metrics]
+    if column in column_names or (clause == "HAVING" and column in metric_names):
+        return True
+    try:
+        if resolve_dataset_column(column, dataset_context) is not None:
+            return True
+    except ValueError:
+        if clause != "HAVING":
+            return False
+    if clause != "HAVING":
+        return False
+    metric_matches = [
+        name for name in metric_names if name.casefold() == column.casefold()
+    ]
+    return len(metric_matches) == 1
 
 
 def _validate_adhoc_filter_columns(
@@ -288,6 +316,427 @@ def _validate_adhoc_filter_columns(
     )
 
 
+def _native_validation_error(role: str, reference: str) -> ChartGenerationError:
+    """Build a fail-closed error for an incompatible native chart reference."""
+    return ChartGenerationError(
+        error_type="invalid_native_chart_reference",
+        message=f"Native chart {role} {reference!r} is incompatible with the dataset",
+        details=(
+            "The rebound form data must retain its exact query roles on the target "
+            "dataset; no column or saved-metric reference may be guessed or dropped."
+        ),
+        suggestions=[
+            "Choose a target dataset with a compatible schema",
+            "Provide a complete typed chart config using target-dataset fields",
+        ],
+        error_code="CHART_VALIDATION_FAILED",
+    )
+
+
+def _native_column_name(value: Any) -> str | None:
+    """Extract a physical QueryFormColumn reference, or None for SQL columns."""
+    if isinstance(value, str):
+        return value
+    if not isinstance(value, dict):
+        return None
+    if value.get("expressionType") == "SQL":
+        reference = value.get("sqlExpression")
+        if value.get("isColumnReference") is True and isinstance(reference, str):
+            return reference or None
+        return None
+    name = value.get("column_name") or value.get("columnName")
+    return name if isinstance(name, str) and name else None
+
+
+def _native_column_label(value: Any) -> str | None:
+    """Return the frontend label for a native column without custom hooks."""
+    if isinstance(value, str):
+        return value
+    if not isinstance(value, dict):
+        return None
+    for key in ("label", "sqlExpression", "column_name", "columnName"):
+        candidate = value.get(key)
+        if isinstance(candidate, str) and candidate:
+            return candidate
+    return None
+
+
+def _native_metric_ref(value: Any) -> tuple[str, str] | None:
+    """Return ``(saved_metric|column, name)`` for a native query metric."""
+    if isinstance(value, str):
+        return "saved_metric", value
+    if not isinstance(value, dict):
+        return None
+    if value.get("expressionType") == "SQL":
+        return None
+    if value.get("expressionType") != "SIMPLE":
+        return None
+    column = value.get("column")
+    name = (
+        column.get("column_name") or column.get("columnName")
+        if isinstance(column, dict)
+        else None
+    )
+    return ("column", name) if isinstance(name, str) and name else None
+
+
+def _native_reference_error(  # noqa: C901
+    form_data: Dict[str, Any],
+    dataset_context: DatasetContext,
+    dataset_id: int,
+    *,
+    strict_all_form_refs: bool,
+) -> ChartGenerationError | None:
+    """Validate the canonical native QueryObjects against a rebound dataset."""
+    from superset.mcp_service.chart.chart_helpers import (
+        build_query_dicts_from_form_data,
+    )
+
+    try:
+        queries = build_query_dicts_from_form_data(
+            deepcopy(form_data), dataset_id, "table"
+        )
+    except (KeyError, TypeError, ValueError) as ex:
+        return _native_validation_error("query contract", safe_exception_message(ex))
+
+    saved_metrics = [item["name"] for item in dataset_context.available_metrics]
+
+    def column_error(value: Any, role: str) -> ChartGenerationError | None:
+        name = _native_column_name(value)
+        if name is None:
+            if isinstance(value, dict) and value.get("expressionType") == "SQL":
+                return None
+            return _native_validation_error(role, repr(value)[:200])
+        try:
+            if resolve_dataset_column(name, dataset_context) is not None:
+                return None
+        except ValueError:
+            pass
+        return _native_validation_error(role, name)
+
+    def metric_error(value: Any, role: str) -> ChartGenerationError | None:
+        """Validate one raw or generated metric reference against the target."""
+        ref = _native_metric_ref(value)
+        if ref is None:
+            if isinstance(value, dict) and value.get("expressionType") == "SQL":
+                return None
+            return _native_validation_error(role, repr(value)[:200])
+        kind, name = ref
+        if kind == "saved_metric":
+            matches = [
+                item
+                for item in saved_metrics
+                if item == name or item.casefold() == name.casefold()
+            ]
+            if len(set(matches)) != 1:
+                saved_role = f"{role.removesuffix(' metric')} saved metric"
+                return _native_validation_error(saved_role, name)
+            return None
+        return column_error(name, f"{role} column")
+
+    # Dataset-only rebind has no typed config to expose these native plugin
+    # roles. Validate the raw controls independently: some are consumed only
+    # while building ordering/post-processing and therefore may be absent from
+    # the final QueryObject (notably an explicit ordering can hide a ranking
+    # metric). Primary and secondary Mixed layers are deliberately separate.
+    viz_type = form_data.get("viz_type")
+    if strict_all_form_refs and (
+        viz_type == "mixed_timeseries"
+        or (
+            isinstance(viz_type, str)
+            and (
+                viz_type.startswith("echarts_timeseries") or viz_type == "echarts_area"
+            )
+        )
+    ):
+        if (raw_x_axis := form_data.get("x_axis")) is not None and (
+            error := column_error(raw_x_axis, "form-data x_axis column")
+        ):
+            return error
+        metric_fields = [
+            "metrics",
+            "size",
+            "timeseries_limit_metric",
+            "series_limit_metric",
+        ]
+        if viz_type == "mixed_timeseries":
+            metric_fields.extend(
+                [
+                    "metrics_b",
+                    "size_b",
+                    "timeseries_limit_metric_b",
+                    "series_limit_metric_b",
+                ]
+            )
+        for field_name in metric_fields:
+            raw_value = form_data.get(field_name)
+            values = raw_value if isinstance(raw_value, list) else [raw_value]
+            for value in values:
+                if value is not None and (
+                    error := metric_error(value, f"form-data {field_name} metric")
+                ):
+                    return error
+
+        layer_suffixes = ("", "_b") if viz_type == "mixed_timeseries" else ("",)
+        for suffix in layer_suffixes:
+            sort_field = f"x_axis_sort{suffix}"
+            if sort_field not in form_data or form_data.get(sort_field) is None:
+                continue
+            x_axis = form_data.get(f"x_axis{suffix}", form_data.get("x_axis"))
+            allowed_labels: set[str] = set()
+            if x_axis_label := _native_column_label(x_axis):
+                allowed_labels.add(x_axis_label)
+            raw_metrics = form_data.get(f"metrics{suffix}")
+            for metric in raw_metrics if isinstance(raw_metrics, list) else []:
+                if label := _metric_label_for_validation(metric):
+                    allowed_labels.add(label)
+            raw_limit_metric = form_data.get(f"timeseries_limit_metric{suffix}")
+            limit_metrics = (
+                raw_limit_metric
+                if isinstance(raw_limit_metric, list)
+                else [raw_limit_metric]
+            )
+            for metric in limit_metrics:
+                if label := _metric_label_for_validation(metric):
+                    allowed_labels.add(label)
+            sort_value = form_data[sort_field]
+            if not isinstance(sort_value, str) or sort_value not in allowed_labels:
+                return _native_validation_error(sort_field, repr(sort_value)[:200])
+
+    if (
+        strict_all_form_refs
+        and isinstance(viz_type, str)
+        and viz_type.startswith("deck_")
+    ):
+        # Deck layers store most query roles outside common columns/metrics.
+        # Validate every renderer-consumed raw control as well as the generated
+        # QueryObject so a dataset-only rebind cannot hide or discard a stale
+        # tooltip, cross-filter, spatial, path, or metric reference.
+        for spatial_field in ("spatial", "start_spatial", "end_spatial"):
+            spatial = form_data.get(spatial_field)
+            if spatial is None:
+                continue
+            if not isinstance(spatial, dict):
+                return _native_validation_error(
+                    f"form-data {spatial_field}", repr(spatial)[:200]
+                )
+            spatial_type = spatial.get("type")
+            if not isinstance(spatial_type, str):
+                return _native_validation_error(
+                    f"form-data {spatial_field} type", repr(spatial_type)[:200]
+                )
+            role_fields = {
+                "latlong": ("lonCol", "latCol"),
+                "delimited": ("lonlatCol",),
+                "geohash": ("geohashCol",),
+            }.get(spatial_type)
+            if role_fields is None:
+                return _native_validation_error(
+                    f"form-data {spatial_field} type", repr(spatial_type)[:200]
+                )
+            for role_field in role_fields:
+                spatial_value = spatial.get(role_field)
+                if spatial_value is None:
+                    return _native_validation_error(
+                        f"form-data {spatial_field}.{role_field} column", "missing"
+                    )
+                if error := column_error(
+                    spatial_value, f"form-data {spatial_field}.{role_field} column"
+                ):
+                    return error
+
+        for field_name in (
+            "line_column",
+            "geojson",
+            "dimension",
+            "cross_filter_column",
+        ):
+            column_value = form_data.get(field_name)
+            if column_value is not None and (
+                error := column_error(column_value, f"form-data {field_name} column")
+            ):
+                return error
+
+        tooltip_contents = form_data.get("tooltip_contents")
+        if tooltip_contents is not None and not isinstance(tooltip_contents, list):
+            return _native_validation_error(
+                "form-data tooltip_contents", repr(tooltip_contents)[:200]
+            )
+        for index, item in enumerate(tooltip_contents or []):
+            tooltip_value: Any = None
+            if isinstance(item, str):
+                tooltip_value = item
+            elif isinstance(item, dict) and item.get("item_type") == "column":
+                tooltip_value = item.get("column_name")
+            if tooltip_value is not None and (
+                error := column_error(
+                    tooltip_value, f"form-data tooltip_contents[{index}] column"
+                )
+            ):
+                return error
+
+        metric_values: list[tuple[str, Any]] = []
+        if viz_type not in {"deck_geojson", "deck_polygon"}:
+            for field_name in ("metrics", "metric", "size"):
+                raw_deck_metrics = form_data.get(field_name)
+                deck_metrics = (
+                    raw_deck_metrics
+                    if isinstance(raw_deck_metrics, list)
+                    else [raw_deck_metrics]
+                )
+                metric_values.extend(
+                    (f"form-data {field_name} metric", deck_metric)
+                    for deck_metric in deck_metrics
+                    if deck_metric is not None
+                )
+        if viz_type == "deck_polygon" and form_data.get("metric") is not None:
+            metric_values.append(("form-data metric metric", form_data.get("metric")))
+        fixed_metric_fields = (
+            ("point_radius_fixed",)
+            if viz_type in {"deck_scatter", "deck_polygon"}
+            else ()
+        ) + (("line_width",) if viz_type == "deck_path" else ())
+        for field_name in fixed_metric_fields:
+            fixed_value = form_data.get(field_name)
+            deck_metric: Any = (
+                fixed_value
+                if (
+                    isinstance(fixed_value, str)
+                    and fixed_value
+                    and viz_type != "deck_polygon"
+                )
+                else None
+            )
+            if isinstance(fixed_value, dict) and fixed_value.get("type") == "metric":
+                deck_metric = fixed_value.get("value")
+            if deck_metric is not None:
+                metric_values.append((f"form-data {field_name} metric", deck_metric))
+        if viz_type == "deck_path" and form_data.get("breakpoint_metric") is not None:
+            metric_values.append(
+                (
+                    "form-data breakpoint_metric metric",
+                    form_data.get("breakpoint_metric"),
+                )
+            )
+        for role, deck_metric in metric_values:
+            if error := metric_error(deck_metric, role):
+                return error
+
+    for filter_ in form_data.get("adhoc_filters") or []:
+        if not isinstance(filter_, dict) or filter_.get("expressionType") != "SIMPLE":
+            continue
+        if not strict_all_form_refs and _is_inert_adhoc_filter(filter_):
+            continue
+        subject = filter_.get("subject")
+        clause = str(filter_.get("clause") or "WHERE").upper()
+        if clause == "HAVING" and isinstance(subject, str):
+            metric_matches = [
+                name for name in saved_metrics if name.casefold() == subject.casefold()
+            ]
+            if len(metric_matches) == 1:
+                continue
+        if subject is not None and (
+            error := column_error(subject, "form-data filter column")
+        ):
+            return error
+        if filter_.get("operator") == "TEMPORAL_RANGE" and isinstance(subject, str):
+            try:
+                temporal = resolve_dataset_column(subject, dataset_context)
+            except ValueError:
+                temporal = None
+            if temporal is not None and not temporal.get("is_temporal", False):
+                return _native_validation_error("temporal filter column", subject)
+
+    temporal_lookup = form_data.get("temporal_columns_lookup")
+    if isinstance(temporal_lookup, dict):
+        for column, enabled in temporal_lookup.items():
+            if enabled and (error := column_error(column, "temporal lookup column")):
+                return error
+
+    for query_index, query in enumerate(queries, 1):
+        metric_labels: set[str] = set()
+        for column in query.get("columns") or []:
+            if error := column_error(column, f"query {query_index} column"):
+                return error
+        for column in query.get("series_columns") or []:
+            if error := column_error(column, f"query {query_index} series column"):
+                return error
+        for column in query.get("groupby") or []:
+            if error := column_error(column, f"query {query_index} groupby column"):
+                return error
+        for level in query.get("grouping_sets") or []:
+            for column in level:
+                if error := column_error(
+                    column, f"query {query_index} grouping-set column"
+                ):
+                    return error
+
+        metrics = query.get("metrics") or []
+        for metric in metrics:
+            if label := _metric_label_for_validation(metric):
+                metric_labels.add(label)
+            if error := metric_error(metric, f"query {query_index} metric"):
+                return error
+
+        granularity = query.get("granularity")
+        if granularity:
+            if error := column_error(granularity, "temporal column"):
+                return error
+            try:
+                temporal = resolve_dataset_column(granularity, dataset_context)
+            except ValueError:
+                temporal = None
+            if (
+                (query.get("extras") or {}).get("time_grain_sqla")
+                and temporal is not None
+                and not temporal.get("is_temporal", False)
+            ):
+                return _native_validation_error("temporal column", granularity)
+
+        for filter_ in query.get("filters") or []:
+            if not isinstance(filter_, dict):
+                return _native_validation_error("filter", repr(filter_)[:200])
+            column = filter_.get("col")
+            if isinstance(column, str) and column in metric_labels:
+                continue
+            if isinstance(column, str) and any(
+                name.casefold() == column.casefold() for name in saved_metrics
+            ):
+                continue
+            if column is not None and (
+                error := column_error(column, f"query {query_index} filter column")
+            ):
+                return error
+
+        for order in query.get("orderby") or []:
+            if not isinstance(order, (list, tuple)) or len(order) != 2:
+                return _native_validation_error("ordering", repr(order)[:200])
+            target = order[0]
+            target_label = _metric_label_for_validation(target)
+            if target in metrics or (target_label and target_label in metric_labels):
+                continue
+            if isinstance(target, str) and target in metric_labels:
+                continue
+            if error := column_error(target, f"query {query_index} ordering column"):
+                return error
+    return None
+
+
+def _metric_label_for_validation(metric: Any) -> str | None:
+    """Resolve a native metric output label without executing custom code."""
+    if isinstance(metric, str):
+        return metric
+    if not isinstance(metric, dict):
+        return None
+    if isinstance(metric.get("label"), str) and metric["label"]:
+        return metric["label"]
+    ref = _native_metric_ref(metric)
+    if ref and ref[0] == "column" and isinstance(metric.get("aggregate"), str):
+        return f"{metric['aggregate']}({ref[1]})"
+    expression = metric.get("sqlExpression")
+    return expression if isinstance(expression, str) and expression else None
+
+
 def _is_inert_adhoc_filter(filter_: dict[str, Any]) -> bool:
     """Whether a saved filter is Superset's non-filtering placeholder."""
     operator = filter_.get("operator", filter_.get("op"))
@@ -318,24 +767,52 @@ def _classify_as_database_error(exc: BaseException, dataset_id: int) -> bool:
     """
     # Direct SQLAlchemy errors (unwrapped or in cause chain)
     current: BaseException | None = exc
-    while current is not None:
-        if isinstance(current, SQLAlchemyError):
+    seen: set[int] = set()
+    for _depth in range(16):
+        if current is None or id(current) in seen:
+            break
+        seen.add(id(current))
+        try:
+            mro = type.__getattribute__(type(current), "__mro__")
+        except (AttributeError, TypeError):
+            mro = ()
+        if type(mro) is tuple and any(base is SQLAlchemyError for base in mro):
             return True
-        current = current.__cause__
+        try:
+            cause = object.__getattribute__(current, "__cause__")
+        except Exception:
+            break
+        if cause is None:
+            current = None
+        else:
+            try:
+                cause_mro = type.__getattribute__(type(cause), "__mro__")
+            except (AttributeError, TypeError):
+                cause_mro = ()
+            current = (
+                cause
+                if type(cause_mro) is tuple
+                and any(base is BaseException for base in cause_mro)
+                else None
+            )
 
     # Use the dataset's engine spec to classify (same as the UI)
     try:
         from superset.daos.dataset import DatasetDAO
 
         dataset = DatasetDAO.find_by_id(dataset_id)
-        if dataset and dataset.database and isinstance(exc, Exception):
-            errors = dataset.database.db_engine_spec.extract_errors(exc)
+        if dataset and dataset.database:
+            # Engine specs only need bounded text for regex classification; do
+            # not give adapter code the potentially hostile exception object.
+            errors = dataset.database.db_engine_spec.extract_errors(
+                Exception(safe_exception_message(exc))
+            )
             return any(e.error_type in _CONNECTION_ERROR_TYPES for e in errors)
-    except Exception:  # pylint: disable=broad-except
+    except Exception as classification_error:  # pylint: disable=broad-except
         logger.debug(
             "Failed to classify error via engine spec for dataset %s: %s",
             dataset_id,
-            exc,
+            safe_exception_message(classification_error),
         )
 
     return False
@@ -372,6 +849,21 @@ def _build_compile_error(message: str) -> ChartGenerationError:
     )
 
 
+def _build_bullet_output_error(message: str) -> ChartGenerationError:
+    """Explain why a successful query still cannot size a Bullet chart."""
+    return ChartGenerationError(
+        error_type="malformed_bullet_output",
+        message="Bullet query output does not contain a usable sizing measure.",
+        details=message,
+        suggestions=[
+            "Ensure the declared metric alias is returned by the query",
+            "Use a saved, SIMPLE, or SQL metric that returns finite numbers",
+            "Give SQL metrics a unique explicit label",
+        ],
+        error_code="MALFORMED_BULLET_OUTPUT",
+    )
+
+
 def validate_and_compile(
     config: Any,
     form_data: Dict[str, Any],
@@ -384,9 +876,10 @@ def validate_and_compile(
     ``dataset`` must be an already-fetched ORM dataset; this avoids a second
     ``DatasetDAO.find_by_id`` round trip inside the validator.
 
-    ``run_compile_check`` lets fast-path tools (``generate_explore_link``,
-    ``update_chart_preview``) skip the live DB query while still rejecting
-    obviously bad column references with fuzzy-match suggestions.
+    ``run_compile_check`` lets explicitly latency-sensitive callers such as
+    ``generate_explore_link`` skip the live DB query while still rejecting
+    obviously bad column references with fuzzy-match suggestions. Mutation and
+    cached-preview update paths run Tier 2 before persistence.
 
     Returns a :class:`CompileResult`. On failure, ``error_obj`` carries the
     structured :class:`ChartGenerationError` (with ``suggestions``) that the
@@ -432,6 +925,21 @@ def validate_and_compile(
                 error_code="CHART_VALIDATION_FAILED",
                 tier="validation",
                 error_obj=filter_error,
+            )
+
+        native_error = _native_reference_error(
+            form_data,
+            dataset_context,
+            dataset.id,
+            strict_all_form_refs=config is None,
+        )
+        if native_error is not None:
+            return CompileResult(
+                success=False,
+                error=native_error.details or native_error.message,
+                error_code="CHART_VALIDATION_FAILED",
+                tier="validation",
+                error_obj=native_error,
             )
 
     if not run_compile_check:

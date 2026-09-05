@@ -26,6 +26,7 @@ import pytest
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm.exc import DetachedInstanceError
 
+from superset.mcp_service.chart.query_result import MAX_QUERY_RESULT_VALUE_BYTES
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
     ColumnRef,
@@ -97,6 +98,69 @@ class TestGenerateChart:
             result = await generate_chart(request, ctx=ctx)
 
         assert result.chart_type_label == "table chart"
+
+    @pytest.mark.asyncio
+    async def test_generate_chart_entrypoint_exact_limit_and_plus_one(self) -> None:
+        request = GenerateChartRequest(
+            dataset_id="1",
+            config=TableChartConfig(
+                chart_type="table", columns=[ColumnRef(name="region")]
+            ),
+            preview_formats=["url"],
+        )
+        ctx = MagicMock()
+        ctx.info = AsyncMock()
+        ctx.debug = AsyncMock()
+        ctx.warning = AsyncMock()
+        ctx.error = AsyncMock()
+        ctx.report_progress = AsyncMock()
+
+        async def run(warning: str):
+            user = Mock(id=1, username="admin", roles=[], groups=[])
+            validation_result = Mock(
+                is_valid=True,
+                request=request,
+                warnings={"warnings": [warning]},
+                error=None,
+            )
+            with (
+                patch(
+                    "superset.mcp_service.auth.get_user_from_request",
+                    return_value=user,
+                ),
+                patch(
+                    "superset.mcp_service.chart.validation.ValidationPipeline."
+                    "validate_request_with_warnings",
+                    return_value=validation_result,
+                ),
+                patch(
+                    "superset.mcp_service.chart.chart_utils.generate_explore_link",
+                    return_value=(
+                        "http://localhost:9001/explore/?form_data_key=bounded-key"
+                    ),
+                ),
+                patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=None),
+                patch(
+                    "superset.mcp_service.chart.tool.generate_chart.time.time",
+                    return_value=1.0,
+                ),
+            ):
+                return await generate_chart(request, ctx=ctx)
+
+        empty = await run("")
+        filler = "x" * (
+            MAX_QUERY_RESULT_VALUE_BYTES - len(empty.model_dump_json().encode())
+        )
+        boundary = await run(filler)
+        oversized = await run(filler + "x")
+
+        assert len(boundary.model_dump_json().encode()) == (
+            MAX_QUERY_RESULT_VALUE_BYTES
+        )
+        assert boundary.success is True
+        assert oversized.success is False
+        assert oversized.error is not None
+        assert oversized.error.error_code == "CHART_RESPONSE_TOO_LARGE"
 
     @pytest.mark.asyncio
     async def test_generate_chart_request_structure(self):
@@ -378,6 +442,29 @@ class TestCompileChart:
         assert result.error is None
         assert result.row_count == 2
 
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {"queries": []},
+            {"queries": [{}]},
+            {"queries": [{"data": None}]},
+            {"queries": [{"data": []}, {}]},
+        ],
+    )
+    @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    def test_compile_chart_rejects_malformed_result_envelopes(
+        self, mock_factory_cls, mock_cmd_cls, payload
+    ):
+        mock_factory_cls.return_value.create.return_value = MagicMock()
+        mock_cmd_cls.return_value.run.return_value = payload
+
+        result = _compile_chart({"metrics": ["count"]}, dataset_id=1)
+
+        assert result.success is False
+        assert result.error_obj is not None
+        assert result.error_obj.error_type == "compile_error"
+
     @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
     @patch("superset.common.query_context_factory.QueryContextFactory")
     def test_compile_chart_query_error_in_payload(self, mock_factory_cls, mock_cmd_cls):
@@ -485,6 +572,7 @@ class _DetachableSlice:
 async def _generate_saved_chart(
     refetch: Any,
     compile_result: CompileResult | None = None,
+    warnings: list[str] | None = None,
 ) -> tuple[Any, _DetachableSlice, Mock]:
     """Run generate_chart(save_chart=True) with a chart that detaches on commit.
 
@@ -508,7 +596,12 @@ async def _generate_saved_chart(
     dataset = Mock(
         id=1, datasource_name="test_table", table_name="test_table", sql=None
     )
-    validation_result = Mock(is_valid=True, request=request, warnings={}, error=None)
+    validation_result = Mock(
+        is_valid=True,
+        request=request,
+        warnings={"warnings": warnings or []},
+        error=None,
+    )
     session = MagicMock()
     # The instance is detached right after the commit, before any of the reads
     # that build the response.
@@ -582,6 +675,25 @@ class TestGenerateChartDetachedInstance:
         assert result.chart.id == 42
         assert result.explore_url == "http://localhost:8088/explore/?slice_id=42"
         assert result.api_endpoints["data"].endswith("/api/v1/chart/42/data/")
+
+    @pytest.mark.asyncio
+    async def test_persisted_oversized_response_reports_created_chart_id(self) -> None:
+        result, _chart, create_command = await _generate_saved_chart(
+            refetch=Mock(return_value=_make_mock_chart()),
+            warnings=["x" * MAX_QUERY_RESULT_VALUE_BYTES],
+        )
+
+        assert result.success is False
+        assert result.chart is not None
+        assert result.chart.id == 42
+        assert result.error is not None
+        assert result.error.error_code == "CHART_RESPONSE_TOO_LARGE"
+        assert "created successfully" in result.error.details
+        assert any(
+            suggestion.startswith("Do not retry creation")
+            for suggestion in result.error.suggestions
+        )
+        create_command.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_detached_chart_falls_back_to_captured_scalars(self) -> None:
