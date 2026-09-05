@@ -25,6 +25,7 @@ import {
   AxisType,
   buildCustomFormatters,
   CategoricalColorNamespace,
+  ComparisonType,
   CurrencyFormatter,
   DataRecordValue,
   DTTM_ALIAS,
@@ -419,6 +420,11 @@ export default function transformProps(
 
   const refs: Refs = {};
   const groupBy = ensureIsArray(groupby);
+  // Series whose `label_map` entry led with a time offset, recorded before the shift
+  // below drops it. That leading column is the only structural marker distinguishing a
+  // derived comparison row from a base row whose dimension value happens to read like
+  // the offset, and it is gone from `labelMap` by the time the formatters run.
+  const derivedComparisonSeries = new Set<string>();
   const labelMap: { [key: string]: string[] } = Object.entries(
     label_map,
   ).reduce((acc, entry) => {
@@ -427,6 +433,7 @@ export default function transformProps(
       Array.isArray(timeCompare) &&
       timeCompare.includes(entry[1][0])
     ) {
+      derivedComparisonSeries.add(entry[0]);
       entry[1].shift();
     }
     return { ...acc, [entry[0]]: entry[1] };
@@ -680,6 +687,51 @@ export default function transformProps(
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
+
+  // A Percentage or Ratio time comparison replaces the derived series' values with a
+  // dimensionless number, so that row is no longer in the source metric's units and
+  // must not inherit its currency/D3 format.
+  //
+  // `label_map` carries the structured identity behind a rendered series name, and
+  // `renameOperator` puts the offset at the front of a derived row's entry:
+  //
+  //   derived  '1 week ago, East'  -> ['1 week ago', 'East']
+  //   derived  'count, 1 year ago' -> ['1 year ago', 'count']
+  //   base     'sum__num, East'    -> ['sum__num', 'East']
+  //
+  // so the leading column says which it is. Matching the rendered name instead would
+  // misread a base series whose dimension value happens to equal the offset — a region
+  // literally named "1 week ago" gives 'sum__num, 1 week ago', which reads as derived.
+  const isDerivedComparisonSeries = (seriesKey: string) => {
+    // Recorded above, before the offset was shifted off the `label_map` entry.
+    if (derivedComparisonSeries.has(seriesKey)) {
+      return true;
+    }
+    const columns = labelMap?.[seriesKey];
+    // The shift only runs when `timeCompare` is populated; otherwise the entry still
+    // leads with the offset and can be read directly.
+    return columns?.length
+      ? array.includes(columns[0])
+      : array.includes(seriesKey);
+  };
+
+  // Percentage yields `(s - c) / c`, which reads as a percentage. Ratio yields `s / c`,
+  // a plain multiplier, so it takes a unitless number format rather than a percent one.
+  const ratioFormatter = getNumberFormatter(NumberFormats.SMART_NUMBER);
+
+  const getComparisonFormatter = (seriesKey: string) => {
+    if (!isDerivedComparisonSeries(seriesKey)) {
+      return undefined;
+    }
+    switch (chartProps.rawFormData?.comparison_type) {
+      case ComparisonType.Percentage:
+        return percentFormatter;
+      case ComparisonType.Ratio:
+        return ratioFormatter;
+      default:
+        return undefined;
+    }
+  };
 
   // With the "full range" time-shift option, offset series are outer-joined onto
   // the main series, which inserts null rows into the main series wherever the
@@ -1522,6 +1574,31 @@ export default function transformProps(
             value.forecastTrend || value.forecastLower || value.forecastUpper,
         );
 
+        // Resolve the value formatter per series so each metric keeps its own
+        // D3/currency format, matching how the series labels are formatted.
+        // Without the series key, `getCustomFormatter` returns undefined for
+        // multi-metric charts and every row falls back to `defaultFormatter`,
+        // rendering the y-axis/currency format for all metrics.
+        //
+        // The tooltip key is the rendered series name, so resolve it through
+        // `labelMap`, whose values lead with the raw metric label. Series
+        // renamed by a verbose_name are absent from that map, so fall back to
+        // the verbose-name inversion, as MixedTimeseries does. A Percentage or
+        // Ratio comparison row is dimensionless rather than a value in the
+        // metric's units, so it takes its own formatter instead of the metric's.
+        const getSeriesFormatter = (seriesKey: string) =>
+          forcePercentFormatter
+            ? percentFormatter
+            : (getComparisonFormatter(seriesKey) ??
+              getCustomFormatter(
+                customFormatters,
+                metrics,
+                labelMap?.[seriesKey]?.[0] ?? inverted[seriesKey],
+              ) ??
+              defaultFormatter);
+
+        // The total row aggregates every series, so it keeps the chart-level
+        // formatter rather than any single metric's format.
         const formatter = forcePercentFormatter
           ? percentFormatter
           : (getCustomFormatter(customFormatters, metrics) ?? defaultFormatter);
@@ -1552,7 +1629,7 @@ export default function transformProps(
             const row = formatForecastTooltipSeries({
               ...value,
               seriesName: key,
-              formatter,
+              formatter: getSeriesFormatter(key),
               marker,
               truncation: tooltipTruncation,
             });
