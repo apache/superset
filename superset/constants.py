@@ -42,6 +42,12 @@ NO_TIME_RANGE = "No filter"
 
 QUERY_CANCEL_KEY = "cancel_query"
 QUERY_EARLY_CANCEL_KEY = "early_cancel_query"
+# Set once execute_sql_statements() has opened a DB connection and asked the
+# engine spec for a cancel handle, regardless of whether one came back. Lets
+# cancel_query() tell "hasn't been dispatched to the engine yet" (safe to
+# fabricate a stop) apart from "this engine just has no cancel support"
+# (must fail honestly) when no cancel ID is on record.
+QUERY_DISPATCHED_KEY = "query_dispatched"
 
 LRU_CACHE_MAX_SIZE = 256
 
