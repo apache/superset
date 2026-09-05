@@ -17,9 +17,9 @@ import {
   ControlState,
   CustomControlItem,
   isCustomControlItem,
-} from "@superset-ui/chart-controls";
-import { QueryMode } from "@superset-ui/core";
-import config from "../src/controlPanel";
+} from '@superset-ui/chart-controls';
+import { QueryMode } from '@superset-ui/core';
+import config from '../src/controlPanel';
 
 type VisibilityFn = (
   props: ControlPanelsContainerProps,
@@ -29,14 +29,14 @@ type VisibilityFn = (
 function isControlWithVisibility(
   controlItem: unknown,
 ): controlItem is CustomControlItem & {
-  config: Required<CustomControlItem["config"]> & { visibility: VisibilityFn };
+  config: Required<CustomControlItem['config']> & { visibility: VisibilityFn };
 } {
   return (
-    typeof controlItem === "object" &&
+    typeof controlItem === 'object' &&
     controlItem !== null &&
-    "name" in controlItem &&
-    "config" in controlItem &&
-    typeof (controlItem as CustomControlItem).config?.visibility === "function"
+    'name' in controlItem &&
+    'config' in controlItem &&
+    typeof (controlItem as CustomControlItem).config?.visibility === 'function'
   );
 }
 
@@ -45,9 +45,9 @@ function getVisibility(
   controlName: string,
 ): VisibilityFn {
   const item = (panel.controlPanelSections || [])
-    .flatMap((section) => section?.controlSetRows || [])
+    .flatMap(section => section?.controlSetRows || [])
     .flat()
-    .find((c) => isControlWithVisibility(c) && c.name === controlName);
+    .find(c => isControlWithVisibility(c) && c.name === controlName);
 
   if (!isControlWithVisibility(item)) {
     throw new Error(`Control "${controlName}" with visibility not found`);
@@ -58,8 +58,8 @@ function getVisibility(
 function mkProps(
   groupbyValue: string[],
   options = [
-    { column_name: "ORDERDATE", is_dttm: true },
-    { column_name: "some_other_col", is_dttm: false },
+    { column_name: 'ORDERDATE', is_dttm: true },
+    { column_name: 'some_other_col', is_dttm: false },
   ],
 ): ControlPanelsContainerProps {
   return {
@@ -79,36 +79,36 @@ function withControls(
   } as unknown as ControlPanelsContainerProps;
 }
 
-test("header_groups is always present without a visibility gate", () => {
+test('header_groups is always present without a visibility gate', () => {
   const item = (config.controlPanelSections || [])
-    .flatMap((section) => section?.controlSetRows || [])
+    .flatMap(section => section?.controlSetRows || [])
     .flat()
     .find(
-      (control) =>
-        typeof control === "object" &&
+      control =>
+        typeof control === 'object' &&
         control !== null &&
-        "name" in control &&
-        control.name === "header_groups",
+        'name' in control &&
+        control.name === 'header_groups',
     ) as CustomControlItem | undefined;
 
   expect(item).toBeDefined();
   expect(item?.config.visibility).toBeUndefined();
-  expect(item?.config.type).toBe("HeaderGroupsControl");
+  expect(item?.config.type).toBe('HeaderGroupsControl');
 });
 
-test("time_grain_sqla visibility should be case-insensitive", () => {
-  const vis = getVisibility(config, "time_grain_sqla");
+test('time_grain_sqla visibility should be case-insensitive', () => {
+  const vis = getVisibility(config, 'time_grain_sqla');
   const controlState = {} as ControlState;
 
-  expect(vis(mkProps(["orderdate"]), controlState)).toBe(true);
-  expect(vis(mkProps(["ORDERDATE"]), controlState)).toBe(true);
-  expect(vis(mkProps(["some_other_col"]), controlState)).toBe(false);
+  expect(vis(mkProps(['orderdate']), controlState)).toBe(true);
+  expect(vis(mkProps(['ORDERDATE']), controlState)).toBe(true);
+  expect(vis(mkProps(['some_other_col']), controlState)).toBe(false);
 });
 
-test("time_grain_sqla is hidden in raw records mode", () => {
-  const vis = getVisibility(config, "time_grain_sqla");
+test('time_grain_sqla is hidden in raw records mode', () => {
+  const vis = getVisibility(config, 'time_grain_sqla');
   const controlState = {} as ControlState;
-  const temporalGroupby = mkProps(["ORDERDATE"]);
+  const temporalGroupby = mkProps(['ORDERDATE']);
 
   expect(
     vis(
@@ -133,20 +133,20 @@ test("time_grain_sqla is hidden in raw records mode", () => {
   // records from their columns.
   expect(
     vis(
-      withControls(temporalGroupby, { all_columns: { value: ["name"] } }),
+      withControls(temporalGroupby, { all_columns: { value: ['name'] } }),
       controlState,
     ),
   ).toBe(false);
 });
 
-test("time_grain_sqla is hidden in raw records mode for an adhoc dimension", () => {
-  const vis = getVisibility(config, "time_grain_sqla");
+test('time_grain_sqla is hidden in raw records mode for an adhoc dimension', () => {
+  const vis = getVisibility(config, 'time_grain_sqla');
   const controlState = {} as ControlState;
 
   // An adhoc column reports temporal without the lookup, so it needs the guard too.
   const adhocGroupby = withControls(mkProps([]), {
     groupby: {
-      value: [{ sqlExpression: "ds", label: "ds", expressionType: "SQL" }],
+      value: [{ sqlExpression: 'ds', label: 'ds', expressionType: 'SQL' }],
       options: [],
     },
   });
@@ -167,15 +167,15 @@ test("time_grain_sqla is hidden in raw records mode for an adhoc dimension", () 
   ).toBe(false);
 });
 
-test("show_totals renders in the customize tab atop visual formatting", () => {
+test('show_totals renders in the customize tab atop visual formatting', () => {
   const visualFormatting = config.controlPanelSections.find(
-    (section) => section?.label === "Visual formatting",
+    section => section?.label === 'Visual formatting',
   );
   expect(visualFormatting).toBeDefined();
 
   const [firstRow] = visualFormatting!.controlSetRows;
   const firstControl = firstRow[0] as CustomControlItem;
-  expect(firstControl.name).toBe("show_totals");
+  expect(firstControl.name).toBe('show_totals');
   // renderTrigger keeps the whole section classified into the customize tab
   // and must not regress; without it the section moves to the data tab.
   expect(firstControl.config.renderTrigger).toBe(true);
@@ -184,11 +184,11 @@ test("show_totals renders in the customize tab atop visual formatting", () => {
   expect(firstControl.config.visibility).toBeUndefined();
 });
 
-test("every Visual formatting control is a renderTrigger", () => {
+test('every Visual formatting control is a renderTrigger', () => {
   // A non-renderTrigger control in this section would silently drag the
   // whole section's classification from the customize tab to the data tab.
   const visualFormatting = config.controlPanelSections.find(
-    (section) => section?.label === "Visual formatting",
+    section => section?.label === 'Visual formatting',
   );
   expect(visualFormatting).toBeDefined();
 
@@ -197,7 +197,7 @@ test("every Visual formatting control is a renderTrigger", () => {
     .filter(isCustomControlItem);
   expect(controls.length).toBeGreaterThan(0);
 
-  controls.forEach((control) => {
+  controls.forEach(control => {
     expect(control.config.renderTrigger).toBe(true);
   });
 });
