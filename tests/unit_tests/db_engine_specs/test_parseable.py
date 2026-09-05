@@ -96,4 +96,3 @@ def test_alter_new_orm_column() -> None:
     ParseableEngineSpec.alter_new_orm_column(col)
     assert col.python_date_format == "epoch_ms"
     assert col.is_dttm is True
-
