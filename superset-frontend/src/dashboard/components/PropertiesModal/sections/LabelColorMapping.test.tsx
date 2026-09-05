@@ -29,43 +29,41 @@ const defaultProps = {
   onJsonMetadataChange: jest.fn(),
 };
 
-describe('LabelColorMapping', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+beforeEach(() => {
+  jest.clearAllMocks();
+});
 
-  test('renders the empty state correctly', () => {
-    render(<LabelColorMapping {...defaultProps} />);
-    expect(screen.getByText('Label Colors')).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        'No color mappings defined. Click "+ Add more" to get started.',
-      ),
-    ).toBeInTheDocument();
-  });
+test('renders the empty state correctly', () => {
+  render(<LabelColorMapping {...defaultProps} />);
+  expect(screen.getByText('Label Colors')).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      'No color mappings defined. Click "+ Add more" to get started.',
+    ),
+  ).toBeInTheDocument();
+});
 
-  test('adds a new color mapping row when "Add more" is clicked', () => {
-    render(<LabelColorMapping {...defaultProps} />);
+test('adds a new color mapping row when "Add more" is clicked', () => {
+  render(<LabelColorMapping {...defaultProps} />);
 
-    const addButton = screen.getByText('+ Add more');
-    fireEvent.click(addButton);
+  const addButton = screen.getByText('+ Add more');
+  fireEvent.click(addButton);
 
-    expect(
-      screen.getByPlaceholderText('Select or type a label'),
-    ).toBeInTheDocument();
-  });
+  expect(
+    screen.getByPlaceholderText('Select or type a label'),
+  ).toBeInTheDocument();
+});
 
-  test('renders existing mappings from jsonMetadata', async () => {
-    const propsWithData = {
-      ...defaultProps,
-      jsonMetadata: JSON.stringify({ label_colors: { Revenue: '#20a7c9' } }),
-    };
-    render(<LabelColorMapping {...propsWithData} />);
+test('renders existing mappings from jsonMetadata', async () => {
+  const propsWithData = {
+    ...defaultProps,
+    jsonMetadata: JSON.stringify({ label_colors: { Revenue: '#20a7c9' } }),
+  };
+  render(<LabelColorMapping {...propsWithData} />);
 
-    await waitFor(() => {
-      // We verify the data loaded successfully by checking the label.
-      // (The Ant Design ColorPicker manages the color internally as a visual swatch).
-      expect(screen.getByDisplayValue('Revenue')).toBeInTheDocument();
-    });
+  await waitFor(() => {
+    // We verify the data loaded successfully by checking the label.
+    // (The Ant Design ColorPicker manages the color internally as a visual swatch).
+    expect(screen.getByDisplayValue('Revenue')).toBeInTheDocument();
   });
 });

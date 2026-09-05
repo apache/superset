@@ -194,7 +194,7 @@ const generateId = (): string => {
 };
 
 const isValidHex = (color: unknown): color is string =>
-  typeof color === 'string' && /^#[0-9A-Fa-f]{6}$/i.test(color);
+  typeof color === 'string' && /^#(?:[0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/i.test(color);
 
 const parseMetadata = (
   jsonMetadata: string,
@@ -327,10 +327,10 @@ const LabelColorMapping = ({
     const newRows = rows.map(row =>
       row.id === id
         ? {
-            ...row,
-            label: newLabel,
-            color: newColor,
-          }
+          ...row,
+          label: newLabel,
+          color: newColor,
+        }
         : row,
     );
 
@@ -360,7 +360,7 @@ const LabelColorMapping = ({
 
             <ErrorDescription>
               {t(
-                'Invalid JSON metadata. Please resolve syntax errors in the Advanced tab to use the GUI.',
+                'Invalid JSON metadata. Please resolve syntax errors in Advanced settings to use the GUI.',
               )}
             </ErrorDescription>
           </div>
@@ -431,6 +431,7 @@ const LabelColorMapping = ({
 
               <ColorPickerWrapper>
                 <ColorPickerControl
+                  ariaLabel={t('Color for %s', row.label || t('new label'))}
                   value={row.color}
                   outputFormat="hex"
                   onChange={color => {
