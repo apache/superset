@@ -96,7 +96,7 @@ dependencies = [
     "pgsanity",
     "Pillow>=12.3.0, <13", # raise floor to match resolved pin; closes SCA false-positive on 11.x-range CVEs already fixed in 12.3.0
     "polyline>=2.0.4, <3.0",
-    "pydantic>=2.8.0",
+    "pydantic>=2.13.5",
     "pyparsing>=3.3.2, <4",
     "python-dateutil",
     "python-dotenv", # optional dependencies for Flask but required for Superset, see https://flask.palletsprojects.com/en/stable/installation/#optional-dependencies
