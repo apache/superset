@@ -217,6 +217,18 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       state => state.charts[slice.slice_id].queriesResponse?.[1],
     );
 
+    const queriesResponse = useSelector<RootState, QueryData[] | null>(
+      state => state.charts[slice.slice_id].queriesResponse,
+    );
+
+    const chartUpdateStartTime = useSelector<RootState, number>(
+      state => state.charts[slice.slice_id].chartUpdateStartTime,
+    );
+
+    const chartUpdateEndTime = useSelector<RootState, number | null>(
+      state => state.charts[slice.slice_id].chartUpdateEndTime,
+    );
+
     const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
 
     const theme = useTheme();
@@ -426,6 +438,9 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   exportPivotExcel={exportPivotExcel}
                   chartHolderRef={chartHolderRef}
                   ownState={ownState}
+                  queriesResponse={queriesResponse}
+                  chartUpdateStartTime={chartUpdateStartTime}
+                  chartUpdateEndTime={chartUpdateEndTime}
                 />
               )}
             </>

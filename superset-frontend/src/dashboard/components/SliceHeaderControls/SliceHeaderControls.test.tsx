@@ -606,7 +606,7 @@ test('Should not show "Drill to detail" with only `can_explore`, `can_drill` & `
   expect(screen.queryByText('Drill to detail')).not.toBeInTheDocument();
 });
 
-test('Should show "View query"', () => {
+test('Should show "Query inspector"', () => {
   const props = {
     ...createProps(),
     supersetCanExplore: false,
@@ -616,10 +616,14 @@ test('Should show "View query"', () => {
     Admin: [['can_view_query', 'Dashboard']],
   });
   openMenu();
-  expect(screen.getByText('View query')).toBeInTheDocument();
+  userEvent.click(screen.getByText('Query inspector'));
+  expect(screen.getByRole('tab', { name: 'Stats' })).toBeInTheDocument();
+  expect(
+    screen.queryByRole('tab', { name: 'Response' }),
+  ).not.toBeInTheDocument();
 });
 
-test('Should not show "View query"', () => {
+test('Should not show "Query inspector"', () => {
   const props = {
     ...createProps(),
     supersetCanExplore: false,
@@ -629,7 +633,7 @@ test('Should not show "View query"', () => {
     Admin: [['invalid_permission', 'Dashboard']],
   });
   openMenu();
-  expect(screen.queryByText('View query')).not.toBeInTheDocument();
+  expect(screen.queryByText('Query inspector')).not.toBeInTheDocument();
 });
 
 test('Should show "View as table"', () => {
