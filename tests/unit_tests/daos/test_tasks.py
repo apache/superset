@@ -794,7 +794,7 @@ def test_set_properties_and_payload_preserves_subscription_state(
         task_key="preserve-subscription",
         properties={"is_abortable": False},
     )
-    executor_snapshot = dict(task.properties_dict)  # worker pickup: no tabs yet
+    executor_snapshot = task.properties_dict.copy()  # worker pickup: no tabs yet
 
     TaskDAO.merge_subscription_state(task, {"consumers": ["user:1:tabA"]})
     session_with_task.flush()
@@ -918,7 +918,7 @@ def test_chart_policy_join_during_execution_survives_executor_write(
     )
     policy.on_subscribe(task, principal="user:1", client_ref="tabA")
     session_with_task.flush()
-    executor_snapshot = dict(task.properties_dict)  # worker pickup: sees tab A
+    executor_snapshot = task.properties_dict.copy()  # worker pickup: sees tab A
 
     policy.on_subscribe(task, principal="user:1", client_ref="tabB")
     session_with_task.flush()
