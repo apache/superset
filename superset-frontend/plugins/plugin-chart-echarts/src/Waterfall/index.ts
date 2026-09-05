@@ -25,11 +25,11 @@ import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
 import example1 from './images/example1.png';
-import example2 from './images/example2.png';
-import example3 from './images/example3.png';
+import example2 from './images/custom_thumb_example2.png';
+import example3 from './images/custom_thumb_example3.png';
 import example1Dark from './images/example1-dark.png';
-import example2Dark from './images/example2-dark.png';
-import example3Dark from './images/example3-dark.png';
+import example2Dark from './images/custom_thumb_example2-dark.png';
+import example3Dark from './images/custom_thumb_example3-dark.png';
 import { EchartsWaterfallChartProps, EchartsWaterfallFormData } from './types';
 
 // TODO: Implement cross filtering

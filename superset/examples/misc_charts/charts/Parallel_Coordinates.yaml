@@ -26,12 +26,13 @@ params:
   entity: country_code
   granularity_sqla: year
   groupby: []
-  limit: 100
+  limit: 25
   markup_type: markdown
   metrics:
   - sum__SP_POP_TOTL
   - sum__SP_RUR_TOTL_ZS
   - sum__SH_DYN_AIDS
+  - sum__SP_DYN_LE00_IN
   row_limit: 50000
   secondary_metric: sum__SP_POP_TOTL
   series: country_name

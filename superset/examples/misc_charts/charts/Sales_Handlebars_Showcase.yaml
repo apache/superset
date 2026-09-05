@@ -1,0 +1,153 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+description: |-
+  A product-line leaderboard rendered as CSS-styled cards (rank medals, tier
+  badges, gradient progress bars) via the Handlebars chart's custom CSS
+  field. The card markup, ranking, and tier badges are plain text/emoji and
+  always render; the colors, card shape, and bars come from the "CSS
+  Styles" field and only apply once an administrator allows `style`
+  elements via HTML_SANITIZATION_SCHEMA_EXTENSIONS (server-side HTML
+  sanitization strips `<style>` tags by default -- see the tooltip on that
+  control).
+params:
+  groupby:
+  - product_line
+  handlebarsTemplate: |-
+    <div class="hb-showcase">
+      <div class="hb-header">🏆 Product Line Leaderboard</div>
+      <div class="hb-cards">
+        {{#each data}}
+        <div class="hb-card {{#if (gt [SUM(sales)] 1500000)}}tier-top{{else if (gt [SUM(sales)] 900000)}}tier-strong{{else}}tier-growing{{/if}}">
+          <div class="hb-rank">{{#if (eq @index 0)}}🥇{{else if (eq @index 1)}}🥈{{else if (eq @index 2)}}🥉{{else}}#{{sum @index 1}}{{/if}}</div>
+          <div class="hb-name">{{product_line}}</div>
+          <div class="hb-value">${{formatNumber [SUM(sales)]}}</div>
+          <div class="hb-badge {{#if (gt [SUM(sales)] 1500000)}}badge-top{{else if (gt [SUM(sales)] 900000)}}badge-strong{{else}}badge-growing{{/if}}">{{#if (gt [SUM(sales)] 1500000)}}Top Seller{{else if (gt [SUM(sales)] 900000)}}Strong{{else}}Growing{{/if}}</div>
+          <div class="hb-bar-track"><div class="hb-bar-fill" style="width: {{multiplication (division [SUM(sales)] 3919616) 100}}%"></div></div>
+        </div>
+        {{/each}}
+      </div>
+    </div>
+  metrics:
+  - aggregate: SUM
+    column:
+      column_name: sales
+    expressionType: SIMPLE
+    label: SUM(sales)
+    optionName: metric_sales_hbs_showcase
+  order_desc: true
+  query_mode: aggregate
+  row_limit: 20
+  styleTemplate: |-
+    .hb-showcase {
+      font-family: sans-serif;
+    }
+    .hb-header {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #444;
+    }
+    .hb-cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .hb-card {
+      flex: 1 1 190px;
+      border-radius: 10px;
+      padding: 12px 16px;
+      background: #f7f7f9;
+      border-left: 6px solid #ccc;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    }
+    .hb-card.tier-top {
+      border-left-color: #2ecc71;
+      background: #eafaf1;
+    }
+    .hb-card.tier-strong {
+      border-left-color: #3498db;
+      background: #eaf4fb;
+    }
+    .hb-card.tier-growing {
+      border-left-color: #f39c12;
+      background: #fdf3e7;
+    }
+    .hb-rank {
+      font-size: 22px;
+      color: #333;
+    }
+    .hb-name {
+      font-weight: 600;
+      font-size: 15px;
+      margin: 4px 0;
+      color: #222;
+    }
+    .hb-value {
+      font-size: 19px;
+      font-weight: 700;
+      color: #111;
+    }
+    .hb-badge {
+      display: inline-block;
+      margin-top: 6px;
+      padding: 2px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: white;
+    }
+    .hb-badge.badge-top {
+      background: #2ecc71;
+    }
+    .hb-badge.badge-strong {
+      background: #3498db;
+    }
+    .hb-badge.badge-growing {
+      background: #f39c12;
+    }
+    .hb-bar-track {
+      margin-top: 8px;
+      height: 6px;
+      border-radius: 3px;
+      background: rgba(0, 0, 0, 0.08);
+      overflow: hidden;
+    }
+    .hb-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      border-radius: 3px;
+    }
+  time_range: No filter
+  timeseries_limit_metric:
+    aggregate: SUM
+    column:
+      column_name: sales
+    expressionType: SIMPLE
+    label: SUM(sales)
+    optionName: metric_sales_hbs_showcase
+  viz_type: handlebars
+query_context: null
+slice_name: Sales Handlebars Showcase
+uuid: 959b269f-656d-4510-88a6-48e03a793c2b
+version: 1.0.0
+viz_type: handlebars
