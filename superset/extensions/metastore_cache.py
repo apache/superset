@@ -44,6 +44,7 @@ class SupersetMetastoreCache(BaseCache):
         namespace: UUID,
         codec: KeyValueCodec,
         default_timeout: int = 300,
+        **kwargs: Any,
     ) -> None:
         super().__init__(default_timeout)
         self.namespace = namespace
