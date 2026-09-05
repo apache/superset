@@ -655,6 +655,13 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
                     fk("dashboards", "themes", "theme_id", "id", "outbound"),
                     fk(
                         "dashboards",
+                        "dashboard_folders",
+                        "folder_id",
+                        "id",
+                        "outbound",
+                    ),
+                    fk(
+                        "dashboards",
                         "user_attribute",
                         "id",
                         "welcome_dashboard_id",
@@ -733,6 +740,7 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
                     DependencyClassification.ASSOCIATION,
                     DependencyClassification.OWNED,
                     DependencyClassification.BLOCK,
+                    DependencyClassification.PRESERVE,
                     DependencyClassification.PRESERVE,
                     DependencyClassification.BLOCK,
                     DependencyClassification.VERSION_OWNED,

@@ -24,7 +24,7 @@ import {
 } from '@superset-ui/core';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import rison from 'rison';
 import {
@@ -61,6 +61,7 @@ import {
   type ListViewProps,
   type ListViewFilter,
   type ListViewFilters,
+  type ListViewFilterControls,
 } from 'src/components';
 import handleResourceExport from 'src/utils/export';
 import {
@@ -88,6 +89,11 @@ import { navigateTo } from 'src/utils/navigationUtils';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 import type { CellProps } from 'react-table';
+import {
+  DashboardFolderPanel,
+  type DashboardFolder,
+} from './DashboardFolderPanel';
+import { MoveDashboardFolderModal } from './MoveDashboardFolderModal';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -127,10 +133,28 @@ export interface Dashboard {
   viewers?: Subject[];
   tags: TagType[];
   created_by: object;
+  folder_id?: string | null;
 }
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colorIcon};
+`;
+
+const DashboardWorkspace = styled.div`
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-width: 0;
+`;
+
+const DashboardListContent = styled.div`
+  flex: 1 1 auto;
+  width: 0;
+  min-width: 0;
+
+  > div {
+    width: 100%;
+  }
 `;
 
 const FlexRowContainer = styled.div`
@@ -154,6 +178,7 @@ const FlexRowContainer = styled.div`
 const DASHBOARD_COLUMNS_TO_FETCH = [
   'id',
   'dashboard_title',
+  'folder_id',
   'published',
   'url',
   'slug',
@@ -194,7 +219,22 @@ function DashboardList(props: DashboardListProps) {
     state => state.user,
   );
   const canReadTag = findPermission('can_read', 'Tag', roles);
-
+  const canCreateFolder = findPermission(
+    'can_create',
+    'DashboardFolder',
+    roles,
+  );
+  const canMoveDashboardToFolder = findPermission(
+    'can_move_dashboard',
+    'DashboardFolder',
+    roles,
+  );
+  const [folders, setFolders] = useState<DashboardFolder[]>([]);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const dashboardFiltersRef = useRef<ListViewFilterControls>(null);
+  const [movingDashboard, setMovingDashboard] = useState<Dashboard | null>(
+    null,
+  );
   const {
     state: {
       loading,
@@ -229,6 +269,63 @@ function DashboardList(props: DashboardListProps) {
   );
   const [dashboardToDelete, setDashboardToDelete] =
     useState<CRUDDashboard | null>(null);
+
+  const fetchFolders = useCallback(async () => {
+    try {
+      const { json = {} } = await SupersetClient.get({
+        endpoint: '/api/v1/dashboard_folder/',
+      });
+      setFolders(json.result ?? []);
+    } catch (error) {
+      addDangerToast(t('Failed to load dashboard folders'));
+    }
+  }, [addDangerToast]);
+
+  useEffect(() => {
+    fetchFolders();
+  }, [fetchFolders]);
+
+  const createFolder = async (name: string, parentId: string | null) => {
+    await SupersetClient.post({
+      endpoint: '/api/v1/dashboard_folder/',
+      jsonPayload: { name, parent_id: parentId },
+    });
+    addSuccessToast(t('Dashboard folder created'));
+    await fetchFolders();
+  };
+
+  const renameFolder = async (folder: DashboardFolder, name: string) => {
+    await SupersetClient.put({
+      endpoint: `/api/v1/dashboard_folder/${folder.id}`,
+      jsonPayload: { name },
+    });
+    addSuccessToast(t('Dashboard folder renamed'));
+    await fetchFolders();
+  };
+
+  const deleteFolder = async (folder: DashboardFolder) => {
+    await SupersetClient.delete({
+      endpoint: `/api/v1/dashboard_folder/${folder.id}`,
+    });
+    if (selectedFolderId === folder.id) {
+      setSelectedFolderId(null);
+      dashboardFiltersRef.current?.clearFilterById('folder_id');
+    }
+    addSuccessToast(t('Dashboard folder deleted'));
+    await Promise.all([fetchFolders(), refreshData()]);
+  };
+
+  const moveDashboard = async (
+    dashboard: Dashboard,
+    folderId: string | null,
+  ) => {
+    await SupersetClient.put({
+      endpoint: `/api/v1/dashboard_folder/dashboard/${dashboard.id}`,
+      jsonPayload: { folder_id: folderId },
+    });
+    addSuccessToast(t('Dashboard moved'));
+    await Promise.all([fetchFolders(), refreshData()]);
+  };
 
   const [importingDashboard, showImportModal] = useState<boolean>(false);
   const [passwordFields, setPasswordFields] = useState<string[]>([]);
@@ -400,6 +497,11 @@ function DashboardList(props: DashboardListProps) {
         hidden: !user?.userId,
       },
       {
+        accessor: 'folder_id',
+        id: 'folder_id',
+        hidden: true,
+      },
+      {
         Cell: ({
           row: {
             original: {
@@ -527,9 +629,20 @@ function DashboardList(props: DashboardListProps) {
             );
           const handleEdit = () => openDashboardEditModal(original);
           const handleExport = () => handleBulkDashboardExport([original]);
+          const handleMove = () => setMovingDashboard(original);
 
           return (
             <Actions className="actions">
+              {canEdit && canMoveDashboardToFolder && (
+                <ActionButton
+                  label={t('Move to folder')}
+                  tooltip={t('Move to folder')}
+                  placement="bottom"
+                  icon={<Icons.FolderOutlined iconSize="l" />}
+                  disabled={!allowEdit}
+                  onClick={handleMove}
+                />
+              )}
               {canEdit && (
                 <ActionButton
                   label={t('Edit')}
@@ -624,6 +737,8 @@ function DashboardList(props: DashboardListProps) {
       canEdit,
       canDelete,
       canExport,
+      canMoveDashboardToFolder,
+      softDelete,
       saveFavoriteStatus,
       favoriteStatus,
       refreshData,
@@ -737,6 +852,28 @@ function DashboardList(props: DashboardListProps) {
         : []),
       ...(user?.userId ? [favoritesFilter] : []),
       {
+        Header: t('Folder'),
+        key: 'folder_id',
+        id: 'folder_id',
+        input: 'select',
+        operator: FilterOperator.DashboardFolder,
+        unfilteredLabel: t('All'),
+        selects: [
+          {
+            label: t('Uncategorized'),
+            value: 'uncategorized',
+          },
+          ...folders.map(folder => ({
+            label: folder.name,
+            value: folder.id,
+          })),
+        ],
+        onFilterUpdate: option => {
+          const value = option?.value;
+          setSelectedFolderId(value ? String(value) : null);
+        },
+      },
+      {
         Header: t('Certified'),
         key: 'certified',
         id: 'id',
@@ -772,7 +909,7 @@ function DashboardList(props: DashboardListProps) {
       },
     ] as ListViewFilters;
     return filtersList;
-  }, [addDangerToast, canReadTag, favoritesFilter, user]);
+  }, [addDangerToast, canReadTag, favoritesFilter, folders, user]);
 
   const sortTypes = [
     {
@@ -953,43 +1090,72 @@ function DashboardList(props: DashboardListProps) {
                   title={t('Please confirm')}
                 />
               )}
-              <ListView<Dashboard>
-                bulkActions={bulkActions}
-                bulkSelectEnabled={bulkSelectEnabled}
-                cardSortSelectOptions={sortTypes}
-                className="dashboard-list-view"
-                columns={columns}
-                count={dashboardCount}
-                data={dashboards}
-                disableBulkSelect={toggleBulkSelect}
-                fetchData={fetchData}
-                refreshData={refreshData}
-                filters={filters}
-                initialSort={initialSort}
-                loading={loading}
-                pageSize={PAGE_SIZE}
-                addSuccessToast={addSuccessToast}
-                addDangerToast={addDangerToast}
-                showThumbnails={
-                  userKey
-                    ? userKey.thumbnails
-                    : isFeatureEnabled(FeatureFlag.Thumbnails)
-                }
-                renderCard={renderCard}
-                defaultViewMode={
-                  isFeatureEnabled(FeatureFlag.ListviewsDefaultCardView)
-                    ? 'card'
-                    : 'table'
-                }
-                forceViewMode={isMobile ? 'card' : undefined}
-                enableBulkTag={enableBulkTag}
-                bulkTagResourceName="dashboard"
-                mobileFiltersOpen={mobileFiltersOpen}
-                setMobileFiltersOpen={
-                  isMobile ? setMobileFiltersOpen : undefined
-                }
-                mobileFiltersDrawerTitle={t('Search Dashboards')}
-              />
+              <DashboardWorkspace>
+                <DashboardFolderPanel
+                  folders={folders}
+                  selectedFolderId={selectedFolderId}
+                  canCreate={Boolean(canCreateFolder)}
+                  onSelect={folderId => {
+                    setSelectedFolderId(folderId);
+                    const folder = folders.find(item => item.id === folderId);
+                    dashboardFiltersRef.current?.setFilterValueById?.(
+                      'folder_id',
+                      folderId
+                        ? {
+                            label:
+                              folderId === 'uncategorized'
+                                ? t('Uncategorized')
+                                : (folder?.name ?? folderId),
+                            value: folderId,
+                          }
+                        : undefined,
+                    );
+                  }}
+                  onCreate={createFolder}
+                  onRename={renameFolder}
+                  onDelete={deleteFolder}
+                />
+                <DashboardListContent>
+                  <ListView<Dashboard>
+                    bulkActions={bulkActions}
+                    bulkSelectEnabled={bulkSelectEnabled}
+                    cardSortSelectOptions={sortTypes}
+                    className="dashboard-list-view"
+                    columns={columns}
+                    count={dashboardCount}
+                    data={dashboards}
+                    disableBulkSelect={toggleBulkSelect}
+                    fetchData={fetchData}
+                    refreshData={refreshData}
+                    filters={filters}
+                    filtersRef={dashboardFiltersRef}
+                    initialSort={initialSort}
+                    loading={loading}
+                    pageSize={PAGE_SIZE}
+                    addSuccessToast={addSuccessToast}
+                    addDangerToast={addDangerToast}
+                    showThumbnails={
+                      userKey
+                        ? userKey.thumbnails
+                        : isFeatureEnabled(FeatureFlag.Thumbnails)
+                    }
+                    renderCard={renderCard}
+                    defaultViewMode={
+                      isFeatureEnabled(FeatureFlag.ListviewsDefaultCardView)
+                        ? 'card'
+                        : 'table'
+                    }
+                    forceViewMode={isMobile ? 'card' : undefined}
+                    enableBulkTag={enableBulkTag}
+                    bulkTagResourceName="dashboard"
+                    mobileFiltersOpen={mobileFiltersOpen}
+                    setMobileFiltersOpen={
+                      isMobile ? setMobileFiltersOpen : undefined
+                    }
+                    mobileFiltersDrawerTitle={t('Search Dashboards')}
+                  />
+                </DashboardListContent>
+              </DashboardWorkspace>
             </>
           );
         }}
@@ -1018,6 +1184,15 @@ function DashboardList(props: DashboardListProps) {
       />
 
       {preparingExport && <Loading />}
+      {movingDashboard && (
+        <MoveDashboardFolderModal
+          dashboardTitle={movingDashboard.dashboard_title}
+          currentFolderId={movingDashboard.folder_id}
+          folders={folders}
+          onHide={() => setMovingDashboard(null)}
+          onMove={folderId => moveDashboard(movingDashboard, folderId)}
+        />
+      )}
     </>
   );
 }

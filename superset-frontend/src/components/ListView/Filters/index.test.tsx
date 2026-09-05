@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import { act, render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
-import { ListViewFilterOperator } from '../types';
+import { type ListViewFilterControls, ListViewFilterOperator } from '../types';
 import UIFilters from './index';
 
 const mockUpdateFilterValue = jest.fn();
@@ -154,6 +154,120 @@ test('select pill shows active state (clear button) when a value is selected', (
   expect(
     screen.getByRole('button', { name: /clear owner filter/i }),
   ).toBeInTheDocument();
+});
+
+test('clearing a select filter notifies its update callback', async () => {
+  const onFilterUpdate = jest.fn();
+  const filters = [
+    {
+      Header: 'Folder',
+      key: 'folder',
+      id: 'folder_id',
+      input: 'select' as const,
+      operator: ListViewFilterOperator.DashboardFolder,
+      selects: [{ label: 'Finance', value: 'finance' }],
+      onFilterUpdate,
+    },
+  ];
+
+  render(
+    <UIFilters
+      filters={filters}
+      internalFilters={[
+        {
+          id: 'folder_id',
+          operator: ListViewFilterOperator.DashboardFolder,
+          value: { label: 'Finance', value: 'finance' },
+        },
+      ]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  await userEvent.click(
+    screen.getByRole('button', { name: /clear folder filter/i }),
+  );
+  expect(onFilterUpdate).toHaveBeenCalledWith(undefined);
+  expect(mockUpdateFilterValue).toHaveBeenCalledWith(0, undefined);
+});
+
+test('sets a value by filter ID through the public ref', () => {
+  const controlsRef = {
+    current: null,
+  } as React.RefObject<ListViewFilterControls>;
+  const filters = [
+    {
+      Header: 'Folder',
+      key: 'folder',
+      id: 'folder_id',
+      input: 'select' as const,
+      operator: ListViewFilterOperator.DashboardFolder,
+      selects: [{ label: 'Finance', value: 'finance' }],
+    },
+  ];
+
+  render(
+    <UIFilters
+      ref={controlsRef}
+      filters={filters}
+      internalFilters={[]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  controlsRef.current?.setFilterValueById?.('folder_id', {
+    label: 'Finance',
+    value: 'finance',
+  });
+  expect(mockUpdateFilterValue).toHaveBeenCalledWith(0, {
+    label: 'Finance',
+    value: 'finance',
+  });
+
+  mockUpdateFilterValue.mockClear();
+  controlsRef.current?.setFilterValueById?.('missing', {
+    label: 'Missing',
+    value: 'missing',
+  });
+  expect(mockUpdateFilterValue).not.toHaveBeenCalled();
+});
+
+test('clears every filter through the public ref', () => {
+  const controlsRef = {
+    current: null,
+  } as React.RefObject<ListViewFilterControls>;
+  const onFilterUpdate = jest.fn();
+  const filters = [
+    {
+      Header: 'Folder',
+      key: 'folder',
+      id: 'folder_id',
+      input: 'select' as const,
+      operator: ListViewFilterOperator.DashboardFolder,
+      selects: [{ label: 'Finance', value: 'finance' }],
+      onFilterUpdate,
+    },
+  ];
+
+  render(
+    <UIFilters
+      ref={controlsRef}
+      filters={filters}
+      internalFilters={[
+        {
+          id: 'folder_id',
+          operator: ListViewFilterOperator.DashboardFolder,
+          value: { label: 'Finance', value: 'finance' },
+        },
+      ]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  act(() => controlsRef.current?.clearFilters());
+
+  expect(onFilterUpdate).toHaveBeenCalledWith(undefined);
+  expect(mockUpdateFilterValue).toHaveBeenCalledWith(0, undefined);
 });
 
 test('select pill tooltip falls back to static selects on cold URL load (no cached label)', () => {

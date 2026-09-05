@@ -101,6 +101,7 @@ from superset.dashboards.filters import (
     DashboardDeletedStateFilter,
     DashboardEditableFilter,
     DashboardFavoriteFilter,
+    DashboardFolderFilter,
     DashboardHasCreatedByFilter,
     DashboardTagIdFilter,
     DashboardTagNameFilter,
@@ -249,6 +250,7 @@ BASE_LIST_COLUMNS = [
     "created_by.id",
     "created_by.last_name",
     "dashboard_title",
+    "folder_id",
     "editors.id",
     "editors.label",
     "editors.type",
@@ -486,6 +488,7 @@ class DashboardRestApi(
         "published",
         "slug",
         "description",
+        "folder_id",
         # Exposed so the Recently-Deleted view can filter archived dashboards by
         # a deletion-time cutoff (e.g. ``deleted_at`` ``gt`` cutoff) — sc-111760.
         "deleted_at",
@@ -503,6 +506,7 @@ class DashboardRestApi(
         ],
         "created_by": [DashboardCreatedByMeFilter, DashboardHasCreatedByFilter],
         "tags": [DashboardTagIdFilter, DashboardTagNameFilter],
+        "folder_id": [DashboardFolderFilter],
     }
 
     base_order = ("changed_on", "desc")

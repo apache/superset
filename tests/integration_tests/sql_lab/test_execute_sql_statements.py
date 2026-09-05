@@ -59,7 +59,7 @@ def test_non_async_execute(non_async_example_db: Database, example_query: Query)
         assert example_query.tracking_url_raw
 
 
-@patch("superset.sql_lab.results_backend")
+@patch("superset.sql_lab.results_backend", new_callable=MagicMock)
 def test_results_backend_write_failure(
     mock_results_backend: MagicMock,
     async_example_db: Database,
@@ -105,7 +105,7 @@ def test_results_backend_write_failure(
     assert mock_results_backend.set.called
 
 
-@patch("superset.sql_lab.results_backend")
+@patch("superset.sql_lab.results_backend", new_callable=MagicMock)
 def test_results_backend_write_success(
     mock_results_backend: MagicMock,
     async_example_db: Database,
@@ -140,7 +140,7 @@ def test_results_backend_write_success(
     assert mock_results_backend.set.called
 
 
-@patch("superset.sql_lab.results_backend")
+@patch("superset.sql_lab.results_backend", new_callable=MagicMock)
 def test_results_backend_write_failure_sync_mode(
     mock_results_backend: MagicMock,
     non_async_example_db: Database,

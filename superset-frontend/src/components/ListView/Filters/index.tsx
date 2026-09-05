@@ -34,6 +34,7 @@ import type {
   ListViewFilterValue as FilterValue,
   ListViewFilters as Filters,
   InternalFilter,
+  ListViewFilterControls,
   SelectOption,
 } from '../types';
 import type { FilterHandler } from './types';
@@ -53,10 +54,7 @@ interface UIFiltersProps {
 
 function UIFilters(
   { filters, internalFilters = [], updateFilterValue }: UIFiltersProps,
-  ref: RefObject<{
-    clearFilters: () => void;
-    clearFilterById: (id: string) => void;
-  }>,
+  ref: RefObject<ListViewFilterControls>,
 ) {
   const filterRefs = useMemo(
     () =>
@@ -130,6 +128,7 @@ function UIFilters(
   const clearFilterAtIndex = useCallback(
     (index: number) => {
       filterRefs[index]?.current?.clearFilter?.();
+      filters[index].onFilterUpdate?.(undefined);
       updateFilterValue(index, undefined);
       setTooltipLabels(prev => {
         const next = { ...prev };
@@ -138,13 +137,14 @@ function UIFilters(
       });
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [updateFilterValue],
+    [filters, updateFilterValue],
   );
 
   useImperativeHandle(ref, () => ({
     clearFilters: () => {
       filterRefs.forEach((_, index) => {
         filterRefs[index]?.current?.clearFilter?.();
+        filters[index].onFilterUpdate?.(undefined);
         updateFilterValue(index, undefined);
       });
       setTooltipLabels({});
@@ -154,6 +154,12 @@ function UIFilters(
       const index = filters.findIndex(f => f.id === id);
       if (index >= 0) {
         clearFilterAtIndex(index);
+      }
+    },
+    setFilterValueById: (id, value) => {
+      const index = filters.findIndex(f => f.id === id);
+      if (index >= 0) {
+        updateFilterValue(index, value);
       }
     },
   }));
@@ -229,9 +235,7 @@ function UIFilters(
                           : String(option.value ?? ''),
                     }));
                   }
-                  if (onFilterUpdate && !isClear) {
-                    onFilterUpdate(option);
-                  }
+                  onFilterUpdate?.(isClear ? undefined : option);
                   updateFilterValue(index, option);
                 }}
               />
