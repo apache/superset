@@ -21,17 +21,7 @@ import enum
 from typing import TYPE_CHECKING
 
 from flask_appbuilder import Model
-from sqlalchemy import (
-    Column,
-    Enum,
-    exists,
-    ForeignKey,
-    Integer,
-    orm,
-    String,
-    Table,
-    Text,
-)
+from sqlalchemy import Column, Enum, ForeignKey, Integer, orm, String, Table, Text
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.orm.mapper import Mapper
@@ -40,11 +30,9 @@ from superset_core.common.models import Tag as CoreTag
 
 from superset import security_manager
 from superset.models.helpers import AuditMixinNullable
-from superset.subjects.types import SubjectType
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import FavStar
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query
@@ -63,16 +51,21 @@ class TagType(enum.Enum):
     """
     Types for tags.
 
-    Objects (queries, charts, dashboards, and datasets) will have with implicit tags based
-    on metadata: types, editors and who favorited them. This way, user "alice"
-    can find all their objects by querying for the tag `editor:alice`.
-    """  # noqa: E501
+    ``type``, ``editor``, and ``favorited_by`` are no longer generated: Superset
+    used to auto-tag every query, chart, dashboard, and dataset with implicit
+    tags based on metadata (object type, editors, and who favorited them), but
+    nothing ever surfaced them to the user, so the generation was removed. The
+    values are kept, and rows of these types are still recognized (e.g. exempt
+    from bulk deletion) and filterable via the API, so upgraded deployments that
+    already have such tags, or MCP tooling that queries by tag type, keep
+    working.
+    """
 
     # pylint: disable=invalid-name
     # explicit tags, added manually by the owner
     custom = 1
 
-    # implicit tags, generated automatically
+    # legacy implicit tag types; no longer generated (see docstring above)
     type = 2
     editor = 3
     favorited_by = 4
@@ -155,145 +148,26 @@ def get_tag(
     return tag
 
 
-def get_object_type(class_name: str) -> ObjectType:
-    mapping = {
-        "slice": ObjectType.chart,
-        "dashboard": ObjectType.dashboard,
-        "query": ObjectType.query,
-        "dataset": ObjectType.dataset,
-    }
-    try:
-        return mapping[class_name.lower()]
-    except KeyError as ex:
-        raise Exception(  # pylint: disable=broad-exception-raised
-            f"No mapping found for {class_name}"
-        ) from ex
-
-
 class ObjectUpdater:
+    """Cleans up ``tagged_object`` rows when a tagged object is deleted.
+
+    ``TaggedObject.object_id`` is a polymorphic reference with no foreign key
+    (see the comment on that column), so nothing at the database level removes
+    a tag association when the dashboard/chart/query/dataset it points at is
+    deleted. This listener does that cleanup for every tag on the object
+    (custom tags included), independent of how the tag was created.
+    """
+
     object_type: str = "default"
-
-    @classmethod
-    def get_editor_user_ids(
-        cls, target: Dashboard | FavStar | Slice | Query | SqlaTable
-    ) -> list[int]:
-        raise NotImplementedError("Subclass should implement `get_editor_user_ids`")
-
-    @classmethod
-    def get_editor_tag_ids(
-        cls,
-        session: orm.Session,  # pylint: disable=disallowed-name
-        target: Dashboard | FavStar | Slice | Query | SqlaTable,
-    ) -> set[int]:
-        tag_ids = set()
-        for user_id in cls.get_editor_user_ids(target):
-            name = f"editor:{user_id}"
-            tag = get_tag(name, session, TagType.editor)
-            tag_ids.add(tag.id)
-        return tag_ids
-
-    @classmethod
-    def _add_editors(
-        cls,
-        session: orm.Session,  # pylint: disable=disallowed-name
-        target: Dashboard | FavStar | Slice | Query | SqlaTable,
-    ) -> None:
-        for user_id in cls.get_editor_user_ids(target):
-            name: str = f"editor:{user_id}"
-            tag = get_tag(name, session, TagType.editor)
-            cls.add_tag_object_if_not_tagged(
-                session, tag_id=tag.id, object_id=target.id, object_type=cls.object_type
-            )
-
-    @classmethod
-    def add_tag_object_if_not_tagged(
-        cls,
-        session: orm.Session,  # pylint: disable=disallowed-name
-        tag_id: int,
-        object_id: int,
-        object_type: str,
-    ) -> None:
-        # Check if the object is already tagged
-        exists_query = exists().where(
-            TaggedObject.tag_id == tag_id,
-            TaggedObject.object_id == object_id,
-            TaggedObject.object_type == object_type,
-        )
-        already_tagged = session.query(exists_query).scalar()
-
-        # Add TaggedObject to the session if it isn't already tagged
-        if not already_tagged:
-            tagged_object = TaggedObject(
-                tag_id=tag_id, object_id=object_id, object_type=object_type
-            )
-            session.add(tagged_object)
-
-    @classmethod
-    def after_insert(
-        cls,
-        _mapper: Mapper,
-        connection: Connection,
-        target: Dashboard | FavStar | Slice | Query | SqlaTable,
-    ) -> None:
-        with Session(bind=connection) as session:  # pylint: disable=disallowed-name
-            # add `editor:` tags
-            cls._add_editors(session, target)
-
-            # add `type:` tags
-            tag = get_tag(f"type:{cls.object_type}", session, TagType.type)
-            cls.add_tag_object_if_not_tagged(
-                session, tag_id=tag.id, object_id=target.id, object_type=cls.object_type
-            )
-            session.commit()
-
-    @classmethod
-    def after_update(
-        cls,
-        _mapper: Mapper,
-        connection: Connection,
-        target: Dashboard | FavStar | Slice | Query | SqlaTable,
-    ) -> None:
-        with Session(bind=connection) as session:  # pylint: disable=disallowed-name
-            # Fetch current editor tags
-            existing_tags = (
-                session.query(TaggedObject)
-                .join(Tag)
-                .filter(
-                    TaggedObject.object_type == cls.object_type,
-                    TaggedObject.object_id == target.id,
-                    Tag.type == TagType.editor,
-                )
-                .all()
-            )
-            existing_editor_tag_ids = {tag.tag_id for tag in existing_tags}
-
-            # Determine new editor IDs
-            new_editor_tag_ids = cls.get_editor_tag_ids(session, target)
-
-            # Add missing tags
-            for editor_tag_id in new_editor_tag_ids - existing_editor_tag_ids:
-                tagged_object = TaggedObject(
-                    tag_id=editor_tag_id,
-                    object_id=target.id,
-                    object_type=cls.object_type,
-                )
-                session.add(tagged_object)
-
-            # Remove unnecessary tags
-            for tag in existing_tags:
-                if tag.tag_id not in new_editor_tag_ids:
-                    session.delete(tag)
-            session.commit()
 
     @classmethod
     def after_delete(
         cls,
         _mapper: Mapper,
         connection: Connection,
-        target: Dashboard | FavStar | Slice | Query | SqlaTable,
+        target: Dashboard | Slice | Query | SqlaTable,
     ) -> None:
         with Session(bind=connection) as session:  # pylint: disable=disallowed-name
-            # delete row from `tagged_objects`
             session.query(TaggedObject).filter(
                 TaggedObject.object_type == cls.object_type,
                 TaggedObject.object_id == target.id,
@@ -305,75 +179,14 @@ class ObjectUpdater:
 class ChartUpdater(ObjectUpdater):
     object_type = "chart"
 
-    @classmethod
-    def get_editor_user_ids(cls, target: Slice) -> list[int]:
-        return [
-            s.user.id for s in target.editors if s.type == SubjectType.USER and s.user
-        ]
-
 
 class DashboardUpdater(ObjectUpdater):
     object_type = "dashboard"
-
-    @classmethod
-    def get_editor_user_ids(cls, target: Dashboard) -> list[int]:
-        return [
-            s.user.id for s in target.editors if s.type == SubjectType.USER and s.user
-        ]
 
 
 class QueryUpdater(ObjectUpdater):
     object_type = "query"
 
-    @classmethod
-    def get_editor_user_ids(cls, target: Query) -> list[int]:
-        return [target.user_id]
-
 
 class DatasetUpdater(ObjectUpdater):
     object_type = "dataset"
-
-    @classmethod
-    def get_editor_user_ids(cls, target: SqlaTable) -> list[int]:
-        return [
-            s.user.id for s in target.editors if s.type == SubjectType.USER and s.user
-        ]
-
-
-class FavStarUpdater:
-    @classmethod
-    def after_insert(
-        cls, _mapper: Mapper, connection: Connection, target: FavStar
-    ) -> None:
-        with Session(bind=connection) as session:  # pylint: disable=disallowed-name
-            name = f"favorited_by:{target.user_id}"
-            tag = get_tag(name, session, TagType.favorited_by)
-            tagged_object = TaggedObject(
-                tag_id=tag.id,
-                object_id=target.obj_id,
-                object_type=get_object_type(target.class_name),
-            )
-            session.add(tagged_object)
-            session.commit()
-
-    @classmethod
-    def after_delete(
-        cls, _mapper: Mapper, connection: Connection, target: FavStar
-    ) -> None:
-        with Session(bind=connection) as session:  # pylint: disable=disallowed-name
-            name = f"favorited_by:{target.user_id}"
-            query = (
-                session.query(TaggedObject.id)
-                .join(Tag)
-                .filter(
-                    TaggedObject.object_id == target.obj_id,
-                    Tag.type == TagType.favorited_by,
-                    Tag.name == name,
-                )
-            )
-            ids = [row[0] for row in query]
-            session.query(TaggedObject).filter(TaggedObject.id.in_(ids)).delete(
-                synchronize_session=False
-            )
-
-            session.commit()

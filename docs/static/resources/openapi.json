@@ -4048,12 +4048,6 @@
             "description": "Override CSS for the dashboard.",
             "type": "string"
           },
-          "custom_tags": {
-            "items": {
-              "$ref": "#/components/schemas/Tag1"
-            },
-            "type": "array"
-          },
           "dashboard_title": {
             "description": "A title for the dashboard.",
             "type": "string"
