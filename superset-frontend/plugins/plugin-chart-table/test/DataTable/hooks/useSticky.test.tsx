@@ -152,7 +152,7 @@ test('sticky header/footer width matches the body, independent of the scrollbar-
   expect(bodyDiv.style.width).toBe(`${MAX_WIDTH}px`);
 
   // Before the fix these read `${MAX_WIDTH - MOCKED_SCROLLBAR_PROBE_SIZE}px`
-  // (242px) -- narrower than the body -- because the header/footer width was
+  // (258px) -- narrower than the body -- because the header/footer width was
   // computed by subtracting the separately-measured `getCustomScrollBarSize()`
   // probe instead of reserving space the same way the body does. That gap
   // clips the fixed-layout colgroup's rightmost column (the totals column)

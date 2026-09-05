@@ -28,123 +28,168 @@ a brand new subsystem.
 
 ## Root Cause
 
-**Verified**, via a standalone real-Chromium harness that mounts the actual,
-unmodified `useSticky.tsx`/`StickyWrap` through `react-table` (not a
-reimplementation — see "How this was verified" below):
+This section was revised after an independent review correctly challenged
+the first version's evidence. What follows separates what is directly
+verified from what remains inferred, including a place where deeper
+real-browser testing overturned my own first conclusion.
 
-In `useSticky.tsx`, the header and footer wrapper `<div>`s (the ones holding
-the fixed-layout `<table>` for the sticky header row and the totals row) had
-their width computed as:
+**Verified — the defect class is real, and I have a genuine, non-forced
+reproduction of it, but not against unmodified master.**
 
-```tsx
-// superset-frontend/plugins/plugin-chart-table/src/DataTable/hooks/useSticky.tsx (pre-fix)
-const headerContainerWidth = hasVerticalScroll
-  ? maxWidth - scrollBarSize
-  : maxWidth;
-```
+`useSticky.tsx`'s `StickyWrap` builds one shared `<colgroup>` (used by the
+header, body, and footer `<table>`s under `table-layout: fixed`) by measuring
+column widths inside a hidden "sizer" `<div>`. That sizer, and the real
+scrollable body `<div>`, both use `scrollbar-gutter: stable` *and* the same
+custom `::-webkit-scrollbar { width: 8px }` styling (`scrollBarStyles`,
+`useSticky.tsx:230-248`). Master's header/footer wrapper `<div>`s, however,
+computed their width as `maxWidth - scrollBarSize`, where `scrollBarSize`
+comes from a **separately JS-measured probe**, `getCustomScrollBarSize()`
+(`getScrollBarSize.ts:77-85`) — a different code path than the CSS
+`scrollbar-gutter` property the body/sizer rely on.
 
-where `scrollBarSize = getCustomScrollBarSize()` is a **JS-measured** pixel
-value: it builds a probe `<div>` styled with the same
-`::-webkit-scrollbar { width: 8px }` rule used elsewhere in this file, and
-measures how much horizontal space that specific, custom-styled scrollbar
-occupies (`getScrollBarSize.ts:77-85`).
+Testing directly in a real, non-headless Chromium (via Playwright + a real
+Xvfb X11 display, not just headless — see "How this was verified"), I found
+that **`scrollbar-gutter: stable`'s reserved width depends on whether
+`::-webkit-scrollbar` custom styling is applied to that same element**:  an
+element with the custom scrollbar styling reserves 8px (matching
+`CUSTOM_SCROLLBAR_SIZE`); the identical element *without* that styling
+reserves 15px (the browser's native scrollbar width). This held across six
+zoom levels (0.75×–1.5×) and both headless and headed rendering. This is the
+verified, non-obvious mechanism: **the amount of space `scrollbar-gutter:
+stable` reserves is not a fixed constant — it's contingent on scrollbar
+styling applied to that specific element**, so any two elements in this file
+that reserve gutter space must carry identical scrollbar styling or their
+reservations can differ.
 
-Meanwhile, the actual scrollable body div — and, critically, the **hidden
-"sizer" table that measures the column widths shared by the header, body,
-and footer via one `<colgroup>`** — reserve their scroll space using a
-completely different, unrelated browser mechanism:
+I confirmed this concretely by testing an intermediate, incomplete fix (see
+below): converging the header/footer onto `scrollbar-gutter: stable` *without*
+also giving them the same `scrollBarStyles` custom-scrollbar CSS the
+body/sizer carry reserves the *unstyled* 15px on header/footer while the
+sizer (styled) still computes the shared colgroup against its own 8px
+reservation. Real, non-forced consequence, measured with real DOM APIs in a
+real browser: header/footer wrapper `clientWidth` = 190px, footer `<table>`
+`scrollWidth` = 194px — a genuine 4px overflow of an `overflow: hidden`
+container, i.e. real clipping, with no mocked/forced values anywhere. This
+is a live demonstration that "two independently-computed reservations for
+the same scrollbar must be trusted to agree" is a real, reproducible failure
+mode in this exact file, not a hypothetical one — it's just not the
+failure mode present in unmodified master.
 
-```tsx
-// body div (unchanged by this fix)
-scrollbarGutter: hasVerticalScroll ? 'stable' : undefined,
-```
+**What I could NOT verify: that unmodified master's specific
+`getCustomScrollBarSize()`-based arithmetic diverges from the body/sizer's
+reservation under any real (non-forced) browser condition available in this
+sandbox.** My first pass at this RCA claimed this divergence based on
+*headless* Chromium alone, where the probe read 0px against a 15px
+"unstyled" gutter comparison — but that comparison was wrong on two counts,
+both caught in review:
 
-`scrollbar-gutter: stable` is a CSS layout feature: the browser decides how
-much space to reserve for a *potential* scrollbar, independent of whether an
-actual scrollbar is showing and independent of any `::-webkit-scrollbar`
-cosmetic styling applied to that element. There is no contract anywhere in
-the browser or the spec that this reserved amount equals whatever
-`getCustomScrollBarSize()`'s probe happens to measure — they are two
-unrelated APIs that happen to often be close in value on some
-platforms, purely by coincidence.
+1. It compared the probe against an *unstyled* gutter reservation, but the
+   body/sizer's actual reservation is the *styled* one (8px), which is what
+   the probe is supposed to represent in the first place.
+2. Headless Chromium's synthetic scrollbar probe (an off-screen
+   `overflow: scroll` div) reads 0px in this environment — but re-running
+   the identical probe in a **real, headed** Chromium session (Playwright
+   launched against a real Xvfb X11 display, not headless) gives 8px,
+   *exactly* matching the styled `scrollbar-gutter` reservation. I swept
+   chart widths from 260px down to 190px, the full shrink→grow→resize
+   sequence, and six zoom levels, all against unmodified master code in the
+   headed browser: header, body, and footer `clientWidth` were identical at
+   every single step. Master's arithmetic and the body/sizer's CSS
+   reservation agree in every real-browser condition this sandbox could
+   produce.
 
-Measured directly in headless Chromium (the same engine Playwright/CI use):
+So: the specific numeric mismatch I originally proposed as "the" root cause
+does not reproduce against master in real (non-headless) Chromium. It's
+inferred, not verified, that some other real browser/OS/scrollbar-theme
+combination (not available in this sandbox — only one Linux/Chromium build
+plus a real X11 display were on hand) causes `getCustomScrollBarSize()` to
+diverge from `scrollbar-gutter`'s reservation against master's code
+specifically. One concrete, in-product example of a non-standard rendering
+path that could plausibly matter here: Superset's own Alerts & Reports
+feature renders dashboards through a headless browser to generate email
+screenshots, which is exactly the rendering mode where I *did* observe the
+probe read 0 — though even there, master's specific direction of mismatch
+(probe reading *lower* than the styled reservation) produces wasted space,
+not clipping, so it doesn't fully explain the report either.
 
-- `getCustomScrollBarSize()`'s probe → **0px** in this build (its
-  `::-webkit-scrollbar` styling has no effect because this environment uses
-  overlay scrollbars for a `overflow:scroll` probe element).
-- `scrollbar-gutter: stable`'s actual reservation on an equivalent element →
-  **~15px**.
+**A more likely contributor to the exact reported persistence
+("stays clipped after growing back"), inferred but grounded in a separately
+verified defect:** see the `needScrollBar` height-comparison bug under
+"Latent Bugs Found". It makes `hasVerticalScroll` switch on too easily and
+switch back off only once the chart is grown by an extra
+`theadHeight + tfootHeight` px beyond what's actually needed — i.e. it's
+easy for the scrollbar state, and the ~8px width reservation that comes with
+it, to stay "on" after a grow-back that should have turned it off. A Total
+value sized close to the chart's edge in the first place, combined with that
+stuck reservation, plausibly explains "shrink, then grow back, and it's
+still cut off" independent of whether the header/footer/body reservations
+agree with each other. This bug is real (verified by direct computation and
+by measurement) but left unfixed here — it's a distinct defect, and fixing
+it would change scrollbar-appearance behavior more broadly than this PR
+should.
 
-Because the column widths (`colWidths`, i.e. the `<colgroup>` used by all of
-header/body/footer) are computed via the sizer, whose available width is
-narrowed by the `scrollbar-gutter: stable` amount, while the header/footer
-wrapper's own width was narrowed by the *separately-measured*
-`scrollBarSize`, any divergence between those two numbers means the
-fixed-layout `<table>` inside the header/footer wrapper (width = sum of
-`colWidths`) can be **wider** than the wrapper `<div>` itself (width =
-`maxWidth - scrollBarSize`). The wrapper uses `overflow: hidden` (not
-`scroll`), so the excess is silently clipped off the right edge — which is
-exactly where the metric/Total column sits.
-
-This only becomes visible once `hasVerticalScroll` flips to `true` — i.e.
-only after the user shrinks the chart enough to force the body to actually
-need to scroll. On first render (chart created tall enough that everything
-fits, `hasVerticalScroll: false`), `headerContainerWidth` was just
-`maxWidth`, so nothing was clipped — matching the report that the bug only
-appears *after* the manual shrink step, not on initial load. Growing the
-chart back up does not fix it because it's not a stale/stuck-state bug: as
-long as `hasVerticalScroll` is (still) `true`, the two independent
-computations disagree on every render, not just transiently.
-
-**Inferred** (plausible, not independently reproduced on a second real
-browser/OS in this sandbox): the specific *direction* of the mismatch
-(`scrollBarSize` measuring larger than the actual `scrollbar-gutter`
-reservation, which is the direction that clips rather than merely wastes
-space) depends on the user's browser/OS scrollbar configuration — e.g.
-platforms/zoom levels/DPI settings where the forced custom classic scrollbar
-probe reads larger than what `scrollbar-gutter: stable` reserves. This
-would explain why the bug is intermittent across environments and has
-prompted several independent partial fixes to this same file over the
-years rather than one that stuck.
+**Why the fix stands regardless of an unpinned master trigger:** master's
+approach relies on a JS probe built from a *synthetic, unrelated* DOM
+element correctly predicting what a browser's `scrollbar-gutter` CSS
+property will reserve on a *completely different* set of elements. I've
+shown this holds in the one real browser available here, but nothing
+guarantees it holds everywhere Superset runs — and I demonstrated, concretely
+and without forcing anything, that the moment any part of this file reserves
+gutter space through a path that isn't identical to the body/sizer's, real
+clipping results. The fix removes that reliance entirely: header, footer,
+body, and the sizer now all reserve scrollbar space through the exact same
+mechanism (`scrollbar-gutter: stable` plus the same custom scrollbar
+styling), so there is no longer a second, independently-measured number that
+could ever disagree.
 
 ### How this was verified
 
-Reasoning about `table-layout: fixed` + `scrollbar-gutter` + a JS-measured
-scrollbar probe interacting across a resize sequence is exactly the kind of
-thing that's easy to get subtly wrong by inspection alone, and jsdom (used
-by this repo's Jest tests) doesn't implement real CSS layout at all
-(`getBoundingClientRect`/`clientWidth` are stubbed to 0), so it can't be used
-to observe this mechanism directly. To avoid reasoning-only conclusions:
+jsdom (this repo's Jest environment) does not implement real CSS layout —
+`getBoundingClientRect`/`clientWidth` are stubbed — so this mechanism cannot
+be observed through a jsdom test. To avoid reasoning-only conclusions:
 
-1. Built a throwaway harness (`.scratch-repro/`, not part of this diff) that
-   imports the **real, unmodified** `useSticky.tsx` through `react-table`,
-   bundled with esbuild, and drove it with Playwright against a real,
-   already-cached Chromium binary (no Docker/Superset server needed).
-2. Confirmed `getCustomScrollBarSize()` and `scrollbar-gutter: stable`'s
-   actual reservation diverge in this browser (0px vs. ~15px) — a genuine,
-   measured fact about this Chromium build, not a guess.
-3. Ran the exact shrink → grow sequence against the real code with those
-   stock values: no clipping, because in this environment `scrollBarSize`
-   (0) is *smaller* than the real reservation (~15), so the header/footer
-   div ends up wider than the colgroup needs (wasted space, not clipping —
-   matching the "column misalignment" framing of prior fixes to this file).
-4. Isolated the single variable: temporarily forced
-   `getCustomScrollBarSize()` to return a value larger than the real
-   `scrollbar-gutter` reservation (e.g. 70). Re-ran the identical sequence
-   against the real code: `footerDiv` width became 190px while the footer
-   `<table>`'s actual rendered width was 194px — a **measured, real-browser
-   4px overflow of an `overflow: hidden` container**, i.e. real clipping.
-5. Applied the fix (below), reran with the same forced 70px value: the
-   footer div stayed at the full `maxWidth` (260px) in every step of the
-   resize sequence, and the table content (194-205px) always fit inside
-   it — no clipping, at any value of the probe, because the probe is no
-   longer used for this computation at all.
-6. Confirmed the fix doesn't change behavior with the stock (non-forced)
-   `getCustomScrollBarSize()` value — same widths, no regression.
+1. Built a throwaway harness (`.scratch-repro/`, not part of this diff,
+   removed before committing) that imports the **real, unmodified**
+   `useSticky.tsx` through `react-table`, bundled with esbuild.
+2. Initially drove it with Playwright's default **headless** Chromium
+   (already cached in this sandbox, no download needed). This is what
+   produced the first (incorrect) conclusion above.
+3. On review pushback, re-ran the same harness against a **real, headed**
+   Chromium session: started `Xvfb` directly (no `xauth` available in this
+   sandbox, so `xvfb-run` didn't work; launched `Xvfb :99` manually and
+   pointed `DISPLAY=:99` at a real `chromium.launch({ headless: false })`
+   session) — genuine on-screen rendering, not headless approximation.
+4. Measured the same probe-vs-gutter comparison in both modes and found
+   headless and headed Chromium disagree with each other on the probe's
+   result (0px vs. 8px) even though they agree on the CSS-only
+   `scrollbar-gutter` reservation (15px unstyled / 8px styled in both) —
+   i.e. the divergence I first reported was an artifact of the headless
+   probe technique, not a property of real rendering.
+5. Swept chart widths (260px→190px) through the full
+   shrink→grow-back sequence, and six zoom levels, against unmodified
+   master in the headed browser: no divergence between header/body/footer
+   at any point.
+6. Reproduced real, non-forced clipping (190px container vs. 194px content)
+   by testing an incomplete fix (`scrollbar-gutter` on header/footer without
+   the matching `scrollBarStyles`) — in both headless and headed Chromium
+   identically.
+7. Applied the corrected fix (`scrollBarStyles` + `scrollbar-gutter` on
+   header/footer, matching body/sizer exactly) and reswept the same width
+   range and resize sequence: header, body, and footer `clientWidth` are
+   identical at every step, in both headless and headed Chromium.
+8. Also found (documented under Latent Bugs, not fixed): at chart widths
+   narrow enough that the total's *unbreakable* natural width barely exceeds
+   even the full, unreserved chart width, clipping occurs on **both** master
+   and the fixed code, identically, at every resize step including before
+   any scrollbar ever appears — this is a `table-layout: auto` sizer
+   correctly refusing to shrink an unbreakable numeric string below its
+   natural width, an orthogonal "chart is too narrow for this content at
+   all" case, not the reservation-mismatch defect this fix addresses.
 
-This traces the defect through actual DOM state at each step, not just a
-prose description of what "should" happen.
+This traces the defect through actual DOM state in a real, on-screen
+browser at each step, not just a prose description of what "should" happen
+— and this write-up says plainly where that tracing overturned an earlier,
+headless-only conclusion rather than smoothing over it.
 
 ## Why It Wasn't Caught
 
@@ -156,37 +201,65 @@ mechanism at all. Every existing test that renders `TableChart` or
 `getScrollBarSize.ts` in isolation — nothing exercises `useSticky.tsx`'s
 `StickyWrap` component, so none of the four fixes to this exact mechanism
 since 2022 (#21064, #26964, #36891, #42573) added a regression guard for the
-underlying invariant (header/footer/body must all agree on how much
-scrollbar space is reserved). Each fix addressed the specific manifestation
-someone happened to reproduce, without a test pinning the invariant itself,
-which is presumably why the area keeps regressing under new trigger
-conditions.
+underlying invariant (header/footer/body must all reserve scrollbar space
+through the same mechanism). Each fix addressed the specific manifestation
+someone happened to reproduce, without a test pinning the invariant itself.
 
-Manual QA also wouldn't reliably catch this: it depends on the reporter's
-OS/browser scrollbar rendering mode (the bug is invisible on browser/OS
-combinations where the two measurements happen to diverge in the
-non-clipping direction, e.g. the very headless Chromium this sandbox used).
+Manual QA also wouldn't reliably catch a reservation-mismatch of this kind:
+it would depend on the reporter's specific browser/OS/rendering-mode
+scrollbar behavior, which is exactly the kind of environment-sensitive
+condition this investigation had to build custom real-browser tooling
+(headless *and* headed) to even observe directly.
 
 ## The Fix
 
 `superset-frontend/plugins/plugin-chart-table/src/DataTable/hooks/useSticky.tsx`,
-in `StickyWrap` (~lines 289-333): removed the `headerContainerWidth =
-hasVerticalScroll ? maxWidth - scrollBarSize : maxWidth` computation and the
-numeric `width: headerContainerWidth` on the header/footer wrapper divs.
-Replaced with `width: maxWidth` plus the exact same
-`scrollbarGutter: hasVerticalScroll ? 'stable' : undefined` CSS property the
-body div already uses. Header, body, and footer — and the sizer that
-computes the shared `<colgroup>` widths — now all derive their available
-width from the single, same `scrollbar-gutter` mechanism, so they can no
-longer disagree regardless of what any given browser's
-`::-webkit-scrollbar`-based probe measures. `getCustomScrollBarSize()` is
-untouched and still used for the (separate, legitimate) horizontal-scrollbar
+in `StickyWrap` (~lines 289-345):
+
+1. Removed the `headerContainerWidth = hasVerticalScroll ? maxWidth -
+   scrollBarSize : maxWidth` computation and the numeric
+   `width: headerContainerWidth` on the header/footer wrapper divs.
+   Replaced with `width: maxWidth` plus
+   `scrollbarGutter: hasVerticalScroll ? 'stable' : undefined` — the same
+   CSS property the body div already uses.
+2. Also applied `css={scrollBarStyles}` (the same custom
+   `::-webkit-scrollbar` styling the body/sizer already carry) to the
+   header/footer wrapper divs. This step is required, not cosmetic:
+   `scrollbar-gutter: stable`'s reserved width depends on this styling being
+   present (verified above), so header/footer must carry it too or they
+   reserve a different amount than the body/sizer just did.
+
+Header, body, footer, and the sizer that computes the shared `<colgroup>`
+widths now all derive their available width from the exact same mechanism,
+so they cannot disagree regardless of what any given browser's
+`::-webkit-scrollbar`-based JS probe measures. `getCustomScrollBarSize()` is
+untouched and still used for the separate, legitimate horizontal-scrollbar
 real-height reservation elsewhere in the same effect.
 
 This removes the divergent computation rather than compensating for it (e.g.
-no new "add a few px of buffer" fudge factor), because the buffer would
-itself be a browser/OS/zoom-dependent number with the exact same class of
-bug.
+no new "add a few px of buffer" fudge factor), because a buffer would itself
+be a browser/OS/zoom-dependent number with the exact same class of bug.
+
+## Alternatives Considered
+
+- **Keep `getCustomScrollBarSize()` for header/footer, but also apply it to
+  the body/sizer instead of `scrollbar-gutter`.** Rejected: this is the
+  inverse of the chosen fix and has the same property of relying on a JS
+  probe matching a real scrollbar's occupied space, rather than reusing one
+  first-class CSS mechanism (`scrollbar-gutter`) everywhere. It would also
+  touch the sizer's mounted-content measurement path, a larger and riskier
+  change for a bug that doesn't require it.
+- **Add a numeric buffer/fudge factor to `headerContainerWidth`** (e.g.
+  round up, or add a few px of slack). Rejected per the task's own guidance:
+  a fudge factor is itself a browser/OS/zoom-dependent number and doesn't
+  remove the underlying defect, just narrows the range where it manifests.
+- **Fix the `needScrollBar` height-comparison bug instead/also** (see Latent
+  Bugs). Considered, because it's a plausible contributor to the
+  "stays clipped after growing back" persistence. Rejected for this PR:
+  it's a different defect (scrollbar *visibility* logic, not
+  *width-reservation-consistency* logic), fixing it changes when scrollbars
+  appear/disappear more broadly than this bug fix should, and the
+  independent review already agreed it should stay out of scope.
 
 ## Latent Bugs Found
 
@@ -198,20 +271,29 @@ bug.
   `tbodyHeight > maxHeight - theadHeight - tfootHeight`); the current form
   double-counts the header/footer height, so `hasVerticalScroll` reports
   `true` up to `theadHeight + tfootHeight` px earlier than actually
-  necessary. Verified by direct computation and by a Playwright measurement
-  showing a 400px container reporting `hasVerticalScroll: true` for content
-  that only needed 379px. This doesn't clip anything by itself (column
-  widths are computed via `scrollbar-gutter`, unaffected by this flag), but
-  it does mean charts show an unnecessary scrollbar/reserved gutter more
-  often than needed, and makes the flag "stickier" than it should be across
-  a resize. Left unfixed — out of scope for the totals-clipping defect, and
-  changing it would alter scrollbar-appearance behavior more broadly than
-  this bug fix should.
+  necessary, and only reverts to `false` once the chart is grown well past
+  the point a user would expect. Verified by direct computation and by a
+  real-browser measurement showing a 400px container reporting
+  `hasVerticalScroll: true` for content that only needed 379px. Plausibly a
+  meaningful contributor to why "grow the chart back up" doesn't always
+  self-heal a scrollbar-adjacent layout issue (see Root Cause). Left
+  unfixed — a different defect than the reservation-consistency bug this PR
+  fixes, and changing it alters scrollbar-appearance behavior more broadly
+  than this fix should.
+- At chart widths where the Total's *unbreakable* natural content width
+  (numbers have no break points, so `table-layout: auto` cannot wrap them)
+  is only barely smaller than the chart's total width, the total clips
+  identically on master and on the fixed code, at every resize step,
+  including before any scrollbar ever appears. Verified via the same
+  real-browser sweep (both headless and headed Chromium). This is a
+  different, more fundamental "the chart is too narrow for this content
+  regardless of scrollbars" case, not the reservation-mismatch this PR
+  targets — not fixed here.
 - The `<col width={w} />` values passed to `<colgroup>` are floats (e.g.
   `95.65625`). The legacy HTML `width` attribute on `<col>` may be rounded
-  down/truncated by some rendering engines, which could compound with the
-  scrollbar-space issue above. Not confirmed to matter on evergreen Chromium
-  in this investigation; noted for anyone touching this file again.
+  down/truncated by some rendering engines, which could compound with either
+  of the above. Not confirmed to matter on evergreen Chromium in this
+  investigation; noted for anyone touching this file again.
 
 ## Prevention
 
@@ -222,7 +304,11 @@ mocked DOM measurements that force `hasVerticalScroll: true`, and mocks
 CSS-computed one. It asserts the header/footer wrapper's `style.width` and
 `style.scrollbarGutter` match the body's — i.e. it pins the invariant
 ("header, body, and footer must derive their available width from the same
-mechanism") rather than any specific pixel value, so it would have failed
-against every regression this file has had since #26964 introduced
-`scrollbar-gutter`, not just this one. It fails against the pre-fix code
-(`258px` vs. expected `300px`) and passes after the fix.
+mechanism") rather than any specific pixel value. It fails against the
+pre-fix code (`258px` vs. expected `300px`, since
+`300 - 42 (mocked probe) = 258`) and passes after the fix. Note this jsdom
+test cannot verify the `scrollBarStyles`/`css` prop half of the fix (emotion's
+`css` prop doesn't resolve to an observable `className` in this repo's Jest
+setup — confirmed empirically before settling on this assertion shape), only
+the `style.width`/`style.scrollbarGutter` half; the `scrollBarStyles`
+requirement is verified instead by the real-browser harness described above.

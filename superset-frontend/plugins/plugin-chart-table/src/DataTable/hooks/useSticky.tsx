@@ -292,6 +292,14 @@ function StickyWrap({
     // aren't guaranteed to agree, and any gap between them narrows this
     // container's overflow:hidden box below the (fixed-layout) colgroup width
     // computed from the body/sizer, silently clipping the rightmost column.
+    //
+    // The reserved gutter width itself also depends on whether `::-webkit-
+    // scrollbar` styling is applied to the element doing the reserving: an
+    // element with `scrollBarStyles` reserves space for the narrower custom
+    // scrollbar, while an unstyled one reserves the browser's default (wider)
+    // scrollbar width. The body/sizer below carry `scrollBarStyles`, so the
+    // header/footer must too, or they'd reserve a different (larger) gutter
+    // than the one the colgroup was actually sized against.
     const headerFooterGutter: CSSProperties = {
       scrollbarGutter: hasVerticalScroll ? 'stable' : undefined,
     };
@@ -306,6 +314,7 @@ function StickyWrap({
           boxSizing: 'border-box',
           ...headerFooterGutter,
         }}
+        css={scrollBarStyles}
         role="presentation"
       >
         {cloneElement(
@@ -328,6 +337,7 @@ function StickyWrap({
           boxSizing: 'border-box',
           ...headerFooterGutter,
         }}
+        css={scrollBarStyles}
         role="presentation"
       >
         {cloneElement(
