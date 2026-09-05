@@ -140,8 +140,9 @@ class Task(CoreModel):
         Update specific properties fields (merge semantics).
 
         Only updates fields present in the updates dict. The ``private`` subtree
-        is merged recursively (its ``framework`` and ``task`` namespaces merge
-        independently), so a write to one namespace never clobbers the other.
+        is merged recursively (its ``framework``, ``task`` and ``subscription``
+        namespaces merge independently), so a write to one namespace never
+        clobbers the others.
 
         Host implementations will replace this method during initialization.
 
@@ -159,7 +160,8 @@ class Task(CoreModel):
         The freeform, task-type-specific internal namespace (isolated from the
         framework-owned ``private["framework"]`` keys) for handles a task type
         needs to persist but that are not task output — e.g. an engine query
-        cancel handle, or a subscription policy's per-client bookkeeping. Never
+        cancel handle. A subscription policy's per-client bookkeeping belongs in
+        the separate ``private["subscription"]`` namespace instead. Never
         surfaced to user-facing API payloads except in debug mode.
 
         Host implementations will replace this method during initialization.

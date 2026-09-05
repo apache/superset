@@ -183,11 +183,15 @@ A task's state lives in three tiers:
      `task.update_framework_private({...})`.
    - `private.task` — freeform, task-type-specific internal handles (e.g. the
      chart-data query task's engine cancel handle,
-     `cancel_query_id`/`cancel_database_id`, or a
-     [subscription policy](#per-client-subscriptions-subscription-policies)'s
-     per-client bookkeeping). Written by task/execution code via
+     `cancel_query_id`/`cancel_database_id`). Written by task/execution code via
      `task.update_task_private({...})`.
-   Both namespaces merge independently (a write to one never clobbers the other).
+   - `private.subscription` — a
+     [subscription policy](#per-client-subscriptions-subscription-policies)'s
+     per-client bookkeeping (e.g. chart-data's per-tab consumer list). Written
+     only from the policy hooks via `TaskDAO.merge_subscription_state(task, {...})`;
+     the executor never writes it, and its whole-blob property writes carry the
+     row's current value through instead of overwriting it.
+   All namespaces merge independently (a write to one never clobbers another).
 3. **Results (`payload`)** — end-user-facing task output (intermediate/final):
    e.g. a `cache_key` or an engine tracking URL. Set via
    `ctx.update_task(payload=...)` and rendered in the Task List info bubble. In
@@ -195,7 +199,8 @@ A task's state lives in three tiers:
 
 Rule of thumb: user-facing status → top-level `properties`; user-facing output →
 `payload`; framework plumbing → `private.framework`; task-specific internal
-handles → `private.task`.
+handles → `private.task`; subscription-policy bookkeeping →
+`private.subscription`.
 
 
 ### Handlers
@@ -310,8 +315,8 @@ from superset_core.tasks.subscription import TaskSubscriptionPolicy
 class MyConsumerPolicy(TaskSubscriptionPolicy):
     def on_subscribe(self, task, *, principal, client_ref):
         # Record this client (e.g. append f"{principal}:{client_ref}" to a list
-        # in task.update_task_private({...})). Called after the framework has
-        # ensured the principal's subscriber row.
+        # via TaskDAO.merge_subscription_state(task, {...})). Called after the
+        # framework has ensured the principal's subscriber row.
         ...
 
     def on_unsubscribe(self, task, *, principal, client_ref) -> bool:
@@ -329,8 +334,14 @@ def my_task() -> None:
 
 Both hooks run in the web request process, inside the lock that serializes
 concurrent submit/cancel for the task, so an implementation can safely
-read-modify-write task state (typically a list under `private.task`, which the
-framework never inspects) without extra locking. `client_ref` is the caller's
+read-modify-write its bookkeeping without extra locking against other
+submits/cancels. Keep that bookkeeping under `private.subscription` and write it
+with `TaskDAO.merge_subscription_state(task, {...})`: the executor does not hold
+the submit/cancel lock and keeps writing the task's properties while it runs, so
+the helper merges under a row lock and the executor's own writes preserve that
+namespace, where a plain `task.update_task_private({...})` would be overwritten
+by the executor's next write and silently drop a client that joined
+mid-execution. `client_ref` is the caller's
 opaque per-client id (for chart-data, the browser tab id sent as `tab_id` on the
 request); it is **not** an authorization token — the framework authorizes the
 calling principal before the policy runs, and the policy only ever records or

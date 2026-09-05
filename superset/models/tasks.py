@@ -180,9 +180,11 @@ class Task(CoreTask, AuditMixinNullable, Model):
 
         Only updates fields present in the updates dict. Top-level keys are
         shallow-merged, but the ``private`` subtree is merged *recursively* — its
-        ``framework`` and ``task`` namespaces (and the keys within each) merge
-        independently, so a write to one namespace never clobbers the other or
-        drops earlier keys.
+        ``framework``, ``task`` and ``subscription`` namespaces (and the keys
+        within each) merge independently, so a write to one namespace never
+        clobbers the others or drops earlier keys. The ``subscription`` namespace
+        is written through ``TaskDAO.merge_subscription_state`` (a row-locked
+        merge) rather than directly, see that method for why.
 
         :param updates: TaskProperties dict with fields to update
 

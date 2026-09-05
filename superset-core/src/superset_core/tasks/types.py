@@ -114,19 +114,25 @@ class PrivateProperties(TypedDict, total=False):
     """Internal task runtime state, stored under ``TaskProperties["private"]``.
 
     Never surfaced to user-facing API payloads except in debug mode; distinct
-    from task output, which belongs in the task's ``payload``. Split into two
+    from task output, which belongs in the task's ``payload``. Split into three
     structurally isolated namespaces so a task type's freeform key can never
-    collide with a framework orchestration key:
+    collide with a framework orchestration key or a subscription policy's
+    bookkeeping:
 
     - ``framework``: named framework-owned keys, common to all tasks (see
       ``FrameworkPrivateProperties``).
     - ``task``: freeform, task-type-specific internal handles, written only by
       task/execution code. E.g. the chart-data query task stores its engine
       cancel handle here (``cancel_query_id`` / ``cancel_database_id``).
+    - ``subscription``: freeform bookkeeping owned by the task type's
+      ``SubscriptionPolicy`` (see ``superset_core.tasks.subscription``), written
+      only through the policy hooks. E.g. the chart-data policy stores its
+      per-client consumer list here. The framework never inspects it.
     """
 
     framework: "FrameworkPrivateProperties"
     task: dict[str, Any]
+    subscription: dict[str, Any]
 
 
 @dataclass(frozen=True)

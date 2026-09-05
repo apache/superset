@@ -56,8 +56,8 @@ export enum TaskScope {
 
 /**
  * Internal, debug-only task state, under `properties.private`. Present in API
- * responses only in debug mode. Two isolated namespaces so a task-specific key
- * can never collide with a framework key.
+ * responses only in debug mode. Isolated namespaces so a task-specific key can
+ * never collide with a framework key or a subscription policy's bookkeeping.
  */
 export interface TaskPrivateProperties {
   // Framework-owned orchestration + error debug.
@@ -69,6 +69,8 @@ export interface TaskPrivateProperties {
   };
   // Freeform task-type-specific handles (e.g. cancel_query_id/cancel_database_id).
   task?: Record<string, unknown>;
+  // Subscription-policy bookkeeping (e.g. chart-data's per-tab consumer list).
+  subscription?: Record<string, unknown>;
 }
 
 /**

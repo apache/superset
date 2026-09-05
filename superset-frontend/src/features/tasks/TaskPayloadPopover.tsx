@@ -80,7 +80,9 @@ export default function TaskPayloadPopover({
 
   const hasPayload = hasContent(payload);
   const hasPrivate =
-    hasContent(taskPrivate?.framework) || hasContent(taskPrivate?.task);
+    hasContent(taskPrivate?.framework) ||
+    hasContent(taskPrivate?.task) ||
+    hasContent(taskPrivate?.subscription);
 
   const content = (
     <PayloadContainer>

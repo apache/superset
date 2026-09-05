@@ -91,8 +91,6 @@ def test_scope_affecting_claims_change_the_key(mocker: MockerFixture) -> None:
         ("resources", [{"type": "dashboard", "id": "xyz"}]),
         ("datasets", [3]),
         ("rev", 2),
-        ("exp", 3000),
-        ("iat", 1500),
         ("aud", "other-audience"),
         ("user", {"username": "other"}),
     ):
@@ -100,6 +98,22 @@ def test_scope_affecting_claims_change_the_key(mocker: MockerFixture) -> None:
         assert get_current_guest_subscriber_key() != baseline, (
             f"differing {claim} should derive a different key"
         )
+
+
+def test_refreshed_token_with_same_scope_keeps_the_key(mocker: MockerFixture) -> None:
+    """A re-issued token (new iat/exp, same scope) must keep the subscriber key.
+
+    The embedded SDK refreshes the guest token on a fixed cadence, so a key that
+    changed per issuance would stop matching the subscriber row mid-query and the
+    polls after a refresh could no longer see the task.
+    """
+    from superset.tasks.guest import get_current_guest_subscriber_key
+
+    _patch_guest(mocker, _guest_token(iat=1000, exp=2000))
+    baseline = get_current_guest_subscriber_key()
+
+    _patch_guest(mocker, _guest_token(iat=1995, exp=2995))
+    assert get_current_guest_subscriber_key() == baseline
 
 
 def test_unrelated_claims_do_not_change_the_key(mocker: MockerFixture) -> None:
