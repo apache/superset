@@ -218,7 +218,17 @@ def set_app_error_handlers(app: Flask) -> None:  # noqa: C901
         logger.warning("Refresh CSRF token error", exc_info=True)
 
         if request.is_json:
-            return show_http_exception(ex)
+            return json_error_response(
+                [
+                    SupersetError(
+                        message=ex.description
+                        or _("The CSRF token could not be validated."),
+                        error_type=SupersetErrorType.CSRF_ERROR,
+                        level=ErrorLevel.WARNING,
+                    ),
+                ],
+                status=ex.code or 400,
+            )
 
         return redirect_to_login()
 
