@@ -14,16 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from superset.db_engine_specs.base import (
+    AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
+    DatabaseCategory,
+)
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 
 
 class AuroraMySQLDataAPI(MySQLEngineSpec):
-    """Amazon Aurora MySQL via the Data API.
-
-    Note: Documentation is in MySQLEngineSpec's compatible_databases section.
-    This spec exists for runtime support of the auroradataapi driver.
-    """
+    """Amazon Aurora MySQL via the Data API."""
 
     engine = "mysql"
     default_driver = "auroradataapi"
@@ -36,13 +36,37 @@ class AuroraMySQLDataAPI(MySQLEngineSpec):
         "region_name={region_name}"
     )
 
+    metadata = {
+        "description": (
+            "Amazon Aurora MySQL via the Data API for serverless connectivity."
+        ),
+        "logo": "aws-aurora.jpg",
+        "homepage_url": "https://aws.amazon.com/rds/aurora/",
+        "categories": [
+            DatabaseCategory.CLOUD_AWS,
+            DatabaseCategory.HOSTED_OPEN_SOURCE,
+        ],
+        "pypi_packages": ["sqlalchemy-aurora-data-api"],
+        "connection_string": (
+            "mysql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/"
+            "{database_name}?aurora_cluster_arn={aurora_cluster_arn}&"
+            "secret_arn={secret_arn}&region_name={region_name}"
+        ),
+        "parameters": {
+            "aws_access_id": "AWS Access Key ID",
+            "aws_secret_access_key": "AWS Secret Access Key",
+            "database_name": "Database name",
+            "aurora_cluster_arn": "Aurora cluster ARN",
+            "secret_arn": "Secrets Manager ARN for credentials",
+            "region_name": "AWS region (e.g., us-east-1)",
+        },
+        "docs_url": "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/",
+        "known_incompatibilities": AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
+    }
+
 
 class AuroraPostgresDataAPI(PostgresEngineSpec):
-    """Amazon Aurora PostgreSQL via the Data API.
-
-    Note: Documentation is in PostgresEngineSpec's compatible_databases section.
-    This spec exists for runtime support of the auroradataapi driver.
-    """
+    """Amazon Aurora PostgreSQL via the Data API."""
 
     engine = "postgresql"
     default_driver = "auroradataapi"
@@ -54,6 +78,35 @@ class AuroraPostgresDataAPI(PostgresEngineSpec):
         "secret_arn={secret_arn}&"
         "region_name={region_name}"
     )
+
+    metadata = {
+        "description": (
+            "Amazon Aurora PostgreSQL via the Data API for serverless connectivity."
+        ),
+        "logo": "aws-aurora.jpg",
+        "homepage_url": "https://aws.amazon.com/rds/aurora/",
+        "categories": [
+            DatabaseCategory.CLOUD_AWS,
+            DatabaseCategory.HOSTED_OPEN_SOURCE,
+        ],
+        "pypi_packages": ["sqlalchemy-aurora-data-api"],
+        "connection_string": (
+            "postgresql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/"
+            "{database_name}?aurora_cluster_arn={aurora_cluster_arn}&"
+            "secret_arn={secret_arn}&region_name={region_name}"
+        ),
+        "default_port": 5432,
+        "parameters": {
+            "aws_access_id": "AWS Access Key ID",
+            "aws_secret_access_key": "AWS Secret Access Key",
+            "database_name": "Database name",
+            "aurora_cluster_arn": "Aurora cluster ARN",
+            "secret_arn": "Secrets Manager ARN for credentials",
+            "region_name": "AWS region (e.g., us-east-1)",
+        },
+        "docs_url": "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/",
+        "known_incompatibilities": AURORA_DATA_API_KNOWN_INCOMPATIBILITIES,
+    }
 
 
 class AuroraMySQLEngineSpec(MySQLEngineSpec):
@@ -68,6 +121,30 @@ class AuroraMySQLEngineSpec(MySQLEngineSpec):
     engine_name = "Aurora MySQL"
     default_driver = "mysqldb"
 
+    metadata = {
+        "description": (
+            "Amazon Aurora MySQL is a fully managed, "
+            "MySQL-compatible relational database."
+        ),
+        "logo": "aws-aurora.jpg",
+        "homepage_url": "https://aws.amazon.com/rds/aurora/",
+        "categories": [
+            DatabaseCategory.CLOUD_AWS,
+            DatabaseCategory.HOSTED_OPEN_SOURCE,
+        ],
+        "pypi_packages": ["mysqlclient"],
+        "connection_string": "mysql://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 3306,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "Aurora cluster endpoint",
+            "port": "Default 3306",
+            "database": "Database name",
+        },
+        "docs_url": "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/",
+    }
+
 
 class AuroraPostgresEngineSpec(PostgresEngineSpec):
     """
@@ -80,3 +157,27 @@ class AuroraPostgresEngineSpec(PostgresEngineSpec):
     engine = "postgresql"
     engine_name = "Aurora PostgreSQL"
     default_driver = "psycopg2"
+
+    metadata = {
+        "description": (
+            "Amazon Aurora PostgreSQL is a fully managed, "
+            "PostgreSQL-compatible relational database."
+        ),
+        "logo": "aws-aurora.jpg",
+        "homepage_url": "https://aws.amazon.com/rds/aurora/",
+        "categories": [
+            DatabaseCategory.CLOUD_AWS,
+            DatabaseCategory.HOSTED_OPEN_SOURCE,
+        ],
+        "pypi_packages": ["psycopg2"],
+        "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 5432,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "Aurora cluster endpoint",
+            "port": "Default 5432",
+            "database": "Database name",
+        },
+        "docs_url": "https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/",
+    }

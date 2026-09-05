@@ -25,6 +25,21 @@ from superset.db_engine_specs.odps import OdpsBaseEngineSpec, OdpsEngineSpec
 from superset.sql.parse import Partition, Table
 
 
+def test_odps_properties() -> None:
+    assert OdpsEngineSpec.engine == "odps"
+    assert OdpsEngineSpec.engine_name == "ODPS (MaxCompute)"
+    assert OdpsEngineSpec.default_driver == "odps"
+    assert issubclass(OdpsEngineSpec, OdpsBaseEngineSpec)
+
+
+def test_odps_metadata() -> None:
+    metadata = OdpsEngineSpec.metadata
+    assert "MaxCompute" in metadata["description"]
+    assert metadata["logo"] == "maxcompute.png"
+    assert "pyodps" in metadata["pypi_packages"]
+    assert "odps://" in metadata["connection_string"]
+
+
 def test_odps_base_engine_spec_get_table_metadata_raises() -> None:
     """OdpsBaseEngineSpec.get_table_metadata must not be called directly."""
     with pytest.raises(NotImplementedError):
