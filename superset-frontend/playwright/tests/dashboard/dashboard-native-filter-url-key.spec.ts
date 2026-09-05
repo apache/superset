@@ -18,58 +18,27 @@
  */
 
 /**
- * E2E migration of the Cypress "nativefilter url param key" suite (formerly
- * `cypress-base/cypress/integration/dashboard/key_value.test.ts`; it was
- * disabled as `_skip.key_value.test.ts` and later deleted, so there is nothing
- * left to remove on master).
- *
- * When a dashboard with native filters loads, the filter bar publishes its data
- * mask to the backend `filter_state` key-value store and stamps the returned
- * key into the URL as `native_filters_key`. The original suite only sniffed the
- * URL (the key is a string; it differs across visits). That is genuinely a
- * full-stack behaviour — the key is minted by a real server round-trip and
- * persisted server-side — so it is migrated here, but strengthened to assert the
- * round-trip rather than just the URL shape:
- *
- *   1. A POST /api/v1/dashboard/<id>/filter_state mints the key, and the key in
- *      that response is the one that lands in the URL.
- *   2. The key resolves server-side: GET /api/v1/dashboard/<id>/filter_state/<key>
- *      returns the stored data mask (200), keyed by the dashboard's native
- *      filter. A client-only token would not resolve.
- *   3. A second, fresh navigation to the same dashboard reuses the same key.
- *
- * The original suite's second case ("should have different key when page
- * reloads") was non-functional: it compared `native_filters_key` against an
- * `initialFilterKey` variable that was declared but never assigned, so it
- * asserted against `undefined` and passed vacuously. The real backend contract
- * is the opposite — CreateFilterStateCommand reuses the existing key for a given
- * (session, tab, dashboard) via a contextual cache — so this migration asserts
- * the true behaviour (reuse) instead of the bug it inherited.
+ * The original Cypress suite's second case ("should have different key when
+ * page reloads") was non-functional: it compared `native_filters_key` against
+ * an `initialFilterKey` variable that was declared but never assigned, so it
+ * asserted against `undefined` and passed vacuously. The real backend
+ * contract is the opposite — CreateFilterStateCommand reuses the existing key
+ * for a given (session, tab, dashboard) via a contextual cache — so this
+ * migration asserts the true behaviour (reuse), not the inherited bug.
  *
  * The second visit is deliberately a fresh `page.goto` to the bare dashboard
  * URL, not `page.reload()`: a reload keeps `?native_filters_key=` in the
  * address bar, so the wait for the key would resolve against the pre-existing
  * param and take the PUT (update) branch instead of re-exercising the create
- * path. The bare URL forces a new POST, and the backend still answers with the
- * same key because its contextual cache is keyed on the tab id (persisted in
- * sessionStorage across the navigation), not on the URL. Per-tab and
- * per-session scoping of that cache is asserted by the backend integration
- * tests (tests/integration_tests/dashboards/filter_state/api_tests.py), so
- * this spec only covers the reuse leg.
+ * path. The bare URL forces a new POST, and the backend still answers with
+ * the same key because its contextual cache is keyed on the tab id (persisted
+ * in sessionStorage across the navigation), not on the URL.
  *
  * Key reuse also requires every request to reach the same filter_state cache.
- * The test config uses a per-process SimpleCache, and CI runs a single gunicorn
- * worker without recycling, so reuse is deterministic there; a multi-worker or
- * worker-recycling backend would make the reuse assertion flaky.
- *
- * The dashboard is built hermetically (one native filter + one chart on
- * birth_names), replacing the original's dependency on the seeded world_health
- * dashboard (whose example charts are flaky under load).
- *
- * CI green => the filter bar minted a persisted, server-resolvable key and a
- *             fresh navigation reused that same resolvable key.
- * CI red   => no key was published, the URL key was not the POSTed key, or the
- *             key did not resolve server-side.
+ * The test config uses a per-process SimpleCache, and CI runs a single
+ * gunicorn worker without recycling, so reuse is deterministic there; a
+ * multi-worker or worker-recycling backend would make the reuse assertion
+ * flaky.
  */
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import {
