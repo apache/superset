@@ -118,6 +118,18 @@ def import_database(  # noqa: C901
     existing = db.session.query(Database).filter_by(uuid=config["uuid"]).first()
     if existing:
         if not overwrite or not can_write:
+            if can_write:
+                # Chart/dataset/saved-query/dashboard bundles that reference
+                # an already-imported database reach this branch; without
+                # this, a schema added to the live connection since the
+                # database was first imported would never get a first-time
+                # grant through this path either. ``add_permissions()`` does
+                # a live, uncached metadata scan, so this can be slow for
+                # cross-catalog-enabled engines -- see its own comment.
+                try:
+                    add_permissions(existing)
+                except (SupersetDBAPIConnectionError, OAuth2RedirectError) as ex:
+                    logger.warning(ex.message)
             return existing
         config["id"] = existing.id
         # Stored secrets must not be rebound to a different endpoint: without
