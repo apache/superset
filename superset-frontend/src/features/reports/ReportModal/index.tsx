@@ -26,7 +26,12 @@ import {
 } from 'react';
 
 import { t } from '@apache-superset/core/translation';
-import { getClientErrorObject, VizType } from '@superset-ui/core';
+import {
+  getClientErrorObject,
+  isFeatureEnabled,
+  FeatureFlag,
+  VizType,
+} from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
@@ -165,12 +170,13 @@ function ReportModal({
   const dispatch = useDispatch();
   // Report fetch logic
   const report = useSelector<any, ReportObject>(state => {
-    const resourceType = dashboardId
-      ? CreationMethod.Dashboards
-      : CreationMethod.Charts;
+    const isChartReport = creationMethod === CreationMethod.Charts;
     return (
-      reportSelector(state, resourceType, dashboardId || chart?.id) ||
-      EMPTY_OBJECT
+      reportSelector(
+        state,
+        isChartReport ? CreationMethod.Charts : CreationMethod.Dashboards,
+        isChartReport ? chart?.id : dashboardId,
+      ) || EMPTY_OBJECT
     );
   });
   const isEditMode = report && Object.keys(report).length;
@@ -189,18 +195,21 @@ function ReportModal({
       active: true,
       force_screenshot: false,
       custom_width: currentReport.custom_width,
-      dashboard: dashboardId,
-      chart: chart?.id,
+      ...(creationMethod === CreationMethod.Charts
+        ? { chart: chart?.id }
+        : { dashboard: dashboardId }),
       name: currentReport.name,
       description: currentReport.description,
       crontab: currentReport.crontab,
       report_format: currentReport.report_format || defaultNotificationFormat,
       timezone: currentReport.timezone,
-      retry_on_failure: currentReport.retry_on_failure ?? false,
-      retry_max_attempts: currentReport.retry_max_attempts ?? 3,
-      send_failed_reports: currentReport.send_failed_reports ?? false,
-      retry_notify_owners: currentReport.retry_notify_owners ?? true,
-      retry_notify_recipients: currentReport.retry_notify_recipients ?? false,
+      ...(isFeatureEnabled(FeatureFlag.AlertReportsRetry) && {
+        retry_on_failure: currentReport.retry_on_failure ?? false,
+        retry_max_attempts: currentReport.retry_max_attempts ?? 3,
+        send_failed_reports: currentReport.send_failed_reports ?? false,
+        retry_notify_owners: currentReport.retry_notify_owners ?? true,
+        retry_notify_recipients: currentReport.retry_notify_recipients ?? false,
+      }),
     };
 
     setCurrentReport({ isSubmitting: true, error: undefined });
@@ -478,7 +487,8 @@ function ReportModal({
         />
         {isChart && renderMessageContentSection}
         {(!isChart || !isTextBasedChart) && renderCustomWidthSection}
-        {renderErrorHandlingSection}
+        {isFeatureEnabled(FeatureFlag.AlertReportsRetry) &&
+          renderErrorHandlingSection}
       </StyledBottomSection>
       {currentReport.error && (
         <Alert

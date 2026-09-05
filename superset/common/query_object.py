@@ -167,6 +167,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.from_dttm = kwargs.get("from_dttm")
         self.to_dttm = kwargs.get("to_dttm")
         self.result_type = kwargs.get("result_type")
+        # Per-query forced-refresh idempotency nonce (the async task's UUID). Set
+        # on the async read-back so a re-issued force reads the warmed result the
+        # task cached instead of recomputing; see QueryContextProcessor.
+        self.force_nonce = kwargs.get("force_nonce")
         self.time_offsets = kwargs.get("time_offsets", [])
         self.time_compare_full_range = kwargs.get("time_compare_full_range", False)
         self.inner_from_dttm = kwargs.get("inner_from_dttm")
@@ -196,13 +200,26 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         #   1. 'metric_name'   - name of predefined metric
         #   2. { label: 'label_name' }  - legacy format for a predefined metric
         #   3. { expressionType: 'SIMPLE' | 'SQL', ... } - adhoc metric
-        def is_str_or_adhoc(metric: Metric) -> bool:
-            return isinstance(metric, str) or is_adhoc_metric(metric)
+        # Keys that only ever appear on an ad-hoc metric definition. A dict
+        # carrying one of these but missing `expressionType` is a malformed
+        # ad-hoc metric, not a legacy predefined-metric reference, and must
+        # not be silently collapsed to its label, which would later be
+        # misread as a request for a saved metric of that name.
+        adhoc_metric_keys = {"sqlExpression", "aggregate", "column"}
 
-        self.metrics = metrics and [
-            x if is_str_or_adhoc(x) else x["label"]  # type: ignore
-            for x in metrics
-        ]
+        def normalize_metric(metric: Metric) -> Metric:
+            if isinstance(metric, str) or is_adhoc_metric(metric):
+                return metric
+            if adhoc_metric_keys & metric.keys():
+                raise QueryObjectValidationError(
+                    _(
+                        "Invalid ad-hoc metric %(label)s: `expressionType` is missing",
+                        label=metric.get("label"),
+                    )
+                )
+            return metric["label"]  # type: ignore
+
+        self.metrics = metrics and [normalize_metric(x) for x in metrics]
 
     def _set_post_processing(
         self, post_processing: list[dict[str, Any] | None] | None
@@ -631,10 +648,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     raise InvalidPostProcessingError(
                         _("`operation` property of post processing object undefined")
                     )
-                # ``__all__`` is the authoritative list of built-in operations.
-                # ``hasattr`` would also match module internals (helpers, imported
-                # submodules, typing aliases), shadowing a like-named custom op.
-                if operation in pandas_postprocessing.__all__:
+                # ``OPERATIONS`` is the authoritative list of built-in operations;
+                # excludes escape_separator/unescape_separator (str -> str helpers
+                # used by flatten, not DataFrame post-processing operations).
+                if operation in pandas_postprocessing.OPERATIONS:
                     func = getattr(pandas_postprocessing, operation)
                 else:
                     extra_ops = pandas_postprocessing.build_extra_ops_map(

@@ -23,7 +23,7 @@ import {
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { FeatureFlag, VizType } from '@superset-ui/core';
+import { FeatureFlag, VizType, getExtensionsRegistry } from '@superset-ui/core';
 import mockState from 'spec/fixtures/mockState';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import downloadAsImage from 'src/utils/downloadAsImage';
@@ -165,12 +165,67 @@ beforeEach(() => {
 
 afterEach(() => {
   Reflect.deleteProperty(document, 'fullscreenElement');
+  // TypedRegistry has no remove(); reset to a no-op so a registered slot does
+  // not leak into other tests (the empty array is guarded, so nothing injects).
+  getExtensionsRegistry().set('dashboard.slice.header.menu', () => []);
 });
 
 test('Should render', () => {
   renderWrapper();
   openMenu();
   expect(screen.getByTestId(`slice_${SLICE_ID}-menu`)).toBeInTheDocument();
+});
+
+test('Injects dashboard.slice.header.menu items at the top of the menu', () => {
+  getExtensionsRegistry().set('dashboard.slice.header.menu', () => [
+    { key: 'custom-ext', label: 'Custom Menu Extension' },
+  ]);
+  renderWrapper();
+  openMenu();
+
+  const injected = screen.getByText('Custom Menu Extension');
+  expect(injected).toBeInTheDocument();
+  // Sits above the built-in entries.
+  const forceRefresh = screen.getByText('Force refresh');
+  expect(
+    injected.compareDocumentPosition(forceRefresh) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+});
+
+test('Injects nothing when dashboard.slice.header.menu returns no items', () => {
+  getExtensionsRegistry().set('dashboard.slice.header.menu', () => []);
+  renderWrapper();
+  openMenu();
+
+  expect(screen.queryByText('Custom Menu Extension')).not.toBeInTheDocument();
+  // The menu still renders its built-in entries unchanged (no dangling divider
+  // is added since the empty array is guarded).
+  expect(screen.getByText('Force refresh')).toBeInTheDocument();
+});
+
+test('Menu survives a dashboard.slice.header.menu extension that throws', () => {
+  getExtensionsRegistry().set('dashboard.slice.header.menu', () => {
+    throw new Error('boom');
+  });
+  renderWrapper();
+  openMenu();
+
+  // The throw is isolated: the built-in menu still renders.
+  expect(screen.getByText('Force refresh')).toBeInTheDocument();
+  expect(screen.getByText('Enter fullscreen')).toBeInTheDocument();
+});
+
+test('Injects nothing when the extension returns a non-array', () => {
+  getExtensionsRegistry().set(
+    'dashboard.slice.header.menu',
+    // JS registrations bypass the MenuItem[] type; a bad return must not crash.
+    (() => undefined) as never,
+  );
+  renderWrapper();
+  openMenu();
+
+  expect(screen.getByText('Force refresh')).toBeInTheDocument();
 });
 
 test('Should render default props', () => {

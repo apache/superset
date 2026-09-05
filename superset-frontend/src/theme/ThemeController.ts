@@ -82,13 +82,18 @@ export class ThemeController {
 
   private darkTheme: AnyThemeConfig | null;
 
+  // The built-in/config fallback default theme captured at construction. Used
+  // when no system default theme is set, so a live refresh reproduces the
+  // constructor's default-theme fallback without a page reload.
+  private builtInDefaultTheme: AnyThemeConfig | null;
+
   private systemMode: ThemeMode.DARK | ThemeMode.DEFAULT;
 
   private currentMode: ThemeMode;
 
   private onChangeCallbacks: Set<(theme: Theme) => void> = new Set();
 
-  private mediaQuery: MediaQueryList;
+  private mediaQuery: MediaQueryList | undefined;
 
   private crudThemeId: string | null = null;
 
@@ -110,6 +115,13 @@ export class ThemeController {
   private loadedFontUrls: Set<string> = new Set();
 
   private initialMode: ThemeMode | undefined;
+
+  // Assigns a monotonically increasing id to each refreshSystemThemes call, and
+  // tracks the highest id that has actually applied a slice, so out-of-order or
+  // superseded /system responses can be dropped ("newest applied wins").
+  private refreshSeq = 0;
+
+  private appliedRefreshSeq = 0;
 
   constructor({
     storage = new LocalStorageAdapter(),
@@ -133,9 +145,14 @@ export class ThemeController {
       bootstrapDefaultMode,
     }: BootstrapThemeData = this.loadBootstrapData();
 
+    // Capture the built-in/config fallback default theme so a live refresh can
+    // reproduce this same fallback (see refreshSystemThemes).
+    this.builtInDefaultTheme = defaultTheme;
+
     // Set themes from bootstrap data
     // These will be the THEME_DEFAULT and THEME_DARK from config
-    this.defaultTheme = bootstrapDefaultTheme || defaultTheme || null;
+    this.defaultTheme =
+      bootstrapDefaultTheme || this.builtInDefaultTheme || null;
     this.darkTheme = bootstrapDarkTheme;
     this.bootstrapDefaultMode = bootstrapDefaultMode;
 
@@ -561,6 +578,78 @@ export class ThemeController {
   }
 
   /**
+   * Re-reads the persisted system default/dark themes from the server and
+   * re-applies them live, so changes made on the Themes admin page take effect
+   * without a full page reload. The endpoint returns the same resolved theme
+   * slice used to bootstrap the page, so the live result matches a reload.
+   *
+   * Bails before applying whenever an explicit theme-config override is active
+   * (e.g. from the Embedded SDK) — checked both at entry and again after the
+   * fetch resolves — so it does not overwrite an externally-provided theme.
+   *
+   * Non-throwing: the server mutation has already succeeded by the time this
+   * runs, so a failed refresh must not surface a failure to the caller. A
+   * failed fetch or parse logs and leaves the current theme unchanged; if a
+   * fetched slice is valid-shaped but throws while applying, updateTheme's own
+   * recovery path handles the fallback.
+   */
+  public async refreshSystemThemes(): Promise<void> {
+    // An explicit theme-config override takes precedence over system themes.
+    if (this.themeConfigOverride) return;
+
+    // Assign this refresh a monotonically increasing id so out-of-order
+    // responses can be resolved by "newest successfully-applied wins".
+    this.refreshSeq += 1;
+    const seq = this.refreshSeq;
+
+    try {
+      const response = await SupersetClient.get({
+        endpoint: '/api/v1/theme/system',
+      });
+      // Drop this response if a newer refresh has already applied a slice (so a
+      // slow older request can't clobber it, and a newer request that fails to
+      // fetch can't discard this valid one), or if an embedded theme-config
+      // override took over while this request was in flight.
+      if (seq <= this.appliedRefreshSeq || this.themeConfigOverride) return;
+
+      const themeConfig = response.json?.result as
+        | BootstrapThemeDataConfig
+        | undefined;
+      if (!themeConfig) return;
+
+      // This response wins; record it before mutating so an older in-flight
+      // response can't overwrite it.
+      this.appliedRefreshSeq = seq;
+
+      const {
+        bootstrapDefaultTheme,
+        bootstrapDarkTheme,
+        bootstrapDefaultMode,
+      } = this.parseThemeConfig(themeConfig);
+
+      // Reproduce the constructor's slot assignments so live == reload.
+      this.defaultTheme =
+        bootstrapDefaultTheme || this.builtInDefaultTheme || null;
+      this.darkTheme = bootstrapDarkTheme;
+      this.bootstrapDefaultMode = bootstrapDefaultMode;
+
+      // Dark-theme availability may have changed (set or unset); re-sync the
+      // prefers-color-scheme listener so SYSTEM-mode OS switching stays correct.
+      this.reconcileMediaQueryListener();
+
+      // Recompute the mode exactly as the constructor would on a reload.
+      this.currentMode = this.determineInitialMode();
+
+      // No-arg updateTheme re-resolves via getThemeForMode(currentMode) and
+      // notifies subscribers, repainting the app without a reload. It honors an
+      // active devThemeOverride and never sets themeConfigOverride.
+      await this.updateTheme();
+    } catch (error) {
+      console.warn('Failed to refresh system themes:', error);
+    }
+  }
+
+  /**
    * Handles system theme changes with error recovery.
    */
   private handleSystemThemeChange = (): void => {
@@ -685,6 +774,23 @@ export class ThemeController {
   }
 
   /**
+   * Re-syncs the prefers-color-scheme listener with the current dark-theme
+   * availability. Idempotent: always removes any existing listener before
+   * conditionally re-adding one, so repeated refreshes never double-register.
+   */
+  private reconcileMediaQueryListener(): void {
+    if (this.mediaQuery) {
+      this.mediaQuery.removeEventListener(
+        'change',
+        this.handleSystemThemeChange,
+      );
+      this.mediaQuery = undefined;
+    }
+    if (this.shouldInitializeMediaQueryListener())
+      this.initializeMediaQueryListener();
+  }
+
+  /**
    * Loads and validates bootstrap theme data.
    */
   private loadBootstrapData(): BootstrapThemeData {
@@ -692,6 +798,17 @@ export class ThemeController {
       common: { theme = {} as BootstrapThemeDataConfig },
     } = getBootstrapData();
 
+    return this.parseThemeConfig(theme);
+  }
+
+  /**
+   * Parses and validates a resolved theme config slice (the shape shared by the
+   * page bootstrap and the /api/v1/theme/system endpoint) into the controller's
+   * internal theme representation.
+   */
+  private parseThemeConfig(
+    theme: BootstrapThemeDataConfig,
+  ): BootstrapThemeData {
     const { default: defaultTheme, dark: darkTheme, defaultMode } = theme;
 
     const hasValidDefault: boolean = this.isNonEmptyObject(defaultTheme);

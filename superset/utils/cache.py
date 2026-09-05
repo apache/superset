@@ -60,9 +60,18 @@ def set_and_log_cache(
     cache_value: dict[str, Any],
     cache_timeout: int | None = None,
     datasource_uid: str | None = None,
-) -> None:
+) -> bool:
+    """Write a value to the cache, logging outcomes.
+
+    :returns: ``True`` only when the value was actually persisted to the backend;
+        ``False`` when caching was skipped (null cache, disabled timeout, value
+        too large) or the backend write failed. Callers that need to know the
+        value is really cached (e.g. the forced-refresh idempotency marker) must
+        gate on this, since a silent skip would otherwise let a follow-up read
+        serve a stale value.
+    """
     if isinstance(cache_instance.cache, NullCache):
-        return
+        return False
 
     timeout = (
         cache_timeout
@@ -72,7 +81,7 @@ def set_and_log_cache(
 
     # Skip caching if timeout is CACHE_DISABLED_TIMEOUT (no caching requested)
     if timeout == CACHE_DISABLED_TIMEOUT:
-        return
+        return False
     try:
         dttm: str = (
             datetime.now(timezone.utc).replace(tzinfo=None).isoformat().split(".")[0]
@@ -96,9 +105,16 @@ def set_and_log_cache(
                     max_value_size,
                 )
                 app.config["STATS_LOGGER"].incr("skip_cache_value_too_large")
-                return
+                return False
 
-        cache_instance.set(cache_key, value, timeout=timeout)
+        # Flask-Caching's set() returns bool | None: cachelib backends can report
+        # a failed write by returning False without raising, while some backends
+        # return None (no status). Treat an explicit False as failure so callers
+        # that gate on persistence (the forced-refresh marker) don't claim a write
+        # that never landed; treat None as success.
+        if cache_instance.set(cache_key, value, timeout=timeout) is False:
+            logger.warning("Cache backend reported a failed set for key %s", cache_key)
+            return False
         stats_logger = app.config["STATS_LOGGER"]
         stats_logger.incr("set_cache_key")
 
@@ -117,11 +133,13 @@ def set_and_log_cache(
                 datasource_uid=datasource_uid,
             )
             db.session.add(ck)
+        return True
     except Exception as ex:  # pylint: disable=broad-except
         # cache.set call can fail if the backend is down or if
         # the key is too large or whatever other reasons
         logger.warning("Could not cache key %s", cache_key)
         logger.exception(ex)
+        return False
 
 
 # If a user sets `max_age` to 0, for long the browser should cache the
@@ -162,12 +180,20 @@ def memoized_func(key: str, cache: Cache = cache_manager.cache) -> Callable[...,
         def wrapped_f(*args: Any, **kwargs: Any) -> Any:
             should_cache = kwargs.pop("cache", True)
             force = kwargs.pop("force", False)
-            cache_timeout = kwargs.pop(
-                "cache_timeout", app.config["CACHE_DEFAULT_TIMEOUT"]
-            )
+            # always popped, even when caching is skipped, so it is never forwarded
+            # to the decorated function as an unexpected keyword argument.
+            cache_timeout = kwargs.pop("cache_timeout", None)
 
             if not should_cache:
                 return f(*args, **kwargs)
+
+            # callers may explicitly pass ``cache_timeout=None`` (eg, when a database
+            # has no custom metadata cache timeout configured), which should fall back
+            # to the default timeout rather than be forwarded to the cache backend.
+            # the config lookup happens here so the uncached path stays independent
+            # of the Flask app config.
+            if cache_timeout is None:
+                cache_timeout = app.config["CACHE_DEFAULT_TIMEOUT"]
 
             # format the key using args/kwargs passed to the decorated function
             signature = inspect.signature(f)

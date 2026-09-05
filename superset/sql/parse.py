@@ -22,7 +22,6 @@ import enum
 import logging
 import re
 import urllib.parse
-from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
 
@@ -55,6 +54,7 @@ from superset.sql.dialects import (
     Hana,
     OpenSearch,
     Pinot,
+    StarRocks,
     Vertica,
 )
 
@@ -129,6 +129,7 @@ SQLGLOT_DIALECTS = {
     # "firebird": ???
     "firebolt": Firebolt,
     "gsheets": Dialects.SQLITE,
+    "greenplum": Dialects.POSTGRES,
     "hana": Hana,
     "hive": Dialects.HIVE,
     # "ibmi": ???
@@ -147,6 +148,7 @@ SQLGLOT_DIALECTS = {
     "parseable": Dialects.POSTGRES,
     "pinot": Pinot,
     "postgresql": Dialects.POSTGRES,
+    "postgres": Dialects.POSTGRES,
     "presto": Dialects.PRESTO,
     "pydoris": Dialects.DORIS,
     "redshift": Dialects.REDSHIFT,
@@ -157,7 +159,7 @@ SQLGLOT_DIALECTS = {
     # "solr": ???
     "spark": Dialects.SPARK,
     "sqlite": Dialects.SQLITE,
-    "starrocks": Dialects.STARROCKS,
+    "starrocks": StarRocks,
     "superset": Dialects.SQLITE,
     # "taosws": ???
     "teradatasql": Dialects.TERADATA,
@@ -786,6 +788,30 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             "REFRESH",  # REFRESH MATERIALIZED VIEW
             "REINDEX",
             "VACUUM",
+            # StarRocks/MySQL-family admin and job-control commands that
+            # sqlglot has no structured node for, so every form always falls
+            # back to an opaque exp.Command with one of these heads:
+            # ADMIN SET/REPAIR/CHECK/SKIP, BACKUP/RESTORE SNAPSHOT,
+            # CANCEL BACKUP/RESTORE/LOAD/EXPORT/ALTER TABLE/REFRESH/DECOMMISSION/REPAIR,
+            # EXPORT TABLE, SUBMIT TASK, PAUSE/RESUME/STOP ROUTINE LOAD, and
+            # RECOVER TABLE/PARTITION/DATABASE.
+            "ADMIN",
+            "BACKUP",
+            "RESTORE",
+            "CANCEL",
+            "EXPORT",
+            "SUBMIT",
+            "PAUSE",
+            "RESUME",
+            "STOP",
+            "RECOVER",
+            # StarRocks blacklist management (ADD/DELETE SQLBLACKLIST,
+            # ADD/DELETE BACKEND|COMPUTE NODE BLACKLIST) is the only case
+            # that reaches this opaque-Command path with an ADD/DELETE head;
+            # ordinary ALTER TABLE ADD ... and the DML DELETE statement
+            # always parse into their own structured node instead.
+            "ADD",
+            "DELETE",
             # DDL head-tokens that sqlglot falls back to exp.Command for
             # whenever the body uses syntax it does not model
             # (CREATE EXTENSION/FUNCTION...LANGUAGE C/PUBLICATION/etc.,
@@ -808,17 +834,26 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         }
     )
 
-    # PostgreSQL-only command-fallback heads. Only the command-fallback
-    # forms (e.g. SET ROLE / SET SESSION AUTHORIZATION, which change the
-    # effective user) reach here as an exp.Command; structured
-    # `SET search_path = ...` / `SET statement_timeout = ...` parse as
-    # exp.Set and are NOT matched by this path. On other dialects the `SET`
-    # fallback covers session variables (e.g. Hive `SET hivevar:x=1`),
-    # which do not mutate data, so these heads stay dialect-gated.
-    _POSTGRES_MUTATING_COMMAND_NAMES: frozenset[str] = frozenset(
+    # Command-fallback heads that are only mutating on dialects where the
+    # structured form (`exp.Set`) is reserved for benign session variables,
+    # so the opaque-Command fallback is reached exclusively by the dangerous
+    # forms. On PostgreSQL that's SET ROLE / SET SESSION AUTHORIZATION /
+    # RESET ROLE (`SET search_path = ...` parses as exp.Set and never reaches
+    # here). On StarRocks (and MySQL, which shares the same parser) it's SET
+    # PASSWORD FOR .../SET ROLE/SET DEFAULT ROLE/SET DEFAULT STORAGE VOLUME
+    # -- every ordinary `SET var = value` there also parses as exp.Set, so
+    # widening this dialect-by-dialect is safe: it only ever matches forms
+    # sqlglot couldn't model as a session variable in the first place.
+    _SET_RESET_COMMAND_NAMES: frozenset[str] = frozenset(
         {
             "SET",
             "RESET",  # RESET ROLE / RESET ALL reverts SET; same class as SET
+        }
+    )
+    _SET_RESET_MUTATING_DIALECTS: frozenset[Dialects] = frozenset(
+        {
+            Dialects.POSTGRES,
+            Dialects.STARROCKS,
         }
     )
 
@@ -985,6 +1020,21 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # rather than an opaque exp.Command, so treat it as mutating here
             # too.
             exp.Execute,
+            # ANALYZE (re)computes and persists CBO statistics server-side,
+            # including dropping/updating histograms -- structured on
+            # MySQL-family dialects, so the exp.Command fallback below never
+            # sees it there.
+            exp.Analyze,
+            # KILL terminates another session's connection or running query.
+            # Structured on MySQL-family dialects (never falls back to
+            # exp.Command), so without this it reads as a safe no-op.
+            exp.Kill,
+            # REFRESH MATERIALIZED VIEW / REFRESH EXTERNAL TABLE kick off a
+            # real data-rewrite job. Structured on MySQL-family dialects; the
+            # "REFRESH" entry in _MUTATING_COMMAND_NAMES below only ever
+            # fires for dialects where this instead falls back to
+            # exp.Command.
+            exp.Refresh,
         )
 
         if self._parsed.find(*mutating_nodes):
@@ -998,6 +1048,22 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             self._dialect in self._SELECT_INTO_CTAS_DIALECTS
             and isinstance(self._parsed, exp.Select)
             and self._parsed.args.get("into")
+        ):
+            return True
+
+        # `SET PASSWORD = ...` (changing the current session's own password)
+        # parses as an ordinary structured `exp.Set` on StarRocks/MySQL --
+        # the same node type as a benign `SET time_zone = 'UTC'` -- so it
+        # can't be distinguished by node type or command name the way
+        # `SET PASSWORD FOR other_user = ...` is (that form has no structured
+        # representation and falls back to exp.Command, caught above). This
+        # walks the assignment targets looking specifically for the
+        # `PASSWORD` pseudo-variable.
+        if isinstance(self._parsed, exp.Set) and any(
+            isinstance((assignment := set_item.this), exp.EQ)
+            and isinstance(assignment.this, exp.Column)
+            and assignment.this.name.upper() == "PASSWORD"
+            for set_item in self._parsed.expressions
         ):
             return True
 
@@ -1035,8 +1101,8 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 return True
 
             if (
-                self._dialect == Dialects.POSTGRES
-                and command_name in self._POSTGRES_MUTATING_COMMAND_NAMES
+                self._dialect in self._SET_RESET_MUTATING_DIALECTS
+                and command_name in self._SET_RESET_COMMAND_NAMES
             ):
                 return True
 
@@ -1540,7 +1606,25 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :return: The parsed predicate.
         """
         _check_script_length(predicate, self.engine)
-        return sqlglot.parse_one(predicate, dialect=self._dialect)
+        try:
+            return sqlglot.parse_one(predicate, dialect=self._dialect)
+        except sqlglot.errors.ParseError as ex:
+            kwargs = (
+                {
+                    "highlight": ex.errors[0]["highlight"],
+                    "line": ex.errors[0]["line"],
+                    "column": ex.errors[0]["col"],
+                }
+                if ex.errors
+                else {}
+            )
+            raise SupersetParseError(predicate, self.engine, **kwargs) from ex
+        except sqlglot.errors.SqlglotError as ex:
+            raise SupersetParseError(
+                predicate,
+                self.engine,
+                message="Unable to parse predicate",
+            ) from ex
 
     def apply_rls(
         self,
@@ -2152,12 +2236,62 @@ class SQLScript:
         return len(self.statements) == 1 and self.statements[0].is_select()
 
 
-def extract_tables_from_statement(
+def _find_show_statement_tables(statement: exp.Show) -> set[Table]:
+    """
+    Build the table references for a ``SHOW`` statement.
+
+    Structured metadata statements (`SHOW CREATE TABLE foo.bar`,
+    `SHOW COLUMNS FROM foo`, ...) reference their target via dedicated
+    args rather than query sources, so build the table references
+    explicitly. Statements with no extractable target (e.g.
+    `SHOW TABLES FROM some_schema`) yield an empty set and are treated
+    as unparseable for authorization purposes (see
+    `SQLScript.has_unparseable_statement`).
+
+    ``SHOW`` statements reference a single metadata target, never a join, so
+    (unlike ``_find_table_sources``) there is no distinct occurrence-counting
+    variant of this helper: the deduplicated set is always the right count.
+    """
+    show_tables = {
+        Table(
+            source.name,
+            source.db if source.db != "" else None,
+            source.catalog if source.catalog != "" else None,
+        )
+        for source in statement.find_all(exp.Table)
+        # A `db` arg scoping the statement to a schema (e.g. the catalog.schema
+        # target of `SHOW TABLES IN catalog.schema`) is itself an `exp.Table`
+        # with no table part, so it is picked up by `find_all` above without
+        # this guard -- as a phantom empty-name table, not a real reference.
+        if source.name
+    }
+    if target := statement.args.get("target"):
+        db = statement.args.get("db")
+        if isinstance(db, exp.Table):
+            # Also an artifact of the catalog.schema `db` arg above: unlike a
+            # plain `Identifier`, its schema/catalog live in `.db`/`.catalog`,
+            # not `.name` (which is empty, since it has no table part).
+            db_name = db.db or None
+            db_catalog = db.catalog or None
+        else:
+            db_name = db.name if isinstance(db, exp.Expression) else db
+            db_catalog = None
+        show_tables.add(
+            Table(
+                target.name if isinstance(target, exp.Expression) else str(target),
+                db_name,
+                db_catalog,
+            )
+        )
+    return show_tables
+
+
+def _find_table_sources(
     statement: exp.Expression,
     dialect: Dialects | None,
-) -> set[Table]:
+) -> list[exp.Table]:
     """
-    Extract all table references in a single statement.
+    Find every table reference (occurrence, not deduplicated) in a statement.
 
     Please note that this is not trivial; consider the following queries:
 
@@ -2165,60 +2299,45 @@ def extract_tables_from_statement(
         SHOW PARTITIONS FROM some_table;
         WITH masked_name AS (SELECT * FROM some_table) SELECT * FROM masked_name;
 
-    See the unit tests for other tricky cases.
+    See the unit tests for other tricky cases. Note that `exp.Show` statements
+    are not handled here: see `_find_show_statement_tables`.
     """
-    sources: Iterable[exp.Table]
-
     if isinstance(statement, exp.Describe):
         # A `DESCRIBE` query has no sources in sqlglot, so we need to explicitly
         # query for all tables.
-        sources = statement.find_all(exp.Table)
-    elif isinstance(statement, exp.Command):
+        return list(statement.find_all(exp.Table))
+    if isinstance(statement, exp.Command):
         # Commands, like `SHOW COLUMNS FROM foo`, have to be converted into a
         # `SELECT` statetement in order to extract tables.
         literal = statement.find(exp.Literal)
         if not literal:
-            return set()
+            return []
 
         pseudo_sql = f"SELECT {literal.this}"
         try:
             _check_script_length(pseudo_sql, None)
             pseudo_query = sqlglot.parse_one(pseudo_sql, dialect=dialect)
         except (ParseError, SupersetParseError):
-            return set()
-        sources = pseudo_query.find_all(exp.Table)
-    elif isinstance(statement, exp.Show):
-        # Structured metadata statements (`SHOW CREATE TABLE foo.bar`,
-        # `SHOW COLUMNS FROM foo`, ...) reference their target via dedicated
-        # args rather than query sources, so build the table references
-        # explicitly. Statements with no extractable target (e.g.
-        # `SHOW TABLES FROM some_schema`) yield an empty set and are treated
-        # as unparseable for authorization purposes (see
-        # `SQLScript.has_unparseable_statement`).
-        show_tables = {
-            Table(
-                source.name,
-                source.db if source.db != "" else None,
-                source.catalog if source.catalog != "" else None,
-            )
-            for source in statement.find_all(exp.Table)
-        }
-        if target := statement.args.get("target"):
-            db = statement.args.get("db")
-            show_tables.add(
-                Table(
-                    target.name if isinstance(target, exp.Expression) else str(target),
-                    db.name if isinstance(db, exp.Expression) else db,
-                )
-            )
-        return show_tables
-    else:
-        sources = [
-            source
-            for scope in traverse_scope(statement)
-            for source in scope.sources.values()
-            if isinstance(source, exp.Table) and not is_cte(source, scope)
-        ]
+            return []
+        return list(pseudo_query.find_all(exp.Table))
+
+    return [
+        source
+        for scope in traverse_scope(statement)
+        for source in scope.sources.values()
+        if isinstance(source, exp.Table) and not is_cte(source, scope)
+    ]
+
+
+def extract_tables_from_statement(
+    statement: exp.Expression,
+    dialect: Dialects | None,
+) -> set[Table]:
+    """
+    Extract all distinct table references in a single statement.
+    """
+    if isinstance(statement, exp.Show):
+        return _find_show_statement_tables(statement)
 
     return {
         Table(
@@ -2226,8 +2345,77 @@ def extract_tables_from_statement(
             source.db if source.db != "" else None,
             source.catalog if source.catalog != "" else None,
         )
-        for source in sources
+        for source in _find_table_sources(statement, dialect)
     }
+
+
+def count_referenced_tables(statement: str, dialect: Dialects | str | None) -> int:
+    """
+    Count the table references in a raw SQL string.
+
+    This counts occurrences, not distinct tables, so a self-join referencing
+    the same physical table twice (via two aliases) is still counted as 2 -
+    callers use this count to decide whether a statement is a join, and a
+    self-join needs the same treatment as a join across different tables.
+    A CTE that's referenced more than once (e.g. self-joined) is weighted the
+    same way: each reference to it counts its own underlying tables again,
+    since a CTE is inlined at every place it's used (see
+    ``_count_weighted_table_references``).
+
+    Falls back to a conservative count of 1 (i.e. "not multi-table") if the
+    statement can't be parsed, since callers gating multi-table-only behavior
+    on this count should default to treating an unparseable statement as a
+    single table.
+    """
+    try:
+        _check_script_length(statement, str(dialect) if dialect else None)
+        parsed = sqlglot.parse_one(statement, dialect=dialect)
+        if isinstance(parsed, exp.Show):
+            return len(_find_show_statement_tables(parsed))
+        if isinstance(parsed, (exp.Describe, exp.Command)):
+            # Neither has join semantics for a per-table row cap to interact
+            # with, so the plain (unweighted) extraction already used for
+            # permissioning is fine here too.
+            return len(_find_table_sources(parsed, dialect))
+        return _count_weighted_table_references(parsed)
+    except Exception:  # pylint: disable=broad-except
+        return 1
+
+
+def _count_weighted_table_references(statement: exp.Expression) -> int:
+    """
+    Count table references the way callers gating multi-table-only behavior
+    need: weighting each CTE by how many times it's actually referenced,
+    not by how many distinct tables its own definition reads.
+
+    ``_find_table_sources`` (used for permissioning) intentionally counts a
+    CTE's underlying tables exactly once regardless of how many times the
+    CTE is referenced downstream, since permission checks only care about
+    the *set* of tables read. But a CTE that wraps a single virtual table
+    and is then self-joined N ways is inlined at each of those N places, so
+    it triggers N separate reads of that table -- one per join side -- and
+    must count as N here too. Otherwise a per-table row cap (see
+    ``SUPERSET_META_DB_LIMIT`` and #36304) looks safe to apply and silently
+    truncates one side of the self-join away before the join runs.
+    """
+
+    def resolve(scope: Scope, seen: frozenset[int]) -> list[exp.Table]:
+        if id(scope) in seen:
+            return []  # guards a WITH RECURSIVE self-reference from looping forever
+        seen = seen | {id(scope)}
+        tables: list[exp.Table] = []
+        for _, source in scope.selected_sources.values():
+            if isinstance(source, exp.Table) and not is_cte(source, scope):
+                tables.append(source)
+            elif isinstance(source, Scope) and source.scope_type == ScopeType.CTE:
+                tables.extend(resolve(source, seen))
+        return tables
+
+    return sum(
+        len(resolve(scope, frozenset()))
+        for scope in traverse_scope(statement)
+        if scope.scope_type != ScopeType.CTE
+    )
 
 
 def is_cte(source: exp.Table, scope: Scope) -> bool:

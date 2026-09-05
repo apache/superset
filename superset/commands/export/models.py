@@ -17,9 +17,10 @@
 
 from collections.abc import Iterator
 from datetime import datetime, timezone
-from typing import Callable
+from typing import Any, Callable
 
 import yaml
+from flask import current_app
 from flask_appbuilder import Model
 
 from superset.commands.base import BaseCommand
@@ -28,6 +29,18 @@ from superset.daos.base import BaseDAO
 from superset.utils.dict_import_export import EXPORT_VERSION
 
 METADATA_FILE_NAME = "metadata.yaml"
+
+
+def get_extra_export_fields(model: Model, asset_type: str) -> dict[str, Any]:
+    """Collect deployment-specific fields to serialise under ``extra``.
+
+    Returns an empty mapping when no ``EXTRA_ASSET_EXPORT_FIELDS`` hook is
+    configured, so exports are unchanged by default.
+    """
+    hook = current_app.config.get("EXTRA_ASSET_EXPORT_FIELDS")
+    if not hook:
+        return {}
+    return hook(model, asset_type) or {}
 
 
 class ExportModelsCommand(BaseCommand):
@@ -47,27 +60,45 @@ class ExportModelsCommand(BaseCommand):
 
     @staticmethod
     def _file_content(model: Model) -> str:
-        raise NotImplementedError("Subclasses MUST implement _export")
+        raise NotImplementedError("Subclasses MUST implement _file_content")
 
     @staticmethod
     def _export(
-        model: Model, export_related: bool = True
+        model: Model, export_related: bool = True, seen: set[str] | None = None
     ) -> Iterator[tuple[str, Callable[[], str]]]:
         raise NotImplementedError("Subclasses MUST implement _export")
 
-    def run(self) -> Iterator[tuple[str, Callable[[], str]]]:
+    def run(
+        self, seen: set[str] | None = None
+    ) -> Iterator[tuple[str, Callable[[], str]]]:
         self.validate()
 
-        metadata = {
-            "version": EXPORT_VERSION,
-            "type": self.dao.model_cls.__name__,  # type: ignore
-            "timestamp": datetime.now(tz=timezone.utc).isoformat(),
-        }
-        yield METADATA_FILE_NAME, lambda: yaml.safe_dump(metadata, sort_keys=False)
+        # Use provided seen set or create new one
+        if seen is None:
+            seen = set()
+            should_add_metadata = True
+        else:
+            # If seen set is provided, we're being called from another command
+            should_add_metadata = False
 
-        seen = {METADATA_FILE_NAME}
+        # Only add metadata if this is the root command
+        if should_add_metadata:
+            metadata = {
+                "version": EXPORT_VERSION,
+                "type": self.dao.model_cls.__name__,  # type: ignore
+                "timestamp": datetime.now(tz=timezone.utc).isoformat(),
+            }
+            if METADATA_FILE_NAME not in seen:
+                yield (
+                    METADATA_FILE_NAME,
+                    lambda: yaml.safe_dump(metadata, sort_keys=False),
+                )
+                seen.add(METADATA_FILE_NAME)
+
         for model in self._models:
-            for file_name, file_content in self._export(model, self.export_related):
+            for file_name, file_content in self._export(
+                model, self.export_related, seen
+            ):
                 if file_name not in seen:
                     yield file_name, file_content
                     seen.add(file_name)

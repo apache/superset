@@ -16,16 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const express = require('express');
+import express from 'express';
+import jwt from 'jsonwebtoken';
+import config from '../../../config.json' with { type: 'json' };
+
 const router = express.Router();
-const jwt = require('jsonwebtoken');
-const config = require('../../../config.json');
 
 router.get('/', function (req, res) {
   let numTokens = req.query.sockets ? Number(req.query.sockets) : 100;
   let tokens = [];
   for (let i = 0; i < numTokens; i++) {
-    const token = jwt.sign({ channel: String(i) }, config.jwtSecret);
+    const subject = String(i);
+    // These claims must match what the server verifies: the audience, issuer and
+    // principal types are the REALTIME_JWT_AUDIENCE / REALTIME_JWT_ISSUER /
+    // PRINCIPAL_TYPES constants in superset-websocket/src/index.ts, and the
+    // channel is derived the same way as `principalChannel` there.
+    const token = jwt.sign(
+      {
+        aud: 'superset-websocket',
+        channel: `user:${subject}`,
+        exp: Math.floor(Date.now() / 1000) + 3600,
+        iss: 'superset',
+        principal_type: 'user',
+        sub: subject,
+      },
+      config.jwtSecret,
+    );
     tokens.push(token);
   }
 
@@ -35,4 +51,4 @@ router.get('/', function (req, res) {
   });
 });
 
-module.exports = router;
+export default router;

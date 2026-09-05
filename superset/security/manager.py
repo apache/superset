@@ -22,6 +22,7 @@ import logging
 import re
 import time
 from collections import defaultdict
+from collections.abc import Set as AbstractSet
 from math import ceil
 from types import SimpleNamespace
 from typing import (
@@ -168,6 +169,36 @@ def get_extra_editor_subject_ids(resource: Model) -> list[int]:
             subject_ids.append(subject_id)
             seen.add(subject_id)
     return subject_ids
+
+
+def get_extra_editors_by_pk(
+    model_cls: type[Model], primary_keys: list[Any]
+) -> dict[Any, list[int]]:
+    """
+    Resolve extra editor subject IDs for a batch of resources, keyed by
+    primary key. List responses only have serialized rows, not model
+    instances, so this re-queries the page's rows in one batched query.
+    """
+    if not primary_keys or not (
+        has_app_context() and current_app.config.get("EXTRA_EDITORS_RESOLVER")
+    ):
+        return {}
+
+    # pylint: disable=import-outside-toplevel
+    from superset import db
+    from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
+
+    pk_col = inspect(model_cls).primary_key[0]
+    resources = (
+        db.session.query(model_cls)
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {model_cls}})
+        .filter(pk_col.in_(primary_keys))
+        .all()
+    )
+    return {
+        getattr(resource, pk_col.name): get_extra_editor_subject_ids(resource)
+        for resource in resources
+    }
 
 
 def _render_permission_instructions_link(
@@ -1177,6 +1208,276 @@ def _orderby_modified(
     return False
 
 
+# The frontend emits ``{expressionType: "SQL", sqlExpression: "1 = 0"}`` when
+# a native Select filter has "Filter value is required" enabled and no value
+# has been selected yet (superset-frontend/src/filters/utils.ts).  After
+# ``_sanitize_clause`` wraps it in parentheses the resulting ``extras.where``
+# clause is ``(1 = 0)``.  This is safe — it returns zero rows — and must be
+# allowed so that embedded charts are not rejected before the user picks a
+# filter value.
+_EMPTY_FILTER_SENTINEL = "1 = 0"
+
+
+def _split_extras_clauses(composed: str) -> list[str]:
+    """
+    Extract raw SQL expressions from a composed ``extras.where`` /
+    ``extras.having`` string.
+
+    ``_sanitize_clause`` (``form_data_query_context.py:92``) /
+    ``processFilters.ts`` (``superset-ui-core/src/query/processFilters.ts``)
+    wraps each expression in one layer of parentheses and joins them with
+    ``' AND '``, producing strings like ``(expr1) AND (expr2)``.  This
+    reverses that: split on the ``)\\s+AND\\s+(`` boundary (case-insensitive,
+    tolerating whitespace variations), strip the outer parens, and return the
+    raw expressions.
+    """
+    if not composed:
+        return []
+    # Unbalanced parens can't be a valid composed clause — fail closed so
+    # the malformed string lands in the allowed-set check as-is (→ 403)
+    # instead of splitting into fragments that might individually pass.
+    if composed.count("(") != composed.count(")"):
+        return [composed]
+    raw = re.split(r"\)\s+AND\s+\(", composed, flags=re.IGNORECASE)
+    # Strip exactly one outer paren added by _sanitize_clause.
+    if raw[0].startswith("("):
+        raw[0] = raw[0][1:]
+    if raw[-1].endswith(")"):
+        raw[-1] = raw[-1][:-1]
+    # _sanitize_clause appends ``\n`` inside the parens when the expression
+    # contains ``--`` (to terminate a trailing line comment).  Strip it so
+    # the result matches the stored raw expression.
+    return [expr.rstrip("\n") for expr in raw]
+
+
+def _add_allowed_sql_from_query_context(
+    extras_allowed: set[str],
+    col_allowed: set[str],
+    stored_query_context: dict[str, Any],
+) -> None:
+    """Add allowed SQL expressions from a stored query context."""
+    for query in stored_query_context.get("queries") or []:
+        for param in ("where", "having"):
+            composed = (query.get("extras") or {}).get(param, "")
+            for expr in _split_extras_clauses(composed):
+                extras_allowed.add(expr)
+            # Keep the full composed value as a fallback in case a stored
+            # expression contains a literal ") AND (" that the split would
+            # incorrectly break apart.
+            if composed:
+                extras_allowed.add(composed)
+        for key in ("columns", "groupby"):
+            for col in query.get(key) or []:
+                if isinstance(col, dict) and col.get("sqlExpression"):
+                    col_allowed.add(col["sqlExpression"])
+
+
+def _collect_allowed_sql(
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> tuple[set[str], set[str]]:
+    """
+    Collect the SQL expressions a guest user is allowed to send.
+
+    Returns ``(extras_allowed, col_allowed)``:
+
+    * ``extras_allowed`` — for validating ``extras.where``/``extras.having``:
+      adhoc-filter SQL, legacy ``where`` param, stored query-context extras,
+      and the ``1 = 0`` empty-filter sentinel.
+    * ``col_allowed`` — for validating structured-filter ``col.sqlExpression``:
+      everything in ``extras_allowed`` plus column SQL expressions from the
+      chart's dimensions (which cross-filters legitimately reference).
+    """
+    extras_allowed: set[str] = {_EMPTY_FILTER_SENTINEL}
+    params = stored_chart.params_dict
+
+    for flt in params.get("adhoc_filters") or []:
+        if (
+            isinstance(flt, dict)
+            and flt.get("expressionType") == "SQL"
+            and flt.get("sqlExpression")
+        ):
+            extras_allowed.add(flt["sqlExpression"])
+
+    if params.get("where"):
+        extras_allowed.add(params["where"])
+
+    # Column expressions go only into col_allowed — they must not be
+    # injectable as WHERE/HAVING predicates.
+    col_allowed: set[str] = set(extras_allowed)
+    _add_column_sql_expressions(col_allowed, params)
+
+    if stored_query_context:
+        _add_allowed_sql_from_query_context(
+            extras_allowed, col_allowed, stored_query_context
+        )
+
+    return extras_allowed, col_allowed
+
+
+def _add_column_sql_expressions(target: set[str], params: dict[str, Any]) -> None:
+    """Add ``sqlExpression`` values from column params to *target*.
+
+    Handles both list-valued controls (``columns``, ``groupby``) and
+    scalar-valued ones (``x_axis``, ``entity``, etc.).
+    """
+    for key in _STORED_COLUMN_PARAMS:
+        value = params.get(key)
+        if value is None:
+            continue
+        items = value if isinstance(value, (list, tuple)) else [value]
+        for col in items:
+            if isinstance(col, dict) and col.get("sqlExpression"):
+                target.add(col["sqlExpression"])
+
+
+def _query_has_novel_extras(query: Any, allowed: set[str]) -> bool:
+    """Whether a query has novel ``extras.where``/``extras.having`` SQL.
+
+    The full composed value is checked first; if it is in ``allowed`` (which
+    includes full composed values from the stored query context as a fallback)
+    the split is skipped.  If a stored expression contains a literal
+    ``) AND (`` the split may break it into fragments that fail individually —
+    a false positive (403) rather than a bypass, and an acceptable trade-off.
+    """
+    extras = getattr(query, "extras", None) or {}
+    for param in ("where", "having"):
+        composed = extras.get(param, "")
+        if composed and composed not in allowed:
+            for expr in _split_extras_clauses(composed):
+                if expr not in allowed:
+                    return True
+    return False
+
+
+def _query_has_novel_filter_col(query: Any, allowed: set[str]) -> bool:
+    """Whether a query has a structured filter ``col`` not in the allowed set.
+
+    Unlike ``_query_has_novel_extras`` this only checks the ``filter[].col``
+    vector — the cross-filter path — and intentionally ignores
+    ``extras.where``/``extras.having``.  Used for the scoped re-check after
+    expanding ``allowed`` with sibling dashboard chart expressions: those
+    borrowed expressions must only legitimize filter columns, not become
+    injectable as arbitrary WHERE/HAVING predicates.
+    """
+    for flt in getattr(query, "filter", None) or []:
+        if isinstance(flt, dict):
+            col = flt.get("col")
+            if isinstance(col, dict) and col.get("sqlExpression"):
+                if col["sqlExpression"] not in allowed:
+                    return True
+    return False
+
+
+def _add_dashboard_column_expressions(
+    allowed: set[str], dashboard_id: Any, target_chart_id: int
+) -> None:
+    """
+    Add ``sqlExpression`` values from adhoc columns on every chart of the
+    given dashboard (except the target chart, which is already covered).
+
+    This allows cross-filter structured filters whose ``col`` carries the
+    source chart's custom SQL dimension to pass validation.  Called lazily
+    (only when an unrecognized adhoc SQL col is found) to avoid a DB query
+    on the common path.
+
+    The dashboard is authorized via ``has_guest_access`` and the target chart
+    must belong to the dashboard; otherwise no expressions are added.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset import db, security_manager
+    from superset.models.dashboard import Dashboard
+
+    try:
+        dashboard_id = int(dashboard_id)
+    except (TypeError, ValueError):
+        return
+    dashboard = (
+        db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one_or_none()
+    )
+    if dashboard is None:
+        return
+
+    if not security_manager.has_guest_access(dashboard):
+        return
+
+    slice_ids = {s.id for s in dashboard.slices}
+    if target_chart_id not in slice_ids:
+        return
+
+    for slc in dashboard.slices:
+        if slc.id == target_chart_id:
+            continue
+        _add_column_sql_expressions(allowed, slc.params_dict)
+
+
+def _sql_filters_modified(
+    query_context: "QueryContext",
+    form_data: dict[str, Any],
+    stored_chart: "Slice",
+    stored_query_context: Optional[dict[str, Any]],
+) -> bool:
+    """
+    Whether the request injects custom SQL not present on the stored chart.
+
+    Covers three vectors:
+
+    1. ``extras.where`` / ``extras.having`` — raw SQL strings.
+    2. Adhoc filters with ``expressionType == "SQL"`` in ``form_data``.
+    3. Structured ``{col, op, val}`` filters whose ``col`` carries a
+       ``sqlExpression`` (reaches ``adhoc_column_to_sqla``).
+
+    The ``(1 = 0)`` empty-filter sentinel injected by required-but-empty
+    native Select filters is always allowed.  For vector 3, SQL expressions
+    from all charts on the requesting dashboard are allowed so that
+    cross-filters referencing a sibling chart's custom SQL dimension pass.
+
+    Cache-replay requests (``/data/<cache_key>``) are skipped: the original
+    request already passed the full check, and ``_sanitize_filters`` may have
+    rewritten ``extras`` in place before caching (comment normalization,
+    Jinja rendering), making byte-equality comparison unreliable.
+    """
+    if getattr(query_context, "_from_cache_replay", False) is True:
+        return False
+
+    extras_allowed, col_allowed = _collect_allowed_sql(
+        stored_chart, stored_query_context
+    )
+
+    # Vector 1: extras.where / extras.having
+    if any(_query_has_novel_extras(q, extras_allowed) for q in query_context.queries):
+        return True
+
+    # Vector 3: structured filter col with adhoc SQL.
+    # Sibling chart column expressions (cross-filter) are allowed; the
+    # dashboard lookup is deferred so the common case pays no DB cost.
+    if any(_query_has_novel_filter_col(q, col_allowed) for q in query_context.queries):
+        if dashboard_id := (form_data or {}).get("dashboardId"):
+            _add_dashboard_column_expressions(
+                col_allowed, dashboard_id, stored_chart.id
+            )
+        if any(
+            _query_has_novel_filter_col(q, col_allowed) for q in query_context.queries
+        ):
+            return True
+
+    # Vector 2: SQL adhoc filters in form_data
+    stored_sql_filters: set[str] = {
+        freeze_value(flt)
+        for flt in stored_chart.params_dict.get("adhoc_filters") or []
+        if isinstance(flt, dict) and flt.get("expressionType") == "SQL"
+    }
+
+    for flt in form_data.get("adhoc_filters") or []:
+        if not isinstance(flt, dict):
+            continue
+        if flt.get("expressionType") == "SQL":
+            if freeze_value(flt) not in stored_sql_filters:
+                return True
+
+    return False
+
+
 #: Chart params keys that hold the metrics a chart renders. Different chart
 #: types store their metrics under control-specific keys (``metric`` for
 #: big number, ``x``/``y``/``size`` for bubble, and so on); a guest requesting
@@ -1228,6 +1529,28 @@ def _stored_param_values(params: dict[str, Any], keys: tuple[str, ...]) -> set[s
     return values
 
 
+def _ensure_list(value: Any) -> list[Any]:
+    """
+    Normalize a value to a list for iteration.
+
+    Some viz types (e.g. heatmap_v2's 'groupby' control) store a single
+    value as a bare string rather than a one-item list. Iterating a string
+    directly yields its individual characters, which silently breaks the
+    guest payload comparison for any such chart.
+
+    ``None`` and an empty string are treated as "no value set" (mirroring
+    ``_stored_param_values``'s treatment of an unset control) and return
+    ``[]`` — an unset scalar control must not be compared as if the guest
+    had explicitly requested an empty string. A ``list``/``tuple`` is
+    filtered the same way, element by element; any other scalar is wrapped
+    in a single-item list.
+    """
+    if value is None:
+        return []
+    items = value if isinstance(value, (list, tuple)) else [value]
+    return [item for item in items if item is not None and item != ""]
+
+
 def _columns_metrics_modified(
     query_context: "QueryContext",
     form_data: dict[str, Any],
@@ -1257,7 +1580,7 @@ def _columns_metrics_modified(
         # ``_payload_value_identity``); metrics compare by exact frozen value.
         requested_values = {
             _payload_value_identity(value, is_metric=is_metric)
-            for value in form_data.get(key) or []
+            for value in _ensure_list(form_data.get(key))
         }
         # Stored params are read across every control name that can hold a
         # metric or column for some chart type: charts whose query is built
@@ -1276,7 +1599,7 @@ def _columns_metrics_modified(
         queries_values = {
             _payload_value_identity(value, is_metric=is_metric)
             for query in query_context.queries
-            for value in getattr(query, key, []) or []
+            for value in _ensure_list(getattr(query, key, None))
         }
         if stored_query_context:
             for query in stored_query_context.get("queries") or []:
@@ -1306,6 +1629,13 @@ def query_context_modified(query_context: "QueryContext") -> bool:
     # than accepting any payload, constrain them to the column(s) the dashboard's
     # native filter is allowed to target; other chartless paths keep prior
     # behavior (see _native_filter_request_modified).
+    #
+    # SQL extras (extras.where/having) are NOT validated on chartless paths:
+    # without a stored chart there is nothing to validate against, and
+    # tightening this would break legitimate chartless flows (native-filter
+    # pre-filtering, drill-to-detail) that carry SQL extras.  These paths
+    # are still protected by datasource-access checks in raise_for_access.
+    # The _sql_filters_modified check below covers chart payloads only.
     if stored_chart is None:
         return _native_filter_request_modified(query_context)
 
@@ -1322,11 +1652,25 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         )
         return True
 
-    stored_query_context = (
-        json.loads(cast(str, stored_chart.query_context))
-        if stored_chart.query_context
-        else None
-    )
+    try:
+        stored_query_context = (
+            json.loads(cast(str, stored_chart.query_context))
+            if stored_chart.query_context
+            else None
+        )
+    except (json.JSONDecodeError, TypeError):
+        # A stored query_context that fails to parse cannot be compared against
+        # the guest payload, so it is treated as modified/tampered (returning
+        # True triggers the SupersetSecurityException 403 in raise_for_access),
+        # consistent with the other rejection branches below. Malformed
+        # query_context can be persisted by the query-context-only update path
+        # (see ChartUpdateCommand._validate_query_context_datasource).
+        logger.warning(
+            "Guest chart payload rejected for slice %s: stored query_context "
+            "is not valid JSON",
+            stored_chart.id,
+        )
+        return True
 
     # A rejected guest load is most often a chart whose saved query_context is
     # NULL or stale rather than genuine tampering, and the generic 403 gives no
@@ -1375,6 +1719,19 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         )
         return True
 
+    # SQL predicates (extras.where/having, SQL adhoc filters) must match
+    # what was saved on the chart; injected custom SQL is rejected.
+    if _sql_filters_modified(
+        query_context, form_data, stored_chart, stored_query_context
+    ):
+        logger.warning(
+            "Guest chart payload rejected for slice %s: SQL filter/extras "
+            "not on the stored chart (stored query_context %s)",
+            stored_chart.id,
+            stored_context_state,
+        )
+        return True
+
     return False
 
 
@@ -1386,7 +1743,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     """Set to False in subclasses that provide their own auth view."""
     register_superset_registeruser_view = True
     """Set to False in subclasses that provide their own register user view."""
-    READ_ONLY_MODEL_VIEWS = {"Database", "DynamicPlugin"}
+    READ_ONLY_MODEL_VIEWS = {
+        "Database",
+        "DynamicPlugin",
+        # A semantic layer is a credentialed connection to an external
+        # system --- structurally a Database: its configuration carries
+        # authentication material. Database parity: writes are admin-only,
+        # reads are broadly visible but return masked secrets.
+        "SemanticLayer",
+    }
 
     role_api = SupersetRoleApi
     user_api = SupersetUserApi
@@ -1408,6 +1773,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "CssTemplate",
         "Dataset",
         "Datasource",
+        # A semantic view is a queryable model definition on top of a
+        # layer's connection, with no credentials of its own --- structurally
+        # a Dataset: writes are Alpha-tier, reads Gamma-tier.
+        "SemanticView",
+        "Theme",
     } | READ_ONLY_MODEL_VIEWS
 
     GAMMA_EXCLUDED_PVMS = {
@@ -1432,6 +1802,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "Security",
         "SQL Lab",
         "User Registrations",
+        # REST counterpart of the FAB "User Registrations" views. FAB derives
+        # the view-menu name from the class name; without this entry
+        # _is_gamma_pvm grants its permissions to stock Gamma and Alpha.
+        "UserRegistrationsRestAPI",
         "User's Statistics",
         # Guarding all AB_ADD_SECURITY_API = True REST APIs
         "RoleRestAPI",
@@ -1482,6 +1856,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "can_external_metadata_by_name",
         "can_read",
         "can_get_drill_info",
+        # Datasource querying is a read operation. Without this, Datasource
+        # being in GAMMA_READ_ONLY_MODEL_VIEWS makes _is_alpha_only withhold
+        # can_query from Gamma.
+        "can_query",
     }
 
     ALPHA_ONLY_PERMISSIONS = {
@@ -1887,6 +2265,31 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # Non-SQL explorables don't have schema hierarchy
         return False
+
+    def _semantic_layer_grant_allows(
+        self, datasource: "BaseDatasource | Explorable"
+    ) -> bool:
+        """True when a grant on a semantic view's parent layer covers it.
+
+        A ``datasource_access`` grant on a semantic layer covers every view
+        under it — the data path enforces this in
+        ``SemanticView.raise_for_access``; object authorization mirrors the
+        same fallback (sc-119501). Only a ``SemanticView`` is ever consulted:
+        the isinstance guard (rather than attribute sniffing) keeps
+        mock-shaped or future ``semantic_layer``-bearing datasources from
+        reaching the permission lookup, and a view with no layer or layer
+        perm returns False, matching the data path's ``if layer_perm and …``
+        guard.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.semantic_layers.models import SemanticView
+
+        if not isinstance(datasource, SemanticView):
+            return False
+        layer_perm: str | None = getattr(datasource.semantic_layer, "perm", None)
+        if not layer_perm:
+            return False
+        return self.can_access("datasource_access", layer_perm)
 
     def can_access_datasource(self, datasource: "BaseDatasource") -> bool:
         """
@@ -2301,7 +2704,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self,
         database: "Database",
         catalog: Optional[str],
-        schemas: set[str],
+        schemas: AbstractSet[str] | list[str],
         hierarchical: bool = True,
     ) -> set[str]:
         """
@@ -2311,13 +2714,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :param database: The SQL database
         :param catalog: An optional database catalog
-        :param schemas: A set of candidate schemas
+        :param schemas: The candidate schemas
         :param hierarchical: Whether to check using the hierarchical permission logic
         :returns: The set of accessible database schemas
         """
 
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlaTable
+
+        # Candidate names may come from cached metadata calls (eg,
+        # ``Database.get_all_schema_names``) whose values can be deserialized
+        # as lists rather than sets depending on the cache serializer, so
+        # normalize before applying set operations.
+        schemas = set(schemas)
 
         default_catalog = database.get_default_catalog()
         catalog = catalog or default_catalog
@@ -2371,19 +2780,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def get_catalogs_accessible_by_user(
         self,
         database: "Database",
-        catalogs: set[str],
+        catalogs: AbstractSet[str] | list[str],
         hierarchical: bool = True,
     ) -> set[str]:
         """
         Returned a filtered list of the catalogs accessible by the user.
 
         :param database: The SQL database
-        :param catalogs: A set of candidate catalogs
+        :param catalogs: The candidate catalogs
         :param hierarchical: Whether to check using the hierarchical permission logic
         :returns: The set of accessible database catalogs
         """
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlaTable
+
+        # Candidate names may come from cached metadata calls (eg,
+        # ``Database.get_all_catalog_names``) whose values can be deserialized
+        # as lists rather than sets depending on the cache serializer, so
+        # normalize before applying set operations.
+        catalogs = set(catalogs)
 
         if hierarchical and self.can_access_database(database):
             return catalogs
@@ -2515,9 +2930,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Create custom FAB permissions.
         """
+        from superset.websocket.permissions import (
+            REALTIME_NOTIFICATION_PERMISSION,
+            REALTIME_NOTIFICATION_RESOURCE,
+        )
+
         self.add_permission_view_menu("all_datasource_access", "all_datasource_access")
         self.add_permission_view_menu("all_database_access", "all_database_access")
         self.add_permission_view_menu("all_query_access", "all_query_access")
+        self.add_permission_view_menu(
+            REALTIME_NOTIFICATION_PERMISSION,
+            REALTIME_NOTIFICATION_RESOURCE,
+        )
         self.add_permission_view_menu("can_csv", "Superset")
         self.add_permission_view_menu("can_export_data", "Superset")
         self.add_permission_view_menu("can_export_image", "Superset")
@@ -4303,6 +4727,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
+                # A grant on a semantic view's parent layer covers the view,
+                # matching SemanticView.raise_for_access (sc-119501).
+                or self._semantic_layer_grant_allows(datasource)
                 or self.is_editor(datasource)
                 or (
                     # Grant access to the datasource only if dashboard RBAC is enabled
@@ -4444,11 +4871,36 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if dashboard.viewers:
                 if dashboard.published and self.is_viewer(dashboard):
                     return
-            elif not dashboard.datasources or any(
-                self.can_access_datasource(datasource)
-                for datasource in dashboard.datasources
-            ):
-                return
+            else:
+                # Datasource-based fallback. Member chart datasources are
+                # resolved across datasource types via
+                # ``Slice.resolved_datasource`` — ``Dashboard.datasources``
+                # only ever contains SqlaTable-backed datasources, so an
+                # unqualified emptiness check would grant every authenticated
+                # user access to a dashboard composed solely of, e.g.,
+                # semantic-view charts. A dashboard with no charts remains
+                # accessible; a chart whose datasource cannot be resolved
+                # counts as inaccessible, never as absent. Resolution is
+                # lazy and deduplicated per (type, id) so the first
+                # accessible datasource short-circuits the remaining lookups.
+                member_slices = dashboard.slices
+
+                def member_datasource_accessible() -> bool:
+                    seen: set[tuple[str | None, int | None]] = set()
+                    for slc in member_slices:
+                        key = (slc.datasource_type, slc.datasource_id)
+                        if key in seen:
+                            continue
+                        seen.add(key)
+                        resolved = slc.resolved_datasource
+                        if resolved is not None and self.can_access_datasource(
+                            resolved
+                        ):
+                            return True
+                    return False
+
+                if not member_slices or member_datasource_accessible():
+                    return
 
             raise SupersetSecurityException(
                 self.get_dashboard_access_error_object(dashboard)
@@ -4461,7 +4913,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if chart.viewers:
                 if self.is_viewer(chart):
                     return
-            elif chart.datasource and self.can_access_datasource(chart.datasource):
+            elif (
+                # Resolved across datasource types: ``chart.datasource`` is
+                # SqlaTable-only, which silently denied entitled users of
+                # semantic-view charts here.
+                chart_datasource := chart.resolved_datasource
+            ) is not None and self.can_access_datasource(chart_datasource):
                 return
 
             # An embedded guest may access a member chart of a dashboard their
@@ -4477,6 +4934,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 and any(
                     self.has_guest_access(dashboard_) for dashboard_ in chart.dashboards
                 )
+                # Deliberately table-pinned: the guest token ``datasets``
+                # allowlist is dataset-id space, so resolving other
+                # datasource types here would reintroduce id-collision
+                # ambiguity — a semantic-view member chart under an
+                # allowlist therefore fails closed.
                 and self._guest_token_allows_dataset(
                     chart.datasource.id if chart.datasource else None
                 )
@@ -5293,6 +5755,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         editor_subject_ids = set(get_extra_editor_subject_ids(resource))
         if hasattr(resource, "editors"):
             editor_subject_ids.update(s.id for s in resource.editors)
+
+        # Fallback ONLY for Query and SavedQuery models that use 'user_id'
+        from superset.models.sql_lab import Query, SavedQuery
+        from superset.subjects.utils import get_user_subject
+
+        if (
+            isinstance(resource, (Query, SavedQuery))
+            and getattr(resource, "user_id", None) is not None
+        ):
+            if subject := get_user_subject(resource.user_id):
+                editor_subject_ids.add(subject.id)
+
         return bool(subject_ids & editor_subject_ids)
 
     def is_viewer(self, resource: Model) -> bool:

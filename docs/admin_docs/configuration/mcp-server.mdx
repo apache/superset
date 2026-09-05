@@ -253,6 +253,58 @@ def my_custom_auth_factory(app):
 MCP_AUTH_FACTORY = my_custom_auth_factory
 ```
 
+### Embedded Guest Authentication
+
+Superset's [embedded dashboards](/user-docs/using-superset/embedding) feature mints short-lived **guest tokens** for anonymous/embedded viewers. The MCP server can accept these same guest tokens, so an embedded guest (e.g. an in-app chatbot next to an embedded dashboard) can call MCP tools scoped to the dashboards/resources named in its token.
+
+This is opt-in and reuses the existing core guest-token configuration -- there is no MCP-specific guest secret or audience.
+
+```python
+# superset_config.py
+FEATURE_FLAGS = {"EMBEDDED_SUPERSET": True}   # required -- guest tokens only exist when this is on
+MCP_EMBEDDED_GUEST_AUTH_ENABLED = True        # opt-in for the MCP transport (default False)
+```
+
+Present the guest token the same way as any other bearer token:
+
+```bash
+curl -X POST http://localhost:5008/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_GUEST_TOKEN' \
+  -d '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}'
+```
+
+**How it works**
+
+- A dedicated guest-token verifier validates the token against the same `GUEST_TOKEN_JWT_SECRET` / `GUEST_TOKEN_JWT_ALGO` / `GUEST_TOKEN_JWT_AUDIENCE` config used by embedded dashboards, replays the embedded structural checks, and enforces revocation (global version bumps and per-dashboard `guest_token_revoked_before` cutoffs). It runs *before* the JWT verifier described above, since guest tokens are signed with a different key/algorithm and would otherwise be rejected at the transport.
+- A verified guest resolves to a Superset guest user as the highest-priority identity, so it's never downgraded to API-key / `MCP_DEV_USERNAME` / dev-mode resolution. Data access is scoped by the same checks (dataset allowlist, dashboard access, row-level security) that apply to embedded dashboard views.
+- Guests are restricted to a default-deny allow-list, `MCP_GUEST_ALLOWED_TOOLS`, regardless of `MCP_RBAC_ENABLED`. Sensitive enumeration tools like `find_users` and `get_instance_info` are denied simply by being absent from the default list.
+- Setting `MCP_AUTH_FACTORY` bypasses this whole path: a configured factory is tried first, and the default factory that wires up the guest-token verifier is never reached. If you rely on a custom auth factory (e.g. your own OIDC provider) alongside guest auth, that factory must verify guest tokens itself -- otherwise they're rejected regardless of `MCP_EMBEDDED_GUEST_AUTH_ENABLED`.
+
+```python
+# superset_config.py
+MCP_GUEST_ALLOWED_TOOLS = {
+    "get_dashboard_info",
+    "get_dashboard_layout",
+    "list_dashboards",
+    "list_charts",
+    "get_chart_info",
+    "get_chart_data",
+    "get_chart_preview",
+}  # default
+```
+
+**Deployment requirements**
+
+- The MCP server and the service that mints guest tokens (the Superset web app) must share `GUEST_TOKEN_JWT_SECRET` and `GUEST_TOKEN_JWT_AUDIENCE`. Set `GUEST_TOKEN_JWT_AUDIENCE` explicitly -- if it's unset, audience validation falls back to the URL host, which can differ between the two services and cause every guest token to fail validation.
+- The `GUEST_ROLE_NAME` role (default `Public`) must exist -- a guest token is rejected if it does not.
+- Don't set `MCP_DEV_USERNAME` on a deployment that also serves embedded guests.
+- Restart the MCP process after toggling `EMBEDDED_SUPERSET` or `MCP_EMBEDDED_GUEST_AUTH_ENABLED` -- guest auth is wired up once at startup.
+
+:::warning
+`GUEST_TOKEN_JWT_SECRET` guards both the web embedding and MCP guest-auth surfaces. With `MCP_EMBEDDED_GUEST_AUTH_ENABLED` on, leaving it at its insecure default isn't just a forgery risk -- the MCP server refuses to start (`MCPAuthConfigError`) until you set a real secret shared with the guest-token minting service.
+:::
+
 ---
 
 ## Connecting AI Clients
@@ -505,6 +557,8 @@ All MCP settings go in `superset_config.py`. Defaults are defined in `superset/m
 | `MCP_DEV_USERNAME`   | --            | Superset username for development mode (no auth)                                                                                                                                                                                                                             |
 | `MCP_RBAC_ENABLED`   | `True`        | Enforce Superset's role-based access control on MCP tool calls. When `True`, each tool checks that the authenticated user has the required FAB permission before executing. Disable only for testing or trusted-network deployments.                                         |
 | `MCP_DISABLED_TOOLS` | `set()`       | Set of tool names to remove from the MCP server at startup. Disabled tools are never advertised to AI clients during tool discovery. Useful when a custom extension tool should replace a built-in Superset tool. See [Disabling built-in tools](#disabling-built-in-tools). |
+| `MCP_DISABLED_CHART_PLUGINS` | `frozenset()` | Set of chart type plugin names (e.g. `"handlebars"`) to hide from `generate_chart`. Does not affect `get_chart_type_schema`. See [Disabling chart type plugins](#disabling-chart-type-plugins). |
+| `MCP_CHART_PLUGIN_ENABLED_FUNC` | `None`        | Callable `(chart_type: str) -> bool` evaluated per registry lookup for dynamic enable/disable decisions. Takes precedence over `MCP_DISABLED_CHART_PLUGINS` when set. See [Disabling chart type plugins](#disabling-chart-type-plugins). |
 
 ### Authentication
 
@@ -521,6 +575,8 @@ All MCP settings go in `superset_config.py`. Defaults are defined in `superset/m
 | `MCP_JWT_DEBUG_ERRORS` | `False`   | Log detailed JWT errors server-side (never exposed in HTTP responses per RFC 6750)                                                                                                                                               |
 | `MCP_AUTH_FACTORY`     | `None`    | Custom auth provider factory `(flask_app) -> auth_provider`. Takes precedence over built-in JWT                                                                                                                                  |
 | `MCP_USER_RESOLVER`    | `None`    | Custom function `(app, access_token) -> username` to extract a Superset username from a validated JWT token. When `None`, the default resolver checks `preferred_username`, `username`, `email`, and `sub` claims in that order. |
+| `MCP_EMBEDDED_GUEST_AUTH_ENABLED` | `False` | Accept embedded [guest tokens](#embedded-guest-authentication) as Bearer auth. Also requires the `EMBEDDED_SUPERSET` feature flag. |
+| `MCP_GUEST_ALLOWED_TOOLS` | see [default list](#embedded-guest-authentication) | The only tool names callable by embedded guests (default-deny), regardless of `MCP_RBAC_ENABLED`. |
 
 ### Response Size Guard
 
@@ -782,13 +838,18 @@ Enable response caching for read-heavy workloads (dashboards/datasets that don't
 ```python
 MCP_CACHE_CONFIG = {
     "enabled": True,
+    # Cache keys don't include the requesting principal and hits are served
+    # ahead of auth/RBAC, so a shared cache can return one caller's response
+    # to another. Required for caching to actually start -- only appropriate
+    # when every request is guaranteed to come from the same principal.
+    "dangerously_share_cache_across_principals": True,
     "CACHE_KEY_PREFIX": "mcp_cache_",
     "call_tool_ttl": 3600,
 }
 MCP_STORE_CONFIG = {"enabled": True, "CACHE_REDIS_URL": "redis://redis:6379/0"}
 ```
 
-Mutating tools (`generate_chart`, `update_chart`, `execute_sql`, `generate_dashboard`) are always excluded from caching regardless of this setting.
+Every tool with a side effect (create/update/delete/execute) is always excluded from caching regardless of this setting -- see the `excluded_tools` default in `superset/mcp_service/mcp_config.py` for the current list.
 
 ---
 
@@ -887,6 +948,39 @@ MCP_DISABLED_TOOLS = {"extensions.myorg.myextension.some_tool"}
 :::note
 Specifying a tool name that does not exist logs a warning at startup and is otherwise ignored — it will not prevent the server from starting.
 :::
+
+## Disabling chart type plugins
+
+The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `pivot_table`, `mixed_timeseries`, `handlebars`, `big_number`, `histogram`, `box_plot`, `waterfall`) to a registered chart type plugin. Two settings let operators enable or disable individual chart type plugins at runtime, without a code deploy.
+
+### Static deny-list
+
+Set `MCP_DISABLED_CHART_PLUGINS` in your `superset_config.py` to a set of chart type names:
+
+```python
+# superset_config.py
+
+# Emergency kill switch: hide "handlebars" from all callers
+MCP_DISABLED_CHART_PLUGINS = {"handlebars"}
+```
+
+Disabled chart types stay registered but are filtered out at lookup time: they're never listed in `generate_chart`'s supported chart types, and `generate_chart` calls for them are rejected. `get_chart_type_schema` consults its own static schema/example map rather than the registry filter, so a disabled chart type's schema remains queryable through that tool even though `generate_chart` will reject it.
+
+### Dynamic predicate
+
+For per-request control (A/B tests, gradual rollout, entitlement checks), set `MCP_CHART_PLUGIN_ENABLED_FUNC` to a callable. It's evaluated as `enabled_func(chart_type: str) -> bool` on every registry lookup, and it takes precedence over `MCP_DISABLED_CHART_PLUGINS` when set:
+
+```python
+# superset_config.py
+from flask import g
+
+
+def MCP_CHART_PLUGIN_ENABLED_FUNC(chart_type: str) -> bool:
+    flags = getattr(g, "feature_flags", {})
+    return flags.get(f"mcp_chart_{chart_type}", True)
+```
+
+The callable must be cheap and in-process (consult already-loaded feature flags or request-local context) -- do not perform network I/O per call. If it raises, the registry fails closed (the plugin is hidden) and logs a warning.
 
 ## Security Best Practices
 

@@ -52,10 +52,17 @@ import sqlalchemy as sa
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from superset.commands.deletion_retention.purge_impact import (
+    collect_dataset_purge_impact,
+    DatasetPurgeImpact,
+    PurgeImpactChangedError,
+)
 from superset.commands.deletion_retention.purge_policy import (
+    BlockerReason,
     get_purge_policy,
     PurgeBlockedError,
     PurgeEntityPolicy,
+    REASON_CASCADE_INTEGRITY_FAILURE,
 )
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -144,7 +151,17 @@ class CascadeResult:
     dangling_chart_uuids: list[str] = field(default_factory=list)
     removed_dashboard_slices: int = 0
     version_rows_removed: int = 0
-    blocked_reason: str | None = None
+    blocker: BlockerReason | None = None
+
+    @property
+    def blocked_reason(self) -> str | None:
+        """Return the operator-facing blocker phrase, if the purge was blocked."""
+        return self.blocker.phrase if self.blocker else None
+
+    @property
+    def blocked_reason_code(self) -> str | None:
+        """Return the stable audit code, if the purge was blocked."""
+        return self.blocker.code if self.blocker else None
 
 
 class PurgeRaceLostError(Exception):
@@ -180,6 +197,7 @@ def cascade_hard_delete(
     enforce_window: bool,
     cutoff: datetime | None = None,
     require_archived: bool = False,
+    confirmed_impact_token: str | None = None,
 ) -> CascadeResult:
     """Remove *entity* and everything that depends on it in one transaction.
 
@@ -212,6 +230,7 @@ def cascade_hard_delete(
     removed_dashboard_slices = 0
     version_rows = 0
     permission_name: str | None = None
+    confirmed_impact: DatasetPurgeImpact | None = None
 
     try:
         with session.begin_nested():
@@ -229,6 +248,11 @@ def cascade_hard_delete(
             if session.execute(claim.with_for_update()).scalar_one_or_none() is None:
                 raise PurgeRaceLostError
 
+            if entity_type == "dataset" and confirmed_impact_token is not None:
+                confirmed_impact = collect_dataset_purge_impact(session, entity_id)
+                if confirmed_impact.impact_token != confirmed_impact_token:
+                    raise PurgeImpactChangedError(confirmed_impact)
+
             policy.validate(session, policy, entity_id)
             # Captured under the lock: the row is claimed, so the identity
             # the permission name is built from can no longer change.
@@ -236,8 +260,10 @@ def cascade_hard_delete(
             removed_dashboard_slices = policy.count_dashboard_slices(
                 session, policy, entity_id
             )
-            dangling_chart_uuids = policy.collect_dangling_chart_uuids(
-                session, policy, entity_id
+            dangling_chart_uuids = (
+                [chart.uuid for chart in confirmed_impact.charts]
+                if confirmed_impact is not None
+                else policy.collect_dangling_chart_uuids(session, policy, entity_id)
             )
 
             policy.delete_associations(session, policy, entity_id)
@@ -267,20 +293,21 @@ def cascade_hard_delete(
             purged=False,
             entity_type=entity_type,
             entity_uuid=uuid,
-            blocked_reason=str(ex),
+            blocker=ex.reason,
         )
     except IntegrityError as ex:
-        # Not a policy decision: a restrictive FK the cascade did not handle.
+        # Not a policy decision: a database integrity constraint failed.
         # Two audiences, two messages. The curated reason goes to the caller
         # (and from there into a user toast), because raw driver text carries
         # the failing SQL and bind parameters. The constraint detail goes to
-        # the log at WARNING, because an entity permanently unpurgeable via an
-        # unknown FK is a cascade-coverage bug someone has to be able to
-        # diagnose -- reported at INFO as a policy block, it read as intended
-        # behaviour.
+        # the log at WARNING, because an entity permanently unpurgeable after
+        # an integrity failure represents a cascade defect someone has to be
+        # able to diagnose. The stable audit code identifies this as an unexpected
+        # cascade failure rather than intended policy behavior without
+        # claiming which kind of constraint the database reported.
         logger.warning(
-            "deletion_retention: %s id=%s purge failed on a restrictive "
-            "foreign key the cascade does not handle: %s",
+            "deletion_retention: %s id=%s purge failed on a database "
+            "integrity constraint: %s",
             entity_type,
             entity_id,
             ex,
@@ -289,7 +316,10 @@ def cascade_hard_delete(
             purged=False,
             entity_type=entity_type,
             entity_uuid=uuid,
-            blocked_reason="blocked by database references",
+            blocker=BlockerReason(
+                REASON_CASCADE_INTEGRITY_FAILURE,
+                "cascade blocked by a database integrity constraint",
+            ),
         )
 
     return CascadeResult(
