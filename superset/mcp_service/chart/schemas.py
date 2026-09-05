@@ -1045,6 +1045,64 @@ class PieChartConfig(BaseChartConfig):
         return self
 
 
+class SankeyChartConfig(BaseChartConfig):
+    """Config for sankey charts (viz_type ``sankey_v2``).
+
+    Matches the frontend Sankey buildQuery contract: a ``source`` and a
+    ``target`` column define the edges of the flow diagram and one ``metric``
+    weights each edge. When ``sort_by_metric`` is set the query orders by the
+    metric descending.
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["sankey_v2"] = "sankey_v2"
+    source: ColumnRef = Field(
+        ...,
+        description="Column used as the source (origin) node of each edge",
+    )
+    target: ColumnRef = Field(
+        ...,
+        description="Column used as the target (destination) node of each edge",
+    )
+    metric: ColumnRef = Field(
+        ...,
+        description="Metric weighting each edge (use aggregate e.g. SUM, "
+        "COUNT for ad-hoc, or set saved_metric=True for a saved dataset metric)",
+    )
+    sort_by_metric: bool = Field(
+        True,
+        description="Order edges by the metric descending (frontend default)",
+    )
+    row_limit: int = Field(10000, description="Max edges queried", ge=1, le=100000)
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors', "
+            "'googleCategory10c', 'd3Category10'). Defaults to 'supersetColors'."
+        ),
+        max_length=100,
+    )
+
+    @model_validator(mode="after")
+    def reject_metric_style_nodes(self) -> "SankeyChartConfig":
+        """source and target are node dimensions, not metrics."""
+        for col, name in ((self.source, "source"), (self.target, "target")):
+            _reject_sql_expression_on_dimension(col, name)
+            if col and col.is_metric:
+                raise ValueError(
+                    f"{name} must be a plain node column, not a metric; "
+                    "drop 'aggregate'/'saved_metric' (metrics belong in "
+                    "the 'metric' field)"
+                )
+        return self
+
+
 class PivotTableChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -2287,6 +2345,7 @@ ChartConfig = Annotated[
     XYChartConfig
     | TableChartConfig
     | PieChartConfig
+    | SankeyChartConfig
     | PivotTableChartConfig
     | InteractivePivotChartConfig
     | MixedTimeseriesChartConfig
@@ -2299,7 +2358,8 @@ ChartConfig = Annotated[
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'pivot_table', 'interactive_pivot', 'mixed_timeseries', "
+            "'pie', 'sankey_v2', 'pivot_table', 'interactive_pivot', "
+            "'mixed_timeseries', "
             "'handlebars', "
             "'big_number', 'histogram', 'box_plot', or 'waterfall'"
         ),
