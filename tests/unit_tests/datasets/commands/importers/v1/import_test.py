@@ -825,10 +825,12 @@ def test_import_dataset_checks_has_table_with_data_uri(
 ) -> None:
     """
     When a ``data`` URI is present, ``Database.has_table`` should still be
-    consulted to decide whether the data needs to be (re-)loaded.
+    consulted to decide whether the data needs to be (re-)loaded. A table that
+    already exists means the data is there, so it must not be re-loaded.
     """
     mocker.patch.object(security_manager, "can_access", return_value=True)
     has_table = mocker.patch.object(Database, "has_table", return_value=True)
+    load_data = mocker.patch("superset.commands.dataset.importers.v1.utils.load_data")
 
     engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
@@ -862,6 +864,55 @@ def test_import_dataset_checks_has_table_with_data_uri(
     import_dataset(config)
 
     has_table.assert_called_once()
+    load_data.assert_not_called()
+
+
+def test_import_dataset_loads_data_when_table_is_missing(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    When a ``data`` URI is present and the target table doesn't exist yet, the
+    data must actually be loaded. This is the case ``has_table`` exists to
+    detect, and the one an inverted or misindented condition would silently
+    skip while still satisfying the checks above.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    has_table = mocker.patch.object(Database, "has_table", return_value=False)
+    load_data = mocker.patch("superset.commands.dataset.importers.v1.utils.load_data")
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = {
+        "table_name": "missing_data_table",
+        "main_dttm_col": None,
+        "description": None,
+        "default_endpoint": None,
+        "offset": 0,
+        "cache_timeout": None,
+        "schema": None,
+        "sql": None,
+        "params": None,
+        "template_params": None,
+        "filter_select_enabled": False,
+        "fetch_values_predicate": None,
+        "extra": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+        "data": "https://example.com/data.csv",
+    }
+
+    import_dataset(config)
+
+    has_table.assert_called_once()
+    load_data.assert_called_once()
 
 
 def test_import_dataset_rejects_non_default_catalog_when_multi_catalog_disabled(
