@@ -55,7 +55,15 @@ export interface Chart {
     first_name: string;
     last_name: string;
   };
+  // Dataset identity from `ChartGetResponseSchema`. Returned to any chart
+  // viewer, so these describe a dataset the viewer may not be entitled to
+  // see — `params`/`query_context` embed its columns, metric SQL and the
+  // literal values its filters compare against.
   datasource_name_text?: string;
+  datasource_url?: string;
+  datasource_uuid?: string;
+  params?: string;
+  query_context?: string;
   form_data: {
     viz_type: string;
   };

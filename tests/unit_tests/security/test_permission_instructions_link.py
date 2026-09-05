@@ -17,7 +17,10 @@
 
 """Unit tests for templated PERMISSION_INSTRUCTIONS_LINK rendering."""
 
+import logging
 from unittest.mock import MagicMock, patch
+
+from _pytest.logging import LogCaptureFixture
 
 from superset.security.manager import (
     _render_permission_instructions_link,
@@ -60,13 +63,57 @@ def test_plain_link_without_placeholders_is_unchanged() -> None:
 
 def test_datasource_placeholders_are_filled_and_url_encoded() -> None:
     out = _render(
-        "https://acme.example.com/req?id={datasource_id}"
-        "&name={datasource_name}&u={username}",
+        "https://acme.example.com/req?id={datasource_id}&u={username}",
         datasource_id="12",
-        datasource_name="Quarterly Sales",
     )
-    # space in the dataset name is URL-encoded; username injected from g.user
-    assert out == ("https://acme.example.com/req?id=12&name=Quarterly%20Sales&u=alice")
+    assert out == ("https://acme.example.com/req?id=12&u=alice")
+
+
+def test_retired_datasource_name_placeholder_is_left_literal() -> None:
+    """A retired placeholder must break loudly, not render a silent empty value.
+
+    Substituting an empty string would turn a configured
+    ``.../request/{datasource_name}`` into a plausible-looking
+    ``.../request/`` that nobody notices is broken.
+    """
+    out = _render(
+        "https://acme.example.com/req?id={datasource_id}&name={datasource_name}",
+        datasource_id="12",
+    )
+    assert out == "https://acme.example.com/req?id=12&name={datasource_name}"
+
+
+def _manager_warnings(caplog: LogCaptureFixture) -> list[str]:
+    """Warnings this module logged, ignoring anything another logger emitted."""
+    return [
+        record.getMessage()
+        for record in caplog.records
+        if record.name == MANAGER and record.levelno >= logging.WARNING
+    ]
+
+
+def test_retired_datasource_name_placeholder_warns_the_operator(
+    caplog: LogCaptureFixture,
+) -> None:
+    with caplog.at_level(logging.WARNING, logger=MANAGER):
+        _render(
+            "https://acme.example.com/req?name={datasource_name}",
+        )
+    warnings = _manager_warnings(caplog)
+    assert len(warnings) == 1
+    assert "datasource_name" in warnings[0]
+    assert "PERMISSION_INSTRUCTIONS_LINK" in warnings[0]
+
+
+def test_link_without_retired_placeholder_does_not_warn(
+    caplog: LogCaptureFixture,
+) -> None:
+    with caplog.at_level(logging.WARNING, logger=MANAGER):
+        _render(
+            "https://acme.example.com/req?id={datasource_id}",
+            datasource_id="12",
+        )
+    assert _manager_warnings(caplog) == []
 
 
 def test_table_names_filled_and_encoded() -> None:
@@ -95,7 +142,10 @@ def test_unsupplied_placeholders_render_empty() -> None:
     assert out == "https://acme.example.com/req?id=9&t="
 
 
-def test_get_datasource_access_link_pulls_from_datasource_data() -> None:
+def test_get_datasource_access_link_omits_datasource_name() -> None:
+    # datasource_name is intentionally not forwarded to prevent name disclosure
+    # to users who lack access; the retired placeholder is left literal so a
+    # deployment still templating it sees the breakage.
     ds = MagicMock()
     ds.data = {"id": 12, "name": "Quarterly Sales"}
     with (
@@ -113,7 +163,9 @@ def test_get_datasource_access_link_pulls_from_datasource_data() -> None:
         g_mock.user.is_anonymous = False
         g_mock.user.username = "alice"
         out = SupersetSecurityManager.get_datasource_access_link(ds)
-    assert out == "https://acme.example.com/req?id=12&name=Quarterly%20Sales"
+    assert out is not None
+    assert "Quarterly Sales" not in out
+    assert out == "https://acme.example.com/req?id=12&name={datasource_name}"
 
 
 def test_get_table_access_link_joins_table_names() -> None:
@@ -157,6 +209,20 @@ def test_datasource_error_object_includes_sorted_owner_names() -> None:
         error = sm.get_datasource_access_error_object(ds)
     assert error.extra is not None
     assert error.extra["owners"] == ["Amir Patel", "Zoe Chen"]
+    # Dataset name must not be present — it would reveal a resource
+    # the user is not authorized to see. The id is fine (the user
+    # already knows it from the URL).
+    assert "datasource_name" not in error.extra
+    assert error.extra["datasource"] == 12
+    assert error.extra["is_access_denial"] is True
+
+
+def test_datasource_access_error_msg_is_generic() -> None:
+    ds = MagicMock()
+    ds.data = {"id": 12, "name": "Quarterly Sales"}
+    msg = SupersetSecurityManager.get_datasource_access_error_msg(ds)
+    assert "12" not in msg
+    assert "Quarterly Sales" not in msg
 
 
 def test_table_access_link_is_single_encoded_and_sorted() -> None:

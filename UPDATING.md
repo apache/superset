@@ -209,6 +209,17 @@ unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
 
 The native "Value" filter's bulk "Select all" / "Clear" controls now operate on the entire loaded set of column values regardless of any text typed into the filter's search box. Previously the "Select all (N)" count briefly flickered to the search-scoped count before settling on the full-column count, and clicking "Select all" while searching could select only the currently matching subset. Search-scoped bulk selection was never a supported feature; the count is now stable and always matches what "Select all" selects (the full column). No configuration change is required.
 
+### `PERMISSION_INSTRUCTIONS_LINK` no longer supports `{datasource_name}`
+
+The datasource access-denied error is returned to a user who was just denied that
+dataset, so the dataset's name is no longer templated into the "Request access"
+link — nor included in the error message or its `extra` payload. Deployments whose
+`PERMISSION_INSTRUCTIONS_LINK` still contains `{datasource_name}` get the
+placeholder back verbatim in the rendered URL and a warning in the logs; the
+substitution is deliberately not blanked so the broken link is visible rather than
+silently truncated. Use `{datasource_id}` (still supported) to identify the dataset
+to your access-request system, and resolve the name there.
+
 ### MCP tool results preserve stored string values
 
 Structured MCP tool results no longer add `<UNTRUSTED-CONTENT>` wrappers or

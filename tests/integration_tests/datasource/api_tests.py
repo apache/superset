@@ -219,8 +219,8 @@ class TestDatasourceApi(SupersetTestCase):
         assert rv.status_code == 403
         response = json.loads(rv.data.decode("utf-8"))
         assert (
-            response["message"] == f"This endpoint requires the datasource {table.id}, "
-            "database or `all_datasource_access` permission"
+            response["message"]
+            == "You do not have permission to access this datasource"
         )
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")

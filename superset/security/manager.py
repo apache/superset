@@ -201,24 +201,42 @@ def get_extra_editors_by_pk(
     }
 
 
+# Retired from ``PERMISSION_INSTRUCTIONS_LINK``: see
+# ``_render_permission_instructions_link``.
+RETIRED_PERMISSION_LINK_PLACEHOLDER = "{datasource_name}"
+
+
 def _render_permission_instructions_link(
     *,
     datasource_id: str = "",
-    datasource_name: str = "",
     table_names: str = "",
 ) -> Optional[str]:
     """Render the configured ``PERMISSION_INSTRUCTIONS_LINK``.
 
-    The configured URL may contain ``{datasource_id}``, ``{datasource_name}``,
+    The configured URL may contain ``{datasource_id}``,
     ``{table_names}`` and ``{username}`` placeholders, which are substituted with
     URL-encoded values so the link can deep-link into an organization's access
     request system. A URL with no placeholders is returned unchanged, and an
-    empty/unset config returns ``None`` (no link). Unsupplied placeholders are
-    replaced with an empty string.
+    empty/unset config returns ``None`` (no link). Of those three, any the caller
+    does not supply is replaced with an empty string.
+
+    ``{datasource_name}`` was retired: the link is handed to a user who has just
+    been denied the dataset, so templating its name discloses a resource they
+    are not entitled to see. It is the one placeholder that is *not* blanked —
+    it is left un-substituted and logged, so a deployment still templating it
+    gets a visibly broken URL rather than a silently truncated one.
     """
     link = get_conf().get("PERMISSION_INSTRUCTIONS_LINK")
     if not link:
         return None
+
+    if RETIRED_PERMISSION_LINK_PLACEHOLDER in link:
+        logger.warning(
+            "PERMISSION_INSTRUCTIONS_LINK still templates %s, which was retired "
+            "to avoid disclosing the name of a dataset the user was denied. The "
+            "placeholder is left as-is; remove it from the configured URL.",
+            RETIRED_PERMISSION_LINK_PLACEHOLDER,
+        )
 
     username = ""
     user = getattr(g, "user", None)
@@ -227,7 +245,6 @@ def _render_permission_instructions_link(
 
     for token, value in (
         ("datasource_id", datasource_id),
-        ("datasource_name", datasource_name),
         ("table_names", table_names),
         ("username", username),
     ):
@@ -2473,10 +2490,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The error message
         """
 
-        return (
-            f"This endpoint requires the datasource {datasource.data['id']}, "
-            "database or `all_datasource_access` permission"
-        )
+        return "You do not have permission to access this datasource"
 
     @staticmethod
     def get_datasource_access_link(
@@ -2486,7 +2500,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Return the link for the denied Superset datasource.
 
         The configured ``PERMISSION_INSTRUCTIONS_LINK`` may template the denied
-        datasource's id/name (and the current username) into the access URL.
+        datasource's id (and the current username) into the access URL.
+        The datasource name is intentionally omitted to prevent disclosure.
 
         :param datasource: The denied Superset datasource
         :returns: The access URL
@@ -2494,7 +2509,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return _render_permission_instructions_link(
             datasource_id=str(datasource.data["id"]),
-            datasource_name=str(datasource.data["name"]),
+            # datasource_name intentionally omitted to prevent name disclosure
         )
 
     def get_datasource_access_error_object(  # pylint: disable=invalid-name
@@ -2512,8 +2527,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             level=ErrorLevel.WARNING,
             extra={
                 "link": self.get_datasource_access_link(datasource),
+                # is_access_denial lets the frontend show the "Request access"
+                # UI without receiving the dataset name.
+                "is_access_denial": True,
                 "datasource": datasource.data["id"],
-                "datasource_name": datasource.data["name"],
                 # Owner display names give the viewer someone to contact for
                 # access; sorted for a deterministic payload.
                 "owners": sorted(

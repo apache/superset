@@ -18,6 +18,7 @@
  */
 import { ReactNode } from 'react';
 import { t, tn } from '@apache-superset/core/translation';
+import { isDefined } from '@superset-ui/core';
 import { Typography } from '@superset-ui/core/components';
 
 import type { ErrorMessageComponentProps } from './types';
@@ -28,7 +29,7 @@ interface DatasourceSecurityAccessExtra {
   owners?: string[];
   link?: string;
   datasource?: number | string;
-  datasource_name?: string;
+  is_access_denial?: boolean;
   tables?: string[];
   issue_codes?: {
     code: number;
@@ -55,7 +56,14 @@ export function DatasourceSecurityAccessErrorMessage({
   // (e.g. virtual-dataset SQL validation: "Only SELECT statements are
   // allowed"). Those errors carry no access payload — render them plainly
   // rather than misleading the user with request-access guidance.
-  const isAccessDenial = !!extra?.datasource_name || !!extra?.tables?.length;
+  //
+  // `datasource` is the pre-`is_access_denial` shape of the payload; accepting
+  // it keeps this guidance working while a rolling deploy still has older API
+  // pods answering. It never appears on the non-access failures above.
+  const isAccessDenial =
+    !!extra?.tables?.length ||
+    !!extra?.is_access_denial ||
+    isDefined(extra?.datasource);
   if (!isAccessDenial) {
     return (
       <ErrorAlert
@@ -69,29 +77,22 @@ export function DatasourceSecurityAccessErrorMessage({
   }
 
   let explanation: string;
-  if (extra?.datasource_name) {
-    explanation = isVisualization
-      ? t(
-          'This chart uses the "%s" dataset, which you do not have ' +
-            'permission to view.',
-          extra.datasource_name,
-        )
-      : t(
-          'This query uses the "%s" dataset, which you do not have ' +
-            'permission to view.',
-          extra.datasource_name,
-        );
-  } else {
+  if (extra?.tables?.length) {
     explanation = isVisualization
       ? t(
           'You do not have access to the data behind this chart ' +
             '(tables: %s).',
-          extra?.tables?.join(', '),
+          extra.tables.join(', '),
         )
       : t(
           'You do not have access to the following tables: %s.', // sqllab
-          extra?.tables?.join(', '),
+          extra.tables.join(', '),
         );
+  } else {
+    // Access denial without identifying the dataset to the unauthorized user.
+    explanation = isVisualization
+      ? t('You do not have permission to view this chart\u2019s data.')
+      : t('You do not have permission to view this data.');
   }
 
   const owners = extra?.owners;

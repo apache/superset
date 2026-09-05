@@ -33,27 +33,26 @@ const baseProps = {
   error: {
     error_type: ErrorTypeEnum.DATASOURCE_SECURITY_ACCESS_ERROR,
     extra: {
-      datasource: 12,
-      datasource_name: 'Quarterly Sales',
+      is_access_denial: true,
       owners: ['Jane Doe', 'Bob Smith'],
       link: 'https://access.example.com/request?dataset=12',
       issue_codes: [{ code: 1017, message: 'Permission issue' }],
     },
     level: 'error' as ErrorLevel,
-    message:
-      'This endpoint requires the datasource 12, database or ' +
-      '`all_datasource_access` permission',
+    message: 'You do not have permission to access this datasource',
   },
   source: 'dashboard' as ErrorSource,
   subtitle: '',
 };
 
-test('shows a friendly title and names the dataset', () => {
+test('shows a friendly title and generic access-denied message', () => {
   render(<DatasourceSecurityAccessErrorMessage {...baseProps} />);
   expect(
     screen.getByText("You don't have access to this chart's data"),
   ).toBeInTheDocument();
-  expect(screen.getByText(/Quarterly Sales/)).toBeInTheDocument();
+  expect(
+    screen.getByText(/You do not have permission to view this chart/),
+  ).toBeInTheDocument();
 });
 
 test('surfaces the chart owners to contact', () => {
@@ -77,7 +76,7 @@ test('falls back to administrator guidance when no owners are known', () => {
     ...baseProps,
     error: {
       ...baseProps.error,
-      extra: { datasource_name: 'Quarterly Sales' },
+      extra: { is_access_denial: true },
     },
   };
   render(<DatasourceSecurityAccessErrorMessage {...props} />);
@@ -85,6 +84,32 @@ test('falls back to administrator guidance when no owners are known', () => {
     screen.getByText(/contact your Superset administrator/),
   ).toBeInTheDocument();
   expect(screen.queryByRole('link', { name: 'Request access' })).toBeNull();
+});
+
+test('treats a pre-is_access_denial payload as an access denial', () => {
+  // During a rolling deploy an older API pod answers with `datasource` and
+  // `datasource_name` and no `is_access_denial` flag. The request-access
+  // guidance must still render, and the dataset name must stay hidden.
+  const props = {
+    ...baseProps,
+    error: {
+      ...baseProps.error,
+      extra: {
+        datasource: 12,
+        datasource_name: 'Quarterly Sales',
+        owners: ['Jane Doe'],
+      },
+      message: 'This endpoint requires the datasource 12',
+    },
+  };
+  render(<DatasourceSecurityAccessErrorMessage {...props} />);
+  expect(
+    screen.getByText("You don't have access to this chart's data"),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(/reach out to the chart owner: Jane Doe/),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(/Quarterly Sales/)).toBeNull();
 });
 
 test('explains table access for TABLE_SECURITY_ACCESS_ERROR', () => {
@@ -127,7 +152,7 @@ test('uses query wording for the sqllab source', () => {
   };
   render(<DatasourceSecurityAccessErrorMessage {...props} />);
   expect(
-    screen.getByText(/This query uses the "Quarterly Sales"/),
+    screen.getByText(/You do not have permission to view this data/),
   ).toBeInTheDocument();
   expect(
     screen.getByText("You don't have access to this data"),
