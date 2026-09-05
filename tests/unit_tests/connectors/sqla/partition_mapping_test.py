@@ -35,6 +35,7 @@ from superset.connectors.sqla.partition_mapping import (
     MIRRORABLE_ALWAYS,
     MIRRORABLE_IF_MONOTONIC,
     mirrorable_operators,
+    parse_error_detail,
     resolve_partition_mapping,
     validate_partition_mapping,
 )
@@ -635,6 +636,25 @@ def test_an_unparseable_transform_saves_with_a_warning() -> None:
     assert len(_warnings(issues)) == 1
 
 
+def test_a_parse_failure_names_what_the_parser_choked_on() -> None:
+    """
+    "Could not be parsed" tells an owner nothing they can act on. When the
+    parser hands us a position, pass it along.
+    """
+    issues = _issues(transform="unix_timestamp(:value")
+    message = str(_warnings(issues)[0].message)
+    assert "position" in message
+
+
+def test_a_misspelled_function_is_not_a_parse_error() -> None:
+    """
+    sqlglot parses unknown functions happily -- they are anonymous calls, not
+    syntax errors -- so a typo like this reaches the engine and is reported
+    from there instead. Pinning it so the distinction is not lost.
+    """
+    assert parse_error_detail("unix_timestmp(:value)", "postgresql") is None
+
+
 def test_a_transform_without_the_placeholder_saves_with_a_warning() -> None:
     issues = _issues(transform="unix_timestamp(event_time)")
     assert _blocking(issues) == []
@@ -749,3 +769,37 @@ def test_a_null_monotonic_flag_reads_as_not_declared(app: Flask) -> None:
     assert mapping.is_monotonic is False
     assert not mapping.mirrors(FilterOperator.TEMPORAL_RANGE)
     assert mapping.mirrors(FilterOperator.EQUALS)
+
+
+def test_a_failed_probe_reports_the_engine_error_when_asked(app: Flask) -> None:
+    """
+    The query path swallows probe failures -- losing pruning beats failing a
+    chart. The editor's preview passes a sink so it can tell the owner why,
+    which is the only way a misspelled function ever gets explained.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=RuntimeError("function unix_timestmp does not exist")
+    )
+    errors: list[str] = []
+
+    with app.app_context():
+        assert (
+            evaluate_transform(
+                database, None, None, "unix_timestmp(:value)", ["x"], errors=errors
+            )
+            is None
+        )
+
+    assert errors == ["function unix_timestmp does not exist"]
+
+
+def test_a_failed_probe_stays_silent_without_a_sink(app: Flask) -> None:
+    """The hot path passes nothing and must not pay for the message."""
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=RuntimeError("connection reset")
+    )
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) is None

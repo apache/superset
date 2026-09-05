@@ -264,3 +264,34 @@ def test_column_fields_tolerate_a_null_write(field: str) -> None:
 @pytest.mark.parametrize("field", DATASET_FIELDS)
 def test_dataset_fields_tolerate_a_null_write(field: str) -> None:
     assert SqlaTable.__table__.columns[field].nullable
+
+
+@pytest.mark.parametrize("field", DATASET_FIELDS)
+def test_dataset_fields_are_readable_over_the_api(field: str) -> None:
+    """
+    The editor loads the dataset over the REST API, so a field the API does not
+    serialize reads back as empty -- and the next save writes that emptiness in.
+    """
+    from superset.datasets.api import DatasetRestApi
+
+    assert field in DatasetRestApi.show_columns
+
+
+@pytest.mark.parametrize("field", COLUMN_FIELDS)
+def test_column_fields_are_readable_over_the_api(field: str) -> None:
+    """
+    Related-model fields have to appear in `show_columns`, not only in
+    `show_select_columns`: the latter drives the query, the former drives what
+    is serialized. `columns.advanced_data_type` is listed in both for exactly
+    this reason.
+    """
+    from superset.datasets.api import DatasetRestApi
+
+    assert f"columns.{field}" in DatasetRestApi.show_columns
+
+
+def test_the_engine_transform_default_is_readable_over_the_api() -> None:
+    """The editor pre-fills from this; unexposed, it silently never pre-fills."""
+    from superset.datasets.api import DatasetRestApi
+
+    assert "partition_value_transform_default" in DatasetRestApi.show_columns
