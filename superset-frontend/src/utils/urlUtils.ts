@@ -356,9 +356,9 @@ export function toQueryString(params: Record<string, any>): string {
  */
 export const toSafeHref = (url: string): string | undefined => {
   try {
-    const parsedUrl = new URL(url, window.location.origin);
-    if (parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:') {
-      return parsedUrl.href;
+    const { protocol } = new URL(url, window.location.origin);
+    if (protocol === 'http:' || protocol === 'https:') {
+      return url;
     }
   } catch {
     // fall through: unparseable URLs are not rendered as links
