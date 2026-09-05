@@ -27,6 +27,7 @@ from superset.connectors.sqla import models
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import FavStar
 from superset.models.slice import Slice
+from superset.security.guest_token import GuestTokenResourceType
 from superset.subjects.filters import (
     EditableFilter,
     subject_relation_exists_for_current_user,
@@ -111,11 +112,30 @@ class ChartCertifiedFilter(BaseFilter):  # pylint: disable=too-few-public-method
 
 class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
-        # Embedded guests are scoped to their token's dashboards first. A guest
-        # is never entitled to all charts, regardless of what its role grants,
-        # and an empty token scope denies all charts (a deny-all clause).
+        # Embedded guests are scoped to their token's resources first. A guest
+        # is never entitled to all charts, regardless of what its role grants:
+        # access is the union of charts on the token's embedded dashboards and
+        # charts listed directly in the token (chart-scoped tokens, e.g. those
+        # minted by the show_chart MCP tool). An empty token scope denies all
+        # charts (guest_embedded_dashboard_filter yields a deny-all clause).
         if (guest_dashboards := guest_embedded_dashboard_filter()) is not None:
-            return query.filter(self.model.dashboards.any(guest_dashboards))
+            clauses = [self.model.dashboards.any(guest_dashboards)]
+            guest_user = security_manager.get_current_guest_user_if_guest()
+            chart_ids: list[int] = []
+            chart_uuids: list[str] = []
+            for resource in guest_user.resources if guest_user else []:
+                if resource["type"] != GuestTokenResourceType.CHART:
+                    continue
+                raw = str(resource["id"])
+                if raw.isdigit():
+                    chart_ids.append(int(raw))
+                else:
+                    chart_uuids.append(raw)
+            if chart_ids:
+                clauses.append(Slice.id.in_(chart_ids))
+            if chart_uuids:
+                clauses.append(Slice.uuid.in_(chart_uuids))
+            return query.filter(or_(*clauses))
 
         if security_manager.can_access_all_datasources():
             return query
