@@ -208,6 +208,16 @@ def floored_status_cursor() -> datetime:
     status cursor (the 202 handshake and each poll response) share this helper so
     the precision contract lives in one place.
 
+    Known limitation: this cursor is stamped on the web tier's clock, while a
+    task's ``changed_on`` on a terminal transition is stamped by whichever worker
+    committed it. If a worker's clock trails the web tier by more than the floored
+    second, that completion can sit just under the ``>=`` bound and be skipped by
+    every poll, so a poll-mode client resolves the chart only at its stale timeout
+    (the websocket transport is unaffected — it delivers completion directly). Keep
+    the web and worker tiers clock-synced (e.g. NTP). The robust fix is a
+    DB-stamped status timestamp — as the orphan reaper already uses the DB clock
+    rather than the app clock — which is tracked as a follow-up.
+
     :returns: Current naive-local time with sub-second precision dropped
     """
     return datetime.now().replace(microsecond=0)
