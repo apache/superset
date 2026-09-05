@@ -36,21 +36,21 @@ class IBMiEngineSpec(Db2EngineSpec):
             "system optimized for IBM i."
         ),
         "logo": "ibm-db2.svg",
-        "homepage_url": "https://www.ibm.com/products/db2",
+        "homepage_url": "https://www.ibm.com/products/db2-for-i",
         "categories": [
             DatabaseCategory.TRADITIONAL_RDBMS,
             DatabaseCategory.PROPRIETARY,
         ],
         "pypi_packages": ["sqlalchemy-ibmi"],
-        "connection_string": "ibmi://{username}:{password}@{host}:{port}/{database}",
-        "default_port": 50000,
+        "connection_string": "ibmi://{username}:{password}@{host}/{database}",
         "parameters": {
             "username": "IBM i user profile",
             "password": "User password",
             "host": "Hostname or IP address",
-            "port": "Port (default 50000)",
             "database": "Database name",
         },
+        "docs_url": "https://github.com/IBM/sqlalchemy-ibmi",
+        "sqlalchemy_docs_url": "https://github.com/IBM/sqlalchemy-ibmi",
     }
 
     @classmethod
