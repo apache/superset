@@ -92,7 +92,7 @@ const SqlEditorLeftBar = ({
   }
 
   return (
-    <LeftBarContent data-test="left-bar-content">
+    <LeftBarContent data-test="sql-editor-left-bar">
       {visitedIds.map(viewId => (
         <PanelSlot
           key={viewId}

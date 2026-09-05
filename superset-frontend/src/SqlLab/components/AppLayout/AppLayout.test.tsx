@@ -365,7 +365,7 @@ test('a crashing panel does not take down the rail', async () => {
   expect(screen.getByTitle('Crash')).toBeInTheDocument();
 
   await userEvent.click(screen.getByTitle('Explorer'));
-  expect(screen.getByTestId('left-bar-content')).toBeInTheDocument();
+  expect(screen.getByTestId('sql-editor-left-bar')).toBeInTheDocument();
 
   consoleErrorSpy.mockRestore();
   disposable.dispose();
