@@ -300,6 +300,10 @@ def _stub_run_environment(mocker: MockerFixture) -> MagicMock:
         None
     )
     db_mock.session.query.return_value.filter_by.return_value.one_or_none.return_value = None  # noqa: E501
+    mocker.patch(
+        "superset.commands.database.uploaders.base.or_",
+        side_effect=lambda *args: mocker.MagicMock(),
+    )
     return model
 
 
