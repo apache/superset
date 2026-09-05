@@ -95,6 +95,16 @@ const config: ControlPanelConfig = {
           },
         ],
         ['series'],
+        ['adhoc_filters'],
+        ['row_limit'],
+      ],
+    },
+    sections.titleControls,
+    {
+      label: t('Chart Options'),
+      expanded: true,
+      controlSetRows: [
+        ['zoomable'],
         [
           {
             name: 'candlestick_series_name',
@@ -111,16 +121,6 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-        ['adhoc_filters'],
-        ['row_limit'],
-      ],
-    },
-    sections.titleControls,
-    {
-      label: t('Chart Options'),
-      expanded: true,
-      controlSetRows: [
-        ['zoomable'],
         [
           {
             name: 'moving_averages',
