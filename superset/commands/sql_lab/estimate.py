@@ -32,6 +32,7 @@ from superset.exceptions import (
     SupersetDisallowedSQLTableException,
     SupersetDMLNotAllowedException,
     SupersetErrorException,
+    SupersetGenericDBErrorException,
     SupersetTimeoutException,
 )
 from superset.jinja_context import get_template_processor
@@ -208,6 +209,11 @@ class QueryEstimationCommand(BaseCommand):
                     level=ErrorLevel.ERROR,
                 ),
                 status=500,
+            ) from ex
+        except Exception as ex:
+            logger.exception("Query cost estimation failed unexpectedly")
+            raise SupersetGenericDBErrorException(
+                utils.error_msg_from_exception(ex)
             ) from ex
 
         spec = self._database.db_engine_spec
