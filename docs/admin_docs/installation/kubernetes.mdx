@@ -324,8 +324,9 @@ configOverrides:
 
 As an alternative to `Ingress`, the chart can create a [Gateway API](https://gateway-api.sigs.k8s.io/)
 `HTTPRoute` that attaches to a Gateway already running in your cluster. This requires the Gateway
-API CRDs (`gateway.networking.k8s.io/v1`) to be installed, along with a Gateway resource for the
-route to attach to. If the Gateway lives in a different namespace than the `HTTPRoute` (as in the
+API CRDs serving the configured `httproute.apiVersion` (`gateway.networking.k8s.io/v1` by default)
+to be installed, along with a Gateway resource for the route to attach to. If the Gateway lives in
+a different namespace than the `HTTPRoute` (as in the
 example below), its listener's `allowedRoutes` must explicitly permit routes from this release's
 namespace, or the `HTTPRoute` will install successfully but never attach.
 
@@ -354,8 +355,10 @@ httproute:
   `timeouts` only joined the Gateway API Standard channel in v1.2, so it requires both v1.2+ CRDs
   and a supporting controller; drop it if either predates that.
 - If `supersetWebsockets.enabled` is set, an extra rule routing `supersetWebsockets.ingress.path`
-  (default `/ws`) to the `-ws` service is appended automatically, mirroring the `Ingress` behavior
-  so global async queries keep working behind a Gateway.
+  (default `/ws`) to the `-ws` service is appended automatically, mirroring the `Ingress` behavior.
+  WebSocket upgrade support is controller-dependent under Gateway API; check your Gateway
+  implementation's docs in case it needs an explicit protocol opt-in for global async queries to
+  keep working behind a Gateway.
 - If `supersetMcp.enabled` and `supersetMcp.httproute.enabled` are both set, an extra rule routing
   `supersetMcp.httproute.path` to the `-mcp` service is appended as well. Don't expose this route
   without first enabling MCP authentication — see the
