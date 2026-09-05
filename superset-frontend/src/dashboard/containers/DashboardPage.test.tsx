@@ -630,3 +630,216 @@ test('clears undo history after hydrating the dashboard', async () => {
     .invocationCallOrder[0];
   expect(clearOrder).toBeGreaterThan(hydrateOrder);
 });
+
+// ---------------------------------------------------------------------------
+// localStorage filter persistence
+// ---------------------------------------------------------------------------
+
+test('restores native filter state from localStorage when no URL key is present', async () => {
+  const savedMask = {
+    'NATIVE_FILTER-abc123': {
+      filterState: { value: ['California'] },
+      extraFormData: {
+        filters: [{ col: 'state', op: 'IN', val: ['California'] }],
+      },
+    },
+  };
+  localStorage.setItem(
+    'dashboard__native_filters__1',
+    JSON.stringify(savedMask),
+  );
+
+  // Include the filter ID in native_filter_configuration so the validation
+  // added to prevent stale-config restores accepts the stored entry.
+  mockUseDashboard.mockReturnValue({
+    result: {
+      ...mockDashboard,
+      metadata: {
+        native_filter_configuration: [{ id: 'NATIVE_FILTER-abc123' }],
+      },
+    },
+    error: null,
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+        user: { userId: undefined },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({
+      dataMask: expect.objectContaining({
+        'NATIVE_FILTER-abc123': expect.objectContaining({
+          filterState: { value: ['California'] },
+        }),
+      }),
+    }),
+  );
+
+  localStorage.removeItem('dashboard__native_filters__1');
+});
+
+test('scopes localStorage key to userId when user is authenticated', async () => {
+  const savedMask = {
+    'NATIVE_FILTER-xyz': {
+      filterState: { value: ['2024'] },
+      extraFormData: {},
+    },
+  };
+  // key is scoped to userId=7 and dashboardId=1
+  localStorage.setItem(
+    'dashboard__native_filters__7__1',
+    JSON.stringify(savedMask),
+  );
+
+  // Include the filter ID in native_filter_configuration so the validation
+  // added to prevent stale-config restores accepts the stored entry.
+  mockUseDashboard.mockReturnValue({
+    result: {
+      ...mockDashboard,
+      metadata: {
+        native_filter_configuration: [{ id: 'NATIVE_FILTER-xyz' }],
+      },
+    },
+    error: null,
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+        user: { userId: 7 },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({
+      dataMask: expect.objectContaining({
+        'NATIVE_FILTER-xyz': expect.objectContaining({
+          filterState: { value: ['2024'] },
+        }),
+      }),
+    }),
+  );
+
+  localStorage.removeItem('dashboard__native_filters__7__1');
+});
+
+test('does not restore localStorage filters when a nativeFiltersKey is in the URL', async () => {
+  // Put something in localStorage that should be ignored because the URL key takes priority
+  localStorage.setItem(
+    'dashboard__native_filters__1',
+    JSON.stringify({ 'NATIVE_FILTER-abc': { filterState: { value: ['X'] } } }),
+  );
+
+  const { getFilterValue } = jest.requireMock(
+    'src/dashboard/components/nativeFilters/FilterBar/keyValue',
+  );
+  (getFilterValue as jest.Mock).mockResolvedValueOnce({
+    'NATIVE_FILTER-abc': { filterState: { value: ['FromURL'] } },
+  });
+
+  mockGetUrlParam.mockImplementation((param: { name: string }) => {
+    if (param.name === 'native_filters_key') return 'some-key';
+    return null;
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+        user: { userId: undefined },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  // hydrateDashboard should use the URL-resolved value, not localStorage
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({
+      dataMask: expect.objectContaining({
+        'NATIVE_FILTER-abc': expect.objectContaining({
+          filterState: { value: ['FromURL'] },
+        }),
+      }),
+    }),
+  );
+
+  localStorage.removeItem('dashboard__native_filters__1');
+});
+
+test('ignores corrupted localStorage data (array) and uses empty dataMask', async () => {
+  // An array is not a valid dataMask shape and must be rejected
+  localStorage.setItem(
+    'dashboard__native_filters__1',
+    JSON.stringify([1, 2, 3]),
+  );
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+        user: { userId: undefined },
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  // dataMask should be empty — the corrupted array value must not be used
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({ dataMask: {} }),
+  );
+
+  localStorage.removeItem('dashboard__native_filters__1');
+});

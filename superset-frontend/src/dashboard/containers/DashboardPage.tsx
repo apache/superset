@@ -81,6 +81,47 @@ import {
 
 type NativeFilterConfigEntry = Partial<Filter> & { id: string };
 
+const DASHBOARD_FILTERS_STORAGE_PREFIX = 'dashboard__native_filters__';
+
+function getStorageKey(dashboardId: number, userId: number | undefined) {
+  // Scope the key to userId to prevent one user's filter state from
+  // leaking into another user's session on the same browser profile.
+  // Guest users (no userId) are not scoped — guest sessions are ephemeral.
+  return userId
+    ? `${DASHBOARD_FILTERS_STORAGE_PREFIX}${userId}__${dashboardId}`
+    : `${DASHBOARD_FILTERS_STORAGE_PREFIX}${dashboardId}`;
+}
+
+function getSavedDashboardFilters(
+  dashboardId: number,
+  userId: number | undefined,
+) {
+  try {
+    const raw = localStorage.getItem(getStorageKey(dashboardId, userId));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveDashboardFilters(
+  dashboardId: number,
+  userId: number | undefined,
+  nativeFilterMask: Record<string, unknown>,
+) {
+  try {
+    const key = getStorageKey(dashboardId, userId);
+    const nextValue = JSON.stringify(nativeFilterMask);
+    // Skip the write if the value has not changed to avoid unnecessary
+    // synchronous main-thread work on every dataMask state update.
+    if (localStorage.getItem(key) !== nextValue) {
+      localStorage.setItem(key, nextValue);
+    }
+  } catch {
+    // fail silently — persistence is a nice-to-have, not critical path
+  }
+}
+
 export const DashboardPageIdContext = createContext('');
 
 const DashboardBuilder = lazy(
@@ -171,6 +212,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const hydratedDashboardId = useSelector<RootState, number | undefined>(
     state => state.dashboardInfo?.id,
   );
+  const userId = useSelector((state: RootState) => state.user?.userId);
   const pageTitle =
     (hydratedDashboardId === id ? liveDashboardTitle : undefined) ||
     dashboard_title;
@@ -206,6 +248,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   useEffect(() => {
     // eslint-disable-next-line consistent-return
     async function getDataMaskApplied() {
+      if (!readyToRender) {
+        return null;
+      }
       const permalinkKey = getUrlParam(URL_PARAMS.permalinkKey);
       const nativeFilterKeyValue = getUrlParam(URL_PARAMS.nativeFiltersKey);
       const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
@@ -226,6 +271,34 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         }
       } else if (nativeFilterKeyValue) {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
+      } else {
+        const savedFilters = getSavedDashboardFilters(id, userId);
+        // Guard against corrupted or unexpected localStorage data shapes
+        // (e.g. a JSON array or primitive) before assigning to dataMask.
+        if (
+          savedFilters &&
+          typeof savedFilters === 'object' &&
+          !Array.isArray(savedFilters)
+        ) {
+          // Only restore entries whose filter ID still exists in the current
+          // native filter configuration. This prevents stale extraFormData from
+          // a reconfigured filter (e.g. retargeted to a different column or
+          // dataset) from being hydrated and silently applying the old selection.
+          const knownFilterIds = new Set(
+            (
+              (dashboard?.metadata?.native_filter_configuration ??
+                []) as NativeFilterConfigEntry[]
+            ).map((f: NativeFilterConfigEntry) => f.id),
+          );
+          const validatedFilters = Object.fromEntries(
+            Object.entries(savedFilters).filter(([filterId]) =>
+              knownFilterIds.has(filterId),
+            ),
+          );
+          if (Object.keys(validatedFilters).length > 0) {
+            dataMask = validatedFilters;
+          }
+        }
       }
       if (isOldRison) {
         // Normalize legacy `currentState` → `filterState`. Pre-2021 URLs stored
@@ -303,38 +376,36 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         }
       }
 
-      if (readyToRender) {
-        if (!isDashboardHydrated.current) {
-          isDashboardHydrated.current = true;
-        }
-        dispatch(
-          hydrateDashboard({
-            history,
-            dashboard: dashboard!,
-            charts: charts!,
-            activeTabs: activeTabs ?? null,
-            dataMask,
-            chartStates: chartStates ?? null,
-          } as unknown as Parameters<typeof hydrateDashboard>[0]),
-        );
-        dispatch(clearDashboardHistory());
+      if (!isDashboardHydrated.current) {
+        isDashboardHydrated.current = true;
+      }
+      dispatch(
+        hydrateDashboard({
+          history,
+          dashboard: dashboard!,
+          charts: charts!,
+          activeTabs: activeTabs ?? null,
+          dataMask,
+          chartStates: chartStates ?? null,
+        } as unknown as Parameters<typeof hydrateDashboard>[0]),
+      );
+      dispatch(clearDashboardHistory());
 
-        // Scroll to anchor element if specified in permalink state
-        if (anchor) {
-          // Use setTimeout to ensure the DOM has been updated after hydration
-          setTimeout(() => {
-            const element = document.getElementById(anchor);
-            if (element) {
-              element.scrollIntoView({ behavior: 'smooth' });
-            }
-          }, 0);
-        }
+      // Scroll to anchor element if specified in permalink state
+      if (anchor) {
+        // Use setTimeout to ensure the DOM has been updated after hydration
+        setTimeout(() => {
+          const element = document.getElementById(anchor);
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+          }
+        }, 0);
       }
       return null;
     }
     if (id) getDataMaskApplied();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [readyToRender]);
+  }, [readyToRender, id]);
 
   // Capture original title before any effects run
   const originalTitle = useMemo(() => document.title, []);
@@ -381,7 +452,30 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   }, [addDangerToast, datasets, datasetsApiError, dispatch, isNotFoundError]);
 
   const relevantDataMask = useSelector(selectRelevantDatamask);
+  const fullDataMask = useSelector(selectDataMask);
+  const nativeFilters = useSelector(selectNativeFilters);
   const activeFilters = useSelector(selectActiveFilters);
+
+  useEffect(() => {
+    if (!id || hydratedDashboardId !== id || !isDashboardHydrated.current)
+      return;
+    // Persist only entries that correspond to configured native filters.
+    // This avoids saving chart customization or other transient dataMask
+    // entries that are not part of the user's filter selections.
+    const nativeFilterIds = Object.keys(nativeFilters);
+    // Do not overwrite a previously saved state with an empty mask.
+    // When the store clears dataMask on unmount (SPA navigation away), the
+    // hydratedDashboardId guard may still pass briefly before the next
+    // dashboard's hydration fires; skipping empty writes prevents that race
+    // from wiping the user's last valid selection.
+    if (nativeFilterIds.length === 0) return;
+    const nativeFilterMask = Object.fromEntries(
+      nativeFilterIds
+        .filter(filterId => filterId in fullDataMask)
+        .map(filterId => [filterId, fullDataMask[filterId]]),
+    );
+    saveDashboardFilters(id, userId, nativeFilterMask);
+  }, [id, hydratedDashboardId, fullDataMask, nativeFilters, userId]);
 
   if (error && !isNotFoundError) throw error; // caught in error boundary
 
