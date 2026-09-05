@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SyntheticEvent } from 'react';
+import { SyntheticEvent, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
@@ -34,6 +34,7 @@ import { MenuKeys, RootState } from 'src/dashboard/types';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import handleResourceExport from 'src/utils/export';
+import { redirect } from 'src/utils/navigationUtils';
 import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
@@ -42,6 +43,22 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 
 import { MenuItemTooltip } from 'src/components/Chart/DisabledMenuItemTooltip';
 import { DownloadScreenshotFormat } from './types';
+
+// Polling always outlives the server's hard task budget (11 minutes): the
+// export email is best-effort, so the client cannot rely on it as a fallback.
+const EXPORT_STATUS_POLL_INTERVAL_MS = 3000;
+const EXPORT_STATUS_POLL_TIMEOUT_MS = 12 * 60 * 1000;
+
+interface ExportStatusResponse {
+  status?: 'pending' | 'running' | 'ready' | 'error';
+  download_url?: string;
+  message?: string;
+}
+
+interface ExportPollState {
+  deadline: number;
+  sawRunning: boolean;
+}
 
 export interface UseDownloadMenuItemsProps {
   pdfMenuItemTitle: string;
@@ -70,8 +87,35 @@ export const useDownloadMenuItems = (
     canExportImage,
   } = props;
 
-  const { addDangerToast, addSuccessToast } = useToasts();
+  const { addDangerToast, addSuccessToast, addInfoToast } = useToasts();
+  // Track the in-flight poll timer so navigating away stops the polling
+  // (and the full-page navigation it would eventually trigger).
+  const pollTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const unmountedRef = useRef(false);
+  useEffect(
+    () => () => {
+      unmountedRef.current = true;
+      if (pollTimerRef.current) {
+        clearTimeout(pollTimerRef.current);
+      }
+    },
+    [],
+  );
   const dataMask = useSelector((state: RootState) => state.dataMask);
+  const user = useSelector((state: RootState) => state.user);
+  // Guests and anonymous sessions have no userId and cannot be emailed.
+  const isGuestSession = !user?.userId;
+  const canReceiveEmail = Boolean(user?.userId && user?.email);
+
+  const addExportPendingToast = () =>
+    addInfoToast(
+      canReceiveEmail
+        ? t(
+            "Your export is being generated and will download automatically when ready. We'll also email you a download link.",
+          )
+        : t('Your export is being generated. Please, do not leave the page.'),
+      { noDuplicate: true },
+    );
   const SCREENSHOT_NODE_SELECTOR = '.dashboard';
 
   const buildActiveDataMask = (): Record<string, { extraFormData: object }> =>
@@ -167,6 +211,75 @@ export const useDownloadMenuItems = (
     }
   };
 
+  const pollExportStatus = (jobId: string, pollState: ExportPollState) => {
+    if (unmountedRef.current) {
+      return;
+    }
+    SupersetClient.get({
+      endpoint: `/api/v1/dashboard/export_xlsx/status/${jobId}/`,
+    })
+      .then(({ json }) => {
+        // A response in flight when the component unmounts must not navigate
+        // (redirect) or toast on whatever page the user moved to.
+        if (unmountedRef.current) {
+          return;
+        }
+        const {
+          status,
+          download_url: downloadUrl,
+          message,
+        } = json as ExportStatusResponse;
+        if (status === 'ready') {
+          if (downloadUrl) {
+            redirect(downloadUrl);
+            addSuccessToast(t('Your export is ready and downloading.'));
+          } else {
+            addDangerToast(t('Sorry, something went wrong. Try again later.'));
+          }
+          return;
+        }
+        if (status === 'error') {
+          addDangerToast(
+            message || t('Sorry, something went wrong. Try again later.'),
+          );
+          return;
+        }
+        if (status === 'running' && !pollState.sawRunning) {
+          // The task's execution budget only starts when a worker picks it
+          // up; restart the wait window then, so queue delay doesn't eat it.
+          pollState.sawRunning = true;
+          pollState.deadline = Date.now() + EXPORT_STATUS_POLL_TIMEOUT_MS;
+        }
+        if (Date.now() > pollState.deadline) {
+          addDangerToast(
+            t('Your export is taking longer than expected. Try again later.'),
+          );
+          return;
+        }
+        addExportPendingToast();
+        pollTimerRef.current = setTimeout(
+          () => pollExportStatus(jobId, pollState),
+          EXPORT_STATUS_POLL_INTERVAL_MS,
+        );
+      })
+      .catch(error => {
+        if (unmountedRef.current) {
+          return;
+        }
+        // A transient polling failure shouldn't give up the wait -- the export
+        // itself may still succeed -- so keep polling until the timeout.
+        logging.error(error);
+        if (Date.now() > pollState.deadline) {
+          addDangerToast(t('Sorry, something went wrong. Try again later.'));
+          return;
+        }
+        pollTimerRef.current = setTimeout(
+          () => pollExportStatus(jobId, pollState),
+          EXPORT_STATUS_POLL_INTERVAL_MS,
+        );
+      });
+  };
+
   const onExportXlsx = async (mode: 'data' | 'images') => {
     try {
       const { json } = await SupersetClient.post({
@@ -175,11 +288,16 @@ export const useDownloadMenuItems = (
       });
       // The throttle response (an export is already running) returns 202 with a
       // message but no job_id; only a freshly enqueued job carries a job_id.
-      if ((json as { job_id?: string })?.job_id) {
-        addSuccessToast(
-          t(
-            "Your export is being prepared. You'll receive an email when it's ready.",
-          ),
+      const jobId = (json as { job_id?: string })?.job_id;
+      if (jobId) {
+        addExportPendingToast();
+        pollTimerRef.current = setTimeout(
+          () =>
+            pollExportStatus(jobId, {
+              deadline: Date.now() + EXPORT_STATUS_POLL_TIMEOUT_MS,
+              sawRunning: false,
+            }),
+          EXPORT_STATUS_POLL_INTERVAL_MS,
         );
       } else {
         addSuccessToast(
@@ -252,11 +370,10 @@ export const useDownloadMenuItems = (
             label: t('Export Data to Excel'),
             onClick: () => onExportXlsx('data'),
           },
-          // Image export renders charts through the headless webdriver, so only
-          // offer it where that infrastructure is available (same signal as the
-          // PDF/PNG image downloads above); otherwise non-table charts would
-          // silently come back empty.
-          ...(isWebDriverScreenshotEnabled
+          // Needs the webdriver infrastructure and a real session: the
+          // webdriver cannot render under a guest identity (the API rejects
+          // guest image exports too).
+          ...(isWebDriverScreenshotEnabled && !isGuestSession
             ? [
                 {
                   key: 'export-xlsx-images',

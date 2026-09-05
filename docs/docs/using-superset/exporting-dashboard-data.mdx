@@ -9,16 +9,18 @@ version: 1
 
 Superset can export every chart on a dashboard to a single Excel workbook, with
 each chart's underlying data rendered as its own worksheet. The export reflects
-the dashboard's currently applied filters and runs asynchronously: when it
-finishes, the requesting user receives an email with a time-limited download
-link.
+the dashboard's currently applied filters and runs asynchronously: the page
+polls for completion and downloads the workbook automatically, and a logged-in
+user with an email address also receives a time-limited download link by email.
+Sessions with no email on file — embedded guest-token sessions and anonymous
+(Public-role) users — rely on the polling download alone.
 
 ## Using the export
 
 From a dashboard, open the **... (actions) → Download** submenu and choose
 **Export Data to Excel**. The action appears for users who have the dashboard
 `can_export` permission. You'll see a confirmation that the export is being
-prepared; the workbook arrives by email when it's ready.
+prepared; the workbook downloads automatically when ready.
 
 A second option, **Export Images to Excel**, embeds each non-table chart as a
 rendered image (tables stay tabular) instead of exporting raw data. Because it
@@ -47,17 +49,34 @@ Notes on the generated workbook:
 
 This feature is **disabled by default**. It requires:
 
-1. **The `boto3` dependency.** It is not installed by default; install it with
-   `pip install apache-superset[excel-export]`. Without it, exports fail and the
-   user receives a failure email.
-2. **An S3 bucket.** Set `EXCEL_EXPORT_S3_BUCKET`. Until it is set, the export
-   endpoint returns `501` and the menu action surfaces a "not configured"
-   message.
+1. **A storage bucket and backend.** Configure `EXPORT_STORAGE` with both
+   a `bucket` and a `backend` matching the bucket's provider — there is no
+   implicit default:
+
+   ```python
+   from superset.utils.s3 import S3ExportStorage       # AWS S3
+   # from superset.utils.gcs import GCSExportStorage   # Google Cloud Storage
+
+   EXPORT_STORAGE = {
+       "bucket": "my-export-bucket",
+       "backend": S3ExportStorage(),
+   }
+   ```
+
+   Until both are set, the export endpoint returns `501` and the menu action
+   surfaces a "not configured" message.
+2. **The backend's SDK dependency, on both the web and worker tiers** (the
+   worker uploads, the web server streams downloads). Not installed by
+   default; install
+   `pip install apache-superset[excel-export]` (boto3) for `S3ExportStorage`,
+   or `pip install apache-superset[excel-export-gcs]` (google-cloud-storage)
+   for `GCSExportStorage`. Without it, exports fail.
 3. **A running Celery worker.** The export runs as a Celery task. If no worker
    is running, the request is accepted but nothing is produced.
-4. **A configured SMTP transport.** The download link is delivered by email
-   using the same settings as alerts & reports (`SMTP_*`,
-   `EMAIL_REPORTS_SUBJECT_PREFIX`).
+4. **A configured SMTP transport, for email delivery only.** When set (same
+   settings as alerts & reports: `SMTP_*`, `EMAIL_REPORTS_SUBJECT_PREFIX`),
+   logged-in users with an email address also receive the download link by
+   email. The polling auto-download works without it.
 
 **Export Images to Excel** additionally requires a working headless webdriver —
 the same infrastructure scheduled reports and thumbnails use (`WEBDRIVER_*`,
@@ -72,33 +91,48 @@ will not register.
 
 ## Configuration keys
 
-| Key                             | Default                | Description                                                                                                                                                                       |
-| ------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `EXCEL_EXPORT_S3_BUCKET`        | `None`                 | Destination bucket. Required; `501` if unset.                                                                                                                                     |
-| `EXCEL_EXPORT_S3_KEY_PREFIX`    | `"dashboard-exports/"` | Key prefix: `{prefix}{dashboard_id}/{job_id}.xlsx`.                                                                                                                               |
-| `EXCEL_EXPORT_LINK_TTL_SECONDS` | `86400`                | Lifetime of the pre-signed download URL (24h).                                                                                                                                    |
-| `EXCEL_EXPORT_S3_CLIENT_KWARGS` | `{}`                   | Extra kwargs for `boto3.client("s3", ...)` — e.g. `region_name`, or `endpoint_url` for MinIO/LocalStack.                                                                          |
-| `EXCEL_EXPORT_TABLE_VIZ_TYPES`  | `None`                 | Viz types kept tabular in **Export Images to Excel** mode; every other type is embedded as an image. `None` uses the built-in default (`table`, `pivot_table`, `pivot_table_v2`). |
-| `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER` | `None`            | Optional `Callable[[form_data_dict], dict \| None]` to build a query context for a chart missing a saved one, tried before the built-in form-data rebuild. Point it at a service that runs the chart's real frontend `buildQuery` to faithfully export viz types the built-in rebuild can't handle. Must return `None` when it can't build faithfully, so the export falls back. |
+| Key                                    | Default                | Description                                                                                                                                                                       |
+| -------------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `EXPORT_STORAGE["bucket"]`             | unset                  | Destination bucket. Required; `501` if unset.                                                                                                                                     |
+| `EXPORT_STORAGE["backend"]`            | unset                  | Storage backend instance: `S3ExportStorage()` (`superset.utils.s3`), `GCSExportStorage()` (`superset.utils.gcs`), or a custom `superset.utils.export_storage.ExportStorage` implementation. Required; `501` if unset. |
+| `EXPORT_STORAGE["key_prefix"]`         | `"dashboard-exports/"` | Object key/blob prefix: `{prefix}{dashboard_id}/{job_id}.xlsx`. A callable (`() -> str`) is invoked per export, for prefixes only known in request/task context (e.g. per-tenant scoping of a shared bucket). |
+| `EXCEL_EXPORT_LINK_TTL_SECONDS`        | `86400`                | Lifetime of the Superset download link (24h) shared in the email and polling response. Each click streams the file from storage through Superset. Guest-token exports cap the link at one hour regardless of this value, since a guest retrieves the file within the polling window and has no email link to revisit later. |
+| `EXCEL_EXPORT_TABLE_VIZ_TYPES`         | `None`                 | Viz types kept tabular in **Export Images to Excel** mode; every other type is embedded as an image. `None` uses the built-in default (`table`, `pivot_table`, `pivot_table_v2`). |
+| `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`   | `None`                 | Optional `Callable[[form_data_dict], dict \| None]` to build a query context for a chart missing a saved one, tried before the built-in form-data rebuild. Point it at a service that runs the chart's real frontend `buildQuery` to faithfully export viz types the built-in rebuild can't handle. Must return `None` when it can't build faithfully, so the export falls back. |
 
-Credentials and region resolve through the standard boto3 chain (environment
-variables, shared config, or instance role) unless overridden via
-`EXCEL_EXPORT_S3_CLIENT_KWARGS`. The worker needs `s3:PutObject` on the bucket.
+Credentials resolve through each SDK's standard chain — for S3, environment
+variables, shared config, or an instance role, with overrides available via
+`S3ExportStorage(client_kwargs={...})` (e.g. `region_name`, or `endpoint_url`
+for MinIO/LocalStack); for GCS, Application Default Credentials. Two tiers
+need bucket access, which matters when they run under separate identities:
+the **Celery worker** uploads the file (write, e.g. `s3:PutObject`), while
+the **web server** streams it back at download time (read, e.g.
+`s3:GetObject`; on S3 also grant `s3:ListBucket`, or a lifecycle-expired
+object surfaces as AccessDenied instead of a clean "link expired"). No
+signing permissions are needed on either tier: downloads stream through
+Superset rather than redirecting to a signed storage URL.
 
 ## Security considerations
 
-- The emailed link is a **pre-signed S3 URL**: anyone who holds it can download
-  the workbook until it expires. Keep the bucket **private**, enable
-  encryption, and consider a lifecycle rule to delete objects after a few days.
-  Lower `EXCEL_EXPORT_LINK_TTL_SECONDS` if 24 hours is too long for your data.
+- The download link is an unguessable Superset URL: anyone who holds it can
+  download the workbook until the link expires, and every download streams
+  through Superset (never a transferable signed storage URL). Keep the bucket
+  **private**, enable encryption, and consider a lifecycle rule to delete
+  objects after a few days. Lower `EXCEL_EXPORT_LINK_TTL_SECONDS` if 24 hours
+  is too long for your data.
 - The export runs with the requesting user's permissions; each chart's query is
   access-checked, so users only ever receive data they are entitled to.
 
 ## Limitations
 
-- **Embedded dashboards / guest tokens are not supported** in this version,
-  because guest users have no email address to deliver the link to. Logged-in
-  users viewing an embedded dashboard can still use the export.
+- **Embedded guest-token sessions get the polling download only.** The export
+  runs under the guest token's RLS rules and resource claims, and the page
+  polls for completion and downloads automatically — but there is no email
+  fallback, so the browser tab must stay open until the export finishes.
+  **Export Images to Excel** is not available to guest or anonymous
+  (Public-role) sessions: the webdriver cannot render without a real user
+  identity, so the menu hides it and the API rejects it for any session
+  without a user id.
 - The default **Export Data to Excel** mode exports data only (no visual
   styling). Use **Export Images to Excel** to embed rendered chart images, which
   requires the webdriver infrastructure described in the prerequisites.

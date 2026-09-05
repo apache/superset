@@ -42,6 +42,7 @@ class KeyValueFilter(TypedDict, total=False):
 class KeyValueResource(StrEnum):
     APP = "app"
     DASHBOARD_PERMALINK = "dashboard_permalink"
+    EXCEL_EXPORT_DOWNLOAD = "excel_export_download"
     EXPLORE_PERMALINK = "explore_permalink"
     METASTORE_CACHE = "superset_metastore_cache"
     LOCK = "lock"

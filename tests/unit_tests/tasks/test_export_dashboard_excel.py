@@ -19,6 +19,7 @@ from __future__ import annotations
 import glob
 import os
 import tempfile
+import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager, ExitStack
 from typing import Any
@@ -26,10 +27,21 @@ from unittest import mock
 
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
+from flask import current_app
 
+from superset.exceptions import SupersetException
+from superset.security.guest_token import GuestToken, GuestTokenResourceType
 from superset.utils import json
 
 MODULE = "superset.tasks.export_dashboard_excel"
+
+# export_dashboard_excel always receives a real uuid4 job_id in production (the
+# API generates it); use valid UUIDs here too since the task parses job_id via
+# uuid.UUID() to key the download-link/status store.
+JOB_ID = "00000000-0000-0000-0000-000000000001"
+JOB_ID_TIMEOUT = "00000000-0000-0000-0000-000000000002"
+JOB_ID_IMG_TIMEOUT = "00000000-0000-0000-0000-000000000003"
+JOB_ID_FAIL = "00000000-0000-0000-0000-000000000004"
 
 
 # A minimal valid 1x1 transparent PNG for image-mode tests.
@@ -66,6 +78,22 @@ def _media(path: str) -> list[str]:
 def mocks() -> Iterator[dict[str, Any]]:
     """Patch every external dependency of the task; keep the real xlsx writer."""
     with ExitStack() as stack:
+        # A bucket and storage backend must be configured for the task to reach
+        # the upload at all; production only ever calls the task once the API's
+        # own "is this configured" 501 check has passed, so this simulates
+        # that already-passed state rather than values tests care about.
+        storage_backend = mock.MagicMock()
+        stack.enter_context(
+            mock.patch.dict(
+                current_app.config,
+                {
+                    "EXPORT_STORAGE": {
+                        "bucket": "test-bucket",
+                        "backend": storage_backend,
+                    }
+                },
+            )
+        )
         # Use explicit MagicMock instances: patch() auto-creates async-flavored
         # mocks for these targets (their real objects expose async members), which
         # would make calls like security_manager.get_user_by_id() return coroutines.
@@ -81,9 +109,11 @@ def mocks() -> Iterator[dict[str, Any]]:
                 "ChartDataQueryContextSchema",
                 "ChartDataCommand",
                 "render_chart_image",
-                "s3",
                 "email",
                 "ReleaseDistributedLock",
+                "create_download_link",
+                "mark_export_failed",
+                "mark_export_running",
             )
         }
         user = mock.MagicMock()
@@ -100,15 +130,16 @@ def mocks() -> Iterator[dict[str, Any]]:
         )
 
         patched["get_dashboard_filter_context"].return_value.extra_form_data = {}
-        patched["s3"].generate_presigned_url.return_value = "https://signed/file.xlsx"
+        patched["create_download_link"].return_value = "https://signed/file.xlsx"
 
         patched["user"] = user
         patched["dashboard"] = dashboard
+        patched["storage_backend"] = storage_backend
         yield patched
 
 
 def _run(
-    job_id: str = "job-1",
+    job_id: str = JOB_ID,
     mode: str = "data",
 ) -> None:
     from superset.tasks.export_dashboard_excel import export_dashboard_excel
@@ -154,15 +185,75 @@ def test_happy_path_uploads_and_emails(mocks: dict[str, Any]) -> None:
     def _capture(path: str, bucket: str, key: str) -> None:
         uploaded["sheets"] = _read_sheets(path)
 
-    mocks["s3"].upload_file_to_s3.side_effect = _capture
+    mocks["storage_backend"].upload_file.side_effect = _capture
 
     _run()
 
-    mocks["s3"].upload_file_to_s3.assert_called_once()
+    mocks["storage_backend"].upload_file.assert_called_once()
     assert list(uploaded["sheets"].keys()) == ["10 - First", "20 - Second"]
     mocks["email"].send_export_email.assert_called_once()
     mocks["email"].build_success_email.assert_called_once()
-    assert _no_temp_files_left("job-1")
+    # The email labels its timestamps "UTC", so expires_at is handed over as a
+    # UTC-aware value even though it is stored naive-local for is_expired().
+    from datetime import timezone
+
+    _, kwargs = mocks["email"].build_success_email.call_args
+    assert kwargs["expires_at"].tzinfo == timezone.utc
+    assert _no_temp_files_left(JOB_ID)
+
+
+def test_callable_key_prefix_is_resolved_per_export(mocks: dict[str, Any]) -> None:
+    # A multi-tenant deployment computes the prefix in task context (e.g. from
+    # the tenant in current_app.config), so a callable must be invoked rather
+    # than interpolated into the object key as-is.
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+    original_storage_config = current_app.config["EXPORT_STORAGE"]
+    current_app.config["EXPORT_STORAGE"] = {
+        **original_storage_config,
+        "key_prefix": lambda: "tenant-a/dashboard-exports/",
+    }
+    try:
+        _run()
+    finally:
+        current_app.config["EXPORT_STORAGE"] = original_storage_config
+
+    _, _, key = mocks["storage_backend"].upload_file.call_args[0]
+    assert key == f"tenant-a/dashboard-exports/1/{JOB_ID}.xlsx"
+
+
+@pytest.mark.parametrize(
+    "storage_config",
+    [
+        {},  # neither bucket nor backend
+        {"backend": mock.MagicMock()},  # bucket missing
+        {"bucket": "test-bucket"},  # backend missing
+    ],
+)
+def test_fails_clearly_when_storage_unconfigured(
+    mocks: dict[str, Any], storage_config: dict[str, Any]
+) -> None:
+    # The API already rejects export_xlsx with 501 before enqueueing when
+    # EXPORT_STORAGE lacks a bucket or backend, so this path is normally
+    # unreachable -- but if the config is cleared after enqueue (or the task
+    # is invoked directly), it must fail with a clear message rather than an
+    # opaque storage-SDK error.
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+    original_storage_config = current_app.config["EXPORT_STORAGE"]
+    current_app.config["EXPORT_STORAGE"] = storage_config
+    try:
+        with pytest.raises(SupersetException, match="not configured"):
+            _run()
+    finally:
+        current_app.config["EXPORT_STORAGE"] = original_storage_config
+
+    mocks["storage_backend"].upload_file.assert_not_called()
+    mocks["email"].build_failure_email.assert_called_once()
 
 
 def test_chart_without_query_context_is_skipped(mocks: dict[str, Any]) -> None:
@@ -296,8 +387,11 @@ def _builder_hook(builder: Any) -> Iterator[None]:
     # Real values for the keys the task subscripts directly, so a full export can
     # run under the hook (a MagicMock ttl would blow up building the link expiry).
     fake_app.config.__getitem__.side_effect = {
-        "EXCEL_EXPORT_S3_BUCKET": "bucket",
-        "EXCEL_EXPORT_S3_KEY_PREFIX": "dashboard-exports/",
+        "EXPORT_STORAGE": {
+            "bucket": "bucket",
+            "key_prefix": "dashboard-exports/",
+            "backend": mock.MagicMock(),
+        },
         "EXCEL_EXPORT_LINK_TTL_SECONDS": 3600,
     }.__getitem__
     with mock.patch.object(module, "current_app", fake_app):
@@ -636,7 +730,7 @@ def test_chart_query_error_grouped_as_general_export_continues(
 
     _run()
 
-    mocks["s3"].upload_file_to_s3.assert_called_once()
+    mocks["storage_backend"].upload_file.assert_called_once()
     _, kwargs = mocks["email"].build_success_email.call_args
     assert kwargs["errored"] == {mocks["email"].ERROR_GENERAL: ["10 - Boom"]}
 
@@ -658,12 +752,12 @@ def test_chart_timeout_aborts_export_and_sends_failure_email(
     ]
 
     with pytest.raises(SoftTimeLimitExceeded):
-        _run("job-timeout")
+        _run(JOB_ID_TIMEOUT)
 
-    mocks["s3"].upload_file_to_s3.assert_not_called()
+    mocks["storage_backend"].upload_file.assert_not_called()
     mocks["email"].build_success_email.assert_not_called()
     mocks["email"].build_failure_email.assert_called_once()
-    assert _no_temp_files_left("job-timeout")
+    assert _no_temp_files_left(JOB_ID_TIMEOUT)
 
 
 def test_image_render_timeout_aborts_export(mocks: dict[str, Any]) -> None:
@@ -675,11 +769,11 @@ def test_image_render_timeout_aborts_export(mocks: dict[str, Any]) -> None:
     mocks["render_chart_image"].side_effect = SoftTimeLimitExceeded()
 
     with pytest.raises(SoftTimeLimitExceeded):
-        _run("job-img-timeout", mode="images")
+        _run(JOB_ID_IMG_TIMEOUT, mode="images")
 
     mocks["email"].build_success_email.assert_not_called()
     mocks["email"].build_failure_email.assert_called_once()
-    assert _no_temp_files_left("job-img-timeout")
+    assert _no_temp_files_left(JOB_ID_IMG_TIMEOUT)
 
 
 def test_all_charts_skipped_writes_summary(mocks: dict[str, Any]) -> None:
@@ -691,7 +785,7 @@ def test_all_charts_skipped_writes_summary(mocks: dict[str, Any]) -> None:
     def _capture(path: str, bucket: str, key: str) -> None:
         uploaded["sheets"] = _read_sheets(path)
 
-    mocks["s3"].upload_file_to_s3.side_effect = _capture
+    mocks["storage_backend"].upload_file.side_effect = _capture
 
     _run()
 
@@ -706,24 +800,24 @@ def test_upload_failure_sends_failure_email_and_cleans_up(
     mocks["ChartDataCommand"].return_value.run.return_value = {
         "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
     }
-    mocks["s3"].upload_file_to_s3.side_effect = RuntimeError("s3 down")
+    mocks["storage_backend"].upload_file.side_effect = RuntimeError("storage down")
 
     with pytest.raises(RuntimeError):
-        _run("job-fail")
+        _run(JOB_ID_FAIL)
 
     mocks["email"].build_failure_email.assert_called_once()
     mocks["email"].send_export_email.assert_called_once()
-    assert _no_temp_files_left("job-fail")
+    assert _no_temp_files_left(JOB_ID_FAIL)
 
 
 def test_soft_time_limit_sends_failure_email(mocks: dict[str, Any]) -> None:
     mocks["get_charts_in_layout_order"].side_effect = SoftTimeLimitExceeded()
 
     with pytest.raises(SoftTimeLimitExceeded):
-        _run("job-timeout")
+        _run(JOB_ID_TIMEOUT)
 
     mocks["email"].build_failure_email.assert_called_once()
-    assert _no_temp_files_left("job-timeout")
+    assert _no_temp_files_left(JOB_ID_TIMEOUT)
 
 
 # --- image mode ---
@@ -747,7 +841,7 @@ def test_images_mode_embeds_non_table_and_keeps_tables_tabular(
         uploaded["sheets"] = _read_sheets(path)
         uploaded["media"] = _media(path)
 
-    mocks["s3"].upload_file_to_s3.side_effect = _capture
+    mocks["storage_backend"].upload_file.side_effect = _capture
 
     _run(mode="images")
 
@@ -778,7 +872,7 @@ def test_images_mode_renders_chart_without_query_context(
     def _capture(path: str, bucket: str, key: str) -> None:
         uploaded["media"] = _media(path)
 
-    mocks["s3"].upload_file_to_s3.side_effect = _capture
+    mocks["storage_backend"].upload_file.side_effect = _capture
 
     _run(mode="images")
 
@@ -797,7 +891,7 @@ def test_images_mode_none_render_is_skipped(mocks: dict[str, Any]) -> None:
     def _capture(path: str, bucket: str, key: str) -> None:
         uploaded["sheets"] = _read_sheets(path)
 
-    mocks["s3"].upload_file_to_s3.side_effect = _capture
+    mocks["storage_backend"].upload_file.side_effect = _capture
 
     _run(mode="images")
 
@@ -806,6 +900,24 @@ def test_images_mode_none_render_is_skipped(mocks: dict[str, Any]) -> None:
     assert kwargs["errored"] == {mocks["email"].ERROR_GENERAL: ["10 - Line"]}
     # Nothing rendered → the summary sheet stands in for an empty workbook.
     assert "Export Summary" in uploaded["sheets"]
+
+
+def test_query_context_is_stamped_with_the_dashboard_id(
+    mocks: dict[str, Any],
+) -> None:
+    """Guest datasource authorization links a chart to its dashboard through
+    form_data.dashboardId (raise_for_access); the browser stamps it on every
+    interactive request and the task must do the same when replaying a saved
+    context, or every chart in a guest export fails the access check."""
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    (payload,), _ = mocks["ChartDataQueryContextSchema"].return_value.load.call_args
+    assert payload["form_data"]["dashboardId"] == 1
 
 
 def test_inflight_lock_released_on_success(mocks: dict[str, Any]) -> None:
@@ -824,15 +936,320 @@ def test_inflight_lock_released_on_success(mocks: dict[str, Any]) -> None:
     mocks["ReleaseDistributedLock"].return_value.run.assert_called_once_with()
 
 
+def test_guest_export_reconstructs_guest_user_and_releases_its_lock_slot(
+    mocks: dict[str, Any],
+) -> None:
+    """A guest export (user_id=None) rebuilds the user from the token payload —
+    so the token's RLS rules apply in the worker — and releases the same
+    token-derived lock slot the API acquired."""
+    from superset.tasks.export_dashboard_excel import (
+        export_dashboard_excel,
+        guest_lock_slot,
+    )
+
+    # Like a real GuestUser: no ``email`` (and no ``id``) attribute at all.
+    guest = mock.MagicMock(spec=["username"])
+    mocks["security_manager"].get_guest_user_from_token.return_value = guest
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+    token: GuestToken = {
+        "iat": 0.0,
+        "exp": 0.0,
+        "user": {},
+        "resources": [],
+        "rls_rules": [],
+    }
+
+    export_dashboard_excel(
+        dashboard_id=1,
+        user_id=None,
+        active_data_mask={},
+        job_id=JOB_ID,
+        guest_token=token,
+    )
+
+    mocks["security_manager"].get_guest_user_from_token.assert_called_once_with(token)
+    mocks["security_manager"].get_user_by_id.assert_not_called()
+    # Guests have no email address, so no notification is attempted.
+    mocks["email"].send_export_email.assert_not_called()
+    # The file still lands in storage for the status-poll download path.
+    mocks["storage_backend"].upload_file.assert_called_once()
+    mocks["ReleaseDistributedLock"].assert_called_once_with(
+        "excel_export", {"user_id": guest_lock_slot(token), "dashboard_id": 1}
+    )
+    assert guest_lock_slot(token) != 0
+
+
+def test_anonymous_export_runs_under_the_anonymous_principal(
+    mocks: dict[str, Any],
+) -> None:
+    """No user id and no guest token means a Public/anonymous requester; the
+    task loads the anonymous user so the Public role applies to each chart's
+    access check instead of running with no principal at all."""
+    from superset.tasks.export_dashboard_excel import export_dashboard_excel
+
+    anonymous = mock.MagicMock(spec=["username"])
+    mocks["security_manager"].get_anonymous_user.return_value = anonymous
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    export_dashboard_excel(
+        dashboard_id=1,
+        user_id=None,
+        active_data_mask={},
+        job_id=JOB_ID,
+    )
+
+    mocks["security_manager"].get_anonymous_user.assert_called_once_with()
+    mocks["security_manager"].get_user_by_id.assert_not_called()
+    mocks["security_manager"].get_guest_user_from_token.assert_not_called()
+    mocks["email"].send_export_email.assert_not_called()
+    mocks["storage_backend"].upload_file.assert_called_once()
+
+
+def test_running_status_recorded_when_execution_starts(
+    mocks: dict[str, Any],
+) -> None:
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    (job_id_arg, _), _ = mocks["mark_export_running"].call_args
+    assert job_id_arg == uuid.UUID(JOB_ID)
+
+
+def test_running_status_write_failure_does_not_fail_the_export(
+    mocks: dict[str, Any],
+) -> None:
+    mocks["mark_export_running"].side_effect = RuntimeError("kv down")
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    mocks["storage_backend"].upload_file.assert_called_once()
+    mocks["create_download_link"].assert_called_once()
+
+
+def test_download_link_records_the_upload_backend(mocks: dict[str, Any]) -> None:
+    """The link stores which backend uploaded the file, so the download
+    redirect never signs with a different backend after a storage migration."""
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    _, kwargs = mocks["create_download_link"].call_args
+    backend_cls = type(mocks["storage_backend"])
+    assert kwargs["backend"] == (f"{backend_cls.__module__}.{backend_cls.__qualname__}")
+
+
+def test_guest_lock_slot_is_stable_and_identity_scoped() -> None:
+    from superset.tasks.export_dashboard_excel import guest_lock_slot
+
+    token_a = GuestToken(
+        iat=0.0,
+        exp=0.0,
+        user={"username": "alice"},
+        resources=[{"type": GuestTokenResourceType.DASHBOARD, "id": "d1"}],
+        rls_rules=[],
+    )
+    token_b = GuestToken(
+        iat=0.0,
+        exp=0.0,
+        user={"username": "bob"},
+        resources=[{"type": GuestTokenResourceType.DASHBOARD, "id": "d1"}],
+        rls_rules=[],
+    )
+    token_a_copy = GuestToken(
+        iat=0.0,
+        exp=0.0,
+        user={"username": "alice"},
+        resources=[{"type": GuestTokenResourceType.DASHBOARD, "id": "d1"}],
+        rls_rules=[],
+    )
+    # Same username and resources, different RLS -- embedded guests sharing a
+    # dashboard are distinguished by their RLS rules when the username is shared
+    # or absent, so they must not collide on one lock slot.
+    token_a_rls = GuestToken(
+        iat=0.0,
+        exp=0.0,
+        user={"username": "alice"},
+        resources=[{"type": GuestTokenResourceType.DASHBOARD, "id": "d1"}],
+        rls_rules=[{"dataset": None, "clause": "team_id = 1"}],
+    )
+
+    assert guest_lock_slot(token_a) == guest_lock_slot(token_a_copy)
+    assert guest_lock_slot(token_a) != guest_lock_slot(token_b)
+    assert guest_lock_slot(token_a) != guest_lock_slot(token_a_rls)
+    assert guest_lock_slot(None) == 0
+
+
+def test_guest_download_link_ttl_is_clamped(mocks: dict[str, Any]) -> None:
+    """Guests retrieve the file via the polling window; their link must not
+    outlive the short credential that authorized it by a day."""
+    from datetime import datetime, timedelta
+
+    from superset.tasks.export_dashboard_excel import (
+        export_dashboard_excel,
+        GUEST_LINK_TTL_SECONDS,
+    )
+
+    guest = mock.MagicMock(spec=["username"])
+    mocks["security_manager"].get_guest_user_from_token.return_value = guest
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    export_dashboard_excel(
+        dashboard_id=1,
+        user_id=None,
+        active_data_mask={},
+        job_id=JOB_ID,
+        guest_token={"user": {}, "resources": [], "rls_rules": []},
+    )
+
+    (_, _, _, expires_at), kwargs = mocks["create_download_link"].call_args
+    assert expires_at.tzinfo is None
+    limit = datetime.now() + timedelta(seconds=GUEST_LINK_TTL_SECONDS + 60)
+    assert expires_at <= limit
+
+
+def test_status_expiries_are_naive_local(mocks: dict[str, Any]) -> None:
+    """KeyValueEntry.is_expired() compares naive local datetime.now(); a
+    naive-UTC expiry breaks the store on any non-UTC server."""
+    from datetime import datetime, timedelta
+
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    _run()
+
+    (_, running_expiry), _ = mocks["mark_export_running"].call_args
+    assert running_expiry.tzinfo is None
+    assert (
+        abs(
+            (running_expiry - (datetime.now() + timedelta(seconds=960))).total_seconds()
+        )
+        < 30
+    )
+
+
+def test_partial_failure_appends_summary_sheet(mocks: dict[str, Any]) -> None:
+    """When some charts export and others are skipped, the workbook itself
+    lists the skipped charts: sessions with no email have no other channel."""
+    mocks["get_charts_in_layout_order"].return_value = [
+        _chart(10, "Good"),
+        _chart(20, "Bad", has_context=False, viz_type="sunburst"),
+    ]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    uploaded: dict[str, Any] = {}
+
+    def _capture(path: str, bucket: str, key: str) -> None:
+        uploaded["sheets"] = _read_sheets(path)
+
+    mocks["storage_backend"].upload_file.side_effect = _capture
+
+    _run()
+
+    assert "Export Summary" in uploaded["sheets"]
+    flat = [str(cell) for row in uploaded["sheets"]["Export Summary"] for cell in row]
+    assert any("20 - Bad" in cell for cell in flat)
+
+
+def test_missing_dashboard_records_failure(mocks: dict[str, Any]) -> None:
+    """A dashboard deleted between enqueue and execution fails cleanly:
+    failure recorded for pollers, lock released."""
+    mocks[
+        "db"
+    ].session.query.return_value.filter_by.return_value.one_or_none.return_value = None
+
+    with pytest.raises(ValueError, match="not found"):
+        _run(JOB_ID_FAIL)
+
+    mocks["mark_export_failed"].assert_called_once()
+    mocks["ReleaseDistributedLock"].return_value.run.assert_called_once_with()
+
+
+def test_multi_query_chart_gets_indexed_sheet_names(mocks: dict[str, Any]) -> None:
+    """A chart whose result carries several queries yields one sheet per
+    query, disambiguated by the query index suffix."""
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Multi")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [
+            {"colnames": ["a"], "data": [{"a": 1}]},
+            {"colnames": ["b"], "data": [{"b": 2}]},
+        ]
+    }
+
+    uploaded: dict[str, Any] = {}
+
+    def _capture(path: str, bucket: str, key: str) -> None:
+        uploaded["sheets"] = _read_sheets(path)
+
+    mocks["storage_backend"].upload_file.side_effect = _capture
+
+    _run()
+
+    assert list(uploaded["sheets"].keys()) == ["10 - Multi", "10.1 - Multi"]
+
+
+def test_lock_released_and_failure_recorded_when_user_resolution_fails(
+    mocks: dict[str, Any],
+) -> None:
+    """If reconstructing the requester fails (e.g. the guest role lookup
+    raises), the lock the API acquired is still released and the failure is
+    still recorded for pollers."""
+    from superset.tasks.export_dashboard_excel import export_dashboard_excel
+
+    mocks["security_manager"].get_guest_user_from_token.side_effect = RuntimeError(
+        "role lookup failed"
+    )
+
+    from superset.tasks.export_dashboard_excel import guest_lock_slot
+
+    token = GuestToken(iat=0.0, exp=0.0, user={}, resources=[], rls_rules=[])
+    with pytest.raises(RuntimeError):
+        export_dashboard_excel(
+            dashboard_id=1,
+            user_id=None,
+            active_data_mask={},
+            job_id=JOB_ID_FAIL,
+            guest_token=token,
+        )
+
+    mocks["ReleaseDistributedLock"].assert_called_once_with(
+        "excel_export", {"user_id": guest_lock_slot(token), "dashboard_id": 1}
+    )
+    mocks["mark_export_failed"].assert_called_once()
+
+
 def test_inflight_lock_released_on_failure(mocks: dict[str, Any]) -> None:
     mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
     mocks["ChartDataCommand"].return_value.run.return_value = {
         "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
     }
-    mocks["s3"].upload_file_to_s3.side_effect = RuntimeError("s3 down")
+    mocks["storage_backend"].upload_file.side_effect = RuntimeError("storage down")
 
     with pytest.raises(RuntimeError):
-        _run("job-fail")
+        _run(JOB_ID_FAIL)
 
     # The lock is freed in ``finally`` even when the export fails.
     mocks["ReleaseDistributedLock"].assert_called_once_with(

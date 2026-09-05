@@ -509,19 +509,34 @@ Note that a retried query returns partial data with no truncation indicator
 (e.g. a filter dropdown may list only a subset of values on tables above the
 row cap).
 
-### Dashboard "Export Data to Excel" requires a Celery worker and S3 bucket
+### Dashboard "Export Data to Excel" requires a Celery worker and a storage bucket
 
 A new dashboard action exports every chart's data to a single multi-sheet
 `.xlsx` asynchronously. It is disabled by default and turns on only when
-`EXCEL_EXPORT_S3_BUCKET` is set (the endpoint returns `501` otherwise). It also
-requires a running Celery worker and a configured SMTP transport, since the task
-emails the requesting user a pre-signed download link. New config keys:
-`EXCEL_EXPORT_S3_BUCKET`, `EXCEL_EXPORT_S3_KEY_PREFIX`,
-`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_S3_CLIENT_KWARGS`,
+`EXPORT_STORAGE` is configured with both a `bucket` and a `backend` (the
+endpoint returns `501` otherwise) — there is no implicit storage default:
+
+```python
+from superset.utils.s3 import S3ExportStorage  # or superset.utils.gcs.GCSExportStorage
+
+EXPORT_STORAGE = {
+    "bucket": "my-export-bucket",
+    "backend": S3ExportStorage(),
+}
+```
+
+It also requires a running Celery worker. SMTP is optional and only used to
+additionally email logged-in users a download link; every session (including
+guest/Public ones, which have no email) gets the export through status polling
+and automatic download. New config keys:
+`EXPORT_STORAGE`, `EXCEL_EXPORT_LINK_TTL_SECONDS`,
 `EXCEL_EXPORT_TABLE_VIZ_TYPES`, and `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
 
-The feature depends on `boto3`, which is **not** installed by default; install it
-with `pip install apache-superset[excel-export]`.
+The storage backends depend on SDKs that are **not** installed by default:
+install `pip install apache-superset[excel-export]` (boto3) for
+`S3ExportStorage`, or `pip install apache-superset[excel-export-gcs]`
+(google-cloud-storage) for `GCSExportStorage`. A custom backend can be supplied
+by implementing `superset.utils.export_storage.ExportStorage`.
 
 Charts store their `query_context` only once they have been (re-)saved in
 Explore, so older charts may have none. For a fixed, conservative set of viz

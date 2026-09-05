@@ -66,6 +66,7 @@ from superset.tasks.types import ExecutorType
 from superset.themes.types import Theme
 from superset.utils import core as utils
 from superset.utils.encrypt import SQLAlchemyUtilsAdapter
+from superset.utils.export_storage import ExportStorage
 from superset.utils.log import DBEventLogger
 from superset.utils.logging_configurator import DefaultLoggingConfigurator
 from superset.utils.version import get_dev_env_label
@@ -382,6 +383,12 @@ WTF_CSRF_EXEMPT_LIST = [
     # the same reason as the chart data endpoint above.
     "superset.datasource.api.query",
     "superset.dashboards.api.cache_dashboard_screenshot",
+    # Guest-token (embedded) sessions authenticate via the guest token
+    # header and carry no CSRF token cookie; without the exemption their
+    # export POST is rejected outright. Worst case for a logged-in user is a
+    # cross-site forced enqueue of an export they never see (the response is
+    # unreadable cross-origin and the link is never exposed).
+    "superset.dashboards.api.export_xlsx",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
     "flask_appbuilder.security.views.acs",
@@ -1538,22 +1545,48 @@ CSV_STREAMING_ROW_THRESHOLD = 100000
 # note: index option should not be overridden
 EXCEL_EXPORT: dict[str, Any] = {}
 
+
 # ---------------------------------------------------
-# Dashboard "Export Data to Excel" (async, S3-backed)
+# Dashboard "Export Data to Excel" (async, object-storage-backed)
 # ---------------------------------------------------
-# Destination S3 bucket for generated dashboard .xlsx exports. The feature is
-# disabled until this is set: the export endpoint returns 501 when it is None.
-EXCEL_EXPORT_S3_BUCKET: str | None = None
-# Key prefix for export objects: {prefix}{dashboard_id}/{job_id}.xlsx
-EXCEL_EXPORT_S3_KEY_PREFIX = "dashboard-exports/"
-# Lifetime (seconds) of the pre-signed download URL emailed to the user (24h).
-# Note: AWS S3 caps pre-signed URL lifetime at 7 days (604800 seconds); larger
-# values are rejected by S3, so keep this at or below that when using AWS.
+class ExportStorageConfig(TypedDict, total=False):
+    """Where generated export artifacts (dashboard Excel exports, and
+    potentially other export file types) are uploaded, and how the download
+    endpoint streams them back. See EXPORT_STORAGE."""
+
+    # Destination bucket for generated export artifacts. The export feature is
+    # disabled until this is set: the export endpoint returns 501 while absent.
+    bucket: str
+    # Key/blob prefix for export objects: {prefix}{dashboard_id}/{job_id}.xlsx
+    # A callable is invoked per export, inside the worker task (no request
+    # context), for deployments where the prefix is only known at run time
+    # (e.g. a multi-tenant installation scoping a shared bucket per tenant
+    # from worker-ambient app config).
+    key_prefix: str | Callable[[], str]
+    # The storage backend (an instance implementing
+    # superset.utils.export_storage.ExportStorage), the same pattern as
+    # RESULTS_BACKEND or CUSTOM_SECURITY_MANAGER. There is no implicit
+    # default; the feature is disabled (the export endpoint returns 501)
+    # until one is set explicitly, matching the bucket's provider:
+    #   from superset.utils.s3 import S3ExportStorage      # AWS S3
+    #   from superset.utils.gcs import GCSExportStorage    # Google Cloud Storage
+    #   EXPORT_STORAGE["backend"] = S3ExportStorage()
+    # S3ExportStorage accepts client_kwargs for boto3.client("s3", ...)
+    # overrides (region_name, or an endpoint_url for S3-compatible stores
+    # such as MinIO/LocalStack); credentials otherwise resolve through each
+    # SDK's standard chain.
+    backend: ExportStorage
+
+
+EXPORT_STORAGE: ExportStorageConfig = {
+    "key_prefix": "dashboard-exports/",
+}
+# Lifetime (seconds) of the download link shared with the user (24h). Not
+# part of ExportStorageConfig: it bounds the Superset-issued link itself (see
+# superset.dashboards.excel_export.download_link); each click streams the
+# file from storage through Superset. Guest-initiated exports are clamped to
+# a shorter lifetime (see superset.tasks.export_dashboard_excel).
 EXCEL_EXPORT_LINK_TTL_SECONDS = 86400
-# Extra kwargs passed to boto3.client("s3", ...) — e.g. region_name, or an
-# endpoint_url for S3-compatible stores (MinIO/LocalStack). Credentials
-# otherwise resolve through the standard boto3 chain.
-EXCEL_EXPORT_S3_CLIENT_KWARGS: dict[str, Any] = {}
 # Viz types treated as tables in the "Export Images to Excel" mode: these charts
 # stay tabular (one worksheet of data) while every other viz type is embedded as
 # a rendered image. Set to None to fall back to the built-in default.
