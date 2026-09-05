@@ -14,21 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""
-Cache-key coverage for the datasource query endpoint's time range.
-
-``build_query_dict`` carries a time range as a ``TEMPORAL_RANGE`` filter and
-sets ``granularity``, which is enough to produce correct SQL but not enough to
-reach the cache key. The collision is marked ``xfail(strict=True)`` so it flips
-to a hard failure once the range reaches the key (at which point the marker is
-removed).
-"""
+"""Cache-key coverage for a time range carried only by a TEMPORAL_RANGE filter."""
 
 from __future__ import annotations
 
+from datetime import datetime
 from unittest.mock import Mock
-
-import pytest
 
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context_factory import (
@@ -55,25 +46,31 @@ def _datasource() -> Mock:
     return datasource
 
 
-def _query_object(time_range: str) -> QueryObject:
-    """Build the query object the endpoint produces for ``time_range``."""
+def _query_object(time_range: str, as_expression: bool = False) -> QueryObject:
+    """Build the query object the datasource query endpoint produces.
+
+    ``as_expression`` additionally sets ``time_range``, as the frontend does.
+    """
     datasource = _datasource()
+    query_dict = build_query_dict(
+        metrics=["count"],
+        time_column="ds",
+        time_range=time_range,
+        order_desc=True,
+    )
+    if as_expression:
+        query_dict["time_range"] = time_range
     query_object = create_query_object_factory().create(
         ChartDataResultType.FULL,
         datasource_model_instance=datasource,
-        **build_query_dict(
-            metrics=["count"],
-            time_column="ds",
-            time_range=time_range,
-            order_desc=True,
-        ),
+        **query_dict,
     )
     QueryContextFactory()._apply_granularity(query_object, {}, datasource)
     return query_object
 
 
-def _cache_key(time_range: str) -> str:
-    return _query_object(time_range).cache_key(
+def _cache_key(time_range: str, as_expression: bool = False) -> str:
+    return _query_object(time_range, as_expression).cache_key(
         datasource="1__table",
         extra_cache_keys=[],
         rls=None,
@@ -98,12 +95,26 @@ def test_granularity_drops_the_temporal_filter(app_context: None) -> None:
     assert [f for f in query_object.filter if f["op"] == "TEMPORAL_RANGE"] == []
 
 
-@pytest.mark.xfail(
-    strict=True,
-    reason="build_query_dict omits time_range, and cache_key keeps time_range "
-    "only when set while always dropping from_dttm/to_dttm, so every range "
-    "shares one key and a second request is served the first range's rows.",
-)
 def test_distinct_time_ranges_get_distinct_cache_keys(app_context: None) -> None:
-    assert _query_object(RANGE_A).time_range is not None
     assert _cache_key(RANGE_A) != _cache_key(RANGE_B)
+
+
+def test_time_range_expression_ignores_resolved_bounds(app_context: None) -> None:
+    """With ``time_range`` set, moving the bounds leaves the key alone.
+
+    That is what keeps a relative range on one key as its bounds advance.
+    """
+    keys = []
+    for year in (1970, 1975):
+        query_object = _query_object(RANGE_A, as_expression=True)
+        query_object.from_dttm = datetime(year, 1, 1)
+        keys.append(
+            query_object.cache_key(
+                datasource="1__table",
+                extra_cache_keys=[],
+                rls=None,
+                changed_on=None,
+            )
+        )
+
+    assert keys[0] == keys[1]
