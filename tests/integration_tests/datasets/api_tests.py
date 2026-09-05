@@ -800,6 +800,7 @@ class TestDatasetApi(SupersetTestCase):
             "can_get_or_create_dataset",
             "can_warm_up_cache",
             "can_get_drill_info",
+            "can_partition_mapping_preview",
         }
 
     def test_create_dataset_item(self):
