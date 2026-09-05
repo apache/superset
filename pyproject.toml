@@ -142,7 +142,7 @@ bigquery = [
     # 1.17.1 is likely the final release: googleapis/python-bigquery-sqlalchemy
     # was archived 2026-05-16. Both 1.17.0 and 1.17.1 support SQLAlchemy 1.4/2.0.
     "sqlalchemy-bigquery>=1.17.2",
-    "google-cloud-bigquery>=3.42.3",
+    "google-cloud-bigquery>=3.44.0",
 ]
 clickhouse = ["clickhouse-connect>=1.7.2, <2.0"]
 # The `cockroachdb` PyPI package (last released 2021) is abandoned and its
