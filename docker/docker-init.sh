@@ -70,12 +70,28 @@ if [ "$SUPERSET_LOAD_EXAMPLES" = "yes" ]; then
     # Load some data to play with
     echo_step "4" "Starting" "Loading examples"
 
+    EXAMPLES_LOADED_MARKER="${SUPERSET_HOME}/.examples-loaded"
 
-    # If Cypress run which consumes superset_test_config – load required data for tests
-    if [ "$CYPRESS_CONFIG" == "true" ]; then
-        superset load_examples --load-test-data
+    # Loading examples parses and inserts every example dataset/dashboard/chart
+    # and is one of the slowest steps of `docker compose up`. Once it has
+    # succeeded, subsequent `docker-init.sh` runs against the same
+    # superset_home volume only need to refresh metadata (e.g. after a
+    # `superset db upgrade`), not reload the data itself. Set
+    # SUPERSET_FORCE_LOAD_EXAMPLES=yes to force a full reload regardless.
+    # Cypress runs always do a full reload since they load a distinct set of
+    # test data (`--load-test-data`) into a separate `superset_cypress`
+    # database that the metadata-only marker doesn't track.
+    if [ -f "$EXAMPLES_LOADED_MARKER" ] && [ "$SUPERSET_FORCE_LOAD_EXAMPLES" != "yes" ] && [ "$CYPRESS_CONFIG" != "true" ]; then
+        echo "Examples already loaded, refreshing metadata only (set SUPERSET_FORCE_LOAD_EXAMPLES=yes to force a full reload)"
+        superset load_examples --only-metadata
     else
-        superset load_examples
+        # If Cypress run which consumes superset_test_config – load required data for tests
+        if [ "$CYPRESS_CONFIG" == "true" ]; then
+            superset load_examples --load-test-data
+        else
+            superset load_examples
+        fi
+        touch "$EXAMPLES_LOADED_MARKER"
     fi
     echo_step "4" "Complete" "Loading examples"
 fi

@@ -18,17 +18,43 @@
 
 set -eo pipefail
 
+# Reinstalling superset-core/the app (and its postgres extra) on every container
+# start is slow and, in DEV_MODE, mostly unnecessary: the source tree is bind-mounted
+# in, so the only thing that actually changes between restarts of the same container
+# is the dependency set. Hash the inputs that drive that dependency set and skip the
+# install commands below when nothing relevant has changed since the last start.
+SUPERSET_DEPS_HASH_FILE="/app/.venv/.superset-deps-hash"
+SUPERSET_DEPS_POSTGRES_HASH_FILE="/app/.venv/.superset-deps-postgres-hash"
+
+compute_superset_deps_hash() {
+    {
+        cat /app/pyproject.toml 2> /dev/null
+        cat /app/requirements/*.txt 2> /dev/null
+        if [ -f /app/superset-core/pyproject.toml ]; then
+            cat /app/superset-core/pyproject.toml
+        fi
+    } | sha256sum | cut -d' ' -f1
+}
+
+CURRENT_SUPERSET_DEPS_HASH="$(compute_superset_deps_hash)"
+
 # Make python interactive
 if [ "$DEV_MODE" == "true" ]; then
     if [ "$(whoami)" = "root" ] && command -v uv > /dev/null 2>&1; then
-      # Always ensure superset-core is available
-      echo "Installing superset-core in editable mode"
-      uv pip install --no-deps -e /app/superset-core
+      if [ ! -f "$SUPERSET_DEPS_HASH_FILE" ] || [ "$(cat "$SUPERSET_DEPS_HASH_FILE")" != "$CURRENT_SUPERSET_DEPS_HASH" ]; then
+        # Always ensure superset-core is available
+        echo "Installing superset-core in editable mode"
+        uv pip install --no-deps -e /app/superset-core
 
-      # Only reinstall the main app for non-worker processes
-      if [ "$1" != "worker" ] && [ "$1" != "beat" ]; then
-        echo "Reinstalling the app in editable mode"
-        uv pip install -e .
+        # Only reinstall the main app for non-worker processes
+        if [ "$1" != "worker" ] && [ "$1" != "beat" ]; then
+          echo "Reinstalling the app in editable mode"
+          uv pip install -e .
+        fi
+
+        echo "$CURRENT_SUPERSET_DEPS_HASH" > "$SUPERSET_DEPS_HASH_FILE"
+      else
+        echo "Dependencies unchanged since last start, skipping superset-core/app reinstall"
       fi
     fi
 fi
@@ -43,14 +69,19 @@ if [ "$CYPRESS_CONFIG" == "true" ]; then
 fi
 # Skip postgres requirements installation for workers to avoid conflicts
 if [[ "$DATABASE_DIALECT" == postgres* ]] && [ "$(whoami)" = "root" ] && [ "$1" != "worker" ] && [ "$1" != "beat" ]; then
-    # older images may not have the postgres dev requirements installed
-    echo "Installing postgres requirements"
-    if command -v uv > /dev/null 2>&1; then
-        # Use uv in newer images
-        uv pip install -e .[postgres]
+    if [ ! -f "$SUPERSET_DEPS_POSTGRES_HASH_FILE" ] || [ "$(cat "$SUPERSET_DEPS_POSTGRES_HASH_FILE")" != "$CURRENT_SUPERSET_DEPS_HASH" ]; then
+        # older images may not have the postgres dev requirements installed
+        echo "Installing postgres requirements"
+        if command -v uv > /dev/null 2>&1; then
+            # Use uv in newer images
+            uv pip install -e .[postgres]
+        else
+            # Use pip in older images
+            pip install -e .[postgres]
+        fi
+        echo "$CURRENT_SUPERSET_DEPS_HASH" > "$SUPERSET_DEPS_POSTGRES_HASH_FILE"
     else
-        # Use pip in older images
-        pip install -e .[postgres]
+        echo "Postgres requirements unchanged since last start, skipping reinstall"
     fi
 fi
 #

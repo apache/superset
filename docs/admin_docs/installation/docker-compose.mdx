@@ -196,7 +196,10 @@ One important variable is `SUPERSET_LOAD_EXAMPLES` which determines whether the 
 container will populate example data and visualizations into the metadata database. These examples
 are helpful for learning and testing out Superset but unnecessary for experienced users and
 production deployments. The loading process can sometimes take a few minutes and a good amount of
-CPU, so you may want to disable it on a resource-constrained device.
+CPU, so you may want to disable it on a resource-constrained device. Once examples have been loaded
+successfully, later `superset_init` runs against the same `superset_home` volume only refresh
+example metadata rather than reloading the data; set `SUPERSET_FORCE_LOAD_EXAMPLES=yes` to force a
+full reload.
 
 For more advanced or dynamic configurations that are typically managed in a `superset_config.py` file
 located in your `PYTHONPATH`, note that it can be done by providing a

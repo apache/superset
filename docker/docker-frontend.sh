@@ -32,8 +32,23 @@ if [ "$BUILD_SUPERSET_FRONTEND_IN_DOCKER" = "true" ]; then
         npm run prune
     fi
 
-    echo "Running \"npm install\""
-    npm install
+    # `npm install` re-resolves and re-links the whole tree even when nothing
+    # changed, which is slow and unnecessary on every container start. Skip it
+    # when package.json/package-lock.json are unchanged since the last install
+    # and node_modules is already present; set FORCE_NPM_INSTALL=true to opt out.
+    NPM_LOCK_HASH_FILE="node_modules/.package-lock.hash"
+    CURRENT_NPM_LOCK_HASH="$(cat package.json package-lock.json 2> /dev/null | sha256sum | cut -d' ' -f1)"
+
+    if [ "$FORCE_NPM_INSTALL" = "true" ] \
+        || [ ! -d "node_modules" ] \
+        || [ ! -f "$NPM_LOCK_HASH_FILE" ] \
+        || [ "$(cat "$NPM_LOCK_HASH_FILE")" != "$CURRENT_NPM_LOCK_HASH" ]; then
+        echo "Running \"npm install\""
+        npm install
+        echo "$CURRENT_NPM_LOCK_HASH" > "$NPM_LOCK_HASH_FILE"
+    else
+        echo "package.json/package-lock.json unchanged, skipping \"npm install\" (set FORCE_NPM_INSTALL=true to override)"
+    fi
 
     echo "Start webpack dev server"
     # start the webpack dev server, serving dynamically at http://localhost:9000

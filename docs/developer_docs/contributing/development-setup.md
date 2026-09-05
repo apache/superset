@@ -99,11 +99,17 @@ Affecting the Docker build process:
 - **INCLUDE_CHROMIUM (default=false):** whether to include the Chromium headless browser in the build
 - **BUILD_TRANSLATIONS(default=false):** whether to compile the translations from the .po files available
 - **SUPERSET_LOAD_EXAMPLES (default=yes):** whether to load the examples into the database upon startup,
-  save some precious time on startup by `SUPERSET_LOAD_EXAMPLES=no docker compose up`
+  save some precious time on startup by `SUPERSET_LOAD_EXAMPLES=no docker compose up`. After the first
+  successful load, subsequent `docker compose up` runs against the same `superset_home` volume only
+  refresh example metadata instead of reloading the data; set
+  `SUPERSET_FORCE_LOAD_EXAMPLES=yes` to force a full reload.
 - **SUPERSET_LOG_LEVEL (default=info)**: Can be set to debug, info, warning, error, critical
   for more verbose logging
 - **SUPERSET_DEBUG_ENABLED (default=false)**: Enable Werkzeug debugger with interactive console.
   Set to `true` for debugging: `SUPERSET_DEBUG_ENABLED=true docker compose up`
+- **DISABLE_TS_CHECKER (default=true)**: whether the `superset-node` webpack dev server skips
+  TypeScript type-checking, which speeds up rebuilds and saves several GB of memory. Set to
+  `false` to have webpack surface type errors during development.
 
 For more env vars that affect your configuration, see this
 [superset_config.py](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py)
