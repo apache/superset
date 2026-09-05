@@ -286,9 +286,15 @@ function StickyWrap({
       </colgroup>
     );
 
-    const headerContainerWidth = hasVerticalScroll
-      ? maxWidth - scrollBarSize
-      : maxWidth;
+    // Reserve the same scrollbar gutter the body div reserves (below), rather
+    // than subtracting a separately-measured scrollbar width: `scrollbar-gutter`
+    // and `getCustomScrollBarSize()` are independent browser mechanisms that
+    // aren't guaranteed to agree, and any gap between them narrows this
+    // container's overflow:hidden box below the (fixed-layout) colgroup width
+    // computed from the body/sizer, silently clipping the rightmost column.
+    const headerFooterGutter: CSSProperties = {
+      scrollbarGutter: hasVerticalScroll ? 'stable' : undefined,
+    };
 
     headerTable = (
       <div
@@ -296,8 +302,9 @@ function StickyWrap({
         ref={scrollHeaderRef}
         style={{
           overflow: 'hidden',
-          width: headerContainerWidth,
+          width: maxWidth,
           boxSizing: 'border-box',
+          ...headerFooterGutter,
         }}
         role="presentation"
       >
@@ -317,8 +324,9 @@ function StickyWrap({
         ref={scrollFooterRef}
         style={{
           overflow: 'hidden',
-          width: headerContainerWidth,
+          width: maxWidth,
           boxSizing: 'border-box',
+          ...headerFooterGutter,
         }}
         role="presentation"
       >
