@@ -2347,17 +2347,22 @@ class TestDatasetApi(SupersetTestCase):
         """
 
         dataset = self.insert_default_dataset()
-        # delete a column
+        # delete a column so refresh has schema drift to sync
         id_column = (
             db.session.query(TableColumn)
             .filter_by(table_id=dataset.id, column_name="id")
             .one()
         )
-        self.items_to_delete = [id_column]
+        db.session.delete(id_column)
+        db.session.commit()
+        db.session.refresh(dataset)
+        current_changed_on = dataset.changed_on
 
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dataset/{dataset.id}/refresh"
-        rv = self.put_assert_metric(uri, {}, "refresh")
+        with freeze_time() as frozen:
+            frozen.tick(delta=timedelta(seconds=3))
+            rv = self.put_assert_metric(uri, {}, "refresh")
         assert rv.status_code == 200
         # Assert the column is restored on refresh
         id_column = (
@@ -2366,6 +2371,10 @@ class TestDatasetApi(SupersetTestCase):
             .one()
         )
         assert id_column is not None
+        # Refresh mutates child TableColumn rows only, so changed_on must be
+        # force-bumped or chart cache keys stay stale. See #43918.
+        updated_dataset = db.session.query(SqlaTable).filter_by(id=dataset.id).first()
+        assert updated_dataset.changed_on > current_changed_on
         self.items_to_delete = [dataset]
 
     def test_dataset_item_refresh_not_found(self):

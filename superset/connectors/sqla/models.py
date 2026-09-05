@@ -23,7 +23,7 @@ import re
 from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Callable, cast, Optional, Union
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
@@ -2336,7 +2336,12 @@ class SqlaTable(
                     new_column.expression = expression
             else:
                 new_column = old_column
-                if new_column.type != col["type"]:
+                # Type and physical expression both feed generated SQL, so
+                # either change is schema drift that must invalidate chart
+                # cache keys (see changed_on bump below).
+                if new_column.type != col["type"] or (
+                    (new_column.expression or "") != expression
+                ):
                     results.modified.append(col["column_name"])
                 new_column.type = col["type"]
                 new_column.expression = expression
@@ -2355,7 +2360,8 @@ class SqlaTable(
         # `columns` in the loop above, and re-adding them here (e.g. via `old_columns`)
         # would duplicate any synced physical column that also carries a truthy
         # `expression`, such as Trino's expanded nested `ROW` fields.
-        columns.extend([col for col in old_columns_by_name.values() if col.expression])
+        leftover_columns = list(old_columns_by_name.values())
+        columns.extend([col for col in leftover_columns if col.expression])
         self.columns = columns
 
         if not self.main_dttm_col:
@@ -2364,6 +2370,16 @@ class SqlaTable(
 
         # Apply config supplied mutations.
         current_app.config["SQLA_TABLE_MUTATOR"](self)
+
+        # Child TableColumn rows own the FK, so mutating them (and reassigning
+        # ``self.columns``) does not emit an UPDATE on this tables row.
+        # AuditMixinNullable.changed_on onupdate therefore never fires, and
+        # query_cache_key() keeps serving results computed against the previous
+        # column definitions. Force the same bump DatasetDAO.update() applies
+        # when columns are saved. See #43918.
+        dropped_physical_columns = any(not col.expression for col in leftover_columns)
+        if results.added or results.modified or dropped_physical_columns:
+            self.changed_on = datetime.now()
 
         db.session.merge(self)
         return results
