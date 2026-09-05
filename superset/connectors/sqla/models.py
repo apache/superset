@@ -1492,6 +1492,74 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
         return {s: getattr(self, s) for s in attrs}
 
 
+class SqlFilter(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model):
+    """ORM object for dataset filters, each table can have multiple filters"""
+
+    __tablename__ = "sql_filters"
+    __table_args__ = (UniqueConstraint("table_id", "filter_name"),)
+
+    id = Column(Integer, primary_key=True)
+    filter_name = Column(String(255), nullable=False)
+    verbose_name = Column(String(1024))
+    description = Column(utils.MediumText())
+    warning_text = Column(Text)
+    table_id = Column(Integer, ForeignKey("tables.id", ondelete="CASCADE"))
+    expression = Column(utils.MediumText(), nullable=False)
+    extra = Column(Text)
+
+    table: Mapped["SqlaTable"] = relationship(
+        "SqlaTable",
+        back_populates="filters",
+        cascade_backrefs=False,
+    )
+
+    export_fields = [
+        "filter_name",
+        "verbose_name",
+        "table_id",
+        "expression",
+        "description",
+        "extra",
+        "warning_text",
+    ]
+    update_from_object_fields = [s for s in export_fields if s != "table_id"]
+    export_parent = "table"
+
+    def __repr__(self) -> str:
+        return str(self.filter_name)
+
+    @property
+    def perm(self) -> str | None:
+        return (
+            ("{parent_name}.[{obj.filter_name}](id:{obj.id})").format(
+                obj=self, parent_name=self.table.full_name
+            )
+            if self.table
+            else None
+        )
+
+    def get_perm(self) -> str | None:
+        return self.perm
+
+    @property
+    def data(self) -> dict[str, Any]:
+        attrs = (
+            "certification_details",
+            "certified_by",
+            "description",
+            "expression",
+            "filter_name",
+            "id",
+            "uuid",
+            "is_certified",
+            "warning_markdown",
+            "warning_text",
+            "verbose_name",
+        )
+
+        return {s: getattr(self, s) for s in attrs}
+
+
 class SqlaTable(
     CoreDataset,
     SoftDeleteMixin,
@@ -1517,8 +1585,16 @@ class SqlaTable(
         cascade_backrefs=False,
         passive_deletes=True,
     )
+    filters: Mapped[list[SqlFilter]] = relationship(
+        SqlFilter,
+        back_populates="table",
+        cascade="all, delete-orphan",
+        cascade_backrefs=False,
+        passive_deletes=True,
+    )
     metric_class = SqlMetric
     column_class = TableColumn
+    filter_class = SqlFilter
     __tablename__ = "tables"
     # Exclude M2M association relationships: Continuum only captures FK columns on
     # association INSERTs (not the auto-increment id), which breaks the NOT NULL PK.
@@ -1541,6 +1617,7 @@ class SqlaTable(
             "owners",
             "editors",
             "row_level_security_filters",
+            "filters",
             "changed_on",
             "created_on",
             "changed_by_fk",
