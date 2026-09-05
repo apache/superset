@@ -1027,6 +1027,35 @@ def test_fetch_metadata_bumps_changed_on_when_physical_column_removed(
     assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
 
 
+def test_fetch_metadata_drops_nested_physical_column_and_bumps_changed_on(
+    mocker: MockerFixture,
+) -> None:
+    """A dropped nested ROW field has an expression but is still physical.
+
+    Keeping it would leave a stale TableColumn and skip the changed_on bump.
+    """
+    table = _table_for_fetch_metadata(
+        mocker,
+        source_columns=[{"column_name": "id", "type": "INTEGER"}],
+        existing=[
+            {"column_name": "id", "type": "INTEGER"},
+            {
+                "column_name": "metadata.uuid",
+                "type": "VARCHAR",
+                "expression": '"metadata"."uuid"',
+            },
+        ],
+    )
+    table.changed_on = datetime(2024, 6, 1, 12, 0, 0)
+
+    with freeze_time("2024-06-01 12:00:05"):
+        result = table.fetch_metadata()
+
+    assert "metadata.uuid" in result.removed
+    assert all(col.column_name != "metadata.uuid" for col in table.columns)
+    assert table.changed_on == datetime(2024, 6, 1, 12, 0, 5)
+
+
 def test_fetch_metadata_bumps_changed_on_when_expression_changes(
     mocker: MockerFixture,
 ) -> None:

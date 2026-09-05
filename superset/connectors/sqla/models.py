@@ -152,6 +152,20 @@ class MetadataResult:
     modified: list[str] = field(default_factory=list)
 
 
+def _is_calculated_column(column: TableColumn) -> bool:
+    """Return whether *column* is a user-defined virtual column.
+
+    ``fetch_metadata`` keeps calculated columns that the source table does
+    not list. Engine specs such as Trino also store an ``expression`` on
+    expanded nested ``ROW`` fields (dotted names like ``metadata.uuid``).
+    Those are still physical columns: if the source no longer lists them
+    they must be dropped so chart cache keys invalidate. See #43918.
+    """
+    if not column.expression:
+        return False
+    return "." not in (column.column_name or "")
+
+
 METRIC_FORM_DATA_PARAMS = [
     "metric",
     "metric_2",
@@ -2356,12 +2370,15 @@ class SqlaTable(
 
         # Add back calculated (virtual) columns, i.e. those that weren't matched
         # against `new_columns` above and are thus still present in
-        # `old_columns_by_name`. Columns that were matched are already appended to
-        # `columns` in the loop above, and re-adding them here (e.g. via `old_columns`)
-        # would duplicate any synced physical column that also carries a truthy
-        # `expression`, such as Trino's expanded nested `ROW` fields.
+        # `old_columns_by_name`. Nested physical ROW fields also carry an
+        # expression; they are not calculated columns and must not be kept
+        # when the source no longer lists them (delete-orphan then removes
+        # the TableColumn row).
         leftover_columns = list(old_columns_by_name.values())
-        columns.extend([col for col in leftover_columns if col.expression])
+        dropped_physical_columns = any(
+            not _is_calculated_column(col) for col in leftover_columns
+        )
+        columns.extend(col for col in leftover_columns if _is_calculated_column(col))
         self.columns = columns
 
         if not self.main_dttm_col:
@@ -2377,7 +2394,6 @@ class SqlaTable(
         # query_cache_key() keeps serving results computed against the previous
         # column definitions. Force the same bump DatasetDAO.update() applies
         # when columns are saved. See #43918.
-        dropped_physical_columns = any(not col.expression for col in leftover_columns)
         if results.added or results.modified or dropped_physical_columns:
             self.changed_on = datetime.now()
 
