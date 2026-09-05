@@ -59,7 +59,6 @@ These fields should be in every engine spec's `metadata` attribute:
 | Superset meta database | superset.py | 0% | category, connection_string, description, pypi_packages | default_port, homepage_url, logo |
 | Apache Drill | drill.py | 51% | connection_string, pypi_packages | default_port |
 | Amazon Athena | athena.py | 52% | connection_string, pypi_packages | default_port |
-| Ascend | ascend.py | 60% | ✓ | default_port, homepage_url, logo |
 | Ocient | ocient.py | 61% | ✓ | default_port, homepage_url, logo |
 | RisingWave | risingwave.py | 61% | ✓ | default_port, homepage_url, logo |
 | Arc | arc.py | 62% | ✓ | default_port, homepage_url, logo |
