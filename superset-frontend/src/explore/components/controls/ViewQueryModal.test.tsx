@@ -254,6 +254,27 @@ test('shows cached response statistics in the query inspector', async () => {
   );
 });
 
+test('clamps negative chart update duration to zero', async () => {
+  jest
+    .spyOn(chartAction, 'getChartDataRequest')
+    .mockResolvedValue(mockChartDataResponse);
+
+  render(
+    <ViewQueryModal
+      latestQueryFormData={mockFormData}
+      queriesResponse={[]}
+      chartUpdateStartTime={1250}
+      chartUpdateEndTime={1000}
+    />,
+    { useRedux: true },
+  );
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Stats' }));
+  expect(screen.getByTestId('query-inspector-stats')).toHaveTextContent(
+    'Duration0 ms',
+  );
+});
+
 test('only exposes the raw response when explicitly enabled', async () => {
   jest
     .spyOn(chartAction, 'getChartDataRequest')

@@ -561,7 +561,11 @@ test('Should show "Query inspector"', () => {
     Admin: [['can_view_query', 'Dashboard']],
   });
   openMenu();
-  expect(screen.getByText('Query inspector')).toBeInTheDocument();
+  userEvent.click(screen.getByText('Query inspector'));
+  expect(screen.getByRole('tab', { name: 'Stats' })).toBeInTheDocument();
+  expect(
+    screen.queryByRole('tab', { name: 'Response' }),
+  ).not.toBeInTheDocument();
 });
 
 test('Should not show "Query inspector"', () => {
