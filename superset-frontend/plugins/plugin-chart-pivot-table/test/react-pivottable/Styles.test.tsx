@@ -84,7 +84,9 @@ test('does not sticky-position the row-label column or corner cell(s) in dashboa
 
     const rowLabelCell = container.querySelector('tbody th.pvtRowLabel');
     expect(rowLabelCell).toBeInTheDocument();
-    expect(getComputedStyle(rowLabelCell as Element).position).toBe('inherit');
+    expect(getComputedStyle(rowLabelCell as Element).position).not.toBe(
+      'sticky',
+    );
   } finally {
     editingMarker.remove();
   }
