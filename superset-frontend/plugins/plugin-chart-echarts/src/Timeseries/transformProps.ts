@@ -1209,6 +1209,22 @@ export default function transformProps(
     interval: xAxisLabelIntervalValue,
     showAllLabels: showAllXAxisLabels,
   } = getAxisLabelInterval(xAxisLabelInterval);
+  // axisLabel.interval is only ever consulted for category axes in ECharts
+  // (axisTickLabelBuilder routes to makeCategoryLabels there; a time axis
+  // goes through makeRealNumberLabels and never reads it), and Superset sets
+  // xAxis.type to Time whenever the x-axis column is temporal -- the common
+  // case #36325 actually reports. On a time axis, tick density is governed
+  // by minInterval/maxInterval instead, and minInterval alone only floors
+  // the spacing: ECharts can still choose a wider "nice" interval to fit the
+  // available width. Pinning both bounds to the resolved grain forces one
+  // tick, and therefore one label, per data point.
+  const timeGrainIntervalMs = resolvedTimeGrain
+    ? (TIMEGRAIN_TO_TIMESTAMP[
+        resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
+      ] ?? undefined)
+    : undefined;
+  const showAllOnTimeAxis =
+    showAllXAxisLabels && xAxisType === AxisType.Time && !!timeGrainIntervalMs;
   const deduplicatedFormatter = showMaxLabel
     ? (() => {
         let lastLabel: string | undefined;
@@ -1282,17 +1298,19 @@ export default function transformProps(
       }),
     },
     minorTick: { show: minorTicks },
+    // "All" wins over forceMaxInterval's own (opposite) request, since the
+    // user explicitly asked to see every label.
     minInterval:
-      xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
-        ? (TIMEGRAIN_TO_TIMESTAMP[
-            resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
-          ] ?? 0)
+      xAxisType === AxisType.Time && resolvedTimeGrain
+        ? showAllOnTimeAxis || !forceMaxInterval
+          ? (timeGrainIntervalMs ?? 0)
+          : 0
         : 0,
     maxInterval:
-      xAxisType === AxisType.Time && resolvedTimeGrain && forceMaxInterval
-        ? TIMEGRAIN_TO_TIMESTAMP[
-            resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
-          ]
+      xAxisType === AxisType.Time && resolvedTimeGrain
+        ? showAllOnTimeAxis || forceMaxInterval
+          ? timeGrainIntervalMs
+          : undefined
         : undefined,
     ...getMinAndMaxFromBounds(
       xAxisType,

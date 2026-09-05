@@ -2465,3 +2465,66 @@ test('x-axis label interval defaults to auto (#36325)', () => {
   expect(xAxis.axisLabel.interval).toBe('auto');
   expect(xAxis.axisLabel.hideOverlap).toBe(true);
 });
+
+test('x-axis label interval "All" pins one tick per data point on a temporal axis (#36325)', () => {
+  // ECharts only reads axisLabel.interval for category axes; a temporal
+  // x-axis (the case #36325 actually reports -- a day/week grain on a
+  // temporal column) is unaffected by it. Tick density there is governed
+  // by minInterval/maxInterval instead.
+  const ts = Date.UTC(2021, 0, 7);
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      timeGrainSqla: TimeGranularity.DAY,
+      xAxisLabelInterval: '0',
+    },
+    queriesData: [
+      createTestQueryData([{ __timestamp: ts, sales: 100 }], {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const xAxis = transformProps(chartProps).echartOptions.xAxis as {
+    type: string;
+    minInterval: number;
+    maxInterval?: number;
+    axisLabel: { hideOverlap: boolean };
+  };
+
+  expect(xAxis.type).toBe(AxisType.Time);
+  const dayMs = 24 * 60 * 60 * 1000;
+  // Pinning both bounds to the grain forces a tick (and label) every day,
+  // rather than minInterval alone, which only floors the spacing and still
+  // lets ECharts pick a wider "nice" interval.
+  expect(xAxis.minInterval).toBe(dayMs);
+  expect(xAxis.maxInterval).toBe(dayMs);
+  expect(xAxis.axisLabel.hideOverlap).toBe(false);
+});
+
+test('x-axis label interval "All" does not override maxInterval pinning on a temporal axis without a resolved grain', () => {
+  // Without a resolved time grain there is nothing to pin minInterval and
+  // maxInterval to, so "All" can't force per-point density on a temporal
+  // axis -- it falls back to the pre-existing behavior for that case.
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      xAxisLabelInterval: '0',
+    },
+    queriesData: [
+      createTestQueryData([{ __timestamp: Date.UTC(2021, 0, 7), sales: 100 }], {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const xAxis = transformProps(chartProps).echartOptions.xAxis as {
+    minInterval: number;
+    maxInterval?: number;
+  };
+
+  expect(xAxis.minInterval).toBe(0);
+  expect(xAxis.maxInterval).toBeUndefined();
+});
