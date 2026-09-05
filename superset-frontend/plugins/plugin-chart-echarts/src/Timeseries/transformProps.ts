@@ -458,9 +458,20 @@ export default function transformProps(
   // metric. extraMetricLabels must be mapped the same way, or a sort-only
   // metric with a verbose_name set would silently fail to match here (and in
   // extractSeries below, which has the same requirement).
-  const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData)
-    .map(getMetricLabel)
-    .map(label => verboseMap[label] ?? label);
+  const rawExtraMetricLabels = extractExtraMetrics(chartProps.rawFormData).map(
+    getMetricLabel,
+  );
+  const timeCompareOffsets = ensureIsArray(timeCompare).map(String);
+  const extraMetricLabels = [
+    ...rawExtraMetricLabels.map(label => verboseMap[label] ?? label),
+    // Time comparison emits a derived column per query metric and sort-only
+    // metrics are part of the query, so the sort metric's shifted column has
+    // to be excluded as well. Those columns keep the raw label with an
+    // `__<offset>` suffix rather than the verbose name.
+    ...rawExtraMetricLabels.flatMap(label =>
+      timeCompareOffsets.map(offset => `${label}__${offset}`),
+    ),
+  ];
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
     {
@@ -524,7 +535,6 @@ export default function transformProps(
   // `<offset>|<dims>` key for a series name belonging to that metric, or
   // undefined if the name doesn't belong to it. Keying by offset pairs each
   // comparison value series with the size series from the same offset.
-  const timeCompareOffsets = ensureIsArray(timeCompare).map(String);
   const matchSeriesKey = (
     name: string,
     rawLabel: string,
