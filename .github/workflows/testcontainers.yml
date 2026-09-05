@@ -1,0 +1,184 @@
+# db_engine_specs tests against real databases (testcontainers)
+name: Testcontainers
+
+# Spins up real Docker containers (see tests/testcontainers/ for the current
+# dialect list) via testcontainers-python, which catches real dialect/driver
+# regressions -- the kind mocked db_engine_specs unit tests structurally
+# cannot, e.g. apache/superset#42899 (Trino emitting OFFSET before LIMIT).
+# Runs on a nightly cron (catches drift from a driver's own releases, not
+# just from Superset's changes) and on pull_request, scoped via `paths` to
+# only PRs that actually touch this test suite or the workflow itself, so
+# unrelated PRs across the repo are never affected.
+#
+# A matrix entry can set `nightly_only: true` to run only on the cron (or a
+# manual workflow_dispatch), never on pull_request -- for a dialect whose
+# image is too heavy (a multi-service cluster, a many-GB image, a slow
+# licensed installer) to justify adding its wall-clock/resource cost to
+# every PR that merely touches this suite. Omit the field entirely for a
+# normal dialect; it isn't nightly-only by default.
+permissions:
+  contents: read
+
+on:
+  schedule:
+    - cron: "0 5 * * *"
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - ".github/workflows/testcontainers.yml"
+      - "tests/testcontainers/**"
+      - "superset/db_engine_specs/**"
+      - "pyproject.toml"
+      - "requirements/development.in"
+      - "requirements/development.txt"
+
+concurrency:
+  # Scoped by ref, not just workflow name -- otherwise every PR run and the
+  # nightly cron share one group, and starting the workflow on another PR
+  # (or the nightly firing mid-PR-run) cancels an unrelated in-progress run.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compute-matrix:
+    # Filters out `nightly_only` dialects for a pull_request run *before* any
+    # testcontainers job is created for them, so a heavy dialect costs a PR
+    # nothing at all -- not even its checkout/setup/driver-install steps --
+    # rather than being merely skipped at the test step. A job-level `if:`
+    # can't reference `matrix` (only github/inputs/needs/vars are available
+    # there), so the filtering has to happen here, before the matrix exists,
+    # instead of on the testcontainers job itself.
+    runs-on: ubuntu-26.04
+    outputs:
+      include: ${{ steps.filter.outputs.include }}
+    steps:
+      - name: Filter nightly-only dialects
+        id: filter
+        env:
+          # One entry per dialect rather than one job for the whole suite: a
+          # single slow container would otherwise inflate the wall-clock
+          # time for every dialect, not just its own. Running in parallel
+          # means the suite's total time is bounded by the slowest dialect,
+          # not the sum of all of them. Db2's first-boot init is documented
+          # upstream as notably slow (a real instance bring-up, not just a
+          # process start) and untested locally here (no arm64 image), so
+          # it gets a wider timeout margin than the rest until real CI data
+          # says otherwise.
+          FULL_MATRIX: |
+            [
+              {"dialect": "cockroachdb", "timeout": 10},
+              {"dialect": "crate", "timeout": 10},
+              {"dialect": "trino", "timeout": 10},
+              {"dialect": "mssql", "timeout": 10},
+              {"dialect": "elasticsearch", "timeout": 10},
+              {"dialect": "oracle", "timeout": 15},
+              {"dialect": "db2", "timeout": 25},
+              {"dialect": "mariadb", "timeout": 10},
+              {"dialect": "timescaledb", "timeout": 10},
+              {"dialect": "yugabytedb", "timeout": 10},
+              {"dialect": "monetdb", "timeout": 10},
+              {"dialect": "mongodb", "timeout": 10},
+              {"dialect": "postgres", "timeout": 10},
+              {"dialect": "mysql", "timeout": 10},
+              {"dialect": "clickhouse", "timeout": 10},
+              {"dialect": "starrocks", "timeout": 15},
+              {"dialect": "databend", "timeout": 10},
+              {"dialect": "risingwave", "timeout": 10},
+              {"dialect": "firebird", "timeout": 10},
+              {"dialect": "ydb", "timeout": 10},
+              {"dialect": "oceanbase", "timeout": 20, "nightly_only": true}
+            ]
+        run: |
+          if [[ "${{ github.event_name }}" == "schedule" || "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            include="$(jq -c '.' <<<"$FULL_MATRIX")"
+          else
+            include="$(jq -c '[.[] | select(.nightly_only != true)]' <<<"$FULL_MATRIX")"
+          fi
+          echo "include=${include}" >> "$GITHUB_OUTPUT"
+
+  testcontainers:
+    needs: [compute-matrix]
+    runs-on: ubuntu-26.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJson(needs.compute-matrix.outputs.include) }}
+    timeout-minutes: ${{ matrix.timeout }}
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_TESTENV: true
+      SUPERSET_SECRET_KEY: not-a-secret
+      # This job's matrix installs exactly one dialect's testcontainers
+      # driver for exactly this job, so treat that driver as required: a
+      # broken/missing import should fail the job, not silently skip to a
+      # misleadingly green, zero-tests-run result. See _driver.py.
+      SUPERSET_TESTCONTAINERS_STRICT: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Python
+        uses: ./.github/actions/setup-backend/
+        with:
+          python-version: current
+      - name: Install db2 driver (ibm-db-sa)
+        # ibm-db (the db2 DBAPI) ships no Linux arm64 wheel, so it's kept out
+        # of the baseline dev install (requirements/development.in) to avoid
+        # breaking the multi-platform dev Docker image build. Install it here
+        # instead, only for this leg of the matrix.
+        if: matrix.dialect == 'db2'
+        run: uv pip install --system -e .[db2]
+      - name: Install oceanbase driver (oceanbase_py)
+        # oceanbase_py pins sqlalchemy-utils>=0.38.3,<0.39, which conflicts
+        # outright with Superset's own sqlalchemy-utils==0.42.1 pin -- kept
+        # out of the baseline dev install for the same reason as db2 above.
+        # Installed as its own standalone package (not via `-e .[oceanbase]`)
+        # so --no-deps only skips *oceanbase_py's* dependencies -- applied
+        # to `-e .[oceanbase]` instead, --no-deps blocks pip from installing
+        # anything the extras marker pulls in, including oceanbase_py
+        # itself, which "succeeds" without actually installing it
+        # (confirmed on real CI: the install step reported success, but the
+        # module was still missing). This job only needs oceanbase_py's
+        # dialect module importable, not its sqlalchemy-utils dependency
+        # satisfied, since nothing here calls into it.
+        if: >-
+          matrix.dialect == 'oceanbase' &&
+          (matrix.nightly_only != true ||
+           github.event_name == 'schedule' ||
+           github.event_name == 'workflow_dispatch')
+        run: uv pip install --system --no-deps "oceanbase_py>=0.0.1.2"
+      - name: Install Firebird client library (libfbclient2)
+        # sqlalchemy-firebird's driver (firebird-driver) is a pure-Python
+        # ctypes wrapper (its wheel is py3-none-any) that dynamically loads
+        # the native Firebird client library from the host at import time
+        # -- it doesn't bundle that library itself, so it has to come from
+        # the system package manager, only for this leg of the matrix.
+        if: matrix.dialect == 'firebird'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfbclient2
+      - name: Run testcontainers db_engine_specs tests (${{ matrix.dialect }})
+        # nightly_only dialects are already excluded from the matrix itself
+        # on pull_request runs (see the compute-matrix job above), so this
+        # step needs no additional gating.
+        run: |
+          pytest --durations-min=2 -v -m testcontainers \
+            ./tests/testcontainers/db_engine_specs/test_${{ matrix.dialect }}.py \
+            --junit-xml=test-results/junit-testcontainers-${{ matrix.dialect }}.xml
+      - name: Upload JUnit test results
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: junit-results-testcontainers-${{ matrix.dialect }}
+          path: test-results/
+          retention-days: 7
+
+  actions-timeline:
+    needs: [testcontainers]
+    if: always()
+    runs-on: ubuntu-26.04
+    permissions:
+      actions: read
+    steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0

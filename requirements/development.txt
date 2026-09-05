@@ -12,10 +12,17 @@
     #   apache-superset
 aiofile==3.9.0
     # via py-key-value-aio
+aiohappyeyeballs==2.7.1
+    # via aiohttp
+aiohttp==3.14.3
+    # via ydb
+aiosignal==1.4.0
+    # via aiohttp
 alembic==1.15.2
     # via
     #   -c requirements/base-constraint.txt
     #   flask-migrate
+    #   starrocks
 amqp==5.3.1
     # via
     #   -c requirements/base-constraint.txt
@@ -24,6 +31,8 @@ annotated-types==0.7.0
     # via
     #   -c requirements/base-constraint.txt
     #   pydantic
+antlr4-python3-runtime==4.13.2
+    # via pymongosql
 anyio==4.11.0
     # via
     #   httpx
@@ -42,9 +51,12 @@ apsw==3.50.1.0
     #   shillelagh
 astroid==3.3.10
     # via pylint
+asyncmy2==0.2.21
+    # via starrocks
 attrs==25.3.0
     # via
     #   -c requirements/base-constraint.txt
+    #   aiohttp
     #   cattrs
     #   cyclopts
     #   jsonschema
@@ -65,6 +77,7 @@ backports-tarfile==1.2.0
 backports-zstd==1.6.0
     # via
     #   -c requirements/base-constraint.txt
+    #   clickhouse-connect
     #   flask-compress
 bcrypt==4.3.0
     # via
@@ -117,8 +130,11 @@ celery==5.6.3
 certifi==2026.5.20
     # via
     #   -c requirements/base-constraint.txt
+    #   clickhouse-connect
+    #   elasticsearch
     #   httpcore
     #   httpx
+    #   opensearch-py
     #   requests
 cffi==2.0.0
     # via
@@ -160,6 +176,8 @@ click-repl==0.3.0
     # via
     #   -c requirements/base-constraint.txt
     #   celery
+clickhouse-connect==1.7.2
+    # via apache-superset
 cmdstanpy==1.1.0
     # via prophet
 colorama==0.4.6
@@ -171,6 +189,8 @@ contourpy==1.0.7
     # via matplotlib
 coverage==7.6.8
     # via pytest-cov
+crate==2.2.1
+    # via sqlalchemy-cratedb
 cron-descriptor==1.4.5
     # via
     #   -c requirements/base-constraint.txt
@@ -186,14 +206,20 @@ cryptography==50.0.0
     #   authlib
     #   google-auth
     #   joserfc
+    #   oracledb
     #   paramiko
     #   pyjwt
+    #   pymysql
     #   pyopenssl
     #   secretstorage
 cycler==0.12.1
     # via matplotlib
 cyclopts==4.2.4
     # via fastmcp-slim
+databend-driver==0.34.2
+    # via databend-sqlalchemy
+databend-sqlalchemy==0.5.5
+    # via apache-superset
 db-dtypes==1.3.1
     # via pandas-gbq
 defusedxml==0.7.1
@@ -216,8 +242,11 @@ dnspython==2.7.0
     # via
     #   -c requirements/base-constraint.txt
     #   email-validator
-docker==7.0.0
-    # via apache-superset
+    #   pymongo
+docker==7.2.0
+    # via
+    #   apache-superset
+    #   testcontainers
 docstring-parser==0.17.0
     # via cyclopts
 docutils==0.22.2
@@ -228,6 +257,10 @@ duckdb==1.5.5
     #   duckdb-engine
 duckdb-engine==0.17.0
     # via apache-superset
+elasticsearch==7.17.13
+    # via elasticsearch-dbapi
+elasticsearch-dbapi==0.2.13
+    # via apache-superset
 email-validator==2.2.0
     # via
     #   -c requirements/base-constraint.txt
@@ -237,6 +270,8 @@ et-xmlfile==2.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   openpyxl
+events==0.5
+    # via opensearch-py
 exceptiongroup==1.3.0
     # via fastmcp-slim
 fastmcp==3.4.7
@@ -247,6 +282,10 @@ filelock==3.20.3
     # via
     #   -c requirements/base-constraint.txt
     #   virtualenv
+firebird-base==2.0.3
+    # via firebird-driver
+firebird-driver==2.0.3
+    # via sqlalchemy-firebird
 flask==2.3.3
     # via
     #   -c requirements/base-constraint.txt
@@ -327,12 +366,18 @@ fonttools==4.60.2
     # via matplotlib
 freezegun==1.5.1
     # via apache-superset
+frozenlist==1.8.0
+    # via
+    #   aiohttp
+    #   aiosignal
 future==1.0.0
     # via pyhive
 geographiclib==2.0
     # via
     #   -c requirements/base-constraint.txt
     #   geopy
+geojson==3.3.0
+    # via sqlalchemy-cratedb
 geopy==2.4.1
     # via
     #   -c requirements/base-constraint.txt
@@ -389,6 +434,7 @@ grpcio==1.83.0
     #   apache-superset
     #   google-api-core
     #   grpcio-status
+    #   ydb
 grpcio-status==1.60.1
     # via google-api-core
 gunicorn==26.2.0
@@ -414,6 +460,7 @@ httpx==0.28.1
     # via
     #   fastmcp-slim
     #   mcp
+    #   testcontainers
 httpx-sse==0.4.1
     # via mcp
 humanize==4.12.3
@@ -430,6 +477,7 @@ idna==3.15
     #   httpx
     #   requests
     #   url-normalize
+    #   yarl
 importlib-metadata==8.7.0
     # via
     #   keyring
@@ -468,6 +516,7 @@ jmespath==1.1.0
     # via
     #   boto3
     #   botocore
+    #   pymongosql
 joserfc==1.7.2
     # via fastmcp-slim
 jsonpath-ng==1.8.0
@@ -500,6 +549,8 @@ kombu==5.6.2
     # via
     #   -c requirements/base-constraint.txt
     #   celery
+lark==1.3.1
+    # via starrocks
 lazy-object-proxy==1.10.0
     # via openapi-spec-validator
 limits==5.1.0
@@ -507,7 +558,9 @@ limits==5.1.0
     #   -c requirements/base-constraint.txt
     #   flask-limiter
 lz4==4.4.5
-    # via trino
+    # via
+    #   clickhouse-connect
+    #   trino
 mako==1.4.1
     # via
     #   -c requirements/base-constraint.txt
@@ -567,6 +620,10 @@ msgspec==0.19.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask-session
+multidict==6.7.1
+    # via
+    #   aiohttp
+    #   yarl
 mysqlclient==2.2.8
     # via apache-superset
 nh3==0.3.7
@@ -605,14 +662,22 @@ openpyxl==3.1.5
     # via
     #   -c requirements/base-constraint.txt
     #   pandas
+opensearch-py==2.8.0
+    # via elasticsearch-dbapi
 opentelemetry-api==1.39.1
     # via fastmcp-slim
+oracledb==4.0.2
+    # via
+    #   apache-superset
+    #   testcontainers
 ordered-set==4.1.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask-limiter
 orjson==3.11.9
-    # via trino
+    # via
+    #   crate
+    #   trino
 packaging==25.0
     # via
     #   -c requirements/base-constraint.txt
@@ -620,8 +685,8 @@ packaging==25.0
     #   apispec
     #   db-dtypes
     #   deprecation
-    #   docker
     #   duckdb-engine
+    #   elasticsearch-dbapi
     #   fastmcp-slim
     #   google-cloud-bigquery
     #   kombu
@@ -631,6 +696,8 @@ packaging==25.0
     #   pytest
     #   shillelagh
     #   sqlalchemy-bigquery
+    #   sqlalchemy-firebird
+    #   ydb
 pandas==2.3.3
     # via
     #   -c requirements/base-constraint.txt
@@ -692,16 +759,22 @@ prompt-toolkit==3.0.51
     # via
     #   -c requirements/base-constraint.txt
     #   click-repl
+propcache==0.5.2
+    # via
+    #   aiohttp
+    #   yarl
 prophet==1.4.0
     # via apache-superset
 proto-plus==1.25.0
     # via google-api-core
 protobuf==5.29.6
     # via
+    #   firebird-base
     #   google-api-core
     #   googleapis-common-protos
     #   grpcio-status
     #   proto-plus
+    #   ydb
 psutil==6.1.0
     # via
     #   apache-superset
@@ -775,6 +848,24 @@ pyjwt==2.13.0
     #   mcp
 pylint==3.3.7
     # via apache-superset
+pymonetdb==1.9.1
+    # via
+    #   apache-superset
+    #   sqlalchemy-monetdb
+pymongo==4.17.0
+    # via
+    #   pymongosql
+    #   testcontainers
+pymongosql==0.7.3
+    # via apache-superset
+pymssql==2.3.13
+    # via
+    #   apache-superset
+    #   testcontainers
+pymysql==1.2.0
+    # via
+    #   starrocks
+    #   testcontainers
 pynacl==1.6.2
     # via
     #   -c requirements/base-constraint.txt
@@ -819,11 +910,13 @@ python-dateutil==2.9.0.post0
     #   botocore
     #   celery
     #   croniter
+    #   firebird-driver
     #   flask-appbuilder
     #   freezegun
     #   google-cloud-bigquery
     #   holidays
     #   matplotlib
+    #   opensearch-py
     #   pandas
     #   pyhive
     #   shillelagh
@@ -834,6 +927,7 @@ python-dotenv==1.2.2
     #   apache-superset
     #   fastmcp-slim
     #   pydantic-settings
+    #   testcontainers
 python-ldap==3.4.7
     # via apache-superset
 python-multipart==0.0.29
@@ -877,6 +971,7 @@ requests==2.33.0
     #   google-api-core
     #   google-cloud-bigquery
     #   jsonschema-path
+    #   opensearch-py
     #   pydruid
     #   pyhive
     #   requests-cache
@@ -955,7 +1050,9 @@ sqlalchemy==2.0.52
     #   alembic
     #   apache-superset
     #   apache-superset-core
+    #   databend-sqlalchemy
     #   duckdb-engine
+    #   elasticsearch-dbapi
     #   flask-appbuilder
     #   flask-sqlalchemy
     #   marshmallow-sqlalchemy
@@ -963,7 +1060,14 @@ sqlalchemy==2.0.52
     #   sqlalchemy-bigquery
     #   sqlalchemy-cockroachdb
     #   sqlalchemy-continuum
+    #   sqlalchemy-cratedb
+    #   sqlalchemy-firebird
+    #   sqlalchemy-monetdb
+    #   sqlalchemy-risingwave
     #   sqlalchemy-utils
+    #   starrocks
+    #   testcontainers
+    #   ydb-sqlalchemy
 sqlalchemy-bigquery==1.17.2
     # via apache-superset
 sqlalchemy-cockroachdb==2.0.4
@@ -972,6 +1076,16 @@ sqlalchemy-continuum==1.7.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+sqlalchemy-cratedb==0.43.1
+    # via
+    #   apache-superset
+    #   testcontainers
+sqlalchemy-firebird==2.2.0
+    # via apache-superset
+sqlalchemy-monetdb==2.1.0
+    # via apache-superset
+sqlalchemy-risingwave==2.1.0
+    # via apache-superset
 sqlalchemy-utils==0.42.1
     # via
     #   -c requirements/base-constraint.txt
@@ -983,6 +1097,7 @@ sqlglot==30.17.0
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   apache-superset-core
+    #   ydb-sqlglot-plugin
 sqloxide==0.1.51
     # via apache-superset
 sse-starlette==3.0.2
@@ -995,6 +1110,8 @@ starlette==1.3.1
     # via
     #   fastmcp-slim
     #   mcp
+starrocks==1.3.4
+    # via apache-superset
 statsd==4.0.1
     # via apache-superset
 syntaqlite==0.9.0
@@ -1003,6 +1120,8 @@ tabulate==0.10.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+testcontainers==4.15.0
+    # via -r requirements/development.in
 tiktoken==0.14.0
     # via apache-superset
 tomli-w==1.2.0
@@ -1014,10 +1133,14 @@ tqdm==4.67.1
     #   cmdstanpy
     #   prophet
 trino==0.339.0
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   testcontainers
 typing-extensions==4.16.0
     # via
     #   -c requirements/base-constraint.txt
+    #   aiohttp
+    #   aiosignal
     #   alembic
     #   anyio
     #   apache-superset
@@ -1029,6 +1152,7 @@ typing-extensions==4.16.0
     #   limits
     #   mcp
     #   opentelemetry-api
+    #   oracledb
     #   py-key-value-aio
     #   pydantic
     #   pydantic-core
@@ -1037,6 +1161,7 @@ typing-extensions==4.16.0
     #   shillelagh
     #   sqlalchemy
     #   starlette
+    #   testcontainers
     #   typing-inspection
 typing-inspection==0.4.2
     # via
@@ -1064,13 +1189,22 @@ urllib3==2.7.0
     # via
     #   -c requirements/base-constraint.txt
     #   botocore
+    #   clickhouse-connect
+    #   crate
     #   docker
+    #   elasticsearch
+    #   opensearch-py
     #   requests
     #   requests-cache
+    #   testcontainers
 uvicorn==0.37.0
     # via
     #   fastmcp-slim
     #   mcp
+verlib2==0.3.2
+    # via
+    #   crate
+    #   sqlalchemy-cratedb
 vine==5.1.0
     # via
     #   -c requirements/base-constraint.txt
@@ -1104,6 +1238,7 @@ wrapt==1.17.2
     # via
     #   -c requirements/base-constraint.txt
     #   deprecated
+    #   testcontainers
 wtforms==3.2.2
     # via
     #   -c requirements/base-constraint.txt
@@ -1124,6 +1259,18 @@ xlsxwriter==3.2.9
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   pandas
+yarl==1.24.5
+    # via aiohttp
+ydb==3.31.4
+    # via
+    #   ydb-dbapi
+    #   ydb-sqlalchemy
+ydb-dbapi==0.1.23
+    # via ydb-sqlalchemy
+ydb-sqlalchemy==0.1.22
+    # via apache-superset
+ydb-sqlglot-plugin==0.2.8
+    # via apache-superset
 zipp==3.23.0
     # via importlib-metadata
 zope-event==5.0
