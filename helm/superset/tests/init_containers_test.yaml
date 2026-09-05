@@ -170,6 +170,45 @@ tests:
           path: spec.template.spec.initContainers[1].name
           value: prepare-assets
 
+  - it: passes envFromSecrets into the websockets init containers
+    template: deployment-ws.yaml
+    set:
+      supersetWebsockets.enabled: true
+      envFromSecrets:
+        - my-db-credentials
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].envFrom
+          value:
+            - secretRef:
+                name: RELEASE-NAME-superset-env
+            - secretRef:
+                name: my-db-credentials
+
+  - it: passes extraEnv and extraEnvRaw into the websockets init containers
+    template: deployment-ws.yaml
+    set:
+      supersetWebsockets.enabled: true
+      extraEnv:
+        DB_HOST: my-postgres.example.com
+      extraEnvRaw:
+        - name: DB_PASS
+          valueFrom:
+            secretKeyRef:
+              name: my-db-credentials
+              key: password
+    asserts:
+      - equal:
+          path: spec.template.spec.initContainers[0].env
+          value:
+            - name: DB_HOST
+              value: my-postgres.example.com
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: my-db-credentials
+                  key: password
+
   - it: appends mcp extraInitContainers after wait-for-postgres-redis
     template: deployment-mcp.yaml
     set:
