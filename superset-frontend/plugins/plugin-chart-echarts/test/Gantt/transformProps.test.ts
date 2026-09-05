@@ -420,4 +420,9 @@ test('reserves grid room for category names so they are not clipped (#38844)', (
   expect(categoryMarkLine.markLine.label.overflow).toBe('truncate');
   expect(categoryMarkLine.markLine.label.width).toBeGreaterThan(0);
   expect(categoryMarkLine.markLine.label.width).toBeLessThanOrEqual(800 * 0.25);
+  // the label must render at the font size measureTextWidth assumed above,
+  // or the reserved width won't match what actually gets drawn (#43189)
+  expect(categoryMarkLine.markLine.label.fontSize).toBe(
+    supersetTheme.fontSizeSM,
+  );
 });
