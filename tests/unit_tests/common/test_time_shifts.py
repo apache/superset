@@ -14,7 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from pandas import DataFrame, Series, Timestamp
+from flask import current_app
+from pandas import DataFrame, DateOffset, Series, Timestamp
 from pandas.testing import assert_frame_equal
 from pytest import fixture, mark, raises  # noqa: PT013
 
@@ -67,6 +68,7 @@ _datasource._coalesce_offset_index = ExploreMixin._coalesce_offset_index.__get__
 # Static methods don't need binding - assign directly
 _datasource.generate_join_column = ExploreMixin.generate_join_column
 _datasource.is_valid_date_range_static = ExploreMixin.is_valid_date_range_static
+_datasource._resolve_week_grain_offset = ExploreMixin._resolve_week_grain_offset
 
 # Convenience reference for backward compatibility in tests
 query_context_processor = _datasource
@@ -107,6 +109,265 @@ def test_join_column_producer(make_join_column_producer):
         {"ds": [Timestamp("2020-01-07")], column_name: ["CUSTOM_FORMAT"]}
     )
     assert_frame_equal(df, result)
+
+
+def test_join_column_producer_week_grain_bypasses_offset_parsing(
+    make_join_column_producer,
+):
+    """
+    A configured join_column_producer must bypass ALL built-in offset
+    handling, including the Week-grain whole-week resolution added to fix
+    the weekday-drift bug. "one year ago" is outside normalize_time_delta's
+    grammar and would raise TimeDeltaAmbiguousError if the built-in
+    resolution path ran; with a producer configured it must never be
+    reached, and the producer's own output must be used untouched.
+    """
+    df = DataFrame({"ds": [Timestamp("2020-01-07")]})
+    column_name = "join_column"
+    query_context_processor.add_offset_join_column(
+        df, column_name, TimeGrain.WEEK, "one year ago", make_join_column_producer
+    )
+    result = DataFrame(
+        {"ds": [Timestamp("2020-01-07")], column_name: ["CUSTOM_FORMAT"]}
+    )
+    assert_frame_equal(df, result)
+
+
+def test_join_offset_dfs_custom_producer_week_grain_bypasses_offset_parsing(
+    monkeypatch, make_join_column_producer
+) -> None:
+    """
+    Regression guard for join_offset_dfs itself: it resolves the Week-grain
+    whole-week shift once per offset, before delegating to
+    _determine_join_keys / add_offset_join_column. That resolution must be
+    skipped whenever a join_column_producer is configured for the grain --
+    otherwise a free-form offset like "one year ago" (outside
+    normalize_time_delta's grammar) raises TimeDeltaAmbiguousError before
+    the producer ever runs, even though the producer never needed the
+    built-in offset parsing at all.
+    """
+    monkeypatch.setitem(
+        current_app.config,
+        "TIME_GRAIN_JOIN_COLUMN_PRODUCERS",
+        {TimeGrain.WEEK: make_join_column_producer},
+    )
+
+    df = DataFrame({"ds": [Timestamp("2020-01-07")], "D": [1]})
+    offset_df = DataFrame({"ds": [Timestamp("2019-01-07")], "B": [5]})
+    offset_dfs = {"one year ago": offset_df}
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, TimeGrain.WEEK, join_keys=["ds"]
+    )
+
+    assert result["B"].tolist() == [5]
+
+
+def test_join_offset_dfs_week_grain_year_offset_aligns_to_whole_weeks() -> None:
+    """
+    A calendar-year ``DateOffset`` shift lands a Monday week-start on a
+    non-Monday (a year is not a whole number of weeks), so ``%Y-W%W`` reports
+    a different week number than the offset query's own real week-start
+    bucket and the join drops every row. The join key must instead be shifted
+    by the nearest whole number of weeks so both week-start dates line up.
+    """
+    df = DataFrame({"ds": [Timestamp("2026-06-15")], "D": [1]})  # Monday
+    # The real historical week-grain query result for "1 year ago": also a
+    # Monday, but not exactly 365 days back.
+    offset_df = DataFrame({"ds": [Timestamp("2025-06-16")], "B": [5]})
+    offset_dfs = {"1 year ago": offset_df}
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, TimeGrain.WEEK, join_keys=["ds"]
+    )
+
+    assert result["B"].tolist() == [5]
+
+
+def test_join_offset_dfs_week_grain_month_offset_aligns_to_whole_weeks() -> None:
+    """A calendar-month shift has the same weekday-drift issue as a year."""
+    df = DataFrame({"ds": [Timestamp("2026-06-15")], "D": [1]})  # Monday
+    offset_df = DataFrame({"ds": [Timestamp("2026-05-18")], "B": [5]})  # Monday
+    offset_dfs = {"1 month ago": offset_df}
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, TimeGrain.WEEK, join_keys=["ds"]
+    )
+
+    assert result["B"].tolist() == [5]
+
+
+def test_join_offset_dfs_week_grain_week_multiple_offset_still_aligns() -> None:
+    """
+    A week-multiple offset (already a whole number of weeks) must keep
+    aligning correctly; the whole-week rounding is a no-op for it.
+    """
+    df = DataFrame({"ds": [Timestamp("2026-06-15")], "D": [1]})  # Monday
+    offset_df = DataFrame({"ds": [Timestamp("2026-06-01")], "B": [5]})  # Monday
+    offset_dfs = {"2 weeks ago": offset_df}
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, TimeGrain.WEEK, join_keys=["ds"]
+    )
+
+    assert result["B"].tolist() == [5]
+
+
+@mark.parametrize(
+    ("time_grain", "main_dates", "offset_dates"),
+    [
+        # %W grains: bucket rows are Mondays (WEEK/WEEK_STARTING_MONDAY use
+        # the week-start date; WEEK_ENDING_SUNDAY's week also starts Monday).
+        (
+            TimeGrain.WEEK,
+            ["2026-06-15", "2026-06-22"],
+            ["2025-06-16", "2025-06-23"],
+        ),
+        (
+            TimeGrain.WEEK_STARTING_MONDAY,
+            ["2026-06-15", "2026-06-22"],
+            ["2025-06-16", "2025-06-23"],
+        ),
+        # WEEK_ENDING_SUNDAY is represented by its week-end date (Sunday).
+        (
+            TimeGrain.WEEK_ENDING_SUNDAY,
+            ["2026-06-21", "2026-06-28"],
+            ["2025-06-22", "2025-06-29"],
+        ),
+        # %U grains: WEEK_STARTING_SUNDAY is represented by its week-start
+        # date (Sunday); WEEK_ENDING_SATURDAY by its week-end date (Saturday).
+        (
+            TimeGrain.WEEK_STARTING_SUNDAY,
+            ["2026-06-14", "2026-06-21"],
+            ["2025-06-15", "2025-06-22"],
+        ),
+        (
+            TimeGrain.WEEK_ENDING_SATURDAY,
+            ["2026-06-20", "2026-06-27"],
+            ["2025-06-21", "2025-06-28"],
+        ),
+    ],
+)
+def test_join_offset_dfs_week_grain_variants_align_to_whole_weeks(
+    time_grain: str, main_dates: list[str], offset_dates: list[str]
+) -> None:
+    """
+    Every Week-grain variant (Monday- and Sunday-starting) is subject to the
+    same weekday-drift bug and must be fixed the same way.
+    """
+    df = DataFrame(
+        {"ds": [Timestamp(d) for d in main_dates], "D": [1, 2]},
+    )
+    offset_df = DataFrame(
+        {"ds": [Timestamp(d) for d in offset_dates], "B": [5, 6]},
+    )
+    offset_dfs = {"1 year ago": offset_df}
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, time_grain, join_keys=["ds"]
+    )
+
+    assert result["B"].tolist() == [5, 6]
+
+
+def test_join_offset_dfs_week_grain_multi_year_offset_is_injective() -> None:
+    """
+    Rounding each row's calendar-shift span independently is not injective:
+    with a "3 years ago" offset, 2024-02-26 has a raw calendar span of -1095
+    days (rounds to -1092), while 2024-03-04 -- exactly one week later -- has
+    a raw span of -1096 days (rounds to -1099); both would land on the same
+    historical date 2021-03-01, colliding, while 2021-02-22 is skipped
+    entirely. The whole-week shift must be resolved once for the series and
+    applied uniformly so that main-series rows exactly one grain apart stay
+    exactly one grain apart after the shift, matching the offset query's own
+    (also one-week-apart) real week-start dates.
+    """
+    df = DataFrame(
+        {
+            "ds": [Timestamp("2024-02-26"), Timestamp("2024-03-04")],  # Mondays
+            "D": [1, 2],
+        }
+    )
+    offset_df = DataFrame(
+        {
+            "ds": [Timestamp("2021-03-01"), Timestamp("2021-03-08")],  # Mondays
+            "B": [5, 6],
+        }
+    )
+    offset_dfs = {"3 years ago": offset_df}
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, TimeGrain.WEEK, join_keys=["ds"]
+    )
+
+    # Neither a collision (both rows joining to the same offset row) nor a
+    # gap (one row failing to join): each main row must match its own
+    # distinct, correctly-shifted offset row.
+    assert result["B"].tolist() == [5, 6]
+
+
+@mark.parametrize(
+    "dates",
+    [
+        [Timestamp("2022-02-28"), Timestamp("2022-03-07")],
+        [Timestamp("2022-03-07"), Timestamp("2022-02-28")],
+    ],
+    ids=["ascending", "descending"],
+)
+def test_resolve_week_grain_offset_is_order_independent(
+    dates: list[Timestamp],
+) -> None:
+    """
+    The resolved whole-week displacement must depend only on the SET of
+    dates in the main series, not on which row happens to be first.
+    2022-02-28 and 2022-03-07 are exactly one week apart, but their raw
+    "14 years ago" calendar spans differ by a full week (-5114 vs -5113
+    days, rounding independently to -5117 vs -5110) because of how many
+    Feb 29ths fall inside each date's own 14-year window. Picking the
+    reference by row position would make the resolved shift -- and every
+    row's join key -- depend on DataFrame row order; picking it by value
+    (the minimum date) does not.
+    """
+    df = DataFrame({"ds": dates})
+
+    resolved = query_context_processor._resolve_week_grain_offset(
+        df, TimeGrain.WEEK, "14 years ago"
+    )
+
+    assert resolved == DateOffset(days=-5117)
+
+
+def test_join_offset_dfs_week_grain_full_range_uses_resolved_whole_week_shift() -> None:
+    """
+    With ``full_range=True``, offset-only rows are projected back onto the
+    main axis by shifting them forward by the offset. That reconstruction
+    must reuse the same resolved whole-week shift as the join, not the raw
+    calendar offset -- otherwise a Monday-aligned main series gets an
+    offset-only row projected onto a Tuesday instead of the following
+    Monday.
+    """
+    df = DataFrame({"ds": [Timestamp("2026-06-15")], "V": [1.0]})  # Monday
+    offset_df = DataFrame(
+        {
+            "ds": [Timestamp("2025-06-16"), Timestamp("2025-06-23")],  # Mondays
+            "B": [10.0, 20.0],
+        }
+    )
+    offset_dfs = {"1 year ago": offset_df}
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, TimeGrain.WEEK, join_keys=["ds"], full_range=True
+    )
+
+    expected = DataFrame(
+        {
+            "ds": [Timestamp("2026-06-15"), Timestamp("2026-06-22")],  # both Mondays
+            "V": [1.0, None],
+            "B": [10.0, 20.0],
+        }
+    )
+
+    assert_frame_equal(expected, result)
 
 
 def test_join_offset_dfs_no_offsets():

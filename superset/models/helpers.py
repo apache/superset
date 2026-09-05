@@ -58,7 +58,7 @@ from flask_appbuilder.security.sqla.models import User
 from flask_babel import get_locale, lazy_gettext as _
 from jinja2.exceptions import TemplateError, UndefinedError
 from markupsafe import escape, Markup
-from pandas import DateOffset
+from pandas import DateOffset, Timedelta
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -1758,6 +1758,15 @@ class SqlaQuery(NamedTuple):
     sql_shifted_temporal_labels: set[str]
 
 
+WEEK_GRAINS = (
+    TimeGrain.WEEK_STARTING_SUNDAY,
+    TimeGrain.WEEK_ENDING_SATURDAY,
+    TimeGrain.WEEK,
+    TimeGrain.WEEK_STARTING_MONDAY,
+    TimeGrain.WEEK_ENDING_SUNDAY,
+)
+
+
 class ExploreMixin:  # pylint: disable=too-many-public-methods
     """
     Allows any flask_appbuilder.Model (Query, Table, etc.)
@@ -3141,6 +3150,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         x_axis_label: str | None = None,
         x_axis_is_temporal: bool = False,
         x_axis_datetime_format: str | None = None,
+        resolved_week_offset: DateOffset | None = None,
     ) -> tuple[pd.DataFrame, list[str]]:
         """Determine appropriate join keys and modify DataFrames if needed."""
         if time_grain and not is_date_range_offset:
@@ -3158,7 +3168,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             # Add offset join columns for relative time offsets
             self.add_offset_join_column(
-                df, column_name, time_grain, offset, join_column_producer
+                df,
+                column_name,
+                time_grain,
+                offset,
+                join_column_producer,
+                resolved_week_offset,
             )
             self.add_offset_join_column(
                 offset_df, column_name, time_grain, None, join_column_producer
@@ -3388,6 +3403,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 "DATE_RANGE_TIMESHIFTS_ENABLED"
             )
 
+            # Resolved once per offset, from the main series, and reused for
+            # both the join column and (if needed) the full-range coalesce
+            # below so the two cannot drift apart. Skipped entirely when a
+            # custom join_column_producer is configured: that path bypasses
+            # all built-in offset parsing (including normalize_time_delta),
+            # so resolving here could raise on an offset the producer itself
+            # never needs to parse.
+            resolved_week_offset = (
+                None
+                if join_column_producer
+                else self._resolve_week_grain_offset(df, time_grain, offset)
+            )
+
             offset_df, actual_join_keys = self._determine_join_keys(
                 df,
                 offset_df,
@@ -3399,6 +3427,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 x_axis_label,
                 x_axis_is_temporal,
                 x_axis_datetime_format,
+                resolved_week_offset,
             )
 
             # The full-range option is only meaningful for relative offsets aligned
@@ -3415,7 +3444,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             df = self._perform_join(df, offset_df, actual_join_keys, how=how)
 
             if use_outer_join:
-                df = self._coalesce_offset_index(df, offset, join_keys)
+                df = self._coalesce_offset_index(
+                    df, offset, join_keys, resolved_week_offset
+                )
 
             df = self._apply_cleanup_logic(
                 df, offset, time_grain, join_keys, is_date_range_offset
@@ -3437,6 +3468,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         df: pd.DataFrame,
         offset: str,
         join_keys: list[str],
+        resolved_week_offset: DateOffset | None = None,
     ) -> pd.DataFrame:
         """
         Rebuild the temporal x-axis after an outer join with an offset DataFrame.
@@ -3447,22 +3479,89 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         right-hand column, expressed in the offset's own time range (e.g. "yesterday
         15:00"). Shifting it forward by the offset places it on the main series'
         axis (e.g. "today 15:00") so the comparison line spans the full period.
+
+        Under a Week grain, ``resolved_week_offset`` is the same whole-week shift
+        used to build the join column (see ``_resolve_week_grain_offset``); reusing
+        it here instead of the raw calendar offset keeps this reconstructed axis
+        value aligned to the same weekday the join matched on.
         """
         x_axis = join_keys[0]
         offset_x_axis = f"{x_axis}{R_SUFFIX}"
         if x_axis not in df.columns or offset_x_axis not in df.columns:
             return df
 
-        # normalize_time_delta returns a negative delta for "... ago" offsets, so
-        # subtracting it shifts the historical timestamp forward onto the main axis.
-        try:
-            forward_shift = DateOffset(**normalize_time_delta(offset))
-        except (ValueError, TimeDeltaAmbiguousError):
-            return df
+        if resolved_week_offset is not None:
+            forward_shift = resolved_week_offset
+        else:
+            # normalize_time_delta returns a negative delta for "... ago"
+            # offsets, so subtracting it shifts the historical timestamp
+            # forward onto the main axis.
+            try:
+                forward_shift = DateOffset(**normalize_time_delta(offset))
+            except (ValueError, TimeDeltaAmbiguousError):
+                return df
 
         shifted = df[offset_x_axis] - forward_shift
         df[x_axis] = df[x_axis].fillna(shifted)
         return df
+
+    @staticmethod
+    def _resolve_week_grain_offset(
+        df: pd.DataFrame,
+        time_grain: str | None,
+        time_offset: str | None,
+    ) -> DateOffset | None:
+        """
+        Resolve a relative time offset applied under a Week grain to a single
+        whole-week ``DateOffset`` shared by every row of ``df``.
+
+        A calendar month/quarter/year is not a whole number of weeks, so
+        applying the raw calendar shift independently to each row rounds to a
+        different number of weeks depending on how many leap days or
+        month-length differences happen to fall inside that particular row's
+        span. Two main-series rows exactly one grain apart can then round to
+        *different* whole-week counts, colliding onto the same shifted date
+        (or skipping one). Resolving the shift once, from a single reference
+        date, and reusing that constant for every row keeps rows exactly as
+        many whole weeks apart as they started -- matching the offset
+        series' own real week-start dates, which are always aligned to the
+        grain's weekday.
+
+        Returns ``None`` when the offset does not apply (no offset, a date
+        range, or a non-Week grain), in which case callers fall back to the
+        original per-call calendar-offset behavior.
+        """
+        if (
+            not time_grain
+            or time_grain not in WEEK_GRAINS
+            or not time_offset
+            or ExploreMixin.is_valid_date_range_static(time_offset)
+            or df.empty
+        ):
+            return None
+
+        reference_column = df.iloc[:, 0]
+        reference_values = reference_column[
+            reference_column.apply(lambda value: hasattr(value, "strftime"))
+        ]
+        if reference_values.empty:
+            return None
+
+        # The reference must be picked by value, not row position: two rows
+        # exactly one grain apart can shift by calendar spans that differ by
+        # up to a whole week (depending on how many leap days fall inside
+        # each row's own span), so whichever row happened to land first
+        # would make the resolved constant depend on DataFrame row order.
+        # The minimum is deterministic for a given set of dates regardless
+        # of ordering.
+        reference = reference_values.min()
+        calendar_offset = DateOffset(**normalize_time_delta(time_offset))
+        calendar_shifted = reference + calendar_offset
+        # Timedelta.days floors toward negative infinity, which would round
+        # e.g. an 83-hour ("< half a week") shift down to a full week instead
+        # of zero; dividing by a one-day Timedelta keeps the exact fraction.
+        exact_days = (calendar_shifted - reference) / Timedelta(days=1)
+        return DateOffset(days=round(exact_days / 7) * 7)
 
     def add_offset_join_column(
         self,
@@ -3471,6 +3570,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         time_grain: str,
         time_offset: str | None = None,
         join_column_producer: Any = None,
+        resolved_week_offset: DateOffset | None = None,
     ) -> None:
         """
         Adds an offset join column to the provided DataFrame.
@@ -3482,12 +3582,25 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :param time_grain: The time grain used to calculate the new column.
         :param time_offset: The time offset used to calculate the new column.
         :param join_column_producer: A function to generate the join column.
+        :param resolved_week_offset: Under a Week grain, the single whole-week
+            ``DateOffset`` to apply to every row (see
+            ``_resolve_week_grain_offset``). Computed from ``df`` when not
+            supplied, so callers that already resolved it for this same
+            ``df`` and ``time_offset`` (e.g. to also reuse it in
+            ``_coalesce_offset_index``) can pass it through instead of
+            recomputing it.
         """
         if join_column_producer:
             df[name] = df.apply(lambda row: join_column_producer(row, 0), axis=1)
         else:
+            if resolved_week_offset is None:
+                resolved_week_offset = self._resolve_week_grain_offset(
+                    df, time_grain, time_offset
+                )
             df[name] = df.apply(
-                lambda row: self.generate_join_column(row, 0, time_grain, time_offset),
+                lambda row: self.generate_join_column(
+                    row, 0, time_grain, time_offset, resolved_week_offset
+                ),
                 axis=1,
             )
 
@@ -3497,12 +3610,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         column_index: int,
         time_grain: str,
         time_offset: str | None = None,
+        resolved_week_offset: DateOffset | None = None,
     ) -> str:
         value = row.iloc[column_index]
 
         if hasattr(value, "strftime"):
             if time_offset and not ExploreMixin.is_valid_date_range_static(time_offset):
-                value = value + DateOffset(**normalize_time_delta(time_offset))
+                if resolved_week_offset is not None:
+                    value = value + resolved_week_offset
+                else:
+                    value = value + DateOffset(**normalize_time_delta(time_offset))
 
             if time_grain in (
                 TimeGrain.WEEK_STARTING_SUNDAY,
