@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+/** @jsxImportSource @emotion/react */
 import {
   Children,
   cloneElement,

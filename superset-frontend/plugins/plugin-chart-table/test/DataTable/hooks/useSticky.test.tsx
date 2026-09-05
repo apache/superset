@@ -167,5 +167,22 @@ test('sticky header/footer width matches the body, independent of the scrollbar-
   expect(footerDiv.style.scrollbarGutter).toBe(bodyDiv.style.scrollbarGutter);
   expect(bodyDiv.style.scrollbarGutter).toBe('stable');
 
+  // Pin the `css={scrollBarStyles}` addition to header/footer directly: this
+  // component carries `/** @jsxImportSource @emotion/react */`, which makes
+  // Babel route its `css` prop through Emotion's jsx runtime instead of
+  // passing `css` straight through as an inert DOM attribute (the default in
+  // this repo's Jest/Babel setup, which -- unlike the webpack/SWC build --
+  // doesn't set `importSource: '@emotion/react'` globally). With the pragma
+  // in place, an applied `css` prop is observable as a real, non-empty
+  // className, so this assertion actually fails without the fix instead of
+  // passing regardless of whether `scrollBarStyles` is wired up.
+  //
+  // Before `css={scrollBarStyles}` was added to header/footer, they had no
+  // emotion-generated class at all (`className === ''`) while the body kept
+  // its own -- so this fails pre-fix and passes post-fix.
+  expect(headerDiv.className).not.toBe('');
+  expect(headerDiv.className).toBe(bodyDiv.className);
+  expect(footerDiv.className).toBe(bodyDiv.className);
+
   jest.restoreAllMocks();
 });
