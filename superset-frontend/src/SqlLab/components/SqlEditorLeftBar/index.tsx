@@ -18,16 +18,12 @@
  */
 import { useState } from 'react';
 import { css, styled } from '@apache-superset/core/theme';
-import { LeftBarViewPanelHost } from 'src/core';
+import { views } from 'src/core';
+import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
+import ViewListExtension from 'src/components/ViewListExtension';
 import { EMPTY_STATE_QE_ID } from 'src/SqlLab/hooks/useQueryEditor';
 import { useLeftBarLayout } from 'src/SqlLab/hooks/useLeftBarLayout';
-import {
-  TAB_EXPLORER_ID,
-  TAB_SETTINGS_ID,
-} from 'src/SqlLab/hooks/useLeftBarTabs';
 import DatabaseSelectorPopover from '../DatabaseSelectorPopover';
-import TabExplorer from '../TabExplorer';
-import LeftBarViewSettingsPanel from './LeftBarViewSettingsPanel';
 
 export interface SqlEditorLeftBarProps {
   queryEditorId: string;
@@ -55,24 +51,24 @@ const PanelSlot = styled.div<{ active: boolean }>`
   min-height: 0;
 `;
 
-const renderPanel = (viewId: string, activeQEId: string) => {
-  if (viewId === TAB_EXPLORER_ID) {
-    // Keyed by the query editor tab (not the rail view) — Explorer shows a
-    // given tab's own database/catalog/schema selection, so it resets when
-    // *that* changes, independently of the rail-view persistence below.
-    return <TabExplorer key={activeQEId} queryEditorId={activeQEId} />;
-  }
-  if (viewId === TAB_SETTINGS_ID) {
-    return <LeftBarViewSettingsPanel />;
-  }
-  return <LeftBarViewPanelHost viewId={viewId} />;
-};
+/**
+ * A rail view's content is whatever's registered at that container's own
+ * id (Explorer and Settings included — see builtins.tsx), via the same
+ * generic mechanism any other location uses. Falls back to
+ * ExtensionPlaceholder when nothing is registered there yet, matching
+ * `resolveView`'s own fallback for an unknown id.
+ */
+const renderPanel = (viewId: string) =>
+  views.getViews(viewId)?.length ? (
+    <ViewListExtension viewId={viewId} />
+  ) : (
+    <ExtensionPlaceholder id={viewId} />
+  );
 
 /**
- * Renders whichever panel is currently active in the left sidebar — the
- * built-in Explorer, an extension's panel, or the built-in Settings panel.
- * The icon rail itself lives outside the Splitter (see AppLayout) so it
- * stays visible regardless of this panel's collapsed/hidden state; this
+ * Renders whichever panel is currently active in the left sidebar. The
+ * icon rail itself lives outside the Splitter (see AppLayout) so it stays
+ * visible regardless of this panel's collapsed/hidden state; this
  * component only ever renders content.
  */
 const SqlEditorLeftBar = ({
@@ -103,7 +99,7 @@ const SqlEditorLeftBar = ({
           active={viewId === activeViewId}
           data-test={`left-bar-panel-slot-${viewId}`}
         >
-          {renderPanel(viewId, activeQEId)}
+          {renderPanel(viewId)}
         </PanelSlot>
       ))}
     </LeftBarContent>

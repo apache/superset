@@ -44,7 +44,7 @@ import {
 } from '@dnd-kit/sortable';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import { CSS } from '@dnd-kit/utilities';
-import { useManageableLeftBarEntries } from 'src/SqlLab/hooks/useLeftBarTabs';
+import { useManageableLeftBarEntries } from 'src/SqlLab/hooks/useManageableLeftBarEntries';
 import {
   applyLeftBarViewSettings,
   orderViewsBySettings,

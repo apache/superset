@@ -17,9 +17,15 @@
  * under the License.
  */
 import { act, renderHook } from '@testing-library/react';
-import { sqlLab, resetLeftBarViews } from 'src/core';
+import {
+  registerTestView,
+  registerTestViewContainer,
+  cleanupExtensions,
+} from 'spec/helpers/extensionTestHelpers';
+import { ViewLocations } from 'src/SqlLab/contributions';
+import { resetLeftBarViews } from 'src/SqlLab/components/SqlEditorLeftBar/builtins';
 import { SQL_EDITOR_LEFTBAR_WIDTH } from 'src/SqlLab/constants';
-import { TAB_EXPLORER_ID } from './useLeftBarTabs';
+import { TAB_EXPLORER_ID } from './useManageableLeftBarEntries';
 import { resetLeftBarViewSettings } from './useLeftBarViewSettings';
 import {
   getLeftPanelLayout,
@@ -27,11 +33,23 @@ import {
   useLeftBarLayout,
 } from './useLeftBarLayout';
 
+const registerLeftBarView = (id: string, name: string) => {
+  registerTestViewContainer(
+    ViewLocations.sqllab.leftSidebar,
+    id,
+    name,
+    () => null,
+  );
+  registerTestView(id, id, name, () => null);
+};
+
 beforeEach(() => {
   resetLeftBarViews();
   resetLeftBarLayoutState();
   resetLeftBarViewSettings();
 });
+
+afterEach(cleanupExtensions);
 
 test('getLeftPanelLayout returns a zero-width but still-collapsible panel when the rail collapses the content', () => {
   // The rail lives outside the Splitter now (see AppLayout), so collapsing
@@ -103,11 +121,7 @@ test('hasRail is false with no registered views, and toggling content has no eff
 });
 
 test('selectView activates a view and clears collapse; re-toggling collapses and re-expands it', () => {
-  sqlLab.registerLeftBarView(
-    { id: 'ext.a', name: 'A' },
-    () => null,
-    () => null,
-  );
+  registerLeftBarView('ext.a', 'A');
   const { result } = renderHook(() => useLeftBarLayout());
 
   expect(result.current.hasRail).toBe(true);
@@ -125,11 +139,7 @@ test('selectView activates a view and clears collapse; re-toggling collapses and
 });
 
 test('selection and collapse state are shared across separate hook instances', () => {
-  sqlLab.registerLeftBarView(
-    { id: 'ext.a', name: 'A' },
-    () => null,
-    () => null,
-  );
+  registerLeftBarView('ext.a', 'A');
   const { result: first } = renderHook(() => useLeftBarLayout());
   act(() => first.current.selectView('ext.a'));
 
@@ -138,11 +148,7 @@ test('selection and collapse state are shared across separate hook instances', (
 });
 
 test('expandContent clears a collapsed state', () => {
-  sqlLab.registerLeftBarView(
-    { id: 'ext.a', name: 'A' },
-    () => null,
-    () => null,
-  );
+  registerLeftBarView('ext.a', 'A');
   const { result } = renderHook(() => useLeftBarLayout());
 
   act(() => result.current.toggleContent());

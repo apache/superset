@@ -16,22 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from "react";
-import { t } from "@apache-superset/core/translation";
-import { css, styled } from "@apache-superset/core/theme";
-import { AntdThemeProvider, Icons } from "@superset-ui/core/components";
-import { Menu, type ItemType } from "@superset-ui/core/components/Menu";
-import { LeftBarViewTriggerHost } from "src/core";
-import { SQL_EDITOR_LEFTBAR_COLLAPSED_WIDTH } from "src/SqlLab/constants";
-import {
-  TAB_EXPLORER_ID,
-  TAB_SETTINGS_ID,
-  type LeftBarTab,
-} from "src/SqlLab/hooks/useLeftBarTabs";
+import { useMemo } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
+import { AntdThemeProvider } from '@superset-ui/core/components';
+import { Menu, type ItemType } from '@superset-ui/core/components/Menu';
+import { ErrorBoundary } from 'src/components/ErrorBoundary';
+import type { ViewContainer } from 'src/core';
+import { SQL_EDITOR_LEFTBAR_COLLAPSED_WIDTH } from 'src/SqlLab/constants';
 
+/**
+ * A generic rail host: renders a vertical icon strip from `items`, plus an
+ * optional second group (`pinnedItems`) pinned to the bottom in its own
+ * menu, visually separated from the first. It has no notion of SQL Lab, or
+ * of any particular container being "built in" — that grouping and
+ * ordering is decided by the caller (see useLeftBarLayout), so this
+ * component is reusable for any future rail-style location.
+ */
 export interface LeftBarRailProps {
-  tabs: LeftBarTab[];
-  activeViewId: string;
+  items: ViewContainer[];
+  pinnedItems?: ViewContainer[];
+  activeId: string;
   onSelect: (id: string) => void;
 }
 
@@ -65,43 +70,45 @@ const RailContainer = styled.div`
   `}
 `;
 
-const builtinIcon = (id: string) => {
-  if (id === TAB_EXPLORER_ID) return <Icons.TableOutlined />;
-  if (id === TAB_SETTINGS_ID) return <Icons.SettingOutlined />;
-  return undefined;
-};
+/**
+ * Renders a container's icon, isolated in its own ErrorBoundary so a
+ * crashing trigger cannot take down the rest of the strip. Renders nothing
+ * on crash — an icon slot is too small for an error message, and a missing
+ * icon degrades more gracefully than a broken strip.
+ */
+const RailIcon = ({ icon: Icon }: { icon: ViewContainer['icon'] }) => (
+  <ErrorBoundary showMessage={false}>
+    <Icon />
+  </ErrorBoundary>
+);
 
-const toMenuItems = (tabs: LeftBarTab[]): ItemType[] =>
-  tabs.map(({ id, name, description }) => ({
+const toMenuItems = (items: ViewContainer[]): ItemType[] =>
+  items.map(({ id, name, description, icon }) => ({
     key: id,
     // Kept in the DOM by antd (visually hidden while collapsed) so the item
     // has an accessible name; also the tooltip fallback.
     label: name,
     title: description ?? name,
     // Wrapped in a span so antd's injected `ant-menu-item-icon` class lands
-    // on a real DOM node — an extension trigger is under no obligation to
+    // on a real DOM node — a container's icon is under no obligation to
     // forward className.
     icon: (
-      <span>{builtinIcon(id) ?? <LeftBarViewTriggerHost viewId={id} />}</span>
+      <span>
+        <RailIcon icon={icon} />
+      </span>
     ),
   }));
 
-const LeftBarRail = ({ tabs, activeViewId, onSelect }: LeftBarRailProps) => {
-  // Settings is pinned to the bottom, visually separated from the
-  // Explorer/extension icons above it — a second, independent Menu rather
-  // than a trailing item in the same one.
-  const mainTabs = useMemo(
-    () => tabs.filter((tab) => tab.id !== TAB_SETTINGS_ID),
-    [tabs],
-  );
-  const settingsTab = useMemo(
-    () => tabs.find((tab) => tab.id === TAB_SETTINGS_ID),
-    [tabs],
-  );
-  const mainItems = useMemo(() => toMenuItems(mainTabs), [mainTabs]);
-  const settingsItems = useMemo(
-    () => (settingsTab ? toMenuItems([settingsTab]) : []),
-    [settingsTab],
+const LeftBarRail = ({
+  items,
+  pinnedItems = [],
+  activeId,
+  onSelect,
+}: LeftBarRailProps) => {
+  const mainItems = useMemo(() => toMenuItems(items), [items]);
+  const pinnedMenuItems = useMemo(
+    () => toMenuItems(pinnedItems),
+    [pinnedItems],
   );
 
   const handleClick = ({ key }: { key: string }) => onSelect(key);
@@ -114,19 +121,19 @@ const LeftBarRail = ({ tabs, activeViewId, onSelect }: LeftBarRailProps) => {
           inlineCollapsed
           selectable
           items={mainItems}
-          selectedKeys={[activeViewId]}
+          selectedKeys={[activeId]}
           onClick={handleClick}
-          aria-label={t("Sidebar panels")}
+          aria-label={t('Sidebar panels')}
         />
-        {settingsItems.length > 0 && (
+        {pinnedMenuItems.length > 0 && (
           <Menu
             mode="inline"
             inlineCollapsed
             selectable
-            items={settingsItems}
-            selectedKeys={[activeViewId]}
+            items={pinnedMenuItems}
+            selectedKeys={[activeId]}
             onClick={handleClick}
-            aria-label={t("Sidebar settings")}
+            aria-label={t('Sidebar settings')}
           />
         )}
       </RailContainer>

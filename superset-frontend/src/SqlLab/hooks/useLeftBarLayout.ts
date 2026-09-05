@@ -27,18 +27,19 @@
  * mirroring ChatProvider's `{ open, mode }` persistence — a user who opens an
  * extension panel does not expect it to reset when they switch SQL tabs.
  */
-import { useCallback, useSyncExternalStore } from 'react';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import {
   LocalStorageKeys,
   getItem,
   setItem,
 } from 'src/utils/localStorageHelpers';
 import { SQL_EDITOR_LEFTBAR_WIDTH } from 'src/SqlLab/constants';
+import type { ViewContainer } from 'src/core';
 import {
   TAB_EXPLORER_ID,
-  useLeftBarTabs,
-  type LeftBarTab,
-} from './useLeftBarTabs';
+  TAB_SETTINGS_ID,
+} from './useManageableLeftBarEntries';
+import { useLeftBarTabs } from './useLeftBarTabs';
 
 interface LeftBarState {
   activeViewId: string;
@@ -143,7 +144,15 @@ export const getLeftPanelLayout = ({
 };
 
 export interface UseLeftBarLayoutResult {
-  tabs: LeftBarTab[];
+  tabs: ViewContainer[];
+  /**
+   * `tabs` split into the rail's two visual groups: everything except the
+   * built-in Settings container, and Settings on its own (pinned to the
+   * bottom, in its own menu) — a SQL Lab-specific grouping the generic
+   * LeftBarRail component itself has no opinion on.
+   */
+  mainTabs: ViewContainer[];
+  settingsTab: ViewContainer | undefined;
   hasRail: boolean;
   activeViewId: string;
   contentCollapsed: boolean;
@@ -173,6 +182,14 @@ export const useLeftBarLayout = (): UseLeftBarLayoutResult => {
   // widgets registered, so AppLayout never pins the panel at the rail width
   // with nothing in it.
   const contentCollapsed = hasRail && persisted.contentCollapsed;
+  const mainTabs = useMemo(
+    () => tabs.filter(tab => tab.id !== TAB_SETTINGS_ID),
+    [tabs],
+  );
+  const settingsTab = useMemo(
+    () => tabs.find(tab => tab.id === TAB_SETTINGS_ID),
+    [tabs],
+  );
 
   const selectView = useCallback(
     (id: string) =>
@@ -191,6 +208,8 @@ export const useLeftBarLayout = (): UseLeftBarLayoutResult => {
 
   return {
     tabs,
+    mainTabs,
+    settingsTab,
     hasRail,
     activeViewId,
     contentCollapsed,

@@ -100,7 +100,8 @@ const AppLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
     SQL_EDITOR_RIGHTBAR_WIDTH,
   );
   const {
-    tabs,
+    mainTabs,
+    settingsTab,
     hasRail,
     activeViewId,
     contentCollapsed,
@@ -169,8 +170,9 @@ const AppLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
       <StyledMainRow>
         {hasRail && (
           <LeftBarRail
-            tabs={tabs}
-            activeViewId={activeViewId}
+            items={mainTabs}
+            pinnedItems={settingsTab ? [settingsTab] : []}
+            activeId={activeViewId}
             onSelect={id => {
               if (leftWidth === 0) {
                 openSidebar();

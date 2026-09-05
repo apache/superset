@@ -21,9 +21,23 @@ import { render, screen } from 'spec/helpers/testing-library';
 import { views } from 'src/core';
 import ViewListExtension from '.';
 
+// `registerView` only accepts a built-in location or the id of a
+// registered view container (see src/core/views), so these tests register
+// a throwaway container per location under test rather than using a bare
+// string.
 const TEST_VIEW_ID = 'test.view';
+const icon = () => React.createElement('span', null, 'icon');
 
 const disposables: Array<{ dispose: () => void }> = [];
+
+const registerContainer = (id: string) =>
+  disposables.push(
+    views.registerViewContainer('sqllab.leftSidebar', {
+      id,
+      name: id,
+      icon,
+    }),
+  );
 
 afterEach(() => {
   disposables.forEach(d => d.dispose());
@@ -31,12 +45,14 @@ afterEach(() => {
 });
 
 test('renders nothing when no view contributions exist', () => {
+  registerContainer(TEST_VIEW_ID);
   const { container } = render(<ViewListExtension viewId={TEST_VIEW_ID} />);
 
   expect(container.firstChild?.childNodes.length ?? 0).toBe(0);
 });
 
 test('renders provider content for registered view', () => {
+  registerContainer(TEST_VIEW_ID);
   const provider = () =>
     React.createElement('div', null, 'My Extension Content');
   disposables.push(
@@ -53,6 +69,7 @@ test('renders provider content for registered view', () => {
 });
 
 test('renders content for multiple registered views', () => {
+  registerContainer(TEST_VIEW_ID);
   const provider1 = () => React.createElement('div', null, 'Content One');
   const provider2 = () => React.createElement('div', null, 'Content Two');
 
@@ -82,6 +99,7 @@ test('renders nothing for viewId with no matching contributions', () => {
 });
 
 test('handles multiple views registered at the same location', () => {
+  registerContainer(TEST_VIEW_ID);
   const provider1 = () => React.createElement('div', null, 'Ext1 Content');
   const provider2 = () => React.createElement('div', null, 'Ext2 Content');
 
@@ -107,6 +125,8 @@ test('handles multiple views registered at the same location', () => {
 test('renders views for different viewIds independently', () => {
   const VIEW_ID_A = 'view.a';
   const VIEW_ID_B = 'view.b';
+  registerContainer(VIEW_ID_A);
+  registerContainer(VIEW_ID_B);
 
   const providerA = () => React.createElement('div', null, 'View A Content');
   const providerB = () => React.createElement('div', null, 'View B Content');

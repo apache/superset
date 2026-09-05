@@ -17,16 +17,27 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import { sqlLab, resetLeftBarViews } from 'src/core';
+import {
+  registerTestView,
+  registerTestViewContainer,
+  cleanupExtensions,
+} from 'spec/helpers/extensionTestHelpers';
+import { ViewLocations } from 'src/SqlLab/contributions';
+import { resetLeftBarViews } from 'src/SqlLab/components/SqlEditorLeftBar/builtins';
 import {
   applyLeftBarViewSettings,
   resetLeftBarViewSettings,
   useLeftBarViewSettings,
 } from 'src/SqlLab/hooks/useLeftBarViewSettings';
-import { TAB_EXPLORER_ID } from 'src/SqlLab/hooks/useLeftBarTabs';
+import { TAB_EXPLORER_ID } from 'src/SqlLab/hooks/useManageableLeftBarEntries';
 import LeftBarViewSettingsPanel from './LeftBarViewSettingsPanel';
 
 const noop = () => null;
+
+const registerLeftBarView = (id: string, name: string) => {
+  registerTestViewContainer(ViewLocations.sqllab.leftSidebar, id, name, noop);
+  registerTestView(id, id, name, noop);
+};
 
 let latestSettings: ReturnType<typeof useLeftBarViewSettings> | undefined;
 const SettingsProbe = () => {
@@ -40,9 +51,11 @@ beforeEach(() => {
   latestSettings = undefined;
 });
 
+afterEach(cleanupExtensions);
+
 test('lists every registered view, plus the built-in Explorer, with checkboxes checked by default', () => {
-  sqlLab.registerLeftBarView({ id: 'ext.a', name: 'Ext A' }, noop, noop);
-  sqlLab.registerLeftBarView({ id: 'ext.b', name: 'Ext B' }, noop, noop);
+  registerLeftBarView('ext.a', 'Ext A');
+  registerLeftBarView('ext.b', 'Ext B');
 
   render(<LeftBarViewSettingsPanel />);
 
@@ -52,8 +65,8 @@ test('lists every registered view, plus the built-in Explorer, with checkboxes c
 });
 
 test('unchecking a view and clicking Apply persists it as hidden', async () => {
-  sqlLab.registerLeftBarView({ id: 'ext.a', name: 'Ext A' }, noop, noop);
-  sqlLab.registerLeftBarView({ id: 'ext.b', name: 'Ext B' }, noop, noop);
+  registerLeftBarView('ext.a', 'Ext A');
+  registerLeftBarView('ext.b', 'Ext B');
 
   render(
     <>
@@ -72,7 +85,7 @@ test('unchecking a view and clicking Apply persists it as hidden', async () => {
 });
 
 test('Explorer can be unchecked and hidden just like any other entry', async () => {
-  sqlLab.registerLeftBarView({ id: 'ext.a', name: 'Ext A' }, noop, noop);
+  registerLeftBarView('ext.a', 'Ext A');
 
   render(
     <>
@@ -91,7 +104,7 @@ test('Explorer can be unchecked and hidden just like any other entry', async () 
 });
 
 test('Apply is disabled once every item is unchecked, and re-enables once one is checked again', async () => {
-  sqlLab.registerLeftBarView({ id: 'ext.a', name: 'Ext A' }, noop, noop);
+  registerLeftBarView('ext.a', 'Ext A');
 
   render(<LeftBarViewSettingsPanel />);
 
@@ -109,7 +122,7 @@ test('Apply is disabled once every item is unchecked, and re-enables once one is
 });
 
 test('clicking a disabled Apply does not persist settings with nothing visible', async () => {
-  sqlLab.registerLeftBarView({ id: 'ext.a', name: 'Ext A' }, noop, noop);
+  registerLeftBarView('ext.a', 'Ext A');
 
   render(
     <>
@@ -126,7 +139,7 @@ test('clicking a disabled Apply does not persist settings with nothing visible',
 });
 
 test('Cancel discards an unchecked-but-not-applied edit', async () => {
-  sqlLab.registerLeftBarView({ id: 'ext.a', name: 'Ext A' }, noop, noop);
+  registerLeftBarView('ext.a', 'Ext A');
 
   render(<LeftBarViewSettingsPanel />);
 
@@ -140,7 +153,7 @@ test('Cancel discards an unchecked-but-not-applied edit', async () => {
 });
 
 test('Cancel does not persist anything', async () => {
-  sqlLab.registerLeftBarView({ id: 'ext.a', name: 'Ext A' }, noop, noop);
+  registerLeftBarView('ext.a', 'Ext A');
 
   render(
     <>
@@ -156,8 +169,8 @@ test('Cancel does not persist anything', async () => {
 });
 
 test('initializes from previously applied settings, showing hidden views unchecked', () => {
-  sqlLab.registerLeftBarView({ id: 'ext.a', name: 'Ext A' }, noop, noop);
-  sqlLab.registerLeftBarView({ id: 'ext.b', name: 'Ext B' }, noop, noop);
+  registerLeftBarView('ext.a', 'Ext A');
+  registerLeftBarView('ext.b', 'Ext B');
   applyLeftBarViewSettings({ order: ['ext.b', 'ext.a'], hidden: ['ext.a'] });
 
   render(<LeftBarViewSettingsPanel />);

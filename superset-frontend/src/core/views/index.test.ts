@@ -17,9 +17,11 @@
  * under the License.
  */
 import React from 'react';
+import { logging } from '@apache-superset/core/utils';
 import { views, resolveView } from './index';
 
 const disposables: Array<{ dispose: () => void }> = [];
+const icon = () => React.createElement('span', null, 'icon');
 
 afterEach(() => {
   disposables.forEach(d => d.dispose());
@@ -96,16 +98,41 @@ test('views at different locations are independent', () => {
   expect(views.getViews('sqllab.statusBar')).toHaveLength(1);
 });
 
-test('registering a view at sqllab.leftSidebar throws, directing authors to sqlLab.registerLeftBarView', () => {
+test('registering a view at an unknown location is rejected with a warning and an inert Disposable', () => {
+  const warnSpy = jest.spyOn(logging, 'warn').mockImplementation(() => {});
   const provider = () => React.createElement('div', null, 'Test');
 
-  expect(() =>
+  const disposable = views.registerView(
+    { id: 'test.view', name: 'Test View' },
+    'sqllab.notARealLocation',
+    provider,
+  );
+
+  expect(views.getViews('sqllab.notARealLocation')).toBeUndefined();
+  expect(warnSpy).toHaveBeenCalledTimes(1);
+  expect(() => disposable.dispose()).not.toThrow();
+
+  warnSpy.mockRestore();
+});
+
+test('registering a view at a container id registered via registerViewContainer succeeds', () => {
+  const provider = () => React.createElement('div', null, 'Test');
+  disposables.push(
+    views.registerViewContainer('sqllab.leftSidebar', {
+      id: 'ext.container',
+      name: 'Ext Container',
+      icon,
+    }),
     views.registerView(
-      { id: 'test.view', name: 'Test View' },
-      'sqllab.leftSidebar',
+      { id: 'ext.container', name: 'Ext Container' },
+      'ext.container',
       provider,
     ),
-  ).toThrow(/sqlLab\.registerLeftBarView/);
+  );
+
+  expect(views.getViews('ext.container')).toEqual([
+    { id: 'ext.container', name: 'Ext Container' },
+  ]);
 });
 
 test('dispose removes the view registration', () => {
@@ -121,4 +148,100 @@ test('dispose removes the view registration', () => {
   disposable.dispose();
 
   expect(views.getViews('sqllab.panels')).toBeUndefined();
+});
+
+test('getViewContainers returns registered containers in deterministic render order', () => {
+  disposables.push(
+    views.registerViewContainer('sqllab.leftSidebar', {
+      id: 'ext.b',
+      name: 'B',
+      icon,
+    }),
+    views.registerViewContainer('sqllab.leftSidebar', {
+      id: 'ext.a',
+      name: 'A',
+      icon,
+    }),
+    views.registerViewContainer('sqllab.leftSidebar', {
+      id: 'ext.c',
+      name: 'C',
+      icon,
+      order: 1,
+    }),
+  );
+
+  expect(views.getViewContainers('sqllab.leftSidebar').map(c => c.id)).toEqual([
+    'ext.c',
+    'ext.a',
+    'ext.b',
+  ]);
+});
+
+test('getViewContainers returns an empty array when nothing is registered', () => {
+  expect(views.getViewContainers('sqllab.leftSidebar')).toEqual([]);
+});
+
+test('a duplicate container id is rejected: the first registration wins', () => {
+  const warnSpy = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+
+  disposables.push(
+    views.registerViewContainer('sqllab.leftSidebar', {
+      id: 'ext.a',
+      name: 'First',
+      icon,
+    }),
+  );
+  const secondDisposable = views.registerViewContainer('sqllab.leftSidebar', {
+    id: 'ext.a',
+    name: 'Second',
+    icon,
+  });
+
+  expect(
+    views.getViewContainers('sqllab.leftSidebar').map(c => c.name),
+  ).toEqual(['First']);
+  expect(warnSpy).toHaveBeenCalledTimes(1);
+
+  secondDisposable.dispose();
+  expect(
+    views.getViewContainers('sqllab.leftSidebar').map(c => c.name),
+  ).toEqual(['First']);
+
+  warnSpy.mockRestore();
+});
+
+test('a container id colliding with a built-in location name is rejected', () => {
+  const warnSpy = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+
+  const disposable = views.registerViewContainer('sqllab.leftSidebar', {
+    id: 'sqllab.panels',
+    name: 'Colliding',
+    icon,
+  });
+
+  expect(views.getViewContainers('sqllab.leftSidebar')).toEqual([]);
+  expect(warnSpy).toHaveBeenCalledTimes(1);
+  expect(() => disposable.dispose()).not.toThrow();
+
+  warnSpy.mockRestore();
+});
+
+test('disposing a container registration removes it, and also orphans its views', () => {
+  const provider = () => React.createElement('div', null, 'Test');
+  const containerDisposable = views.registerViewContainer(
+    'sqllab.leftSidebar',
+    { id: 'ext.a', name: 'A', icon },
+  );
+  disposables.push(
+    views.registerView({ id: 'ext.a', name: 'A' }, 'ext.a', provider),
+  );
+
+  expect(views.getViewContainers('sqllab.leftSidebar')).toHaveLength(1);
+
+  containerDisposable.dispose();
+
+  expect(views.getViewContainers('sqllab.leftSidebar')).toEqual([]);
+  // The view itself is untouched by disposing its container — it's simply
+  // no longer reachable through the rail once the container is gone.
+  expect(views.getViews('ext.a')).toHaveLength(1);
 });

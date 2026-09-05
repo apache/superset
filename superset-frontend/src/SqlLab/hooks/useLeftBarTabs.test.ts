@@ -17,7 +17,13 @@
  * under the License.
  */
 import { renderHook } from '@testing-library/react';
-import { sqlLab, resetLeftBarViews } from 'src/core';
+import {
+  registerTestView,
+  registerTestViewContainer,
+  cleanupExtensions,
+} from 'spec/helpers/extensionTestHelpers';
+import { ViewLocations } from 'src/SqlLab/contributions';
+import { resetLeftBarViews } from 'src/SqlLab/components/SqlEditorLeftBar/builtins';
 import {
   applyLeftBarViewSettings,
   resetLeftBarViewSettings,
@@ -25,23 +31,30 @@ import {
 import {
   TAB_EXPLORER_ID,
   TAB_SETTINGS_ID,
-  useLeftBarTabs,
-} from './useLeftBarTabs';
+} from './useManageableLeftBarEntries';
+import { useLeftBarTabs } from './useLeftBarTabs';
 
 const noop = () => null;
+
+const registerLeftBarView = (id: string, name: string) => {
+  registerTestViewContainer(ViewLocations.sqllab.leftSidebar, id, name, noop);
+  registerTestView(id, id, name, noop);
+};
 
 beforeEach(() => {
   resetLeftBarViews();
   resetLeftBarViewSettings();
 });
 
-test('returns an empty list when nothing is registered', () => {
+afterEach(cleanupExtensions);
+
+test('returns an empty list when nothing beyond the built-ins is registered', () => {
   const { result } = renderHook(() => useLeftBarTabs());
   expect(result.current).toEqual([]);
 });
 
 test('prepends Explorer and appends Settings once a view is registered', () => {
-  sqlLab.registerLeftBarView({ id: 'ext.a', name: 'Ext A' }, noop, noop);
+  registerLeftBarView('ext.a', 'Ext A');
 
   const { result } = renderHook(() => useLeftBarTabs());
 
@@ -57,9 +70,9 @@ test('respects a custom order applied through settings, appending unordered ids 
   // entry now: since it's not named in `order`, it falls into the
   // "unordered" bucket and sorts after the explicitly-ordered ids, in its
   // original relative position among the other unordered ones.
-  sqlLab.registerLeftBarView({ id: 'ext.a', name: 'A' }, noop, noop);
-  sqlLab.registerLeftBarView({ id: 'ext.b', name: 'B' }, noop, noop);
-  sqlLab.registerLeftBarView({ id: 'ext.c', name: 'C' }, noop, noop);
+  registerLeftBarView('ext.a', 'A');
+  registerLeftBarView('ext.b', 'B');
+  registerLeftBarView('ext.c', 'C');
   applyLeftBarViewSettings({ order: ['ext.c', 'ext.a'], hidden: [] });
 
   const { result } = renderHook(() => useLeftBarTabs());
@@ -74,8 +87,8 @@ test('respects a custom order applied through settings, appending unordered ids 
 });
 
 test('Explorer can be explicitly repositioned via a custom order, like any other manageable entry', () => {
-  sqlLab.registerLeftBarView({ id: 'ext.a', name: 'A' }, noop, noop);
-  sqlLab.registerLeftBarView({ id: 'ext.b', name: 'B' }, noop, noop);
+  registerLeftBarView('ext.a', 'A');
+  registerLeftBarView('ext.b', 'B');
   applyLeftBarViewSettings({
     order: ['ext.b', TAB_EXPLORER_ID, 'ext.a'],
     hidden: [],
@@ -92,8 +105,8 @@ test('Explorer can be explicitly repositioned via a custom order, like any other
 });
 
 test('filters out hidden views but keeps Settings reachable', () => {
-  sqlLab.registerLeftBarView({ id: 'ext.a', name: 'A' }, noop, noop);
-  sqlLab.registerLeftBarView({ id: 'ext.b', name: 'B' }, noop, noop);
+  registerLeftBarView('ext.a', 'A');
+  registerLeftBarView('ext.b', 'B');
   applyLeftBarViewSettings({ order: [], hidden: ['ext.a'] });
 
   const { result } = renderHook(() => useLeftBarTabs());
@@ -106,7 +119,7 @@ test('filters out hidden views but keeps Settings reachable', () => {
 });
 
 test('Explorer itself can be hidden via settings, like any other manageable entry', () => {
-  sqlLab.registerLeftBarView({ id: 'ext.a', name: 'A' }, noop, noop);
+  registerLeftBarView('ext.a', 'A');
   applyLeftBarViewSettings({ order: [], hidden: [TAB_EXPLORER_ID] });
 
   const { result } = renderHook(() => useLeftBarTabs());
@@ -115,7 +128,7 @@ test('Explorer itself can be hidden via settings, like any other manageable entr
 });
 
 test('Settings stays reachable even when every registered view is hidden', () => {
-  sqlLab.registerLeftBarView({ id: 'ext.a', name: 'A' }, noop, noop);
+  registerLeftBarView('ext.a', 'A');
   applyLeftBarViewSettings({ order: [], hidden: ['ext.a'] });
 
   const { result } = renderHook(() => useLeftBarTabs());
@@ -127,7 +140,7 @@ test('Settings stays reachable even when every registered view is hidden', () =>
 });
 
 test('Settings stays reachable even when Explorer and every registered view are hidden', () => {
-  sqlLab.registerLeftBarView({ id: 'ext.a', name: 'A' }, noop, noop);
+  registerLeftBarView('ext.a', 'A');
   applyLeftBarViewSettings({
     order: [],
     hidden: [TAB_EXPLORER_ID, 'ext.a'],

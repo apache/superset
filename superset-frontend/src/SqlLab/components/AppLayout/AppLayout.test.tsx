@@ -28,14 +28,34 @@ import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSide
 import { SQL_EDITOR_LEFTBAR_WIDTH } from 'src/SqlLab/constants';
 import { ViewLocations } from 'src/SqlLab/contributions';
 import * as sqlLabActions from 'src/SqlLab/actions/sqlLab';
-import { sqlLab, resetLeftBarViews } from 'src/core';
+import { Disposable } from 'src/core';
+import { resetLeftBarViews } from 'src/SqlLab/components/SqlEditorLeftBar/builtins';
 import { resetLeftBarLayoutState } from 'src/SqlLab/hooks/useLeftBarLayout';
 import { resetLeftBarViewSettings } from 'src/SqlLab/hooks/useLeftBarViewSettings';
 import {
   registerTestView,
+  registerTestViewContainer,
   cleanupExtensions,
 } from 'spec/helpers/extensionTestHelpers';
 import AppLayout from './index';
+
+const noopIcon = () => null;
+
+/** Registers a rail container plus its content view, tracked for cleanup. */
+const registerLeftBarView = (
+  id: string,
+  name: string,
+  panel: () => React.ReactElement | null = () => null,
+) =>
+  Disposable.from(
+    registerTestViewContainer(
+      ViewLocations.sqllab.leftSidebar,
+      id,
+      name,
+      noopIcon,
+    ),
+    registerTestView(id, id, name, panel),
+  );
 
 jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
 jest.mock('src/components/Splitter', () => {
@@ -190,11 +210,7 @@ test('an unrelated resize-end reporting zero while rail-collapsed does not clobb
     .mockReturnValue({
       type: sqlLabActions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
     } as any);
-  const disposable = sqlLab.registerLeftBarView(
-    { id: 'ext.a', name: 'Ext A' },
-    () => null,
-    () => null,
-  );
+  const disposable = registerLeftBarView('ext.a', 'Ext A');
 
   const { getByRole, getByTitle } = render(<AppLayout {...defaultProps} />, {
     useRedux: true,
@@ -231,11 +247,7 @@ test('a resize-end reporting a nonzero size while rail-collapsed restores the wi
     .mockReturnValue({
       type: sqlLabActions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
     } as any);
-  const disposable = sqlLab.registerLeftBarView(
-    { id: 'ext.a', name: 'Ext A' },
-    () => null,
-    () => null,
-  );
+  const disposable = registerLeftBarView('ext.a', 'Ext A');
 
   const { getByRole, getByTitle } = render(<AppLayout {...defaultProps} />, {
     useRedux: true,
@@ -255,16 +267,8 @@ test('a resize-end reporting a nonzero size while rail-collapsed restores the wi
 });
 
 test('renders one rail item per registered view, Explorer first, Settings pinned in its own bottom menu', () => {
-  const disposableA = sqlLab.registerLeftBarView(
-    { id: 'ext.a', name: 'Ext A' },
-    () => null,
-    () => null,
-  );
-  const disposableB = sqlLab.registerLeftBarView(
-    { id: 'ext.b', name: 'Ext B' },
-    () => null,
-    () => null,
-  );
+  const disposableA = registerLeftBarView('ext.a', 'Ext A');
+  const disposableB = registerLeftBarView('ext.b', 'Ext B');
 
   render(<AppLayout {...defaultProps} />, { useRedux: true, initialState });
 
@@ -285,11 +289,9 @@ test('renders one rail item per registered view, Explorer first, Settings pinned
 });
 
 test('clicking a rail icon swaps the active panel content', async () => {
-  const disposable = sqlLab.registerLeftBarView(
-    { id: 'ext.a', name: 'Ext A' },
-    () => null,
-    () => <div>Ext A panel</div>,
-  );
+  const disposable = registerLeftBarView('ext.a', 'Ext A', () => (
+    <div>Ext A panel</div>
+  ));
 
   render(<AppLayout {...defaultProps} />, { useRedux: true, initialState });
   await userEvent.click(screen.getByTitle('Ext A'));
@@ -312,11 +314,7 @@ test('clicking the active rail icon again re-expands the content it collapsed, w
       </button>
     );
   };
-  const disposable = sqlLab.registerLeftBarView(
-    { id: 'ext.a', name: 'Ext A' },
-    () => null,
-    StatefulPanel,
-  );
+  const disposable = registerLeftBarView('ext.a', 'Ext A', StatefulPanel);
 
   render(<AppLayout {...defaultProps} />, { useRedux: true, initialState });
   await userEvent.click(screen.getByTitle('Ext A'));
@@ -335,11 +333,9 @@ test('clicking the active rail icon again re-expands the content it collapsed, w
 });
 
 test('clicking a different rail icon while collapsed expands and switches', async () => {
-  const disposable = sqlLab.registerLeftBarView(
-    { id: 'ext.a', name: 'Ext A' },
-    () => null,
-    () => <div>Ext A panel</div>,
-  );
+  const disposable = registerLeftBarView('ext.a', 'Ext A', () => (
+    <div>Ext A panel</div>
+  ));
 
   render(<AppLayout {...defaultProps} />, { useRedux: true, initialState });
   await userEvent.click(screen.getByTitle('Explorer')); // collapse
@@ -357,17 +353,13 @@ test('a crashing panel does not take down the rail', async () => {
   const Crashing = () => {
     throw new Error('boom');
   };
-  const disposable = sqlLab.registerLeftBarView(
-    { id: 'ext.crash', name: 'Crash' },
-    () => null,
-    Crashing,
-  );
+  const disposable = registerLeftBarView('ext.crash', 'Crash', Crashing);
 
   render(<AppLayout {...defaultProps} />, { useRedux: true, initialState });
   await userEvent.click(screen.getByTitle('Crash'));
 
   expect(
-    screen.getByTestId('left-bar-view-panel-ext.crash'),
+    screen.getByTestId('left-bar-panel-slot-ext.crash'),
   ).toBeInTheDocument();
   expect(screen.getByTitle('Explorer')).toBeInTheDocument();
   expect(screen.getByTitle('Crash')).toBeInTheDocument();
@@ -380,11 +372,7 @@ test('a crashing panel does not take down the rail', async () => {
 });
 
 test('the rail stays mounted regardless of the content Splitter panel being collapsed', async () => {
-  const disposable = sqlLab.registerLeftBarView(
-    { id: 'ext.a', name: 'Ext A' },
-    () => null,
-    () => null,
-  );
+  const disposable = registerLeftBarView('ext.a', 'Ext A');
 
   const { getByRole } = render(<AppLayout {...defaultProps} />, {
     useRedux: true,
@@ -416,11 +404,7 @@ test('clicking a rail icon restores the sidebar after the Splitter itself hid it
     .mockReturnValue({
       type: sqlLabActions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
     } as any);
-  const disposable = sqlLab.registerLeftBarView(
-    { id: 'ext.a', name: 'Ext A' },
-    () => null,
-    () => null,
-  );
+  const disposable = registerLeftBarView('ext.a', 'Ext A');
 
   render(<AppLayout {...defaultProps} />, { useRedux: true, initialState });
   await userEvent.click(screen.getByTitle('Explorer'));
