@@ -117,6 +117,7 @@ from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
     DatasetColumnData,
+    DatasetFilterData,
     DatasetMetricData,
     ExplorableData,
     Metric,
@@ -350,6 +351,7 @@ class BaseDatasource(
 
     columns: list[TableColumn] = []
     metrics: list[SqlMetric] = []
+    filters: list[SqlFilter] = []
 
     @property
     def type(self) -> str:
@@ -462,6 +464,10 @@ class BaseDatasource(
             if o.metric_name not in verb_map:
                 verb_map[o.metric_name] = o.verbose_name or o.metric_name
 
+        for o in self.filters:
+            if o.filter_name not in verb_map:
+                verb_map[o.filter_name] = o.verbose_name or o.filter_name
+
         for o in self.columns:
             if o.column_name not in verb_map:
                 verb_map[o.column_name] = o.verbose_name or o.column_name
@@ -498,6 +504,7 @@ class BaseDatasource(
             # one to many
             "columns": [cast(DatasetColumnData, o.data) for o in self.columns],
             "metrics": [cast(DatasetMetricData, o.data) for o in self.metrics],
+            "filters": [cast(DatasetFilterData, o.data) for o in self.filters],
             "folders": self.folders,
             # TODO deprecate, move logic to JS
             "order_by_choices": self.order_by_choices,
@@ -739,12 +746,12 @@ class BaseDatasource(
     def get_fk_many_from_list(
         object_list: list[Any],
         fkmany: list[Column],
-        fkmany_class: builtins.type[TableColumn | SqlMetric],
+        fkmany_class: builtins.type[TableColumn | SqlMetric | SqlFilter],
         key_attr: str,
     ) -> list[Column]:
         """Update ORM one-to-many list from object list
 
-        Used for syncing metrics and columns using the same code"""
+        Used for syncing metrics, columns, and filters using the same code"""
 
         object_dict = {o.get(key_attr): o for o in object_list}
 
@@ -801,6 +808,13 @@ class BaseDatasource(
             else []
         )
         self.metrics = metrics
+
+        # Syncing filters. Older save payloads omit this key, so leave
+        # existing filters in place when it is absent.
+        if "filters" in obj:
+            self.filters = self.get_fk_many_from_list(
+                obj["filters"], self.filters, SqlFilter, "filter_name"
+            )
 
         # Syncing columns
         self.columns = (
@@ -1492,6 +1506,74 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
         return {s: getattr(self, s) for s in attrs}
 
 
+class SqlFilter(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model):
+    """ORM object for dataset filters, each table can have multiple filters"""
+
+    __tablename__ = "sql_filters"
+    __table_args__ = (UniqueConstraint("table_id", "filter_name"),)
+
+    id = Column(Integer, primary_key=True)
+    filter_name = Column(String(255), nullable=False)
+    verbose_name = Column(String(1024))
+    description = Column(utils.MediumText())
+    warning_text = Column(Text)
+    table_id = Column(Integer, ForeignKey("tables.id", ondelete="CASCADE"))
+    expression = Column(utils.MediumText(), nullable=False)
+    extra = Column(Text)
+
+    table: Mapped["SqlaTable"] = relationship(
+        "SqlaTable",
+        back_populates="filters",
+        cascade_backrefs=False,
+    )
+
+    export_fields = [
+        "filter_name",
+        "verbose_name",
+        "table_id",
+        "expression",
+        "description",
+        "extra",
+        "warning_text",
+    ]
+    update_from_object_fields = [s for s in export_fields if s != "table_id"]
+    export_parent = "table"
+
+    def __repr__(self) -> str:
+        return str(self.filter_name)
+
+    @property
+    def perm(self) -> str | None:
+        return (
+            ("{parent_name}.[{obj.filter_name}](id:{obj.id})").format(
+                obj=self, parent_name=self.table.full_name
+            )
+            if self.table
+            else None
+        )
+
+    def get_perm(self) -> str | None:
+        return self.perm
+
+    @property
+    def data(self) -> dict[str, Any]:
+        attrs = (
+            "certification_details",
+            "certified_by",
+            "description",
+            "expression",
+            "filter_name",
+            "id",
+            "uuid",
+            "is_certified",
+            "warning_markdown",
+            "warning_text",
+            "verbose_name",
+        )
+
+        return {s: getattr(self, s) for s in attrs}
+
+
 class SqlaTable(
     CoreDataset,
     SoftDeleteMixin,
@@ -1517,8 +1599,16 @@ class SqlaTable(
         cascade_backrefs=False,
         passive_deletes=True,
     )
+    filters: Mapped[list[SqlFilter]] = relationship(
+        SqlFilter,
+        back_populates="table",
+        cascade="all, delete-orphan",
+        cascade_backrefs=False,
+        passive_deletes=True,
+    )
     metric_class = SqlMetric
     column_class = TableColumn
+    filter_class = SqlFilter
     __tablename__ = "tables"
     # Exclude M2M association relationships: Continuum only captures FK columns on
     # association INSERTs (not the auto-increment id), which breaks the NOT NULL PK.
@@ -1541,6 +1631,7 @@ class SqlaTable(
             "owners",
             "editors",
             "row_level_security_filters",
+            "filters",
             "changed_on",
             "created_on",
             "changed_by_fk",
@@ -1621,7 +1712,7 @@ class SqlaTable(
     ]
     update_from_object_fields = [f for f in export_fields if f != "database_id"]
     export_parent = "database"
-    export_children = ["metrics", "columns"]
+    export_children = ["metrics", "columns", "filters"]
 
     sqla_aggregations = {
         "COUNT_DISTINCT": lambda column_name: sa.func.COUNT(sa.distinct(column_name)),

@@ -135,6 +135,17 @@ class DatasetMetricsPutSchema(Schema):
     uuid = fields.UUID(allow_none=True)
 
 
+class DatasetFiltersPutSchema(Schema):
+    id = fields.Integer()
+    expression = fields.String(required=True)
+    description = fields.String(allow_none=True)
+    extra = fields.String(allow_none=True)
+    filter_name = fields.String(required=True, validate=Length(1, 255))
+    verbose_name = fields.String(allow_none=True, metadata={Length: (1, 1024)})
+    warning_text = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
+
+
 class FolderSchema(Schema):
     uuid = fields.UUID(required=True)
     type = fields.String(
@@ -202,6 +213,7 @@ class DatasetPutSchema(Schema):
     editors = fields.List(fields.Integer())
     columns = fields.List(fields.Nested(DatasetColumnsPutSchema))
     metrics = fields.List(fields.Nested(DatasetMetricsPutSchema))
+    filters = fields.List(fields.Nested(DatasetFiltersPutSchema))
     folders = fields.List(fields.Nested(FolderSchema), required=False)
     extra = fields.String(allow_none=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
@@ -382,6 +394,31 @@ class ImportV1MetricSchema(Schema):
     uuid = fields.UUID(allow_none=True)
 
 
+class ImportV1FilterSchema(Schema):
+    # pylint: disable=unused-argument
+    @pre_load
+    def fix_fields(self, data: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
+        """
+        Fix for extra initially being exported as a string.
+        """
+        if isinstance(data.get("extra"), str):
+            try:
+                extra = data["extra"]
+                data["extra"] = json.loads(extra) if extra.strip() else None
+            except ValueError:
+                data["extra"] = None
+
+        return data
+
+    filter_name = fields.String(required=True)
+    verbose_name = fields.String(allow_none=True)
+    expression = fields.String(required=True)
+    description = fields.String(allow_none=True)
+    extra = fields.Dict(allow_none=True)
+    warning_text = fields.String(allow_none=True)
+    uuid = fields.UUID(allow_none=True)
+
+
 class ImportV1DatasetSchema(Schema):
     # pylint: disable=unused-argument
     @pre_load
@@ -405,7 +442,8 @@ class ImportV1DatasetSchema(Schema):
     @validates_schema
     def validate_unique_child_uuids(self, data: dict[str, Any], **kwargs: Any) -> None:
         """
-        Reject a payload where two metrics (or two columns) share a UUID.
+        Reject a payload where two metrics (or two columns, or two filters)
+        share a UUID.
 
         UUIDs are globally unique in the database, so such a payload cannot be
         imported faithfully: the importer matches children within their parent
@@ -413,7 +451,11 @@ class ImportV1DatasetSchema(Schema):
         overwrite it in place, silently collapsing two metrics/columns into one.
         Only a hand-edited bundle can produce this — an export never does.
         """
-        for key, singular in (("metrics", "metric"), ("columns", "column")):
+        for key, singular in (
+            ("metrics", "metric"),
+            ("columns", "column"),
+            ("filters", "filter"),
+        ):
             seen: set[UUID] = set()
             duplicates: set[UUID] = set()
             for child in data.get(key) or []:
@@ -451,6 +493,7 @@ class ImportV1DatasetSchema(Schema):
     uuid = fields.UUID(required=True)
     columns = fields.List(fields.Nested(ImportV1ColumnSchema))
     metrics = fields.List(fields.Nested(ImportV1MetricSchema))
+    filters = fields.List(fields.Nested(ImportV1FilterSchema))
     version = fields.String(required=True)
     database_uuid = fields.UUID(required=True)
     data = fields.URL()

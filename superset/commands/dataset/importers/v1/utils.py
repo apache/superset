@@ -463,7 +463,7 @@ def import_dataset(  # noqa: C901
                 config[key] = json.dumps(config[key])
             except TypeError:
                 logger.info("Unable to encode `%s` field: %s", key, config[key])
-    for key in ("metrics", "columns"):
+    for key in ("metrics", "columns", "filters"):
         for attributes in config.get(key, []):
             if attributes.get("extra") is not None:
                 try:
@@ -480,7 +480,13 @@ def import_dataset(  # noqa: C901
     # uploading it again, so children present in the live DB but absent
     # from the upload should be removed, not silently merged. This matches
     # what an explicit overwrite would do.
-    sync = ["columns", "metrics"] if (overwrite or is_soft_deleted_match) else []
+    # Filters are new in SIP-165. Older bundles omit the key, so only
+    # synchronize them when the payload actually includes them.
+    sync: list[str] = []
+    if overwrite or is_soft_deleted_match:
+        sync = ["columns", "metrics"]
+        if "filters" in config:
+            sync.append("filters")
 
     # should we also load data into the dataset?
     data_uri = config.get("data")
@@ -498,11 +504,12 @@ def import_dataset(  # noqa: C901
         # so the command's transaction wrapper rolls the whole thing back.
         raise ImportFailedError(
             f"Dataset {config['table_name']!r} (uuid {config['uuid']}) "
-            "could not be imported because one of its metrics or columns "
-            "matches two different existing ones — one by name and another by "
-            "UUID. The import was aborted so it is not applied partially. "
-            "Rename or delete the conflicting metric/column in the target "
-            "instance, or remove the UUID from the uploaded file, and retry."
+            "could not be imported because one of its metrics, columns, or "
+            "filters matches two different existing ones — one by name and "
+            "another by UUID. The import was aborted so it is not applied "
+            "partially. Rename or delete the conflicting metric, column, or "
+            "filter in the target instance, or remove the UUID from the "
+            "uploaded file, and retry."
         ) from ex
     except MultipleResultsFound as ex:
         # Finding multiple results when importing a dataset only happens because initially  # noqa: E501

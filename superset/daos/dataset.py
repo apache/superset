@@ -29,6 +29,7 @@ from superset.connectors.sqla.models import (
     RLSFilterTables,
     RowLevelSecurityFilter,
     SqlaTable,
+    SqlFilter,
     SqlMetric,
     TableColumn,
 )
@@ -397,6 +398,25 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         return len(dataset_query) == 0
 
     @staticmethod
+    def validate_filters_exist(dataset_id: int, filter_ids: list[int]) -> bool:
+        dataset_query = (
+            db.session.query(SqlFilter.id).filter(
+                SqlFilter.table_id == dataset_id, SqlFilter.id.in_(filter_ids)
+            )
+        ).all()
+        return len(filter_ids) == len(dataset_query)
+
+    @staticmethod
+    def validate_filters_uniqueness(dataset_id: int, filter_names: list[str]) -> bool:
+        dataset_query = (
+            db.session.query(SqlFilter.id).filter(
+                SqlFilter.table_id == dataset_id,
+                SqlFilter.filter_name.in_(filter_names),
+            )
+        ).all()
+        return len(dataset_query) == 0
+
+    @staticmethod
     def validate_python_date_format(dt_format: str) -> bool:
         if dt_format in ("epoch_s", "epoch_ms"):
             return True
@@ -429,6 +449,10 @@ class DatasetDAO(BaseDAO[SqlaTable]):
 
             if "metrics" in attributes:
                 cls.update_metrics(item, attributes.pop("metrics"))
+                force_update = True
+
+            if "filters" in attributes:
+                cls.update_filters(item, attributes.pop("filters"))
                 force_update = True
 
             if force_update:
@@ -613,6 +637,50 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 db.session.delete(metric)
 
     @classmethod
+    def update_filters(
+        cls,
+        model: SqlaTable,
+        property_filters: list[dict[str, Any]],
+    ) -> None:
+        """
+        Creates/updates and/or deletes a list of filters, based on a
+        list of Dict.
+
+        - If a filter Dict has an `id` property then we update.
+        - If a filter Dict does not have an `id` then we create a new filter.
+        - If there are extra filters on the metadata db that are not defined on the List
+        then we delete.
+
+        Uses individual ORM operations (not bulk) so that SQLAlchemy-Continuum
+        can capture each row change in the version history.
+        """
+
+        filters_by_id = {sql_filter.id: sql_filter for sql_filter in model.filters}
+
+        property_filters_by_id = {
+            properties["id"]: properties
+            for properties in property_filters
+            if "id" in properties
+        }
+
+        # Insert new filters
+        for properties in property_filters:
+            if "id" not in properties:
+                db.session.add(SqlFilter(**{**properties, "table_id": model.id}))
+
+        # Update existing filters
+        for properties in property_filters_by_id.values():
+            sql_filter = filters_by_id[properties["id"]]
+            for key, value in properties.items():
+                setattr(sql_filter, key, value)
+
+        # Delete removed filters
+        ids_to_keep = property_filters_by_id.keys()
+        for sql_filter in model.filters:
+            if sql_filter.id not in ids_to_keep:
+                db.session.delete(sql_filter)
+
+    @classmethod
     def find_dataset_column(cls, dataset_id: int, column_id: int) -> TableColumn | None:
         # We want to apply base dataset filters
         dataset = DatasetDAO.find_by_id(dataset_id)
@@ -631,6 +699,18 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         if not dataset:
             return None
         return db.session.get(SqlMetric, metric_id)
+
+    @classmethod
+    def find_dataset_filter(cls, dataset_id: int, filter_id: int) -> SqlFilter | None:
+        # We want to apply base dataset filters
+        dataset = DatasetDAO.find_by_id(dataset_id)
+        if not dataset:
+            return None
+        return (
+            db.session.query(SqlFilter)
+            .filter(SqlFilter.table_id == dataset_id, SqlFilter.id == filter_id)
+            .one_or_none()
+        )
 
     @staticmethod
     def get_table_by_name(database_id: int, table_name: str) -> SqlaTable | None:
@@ -1026,4 +1106,8 @@ class DatasetColumnDAO(BaseDAO[TableColumn]):
 
 
 class DatasetMetricDAO(BaseDAO[SqlMetric]):
+    pass
+
+
+class DatasetFilterDAO(BaseDAO[SqlFilter]):
     pass

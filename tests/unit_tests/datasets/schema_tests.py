@@ -109,6 +109,7 @@ def test_dataset_post_schema_has_all_put_scalar_fields() -> None:
     put_only_fields = {
         "columns",
         "metrics",
+        "filters",
         "folders",
         "database_id",  # Post uses "database" (integer id) instead
         "description",

@@ -34,7 +34,7 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.sql import func
 
 from superset.commands.dataset.exceptions import DatasetCreateFailedError
-from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+from superset.connectors.sqla.models import SqlaTable, SqlFilter, SqlMetric, TableColumn
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.extensions import db, security_manager
 from superset.models.core import Database
@@ -2251,6 +2251,90 @@ class TestDatasetApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 422
         assert data == {"message": "Dataset metric delete failed."}
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_delete_dataset_filter(self):
+        """
+        Dataset API: Test delete dataset filter
+        """
+
+        dataset = self.get_fixture_datasets()[0]
+        test_filter = SqlFilter(
+            filter_name="active", expression="status = 'active'", table=dataset
+        )
+        db.session.add(test_filter)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dataset/{dataset.id}/filter/{test_filter.id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 200
+        assert db.session.query(SqlFilter).get(test_filter.id) is None  # noqa: E711
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_delete_dataset_filter_not_found(self):
+        """
+        Dataset API: Test delete dataset filter not found
+        """
+
+        dataset = self.get_fixture_datasets()[0]
+        non_id = self.get_nonexistent_numeric_id(SqlFilter)
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dataset/{dataset.id}/filter/{non_id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 404
+
+        non_id = self.get_nonexistent_numeric_id(SqlaTable)
+        test_filter = SqlFilter(
+            filter_name="active", expression="status = 'active'", table=dataset
+        )
+        db.session.add(test_filter)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dataset/{non_id}/filter/{test_filter.id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 404
+
+    @pytest.mark.usefixtures("create_datasets")
+    def test_delete_dataset_filter_not_owned(self):
+        """
+        Dataset API: Test delete dataset filter not owned
+        """
+
+        dataset = self.get_fixture_datasets()[0]
+        test_filter = SqlFilter(
+            filter_name="active", expression="status = 'active'", table=dataset
+        )
+        db.session.add(test_filter)
+        db.session.commit()
+
+        self.login(ALPHA_USERNAME)
+        uri = f"api/v1/dataset/{dataset.id}/filter/{test_filter.id}"
+        rv = self.client.delete(uri)
+        assert rv.status_code == 403
+
+    @pytest.mark.usefixtures("create_datasets")
+    @patch("superset.daos.dataset.DatasetFilterDAO.delete")
+    def test_delete_dataset_filter_fail(self, mock_dao_delete):
+        """
+        Dataset API: Test delete dataset filter failure
+        """
+
+        mock_dao_delete.side_effect = SQLAlchemyError()
+        dataset = self.get_fixture_datasets()[0]
+        test_filter = SqlFilter(
+            filter_name="active", expression="status = 'active'", table=dataset
+        )
+        db.session.add(test_filter)
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/dataset/{dataset.id}/filter/{test_filter.id}"
+        rv = self.client.delete(uri)
+        data = json.loads(rv.data.decode("utf-8"))
+        assert rv.status_code == 422
+        assert data == {"message": "Dataset filter delete failed."}
 
     @with_feature_flags(SOFT_DELETE=True)
     @pytest.mark.usefixtures("create_datasets")
