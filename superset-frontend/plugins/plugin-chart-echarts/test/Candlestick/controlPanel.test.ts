@@ -115,7 +115,7 @@ test('shows series name only when the default candlestick series is used', () =>
   expect(seriesNameControl).not.toBeNull();
   expect(seriesNameControl?.config.visibility).toBeDefined();
 
-  const {visibility} = seriesNameControl!.config;
+  const { visibility } = seriesNameControl!.config;
 
   expect(
     visibility({
