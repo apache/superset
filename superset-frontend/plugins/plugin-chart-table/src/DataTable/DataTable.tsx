@@ -338,7 +338,12 @@ export default typedMemo(function DataTable<D extends object>({
   const lastSigRef = useRef<string>('');
 
   useEffect(() => {
-    if (serverPagination || typeof onFilteredRowsChange !== 'function') {
+    if (
+      serverPagination ||
+      typeof onFilteredRowsChange !== 'function' ||
+      !columns ||
+      columns.length === 0
+    ) {
       return;
     }
 
@@ -363,7 +368,7 @@ export default typedMemo(function DataTable<D extends object>({
         rafRef.current = null;
       }
     };
-  }, [rows, serverPagination, onFilteredRowsChange]);
+  }, [rows, serverPagination, onFilteredRowsChange, columns]);
 
   const handleSearchChange = useCallback(
     (query: string) => {
