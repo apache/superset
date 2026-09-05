@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const fs = require('fs');
-const {
+import fs from 'fs';
+import {
   entrypointSizeByExt,
   main,
-} = require('../../scripts/bundle-size-summary');
+} from '../../scripts/internal/bundle-size-summary';
 
-function mockStats(entrypoints) {
+function mockStats(entrypoints: object) {
   jest
     .spyOn(fs, 'readFileSync')
     .mockReturnValue(JSON.stringify({ entrypoints }));

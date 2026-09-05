@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-const { parseRuleId } = require('../../scripts/oxlint-metrics-uploader');
+import { parseRuleId } from '../../scripts/internal/oxlint-metrics-uploader';
 
 test('eslint rules keep their bare name', () => {
   expect(parseRuleId('eslint(no-console)')).toBe('no-console');

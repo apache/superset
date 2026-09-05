@@ -101,7 +101,15 @@ export default {
     ...config,
     module: {
       ...config.module,
-      rules: disableDevModeInRules(customConfig.module.rules),
+      rules: [
+        ...(config.module?.rules ?? []).filter(
+          rule => {
+            const test = rule.test?.toString() ?? '';
+            return test !== '/\\.css$/' && !test.includes('svg');
+          },
+        ),
+        ...disableDevModeInRules(customConfig.module.rules),
+      ],
     },
     resolve: {
       ...config.resolve,
