@@ -64,6 +64,7 @@ from flask_appbuilder.security.views import (
 )
 from flask_babel import lazy_gettext as _
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
+from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
 from sqlalchemy import and_, func as sa_func, inspect, or_
@@ -5607,9 +5608,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
 
         if not user:
-            if not get_current_user():
+            # Resolving the current user forces evaluation of flask_login's
+            # ``current_user`` proxy, which on a request that carries no JWT and
+            # no guest token invokes the app's request loader and lets
+            # ``verify_jwt_in_request`` raise ``NoAuthorizationError``. That is
+            # fine for a real view (a global handler turns it into a 401), but
+            # ``is_guest_user`` is also called from paths that run before auth
+            # (e.g. error sanitization while handling an unrelated HTTPException),
+            # where the raise escapes as an unhandled exception. A request with
+            # no JWT/guest token definitionally cannot be an embedded guest
+            # viewer, so returning ``False`` is the semantically correct answer.
+            try:
+                if not get_current_user():
+                    return False
+                user = g.user
+            except NoAuthorizationError:
                 return False
-            user = g.user
 
         return hasattr(user, "is_guest_user") and user.is_guest_user
 
