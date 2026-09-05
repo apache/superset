@@ -35,7 +35,7 @@ params:
   datasource: 42__table
   donut: true
   granularity_sqla: time_start
-  groupby:
+  columns:
   - first_time_developer
   innerRadius: 43
   label_type: key

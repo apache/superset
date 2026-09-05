@@ -33,7 +33,7 @@ params:
   datasource: 22__table
   date_format: smart_date
   extra_form_data: {}
-  groupby:
+  columns:
   - product_line
   innerRadius: 30
   label_type: key

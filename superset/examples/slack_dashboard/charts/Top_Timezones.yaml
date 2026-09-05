@@ -27,7 +27,7 @@ params:
   color_pn: true
   datasource: 31__table
   granularity_sqla: updated
-  groupby:
+  columns:
   - tz
   include_search: false
   metrics:

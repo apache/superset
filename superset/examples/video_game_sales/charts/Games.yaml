@@ -32,7 +32,7 @@ params:
   color_pn: false
   datasource: 21__table
   granularity_sqla: year
-  groupby:
+  columns:
   - name
   include_search: true
   metrics:
