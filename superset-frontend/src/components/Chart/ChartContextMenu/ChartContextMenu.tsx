@@ -37,7 +37,6 @@ import {
   ensureIsArray,
   FeatureFlag,
   getChartMetadataRegistry,
-  getExtensionsRegistry,
   isFeatureEnabled,
   QueryFormData,
 } from '@superset-ui/core';
@@ -180,10 +179,6 @@ const ChartContextMenu = (
     [],
   );
 
-  const loadDrillByOptionsExtension = getExtensionsRegistry().get(
-    'load.drillby.options',
-  );
-
   const handleCloseDrillByModal = useCallback(() => {
     setShowDrillByModal(false);
   }, []);
@@ -234,8 +229,9 @@ const ChartContextMenu = (
 
     const filteredColumns = ensureIsArray(dataset.columns).filter(
       column =>
-        // If using an extension, also filter by column.groupby since the extension might not do this
-        (!loadDrillByOptionsExtension || column.groupby) &&
+        // Both the API and the extension return every column, since the same
+        // payload resolves display labels elsewhere. Only dimensions are drillable.
+        column.groupby &&
         !ensureIsArray(
           formData[filters?.drillBy?.groupbyFieldName ?? ''],
         ).includes(column.column_name) &&
@@ -257,7 +253,6 @@ const ChartContextMenu = (
     formData.x_axis,
     formData[enhancedFilters?.drillBy?.groupbyFieldName ?? ''],
     additionalConfig?.drillBy?.excludedColumns,
-    loadDrillByOptionsExtension,
   ]);
 
   const showCrossFilters = isDisplayed(ContextMenuItem.CrossFilter);
