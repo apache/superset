@@ -21,9 +21,8 @@ import sys
 import traceback
 import uuid
 from contextlib import closing
-from datetime import datetime
 from sys import getsizeof
-from typing import Any, cast, Optional, TYPE_CHECKING, TypeVar, Union
+from typing import Any, cast, Optional, TYPE_CHECKING, Union
 
 import backoff
 import msgpack
@@ -57,8 +56,12 @@ from superset.exceptions import (
 from superset.extensions import celery_app, event_logger
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-from superset.sql.execution.executor import build_statement_blocks
-from superset.sql.parse import BaseSQLStatement, CTASMethod, SQLScript, Table
+from superset.sql.execution.executor import (
+    apply_ctas,
+    apply_limit,
+    build_statement_blocks,
+)
+from superset.sql.parse import CTASMethod, SQLScript, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.utils import write_ipc_buffer
 from superset.utils import json
@@ -212,53 +215,6 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 stats_logger.incr("error_sqllab_unhandled")
                 query = get_query(query_id=query_id)
                 return handle_query_error(ex, query)
-
-
-S = TypeVar("S", bound=BaseSQLStatement[Any])
-
-
-def apply_ctas(query: Query, parsed_statement: S) -> S:
-    """
-    Apply CTAS/CVAS.
-    """
-    if not query.tmp_table_name:
-        start_dttm = datetime.fromtimestamp(query.start_time)
-        prefix = f"tmp_{query.user_id}_table"
-        query.tmp_table_name = start_dttm.strftime(f"{prefix}_%Y_%m_%d_%H_%M_%S")
-
-    catalog = (
-        query.catalog
-        if query.database.db_engine_spec.supports_cross_catalog_queries
-        else None
-    )
-    table = Table(query.tmp_table_name, query.tmp_schema_name, catalog)
-    method = CTASMethod[query.ctas_method.upper()]
-
-    return parsed_statement.as_create_table(table, method)  # type: ignore[return-value]
-
-
-def apply_limit(query: Query, parsed_statement: BaseSQLStatement[Any]) -> None:
-    """
-    Apply limit to the SQL statement.
-    """
-    sqllab_ctas_no_limit = app.config["SQLLAB_CTAS_NO_LIMIT"]
-    sql_max_row = app.config["SQL_MAX_ROW"]
-
-    # Do not apply limit to the CTA queries when SQLLAB_CTAS_NO_LIMIT is set to true
-    if parsed_statement.is_mutating() or (
-        query.select_as_cta_used and sqllab_ctas_no_limit
-    ):
-        return
-
-    if sql_max_row and (not query.limit or query.limit > sql_max_row):
-        query.limit = sql_max_row
-
-    if query.limit:
-        parsed_statement.set_limit_value(
-            # fetch an extra row to inform user if there are more rows
-            query.limit + 1,
-            query.database.db_engine_spec.limit_method,
-        )
 
 
 def execute_query(  # pylint: disable=too-many-statements, too-many-locals  # noqa: C901
