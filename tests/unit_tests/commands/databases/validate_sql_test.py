@@ -38,7 +38,7 @@ def mock_database(mocker: MockerFixture) -> MagicMock:
     """Create a mock database with PostgreSQL engine."""
     database = mocker.MagicMock()
     database.id = 1
-    database.db_engine_spec.engine = "postgresql"
+    database.db_engine_spec.engine = "presto"
 
     DatabaseDAO = mocker.patch(  # noqa: N806
         "superset.commands.database.validate_sql.DatabaseDAO"
@@ -56,7 +56,7 @@ def mock_database(mocker: MockerFixture) -> MagicMock:
 def mock_validator(mocker: MockerFixture) -> MagicMock:
     """Create a mock SQL validator."""
     validator = mocker.MagicMock()
-    validator.name = "PostgreSQLValidator"
+    validator.name = "PrestoDBSQLValidator"
     validator.validate.return_value = []
 
     get_validator_by_name = mocker.patch(
@@ -70,7 +70,7 @@ def mock_validator(mocker: MockerFixture) -> MagicMock:
 def mock_config(mocker: MockerFixture) -> dict[str, Any]:
     """Mock the application config."""
     config = {
-        "SQL_VALIDATORS_BY_ENGINE": {"postgresql": "PostgreSQLValidator"},
+        "SQL_VALIDATORS_BY_ENGINE": {"presto": "PrestoDBSQLValidator"},
         "SQLLAB_VALIDATION_TIMEOUT": 30,
     }
     mocker.patch("superset.commands.database.validate_sql.app.config", config)
@@ -279,6 +279,6 @@ def test_validate_sql_generic_exception(
 
     error = exc_info.value
     assert error.error.message is not None
-    assert "PostgreSQLValidator" in error.error.message
+    assert "PrestoDBSQLValidator" in error.error.message
     assert "Unexpected error occurred" in error.error.message
     mock_validator.validate.assert_not_called()

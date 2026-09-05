@@ -104,12 +104,10 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
     Run basic diagnostics on a given DB engine spec.
     """
     # pylint: disable=import-outside-toplevel
-    from superset.sql_validators.postgres import PostgreSQLValidator
     from superset.sql_validators.presto_db import PrestoDBSQLValidator
 
     sql_validators = {
         "presto": PrestoDBSQLValidator,
-        "postgresql": PostgreSQLValidator,
     }
 
     output: dict[str, Any] = {}

@@ -22,12 +22,10 @@ from unittest.mock import MagicMock, patch
 
 from pyhive.exc import DatabaseError
 
-from superset.sql_validators.postgres import PostgreSQLValidator
 from superset.sql_validators.presto_db import (
     PrestoDBSQLValidator,
     PrestoSQLValidationError,
 )
-from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
 
@@ -96,40 +94,6 @@ class TestPrestoValidator(SupersetTestCase):
         errors = self.validator.validate(sql, None, schema, self.database)
 
         assert 1 == len(errors)
-
-
-class TestPostgreSQLValidator(SupersetTestCase):
-    def test_valid_syntax(self):
-        if get_example_database().backend != "postgresql":
-            return
-
-        mock_database = MagicMock()
-        annotations = PostgreSQLValidator.validate(
-            sql='SELECT 1, "col" FROM "table"',
-            catalog=None,
-            schema="",
-            database=mock_database,
-        )
-        assert annotations == []
-
-    def test_invalid_syntax(self):
-        if get_example_database().backend != "postgresql":
-            return
-
-        mock_database = MagicMock()
-        annotations = PostgreSQLValidator.validate(
-            sql='SELECT 1, "col"\nFROOM "table"',
-            catalog=None,
-            schema="",
-            database=mock_database,
-        )
-
-        assert len(annotations) == 1
-        annotation = annotations[0]
-        assert annotation.line_number == 2
-        assert annotation.start_column is None
-        assert annotation.end_column is None
-        assert annotation.message == 'ERROR: syntax error at or near """'
 
 
 if __name__ == "__main__":
