@@ -266,7 +266,7 @@ packaging==25.0
     #   kombu
     #   limits
     #   shillelagh
-pandas==2.3.3
+pandas==3.0.5
     # via apache-superset (pyproject.toml)
 paramiko==3.5.1
     # via
@@ -334,9 +334,7 @@ python-dateutil==2.9.0.post0
 python-dotenv==1.2.2
     # via apache-superset (pyproject.toml)
 pytz==2025.2
-    # via
-    #   flask-babel
-    #   pandas
+    # via flask-babel
 pyxlsb==1.0.10
     # via pandas
 pyyaml==6.0.3
@@ -423,9 +421,7 @@ typing-extensions==4.16.0
 typing-inspection==0.4.2
     # via pydantic
 tzdata==2025.2
-    # via
-    #   kombu
-    #   pandas
+    # via kombu
 tzlocal==5.4.4
     # via celery
 url-normalize==2.2.1
