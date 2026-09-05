@@ -735,6 +735,66 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         return self.format()
 
 
+_SELECT_TRAILING_CLAUSES: tuple[str, ...] = (
+    "options",
+    "settings",
+    "format",
+    "locks",
+    "offset",
+    "limit",
+    "sort",
+    "cluster",
+    "distribute",
+    "order",
+    "windows",
+    "qualify",
+    "having",
+    "group",
+    "where",
+    "joins",
+    "laterals",
+    "from",
+    "into",
+    "expressions",
+)
+
+
+def _get_select_trailing_child(node: exp.Select) -> exp.Expression | None:
+    for clause_name in _SELECT_TRAILING_CLAUSES:
+        val = node.args.get(clause_name)
+        if isinstance(val, list) and val:
+            return _find_last_token_node(val[-1])
+        if isinstance(val, exp.Expression):
+            return _find_last_token_node(val)
+    return None
+
+
+def _find_last_token_node(node: exp.Expression) -> exp.Expression:
+    """
+    Find the last token/leaf node in SQL generation order to attach trailing comments.
+
+    Avoids optimizer hints (exp.Hint) and non-trailing subtrees to prevent injecting
+    trailing comments inside optimizer hint blocks (e.g. /*+ SET_VAR(...) */).
+    """
+    if isinstance(node, exp.Select):
+        if trailing := _get_select_trailing_child(node):
+            return trailing
+
+    children: list[exp.Expression] = []
+    for k, v in node.args.items():
+        if k in ("hint", "comments"):
+            continue
+        if isinstance(v, exp.Expression):
+            children.append(v)
+        elif isinstance(v, list):
+            children.extend(item for item in v if isinstance(item, exp.Expression))
+
+    if children:
+        return _find_last_token_node(children[-1])
+
+    return node
+
+
 class SQLStatement(BaseSQLStatement[exp.Expression]):
     """
     A SQL statement.
@@ -932,11 +992,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # statement; move them back to the last token in the last real statement
         if len(statements) > 1 and isinstance(statements[-1], exp.Semicolon):
             last_statement = statements.pop()
-            target = statements[-1]
-            for node in statements[-1].walk():
-                if hasattr(node, "comments"):  # pragma: no cover
-                    target = node
-
+            target = _find_last_token_node(statements[-1])
             target.comments = target.comments or []
             target.comments.extend(last_statement.comments)
 
