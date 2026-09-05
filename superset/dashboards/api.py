@@ -188,6 +188,7 @@ from superset.views.base_api import (
     statsd_metrics,
     validate_feature_flags,
 )
+from superset.views.custom_tags_api_mixin import CustomTagsOptimizationMixin
 from superset.views.error_handling import handle_api_exception
 from superset.views.filters import (
     BaseFilterRelatedUsers,
@@ -258,10 +259,18 @@ BASE_LIST_COLUMNS = [
     "uuid",
 ]
 
-TAG_LIST_COLUMNS = BASE_LIST_COLUMNS + [
+# Full tags (current behavior - includes all tag types)
+FULL_TAG_LIST_COLUMNS = BASE_LIST_COLUMNS + [
     "tags.id",
     "tags.name",
     "tags.type",
+]
+
+# Custom tags only
+CUSTOM_TAG_LIST_COLUMNS = BASE_LIST_COLUMNS + [
+    "custom_tags.id",
+    "custom_tags.name",
+    "custom_tags.type",
 ]
 
 # Fields dropped from a dashboard member dataset when the caller cannot access
@@ -291,7 +300,9 @@ DASHBOARD_DATASET_INACCESSIBLE_FIELDS = (
 
 
 # pylint: disable=too-many-public-methods
-class DashboardRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
+class DashboardRestApi(
+    SoftDeleteApiMixin, CustomTagsOptimizationMixin, BaseSupersetModelRestApi
+):
     datamodel = SQLAInterface(Dashboard)
 
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
@@ -346,7 +357,17 @@ class DashboardRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "purge": "write",
     }
 
-    list_columns = TAG_LIST_COLUMNS
+    # Default list_columns (used if config not set)
+    list_columns = FULL_TAG_LIST_COLUMNS
+
+    def __init__(self) -> None:
+        # Configure custom tags optimization (mixin handles the logic)
+        self._setup_custom_tags_optimization(
+            config_key="DASHBOARD_LIST_CUSTOM_TAGS_ONLY",
+            full_columns=FULL_TAG_LIST_COLUMNS,
+            custom_columns=CUSTOM_TAG_LIST_COLUMNS,
+        )
+        super().__init__()
 
     @expose("/", methods=("GET",))
     @protect()
