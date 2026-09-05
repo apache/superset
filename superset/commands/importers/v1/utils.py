@@ -408,7 +408,12 @@ def import_tag(
         for tag in db_session.query(Tag).filter(Tag.name.in_(target_tag_names))
     }
 
+    # tags named by the import that already resolved to a row, whether or not this
+    # run managed to write their association
+    resolved_target_tag_ids: set[int] = set()
+
     for tag_name in target_tag_names:
+        tag = None
         try:
             # Isolate each tag operation in a SAVEPOINT so a failure (e.g. a
             # concurrent unique-constraint violation) rolls back only the failed
@@ -455,11 +460,21 @@ def import_tag(
             )
             # The SAVEPOINT was rolled back by begin_nested(); the session is
             # still usable for the remaining tags.
+            #
+            # The tag is still named by the import, so its existing association
+            # must survive the cleanup below -- losing a race is not the same as
+            # being dropped from the config.
+            if tag is not None and tag.id is not None:
+                resolved_target_tag_ids.add(tag.id)
+
+            # the rollback discarded whatever this iteration added, so a Tag
+            # cached above is stale and must not be reused
+            existing_tags.pop(tag_name, None)
             continue
 
     # Remove old tags not in the new config
     for tag in existing_assocs:
-        if tag.tag_id not in new_tag_ids:
+        if tag.tag_id not in new_tag_ids and tag.tag_id not in resolved_target_tag_ids:
             db_session.delete(tag)
 
     return new_tag_ids
