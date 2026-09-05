@@ -3402,6 +3402,17 @@ class TestDatasetApi(SupersetTestCase):
                     groupby=False,
                 ),
             ],
+            metrics=[
+                SqlMetric(
+                    metric_name="sum__value",
+                    expression="SUM(value)",
+                    verbose_name="Yearly Total",
+                ),
+                SqlMetric(
+                    metric_name="count",
+                    expression="COUNT(*)",
+                ),
+            ],
             fetch_metadata=False,
         )
 
@@ -3425,6 +3436,13 @@ class TestDatasetApi(SupersetTestCase):
         assert result["columns"] == [
             {"column_name": "category", "verbose_name": "Category Column"},
             {"column_name": "region", "verbose_name": None},
+        ]
+        # Metrics must also carry their verbose_name so that consumers (e.g.
+        # the dashboard "View as table" results grid) can resolve a metric's
+        # friendly Label instead of falling back to its technical name.
+        assert result["metrics"] == [
+            {"metric_name": "sum__value", "verbose_name": "Yearly Total"},
+            {"metric_name": "count", "verbose_name": None},
         ]
 
         self.items_to_delete = [dataset]
@@ -3603,6 +3621,13 @@ class TestDatasetApi(SupersetTestCase):
                     groupby=True,
                 ),
             ],
+            metrics=[
+                SqlMetric(
+                    metric_name="sum__value",
+                    expression="SUM(value)",
+                    verbose_name="Yearly Total",
+                ),
+            ],
             fetch_metadata=False,
         )
         chart = self.insert_chart("Test Embedded Chart", dataset.id)
@@ -3628,6 +3653,9 @@ class TestDatasetApi(SupersetTestCase):
                 "columns": [
                     {"column_name": "category", "verbose_name": "Category Column"},
                     {"column_name": "region", "verbose_name": None},
+                ],
+                "metrics": [
+                    {"metric_name": "sum__value", "verbose_name": "Yearly Total"},
                 ],
             }
 
