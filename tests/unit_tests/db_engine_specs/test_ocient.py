@@ -23,10 +23,13 @@ from superset.constants import TimeGrain
 from superset.db_engine_specs.ocient import (
     _point_list_to_wkt,
     _sanitized_ocient_type_codes,
-    ocient_is_installed,
     OcientEngineSpec,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+
+
+def ocient_is_installed() -> bool:
+    return len(_sanitized_ocient_type_codes) > 0
 
 
 def test_ocient_properties() -> None:
