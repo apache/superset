@@ -274,16 +274,21 @@ mechanism at all. Every existing test that renders `TableChart` or
 `plugins/plugin-chart-table/test/DataTable/` only had a test for
 `getScrollBarSize.ts` in isolation — nothing exercises `useSticky.tsx`'s
 `StickyWrap` component, so none of the four fixes to this exact mechanism
-since 2022 (#21064, #26964, #36891, #42573) added a regression guard for the
-underlying invariant (header/footer/body must all reserve scrollbar space
-through the same mechanism). Each fix addressed the specific manifestation
-someone happened to reproduce, without a test pinning the invariant itself.
+since 2022 (#21064, #26964, #36891, #42573) added a regression guard for
+either of the two invariants this fix relies on: the load-bearing one
+(header/footer's wrapper `width` must never be reduced below what the
+shared colgroup needs — see Root Cause) or the secondary one
+(header/footer must report the same `clientWidth` as body, for consistent
+synced horizontal scrolling). Each fix addressed the specific manifestation
+someone happened to reproduce, without a test pinning either invariant
+itself.
 
-Manual QA also wouldn't reliably catch a reservation-mismatch of this kind:
-it would depend on the reporter's specific browser/OS/rendering-mode
+Manual QA also wouldn't reliably catch a width-computation bug of this
+kind: it would depend on the reporter's specific browser/OS/rendering-mode
 scrollbar behavior, which is exactly the kind of environment-sensitive
 condition this investigation had to build custom real-browser tooling
-(headless *and* headed) to even observe directly.
+(headless *and* headed, plus hit-testing, not just numeric comparisons) to
+even observe directly.
 
 ## The Fix
 
@@ -340,10 +345,10 @@ already provably wide enough without needing to guess at a safety margin.
 - **Fix the `needScrollBar` height-comparison bug instead/also** (see Latent
   Bugs). Considered, because it's a plausible contributor to the
   "stays clipped after growing back" persistence. Rejected for this PR:
-  it's a different defect (scrollbar *visibility* logic, not
-  *width-reservation-consistency* logic), fixing it changes when scrollbars
-  appear/disappear more broadly than this bug fix should, and the
-  independent review already agreed it should stay out of scope.
+  it's a different defect (scrollbar *visibility* logic, not the
+  *header/footer wrapper width* logic this fix targets), fixing it changes
+  when scrollbars appear/disappear more broadly than this bug fix should,
+  and the independent review already agreed it should stay out of scope.
 - **Drop `scrollbarGutter`/`scrollBarStyles` from header/footer, keeping
   only the unconditional `width: maxWidth` change.** Considered once real
   hit-testing showed these aren't what prevents the reported clipping (see
@@ -371,9 +376,9 @@ already provably wide enough without needing to guess at a safety margin.
   `hasVerticalScroll: true` for content that only needed 379px. Plausibly a
   meaningful contributor to why "grow the chart back up" doesn't always
   self-heal a scrollbar-adjacent layout issue (see Root Cause). Left
-  unfixed — a different defect than the reservation-consistency bug this PR
-  fixes, and changing it alters scrollbar-appearance behavior more broadly
-  than this fix should.
+  unfixed — a different defect than the header/footer wrapper-width bug
+  this PR fixes, and changing it alters scrollbar-appearance behavior more
+  broadly than this fix should.
 - At chart widths where the Total's *unbreakable* natural content width
   (numbers have no break points, so `table-layout: auto` cannot wrap them)
   is only barely smaller than the chart's total width, the total clips
@@ -381,8 +386,8 @@ already provably wide enough without needing to guess at a safety margin.
   including before any scrollbar ever appears. Verified via the same
   real-browser sweep (both headless and headed Chromium). This is a
   different, more fundamental "the chart is too narrow for this content
-  regardless of scrollbars" case, not the reservation-mismatch this PR
-  targets — not fixed here.
+  regardless of scrollbars" case, not the header/footer wrapper-width bug
+  this PR targets — not fixed here.
 - The `<col width={w} />` values passed to `<colgroup>` are floats (e.g.
   `95.65625`). The legacy HTML `width` attribute on `<col>` may be rounded
   down/truncated by some rendering engines, which could compound with either
@@ -395,16 +400,21 @@ Added `plugins/plugin-chart-table/test/DataTable/hooks/useSticky.test.tsx`,
 which mounts `useSticky`'s `StickyWrap` for real (via `react-table`) with
 mocked DOM measurements that force `hasVerticalScroll: true`, and mocks
 `getCustomScrollBarSize()` to return a value distinguishable from any
-CSS-computed one. It asserts:
+CSS-computed one. It asserts, pinning the two invariants separately rather
+than treating them as one:
 
-1. The header/footer wrapper's `style.width` and `style.scrollbarGutter`
-   match the body's — i.e. it pins the invariant ("header, body, and footer
-   must derive their available width from the same mechanism") rather than
-   any specific pixel value. Fails against the pre-fix code (`258px` vs.
-   expected `300px`, since `300 - 42 (mocked probe) = 258`) and passes after
-   the fix.
-2. The header/footer wrapper's `className` is non-empty and matches the
-   body's — pinning the `css={scrollBarStyles}` half of the fix.
+1. **Load-bearing.** The header/footer wrapper's `style.width` matches the
+   body's (`maxWidth`, not any pixel value) — pinning "header/footer's
+   width is never reduced below what the shared colgroup needs." Fails
+   against the pre-fix code (`258px` vs. expected `300px`, since
+   `300 - 42 (mocked probe) = 258`, a header/footer wrapper genuinely
+   narrower than the colgroup it has to display) and passes after the fix.
+2. **Secondary.** The header/footer wrapper's `style.scrollbarGutter` and
+   `className` (populated via the `css={scrollBarStyles}` prop) both match
+   the body's — pinning "header/footer report the same `clientWidth` as
+   body," which matters for keeping their synced horizontal `scrollLeft`
+   consistent with body's real, scrollbar-reduced viewport (see Root
+   Cause), not for preventing the reported clipping by itself.
 
 The `className` assertion needed one more thing to be observable at all:
 `useSticky.tsx` now carries a `/** @jsxImportSource @emotion/react */`

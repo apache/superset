@@ -288,20 +288,25 @@ function StickyWrap({
       </colgroup>
     );
 
-    // Reserve the same scrollbar gutter the body div reserves (below), rather
-    // than subtracting a separately-measured scrollbar width: `scrollbar-gutter`
-    // and `getCustomScrollBarSize()` are independent browser mechanisms that
-    // aren't guaranteed to agree, and any gap between them narrows this
-    // container's overflow:hidden box below the (fixed-layout) colgroup width
-    // computed from the body/sizer, silently clipping the rightmost column.
+    // Below, `width: maxWidth` is applied unconditionally (never reduced by
+    // subtracting a separately-measured scrollbar width, unlike this file's
+    // previous `maxWidth - scrollBarSize`). That's the load-bearing part of
+    // this fix: the shared colgroup (computed from the sizer below, whose
+    // own clientWidth can only ever be <= maxWidth) can never need more
+    // width than that, so a header/footer wrapper that's never narrowed
+    // below maxWidth can never clip it, regardless of whether any
+    // JS-measured scrollbar size agrees with what the sizer/body actually
+    // reserve in a given browser.
     //
-    // The reserved gutter width itself also depends on whether `::-webkit-
-    // scrollbar` styling is applied to the element doing the reserving: an
-    // element with `scrollBarStyles` reserves space for the narrower custom
-    // scrollbar, while an unstyled one reserves the browser's default (wider)
-    // scrollbar width. The body/sizer below carry `scrollBarStyles`, so the
-    // header/footer must too, or they'd reserve a different (larger) gutter
-    // than the one the colgroup was actually sized against.
+    // `scrollbarGutter`/`scrollBarStyles` below are a separate, secondary
+    // measure -- matching an actual clip boundary is not what they're for
+    // (an `overflow: hidden` box's clip boundary sits at its real
+    // border-box edge regardless of `scrollbar-gutter`, which only affects
+    // what `clientWidth` reports). They keep header/footer's reported
+    // `clientWidth` consistent with body's so that, when both a vertical
+    // and a horizontal scrollbar are present, the horizontal `scrollLeft`
+    // synced from body (see `onScroll` below) reveals the same slice of the
+    // row in header/footer as is actually visible in body.
     const headerFooterGutter: CSSProperties = {
       scrollbarGutter: hasVerticalScroll ? 'stable' : undefined,
     };

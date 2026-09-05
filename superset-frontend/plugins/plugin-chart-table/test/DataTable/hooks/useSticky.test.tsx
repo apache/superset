@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback } from 'react';
-import { useTable } from 'react-table';
+import { useTable, Column } from 'react-table';
 import { render } from '@superset-ui/core/spec';
 import useSticky from '../../../src/DataTable/hooks/useSticky';
 
@@ -72,9 +72,9 @@ function mockMeasurements() {
 
 type Row = { category: string; amount: string };
 
-const columns = [
-  { Header: 'Category', accessor: 'category' as const },
-  { Header: 'SUM(amount)', accessor: 'amount' as const },
+const columns: Column<Row>[] = [
+  { Header: 'Category', accessor: 'category' },
+  { Header: 'SUM(amount)', accessor: 'amount' },
 ];
 
 const data: Row[] = Array.from({ length: 8 }, (_, i) => ({
@@ -93,16 +93,16 @@ function StickyTableHarness() {
         columns,
         data,
         getTableSize,
-      } as any,
-      useSticky as any,
-    ) as any;
+      },
+      useSticky,
+    );
 
   const renderTable = () => (
     <table {...getTableProps()}>
       <thead>
-        {headerGroups.map((hg: any) => (
+        {headerGroups.map(hg => (
           <tr {...hg.getHeaderGroupProps()} key={hg.id}>
-            {hg.headers.map((col: any) => (
+            {hg.headers.map(col => (
               <th {...col.getHeaderProps()} key={col.id}>
                 {col.render('Header')}
               </th>
@@ -111,11 +111,11 @@ function StickyTableHarness() {
         ))}
       </thead>
       <tbody>
-        {rows.map((row: any) => {
+        {rows.map(row => {
           prepareRow(row);
           return (
             <tr {...row.getRowProps()} key={row.id}>
-              {row.cells.map((cell: any) => (
+              {row.cells.map(cell => (
                 <td {...cell.getCellProps()} key={cell.column.id}>
                   {cell.render('Cell')}
                 </td>
@@ -151,24 +151,37 @@ test('sticky header/footer width matches the body, independent of the scrollbar-
 
   expect(bodyDiv.style.width).toBe(`${MAX_WIDTH}px`);
 
-  // Before the fix these read `${MAX_WIDTH - MOCKED_SCROLLBAR_PROBE_SIZE}px`
-  // (258px) -- narrower than the body -- because the header/footer width was
-  // computed by subtracting the separately-measured `getCustomScrollBarSize()`
-  // probe instead of reserving space the same way the body does. That gap
-  // clips the fixed-layout colgroup's rightmost column (the totals column)
-  // against the header/footer's `overflow: hidden` wrapper.
+  // This is the load-bearing assertion for the reported bug. Before the fix
+  // these read `${MAX_WIDTH - MOCKED_SCROLLBAR_PROBE_SIZE}px` (258px) --
+  // genuinely narrower than the body, from a real CSS `width` subtraction
+  // (`maxWidth - scrollBarSize`), not just a smaller reported `clientWidth`.
+  // A wrapper that's actually narrower than the shared, fixed-layout
+  // colgroup it has to display gets genuinely clipped by its own
+  // `overflow: hidden` (verified with real hit-testing in a real browser,
+  // see RCA.md -- this is not true of the `scrollbarGutter` assertions
+  // below). The fix makes header/footer always exactly `maxWidth`, which the
+  // colgroup (bounded by the sizer's `clientWidth`, itself bounded by
+  // `maxWidth`) can never exceed.
   expect(headerDiv.style.width).toBe(`${MAX_WIDTH}px`);
   expect(footerDiv.style.width).toBe(`${MAX_WIDTH}px`);
 
-  // All three must agree on whether a scrollbar gutter is reserved -- the
-  // whole point of computing `hasVerticalScroll` -- otherwise the colgroup
-  // width computed for one no longer matches the container of the other.
+  // Secondary, not itself load-bearing for preventing clipping: real
+  // hit-testing shows `scrollbar-gutter` on an `overflow: hidden` box
+  // changes what `clientWidth` reports without moving where it actually
+  // clips (see RCA.md), so this doesn't guard against the reported bug by
+  // itself. It's asserted because header/footer's reported `clientWidth`
+  // still needs to match body's `clientWidth` for their programmatically
+  // synced `scrollLeft` (see `onScroll` in `useSticky.tsx`) to reveal the
+  // same slice of the row body actually shows, when a horizontal scrollbar
+  // is present alongside a vertical one.
   expect(headerDiv.style.scrollbarGutter).toBe(bodyDiv.style.scrollbarGutter);
   expect(footerDiv.style.scrollbarGutter).toBe(bodyDiv.style.scrollbarGutter);
   expect(bodyDiv.style.scrollbarGutter).toBe('stable');
 
-  // Pin the `css={scrollBarStyles}` addition to header/footer directly: this
-  // component carries `/** @jsxImportSource @emotion/react */`, which makes
+  // Pin the `css={scrollBarStyles}` addition to header/footer directly (part
+  // of the same secondary consistency measure as the `scrollbarGutter`
+  // assertions above, not the clipping fix). This component carries
+  // `/** @jsxImportSource @emotion/react */`, which makes
   // Babel route its `css` prop through Emotion's jsx runtime instead of
   // passing `css` straight through as an inert DOM attribute (the default in
   // this repo's Jest/Babel setup, which -- unlike the webpack/SWC build --
