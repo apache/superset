@@ -352,21 +352,31 @@ def test_chart_data_query_object_schema_deprecated_fields_renamed(
 
 @pytest.mark.parametrize(
     "app",
-    [{"TIME_GRAIN_ADDONS": {"PT10M": "10 minutes"}}],
+    [{"TIME_GRAIN_ADDONS": {"PT7M": "7 minutes"}}],
     indirect=True,
 )
 def test_time_grain_validation_with_config_addons(app_context: None) -> None:
-    """Test that validation includes TIME_GRAIN_ADDONS from config"""
-    schema = ChartDataProphetOptionsSchema()
+    """
+    Test that custom TIME_GRAIN_ADDONS are accepted by ChartDataExtrasSchema
+    (SQLA) but rejected by ChartDataProphetOptionsSchema (which only supports
+    mapped Prophet grains).
+    """
+    # Custom addon grain is valid for SQLA time grain
+    extras_schema = ChartDataExtrasSchema()
+    extras_result = extras_schema.load({"time_grain_sqla": "PT7M"})
+    assert extras_result["time_grain_sqla"] == "PT7M"
 
-    # Custom time grain should now be valid
+    # Custom addon grain is not supported by Prophet and should be rejected
+    prophet_schema = ChartDataProphetOptionsSchema()
     custom_data = {
-        "time_grain": "PT10M",
+        "time_grain": "PT7M",
         "periods": 5,
         "confidence_interval": 0.9,
     }
-    result = schema.load(custom_data)
-    assert result["time_grain"] == "PT10M"
+    with pytest.raises(ValidationError) as exc_info:
+        prophet_schema.load(custom_data)
+    assert "time_grain" in exc_info.value.messages
+    assert "Must be one of" in str(exc_info.value.messages["time_grain"])
 
 
 def test_prophet_periods_within_bound(app_context: None) -> None:
