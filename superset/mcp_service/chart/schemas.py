@@ -39,7 +39,7 @@ from pydantic import (
     StrictBool,
     ValidationError,
 )
-from typing_extensions import Self
+from typing_extensions import Self, TypedDict
 
 from superset.constants import TimeGrain
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
@@ -2623,6 +2623,26 @@ class UpdateChartPreviewRequest(ChartRequestNormalizerMixin, FormDataCacheContro
     preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
         default_factory=lambda: ["url"],
     )
+
+
+class UpdateChartPreviewResponse(TypedDict, total=False):
+    """Output fields returned while iterating on a cached chart preview."""
+
+    chart: dict[str, Any] | None
+    previews: dict[str, Any]
+    capabilities: dict[str, Any] | None
+    semantics: dict[str, Any] | None
+    explore_url: str
+    form_data_key: str
+    previous_form_data_key: str | None
+    warnings: list[str]
+    api_endpoints: dict[str, str]
+    performance: dict[str, Any] | None
+    accessibility: dict[str, Any] | None
+    success: bool
+    error: str | dict[str, Any] | None
+    schema_version: str
+    api_version: str
 
 
 class GetChartDataRequest(QueryCacheControl):

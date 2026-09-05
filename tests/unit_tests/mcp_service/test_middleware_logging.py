@@ -121,7 +121,7 @@ class TestLoggingMiddlewareOnCallTool:
 
         This simulates the real middleware chain: GlobalErrorHandler catches
         tool exceptions and re-raises them as ToolError. Since LoggingMiddleware
-        sits between GlobalErrorHandler and StructuredContentStripper, it
+        sits between GlobalErrorHandler and ToolResultCompatibility, it
         catches the ToolError directly.
         """
         middleware = LoggingMiddleware()
@@ -750,7 +750,7 @@ class TestExtractOutputIds:
 class TestMiddlewareChainOrder:
     """Test that the middleware order from server.py logs failures correctly.
 
-    If the order is wrong (StructuredContentStripper innermost),
+    If the order is wrong (ToolResultCompatibility innermost),
     it swallows exceptions before LoggingMiddleware can see them,
     causing success=True for failures.
     """
@@ -778,7 +778,7 @@ class TestMiddlewareChainOrder:
         ctx = _make_context(name="get_chart_info")
         result = await chain(ctx)
 
-        # StructuredContentStripper (outermost) must catch the re-raised
+        # ToolResultCompatibility (outermost) must catch the re-raised
         # exception and convert it to a safe ToolResult with "Error:" text.
         # If it's not outermost, the exception would leak to the MCP SDK.
         assert isinstance(result, ToolResult)
@@ -786,7 +786,7 @@ class TestMiddlewareChainOrder:
 
         # LoggingMiddleware must log
         # success=False. If the middleware order is wrong
-        # (StructuredContentStripper innermost), this would be
+        # (ToolResultCompatibility innermost), this would be
         # success=True because the exception gets swallowed
         # before LoggingMiddleware sees it.
         log_calls = [
@@ -796,9 +796,9 @@ class TestMiddlewareChainOrder:
         ]
         assert len(log_calls) == 1
         assert log_calls[0][1]["curated_payload"]["success"] is False, (
-            "Middleware order is wrong: StructuredContentStripper is "
+            "Middleware order is wrong: ToolResultCompatibility is "
             "swallowing exceptions before LoggingMiddleware can detect "
-            "them. Ensure StructuredContentStripper is outermost "
+            "them. Ensure ToolResultCompatibility is outermost "
             "(first added) in build_middleware_list()."
         )
 
@@ -809,7 +809,7 @@ class TestMiddlewareChainOrder:
         self, mock_get_user_id, mock_event_logger
     ) -> None:
         """When a tool raises, the error ToolResult from
-        StructuredContentStripper still carries mcp_call_id in meta."""
+        ToolResultCompatibility still carries mcp_call_id in meta."""
         from superset.mcp_service.server import build_middleware_list
 
         middleware_list = build_middleware_list()
@@ -836,7 +836,7 @@ class TestMiddlewareChainOrder:
 
         ToolError raised by GlobalErrorHandlerMiddleware cannot be encoded
         by the MCP SDK in a tools/list response, producing "encoding without
-        a string argument". StructuredContentStripperMiddleware.on_list_tools
+        a string argument". ToolResultCompatibilityMiddleware.on_list_tools
         must catch it and return an empty list.
         """
         from superset.mcp_service.server import build_middleware_list

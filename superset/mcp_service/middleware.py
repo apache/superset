@@ -737,23 +737,18 @@ class LoggingMiddleware(Middleware):
             )
 
 
-class StructuredContentStripperMiddleware(Middleware):
-    """Strip ``outputSchema`` and ``structured_content`` to prevent encoding errors.
+class ToolResultCompatibilityMiddleware(Middleware):
+    """Preserve structured results while providing a last-resort error boundary.
 
     FastMCP 3.x auto-generates ``outputSchema`` in tool definitions
     (``tools/list``) and ``structuredContent`` in tool call responses
     (``tools/call``) when the tool has a typed return annotation.
 
-    Some MCP client transports (e.g. Claude.ai's MCP bridge) cannot handle
-    ``structuredContent`` dicts, causing ``TypeError: encoding without a
-    string argument``.  Additionally, if ``outputSchema`` is advertised but
-    ``structuredContent`` is stripped from the response, clients may raise
-    ``Output validation error: outputSchema defined but no structured output
-    returned``.
-
-    This middleware handles both sides:
-    - ``on_list_tools``: removes ``output_schema`` from every tool definition
-    - ``on_call_tool``: removes ``structured_content`` from every tool result
+    Structured output is part of the MCP contract: clients use the schema for
+    tool planning and validate ``structuredContent`` against it. The middleware
+    therefore leaves successful list/call results intact. It still converts
+    exceptions that escape the inner error handler into a sanitized text result
+    and returns an empty tool list if discovery itself fails.
     """
 
     async def on_list_tools(
@@ -769,12 +764,7 @@ class StructuredContentStripperMiddleware(Middleware):
             # list, not an error object — causing "encoding without a string argument".
             # Return an empty list; GlobalErrorHandlerMiddleware already logged it.
             return []
-        return [
-            t.model_copy(update={"output_schema": None})
-            if t.output_schema is not None
-            else t
-            for t in tools
-        ]
+        return tools
 
     async def on_call_tool(
         self,
@@ -832,16 +822,17 @@ class StructuredContentStripperMiddleware(Middleware):
             # CallToolResult(isError=True) (see ToolResult.to_mcp_result);
             # what keeps it encodable is that structured_content stays None
             # and only the boolean flips false->true, not the structured
-            # payload implicated in the bridge failure above. That leg is
-            # unverified against the live Claude.ai bridge.
+            # payload implicated in transport-level encoding failures.
             return ToolResult(
                 content=[mt.TextContent(type="text", text=error_text)],
                 meta={"mcp_call_id": mcp_call_id} if mcp_call_id else None,
                 is_error=True,
             )
-        if isinstance(result, ToolResult) and result.structured_content is not None:
-            result = ToolResult(content=result.content, meta=result.meta)
         return result
+
+
+# Compatibility alias for custom middleware configurations.
+StructuredContentStripperMiddleware = ToolResultCompatibilityMiddleware
 
 
 class RBACToolVisibilityMiddleware(Middleware):

@@ -445,7 +445,7 @@ The MCP service uses FastMCP middleware (registered in `server.py`):
 
 - **`LoggingMiddleware`**: Logs tool calls with duration, entity IDs, sanitizes sensitive data
 - **`GlobalErrorHandlerMiddleware`**: Catches unhandled exceptions, converts to ToolError
-- **`StructuredContentStripperMiddleware`**: Strips structuredContent from responses (Claude.ai compatibility)
+- **`ToolResultCompatibilityMiddleware`**: Preserves structured results and sanitizes last-resort errors
 - **`ResponseSizeGuardMiddleware`**: Prevents oversized responses from crashing clients
 - **`ResponseCachingMiddleware`**: Optional response caching (in-memory by default, Redis when store enabled)
 
@@ -581,27 +581,34 @@ async def test_my_tool_success(mcp_server):
 `openWorldHint`. Mutating tools (`readOnlyHint=False`) must also include
 `idempotentHint`.
 
-### 5. Using `Optional` Instead of Union Syntax
+### 5. Unconstrained Output Schema
+**Problem**: Returning `dict[str, Any]` advertises an object with no useful
+fields to MCP clients.
+**Solution**: Give every tool a concrete Pydantic model or `TypedDict` return
+annotation that describes both success and error fields. Superset derives and
+advertises `outputSchema` from that annotation.
+
+### 6. Using `Optional` Instead of Union Syntax
 **Problem**: Old-style `Optional[T]` is not Python 3.10+ style.
 **Solution**: Use `T | None` and `list[str]` instead of `Optional[T]` and `List[str]`.
 
-### 6. Direct Database Queries
+### 7. Direct Database Queries
 **Problem**: Bypasses Superset's security and caching layers.
 **Solution**: Use DAO classes (ChartDAO, DashboardDAO, DatasetDAO, DatabaseDAO).
 
-### 7. Not Using Core Classes
+### 8. Not Using Core Classes
 **Problem**: Duplicating list/get_info logic across tools.
 **Solution**: Use `ModelListCore`, `ModelGetInfoCore`, `ModelGetSchemaCore`.
 
-### 8. Missing Apache License Headers
+### 9. Missing Apache License Headers
 **Problem**: CI fails on license check.
 **Solution**: Add ASF license header to all new `.py` files (see template at top of this doc).
 
-### 9. Circular Imports
+### 10. Circular Imports
 **Problem**: Importing from `app.py` in tool files causes circular dependencies.
 **Solution**: Use `from superset_core.mcp.decorators import tool` for tools/prompts. Only import `from superset.mcp_service.app import mcp` in resource files.
 
-### 10. Missing event_logger Instrumentation
+### 11. Missing event_logger Instrumentation
 **Problem**: Tool operations are invisible to observability.
 **Solution**: Wrap key operations with `event_logger.log_context(action="mcp.tool_name.step")`.
 
@@ -612,6 +619,7 @@ async def test_my_tool_success(mcp_server):
 - [ ] Used `@tool(tags=[...], class_permission_name="...", annotations=ToolAnnotations(...))` decorator
 - [ ] Import: `from superset_core.mcp.decorators import tool, ToolAnnotations`
 - [ ] Created Pydantic request/response schemas in `{module}/schemas.py`
+- [ ] Used a concrete response model or `TypedDict` return annotation
 - [ ] Used DAO classes instead of direct queries
 - [ ] Added `event_logger.log_context()` instrumentation
 - [ ] Used `await ctx.info/error/debug()` for context logging

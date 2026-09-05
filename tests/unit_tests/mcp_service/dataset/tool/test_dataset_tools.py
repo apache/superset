@@ -209,7 +209,7 @@ async def test_list_datasets_basic(mock_list, mcp_server):
 
     Note: Dataset tests use json.loads(result.content[0].text) pattern
     for response parsing, which differs from dashboard/chart tests that
-    use result.data directly. This is intentional based on how the
+    use result.structured_content directly. This is intentional based on how the
     dataset tool responses are structured.
     """
     dataset = MagicMock()
@@ -1101,7 +1101,7 @@ async def test_get_dataset_info_not_found(mock_info, mcp_server):
         result = await client.call_tool(
             "get_dataset_info", {"request": {"identifier": 999}}
         )
-        assert result.data["error_type"] == "not_found"
+        assert result.structured_content["error_type"] == "not_found"
 
 
 # TODO (Phase 3+): Add tests for get_dataset_available_filters tool

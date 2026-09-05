@@ -45,7 +45,7 @@ from superset.mcp_service.middleware import (
     GlobalErrorHandlerMiddleware,
     LoggingMiddleware,
     RBACToolVisibilityMiddleware,
-    StructuredContentStripperMiddleware,
+    ToolResultCompatibilityMiddleware,
 )
 from superset.mcp_service.storage import _create_redis_store
 from superset.utils import json
@@ -893,16 +893,16 @@ def build_middleware_list() -> list[Middleware]:
     FastMCP wraps handlers so that the FIRST-added middleware is
     outermost.  Order here is outermost → innermost:
 
-    1. StructuredContentStripper — safety net, converts exceptions
+    1. ToolResultCompatibility — safety net, converts exceptions
        to safe ToolResult text for transports that can't encode errors
     2. RBACToolVisibilityMiddleware — filters tools/list by RBAC;
-       positioned inside the Stripper so it sees full tool objects
-       (with outputSchema) before stripping occurs
+       positioned inside the compatibility boundary so it sees full tool objects
+       (with outputSchema) before results are returned
     3. LoggingMiddleware — logs tool calls with success/failure status
     4. GlobalErrorHandler — catches tool exceptions, raises ToolError
     """
     return [
-        StructuredContentStripperMiddleware(),
+        ToolResultCompatibilityMiddleware(),
         RBACToolVisibilityMiddleware(),
         LoggingMiddleware(),
         GlobalErrorHandlerMiddleware(),
