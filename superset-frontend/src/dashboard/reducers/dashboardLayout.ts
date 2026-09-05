@@ -210,6 +210,7 @@ const actionHandlers: Record<
     const wrapInRow = shouldWrapChildInRow({
       parentType: destination.type,
       childType: dragging.type,
+      childMeta: dragging.meta,
     });
 
     if (wrapInRow) {

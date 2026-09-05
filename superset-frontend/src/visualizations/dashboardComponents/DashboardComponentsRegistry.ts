@@ -16,6 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+/**
+ * @deprecated Superseded by the `dashboardComponents` Extensions contribution
+ * point (`@apache-superset/core` -> `src/core/dashboardComponents`) and the
+ * EXTENSION_TYPE dashboard component. New custom dashboard components should be
+ * registered via `dashboardComponents.registerDashboardComponent(...)`. This
+ * registry and the DYNAMIC_TYPE path remain only for backwards compatibility
+ * and will be removed in a future major release.
+ */
 import {
   ComponentItem,
   ComponentRegistry,

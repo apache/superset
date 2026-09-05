@@ -21,6 +21,7 @@ import { GRID_MIN_COLUMN_COUNT, GRID_COLUMN_COUNT } from './constants';
 import {
   ROW_TYPE,
   COLUMN_TYPE,
+  EXTENSION_TYPE,
   MARKDOWN_TYPE,
   CHART_TYPE,
   DYNAMIC_TYPE,
@@ -105,6 +106,11 @@ export default function getDetailedComponentWidth({
         );
       }
     });
+  } else if (component.type === EXTENSION_TYPE) {
+    // Extension-contributed components may declare a minimum width (grid
+    // columns) in their definition, seeded onto meta at creation.
+    const minWidth = component.meta?.minWidth as number | undefined;
+    result.minimumWidth = minWidth ?? GRID_MIN_COLUMN_COUNT;
   } else if (
     component.type === DYNAMIC_TYPE ||
     component.type === MARKDOWN_TYPE ||
