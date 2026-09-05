@@ -29,6 +29,7 @@ export default class FilterTimeGrainPlugin extends ChartPlugin {
       name: t('Time grain'),
       description: t('Time grain filter plugin'),
       behaviors: [Behavior.InteractiveChart, Behavior.NativeFilter],
+      supportsCascadeDependencies: false,
       tags: [t('Experimental')],
       thumbnail,
     });
