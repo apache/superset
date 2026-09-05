@@ -21,7 +21,7 @@ import logging
 import traceback
 from datetime import datetime, timezone
 from http.client import HTTPResponse
-from typing import Any, cast, TYPE_CHECKING
+from typing import Any, cast, Final, TYPE_CHECKING
 from urllib import request
 from uuid import UUID, uuid4
 
@@ -394,7 +394,7 @@ def merge_private_subtree(
 # policy hooks, under the submit/cancel lock; the executor never writes it, and
 # its whole-blob writes carry the row's current value through
 # :func:`preserve_subscription_state`.
-SUBSCRIPTION_PRIVATE_NAMESPACE = "subscription"
+SUBSCRIPTION_PRIVATE_NAMESPACE: Final = "subscription"
 
 
 def preserve_subscription_state(
@@ -438,11 +438,12 @@ def merge_properties(
     """Merge ``updates`` into ``current`` with task-properties semantics.
 
     Top-level keys are shallow-merged; the ``private`` subtree merges recursively
-    (see :func:`merge_private_subtree`), so writing one namespace never clobbers the
-    other. This is the pure form of :meth:`superset.models.tasks.Task.update_properties`
-    — use it to build a complete properties dict for a zero-read write (e.g. a
-    terminal FAILURE that must preserve the executor's runtime state while adding
-    error detail) without loading the ORM entity.
+    (see :func:`merge_private_subtree`), so writing one namespace never clobbers
+    the others. This is the pure form of
+    :meth:`superset.models.tasks.Task.update_properties` — use it to build a
+    complete properties dict for a zero-read write (e.g. a terminal FAILURE that
+    must preserve the executor's runtime state while adding error detail) without
+    loading the ORM entity.
     """
     merged: dict[str, Any] = dict(current or {})
     incoming: dict[str, Any] = dict(updates)

@@ -572,7 +572,7 @@ def test_cancel_last_tab_aborts_shared_task(app_context, get_user) -> None:
         user_id=admin.id,
     )
     task.created_by = admin
-    task.update_task_private({"consumers": [f"user:{admin.id}:tabA"]})
+    TaskDAO.merge_subscription_state(task, {"consumers": [f"user:{admin.id}:tabA"]})
     db.session.commit()
 
     try:
@@ -611,8 +611,8 @@ def test_cancel_last_tab_of_one_user_unsubscribes_not_aborts(
             )
             db.session.commit()
         TaskDAO.add_subscriber(task.id, user_id=gamma.id)
-        task.update_task_private(
-            {"consumers": [f"user:{admin.id}:tabA", f"user:{gamma.id}:tabB"]}
+        TaskDAO.merge_subscription_state(
+            task, {"consumers": [f"user:{admin.id}:tabA", f"user:{gamma.id}:tabB"]}
         )
         db.session.commit()
 
