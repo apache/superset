@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { DateWithFormatter, getTimeFormatter } from '@superset-ui/core';
 import stringifyTimeInput from '../../../src/time-format/utils/stringifyTimeInput';
 
 const format = (time: Date) => time.toISOString();
@@ -55,4 +56,26 @@ test('returns unparseable strings unchanged instead of formatting an Invalid Dat
 
 test('returns the representation of a Date that could not be resolved', () => {
   expect(stringifyTimeInput(new Date('00:01:54'), format)).toBe('Invalid Date');
+});
+
+test('treats a four-digit integer string as a year, not as milliseconds', () => {
+  // "2017" is the ISO 8601 year-only form. Reading it as an epoch offset
+  // would silently turn it into two seconds past 1970.
+  expect(stringifyTimeInput('2017', format)).toBe('2017-01-01T00:00:00.000Z');
+  expect(stringifyTimeInput(' 1987 ', format)).toBe('1987-01-01T00:00:00.000Z');
+  // Longer digit strings stay epoch milliseconds.
+  expect(stringifyTimeInput('1704067200000', format)).toBe(
+    '2024-01-01T00:00:00.000Z',
+  );
+});
+
+test('returns the original input of an unparseable DateWithFormatter without re-entering the formatter', () => {
+  // The `${value}` fallback calls `DateWithFormatter.toString()`, which must
+  // return the input rather than call the formatter again, or the two would
+  // recurse until the stack overflows.
+  const formatter = getTimeFormatter('%H:%M:%S');
+  const value = new DateWithFormatter('00:01:54', { formatter });
+
+  expect(stringifyTimeInput(value, time => formatter(time))).toBe('00:01:54');
+  expect(formatter(value)).toBe('00:01:54');
 });
