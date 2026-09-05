@@ -234,6 +234,21 @@ def build_like_predicate(
     return sa.func.lower(expr).like(pattern, escape=LIKE_ESCAPE_CHAR)
 
 
+def _is_parenthesized(sqla_col: ColumnElement) -> bool:
+    """
+    Return ``True`` when ``sqla_col`` is already wrapped in a ``Grouping``.
+
+    Calculated columns are parenthesized at the converter level
+    (``Grouping(literal_column(...))``), optionally behind a ``Label``. This
+    guards the filter-loop wrap below from adding a redundant second
+    ``Grouping`` (``((expr))``) for adhoc columns that reference a saved
+    calculated column.
+    """
+    return isinstance(sqla_col, Grouping) or (
+        isinstance(sqla_col, Label) and isinstance(sqla_col.element, Grouping)
+    )
+
+
 def _normalize_mssql_virtual_dataset_sql(
     sql: str, parsed_script: SQLScript, engine: str
 ) -> str:
@@ -4412,7 +4427,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         expression, self.database, self.catalog, self.schema
                     )
             expression = self._validate_stored_expression(expression)
-            col = literal_column(expression, type_=type_)
+            if "--" in expression or "#" in expression:
+                # A trailing single-line comment (``--``/``#``) would otherwise
+                # let Grouping's closing paren be swallowed by the comment
+                # (``(... -- x)`` -> unclosed paren); emit it on a new line.
+                expression = f"{expression}\n"
+            # Parenthesize calculated-column expressions so a bare boolean
+            # operator (e.g. OR) inside the expression cannot leak into the
+            # surrounding operator precedence when the column is used in a
+            # SELECT/GROUP BY/ORDER BY, series-limit prequery, or JOIN ON.
+            col = Grouping(literal_column(expression, type_=type_))
         else:
             identifier = db_engine_spec.prepare_identifier(
                 cast(str, tbl_column.column_name),
@@ -4882,6 +4906,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             is_metric_filter = (
                 False  # Track if this is a filter on a metric (needs HAVING clause)
             )
+            # Track whether ``sqla_col`` was built from an adhoc expression
+            # (inline dict or referenced by label), so it can be parenthesized
+            # to guard operator precedence regardless of how it was referenced.
+            is_adhoc_sqla_col = False
             if flt_col == utils.DTTM_ALIAS and is_timeseries and dttm_col:
                 col_obj = dttm_col
             elif is_adhoc_column(flt_col):
@@ -4892,6 +4920,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         template_processor=template_processor,
                     )
                     applied_adhoc_filters_columns.append(flt_col)
+                    is_adhoc_sqla_col = True
                 except ColumnNotFoundException:
                     rejected_adhoc_filters_columns.append(flt_col)
                     continue
@@ -4929,6 +4958,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     )
                     if isinstance(sqla_col, ColumnElement):
                         applied_adhoc_filters_columns.append(flt_col)
+                        is_adhoc_sqla_col = True
 
             filter_grain = flt.get("grain")
 
@@ -4963,12 +4993,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     sqla_col = self.convert_tbl_column_to_sqla_col(
                         tbl_column=col_obj, template_processor=template_processor
                     )
-                # Parenthesize expression-based columns to prevent operator
-                # precedence issues (e.g. OR in a calculated column breaking
-                # surrounding AND filters). Same pattern as extras.where
-                # wrapping added in PR #38183.
-                if sqla_col is not None and (
-                    (col_obj and col_obj.expression) or is_adhoc_column(flt_col)
+                # Parenthesize adhoc SQL-expression columns (referenced inline
+                # or by label) to prevent operator-precedence issues (e.g. an OR
+                # in the expression breaking surrounding AND filters). Same
+                # pattern as the extras.where wrapping added in PR #38183.
+                # Registered calculated columns are already parenthesized by the
+                # converters (convert_tbl_column_to_sqla_col / get_sqla_col), so
+                # they no longer need wrapping here; the _is_parenthesized guard
+                # avoids a redundant double-wrap for adhoc columns that reference
+                # a saved calculated column.
+                if (
+                    sqla_col is not None
+                    and is_adhoc_sqla_col
+                    and not _is_parenthesized(sqla_col)
                 ):
                     sqla_col = Grouping(sqla_col)
                 col_type = col_obj.type if col_obj else None

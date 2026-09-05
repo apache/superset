@@ -24,6 +24,19 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Calculated (expression) dataset columns are now wrapped in parentheses when
+  compiled to SQL (`(<expression>)`), in `SELECT`, `GROUP BY`, `ORDER BY`,
+  `COUNT(DISTINCT ...)`, and the series-limit (top-N) prequery/JOIN paths. This
+  fixes a correctness bug where a bare boolean operator (e.g. `OR`) inside a
+  calculated column used as a series dimension leaked into the surrounding
+  operator precedence (`state = 'CA' OR state = 'NY' = 1` mis-parsing as
+  `state = 'CA' OR (state = 'NY' = 1)`). Query results are otherwise unchanged,
+  but the generated SQL text for calculated-column queries differs; deployments
+  that key on the exact compiled SQL (custom result-cache keys, logging, or SQL
+  diffing) may observe the added parentheses. Physical columns are unaffected,
+  as are calculated columns used as a temporal (time/x-axis) dimension, which
+  resolve through a separate time-grain path (`get_timestamp_expression`).
+
 - **[BREAKING] `SemanticLayer` and `SemanticView` are now classified in the
   Flask-AppBuilder role sets**, so `sync_role_definitions` (run on
   `superset init` and on startup) stops granting the built-in **Gamma** role
