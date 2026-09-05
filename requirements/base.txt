@@ -297,11 +297,11 @@ pyasn1-modules==0.4.2
     # via google-auth
 pycparser==2.22
     # via cffi
-pydantic==2.13.4
+pydantic==2.13.5
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
-pydantic-core==2.46.4
+pydantic-core==2.46.5
     # via pydantic
 pygeohash==3.2.2
     # via apache-superset (pyproject.toml)
