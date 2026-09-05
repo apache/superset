@@ -30,7 +30,7 @@ params:
     subject: state
   compare_lag: '10'
   compare_suffix: o10Y
-  granularity: ds
+  x_axis: ds
   groupby:
   - state
   limit: '25'

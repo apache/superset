@@ -62,8 +62,8 @@ yarn version:remove:developer_docs <version> # Remove developer docs version
 yarn version:remove:components <version>     # Remove components version
 
 # Quality Checks
-yarn typecheck            # TypeScript validation
-yarn eslint              # Lint TypeScript/JavaScript files
+yarn typecheck   # TypeScript validation
+yarn lint        # Lint TypeScript/JavaScript files
 ```
 
 ## 📁 Documentation Structure
@@ -431,7 +431,7 @@ yarn build
 yarn typecheck
 
 # Linting issues
-yarn eslint
+yarn lint
 ```
 
 ### Version Issues

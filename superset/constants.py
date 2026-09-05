@@ -29,7 +29,7 @@ EMPTY_STRING = "<empty string>"
 
 CHANGE_ME_SECRET_KEY = "CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET"  # noqa: S105
 CHANGE_ME_GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"  # noqa: S105
-CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"  # noqa: S105
+CHANGE_ME_WEBSOCKET_JWT_SECRET = "test-ws-secret-change-me"  # noqa: S105
 
 SKIP_VISIBILITY_FILTER_CLASSES = "_skip_visibility_filter_classes"
 
@@ -239,6 +239,26 @@ class TimeGrain(StrEnum):
 class PandasAxis(int, Enum):
     ROW = 0
     COLUMN = 1
+
+
+class ShowValuesAs(StrEnum):
+    """
+    Pivot table "Show values as" modes.
+
+    Mirrors ``ShowValuesAsEnum`` in the pivot table plugin's ``types.ts``. The
+    value reaches the backend verbatim in the chart's form data, and is honored
+    by both the pandas postprocessing ``pivot`` operator and the server-side
+    render of the chart used for exports and reports.
+    """
+
+    ACTUAL = "actual"
+    PERCENT_OF_ROW = "percent_row"
+    PERCENT_OF_COLUMN = "percent_col"
+    PERCENT_OF_TOTAL = "percent_total"
+
+
+# The modes that transform values; ``ACTUAL`` (like ``None``) is a no-op.
+SHOW_VALUES_AS_PERCENT_MODES = frozenset(ShowValuesAs) - {ShowValuesAs.ACTUAL}
 
 
 class PandasPostprocessingCompare(StrEnum):

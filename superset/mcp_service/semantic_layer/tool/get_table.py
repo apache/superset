@@ -31,6 +31,11 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.exceptions import CommandException
+from superset.common.tabular_query import (
+    build_query_dict,
+    execute_tabular_query,
+    validate_query_names,
+)
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import PerformanceMetadata
@@ -46,7 +51,6 @@ from superset.mcp_service.semantic_layer.schemas import (
 )
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
-from superset.mcp_service.utils.query_utils import validate_names
 from superset.mcp_service.utils.response_utils import format_data_columns
 
 logger = logging.getLogger(__name__)
@@ -191,30 +195,18 @@ def _validate_request_names(
     request: GetTableRequest, valid_columns: set[str], valid_metrics: set[str]
 ) -> list[str]:
     """Validate requested dimensions, metrics, filters, and order_by names."""
-    validation_errors: list[str] = []
-    validation_errors.extend(
-        validate_names(request.dimensions, valid_columns, "dimension")
+    return validate_query_names(
+        valid_metrics,
+        valid_columns,
+        metrics=request.metrics,
+        dimensions=request.dimensions,
+        filters=[{"col": f.col} for f in request.filters],
+        order_names=request.order_by,
+        metrics_empty_hint=_NO_METRICS_HINT,
+        # get_table also serves semantic views, which get_dataset_info
+        # cannot resolve.
+        metrics_full_list_hint="call list_metrics for the full list",
     )
-    validation_errors.extend(
-        validate_names(
-            request.metrics,
-            valid_metrics,
-            "metric",
-            empty_hint=_NO_METRICS_HINT,
-            list_valid_on_miss=True,
-            full_list_hint="call list_metrics for the full list",
-        )
-    )
-    filter_cols = [f.col for f in request.filters]
-    validation_errors.extend(
-        validate_names(filter_cols, valid_columns, "filter column")
-    )
-    if request.order_by:
-        valid_orderby = valid_columns | valid_metrics
-        validation_errors.extend(
-            validate_names(request.order_by, valid_orderby, "order_by")
-        )
-    return validation_errors
 
 
 def _build_query_dict(
@@ -222,28 +214,17 @@ def _build_query_dict(
     time_col: str | None,
 ) -> dict[str, Any]:
     """Assemble the query dict for QueryContextFactory."""
-    filters: list[dict[str, Any]] = [
-        {"col": f.col, "op": f.op, "val": f.val} for f in request.filters
-    ]
-    if request.time_range and time_col:
-        filters.append(
-            {"col": time_col, "op": "TEMPORAL_RANGE", "val": request.time_range}
-        )
-
-    query_dict: dict[str, Any] = {
-        "filters": filters,
-        "columns": request.dimensions,
-        "metrics": request.metrics,
-        "row_limit": request.row_limit,
-        "order_desc": request.order_desc,
-    }
-    if time_col:
-        query_dict["granularity"] = time_col
-    if request.order_by:
-        query_dict["orderby"] = [
-            (col, not request.order_desc) for col in request.order_by
-        ]
-    return query_dict
+    return build_query_dict(
+        time_column=time_col,
+        metrics=request.metrics,
+        dimensions=request.dimensions,
+        filters=[{"col": f.col, "op": f.op, "val": f.val} for f in request.filters],
+        time_range=request.time_range,
+        limit=request.row_limit,
+        order=[(name, request.order_desc) for name in request.order_by],
+        order_desc=request.order_desc,
+        rewrite_one_sided_time_range=request.view_id is not None,
+    )
 
 
 def _build_response(
@@ -316,9 +297,6 @@ async def _run_get_table_query(
     datasource_type: str,
 ) -> GetTableResponse | SemanticLayerError:
     """Resolve, validate, execute, and format a get_table request."""
-    from superset.commands.chart.data.get_data_command import ChartDataCommand
-    from superset.common.query_context_factory import QueryContextFactory
-
     await ctx.report_progress(1, 5, "Resolving data source")
     resolved = (
         _resolve_builtin_dataset(request)
@@ -348,16 +326,13 @@ async def _run_get_table_query(
     start_time = time.time()
 
     with event_logger.log_context(action="mcp.get_table.execute"):
-        factory = QueryContextFactory()
-        query_context = factory.create(
-            datasource={"id": datasource_id, "type": datasource_type},
-            queries=[query_dict],
-            form_data={},
-            force=not request.use_cache or request.force_refresh,
+        result = execute_tabular_query(
+            datasource_id,
+            datasource_type,
+            query_dict,
+            use_cache=request.use_cache,
+            force=request.force_refresh,
         )
-        command = ChartDataCommand(query_context)
-        command.validate()
-        result = command.run()
 
     query_duration_ms = int((time.time() - start_time) * 1000)
 

@@ -84,6 +84,18 @@ updates:
           - "@swc/core"
           - "@swc/plugin-emotion"
           - "@swc/plugin-transform-imports"
+      jsonforms:
+        patterns:
+          - "@jsonforms/*"
+      visx:
+        patterns:
+          - "@visx/*"
+      emotion:
+        patterns:
+          - "@emotion/*"
+      fontsource:
+        patterns:
+          - "@fontsource/*"
     open-pull-requests-limit: 30
     versioning-strategy: increase
     cooldown:
@@ -177,6 +189,24 @@ updates:
         applies-to: "security-updates"
         patterns: ["*"]
     open-pull-requests-limit: 10
+    versioning-strategy: increase
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: "npm"
+    directory: "/superset-embedded-sdk/"
+    schedule:
+      interval: "daily"
+    labels:
+      - npm
+      - dependabot
+    groups:
+      security:
+        applies-to: "security-updates"
+        patterns: ["*"]
+      babel:
+        patterns:
+          - "@babel/*"
     versioning-strategy: increase
     cooldown:
       default-days: 7

@@ -24,8 +24,190 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Global Async Queries re-platformed onto the Global Task Framework (breaking)
+
+Global Async Queries (GAQ) no longer runs on its own bespoke async-events
+plumbing. Async chart data is now executed as Global Task Framework (GTF) tasks
+(one task per `QueryObject`), the browser learns of completion by polling
+`GET /api/v1/task/status_changes` (optionally accelerated by the WebSocket
+transport below) and re-issuing the original `/chart/data` request against the
+now-warm per-query cache, and the realtime WebSocket server is a generic,
+feature-agnostic task push transport rather than a GAQ-specific event tail.
+
+Breaking removals (no deprecation window):
+
+- The `/api/v1/async_event/` REST API, `AsyncQueryManager`, and the
+  `qc-<hash>` query-context descriptor replay endpoint
+  (`GET /api/v1/chart/data/<cache_key>`) are removed. Any client that consumed a
+  `result_url` from a `202` response must move to the re-request model (the
+  built-in frontend already does).
+- The following config keys are removed: `GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`,
+  `GLOBAL_ASYNC_QUERIES_TRANSPORT`, `GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL`,
+  `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX`,
+  `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT`,
+  `GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE`,
+  `GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS`,
+  `GLOBAL_ASYNC_QUERIES_JWT_*`, and
+  `GLOBAL_ASYNC_QUERY_MANAGER_CLASS`. The coordinator (locks, GTF, and now GAQ)
+  uses `DISTRIBUTED_COORDINATION_CONFIG` exclusively.
+
+Enabling async chart data in the new flow:
+
+```python
+# feature flag: makes async chart data available (auto-enables GLOBAL_TASK_FRAMEWORK)
+FEATURE_FLAGS = {"GLOBAL_ASYNC_QUERIES": True}
+
+# a Redis connection for distributed coordination (locks, GTF signalling,
+# and the realtime pub/sub); required for async execution in production
+DISTRIBUTED_COORDINATION_CONFIG = {
+    "CACHE_TYPE": "RedisCache",
+    "CACHE_REDIS_HOST": "localhost",
+    "CACHE_REDIS_PORT": 6379,
+    "CACHE_REDIS_DB": 0,
+}
+```
+
+Async is now **opt-in per request**: `GLOBAL_ASYNC_QUERIES` only makes async
+*available*; whether a given `/chart/data` request runs async is decided by an
+`async_mode` request flag (endpoint default `false`, so programmatic API clients
+keep the synchronous `200` flow unless they opt in). The built-in frontend
+resolves the `async_mode` it sends from a policy chain — per-dashboard override →
+deployment default `GLOBAL_ASYNC_QUERIES_DEFAULT` (default `true`) → the feature
+flag — so the UI keeps its existing async behavior by default.
+
+**Embedded (guest token) async requires explicit role grants.** Async chart-data
+completion is observed through `GET /api/v1/task/status_changes` (gated by
+`can_read Task`) and, when the WebSocket transport is enabled, over the socket
+(gated by `can_read Realtime`). An authenticated Gamma user has `can_read Task` by
+default; the default guest role (`Public`) does **not**. So an embedded guest only
+runs async when the operator grants its role `can_read Task` (and `can_read
+Realtime` for the socket) — otherwise the request transparently falls back to the
+synchronous `200` flow rather than returning a `202` the guest could never resolve.
+
+Enabling the realtime WebSocket transport (optional; when enabled it becomes the
+completion transport for async chart-data — see the note on the interval poll):
+
+> **Note:** the realtime WebSocket transport is opt-in (`WEBSOCKET_ENABLE`
+> defaults to `False`). When it is **disabled**, async chart-data completion is
+> driven entirely by the `status_changes` interval poll (the source of truth).
+> When it is **enabled**, completion is delivered over the socket and the
+> recurring interval poll does not run; a one-shot `status_changes` catch-up on
+> waiter registration and on socket reconnect reconciles anything missed while
+> disconnected. The socket accelerates delivery over the authoritative
+> `status_changes` API rather than replacing it: Redis Pub/Sub is best-effort
+> (at-most-once, no replay), so a disconnect is reconciled by the catch-up on
+> reconnect/registration. In the rare case a `task.status` is missed while the
+> socket stays open, the request's give-up runs one final `status_changes` read
+> before timing out — so a chart whose query actually finished still resolves; only
+> if that read can't confirm completion does the request end in a bounded error (a
+> page reload re-establishes state).
+
+```python
+WEBSOCKET_ENABLE = True
+WEBSOCKET_URL = "ws://<same-host>:8080/"
+WEBSOCKET_JWT_SECRET = "<output of: openssl rand -base64 42>"
+```
+
+The built-in Gamma role receives `can_read Realtime`; grant that permission to
+custom roles that should receive websocket notifications.
+
+Run the `superset-websocket` Node server on the **same browser-visible host**
+(so its JWT channel cookie is shared) and point its `redis` config at the same
+instance as `DISTRIBUTED_COORDINATION_CONFIG`, plus `jwtSecret` /
+`jwtCookieName` matching the Flask config (`WEBSOCKET_JWT_SECRET` /
+`WEBSOCKET_JWT_COOKIE_NAME`, default `superset-ws-token`). During websocket JWT
+secret rotation, set the websocket server's `previousJwtSecret` /
+`PREVIOUS_JWT_SECRET` to the old key while Flask continues minting cookies with
+`WEBSOCKET_JWT_SECRET`. The server is bundled in the official Superset image
+and launched via an alternate entrypoint — no separate image is required:
+`docker run <superset-image> /app/docker/entrypoints/run-websocket.sh` (or the
+opt-in `websocket` profile in `docker compose`). It **subscribes** to a single
+Redis Pub/Sub channel, `realtime`, which carries a self-describing
+`{topic, scope, routes, payload}` envelope (both the broadcast `entity.changed`
+nudges and the targeted `task.status` messages), and forwards `{topic, payload}`
+to browsers after routing — so a Redis ACL for the websocket server must allow
+subscribing to `realtime` (this replaces the earlier `entity-changes:*` /
+`task-status` channels); see `superset-websocket/README.md`.
+
+Orphaned GTF tasks (a worker killed mid-execution) are now detected and cleaned
+up server-side. While a worker holds a task it writes a liveness heartbeat
+(`tasks.last_heartbeat`, every `GTF_TASK_HEARTBEAT_INTERVAL` seconds, default
+`15`); a dedicated `reap_orphaned_tasks` Celery beat job reaps any active task
+whose heartbeat is older than `GTF_ORPHAN_TASK_TIMEOUT` (default `60`) — revoking
+its Celery job, marking it `FAILURE` so waiters unblock, and (on engines that
+support query cancellation) cancelling the abandoned warehouse query out-of-band.
+Enable the `reap_orphaned_tasks` beat schedule on a short interval (e.g. every
+minute); it is separate from `prune_tasks` (a heavier retention delete run
+infrequently). The heartbeat write is issued out-of-band and deliberately does
+not advance `changed_on`.
+
+Async chart-data query tasks are now cancellable: a per-query timeout
+(`GLOBAL_ASYNC_QUERIES_QUERY_TIMEOUT`, default `None` = unbounded) or a user
+cancel aborts the task, and on database engines that support query cancellation
+(e.g. PostgreSQL, MySQL, Snowflake, Redshift) the abort also cancels the running
+warehouse query over a fresh connection — including when the worker died (the
+reaper cancels it). Engines without cancel support are unaffected — the task is
+still freed, but the query runs to completion.
+
+- Calculated (expression) dataset columns are now wrapped in parentheses when
+  compiled to SQL (`(<expression>)`), in `SELECT`, `GROUP BY`, `ORDER BY`,
+  `COUNT(DISTINCT ...)`, and the series-limit (top-N) prequery/JOIN paths. This
+  fixes a correctness bug where a bare boolean operator (e.g. `OR`) inside a
+  calculated column used as a series dimension leaked into the surrounding
+  operator precedence (`state = 'CA' OR state = 'NY' = 1` mis-parsing as
+  `state = 'CA' OR (state = 'NY' = 1)`). Query results are otherwise unchanged,
+  but the generated SQL text for calculated-column queries differs; deployments
+  that key on the exact compiled SQL (custom result-cache keys, logging, or SQL
+  diffing) may observe the added parentheses. Physical columns are unaffected,
+  as are calculated columns used as a temporal (time/x-axis) dimension, which
+  resolve through a separate time-grain path (`get_timestamp_expression`).
+
+- **[BREAKING] `SemanticLayer` and `SemanticView` are now classified in the
+  Flask-AppBuilder role sets**, so `sync_role_definitions` (run on
+  `superset init` and on startup) stops granting the built-in **Gamma** role
+  write access to them. `SemanticLayer` is treated like `Database`
+  (`READ_ONLY_MODEL_VIEWS`): create/edit/delete become **admin-only**, while
+  read stays broadly available (its configuration is returned masked).
+  `SemanticView` is treated like `Dataset` (`GAMMA_READ_ONLY_MODEL_VIEWS`):
+  writes are Alpha-tier, reads Gamma-tier. Its custom read endpoints
+  (`views`, `connections`) are mapped to `can_read` so they remain
+  accessible under the read-only classification. A deployment relying on
+  Gamma users creating or editing semantic layers/views must grant those
+  permissions through a custom role. A migration retires the now-unused
+  `can_views` / `can_connections` permissions left on the `SemanticLayer`
+  view menu by earlier builds. Two upgrade-time notes on that migration:
+  it seeds the `SemanticLayer` view menu and its `can_read` PVM if absent, so
+  even a fresh or flag-off install gains that permission (harmless — the
+  endpoints 404 while `SEMANTIC_LAYERS` is off); and retiring the stale
+  permissions remaps any role that held them onto `can_read`, a small
+  widening — a custom role granted only `can_views` or `can_connections` gains
+  `can_read` (the semantic-layer list and its masked-configuration detail),
+  which it could not previously reach. Operators who hand-rolled semantic-layer
+  roles should re-audit them after upgrading. The feature remains gated behind
+  the default-off `SEMANTIC_LAYERS` flag.
+
+### Archived dataset purge requires impact confirmation
+
+`GET /api/v1/dataset/<uuid>/purge-impact` returns the charts and distinct
+dashboards affected by permanently deleting an archived dataset, together with
+an opaque `impact_token`. The dataset purge endpoint now requires that token in
+the JSON body as `confirmed_impact_token`. API clients that call
+`POST /api/v1/dataset/<uuid>/purge` must fetch and display the impact first;
+requests with a missing or malformed token are rejected with 400.
+
+The server rechecks the dependency identities immediately before mutation. If
+they changed, purge performs no deletion and returns 409 with a refreshed impact
+payload. Clients must display the new impact and obtain renewed confirmation
+before retrying. Preview or recheck failures fail closed rather than treating
+unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
+
+- The dashboard datasource-based visibility fallback now fails closed: a dashboard whose member charts’ datasources cannot be resolved (deleted datasource rows, missing `datasource_id`, or unsupported datasource types) is no longer accessible to users without explicit editor/viewer rights, and a dashboard composed of semantic-view charts now requires `datasource_access` on (at least one of) its semantic views or their parent semantic layer — previously any authenticated user could open such a dashboard’s shell. Because the fallback now considers every member chart rather than only table-backed ones, a user holding `datasource_access` on any single member datasource — including a semantic view or its parent layer — can open a mixed dashboard that previously denied them. Dashboards with no charts remain accessible, and dashboards with explicit viewers are unaffected. Conversely, holders of `all_datasource_access` now see every published no-viewer dashboard in the dashboard list — including chart-less ones previously hidden by the inner joins — matching what the object-level gate already allowed them to open.
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 - The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed should `pip uninstall cockroachdb && pip install sqlalchemy-cockroachdb` (or simply reinstall the extra) to restore CockroachDB connectivity.
+
+### Native Value filter "Select all" always targets the whole column
+
+The native "Value" filter's bulk "Select all" / "Clear" controls now operate on the entire loaded set of column values regardless of any text typed into the filter's search box. Previously the "Select all (N)" count briefly flickered to the search-scoped count before settling on the full-column count, and clicking "Select all" while searching could select only the currently matching subset. Search-scoped bulk selection was never a supported feature; the count is now stable and always matches what "Select all" selects (the full column). No configuration change is required.
 
 ### MCP tool results preserve stored string values
 
@@ -230,8 +412,10 @@ Behavior changes to be aware of:
   fail fast at the first phase check rather than erroring at setup.
 - Dashboard reports whose charts have not mounted are no longer captured
   blank: readiness is polled until the deadline, and the report fails loudly
-  if charts never mount. Thumbnails and non-report screenshots keep their
-  previous behavior.
+  if charts never mount. Large tiled reports also retry Chromium screenshot
+  stalls and suspicious uniform tiles, while persistent screenshot timeouts
+  fail loudly. Large tiled thumbnails use the same bounded retries, but retain
+  their previous failure contract after a persistent timeout.
 
 ### Embedded (guest token) API responses no longer echo database errors
 

@@ -328,6 +328,12 @@ Conditional formatting rules highlight cells based on their values. Rules can be
 
 Each rule has a **"Use gradient"** toggle: enabled applies a varying opacity (lighter = further from threshold), disabled applies a solid fill at full opacity regardless of value.
 
+For numeric rules, the optional **"Min bound"** / **"Max bound"** fields let you override the auto-detected color range with fixed values instead of relying on the minimum/maximum found in the data — useful when you want consistent coloring across dashboards or data refreshes.
+
+Set **"Bound unit"** to **"% of column"** to express the bounds as percentages of either the column maximum or **"Column sum"**, which adds the absolute values in the column so positive and negative values do not cancel into an unstable denominator. A non-positive maximum or zero sum falls back to the automatic data range. A percentage center based on **"Column sum"** must still resolve inside the color range to activate diverging colors. This option is unavailable with server pagination because the browser only receives one page of rows and cannot calculate a stable full-column denominator; existing percentage rules also use the automatic range while server pagination is enabled.
+
+For a diverging scale, set a **"Center value"** together with **"Low color"**, **"Mid color"**, and **"High color"**. Values below and above the center interpolate toward the corresponding endpoint color. Turning off **"Use gradient"** disables this interpolation and applies the base color as a solid fill.
+
 Each rule's color is set with a full color picker rather than a fixed dropdown of presets. Pick any custom color, or use the **Colors** preset swatches, which reference theme tokens (success, warning, error, and their background variants) so a rule's color updates automatically if the active theme changes, including switching between light and dark mode.
 
 When a rule targets a column with an active time comparison, a **Trend colors** preset also appears, letting you color cells green for an increase and red for a decrease (or the reverse).

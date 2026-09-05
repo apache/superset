@@ -31,6 +31,7 @@ from superset.mcp_service.app import mcp
 from superset.mcp_service.dashboard.schemas import (
     DashboardError,
     DashboardInfo,
+    DEFAULT_GET_DASHBOARD_INFO_COLUMNS,
     ListDashboardsRequest,
 )
 from superset.utils import json
@@ -1586,3 +1587,168 @@ async def test_list_dashboards_no_arguments(mock_list, mcp_server):
         result = await client.call_tool("list_dashboards", {})
     data = json.loads(result.content[0].text)
     assert "dashboards" in data
+
+
+def _minimal_dashboard() -> Mock:
+    dashboard = Mock()
+    dashboard.id = 1
+    dashboard.dashboard_title = "Test Dashboard"
+    dashboard.slug = "test-dashboard"
+    dashboard.description = None
+    dashboard.css = None
+    dashboard.certified_by = None
+    dashboard.certification_details = None
+    dashboard.json_metadata = json.dumps({"native_filter_configuration": []})
+    dashboard.published = True
+    dashboard.is_managed_externally = False
+    dashboard.external_url = None
+    dashboard.created_on = None
+    dashboard.changed_on = None
+    dashboard.created_by = None
+    dashboard.changed_by = None
+    dashboard.uuid = "dashboard-uuid-1"
+    dashboard.url = "/dashboard/1"
+    dashboard.thumbnail_url = None
+    dashboard.created_on_humanized = None
+    dashboard.changed_on_humanized = None
+    dashboard.slices = []
+    dashboard.editors = []
+    dashboard.tags = []
+    dashboard.embedded = []
+    dashboard.charts = []
+    return dashboard
+
+
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dashboard_info_direct_filter_state(mock_info, mcp_server):
+    """filter_state supplied directly (no permalink) is attached to the result."""
+    mock_info.return_value = _minimal_dashboard()
+    filter_state = {"applied_filters": [{"col": "gender", "op": "IN", "val": ["F"]}]}
+    with patch(
+        "superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata",
+        return_value=True,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_dashboard_info",
+                {"request": {"identifier": 1, "filter_state": filter_state}},
+            )
+    assert result.data["is_permalink_state"] is False
+    assert result.data["permalink_key"] is None
+    assert result.data["filter_state"]["applied_filters"][0]["col"] == "gender"
+
+
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_direct_filter_state_redacts_data_model_metadata(mock_info, mcp_server):
+    """A caller without data-model metadata access gets dataMask/chartStates
+    stripped from a directly supplied filter_state, as on the permalink path."""
+    mock_info.return_value = _minimal_dashboard()
+    filter_state = {
+        "applied_filters": [{"col": "gender", "op": "IN", "val": ["F"]}],
+        "dataMask": {"native-1": {}},
+        "chartStates": {"c1": {}},
+    }
+    with (
+        patch(
+            "superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+        patch(
+            "superset.mcp_service.dashboard.tool.get_dashboard_info."
+            "user_can_view_data_model_metadata",
+            return_value=False,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_dashboard_info",
+                {"request": {"identifier": 1, "filter_state": filter_state}},
+            )
+    assert "dataMask" not in result.data["filter_state"]
+    assert "chartStates" not in result.data["filter_state"]
+    assert "applied_filters" in result.data["filter_state"]
+
+
+@patch("superset.mcp_service.dashboard.permalink.get_dashboard_permalink")
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_dashboard_info_permalink_wins_over_filter_state(
+    mock_info, mock_permalink, mcp_server
+):
+    """When both are given, permalink_key takes precedence over filter_state."""
+    mock_info.return_value = _minimal_dashboard()
+    mock_permalink.return_value = (
+        "permalink-1",
+        {"dashboardId": "1", "state": {"dataMask": {"native-filter-1": {}}}},
+    )
+    filter_state = {"applied_filters": [{"col": "gender", "op": "IN", "val": ["F"]}]}
+    with (
+        patch(
+            "superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+        patch(
+            "superset.mcp_service.dashboard.permalink."
+            "user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_dashboard_info",
+                {
+                    "request": {
+                        "identifier": 1,
+                        "permalink_key": "permalink-1",
+                        "filter_state": filter_state,
+                    }
+                },
+            )
+    assert result.data["permalink_key"] == "permalink-1"
+    assert "dataMask" in result.data["filter_state"]
+    assert "applied_filters" not in result.data["filter_state"]
+
+
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_direct_empty_filter_state_is_honored(mock_info, mcp_server):
+    """An explicit empty {} filter_state is a cleared context, not an absent one."""
+    mock_info.return_value = _minimal_dashboard()
+    with patch(
+        "superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata",
+        return_value=True,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_dashboard_info",
+                {"request": {"identifier": 1, "filter_state": {}}},
+            )
+    assert result.data["is_permalink_state"] is False
+    assert result.data["filter_state"] == {}
+
+
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_explicit_default_columns_excludes_filter_state(mock_info, mcp_server):
+    """A caller who explicitly projects the default columns keeps that projection:
+    filter_state is not force-appended even though the values equal the defaults."""
+    mock_info.return_value = _minimal_dashboard()
+    filter_state = {"applied_filters": [{"col": "gender", "op": "IN", "val": ["F"]}]}
+    with patch(
+        "superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata",
+        return_value=True,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_dashboard_info",
+                {
+                    "request": {
+                        "identifier": 1,
+                        "filter_state": filter_state,
+                        "select_columns": list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS),
+                    }
+                },
+            )
+    assert "filter_state" not in result.data

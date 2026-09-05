@@ -240,3 +240,21 @@ describe('useResultsPane query data reuse', () => {
     expect(mockedGetChartDataRequest).not.toHaveBeenCalled();
   });
 });
+
+test('preserves multiline formatting in results errors', async () => {
+  mockedGetChartDataRequest.mockRejectedValue(
+    new Error('Query failed\nCheck the datasource'),
+  );
+  const props = createResultsPaneOnDashboardProps({ sliceId: 208 });
+
+  render(<ResultsPaneOnDashboard {...props} />, { useRedux: true });
+
+  expect(await screen.findByText('Failed to load results')).toBeVisible();
+  const errorDescription = screen.getByText(
+    'Query failed Check the datasource',
+  );
+  expect(errorDescription.textContent).toBe(
+    'Query failed\nCheck the datasource',
+  );
+  expect(errorDescription).toHaveStyle({ whiteSpace: 'pre-wrap' });
+});
