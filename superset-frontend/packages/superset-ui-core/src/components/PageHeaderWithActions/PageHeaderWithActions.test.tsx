@@ -18,7 +18,12 @@
  */
 
 import { render, screen, userEvent } from '@superset-ui/core/spec';
-import { PageHeaderWithActions, PageHeaderWithActionsProps } from './index';
+import { supersetTheme } from '@apache-superset/core/theme';
+import {
+  buttonsStyles,
+  PageHeaderWithActions,
+  PageHeaderWithActionsProps,
+} from './index';
 import { Menu } from '../Menu';
 
 const defaultProps: PageHeaderWithActionsProps = {
@@ -53,4 +58,15 @@ test('Renders', async () => {
 
   await userEvent.click(screen.getByLabelText('Menu actions trigger'));
   expect(defaultProps.menuDropdownProps.onOpenChange).toHaveBeenCalled();
+});
+
+test('clips the title panel buttons/metadata cluster instead of letting it overflow into the actions menu', () => {
+  // jsdom doesn't compute real flexbox layout, so it can't verify the
+  // overlap itself is fixed -- that's covered by the real-browser
+  // playwright/storybook/dashboard-header-metadata-bar.spec.ts spec. This
+  // guards the underlying CSS from regressing: without `overflow: hidden`,
+  // the badges/metadata-bar cluster can render outside its allotted flex
+  // space and overlap the actions menu once the title has fully collapsed.
+  const { styles } = buttonsStyles(supersetTheme);
+  expect(styles).toMatch(/overflow:\s*hidden/);
 });
