@@ -21,10 +21,14 @@ import { useTable, Column } from 'react-table';
 import { render } from '@superset-ui/core/spec';
 import useSticky from '../../../src/DataTable/hooks/useSticky';
 
-// A value distinguishable from any real scrollbar width, so assertions can
-// tell whether the header/footer width was derived from this JS-measured
-// probe (the bug) rather than from the `scrollbar-gutter` CSS reservation
-// that the body div (and the sizer that computes column widths) actually use.
+// A value distinguishable from any real scrollbar width, so the width
+// assertions below can detect whether header/footer's wrapper width was
+// computed by subtracting this JS-measured probe from `maxWidth` (the old,
+// removed `maxWidth - scrollBarSize` behavior) rather than always being the
+// unconditional `maxWidth` the fix uses. If that subtraction is ever
+// reintroduced, header/footer's `style.width` would read
+// `${MAX_WIDTH - MOCKED_SCROLLBAR_PROBE_SIZE}px`, an unmistakably wrong
+// value given how large this mock is.
 const MOCKED_SCROLLBAR_PROBE_SIZE = 42;
 
 jest.mock('../../../src/DataTable/utils/getScrollBarSize', () => ({
