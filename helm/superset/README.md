@@ -149,6 +149,8 @@ Alternatively, perform a fresh install. This is a one-time migration; subsequent
 | init.adminUser.firstname | string | `"Superset"` |  |
 | init.adminUser.lastname | string | `"Admin"` |  |
 | init.adminUser.password | string | `"admin"` |  |
+| init.adminUser.secretKeys | object | `{"email":"email","firstname":"firstname","lastname":"lastname","password":"password","secretName":"","username":"user"}` | Keys inside the existing secret that hold admin user fields. |
+| init.adminUser.secretKeys.secretName | string | `""` | Name of an existing Kubernetes Secret that holds the admin user credentials. If set, username, firstname, lastname, email, and password are read from this secret instead of from the values above. |
 | init.adminUser.username | string | `"admin"` |  |
 | init.affinity | object | `{}` |  |
 | init.command | list | a `superset_init.sh` command | Command |
