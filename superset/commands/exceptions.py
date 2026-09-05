@@ -100,6 +100,20 @@ class ForbiddenError(CommandException):
     message = "Action is forbidden"
 
 
+class ExternallyManagedRestoreError(ForbiddenError):
+    """Version restore refused because the entity is managed externally.
+
+    Shared across charts, dashboards, and datasets: the condition and its
+    message do not vary by entity type. Deliberately a sibling of the
+    per-entity ``*ForbiddenError`` classes rather than a subclass of any of
+    them, so the restore endpoint's existing ``except`` clauses do not
+    swallow it and it can be mapped to a 403 whose body is distinguishable
+    from a permission denial.
+    """
+
+    message = _("Version restore is unavailable for externally managed entities.")
+
+
 class ImportFailedError(CommandException):
     status = 500
     message = "Import failed for an unknown reason"

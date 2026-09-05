@@ -33,6 +33,7 @@ from superset.extensions import db
 from superset.models.slice import Slice
 from superset.utils import json as _json
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (  # noqa: F401
     load_birth_names_dashboard_with_slices,
@@ -319,6 +320,137 @@ class TestChartRestoreApi(SupersetTestCase):
         chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
         chart.slice_name = original_name
         db.session.commit()
+
+    def test_restore_refuses_externally_managed_chart_without_writing(self) -> None:
+        """An editor's *direct* restore of an externally managed chart is
+        refused server-side with a message-bearing 403 naming external
+        management (FR-001/FR-002/FR-004); the chart and its history are
+        untouched (FR-003); and every read path stays open (FR-008).
+
+        The unmanaged-success control is
+        ``test_restore_applies_scalar_field_from_target_version`` above,
+        which exercises the identical request on the same fixture chart
+        with the flag off.
+        """
+        _persist_fixture_state()
+        chart: Slice = (
+            db.session.query(Slice).filter(Slice.slice_name == "Girls").first()
+        )
+        assert chart is not None
+        chart_uuid = str(chart.uuid)
+        original_name = chart.slice_name
+
+        # One extra save so there is an earlier version to target.
+        chart.slice_name = "Girls managed v1"
+        db.session.commit()
+        # ``is_managed_externally`` is itself a versioned column, so this
+        # write appends a version row of its own. Everything below samples
+        # state and history only *after* it is committed.
+        chart.is_managed_externally = True
+        db.session.commit()
+
+        try:
+            self.login(ADMIN_USERNAME)
+            rv_list = self._list(chart_uuid)
+            assert rv_list.status_code == 200
+            listing = _json.loads(rv_list.data.decode("utf-8"))
+            target_uuid = listing["result"][0]["version_uuid"]
+
+            db.session.expire_all()
+            chart = db.session.query(Slice).filter(Slice.uuid == chart.uuid).one()
+            name_before = chart.slice_name
+            rows_before = len(_get_version_rows(chart))
+            count_before = listing["count"]
+
+            rv = self._restore(chart_uuid, target_uuid)
+            assert rv.status_code == 403, rv.data
+            body = _json.loads(rv.data.decode("utf-8"))
+            assert body["message"] == (
+                "Version restore is unavailable for externally managed entities."
+            )
+            # Distinguishable from FAB's permission denial by body alone.
+            assert body["message"] != "Forbidden"
+
+            # Nothing written: live state and history are exactly as before.
+            db.session.expire_all()
+            chart = db.session.query(Slice).filter(Slice.uuid == chart.uuid).one()
+            assert chart.slice_name == name_before
+            assert chart.is_managed_externally is True
+            assert len(_get_version_rows(chart)) == rows_before
+            rv_list2 = self._list(chart_uuid)
+            assert rv_list2.status_code == 200
+            assert _json.loads(rv_list2.data.decode("utf-8"))["count"] == count_before
+
+            # Read paths are indifferent to the flag.
+            rv_get = self.client.get(
+                f"/api/v1/chart/{chart_uuid}/versions/{target_uuid}/"
+            )
+            assert rv_get.status_code == 200, rv_get.data
+            rv_activity = self.client.get(f"/api/v1/chart/{chart_uuid}/activity/")
+            assert rv_activity.status_code == 200, rv_activity.data
+        finally:
+            # The birth_names fixture is shared across the module: leave the
+            # chart exactly as found.
+            db.session.expire_all()
+            chart = db.session.query(Slice).filter(Slice.uuid == chart.uuid).one()
+            chart.is_managed_externally = False
+            chart.slice_name = original_name
+            db.session.commit()
+
+    @with_feature_flags(SOFT_DELETE=True)
+    def test_recovery_succeeds_where_version_restore_is_refused(self) -> None:
+        """FR-010/FR-011 on one and the same externally managed chart:
+        soft-delete **recovery** succeeds — the restriction covers content
+        rewrites, not lifecycle changes — and a version restore attempted
+        immediately afterwards is refused. Pins the deliberate asymmetry so
+        a later change cannot quietly over-apply the guard to recovery.
+        The recovery commands are not modified by this feature.
+        """
+        _persist_fixture_state()
+        chart: Slice = (
+            db.session.query(Slice).filter(Slice.slice_name == "Girls").first()
+        )
+        assert chart is not None
+        chart_id = chart.id
+        chart_uuid = str(chart.uuid)
+        original_name = chart.slice_name
+
+        chart.slice_name = "Girls managed v1"
+        db.session.commit()
+        chart.is_managed_externally = True
+        db.session.commit()
+
+        try:
+            self.login(ADMIN_USERNAME)
+            rv_list = self._list(chart_uuid)
+            assert rv_list.status_code == 200, rv_list.data
+            target_uuid = _json.loads(rv_list.data.decode("utf-8"))["result"][0][
+                "version_uuid"
+            ]
+
+            # Archive, then recover: both succeed on an externally managed chart.
+            rv_del = self.client.delete(f"/api/v1/chart/{chart_id}")
+            assert rv_del.status_code == 200, rv_del.data
+            rv_recover = self.client.post(f"/api/v1/chart/{chart_uuid}/restore")
+            assert rv_recover.status_code == 200, rv_recover.data
+            db.session.expire_all()
+            chart = db.session.query(Slice).filter(Slice.uuid == chart.uuid).one()
+            assert chart.deleted_at is None
+            assert chart.is_managed_externally is True
+
+            # The same entity, seconds later: a content rewrite is refused.
+            rv = self._restore(chart_uuid, target_uuid)
+            assert rv.status_code == 403, rv.data
+            assert _json.loads(rv.data.decode("utf-8"))["message"] == (
+                "Version restore is unavailable for externally managed entities."
+            )
+        finally:
+            db.session.expire_all()
+            chart = db.session.query(Slice).filter(Slice.uuid == chart.uuid).one()
+            chart.deleted_at = None
+            chart.is_managed_externally = False
+            chart.slice_name = original_name
+            db.session.commit()
 
     def test_restore_denies_non_editor_with_write_permission(self) -> None:
         """A user holding can_write on Chart but who is not an editor of

@@ -96,6 +96,79 @@ class TestDatasetRestoreApi(SupersetTestCase):
             f"/api/v1/dataset/{dataset_uuid}/versions/{version_uuid}/restore"
         )
 
+    def test_restore_refuses_externally_managed_dataset_without_writing(self) -> None:
+        """Parity with the chart suite (FR-005): an editor's direct restore of
+        an externally managed dataset is refused with the *same* 403 body,
+        the dataset and its history are untouched, and read paths stay open.
+        """
+        _persist_fixture_state()
+        dataset: SqlaTable = (
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.table_name == "birth_names")
+            .first()
+        )
+        assert dataset is not None
+        dataset_uuid = str(dataset.uuid)
+        original_name = dataset.table_name
+
+        # One extra save so there is an earlier version to target.
+        dataset.table_name = "birth_names managed v1"
+        db.session.commit()
+        # ``is_managed_externally`` is itself a versioned column; sample state
+        # and history only after this write is committed.
+        dataset.is_managed_externally = True
+        db.session.commit()
+
+        try:
+            self.login(ADMIN_USERNAME)
+            base_url = f"/api/v1/dataset/{dataset_uuid}"
+            rv_list = self.client.get(f"{base_url}/versions/")
+            assert rv_list.status_code == 200, rv_list.data
+            listing = _json.loads(rv_list.data.decode("utf-8"))
+            target_uuid = listing["result"][0]["version_uuid"]
+
+            db.session.expire_all()
+            dataset = (
+                db.session.query(SqlaTable).filter(SqlaTable.uuid == dataset.uuid).one()
+            )
+            name_before = dataset.table_name
+            rows_before = len(_get_table_version_rows(dataset))
+            count_before = listing["count"]
+
+            rv = self._restore(dataset_uuid, target_uuid)
+            assert rv.status_code == 403, rv.data
+            resp = _json.loads(rv.data.decode("utf-8"))
+            assert (
+                resp["message"]
+                == "Version restore is unavailable for externally managed entities."
+            )
+            assert resp["message"] != "Forbidden"
+
+            db.session.expire_all()
+            dataset = (
+                db.session.query(SqlaTable).filter(SqlaTable.uuid == dataset.uuid).one()
+            )
+            assert dataset.table_name == name_before
+            assert dataset.is_managed_externally is True
+            assert len(_get_table_version_rows(dataset)) == rows_before
+            rv_list2 = self.client.get(f"{base_url}/versions/")
+            assert _json.loads(rv_list2.data.decode("utf-8"))["count"] == count_before
+
+            rv_get = self.client.get(
+                f"/api/v1/dataset/{dataset_uuid}/versions/{target_uuid}/"
+            )
+            assert rv_get.status_code == 200, rv_get.data
+            rv_activity = self.client.get(f"{base_url}/activity/")
+            assert rv_activity.status_code == 200, rv_activity.data
+        finally:
+            db.session.expire_all()
+            dataset = (
+                db.session.query(SqlaTable).filter(SqlaTable.uuid == dataset.uuid).one()
+            )
+            dataset.is_managed_externally = False
+            dataset.table_name = original_name
+            db.session.commit()
+
     def test_restore_applies_scalar_field(self) -> None:
         """Restore a dataset's description edit."""
         from superset.daos.version import derive_version_uuid

@@ -15210,6 +15210,9 @@ msgstr ""
 msgid "Version number"
 msgstr ""
 
+msgid "Version restore is unavailable for externally managed entities."
+msgstr ""
+
 msgid "Vertical"
 msgstr ""
 
