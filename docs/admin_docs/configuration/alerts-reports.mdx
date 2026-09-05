@@ -474,15 +474,24 @@ to determine which hosts are internal.
 
 ## Retry on Failure
 
-Reports (not alerts) can be configured to automatically retry when delivery
-fails — for example a transient SMTP or Slack error — instead of moving
-straight to an `Error` state. This is configured per report in the **Error
-Handling** section of the report modal:
+This feature is gated behind the `ALERT_REPORTS_RETRY` feature flag, which is
+disabled by default:
+
+```python
+FEATURE_FLAGS = {
+    "ALERT_REPORTS_RETRY": True,
+}
+```
+
+With the flag enabled, reports (not alerts) can be configured to
+automatically retry when delivery fails — for example a transient SMTP or
+Slack error — instead of moving straight to an `Error` state. This is
+configured per report in the **Error Handling** section of the report modal:
 
 - **Enable Retries** – turn on automatic retries for this report.
 - **Maximum Retry Attempts** – how many times to retry before giving up (1–10, default 3).
-- **Send Failed Reports** – still deliver the report to its recipients even after all retries fail (default off).
-- **Failure Notifications** – choose whether **Owners** and/or **Report Recipients** get an email after each failed attempt.
+- **Send Failed Reports** – send a final failure notification to the report's recipients once all retries fail (default off).
+- **Failure Notifications** – choose whether **Owners** and/or **Report Recipients** get a notification after a failed retry attempt (not the initial failure). Owners are notified by email; report recipients are notified on their configured channel (email, Slack, etc).
 
 While a retry is pending, the report's status shows as **Retrying**
 (`RETRYING` in `ReportState`) rather than `Error`. Each retry uses
@@ -505,8 +514,9 @@ unless that retry chain looks abandoned (no activity for longer than
 with a fresh retry budget.
 
 Once all retries are exhausted, the report moves to the `Error` state. With
-Send Failed Reports enabled, the report is still delivered to its normal
-recipients even though the final state is `Error`.
+Send Failed Reports enabled, a final failure notification (not the report's
+screenshot/PDF/CSV/XLSX content) is sent to the report's normal recipients
+even though the final state is `Error`.
 
 This per-report retry budget is independent of the
 [Slack delivery retry budget](#slack-delivery-timeouts-and-retries) and the
