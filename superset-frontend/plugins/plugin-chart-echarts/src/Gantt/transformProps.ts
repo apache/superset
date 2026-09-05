@@ -356,6 +356,9 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
           position: 'start',
           formatter: '{b}',
           color: theme.colorText,
+          // Must match the font size measureTextWidth assumes above, or the
+          // reserved categoryLabelWidth won't match what actually renders.
+          fontSize: theme.fontSizeSM,
           width: categoryLabelWidth,
           overflow: 'truncate',
         },

@@ -68,6 +68,11 @@ const LEGEND_MARGIN_GUTTER = 45;
 // ECharts does not expose pre-render measurements for plain legends, so these
 // values intentionally overestimate selector space to avoid clipping.
 const ESTIMATED_LEGEND_SELECTOR_WIDTH = 112;
+// Keyed on every distinct legend label and (since Gantt's category names
+// share this cache too) every distinct category name ever measured, so an
+// unbounded cache could grow with high-cardinality data over a long session.
+// Cap it and evict the least-recently-used entry once full.
+const TEXT_WIDTH_CACHE_MAX_SIZE = 2000;
 const TEXT_WIDTH_CACHE = new Map<string, number>();
 
 type LegendDataItem =
@@ -98,6 +103,10 @@ export function measureTextWidth(text: string, theme: SupersetTheme): number {
   const cacheKey = `${theme.fontFamily}:${theme.fontSizeSM}:${text}`;
   const cachedWidth = TEXT_WIDTH_CACHE.get(cacheKey);
   if (cachedWidth !== undefined) {
+    // Re-insert so the Map's iteration order (used for LRU eviction below)
+    // reflects recency, not just insertion order.
+    TEXT_WIDTH_CACHE.delete(cacheKey);
+    TEXT_WIDTH_CACHE.set(cacheKey, cachedWidth);
     return cachedWidth;
   }
 
@@ -112,6 +121,12 @@ export function measureTextWidth(text: string, theme: SupersetTheme): number {
     }
   }
 
+  if (TEXT_WIDTH_CACHE.size >= TEXT_WIDTH_CACHE_MAX_SIZE) {
+    const oldestKey = TEXT_WIDTH_CACHE.keys().next().value;
+    if (oldestKey !== undefined) {
+      TEXT_WIDTH_CACHE.delete(oldestKey);
+    }
+  }
   TEXT_WIDTH_CACHE.set(cacheKey, width);
   return width;
 }
