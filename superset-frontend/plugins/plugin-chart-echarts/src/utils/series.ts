@@ -35,7 +35,7 @@ import {
 } from '@superset-ui/core';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
-import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
+import { SortSeriesType, LegendPaddingType, TIME_COMPARISON_SEPARATOR } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
 import type { LegendComponentOption } from 'echarts/components';
 import type { SeriesOption } from 'echarts';
@@ -410,6 +410,10 @@ export function extractDataTotalValues(
     data.forEach(datum => {
       const values = Object.keys(datum).reduce((prev, curr) => {
         if (excludedKeys.has(curr)) {
+          return prev;
+        }
+        // Exclude time-comparison derived columns of excluded keys (e.g. SortMetric__1 year ago)
+        if (Array.from(excludedKeys).some(key => curr !== key && curr.startsWith(key + TIME_COMPARISON_SEPARATOR))) {
           return prev;
         }
         if (legendState && !legendState[curr]) {
