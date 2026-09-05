@@ -20,7 +20,6 @@
 import {
   ComponentType,
   Suspense,
-  lazy,
   memo,
   useCallback,
   useEffect,
@@ -28,6 +27,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { lazyWithRetry } from 'src/utils/lazyWithRetry';
 import { bindActionCreators, Dispatch } from 'redux';
 import { connect, shallowEqual, useSelector } from 'react-redux';
 import {
@@ -110,10 +110,10 @@ import ExploreContainer from '../ExploreContainer';
 
 // Lazy-loaded so deployments with the VersionHistory flag off never pay
 // the bundle cost of the feature's component graph.
-const ExploreVersionHistory = lazy(
+const ExploreVersionHistory = lazyWithRetry(
   () => import('src/features/versionHistory/ExploreVersionHistory'),
 );
-const ChartVersionPreview = lazy(
+const ChartVersionPreview = lazyWithRetry(
   () => import('src/features/versionHistory/ChartVersionPreview'),
 );
 
