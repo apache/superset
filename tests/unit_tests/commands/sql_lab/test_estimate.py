@@ -26,7 +26,11 @@ from superset.commands.sql_lab.estimate import (
     QueryEstimationCommand,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException, SupersetSecurityException
+from superset.exceptions import (
+    SupersetErrorException,
+    SupersetGenericDBErrorException,
+    SupersetSecurityException,
+)
 
 
 def _make_params(**kwargs: object) -> EstimateQueryCostType:
@@ -445,3 +449,45 @@ def test_run_wraps_raw_jinja_undefined_error(
 
     assert exc_info.value.status == 400
     assert exc_info.value.error.error_type == SupersetErrorType.GENERIC_COMMAND_ERROR
+
+
+# ---------------------------------------------------------------------------
+# Raw DBAPI errors from estimate_query_cost must not leak from run()
+# ---------------------------------------------------------------------------
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
+def test_run_wraps_raw_dbapi_error_from_cost_estimation(
+    mock_dao: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_app: MagicMock,
+) -> None:
+    """A raw DBAPI exception (e.g. ``psycopg2.errors.SyntaxError``) raised by
+    ``estimate_query_cost`` when EXPLAIN parses invalid SQL must not leak past
+    ``run()`` — it should surface as ``SupersetGenericDBErrorException`` with
+    ``status == 400`` and ``GENERIC_DB_ENGINE_ERROR``, mirroring the sibling
+    pattern in ``SynchronousSqlJsonExecutor.execute()``."""
+    import psycopg2.errors
+
+    mock_database = MagicMock()
+    mock_dao.find_by_id.return_value = mock_database
+    mock_security_manager.raise_for_access.return_value = None
+    mock_app.config = {
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+    }
+    mock_database.db_engine_spec.estimate_query_cost.side_effect = (
+        psycopg2.errors.UndefinedTable('relation "nonexistent_table" does not exist')
+    )
+
+    sql = "SELECT 1 FROM nonexistent_table"
+    command = QueryEstimationCommand(_make_params(sql=sql))
+    with pytest.raises(SupersetGenericDBErrorException) as exc_info:
+        command.run()
+
+    assert exc_info.value.status == 400
+    assert exc_info.value.error.error_type == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
