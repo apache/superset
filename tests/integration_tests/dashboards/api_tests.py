@@ -4260,6 +4260,42 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert response.status_code == 404
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @with_config({"THUMBNAIL_UPDATED_CACHE_TTL": 300})
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_cache_dashboard_screenshot_recomputes_stale_updated(
+        self, mock_get_from_cache_key, mock_cache_task
+    ):
+        """A force-less request whose cached UPDATED entry is older than
+        THUMBNAIL_UPDATED_CACHE_TTL -- but still valid and correctly scoped --
+        must reschedule the Celery task. This exercises the endpoint's
+        ``check_updated_staleness=screenshot_obj.supports_updated_staleness``
+        wiring (True only for dashboards); dropping that argument makes the
+        endpoint serve the stale entry (200) instead, failing this test."""
+        from datetime import datetime, timedelta
+
+        self.login(ADMIN_USERNAME)
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        # A valid, correctly-scoped UPDATED entry, but 400s old against a 300s TTL.
+        stale_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            b"fake image data",
+            scope=f"dashboard:{dashboard.id}",
+            timestamp=stale_timestamp,
+        )
+
+        cache_resp = self._cache_screenshot(dashboard.id)
+
+        assert cache_resp.status_code == 202
+        mock_cache_task.delay.assert_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")

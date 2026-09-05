@@ -117,7 +117,7 @@ class ScreenshotCachePayload:
 
     @classmethod
     def from_dict(cls, payload: ScreenshotCachePayloadType) -> ScreenshotCachePayload:
-        return cls(
+        instance = cls(
             image=base64.b64decode(payload["image"]) if payload["image"] else None,
             status=StatusValues(payload["status"]),
             timestamp=payload["timestamp"],
@@ -125,6 +125,14 @@ class ScreenshotCachePayload:
             # field existed won't have the key.
             scope=payload.get("scope"),
         )
+        # `__init__` infers UPDATED whenever an image is present -- convenient for
+        # the `ScreenshotCachePayload(image=bytes)` and legacy bytes-reconstruction
+        # paths, but wrong when rehydrating a persisted entry: an ERROR or COMPUTING
+        # entry keeps its previous image, and re-inferring UPDATED here would mask it
+        # as fresh and bypass the shorter ERROR/COMPUTING recovery TTLs. Restore the
+        # persisted status explicitly.
+        instance.status = StatusValues(payload["status"])
+        return instance
 
     def to_dict(self) -> ScreenshotCachePayloadType:
         return {
@@ -183,21 +191,76 @@ class ScreenshotCachePayload:
             return None
         return validate_screenshot_image(self._image)
 
+    def _age_seconds(self) -> float | None:
+        """Seconds since this entry's timestamp, or None if the stored
+        timestamp is unusable -- a corrupt string (ValueError), a legacy
+        tz-aware value that cannot be subtracted from naive now() (TypeError),
+        or a future timestamp (negative age, e.g. a worker whose clock is ahead)
+        that would otherwise keep the entry served for the TTL plus the clock
+        skew instead of self-healing. Callers treat None as 'past any TTL' so
+        the entry self-heals."""
+        try:
+            age_seconds = (
+                datetime.now() - datetime.fromisoformat(self.get_timestamp())
+            ).total_seconds()
+        except (ValueError, TypeError):
+            logger.warning(
+                "Unusable screenshot cache timestamp %r; "
+                "treating entry as expired/stale",
+                self.get_timestamp(),
+            )
+            return None
+        if age_seconds < 0:
+            logger.warning(
+                "Future screenshot cache timestamp %r; treating entry as expired/stale",
+                self.get_timestamp(),
+            )
+            return None
+        return age_seconds
+
     def is_error_cache_ttl_expired(self) -> bool:
-        error_cache_ttl = app.config["THUMBNAIL_ERROR_CACHE_TTL"]
+        # strict '>' (an entry exactly at the TTL is still fresh). An unusable
+        # timestamp (age is None) is treated as expired so the entry self-heals.
+        age_seconds = self._age_seconds()
         return (
-            datetime.now() - datetime.fromisoformat(self.get_timestamp())
-        ).total_seconds() > error_cache_ttl
+            age_seconds is None or age_seconds > app.config["THUMBNAIL_ERROR_CACHE_TTL"]
+        )
 
     def is_computing_stale(self) -> bool:
         """Check if a COMPUTING status is stale (task likely failed or stuck)."""
-        computing_ttl = app.config["THUMBNAIL_COMPUTING_CACHE_TTL"]
+        # '>=' (unlike the strict '>' of the ERROR/UPDATED helpers). An unusable
+        # timestamp (age is None) is treated as stale so the entry self-heals.
+        age_seconds = self._age_seconds()
         return (
-            datetime.now() - datetime.fromisoformat(self.get_timestamp())
-        ).total_seconds() >= computing_ttl
+            age_seconds is None
+            or age_seconds >= app.config["THUMBNAIL_COMPUTING_CACHE_TTL"]
+        )
+
+    def is_updated_stale(self) -> bool:
+        """Whether a successfully-rendered (UPDATED) entry is old enough to be
+        recomputed. Returns False when the TTL is unset/0 (no-op unless an operator
+        opts in). A timestamp we cannot use -- a corrupt string (ValueError) or a
+        legacy tz-aware string that parses but cannot be subtracted from naive
+        now() (TypeError) -- is logged and treated as stale so it self-heals rather
+        than being served forever."""
+        # `.get` (not `[]` like the sibling ERROR/COMPUTING helpers) on purpose:
+        # a deployment whose config predates this key should silently disable the
+        # feature, not raise KeyError. Checked first so a disabled feature never
+        # parses/logs an unusable timestamp.
+        updated_ttl = app.config.get("THUMBNAIL_UPDATED_CACHE_TTL")
+        if not updated_ttl:  # None or 0 => disabled
+            return False
+        # strict '>' (an image exactly at the TTL is still fresh), matching
+        # is_error_cache_ttl_expired -- not the '>=' of is_computing_stale. An
+        # unusable timestamp (age is None) is treated as stale so it self-heals.
+        age_seconds = self._age_seconds()
+        return age_seconds is None or age_seconds > updated_ttl
 
     def should_trigger_task(
-        self, force: bool = False, expected_scope: str | None = None
+        self,
+        force: bool = False,
+        expected_scope: str | None = None,
+        check_updated_staleness: bool = False,
     ) -> bool:
         """
         :param expected_scope: The scope (e.g. "dashboard:<id>") the caller
@@ -209,6 +272,14 @@ class ScreenshotCachePayload:
             read time rejects them, but nothing ever re-triggers computation.
             Treat a scope mismatch on an ``UPDATED`` entry as a cache miss so
             it gets recomputed and re-scoped.
+        :param check_updated_staleness: Whether a successfully-rendered
+            (``UPDATED``) entry older than ``THUMBNAIL_UPDATED_CACHE_TTL``
+            should be treated as a cache miss and recomputed. Enabled per
+            screenshot type (see ``BaseScreenshot.supports_updated_staleness``)
+            so only endpoints that degrade gracefully when the entry is
+            re-rendered opt in -- the chart on-demand path pre-wipes the entry
+            to PENDING and serves only ``UPDATED``, so a stale-driven recompute
+            there could surface a transient 404, hence it stays disabled.
         """
         return (
             force
@@ -216,6 +287,11 @@ class ScreenshotCachePayload:
             or (self.status == StatusValues.ERROR and self.is_error_cache_ttl_expired())
             or (self.status == StatusValues.COMPUTING and self.is_computing_stale())
             or (self.status == StatusValues.UPDATED and self._image is None)
+            or (
+                self.status == StatusValues.UPDATED
+                and check_updated_staleness
+                and self.is_updated_stale()
+            )
             or (
                 self.status == StatusValues.UPDATED
                 and expected_scope is not None
@@ -240,6 +316,16 @@ class BaseScreenshot:
     # they're authorizing, since the same cache backend is shared across
     # every dashboard and chart.
     cache_scope: str | None = None
+    # Whether a stale-but-valid UPDATED cache entry should be recomputed on a
+    # force-less on-demand request (see should_trigger_task's
+    # ``check_updated_staleness``). Off by default and enabled only on
+    # screenshot types whose serving path degrades gracefully while a refresh
+    # is in flight; ChartScreenshot leaves it False because its on-demand path
+    # pre-wipes the entry to PENDING and serves only UPDATED. Only the on-demand
+    # screenshot endpoints thread this through -- the high-traffic card-list
+    # thumbnail endpoints deliberately call should_trigger_task() with no args so
+    # they never opt into updated-staleness recompute.
+    supports_updated_staleness: bool = False
 
     def __init__(self, url: str, digest: str | None):
         self.digest = digest
@@ -350,7 +436,9 @@ class BaseScreenshot:
                     self.get_from_cache_key(cache_key) or ScreenshotCachePayload()
                 )
                 if not cache_payload.should_trigger_task(
-                    force=force, expected_scope=self.cache_scope
+                    force=force,
+                    expected_scope=self.cache_scope,
+                    check_updated_staleness=self.supports_updated_staleness,
                 ):
                     logger.info(
                         "Skipping compute - already processed for thumbnail: %s",
@@ -497,6 +585,11 @@ class ChartScreenshot(BaseScreenshot):
 class DashboardScreenshot(BaseScreenshot):
     thumbnail_type: str = "dashboard"
     element: str = "standalone"
+    # The dashboard on-demand endpoint does not pre-wipe the entry to PENDING
+    # and serves whenever an image is present, so recomputing a stale-but-valid
+    # capture degrades gracefully (the old image stays servable during the
+    # refresh). Opt in to updated-staleness recomputation here.
+    supports_updated_staleness: bool = True
 
     def __init__(
         self,
