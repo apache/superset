@@ -81,6 +81,19 @@ const findQueryEditor = (editorId: string) => {
 };
 
 /**
+ * Resolves the backend-assigned id for a query editor, if it has one. A tab
+ * created locally and later synced carries it in `tabViewId`; a tab hydrated
+ * from the backend on page load uses that id directly as its `queryEditor.id`
+ * (with `inLocalStorage` unset). Only a tab that still lives solely in local
+ * storage has no backend id yet.
+ */
+const resolveBackendId = (
+  queryEditor: Pick<QueryEditor, 'id' | 'tabViewId' | 'inLocalStorage'>,
+): string | undefined =>
+  queryEditor.tabViewId ??
+  (queryEditor.inLocalStorage ? undefined : queryEditor.id);
+
+/**
  * Registry for editor handles. Editor components register their handles here
  * when they mount, allowing the SQL Lab API to access them.
  */
@@ -161,19 +174,37 @@ const makeTab = (
   catalog: string | null = null,
   schema: string | null = null,
   closed: boolean = false,
+  backendId?: string,
 ): Tab => {
   const panels: Panel[] = []; // TODO: Populate panels
   const editorGetter = closed
     ? () => Promise.reject(new Error(`Tab ${id} has been closed`))
     : () => getEditorAsync(id);
-  return new Tab(id, name, dbId, catalog, schema, editorGetter, panels);
+  return new Tab(
+    id,
+    name,
+    dbId,
+    catalog,
+    schema,
+    editorGetter,
+    panels,
+    backendId,
+  );
 };
 
 const getTab = (id: string): Tab | undefined => {
   const queryEditor = findQueryEditor(id);
   if (queryEditor?.dbId !== undefined) {
     const { name, dbId, catalog, schema } = queryEditor;
-    return makeTab(id, name, dbId, catalog, schema);
+    return makeTab(
+      id,
+      name,
+      dbId,
+      catalog,
+      schema,
+      false,
+      resolveBackendId(queryEditor),
+    );
   }
   return undefined;
 };
@@ -441,6 +472,7 @@ const onDidCloseTab: typeof sqlLabApi.onDidCloseTab = (
         action.queryEditor.catalog,
         action.queryEditor.schema,
         true, // closed
+        resolveBackendId(action.queryEditor),
       ),
     thisArgs,
   );
@@ -507,6 +539,8 @@ const onDidCreateTab: typeof sqlLabApi.onDidCreateTab = (
         action.queryEditor.dbId ?? 0,
         action.queryEditor.catalog,
         action.queryEditor.schema ?? undefined,
+        false,
+        resolveBackendId(action.queryEditor),
       ),
     thisArgs,
   );
@@ -574,6 +608,8 @@ const createTab: typeof sqlLabApi.createTab = async (
     newTab.dbId ?? 0,
     newTab.catalog,
     newTab.schema ?? undefined,
+    false,
+    resolveBackendId(newTab),
   );
 };
 
