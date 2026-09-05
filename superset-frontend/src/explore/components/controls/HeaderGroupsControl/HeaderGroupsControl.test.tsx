@@ -23,8 +23,49 @@ import {
   selectOption,
 } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
+import type { ReactNode } from 'react';
 import HeaderGroupsControl from './HeaderGroupsControl';
 import { HeaderGroupConfig } from './types';
+
+jest.mock('@dnd-kit/core', () => {
+  const actual = jest.requireActual('@dnd-kit/core');
+  return {
+    ...actual,
+    DndContext: ({
+      children,
+      onDragEnd,
+    }: {
+      children: ReactNode;
+      onDragEnd?: (event: {
+        active: { id: string };
+        over: { id: string } | null;
+      }) => void;
+    }) => (
+      <div>
+        <button
+          type="button"
+          aria-label="Simulate drag to another group"
+          onClick={() =>
+            onDragEnd?.({ active: { id: 'a' }, over: { id: 'b' } })
+          }
+        />
+        <button
+          type="button"
+          aria-label="Simulate drag onto the same group"
+          onClick={() =>
+            onDragEnd?.({ active: { id: 'a' }, over: { id: 'a' } })
+          }
+        />
+        <button
+          type="button"
+          aria-label="Simulate drag with no drop target"
+          onClick={() => onDragEnd?.({ active: { id: 'a' }, over: null })}
+        />
+        {children}
+      </div>
+    ),
+  };
+});
 
 const columnOptions = [
   { value: 'SUM(sales)', label: 'SUM(sales)' },
@@ -339,6 +380,78 @@ test('removes a nested subgroup from the edit popover', async () => {
   expect(onChange).toHaveBeenCalledWith([
     expect.objectContaining({ children: [] }),
   ]);
+});
+
+test('removes a draft subgroup before Apply', async () => {
+  const onChange = jest.fn();
+  render(<HeaderGroupsControl {...baseProps} value={[]} onChange={onChange} />);
+
+  await userEvent.click(screen.getByText('Add group'));
+  await userEvent.type(screen.getByLabelText('Group name'), 'Sales');
+  await selectOption('SUM(sales)', 'Group columns');
+  await userEvent.click(screen.getByRole('button', { name: /Add subgroup/ }));
+  expect(screen.getByText('Subgroup 1.1')).toBeInTheDocument();
+
+  await userEvent.click(screen.getByLabelText('Remove group'));
+  expect(screen.queryByText('Subgroup 1.1')).not.toBeInTheDocument();
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('does not apply an incomplete draft group', async () => {
+  const onChange = jest.fn();
+  render(<HeaderGroupsControl {...baseProps} value={[]} onChange={onChange} />);
+
+  await userEvent.click(screen.getByText('Add group'));
+  const apply = screen.getByRole('button', { name: 'Apply' });
+  expect(apply).toBeDisabled();
+  fireEvent.click(apply);
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('reorders groups when a drag ends on another group', async () => {
+  const onChange = jest.fn();
+  render(
+    <HeaderGroupsControl
+      {...baseProps}
+      value={[
+        createGroup({ id: 'a', label: 'A' }),
+        createGroup({ id: 'b', label: 'B', columns: ['AVG(sales)'] }),
+      ]}
+      onChange={onChange}
+    />,
+  );
+
+  await userEvent.click(
+    screen.getByLabelText('Simulate drag to another group'),
+  );
+
+  expect(onChange).toHaveBeenCalledWith([
+    expect.objectContaining({ id: 'b' }),
+    expect.objectContaining({ id: 'a' }),
+  ]);
+});
+
+test('does not reorder a group dropped on itself or without a target', async () => {
+  const onChange = jest.fn();
+  render(
+    <HeaderGroupsControl
+      {...baseProps}
+      value={[
+        createGroup({ id: 'a', label: 'A' }),
+        createGroup({ id: 'b', label: 'B', columns: ['AVG(sales)'] }),
+      ]}
+      onChange={onChange}
+    />,
+  );
+
+  await userEvent.click(
+    screen.getByLabelText('Simulate drag onto the same group'),
+  );
+  await userEvent.click(
+    screen.getByLabelText('Simulate drag with no drop target'),
+  );
+
+  expect(onChange).not.toHaveBeenCalled();
 });
 
 test('adds a subgroup in the add popover before Apply', async () => {

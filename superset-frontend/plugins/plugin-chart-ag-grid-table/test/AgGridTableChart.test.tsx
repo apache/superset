@@ -84,6 +84,27 @@ test('transformProps handles null/undefined timestamp values correctly', () => {
   expect(transformedProps.isRawRecords).toBe(true);
 });
 
+test('AgGridTableChart defaults header groups to an empty list', async () => {
+  const props = { ...transformProps(testData.basic) };
+  delete (props as { headerGroups?: unknown }).headerGroups;
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(document.querySelector('.ag-container')).toBeInTheDocument();
+  });
+});
+
 test('AgGridTableChart nests columns in header groups', async () => {
   const props = {
     ...transformProps(testData.basic),

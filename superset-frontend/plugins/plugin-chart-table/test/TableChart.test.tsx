@@ -181,6 +181,29 @@ test('transformProps retains percentage rules with automatic bounds under server
   expect(formatter?.getColorFromValue(2467063)).toBe('#FF0000FF');
 });
 
+test('marks dimension header groups and applies label alignment', () => {
+  const props = {
+    ...transformProps(testData.basic),
+    headerGroups: [
+      {
+        id: 'dims',
+        label: 'Dims',
+        columns: ['name'],
+        labelAlign: 'left' as const,
+      },
+    ],
+  };
+
+  const { container } = render(<TableChart {...props} sticky={false} />);
+  const dimHeader = Array.from(container.querySelectorAll('thead th')).find(
+    th => th.textContent === 'Dims',
+  );
+
+  expect(dimHeader).toBeDefined();
+  expect(dimHeader?.getAttribute('data-dimension-separator')).toBe('true');
+  expect(dimHeader?.getAttribute('style')).toContain('left');
+});
+
 test('renders multi-level header groups above column names', () => {
   const props = {
     ...transformProps(testData.basic),

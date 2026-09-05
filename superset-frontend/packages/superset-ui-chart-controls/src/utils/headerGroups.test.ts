@@ -19,6 +19,7 @@
 import { t } from '@apache-superset/core/translation';
 import {
   buildHeaderGroupRows,
+  buildTimeComparisonHeaderGroups,
   expandGroupColumnKey,
   getHeaderGroupDepth,
   getHeaderGroupsControlProps,
@@ -115,6 +116,49 @@ test('nestColDefsInHeaderGroups skips groups that match no columns', () => {
       column => ({ field: column.key }),
     ),
   ).toEqual([{ field: 'region' }]);
+});
+
+test('buildTimeComparisonHeaderGroups uses the metric key as the default label', () => {
+  expect(buildTimeComparisonHeaderGroups(['revenue'])).toEqual([
+    expect.objectContaining({
+      id: 'time-compare-revenue',
+      label: 'revenue',
+      source: 'time_compare',
+    }),
+  ]);
+});
+
+test('expandGroupColumnKey matches a percent metric without a space', () => {
+  expect(expandGroupColumnKey('revenue', ['region', '%revenue'])).toEqual([
+    '%revenue',
+  ]);
+});
+
+test('nestColDefsInHeaderGroups nests child groups that have matching columns', () => {
+  const nested = nestColDefsInHeaderGroups(
+    [{ key: 'online' }],
+    [
+      {
+        id: 'sales',
+        label: 'Sales',
+        columns: [],
+        children: [{ id: 'web', label: 'Web', columns: ['online'] }],
+      },
+    ],
+    column => ({ field: column.key }),
+  );
+
+  expect(nested).toEqual([
+    expect.objectContaining({
+      headerName: 'Sales',
+      children: [
+        expect.objectContaining({
+          headerName: 'Web',
+          children: [{ field: 'online' }],
+        }),
+      ],
+    }),
+  ]);
 });
 
 test('expandGroupColumnKey maps a metric to its time comparison columns', () => {
@@ -333,6 +377,23 @@ test('getHeaderGroupsControlProps returns no auto groups without time comparison
 
   expect(result.timeComparisonGroups).toEqual([]);
   expect(result.columnOptions.map(option => option.value)).toEqual(['revenue']);
+});
+
+test('getHeaderGroupsControlProps skips unprefixed percent metrics', () => {
+  const result = getHeaderGroupsControlProps(
+    {
+      form_data: { metrics: [], percent_metrics: ['profit'] },
+      controls: { time_compare: { value: '1 year ago' } },
+    },
+    { queriesResponse: [{ colnames: ['profit', '%profit'] }] },
+  );
+
+  expect(result.columnOptions.map(option => option.value)).toEqual([
+    `${t('Main')} %profit`,
+    '# %profit',
+    '△ %profit',
+    '% %profit',
+  ]);
 });
 
 test('getHeaderGroupsControlProps uses array verbose maps and skips offset columns', () => {

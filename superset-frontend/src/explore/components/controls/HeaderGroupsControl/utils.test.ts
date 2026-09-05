@@ -102,6 +102,39 @@ test('collectHeaderGroupColumns walks nested groups', () => {
   ]);
 });
 
+test('updateHeaderGroupAt leaves sibling groups unchanged', () => {
+  const siblings: HeaderGroupConfig[] = [
+    { id: 'keep', label: 'Keep', columns: [] },
+    {
+      id: 'parent',
+      label: 'Parent',
+      columns: [],
+      children: [{ id: 'child', label: 'Child', columns: [] }],
+    },
+  ];
+  const next = updateHeaderGroupAt(siblings, [1, 0], group => ({
+    ...group,
+    label: 'Changed',
+  }));
+  expect(next[0]).toEqual(siblings[0]);
+  expect(next[1].children?.[0].label).toBe('Changed');
+});
+
+test('removeHeaderGroupAt leaves sibling groups unchanged', () => {
+  const siblings: HeaderGroupConfig[] = [
+    { id: 'keep', label: 'Keep', columns: [] },
+    {
+      id: 'parent',
+      label: 'Parent',
+      columns: [],
+      children: [{ id: 'child', label: 'Child', columns: [] }],
+    },
+  ];
+  const next = removeHeaderGroupAt(siblings, [1, 0]);
+  expect(next[0]).toEqual(siblings[0]);
+  expect(next[1].children).toEqual([]);
+});
+
 test('updateHeaderGroupAt updates a nested group', () => {
   const next = updateHeaderGroupAt(groups, [0, 0], group => ({
     ...group,
