@@ -40,7 +40,7 @@ import {
 import * as actions from 'src/explore/actions/exploreActions';
 import { HYDRATE_EXPLORE, HydrateExplore } from '../actions/hydrateExplore';
 import { Slice } from 'src/types/Chart';
-import { SaveActionType } from 'src/explore/types';
+import { CompatibilityResult, SaveActionType } from 'src/explore/types';
 
 // Type definitions for explore state
 export interface ExploreState {
@@ -70,9 +70,7 @@ export interface ExploreState {
   metadata?: {
     editors?: string[] | null;
   };
-  compatibleMetrics?: string[] | null;
-  compatibleDimensions?: string[] | null;
-  compatibilityLoading?: boolean;
+  compatibility?: CompatibilityResult;
   saveAction?: SaveActionType | null;
   chartStates?: Record<number, JsonObject>;
 }
@@ -183,9 +181,7 @@ interface UpdateExploreChartStateAction {
 
 interface SetCompatibilityAction {
   type: typeof actions.SET_COMPATIBILITY;
-  compatibleMetrics: string[] | null;
-  compatibleDimensions: string[] | null;
-  compatibilityLoading: boolean;
+  compatibility: CompatibilityResult;
 }
 
 type ExploreAction =
@@ -650,9 +646,7 @@ export default function exploreReducer(
       const typedAction = action as SetCompatibilityAction;
       return {
         ...state,
-        compatibleMetrics: typedAction.compatibleMetrics,
-        compatibleDimensions: typedAction.compatibleDimensions,
-        compatibilityLoading: typedAction.compatibilityLoading,
+        compatibility: typedAction.compatibility,
       };
     },
     [actions.UPDATE_EXPLORE_CHART_STATE]() {

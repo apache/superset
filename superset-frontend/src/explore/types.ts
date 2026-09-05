@@ -118,6 +118,43 @@ export interface ExploreResponsePayload {
   };
 }
 
+/**
+ * Picker modes a column control can offer. Mirrors the tab keys used by
+ * ColumnSelectPopover.
+ */
+export type ColumnPickerMode = 'saved' | 'simple' | 'sqlExpression';
+
+/**
+ * Provider-neutral column-picker behavior derived from datasource metadata.
+ *
+ * This is the anti-corruption boundary between datasource payloads (for
+ * example `semantic_view_features`) and the generic Explore picker: picker
+ * components consume these capabilities and must not read provider metadata
+ * directly.
+ */
+export interface ColumnPickerCapabilities {
+  /**
+   * How expression-less datasource columns are classified in the picker:
+   * 'expression' keeps the existing split (truthy expression → Saved),
+   * 'saved' presents every dimension as a Saved option.
+   */
+  dimensionClassification: 'expression' | 'saved';
+  /** Picker modes rendered as visible but disabled. */
+  disabledModes: ColumnPickerMode[];
+  /** Whether a failed compatibility request shows non-blocking feedback. */
+  showCompatibilityFailure: boolean;
+}
+
+/**
+ * Discriminated result of the latest metric/dimension compatibility request,
+ * making loading, failure, and a valid empty result mutually exclusive.
+ */
+export type CompatibilityResult =
+  | { status: 'idle' }
+  | { status: 'loading' }
+  | { status: 'verified'; metrics: string[]; dimensions: string[] }
+  | { status: 'failed' };
+
 export interface ExplorePageState {
   user: UserWithPermissionsAndRoles;
   common: {
@@ -145,9 +182,7 @@ export interface ExplorePageState {
     standalone: boolean;
     force: boolean;
     common: JsonObject;
-    compatibleMetrics?: string[] | null;
-    compatibleDimensions?: string[] | null;
-    compatibilityLoading?: boolean;
+    compatibility?: CompatibilityResult;
   };
   sliceEntities?: JsonObject; // propagated from Dashboard view
 }

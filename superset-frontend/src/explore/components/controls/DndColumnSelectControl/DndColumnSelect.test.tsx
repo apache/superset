@@ -492,3 +492,147 @@ test('should create adhoc column via Custom SQL tab workflow', async () => {
 
   // Preserves Custom SQL workflow from original Cypress test
 });
+
+const SEMANTIC_OPTIONS = [
+  { column_name: 'order_date', verbose_name: 'Order Date', is_dttm: true },
+  { column_name: 'category', verbose_name: 'Product Category' },
+];
+
+const semanticViewStore = (features: string[] = []) =>
+  mockStore({
+    explore: {
+      datasource: {
+        type: 'semantic_view',
+        id: 1,
+        semantic_view_features: features,
+        columns: SEMANTIC_OPTIONS,
+      },
+      form_data: {},
+      controls: {},
+    },
+  });
+
+test('saved-only semantic view disables Simple and Custom SQL modes in the picker', async () => {
+  render(
+    <DndColumnSelect {...defaultProps} options={SEMANTIC_OPTIONS} value={[]} />,
+    { useDndKit: true, store: semanticViewStore() },
+  );
+
+  userEvent.click(screen.getByText(/Drop columns here or click/i));
+
+  await waitFor(() => {
+    expect(screen.getByRole('tab', { name: 'Saved' })).toBeInTheDocument();
+  });
+
+  expect(screen.getByRole('tab', { name: 'Saved' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(screen.getByRole('tab', { name: 'Simple' })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+  expect(screen.getByRole('tab', { name: 'Custom SQL' })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+});
+
+test('semantic view declaring adhoc expressions keeps existing modes in the picker', async () => {
+  render(
+    <DndColumnSelect {...defaultProps} options={SEMANTIC_OPTIONS} value={[]} />,
+    {
+      useDndKit: true,
+      store: semanticViewStore(['ADHOC_COLUMN_EXPRESSIONS']),
+    },
+  );
+
+  userEvent.click(screen.getByText(/Drop columns here or click/i));
+
+  await waitFor(() => {
+    expect(screen.getByRole('tab', { name: 'Simple' })).toBeInTheDocument();
+  });
+
+  expect(screen.getByRole('tab', { name: 'Simple' })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  expect(screen.getByRole('tab', { name: 'Simple' })).not.toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+  expect(screen.getByRole('tab', { name: 'Custom SQL' })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+});
+
+test('commits a visible Cube dimension in two interactions after opening the picker', async () => {
+  const mockOnChange = jest.fn();
+  render(
+    <DndColumnSelect
+      {...defaultProps}
+      onChange={mockOnChange}
+      options={SEMANTIC_OPTIONS}
+      value={[]}
+    />,
+    { useDndKit: true, store: semanticViewStore() },
+  );
+
+  userEvent.click(screen.getByText(/Drop columns here or click/i));
+
+  const combobox = await screen.findByRole('combobox', {
+    name: 'Dimensions',
+  });
+
+  // Interaction 1: select the visible dimension.
+  userEvent.click(combobox);
+  const option = await screen.findByRole('option', { name: /Order Date/i });
+  userEvent.click(option);
+
+  // Interaction 2: save.
+  const saveButton = await screen.findByTestId('ColumnEdit#save');
+  await waitFor(() => expect(saveButton).toBeEnabled());
+  userEvent.click(saveButton);
+
+  await waitFor(() => {
+    expect(mockOnChange).toHaveBeenCalledWith(['order_date']);
+  });
+});
+
+test('commits a searched Cube dimension in no more than three interactions', async () => {
+  const mockOnChange = jest.fn();
+  render(
+    <DndColumnSelect
+      {...defaultProps}
+      onChange={mockOnChange}
+      options={SEMANTIC_OPTIONS}
+      value={[]}
+    />,
+    { useDndKit: true, store: semanticViewStore() },
+  );
+
+  userEvent.click(screen.getByText(/Drop columns here or click/i));
+
+  const combobox = await screen.findByRole('combobox', {
+    name: 'Dimensions',
+  });
+
+  // Interaction 1: search.
+  await userEvent.type(combobox, 'Product');
+
+  // Interaction 2: select the match.
+  const option = await screen.findByRole('option', {
+    name: /Product Category/i,
+  });
+  userEvent.click(option);
+
+  // Interaction 3: save.
+  const saveButton = await screen.findByTestId('ColumnEdit#save');
+  await waitFor(() => expect(saveButton).toBeEnabled());
+  userEvent.click(saveButton);
+
+  await waitFor(() => {
+    expect(mockOnChange).toHaveBeenCalledWith(['category']);
+  });
+});
