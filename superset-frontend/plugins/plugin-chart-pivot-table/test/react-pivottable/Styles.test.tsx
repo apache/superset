@@ -18,6 +18,7 @@
  */
 import '@testing-library/jest-dom';
 import { render } from '@testing-library/react';
+import { supersetTheme } from '@apache-superset/core/theme';
 import PivotTableChart from '../../src/PivotTableChart';
 import transformProps from '../../src/plugin/transformProps';
 import testData from '../testData';
@@ -43,14 +44,14 @@ test('sticky-positions the row-label column and its corner header cell(s) so the
   expect(rowLabelStyle.left).toBe('0px');
 
   // The corner cell(s) above the frozen row-label column (the padding
-  // placeholder and/or the row-attribute name cell in the last header
-  // row) must stick on both axes with a higher z-index than the row
-  // label column, so they stay on top at the intersection.
+  // placeholder and/or the row-attribute name cell in the row-header
+  // row) must stick on both axes and paint over the column labels that
+  // scroll underneath them.
   const cornerCells = [
     ...container.querySelectorAll(
       "thead tr:first-of-type th[aria-hidden='true']",
     ),
-    ...container.querySelectorAll('thead tr:last-of-type th.pvtAxisLabel'),
+    ...container.querySelectorAll('thead tr.pvtRowHeaderRow th.pvtAxisLabel'),
   ];
   expect(cornerCells.length).toBeGreaterThan(0);
   cornerCells.forEach(cell => {
@@ -58,7 +59,95 @@ test('sticky-positions the row-label column and its corner header cell(s) so the
     expect(style.position).toBe('sticky');
     expect(style.top).toBe('0px');
     expect(style.left).toBe('0px');
-    expect(Number(style.zIndex)).toBeGreaterThan(Number(rowLabelStyle.zIndex));
+    expect(Number(style.zIndex)).toBeGreaterThan(0);
+  });
+
+  // The sticky thead is its own stacking context, so the corner cell's
+  // z-index can't outrank the row labels by itself. The thead as a whole
+  // has to sit above the frozen row-label column.
+  const thead = container.querySelector('thead');
+  expect(thead).toBeInTheDocument();
+  expect(Number(getComputedStyle(thead as Element).zIndex)).toBeGreaterThan(
+    Number(rowLabelStyle.zIndex),
+  );
+});
+
+test('keeps the sticky totals row above the frozen row-label column', () => {
+  const transformedProps = {
+    ...transformProps(testData.withColTotals),
+    margin: 32,
+    legacy_order_by: null,
+    order_desc: false,
+  };
+  const { container } = render(
+    ProviderWrapper({
+      children: <PivotTableChart {...transformedProps} />,
+    }),
+  );
+
+  const rowLabelCell = container.querySelector('tbody th.pvtRowLabel');
+  const totalsRow = container.querySelector('tbody tr.pvtRowTotals');
+  expect(rowLabelCell).toBeInTheDocument();
+  expect(totalsRow).toBeInTheDocument();
+  expect(Number(getComputedStyle(totalsRow as Element).zIndex)).toBeGreaterThan(
+    Number(getComputedStyle(rowLabelCell as Element).zIndex),
+  );
+});
+
+test('lets the active (cross-filter) highlight win over the frozen row-label background', () => {
+  const transformedProps = {
+    ...transformProps(testData.withoutColTotals),
+    margin: 32,
+    legacy_order_by: null,
+    order_desc: false,
+  };
+  const { container } = render(
+    ProviderWrapper({
+      children: <PivotTableChart {...transformedProps} />,
+    }),
+  );
+
+  // Computed colors come back normalized (rgb()), so run the theme tokens
+  // through the same normalization before comparing.
+  const normalizeColor = (color: string) => {
+    const probe = document.createElement('div');
+    probe.style.backgroundColor = color;
+    return probe.style.backgroundColor;
+  };
+
+  const rowLabelCell = container.querySelector('tbody th.pvtRowLabel');
+  expect(rowLabelCell).toBeInTheDocument();
+  expect(getComputedStyle(rowLabelCell as Element).backgroundColor).toBe(
+    normalizeColor(supersetTheme.colorBgBase),
+  );
+
+  rowLabelCell?.classList.add('active');
+  expect(getComputedStyle(rowLabelCell as Element).backgroundColor).toBe(
+    normalizeColor(supersetTheme.colorPrimaryBg),
+  );
+});
+
+test('does not freeze any header cell when the pivot has column dimensions but no row dimensions', () => {
+  const transformedProps = {
+    ...transformProps(testData.columnsOnly),
+    margin: 32,
+    legacy_order_by: null,
+    order_desc: false,
+  };
+  const { container } = render(
+    ProviderWrapper({
+      children: <PivotTableChart {...transformedProps} />,
+    }),
+  );
+
+  // Without row dimensions there is no row-header row, so the leading
+  // cell of the last header row is the column attribute name. It must
+  // scroll with its column rather than being treated as a corner cell.
+  expect(container.querySelector('thead tr.pvtRowHeaderRow')).toBeNull();
+  const headerCells = container.querySelectorAll('thead th');
+  expect(headerCells.length).toBeGreaterThan(0);
+  headerCells.forEach(cell => {
+    expect(getComputedStyle(cell).position).not.toBe('sticky');
   });
 });
 
