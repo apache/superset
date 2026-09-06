@@ -137,10 +137,47 @@ const NestedHeaderActions = styled.div`
   align-items: center;
 `;
 
+const PopoverTitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${({ theme }) => theme.sizeUnit}px;
+`;
+
 const ApplyRow = styled.div`
   display: flex;
   justify-content: flex-end;
 `;
+
+function SettingsToggle({
+  collapsed,
+  onToggle,
+}: {
+  collapsed: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <Button
+      buttonStyle="link"
+      buttonSize="small"
+      aria-label={
+        collapsed ? t('Expand settings') : t('Collapse settings')
+      }
+      onClick={event => {
+        event.preventDefault();
+        event.stopPropagation();
+        onToggle();
+      }}
+      icon={
+        collapsed ? (
+          <Icons.DownOutlined iconSize="s" />
+        ) : (
+          <Icons.UpOutlined iconSize="s" />
+        )
+      }
+    />
+  );
+}
 
 const LABEL_ALIGN_OPTIONS: { label: string; value: HeaderGroupLabelAlign }[] = [
   { label: t('Left'), value: 'left' },
@@ -172,6 +209,8 @@ function HeaderGroupForm({
   onApply,
   showRemove = false,
   siblingCount = 1,
+  settingsCollapsed: settingsCollapsedProp,
+  onToggleSettings,
 }: {
   group: HeaderGroupConfig;
   path: number[];
@@ -184,15 +223,26 @@ function HeaderGroupForm({
   onApply?: () => void;
   showRemove?: boolean;
   siblingCount?: number;
+  settingsCollapsed?: boolean;
+  onToggleSettings?: () => void;
 }) {
   const availableOptions = columnOptions.filter(
     option =>
       (group.columns ?? []).includes(option.value) ||
       !usedColumns.has(option.value),
   );
+  const [localCollapsed, setLocalCollapsed] = useState(false);
   const canSave = canSaveHeaderGroup(group);
   const isTimeCompareGroup = group.source === 'time_compare';
   const isTopLevel = path.length === 1;
+  const hasSubgroups = (group.children ?? []).length > 0;
+  const canCollapse = showRemove || hasSubgroups;
+  const settingsCollapsed = onToggleSettings
+    ? Boolean(settingsCollapsedProp)
+    : localCollapsed;
+  const showSettings = !canCollapse || !settingsCollapsed;
+  const toggleSettings =
+    onToggleSettings ?? (() => setLocalCollapsed(collapsed => !collapsed));
 
   return (
     <FormStack data-test="header-group-editor">
@@ -200,6 +250,12 @@ function HeaderGroupForm({
         <NestedHeader>
           <span>{getGroupTitle(path)}</span>
           <NestedHeaderActions>
+            {canCollapse && (
+              <SettingsToggle
+                collapsed={settingsCollapsed}
+                onToggle={toggleSettings}
+              />
+            )}
             <Button
               buttonStyle="link"
               buttonSize="small"
@@ -226,85 +282,89 @@ function HeaderGroupForm({
           </NestedHeaderActions>
         </NestedHeader>
       )}
-      <FieldRow>
-        <FieldLabel>{t('Name')}</FieldLabel>
-        <Input
-          aria-label={t('Group name')}
-          value={group.label}
-          placeholder={t('Enter group name')}
-          onChange={event =>
-            onChange(path, { ...group, label: event.target.value })
-          }
-        />
-      </FieldRow>
-      <FieldRow>
-        <FieldLabel>{t('Columns')}</FieldLabel>
-        <Select
-          ariaLabel={t('Group columns')}
-          mode="multiple"
-          allowClear={!isTimeCompareGroup}
-          showSearch={!isTimeCompareGroup}
-          disabled={isTimeCompareGroup}
-          value={group.columns ?? []}
-          options={availableOptions}
-          placeholder={t('Select columns')}
-          maxTagCount={3}
-          onChange={columns => {
-            onChange(path, {
-              ...group,
-              columns: normalizeSelectedColumns(columns),
-            });
-          }}
-        />
-      </FieldRow>
-      <InlineFields>
-        <FieldRow>
-          <FieldLabel>{t('Label position')}</FieldLabel>
-          <CompactRadioGroup>
-            <Radio.Group
-              size="small"
-              optionType="button"
-              value={group.labelAlign ?? 'center'}
+      {showSettings && (
+        <>
+          <FieldRow>
+            <FieldLabel>{t('Name')}</FieldLabel>
+            <Input
+              aria-label={t('Group name')}
+              value={group.label}
+              placeholder={t('Enter group name')}
               onChange={event =>
+                onChange(path, { ...group, label: event.target.value })
+              }
+            />
+          </FieldRow>
+          <FieldRow>
+            <FieldLabel>{t('Columns')}</FieldLabel>
+            <Select
+              ariaLabel={t('Group columns')}
+              mode="multiple"
+              allowClear={!isTimeCompareGroup}
+              showSearch={!isTimeCompareGroup}
+              disabled={isTimeCompareGroup}
+              value={group.columns ?? []}
+              options={availableOptions}
+              placeholder={t('Select columns')}
+              maxTagCount={3}
+              onChange={columns => {
                 onChange(path, {
                   ...group,
-                  labelAlign: event.target.value as HeaderGroupLabelAlign,
-                })
-              }
-            >
-              {LABEL_ALIGN_OPTIONS.map(option => (
-                <Radio.Button key={option.value} value={option.value}>
-                  {option.label}
-                </Radio.Button>
-              ))}
-            </Radio.Group>
-          </CompactRadioGroup>
-        </FieldRow>
-        <FieldRow>
-          <FieldLabel>
-            {isTopLevel ? t('Table side') : t('Position')}
-          </FieldLabel>
-          <CompactRadioGroup>
-            <Radio.Group
-              size="small"
-              optionType="button"
-              value={group.placement ?? 'right'}
-              onChange={event =>
-                onChange(path, {
-                  ...group,
-                  placement: event.target.value as HeaderGroupPlacement,
-                })
-              }
-            >
-              {PLACEMENT_OPTIONS.map(option => (
-                <Radio.Button key={option.value} value={option.value}>
-                  {option.label}
-                </Radio.Button>
-              ))}
-            </Radio.Group>
-          </CompactRadioGroup>
-        </FieldRow>
-      </InlineFields>
+                  columns: normalizeSelectedColumns(columns),
+                });
+              }}
+            />
+          </FieldRow>
+          <InlineFields>
+            <FieldRow>
+              <FieldLabel>{t('Label position')}</FieldLabel>
+              <CompactRadioGroup>
+                <Radio.Group
+                  size="small"
+                  optionType="button"
+                  value={group.labelAlign ?? 'center'}
+                  onChange={event =>
+                    onChange(path, {
+                      ...group,
+                      labelAlign: event.target.value as HeaderGroupLabelAlign,
+                    })
+                  }
+                >
+                  {LABEL_ALIGN_OPTIONS.map(option => (
+                    <Radio.Button key={option.value} value={option.value}>
+                      {option.label}
+                    </Radio.Button>
+                  ))}
+                </Radio.Group>
+              </CompactRadioGroup>
+            </FieldRow>
+            <FieldRow>
+              <FieldLabel>
+                {isTopLevel ? t('Table side') : t('Position')}
+              </FieldLabel>
+              <CompactRadioGroup>
+                <Radio.Group
+                  size="small"
+                  optionType="button"
+                  value={group.placement ?? 'right'}
+                  onChange={event =>
+                    onChange(path, {
+                      ...group,
+                      placement: event.target.value as HeaderGroupPlacement,
+                    })
+                  }
+                >
+                  {PLACEMENT_OPTIONS.map(option => (
+                    <Radio.Button key={option.value} value={option.value}>
+                      {option.label}
+                    </Radio.Button>
+                  ))}
+                </Radio.Group>
+              </CompactRadioGroup>
+            </FieldRow>
+          </InlineFields>
+        </>
+      )}
       {(group.children ?? []).length > 0 && (
         <FieldRow>
           {(group.children ?? []).map((child, index) => (
@@ -362,12 +422,14 @@ export default function HeaderGroupEditor({
   mode = 'edit',
 }: HeaderGroupEditorProps) {
   const [visible, setVisible] = useState(false);
+  const [settingsCollapsed, setSettingsCollapsed] = useState(false);
   const [draft, setDraft] = useState<HeaderGroupConfig>(
     group ?? createHeaderGroup(),
   );
 
   const isAddMode = mode === 'add';
   const currentGroup = draft;
+  const canCollapseRoot = (currentGroup.children ?? []).length > 0;
 
   const toDraftPath = (nextPath: number[]) =>
     isAddMode ? nextPath : [0, ...nextPath.slice(path.length)];
@@ -378,6 +440,7 @@ export default function HeaderGroupEditor({
       setDraft(
         isAddMode ? createHeaderGroup() : (group ?? createHeaderGroup()),
       );
+      setSettingsCollapsed(false);
     }
   };
 
@@ -429,7 +492,17 @@ export default function HeaderGroupEditor({
 
   return (
     <Popover
-      title={isAddMode ? t('Add group') : getGroupTitle(path)}
+      title={
+        <PopoverTitleRow>
+          <span>{isAddMode ? t('Add group') : getGroupTitle(path)}</span>
+          {canCollapseRoot && (
+            <SettingsToggle
+              collapsed={settingsCollapsed}
+              onToggle={() => setSettingsCollapsed(collapsed => !collapsed)}
+            />
+          )}
+        </PopoverTitleRow>
+      }
       trigger={['click']}
       open={visible}
       onOpenChange={handleOpenChange}
@@ -446,6 +519,10 @@ export default function HeaderGroupEditor({
           onRemove={handleRemove}
           onMove={handleMove}
           onApply={isAddMode ? handleApply : undefined}
+          settingsCollapsed={settingsCollapsed}
+          onToggleSettings={() =>
+            setSettingsCollapsed(collapsed => !collapsed)
+          }
         />
       }
     >

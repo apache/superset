@@ -250,6 +250,86 @@ test('renders existing groups as numbered labels and edits them in a popover', a
   expect(onChange).not.toHaveBeenCalled();
 });
 
+test('collapses group settings with an icon when a subgroup exists', async () => {
+  render(
+    <HeaderGroupsControl
+      {...baseProps}
+      value={[
+        createGroup({
+          children: [
+            createGroup({
+              id: 'child-1',
+              label: 'Online',
+              columns: ['SUM(cost)'],
+            }),
+          ],
+        }),
+      ]}
+    />,
+  );
+
+  await userEvent.click(screen.getByText('Group 1'));
+
+  const collapseParent = screen.getAllByLabelText('Collapse settings')[0];
+  expect(collapseParent).toBeInTheDocument();
+  expect(screen.queryByText('Hide settings')).not.toBeInTheDocument();
+  expect(screen.getByDisplayValue('Sales')).toBeInTheDocument();
+  expect(screen.getByText('Table side')).toBeInTheDocument();
+
+  await userEvent.click(collapseParent);
+
+  expect(screen.queryByDisplayValue('Sales')).not.toBeInTheDocument();
+  expect(screen.queryByText('Table side')).not.toBeInTheDocument();
+  expect(screen.queryByText('Sales')).not.toBeInTheDocument();
+  expect(screen.getByText('Subgroup 1.1')).toBeInTheDocument();
+  expect(
+    screen.getAllByRole('button', { name: /Add subgroup/ }).length,
+  ).toBeGreaterThan(0);
+
+  await userEvent.click(screen.getByLabelText('Expand settings'));
+
+  expect(screen.getByDisplayValue('Sales')).toBeInTheDocument();
+  expect(screen.getByText('Table side')).toBeInTheDocument();
+});
+
+test('collapses a nested subgroup with an icon only', async () => {
+  render(
+    <HeaderGroupsControl
+      {...baseProps}
+      value={[
+        createGroup({
+          children: [
+            createGroup({
+              id: 'child-1',
+              label: 'Online',
+              columns: ['SUM(cost)'],
+            }),
+          ],
+        }),
+      ]}
+    />,
+  );
+
+  await userEvent.click(screen.getByText('Group 1'));
+  await userEvent.click(screen.getAllByLabelText('Collapse settings')[1]);
+
+  expect(screen.queryByDisplayValue('Online')).not.toBeInTheDocument();
+  expect(screen.queryByText('Position')).not.toBeInTheDocument();
+  expect(screen.getByText('Subgroup 1.1')).toBeInTheDocument();
+  expect(screen.getByDisplayValue('Sales')).toBeInTheDocument();
+});
+
+test('does not offer collapse when a top-level group has no subgroups', async () => {
+  render(
+    <HeaderGroupsControl {...baseProps} value={[createGroup()]} />,
+  );
+
+  await userEvent.click(screen.getByText('Group 1'));
+
+  expect(screen.queryByLabelText('Collapse settings')).not.toBeInTheDocument();
+  expect(screen.getByDisplayValue('Sales')).toBeInTheDocument();
+});
+
 test('moves a subgroup within its parent group', async () => {
   const onChange = jest.fn();
   render(
