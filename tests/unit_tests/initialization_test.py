@@ -157,7 +157,6 @@ class TestSupersetAppInitializer:
             patch.object(app_initializer, "configure_url_map_converters"),
             patch.object(app_initializer, "configure_data_sources"),
             patch.object(app_initializer, "configure_auth_provider"),
-            patch.object(app_initializer, "configure_async_queries"),
             patch.object(app_initializer, "configure_ssh_manager"),
             patch.object(app_initializer, "configure_stats_manager"),
             patch.object(app_initializer, "init_views"),

@@ -39,7 +39,7 @@
     "@superset-ui/core": "*",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "*",
-    "@testing-library/react": "^15.0.0",
+    "@testing-library/react": "*",
     "@testing-library/user-event": "*",
     "ace-builds": "^1.4.14",
     "brace": "^0.11.1",

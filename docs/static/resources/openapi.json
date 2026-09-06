@@ -1053,26 +1053,21 @@
       },
       "ChartDataAsyncResponseSchema": {
         "properties": {
-          "channel_id": {
-            "description": "Unique session async channel ID",
+          "cursor": {
+            "description": "Status-changes recovery cursor captured before any task was created. The client polls `/api/v1/task/status_changes` from it and is guaranteed to observe each task's completion.",
             "type": "string"
           },
-          "job_id": {
-            "description": "Unique async job ID",
-            "type": "string"
-          },
-          "result_url": {
-            "description": "Unique result URL for fetching async query data",
-            "type": "string"
-          },
-          "status": {
-            "description": "Status value for async job",
-            "type": "string"
-          },
-          "user_id": {
-            "description": "Requesting user ID",
+          "tab_id": {
+            "description": "The per-client (e.g. browser-tab) id echoed back when the caller advertised one, so a later cancel detaches exactly that client. Absent when the caller supplied none.",
             "nullable": true,
             "type": "string"
+          },
+          "task_ids": {
+            "description": "UUIDs of the scheduled GTF tasks (one per QueryObject that missed the cache), in query order. The client polls `/api/v1/task/status_changes`, aggregates these tasks' statuses, and re-issues this request once they all succeed.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
           }
         },
         "type": "object"
@@ -1523,6 +1518,11 @@
       },
       "ChartDataQueryContextSchema": {
         "properties": {
+          "async_mode": {
+            "description": "Opt this request into asynchronous execution on the Global Task Framework (requires the GLOBAL_ASYNC_QUERIES feature flag). When true the response is HTTP 202 with the query task ids to poll; when absent or false the query runs synchronously (HTTP 200). Default: `false`.",
+            "nullable": true,
+            "type": "boolean"
+          },
           "custom_cache_timeout": {
             "description": "Override the default cache timeout",
             "nullable": true,
@@ -1535,6 +1535,11 @@
             "description": "Should the queries be forced to load from the source. Default: `false`",
             "nullable": true,
             "type": "boolean"
+          },
+          "force_nonce": {
+            "description": "Forced-refresh idempotency token for a single-query request: the async task's UUID (as returned in the 202 `task_ids`). Sent on the synchronous read-back of a forced refresh so it reads the result the task warmed instead of recomputing; concurrent refreshes joining the same shared task read back under the same token. Multi-query requests set the per-query `force_nonce` on each query instead. Ignored when `force` is false.",
+            "nullable": true,
+            "type": "string"
           },
           "form_data": {
             "nullable": true
@@ -1564,6 +1569,11 @@
               "post_processed",
               "drill_detail"
             ]
+          },
+          "tab_id": {
+            "description": "Opaque per-browser-tab id (see the frontend `getTabId`). On an async request it ref-counts this tab as a consumer of the shared chart-data task so a cancel/navigate-away from one tab doesn't abort a task another tab still awaits. Read by the API as a request-level routing hint; not part of the query context.",
+            "nullable": true,
+            "type": "string"
           }
         },
         "type": "object"
@@ -1620,6 +1630,11 @@
             },
             "nullable": true,
             "type": "array"
+          },
+          "force_nonce": {
+            "description": "Per-query forced-refresh idempotency token: the async task's UUID (as returned in the 202 `task_ids`, in query order). Sent on the synchronous read-back of a forced refresh so it reads the result the task warmed instead of recomputing. Because the token is the task's identity, concurrent refreshes joining the same shared task read back under the same token. Ignored when `force` is false.",
+            "nullable": true,
+            "type": "string"
           },
           "granularity": {
             "description": "Name of temporal column used for time filtering. ",
@@ -8888,6 +8903,11 @@
             },
             "type": "array"
           },
+          "report_format": {
+            "maxLength": 50,
+            "nullable": true,
+            "type": "string"
+          },
           "retry_max_attempts": {
             "type": "integer"
           },
@@ -13719,6 +13739,111 @@
         ],
         "type": "object"
       },
+      "chart_get_list_schema": {
+        "properties": {
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "filters": {
+            "items": {
+              "properties": {
+                "col": {
+                  "type": "string"
+                },
+                "opr": {
+                  "type": "string"
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      },
+                      "type": "array"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "col",
+                "opr",
+                "value"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "keys": {
+            "items": {
+              "enum": [
+                "list_columns",
+                "order_columns",
+                "label_columns",
+                "description_columns",
+                "list_title",
+                "none"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "order_column": {
+            "type": "string"
+          },
+          "order_direction": {
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "select_columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "viz_type_order": {
+            "description": "Visualization type slugs in display-name order. Used only when order_column is viz_type.",
+            "items": {
+              "maxLength": 250,
+              "type": "string"
+            },
+            "maxItems": 256,
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        "type": "object"
+      },
       "database_catalogs_query_schema": {
         "properties": {
           "force": {
@@ -15388,153 +15513,6 @@
         ]
       }
     },
-    "/api/v1/async_event/": {
-      "get": {
-        "description": "Reads off of the Redis events stream, using the user's JWT token and optional query params for last event received.",
-        "parameters": [
-          {
-            "description": "Last ID received by the client",
-            "in": "query",
-            "name": "last_id",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "result": {
-                      "items": {
-                        "properties": {
-                          "channel_id": {
-                            "type": "string"
-                          },
-                          "errors": {
-                            "items": {
-                              "type": "object"
-                            },
-                            "type": "array"
-                          },
-                          "id": {
-                            "type": "string"
-                          },
-                          "job_id": {
-                            "type": "string"
-                          },
-                          "result_url": {
-                            "type": "string"
-                          },
-                          "status": {
-                            "type": "string"
-                          },
-                          "user_id": {
-                            "type": "integer"
-                          }
-                        },
-                        "type": "object"
-                      },
-                      "type": "array"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Async event results"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          },
-          {
-            "api_key": []
-          }
-        ],
-        "summary": "Read off of the Redis events stream",
-        "tags": [
-          "AsyncEventsRestApi"
-        ]
-      }
-    },
-    "/api/v1/async_event/{job_id}/cancel": {
-      "post": {
-        "description": "Revokes the Celery task backing an in-flight async query. The caller is authorized against the job's original owner (channel and user), both resolved server-side from the request, so a client cannot cancel a job it did not submit.",
-        "parameters": [
-          {
-            "description": "The job ID returned when the async query was submitted",
-            "in": "path",
-            "name": "job_id",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "properties": {
-                    "result": {
-                      "properties": {
-                        "job_id": {
-                          "type": "string"
-                        },
-                        "status": {
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    }
-                  },
-                  "type": "object"
-                }
-              }
-            },
-            "description": "Job cancelled"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          },
-          {
-            "api_key": []
-          }
-        ],
-        "summary": "Cancel a running async query job",
-        "tags": [
-          "AsyncEventsRestApi"
-        ]
-      }
-    },
     "/api/v1/available_domains/": {
       "get": {
         "responses": {
@@ -15680,10 +15658,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/get_list_schema"
+                  "$ref": "#/components/schemas/chart_get_list_schema"
                 }
               }
             },
+            "description": "Rison-encoded list query. viz_type_order may contain up to 256 unique visualization type slugs, each at most 250 characters, in the display-name order to use when sorting by viz_type.",
             "in": "query",
             "name": "q"
           }
@@ -15695,57 +15674,15 @@
                 "schema": {
                   "properties": {
                     "count": {
-                      "description": "The total record count on the backend",
-                      "type": "number"
-                    },
-                    "description_columns": {
-                      "properties": {
-                        "column_name": {
-                          "description": "The description for the column name. Will be translated by babel",
-                          "example": "A Nice description for the column",
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
+                      "type": "integer"
                     },
                     "ids": {
-                      "description": "A list of item ids, useful when you don't know the column id",
                       "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "label_columns": {
-                      "properties": {
-                        "column_name": {
-                          "description": "The label for the column name. Will be translated by babel",
-                          "example": "A Nice label for the column",
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    },
-                    "list_columns": {
-                      "description": "A list of columns",
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "list_title": {
-                      "description": "A title to render. Will be translated by babel",
-                      "example": "List Items",
-                      "type": "string"
-                    },
-                    "order_columns": {
-                      "description": "A list of allowed columns to sort",
-                      "items": {
-                        "type": "string"
+                        "type": "integer"
                       },
                       "type": "array"
                     },
                     "result": {
-                      "description": "The result from the get list query",
                       "items": {
                         "$ref": "#/components/schemas/ChartRestApi.get_list"
                       },
@@ -15756,7 +15693,7 @@
                 }
               }
             },
-            "description": "Items from Model"
+            "description": "Charts"
           },
           "400": {
             "$ref": "#/components/responses/400"
@@ -15978,63 +15915,6 @@
           },
           "403": {
             "$ref": "#/components/responses/403"
-          },
-          "500": {
-            "$ref": "#/components/responses/500"
-          }
-        },
-        "security": [
-          {
-            "jwt": []
-          },
-          {
-            "api_key": []
-          }
-        ],
-        "summary": "Return payload data response for the given query",
-        "tags": [
-          "Charts"
-        ]
-      }
-    },
-    "/api/v1/chart/data/{cache_key}": {
-      "get": {
-        "description": "Takes a query context cache key and returns payload data response for the given query.",
-        "parameters": [
-          {
-            "in": "path",
-            "name": "cache_key",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ChartDataResponseSchema"
-                }
-              }
-            },
-            "description": "Query result"
-          },
-          "400": {
-            "$ref": "#/components/responses/400"
-          },
-          "401": {
-            "$ref": "#/components/responses/401"
-          },
-          "403": {
-            "$ref": "#/components/responses/403"
-          },
-          "404": {
-            "$ref": "#/components/responses/404"
-          },
-          "422": {
-            "$ref": "#/components/responses/422"
           },
           "500": {
             "$ref": "#/components/responses/500"

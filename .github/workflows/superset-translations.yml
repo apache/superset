@@ -160,7 +160,7 @@ jobs:
   actions-timeline:
     needs: [frontend-check-translations, babel-extract]
     if: always()
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     permissions:
       actions: read
     steps:

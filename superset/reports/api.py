@@ -186,6 +186,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "name",
         "recipients.id",
         "recipients.type",
+        "report_format",
         "timezone",
         "type",
         "retry_on_failure",
