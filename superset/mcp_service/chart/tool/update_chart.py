@@ -237,7 +237,7 @@ def _build_replacement_form_data(
 def _build_update_payload(
     request: UpdateChartRequest,
     chart: Any,
-    parsed_config: Any = None,
+    parsed_config: ChartConfig | None = None,
 ) -> dict[str, Any] | GenerateChartResponse:
     """Build the update payload for a chart update.
 
@@ -317,7 +317,7 @@ def _build_update_payload(
 def _build_preview_form_data(
     request: UpdateChartRequest,
     chart: Any,
-    parsed_config: Any = None,
+    parsed_config: ChartConfig | None = None,
 ) -> dict[str, Any] | GenerateChartResponse:
     """Merge the existing chart's form_data with the requested changes.
 
