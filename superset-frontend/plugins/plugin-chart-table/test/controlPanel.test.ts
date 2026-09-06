@@ -102,14 +102,20 @@ test('time comparison section is visible only in aggregate mode', () => {
   );
   expect(section?.visibility).toBeDefined();
   expect(
-    section?.visibility?.({
-      controls: { query_mode: { value: QueryMode.Aggregate } },
-    } as unknown as ControlPanelsContainerProps),
+    section?.visibility?.(
+      {
+        controls: { query_mode: { value: QueryMode.Aggregate } },
+      } as unknown as ControlPanelsContainerProps,
+      {},
+    ),
   ).toBe(true);
   expect(
-    section?.visibility?.({
-      controls: { query_mode: { value: QueryMode.Raw } },
-    } as unknown as ControlPanelsContainerProps),
+    section?.visibility?.(
+      {
+        controls: { query_mode: { value: QueryMode.Raw } },
+      } as unknown as ControlPanelsContainerProps,
+      {},
+    ),
   ).toBe(false);
 });
 
