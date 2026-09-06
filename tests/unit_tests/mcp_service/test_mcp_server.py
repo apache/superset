@@ -541,3 +541,53 @@ def test_run_server_respects_structured_output_override() -> None:
         )
     finally:
         os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_factory_server_respects_structured_output_setting(enabled: bool) -> None:
+    """Factory middleware starts with the configured compatibility boundary."""
+    from superset.mcp_service.middleware import ToolResultCompatibilityMiddleware
+    from superset.mcp_service.server import run_server
+
+    port = 59904
+    os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
+    flask_app = MagicMock()
+    flask_app.config = {"MCP_STRUCTURED_OUTPUT_ENABLED": enabled}
+    mcp_instance = MagicMock()
+    custom_middleware = MagicMock()
+    factory_config = {"auth": None, "middleware": [custom_middleware]}
+
+    try:
+        with (
+            patch("superset.mcp_service.server.configure_logging"),
+            patch("superset.mcp_service.server._suppress_third_party_warnings"),
+            patch(
+                "superset.mcp_service.server.get_mcp_factory_config",
+                return_value=factory_config,
+            ),
+            patch(
+                "superset.mcp_service.flask_singleton.get_flask_app",
+                return_value=flask_app,
+            ),
+            patch(
+                "superset.mcp_service.server.create_mcp_app",
+                return_value=mcp_instance,
+            ) as mock_create_mcp_app,
+            patch("superset.mcp_service.session_scope.install_mcp_session_scoping"),
+            patch("superset.mcp_service.server._apply_tool_search_transform"),
+            patch("superset.mcp_service.server._register_health_endpoint"),
+            patch("superset.mcp_service.server.create_event_store", return_value=None),
+            patch(
+                "superset.mcp_service.server._build_starlette_middleware",
+                return_value=[],
+            ),
+        ):
+            run_server(host="127.0.0.1", port=port, use_factory_config=True)
+
+        middleware = mock_create_mcp_app.call_args.kwargs["middleware"]
+        assert len(middleware) == 2
+        assert isinstance(middleware[0], ToolResultCompatibilityMiddleware)
+        assert middleware[0].structured_output_enabled is enabled
+        assert middleware[1] is custom_middleware
+    finally:
+        os.environ.pop(f"FASTMCP_RUNNING_{port}", None)
