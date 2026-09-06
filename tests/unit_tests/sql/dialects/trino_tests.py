@@ -27,7 +27,7 @@ from superset.sql.dialects.trino import InlineUDF, Trino
 from superset.sql.parse import SQLScript, SQLStatement, Table
 
 # Hash of ``sqlglot.parser.Parser._parse``'s source, verified against
-# sqlglot 30.16.0 (the version pinned in ``requirements/base.txt``) when
+# sqlglot 30.17.0 (the version pinned in ``requirements/base.txt``) when
 # ``Trino.Parser._parse`` was copied from it. ``Trino.Parser._parse`` is a
 # hand-maintained copy rather than an extension through a public hook (see
 # its own docstring), so it silently drifts if sqlglot changes this method.

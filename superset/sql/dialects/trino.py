@@ -310,7 +310,7 @@ class Trino(SqlglotTrino):
             Split tokens into statements, keeping routine bodies intact.
 
             This is a copy of ``sqlglot.parser.Parser._parse`` (verified to
-            match through sqlglot 30.16.0, the version pinned in
+            match through sqlglot 30.17.0, the version pinned in
             ``requirements/base.txt``) with one change:
             when a statement starts with ``WITH FUNCTION``, ``CREATE
             FUNCTION``, or ``CREATE OR REPLACE FUNCTION``, semicolons inside
