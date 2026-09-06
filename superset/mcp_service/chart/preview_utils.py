@@ -559,6 +559,8 @@ def _prepare_gauge_preview(  # noqa: C901
     except ValueError as ex:
         return ChartError(error=str(ex), error_type="InvalidGaugeFormData")
 
+    configured_minimum, configured_maximum = minimum, maximum
+
     # Match transformProps auto-range semantics: twice the extrema including 0.
     if minimum is None:
         minimum = 2 * min([*values, 0]) if values else 0
@@ -580,9 +582,13 @@ def _prepare_gauge_preview(  # noqa: C901
             error="Gauge intervals must be strictly increasing.",
             error_type="InvalidGaugeFormData",
         )
-    if any(bound <= minimum or bound > maximum for bound in interval_bounds):
+    if any(
+        (configured_minimum is not None and bound <= configured_minimum)
+        or (configured_maximum is not None and bound > configured_maximum)
+        for bound in interval_bounds
+    ):
         return ChartError(
-            error="Gauge intervals must fall within the resolved min/max range.",
+            error="Gauge intervals must fall within the configured min/max range.",
             error_type="InvalidGaugeFormData",
         )
     if color_indices and len(color_indices) != len(interval_bounds):
@@ -740,9 +746,19 @@ def generate_gauge_vega_lite_preview(  # noqa: C901
         progress_color = {"value": _GAUGE_COLORS[0]}
 
     background_layers: list[dict[str, Any]] = []
-    for bound, color in reversed(
-        list(zip(interval_bounds, metadata["interval_colors"], strict=False))
-    ):
+    previous_ratio = 0.0
+    for bound, color in zip(interval_bounds, metadata["interval_colors"], strict=False):
+        # Automatic bounds can put configured thresholds outside the visible dial.
+        ratio = min(
+            1.0,
+            max(
+                0.0,
+                (bound - metadata["minimum"])
+                / (metadata["maximum"] - metadata["minimum"]),
+            ),
+        )
+        if ratio <= previous_ratio:
+            continue
         background_layers.append(
             {
                 "mark": {
@@ -754,14 +770,16 @@ def generate_gauge_vega_lite_preview(  # noqa: C901
                 },
                 "encoding": {
                     "theta": {
-                        "datum": (bound - metadata["minimum"])
-                        / (metadata["maximum"] - metadata["minimum"]),
+                        "datum": previous_ratio,
                         "type": "quantitative",
                         "scale": theta_scale,
-                    }
+                        "stack": None,
+                    },
+                    "theta2": {"datum": ratio},
                 },
             }
         )
+        previous_ratio = ratio
     if not background_layers:
         background_layers.append(
             {
@@ -776,7 +794,9 @@ def generate_gauge_vega_lite_preview(  # noqa: C901
                         "datum": 1,
                         "type": "quantitative",
                         "scale": theta_scale,
-                    }
+                        "stack": None,
+                    },
+                    "theta2": {"datum": 0},
                 },
             }
         )
@@ -794,7 +814,9 @@ def generate_gauge_vega_lite_preview(  # noqa: C901
                 "field": "__mcp_gauge_ratio",
                 "type": "quantitative",
                 "scale": theta_scale,
+                "stack": None,
             },
+            "theta2": {"datum": 0},
             "color": progress_color,
             "tooltip": tooltip,
         },

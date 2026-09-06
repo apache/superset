@@ -21,10 +21,11 @@ Comprehensive unit tests for MCP generate_explore_link tool
 
 import importlib
 import logging
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
-from fastmcp import Client
+from fastmcp import Client, FastMCP
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.schemas import (
@@ -1264,3 +1265,38 @@ class TestGenerateExploreLinkValidation:
             assert error["error_type"] == "permission_denied"
             assert "Dataset not found" in error["message"]
             mock_create_permalink.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "filter_value",
+    [
+        {"subject": "event_time", "operator": "TEMPORAL_RANGE"},
+        {"subject": "event_time", "operator": "TEMPORAL_RANGE", "comparator": None},
+        {"subject": "event_time", "operator": "TEMPORAL_RANGE", "comparator": ""},
+    ],
+)
+async def test_gauge_fastmcp_rejects_missing_temporal_comparator(
+    mcp_server: FastMCP,
+    filter_value: dict[str, Any],
+) -> None:
+    """Transport validation rejects malformed ranges before query compilation."""
+    from fastmcp.exceptions import ToolError
+
+    with patch.object(generate_explore_link_module, "validate_and_compile") as compile_:
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError, match="requires a temporal comparator"):
+                await client.call_tool(
+                    "generate_explore_link",
+                    {
+                        "request": {
+                            "dataset_id": "3",
+                            "config": {
+                                "chart_type": "gauge",
+                                "metric": {"name": "num", "aggregate": "AVG"},
+                                "adhoc_filters": [filter_value],
+                            },
+                        }
+                    },
+                )
+        compile_.assert_not_called()

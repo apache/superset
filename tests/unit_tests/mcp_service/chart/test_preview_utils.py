@@ -236,8 +236,7 @@ def test_unsaved_gauge_preview_uses_shared_builder_and_preserves_ordering(
         "groupby": [],
         "sort_by_metric": True,
         "row_limit": 4,
-        "min_val": 0,
-        "max_val": 100,
+        "intervals": "30,70,200",
     }
 
     result = preview_utils.generate_preview_from_form_data(

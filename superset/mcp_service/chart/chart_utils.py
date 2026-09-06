@@ -664,6 +664,9 @@ def _without_generated_gauge_time_filter(
             and isinstance(filter_, dict)
             and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
             and filter_.get("subject") == generated_subject
+            and filter_.get("comparator") == NO_TIME_RANGE
+            and filter_.get("clause") == "WHERE"
+            and filter_.get("expressionType") == "SIMPLE"
         )
     ]
 

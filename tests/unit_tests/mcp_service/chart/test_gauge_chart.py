@@ -22,6 +22,7 @@ contract for viz_type ``gauge_chart`` — a single ``metric`` with an optional
 multi ``groupby`` producing one dial per row), and registry integration.
 """
 
+from collections.abc import Callable
 from typing import Any
 
 import pytest
@@ -722,3 +723,151 @@ class TestGaugeDatasetValidation:
             metric={"name": "Team", "aggregate": "COUNT"},
         )
         assert plugin.post_map_validate(count, map_gauge_config(count), 1) is None
+
+
+@pytest.mark.parametrize("value", [5, -5, 75])
+@pytest.mark.parametrize(
+    "preview_fn",
+    [
+        generate_gauge_ascii_preview,
+        generate_gauge_vega_lite_preview,
+    ],
+)
+def test_gauge_auto_bounds_accept_stable_intervals(
+    value: int,
+    preview_fn: Callable[..., Any],
+) -> None:
+    """Data-derived bounds must not invalidate stable configured thresholds."""
+    result = preview_fn(
+        [{"score": value}],
+        {
+            "metric": "score",
+            "intervals": "30,70,100",
+        },
+    )
+    assert not isinstance(result, ChartError)
+
+
+@pytest.mark.parametrize("bounds", [{"min_val": 40}, {"max_val": 90}])
+def test_gauge_explicit_bounds_still_reject_outside_intervals(
+    bounds: dict[str, int],
+) -> None:
+    """Only explicitly configured bounds constrain threshold validation."""
+    result = generate_gauge_ascii_preview(
+        [{"score": 5}],
+        {
+            "metric": "score",
+            "intervals": "30,70,100",
+            **bounds,
+        },
+    )
+    assert isinstance(result, ChartError)
+
+
+@pytest.mark.parametrize("angles", [(225, -45), (0, 180), (180, 0)])
+def test_gauge_vega_bands_span_adjacent_thresholds(angles: tuple[int, int]) -> None:
+    """Every background arc has explicit adjacent endpoints without stacking."""
+    result = generate_gauge_vega_lite_preview(
+        [{"score": 5}],
+        {
+            "metric": "score",
+            "min_val": 0,
+            "max_val": 100,
+            "intervals": "30,70,100",
+            "show_progress": False,
+            "start_angle": angles[0],
+            "end_angle": angles[1],
+        },
+    )
+    assert not isinstance(result, ChartError)
+    arcs = [
+        layer["encoding"]
+        for layer in result.specification["layer"]
+        if layer["mark"]["type"] == "arc"
+    ]
+    assert [(arc["theta"]["datum"], arc["theta2"]["datum"]) for arc in arcs] == [
+        (0, 0.3),
+        (0.3, 0.7),
+        (0.7, 1),
+    ]
+    assert all(arc["theta"]["stack"] is None for arc in arcs)
+
+
+def test_gauge_vega_clips_intervals_to_automatic_range() -> None:
+    """Off-dial bands are clipped rather than overlapping or rejecting data."""
+    result = generate_gauge_vega_lite_preview(
+        [{"score": 5}],
+        {
+            "metric": "score",
+            "intervals": "3,7,100",
+            "show_progress": False,
+        },
+    )
+    assert not isinstance(result, ChartError)
+    arcs = [
+        layer["encoding"]
+        for layer in result.specification["layer"]
+        if layer["mark"]["type"] == "arc"
+    ]
+    assert [(arc["theta"]["datum"], arc["theta2"]["datum"]) for arc in arcs] == [
+        (0, 0.3),
+        (0.3, 0.7),
+        (0.7, 1),
+    ]
+
+
+@pytest.mark.parametrize("comparator", [None, "", " ", 123])
+def test_gauge_native_temporal_range_requires_comparator(comparator: Any) -> None:
+    """Native filters cannot silently discard a missing temporal restriction."""
+    with pytest.raises(ValidationError, match="requires a temporal comparator"):
+        GaugeChartConfig.model_validate(
+            {
+                "chart_type": "gauge",
+                "metric": "score",
+                "time_range": "Last week",
+                "adhoc_filters": [
+                    {
+                        "subject": "event_time",
+                        "operator": "TEMPORAL_RANGE",
+                        "comparator": comparator,
+                    }
+                ],
+            }
+        )
+
+
+@pytest.mark.parametrize("temporal_column", [None, "other_time"])
+@pytest.mark.parametrize("comparator", ["No filter", "Last month"])
+def test_gauge_temporal_rebind_preserves_user_ranges(
+    temporal_column: str | None,
+    comparator: str,
+) -> None:
+    """A stale provenance subject does not make an edited range mapper-owned."""
+    original_filter = {
+        "clause": "WHERE",
+        "expressionType": "SIMPLE",
+        "subject": "event_time",
+        "operator": "TEMPORAL_RANGE",
+        "comparator": comparator,
+    }
+    user_filter = {**original_filter, "comparator": "Last week"}
+    existing = {
+        "viz_type": "gauge_chart",
+        "metric": "score",
+        MCP_DASHBOARD_TIME_FILTER_SUBJECT: "event_time",
+        "adhoc_filters": [original_filter, user_filter],
+    }
+    config = GaugeChartConfig(
+        chart_type="gauge",
+        metric={"name": "score", "saved_metric": True},
+        temporal_column=temporal_column,
+    )
+    mapped = map_config_to_form_data(config)
+    merged = merge_chart_form_data(existing, mapped, config)
+    expected = (
+        [user_filter] if comparator == "No filter" else [original_filter, user_filter]
+    )
+    if temporal_column:
+        expected += mapped["adhoc_filters"]
+    assert merged["adhoc_filters"] == expected
+    assert existing["adhoc_filters"] == [original_filter, user_filter]

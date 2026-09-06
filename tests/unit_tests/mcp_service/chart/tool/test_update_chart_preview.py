@@ -121,7 +121,23 @@ def test_cached_gauge_update_preserves_controls_and_compiles(
         "font_size": 19,
         "number_format": ",.1f",
         "show_pointer": False,
-        "adhoc_filters": [{"subject": "country", "operator": "=="}],
+        "_mcp_dashboard_time_filter_subject": "event_time",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "event_time",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "No filter",
+            },
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "event_time",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "Last week",
+            },
+        ],
     }
     mock_generate_explore_link.return_value = (
         "http://localhost:8088/explore/?form_data_key=new_key"
@@ -136,6 +152,7 @@ def test_cached_gauge_update_preserves_controls_and_compiles(
             chart_type="gauge",
             metric={"name": "new_sla", "saved_metric": True},
             max_val=120,
+            temporal_column=None,
         ),
     )
 
@@ -152,6 +169,12 @@ def test_cached_gauge_update_preserves_controls_and_compiles(
     assert generated["max_val"] == 120
     assert result["form_data"] == generated
     assert mock_validate_and_compile.call_args.kwargs["run_compile_check"] is True
+
+    assert [
+        f["comparator"]
+        for f in generated["adhoc_filters"]
+        if f["operator"] == "TEMPORAL_RANGE"
+    ] == ["Last week"]
 
 
 class TestUpdateChartPreview:

@@ -1235,6 +1235,11 @@ class GaugeChartConfig(BaseChartConfig):
                         raise ValueError(
                             f"adhoc_filters[{index}] has no temporal subject"
                         )
+                    if not isinstance(comparator, str) or not comparator.strip():
+                        raise ValueError(
+                            f"adhoc_filters[{index}] requires a temporal comparator"
+                        )
+                    validate_time_range(comparator)
                     data.setdefault("granularity_sqla", subject)
                     data.setdefault("time_range", comparator)
                     continue

@@ -1276,20 +1276,36 @@ class TestBuildPreviewFormData:
             "font_size": 19,
             "number_format": ",.1f",
             "show_pointer": False,
+            "_mcp_dashboard_time_filter_subject": "event_time",
             "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "expressionType": "SIMPLE",
+                    "subject": "event_time",
+                    "operator": "TEMPORAL_RANGE",
+                    "comparator": "No filter",
+                },
+                {
+                    "clause": "WHERE",
+                    "expressionType": "SIMPLE",
+                    "subject": "event_time",
+                    "operator": "TEMPORAL_RANGE",
+                    "comparator": "Last week",
+                },
                 {
                     "clause": "WHERE",
                     "expressionType": "SIMPLE",
                     "subject": "country",
                     "operator": "==",
                     "comparator": "US",
-                }
+                },
             ],
         }
         config = GaugeChartConfig(
             chart_type="gauge",
             metric={"name": "score", "aggregate": "AVG"},
             max_val=120,
+            temporal_column=None,
         )
         request = UpdateChartRequest(identifier=1, config=config)
         chart = Mock(
@@ -1318,6 +1334,12 @@ class TestBuildPreviewFormData:
             assert preview[key] == saved[key]
         assert saved["groupby"] == ["region"]
         assert saved["max_val"] == 120
+
+        assert [
+            f["comparator"]
+            for f in saved["adhoc_filters"]
+            if f["operator"] == "TEMPORAL_RANGE"
+        ] == ["Last week"]
 
     def test_gauge_dataset_rebind_scrubs_old_roles_in_both_paths(self):
         config = GaugeChartConfig(
