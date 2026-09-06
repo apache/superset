@@ -327,8 +327,6 @@ export default function HeaderGroupEditor({
   columnOptions,
   usedColumns,
   onChange,
-  onAddChild,
-  onRemove,
   onSave,
   mode = 'edit',
 }: HeaderGroupEditorProps) {
@@ -352,16 +350,23 @@ export default function HeaderGroupEditor({
     }
   };
 
+  const persistDraftIfValid = (nextDraft: HeaderGroupConfig) => {
+    if (!isAddMode && canSaveHeaderGroup(nextDraft)) {
+      onChange?.(path, nextDraft);
+    }
+  };
+
   const handleChange = (nextPath: number[], next: HeaderGroupConfig) => {
-    setDraft(
-      updateHeaderGroupAt([draft], toDraftPath(nextPath), () => next)[0],
-    );
-    if (isAddMode) {
+    const nextDraft = updateHeaderGroupAt(
+      [draft],
+      toDraftPath(nextPath),
+      () => next,
+    )[0];
+    if (!nextDraft) {
       return;
     }
-    if (canSaveHeaderGroup(next)) {
-      onChange?.(nextPath, next);
-    }
+    setDraft(nextDraft);
+    persistDraftIfValid(nextDraft);
   };
 
   const handleAddChild = (nextPath: number[]) => {
@@ -376,19 +381,15 @@ export default function HeaderGroupEditor({
     if (nextDraft) {
       setDraft(nextDraft);
     }
-    if (!isAddMode) {
-      onAddChild?.(nextPath);
-    }
   };
 
   const handleRemove = (nextPath: number[]) => {
-    const nextGroups = removeHeaderGroupAt([draft], toDraftPath(nextPath));
-    if (nextGroups[0]) {
-      setDraft(nextGroups[0]);
+    const nextDraft = removeHeaderGroupAt([draft], toDraftPath(nextPath))[0];
+    if (!nextDraft) {
+      return;
     }
-    if (!isAddMode) {
-      onRemove?.(nextPath);
-    }
+    setDraft(nextDraft);
+    persistDraftIfValid(nextDraft);
   };
 
   const handleApply = () => {

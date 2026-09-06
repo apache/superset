@@ -37,7 +37,11 @@ export function createHeaderGroup(): HeaderGroupConfig {
 }
 
 export function canSaveHeaderGroup(group: HeaderGroupConfig): boolean {
-  return Boolean(group.label?.trim()) && (group.columns ?? []).length > 0;
+  return (
+    Boolean(group.label?.trim()) &&
+    (group.columns ?? []).length > 0 &&
+    (group.children ?? []).every(canSaveHeaderGroup)
+  );
 }
 
 export function moveHeaderGroup(

@@ -57,6 +57,22 @@ test('canSaveHeaderGroup requires a name and at least one column', () => {
   expect(
     canSaveHeaderGroup({ id: '1', label: 'Sales', columns: ['SUM(sales)'] }),
   ).toBe(true);
+  expect(
+    canSaveHeaderGroup({
+      id: '1',
+      label: 'Sales',
+      columns: ['SUM(sales)'],
+      children: [{ id: '2', label: '', columns: [] }],
+    }),
+  ).toBe(false);
+  expect(
+    canSaveHeaderGroup({
+      id: '1',
+      label: 'Sales',
+      columns: ['SUM(sales)'],
+      children: [{ id: '2', label: 'Online', columns: ['SUM(cost)'] }],
+    }),
+  ).toBe(true);
 });
 
 test('createHeaderGroup returns an empty group with an id', () => {

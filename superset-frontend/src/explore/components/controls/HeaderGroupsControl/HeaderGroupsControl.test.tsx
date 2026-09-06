@@ -21,6 +21,8 @@ import {
   render,
   screen,
   selectOption,
+  waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
@@ -85,6 +87,21 @@ const createGroup = (
   children: overrides.children ?? [],
   ...overrides,
 });
+
+async function selectNestedGroupColumn(option: string) {
+  const childEditor = screen
+    .getByText('Subgroup 1.1')
+    .closest('[data-test="header-group-editor"]') as HTMLElement;
+  await userEvent.click(
+    within(childEditor).getByRole('combobox', { name: 'Group columns' }),
+  );
+  const item = await waitFor(() =>
+    within(
+      document.querySelector('.ant-select-dropdown-list') as HTMLElement,
+    ).getByText(option),
+  );
+  await userEvent.click(item);
+}
 
 const baseProps = {
   name: 'header_groups',
@@ -228,9 +245,37 @@ test('renders existing groups as numbered labels and edits them in a popover', a
 
   await userEvent.click(screen.getByRole('button', { name: /Add subgroup/ }));
 
-  expect(onChange).toHaveBeenCalled();
-  const nextGroups = onChange.mock.calls.at(-1)?.[0] as HeaderGroupConfig[];
-  expect(nextGroups[0].children).toHaveLength(1);
+  expect(screen.getByText('Subgroup 1.1')).toBeInTheDocument();
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('persists a completed subgroup added while editing', async () => {
+  const onChange = jest.fn();
+  render(
+    <HeaderGroupsControl
+      {...baseProps}
+      value={[createGroup()]}
+      onChange={onChange}
+    />,
+  );
+
+  await userEvent.click(screen.getByText('Group 1'));
+  await userEvent.click(screen.getByRole('button', { name: /Add subgroup/ }));
+  fireEvent.change(screen.getAllByLabelText('Group name')[1], {
+    target: { value: 'Online' },
+  });
+  await selectNestedGroupColumn('SUM(cost)');
+
+  expect(onChange).toHaveBeenCalledWith([
+    expect.objectContaining({
+      children: [
+        expect.objectContaining({
+          label: 'Online',
+          columns: ['SUM(cost)'],
+        }),
+      ],
+    }),
+  ]);
 });
 
 test('locks columns on automatically created time comparison groups', async () => {
@@ -533,11 +578,7 @@ test('adds a subgroup in the add popover before Apply', async () => {
 
   expect(screen.getByText('Subgroup 1.1')).toBeInTheDocument();
   expect(onChange).not.toHaveBeenCalled();
-
-  await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
-
-  const nextGroups = onChange.mock.calls.at(-1)?.[0] as HeaderGroupConfig[];
-  expect(nextGroups[0].children).toHaveLength(1);
+  expect(screen.getByRole('button', { name: 'Apply' })).toBeDisabled();
 });
 
 test('does not create time comparison groups from the control', () => {
