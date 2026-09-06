@@ -39,7 +39,7 @@ from __future__ import annotations
 import logging
 import sys
 import uuid
-from typing import Any, cast, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING, Union
 
 import msgpack
 from celery.exceptions import SoftTimeLimitExceeded
@@ -316,6 +316,7 @@ def execute_sql_lab_query(  # noqa: C901
     expand_data: bool = False,
     start_time: Optional[float] = None,
     log_params: Optional[dict[str, Any]] = None,
+    cancel_hook: Optional[Callable[[int, str], None]] = None,
 ) -> Optional[dict[str, Any]]:
     """Execute a SQL Lab ``Query`` (multi-statement) and return its payload.
 
@@ -328,6 +329,14 @@ def execute_sql_lab_query(  # noqa: C901
     cooperative stop returns a ``STOPPED`` payload; execution errors propagate as
     exceptions for the caller (the ``/execute/`` command or the GTF task) to
     handle — this entry does not build a FAILED error payload itself.
+
+    ``cancel_hook``, when supplied, is called as ``cancel_hook(database_id,
+    cancel_query_id)`` the moment an engine cancel id is captured off the live
+    cursor (for engines that expose one). It lets a GTF task wrapping this entry
+    register its abort handler and persist the handle so the query can be
+    cancelled — live (user/Task-view stop) or out-of-band by the orphan reaper.
+    ``None`` (the classic caller) leaves cancellation to ``QUERY_CANCEL_KEY`` on
+    the ``Query`` row as before.
     """
     if store_results and start_time:
         app.config["STATS_LOGGER"].timing(
@@ -435,6 +444,15 @@ def execute_sql_lab_query(  # noqa: C901
         if cancel_query_id is not None:
             query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
             db.session.commit()
+            if cancel_hook is not None:
+                # Hand the captured engine cancel id to a wrapping GTF task so it
+                # can register its abort handler and persist the handle for the
+                # orphan reaper. Best-effort: a hook failure must not break
+                # execution — it only forfeits cancellability.
+                try:
+                    cancel_hook(database.id, cancel_query_id)
+                except Exception:  # noqa: BLE001  pylint: disable=broad-except
+                    logger.warning("SQL Lab cancel hook failed", exc_info=True)
 
         block_count = len(blocks)
         for i, block in enumerate(blocks):

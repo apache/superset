@@ -1800,6 +1800,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         "superset.sql_lab",
         "superset.tasks.deletion_retention",
         "superset.tasks.scheduler",
+        "superset.tasks.sql_queries",
         "superset.tasks.thumbnails",
         "superset.tasks.cache",
         "superset.tasks.slack",
