@@ -434,7 +434,7 @@ def test_get_timestamp_expr_string_column_without_grain_not_cast() -> None:
 
 
 def test_get_timestamp_expr_epoch_string_column_not_cast() -> None:
-    """DB Eng Specs (postgres): epoch conversion handles strings before truncation."""
+    """DB Eng Specs (postgres): timestamp casts are not added to epoch expressions."""
     col = column("event_timestamp", type_=types.String())
     expr = spec.get_timestamp_expr(col, "epoch_s", "P1D")
     assert _compile(expr) == (
