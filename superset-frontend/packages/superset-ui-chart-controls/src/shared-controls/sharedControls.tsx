@@ -244,7 +244,7 @@ function timeRangePartitionMapping({
   // column even when the chart groups by another one, and that filter mirrors.
   const mirrorsMainDttm = Boolean(
     dataset?.always_filter_main_dttm &&
-      dataset.main_dttm_col === mapping.mapped_column,
+    dataset.main_dttm_col === mapping.mapped_column,
   );
   return mirrorsSelectedColumn || mirrorsMainDttm ? mapping : null;
 }
