@@ -1137,12 +1137,29 @@ export function TableRenderer(props: TableRendererProps) {
         namesMapping,
         allowRenderHtml: settingsAllowRenderHtml,
       } = settings;
+      // When column attributes are present, renderTableRow gives the last
+      // row-label cell in the body an extra colSpan to absorb the corner
+      // placeholder column (see colIncrSpan below). Mirror that here by
+      // folding the trailing placeholder into the last axis-label cell
+      // instead of rendering it separately, so the frozen corner block in
+      // the header spans the same columns as the frozen cell it sits above.
+      const mergeTotalLabel =
+        settingsColAttrs.length !== 0 && settingsRowAttrs.length !== 0;
+      const totalLabelClickHandler = clickHeaderHandler(
+        pivotData,
+        [],
+        rows,
+        0,
+        tableOptions.clickRowHeaderCallback,
+        false,
+        true,
+      );
       return (
         <tr key="rowHdr" className="pvtRowHeaderRow">
           {settingsRowAttrs.map((r, i) => {
+            const isLastRowAttr = i === settingsRowAttrs.length - 1;
             const needLabelToggle =
-              settingsRowSubtotalDisplay.enabled === true &&
-              i !== settingsRowAttrs.length - 1;
+              settingsRowSubtotalDisplay.enabled === true && !isLastRowAttr;
             let arrowClickHandle = null;
             let subArrow = null;
             if (needLabelToggle) {
@@ -1154,7 +1171,16 @@ export function TableRenderer(props: TableRendererProps) {
                 i + 1 < maxRowVisible! ? arrowExpanded : arrowCollapsed;
             }
             return (
-              <th className="pvtAxisLabel" key={`rowAttr-${i}`}>
+              <th
+                className="pvtAxisLabel"
+                key={`rowAttr-${i}`}
+                colSpan={isLastRowAttr && mergeTotalLabel ? 2 : undefined}
+                onClick={
+                  isLastRowAttr && mergeTotalLabel
+                    ? totalLabelClickHandler
+                    : undefined
+                }
+              >
                 {displayHeaderCell(
                   needLabelToggle,
                   subArrow,
@@ -1166,21 +1192,15 @@ export function TableRenderer(props: TableRendererProps) {
               </th>
             );
           })}
-          <th
-            className="pvtTotalLabel"
-            key="padding"
-            onClick={clickHeaderHandler(
-              pivotData,
-              [],
-              rows,
-              0,
-              tableOptions.clickRowHeaderCallback,
-              false,
-              true,
-            )}
-          >
-            {settingsColAttrs.length === 0 ? t('Total') : null}
-          </th>
+          {mergeTotalLabel ? null : (
+            <th
+              className="pvtTotalLabel"
+              key="padding"
+              onClick={totalLabelClickHandler}
+            >
+              {t('Total')}
+            </th>
+          )}
         </tr>
       );
     },
