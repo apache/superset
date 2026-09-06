@@ -348,45 +348,57 @@ export default function HeaderGroupEditor({
   );
 
   const isAddMode = mode === 'add';
-  const currentGroup = isAddMode ? draft : (group ?? draft);
+  const currentGroup = draft;
+
+  const toDraftPath = (nextPath: number[]) =>
+    isAddMode ? nextPath : [0, ...nextPath.slice(path.length)];
 
   const handleOpenChange = (open: boolean) => {
     setVisible(open);
-    if (open && isAddMode) {
-      setDraft(createHeaderGroup());
+    if (open) {
+      setDraft(
+        isAddMode ? createHeaderGroup() : (group ?? createHeaderGroup()),
+      );
     }
   };
 
   const handleChange = (nextPath: number[], next: HeaderGroupConfig) => {
+    setDraft(
+      updateHeaderGroupAt([draft], toDraftPath(nextPath), () => next)[0],
+    );
     if (isAddMode) {
-      setDraft(updateHeaderGroupAt([draft], nextPath, () => next)[0]);
       return;
     }
-    onChange?.(nextPath, next);
+    if (canSaveHeaderGroup(next)) {
+      onChange?.(nextPath, next);
+    }
   };
 
   const handleAddChild = (nextPath: number[]) => {
-    if (isAddMode) {
-      setDraft(
-        updateHeaderGroupAt([draft], nextPath, current => ({
-          ...current,
-          children: [...(current.children ?? []), createHeaderGroup()],
-        }))[0],
-      );
-      return;
+    const nextDraft = updateHeaderGroupAt(
+      [draft],
+      toDraftPath(nextPath),
+      current => ({
+        ...current,
+        children: [...(current.children ?? []), createHeaderGroup()],
+      }),
+    )[0];
+    if (nextDraft) {
+      setDraft(nextDraft);
     }
-    onAddChild?.(nextPath);
+    if (!isAddMode) {
+      onAddChild?.(nextPath);
+    }
   };
 
   const handleRemove = (nextPath: number[]) => {
-    if (isAddMode) {
-      const nextGroups = removeHeaderGroupAt([draft], nextPath);
-      if (nextGroups[0]) {
-        setDraft(nextGroups[0]);
-      }
-      return;
+    const nextGroups = removeHeaderGroupAt([draft], toDraftPath(nextPath));
+    if (nextGroups[0]) {
+      setDraft(nextGroups[0]);
     }
-    onRemove?.(nextPath);
+    if (!isAddMode) {
+      onRemove?.(nextPath);
+    }
   };
 
   const handleApply = () => {

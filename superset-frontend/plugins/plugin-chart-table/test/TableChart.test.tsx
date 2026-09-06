@@ -316,6 +316,27 @@ describe('plugin-chart-table', () => {
             percent_metric_1: 'Percent Metric 1',
           },
         },
+        queriesData: [
+          {
+            ...testData.comparison.queriesData[0],
+            data: [
+              {
+                metric_1: 100,
+                metric_2: 200,
+                '%percent_metric_1': 0.5,
+                date: '2023-01-01',
+              },
+            ],
+            colnames: ['metric_1', 'metric_2', '%percent_metric_1', 'date'],
+            coltypes: [
+              GenericDataType.Numeric,
+              GenericDataType.Numeric,
+              GenericDataType.Numeric,
+              GenericDataType.Temporal,
+            ],
+          },
+          testData.comparison.queriesData[1],
+        ],
       });
 
       expect(
@@ -328,6 +349,47 @@ describe('plugin-chart-table', () => {
           group => group.id === 'time-compare-%percent_metric_1',
         )?.label,
       ).toBe('%Percent Metric 1');
+    });
+
+    test('should not create time comparison header groups for non-numeric metrics', () => {
+      const transformedProps = transformProps({
+        ...testData.comparison,
+        rawFormData: {
+          ...testData.comparison.rawFormData,
+          metrics: ['metric_1', 'name_metric'],
+          percent_metrics: [],
+          header_groups: [
+            {
+              id: 'time-compare-name_metric',
+              label: 'name_metric',
+              columns: [
+                'Main name_metric',
+                '# name_metric',
+                '△ name_metric',
+                '% name_metric',
+              ],
+              source: 'time_compare',
+            },
+          ],
+        },
+        queriesData: [
+          {
+            ...testData.comparison.queriesData[0],
+            data: [{ metric_1: 100, name_metric: 'alpha', date: '2023-01-01' }],
+            colnames: ['metric_1', 'name_metric', 'date'],
+            coltypes: [
+              GenericDataType.Numeric,
+              GenericDataType.String,
+              GenericDataType.Temporal,
+            ],
+          },
+          testData.comparison.queriesData[1],
+        ],
+      });
+
+      expect(transformedProps.headerGroups?.map(group => group.id)).toEqual([
+        'time-compare-metric_1',
+      ]);
     });
 
     test('should derive header groups from time comparison when header_groups is empty', () => {

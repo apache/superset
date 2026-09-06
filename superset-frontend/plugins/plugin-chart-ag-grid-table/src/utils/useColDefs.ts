@@ -450,7 +450,12 @@ export const useColDefs = ({
   const stringifiedCols = JSON.stringify(columns);
 
   const colDefs = useMemo(() => {
-    if (hasRenderableHeaderGroups(headerGroups)) {
+    if (
+      hasRenderableHeaderGroups(
+        headerGroups,
+        columns.map(column => column.key),
+      )
+    ) {
       return nestColDefsInHeaderGroups(columns, headerGroups, col =>
         getCommonColProps(col),
       ) as ColDef[];

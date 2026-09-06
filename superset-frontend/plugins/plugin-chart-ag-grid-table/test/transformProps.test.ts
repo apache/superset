@@ -453,6 +453,51 @@ test('keeps renamed time comparison header groups', () => {
   expect(result.headerGroups?.[0].label).toBe('Renamed');
 });
 
+test('does not create time comparison header groups for non-numeric metrics', () => {
+  const result = transformProps(
+    createMockChartProps({
+      rawFormData: {
+        viz_type: 'table',
+        datasource: '1__table',
+        query_mode: QueryMode.Aggregate,
+        metrics: ['revenue', 'name_metric'],
+        percent_metrics: [],
+        column_config: {},
+        table_timestamp_format: '',
+        time_compare: ['1 year ago'],
+        comparison_type: ComparisonType.Values,
+        header_groups: [
+          {
+            id: 'time-compare-name_metric',
+            label: 'name_metric',
+            columns: [
+              'Main name_metric',
+              '# name_metric',
+              '△ name_metric',
+              '% name_metric',
+            ],
+            source: 'time_compare',
+          },
+        ],
+      },
+      queriesData: [
+        {
+          data: [{ revenue: 100, name_metric: 'alpha' }],
+          colnames: ['revenue', 'name_metric'],
+          coltypes: [GenericDataType.Numeric, GenericDataType.String],
+          rowcount: 1,
+          applied_filters: [],
+          rejected_filters: [],
+        },
+      ] as unknown as TableChartProps['queriesData'],
+    }),
+  );
+
+  expect(result.headerGroups?.map(group => group.id)).toEqual([
+    'time-compare-revenue',
+  ]);
+});
+
 test('drops time comparison header groups when time_compare is empty', () => {
   const result = transformProps(
     createMockChartProps({

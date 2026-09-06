@@ -284,12 +284,18 @@ test('builds header rows when a metric group expands to time comparison columns'
   ]);
 });
 
-test('hasRenderableHeaderGroups is false for empty groups', () => {
+test('hasRenderableHeaderGroups is false for empty and label-only groups', () => {
   expect(hasRenderableHeaderGroups([])).toBe(false);
   expect(hasRenderableHeaderGroups([{ id: '1', label: '', columns: [] }])).toBe(
     false,
   );
   expect(
     hasRenderableHeaderGroups([{ id: '1', label: 'Sales', columns: [] }]),
-  ).toBe(true);
+  ).toBe(false);
+  expect(
+    hasRenderableHeaderGroups(
+      [{ id: '1', label: 'Sales', columns: ['SUM(sales)'] }],
+      ['country'],
+    ),
+  ).toBe(false);
 });

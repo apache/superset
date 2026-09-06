@@ -25,6 +25,7 @@ import {
   getHeaderGroupsControlProps,
   getHeaderGroupsMaxDepth,
   headerGroupsHaveSameColumns,
+  hasRenderableHeaderGroups,
   nestColDefsInHeaderGroups,
   resolveHeaderGroups,
   syncTimeComparisonGroups,
@@ -106,6 +107,41 @@ test('getHeaderGroupDepth and getHeaderGroupsMaxDepth walk nested groups', () =>
 test('buildHeaderGroupRows returns no rows without groups or columns', () => {
   expect(buildHeaderGroupRows([], ['revenue'])).toEqual([]);
   expect(buildHeaderGroupRows(chartGroups, [])).toEqual([]);
+  expect(buildHeaderGroupRows(chartGroups, ['region'])).toEqual([]);
+});
+
+test('hasRenderableHeaderGroups ignores label-only and stale groups', () => {
+  expect(hasRenderableHeaderGroups([])).toBe(false);
+  expect(hasRenderableHeaderGroups([{ id: '1', label: '', columns: [] }])).toBe(
+    false,
+  );
+  expect(
+    hasRenderableHeaderGroups([{ id: '1', label: 'Sales', columns: [] }]),
+  ).toBe(false);
+  expect(
+    hasRenderableHeaderGroups([
+      { id: '1', label: 'Sales', columns: ['revenue'] },
+    ]),
+  ).toBe(true);
+  expect(
+    hasRenderableHeaderGroups(
+      [{ id: '1', label: 'Sales', columns: ['revenue'] }],
+      ['region'],
+    ),
+  ).toBe(false);
+  expect(
+    hasRenderableHeaderGroups(
+      [
+        {
+          id: '1',
+          label: 'Sales',
+          columns: [],
+          children: [{ id: '2', label: 'Web', columns: ['online'] }],
+        },
+      ],
+      ['online'],
+    ),
+  ).toBe(true);
 });
 
 test('nestColDefsInHeaderGroups skips groups that match no columns', () => {
@@ -131,6 +167,34 @@ test('buildTimeComparisonHeaderGroups uses the metric key as the default label',
 test('expandGroupColumnKey matches a percent metric without a space', () => {
   expect(expandGroupColumnKey('revenue', ['region', '%revenue'])).toEqual([
     '%revenue',
+  ]);
+});
+
+test('nestColDefsInHeaderGroups puts direct columns before nested child groups', () => {
+  const nested = nestColDefsInHeaderGroups(
+    [{ key: 'direct' }, { key: 'nested' }],
+    [
+      {
+        id: 'parent',
+        label: 'Parent',
+        columns: ['direct'],
+        children: [{ id: 'child', label: 'Child', columns: ['nested'] }],
+      },
+    ],
+    column => ({ field: column.key }),
+  );
+
+  expect(nested).toEqual([
+    expect.objectContaining({
+      headerName: 'Parent',
+      children: [
+        { field: 'direct' },
+        expect.objectContaining({
+          headerName: 'Child',
+          children: [{ field: 'nested' }],
+        }),
+      ],
+    }),
   ]);
 });
 

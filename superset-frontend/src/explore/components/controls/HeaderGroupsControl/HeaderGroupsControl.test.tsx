@@ -302,6 +302,41 @@ test('syncs time comparison groups when column options are empty', () => {
   ]);
 });
 
+test('does not persist an empty name or last column while editing', async () => {
+  const onChange = jest.fn();
+  render(
+    <HeaderGroupsControl
+      {...baseProps}
+      value={[createGroup()]}
+      onChange={onChange}
+    />,
+  );
+
+  await userEvent.click(screen.getByText('Group 1'));
+
+  fireEvent.change(screen.getByLabelText('Group name'), {
+    target: { value: '' },
+  });
+  expect(screen.getByLabelText('Group name')).toHaveValue('');
+  expect(onChange).not.toHaveBeenCalled();
+
+  fireEvent.change(screen.getByLabelText('Group name'), {
+    target: { value: 'Revenue' },
+  });
+  expect(onChange).toHaveBeenCalledWith([
+    expect.objectContaining({ label: 'Revenue', columns: ['SUM(sales)'] }),
+  ]);
+
+  onChange.mockClear();
+  const columnTagRemove = screen
+    .getByTestId('header-group-editor')
+    .querySelector('.ant-select-selection-item-remove');
+  expect(columnTagRemove).toBeTruthy();
+  await userEvent.click(columnTagRemove as HTMLElement);
+  expect(onChange).not.toHaveBeenCalled();
+  expect(screen.getByLabelText('Group name')).toHaveValue('Revenue');
+});
+
 test('edits name, columns, alignment, and placement from the popover', async () => {
   const onChange = jest.fn();
   render(

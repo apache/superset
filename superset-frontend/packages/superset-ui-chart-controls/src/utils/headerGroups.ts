@@ -281,7 +281,7 @@ export function buildHeaderGroupRows(
 ): HeaderGroupCell[][] {
   const ancestorMap = buildAncestorMap(groups, columnKeys);
   const maxDepth = getHeaderGroupsMaxDepth(groups);
-  if (maxDepth === 0 || columnKeys.length === 0) {
+  if (maxDepth === 0 || columnKeys.length === 0 || ancestorMap.size === 0) {
     return [];
   }
 
@@ -361,15 +361,29 @@ export function buildHeaderGroupRows(
   return rows;
 }
 
+function groupHasVisibleColumns(
+  group: HeaderGroupConfig,
+  visibleKeys?: string[],
+): boolean {
+  const columns = group.columns ?? [];
+  if (columns.length === 0) {
+    return false;
+  }
+  if (!visibleKeys) {
+    return true;
+  }
+  return columns.some(key => expandGroupColumnKey(key, visibleKeys).length > 0);
+}
+
 export function hasRenderableHeaderGroups(
   groups?: HeaderGroupConfig[] | null,
+  visibleKeys?: string[],
 ): boolean {
   return Boolean(
     groups?.some(
       group =>
-        Boolean(group.label) ||
-        (group.columns ?? []).length > 0 ||
-        hasRenderableHeaderGroups(group.children),
+        groupHasVisibleColumns(group, visibleKeys) ||
+        hasRenderableHeaderGroups(group.children, visibleKeys),
     ),
   );
 }
@@ -399,17 +413,17 @@ export function nestColDefsInHeaderGroups<
     group: HeaderGroupConfig,
   ): Record<string, unknown> | null => {
     const children: Array<C | Record<string, unknown>> = [];
-    (group.children ?? []).forEach(child => {
-      const built = buildGroup(child);
-      if (built) {
-        children.push(built);
-      }
-    });
     (group.columns ?? []).forEach(key => {
       columnsForIdentifier(key).forEach(column => {
         used.add(column.key);
         children.push(toColDef(column));
       });
+    });
+    (group.children ?? []).forEach(child => {
+      const built = buildGroup(child);
+      if (built) {
+        children.push(built);
+      }
     });
     if (children.length === 0) {
       return null;

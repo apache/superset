@@ -700,9 +700,12 @@ const transformProps = (
     : '';
 
   const [metrics, percentMetrics, columns] = processColumns(chartProps);
+  const comparisonMetricKeys = columns
+    .filter(col => (col.isMetric || col.isPercentMetric) && col.isNumeric)
+    .map(col => col.key);
   const resolvedHeaderGroups = resolveHeaderGroups(headerGroups, {
     timeCompareEnabled: isUsingTimeComparison,
-    metricKeys: [...metrics, ...percentMetrics],
+    metricKeys: comparisonMetricKeys,
     verboseMap: chartProps.datasource?.verboseMap,
   });
   let comparisonColumns: DataColumnMeta[] = [];

@@ -141,7 +141,9 @@ test('AgGridTableChart nests columns in header groups', async () => {
   const nestedColumnHeader = Array.from(
     groupCell?.querySelectorAll('.ag-header-cell-text') ?? [],
   ).find(cell => cell.textContent === 'sum__num');
-  const leafCell = Array.from(document.querySelectorAll('.ag-header-cell')).find(
+  const leafCell = Array.from(
+    document.querySelectorAll('.ag-header-cell'),
+  ).find(
     cell =>
       cell.querySelector('.ag-header-cell-text')?.textContent === 'sum__num',
   );

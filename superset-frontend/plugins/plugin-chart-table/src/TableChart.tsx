@@ -879,7 +879,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     const visible = filteredColumnsMeta.filter(
       col => col.config?.visible !== false,
     );
-    if (hasRenderableHeaderGroups(headerGroups)) {
+    if (
+      hasRenderableHeaderGroups(
+        headerGroups,
+        visible.map(column => column.key),
+      )
+    ) {
       return orderColumnsByHeaderGroups(visible, headerGroups);
     }
     return visible;
@@ -963,7 +968,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   };
 
   const renderGroupingHeaders = (): JSX.Element => {
-    if (hasRenderableHeaderGroups(headerGroups)) {
+    if (
+      hasRenderableHeaderGroups(
+        headerGroups,
+        visibleColumnsMeta.map(column => column.key),
+      )
+    ) {
       return renderMultiLevelHeaders();
     }
 
@@ -1743,7 +1753,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         sticky={sticky}
         renderGroupingHeaders={
           !isEmpty(groupHeaderColumns) ||
-          hasRenderableHeaderGroups(headerGroups)
+          hasRenderableHeaderGroups(
+            headerGroups,
+            visibleColumnsMeta.map(column => column.key),
+          )
             ? renderGroupingHeaders
             : undefined
         }
