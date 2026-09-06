@@ -231,6 +231,10 @@ class DashboardJSONMetadataSchema(Schema):
     remote_id = fields.Integer()
     filter_bar_orientation = fields.Str(allow_none=True)
     native_filter_migration = fields.Dict()
+    async_mode = fields.Str(
+        allow_none=True,
+        validate=OneOf(["default", "force_on", "force_off"]),
+    )
 
     @pre_load
     def remove_show_native_filters(  # pylint: disable=unused-argument

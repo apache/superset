@@ -2502,6 +2502,21 @@ LATERAL generate_series(1, value) AS i;
         ),
         # not really valid SQL, but let's roll with it
         ("SELECT * FROM my_table LIMIT invalid", "postgresql", None),
+        # A ClickHouse `LIMIT ... BY` caps rows per group, not overall, so it is
+        # not a row limit. sqlglot hangs the `BY` columns off the `Limit` node,
+        # or off the `Offset` node for the `OFFSET` / `m, n` spellings.
+        ("SELECT * FROM t ORDER BY id, val LIMIT 2 BY id", "clickhouse", None),
+        ("SELECT * FROM t ORDER BY id, val LIMIT 2 BY id, val", "clickhouse", None),
+        (
+            "SELECT * FROM t ORDER BY id, val LIMIT 2 OFFSET 1 BY id",
+            "clickhouse",
+            None,
+        ),
+        ("SELECT * FROM t ORDER BY id, val LIMIT 1, 2 BY id", "clickhouse", None),
+        # ... while a plain ClickHouse limit, with or without an offset, is.
+        ("SELECT * FROM t ORDER BY c LIMIT 555", "clickhouse", 555),
+        ("SELECT * FROM t LIMIT 5 OFFSET 3", "clickhouse", 5),
+        ("SELECT * FROM t LIMIT 3, 5", "clickhouse", 5),
     ],
 )
 def test_get_limit_value(sql: str, engine: str, expected: str) -> None:
@@ -2717,6 +2732,158 @@ LIMIT 1000
             LimitMethod.FETCH_MANY,
             "SELECT\n  *\nFROM birth_names\nLIMIT 555",
         ),
+        # A ClickHouse `LIMIT ... BY` shares the `limit`/`offset` slot with the
+        # row limit, so `FORCE_LIMIT` wraps instead of overwriting it.
+        (
+            "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 BY id",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id,
+    val
+  LIMIT 2 BY id
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 BY id, val",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id,
+    val
+  LIMIT 2 BY id, val
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        # For `LIMIT n OFFSET m BY x` sqlglot hangs the `BY` columns off the
+        # `Offset` node instead, so the `limit` arg alone doesn't reveal them.
+        (
+            "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 OFFSET 1 BY id",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id,
+    val
+  LIMIT 2
+  OFFSET 1 BY id
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM limit_by ORDER BY id, val LIMIT 1, 2 BY id",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id,
+    val
+  LIMIT 2
+  OFFSET 1 BY id
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        # `WITH TOTALS` rides into the subquery untouched: ClickHouse keeps
+        # emitting the totals block for a wrapped query, so the cap really is
+        # the only thing the rewrite adds.
+        (
+            "SELECT id, count() AS c FROM limit_by "
+            "GROUP BY id WITH TOTALS ORDER BY id LIMIT 2 BY id",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    id,
+    count() AS c
+  FROM limit_by
+  GROUP BY
+    id
+  WITH TOTALS
+  ORDER BY
+    id
+  LIMIT 2 BY id
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        # `SETTINGS` and `FORMAT` do not survive a demotion into the subquery,
+        # so they move up onto the wrapper instead.
+        (
+            "SELECT * FROM limit_by ORDER BY id LIMIT 2 BY id "
+            "SETTINGS extremes = 1 FORMAT JSONCompact",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id
+  LIMIT 2 BY id
+)
+LIMIT 1001
+SETTINGS extremes = 1
+FORMAT JSONCompact
+            """.strip(),
+        ),
+        # A ClickHouse limit without a `BY` still takes the in-place path.
+        (
+            "SELECT * FROM t ORDER BY c LIMIT 555",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM t\nORDER BY\n  c\nLIMIT 1001",
+        ),
+        (
+            "SELECT * FROM t LIMIT 5 OFFSET 3",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM t\nLIMIT 1001\nOFFSET 3",
+        ),
     ],
 )
 def test_set_limit_value(
@@ -2729,6 +2896,88 @@ def test_set_limit_value(
     statement = SQLStatement(sql, engine)
     statement.set_limit_value(limit, method)
     assert statement.format() == expected
+
+
+@pytest.mark.parametrize("engine", ["clickhouse", "clickhousedb"])
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 BY id",
+        "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 BY id, val",
+        "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 OFFSET 1 BY id",
+        "SELECT * FROM limit_by ORDER BY id, val LIMIT 1, 2 BY id",
+    ],
+)
+def test_set_limit_value_preserves_clickhouse_limit_by(sql: str, engine: str) -> None:
+    """
+    A row limit must not cannibalize a ClickHouse ``LIMIT ... BY``.
+
+    ``LIMIT 2 BY id`` keeps 2 rows *per id*; ``FORCE_LIMIT`` used to build a
+    fresh ``Limit`` node over ``args["limit"]``, dropping the ``BY`` columns and
+    turning the query into a flat ``LIMIT 1001`` -- a different result set, with
+    no error to hint at it. ``get_limit_value()`` reported the per-group 2 as a
+    row cap on top of that, so ``_set_query_limit()`` clamped the query to 2 rows.
+
+    The cap can't simply be appended next to the ``BY`` either: sqlglot cannot
+    parse ClickHouse's own ``LIMIT n BY x LIMIT m`` ("Found multiple 'LIMIT'
+    clauses"), so the result would not survive a reparse. Wrapping the query is
+    what keeps both the grouping and the cap.
+    """
+    statement = SQLStatement(sql, engine)
+    assert statement.get_limit_value() is None
+
+    statement.set_limit_value(1001, LimitMethod.FORCE_LIMIT)
+    limited = statement.format()
+
+    assert "BY id" in limited
+    assert limited.endswith("LIMIT 1001")
+    # The rewrite has to be valid ClickHouse, not just valid-looking.
+    assert SQLStatement(limited, engine).format() == limited
+
+
+def test_set_limit_value_keeps_clickhouse_top_level_modifiers() -> None:
+    """
+    The wrap must not demote clauses that only work at the top level.
+
+    ClickHouse rejects `FORMAT` inside a subquery outright, and a `SETTINGS`
+    attached to a subquery binds to that subquery alone -- top-level-only
+    settings such as ``extremes`` would silently stop applying. Both therefore
+    move onto the wrapper, which is where the original query had them.
+
+    The row-producing modifiers are left alone, because ClickHouse honors them
+    inside a `FROM` subquery: a wrapped `WITH TOTALS` query still emits its
+    totals block, and `WITH ROLLUP`/`WITH CUBE` still emit their extra rows.
+    Hoisting those would change the result rather than preserve it.
+    """
+    statement = SQLStatement(
+        "SELECT id, count() AS c FROM limit_by "
+        "GROUP BY id WITH TOTALS ORDER BY id LIMIT 2 BY id "
+        "SETTINGS extremes = 1 FORMAT JSONCompact",
+        "clickhouse",
+    )
+    statement.set_limit_value(1001, LimitMethod.FORCE_LIMIT)
+    limited = statement.format()
+
+    assert limited.endswith("LIMIT 1001\nSETTINGS extremes = 1\nFORMAT JSONCompact")
+    # `WITH TOTALS` stays with the aggregation it belongs to.
+    assert "WITH TOTALS\n" in limited.split("LIMIT 2 BY id")[0]
+    assert SQLStatement(limited, "clickhouse").format() == limited
+
+
+@pytest.mark.parametrize(
+    "engine", ["clickhouse", "clickhousedb", "postgresql", "mysql"]
+)
+def test_set_limit_value_without_limit_by_stays_in_place(engine: str) -> None:
+    """
+    Queries with no ``LIMIT ... BY`` keep the cheaper in-place rewrite.
+
+    The wrap is reserved for the ``LIMIT ... BY`` case; everything else -- every
+    non-ClickHouse dialect, and ClickHouse's own plain ``LIMIT`` -- must still
+    have its limit replaced without gaining a subquery.
+    """
+    statement = SQLStatement("SELECT * FROM t ORDER BY c LIMIT 555", engine)
+    statement.set_limit_value(1001, LimitMethod.FORCE_LIMIT)
+    assert statement.format() == "SELECT\n  *\nFROM t\nORDER BY\n  c\nLIMIT 1001"
 
 
 @pytest.mark.parametrize(

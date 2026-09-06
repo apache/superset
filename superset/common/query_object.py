@@ -167,6 +167,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.from_dttm = kwargs.get("from_dttm")
         self.to_dttm = kwargs.get("to_dttm")
         self.result_type = kwargs.get("result_type")
+        # Per-query forced-refresh idempotency nonce (the async task's UUID). Set
+        # on the async read-back so a re-issued force reads the warmed result the
+        # task cached instead of recomputing; see QueryContextProcessor.
+        self.force_nonce = kwargs.get("force_nonce")
         self.time_offsets = kwargs.get("time_offsets", [])
         self.time_compare_full_range = kwargs.get("time_compare_full_range", False)
         self.inner_from_dttm = kwargs.get("inner_from_dttm")
