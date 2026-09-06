@@ -22,7 +22,7 @@ import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterCon
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { OptionSortType } from 'src/explore/types';
 import { useGetTimeRangeLabel } from 'src/explore/components/controls/FilterControl/utils';
-import { isMirroredColumn } from 'src/explore/components/PartitionPruningIndicator';
+import { isMirroredFilter } from 'src/explore/components/PartitionPruningIndicator';
 import type { PartitionFilterMapping } from '@superset-ui/chart-controls';
 import OptionWrapper from './OptionWrapper';
 import { datasetLabelLower } from 'src/features/semanticLayers/label';
@@ -57,13 +57,9 @@ export default function DndAdhocFilterOption({
     | PartitionFilterMapping
     | null
     | undefined;
-  const subject = adhocFilter.subject as
-    | string
-    | { column_name?: string }
-    | null
-    | undefined;
-  const subjectName =
-    typeof subject === 'string' ? subject : subject?.column_name;
+  // Naming the mapped column is not enough: the operator and the value decide
+  // whether the query actually carries a partition predicate.
+  const isMirrored = isMirroredFilter(partitionMapping, adhocFilter);
 
   return (
     <AdhocFilterPopoverTrigger
@@ -84,11 +80,7 @@ export default function DndAdhocFilterOption({
         type={DndItemType.FilterOption}
         withCaret
         isExtra={adhocFilter.isExtra}
-        partitionMapping={
-          isMirroredColumn(partitionMapping, subjectName)
-            ? partitionMapping
-            : undefined
-        }
+        partitionMapping={isMirrored ? partitionMapping : undefined}
         datasourceWarningMessage={
           adhocFilter.datasourceWarning
             ? t(

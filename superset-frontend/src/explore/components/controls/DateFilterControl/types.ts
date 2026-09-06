@@ -122,8 +122,9 @@ export interface DateFilterControlProps {
   tooltipOnClick?: () => void;
   /**
    * The dataset's partition filter mapping, injected by the control's
-   * `mapStateToProps`. Present and active means this time range is also
-   * applied to a partition column.
+   * `mapStateToProps` and already gated there: it is `null` unless *this* time
+   * range is mirrored onto the partition column. The control renders it as-is,
+   * so nothing further has to be checked here.
    */
   partitionMapping?: PartitionFilterMapping | null;
 }

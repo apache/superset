@@ -52,9 +52,10 @@ export function mappedColumnIsImplicit(
 /**
  * Whether the mapping will actually mirror anything.
  *
- * Deliberately the same cheap signals the backend's summary uses: a mapping
- * with no transform is configured but inert, and saying so is the point of the
- * warning in wireframe 1g.
+ * "Inert" here means only "no transform entered yet", which is the point of the
+ * warning in wireframe 1g. A transform that is present but unusable -- no
+ * `:value`, a Jinja block, unparseable -- is reported by the transform field's
+ * own validation instead, so this does not repeat those checks.
  */
 export function mappingIsActive(
   datasource: PartitionMappingDatasource,
