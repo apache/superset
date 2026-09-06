@@ -47,8 +47,83 @@ from superset.mcp_service.chart.tool.get_chart_preview import (
     ASCIIPreviewStrategy,
     PreviewFormatStrategy,
     TablePreviewStrategy,
+    VegaLitePreviewStrategy,
 )
 from superset.utils import json as utils_json
+
+
+def _gauge_chart() -> SimpleNamespace:
+    """Build a saved Gauge chart with its native form_data controls."""
+    return SimpleNamespace(
+        id=104,
+        slice_name="SLA Gauge",
+        viz_type="gauge_chart",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {
+                "viz_type": "gauge_chart",
+                "metric": "saved_sla",
+                "groupby": ["team"],
+                "row_limit": 3,
+                "min_val": 0,
+                "max_val": 100,
+                "value_formatter": "{value}%",
+            }
+        ),
+    )
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_gauge_ascii_preview_uses_native_row_limit_and_renderer(
+    mock_build_query_context, mock_command
+) -> None:
+    query_context = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["saved_sla"], columns=["team"])]
+    )
+    mock_build_query_context.return_value = query_context
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"team": "Blue", "saved_sla": 88}]}]
+    }
+
+    preview = ASCIIPreviewStrategy(
+        _gauge_chart(), GetChartPreviewRequest(identifier=104, format="ascii")
+    ).generate()
+
+    assert isinstance(preview, ASCIIPreview)
+    assert "Gauge Chart" in preview.ascii_content
+    assert "Blue" in preview.ascii_content
+    assert "88%" in preview.ascii_content
+    assert mock_build_query_context.call_args.kwargs["row_limit"] == 3
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_gauge_vega_preview_surfaces_runtime_metric_error(
+    mock_build_query_context, mock_command
+) -> None:
+    mock_build_query_context.return_value = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["saved_sla"], columns=["team"])]
+    )
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"team": "Blue", "saved_sla": "bad"}]}]
+    }
+
+    preview = VegaLitePreviewStrategy(
+        _gauge_chart(), GetChartPreviewRequest(identifier=104, format="vega_lite")
+    ).generate()
+
+    assert isinstance(preview, ChartError)
+    assert preview.error_type == "NonNumericGaugeMetric"
 
 
 class TestPreviewXAxisInQueryContext:

@@ -31,6 +31,7 @@ from superset.mcp_service.chart.schemas import (
     AxisConfig,
     ColumnRef,
     FilterConfig,
+    GaugeChartConfig,
     GenerateExploreLinkRequest,
     LegendConfig,
     TableChartConfig,
@@ -45,6 +46,42 @@ from superset.mcp_service.common.error_schemas import DatasetContext
 generate_explore_link_module = importlib.import_module(
     "superset.mcp_service.explore.tool.generate_explore_link"
 )
+
+
+@patch.object(generate_explore_link_module, "validate_and_compile")
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_gauge_fastmcp_entry_compiles_and_returns_native_form_data(
+    mock_find_dataset, mock_validate, mcp_server
+) -> None:
+    """The public Gauge request reaches compile and a native Explore payload."""
+    from superset.mcp_service.chart.compile import CompileResult
+
+    mock_find_dataset.return_value = _mock_dataset(id=3)
+    mock_validate.return_value = CompileResult(success=True)
+    request = GenerateExploreLinkRequest(
+        dataset_id="3",
+        config=GaugeChartConfig(
+            chart_type="gauge",
+            metric={"name": "num", "aggregate": "AVG"},
+            min_val=0,
+            max_val=100,
+            number_format=",.1f",
+        ),
+    )
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "generate_explore_link", {"request": request.model_dump()}
+        )
+
+    assert result.structured_content["success"] is True
+    form_data = result.structured_content["form_data"]
+    assert form_data["viz_type"] == "gauge_chart"
+    assert form_data["metric"]["label"] == "AVG(num)"
+    assert form_data["number_format"] == ",.1f"
+    assert mock_validate.call_args.kwargs["run_compile_check"] is True
+
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)

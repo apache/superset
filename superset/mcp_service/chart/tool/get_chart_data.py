@@ -45,6 +45,10 @@ from superset.mcp_service.chart.chart_helpers import (
     merge_extra_form_data_filters_into_query,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.query_result import (
+    query_result_failure,
+    validate_gauge_query_result,
+)
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -576,6 +580,20 @@ async def get_chart_data(  # noqa: C901
             # The query_context contains all the information needed to reproduce
             # the chart's data exactly as shown in the visualization
             query_context_json = None
+            if using_unsaved_state and cached_form_data_dict is not None:
+                form_data = cached_form_data_dict
+            else:
+                try:
+                    parsed_saved_form_data = (
+                        utils_json.loads(chart.params) if chart.params else {}
+                    )
+                    form_data = (
+                        parsed_saved_form_data
+                        if isinstance(parsed_saved_form_data, dict)
+                        else {}
+                    )
+                except (TypeError, ValueError):
+                    form_data = {}
 
             # If using cached form_data, we need to build query_context from it
             if using_unsaved_state and cached_form_data_dict is not None:
@@ -620,7 +638,6 @@ async def get_chart_data(  # noqa: C901
                     "Consider re-saving the chart to enable full data retrieval."
                 )
                 # Try to construct from form_data as a fallback
-                form_data = utils_json.loads(chart.params) if chart.params else {}
                 from superset.common.query_context_factory import QueryContextFactory
 
                 factory = QueryContextFactory()
@@ -746,6 +763,11 @@ async def get_chart_data(  # noqa: C901
                 command = ChartDataCommand(query_context)
                 command.validate()
                 result = command.run()
+
+            if query_failure := query_result_failure(result):
+                return query_failure
+            if gauge_failure := validate_gauge_query_result(result, form_data):
+                return gauge_failure
 
             if rejected := _rejected_requested_filter_columns(
                 result, request.extra_form_data
@@ -1108,6 +1130,11 @@ async def _query_from_form_data(  # noqa: C901
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
+
+        if query_failure := query_result_failure(result):
+            return query_failure
+        if gauge_failure := validate_gauge_query_result(result, form_data):
+            return gauge_failure
 
         if rejected := _rejected_requested_filter_columns(
             result, request.extra_form_data

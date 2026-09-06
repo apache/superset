@@ -23,9 +23,10 @@ import importlib
 from contextlib import nullcontext
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
+from fastmcp import Client
 
 from superset.mcp_service.chart.schemas import (
     ChartData,
@@ -486,6 +487,79 @@ class _AsyncContext:
 
 
 class TestUnsavedChartDataQueryConstruction:
+    @pytest.mark.asyncio
+    async def test_gauge_preserves_sort_order_and_validates_saved_metric_output(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Unsaved Gauge get-data uses buildQuery ordering and numeric checks."""
+        chart_data_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+        captured: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured.append(kwargs)
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"team": "Blue", "saved_sla": 98.5}],
+                            "colnames": ["team", "saved_sla"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        monkeypatch.setattr(
+            query_context_factory_module, "QueryContextFactory", QueryContextFactory
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+        monkeypatch.setattr(
+            chart_data_module,
+            "event_logger",
+            SimpleNamespace(log_context=lambda **kwargs: nullcontext()),
+        )
+        monkeypatch.setattr(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            lambda datasource_id, datasource_type: "base",
+        )
+        result = await _query_from_form_data(
+            {
+                "datasource": "1__table",
+                "viz_type": "gauge_chart",
+                "metric": "saved_sla",
+                "groupby": ["team"],
+                "sort_by_metric": True,
+                "row_limit": 5,
+            },
+            GetChartDataRequest(form_data_key="cached-key"),
+            _AsyncContext(),
+        )
+
+        assert not isinstance(result, ChartError)
+        query = captured[0]["queries"][0]
+        assert query["metrics"] == ["saved_sla"]
+        assert query["orderby"] == [("saved_sla", False)]
+        assert query["row_limit"] == 5
+
     @pytest.mark.asyncio
     async def test_form_data_key_adhoc_filters_become_query_filters(
         self,
@@ -1646,6 +1720,84 @@ class TestSavedChartExtraFormDataFilters:
         assert "does_not_exist" in data["error"]
         assert "USA" not in result.content[0].text
 
+    @pytest.mark.asyncio
+    async def test_saved_gauge_fastmcp_entry_rejects_text_metric_result(
+        self, mcp_server: Any, mock_auth: Any
+    ) -> None:
+        """Saved Gauge query results are numeric-checked at the public tool."""
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        chart = SimpleNamespace(
+            id=10,
+            slice_name="SLA",
+            viz_type="gauge_chart",
+            datasource_id=1,
+            datasource_type="table",
+            query_context=json.dumps(
+                {
+                    "datasource": {"id": 1, "type": "table"},
+                    "queries": [
+                        {
+                            "columns": ["team"],
+                            "metrics": ["saved_sla"],
+                            "row_limit": 10,
+                        }
+                    ],
+                }
+            ),
+            params=json.dumps(
+                {
+                    "viz_type": "gauge_chart",
+                    "metric": "saved_sla",
+                    "groupby": ["team"],
+                }
+            ),
+        )
+
+        def fake_load(self: Any, data: dict[str, Any]) -> Any:
+            return SimpleNamespace(
+                queries=[
+                    SimpleNamespace(
+                        filter=[],
+                        time_range=None,
+                        to_dict=lambda: dict(data["queries"][0]),
+                    )
+                ],
+                form_data={},
+            )
+
+        class Command:
+            def __init__(self, query_context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [{"data": [{"team": "Blue", "saved_sla": "unknown"}]}]
+                }
+
+        with (
+            patch.object(module, "find_chart_by_identifier", return_value=chart),
+            patch.object(
+                module,
+                "validate_chart_dataset",
+                return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+            ),
+            patch(
+                "superset.charts.schemas.ChartDataQueryContextSchema.load", fake_load
+            ),
+            patch(
+                "superset.commands.chart.data.get_data_command.ChartDataCommand",
+                Command,
+            ),
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "get_chart_data", {"request": {"identifier": "10"}}
+                )
+
+        data = json.loads(result.content[0].text)
+        assert data["error_type"] == "NonNumericGaugeMetric"
+
 
 class TestOAuthErrorRouting:
     """Query-time OAuth errors must reach the dedicated OAuth handlers.
@@ -1914,6 +2066,14 @@ def test_recommend_multiple_numeric_suggests_scatter():
 def test_recommend_single_numeric_suggests_kpi():
     cols = [_col("total_revenue", "numeric")]
     result = _recommend_visualizations("table", cols, row_count=1)
+    assert "big number / KPI" in result
+    assert "gauge chart" in result
+
+
+def test_recommend_single_numeric_excludes_current_gauge():
+    cols = [_col("total_revenue", "numeric")]
+    result = _recommend_visualizations("gauge_chart", cols, row_count=1)
+    assert "gauge chart" not in result
     assert "big number / KPI" in result
 
 

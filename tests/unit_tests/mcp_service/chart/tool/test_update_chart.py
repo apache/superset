@@ -34,6 +34,7 @@ from superset.mcp_service.chart.schemas import (
     AxisConfig,
     ColumnRef,
     FilterConfig,
+    GaugeChartConfig,
     GenerateChartResponse,
     LegendConfig,
     TableChartConfig,
@@ -1256,14 +1257,99 @@ class TestBuildPreviewFormData:
         result = _build_preview_form_data(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
-        # Existing keys not touched by the new config are preserved
-        assert result["custom_flag"] is True
+        # Cross-viz updates do not inherit stale controls from the prior plugin.
+        assert "custom_flag" not in result
         # New config overrides existing keys
         assert result["viz_type"] == "table"
         # slice_id and datasource are always stamped onto the preview
         assert result["slice_id"] == 42
         assert result["datasource"] == "7__table"
         assert result["slice_name"] == "Existing"
+
+    def test_gauge_saved_and_preview_updates_use_identical_preserving_merge(self):
+        existing = {
+            "viz_type": "gauge_chart",
+            "metric": "saved_sla",
+            "groupby": ["region"],
+            "min_val": 0,
+            "max_val": 100,
+            "font_size": 19,
+            "number_format": ",.1f",
+            "show_pointer": False,
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "expressionType": "SIMPLE",
+                    "subject": "country",
+                    "operator": "==",
+                    "comparator": "US",
+                }
+            ],
+        }
+        config = GaugeChartConfig(
+            chart_type="gauge",
+            metric={"name": "score", "aggregate": "AVG"},
+            max_val=120,
+        )
+        request = UpdateChartRequest(identifier=1, config=config)
+        chart = Mock(
+            id=42,
+            datasource_id=7,
+            slice_name="Existing",
+            params=json.dumps(existing),
+        )
+
+        preview = _build_preview_form_data(request, chart, parsed_config=config)
+        payload = _build_update_payload(request, chart, parsed_config=config)
+
+        assert isinstance(preview, dict)
+        assert isinstance(payload, dict)
+        saved = json.loads(payload["params"])
+        for key in (
+            "metric",
+            "groupby",
+            "min_val",
+            "max_val",
+            "font_size",
+            "number_format",
+            "show_pointer",
+            "adhoc_filters",
+        ):
+            assert preview[key] == saved[key]
+        assert saved["groupby"] == ["region"]
+        assert saved["max_val"] == 120
+
+    def test_gauge_dataset_rebind_scrubs_old_roles_in_both_paths(self):
+        config = GaugeChartConfig(
+            chart_type="gauge",
+            metric={"name": "new_score", "aggregate": "AVG"},
+        )
+        request = UpdateChartRequest(identifier=1, dataset_id=8, config=config)
+        chart = Mock(
+            id=42,
+            datasource_id=7,
+            slice_name="Existing",
+            params=json.dumps(
+                {
+                    "viz_type": "gauge_chart",
+                    "metric": "old_score",
+                    "groupby": ["old_group"],
+                    "font_size": 18,
+                    "adhoc_filters": [{"subject": "old_filter"}],
+                }
+            ),
+        )
+
+        preview = _build_preview_form_data(request, chart, parsed_config=config)
+        payload = _build_update_payload(request, chart, parsed_config=config)
+
+        assert isinstance(preview, dict)
+        assert isinstance(payload, dict)
+        saved = json.loads(payload["params"])
+        assert preview["datasource"] == saved["datasource"] == "8__table"
+        assert "groupby" not in preview
+        assert "adhoc_filters" not in preview
+        assert preview["font_size"] == saved["font_size"] == 18
 
     def test_partial_column_config_merges_saved_ui_settings(self) -> None:
         config = TableChartConfig.model_validate(

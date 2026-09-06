@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import difflib
 import logging
+import math
 import re
 from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal, Protocol
@@ -56,6 +57,7 @@ from superset.mcp_service.common.pagination_schemas import (
     PaginatedListRequest,
     PaginatedResponse,
 )
+from superset.mcp_service.common.time_range_validation import validate_time_range
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
     strip_user_directory_fields_from_schema,
@@ -1055,9 +1057,11 @@ class GaugeChartConfig(BaseChartConfig):
     (both default to auto).
     """
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(
+        extra="ignore", populate_by_name=True, allow_inf_nan=False
+    )
 
-    chart_type: Literal["gauge_chart"] = "gauge_chart"
+    chart_type: Literal["gauge"] = "gauge"
     metric: ColumnRef = Field(
         ...,
         description="Value metric the dial displays (use aggregate e.g. AVG, "
@@ -1093,10 +1097,168 @@ class GaugeChartConfig(BaseChartConfig):
         ),
         max_length=100,
     )
+    font_size: int = Field(15, description="Gauge text size", ge=10, le=20)
+    number_format: str = Field(
+        "SMART_NUMBER", description="D3 number format", max_length=50
+    )
+    currency_format: CurrencyFormat | None = Field(
+        None, description="Currency symbol applied to the gauge value"
+    )
+    value_formatter: str = Field(
+        "{value}",
+        description="Value template; {value} is replaced with the formatted metric",
+        max_length=200,
+    )
+    start_angle: float = Field(225, description="Gauge start angle in degrees")
+    end_angle: float = Field(-45, description="Gauge end angle in degrees")
+    show_pointer: bool = Field(True, description="Show the gauge pointer")
+    animation: bool = Field(True, description="Animate gauge value changes")
+    show_axis_tick: bool = Field(False, description="Show minor axis ticks")
+    show_split_line: bool = Field(False, description="Show axis split lines")
+    split_number: int = Field(10, description="Number of axis segments", ge=3, le=30)
+    show_progress: bool = Field(True, description="Show the progress arc")
+    overlap: bool = Field(
+        True, description="Overlap progress arcs when multiple groups are present"
+    )
+    round_cap: bool = Field(False, description="Use rounded progress-arc caps")
+    intervals: str = Field(
+        "",
+        description="Comma-separated interval upper bounds",
+        max_length=1000,
+    )
+    interval_color_indices: str = Field(
+        "",
+        description="Comma-separated 1-based color indices for intervals",
+        max_length=1000,
+    )
+    time_range: str | None = Field(
+        None,
+        description="Optional Superset time range applied to the gauge query",
+        max_length=1000,
+    )
+    granularity_sqla: str | None = Field(
+        None,
+        description="Temporal column associated with time_range in native form_data",
+        min_length=1,
+        max_length=255,
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def adapt_native_form_data(cls, data: Any) -> Any:  # noqa: C901
+        """Accept the Gauge plugin's native form_data without weakening typing."""
+        if not isinstance(data, dict):
+            return data
+        data = dict(data)
+
+        # ``gauge`` is the public MCP discriminator; ``gauge_chart`` remains
+        # the native frontend viz_type and is accepted only as an input alias.
+        if data.get("chart_type") == "gauge_chart" or (
+            "chart_type" not in data and data.get("viz_type") == "gauge_chart"
+        ):
+            data["chart_type"] = "gauge"
+        data.pop("viz_type", None)
+
+        # These identify the Explore/chart envelope, not Gauge controls.
+        for key in (
+            "datasource",
+            "datasource_id",
+            "datasource_name",
+            "datasource_type",
+            "form_data_key",
+            "slice_id",
+            "slice_name",
+            "url",
+        ):
+            data.pop(key, None)
+        data.pop("_mcp_dashboard_time_filter_subject", None)
+
+        metric = data.get("metric")
+        if isinstance(metric, str):
+            data["metric"] = {"name": metric, "saved_metric": True}
+        elif isinstance(metric, dict) and metric.get("expressionType") in {
+            "SIMPLE",
+            "SQL",
+        }:
+            expression_type = metric.get("expressionType")
+            if expression_type == "SQL":
+                data["metric"] = {
+                    "sql_expression": metric.get("sqlExpression"),
+                    "label": metric.get("label"),
+                }
+            else:
+                column = metric.get("column")
+                column_name = (
+                    column.get("column_name") or column.get("columnName")
+                    if isinstance(column, dict)
+                    else None
+                )
+                data["metric"] = {
+                    "name": column_name,
+                    "aggregate": metric.get("aggregate"),
+                    "label": metric.get("label"),
+                }
+
+        groupby = data.get("groupby")
+        if isinstance(groupby, str):
+            groupby = [groupby]
+        if isinstance(groupby, list):
+            data["groupby"] = [
+                {"name": value} if isinstance(value, str) else value
+                for value in groupby
+            ]
+
+        # Native SIMPLE filters are losslessly representable by FilterConfig.
+        # SQL adhoc filters remain intentionally unsupported on the typed MCP
+        # surface. TEMPORAL_RANGE is represented by time_range/granularity.
+        if "adhoc_filters" in data:
+            if "filters" in data:
+                raise ValueError("Use either filters or adhoc_filters, not both")
+            native_filters = data.pop("adhoc_filters")
+            if not isinstance(native_filters, list):
+                raise ValueError("adhoc_filters must be a list")
+            filters: list[dict[str, Any]] = []
+            for index, filter_ in enumerate(native_filters):
+                if not isinstance(filter_, dict):
+                    raise ValueError(f"adhoc_filters[{index}] must be an object")
+                if filter_.get("expressionType") not in (None, "SIMPLE"):
+                    raise ValueError(
+                        f"adhoc_filters[{index}] must use expressionType='SIMPLE'"
+                    )
+                if str(filter_.get("clause", "WHERE")).upper() != "WHERE":
+                    raise ValueError(f"adhoc_filters[{index}] must use clause='WHERE'")
+                operator = filter_.get("operator") or filter_.get("op")
+                subject = filter_.get("subject") or filter_.get("col")
+                comparator = filter_.get("comparator", filter_.get("val"))
+                if operator == "TEMPORAL_RANGE":
+                    if not isinstance(subject, str) or not subject:
+                        raise ValueError(
+                            f"adhoc_filters[{index}] has no temporal subject"
+                        )
+                    data.setdefault("granularity_sqla", subject)
+                    data.setdefault("time_range", comparator)
+                    continue
+                if operator == "==":
+                    operator = "="
+                filters.append({"column": subject, "op": operator, "value": comparator})
+            data["filters"] = filters
+        return data
+
+    @field_validator("time_range")
+    @classmethod
+    def validate_gauge_time_range(cls, value: str | None) -> str | None:
+        """Validate time ranges with the shared MCP parser contract."""
+        return validate_time_range(value)
 
     @model_validator(mode="after")
     def reject_metric_style_groupby(self) -> "GaugeChartConfig":
-        """groupby entries are dimensions, not metrics."""
+        """Require one numeric metric role and unique dimension roles."""
+        if not self.metric.is_metric:
+            raise ValueError(
+                "metric must define an aggregate, saved_metric=True, or a "
+                "sql_expression"
+            )
+        seen: set[str] = set()
         for i, col in enumerate(self.groupby or []):
             _reject_sql_expression_on_dimension(col, f"groupby[{i}]")
             if col.is_metric:
@@ -1105,6 +1267,13 @@ class GaugeChartConfig(BaseChartConfig):
                     "'aggregate'/'saved_metric' (metrics belong in the 'metric' "
                     "field)"
                 )
+            assert col.name is not None
+            normalized_name = col.name.casefold()
+            if normalized_name in seen:
+                raise ValueError(
+                    f"groupby[{i}] duplicates the dimension role '{col.name}'"
+                )
+            seen.add(normalized_name)
         return self
 
     @model_validator(mode="after")
@@ -1118,6 +1287,41 @@ class GaugeChartConfig(BaseChartConfig):
             raise ValueError(
                 f"min_val ({self.min_val}) must be less than max_val ({self.max_val})"
             )
+        return self
+
+    @model_validator(mode="after")
+    def validate_intervals(self) -> "GaugeChartConfig":
+        """Keep interval bounds finite, ordered, and aligned with color picks."""
+
+        def parse_numbers(value: str, field_name: str) -> list[float]:
+            if not value.strip():
+                return []
+            try:
+                parsed = [float(part.strip()) for part in value.split(",")]
+            except ValueError as ex:
+                raise ValueError(
+                    f"{field_name} must be a comma-separated list of numbers"
+                ) from ex
+            if not all(math.isfinite(number) for number in parsed):
+                raise ValueError(f"{field_name} values must be finite")
+            return parsed
+
+        bounds = parse_numbers(self.intervals, "intervals")
+        color_indices = parse_numbers(
+            self.interval_color_indices, "interval_color_indices"
+        )
+        if any(not number.is_integer() or number < 1 for number in color_indices):
+            raise ValueError("interval_color_indices must contain positive integers")
+        if color_indices and len(color_indices) != len(bounds):
+            raise ValueError(
+                "interval_color_indices must have the same length as intervals"
+            )
+        if any(left >= right for left, right in zip(bounds, bounds[1:], strict=False)):
+            raise ValueError("intervals must be strictly increasing")
+        if self.min_val is not None and any(bound <= self.min_val for bound in bounds):
+            raise ValueError("intervals must be greater than min_val")
+        if self.max_val is not None and any(bound > self.max_val for bound in bounds):
+            raise ValueError("intervals must not exceed max_val")
         return self
 
 
@@ -2376,7 +2580,7 @@ ChartConfig = Annotated[
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'gauge_chart', 'pivot_table', 'interactive_pivot', "
+            "'pie', 'gauge', 'pivot_table', 'interactive_pivot', "
             "'mixed_timeseries', 'handlebars', "
             "'big_number', 'histogram', 'box_plot', or 'waterfall'"
         ),
@@ -2408,6 +2612,7 @@ _VIZ_TYPE_TO_CHART_TYPE: dict[str, tuple[str, str | None]] = {
     "pivot_table_v2": ("pivot_table", None),
     "ag-grid-pivot-table": ("interactive_pivot", None),
     "histogram_v2": ("histogram", None),
+    "gauge_chart": ("gauge", None),
 }
 
 
