@@ -388,50 +388,32 @@ export default function HeaderGroupEditor({
   };
 
   const handleChange = (nextPath: number[], next: HeaderGroupConfig) => {
-    const nextDraft = updateHeaderGroupAt(
-      [draft],
-      toDraftPath(nextPath),
-      () => next,
-    )[0];
-    if (!nextDraft) {
-      return;
-    }
+    const nextDraft =
+      updateHeaderGroupAt([draft], toDraftPath(nextPath), () => next)[0] ??
+      draft;
     setDraft(nextDraft);
     persistDraftIfValid(nextDraft);
   };
 
   const handleAddChild = (nextPath: number[]) => {
-    const nextDraft = updateHeaderGroupAt(
-      [draft],
-      toDraftPath(nextPath),
-      current => ({
+    const nextDraft =
+      updateHeaderGroupAt([draft], toDraftPath(nextPath), current => ({
         ...current,
         children: [...(current.children ?? []), createHeaderGroup()],
-      }),
-    )[0];
-    if (nextDraft) {
-      setDraft(nextDraft);
-    }
+      }))[0] ?? draft;
+    setDraft(nextDraft);
   };
 
   const handleRemove = (nextPath: number[]) => {
-    const nextDraft = removeHeaderGroupAt([draft], toDraftPath(nextPath))[0];
-    if (!nextDraft) {
-      return;
-    }
+    const nextDraft =
+      removeHeaderGroupAt([draft], toDraftPath(nextPath))[0] ?? draft;
     setDraft(nextDraft);
     persistDraftIfValid(nextDraft);
   };
 
   const handleMove = (nextPath: number[], toIndex: number) => {
-    const nextDraft = moveHeaderGroupAt(
-      [draft],
-      toDraftPath(nextPath),
-      toIndex,
-    )[0];
-    if (!nextDraft) {
-      return;
-    }
+    const nextDraft =
+      moveHeaderGroupAt([draft], toDraftPath(nextPath), toIndex)[0] ?? draft;
     setDraft(nextDraft);
     persistDraftIfValid(nextDraft);
   };

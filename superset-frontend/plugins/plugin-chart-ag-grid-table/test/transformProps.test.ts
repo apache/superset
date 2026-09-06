@@ -372,6 +372,41 @@ test('retains saved percentage rules with automatic bounds when server paginatio
   ).toEqual(['metric_a', 'metric_b']);
 });
 
+test('reads comparison column config from a Main key', () => {
+  const result = transformProps(
+    createMockChartProps({
+      rawFormData: {
+        viz_type: 'table',
+        datasource: '1__table',
+        query_mode: QueryMode.Aggregate,
+        metrics: ['revenue'],
+        percent_metrics: [],
+        column_config: {
+          'Main revenue': { horizontalAlign: 'right' },
+        },
+        table_timestamp_format: '',
+        time_compare: ['1 year ago'],
+        comparison_type: ComparisonType.Values,
+      },
+      queriesData: [
+        {
+          data: [{ revenue: 100 }],
+          colnames: ['revenue'],
+          coltypes: [GenericDataType.Numeric],
+          rowcount: 1,
+          applied_filters: [],
+          rejected_filters: [],
+        },
+      ] as unknown as TableChartProps['queriesData'],
+    }),
+  );
+
+  const mainColumn = result.columns.find(column => column.label === 'Main');
+  expect(mainColumn?.config).toEqual(
+    expect.objectContaining({ horizontalAlign: 'right' }),
+  );
+});
+
 test('derives header groups from time comparison when header_groups is empty', () => {
   const result = transformProps(
     createMockChartProps({

@@ -156,6 +156,21 @@ test('collectUsedHeaderGroupColumns hides a base metric claimed by comparison co
   expect(used).not.toContain('AVG(sales)');
 });
 
+test('moveHeaderGroupAt no-ops on an empty path', () => {
+  expect(moveHeaderGroupAt(groups, [], 1)).toBe(groups);
+});
+
+test('moveHeaderGroupAt reorders top-level groups', () => {
+  const items: HeaderGroupConfig[] = [
+    { id: 'a', label: 'A', columns: [] },
+    { id: 'b', label: 'B', columns: [] },
+  ];
+  expect(moveHeaderGroupAt(items, [0], 1).map(group => group.id)).toEqual([
+    'b',
+    'a',
+  ]);
+});
+
 test('moveHeaderGroupAt reorders a nested subgroup', () => {
   const next = moveHeaderGroupAt(
     [

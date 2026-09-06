@@ -211,6 +211,14 @@ test('keeps comparison column hide toggles when time comparison header groups ar
   const props = transformProps(testData.comparison);
 
   const { container } = render(<TableChart {...props} sticky={false} />);
+  const hideToggle = container.querySelector('.anticon-minus-circle');
+  expect(hideToggle).toBeInTheDocument();
+
+  fireEvent.click(hideToggle as Element);
+  const showToggle = container.querySelector('.anticon-plus-circle');
+  expect(showToggle).toBeInTheDocument();
+
+  fireEvent.click(showToggle as Element);
   expect(container.querySelector('.anticon-minus-circle')).toBeInTheDocument();
 });
 

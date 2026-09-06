@@ -73,10 +73,11 @@ export function expandGroupColumnKey(
   const visible = new Set(visibleKeys);
   const candidates = visible.has(identifier)
     ? [identifier]
-    : [`%${identifier}`, ...getTimeComparisonColumnKeys(identifier)];
-  if (t('Main') !== 'Main') {
-    candidates.push(`Main ${identifier}`);
-  }
+    : [
+        `%${identifier}`,
+        ...getTimeComparisonColumnKeys(identifier),
+        `Main ${identifier}`,
+      ];
   const matchSet = new Set(candidates.filter(key => visible.has(key)));
   return visibleKeys.filter(key => matchSet.has(key));
 }

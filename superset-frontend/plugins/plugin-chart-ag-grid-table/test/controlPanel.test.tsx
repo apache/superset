@@ -29,6 +29,20 @@ import {
 } from '@superset-ui/chart-controls';
 import config from '../src/controlPanel';
 
+const findNamedControl = (name: string): ControlConfig | null => {
+  for (const section of config.controlPanelSections) {
+    if (!section) continue;
+    for (const row of section.controlSetRows) {
+      for (const control of row) {
+        if (isCustomControlItem(control) && control.name === name) {
+          return control.config;
+        }
+      }
+    }
+  }
+  return null;
+};
+
 const findConditionalFormattingControl = (): ControlConfig | null => {
   for (const section of config.controlPanelSections) {
     if (!section) continue;
@@ -254,6 +268,26 @@ const createMockMetricsControlState = (): ControlState => ({
   label: '',
   default: undefined,
   renderTrigger: false,
+});
+
+test('column_config mapStateToProps expands comparison columns for metrics', () => {
+  const controlConfig = findNamedControl('column_config');
+  const explore = {
+    ...createMockExplore(['1 year ago']),
+    form_data: {
+      ...createMockExplore(['1 year ago']).form_data,
+      metrics: ['col1'],
+    },
+  };
+  const result = controlConfig!.mapStateToProps!(
+    explore,
+    createMockControlStateForConditionalFormatting(),
+    createMockChart(),
+  );
+
+  expect(result.columnsPropsObject.colnames).toEqual(
+    expect.arrayContaining(['Main col1', '# col1', '△ col1', '% col1']),
+  );
 });
 
 test('metrics control includes non-filterable columns', () => {

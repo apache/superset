@@ -29,6 +29,7 @@ import type { ReactNode } from 'react';
 import HeaderGroupsControl from './HeaderGroupsControl';
 import HeaderGroupEditor from './HeaderGroupEditor';
 import { HeaderGroupConfig } from './types';
+import * as headerGroupUtils from './utils';
 
 jest.mock('@dnd-kit/core', () => {
   const actual = jest.requireActual('@dnd-kit/core');
@@ -276,6 +277,44 @@ test('moves a subgroup within its parent group', async () => {
 
   await userEvent.click(screen.getByText('Group 1'));
   await userEvent.click(screen.getAllByLabelText('Move group right')[0]);
+
+  expect(onChange).toHaveBeenCalledWith([
+    expect.objectContaining({
+      children: [
+        expect.objectContaining({ id: 'child-2' }),
+        expect.objectContaining({ id: 'child-1' }),
+      ],
+    }),
+  ]);
+});
+
+test('moves a subgroup left within its parent group', async () => {
+  const onChange = jest.fn();
+  render(
+    <HeaderGroupsControl
+      {...baseProps}
+      value={[
+        createGroup({
+          children: [
+            createGroup({
+              id: 'child-1',
+              label: 'Online',
+              columns: ['SUM(cost)'],
+            }),
+            createGroup({
+              id: 'child-2',
+              label: 'Offline',
+              columns: ['AVG(sales)'],
+            }),
+          ],
+        }),
+      ]}
+      onChange={onChange}
+    />,
+  );
+
+  await userEvent.click(screen.getByText('Group 1'));
+  await userEvent.click(screen.getAllByLabelText('Move group left')[1]);
 
   expect(onChange).toHaveBeenCalledWith([
     expect.objectContaining({
@@ -594,6 +633,25 @@ test('does not apply an incomplete draft group', async () => {
   }
   fireEvent.click(apply);
   expect(onChange).not.toHaveBeenCalled();
+});
+
+test('does not apply when the draft fails the save guard', async () => {
+  const onChange = jest.fn();
+  render(<HeaderGroupsControl {...baseProps} value={[]} onChange={onChange} />);
+
+  await userEvent.click(screen.getByText('Add group'));
+  await userEvent.type(screen.getByLabelText('Group name'), 'Sales');
+  await selectOption('SUM(sales)', 'Group columns');
+  const apply = screen.getByRole('button', { name: 'Apply' });
+  expect(apply).toBeEnabled();
+
+  const canSave = jest
+    .spyOn(headerGroupUtils, 'canSaveHeaderGroup')
+    .mockReturnValue(false);
+  await userEvent.click(apply);
+
+  expect(onChange).not.toHaveBeenCalled();
+  canSave.mockRestore();
 });
 
 test('reorders groups when a drag ends on another group', async () => {

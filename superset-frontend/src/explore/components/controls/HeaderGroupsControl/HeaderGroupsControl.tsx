@@ -43,7 +43,6 @@ import HeaderGroupEditor, { getGroupTitle } from './HeaderGroupEditor';
 import { HeaderGroupConfig, HeaderGroupsControlProps } from './types';
 import {
   collectUsedHeaderGroupColumns,
-  createHeaderGroup,
   headerGroupsHaveSameColumns,
   moveHeaderGroup,
   pruneStaleHeaderGroupColumns,
@@ -114,7 +113,6 @@ type SortableGroupRowProps = {
   columnOptions: NonNullable<HeaderGroupsControlProps['columnOptions']>;
   usedColumns: Set<string>;
   onChange: (path: number[], next: HeaderGroupConfig) => void;
-  onAddChild: (path: number[]) => void;
   onRemove: (path: number[]) => void;
 };
 
@@ -124,7 +122,6 @@ function SortableGroupRow({
   columnOptions,
   usedColumns,
   onChange,
-  onAddChild,
   onRemove,
 }: SortableGroupRowProps) {
   const {
@@ -168,7 +165,6 @@ function SortableGroupRow({
           columnOptions={columnOptions}
           usedColumns={usedColumns}
           onChange={onChange}
-          onAddChild={onAddChild}
           onRemove={onRemove}
         >
           <OptionControlContainer withCaret>
@@ -224,15 +220,6 @@ export default function HeaderGroupsControl({
     onChange?.([...groups, group]);
   };
 
-  const handleAddChild = (path: number[]) => {
-    onChange?.(
-      updateHeaderGroupAt(groups, path, group => ({
-        ...group,
-        children: [...(group.children ?? []), createHeaderGroup()],
-      })),
-    );
-  };
-
   const handleRemove = (path: number[]) => {
     onChange?.(removeHeaderGroupAt(groups, path));
   };
@@ -272,7 +259,6 @@ export default function HeaderGroupsControl({
                 columnOptions={columnOptions}
                 usedColumns={usedColumns}
                 onChange={handleGroupChange}
-                onAddChild={handleAddChild}
                 onRemove={handleRemove}
               />
             ))}

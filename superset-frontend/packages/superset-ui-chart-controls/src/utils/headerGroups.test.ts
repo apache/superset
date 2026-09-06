@@ -265,6 +265,12 @@ test('nestColDefsInHeaderGroups nests child groups that have matching columns', 
   ]);
 });
 
+test('expandGroupColumnKey matches a literal Main key', () => {
+  expect(expandGroupColumnKey('revenue', ['Main revenue'])).toEqual([
+    'Main revenue',
+  ]);
+});
+
 test('expandGroupColumnKey maps a metric to its time comparison columns', () => {
   const visible = [
     'region',
@@ -465,6 +471,7 @@ test('resolveHeaderGroups keeps user groups and renamed auto groups', () => {
 
 test('headerGroupsHaveSameColumns compares ids and nested columns', () => {
   expect(headerGroupsHaveSameColumns(chartGroups, chartGroups)).toBe(true);
+  expect(headerGroupsHaveSameColumns(chartGroups, [])).toBe(false);
   expect(
     headerGroupsHaveSameColumns(chartGroups, [
       { ...chartGroups[0], columns: ['profit'] },
