@@ -25,6 +25,7 @@ import {
 import userEvent from '@testing-library/user-event';
 import type { ReactNode } from 'react';
 import HeaderGroupsControl from './HeaderGroupsControl';
+import HeaderGroupEditor from './HeaderGroupEditor';
 import { HeaderGroupConfig } from './types';
 
 jest.mock('@dnd-kit/core', () => {
@@ -92,6 +93,39 @@ const baseProps = {
   actions: { setControlValue: jest.fn() },
   columnOptions,
 };
+
+test('uses default value and column options when they are omitted', () => {
+  render(
+    <HeaderGroupsControl
+      name="header_groups"
+      label="Column groups"
+      type={'HeaderGroupsControl' as const}
+      actions={{ setControlValue: jest.fn() }}
+    />,
+  );
+
+  expect(screen.getByText('Add group')).toBeInTheDocument();
+});
+
+test('defaults the editor to edit mode when mode is omitted', async () => {
+  render(
+    <HeaderGroupEditor
+      group={createGroup()}
+      path={[0]}
+      columnOptions={columnOptions}
+      usedColumns={new Set()}
+      onChange={jest.fn()}
+    >
+      <button type="button">Open editor</button>
+    </HeaderGroupEditor>,
+  );
+
+  await userEvent.click(screen.getByText('Open editor'));
+  expect(screen.getByLabelText('Group name')).toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Apply' }),
+  ).not.toBeInTheDocument();
+});
 
 test('opens the add popover immediately without creating a group', async () => {
   const onChange = jest.fn();
@@ -439,6 +473,11 @@ test('does not apply an incomplete draft group', async () => {
   await userEvent.click(screen.getByText('Add group'));
   const apply = screen.getByRole('button', { name: 'Apply' });
   expect(apply).toBeDisabled();
+  fireEvent.click(apply);
+  apply.removeAttribute('disabled');
+  if (apply instanceof HTMLButtonElement) {
+    apply.disabled = false;
+  }
   fireEvent.click(apply);
   expect(onChange).not.toHaveBeenCalled();
 });

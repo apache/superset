@@ -23,6 +23,7 @@ import {
   createHeaderGroup,
   headerGroupsHaveSameColumns,
   moveHeaderGroup,
+  normalizeSelectedColumns,
   pruneStaleHeaderGroupColumns,
   removeHeaderGroupAt,
   syncTimeComparisonGroups,
@@ -93,6 +94,18 @@ test('moveHeaderGroup returns the same list for invalid indexes', () => {
 test('updateHeaderGroupAt and removeHeaderGroupAt no-op on an empty path', () => {
   expect(updateHeaderGroupAt(groups, [], group => group)).toBe(groups);
   expect(removeHeaderGroupAt(groups, [])).toBe(groups);
+});
+
+test('normalizeSelectedColumns accepts strings and option objects', () => {
+  expect(normalizeSelectedColumns(undefined)).toEqual([]);
+  expect(normalizeSelectedColumns(['SUM(sales)'])).toEqual(['SUM(sales)']);
+  expect(normalizeSelectedColumns([{ value: 'AVG(sales)' }])).toEqual([
+    'AVG(sales)',
+  ]);
+});
+
+test('collectHeaderGroupColumns defaults to an empty list', () => {
+  expect(collectHeaderGroupColumns()).toEqual([]);
 });
 
 test('collectHeaderGroupColumns walks nested groups', () => {

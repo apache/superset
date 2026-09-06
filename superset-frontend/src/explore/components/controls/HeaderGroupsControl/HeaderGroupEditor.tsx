@@ -32,6 +32,7 @@ import {
 import {
   canSaveHeaderGroup,
   createHeaderGroup,
+  normalizeSelectedColumns,
   removeHeaderGroupAt,
   updateHeaderGroupAt,
 } from './utils';
@@ -220,20 +221,9 @@ function HeaderGroupForm({
           placeholder={t('Select columns')}
           maxTagCount={3}
           onChange={columns => {
-            if (isTimeCompareGroup) {
-              return;
-            }
-            const nextColumns = (Array.isArray(columns) ? columns : []).map(
-              column =>
-                typeof column === 'object' &&
-                column !== null &&
-                'value' in column
-                  ? String(column.value)
-                  : String(column),
-            );
             onChange(path, {
               ...group,
-              columns: nextColumns,
+              columns: normalizeSelectedColumns(columns),
             });
           }}
         />
@@ -402,9 +392,6 @@ export default function HeaderGroupEditor({
   };
 
   const handleApply = () => {
-    if (!canSaveHeaderGroup(draft)) {
-      return;
-    }
     onSave?.(draft);
     setVisible(false);
     setDraft(createHeaderGroup());

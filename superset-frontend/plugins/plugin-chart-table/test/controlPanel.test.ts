@@ -96,6 +96,23 @@ function getHeaderGroupsControl() {
   return item;
 }
 
+test('time comparison section is visible only in aggregate mode', () => {
+  const section = (config.controlPanelSections || []).find(
+    item => item && 'visibility' in item && item.label === 'Time Comparison',
+  );
+  expect(section?.visibility).toBeDefined();
+  expect(
+    section?.visibility?.({
+      controls: { query_mode: { value: QueryMode.Aggregate } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
+  expect(
+    section?.visibility?.({
+      controls: { query_mode: { value: QueryMode.Raw } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(false);
+});
+
 test('header_groups is always present without a visibility gate', () => {
   const item = getHeaderGroupsControl();
 

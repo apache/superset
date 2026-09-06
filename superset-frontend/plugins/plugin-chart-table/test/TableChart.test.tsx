@@ -181,6 +181,31 @@ test('transformProps retains percentage rules with automatic bounds under server
   expect(formatter?.getColorFromValue(2467063)).toBe('#FF0000FF');
 });
 
+test('defaults header groups to an empty list', () => {
+  const props = { ...transformProps(testData.basic) };
+  delete (props as { headerGroups?: unknown }).headerGroups;
+
+  const { container } = render(<TableChart {...props} sticky={false} />);
+  expect(container.querySelector('table')).toBeInTheDocument();
+  expect(
+    Array.from(container.querySelectorAll('thead th')).some(
+      th => th.textContent === 'Metrics',
+    ),
+  ).toBe(false);
+});
+
+test('renders time comparison grouping headers without configured header groups', () => {
+  const props = {
+    ...transformProps(testData.comparison),
+    headerGroups: [],
+  };
+
+  const { container } = render(<TableChart {...props} sticky={false} />);
+  const groupRow = container.querySelector('thead tr');
+  expect(groupRow).toBeInTheDocument();
+  expect(groupRow?.textContent).toMatch(/metric_1|Metric/);
+});
+
 test('marks dimension header groups and applies label alignment', () => {
   const props = {
     ...transformProps(testData.basic),

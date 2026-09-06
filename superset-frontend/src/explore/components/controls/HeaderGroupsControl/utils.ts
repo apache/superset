@@ -60,6 +60,14 @@ export function moveHeaderGroup(
   return next;
 }
 
+export function normalizeSelectedColumns(columns: unknown): string[] {
+  return (Array.isArray(columns) ? columns : []).map(column =>
+    typeof column === 'object' && column !== null && 'value' in column
+      ? String((column as { value: unknown }).value)
+      : String(column),
+  );
+}
+
 export function collectHeaderGroupColumns(
   groups: HeaderGroupConfig[] = [],
 ): string[] {

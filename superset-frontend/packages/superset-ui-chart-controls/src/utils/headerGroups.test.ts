@@ -300,6 +300,19 @@ test('nestColDefsInHeaderGroups expands a user group onto comparison columns', (
   ]);
 });
 
+test('syncTimeComparisonGroups defaults missing auto groups to an empty list', () => {
+  expect(
+    syncTimeComparisonGroups([
+      {
+        id: 'time-compare-revenue',
+        label: 'Revenue',
+        columns: comparisonRevenueColumns,
+        source: 'time_compare',
+      },
+    ]),
+  ).toEqual([]);
+});
+
 test('syncTimeComparisonGroups adds missing auto groups and keeps edits', () => {
   const existing: HeaderGroupConfig[] = [
     {

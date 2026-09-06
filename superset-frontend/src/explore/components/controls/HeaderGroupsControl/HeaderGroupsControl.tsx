@@ -18,7 +18,7 @@
  */
 import { useCallback, useEffect, useMemo } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { css, styled, type SupersetTheme } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
 import { Button } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
@@ -91,6 +91,20 @@ const CloseButton = styled.button`
   `}
 `;
 
+const DragHandleSlot = styled.span`
+  display: inline-flex;
+  button {
+    cursor: ns-resize;
+    padding-inline: ${({ theme }) => theme.sizeUnit}px;
+  }
+`;
+
+const AddGroupIcon = styled.span`
+  margin: auto ${({ theme }) => theme.sizeUnit}px auto 0;
+  vertical-align: baseline;
+  display: inline-flex;
+`;
+
 function DragHandle() {
   return <Icons.MenuOutlined aria-hidden className="text-primary" />;
 }
@@ -108,7 +122,7 @@ type SortableGroupRowProps = {
 function SortableGroupRow({
   group,
   index,
-  columnOptions = [],
+  columnOptions,
   usedColumns,
   onChange,
   onAddChild,
@@ -132,20 +146,16 @@ function SortableGroupRow({
       }}
     >
       <GroupRow>
-        <span ref={setActivatorNodeRef} css={{ display: 'inline-flex' }}>
+        <DragHandleSlot ref={setActivatorNodeRef}>
           <Button
             buttonStyle="link"
             buttonSize="small"
             aria-label={t('Drag to reorder')}
             icon={<DragHandle />}
-            css={(theme: SupersetTheme) => ({
-              cursor: 'ns-resize',
-              paddingInline: theme.sizeUnit,
-            })}
             {...attributes}
             {...listeners}
           />
-        </span>
+        </DragHandleSlot>
         <CloseButton
           aria-label={t('Remove group')}
           onClick={() => onRemove([index])}
@@ -281,13 +291,9 @@ export default function HeaderGroupsControl({
           onSave={handleAddGroup}
         >
           <AddControlLabel>
-            <Icons.PlusOutlined
-              iconSize="m"
-              css={theme => ({
-                margin: `auto ${theme.sizeUnit}px auto 0`,
-                verticalAlign: 'baseline',
-              })}
-            />
+            <AddGroupIcon>
+              <Icons.PlusOutlined iconSize="m" />
+            </AddGroupIcon>
             {t('Add group')}
           </AddControlLabel>
         </HeaderGroupEditor>
