@@ -173,10 +173,23 @@ export function resolveHeaderGroups(
   );
 }
 
+function splitChildGroups(group: HeaderGroupConfig): {
+  left: HeaderGroupConfig[];
+  right: HeaderGroupConfig[];
+} {
+  const children = group.children ?? [];
+  return {
+    left: children.filter(child => child.placement === 'left'),
+    right: children.filter(child => child.placement !== 'left'),
+  };
+}
+
 export function collectHeaderGroupLeaves(group: HeaderGroupConfig): string[] {
+  const { left, right } = splitChildGroups(group);
   return [
+    ...left.flatMap(collectHeaderGroupLeaves),
     ...(group.columns ?? []),
-    ...(group.children ?? []).flatMap(collectHeaderGroupLeaves),
+    ...right.flatMap(collectHeaderGroupLeaves),
   ];
 }
 
@@ -446,13 +459,20 @@ export function nestColDefsInHeaderGroups<
     group: HeaderGroupConfig,
   ): Record<string, unknown> | null => {
     const children: Array<C | Record<string, unknown>> = [];
+    const { left, right } = splitChildGroups(group);
+    left.forEach(child => {
+      const built = buildGroup(child);
+      if (built) {
+        children.push(built);
+      }
+    });
     (group.columns ?? []).forEach(key => {
       columnsForIdentifier(key).forEach(column => {
         used.add(column.key);
         children.push(toColDef(column));
       });
     });
-    (group.children ?? []).forEach(child => {
+    right.forEach(child => {
       const built = buildGroup(child);
       if (built) {
         children.push(built);
@@ -581,7 +601,7 @@ export function getHeaderGroupsControlProps(
         isRegularMetric(colname, formData as SqlaFormData) ||
         isPercentMetric(colname, formData as SqlaFormData)
       ) {
-        return getTimeComparisonColumnKeys(colname);
+        return [colname, ...getTimeComparisonColumnKeys(colname)];
       }
       return [colname];
     });

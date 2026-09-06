@@ -175,6 +175,41 @@ test('expandGroupColumnKey matches a percent metric without a space', () => {
   ]);
 });
 
+test('nestColDefsInHeaderGroups puts a left subgroup before the parent columns', () => {
+  const nested = nestColDefsInHeaderGroups(
+    [{ key: 'direct' }, { key: 'nested' }],
+    [
+      {
+        id: 'parent',
+        label: 'Parent',
+        columns: ['direct'],
+        children: [
+          {
+            id: 'child',
+            label: 'Child',
+            columns: ['nested'],
+            placement: 'left',
+          },
+        ],
+      },
+    ],
+    column => ({ field: column.key }),
+  );
+
+  expect(nested).toEqual([
+    expect.objectContaining({
+      headerName: 'Parent',
+      children: [
+        expect.objectContaining({
+          headerName: 'Child',
+          children: [{ field: 'nested' }],
+        }),
+        { field: 'direct' },
+      ],
+    }),
+  ]);
+});
+
 test('nestColDefsInHeaderGroups puts direct columns before nested child groups', () => {
   const nested = nestColDefsInHeaderGroups(
     [{ key: 'direct' }, { key: 'nested' }],
@@ -457,6 +492,7 @@ test('getHeaderGroupsControlProps builds time comparison groups', () => {
   ]);
   expect(result.columnOptions.map(option => option.value)).toEqual([
     'region',
+    'revenue',
     `Main revenue`,
     '# revenue',
     '△ revenue',
@@ -487,6 +523,7 @@ test('getHeaderGroupsControlProps skips unprefixed percent metrics', () => {
   );
 
   expect(result.columnOptions.map(option => option.value)).toEqual([
+    '%profit',
     `Main %profit`,
     '# %profit',
     '△ %profit',
@@ -514,12 +551,13 @@ test('getHeaderGroupsControlProps uses array verbose maps and skips offset colum
 
   expect(result.columnOptions.map(option => option.value)).toEqual([
     'region',
+    'revenue',
     `Main revenue`,
     '# revenue',
     '△ revenue',
     '% revenue',
   ]);
-  expect(result.columnOptions[1].label).toBe(`Main revenue`);
+  expect(result.columnOptions[2].label).toBe(`Main revenue`);
 });
 
 test('getHeaderGroupsControlProps includes percent metrics in auto groups', () => {

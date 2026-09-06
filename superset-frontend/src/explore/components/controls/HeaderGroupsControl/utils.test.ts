@@ -24,6 +24,8 @@ import {
   headerGroupsHaveSameColumns,
   moveHeaderGroup,
   normalizeSelectedColumns,
+  collectUsedHeaderGroupColumns,
+  moveHeaderGroupAt,
   pruneStaleHeaderGroupColumns,
   removeHeaderGroupAt,
   syncTimeComparisonGroups,
@@ -131,6 +133,51 @@ test('collectHeaderGroupColumns walks nested groups', () => {
   ]);
 });
 
+test('collectUsedHeaderGroupColumns hides a base metric claimed by comparison columns', () => {
+  const used = collectUsedHeaderGroupColumns(
+    [
+      {
+        id: 'time-compare-sales',
+        label: 'Sales',
+        columns: ['Main SUM(sales)', '# SUM(sales)'],
+        source: 'time_compare',
+      },
+    ],
+    [
+      { value: 'SUM(sales)', label: 'SUM(sales)' },
+      { value: 'Main SUM(sales)', label: 'Main SUM(sales)' },
+      { value: '# SUM(sales)', label: '# SUM(sales)' },
+      { value: 'AVG(sales)', label: 'AVG(sales)' },
+    ],
+  );
+  expect(used).toEqual(
+    expect.arrayContaining(['SUM(sales)', 'Main SUM(sales)', '# SUM(sales)']),
+  );
+  expect(used).not.toContain('AVG(sales)');
+});
+
+test('moveHeaderGroupAt reorders a nested subgroup', () => {
+  const next = moveHeaderGroupAt(
+    [
+      {
+        id: 'parent',
+        label: 'Sales',
+        columns: ['SUM(sales)'],
+        children: [
+          { id: 'online', label: 'Online', columns: ['SUM(cost)'] },
+          { id: 'offline', label: 'Offline', columns: ['AVG(sales)'] },
+        ],
+      },
+    ],
+    [0, 0],
+    1,
+  );
+  expect(next[0].children?.map(group => group.id)).toEqual([
+    'offline',
+    'online',
+  ]);
+});
+
 test('updateHeaderGroupAt leaves sibling groups unchanged', () => {
   const siblings: HeaderGroupConfig[] = [
     { id: 'keep', label: 'Keep', columns: [] },
@@ -184,6 +231,19 @@ test('pruneStaleHeaderGroupColumns drops unknown columns', () => {
   ]);
   expect(pruned[0].columns).toEqual(['SUM(sales)']);
   expect(pruned[0].children?.[0].columns).toEqual([]);
+});
+
+test('pruneStaleHeaderGroupColumns keeps base keys that expand to comparison columns', () => {
+  const pruned = pruneStaleHeaderGroupColumns(
+    [{ id: 'sales', label: 'Sales', columns: ['revenue', 'missing'] }],
+    [
+      { value: 'Main revenue', label: 'Main revenue' },
+      { value: '# revenue', label: '# revenue' },
+      { value: '△ revenue', label: '△ revenue' },
+      { value: '% revenue', label: '% revenue' },
+    ],
+  );
+  expect(pruned[0].columns).toEqual(['revenue']);
 });
 
 test('pruneStaleHeaderGroupColumns keeps time comparison groups intact', () => {

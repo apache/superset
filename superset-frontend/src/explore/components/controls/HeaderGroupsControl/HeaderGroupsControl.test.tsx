@@ -249,6 +249,79 @@ test('renders existing groups as numbered labels and edits them in a popover', a
   expect(onChange).not.toHaveBeenCalled();
 });
 
+test('moves a subgroup within its parent group', async () => {
+  const onChange = jest.fn();
+  render(
+    <HeaderGroupsControl
+      {...baseProps}
+      value={[
+        createGroup({
+          children: [
+            createGroup({
+              id: 'child-1',
+              label: 'Online',
+              columns: ['SUM(cost)'],
+            }),
+            createGroup({
+              id: 'child-2',
+              label: 'Offline',
+              columns: ['AVG(sales)'],
+            }),
+          ],
+        }),
+      ]}
+      onChange={onChange}
+    />,
+  );
+
+  await userEvent.click(screen.getByText('Group 1'));
+  await userEvent.click(screen.getAllByLabelText('Move group right')[0]);
+
+  expect(onChange).toHaveBeenCalledWith([
+    expect.objectContaining({
+      children: [
+        expect.objectContaining({ id: 'child-2' }),
+        expect.objectContaining({ id: 'child-1' }),
+      ],
+    }),
+  ]);
+});
+
+test('hides a time comparison metric from new group column options', async () => {
+  render(
+    <HeaderGroupsControl
+      {...baseProps}
+      columnOptions={[
+        { value: 'SUM(sales)', label: 'SUM(sales)' },
+        { value: 'Main SUM(sales)', label: 'Main SUM(sales)' },
+        { value: '# SUM(sales)', label: '# SUM(sales)' },
+        { value: 'AVG(sales)', label: 'AVG(sales)' },
+      ]}
+      value={[
+        createGroup({
+          id: 'time-compare-sales',
+          source: 'time_compare',
+          columns: ['Main SUM(sales)', '# SUM(sales)'],
+        }),
+      ]}
+    />,
+  );
+
+  await userEvent.click(screen.getByText('Add group'));
+  await userEvent.click(screen.getByRole('combobox', { name: 'Group columns' }));
+
+  expect(
+    within(
+      document.querySelector('.ant-select-dropdown-list') as HTMLElement,
+    ).queryByText('SUM(sales)'),
+  ).not.toBeInTheDocument();
+  expect(
+    within(
+      document.querySelector('.ant-select-dropdown-list') as HTMLElement,
+    ).getByText('AVG(sales)'),
+  ).toBeInTheDocument();
+});
+
 test('persists a completed subgroup added while editing', async () => {
   const onChange = jest.fn();
   render(

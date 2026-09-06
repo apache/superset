@@ -33,6 +33,7 @@ import {
   canSaveHeaderGroup,
   createHeaderGroup,
   normalizeSelectedColumns,
+  moveHeaderGroupAt,
   removeHeaderGroupAt,
   updateHeaderGroupAt,
 } from './utils';
@@ -126,8 +127,14 @@ const NestedHeader = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: ${theme.sizeUnit}px;
     font-weight: ${theme.fontWeightStrong};
   `}
+`;
+
+const NestedHeaderActions = styled.div`
+  display: inline-flex;
+  align-items: center;
 `;
 
 const ApplyRow = styled.div`
@@ -161,8 +168,10 @@ function HeaderGroupForm({
   onChange,
   onAddChild,
   onRemove,
+  onMove,
   onApply,
   showRemove = false,
+  siblingCount = 1,
 }: {
   group: HeaderGroupConfig;
   path: number[];
@@ -171,8 +180,10 @@ function HeaderGroupForm({
   onChange: (path: number[], next: HeaderGroupConfig) => void;
   onAddChild: (path: number[]) => void;
   onRemove: (path: number[]) => void;
+  onMove: (path: number[], toIndex: number) => void;
   onApply?: () => void;
   showRemove?: boolean;
+  siblingCount?: number;
 }) {
   const availableOptions = columnOptions.filter(
     option =>
@@ -188,13 +199,31 @@ function HeaderGroupForm({
       {showRemove && (
         <NestedHeader>
           <span>{getGroupTitle(path)}</span>
-          <Button
-            buttonStyle="link"
-            buttonSize="small"
-            aria-label={t('Remove group')}
-            onClick={() => onRemove(path)}
-            icon={<Icons.DeleteOutlined iconSize="s" />}
-          />
+          <NestedHeaderActions>
+            <Button
+              buttonStyle="link"
+              buttonSize="small"
+              aria-label={t('Move group left')}
+              disabled={path[path.length - 1] === 0}
+              onClick={() => onMove(path, path[path.length - 1] - 1)}
+              icon={<Icons.LeftOutlined iconSize="s" />}
+            />
+            <Button
+              buttonStyle="link"
+              buttonSize="small"
+              aria-label={t('Move group right')}
+              disabled={path[path.length - 1] >= siblingCount - 1}
+              onClick={() => onMove(path, path[path.length - 1] + 1)}
+              icon={<Icons.RightOutlined iconSize="s" />}
+            />
+            <Button
+              buttonStyle="link"
+              buttonSize="small"
+              aria-label={t('Remove group')}
+              onClick={() => onRemove(path)}
+              icon={<Icons.DeleteOutlined iconSize="s" />}
+            />
+          </NestedHeaderActions>
         </NestedHeader>
       )}
       <FieldRow>
@@ -251,9 +280,10 @@ function HeaderGroupForm({
             </Radio.Group>
           </CompactRadioGroup>
         </FieldRow>
-        {isTopLevel && (
-          <FieldRow>
-            <FieldLabel>{t('Table side')}</FieldLabel>
+        <FieldRow>
+            <FieldLabel>
+              {isTopLevel ? t('Table side') : t('Position')}
+            </FieldLabel>
             <CompactRadioGroup>
               <Radio.Group
                 size="small"
@@ -274,7 +304,6 @@ function HeaderGroupForm({
               </Radio.Group>
             </CompactRadioGroup>
           </FieldRow>
-        )}
       </InlineFields>
       {(group.children ?? []).length > 0 && (
         <FieldRow>
@@ -288,7 +317,9 @@ function HeaderGroupForm({
                 onChange={onChange}
                 onAddChild={onAddChild}
                 onRemove={onRemove}
+                onMove={onMove}
                 showRemove
+                siblingCount={(group.children ?? []).length}
               />
             </NestedCard>
           ))}
@@ -392,6 +423,19 @@ export default function HeaderGroupEditor({
     persistDraftIfValid(nextDraft);
   };
 
+  const handleMove = (nextPath: number[], toIndex: number) => {
+    const nextDraft = moveHeaderGroupAt(
+      [draft],
+      toDraftPath(nextPath),
+      toIndex,
+    )[0];
+    if (!nextDraft) {
+      return;
+    }
+    setDraft(nextDraft);
+    persistDraftIfValid(nextDraft);
+  };
+
   const handleApply = () => {
     if (!canSaveHeaderGroup(draft)) {
       return;
@@ -418,6 +462,7 @@ export default function HeaderGroupEditor({
           onChange={handleChange}
           onAddChild={handleAddChild}
           onRemove={handleRemove}
+          onMove={handleMove}
           onApply={isAddMode ? handleApply : undefined}
         />
       }

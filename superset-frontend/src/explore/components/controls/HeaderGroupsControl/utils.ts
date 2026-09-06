@@ -18,6 +18,8 @@
  */
 import { nanoid } from 'nanoid';
 import {
+  expandGroupColumnKey,
+  getTimeComparisonColumnKeys,
   headerGroupsHaveSameColumns,
   syncTimeComparisonGroups,
 } from '@superset-ui/chart-controls';
@@ -81,6 +83,58 @@ export function collectHeaderGroupColumns(
   ]);
 }
 
+function getClaimedColumnKeys(identifier: string): string[] {
+  return [
+    identifier,
+    `%${identifier}`,
+    ...getTimeComparisonColumnKeys(identifier),
+  ];
+}
+
+export function collectUsedHeaderGroupColumns(
+  groups: HeaderGroupConfig[] = [],
+  columnOptions: HeaderGroupColumnOption[] = [],
+): string[] {
+  const explicit = collectHeaderGroupColumns(groups);
+  const visibleKeys = columnOptions.map(option => option.value);
+  const used = new Set(explicit);
+  explicit.forEach(identifier => {
+    getClaimedColumnKeys(identifier).forEach(key => {
+      if (visibleKeys.includes(key)) {
+        used.add(key);
+      }
+    });
+  });
+  visibleKeys.forEach(option => {
+    if (used.has(option)) {
+      return;
+    }
+    if (getClaimedColumnKeys(option).some(key => used.has(key))) {
+      used.add(option);
+    }
+  });
+  return [...used];
+}
+
+export function moveHeaderGroupAt(
+  groups: HeaderGroupConfig[],
+  path: number[],
+  toIndex: number,
+): HeaderGroupConfig[] {
+  if (path.length === 0) {
+    return groups;
+  }
+  if (path.length === 1) {
+    return moveHeaderGroup(groups, path[0], toIndex);
+  }
+  const parentPath = path.slice(0, -1);
+  const fromIndex = path[path.length - 1];
+  return updateHeaderGroupAt(groups, parentPath, group => ({
+    ...group,
+    children: moveHeaderGroup(group.children ?? [], fromIndex, toIndex),
+  }));
+}
+
 export function updateHeaderGroupAt(
   groups: HeaderGroupConfig[],
   path: number[],
@@ -131,13 +185,17 @@ export function pruneStaleHeaderGroupColumns(
   columnOptions: HeaderGroupColumnOption[],
 ): HeaderGroupConfig[] {
   const validKeys = new Set(columnOptions.map(option => option.value));
+  const visibleKeys = [...validKeys];
+  const isResolvable = (column: string) =>
+    validKeys.has(column) ||
+    expandGroupColumnKey(column, visibleKeys).length > 0;
   return groups.map(group => {
     if (group.source === 'time_compare') {
       return group;
     }
     return {
       ...group,
-      columns: (group.columns ?? []).filter(column => validKeys.has(column)),
+      columns: (group.columns ?? []).filter(isResolvable),
       children: pruneStaleHeaderGroupColumns(
         group.children ?? [],
         columnOptions,

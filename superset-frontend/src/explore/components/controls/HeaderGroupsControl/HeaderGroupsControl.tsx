@@ -42,7 +42,7 @@ import ControlHeader from 'src/explore/components/ControlHeader';
 import HeaderGroupEditor, { getGroupTitle } from './HeaderGroupEditor';
 import { HeaderGroupConfig, HeaderGroupsControlProps } from './types';
 import {
-  collectHeaderGroupColumns,
+  collectUsedHeaderGroupColumns,
   createHeaderGroup,
   headerGroupsHaveSameColumns,
   moveHeaderGroup,
@@ -203,8 +203,8 @@ export default function HeaderGroupsControl({
   }, [columnOptions, groups, onChange]);
 
   const usedColumns = useMemo(
-    () => new Set(collectHeaderGroupColumns(groups)),
-    [groups],
+    () => new Set(collectUsedHeaderGroupColumns(groups, columnOptions)),
+    [columnOptions, groups],
   );
 
   const sensors = useSensors(
