@@ -112,7 +112,7 @@ function DragHandle() {
 type SortableGroupRowProps = {
   group: HeaderGroupConfig;
   index: number;
-  columnOptions: HeaderGroupsControlProps['columnOptions'];
+  columnOptions: NonNullable<HeaderGroupsControlProps['columnOptions']>;
   usedColumns: Set<string>;
   onChange: (path: number[], next: HeaderGroupConfig) => void;
   onAddChild: (path: number[]) => void;
