@@ -1012,6 +1012,20 @@ def run_server(
         # Use factory configuration for customization
         logging.info("Creating MCP app from factory configuration...")
         factory_config = get_mcp_factory_config()
+        from superset.mcp_service.flask_singleton import (  # noqa: PLC0415
+            get_flask_app,
+        )
+
+        factory_flask_app = get_flask_app()
+        factory_middleware = factory_config.get("middleware") or ()
+        factory_config["middleware"] = [
+            ToolResultCompatibilityMiddleware(
+                structured_output_enabled=factory_flask_app.config.get(
+                    "MCP_STRUCTURED_OUTPUT_ENABLED", MCP_STRUCTURED_OUTPUT_ENABLED
+                )
+            ),
+            *factory_middleware,
+        ]
         mcp_instance = create_mcp_app(**factory_config)
         # The factory path bypasses init_fastmcp_server(), so install the
         # per-tool-call session scoping here as well; without it concurrent
