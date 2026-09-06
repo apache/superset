@@ -72,7 +72,11 @@ from superset_core.common.models import Dataset as CoreDataset
 from superset import db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.partition_mapping import (
+    contains_jinja,
+    contains_value_placeholder,
     FEATURE_FLAG as PARTITION_FILTER_MAPPING_FLAG,
+    has_active_advanced_data_type,
+    mirrorable_operators,
     resolve_partition_mapping,
 )
 from superset.connectors.sqla.utils import (
@@ -1906,10 +1910,20 @@ class SqlaTable(
         referenced by none of them, so anything reading it out of
         `datasource.columns` would work in Explore and break on dashboards.
 
+        The indicator has to answer "would *this* filter be mirrored", which the
+        mapped column alone cannot decide -- the query path also gates on the
+        filter's operator, and range operators only mirror under a monotonic
+        transform. So the summary carries the applicability contract rather than
+        just the column names, and `mirrorable_operators` comes from the same
+        helper `PartitionMapping.mirrors` uses; the operator matrix is not
+        restated on the client.
+
         `active` is derived from cheap signals only. This property is serialized
         on every chart and dashboard load, so parsing the transform here would
         put a per-request cost on a hot path for a value that only changes on
-        save.
+        save. That leaves one gap against `resolve_partition_mapping`: a
+        transform that fails to parse still reports `active`. The other bail-outs
+        there are a regex or a dict lookup, so they are checked here.
 
         Gated on the feature flag for the same reason `resolve_partition_mapping`
         is: with the flag off nothing is mirrored, so reporting an active mapping
@@ -1924,16 +1938,27 @@ class SqlaTable(
         columns_by_name = {column.column_name: column for column in self.columns}
         mapped_column_name = self.partition_mapped_column or self.main_dttm_col
         mapped_column = columns_by_name.get(mapped_column_name or "")
+        transform = mapped_column.partition_value_transform if mapped_column else None
         active = bool(
             self.partition_column in columns_by_name
             and mapped_column is not None
             and mapped_column_name != self.partition_column
-            and (mapped_column.partition_value_transform or "").strip()
+            and (transform or "").strip()
+            and contains_value_placeholder(transform)
+            and not contains_jinja(transform)
+            and not has_active_advanced_data_type(mapped_column)
+        )
+        is_monotonic = bool(
+            mapped_column is not None and mapped_column.partition_transform_is_monotonic
         )
         return {
             "partition_column": self.partition_column,
             "mapped_column": mapped_column_name,
             "active": active,
+            "is_monotonic": is_monotonic,
+            "mirrorable_operators": sorted(
+                operator.value for operator in mirrorable_operators(is_monotonic)
+            ),
         }
 
     @property

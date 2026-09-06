@@ -110,6 +110,14 @@ export interface PartitionFilterMapping {
   partition_column: string;
   mapped_column: string | null;
   active: boolean;
+  /** Whether the owner declared the value transform order-preserving. */
+  is_monotonic: boolean;
+  /**
+   * Backend `FilterOperator` values (`==`, `IN`, `TEMPORAL_RANGE`, ...) whose
+   * predicates this mapping mirrors. Computed server-side from
+   * `is_monotonic` so the operator matrix lives in one place.
+   */
+  mirrorable_operators: string[];
 }
 
 export interface ControlPanelState {

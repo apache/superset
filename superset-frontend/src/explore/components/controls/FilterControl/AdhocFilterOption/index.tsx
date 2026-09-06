@@ -23,7 +23,7 @@ import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterCon
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { OptionSortType } from 'src/explore/types';
 import { Operators } from 'src/explore/constants';
-import { isMirroredColumn } from 'src/explore/components/PartitionPruningIndicator';
+import { isMirroredFilter } from 'src/explore/components/PartitionPruningIndicator';
 import type { PartitionFilterMapping } from '@superset-ui/chart-controls';
 import { useGetTimeRangeLabel } from '../utils';
 
@@ -63,16 +63,9 @@ export default function AdhocFilterOption({
     | PartitionFilterMapping
     | null
     | undefined;
-  // `subject` is a bare column name for simple filters and a column object
-  // when the filter was built from a dropped column.
-  const subject = adhocFilter.subject as
-    | string
-    | { column_name?: string }
-    | null
-    | undefined;
-  const subjectName =
-    typeof subject === 'string' ? subject : subject?.column_name;
-  const isMirrored = isMirroredColumn(partitionMapping, subjectName);
+  // Naming the mapped column is not enough: the operator and the value decide
+  // whether the query actually carries a partition predicate.
+  const isMirrored = isMirroredFilter(partitionMapping, adhocFilter);
 
   return (
     <AdhocFilterPopoverTrigger

@@ -109,6 +109,8 @@ def test_the_mapping_summary_survives_dashboard_payload_pruning(app: Flask) -> N
         "partition_column": "dt_epoch",
         "mapped_column": "event_time",
         "active": True,
+        "is_monotonic": True,
+        "mirrorable_operators": ["<", "<=", "==", ">", ">=", "IN", "TEMPORAL_RANGE"],
     }
 
 
@@ -120,6 +122,76 @@ def test_the_mapping_summary_reports_inactive_without_a_transform(
 
     with app.app_context():
         summary = table.data["partition_filter_mapping"]
+
+    assert summary is not None
+    assert summary["active"] is False
+
+
+def test_the_mapping_summary_narrows_the_operators_without_monotonicity(
+    app: Flask,
+) -> None:
+    """
+    The indicator has to tell a mirrored filter from one that merely names the
+    mapped column, and range operators only mirror under a monotonic transform.
+    Shipping the operator list keeps that matrix in one place -- here -- rather
+    than restating it on the client, where it would drift.
+    """
+    table = _table()
+    table.columns[0].partition_transform_is_monotonic = False
+
+    with app.app_context():
+        summary = table.data["partition_filter_mapping"]
+
+    assert summary is not None
+    assert summary["is_monotonic"] is False
+    assert summary["mirrorable_operators"] == ["==", "IN"]
+
+
+@pytest.mark.parametrize(
+    "transform",
+    [
+        pytest.param("unix_timestamp(event_time)", id="no-placeholder"),
+        pytest.param("unix_timestamp({{ value }})", id="jinja"),
+    ],
+)
+def test_the_mapping_summary_reports_inactive_for_an_unmirrorable_transform(
+    app: Flask,
+    transform: str,
+) -> None:
+    """
+    `resolve_partition_mapping` rejects these outright, so the query carries no
+    mirrored predicate. Both checks are a regex, cheap enough for a property
+    serialized on every chart load.
+    """
+    table = _table()
+    table.columns[0].partition_value_transform = transform
+
+    with app.app_context():
+        summary = table.data["partition_filter_mapping"]
+
+    assert summary is not None
+    assert summary["active"] is False
+
+
+def test_the_mapping_summary_reports_inactive_for_an_advanced_data_type(
+    app: Flask,
+) -> None:
+    """
+    `translate_filter` builds its own predicate shape from translated values, so
+    `resolve_partition_mapping` refuses these columns entirely.
+    """
+    table = _table()
+    table.columns[0].advanced_data_type = "port"
+
+    with app.app_context():
+        advanced_data_types = app.config["ADVANCED_DATA_TYPES"]
+        app.config["DEFAULT_FEATURE_FLAGS"]["ENABLE_ADVANCED_DATA_TYPES"] = True
+        app.config["ADVANCED_DATA_TYPES"] = {"port": object()}
+        try:
+            summary = table.data["partition_filter_mapping"]
+        finally:
+            del app.config["DEFAULT_FEATURE_FLAGS"]["ENABLE_ADVANCED_DATA_TYPES"]
+            app.config["ADVANCED_DATA_TYPES"] = advanced_data_types
 
     assert summary is not None
     assert summary["active"] is False
