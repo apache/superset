@@ -160,9 +160,7 @@ function SettingsToggle({
     <Button
       buttonStyle="link"
       buttonSize="small"
-      aria-label={
-        collapsed ? t('Expand settings') : t('Collapse settings')
-      }
+      aria-label={collapsed ? t('Expand settings') : t('Collapse settings')}
       onClick={event => {
         event.preventDefault();
         event.stopPropagation();
@@ -520,9 +518,7 @@ export default function HeaderGroupEditor({
           onMove={handleMove}
           onApply={isAddMode ? handleApply : undefined}
           settingsCollapsed={settingsCollapsed}
-          onToggleSettings={() =>
-            setSettingsCollapsed(collapsed => !collapsed)
-          }
+          onToggleSettings={() => setSettingsCollapsed(collapsed => !collapsed)}
         />
       }
     >

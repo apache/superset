@@ -320,9 +320,7 @@ test('collapses a nested subgroup with an icon only', async () => {
 });
 
 test('does not offer collapse when a top-level group has no subgroups', async () => {
-  render(
-    <HeaderGroupsControl {...baseProps} value={[createGroup()]} />,
-  );
+  render(<HeaderGroupsControl {...baseProps} value={[createGroup()]} />);
 
   await userEvent.click(screen.getByText('Group 1'));
 
