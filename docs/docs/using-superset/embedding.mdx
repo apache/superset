@@ -156,6 +156,8 @@ Individual charts can also be embedded standalone, outside of a dashboard, using
 
 Explore's **Embed Code** button on a chart also generates one of these permalink URLs wrapped in an `<iframe>`, giving you a session-authenticated iframe embed. That's a separate flow from dashboard embedding above: it doesn't go through `@superset-ui/embedded-sdk`, guest tokens, or the `dashboardUiConfig` options — the viewer just needs an existing Superset session with access to the chart.
 
+One caveat when the host page lives on a different site than Superset: the default `SESSION_COOKIE_SAMESITE = "Lax"` setting keeps the session cookie out of cross-site iframe requests, so the viewer lands on the login page instead of the chart. Serving both from the same site avoids this; otherwise set `SESSION_COOKIE_SAMESITE = "None"` together with `SESSION_COOKIE_SECURE = True` and allow the host origin in your `TALISMAN_CONFIG` `frame-ancestors`.
+
 ---
 
 ## Security Notes
