@@ -381,7 +381,7 @@ AG Grid Interactive Table supports **Time Shift** (time comparison), matching th
 
 #### Show Summary
 
-The **Show summary** checkbox lives at the top of the **Visual formatting** section in the **Customize** tab, for both **Aggregate** and **Raw Records** query modes. Enabling it pins a summary row to the bottom of the grid.
+The **Show summary** checkbox lives at the top of the **Visual formatting** section in the **Customize** tab, for both **Aggregate** and **Raw Records** query modes. Enabling it pins a summary row to the bottom of the grid whenever there is something to summarize: at least one metric in **Aggregate** mode, or at least one eligible numeric column in **Raw Records** mode. Otherwise no summary row is added.
 
 - In **Aggregate** mode, the summary row applies each metric's own aggregation (or the **Summary aggregation** override, where available) across the full filtered dataset.
 - In **Raw Records** mode, the summary row defaults to a server-side `SUM` for each numeric column that's backed by a physical or calculated dataset column; the **Summary aggregation** control can override this to `AVG` as well. Non-numeric cells and columns built from free-form SQL expressions stay blank.
