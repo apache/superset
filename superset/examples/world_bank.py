@@ -150,11 +150,10 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
         "hasCustomLabel": True,
         "label": "Rural Population",
     }
-    defaults = {
+    shared_defaults = {
         "compare_lag": "10",
         "compare_suffix": "o10Y",
         "limit": "25",
-        "granularity": "year",
         "groupby": [],
         "row_limit": current_app.config["ROW_LIMIT"],
         "since": "2014-01-01",
@@ -165,6 +164,8 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
         "entity": "country_code",
         "show_bubbles": True,
     }
+    non_echarts_defaults = {**shared_defaults, "granularity": "year"}
+    echarts_x_axis_defaults = {**shared_defaults, "x_axis": "year"}
 
     return [
         Slice(
@@ -173,7 +174,7 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
-                defaults,
+                non_echarts_defaults,
                 since="2000",
                 viz_type="big_number",
                 compare_lag="10",
@@ -187,7 +188,7 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
-                defaults,
+                non_echarts_defaults,
                 viz_type="table",
                 metrics=["sum__SP_POP_TOTL"],
                 groupby=["country_name"],
@@ -199,7 +200,7 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
-                defaults,
+                echarts_x_axis_defaults,
                 viz_type="echarts_timeseries_line",
                 since="1960-01-01",
                 metrics=["sum__SP_POP_TOTL"],
@@ -213,7 +214,7 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
-                defaults,
+                non_echarts_defaults,
                 viz_type="world_map",
                 metric="sum__SP_RUR_TOTL_ZS",
                 num_period_compare="10",
@@ -226,7 +227,7 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
-                defaults,
+                non_echarts_defaults,
                 viz_type="bubble_v2",
                 since="2011-01-01",
                 until="2011-01-02",
@@ -270,7 +271,7 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
-                defaults,
+                non_echarts_defaults,
                 viz_type="sunburst_v2",
                 columns=["region", "country_name"],
                 since="2011-01-01",
@@ -285,7 +286,7 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
-                defaults,
+                echarts_x_axis_defaults,
                 since="1960-01-01",
                 until="now",
                 viz_type="echarts_area",
@@ -299,7 +300,7 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
-                defaults,
+                non_echarts_defaults,
                 since="1960-01-01",
                 until="now",
                 whisker_options="Min/max (no outliers)",
@@ -315,7 +316,7 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
-                defaults,
+                non_echarts_defaults,
                 since="1960-01-01",
                 until="now",
                 viz_type="treemap_v2",
@@ -329,7 +330,7 @@ def create_slices(tbl: BaseDatasource) -> list[Slice]:
             datasource_type=DatasourceType.TABLE,
             datasource_id=tbl.id,
             params=get_slice_json(
-                defaults,
+                non_echarts_defaults,
                 since="2011-01-01",
                 until="2012-01-01",
                 viz_type="para",
