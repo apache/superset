@@ -116,25 +116,6 @@ export function collectUsedHeaderGroupColumns(
   return [...used];
 }
 
-export function moveHeaderGroupAt(
-  groups: HeaderGroupConfig[],
-  path: number[],
-  toIndex: number,
-): HeaderGroupConfig[] {
-  if (path.length === 0) {
-    return groups;
-  }
-  if (path.length === 1) {
-    return moveHeaderGroup(groups, path[0], toIndex);
-  }
-  const parentPath = path.slice(0, -1);
-  const fromIndex = path[path.length - 1];
-  return updateHeaderGroupAt(groups, parentPath, group => ({
-    ...group,
-    children: moveHeaderGroup(group.children ?? [], fromIndex, toIndex),
-  }));
-}
-
 export function updateHeaderGroupAt(
   groups: HeaderGroupConfig[],
   path: number[],
@@ -156,6 +137,25 @@ export function updateHeaderGroupAt(
       children: updateHeaderGroupAt(group.children ?? [], rest, updater),
     };
   });
+}
+
+export function moveHeaderGroupAt(
+  groups: HeaderGroupConfig[],
+  path: number[],
+  toIndex: number,
+): HeaderGroupConfig[] {
+  if (path.length === 0) {
+    return groups;
+  }
+  if (path.length === 1) {
+    return moveHeaderGroup(groups, path[0], toIndex);
+  }
+  const parentPath = path.slice(0, -1);
+  const fromIndex = path[path.length - 1];
+  return updateHeaderGroupAt(groups, parentPath, group => ({
+    ...group,
+    children: moveHeaderGroup(group.children ?? [], fromIndex, toIndex),
+  }));
 }
 
 export function removeHeaderGroupAt(

@@ -281,29 +281,29 @@ function HeaderGroupForm({
           </CompactRadioGroup>
         </FieldRow>
         <FieldRow>
-            <FieldLabel>
-              {isTopLevel ? t('Table side') : t('Position')}
-            </FieldLabel>
-            <CompactRadioGroup>
-              <Radio.Group
-                size="small"
-                optionType="button"
-                value={group.placement ?? 'right'}
-                onChange={event =>
-                  onChange(path, {
-                    ...group,
-                    placement: event.target.value as HeaderGroupPlacement,
-                  })
-                }
-              >
-                {PLACEMENT_OPTIONS.map(option => (
-                  <Radio.Button key={option.value} value={option.value}>
-                    {option.label}
-                  </Radio.Button>
-                ))}
-              </Radio.Group>
-            </CompactRadioGroup>
-          </FieldRow>
+          <FieldLabel>
+            {isTopLevel ? t('Table side') : t('Position')}
+          </FieldLabel>
+          <CompactRadioGroup>
+            <Radio.Group
+              size="small"
+              optionType="button"
+              value={group.placement ?? 'right'}
+              onChange={event =>
+                onChange(path, {
+                  ...group,
+                  placement: event.target.value as HeaderGroupPlacement,
+                })
+              }
+            >
+              {PLACEMENT_OPTIONS.map(option => (
+                <Radio.Button key={option.value} value={option.value}>
+                  {option.label}
+                </Radio.Button>
+              ))}
+            </Radio.Group>
+          </CompactRadioGroup>
+        </FieldRow>
       </InlineFields>
       {(group.children ?? []).length > 0 && (
         <FieldRow>

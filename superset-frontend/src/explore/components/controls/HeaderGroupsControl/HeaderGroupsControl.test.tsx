@@ -308,7 +308,9 @@ test('hides a time comparison metric from new group column options', async () =>
   );
 
   await userEvent.click(screen.getByText('Add group'));
-  await userEvent.click(screen.getByRole('combobox', { name: 'Group columns' }));
+  await userEvent.click(
+    screen.getByRole('combobox', { name: 'Group columns' }),
+  );
 
   expect(
     within(
