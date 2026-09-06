@@ -90,7 +90,7 @@ const processComparisonColumns = (columns: any[], suffix: string) =>
       return [
         {
           label: `${t('Main')} ${col.label}`,
-          value: `Main ${col.value}`,
+          value: `${t('Main')} ${col.value}`,
         },
         {
           label: `# ${col.label}`,

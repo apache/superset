@@ -101,7 +101,7 @@ const processComparisonTotals = (
     return totals;
   }
   const transformedTotals: DataRecord = {};
-  const mainLabel = 'Main';
+  const mainLabel = t('Main');
   totals.map((totalRecord: DataRecord) =>
     Object.keys(totalRecord).forEach(key => {
       if (totalRecord[key] !== undefined && !key.includes(comparisonSuffix)) {
@@ -132,9 +132,16 @@ const getComparisonColConfig = (
   parentColKey: string,
   columnConfig: Record<string, TableColumnConfig>,
 ) => {
-  const comparisonKey = `${label} ${parentColKey}`;
-  const comparisonColConfig = columnConfig[comparisonKey] || {};
-  return comparisonColConfig;
+  const keys = [`${label} ${parentColKey}`];
+  if (label === 'Main' || label === t('Main')) {
+    keys.push(`Main ${parentColKey}`, `${t('Main')} ${parentColKey}`);
+  }
+  for (const key of keys) {
+    if (columnConfig[key]) {
+      return columnConfig[key];
+    }
+  }
+  return {};
 };
 
 const getComparisonColFormatter = (
@@ -241,10 +248,10 @@ const processComparisonColumns = (
           originalLabel,
           metricName: col.key,
           label: t('Main'),
-          key: `Main ${col.key}`,
-          config: getComparisonColConfig('Main', col.key, columnConfig),
+          key: `${t('Main')} ${col.key}`,
+          config: getComparisonColConfig(t('Main'), col.key, columnConfig),
           formatter: getComparisonColFormatter(
-            'Main',
+            t('Main'),
             col,
             columnConfig,
             savedFormat,
@@ -727,7 +734,7 @@ const transformProps = (
     baseQuery?.data,
     columns,
     comparisonSuffix,
-    'Main',
+    t('Main'),
   );
 
   const passedData = isUsingTimeComparison ? comparisonData || [] : data;

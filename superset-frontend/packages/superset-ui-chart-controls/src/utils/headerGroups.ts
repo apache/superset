@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   getColumnLabel,
@@ -57,7 +58,12 @@ export type HeaderGroupCell = {
 };
 
 export function getTimeComparisonColumnKeys(colname: string): string[] {
-  return [`Main ${colname}`, `# ${colname}`, `△ ${colname}`, `% ${colname}`];
+  return [
+    `${t('Main')} ${colname}`,
+    `# ${colname}`,
+    `△ ${colname}`,
+    `% ${colname}`,
+  ];
 }
 
 export function expandGroupColumnKey(
@@ -70,6 +76,9 @@ export function expandGroupColumnKey(
     `%${identifier}`,
     ...getTimeComparisonColumnKeys(identifier),
   ];
+  if (t('Main') !== 'Main') {
+    candidates.push(`Main ${identifier}`);
+  }
   const matchSet = new Set(candidates.filter(key => visible.has(key)));
   return visibleKeys.filter(key => matchSet.has(key));
 }
