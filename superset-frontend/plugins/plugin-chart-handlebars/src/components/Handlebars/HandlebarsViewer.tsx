@@ -28,14 +28,20 @@ import HandlebarsGroupBy from 'handlebars-group-by';
 
 export interface HandlebarsViewerProps {
   templateSource: string;
+  /** CSS from the chart's CSS Styles control, already wrapped in a `<style>` tag. */
+  styleSource?: string;
   data: any;
 }
 
 export const HandlebarsViewer = ({
   templateSource,
+  styleSource,
   data,
 }: HandlebarsViewerProps) => {
-  const [renderedTemplate, setRenderedTemplate] = useState('');
+  const [rendered, setRendered] = useState<{
+    template: string;
+    style: string;
+  } | null>(null);
   const [error, setError] = useState('');
   const appContainer = document.getElementById('app');
   const { common } = JSON.parse(
@@ -47,15 +53,18 @@ export const HandlebarsViewer = ({
 
   useMemo(() => {
     try {
-      const template = Handlebars.compile(templateSource);
-      const result = template(data);
-      setRenderedTemplate(result);
+      // The two sources are compiled separately so that Handlebars whitespace
+      // control (`~`) in one cannot strip text from the other, while
+      // expressions in the CSS field still expand.
+      const template = Handlebars.compile(templateSource)(data);
+      const style = styleSource ? Handlebars.compile(styleSource)(data) : '';
+      setRendered({ template, style });
       setError('');
     } catch (error) {
-      setRenderedTemplate('');
+      setRendered(null);
       setError(error.message);
     }
-  }, [templateSource, data]);
+  }, [templateSource, styleSource, data]);
 
   const Error = styled.pre`
     white-space: pre-wrap;
@@ -65,13 +74,31 @@ export const HandlebarsViewer = ({
     return <Error>{error}</Error>;
   }
 
-  if (renderedTemplate) {
+  if (rendered) {
+    // The template and the CSS render as two separate Markdown documents so
+    // that neither source can affect how the other is parsed: joined into one
+    // document, a template could pull the `<style>` tag into its own block or
+    // leave a construct open that swallows it, and blank lines in the CSS then
+    // re-opened Markdown parsing mid-stylesheet. react-markdown emits no
+    // wrapper element, so the chart's DOM is the same flat sequence a single
+    // document produced: the style block renders second to keep the template
+    // first, where positional selectors expect it, and to let the CSS
+    // control's rules win the cascade over any `<style>` in the template.
     return (
-      <SafeMarkdown
-        source={renderedTemplate}
-        htmlSanitization={htmlSanitization}
-        htmlSchemaOverrides={htmlSchemaOverrides}
-      />
+      <>
+        <SafeMarkdown
+          source={rendered.template}
+          htmlSanitization={htmlSanitization}
+          htmlSchemaOverrides={htmlSchemaOverrides}
+        />
+        {rendered.style ? (
+          <SafeMarkdown
+            source={rendered.style}
+            htmlSanitization={htmlSanitization}
+            htmlSchemaOverrides={htmlSchemaOverrides}
+          />
+        ) : null}
+      </>
     );
   }
   return <p>{t('Loading...')}</p>;

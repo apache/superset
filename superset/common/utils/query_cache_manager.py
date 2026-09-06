@@ -88,6 +88,11 @@ class QueryCacheManager:
         self.queried_dttm = queried_dttm
         self.bq_memory_limited: bool = False
         self.bq_memory_limited_row_count: int = 0
+        # Whether set_query_result actually persisted the value to the backend
+        # (False when caching was skipped/failed — e.g. oversized value). Used to
+        # gate the forced-refresh idempotency marker so a follow-up read never
+        # serves a stale value under the belief the fresh one was cached.
+        self.result_persisted: bool = False
 
     # pylint: disable=too-many-arguments
     def set_query_result(
@@ -148,7 +153,7 @@ class QueryCacheManager:
                 "bq_memory_limited_row_count": self.bq_memory_limited_row_count,
             }
             if self.is_loaded and key and self.status != QueryStatus.FAILED:
-                self.set(
+                self.result_persisted = self.set(
                     key=key,
                     value=value,
                     timeout=timeout,
@@ -243,12 +248,17 @@ class QueryCacheManager:
         timeout: int | None = None,
         datasource_uid: str | None = None,
         region: CacheRegion = CacheRegion.DEFAULT,
-    ) -> None:
+    ) -> bool:
         """
         set value to specify cache region, proxy for `set_and_log_cache`
+
+        :returns: whether the value was actually persisted to the backend
         """
         if key:
-            set_and_log_cache(_cache[region], key, value, timeout, datasource_uid)
+            return set_and_log_cache(
+                _cache[region], key, value, timeout, datasource_uid
+            )
+        return False
 
     @staticmethod
     def delete(

@@ -33,6 +33,7 @@ import {
 } from '../..';
 import { Loading } from '../../components/Loading';
 import ChartClient from '../clients/ChartClient';
+import type { Hooks } from '../models/ChartProps';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
 import getChartControlPanelRegistry from '../registries/ChartControlPanelRegistrySingleton';
 import SuperChart from './SuperChart';
@@ -75,7 +76,6 @@ function shouldRefetchData(
     return true;
   }
 
-  // If viz_type changed, always refetch
   if (prevFormData.viz_type !== nextFormData.viz_type) {
     return true;
   }
@@ -178,7 +178,16 @@ export interface StatefulChartProps {
   className?: string;
 
   // Hooks for chart interactions (drill, cross-filter, etc.)
-  hooks?: any;
+  hooks?: Hooks;
+}
+
+/**
+ * Unwrap a chart-data body into result rows: the API nests them under `result`,
+ * but a caller may hand back the rows themselves.
+ */
+function extractRows(json: JsonObject | JsonObject[]): QueryData[] {
+  const rows = ensureIsArray(json) as JsonObject[];
+  return (rows[0]?.result ? rows[0].result : rows) as QueryData[];
 }
 
 export default function StatefulChart(props: StatefulChartProps) {
@@ -256,13 +265,11 @@ export default function StatefulChart(props: StatefulChartProps) {
       let finalFormData: QueryFormData;
 
       if (chartId && !propsFormData) {
-        // Load formData from chartId
         finalFormData = await chartClientRef.current!.loadFormData(
           { sliceId: chartId },
           { signal: controller.signal } as RequestConfig,
         );
       } else if (propsFormData) {
-        // Use provided formData
         finalFormData = propsFormData;
       } else {
         throw new Error('Either chartId or formData must be provided');
@@ -303,6 +310,17 @@ export default function StatefulChart(props: StatefulChartProps) {
         jsonPayload: {
           ...queryContext,
           ...(force && { force: true }),
+          // Opt into async execution per the injected policy (feature flag +
+          // deployment default + dashboard override). We handle the 202 below via
+          // handleAsyncChartData; without the hook we stay synchronous. Send the
+          // tab id (when the app injected getTabId) so the backend ref-counts
+          // this tab as a consumer of the shared task, matching the Redux path.
+          ...(hooks?.handleAsyncChartData && hooks?.resolveAsyncMode?.()
+            ? {
+                async_mode: true,
+                ...(hooks?.getTabId ? { tab_id: hooks.getTabId() } : {}),
+              }
+            : {}),
         },
       };
 
@@ -319,12 +337,12 @@ export default function StatefulChart(props: StatefulChartProps) {
 
       let responseData: QueryData[];
       if (rawResponse?.status === 202) {
-        // With GLOBAL_ASYNC_QUERIES the query is dispatched to a Celery worker
-        // and the 202 body is job metadata (channel_id, job_id, result_url),
-        // not chart data. Delegate to the injected handler, which polls the
-        // async event channel and resolves the cached results. Without a
-        // handler we fail loudly rather than rendering the job metadata as if
-        // it were an (empty) result set.
+        // With GLOBAL_ASYNC_QUERIES the query runs as one GTF task per
+        // QueryObject and the 202 body is the async job ({task_ids}), not chart
+        // data. Delegate to the injected handler, which polls task statuses and,
+        // once they succeed, calls `refetch` to re-issue this request and read
+        // the now-cached results. Without a handler we fail loudly rather than
+        // rendering the job metadata as if it were an (empty) result set.
         if (!hooks?.handleAsyncChartData) {
           throw new Error(
             'Received an async chart data response (HTTP 202) but no async ' +
@@ -332,10 +350,41 @@ export default function StatefulChart(props: StatefulChartProps) {
               'the async handler or disable GLOBAL_ASYNC_QUERIES for this chart.',
           );
         }
+        // Re-issue synchronously from the warm per-query cache and extract rows.
+        // A forced request re-sends `force: true` and stamps each query's task id
+        // (passed by the async handler) as its `force_nonce`, so the backend serves
+        // the result that task cached rather than recomputing — and re-forces
+        // (instead of serving stale) if that result was not persisted. Non-forced
+        // reads carry neither. `async_mode` is intentionally omitted so the read-back
+        // resolves inline instead of returning another 202.
+        const refetch = async (
+          queryForceNonces?: string[],
+        ): Promise<QueryData[]> => {
+          const nonces = force ? queryForceNonces : undefined;
+          const readBackContext = nonces?.length
+            ? {
+                ...queryContext,
+                queries: queryContext.queries.map((query, index) =>
+                  nonces[index]
+                    ? { ...query, force_nonce: nonces[index] }
+                    : query,
+                ),
+              }
+            : queryContext;
+          const cached = await chartClientRef.current!.client.post({
+            ...requestConfig,
+            jsonPayload: {
+              ...readBackContext,
+              ...(force && { force: true }),
+            },
+          });
+          return extractRows(cached.json);
+        };
         responseData = ensureIsArray(
           await hooks.handleAsyncChartData(
             rawResponse,
             clientResponse.json as JsonObject,
+            refetch,
             controller.signal,
           ),
         );
@@ -345,14 +394,7 @@ export default function StatefulChart(props: StatefulChartProps) {
           return;
         }
       } else {
-        const rows = (
-          Array.isArray(clientResponse.json)
-            ? clientResponse.json
-            : [clientResponse.json]
-        ) as JsonObject[];
-
-        // Handle the nested result structure from the API
-        responseData = (rows[0]?.result ? rows[0].result : rows) as QueryData[];
+        responseData = extractRows(clientResponse.json);
       }
 
       // Don't pair this request's data with newer props or fire a stale onLoad
