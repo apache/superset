@@ -1220,7 +1220,7 @@ export function TableRenderer(props: TableRendererProps) {
         allowRenderHtml: settingsAllowRenderHtml,
       } = settings;
       return (
-        <tr key="rowHdr">
+        <tr key="rowHdr" className="pvtRowHeaderRow">
           {settingsRowAttrs.map((r, i) => {
             const needLabelToggle =
               settingsRowSubtotalDisplay.enabled === true &&
