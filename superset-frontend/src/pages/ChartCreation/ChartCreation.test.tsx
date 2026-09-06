@@ -624,7 +624,7 @@ test('navigates to Explore with the semantic view composite identity', async () 
   await userEvent.click(screen.getByRole('combobox', { name: 'Datasource' }));
   await userEvent.click(await screen.findByText('shared_source'));
   await userEvent.click(screen.getByRole('tab', { name: /All charts/i }));
-  userEvent.dblClick(await screen.findByText('Table'));
+  await userEvent.dblClick(await screen.findByText('Table'));
 
   expect(mockHistoryPush).toHaveBeenCalledWith(
     '/explore/?viz_type=table&datasource=42__semantic_view',
@@ -686,7 +686,7 @@ test('shows a failed datasource load as an error, then recovers on the next sear
 
   // The selection committed before the failure is still what gets created.
   await userEvent.click(screen.getByRole('tab', { name: /All charts/i }));
-  userEvent.dblClick(await screen.findByText('Table'));
+  await userEvent.dblClick(await screen.findByText('Table'));
   expect(mockHistoryPush).toHaveBeenCalledWith(
     '/explore/?viz_type=table&datasource=42__semantic_view',
   );
@@ -730,7 +730,7 @@ test('keeps the legacy dataset-only picker when semantic layers are disabled', a
   ).toBe(false);
 
   await userEvent.click(screen.getByRole('tab', { name: /All charts/i }));
-  userEvent.dblClick(await screen.findByText('Table'));
+  await userEvent.dblClick(await screen.findByText('Table'));
   expect(mockHistoryPush).toHaveBeenCalledWith(
     '/explore/?viz_type=table&datasource=42__table',
   );
