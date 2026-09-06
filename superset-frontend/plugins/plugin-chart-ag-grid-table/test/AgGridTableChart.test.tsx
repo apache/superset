@@ -132,11 +132,30 @@ test('AgGridTableChart nests columns in header groups', async () => {
   await waitFor(() => {
     expect(document.querySelector('.ag-container')).toBeInTheDocument();
   });
-  expect(
-    Array.from(document.querySelectorAll('.ag-header-group-cell-label')).some(
-      cell => cell.textContent?.includes('Metrics'),
-    ),
-  ).toBe(true);
+
+  const groupCell = Array.from(
+    document.querySelectorAll('.ag-header-group-cell'),
+  ).find(cell => cell.textContent?.includes('Metrics'));
+  expect(groupCell).toBeDefined();
+
+  const nestedColumnHeader = Array.from(
+    groupCell?.querySelectorAll('.ag-header-cell-text') ?? [],
+  ).find(cell => cell.textContent === 'sum__num');
+  const leafCell = Array.from(document.querySelectorAll('.ag-header-cell')).find(
+    cell =>
+      cell.querySelector('.ag-header-cell-text')?.textContent === 'sum__num',
+  );
+  expect(leafCell).toBeDefined();
+
+  if (nestedColumnHeader) {
+    expect(groupCell?.contains(nestedColumnHeader)).toBe(true);
+  } else {
+    const groupColIndex = Number(groupCell?.getAttribute('aria-colindex'));
+    const groupColSpan = Number(groupCell?.getAttribute('aria-colspan') ?? 1);
+    const leafColIndex = Number(leafCell?.getAttribute('aria-colindex'));
+    expect(leafColIndex).toBeGreaterThanOrEqual(groupColIndex);
+    expect(leafColIndex).toBeLessThan(groupColIndex + groupColSpan);
+  }
 });
 
 test('AgGridTableChart renders basic data', async () => {

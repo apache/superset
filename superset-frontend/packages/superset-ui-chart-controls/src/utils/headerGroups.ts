@@ -138,6 +138,22 @@ export function headerGroupsHaveSameColumns(
   });
 }
 
+function labelFromVerboseMap(
+  key: string,
+  verboseMap?: Record<string, string> | string[] | null,
+): string {
+  if (!verboseMap || Array.isArray(verboseMap)) {
+    return key;
+  }
+  if (key.startsWith('%')) {
+    const baseKey = key.replace('%', '');
+    if (Object.prototype.hasOwnProperty.call(verboseMap, baseKey)) {
+      return `%${verboseMap[baseKey]}`;
+    }
+  }
+  return verboseMap[key] ?? key;
+}
+
 export function resolveHeaderGroups(
   headerGroups: HeaderGroupConfig[] | undefined,
   options: {
@@ -146,16 +162,12 @@ export function resolveHeaderGroups(
     verboseMap?: Record<string, string> | string[] | null;
   },
 ): HeaderGroupConfig[] {
-  const labelFor = (key: string) =>
-    options.verboseMap &&
-    !Array.isArray(options.verboseMap) &&
-    options.verboseMap[key]
-      ? options.verboseMap[key]
-      : key;
   return syncTimeComparisonGroups(
     headerGroups ?? [],
     options.timeCompareEnabled
-      ? buildTimeComparisonHeaderGroups(options.metricKeys, labelFor)
+      ? buildTimeComparisonHeaderGroups(options.metricKeys, key =>
+          labelFromVerboseMap(key, options.verboseMap),
+        )
       : [],
   );
 }
@@ -529,7 +541,7 @@ export function getHeaderGroupsControlProps(
   }
 
   const columnLabel = (colname: string) =>
-    Array.isArray(verboseMap) ? colname : (verboseMap?.[colname] ?? colname);
+    labelFromVerboseMap(colname, verboseMap);
 
   return {
     columnOptions: colnames.map((colname: string) => ({

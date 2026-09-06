@@ -329,19 +329,35 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
 
   const previousXAxis = usePrevious(x_axis);
 
+  const hasHeaderGroupsControl = Boolean(props.controls.header_groups);
+  const headerGroupsValue = props.controls.header_groups?.value;
+  const exploreDatasource = props.exploreState.datasource;
+  const exploreFormData = props.exploreState.form_data;
+  const timeCompareValue = props.exploreState.controls?.time_compare?.value;
+  const queryColnames = props.chart.queriesResponse?.[0]?.colnames;
+
   // HeaderGroupsControl is on the Customize tab and is not mounted until that
   // tab is opened. Sync time-comparison auto-groups into form_data here so
   // enabling Time Comparison updates the chart without visiting Customize.
   useEffect(() => {
-    if (!props.controls.header_groups || !setControlValue) {
+    if (!hasHeaderGroupsControl || !setControlValue) {
       return;
     }
-    const current = ensureIsArray(
-      props.controls.header_groups.value,
-    ) as HeaderGroupConfig[];
+    const current = ensureIsArray(headerGroupsValue) as HeaderGroupConfig[];
     const { timeComparisonGroups } = getHeaderGroupsControlProps(
-      props.exploreState,
-      props.chart,
+      {
+        datasource: exploreDatasource,
+        form_data: {
+          metrics: exploreFormData?.metrics,
+          percent_metrics: exploreFormData?.percent_metrics,
+          groupby: exploreFormData?.groupby,
+          all_columns: exploreFormData?.all_columns,
+        },
+        controls: { time_compare: { value: timeCompareValue } },
+      },
+      {
+        queriesResponse: queryColnames ? [{ colnames: queryColnames }] : null,
+      },
     );
     const next = syncTimeComparisonGroups(current, timeComparisonGroups);
     if (!headerGroupsHaveSameColumns(current, next)) {
@@ -350,11 +366,16 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       });
     }
   }, [
-    props.chart,
-    props.controls.header_groups,
-    props.controls.time_compare?.value,
-    props.exploreState,
+    exploreDatasource,
+    exploreFormData?.all_columns,
+    exploreFormData?.groupby,
+    exploreFormData?.metrics,
+    exploreFormData?.percent_metrics,
+    hasHeaderGroupsControl,
+    headerGroupsValue,
+    queryColnames,
     setControlValue,
+    timeCompareValue,
   ]);
 
   useEffect(() => {

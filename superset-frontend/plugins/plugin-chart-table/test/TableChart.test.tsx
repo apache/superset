@@ -306,6 +306,30 @@ describe('plugin-chart-table', () => {
       expect(comparisonColumns.some(col => col.label === '%')).toBe(true);
     });
 
+    test('should label percent-metric time comparison groups from verboseMap', () => {
+      const transformedProps = transformProps({
+        ...testData.comparison,
+        datasource: {
+          ...testData.comparison.datasource,
+          verboseMap: {
+            metric_1: 'Metric 1',
+            percent_metric_1: 'Percent Metric 1',
+          },
+        },
+      });
+
+      expect(
+        transformedProps.headerGroups?.find(
+          group => group.id === 'time-compare-metric_1',
+        )?.label,
+      ).toBe('Metric 1');
+      expect(
+        transformedProps.headerGroups?.find(
+          group => group.id === 'time-compare-%percent_metric_1',
+        )?.label,
+      ).toBe('%Percent Metric 1');
+    });
+
     test('should derive header groups from time comparison when header_groups is empty', () => {
       const transformedProps = transformProps(testData.comparison);
 

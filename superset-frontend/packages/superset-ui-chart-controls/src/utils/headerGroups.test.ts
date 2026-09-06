@@ -273,6 +273,22 @@ test('syncTimeComparisonGroups adds missing auto groups and keeps edits', () => 
   expect(next[1].label).toBe('Renamed');
 });
 
+test('resolveHeaderGroups labels percent metrics after stripping the prefix', () => {
+  expect(
+    resolveHeaderGroups([], {
+      timeCompareEnabled: true,
+      metricKeys: ['%profit'],
+      verboseMap: { profit: 'Profit' },
+    }),
+  ).toEqual([
+    expect.objectContaining({
+      id: 'time-compare-%profit',
+      label: '%Profit',
+      source: 'time_compare',
+    }),
+  ]);
+});
+
 test('resolveHeaderGroups derives time comparison groups without saved header_groups', () => {
   expect(
     resolveHeaderGroups([], {
@@ -426,12 +442,19 @@ test('getHeaderGroupsControlProps uses array verbose maps and skips offset colum
 
 test('getHeaderGroupsControlProps includes percent metrics in auto groups', () => {
   const result = getHeaderGroupsControlProps({
+    datasource: { verbose_map: { revenue: 'Revenue', profit: 'Profit' } },
     form_data: { metrics: ['revenue'], percent_metrics: ['profit'] },
     controls: { time_compare: { value: '1 year ago' } },
   });
 
-  expect(result.timeComparisonGroups.map(group => group.id)).toEqual([
-    'time-compare-revenue',
-    'time-compare-%profit',
+  expect(result.timeComparisonGroups).toEqual([
+    expect.objectContaining({
+      id: 'time-compare-revenue',
+      label: 'Revenue',
+    }),
+    expect.objectContaining({
+      id: 'time-compare-%profit',
+      label: '%Profit',
+    }),
   ]);
 });
