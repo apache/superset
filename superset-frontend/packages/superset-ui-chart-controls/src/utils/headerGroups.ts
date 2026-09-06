@@ -82,7 +82,7 @@ export function buildTimeComparisonHeaderGroups(
     id: `time-compare-${key}`,
     label: labelFor(key),
     columns: getTimeComparisonColumnKeys(key),
-    labelAlign: 'center',
+    labelAlign: 'left',
     placement: 'right',
     source: 'time_compare',
   }));
