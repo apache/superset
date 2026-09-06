@@ -325,3 +325,44 @@ def test_query_dao_stop_query_wrong_user(
 
     query = db.session.query(Query).one()
     assert query.status == QueryStatus.RUNNING
+
+
+def test_query_dao_stop_query_via_gtf_task(
+    mocker: MockerFixture, app: Any, session: Session
+) -> None:
+    """When an async GTF task backs the query, stop routes through CancelTaskCommand
+    (which drives the abort → warehouse cancel → STOPPED mirror), not the direct
+    cancel."""
+    from superset import db
+    from superset.common.db_query_status import QueryStatus
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+
+    engine = db.session.get_bind()
+    Query.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="gtf_db", sqlalchemy_uri="sqlite://")
+    query_obj = Query(
+        client_id="gtf-client",
+        database=database,
+        sql="select 1",
+        status=QueryStatus.RUNNING,
+        user_id=5,
+    )
+    db.session.add(database)
+    db.session.add(query_obj)
+
+    mocker.patch("superset.daos.query.get_user_id", return_value=5)
+    task = mocker.MagicMock()
+    task.uuid = "task-uuid-1"
+    mocker.patch("superset.daos.tasks.TaskDAO.find_by_task_key", return_value=task)
+    cancel = mocker.patch("superset.commands.tasks.cancel.CancelTaskCommand")
+
+    from superset.daos.query import QueryDAO
+
+    QueryDAO.stop_query(query_obj.client_id)
+
+    cancel.assert_called_once_with("task-uuid-1")
+    cancel.return_value.run.assert_called_once()
+    # The task (not stop_query) mirrors STOPPED, so the row is untouched here.
+    assert query_obj.status == QueryStatus.RUNNING
