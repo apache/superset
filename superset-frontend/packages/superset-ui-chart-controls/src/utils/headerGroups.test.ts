@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core/translation';
 import {
   buildHeaderGroupRows,
   buildTimeComparisonHeaderGroups,
@@ -33,7 +32,7 @@ import {
 } from './headerGroups';
 
 const comparisonRevenueColumns = [
-  `${t('Main')} revenue`,
+  'Main revenue',
   '# revenue',
   '△ revenue',
   '% revenue',
@@ -142,6 +141,12 @@ test('hasRenderableHeaderGroups ignores label-only and stale groups', () => {
       ['online'],
     ),
   ).toBe(true);
+  expect(
+    hasRenderableHeaderGroups(
+      [{ id: '1', label: 'Sales', columns: ['revenue'] }],
+      [{ key: 'custom_rev', metricName: 'revenue' }],
+    ),
+  ).toBe(true);
 });
 
 test('nestColDefsInHeaderGroups skips groups that match no columns', () => {
@@ -228,13 +233,13 @@ test('nestColDefsInHeaderGroups nests child groups that have matching columns', 
 test('expandGroupColumnKey maps a metric to its time comparison columns', () => {
   const visible = [
     'region',
-    `${t('Main')} revenue`,
+    `Main revenue`,
     '# revenue',
     '△ revenue',
     '% revenue',
   ];
   expect(expandGroupColumnKey('revenue', visible)).toEqual([
-    `${t('Main')} revenue`,
+    `Main revenue`,
     '# revenue',
     '△ revenue',
     '% revenue',
@@ -245,7 +250,7 @@ test('nestColDefsInHeaderGroups wraps time comparison columns for a metric group
   const nested = nestColDefsInHeaderGroups(
     [
       { key: 'region' },
-      { key: `${t('Main')} revenue`, metricName: 'revenue' },
+      { key: `Main revenue`, metricName: 'revenue' },
       { key: '# revenue', metricName: 'revenue' },
       { key: '△ revenue', metricName: 'revenue' },
       { key: '% revenue', metricName: 'revenue' },
@@ -270,7 +275,7 @@ test('nestColDefsInHeaderGroups wraps time comparison columns for a metric group
       openByDefault: true,
       headerClass: 'ag-header-align-center',
       children: [
-        { field: `${t('Main')} revenue` },
+        { field: `Main revenue` },
         { field: '# revenue' },
         { field: '△ revenue' },
         { field: '% revenue' },
@@ -282,7 +287,7 @@ test('nestColDefsInHeaderGroups wraps time comparison columns for a metric group
 test('nestColDefsInHeaderGroups expands a user group onto comparison columns', () => {
   const nested = nestColDefsInHeaderGroups(
     [
-      { key: `${t('Main')} revenue`, metricName: 'revenue' },
+      { key: `Main revenue`, metricName: 'revenue' },
       { key: '# revenue', metricName: 'revenue' },
     ],
     [{ id: 'sales', label: 'Sales', columns: ['revenue'], placement: 'right' }],
@@ -295,7 +300,7 @@ test('nestColDefsInHeaderGroups expands a user group onto comparison columns', (
       marryChildren: true,
       openByDefault: true,
       headerClass: 'ag-header-align-center',
-      children: [{ field: `${t('Main')} revenue` }, { field: '# revenue' }],
+      children: [{ field: `Main revenue` }, { field: '# revenue' }],
     },
   ]);
 });
@@ -323,7 +328,7 @@ test('syncTimeComparisonGroups adds missing auto groups and keeps edits', () => 
     {
       id: 'time-compare-revenue',
       label: 'Renamed',
-      columns: [`${t('Main')} revenue`],
+      columns: [`Main revenue`],
       source: 'time_compare',
     },
   ];
@@ -337,7 +342,7 @@ test('syncTimeComparisonGroups adds missing auto groups and keeps edits', () => 
     {
       id: 'time-compare-profit',
       label: 'Profit',
-      columns: [`${t('Main')} profit`],
+      columns: [`Main profit`],
       source: 'time_compare',
     },
   ]);
@@ -447,12 +452,12 @@ test('getHeaderGroupsControlProps builds time comparison groups', () => {
       id: 'time-compare-revenue',
       label: 'Revenue',
       source: 'time_compare',
-      columns: [`${t('Main')} revenue`, '# revenue', '△ revenue', '% revenue'],
+      columns: [`Main revenue`, '# revenue', '△ revenue', '% revenue'],
     }),
   ]);
   expect(result.columnOptions.map(option => option.value)).toEqual([
     'region',
-    `${t('Main')} revenue`,
+    `Main revenue`,
     '# revenue',
     '△ revenue',
     '% revenue',
@@ -482,7 +487,7 @@ test('getHeaderGroupsControlProps skips unprefixed percent metrics', () => {
   );
 
   expect(result.columnOptions.map(option => option.value)).toEqual([
-    `${t('Main')} %profit`,
+    `Main %profit`,
     '# %profit',
     '△ %profit',
     '% %profit',
@@ -509,12 +514,12 @@ test('getHeaderGroupsControlProps uses array verbose maps and skips offset colum
 
   expect(result.columnOptions.map(option => option.value)).toEqual([
     'region',
-    `${t('Main')} revenue`,
+    `Main revenue`,
     '# revenue',
     '△ revenue',
     '% revenue',
   ]);
-  expect(result.columnOptions[1].label).toBe(`${t('Main')} revenue`);
+  expect(result.columnOptions[1].label).toBe(`Main revenue`);
 });
 
 test('getHeaderGroupsControlProps includes percent metrics in auto groups', () => {

@@ -48,7 +48,6 @@ import {
   moveHeaderGroup,
   pruneStaleHeaderGroupColumns,
   removeHeaderGroupAt,
-  syncTimeComparisonGroups,
   updateHeaderGroupAt,
 } from './utils';
 import {
@@ -188,24 +187,20 @@ export default function HeaderGroupsControl({
   value = [],
   onChange,
   columnOptions = [],
-  timeComparisonGroups = [],
+  timeComparisonGroups: _timeComparisonGroups,
   ...props
 }: HeaderGroupsControlProps) {
   const groups = value ?? [];
 
   useEffect(() => {
-    if (!onChange) {
+    if (!onChange || columnOptions.length === 0) {
       return;
     }
-    const synced = syncTimeComparisonGroups(groups, timeComparisonGroups);
-    const next =
-      columnOptions.length === 0
-        ? synced
-        : pruneStaleHeaderGroupColumns(synced, columnOptions);
+    const next = pruneStaleHeaderGroupColumns(groups, columnOptions);
     if (!headerGroupsHaveSameColumns(groups, next)) {
       onChange(next);
     }
-  }, [columnOptions, groups, onChange, timeComparisonGroups]);
+  }, [columnOptions, groups, onChange]);
 
   const usedColumns = useMemo(
     () => new Set(collectHeaderGroupColumns(groups)),

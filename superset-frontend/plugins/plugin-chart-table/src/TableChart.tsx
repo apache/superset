@@ -107,6 +107,14 @@ import {
 
 type ValueRange = [number, number];
 
+function getComparisonKeyPortion(key: string, label: string): string {
+  const prefix = ['Main', '#', '△', '%'].find(item => key.startsWith(item));
+  if (prefix !== undefined) {
+    return key.substring(prefix.length);
+  }
+  return key.startsWith(label) ? key.substring(label.length) : key;
+}
+
 interface TableSize {
   width: number;
   height: number;
@@ -639,7 +647,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
     return columnsMeta.filter(({ label, key }) => {
       // Extract the key portion after the space, assuming the format is always "label key"
-      const keyPortion = key.substring(label.length);
+      const keyPortion = getComparisonKeyPortion(key, label);
       const isKeyHidded = hideComparisonKeys.includes(keyPortion);
       const isLableMain = label === main;
 
@@ -763,7 +771,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         // Check if element's label is one of the comparison labels
         if (comparisonLabels.includes(element.label)) {
           // Extract the key portion after the space, assuming the format is always "label key"
-          const keyPortion = element.key.substring(element.label.length);
+          const keyPortion = getComparisonKeyPortion(
+            element.key,
+            element.label,
+          );
 
           // If the key portion is not in the map, initialize it with the current index
           if (!resultMap[keyPortion]) {
@@ -875,19 +886,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
   // Compute visible columns before groupHeaderColumns to ensure index consistency.
   // This filters out columns with config.visible === false.
-  const visibleColumnsMeta = useMemo(() => {
+  const { visibleColumnsMeta, hasHeaderGroups } = useMemo(() => {
     const visible = filteredColumnsMeta.filter(
       col => col.config?.visible !== false,
     );
-    if (
-      hasRenderableHeaderGroups(
-        headerGroups,
-        visible.map(column => column.key),
-      )
-    ) {
-      return orderColumnsByHeaderGroups(visible, headerGroups);
-    }
-    return visible;
+    const hasGroups = hasRenderableHeaderGroups(headerGroups, visible);
+    return {
+      visibleColumnsMeta: hasGroups
+        ? orderColumnsByHeaderGroups(visible, headerGroups)
+        : visible,
+      hasHeaderGroups: hasGroups,
+    };
   }, [filteredColumnsMeta, headerGroups]);
 
   // Use visibleColumnsMeta for groupHeaderColumns to ensure indices match the actual
@@ -925,6 +934,53 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     }
   `;
 
+  const getComparisonToggleKey = (
+    spanColumns: DataColumnMeta[],
+  ): string | undefined => {
+    const comparisonCols = spanColumns.filter(col =>
+      comparisonLabels.includes(col.label),
+    );
+    if (comparisonCols.length === 0) {
+      return undefined;
+    }
+    const keyPortion = getComparisonKeyPortion(
+      comparisonCols[0].key,
+      comparisonCols[0].label,
+    );
+    return comparisonCols.every(
+      col => getComparisonKeyPortion(col.key, col.label) === keyPortion,
+    )
+      ? keyPortion
+      : undefined;
+  };
+
+  const renderComparisonToggle = (comparisonKey: string) => (
+    <span
+      css={css`
+        float: right;
+        & svg {
+          color: ${theme.colorIcon} !important;
+        }
+      `}
+    >
+      {hideComparisonKeys.includes(comparisonKey) ? (
+        <PlusCircleOutlined
+          onClick={() =>
+            setHideComparisonKeys(
+              hideComparisonKeys.filter(k => k !== comparisonKey),
+            )
+          }
+        />
+      ) : (
+        <MinusCircleOutlined
+          onClick={() =>
+            setHideComparisonKeys([...hideComparisonKeys, comparisonKey])
+          }
+        />
+      )}
+    </span>
+  );
+
   const renderMultiLevelHeaders = (): JSX.Element => {
     const rows = buildHeaderGroupRows(
       headerGroups,
@@ -945,6 +1001,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                 !lastColumn.isMetric &&
                 !lastColumn.isPercentMetric,
               );
+              const spanColumns = visibleColumnsMeta.slice(
+                cell.columnIndex,
+                cell.columnIndex + cell.colSpan,
+              );
+              const comparisonKey = cell.label
+                ? getComparisonToggleKey(spanColumns)
+                : undefined;
               return (
                 <th
                   key={cell.key}
@@ -958,6 +1021,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   }}
                 >
                   {cell.label}
+                  {comparisonKey ? renderComparisonToggle(comparisonKey) : null}
                 </th>
               );
             })}
@@ -968,12 +1032,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
   };
 
   const renderGroupingHeaders = (): JSX.Element => {
-    if (
-      hasRenderableHeaderGroups(
-        headerGroups,
-        visibleColumnsMeta.map(column => column.key),
-      )
-    ) {
+    if (hasHeaderGroups) {
       return renderMultiLevelHeaders();
     }
 
@@ -1015,30 +1074,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       headers.push(
         <th key={`header-${key}`} colSpan={colSpan} style={{ borderBottom: 0 }}>
           {originalLabel}
-          <span
-            css={css`
-              float: right;
-              & svg {
-                color: ${theme.colorIcon} !important;
-              }
-            `}
-          >
-            {hideComparisonKeys.includes(key) ? (
-              <PlusCircleOutlined
-                onClick={() =>
-                  setHideComparisonKeys(
-                    hideComparisonKeys.filter(k => k !== key),
-                  )
-                }
-              />
-            ) : (
-              <MinusCircleOutlined
-                onClick={() =>
-                  setHideComparisonKeys([...hideComparisonKeys, key])
-                }
-              />
-            )}
-          </span>
+          {renderComparisonToggle(key)}
         </th>,
       );
 
@@ -1752,11 +1788,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         // not in use in Superset, but needed for unit tests
         sticky={sticky}
         renderGroupingHeaders={
-          !isEmpty(groupHeaderColumns) ||
-          hasRenderableHeaderGroups(
-            headerGroups,
-            visibleColumnsMeta.map(column => column.key),
-          )
+          !isEmpty(groupHeaderColumns) || hasHeaderGroups
             ? renderGroupingHeaders
             : undefined
         }

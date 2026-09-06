@@ -392,6 +392,9 @@ export default function HeaderGroupEditor({
   };
 
   const handleApply = () => {
+    if (!canSaveHeaderGroup(draft)) {
+      return;
+    }
     onSave?.(draft);
     setVisible(false);
     setDraft(createHeaderGroup());

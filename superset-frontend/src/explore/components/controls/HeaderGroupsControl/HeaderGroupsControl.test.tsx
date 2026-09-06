@@ -264,7 +264,7 @@ test('locks columns on automatically created time comparison groups', async () =
   ).not.toBeInTheDocument();
 });
 
-test('removes stale time comparison groups when they are no longer provided', () => {
+test('does not rewrite time comparison groups from the control', () => {
   const onChange = jest.fn();
   render(
     <HeaderGroupsControl
@@ -286,9 +286,7 @@ test('removes stale time comparison groups when they are no longer provided', ()
     />,
   );
 
-  expect(onChange).toHaveBeenCalledWith([
-    expect.objectContaining({ id: 'custom' }),
-  ]);
+  expect(onChange).not.toHaveBeenCalled();
 });
 
 test('does not sync groups when onChange is omitted', () => {
@@ -310,30 +308,26 @@ test('does not sync groups when onChange is omitted', () => {
   ).not.toThrow();
 });
 
-test('syncs time comparison groups when column options are empty', () => {
+test('does not sync time comparison groups when column options are empty', () => {
   const onChange = jest.fn();
-  const timeComparisonGroups: HeaderGroupConfig[] = [
-    {
-      id: 'time-compare-sales',
-      label: 'Sales',
-      columns: ['Main SUM(sales)'],
-      source: 'time_compare',
-    },
-  ];
-
   render(
     <HeaderGroupsControl
       {...baseProps}
       columnOptions={[]}
       value={[]}
-      timeComparisonGroups={timeComparisonGroups}
+      timeComparisonGroups={[
+        {
+          id: 'time-compare-sales',
+          label: 'Sales',
+          columns: ['Main SUM(sales)'],
+          source: 'time_compare',
+        },
+      ]}
       onChange={onChange}
     />,
   );
 
-  expect(onChange).toHaveBeenCalledWith([
-    expect.objectContaining({ id: 'time-compare-sales' }),
-  ]);
+  expect(onChange).not.toHaveBeenCalled();
 });
 
 test('does not persist an empty name or last column while editing', async () => {
@@ -546,38 +540,30 @@ test('adds a subgroup in the add popover before Apply', async () => {
   expect(nextGroups[0].children).toHaveLength(1);
 });
 
-test('creates time comparison groups when they are provided', () => {
+test('does not create time comparison groups from the control', () => {
   const onChange = jest.fn();
-  const timeComparisonGroups: HeaderGroupConfig[] = [
-    {
-      id: 'time-compare-sales',
-      label: 'Sales',
-      columns: [
-        'Main SUM(sales)',
-        '# SUM(sales)',
-        '△ SUM(sales)',
-        '% SUM(sales)',
-      ],
-      source: 'time_compare',
-    },
-  ];
-
   render(
     <HeaderGroupsControl
       {...baseProps}
       value={[]}
-      timeComparisonGroups={timeComparisonGroups}
+      timeComparisonGroups={[
+        {
+          id: 'time-compare-sales',
+          label: 'Sales',
+          columns: [
+            'Main SUM(sales)',
+            '# SUM(sales)',
+            '△ SUM(sales)',
+            '% SUM(sales)',
+          ],
+          source: 'time_compare',
+        },
+      ]}
       onChange={onChange}
     />,
   );
 
-  expect(onChange).toHaveBeenCalledWith([
-    expect.objectContaining({
-      id: 'time-compare-sales',
-      source: 'time_compare',
-      columns: timeComparisonGroups[0].columns,
-    }),
-  ]);
+  expect(onChange).not.toHaveBeenCalled();
 });
 
 test('removes stale columns that are no longer available', () => {

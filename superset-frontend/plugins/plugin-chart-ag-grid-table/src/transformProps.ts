@@ -101,7 +101,7 @@ const processComparisonTotals = (
     return totals;
   }
   const transformedTotals: DataRecord = {};
-  const mainLabel = t('Main');
+  const mainLabel = 'Main';
   totals.map((totalRecord: DataRecord) =>
     Object.keys(totalRecord).forEach(key => {
       if (totalRecord[key] !== undefined && !key.includes(comparisonSuffix)) {
@@ -241,10 +241,10 @@ const processComparisonColumns = (
           originalLabel,
           metricName: col.key,
           label: t('Main'),
-          key: `${t('Main')} ${col.key}`,
-          config: getComparisonColConfig(t('Main'), col.key, columnConfig),
+          key: `Main ${col.key}`,
+          config: getComparisonColConfig('Main', col.key, columnConfig),
           formatter: getComparisonColFormatter(
-            t('Main'),
+            'Main',
             col,
             columnConfig,
             savedFormat,
@@ -727,7 +727,7 @@ const transformProps = (
     baseQuery?.data,
     columns,
     comparisonSuffix,
-    t('Main'),
+    'Main',
   );
 
   const passedData = isUsingTimeComparison ? comparisonData || [] : data;

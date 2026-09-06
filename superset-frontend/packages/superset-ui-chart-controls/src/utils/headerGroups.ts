@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   getColumnLabel,
@@ -58,12 +57,7 @@ export type HeaderGroupCell = {
 };
 
 export function getTimeComparisonColumnKeys(colname: string): string[] {
-  return [
-    `${t('Main')} ${colname}`,
-    `# ${colname}`,
-    `△ ${colname}`,
-    `% ${colname}`,
-  ];
+  return [`Main ${colname}`, `# ${colname}`, `△ ${colname}`, `% ${colname}`];
 }
 
 export function expandGroupColumnKey(
@@ -361,9 +355,36 @@ export function buildHeaderGroupRows(
   return rows;
 }
 
+export type HeaderGroupVisibleColumn =
+  | string
+  | { key: string; metricName?: string };
+
+function getVisibleColumnLookup(visible?: HeaderGroupVisibleColumn[]): {
+  keys?: string[];
+  metricNames: Set<string>;
+} {
+  if (!visible) {
+    return { keys: undefined, metricNames: new Set() };
+  }
+  const keys: string[] = [];
+  const metricNames = new Set<string>();
+  visible.forEach(item => {
+    if (typeof item === 'string') {
+      keys.push(item);
+      return;
+    }
+    keys.push(item.key);
+    if (item.metricName) {
+      metricNames.add(item.metricName);
+    }
+  });
+  return { keys, metricNames };
+}
+
 function groupHasVisibleColumns(
   group: HeaderGroupConfig,
   visibleKeys?: string[],
+  metricNames?: Set<string>,
 ): boolean {
   const columns = group.columns ?? [];
   if (columns.length === 0) {
@@ -372,18 +393,23 @@ function groupHasVisibleColumns(
   if (!visibleKeys) {
     return true;
   }
-  return columns.some(key => expandGroupColumnKey(key, visibleKeys).length > 0);
+  return columns.some(
+    key =>
+      expandGroupColumnKey(key, visibleKeys).length > 0 ||
+      Boolean(metricNames?.has(key)),
+  );
 }
 
 export function hasRenderableHeaderGroups(
   groups?: HeaderGroupConfig[] | null,
-  visibleKeys?: string[],
+  visibleColumns?: HeaderGroupVisibleColumn[],
 ): boolean {
+  const { keys, metricNames } = getVisibleColumnLookup(visibleColumns);
   return Boolean(
     groups?.some(
       group =>
-        groupHasVisibleColumns(group, visibleKeys) ||
-        hasRenderableHeaderGroups(group.children, visibleKeys),
+        groupHasVisibleColumns(group, keys, metricNames) ||
+        hasRenderableHeaderGroups(group.children, visibleColumns),
     ),
   );
 }

@@ -681,7 +681,7 @@ describe('ControlPanelsContainer', () => {
     const autoGroup = {
       id: 'time-compare-revenue',
       label: 'Renamed',
-      columns: [`${t('Main')} revenue`, '# revenue', '△ revenue', '% revenue'],
+      columns: ['Main revenue', '# revenue', '△ revenue', '% revenue'],
       source: 'time_compare' as const,
     };
     const { props, setControlValue } = withHeaderGroupsSync();
@@ -728,7 +728,7 @@ describe('ControlPanelsContainer', () => {
           {
             id: 'time-compare-revenue',
             label: 'Revenue',
-            columns: [`${t('Main')} revenue`],
+            columns: ['Main revenue'],
             source: 'time_compare',
           },
           {

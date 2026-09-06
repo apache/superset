@@ -103,6 +103,9 @@ test('AgGridTableChart defaults header groups to an empty list', async () => {
   await waitFor(() => {
     expect(document.querySelector('.ag-container')).toBeInTheDocument();
   });
+  expect(
+    document.querySelector('.ag-header-group-cell'),
+  ).not.toBeInTheDocument();
 });
 
 test('AgGridTableChart nests columns in header groups', async () => {

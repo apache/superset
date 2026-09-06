@@ -458,22 +458,19 @@ export const StyledChartContainer = styled.div<{
     }
 
     .ag-header-align-left {
-      .ag-header-group-cell-label,
-      .ag-header-cell-label {
+      .ag-header-group-cell-label {
         justify-content: flex-start;
       }
     }
 
     .ag-header-align-center {
-      .ag-header-group-cell-label,
-      .ag-header-cell-label {
+      .ag-header-group-cell-label {
         justify-content: center;
       }
     }
 
     .ag-header-align-right {
-      .ag-header-group-cell-label,
-      .ag-header-cell-label {
+      .ag-header-group-cell-label {
         justify-content: flex-end;
       }
     }

@@ -41,6 +41,7 @@ import {
   isPercentMetric,
   ColorSchemeEnum,
   getHeaderGroupsControlProps,
+  getTimeComparisonColumnKeys,
 } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -62,12 +63,8 @@ import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 /**
  * Generate comparison column names for a given column.
  */
-const generateComparisonColumns = (colname: string) => [
-  `${t('Main')} ${colname}`,
-  `# ${colname}`,
-  `△ ${colname}`,
-  `% ${colname}`,
-];
+const generateComparisonColumns = (colname: string) =>
+  getTimeComparisonColumnKeys(colname);
 
 /**
  * Generate column types for the comparison columns.
@@ -93,7 +90,7 @@ const processComparisonColumns = (columns: any[], suffix: string) =>
       return [
         {
           label: `${t('Main')} ${col.label}`,
-          value: `${t('Main')} ${col.value}`,
+          value: `Main ${col.value}`,
         },
         {
           label: `# ${col.label}`,

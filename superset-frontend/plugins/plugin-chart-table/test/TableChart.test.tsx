@@ -204,6 +204,14 @@ test('renders time comparison grouping headers without configured header groups'
   const groupRow = container.querySelector('thead tr');
   expect(groupRow).toBeInTheDocument();
   expect(groupRow?.textContent).toMatch(/metric_1|Metric/);
+  expect(container.querySelector('.anticon-minus-circle')).toBeInTheDocument();
+});
+
+test('keeps comparison column hide toggles when time comparison header groups are present', () => {
+  const props = transformProps(testData.comparison);
+
+  const { container } = render(<TableChart {...props} sticky={false} />);
+  expect(container.querySelector('.anticon-minus-circle')).toBeInTheDocument();
 });
 
 test('marks dimension header groups and applies label alignment', () => {
