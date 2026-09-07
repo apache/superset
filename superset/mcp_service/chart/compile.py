@@ -46,8 +46,10 @@ from superset.mcp_service.chart.query_result import (
     validate_gauge_query_result,
 )
 from superset.mcp_service.chart.validation.dataset_validator import (
+    AmbiguousDatasetReferenceError,
     build_dataset_context_from_orm,
     DatasetValidator,
+    resolve_dataset_reference,
 )
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
@@ -224,9 +226,13 @@ def _adhoc_filter_column_valid(
     """
     if clause == "HAVING":
         return DatasetValidator._column_exists(column, dataset_context)
-    return any(
-        col["name"].lower() == column.lower()
-        for col in dataset_context.available_columns
+    return (
+        resolve_dataset_reference(
+            column,
+            (col["name"] for col in dataset_context.available_columns),
+            "physical column",
+        )
+        is not None
     )
 
 
@@ -254,8 +260,11 @@ def _validate_adhoc_filter_columns(
         if not column or not isinstance(column, str):
             continue
         clause = f.get("clause", "WHERE").upper()
-        if not _adhoc_filter_column_valid(column, clause, dataset_context):
-            invalid.append(column)
+        try:
+            if not _adhoc_filter_column_valid(column, clause, dataset_context):
+                invalid.append(column)
+        except AmbiguousDatasetReferenceError as ex:
+            return DatasetValidator._build_ambiguous_reference_error(ex)
 
     if not invalid:
         return None

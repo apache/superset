@@ -1514,3 +1514,35 @@ def test_authorize_guest_query_noop_for_non_guest() -> None:
         strategy._authorize_guest_query(MagicMock())
 
     mock_authorize.assert_not_called()
+
+
+@pytest.mark.parametrize("stored_viz_type", [None, "table", "gauge_chart"])
+@pytest.mark.parametrize(
+    "strategy", [ASCIIPreviewStrategy, TablePreviewStrategy, VegaLitePreviewStrategy]
+)
+def test_saved_gauge_dispatch_and_validation_agree(
+    stored_viz_type: str | None, strategy: type[PreviewFormatStrategy]
+) -> None:
+    """Saved chart identity drives query construction and numeric validation."""
+    chart = _gauge_chart()
+    form_data = utils_json.loads(chart.params)
+    form_data["viz_type"] = stored_viz_type
+    chart.params = utils_json.dumps(form_data)
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview.build_query_context_from_form_data"
+        ) as build,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        build.return_value = SimpleNamespace(
+            queries=[SimpleNamespace(metrics=["saved_sla"])]
+        )
+        command.return_value.run.return_value = {
+            "queries": [{"data": [{"team": "Blue", "saved_sla": "bad"}]}]
+        }
+        result = strategy(chart, GetChartPreviewRequest(identifier=104)).generate()
+    assert isinstance(result, ChartError)
+    assert result.error_type == "NonNumericGaugeMetric"
+    assert build.call_args.args[0]["viz_type"] == "gauge_chart"

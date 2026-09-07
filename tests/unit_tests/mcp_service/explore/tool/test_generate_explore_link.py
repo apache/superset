@@ -1300,3 +1300,39 @@ async def test_gauge_fastmcp_rejects_missing_temporal_comparator(
                     },
                 )
         compile_.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_gauge_fastmcp_rejects_conflicting_temporal_filters(
+    mcp_server: FastMCP,
+) -> None:
+    """Public native-form input cannot silently lose the second time restriction."""
+    from fastmcp.exceptions import ToolError
+
+    temporal = {
+        "subject": "event_time",
+        "operator": "TEMPORAL_RANGE",
+        "comparator": "Last week",
+    }
+    with patch.object(generate_explore_link_module, "validate_and_compile") as compile_:
+        async with Client(mcp_server) as client:
+            with pytest.raises(
+                ToolError, match="conflicts with another temporal range"
+            ):
+                await client.call_tool(
+                    "generate_explore_link",
+                    {
+                        "request": {
+                            "dataset_id": "3",
+                            "config": {
+                                "chart_type": "gauge",
+                                "metric": "saved_sla",
+                                "adhoc_filters": [
+                                    temporal,
+                                    {**temporal, "subject": "other_time"},
+                                ],
+                            },
+                        }
+                    },
+                )
+        compile_.assert_not_called()

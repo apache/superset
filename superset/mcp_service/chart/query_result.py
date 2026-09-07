@@ -98,7 +98,7 @@ def metric_result_label(metric: Any) -> str | None:
     """Resolve the query-result key using frontend ``getMetricLabel`` rules."""
     if isinstance(metric, str) and metric:
         return metric
-    if not isinstance(metric, Mapping) or not 0 < len(metric) <= 20:
+    if not isinstance(metric, Mapping):
         return None
     label = metric.get("label")
     if isinstance(label, str) and label:
@@ -117,7 +117,7 @@ def metric_result_label(metric: Any) -> str | None:
         return None
     if expression_type == "SQL":
         sql_expression = metric.get("sqlExpression")
-        if isinstance(sql_expression, str) and 0 < len(sql_expression) <= 2000:
+        if isinstance(sql_expression, str) and sql_expression:
             return sql_expression
     return None
 

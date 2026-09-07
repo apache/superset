@@ -713,7 +713,11 @@ def merge_chart_form_data(  # noqa: C901
     temporal_explicit = "temporal_column" in fields_set
     if not filters_explicit:
         if temporal_explicit:
-            preserved_filters = _without_generated_gauge_time_filter(existing_form_data)
+            preserved_filters = (
+                []
+                if dataset_rebind
+                else _without_generated_gauge_time_filter(existing_form_data)
+            )
             generated_filters = patch.get("adhoc_filters", [])
             patch["adhoc_filters"] = [*preserved_filters, *generated_filters]
             if config.temporal_column is None:

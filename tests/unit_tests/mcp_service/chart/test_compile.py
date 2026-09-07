@@ -641,3 +641,44 @@ def test_valid_configs_pass_tier1(config_factory):
     ds = _orm_dataset()
     result = validate_and_compile(config_factory(), {}, ds, run_compile_check=False)
     assert result.success, result.error
+
+
+@pytest.mark.parametrize("clause", ["WHERE", "HAVING"])
+@pytest.mark.parametrize("subject", ["score", "Score", "SCORE"])
+def test_preserved_filter_ambiguity_is_actionable(clause: str, subject: str) -> None:
+    """The public compiler rejects ambiguous preserved filters, exact-first."""
+    dataset = _orm_dataset(column_names=["gender", "Score", "SCORE"])
+    config = TableChartConfig(chart_type="table", columns=[ColumnRef(name="gender")])
+    form_data = {
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "clause": clause,
+                "subject": subject,
+                "operator": ">",
+                "comparator": 0,
+            }
+        ]
+    }
+    result = validate_and_compile(config, form_data, dataset, run_compile_check=False)
+    assert result.success is (subject != "score")
+    if subject == "score":
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == "AMBIGUOUS_DATASET_REFERENCE"
+        assert "Score" in result.error_obj.details
+        assert "SCORE" in result.error_obj.details
+
+
+def test_aggregation_ambiguity_returns_validation_errors() -> None:
+    """Direct aggregation validation has the same structured ambiguity contract."""
+    from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+
+    context = build_dataset_context_from_orm(
+        _orm_dataset(column_names=["Score", "SCORE"])
+    )
+    assert context is not None
+    errors = DatasetValidator._validate_aggregations(
+        [ColumnRef(name="score", aggregate="AVG")], context
+    )
+    assert len(errors) == 1
+    assert errors[0].error_code == "AMBIGUOUS_DATASET_REFERENCE"

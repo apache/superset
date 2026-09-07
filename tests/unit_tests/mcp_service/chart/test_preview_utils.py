@@ -237,6 +237,9 @@ def test_unsaved_gauge_preview_uses_shared_builder_and_preserves_ordering(
         "sort_by_metric": True,
         "row_limit": 4,
         "intervals": "30,70,200",
+        "datasource_id": 99,
+        "datasource_type": "query",
+        "datasource": "99__query",
     }
 
     result = preview_utils.generate_preview_from_form_data(
@@ -247,6 +250,12 @@ def test_unsaved_gauge_preview_uses_shared_builder_and_preserves_ordering(
     query_form_data = mock_build_query_context.call_args.args[0]
     assert query_form_data["sort_by_metric"] is True
     assert query_form_data["datasource"] == "7__table"
+    assert query_form_data["datasource_id"] == 7
+    assert query_form_data["datasource_type"] == "table"
+    from superset.mcp_service.chart.chart_helpers import resolve_form_data_datasource
+
+    assert resolve_form_data_datasource(query_form_data) == (7, "table")
+    assert form_data["datasource_id"] == 99
     mock_build_query_context.assert_called_once_with(
         query_form_data, row_limit=4, force=False
     )

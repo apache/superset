@@ -26,7 +26,7 @@ import logging
 import math
 import re
 from datetime import datetime
-from typing import Annotated, Any, Dict, List, Literal, Protocol
+from typing import Annotated, Any, Dict, get_args, List, Literal, Protocol
 
 from pydantic import (
     AliasChoices,
@@ -1208,7 +1208,7 @@ class GaugeChartConfig(BaseChartConfig):
                 for value in groupby
             ]
 
-        # Native SIMPLE filters are losslessly representable by FilterConfig.
+        # Supported native SIMPLE filters are represented by FilterConfig.
         # SQL adhoc filters remain intentionally unsupported on the typed MCP
         # surface. TEMPORAL_RANGE is represented by time_range/granularity.
         if "adhoc_filters" in data:
@@ -1240,11 +1240,22 @@ class GaugeChartConfig(BaseChartConfig):
                             f"adhoc_filters[{index}] requires a temporal comparator"
                         )
                     validate_time_range(comparator)
-                    data.setdefault("granularity_sqla", subject)
-                    data.setdefault("time_range", comparator)
+                    if data.get("granularity_sqla") not in (None, subject) or data.get(
+                        "time_range"
+                    ) not in (None, comparator):
+                        raise ValueError(
+                            f"adhoc_filters[{index}] conflicts with another temporal "
+                            "range; multiple distinct temporal ranges are not supported"
+                        )
+                    data["granularity_sqla"] = subject
+                    data["time_range"] = comparator
                     continue
                 if operator == "==":
                     operator = "="
+                if operator not in get_args(FilterConfig.model_fields["op"].annotation):
+                    raise ValueError(
+                        f"adhoc_filters[{index}] uses unsupported operator {operator!r}"
+                    )
                 filters.append({"column": subject, "op": operator, "value": comparator})
             data["filters"] = filters
         return data
@@ -1272,7 +1283,8 @@ class GaugeChartConfig(BaseChartConfig):
                     "'aggregate'/'saved_metric' (metrics belong in the 'metric' "
                     "field)"
                 )
-            assert col.name is not None
+            if col.name is None:
+                raise ValueError(f"groupby[{i}] requires a column name")
             normalized_name = col.name.casefold()
             if normalized_name in seen:
                 raise ValueError(

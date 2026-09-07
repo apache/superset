@@ -87,6 +87,8 @@ def generate_preview_from_form_data(
 
         query_form_data = deepcopy(form_data)
         query_form_data["datasource"] = f"{dataset_id}__table"
+        query_form_data["datasource_id"] = dataset_id
+        query_form_data["datasource_type"] = "table"
         query_context_obj = build_query_context_from_form_data(
             query_form_data,
             row_limit=form_data.get("row_limit", 100),
@@ -505,12 +507,17 @@ def _prepare_gauge_preview(  # noqa: C901
     data: Any, form_data: Dict[str, Any]
 ) -> tuple[list[dict[str, Any]], dict[str, Any]] | ChartError:
     """Validate Gauge rows and derive display values used by both previews."""
-    failure = validate_gauge_query_result({"queries": [{"data": data}]}, form_data)
+    failure = validate_gauge_query_result(
+        {"queries": [{"data": data}]}, {**form_data, "viz_type": "gauge_chart"}
+    )
     if failure is not None:
         return failure
-    assert isinstance(data, list)
     metric_label = metric_result_label(form_data.get("metric"))
-    assert metric_label is not None
+    if not isinstance(data, list) or metric_label is None:
+        return ChartError(
+            error="Gauge preview requires rows and a metric result label.",
+            error_type="InvalidGaugeFormData",
+        )
 
     raw_groupby = form_data.get("groupby") or []
     if isinstance(raw_groupby, str):
@@ -566,6 +573,8 @@ def _prepare_gauge_preview(  # noqa: C901
         minimum = 2 * min([*values, 0]) if values else 0
     if maximum is None:
         maximum = 2 * max([*values, 0]) if values else 1
+    if configured_minimum is None and configured_maximum is None and minimum == maximum:
+        maximum = minimum + 1
     if minimum >= maximum:
         return ChartError(
             error=(
@@ -822,15 +831,21 @@ def generate_gauge_vega_lite_preview(  # noqa: C901
         },
     }
     pointer_layer = {
+        "transform": [
+            {
+                "calculate": (
+                    f"{angle_range[0]} + datum.__mcp_gauge_ratio * "
+                    f"({angle_range[1]} - {angle_range[0]})"
+                ),
+                "as": "__mcp_gauge_angle",
+            },
+        ],
         "mark": {"type": "rule", "strokeWidth": 3, "color": "#444"},
         "encoding": {
-            "theta": {
-                "field": "__mcp_gauge_ratio",
-                "type": "quantitative",
-                "scale": theta_scale,
-            },
-            "radius": {"datum": 0},
-            "radius2": {"datum": 52},
+            "x": {"value": {"expr": "width / 2"}},
+            "y": {"value": {"expr": "height / 2"}},
+            "x2": {"value": {"expr": "width / 2 + 52 * sin(datum.__mcp_gauge_angle)"}},
+            "y2": {"value": {"expr": "height / 2 - 52 * cos(datum.__mcp_gauge_angle)"}},
             "tooltip": tooltip,
         },
     }
@@ -871,6 +886,9 @@ def generate_gauge_vega_lite_preview(  # noqa: C901
         },
     }
     if metadata["group_labels"]:
+        specification.pop("width")
+        unit_spec["width"] = 200
+        unit_spec["height"] = specification.pop("height")
         specification.update(
             {
                 "facet": {

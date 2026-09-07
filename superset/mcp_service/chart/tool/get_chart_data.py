@@ -595,6 +595,9 @@ async def get_chart_data(  # noqa: C901
                 except (TypeError, ValueError):
                     form_data = {}
 
+            if not using_unsaved_state:
+                form_data["viz_type"] = chart.viz_type or form_data.get("viz_type")
+
             # If using cached form_data, we need to build query_context from it
             if using_unsaved_state and cached_form_data_dict is not None:
                 # row_limit may arrive as a str. The trailing fallback keeps a

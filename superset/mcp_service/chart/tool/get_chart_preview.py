@@ -261,6 +261,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                     error_type="InvalidChart",
                 )
 
+            form_data["viz_type"] = self.chart.viz_type or form_data.get("viz_type")
             query_context = build_query_context_from_form_data(
                 form_data,
                 chart=self.chart,
@@ -338,6 +339,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                     error_type="InvalidChart",
                 )
 
+            form_data["viz_type"] = self.chart.viz_type or form_data.get("viz_type")
             query_context = build_query_context_from_form_data(
                 form_data,
                 chart=self.chart,
@@ -437,6 +439,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     utils_json.loads(self.chart.params) if self.chart.params else {}
                 )
 
+            form_data["viz_type"] = self.chart.viz_type or form_data.get("viz_type")
             query_context = build_query_context_from_form_data(
                 form_data,
                 chart=self.chart,
@@ -461,10 +464,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             if result and "queries" in result and len(result["queries"]) > 0:
                 chart_data = result["queries"][0].get("data", [])
 
-            viz_type = getattr(self.chart, "viz_type", None) or form_data.get(
-                "viz_type"
-            )
-            if viz_type == "gauge_chart":
+            if form_data.get("viz_type") == "gauge_chart":
                 return generate_gauge_vega_lite_preview(chart_data, form_data)
             if not chart_data or not isinstance(chart_data, list):
                 return ChartError(

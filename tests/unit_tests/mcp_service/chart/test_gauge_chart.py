@@ -871,3 +871,156 @@ def test_gauge_temporal_rebind_preserves_user_ranges(
         expected += mapped["adhoc_filters"]
     assert merged["adhoc_filters"] == expected
     assert existing["adhoc_filters"] == [original_filter, user_filter]
+
+
+@pytest.mark.parametrize(
+    "renderer", [generate_gauge_ascii_preview, generate_gauge_vega_lite_preview]
+)
+def test_gauge_all_zero_auto_range(renderer: Callable[..., Any]) -> None:
+    """Zero-valued results remain renderable without weakening explicit bounds."""
+    result = renderer([{"score": 0}], {"viz_type": "gauge_chart", "metric": "score"})
+    assert not isinstance(result, ChartError)
+    for bounds in ({"min_val": 0, "max_val": 0}, {"max_val": 0}):
+        invalid = renderer(
+            [{"score": 0}], {"viz_type": "gauge_chart", "metric": "score", **bounds}
+        )
+        assert isinstance(invalid, ChartError)
+        assert invalid.error_type == "InvalidGaugeRange"
+
+
+@pytest.mark.parametrize("viz_type", [None, "table"])
+@pytest.mark.parametrize(
+    "renderer", [generate_gauge_ascii_preview, generate_gauge_vega_lite_preview]
+)
+def test_gauge_renderer_always_validates(
+    viz_type: str | None, renderer: Callable[..., Any]
+) -> None:
+    """Direct Gauge rendering validates regardless of the caller's discriminator."""
+    for data, metric, error in (
+        ([{"score": "bad"}], "score", "NonNumericGaugeMetric"),
+        ({}, "score", "InvalidGaugeResult"),
+        ([{}], None, "InvalidGaugeFormData"),
+    ):
+        result = renderer(data, {"viz_type": viz_type, "metric": metric})
+        assert isinstance(result, ChartError)
+        assert result.error_type == error
+
+
+def test_gauge_metric_label_has_no_arbitrary_size_caps() -> None:
+    """Query output labels follow getMetricLabel, not incidental metadata size."""
+    from superset.utils.core import get_metric_name
+
+    metrics: list[Any] = [
+        {"expressionType": "SQL", "sqlExpression": "x + " * 600 + "1"},
+        {
+            "expressionType": "SIMPLE",
+            "aggregate": "AVG",
+            "column": {"column_name": "score"},
+            **{f"metadata_{i}": i for i in range(30)},
+        },
+        "saved_score",
+    ]
+    for metric in metrics:
+        label = get_metric_name(metric)
+        assert metric_result_label(metric) == label
+        assert (
+            validate_gauge_query_result(
+                {"queries": [{"data": [{label: 42}]}]},
+                {"viz_type": "gauge_chart", "metric": metric},
+            )
+            is None
+        )
+
+
+@pytest.mark.parametrize(
+    "second,top_level",
+    [
+        ({"subject": "other_time"}, {}),
+        ({"comparator": "Last month"}, {}),
+        (None, {"time_range": "Last month"}),
+        (None, {"granularity_sqla": "other_time"}),
+    ],
+)
+def test_gauge_native_temporal_conflicts_reject(
+    second: dict[str, str] | None, top_level: dict[str, str]
+) -> None:
+    """Native restrictions cannot disappear during typed normalization."""
+    temporal = {
+        "expressionType": "SIMPLE",
+        "clause": "WHERE",
+        "subject": "event_time",
+        "operator": "TEMPORAL_RANGE",
+        "comparator": "Last week",
+    }
+    with pytest.raises(ValidationError, match="conflicts with another temporal range"):
+        GaugeChartConfig.model_validate(
+            {
+                "viz_type": "gauge_chart",
+                "metric": "score",
+                "adhoc_filters": [temporal, {**temporal, **second}]
+                if second
+                else [temporal],
+                **top_level,
+            }
+        )
+
+
+@pytest.mark.parametrize(
+    "operator",
+    [
+        "NOT ILIKE",
+        "IS TRUE",
+        "IS FALSE",
+        "CONTAINS_ANY",
+        "CONTAINS_ALL",
+        "IS_EMPTY",
+        "IS_NOT_EMPTY",
+        "LENGTH_EQUALS",
+    ],
+)
+def test_gauge_unsupported_native_operator_has_indexed_error(operator: str) -> None:
+    """Unsupported native operators are rejected at the adaptation boundary."""
+    with pytest.raises(
+        ValidationError, match=r"adhoc_filters\[0\] uses unsupported operator"
+    ):
+        GaugeChartConfig.model_validate(
+            {
+                "viz_type": "gauge_chart",
+                "metric": "score",
+                "adhoc_filters": [
+                    {"subject": "team", "operator": operator, "comparator": "a"}
+                ],
+            }
+        )
+
+
+@pytest.mark.parametrize("groupby", [[], ["team"]])
+@pytest.mark.parametrize("show_pointer", [True, False])
+def test_gauge_pointer_uses_cartesian_endpoints(
+    groupby: list[str], show_pointer: bool
+) -> None:
+    """Vega-Lite rules need Cartesian endpoints even on a polar dial."""
+    preview = generate_gauge_vega_lite_preview(
+        [{"score": 50, "team": "Blue"}],
+        {
+            "metric": "score",
+            "groupby": groupby,
+            "show_pointer": show_pointer,
+            "min_val": 0,
+            "max_val": 100,
+        },
+    )
+    assert not isinstance(preview, ChartError)
+    specification = preview.specification
+    unit = specification["spec"] if groupby else specification
+    if groupby:
+        assert unit["width"] == 200
+        assert unit["height"] == 300
+        assert "width" not in specification
+    rules = [layer for layer in unit["layer"] if layer["mark"]["type"] == "rule"]
+    assert len(rules) == int(show_pointer)
+    if show_pointer:
+        encoding = rules[0]["encoding"]
+        assert set(encoding) == {"x", "y", "x2", "y2", "tooltip"}
+        assert "sin(datum.__mcp_gauge_angle)" in encoding["x2"]["value"]["expr"]
+        assert "cos(datum.__mcp_gauge_angle)" in encoding["y2"]["value"]["expr"]

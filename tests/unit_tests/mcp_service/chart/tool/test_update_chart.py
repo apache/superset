@@ -1341,10 +1341,14 @@ class TestBuildPreviewFormData:
             if f["operator"] == "TEMPORAL_RANGE"
         ] == ["Last week"]
 
-    def test_gauge_dataset_rebind_scrubs_old_roles_in_both_paths(self):
+    @pytest.mark.parametrize("temporal_column", [None, "new_time"])
+    def test_gauge_dataset_rebind_scrubs_old_roles_in_both_paths(
+        self, temporal_column: str | None
+    ) -> None:
         config = GaugeChartConfig(
             chart_type="gauge",
             metric={"name": "new_score", "aggregate": "AVG"},
+            temporal_column=temporal_column,
         )
         request = UpdateChartRequest(identifier=1, dataset_id=8, config=config)
         chart = Mock(
@@ -1370,7 +1374,10 @@ class TestBuildPreviewFormData:
         saved = json.loads(payload["params"])
         assert preview["datasource"] == saved["datasource"] == "8__table"
         assert "groupby" not in preview
-        assert "adhoc_filters" not in preview
+        assert preview.get("adhoc_filters", []) == saved.get("adhoc_filters", [])
+        assert [f["subject"] for f in preview.get("adhoc_filters", [])] == (
+            [temporal_column] if temporal_column else []
+        )
         assert preview["font_size"] == saved["font_size"] == 18
 
     def test_partial_column_config_merges_saved_ui_settings(self) -> None:

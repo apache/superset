@@ -1721,8 +1721,9 @@ class TestSavedChartExtraFormDataFilters:
         assert "USA" not in result.content[0].text
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("stored_viz_type", [None, "table", "gauge_chart"])
     async def test_saved_gauge_fastmcp_entry_rejects_text_metric_result(
-        self, mcp_server: Any, mock_auth: Any
+        self, mcp_server: Any, mock_auth: Any, stored_viz_type: str | None
     ) -> None:
         """Saved Gauge query results are numeric-checked at the public tool."""
         module = importlib.import_module(
@@ -1748,7 +1749,7 @@ class TestSavedChartExtraFormDataFilters:
             ),
             params=json.dumps(
                 {
-                    "viz_type": "gauge_chart",
+                    "viz_type": stored_viz_type,
                     "metric": "saved_sla",
                     "groupby": ["team"],
                 }

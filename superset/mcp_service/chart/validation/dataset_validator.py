@@ -777,11 +777,15 @@ class DatasetValidator:
                 # Should be unreachable per validate_metric_shape; defensive.
                 continue
 
-            resolved_name = resolve_dataset_reference(
-                col_ref.name,
-                (col["name"] for col in dataset_context.available_columns),
-                "physical column",
-            )
+            try:
+                resolved_name = resolve_dataset_reference(
+                    col_ref.name,
+                    (col["name"] for col in dataset_context.available_columns),
+                    "physical column",
+                )
+            except AmbiguousDatasetReferenceError as ex:
+                errors.append(DatasetValidator._build_ambiguous_reference_error(ex))
+                continue
             col_info = next(
                 (
                     col
