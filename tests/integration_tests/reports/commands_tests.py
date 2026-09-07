@@ -2878,20 +2878,29 @@ def test_readiness_timeout_retries_terminal_persistence_and_allows_next_schedule
     "load_birth_names_dashboard_with_slices", "create_report_email_chart_with_csv"
 )
 @patch("superset.reports.notifications.email.send_email_smtp")
-@patch("superset.utils.csv.urllib.request.urlopen")
 @patch("superset.utils.csv.urllib.request.OpenerDirector.open")
-@patch("superset.utils.csv.get_chart_csv_data")
 def test_fail_csv(
-    csv_mock, mock_open, mock_urlopen, email_mock, create_report_email_chart_with_csv
-):
+    mock_open: Mock,
+    email_mock: Mock,
+    create_report_email_chart_with_csv: ReportSchedule,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """
     ExecuteReport Command: Test error on csv
     """
 
-    response = Mock()
-    mock_open.return_value = response
-    mock_urlopen.return_value = response
-    mock_urlopen.return_value.getcode.return_value = 500
+    from email.message import Message
+    from io import BytesIO
+    from urllib.error import HTTPError
+
+    caplog.set_level(logging.INFO, logger="superset.commands.report.execute")
+    mock_open.side_effect = HTTPError(
+        "http://localhost/api/v1/chart/data",
+        500,
+        "Internal Server Error",
+        Message(),
+        BytesIO(b'{"message":"error details"}'),
+    )
 
     with pytest.raises(ReportScheduleCsvFailedError):
         AsyncExecuteReportScheduleCommand(
@@ -2903,8 +2912,17 @@ def test_fail_csv(
     assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL
 
     assert_log(
-        ReportState.ERROR, error_message="Failed generating csv <urlopen error 500>"
+        ReportState.ERROR,
+        error_message="Chart data request failed: category=http status=500",
     )
+
+    terminals = [
+        record.message
+        for record in caplog.records
+        if "report_execution_terminal" in record.message
+    ]
+    assert len(terminals) == 1
+    assert "category=http status=500" in terminals[0]
 
 
 @pytest.mark.usefixtures(
