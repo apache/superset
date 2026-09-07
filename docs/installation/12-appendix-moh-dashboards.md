@@ -23,10 +23,10 @@ see how the three Superset instances on that host are kept apart.
 | DB role | `moh_ss_user` | `moh_train_user` | **`mohssu`** |
 | Env file | `/etc/moh-superset/superset.env` | `/etc/moh-superset-training/…` | **`/etc/moh-dashboards-superset/superset.env`** |
 | Domain | `mohss.habtechsolution.com`, `pmd.mohdigitalhealth.gov.et` | `train.habtechsolution.com` | **`mohdsuper.habtechsolution.com`** |
-| Cache key prefix | `superset_*` | `superset_train_*` | **`superset_mohd_*`** |
+| Cache key prefix | `superset_*` | `superset_train_*` | `superset_*` (same as production) |
 | Celery node name | *(default)* | `training@%h` | **`mohd@%h`** |
-| Warm-up minute | `:45` | `:15` | **`:30`** |
-| Sends email | yes | no | **no** |
+| Warm-up minute | `:45` | `:15` | `:45` (same as production) |
+| Sends email | yes | no | yes (config matches production — see §12.4) |
 
 ### systemd units
 
@@ -118,23 +118,152 @@ Backups taken at clone time, kept in `/var/backups/moh-dashboards/`:
 | `moh-ss-dev-before-replica-*.dump` | This instance immediately before the restore — the undo button |
 | `moh_superset-*.dump` | The production snapshot that was restored |
 
-## 12.4 Deviations from production, and why
+## 12.4 Differences from production, and why
 
-These are deliberate. Each one is also commented at the point it appears in
-`superset_config.py`, marked `[MOHD]`.
+The config is a copy of production's, kept deliberately identical except for
+the infrastructure the two instances must not share. `diff` them and you should
+see only these:
 
-| Change | Reason |
-|---|---|
-| `EMAIL_NOTIFICATIONS = False` | This instance must never email Ministry staff. |
-| `reports.scheduler` omitted from `beat_schedule` | Second interlock on the same risk — alerts can be created and inspected in the UI but never fire. |
-| Cache warm-up at `:30` instead of `:45` | So the two instances never hit the shared ClickHouse/Postgres sources in the same minute. |
-| Celery `--concurrency=4` (config says 12) | 12 is sized for production's traffic. This instance must not take twelve concurrent query slots on shared analytics databases. |
-| gunicorn 4×4 rather than 8×8 | Three instances share 16 cores; this one is the smallest and must not out-compete the live portal. |
-| CORS lists only `mohdsuper` + `mohdweb` | A production page must not be able to read this instance's data through a browser XHR, nor the reverse. |
-| Own `SECRET_KEY` / `JWT_SECRET` | A session cookie or guest token from one instance must not authenticate against the other. |
-| Redis on its own process, not extra DB numbers | Production runs `noeviction`; a second application filling a shared instance could OOM it. |
+| # | Difference | Category |
+|---|---|---|
+| 1 | Path in the `_require()` error message | config path |
+| 2 | `PREVIOUS_SECRET_KEY`, read from the environment | metadata restores |
+| 3 | `REDIS_HOST` / `REDIS_PORT` default to `127.0.0.1:6383` | redis |
+| 4 | The four `CACHE_REDIS_URL`s derive from those variables | redis |
+| 5 | `DATA_DIR` points at this instance's directory | config path |
+| 6 | `WEBDRIVER_BASEURL` defaults to this instance's port | own gunicorn |
+| 7 | Two extra `CORS_OPTIONS["origins"]` entries | own domains |
 
-## 12.5 How this instance was built
+Check it stays that way:
+
+```bash
+diff <(grep -vE '^\s*#|^\s*$' /var/etls/moh-superset/superset_config.py) \
+     <(grep -vE '^\s*#|^\s*$' /var/moh-dashboards/moh-superset/superset_config.py)
+```
+
+Notes on the two least obvious entries:
+
+**`WEBDRIVER_BASEURL` (6).** Production hardcodes its own port. Copied verbatim,
+this instance's cache warm-up and alert screenshots would render **production**
+instead — silently warming production's cache and adding load to it, while this
+instance stayed cold. It has to differ.
+
+**CORS origins (7).** Production's three entries are kept verbatim and two are
+added. `mohdweb.habtechsolution.com` is the Flutter web client, which calls this
+API cross-origin with credentials; without it every request from that client
+fails CORS and the web app shows nothing.
+
+**Cache key prefixes are identical to production** (`superset_meta_`,
+`superset_data_`, …). The separate Redis *process* on 6383 is what provides the
+isolation, so distinct prefixes would be redundant — and this file is meant to
+be a copy.
+
+> **Warning**
+> Because the config is a faithful copy, `EMAIL_NOTIFICATIONS = True` and the
+> `reports.scheduler` beat entry are both present, exactly as in production.
+> This instance therefore **can** send email, and it inherited production's
+> alerts and reports in the metadata dump.
+>
+> At the time of writing both inherited schedules are inactive, so nothing
+> fires:
+>
+> ```bash
+> sudo -u postgres psql -p 5432 -d 'moh-ss-dev' -Atc \
+>   "select type, name, active from report_schedule"
+> # Report | test | f
+> # Alert  | CAR  | f
+> ```
+>
+> Activating either one here would deliver mail to real recipients from a
+> second Superset they are not expecting mail from. Check `active` before you
+> enable anything. If you would rather remove the capability entirely, the two
+> interlocks are in
+> [§5.3](05-configuration.md#email-and-scheduled-reports--read-this-before-you-finish)
+> — but applying them makes this instance no longer a faithful config replica,
+> which was a deliberate choice here.
+
+## 12.5 Where the dashboard data comes from
+
+The datasource connections are production's, restored with the metadata dump and
+re-encrypted under this instance's key. Verified working:
+
+| id | Database | Connects |
+|---|---|---|
+| 1 | `MOH_Click_Hhouse` | ClickHouse — where the health data actually lives |
+| 2 | `superset_usage_dashboard` | PostgreSQL |
+| 3 | `Superset_Usage_DB` | PostgreSQL |
+
+So both instances query **the same** ClickHouse and PostgreSQL sources. Nothing
+about the analytics data is copied — only the definitions of how to reach it.
+
+### Charts depend on the cache being warm
+
+`GLOBAL_ASYNC_QUERIES` is enabled, so an uncached chart does not return data on
+the first request. The browser gets `202 Accepted` with a job id, Celery runs
+the query, and the browser polls until the result lands in the cache. A chart
+that has never been queried therefore looks empty for the first few seconds.
+
+Production hides this completely, because its warm-up has been running hourly
+for months and `DATA_CACHE_CONFIG` holds results for 7200s. A freshly restored
+instance has an empty cache and looks like it has no data at all — which is
+exactly what it looks like when something is genuinely broken.
+
+After a restore, or any `flushdb` on this instance's Redis, prime it the same
+way production does rather than waiting for the next scheduled run:
+
+```bash
+sudo -u sysadmin bash -c '
+  set -a; . /etc/moh-dashboards-superset/superset.env; set +a
+  cd /var/moh-dashboards/moh-superset
+  export PYTHONPATH=/var/moh-dashboards/moh-superset
+  ./.venv/bin/python - <<PY
+from superset.app import create_app
+app = create_app()
+with app.app_context():
+    from superset.tasks.celery_app import app as ca
+    r = ca.send_task("cache-warmup", kwargs={
+        "strategy_name": "top_n_dashboards", "top_n": 3, "since": "7 days ago"})
+    print("submitted", r.id)
+PY'
+```
+
+It fans out into roughly 2000 `fetch_url` tasks on the `background` queue and
+takes a few minutes. Watch it:
+
+```bash
+watch -n5 'redis-cli -p 6383 -n 2 dbsize'
+grep -c fetch_url /var/log/moh-dashboards-superset/celery-background.log
+grep -cE "fetch_url.*(raised|failed)" /var/log/moh-dashboards-superset/celery-background.log
+```
+
+> **Note**
+> `redis-cli -p 6383 dbsize` reports database **0**, the Celery broker — which
+> is near-empty when the queue is drained. The chart data cache is database
+> **2**: `redis-cli -p 6383 -n 2 dbsize`. Reading db 0 makes a perfectly warm
+> cache look empty.
+
+### A quirk worth knowing when you test with curl
+
+`GET /api/v1/chart/<id>/data/` fails for uncached charts with a marshmallow
+`ValidationError` — `{'metrics': ['Unknown field.'], 'columns': [...], ...}` in
+the Celery worker log. The async task receives a payload shaped like a query
+*object* where it expects a query *context*.
+
+This is not specific to this instance — it is the same code production runs.
+Production never logs it because nothing calls that endpoint there: the
+dashboard uses `POST /api/v1/chart/data` with a full query context, which works
+correctly from a cold cache.
+
+So do not use `GET /api/v1/chart/<id>/data/` to decide whether an instance is
+healthy. Post the chart's own stored `query_context` instead:
+
+```bash
+sudo -u postgres psql -p 5432 -d 'moh-ss-dev' -Atc \
+  "select query_context from slices where id=<CHART_ID>" > /tmp/qc.json
+# then POST /tmp/qc.json to /api/v1/chart/data with the session cookie + X-CSRFToken
+```
+
+## 12.6 How this instance was built
 
 Two shortcuts were used that the main guide describes as options. Both were
 valid **only** because the two checkouts were on the identical commit
@@ -153,7 +282,7 @@ asserts each substitution applied, then checks that no production path, port,
 role, database name or domain survives in any **executable** line — comments
 and the header comparison table are exempt, since those are documentation.
 
-## 12.6 The Flutter web client
+## 12.7 The Flutter web client
 
 A separate repository, `moh-apache-superset-flutter-client`, provides the web
 front end at `mohdweb.habtechsolution.com`.
