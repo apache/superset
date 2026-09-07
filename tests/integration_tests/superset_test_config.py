@@ -156,24 +156,25 @@ EXPLORE_FORM_DATA_CACHE_CONFIG = {
 }
 
 
-# Without this the backend falls back to the `superset/config.py` default, which
-# hardcodes `localhost:6379`. CI's Redis is published on `REDIS_PORT`, so the
-# async pipeline would fail to reach a cache backend and every GAQ submission
-# would die before a worker ever saw it. Built from the same environment
-# variables as `CACHE_CONFIG` above; its own DB index keeps async job payloads
-# out of the query cache.
-GLOBAL_ASYNC_QUERIES_REDIS_DB = os.environ.get("GLOBAL_ASYNC_QUERIES_REDIS_DB", 5)  # noqa: F405
-# Note the discrete host/port/db keys rather than a CACHE_REDIS_URL:
-# `RedisCacheBackend.from_config` reads CACHE_REDIS_HOST/PORT/DB and ignores a
-# URL entirely, so supplying one silently leaves the backend on its
-# localhost:6379 defaults.
-GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
+# Async chart data runs on the Global Task Framework, which reaches Redis through
+# the coordination service rather than a GAQ-specific cache backend
+# (`GLOBAL_ASYNC_QUERIES_CACHE_BACKEND` was removed with that migration). The
+# config default is `None`, so without this there is no coordinator: task
+# completion is never signalled, submissions return 202 and the client waits
+# forever. Built from the same environment variables as `CACHE_CONFIG` above,
+# with its own DB index so coordination streams stay out of the query cache.
+#
+# Note the discrete host/port/db keys rather than a CACHE_REDIS_URL: the Redis
+# backends read CACHE_REDIS_HOST/PORT/DB and ignore a URL entirely, so supplying
+# one silently leaves the connection on its localhost:6379 defaults.
+COORDINATION_REDIS_DB = os.environ.get("COORDINATION_REDIS_DB", 5)  # noqa: F405
+DISTRIBUTED_COORDINATION_CONFIG = {
     "CACHE_TYPE": "RedisCache",
     "CACHE_DEFAULT_TIMEOUT": int(timedelta(minutes=10).total_seconds()),
-    "CACHE_KEY_PREFIX": "superset_async_data_cache",
+    "CACHE_KEY_PREFIX": "superset_coordination",
     "CACHE_REDIS_HOST": REDIS_HOST,
     "CACHE_REDIS_PORT": int(REDIS_PORT),
-    "CACHE_REDIS_DB": int(GLOBAL_ASYNC_QUERIES_REDIS_DB),
+    "CACHE_REDIS_DB": int(COORDINATION_REDIS_DB),
 }
 
 ALERT_REPORTS_WORKING_TIME_OUT_KILL = True

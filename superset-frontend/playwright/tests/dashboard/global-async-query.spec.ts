@@ -87,13 +87,13 @@ testWithAssets(
         'forced chart-data submission should be accepted (202) onto the async path',
       ).toBe(202);
       expect(
-        signals.sawAsyncEventPoll,
-        'the client should have polled /api/v1/async_event/ while the job ran',
+        signals.sawTaskStatusPoll,
+        'the client should have polled /api/v1/task/status_changes while the tasks ran',
       ).toBe(true);
       expect(
-        signals.sawFinalCachedFetch,
-        'once done, the client should fetch the real payload from /api/v1/chart/data/<cache_key>',
-      ).toBe(true);
+        signals.submitStatusesFor(chart.id),
+        'the client should re-issue chart-data once the tasks finish and be served 200 from the warmed cache',
+      ).toEqual([202, 200]);
     }).toPass({ timeout: TIMEOUT.CHART_RENDER });
   },
 );
@@ -128,16 +128,12 @@ testWithAssets(
 
     await expect(() => {
       expect(
-        signals.submitStatusFor(chart.id),
-        'a cache-hit reload should resolve chart-data synchronously (200), not queue onto the async path (202)',
-      ).toBe(200);
+        signals.submitStatusesFor(chart.id),
+        'a cache-hit reload should resolve chart-data synchronously (200) on the first request, never queueing onto the async path (202) or needing a re-request',
+      ).toEqual([200]);
       expect(
-        signals.sawAsyncEventPoll,
-        'a cache hit should never need to poll /api/v1/async_event/',
-      ).toBe(false);
-      expect(
-        signals.sawFinalCachedFetch,
-        'a cache hit should never need the follow-up /api/v1/chart/data/<cache_key> fetch -- the data comes back on the initial POST',
+        signals.sawTaskStatusPoll,
+        'a cache hit should never need to poll /api/v1/task/status_changes',
       ).toBe(false);
     }).toPass({ timeout: TIMEOUT.CHART_RENDER });
   },
@@ -216,17 +212,17 @@ testWithAssets(
     await expect(() => {
       for (const chart of charts) {
         expect(
-          signals.submitStatusFor(chart.id),
-          `chart ${chart.id} (${chart.sliceName}) should have been accepted (202) onto the async path`,
-        ).toBe(202);
+          signals.submitStatusesFor(chart.id),
+          `chart ${chart.id} (${chart.sliceName}) should have gone 202 onto the async path, then 200 on the re-request`,
+        ).toEqual([202, 200]);
       }
       expect(
-        signals.asyncEventPollCount,
-        'the client should have polled /api/v1/async_event/ while the concurrent jobs ran',
+        signals.taskStatusPollCount,
+        'the client should have polled /api/v1/task/status_changes while the concurrent tasks ran',
       ).toBeGreaterThan(0);
       expect(
-        signals.finalFetchCount,
-        'every chart should have fetched its own final payload once done',
+        signals.cachedRereadCount,
+        'every chart should have completed its own 202 -> 200 round trip',
       ).toBeGreaterThanOrEqual(charts.length);
     }).toPass({ timeout: TIMEOUT.CHART_RENDER });
 
@@ -310,8 +306,8 @@ testWithAssets(
         'the filter-value fetch should be accepted (202) onto the async path, same as a chart-data request',
       ).toBe(202);
       expect(
-        signals.sawAsyncEventPoll,
-        'the client should have polled /api/v1/async_event/ while the filter-value job ran',
+        signals.sawTaskStatusPoll,
+        'the client should have polled /api/v1/task/status_changes while the filter-value tasks ran',
       ).toBe(true);
     }).toPass({ timeout: TIMEOUT.CHART_RENDER });
 
