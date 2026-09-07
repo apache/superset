@@ -678,7 +678,11 @@ const config: ControlPanelConfig = {
                             ...generateComparisonColumnTypes(4),
                           );
                           timeComparisonColumnMap[name] = true;
-                          if (idx === 0 && name.startsWith('Main ')) {
+                          if (
+                            idx === 0 &&
+                            (name.startsWith(`${t('Main')} `) ||
+                              name.startsWith('Main '))
+                          ) {
                             childColumnMap[name] = false;
                           } else {
                             childColumnMap[name] = true;

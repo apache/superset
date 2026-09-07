@@ -40,6 +40,7 @@ import AgGridDataTable from './AgGridTable';
 import { updateTableOwnState } from './utils/externalAPIs';
 import TimeComparisonVisibility from './AgGridTable/components/TimeComparisonVisibility';
 import { useColDefs } from './utils/useColDefs';
+import { isMainComparisonLabel } from './utils/mainComparison';
 import { buildSelectionCrossFilterDataMask } from './utils/getCrossFilterDataMask';
 import { StyledChartContainer } from './styles';
 import type { FilterState } from './utils/filterStateManager';
@@ -253,7 +254,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       .filter(
         col =>
           !col.originalLabel ||
-          (col?.label || '').includes('Main') ||
+          isMainComparisonLabel(col?.label) ||
           selectedComparisonColumns.includes(col.label),
       )
       .filter(col => col?.config?.visible !== false);

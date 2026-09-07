@@ -36,6 +36,10 @@ import {
 } from '@superset-ui/chart-controls';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
 import {
+  isMainComparisonKey,
+  stripMainComparisonPrefix,
+} from './mainComparison';
+import {
   BasicColorFormatterType,
   CellRendererProps,
   InputColumn,
@@ -203,7 +207,7 @@ function getHeaderLabel(col: InputColumn) {
   let headerLabel: string | undefined;
 
   const hasOriginalLabel = !!col?.originalLabel;
-  const isMain = col?.key?.includes('Main');
+  const isMain = isMainComparisonKey(col?.key);
   const hasDisplayTypeIcon = col?.config?.displayTypeIcon !== false;
   const hasCustomColumnName = !!col?.config?.customColumnName;
 
@@ -278,9 +282,9 @@ export const useColDefs = ({
         Array.isArray(basicColorFormatters) &&
         basicColorFormatters.length > 0;
 
-      const isMain = originalKey?.includes('Main');
+      const isMain = isMainComparisonKey(originalKey);
       const colId = isMain
-        ? originalKey.replace('Main', '').trim()
+        ? stripMainComparisonPrefix(originalKey)
         : originalKey;
       const isTextColumn =
         dataType === GenericDataType.String ||
