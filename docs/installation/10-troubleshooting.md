@@ -241,6 +241,61 @@ psql -d 'moh-ss-dev'
 
 Connection *URIs* need no quoting — a hyphen is legal in a URI path.
 
+### `pg_restore` fails with `unrecognized configuration parameter "transaction_timeout"`
+
+```
+pg_restore: error: could not execute query: ERROR:  unrecognized configuration
+parameter "transaction_timeout"
+Command was: SET transaction_timeout = 0;
+```
+
+A client/server version mismatch, not a corrupt dump. `/usr/bin/pg_restore` on
+Debian and Ubuntu is `pg_wrapper`, which chooses a client version from the
+target — and over a TCP connection (`-h 127.0.0.1`) it cannot work out which
+cluster you mean, so it falls back to the newest client installed. A 17 or 18
+client emits `SET transaction_timeout`, which a 16 server rejects.
+
+Confusingly, `pg_restore --version` may print the *right* version, because the
+wrapper resolves differently when there is no connection to inspect.
+
+Use the versioned binary:
+
+```bash
+ls -d /usr/lib/postgresql/*/bin              # what is installed
+sudo -u postgres psql -p 5432 -Atc 'show server_version'
+
+/usr/lib/postgresql/16/bin/pg_restore ...    # match the server
+```
+
+With `--exit-on-error` the restore aborts on this immediately, and if you had
+already dropped the schema the database is left empty. Always take the backup
+in [§11.7](11-operations.md#117-cloning-another-instances-metadata-database)
+first.
+
+### A restored read-only user can log in but sees nothing
+
+Zero dashboards, zero charts, zero datasets, and no error. The role has no
+`datasource_access` grants.
+
+A custom role derived from `Gamma` on an empty install inherits a `Gamma` that
+grants access to no datasources, because none existed yet. After restoring a
+dump, `Gamma` has one grant per datasource — but your custom role still has the
+old, empty set.
+
+```bash
+sudo -u postgres psql -p 5432 -d '<PG_DB>' -Atc "
+  select r.name, count(*) from ab_permission_view_role pvr
+    join ab_role r on r.id=pvr.role_id
+    join ab_permission_view pv on pv.id=pvr.permission_view_id
+    join ab_permission p on p.id=pv.permission_id
+   where p.name in ('datasource_access','database_access')
+   group by r.name order by 2 desc"
+```
+
+A role missing from that list can see no data. Re-derive it from the restored
+`Gamma` rather than reattaching the captured list —
+[§11.7 step 3](11-operations.md#step-3--put-your-accounts-and-roles-back).
+
 ### `db upgrade` stops partway
 
 Find the first real error, fix the cause, and re-run — Alembic resumes from

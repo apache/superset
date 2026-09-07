@@ -65,7 +65,60 @@ depends on. See [§6.5](06-initialise-and-users.md#65-create-a-read-only-user).
 Verified behaviour: `mohr` gets `200` on `GET /api/v1/dashboard/` and `403` on
 `POST /api/v1/dashboard/`; `admin` gets `200` and `201`.
 
-## 12.3 Deviations from production, and why
+The role must be **re-derived** whenever the metadata database is restored from
+another instance, or it keeps an empty set of `datasource_access` grants and the
+user sees nothing — see [§12.3](#123-the-metadata-database-is-a-clone-of-production).
+
+## 12.3 The metadata database is a clone of production
+
+`moh-ss-dev` was seeded from a `pg_dump` of `moh_superset`, so this instance
+carries production's 4 dashboards, 215 charts, 66 datasets and 3 datasource
+connections. The procedure is written up in
+[§11.7](11-operations.md#117-cloning-another-instances-metadata-database); what
+follows is what was specific to this clone.
+
+**The two local accounts were preserved byte-for-byte.** Their `ab_user.password`
+hashes were captured before the restore and written back afterwards, so `admin`
+and `mohr` still authenticate with exactly the passwords they were created with.
+
+**Production's `admin` row was kept, not replaced.** It is `id=1` and the
+`created_by_fk` owner of all four dashboards, so deleting it would have orphaned
+them. Instead its credentials, email and name were overwritten with the
+moh-ss-dev admin's. One visible consequence: the admin email here is
+`admin@habtechsolution.com`, whereas production's is `mohssadmin@…`.
+
+**`ReadOnly` was re-derived, not restored.** The role is defined as "Gamma minus
+the mutating permissions". The pre-restore Gamma had no `datasource_access`
+grants because the database was empty; the restored Gamma has 18. Reattaching
+the old 85-permission set would have left `mohr` able to log in and see nothing
+at all. Re-applying the rule against the restored Gamma gives 104 permissions,
+of which 17 are `datasource_access` and 1 `database_access`.
+
+Result: `mohr` sees 2 dashboards, 204 charts and 63 datasets — the subset Gamma
+is granted — and still gets `403` on `POST /api/v1/dashboard/`.
+
+**Datasource secrets were re-encrypted.** The dump's `dbs` passwords were
+encrypted with production's `SECRET_KEY`; `superset re-encrypt-secrets` was run
+once with `SUPERSET_PREVIOUS_SECRET_KEY` set to it (read straight from
+production's env file, never written to disk here). Result: `6 re-encrypted,
+0 failed`, and all three datasource connections verified with a live
+`SELECT 1`.
+
+> **Warning**
+> This instance now holds **11,544 user accounts cloned from production**,
+> including their password hashes. Those people can sign in here with their
+> production passwords. That is inherent to a faithful replica; if it is not
+> wanted, deactivate them — the command is in
+> [§11.7 step 6](11-operations.md#step-6--check-what-you-inherited).
+
+Backups taken at clone time, kept in `/var/backups/moh-dashboards/`:
+
+| File | What it is |
+|---|---|
+| `moh-ss-dev-before-replica-*.dump` | This instance immediately before the restore — the undo button |
+| `moh_superset-*.dump` | The production snapshot that was restored |
+
+## 12.4 Deviations from production, and why
 
 These are deliberate. Each one is also commented at the point it appears in
 `superset_config.py`, marked `[MOHD]`.
@@ -81,7 +134,7 @@ These are deliberate. Each one is also commented at the point it appears in
 | Own `SECRET_KEY` / `JWT_SECRET` | A session cookie or guest token from one instance must not authenticate against the other. |
 | Redis on its own process, not extra DB numbers | Production runs `noeviction`; a second application filling a shared instance could OOM it. |
 
-## 12.4 How this instance was built
+## 12.5 How this instance was built
 
 Two shortcuts were used that the main guide describes as options. Both were
 valid **only** because the two checkouts were on the identical commit
@@ -100,7 +153,7 @@ asserts each substitution applied, then checks that no production path, port,
 role, database name or domain survives in any **executable** line — comments
 and the header comparison table are exempt, since those are documentation.
 
-## 12.5 The Flutter web client
+## 12.6 The Flutter web client
 
 A separate repository, `moh-apache-superset-flutter-client`, provides the web
 front end at `mohdweb.habtechsolution.com`.
