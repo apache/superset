@@ -74,7 +74,7 @@ jobs:
 
       - name: Setup Python
         if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
 
       - name: Install gettext tools
         if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
