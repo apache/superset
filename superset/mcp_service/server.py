@@ -914,6 +914,13 @@ def build_middleware_list(
     ]
 
 
+def _structured_output_enabled(flask_app: Any) -> bool:
+    """Resolve the structured-output setting consistently for every startup path."""
+    return flask_app.config.get(
+        "MCP_STRUCTURED_OUTPUT_ENABLED", MCP_STRUCTURED_OUTPUT_ENABLED
+    )
+
+
 def _build_starlette_middleware(
     flask_app: Any | None = None, auth_provider: Any | None = None
 ) -> list[Any]:
@@ -1019,10 +1026,8 @@ def run_server(
         factory_flask_app = get_flask_app()
         factory_middleware = factory_config.get("middleware") or ()
         factory_config["middleware"] = [
-            ToolResultCompatibilityMiddleware(
-                structured_output_enabled=factory_flask_app.config.get(
-                    "MCP_STRUCTURED_OUTPUT_ENABLED", MCP_STRUCTURED_OUTPUT_ENABLED
-                )
+            *build_middleware_list(
+                structured_output_enabled=_structured_output_enabled(factory_flask_app)
             ),
             *factory_middleware,
         ]
@@ -1055,9 +1060,7 @@ def run_server(
         auth_provider = _create_auth_provider(flask_app)
 
         middleware_list = build_middleware_list(
-            structured_output_enabled=flask_app.config.get(
-                "MCP_STRUCTURED_OUTPUT_ENABLED", MCP_STRUCTURED_OUTPUT_ENABLED
-            )
+            structured_output_enabled=_structured_output_enabled(flask_app)
         )
 
         # Add optional middleware (innermost, closest to tool)

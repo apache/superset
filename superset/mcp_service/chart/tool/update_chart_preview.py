@@ -395,6 +395,8 @@ def update_chart_preview(  # noqa: C901
             "chart": None,
             "error": build_oauth2_redirect_message(ex),
             "success": False,
+            "schema_version": "2.0",
+            "api_version": "v1",
         }
     except OAuth2Error:
         logger.warning(
@@ -404,6 +406,8 @@ def update_chart_preview(  # noqa: C901
             "chart": None,
             "error": OAUTH2_CONFIG_ERROR_MESSAGE,
             "success": False,
+            "schema_version": "2.0",
+            "api_version": "v1",
         }
     except (
         SupersetException,

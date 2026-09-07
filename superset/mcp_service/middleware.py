@@ -782,8 +782,8 @@ class ToolResultCompatibilityMiddleware(Middleware):
     async def on_call_tool(
         self,
         context: MiddlewareContext[mt.CallToolRequestParams],
-        call_next: Callable[[MiddlewareContext], Awaitable[ToolResult]],
-    ) -> ToolResult:
+        call_next: Callable[[MiddlewareContext], Awaitable[Any]],
+    ) -> Any:
         try:
             result = await call_next(context)
         except Exception as e:
@@ -841,10 +841,18 @@ class ToolResultCompatibilityMiddleware(Middleware):
                 meta={"mcp_call_id": mcp_call_id} if mcp_call_id else None,
                 is_error=True,
             )
-        if not self.structured_output_enabled and result.structured_content is not None:
+        if (
+            not self.structured_output_enabled
+            and isinstance(result, ToolResult)
+            and result.structured_content is not None
+        ):
             return ToolResult(
                 content=result.content,
-                meta=result.meta,
+                # A non-null meta value makes ToolResult.to_mcp_result() retain
+                # the CallToolResult envelope. Without it, FastMCP returns a bare
+                # content list and the MCP SDK rejects the missing structured
+                # content against the live tool's outputSchema.
+                meta=result.meta or {},
                 is_error=result.is_error,
             )
         return result

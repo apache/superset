@@ -2281,6 +2281,31 @@ class TestToolResultCompatibilityIsErrorFlag:
 
         assert result.content[0].text == '{"status":"ok"}'
         assert result.structured_content is None
+        assert result.meta == {}
+
+    @pytest.mark.asyncio
+    async def test_task_protocol_result_passes_through_unchanged(self) -> None:
+        """Compatibility mode must not treat task results as tool results."""
+        from datetime import datetime, timezone
+
+        from mcp.types import CreateTaskResult, Task
+
+        now = datetime.now(timezone.utc)
+        task_result = CreateTaskResult(
+            task=Task(
+                taskId="task-1",
+                status="working",
+                createdAt=now,
+                lastUpdatedAt=now,
+                ttl=None,
+            )
+        )
+
+        result = await ToolResultCompatibilityMiddleware().on_call_tool(
+            MagicMock(), AsyncMock(return_value=task_result)
+        )
+
+        assert result is task_result
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("enabled", [False, True])

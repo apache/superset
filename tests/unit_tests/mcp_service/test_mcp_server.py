@@ -545,8 +545,7 @@ def test_run_server_respects_structured_output_override() -> None:
 
 @pytest.mark.parametrize("enabled", [False, True])
 def test_factory_server_respects_structured_output_setting(enabled: bool) -> None:
-    """Factory middleware starts with the configured compatibility boundary."""
-    from superset.mcp_service.middleware import ToolResultCompatibilityMiddleware
+    """Factory servers prepend the configured core stack to custom middleware."""
     from superset.mcp_service.server import run_server
 
     port = 59904
@@ -554,6 +553,7 @@ def test_factory_server_respects_structured_output_setting(enabled: bool) -> Non
     flask_app = MagicMock()
     flask_app.config = {"MCP_STRUCTURED_OUTPUT_ENABLED": enabled}
     mcp_instance = MagicMock()
+    core_middleware = [MagicMock(), MagicMock()]
     custom_middleware = MagicMock()
     factory_config = {"auth": None, "middleware": [custom_middleware]}
 
@@ -573,6 +573,10 @@ def test_factory_server_respects_structured_output_setting(enabled: bool) -> Non
                 "superset.mcp_service.server.create_mcp_app",
                 return_value=mcp_instance,
             ) as mock_create_mcp_app,
+            patch(
+                "superset.mcp_service.server.build_middleware_list",
+                return_value=core_middleware,
+            ) as mock_build_middleware_list,
             patch("superset.mcp_service.session_scope.install_mcp_session_scoping"),
             patch("superset.mcp_service.server._apply_tool_search_transform"),
             patch("superset.mcp_service.server._register_health_endpoint"),
@@ -584,10 +588,10 @@ def test_factory_server_respects_structured_output_setting(enabled: bool) -> Non
         ):
             run_server(host="127.0.0.1", port=port, use_factory_config=True)
 
+        mock_build_middleware_list.assert_called_once_with(
+            structured_output_enabled=enabled
+        )
         middleware = mock_create_mcp_app.call_args.kwargs["middleware"]
-        assert len(middleware) == 2
-        assert isinstance(middleware[0], ToolResultCompatibilityMiddleware)
-        assert middleware[0].structured_output_enabled is enabled
-        assert middleware[1] is custom_middleware
+        assert middleware == [*core_middleware, custom_middleware]
     finally:
         os.environ.pop(f"FASTMCP_RUNNING_{port}", None)

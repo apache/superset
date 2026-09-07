@@ -66,11 +66,12 @@ from unittest.mock import Mock, patch
 import anyio
 import httpx
 import pytest
-from fastmcp import Client
+from fastmcp import Client, FastMCP
 from fastmcp.client.transports import StreamableHttpTransport
 from starlette.applications import Starlette
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.middleware import ToolResultCompatibilityMiddleware
 from superset.mcp_service.server import build_middleware_list
 from superset.utils import json
 
@@ -142,10 +143,31 @@ async def _run_asgi_lifespan(app: Starlette) -> AsyncIterator[None]:
 
 
 @contextlib.asynccontextmanager
+async def _asgi_client(mcp_instance: FastMCP) -> AsyncIterator[Client]:
+    """Connect a FastMCP client through its real streamable-HTTP ASGI app."""
+    asgi_app = mcp_instance.http_app(transport="streamable-http", stateless_http=False)
+
+    def httpx_client_factory(**kwargs: Any) -> httpx.AsyncClient:
+        return httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=asgi_app),
+            base_url="http://testserver",
+            **kwargs,
+        )
+
+    transport = StreamableHttpTransport(
+        "http://testserver/mcp", httpx_client_factory=httpx_client_factory
+    )
+
+    async with _run_asgi_lifespan(asgi_app):
+        async with Client(transport) as client:
+            yield client
+
+
+@contextlib.asynccontextmanager
 async def _real_asgi_client(
     *, structured_output_enabled: bool = True
 ) -> AsyncIterator[Client]:
-    """A FastMCP ``Client`` wired to the real ASGI app over real HTTP semantics.
+    """Wire the shared Superset MCP instance through real HTTP semantics.
 
     Builds the app the way ``run_server()`` does for the multi-pod/http_app
     path (``server.py:938``): FastMCP-level middleware from
@@ -176,22 +198,8 @@ async def _real_asgi_client(
         mcp.add_middleware(middleware)
 
     try:
-        asgi_app = mcp.http_app(transport="streamable-http", stateless_http=False)
-
-        def httpx_client_factory(**kwargs: Any) -> httpx.AsyncClient:
-            return httpx.AsyncClient(
-                transport=httpx.ASGITransport(app=asgi_app),
-                base_url="http://testserver",
-                **kwargs,
-            )
-
-        transport = StreamableHttpTransport(
-            "http://testserver/mcp", httpx_client_factory=httpx_client_factory
-        )
-
-        async with _run_asgi_lifespan(asgi_app):
-            async with Client(transport) as client:
-                yield client
+        async with _asgi_client(mcp) as client:
+            yield client
     finally:
         # Restore the shared FastMCP singleton's middleware list in place
         # (not by reassignment) so this file cannot leak state into other
@@ -279,6 +287,36 @@ async def test_structured_output_can_be_disabled_over_real_asgi_transport() -> N
     assert all(tool.outputSchema is None for tool in tools)
     assert result.structured_content is None
     assert json.loads(result.content[0].text)["status"] == "healthy"
+
+
+@pytest.mark.asyncio
+async def test_compatibility_middleware_is_self_contained_over_real_asgi() -> None:
+    """The compatibility boundary alone avoids output validation failures."""
+    factory_mcp = FastMCP(
+        "factory-test",
+        middleware=[ToolResultCompatibilityMiddleware()],
+    )
+    health_tool = await mcp.get_tool("health_check")
+    assert health_tool is not None
+    assert health_tool.output_schema is not None
+    factory_mcp.add_tool(health_tool)
+
+    health_module = importlib.import_module(
+        "superset.mcp_service.system.tool.health_check"
+    )
+    with patch.object(
+        health_module,
+        "get_version_metadata",
+        return_value={"version_string": "test-version"},
+    ):
+        async with _asgi_client(factory_mcp) as client:
+            result = await client.call_tool("health_check", {}, raise_on_error=False)
+            tools = await client.list_tools()
+
+    assert result.is_error is False
+    assert result.structured_content is None
+    assert json.loads(result.content[0].text)["status"] == "healthy"
+    assert tools[0].outputSchema is None
 
 
 @pytest.mark.asyncio

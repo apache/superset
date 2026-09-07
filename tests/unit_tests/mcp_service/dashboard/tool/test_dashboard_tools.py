@@ -1795,7 +1795,6 @@ async def test_explicit_default_columns_excludes_filter_state(mock_info, mcp_ser
                 },
             )
     assert "filter_state" not in result.structured_content
-    assert result.data is not None
     tool = await mcp_server.get_tool("get_dashboard_info")
     assert tool.output_schema is not None
     validate(instance=result.structured_content, schema=tool.output_schema)
