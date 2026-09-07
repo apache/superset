@@ -17,6 +17,7 @@
  * under the License.
  */
 import { screen, render } from '@superset-ui/core/spec';
+import * as resizeDetector from 'react-resize-detector';
 import { Button, DropdownContainer, Icons } from '..';
 
 const generateItems = (n: number) =>
@@ -177,4 +178,56 @@ test('component renders and functions without throwing errors', () => {
 
   // Basic functionality test
   expect(screen.getByText('Element 1')).toBeInTheDocument();
+});
+
+test('clamps the item row to the wrapper width while remeasuring', () => {
+  const resizeRef = { current: null as HTMLDivElement | null };
+  jest.spyOn(resizeDetector, 'useResizeDetector').mockReturnValue({
+    ref: resizeRef,
+    width: 300,
+  });
+
+  let measuredWithClamp = false;
+  const getBoundingClientRect: (this: HTMLElement) => DOMRect = function () {
+    const isItemRow = this.dataset.test === 'container';
+    if (isItemRow && this.children.length === 4) {
+      expect(this).toHaveStyle({
+        maxWidth: '300px',
+        overflow: 'hidden',
+      });
+      measuredWithClamp = true;
+    }
+
+    const itemNumber = isItemRow
+      ? 0
+      : Number(this.textContent?.match(/Element (\d+)/)?.[1]);
+    const right = itemNumber ? itemNumber * 100 : 250;
+    return {
+      bottom: 0,
+      height: 0,
+      left: right - 100,
+      right,
+      top: 0,
+      width: 100,
+      x: right - 100,
+      y: 0,
+      toJSON: () => ({}),
+    };
+  };
+  jest
+    .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+    .mockImplementation(getBoundingClientRect);
+
+  const { rerender } = render(<DropdownContainer items={generateItems(3)} />);
+  rerender(<DropdownContainer items={generateItems(3)} />);
+  expect(screen.getByTestId('dropdown-container-btn')).toBeInTheDocument();
+
+  rerender(
+    <DropdownContainer
+      items={generateItems(4)}
+      style={{ maxWidth: 'none', overflow: 'visible' }}
+    />,
+  );
+
+  expect(measuredWithClamp).toBe(true);
 });

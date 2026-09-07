@@ -72,9 +72,6 @@ export const DropdownContainer = forwardRef(
 
     const [showOverflow, setShowOverflow] = useState(false);
 
-    // Row's last measured width, used to clamp it during remeasure.
-    const lastRowWidthRef = useRef(0);
-
     // When the item set changes, the overflow index is briefly reset while the
     // new widths are measured (see the layout effect below). During that window
     // the dropdown content momentarily becomes empty, which would hide and then
@@ -182,7 +179,6 @@ export const DropdownContainer = forwardRef(
               childrenArray.map(child => child.getBoundingClientRect().width),
             );
           } else {
-            lastRowWidthRef.current = container.getBoundingClientRect().width;
             setOverflowingIndex(-1);
             setRecalculating(true);
             return;
@@ -332,19 +328,18 @@ export const DropdownContainer = forwardRef(
             gap: ${theme.sizeUnit * 4}px;
             margin-right: ${theme.sizeUnit * 4}px;
             min-width: 0px;
-            /* Some browsers can paint the mid-remeasure frame where all
-             * items are mounted; clamp so it doesn't overflow the bar.
-             * !important so a consumer's style prop can't defeat it. */
-            ${
-              recalculating &&
-              css`
-                max-width: ${lastRowWidthRef.current}px !important;
-                overflow: hidden !important;
-              `
-            }
           `}
           data-test="container"
-          style={style}
+          style={
+            recalculating
+              ? {
+                  ...style,
+                  // Clamp the transient all-items row to the wrapper width.
+                  maxWidth: width,
+                  overflow: 'hidden',
+                }
+              : style
+          }
         >
           {notOverflowedItems.map(item => item.element)}
         </div>
