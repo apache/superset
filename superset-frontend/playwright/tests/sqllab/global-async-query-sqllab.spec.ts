@@ -36,7 +36,7 @@
 import { test, expect } from '../../helpers/fixtures/testAssets';
 import { SqlLabPage } from '../../pages/SqlLabPage';
 import { expectStatus } from '../../helpers/api/assertions';
-import { TIMEOUT } from '../../utils/constants';
+import { GAQ, TIMEOUT } from '../../utils/constants';
 import { isFeatureEnabled } from '../../helpers/featureFlags';
 
 let sqlLabPage: SqlLabPage;
@@ -58,7 +58,7 @@ test('runs a simple SELECT normally with GLOBAL_ASYNC_QUERIES enabled, never tou
   page.on('response', response => {
     if (
       response.request().method() === 'GET' &&
-      response.url().includes('/api/v1/task/status_changes')
+      response.url().includes(GAQ.TASK_STATUS_CHANGES_PATH)
     ) {
       sawTaskStatusPoll = true;
     }

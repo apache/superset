@@ -29,6 +29,7 @@ import {
 import { getDatasetByName } from '../../helpers/api/dataset';
 import { extractIdFromResponse } from '../../helpers/api/assertions';
 import { DashboardPage } from '../../pages/DashboardPage';
+import { GAQ } from '../../utils/constants';
 import { DashboardFilterBar } from '../../components/dashboard/DashboardFilterBar';
 
 /**
@@ -478,7 +479,7 @@ export function trackGaqSignals(page: Page): GaqSignals {
     }
     if (
       request.method() === 'GET' &&
-      url.includes('/api/v1/task/status_changes')
+      url.includes(GAQ.TASK_STATUS_CHANGES_PATH)
     ) {
       taskStatusPollCount += 1;
     }
