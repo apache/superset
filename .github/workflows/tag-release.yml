@@ -139,7 +139,7 @@ jobs:
           package-manager-cache: false
 
       - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
+        uses: $/.github/actions/setup-supersetbot/
 
       - name: Label the PRs with the right release-related labels
         env:
