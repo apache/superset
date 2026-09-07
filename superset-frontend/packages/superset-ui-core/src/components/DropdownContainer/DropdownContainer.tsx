@@ -72,6 +72,12 @@ export const DropdownContainer = forwardRef(
 
     const [showOverflow, setShowOverflow] = useState(false);
 
+    // Last width the visible row itself measured at, before a remeasure
+    // resets it to show every item. Used to clamp that transient (see the
+    // layout effect below) - the outer container's width isn't a safe bound
+    // since it also includes the dropdown trigger button.
+    const lastRowWidthRef = useRef(0);
+
     // When the item set changes, the overflow index is briefly reset while the
     // new widths are measured (see the layout effect below). During that window
     // the dropdown content momentarily becomes empty, which would hide and then
@@ -179,6 +185,7 @@ export const DropdownContainer = forwardRef(
               childrenArray.map(child => child.getBoundingClientRect().width),
             );
           } else {
+            lastRowWidthRef.current = container.getBoundingClientRect().width;
             setOverflowingIndex(-1);
             setRecalculating(true);
             return;
@@ -334,13 +341,17 @@ export const DropdownContainer = forwardRef(
              * transient frame before the recalculation collapses back down,
              * which would otherwise let this row grow past the space this
              * component was allotted and push the dropdown trigger out of
-             * view. Clamping to the last known width keeps that frame, if
-             * painted, visually bounded instead of overflowing the bar. */
+             * view. Clamping to the row's own last measured width - not the
+             * outer container's, which also includes the trigger button -
+             * keeps that frame, if painted, visually bounded instead of
+             * overflowing the bar. !important guards against the clamp
+             * being defeated by a consumer-supplied \`style\` prop, which
+             * (being inline) would otherwise win over this class. */
             ${
               recalculating &&
               css`
-                max-width: ${width}px;
-                overflow: hidden;
+                max-width: ${lastRowWidthRef.current}px !important;
+                overflow: hidden !important;
               `
             }
           `}
