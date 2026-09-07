@@ -616,6 +616,54 @@ test('should NOT refetch data when echart_options (string-based renderTrigger co
   });
 });
 
+test('should refetch when a chart overrides a shared renderTrigger control to renderTrigger: false', async () => {
+  // Matches Country Map's controlPanel.controlOverrides, which sets
+  // linear_color_scheme to renderTrigger: false because it drives the
+  // choropleth data query rather than just styling.
+  const controlPanelConfig = {
+    controlPanelSections: [
+      {
+        controlSetRows: [['linear_color_scheme']],
+      },
+    ],
+    controlOverrides: {
+      linear_color_scheme: {
+        renderTrigger: false,
+      },
+    },
+  };
+
+  jest.mocked(getChartControlPanelRegistry).mockReturnValue({
+    get: jest.fn().mockReturnValue(controlPanelConfig),
+  } as unknown as ReturnType<typeof getChartControlPanelRegistry>);
+
+  const formDataWithColorScheme = {
+    ...mockFormData,
+    linear_color_scheme: 'schemeA',
+  };
+
+  const { rerender } = render(
+    <StatefulChart formData={formDataWithColorScheme} chartType="test_chart" />,
+  );
+
+  await waitFor(() => {
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
+  });
+
+  const updatedFormData = {
+    ...formDataWithColorScheme,
+    linear_color_scheme: 'schemeB',
+  };
+
+  rerender(<StatefulChart formData={updatedFormData} chartType="test_chart" />);
+
+  await waitFor(() => {
+    // Should refetch because this chart's controlOverrides mark the control
+    // as data-affecting, overriding the shared-control fallback.
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(2);
+  });
+});
+
 test('should refetch when string control is NOT in RENDER_TRIGGER_SHARED_CONTROLS', async () => {
   // Control panel with a string control that is NOT in the renderTrigger set
   const controlPanelConfig = {

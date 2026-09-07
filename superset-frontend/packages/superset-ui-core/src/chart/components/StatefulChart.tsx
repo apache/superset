@@ -119,6 +119,28 @@ function shouldRefetchData(
       }
     });
 
+    // Individual chart types can override a shared control's renderTrigger
+    // behavior (e.g., Country Map sets `linear_color_scheme` to
+    // renderTrigger: false because it drives the choropleth query, not just
+    // styling). Apply those overrides on top of the shared-control fallback
+    // so such controls still trigger a refetch for that chart type.
+    const { controlOverrides } = controlPanel;
+    if (controlOverrides) {
+      Object.entries(controlOverrides).forEach(([controlName, override]) => {
+        if (
+          override &&
+          typeof override === 'object' &&
+          'renderTrigger' in override
+        ) {
+          if ((override as { renderTrigger?: boolean }).renderTrigger) {
+            renderTriggerControls.add(controlName);
+          } else {
+            renderTriggerControls.delete(controlName);
+          }
+        }
+      });
+    }
+
     // Check which fields changed
     const changedFields = Object.keys(nextFormData).filter(
       key =>
