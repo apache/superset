@@ -785,6 +785,18 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     # @docs: https://superset.apache.org/docs/configuration/alerts-reports
     "DATE_FORMAT_IN_EMAIL_SUBJECT": False,
+    # Enable native browser-print (Playwright page.pdf()) for dashboard PDF reports.
+    # Produces vector PDFs with selectable text instead of raster-screenshot PDFs.
+    # Requires PLAYWRIGHT_REPORTS_AND_THUMBNAILS. When enabled, a block of additional
+    # PDF options (font size, orientation, 2-column layout, header/footer slots)
+    # appears in the Alerts & Reports modal for dashboard PDF reports.
+    # Any rendering failure falls back transparently to the screenshot path.
+    # Important: enabling this flag activates header/footer defaults (including a
+    # "Confidential" footer label). Review BROWSER_PRINT_PDF_HEADER_CONTENT and
+    # BROWSER_PRINT_PDF_FOOTER_CONTENT in superset_config.py before deploying.
+    # @lifecycle: testing
+    # @docs: https://superset.apache.org/admin-docs/configuration/alerts-reports#browser-print-pdf-for-dashboards
+    "DASHBOARD_REPORTS_BROWSER_PRINT_PDF": False,
     # Enable dynamic plugin loading
     # @lifecycle: testing
     "DYNAMIC_PLUGINS": False,
@@ -814,6 +826,13 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # When impersonating a user, use the email prefix instead of username
     # @lifecycle: testing
     "IMPERSONATE_WITH_EMAIL_PREFIX": False,
+    # Use Playwright (Chromium) for dashboard/chart screenshots and thumbnails
+    # instead of Selenium. Playwright always uses Chromium; WEBDRIVER_TYPE is
+    # ignored when this flag is enabled. Requires the playwright Python package
+    # and Chromium: `pip install playwright && playwright install chromium`.
+    # @lifecycle: testing
+    # @docs: https://superset.apache.org/admin-docs/configuration/alerts-reports
+    "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
     # Apply RLS rules to SQL Lab queries. Requires query parsing/manipulation.
     # May break queries or allow RLS bypass. Use with care!
     # @lifecycle: testing
