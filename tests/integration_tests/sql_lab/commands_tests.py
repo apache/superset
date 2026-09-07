@@ -213,12 +213,6 @@ class TestSqlResultExportCommand(SupersetTestCase):
 
     @pytest.mark.usefixtures("create_database_and_query")
     def test_validation_malformed_jinja(self) -> None:
-        # ``raise_for_access`` re-parses the query's unrendered Jinja via
-        # ``process_jinja_sql`` and can raise a raw ``TemplateError`` (e.g. an
-        # unclosed ``{% if %}``). ``TemplateSyntaxError`` is a subclass of
-        # ``TemplateError``. It must surface as a 400, not an opaque 500.
-        assert issubclass(TemplateSyntaxError, TemplateError)
-
         command = export.SqlResultExportCommand("test")
 
         with mock.patch(

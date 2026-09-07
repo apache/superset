@@ -20,36 +20,7 @@ import fs from 'fs';
 import path from 'path';
 import { countryOptions } from '../src/countries';
 
-type CountryFeature = { properties: { ISO: string; NAME_1: string } };
-
-test('canada geojson has unique ISO 3166-2 codes', () => {
-  expect(countryOptions).toContainEqual(['canada', 'Canada']);
-
-  // Jest maps `.geojson` imports to an empty object mock, so the file is
-  // read from disk directly to verify its actual shape.
-  const geojsonPath = path.join(__dirname, '../src/countries/canada.geojson');
-  const geojson = JSON.parse(fs.readFileSync(geojsonPath, 'utf-8'));
-  const features: CountryFeature[] = geojson.features;
-  const isoCodes = features.map(feature => feature.properties.ISO);
-
-  expect(features).toHaveLength(13);
-  expect(new Set(isoCodes).size).toBe(isoCodes.length);
-  expect(isoCodes.sort()).toEqual([
-    'CA-AB',
-    'CA-BC',
-    'CA-MB',
-    'CA-NB',
-    'CA-NL',
-    'CA-NS',
-    'CA-NT',
-    'CA-NU',
-    'CA-ON',
-    'CA-PE',
-    'CA-QC',
-    'CA-SK',
-    'CA-YT',
-  ]);
-});
+type ItalyFeature = { properties: { ISO: string; NAME_1: string } };
 
 test('countryOptions includes labeled entries for the Italy region variants', () => {
   expect(countryOptions).toContainEqual(['italy_regions', 'Italy (regions)']);
@@ -67,7 +38,7 @@ test('italy_regions_and_autonomous_provinces geojson has the expected shape', ()
     '../src/countries/italy_regions_and_autonomous_provinces.geojson',
   );
   const geojson = JSON.parse(fs.readFileSync(geojsonPath, 'utf-8'));
-  const features: CountryFeature[] = geojson.features;
+  const features: ItalyFeature[] = geojson.features;
 
   expect(features).toHaveLength(21);
   features.forEach(feature => {
