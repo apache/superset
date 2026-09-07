@@ -368,7 +368,7 @@ const countChipCopies = async () => {
   return mainRow.length + popover.length;
 };
 
-test('a cross-filter chip that DropdownContainer has already stopped overflowing still renders in the stale popover', async () => {
+test('a cross-filter chip DropdownContainer has already stopped overflowing does not also render in the popover', async () => {
   // Regression guard for the FilterBar duplicate-chip bug. This drives the
   // exact two-channel desync described in RCA.md: DropdownContainer's own
   // main-row partition (modeled here by `mockOverflowingIndex`, standing in
@@ -421,10 +421,13 @@ test('a cross-filter chip that DropdownContainer has already stopped overflowing
     expect(mainRow.length).toBe(1);
   });
 
-  // FilterControls' popover, built from its still-stale overflowedIds state
-  // (no fireOverflow call happened for this new partition), renders the same
-  // chip too — the two channels disagree, and nothing in FilterControls
-  // reconciles them: the identical chip is in the DOM twice at once.
+  // FilterControls' overflowedIds state is still stale here (no fireOverflow
+  // call happened for this new partition) — but the popover's content no
+  // longer reads from that state. It's built from the same-render
+  // `overflowedItems` argument DropdownContainer passes into dropdownContent,
+  // which already excludes this chip (it just moved to the main row this
+  // same render), so the popover correctly omits it despite the parent's
+  // stale mirrored state disagreeing. Total count stays at one copy.
   expect(await countChipCopies()).toBe(1);
 });
 

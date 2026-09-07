@@ -176,21 +176,35 @@ the duplicate-chip symptom.
 
 ## The Fix
 
-TBD, Phase 5 — not implemented in this phase (Phase 3 scope is reproduce +
-root-cause + regression guard only). Two candidate directions to weigh in the fix
-phase (not decided here):
+Implemented in `superset-frontend/src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControls.tsx`
+(commit `07c02a9f53`), following candidate direction 1 below.
 
-1. `DropdownContainer` already passes its current-render `overflowedItems` into
-   `dropdownContent(overflowedItems)` (`DropdownContainer.tsx` line ~262).
-   `FilterControls`'s `dropdownContent` closure currently ignores that argument and
-   uses its own stale `overflowedCrossFilters`/`overflowedIds` state instead —
-   having it consume the argument it's given would remove the second, independently
-   mirrored source of truth entirely.
-2. Alternatively, exclude items already known to be overflowed from `items` before
-   handing them to `DropdownContainer`, so `items` and `overflowedCrossFilters` are
-   mutually exclusive by construction. This still requires care: deriving the
-   exclusion from the same one-render-stale `overflowedIds` would not fully close
-   the window on its own.
+`DropdownContainer` already passes its current-render `overflowedItems` into
+`dropdownContent(overflowedItems)` (`DropdownContainer.tsx` line ~262).
+`FilterControls`'s `dropdownContent` closure previously ignored that argument and
+built the popover's content from its own stale `overflowedCrossFilters`/
+`overflowedFiltersInScope` (both derived from the asynchronously mirrored
+`overflowedIds` state) instead. The closure now consumes the `overflowedItems`
+argument directly — same-render, always in sync with whatever `DropdownContainer`
+just decided to exclude from the main row — and filters `filtersInScope`/
+`selectedCrossFilters` against those fresh ids to build the popover's content. This
+removes the second, independently mirrored source of truth for *what gets rendered*
+entirely, rather than trying to make the mirror update faster.
+
+`overflowedIds` (and the `overflowedFiltersInScope`/`overflowedCrossFilters`/
+`activeOverflowedFiltersInScope` values derived from it) is intentionally still in
+place and still drives the "More filters" trigger badge count, its tooltip text, and
+the condition for whether `dropdownContent` is provided to `DropdownContainer` at
+all. None of that was the reported bug — a badge showing a momentarily-stale count
+is cosmetic, not a duplicated DOM chip — so it was left alone rather than removed,
+keeping the fix to the minimal change that addresses the actual root cause.
+
+The alternative direction considered and not taken: excluding items already known to
+be overflowed from `items` before handing them to `DropdownContainer`, so `items`
+and the popover's content are mutually exclusive by construction. This would still
+need to derive that exclusion from the same one-render-stale `overflowedIds`, so it
+would not fully close the window on its own — the implemented fix avoids that
+problem by not depending on `overflowedIds` for rendered content at all.
 
 ## Latent Bugs Found
 
