@@ -3050,6 +3050,288 @@ def test_raise_for_access_catalog(
     )
 
 
+def _mssql_like_database(mocker: MockerFixture, database_name: str, uri_database: str):
+    """
+    Build a mock database resembling an MSSQL connection: it does not support
+    catalogs (``supports_catalog`` is False, matching ``MssqlEngineSpec``, which
+    has no catalog implementation), but its SQLAlchemy URI still targets a single,
+    fixed on-server database (``uri_database``) that T-SQL lets you re-state as a
+    redundant qualifier, e.g. ``<uri_database>.dbo.temp``.
+    """
+    database = mocker.MagicMock()
+    database.database_name = database_name
+    database.db_engine_spec.supports_catalog = False
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = None
+    database.url_object.database = uri_database
+    return database
+
+
+def test_raise_for_access_catalog_qualified_self_reference_allowed(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Regression test for GH #31406: a catalog-qualified query against an engine
+    that doesn't support catalogs (e.g. MSSQL) should be authorized by a plain
+    ``[db].[schema]`` schema permission when the qualifier is just a redundant
+    restatement of the connection's own database -- not denied because
+    ``get_schema_perm`` was asked to check a spurious ``[db].[db].[schema]``
+    permission that was never granted (and never created, since ``mssql``
+    doesn't support catalogs).
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_like_database(mocker, "abcm", "abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM abcm.dbo.temp",
+    )
+
+    # The user only has the historical 2-part schema permission -- no
+    # catalog_access, no 3-part schema_access, no database_access.
+    mocker.patch.object(
+        sm, "can_access", side_effect=lambda perm, vm: vm == "[abcm].[dbo]"
+    )
+
+    sm.raise_for_access(query=query)  # must not raise
+
+
+def test_raise_for_access_catalog_self_reference_matches_registered_dataset(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Regression test for the dataset-lookup half of GH #31406: under SQL Lab's
+    strict ``force_dataset_match=True`` scoping, a catalog-qualified query
+    against an engine without catalog support must find a registered dataset
+    stored with ``catalog=None`` (the only form dataset creation ever
+    produces for such engines) -- not miss it because
+    ``query_datasources_by_name`` was filtered by the redundant,
+    self-referential catalog parsed from the SQL text.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+
+    database = _mssql_like_database(mocker, "abcm", "abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM abcm.dbo.temp",
+    )
+
+    # No schema/catalog/database-level grant at all -- access must come
+    # entirely from the registered dataset's `datasource_access` permission.
+    mocker.patch.object(
+        sm, "can_access", side_effect=lambda perm, vm: perm == "datasource_access"
+    )
+
+    # Registered MSSQL dataset, stored with catalog=None -- the only shape
+    # dataset creation ever produces for an engine without catalog support.
+    registered_dataset = mocker.Mock(perm="[abcm].[temp](id:1)")
+
+    def fake_query_datasources_by_name(
+        _database: object,
+        table_name: str,
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> list[object]:
+        # Mirrors SqlaTable.query_datasources_by_name's real exact-match
+        # `filter_by(catalog=catalog)` semantics: a non-None `catalog` would
+        # never match the dataset's stored `catalog=None`, so this only
+        # returns the dataset if the caller normalized the redundant,
+        # self-referential catalog away first.
+        if table_name == "temp" and schema == "dbo" and catalog is None:
+            return [registered_dataset]
+        return []
+
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.side_effect = fake_query_datasources_by_name
+
+    sm.raise_for_access(query=query, force_dataset_match=True)  # must not raise
+
+
+def test_raise_for_access_catalog_unqualified_still_allowed(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The unqualified form of the same query (``dbo.temp``, relying on the
+    connection's default database) must keep working exactly as before.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_like_database(mocker, "abcm", "abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM dbo.temp",
+    )
+    mocker.patch.object(
+        sm, "can_access", side_effect=lambda perm, vm: vm == "[abcm].[dbo]"
+    )
+
+    sm.raise_for_access(query=query)  # must not raise
+
+
+def test_raise_for_access_catalog_different_database_still_denied(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Security regression guard: a query qualified with a *different* database
+    name than the one the connection actually points to must still be denied.
+    The fix must not broaden `[abcm].[dbo]` schema access into cross-database
+    access just because the engine doesn't support catalogs.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_like_database(mocker, "abcm", "abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM another_db.dbo.temp",
+    )
+    mocker.patch.object(
+        sm, "can_access", side_effect=lambda perm, vm: vm == "[abcm].[dbo]"
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query)
+
+
+def test_raise_for_access_catalog_cross_catalog_join_partially_denied(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    A join across the connection's own database and a different one must
+    still be denied for the unauthorized side, even though the self-
+    referential side is now correctly authorized.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_like_database(mocker, "abcm", "abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql=(
+            "SELECT * FROM abcm.dbo.temp a JOIN another_db.dbo.secret b ON a.id = b.id"
+        ),
+    )
+    mocker.patch.object(
+        sm, "can_access", side_effect=lambda perm, vm: vm == "[abcm].[dbo]"
+    )
+
+    with pytest.raises(SupersetSecurityException) as excinfo:
+        sm.raise_for_access(query=query)
+    assert "another_db.dbo.secret" in str(excinfo.value)
+    assert "abcm.dbo.temp" not in str(excinfo.value)
+
+
+def test_raise_for_access_catalog_supporting_engine_still_requires_catalog(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Control test: for a DB engine spec that *does* support catalogs (e.g.
+    Postgres), the fix must not kick in. A legacy 2-part `[db].[schema]`
+    permission must NOT satisfy a catalog-qualified query -- the 3-part
+    `[db].[catalog].[schema]` permission is still required, preserving
+    SIP-95 semantics for engines where catalogs are real, distinct,
+    independently-authorizable resources.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = mocker.MagicMock()
+    database.database_name = "examples"
+    database.db_engine_spec.supports_catalog = True
+    database.get_default_catalog.return_value = "examples"
+    database.get_default_schema_for_query.return_value = None
+    database.url_object.database = "examples"
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM examples.public.covid_vaccines",
+    )
+
+    # Only the legacy 2-part permission is granted -- should NOT be enough.
+    mocker.patch.object(
+        sm, "can_access", side_effect=lambda perm, vm: vm == "[examples].[public]"
+    )
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query)
+
+    # The correct 3-part catalog-qualified permission works, as before.
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == "[examples].[examples].[public]",
+    )
+    sm.raise_for_access(query=query)  # must not raise
+
+
+def test_raise_for_access_catalog_self_reference_does_not_weaken_sqllab_strict_mode(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The catalog self-reference normalization must not interact with SQL
+    Lab's stricter ``force_dataset_match`` mode (#40409): schema_access
+    alone -- self-referential catalog or not -- must remain insufficient to
+    execute a raw SQL Lab query without a matching registered dataset.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_like_database(mocker, "abcm", "abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM abcm.dbo.temp",
+    )
+    mocker.patch.object(
+        sm, "can_access", side_effect=lambda perm, vm: vm == "[abcm].[dbo]"
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query, force_dataset_match=True)
+
+
 def test_get_datasources_accessible_by_user_schema_access(
     mocker: MockerFixture,
     app_context: None,

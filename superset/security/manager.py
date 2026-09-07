@@ -4692,17 +4692,47 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # registered Superset dataset the user can access. Other callers
             # keep the existing semantics.
             for table_ in tables:
+                # DB engine specs that don't model catalogs (e.g. MSSQL,
+                # where a single connection can only ever target one
+                # on-server database) never create a catalog-qualified
+                # ``catalog_access``/``schema_access`` permission, and
+                # register datasets with ``catalog=None`` -- ``add_permissions``
+                # and the dataset-creation flow only ever use the catalog-less
+                # form for such engines. But a dialect like T-SQL still allows
+                # (and sqlglot still parses) a fully qualified
+                # ``database.schema.table`` reference, so a query that merely
+                # re-states the connection's own database (e.g.
+                # ``abcm.dbo.temp`` on a connection already pointed at
+                # ``abcm``) yields a non-empty ``table_.catalog``. Checking
+                # that redundant value as a real catalog -- whether building a
+                # ``[db].[db].[schema]`` permission string, or filtering the
+                # dataset lookup below by ``catalog="abcm"`` -- can never
+                # match the permission or dataset that was actually granted,
+                # denying access that should be authorized. Normalize such a
+                # self-referential catalog to ``None`` once, up front, so both
+                # checks below agree -- matching how the permission/dataset
+                # was actually created -- while a genuinely different database
+                # name is left untouched and still denied (there is no
+                # permission format to authorize it for these engines).
+                effective_catalog = table_.catalog
+                if (
+                    effective_catalog
+                    and not database.db_engine_spec.supports_catalog
+                    and effective_catalog == database.url_object.database
+                ):
+                    effective_catalog = None
+
                 if not force_dataset_match:
                     catalog_perm = self.get_catalog_perm(
                         database.database_name,
-                        table_.catalog,
+                        effective_catalog,
                     )
                     if catalog_perm and self.can_access("catalog_access", catalog_perm):
                         continue
 
                     schema_perm = self.get_schema_perm(
                         database.database_name,
-                        table_.catalog,
+                        effective_catalog,
                         table_.schema,
                     )
                     if schema_perm and self.can_access("schema_access", schema_perm):
@@ -4722,7 +4752,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     database,
                     table_.table,
                     schema=table_.schema,
-                    catalog=table_.catalog,
+                    catalog=effective_catalog,
                 )
                 for datasource_ in datasources:
                     if self.can_access(
