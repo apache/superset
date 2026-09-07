@@ -207,6 +207,43 @@ test('renders time comparison grouping headers without configured header groups'
   expect(container.querySelector('.anticon-minus-circle')).toBeInTheDocument();
 });
 
+test('does not hide a dimension whose name starts with a comparison prefix', () => {
+  const base = transformProps(testData.comparison);
+  const hashColumn = base.columns.find(column => column.label === '#');
+  if (!hashColumn) {
+    throw new Error('expected a comparison hash column');
+  }
+
+  const props = {
+    ...base,
+    headerGroups: [],
+    columns: [
+      {
+        ...hashColumn,
+        key: 'Main Street',
+        label: 'Main Street',
+        isMetric: false,
+        isPercentMetric: false,
+        isNumeric: false,
+      },
+      { ...hashColumn, key: '# Street', label: '#', originalLabel: 'Street' },
+      { ...hashColumn, key: '△ Street', label: '△', originalLabel: 'Street' },
+    ],
+  };
+
+  const { container } = render(<TableChart {...props} sticky={false} />);
+  const hideToggle = container.querySelector('.anticon-minus-circle');
+  expect(hideToggle).toBeInTheDocument();
+
+  fireEvent.click(hideToggle as Element);
+
+  expect(
+    Array.from(container.querySelectorAll('thead th')).some(
+      header => header.textContent === 'Main Street',
+    ),
+  ).toBe(true);
+});
+
 test('keeps comparison column hide toggles when time comparison header groups are present', () => {
   const props = transformProps(testData.comparison);
 

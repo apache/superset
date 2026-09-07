@@ -108,10 +108,6 @@ import {
 type ValueRange = [number, number];
 
 function getComparisonKeyPortion(key: string, label: string): string {
-  const prefix = ['Main', '#', '△', '%'].find(item => key.startsWith(item));
-  if (prefix !== undefined) {
-    return key.substring(prefix.length);
-  }
   return key.startsWith(label) ? key.substring(label.length) : key;
 }
 
