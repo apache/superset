@@ -49,6 +49,7 @@ from superset.db_engine_specs.base import (
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.sql_lab import Query
+from superset.sql.dialects.postgres import normalize_date_trunc_units
 from superset.sql.parse import process_jinja_sql
 from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType, QuerySource
@@ -57,7 +58,6 @@ if TYPE_CHECKING:
     from superset.models.core import Database  # pragma: no cover
 
 logger = logging.getLogger()
-
 
 # Regular expressions to catch custom errors
 CONNECTION_INVALID_USERNAME_REGEX = re.compile(
@@ -179,6 +179,20 @@ class PostgresBaseEngineSpec(BaseEngineSpec):
     engine = ""
     engine_name = "PostgreSQL"
     supports_multivalues_insert = True
+
+    # The time grain templates below spell ``DATE_TRUNC`` units in lowercase.
+    # PostgreSQL-like engines compare a metric's ``DATE_TRUNC`` call against
+    # the ``GROUP BY`` expression structurally, so a custom metric using a
+    # different unit spelling fails with a grouping error. Every spec that
+    # inherits these templates therefore also inherits the normalization that
+    # keeps custom metric units aligned with them; specs that replace the
+    # templates (e.g. Snowflake) replace the normalization as well.
+    preserves_custom_sql_metric_source = True
+
+    @classmethod
+    def normalize_custom_sql_metric(cls, expression: str) -> str:
+        """Canonicalize DATE_TRUNC units to match generated time grains."""
+        return normalize_date_trunc_units(expression)
 
     _time_grain_expressions = {
         None: "{col}",
