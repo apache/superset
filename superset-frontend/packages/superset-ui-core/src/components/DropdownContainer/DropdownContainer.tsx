@@ -328,6 +328,21 @@ export const DropdownContainer = forwardRef(
             gap: ${theme.sizeUnit * 4}px;
             margin-right: ${theme.sizeUnit * 4}px;
             min-width: 0px;
+            /* While remeasuring after an items count change, all items are
+             * briefly mounted to measure their widths (see the layout effect
+             * below). Some browsers (e.g. Microsoft Edge) can paint that
+             * transient frame before the recalculation collapses back down,
+             * which would otherwise let this row grow past the space this
+             * component was allotted and push the dropdown trigger out of
+             * view. Clamping to the last known width keeps that frame, if
+             * painted, visually bounded instead of overflowing the bar. */
+            ${
+              recalculating &&
+              css`
+                max-width: ${width}px;
+                overflow: hidden;
+              `
+            }
           `}
           data-test="container"
           style={style}
