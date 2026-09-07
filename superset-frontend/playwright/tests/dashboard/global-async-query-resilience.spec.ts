@@ -32,6 +32,7 @@
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiGetChart, apiPutChart } from '../../helpers/api/chart';
 import { TIMEOUT } from '../../utils/constants';
+import { apiPost } from '../../helpers/api/requests';
 import {
   BIG_NUMBER_COUNT_SPEC,
   setupDashboardWithBigNumberCharts,
@@ -267,23 +268,18 @@ testWithAssets(
       'the browser is expected to opt into async on a GAQ-enabled deployment',
     ).toBe(true);
 
-    const { origin } = new URL(submission.url());
-    const csrfResponse = await page.request.get(
-      `${origin}/api/v1/security/csrf_token/`,
-    );
-    const headers: Record<string, string> = { Referer: origin };
-    if (csrfResponse.ok()) {
-      headers['X-CSRFToken'] = (await csrfResponse.json()).result;
-    }
-
     // Same payload, async_mode dropped and the cache bypassed, so a 200 here
     // means the query really ran inline rather than being served from a warm
-    // cache entry that would mask the difference.
+    // cache entry that would mask the difference. `apiPost` carries the browser
+    // session and the CSRF token the mutation needs.
     const { async_mode: _optedIn, ...syncBody } = body;
-    const response = await page.request.post(submission.url(), {
-      headers,
-      data: { ...syncBody, force: true },
-    });
+    const response = await apiPost(
+      page,
+      submission.url(),
+      { ...syncBody, force: true },
+      // The status is the assertion here, so it must not throw on a non-2xx.
+      { failOnStatusCode: false },
+    );
 
     expect(
       response.status(),
