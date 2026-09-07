@@ -161,20 +161,20 @@ test('sticky header/footer width matches the body, independent of the scrollbar-
   // (`maxWidth - scrollBarSize`), not just a smaller reported `clientWidth`.
   // A wrapper that's actually narrower than the shared, fixed-layout
   // colgroup it has to display gets genuinely clipped by its own
-  // `overflow: hidden` (verified with real hit-testing in a real browser,
-  // see RCA.md -- this is not true of the `scrollbarGutter` assertions
-  // below). The fix makes header/footer always exactly `maxWidth`, which the
-  // colgroup (bounded by the sizer's `clientWidth`, itself bounded by
-  // `maxWidth`) can never exceed.
+  // `overflow: hidden` (verified with real hit-testing in a real browser --
+  // this is not true of the `scrollbarGutter` assertions below). The fix
+  // makes header/footer always exactly `maxWidth`, which the colgroup
+  // (bounded by the sizer's `clientWidth`, itself bounded by `maxWidth`)
+  // can never exceed.
   expect(headerDiv.style.width).toBe(`${MAX_WIDTH}px`);
   expect(footerDiv.style.width).toBe(`${MAX_WIDTH}px`);
 
   // Secondary, not itself load-bearing for preventing clipping: real
   // hit-testing shows `scrollbar-gutter` on an `overflow: hidden` box
   // changes what `clientWidth` reports without moving where it actually
-  // clips (see RCA.md), so this doesn't guard against the reported bug by
-  // itself. It's asserted because header/footer's reported `clientWidth`
-  // still needs to match body's `clientWidth` for their programmatically
+  // clips, so this doesn't guard against the reported bug by itself. It's
+  // asserted because header/footer's reported `clientWidth` still needs to
+  // match body's `clientWidth` for their programmatically
   // synced `scrollLeft` (see `onScroll` in `useSticky.tsx`) to reveal the
   // same slice of the row body actually shows, when a horizontal scrollbar
   // is present alongside a vertical one.
