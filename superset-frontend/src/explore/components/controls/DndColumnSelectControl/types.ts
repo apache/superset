@@ -20,6 +20,7 @@ import { ReactNode } from 'react';
 import { AdhocColumn, JsonValue } from '@superset-ui/core';
 import { ControlComponentProps } from 'src/explore/components/Control';
 import { ColumnMeta } from '@superset-ui/chart-controls';
+import type { PartitionFilterMapping } from '@superset-ui/chart-controls';
 
 export interface OptionProps {
   children?: ReactNode;
@@ -34,6 +35,8 @@ export interface OptionProps {
   canDelete?: boolean;
   tooltipOverlay?: ReactNode;
   multiValueWarningMessage?: string;
+  /** Set when this filter's column is mirrored onto a partition column. */
+  partitionMapping?: PartitionFilterMapping | null;
 }
 
 export interface OptionItemInterface {

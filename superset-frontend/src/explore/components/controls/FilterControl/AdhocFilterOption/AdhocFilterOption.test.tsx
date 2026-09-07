@@ -108,3 +108,115 @@ test('should render the Popover on clicking the right caret', async () => {
   userEvent.click(rightCaret);
   expect(screen.getByRole('tooltip')).toBeInTheDocument();
 });
+
+// A monotonic transform, so ranges mirror alongside equality.
+const MONOTONIC_MAPPING = {
+  partition_column: 'dt_epoch',
+  mapped_column: 'value',
+  active: true,
+  is_monotonic: true,
+  mirrorable_operators: ['<', '<=', '==', '>', '>=', 'IN', 'TEMPORAL_RANGE'],
+};
+
+const withMapping = (
+  mapping: Record<string, unknown> | null,
+  adhocFilter = simpleAdhocFilter,
+) =>
+  setup({
+    ...mockedProps,
+    adhocFilter,
+    datasource: { partition_filter_mapping: mapping },
+  });
+
+const glyph = () => screen.queryByTestId('partition-pruning-indicator');
+
+test('a filter on the mapped column carries the partition pruning glyph', () => {
+  // Wireframe 1d: the chart author never configured any of this and only sees
+  // an explanation of why the query got faster.
+  render(withMapping(MONOTONIC_MAPPING));
+
+  expect(glyph()).toBeInTheDocument();
+});
+
+test('a filter on any other column carries no glyph', () => {
+  render(
+    withMapping({ ...MONOTONIC_MAPPING, mapped_column: 'some_other_column' }),
+  );
+
+  expect(glyph()).not.toBeInTheDocument();
+});
+
+test('an inactive mapping leaves the chip alone', () => {
+  render(withMapping({ ...MONOTONIC_MAPPING, active: false }));
+
+  expect(glyph()).not.toBeInTheDocument();
+});
+
+test('a negated filter on the mapped column carries no glyph', () => {
+  // The query path never mirrors a negation -- the transform need not be
+  // injective, so `value != 10` would mirror to a predicate that drops rows the
+  // original filter keeps. Labelling it would promise a speed-up the SQL does
+  // not contain.
+  render(
+    withMapping(
+      MONOTONIC_MAPPING,
+      simpleAdhocFilter.duplicateWith({ operator: '!=' }),
+    ),
+  );
+
+  expect(glyph()).not.toBeInTheDocument();
+});
+
+test('a range filter waits on the monotonicity declaration', () => {
+  render(
+    withMapping({
+      ...MONOTONIC_MAPPING,
+      is_monotonic: false,
+      mirrorable_operators: ['==', 'IN'],
+    }),
+  );
+
+  expect(glyph()).not.toBeInTheDocument();
+});
+
+test('an equality filter mirrors under a non-monotonic transform', () => {
+  render(
+    withMapping(
+      {
+        ...MONOTONIC_MAPPING,
+        is_monotonic: false,
+        mirrorable_operators: ['==', 'IN'],
+      },
+      simpleAdhocFilter.duplicateWith({ operator: '==' }),
+    ),
+  );
+
+  expect(glyph()).toBeInTheDocument();
+});
+
+test('a free-form SQL filter on the mapped column carries no glyph', () => {
+  // It lands in `extras.where`, where the backend sees no operator to mirror.
+  render(
+    withMapping(
+      MONOTONIC_MAPPING,
+      new AdhocFilter({
+        expressionType: ExpressionTypes.Sql,
+        sqlExpression: 'value > 10',
+        clause: Clauses.Where,
+      }),
+    ),
+  );
+
+  expect(glyph()).not.toBeInTheDocument();
+});
+
+test('a filter with no comparator yet carries no glyph', () => {
+  render(
+    withMapping(
+      MONOTONIC_MAPPING,
+      simpleAdhocFilter.duplicateWith({ comparator: '' }),
+    ),
+  );
+
+  expect(glyph()).not.toBeInTheDocument();
+});
