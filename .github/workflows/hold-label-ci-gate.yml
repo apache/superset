@@ -26,7 +26,7 @@ jobs:
   cancel-on-hold:
     name: Cancel CI runs when hold label applied
     if: github.event.action == 'labeled' && startsWith(github.event.label.name, 'hold')
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     permissions:
       actions: write
       pull-requests: read
@@ -69,7 +69,7 @@ jobs:
   rerun-on-unhold:
     name: Re-run CI when hold label removed
     if: github.event.action == 'unlabeled' && startsWith(github.event.label.name, 'hold')
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-slim
     permissions:
       actions: write
       pull-requests: read

@@ -17,12 +17,13 @@
 from __future__ import annotations
 
 import logging
+import random
 from datetime import datetime, timezone
-from typing import Any
+from typing import Any, cast, TYPE_CHECKING
 from uuid import UUID
 
 from celery import Task
-from celery.exceptions import SoftTimeLimitExceeded
+from celery.exceptions import Retry, SoftTimeLimitExceeded
 from celery.signals import task_failure
 from flask import current_app
 from superset_core.tasks.types import TaskStatus
@@ -35,9 +36,10 @@ from superset.commands.report.execute import AsyncExecuteReportScheduleCommand
 from superset.commands.report.log_prune import AsyncPruneReportScheduleLogCommand
 from superset.commands.sql_lab.query import QueryPruneCommand
 from superset.commands.tasks.prune import TaskPruneCommand
+from superset.commands.tasks.reap import ReapOrphanedTasksCommand
 from superset.daos.report import ReportScheduleDAO
 from superset.daos.tasks import TaskDAO
-from superset.extensions import celery_app
+from superset.extensions import celery_app, db
 from superset.key_value.commands.prune import KeyValuePruneCommand
 from superset.reports.models import ReportScheduleType
 from superset.stats_logger import BaseStatsLogger
@@ -45,11 +47,24 @@ from superset.tasks.ambient_context import use_context
 from superset.tasks.constants import ABORT_STATES, TERMINAL_STATES
 from superset.tasks.context import TaskContext
 from superset.tasks.cron_util import cron_schedule_window
+from superset.tasks.dependencies import (
+    DAG_WAITING,
+    fail_dependent_on_unmet_prerequisite,
+    unmet_prerequisite,
+)
+from superset.tasks.heartbeat import (
+    HeartbeatController,
+    SELF_FENCE_ERROR_MESSAGE,
+    task_heartbeat,
+)
 from superset.tasks.manager import TaskManager
 from superset.tasks.registry import TaskRegistry
 from superset.utils.core import LoggerLevel
 from superset.utils.log import get_logger_from_status
 from superset.utils.report_execution import get_report_task_timeout_options
+
+if TYPE_CHECKING:
+    from superset.models.tasks import Task as TaskModel
 
 logger = logging.getLogger(__name__)
 
@@ -262,6 +277,23 @@ def prune_tasks(
         logger.exception("An error occurred while pruning async tasks: %s", ex)
 
 
+@celery_app.task(name="reap_orphaned_tasks", bind=True)
+def reap_orphaned_tasks(self: Task, **kwargs: Any) -> None:
+    """Recover tasks abandoned by a worker that stopped refreshing its heartbeat.
+
+    Runs on its own (short) beat schedule, separate from ``prune_tasks``: reaping
+    wants to detect a dead worker — and cancel its warehouse query — promptly,
+    whereas the retention prune is a heavy, infrequent bulk delete.
+    """
+    stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+    stats_logger.incr("reap_orphaned_tasks")
+
+    try:
+        ReapOrphanedTasksCommand().run()
+    except CommandException as ex:
+        logger.exception("An error occurred while reaping orphaned tasks: %s", ex)
+
+
 @celery_app.task(name="prune_key_value", bind=True)
 def prune_key_value(
     self: Task,
@@ -277,8 +309,64 @@ def prune_key_value(
         logger.exception("An error occurred while pruning the key-value store: %s", ex)
 
 
-@celery_app.task(name="tasks.execute", bind=True)
-def execute_task(  # noqa: C901
+# Non-blocking DAG dependency gate: a dependent picked up before its
+# prerequisites are terminal is deferred (Celery retry) rather than parking the
+# worker slot. Growing backoff (1s, 3s, 5s… capped) keyed off Celery's per-message
+# retry count, with jitter to avoid a thundering herd. The cap stays below
+# GTF_ORPHAN_TASK_TIMEOUT so a deferred task never looks abandoned.
+_DAG_DEFER_BASE_SECONDS = 1.0
+_DAG_DEFER_STEP_SECONDS = 2.0
+_DAG_DEFER_MAX_SECONDS = 30.0
+
+# Sentinel: at least one prerequisite is not yet terminal (defer and re-check).
+# The DAG decision and the fail action live in superset.tasks.dependencies so the
+# Celery and inline paths share one implementation; only the wait action (defer via
+# self.retry below vs. block on the coordination signal inline) is path-specific.
+
+
+def _dag_defer_countdown(retries: int) -> float:
+    """Growing, jittered backoff (seconds) for a DAG-deferred task.
+
+    ``retries`` is Celery's per-message retry count (preserved across
+    ``self.retry()`` on the same task id), so the backoff needs no persisted
+    state. 1s, 3s, 5s, … capped at ``_DAG_DEFER_MAX_SECONDS``, plus up to ~1s of
+    jitter so many dependents of the same prerequisite don't wake in lockstep.
+    """
+    base = min(
+        _DAG_DEFER_BASE_SECONDS + retries * _DAG_DEFER_STEP_SECONDS,
+        _DAG_DEFER_MAX_SECONDS,
+    )
+    # Jitter only spreads wake-ups; it is not security-sensitive.
+    return base + random.uniform(0, min(base, 1.0))  # noqa: S311
+
+
+def _persist_celery_task_id(task: "TaskModel", celery_task_id: str | None) -> None:
+    """Record the Celery job id on the task so the reaper can revoke it.
+
+    Mutates the in-memory task (so the ``TaskContext`` built later carries the id
+    through its property writes) and commits. Written once when the task is
+    claimed — after the DAG gate has confirmed the prerequisites are met and
+    immediately before the heartbeat/status transition — so the reaper can revoke
+    the running job. A task still deferred on prerequisites carries no Celery id
+    or heartbeat and is simply re-enqueued rather than reaped. The id is dropped
+    on the terminal transition along with the rest of ``properties``, which is
+    fine — only ACTIVE tasks are ever reaped.
+    """
+    if not celery_task_id:
+        return
+    task.update_framework_private({"celery_task_id": celery_task_id})
+    # One-shot write at pickup, outside the lifecycle transaction below.
+    db.session.commit()  # pylint: disable=consider-using-transaction
+
+
+# max_retries=None makes the DAG-defer retries truly unlimited. Celery's
+# self.retry(max_retries=None) falls back to the *task's* max_retries attribute
+# (default 3), not infinity — so the ceiling has to be lifted here, on the task,
+# or a parent that runs longer than a few defer intervals would exhaust retries
+# and leave the dependent stuck PENDING. Only the DAG defer path retries; real
+# failures go through the FAILURE transition instead.
+@celery_app.task(name="tasks.execute", bind=True, max_retries=None)
+def execute_task(
     self: Any,  # Celery task instance
     task_uuid: str,
     task_type: str,
@@ -288,17 +376,11 @@ def execute_task(  # noqa: C901
     """
     Generic task executor for GTF tasks.
 
-    This executor:
-    1. Checks if task was aborted before execution starts
-    2. Fetches task from metastore
-    3. Builds context (task + user) and sets ambient context via contextvars
-    4. Executes the task function (which accesses context via get_context())
-    5. Updates task status throughout lifecycle using atomic conditional updates
-    6. Runs cleanup handlers on task end (success/failure/abortion)
-    7. Resets context after execution
-
-    Uses atomic conditional status updates to prevent race conditions with
-    concurrent abort operations.
+    Loads the task, resolves the DAG gate (deferring via Celery retry while
+    prerequisites are pending, rather than blocking a worker slot), records the
+    Celery job id, and runs the lifecycle body under a liveness heartbeat that
+    spans IN_PROGRESS/ABORTING so the prune cron can revoke and reap it if this
+    worker dies. See ``_execute_task_body`` for the lifecycle itself.
 
     :param task_uuid: UUID of the task to execute
     :param task_type: Type of the task (for registry lookup)
@@ -320,21 +402,114 @@ def execute_task(  # noqa: C901
         logger.error("Task %s not found in metastore", task_uuid)
         return {"status": "error", "message": "Task not found"}
 
-    # AUTOMATIC PRE-EXECUTION CHECK: Don't execute if already aborted/aborting
+    # Abort-before-claim: a task aborted while queued or DAG-deferred finalizes
+    # here (this also stops the defer loop below from retrying an aborted task).
     if task.status in ABORT_STATES:
         logger.info(
             "Task %s (uuid=%s) was aborted before execution started",
             task_type,
             task_uuid,
         )
-        # Atomic transition to ABORTED (if not already)
-        InternalStatusTransitionCommand(
+        transitioned = InternalStatusTransitionCommand(
             task_uuid=native_uuid,
             new_status=TaskStatus.ABORTED,
             expected_status=[TaskStatus.PENDING, TaskStatus.ABORTING],
             set_ended_at=True,
         ).run()
+        # Wake waiters (websocket-mode chart clients don't poll). Only when this
+        # path performed the transition, so a cancel that already published
+        # completion for the same task isn't echoed.
+        if transitioned:
+            TaskManager.publish_completion(native_uuid, TaskStatus.ABORTED.value)
         return {"status": TaskStatus.ABORTED.value, "task_uuid": task_uuid}
+
+    # DAG gate (non-blocking): defer via Celery retry until every prerequisite is
+    # terminal, instead of parking this worker slot. Crucially this runs BEFORE
+    # _persist_celery_task_id and the heartbeat, so a merely-deferred PENDING task
+    # carries no heartbeat and can't be mistaken for abandoned active work by the
+    # reaper (which ignores null-heartbeat tasks). all_success semantics: if any
+    # prerequisite ended non-success, fail without running (cascades to dependents).
+    unmet = unmet_prerequisite(task)
+    if unmet is DAG_WAITING:
+        countdown = _dag_defer_countdown(self.request.retries)
+        current_app.config["STATS_LOGGER"].incr("gtf.task.dag_deferred")
+        logger.info(
+            "Task %s (uuid=%s) waiting on prerequisites; deferring ~%.0fs "
+            "(retry %d) without holding the worker",
+            task_type,
+            task_uuid,
+            countdown,
+            self.request.retries,
+        )
+        # Re-sends the same task id/args/kwargs. self.retry raises the Retry
+        # sentinel Celery expects; if it instead fails to publish the replacement
+        # message (broker down), that would escape as a non-Retry exception and
+        # leave this task PENDING with no heartbeat — unreapable, the same shape as
+        # a failed enqueue. So only the Retry sentinel is allowed to propagate;
+        # any other error fails the task terminally.
+        try:
+            raise self.retry(countdown=countdown, max_retries=None)
+        except Retry:
+            raise
+        except Exception:  # noqa: BLE001  pylint: disable=broad-except
+            logger.exception(
+                "Failed to defer task %s (uuid=%s); failing it so it is not "
+                "stranded PENDING",
+                task_type,
+                task_uuid,
+            )
+            if InternalStatusTransitionCommand(
+                task_uuid=native_uuid,
+                new_status=TaskStatus.FAILURE,
+                expected_status=[TaskStatus.PENDING, TaskStatus.ABORTING],
+                set_ended_at=True,
+                properties={"error_message": "Failed to defer task for execution"},
+            ).run():
+                TaskManager.publish_completion(native_uuid, TaskStatus.FAILURE.value)
+            return {"status": TaskStatus.FAILURE.value, "task_uuid": task_uuid}
+    if unmet is not None:
+        # A prerequisite ended non-success (unmet is that Task): fail without
+        # running the body. The DAG_WAITING sentinel was handled above, so this is
+        # a Task. Shared with the inline path via the dependencies helper.
+        status = fail_dependent_on_unmet_prerequisite(
+            native_uuid, cast("TaskModel", unmet)
+        )
+        return {"status": status, "task_uuid": task_uuid}
+
+    # Prerequisites satisfied → claim the task and run it under the heartbeat.
+    _persist_celery_task_id(task, self.request.id)
+    app = current_app._get_current_object()  # noqa: SLF001
+    with task_heartbeat(task.id, app) as heartbeat:
+        return _execute_task_body(task, native_uuid, task_type, args, kwargs, heartbeat)
+
+
+def _execute_task_body(  # noqa: C901
+    task: "TaskModel",
+    native_uuid: UUID,
+    task_type: str,
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+    heartbeat: "HeartbeatController",
+) -> dict[str, Any]:
+    """
+    Run a claimed GTF task through its lifecycle.
+
+    This body:
+    1. Builds context (task + user) and sets ambient context via contextvars
+    2. Executes the task function (which accesses context via get_context())
+    3. Updates task status throughout lifecycle using atomic conditional updates
+    4. Runs cleanup handlers on task end (success/failure/abortion)
+    5. Resets context after execution
+
+    The pre-claim abort check and the DAG dependency gate run in ``execute_task``
+    before the task is claimed (heartbeat + Celery id), so by here the task is
+    ready to run; a concurrent abort in the claim window is still caught by the
+    PENDING → IN_PROGRESS transition below. Uses atomic conditional status updates
+    to prevent race conditions with concurrent abort operations.
+    """
+    from superset.commands.tasks.internal_update import InternalStatusTransitionCommand
+
+    task_uuid = str(native_uuid)
 
     # Atomic transition: PENDING → IN_PROGRESS (set started_at for duration tracking)
     if not InternalStatusTransitionCommand(
@@ -362,6 +537,12 @@ def execute_task(  # noqa: C901
     # Build context from task (includes user who created the task)
     ctx = TaskContext(task)
 
+    # Wire the heartbeat's self-fence to the context: if this worker loses
+    # contact with the metastore for longer than the orphan window, fail the
+    # task from the inside (cancelling any in-flight query) instead of running
+    # work the reaper has already given up on.
+    heartbeat.on_fence(lambda: ctx.trigger_self_fence(SELF_FENCE_ERROR_MESSAGE))
+
     # Start timeout timer if configured (timer starts from execution time)
     if timeout := task.properties_dict.get("timeout"):
         ctx.start_timeout_timer(timeout)
@@ -372,7 +553,6 @@ def execute_task(  # noqa: C901
         )
 
     try:
-        # Get registered executor function
         executor_fn = TaskRegistry.get_executor(task_type)
 
         logger.info(
@@ -392,8 +572,8 @@ def execute_task(  # noqa: C901
 
         # Determine terminal status based on abort detection
         # Use atomic conditional updates to prevent overwriting concurrent abort
-        if ctx._abort_detected or ctx.timeout_triggered:
-            # Abort was detected - will be handled in finally block
+        if ctx.aborting_in_flight:
+            # Abort/timeout/self-fence detected - will be handled in finally block
             pass
         else:
             # Normal completion - also allow ABORTING → SUCCESS for late abort
@@ -404,7 +584,6 @@ def execute_task(  # noqa: C901
                 expected_status=[TaskStatus.IN_PROGRESS, TaskStatus.ABORTING],
                 set_ended_at=True,
             ).run():
-                # Emit stats metric for success
                 stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
                 stats_logger.incr("gtf.task.success")
                 logger.info(
@@ -423,34 +602,62 @@ def execute_task(  # noqa: C901
         # Mark execution as completed to prevent late abort handlers
         ctx.mark_execution_completed()
 
-        # Atomic transition to FAILURE (only if still IN_PROGRESS or ABORTING)
-        InternalStatusTransitionCommand(
-            task_uuid=native_uuid,
-            new_status=TaskStatus.FAILURE,
-            expected_status=[TaskStatus.IN_PROGRESS, TaskStatus.ABORTING],
-            properties={"error_message": str(ex)},
-            set_ended_at=True,
-        ).run()
+        # An abort/timeout that actually cancels the work (e.g. an abort handler
+        # killing the underlying warehouse query) surfaces here as an exception.
+        # That is a successful abort, not a failure: leave the task in ABORTING
+        # so the finally block finalizes it as ABORTED/TIMED_OUT/FAILURE. Only a
+        # genuine error (no abort in flight) transitions to FAILURE here.
+        if ctx.aborting_in_flight:
+            logger.info(
+                "Task %s (uuid=%s) raised while aborting; finalizing as aborted",
+                task_type,
+                task_uuid,
+            )
+        else:
+            # Atomic transition to FAILURE (only if still IN_PROGRESS or ABORTING)
+            InternalStatusTransitionCommand(
+                task_uuid=native_uuid,
+                new_status=TaskStatus.FAILURE,
+                expected_status=[TaskStatus.IN_PROGRESS, TaskStatus.ABORTING],
+                properties=ctx.error_properties(exception=ex),
+                set_ended_at=True,
+            ).run()
 
-        logger.error(
-            "Task %s (uuid=%s) failed with error: %s",
-            task_type,
-            task_uuid,
-            str(ex),
-            exc_info=True,
-        )
+            logger.error(
+                "Task %s (uuid=%s) failed with error: %s",
+                task_type,
+                task_uuid,
+                str(ex),
+                exc_info=True,
+            )
 
-        # Emit stats metric for failure
-        stats_logger = current_app.config["STATS_LOGGER"]
-        stats_logger.incr("gtf.task.failure")
+            stats_logger = current_app.config["STATS_LOGGER"]
+            stats_logger.incr("gtf.task.failure")
 
     finally:
         # ALWAYS run cleanup handlers (also stops timeout timer)
         ctx._run_cleanup()
 
-        # Handle abort/timeout terminal transitions
+        # Handle abort/timeout/fence terminal transitions
         # Use atomic updates to safely transition ABORTING → terminal state
-        if ctx._abort_detected or ctx.timeout_triggered:
+        if ctx.fence_triggered:
+            # Worker lost metastore contact: fail the task (no handover). The
+            # status may still be IN_PROGRESS (never became ABORTING if the
+            # ABORTING write failed under partition), so accept either.
+            InternalStatusTransitionCommand(
+                task_uuid=native_uuid,
+                new_status=TaskStatus.FAILURE,
+                expected_status=[TaskStatus.IN_PROGRESS, TaskStatus.ABORTING],
+                properties=ctx.error_properties(error_message=SELF_FENCE_ERROR_MESSAGE),
+                set_ended_at=True,
+            ).run()
+            logger.warning(
+                "Task %s (uuid=%s) self-fenced (lost metastore contact) - "
+                "marking as FAILURE",
+                task_type,
+                task_uuid,
+            )
+        elif ctx._abort_detected or ctx.timeout_triggered:
             if ctx.abort_handlers_completed:
                 # All handlers succeeded - determine terminal state based on cause
                 if ctx.timeout_triggered:
@@ -483,7 +690,9 @@ def execute_task(  # noqa: C901
                     task_uuid=native_uuid,
                     new_status=TaskStatus.FAILURE,
                     expected_status=TaskStatus.ABORTING,
-                    properties={"error_message": "Abort handlers did not complete"},
+                    properties=ctx.error_properties(
+                        error_message="Abort handlers did not complete"
+                    ),
                     set_ended_at=True,
                 ).run()
                 logger.warning(

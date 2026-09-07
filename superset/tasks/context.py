@@ -32,11 +32,13 @@ from superset_core.tasks.types import (
 
 from superset.stats_logger import BaseStatsLogger
 from superset.tasks.constants import ABORT_STATES
-from superset.tasks.utils import progress_update
+from superset.tasks.utils import error_update, merge_properties, progress_update
 
 if TYPE_CHECKING:
+    from uuid import UUID
+
+    from superset.coordination.types import SignalListener
     from superset.models.tasks import Task
-    from superset.tasks.manager import AbortListener
 
 logger = logging.getLogger(__name__)
 
@@ -67,10 +69,13 @@ class TaskContext(CoreTaskContext):
         self._task_uuid = task.uuid
         self._cleanup_handlers: list[Callable[[], None]] = []
         self._abort_handlers: list[Callable[[], None]] = []
-        self._abort_listener: "AbortListener | None" = None
+        self._abort_listener: "SignalListener | None" = None
         self._abort_detected = False
-        self._abort_handlers_completed = False  # Track if all abort handlers finished
+        self._abort_handlers_completed = False
         self._execution_completed = False  # Set by executor after task work completes
+        # Elects one abort trigger across the listener/timeout/fence threads so
+        # abort handlers run exactly once.
+        self._abort_lock = threading.Lock()
 
         # Collected handler failures for unified reporting
         self._handler_failures: list[TaskContext.HandlerFailure] = []
@@ -78,6 +83,12 @@ class TaskContext(CoreTaskContext):
         # Timeout timer state
         self._timeout_timer: threading.Timer | None = None
         self._timeout_triggered = False
+
+        # Set when the worker fails the task from the inside because it could no
+        # longer prove liveness to the metastore (heartbeat writes failing past
+        # GTF_ORPHAN_TASK_TIMEOUT). Distinguished from a timeout/user abort so the
+        # executor finalizes it FAILURE — there is no handover to another worker.
+        self._fence_triggered = False
 
         # Throttling state for update_task()
         # These manage the minimum interval between DB writes
@@ -150,6 +161,8 @@ class TaskContext(CoreTaskContext):
         self,
         progress: float | int | tuple[int, int] | None = None,
         payload: dict[str, object] | None = None,
+        *,
+        immediate: bool = False,
     ) -> None:
         """
         Update task progress and/or payload atomically.
@@ -167,6 +180,9 @@ class TaskContext(CoreTaskContext):
 
         :param progress: Progress value, or None to leave unchanged
         :param payload: Payload data to merge (dict), or None to leave unchanged
+        :param immediate: When True, write synchronously and bypass throttling so
+            a dependent consumer can observe this update as soon as the task
+            finishes (e.g. a downstream task reading a published cache key)
         """
         has_updates = False
 
@@ -174,7 +190,6 @@ class TaskContext(CoreTaskContext):
         if progress is not None:
             progress_props = progress_update(progress)
             if progress_props:
-                # Merge progress into cached properties
                 self._properties_cache.update(progress_props)
                 has_updates = True
             else:
@@ -188,14 +203,23 @@ class TaskContext(CoreTaskContext):
 
         # Handle payload updates - always update in-memory cache
         if payload is not None:
-            # Merge payload into cached payload
             self._payload_cache.update(payload)
             has_updates = True
 
         if not has_updates:
             return
 
-        # Get throttle interval from config
+        # Forced synchronous write: bypass throttling entirely. Used when a
+        # dependent consumer must observe this update immediately (e.g. a
+        # downstream task reading a published cache key after this task ends).
+        if immediate:
+            with self._throttle_lock:
+                self._cancel_deferred_flush_timer()
+                self._write_to_db()
+                self._last_db_write_time = time.time()
+                self._has_pending_updates = False
+            return
+
         throttle_interval = current_app.config["TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL"]
 
         # If throttling is disabled (0), write immediately
@@ -232,6 +256,17 @@ class TaskContext(CoreTaskContext):
                     )
                     self._deferred_flush_timer.daemon = True
                     self._deferred_flush_timer.start()
+
+    def get_dependency_payloads(self) -> list[dict[str, Any]]:
+        """
+        Return payloads published by prerequisite tasks.
+
+        Reads through the DAO so callers observe committed prerequisite output
+        after the DAG gate has accepted those tasks as successful.
+        """
+        from superset.daos.tasks import TaskDAO
+
+        return TaskDAO.get_dependency_payloads(self._task_uuid)
 
     def _write_to_db(self) -> None:
         """
@@ -327,7 +362,6 @@ class TaskContext(CoreTaskContext):
         self._abort_handlers.append(handler)
 
         if is_first_handler:
-            # Mark task as abortable in database
             self._set_abortable()
 
             # Auto-start abort listener when first handler is registered
@@ -346,6 +380,63 @@ class TaskContext(CoreTaskContext):
             task_uuid=self._task_uuid,
             properties=self._properties_cache,
         ).run()
+
+    def error_properties(
+        self,
+        exception: BaseException | None = None,
+        error_message: str | None = None,
+    ) -> TaskProperties:
+        """Build the full properties dict for a terminal FAILURE write, and keep
+        the cache authoritative.
+
+        Merges the executor's authoritative in-memory property cache (runtime
+        state, private handles written during execution) with error detail, so a
+        zero-read FAILURE transition preserves existing fields instead of replacing
+        the properties column with only an error message. ``exception`` adds the
+        structured debug detail (class + traceback via ``error_update``);
+        ``error_message`` sets a plain message when there is no exception (e.g. a
+        self-fence or incomplete abort).
+
+        The merged result is written back to ``self._properties_cache`` so the cache
+        reflects what the caller commits to the DB (the DAO writes a *complete*
+        properties column and leaves merging to the caller's cache). Without this,
+        a later cleanup-failure write built from the cache would erase the error
+        detail recorded here.
+        """
+        if exception is not None:
+            updates = error_update(exception)
+        elif error_message is not None:
+            updates = cast(TaskProperties, {"error_message": error_message})
+        else:
+            updates = cast(TaskProperties, {})
+        self._properties_cache = merge_properties(self._properties_cache, updates)
+        return self._properties_cache
+
+    def set_cancellation(self, database_id: int, cancel_query_id: str) -> None:
+        """Record the engine cancel handle for the running warehouse query.
+
+        Stored under ``private["task"]`` (task-execution-specific internal state).
+        Merges the handle into the properties cache **without** writing: the task
+        registers its abort handler immediately after (see ``on_abort`` /
+        ``_set_abortable``), whose write flushes the whole cache, so the handle is
+        persisted together with ``is_abortable`` in that one UPDATE — no extra
+        write. The orphan reaper reads it to cancel the query out-of-band when
+        this worker dies; the live abort path uses its in-memory closure instead.
+        """
+        from superset.tasks.utils import merge_private_subtree
+
+        self._properties_cache["private"] = cast(
+            "Any",
+            merge_private_subtree(
+                self._properties_cache.get("private"),
+                {
+                    "task": {
+                        "cancel_database_id": database_id,
+                        "cancel_query_id": cancel_query_id,
+                    }
+                },
+            ),
+        )
 
     def _start_abort_listener(self, interval: float) -> None:
         """
@@ -370,21 +461,25 @@ class TaskContext(CoreTaskContext):
         """
         Callback invoked by TaskManager when abort is detected.
 
-        Triggers all registered abort handlers.
+        Triggers all registered abort handlers exactly once, even when the abort
+        listener, timeout timer, and heartbeat self-fence race to call this
+        concurrently: the winner is elected atomically under ``_abort_lock``.
         """
-        if self._abort_detected:
-            return  # Already handled
+        with self._abort_lock:
+            if self._abort_detected:
+                return  # Another thread already won the election
 
-        # Check if task execution has already completed (late abort race).
-        # Executor sets _execution_completed after task work finishes.
-        if self._execution_completed:
-            logger.info(
-                "Abort detected for task %s but execution already completed",
-                self._task_uuid,
-            )
-            return
+            # Check if task execution has already completed (late abort race).
+            # Executor sets _execution_completed after task work finishes.
+            if self._execution_completed:
+                logger.info(
+                    "Abort detected for task %s but execution already completed",
+                    self._task_uuid,
+                )
+                return
 
-        self._abort_detected = True
+            self._abort_detected = True
+
         logger.info("Abort detected for task %s", self._task_uuid)
         self._trigger_abort_handlers()
 
@@ -449,7 +544,10 @@ class TaskContext(CoreTaskContext):
         If the task already has an error (e.g., task function threw exception),
         handler failures are APPENDED to preserve the original error context.
         """
-        from superset.commands.tasks.update import UpdateTaskCommand
+        from superset.commands.tasks.internal_update import (
+            InternalStatusTransitionCommand,
+            InternalUpdateTaskCommand,
+        )
 
         if not self._handler_failures:
             return
@@ -483,11 +581,19 @@ class TaskContext(CoreTaskContext):
         if self._app:
             ctx = self._app.app_context() if not has_app_context() else nullcontext()
             with ctx:
-                # Check if task already has an error (preserve original context)
-                task = self._task
-                original_error = task.properties_dict.get("error_message")
-                original_type = task.properties_dict.get("exception_type")
-                original_trace = task.properties_dict.get("stack_trace")
+                # Preserve any error already recorded for this task (e.g. a task-body
+                # exception written via ``error_properties`` before cleanup ran).
+                # Read it from the authoritative in-memory cache — NOT ``self._task``,
+                # which is a stale construction-time snapshot that never saw that
+                # out-of-band write. error_message is public (top-level); the
+                # exception class and traceback are debug detail under
+                # private["framework"].
+                private_fw = (self._properties_cache.get("private") or {}).get(
+                    "framework"
+                ) or {}
+                original_error = self._properties_cache.get("error_message")
+                original_type = private_fw.get("exception_type")
+                original_trace = private_fw.get("stack_trace")
 
                 if original_error:
                     # Append handler failures to original error
@@ -510,17 +616,69 @@ class TaskContext(CoreTaskContext):
                     exception_type = handler_exception_type
                     stack_trace = handler_stack_trace
 
-                # Update task with combined error info
-                UpdateTaskCommand(
-                    self._task_uuid,
-                    status=TaskStatus.FAILURE.value,
-                    properties={
-                        "error_message": error_msg,
-                        "exception_type": exception_type,
-                        "stack_trace": stack_trace,
-                    },
-                    skip_security_check=True,
+                # Update task with combined error info. error_message is public;
+                # exception_type/stack_trace go under private["framework"]. Merge
+                # onto the executor's property cache so the write preserves runtime
+                # state instead of replacing the whole column.
+                failure_props = merge_properties(
+                    self._properties_cache,
+                    cast(
+                        TaskProperties,
+                        {
+                            "error_message": error_msg,
+                            "private": {
+                                "framework": {
+                                    "exception_type": exception_type,
+                                    "stack_trace": stack_trace,
+                                }
+                            },
+                        },
+                    ),
+                )
+                # Conditional transition (like every other executor path): only
+                # flip to FAILURE from a non-terminal state. Cleanup runs in the
+                # executor's ``finally`` — *after* a SUCCESS commit — so an
+                # unconditional write here would rewrite a committed terminal
+                # result and make a waiter discard a valid, successful payload.
+                transitioned = InternalStatusTransitionCommand(
+                    task_uuid=self._task_uuid,
+                    new_status=TaskStatus.FAILURE,
+                    expected_status=[TaskStatus.IN_PROGRESS, TaskStatus.ABORTING],
+                    properties=failure_props,
+                    set_ended_at=True,
                 ).run()
+                if not transitioned:
+                    # Task already reached a terminal state (e.g. SUCCESS committed
+                    # before cleanup ran, or a body FAILURE was already recorded).
+                    # Preserve that status and any existing error; record only the
+                    # handler failure as debug-only detail under distinct keys so it
+                    # isn't lost and doesn't clobber the original error.
+                    logger.warning(
+                        "Handler failure for task %s after it reached a terminal "
+                        "state; recording detail without changing status: %s",
+                        self._task_uuid,
+                        handler_error_msg,
+                    )
+                    InternalUpdateTaskCommand(
+                        task_uuid=self._task_uuid,
+                        properties=merge_properties(
+                            self._properties_cache,
+                            cast(
+                                TaskProperties,
+                                {
+                                    "private": {
+                                        "framework": {
+                                            "cleanup_error_message": handler_error_msg,
+                                            "cleanup_exception_type": (
+                                                handler_exception_type
+                                            ),
+                                            "cleanup_stack_trace": handler_stack_trace,
+                                        }
+                                    }
+                                },
+                            ),
+                        ),
+                    ).run()
 
         # Clear failures after writing
         self._handler_failures = []
@@ -544,51 +702,36 @@ class TaskContext(CoreTaskContext):
             return  # Already started
 
         def on_timeout() -> None:
-            if self._abort_detected:
-                return  # Already aborting
-
-            self._timeout_triggered = True
-
-            # Check if task has abort handler (requires app context)
-            if not self._app:
-                logger.error(
-                    "Timeout fired for task %s but no app context available",
-                    self._task_uuid,
-                )
-                return
-
-            ctx = self._app.app_context() if not has_app_context() else nullcontext()
-            with ctx:
-                from superset.commands.tasks.update import UpdateTaskCommand
-
-                task = self._task
-                if task.properties_dict.get("is_abortable", False):
-                    logger.info(
-                        "Timeout reached for task %s after %d seconds - "
-                        "transitioning to ABORTING and triggering abort handlers",
-                        self._task_uuid,
-                        timeout_seconds,
-                    )
-                    # Set status to ABORTING (same as user abort)
-                    # The executor will determine TIMED_OUT vs FAILURE based on
-                    # whether handlers complete successfully
-                    UpdateTaskCommand(
-                        self._task_uuid,
-                        status=TaskStatus.ABORTING.value,
-                        properties={"error_message": "Task timed out"},
-                        skip_security_check=True,
-                    ).run()
-
-                    # Trigger abort handlers for cleanup
-                    self._on_abort_detected()
-                else:
-                    # No abort handler - just log warning
+            # Elect under the same lock as abort detection, and skip if the work
+            # already finished — a timeout firing in the window between the task
+            # function returning and the terminal-state decision must not flip a
+            # completed task to TIMED_OUT (mirrors _on_abort_detected).
+            with self._abort_lock:
+                if self._execution_completed or self._abort_detected:
+                    return
+                # A non-abortable task (no cancel handler registered — e.g. an
+                # engine that can't expose a cancel id) can't be stopped, so the
+                # timeout is a no-op: setting _timeout_triggered here would block
+                # the executor's SUCCESS transition (aborting_in_flight) while the
+                # finalize only transitions TIMED_OUT from ABORTING — which never
+                # happens — stranding the task IN_PROGRESS. Let it run to natural
+                # completion instead.
+                if not self._abort_handlers:
                     logger.warning(
-                        "Timeout reached for task %s after %d seconds, but no "
-                        "abort handler is registered. Task will continue running.",
+                        "Timeout reached for non-abortable task %s after %d "
+                        "seconds; it cannot be cancelled and will run to "
+                        "completion",
                         self._task_uuid,
                         timeout_seconds,
                     )
+                    return
+                self._timeout_triggered = True
+            logger.info(
+                "Timeout reached for task %s after %d seconds",
+                self._task_uuid,
+                timeout_seconds,
+            )
+            self._abort_locally("Task timed out")
 
         self._timeout_timer = threading.Timer(timeout_seconds, on_timeout)
         # Timer is daemon so it won't prevent process exit. If the worker dies,
@@ -610,6 +753,11 @@ class TaskContext(CoreTaskContext):
             self._timeout_timer = None
 
     @property
+    def task_uuid(self) -> "UUID":
+        """The executing task's UUID (its stable, server-assigned identity)."""
+        return self._task_uuid
+
+    @property
     def timeout_triggered(self) -> bool:
         """Check if the timeout was triggered."""
         return self._timeout_triggered
@@ -618,6 +766,97 @@ class TaskContext(CoreTaskContext):
     def abort_handlers_completed(self) -> bool:
         """Check if all abort handlers have completed successfully."""
         return self._abort_handlers_completed
+
+    @property
+    def fence_triggered(self) -> bool:
+        """Check if the worker self-fenced the task (lost metastore contact)."""
+        return self._fence_triggered
+
+    @property
+    def aborting_in_flight(self) -> bool:
+        """True while an abort, timeout, or self-fence is being finalized.
+
+        The executor uses this to route the task through its finally block
+        (which commits the correct terminal state) instead of the normal
+        SUCCESS/FAILURE paths.
+        """
+        return self._abort_detected or self._timeout_triggered or self._fence_triggered
+
+    def _abort_locally(self, error_message: str) -> None:
+        """Transition to ABORTING and run abort handlers in the calling thread.
+
+        Shared by the timeout timer and the heartbeat self-fence: both need to
+        abort the task from *inside* the worker rather than via the external
+        abort listener. Running the handlers here cancels a query blocked
+        mid-execution over a fresh connection — reachable even when the
+        metastore is not — which unblocks the task so it can end.
+
+        Best-effort: the ABORTING write may fail (e.g. metastore unreachable),
+        but the abort handlers still run. No-op if the task registered no abort
+        handler (nothing can interrupt the running work) or has no app context.
+        """
+        if not self._app:
+            logger.error(
+                "Local abort for task %s but no app context available",
+                self._task_uuid,
+            )
+            return
+
+        ctx = self._app.app_context() if not has_app_context() else nullcontext()
+        with ctx:
+            from superset.commands.tasks.update import UpdateTaskCommand
+
+            # Gate on the authoritative in-execution flag (set by ``_set_abortable``
+            # when an abort handler registers), never the ``self._task`` ORM entity:
+            # this runs on a background timer/fence thread, where the entity is a
+            # stale construction-time snapshot (its targeted UPDATE never refreshes
+            # it) and touching it would risk a cross-thread session reload.
+            if not self._properties_cache.get("is_abortable", False):
+                logger.warning(
+                    "Local abort requested for task %s but no abort handler is "
+                    "registered. Task will continue running.",
+                    self._task_uuid,
+                )
+                return
+
+            # Set status to ABORTING (same as user abort). The executor
+            # determines the terminal state from which flag was set.
+            try:
+                UpdateTaskCommand(
+                    self._task_uuid,
+                    status=TaskStatus.ABORTING.value,
+                    properties={"error_message": error_message},
+                    skip_security_check=True,
+                ).run()
+            except Exception:  # noqa: BLE001 pylint: disable=broad-except
+                # The metastore may be unreachable (the very reason a fence
+                # fires). Run the abort handlers anyway so the query is killed.
+                logger.warning(
+                    "Best-effort ABORTING write failed for task %s",
+                    self._task_uuid,
+                    exc_info=True,
+                )
+
+            # Trigger abort handlers for cleanup
+            self._on_abort_detected()
+
+    def trigger_self_fence(self, error_message: str) -> None:
+        """Fail this task from inside the worker after losing metastore contact.
+
+        Called by the heartbeat thread once it has been unable to refresh
+        ``last_heartbeat`` for longer than ``GTF_ORPHAN_TASK_TIMEOUT`` — the same
+        window after which the reaper declares the task orphaned. Self-fencing
+        lets the worker stop promptly instead of running a query the reaper has
+        already (or will shortly) mark FAILURE, avoiding wasted warehouse work.
+        Marked as a fence (not a timeout or user abort) so the executor
+        finalizes it FAILURE. No-op if an abort is already underway or the task
+        work already finished (the latter guard mirrors ``_on_abort_detected`` so
+        a fence racing in after successful completion cannot clobber the result).
+        """
+        if self._abort_detected or self._execution_completed:
+            return
+        self._fence_triggered = True
+        self._abort_locally(error_message)
 
     def _run_cleanup(self) -> None:
         """
@@ -638,7 +877,6 @@ class TaskContext(CoreTaskContext):
                 self._write_to_db()
                 self._has_pending_updates = False
 
-        # Stop abort listener and timeout timer
         self.stop_abort_polling()
         self.stop_timeout_timer()
 

@@ -779,6 +779,9 @@ const config: ControlPanelConfig = {
                   columnOptions,
                   verboseMap,
                   extraColorChoices,
+                  serverPagination: Boolean(
+                    explore?.controls?.server_pagination?.value,
+                  ),
                 };
               },
             },
