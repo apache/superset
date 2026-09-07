@@ -16,17 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { FC, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import {
   DataMask,
   DataMaskStateWithId,
+  DatasourceType,
   Filter,
   useTruncation,
   ChartCustomization,
   NativeFilterTarget,
-  Filters,
-  NativeFilterType,
 } from '@superset-ui/core';
 import {
   styled,
@@ -50,20 +49,15 @@ import { RootState } from 'src/dashboard/types';
 import { setPendingChartCustomization } from 'src/dashboard/actions/chartCustomizationActions';
 import { TooltipWithTruncation } from 'src/dashboard/components/nativeFilters/FilterCard/TooltipWithTruncation';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import { dispatchChartCustomizationHoverAction } from './utils';
-import { mergeExtraFormData } from '../../utils';
+import {
+  displayControlBindingKey,
+  useDisplayControlDatasource,
+} from '../../useDisplayControlDatasource';
 import {
   datasetLabel as getDatasetLabel,
   datasetLabelLower,
 } from 'src/features/semanticLayers/label';
-
-interface ColumnApiResponse {
-  column_name?: string;
-  name?: string;
-  verbose_name?: string;
-  filterable?: boolean;
-}
 
 interface GroupByFilterCardProps {
   customizationItem: ChartCustomization;
@@ -294,16 +288,81 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 }) => {
   const theme = useTheme();
   const dataset = customizationItem.targets?.[0]?.datasetId;
+  // Semantic views and regular datasets have independent id sequences —
+  // the persisted type is what disambiguates a colliding numeric id
+  // (sc-111089). Absent type means a regular dataset.
+  const datasourceType = customizationItem.targets?.[0]?.datasourceType;
   const [filterTitleRef, , titleElementsTruncated] = useTruncation();
 
-  const [loading, setLoading] = useState(false);
   const [isHoverCardVisible, setIsHoverCardVisible] = useState(false);
-  const [columnOptions, setColumnOptions] = useState<
-    { label: string; value: string }[]
-  >([]);
-  const [datasetName, setDatasetName] = useState<string | undefined>();
 
   const dispatch = useDispatch();
+
+  // Legacy persisted targets may carry the id as a number, string, or
+  // {value} object; the card owns this normalization and hands the hook
+  // a clean id.
+  const normalizedDatasetId = useMemo(() => {
+    if (typeof dataset === 'number' || typeof dataset === 'string') {
+      return dataset;
+    }
+    if (typeof dataset === 'object' && dataset !== null && 'value' in dataset) {
+      return (dataset as { value: string | number }).value;
+    }
+    return undefined;
+  }, [dataset]);
+
+  const {
+    name: datasetName,
+    columns: datasourceColumns,
+    loading,
+    error: datasourceError,
+  } = useDisplayControlDatasource(normalizedDatasetId, datasourceType);
+
+  const columnOptions = useMemo(
+    () =>
+      datasourceColumns
+        .filter(col => col.filterable !== false)
+        .map(col => ({
+          label: col.verbose_name || col.column_name || col.name || '',
+          value: col.column_name || col.name || '',
+        })),
+    [datasourceColumns],
+  );
+
+  // Surface load failures as a toast, once per binding — the hook can
+  // re-render (and StrictMode double-invokes effects) without re-toasting.
+  const toastedBindingRef = useRef<string | undefined>();
+  useEffect(() => {
+    if (!datasourceError || normalizedDatasetId === undefined) {
+      return;
+    }
+    // The hook scopes `error` to the current binding, so a truthy error here
+    // always belongs to this datasource — no cross-binding mis-toast. The key
+    // is only used to toast a given binding's failure once, across the hook's
+    // re-renders and StrictMode's double-invoked effects.
+    const binding = displayControlBindingKey(
+      normalizedDatasetId,
+      datasourceType,
+    );
+    if (toastedBindingRef.current === binding) {
+      return;
+    }
+    toastedBindingRef.current = binding;
+    dispatch(
+      addDangerToast(
+        datasourceType === DatasourceType.SemanticView
+          ? t(
+              'Failed to load dimensions for semantic view %s',
+              normalizedDatasetId,
+            )
+          : t(
+              'Failed to load columns for %s %s',
+              datasetLabelLower(),
+              normalizedDatasetId,
+            ),
+      ),
+    );
+  }, [datasourceError, normalizedDatasetId, datasourceType, dispatch]);
 
   const isHorizontalLayout = orientation === 'horizontal';
 
@@ -377,14 +436,24 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
           ? value
           : null;
 
+      // Preserve datasourceType (and datasetId) when rebuilding the
+      // target: dropping the type here would silently degrade a
+      // semantic-view binding to the colliding regular dataset on the
+      // next resolution (sc-111089 review finding).
       const targets: [Partial<NativeFilterTarget>] = columnValue
         ? ([
             {
               datasetId: dataset,
+              ...(datasourceType ? { datasourceType } : {}),
               column: { name: columnValue },
             },
           ] as [Partial<NativeFilterTarget>])
-        : ([{}] as [Partial<NativeFilterTarget>]);
+        : ([
+            {
+              datasetId: dataset,
+              ...(datasourceType ? { datasourceType } : {}),
+            },
+          ] as [Partial<NativeFilterTarget>]);
 
       dispatch(
         setPendingChartCustomization({
@@ -419,94 +488,17 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
     [
       canSelectMultiple,
       dataset,
+      datasourceType,
       dispatch,
       customizationItem,
       onFilterSelectionChange,
     ],
   );
 
-  const filters = useSelector<RootState, Filters>(
-    state => state.nativeFilters.filters,
-  );
-
-  const dependencies = useMemo(() => {
-    let deps = {};
-
-    Object.entries(filters).forEach(([filterId, filter]) => {
-      if (
-        filter.type === NativeFilterType.Divider ||
-        !effectiveDataMask[filterId]?.filterState?.value
-      ) {
-        return;
-      }
-
-      const filterState = effectiveDataMask[filterId];
-      deps = mergeExtraFormData(deps, filterState?.extraFormData);
-    });
-
-    return deps;
-  }, [effectiveDataMask, filters]);
-
-  useEffect(() => {
-    const fetchColumnOptions = async () => {
-      const datasetSource = dataset;
-
-      if (!datasetSource) {
-        return;
-      }
-
-      const datasetId =
-        typeof datasetSource === 'number'
-          ? datasetSource
-          : typeof datasetSource === 'string'
-            ? datasetSource
-            : typeof datasetSource === 'object' &&
-                datasetSource !== null &&
-                'value' in datasetSource
-              ? (datasetSource as { value: string | number }).value
-              : null;
-
-      if (!datasetId) {
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const endpoint = `/api/v1/dataset/${datasetId}`;
-        const { json } = await cachedSupersetGet({ endpoint });
-
-        if (json?.result) {
-          if (json.result.table_name) {
-            setDatasetName(json.result.table_name);
-          }
-          if (json.result.columns) {
-            const options = json.result.columns
-              .filter((col: ColumnApiResponse) => col.filterable !== false)
-              .map((col: ColumnApiResponse) => ({
-                label: col.verbose_name || col.column_name || col.name || '',
-                value: col.column_name || col.name || '',
-              }));
-            setColumnOptions(options);
-          }
-        }
-      } catch (error) {
-        setColumnOptions([]);
-        dispatch(
-          addDangerToast(
-            t(
-              'Failed to load columns for %s %s',
-              datasetLabelLower(),
-              datasetId,
-            ),
-          ),
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchColumnOptions();
-  }, [dataset, dependencies, dispatch]);
+  // The previous fetch effect listed a `dependencies` aggregation of other
+  // filters' extraFormData in its dep array, but the request never used it —
+  // dead coupling that only triggered no-op refetches (removed with the
+  // move to useDisplayControlDatasource; sc-111089 review).
 
   const displayTitle = columnDisplayName;
 
