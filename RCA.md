@@ -20,23 +20,52 @@ by a `waitForTimeout` before checking the DOM, which reliably lands *after* the
 transient has already resolved.
 
 I then reproduced the underlying mechanism directly with a Jest/React Testing
-Library regression test that mounts the real
-`FilterControls` component (the code that builds the horizontal FilterBar's
-chip list) with one chart-emitted cross-filter present, and drives its real
-`DropdownContainer.onOverflowingStateChange` callback the same way `DropdownContainer`
-does in production:
+Library regression test that mounts the real `FilterControls` component (the code
+that builds the horizontal FilterBar's chip list) with one chart-emitted cross-filter
+present, behind a **stateful** mock of `DropdownContainer`:
 
 ```
 cd superset-frontend
 npx jest src/dashboard/components/nativeFilters/FilterBar/FilterControls/FilterControls.overflow.test.tsx
 ```
 
-New test: `an overflowed cross-filter chip stays in the items array handed to
-DropdownContainer` (RED before any fix): the identical chip (chart name "Products
-Sold By Product Line" + tag "product_line: Classic Cars") renders **twice** in the
-DOM at once — once in `DropdownContainer`'s main-row content and once in
-`FilterControls`'s own overflow-popover content — when both are asked to render in
-the same commit. Expected: exactly one combined occurrence; actual: two.
+New test: `a cross-filter chip that DropdownContainer has already stopped
+overflowing still renders in the stale popover` (RED before any fix).
+
+A note on what this test does and does not literally exercise, since it's important
+for reading the "verified" labels below honestly: React Testing Library's `act()`
+fully flushes a component's `useLayoutEffect`s *and* its `useEffect`s before
+returning control to the test, so the live, sub-render window between
+`DropdownContainer`'s synchronous `useLayoutEffect` (which repartitions `items`) and
+its separate `useEffect` (which reports that partition to the parent) is not
+something a standard RTL test can observe directly — by the time any `render`/
+`rerender`/`act()` call returns, both effects for that update have already settled.
+So the mock does not use a real `useLayoutEffect`/`useEffect` pair timed against
+real DOM measurements; instead it exposes the same two channels DropdownContainer's
+architecture has — a **synchronous, always-fresh partition** of `items` (a
+module-level `mockOverflowingIndex` the mock reads fresh on every render) and a
+**separately-timed report to the parent** (the real `onOverflowingStateChange`
+callback, invoked only when the test explicitly calls it) — and the test drives them
+independently: it moves `mockOverflowingIndex` (simulating "DropdownContainer just
+recomputed a new partition") via a plain `rerender()`, *without* re-invoking
+`onOverflowingStateChange` (simulating "its `useEffect` hasn't reported that new
+partition to the parent yet"). The test first proves this can be a *consistent*,
+non-duplicating state (both channels agree → exactly one copy of the chip), then
+moves only the synchronous channel and re-checks: the identical chip (chart name
+"Products Sold By Product Line" + tag "product_line: Classic Cars") now renders
+**twice** in the DOM — once via `DropdownContainer`'s fresh main-row partition and
+once via `FilterControls`'s still-stale popover content — confirming that
+`FilterControls` has no mechanism preventing the two channels from disagreeing in
+this way. What's `verified`: that this specific, production-architecture-shaped
+state combination (fresh main row includes item; stale reported-overflow state also
+includes item) produces a literal DOM duplicate in `FilterControls`'s real code.
+What remains `inferred`: that a real browser resize is what puts these two channels
+into that specific disagreeing combination during the actual one-render lag between
+`DropdownContainer`'s `useLayoutEffect` and `useEffect` — reasoned from React's
+documented effect-ordering guarantees and the prior `#38193` fix (see Root Cause
+below), not observed directly in this environment (per the note above, that
+microtask-level window is not observable through `act()`-based RTL tests at all,
+only in a real browser without an intervening `act()` flush).
 
 ## Root Cause
 
@@ -79,9 +108,20 @@ before that same commit's `useEffect`s. So there is at least one render in which
   fired yet for this render), still lists that same cross filter as overflowed —
   so the popover renders it too.
 
-**Verified** end-to-end for this exact desync with the new Jest/RTL test: it mounts
-the real `FilterControls`, drives its real `onOverflowingStateChange` callback, and
-shows the identical chip rendered in both places in the same commit.
+**Verified** that this produces a literal DOM duplicate in `FilterControls`'s real
+code: the new Jest/RTL test mounts the real `FilterControls`, drives its real
+`onOverflowingStateChange` callback, and independently controls (via a stateful
+`DropdownContainer` mock — see "What Happened" above for exactly what is and isn't
+exercised) a synchronous "fresh partition" channel and the asynchronous "last
+reported partition" channel `FilterControls` actually mirrors into state. When the
+two are made to disagree the same way production's one-render lag would, the
+identical chip renders in both places in the same commit. **Not independently
+verified**: that a real browser resize is what actually drives `DropdownContainer`'s
+own `useLayoutEffect`/`useEffect` into that specific disagreeing combination — that
+part is `inferred` from React's documented effect-ordering rules plus the prior
+`#38193` fix (below), since RTL's `act()` collapses that live window and this
+environment's Phase 3 budget didn't extend to a real-browser trace timed to catch
+it mid-resize.
 
 Any event that shifts which items fit — a window/sidebar resize, a
 `chartLayoutItems` update that changes a cross filter's label width (e.g. the
