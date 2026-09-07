@@ -566,6 +566,56 @@ test('should NOT refetch data when other string-based renderTrigger controls cha
   });
 });
 
+test('should NOT refetch data when echart_options (string-based renderTrigger control) changes', async () => {
+  // Matches how the Timeseries/MixedTimeseries control panels reference this
+  // shared control: a bare string, e.g. ['echart_options'].
+  const controlPanelConfig = {
+    controlPanelSections: [
+      {
+        controlSetRows: [['echart_options']],
+      },
+    ],
+  };
+
+  jest.mocked(getChartControlPanelRegistry).mockReturnValue({
+    get: jest.fn().mockReturnValue(controlPanelConfig),
+  } as unknown as ReturnType<typeof getChartControlPanelRegistry>);
+
+  const formDataWithEchartOptions = {
+    ...mockFormData,
+    echart_options: '{}',
+  };
+
+  const { rerender, getByTestId } = render(
+    <StatefulChart
+      formData={formDataWithEchartOptions}
+      chartType="test_chart"
+    />,
+  );
+
+  await waitFor(() => {
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
+  });
+
+  // Edit the ECharts Options field (e.g. from the Customize tab while the
+  // chart is part of a Matrixify grid cell).
+  const updatedFormData = {
+    ...formDataWithEchartOptions,
+    echart_options: '{"title": {"text": "My Chart"}}',
+  };
+
+  rerender(<StatefulChart formData={updatedFormData} chartType="test_chart" />);
+
+  await waitFor(() => {
+    // Should NOT refetch data - echart_options is a renderTrigger control
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
+    // But should re-render with the new formData
+    expect(getByTestId('super-chart')).toHaveTextContent(
+      JSON.stringify(updatedFormData),
+    );
+  });
+});
+
 test('should refetch when string control is NOT in RENDER_TRIGGER_SHARED_CONTROLS', async () => {
   // Control panel with a string control that is NOT in the renderTrigger set
   const controlPanelConfig = {
