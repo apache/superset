@@ -17,7 +17,7 @@
  */
 const TS_REGEX_TZ_AWARE =
   /^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2}:\d{2}\.?\d*)(?:Z|[+-]\d{2}:?\d{2})$/;
-const TS_REGEX = /(\d{4}-\d{2}-\d{2})[\sT](\d{2}:\d{2}:\d{2}\.?\d*).*/;
+export const TS_REGEX = /(\d{4}-\d{2}-\d{2})[\sT](\d{2}:\d{2}:\d{2}\.?\d*).*/;
 
 export default function normalizeTimestamp(value: string): string {
   if (TS_REGEX_TZ_AWARE.test(value)) {
