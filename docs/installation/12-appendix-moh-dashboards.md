@@ -242,6 +242,72 @@ grep -cE "fetch_url.*(raised|failed)" /var/log/moh-dashboards-superset/celery-ba
 > **2**: `redis-cli -p 6383 -n 2 dbsize`. Reading db 0 makes a perfectly warm
 > cache look empty.
 
+### Dashboard 8 is access-gated, and a denial looks exactly like "no data"
+
+`superset_config.py` sets `MOH_LEVEL_ONE_DASHBOARD_IDS = {8}`, and the custom
+`MoHSecurityManager.raise_for_access()` refuses that dashboard unless the user
+is an admin, or their org unit sits at `MOH_LEVEL_ONE_ORG_UNIT_LEVEL` (1, i.e.
+national). The org unit is resolved live from ClickHouse `moh.dim_user_orgunit`
+— it is not a Superset role or permission, so nothing in the roles screen hints
+at it.
+
+A denied user does not get an error page. Every chart request returns `403`
+and the dashboard renders empty, which is indistinguishable from a cold cache
+or a broken datasource until you look at the access log:
+
+```bash
+grep '"status":403' /var/log/nginx/mohdsuper.access.log | tail -3
+# {"uri":"/api/v1/chart/data","args":"dashboard_id=8&form_data=...","status":403,...}
+```
+
+`dashboard_id=8` on a 403 is the signature. Check the user directly rather than
+guessing:
+
+```bash
+sudo -u sysadmin bash -c '
+  set -a; . /etc/moh-dashboards-superset/superset.env; set +a
+  cd /var/moh-dashboards/moh-superset
+  export PYTHONPATH=/var/moh-dashboards/moh-superset
+  ./.venv/bin/python - <<PY
+from superset.app import create_app
+app = create_app()
+with app.app_context():
+    from superset import security_manager as sm
+    from superset.utils.core import override_user
+    for name in ("admin", "<USERNAME>"):
+        u = sm.find_user(username=name)
+        with override_user(u, force=True):
+            print(name, "->", sm.user_can_access_level_one_dashboard())
+PY'
+```
+
+Measured on this instance, and identical to production:
+
+| User | Role | Dashboard 8 |
+|---|---|---|
+| `admin` | Admin | allowed |
+| `moh_1`, `moh` | OrgUnitViewer, national org unit | allowed |
+| `Eferata_medium_clinc` | OrgUnitViewer, facility org unit | **denied** |
+| `mohr` | ReadOnly | **denied** |
+
+Note that role grants are a red herring here. `OrgUnitViewer` and `Gamma` hold
+`datasource_access` for only 3 of dashboard 8's 29 datasources in **both**
+instances, yet national users load it fine — the gate is the org-unit level,
+not the grant table.
+
+`mohr` is denied because it is an account created locally, so it has no row in
+`moh.dim_user_orgunit` at all. That is the correct outcome for a read-only
+account that is not a real MoH user. If you do want it to reach dashboard 8,
+the options in increasing bluntness are:
+
+1. Add a level-1 row for it in ClickHouse `moh.dim_user_orgunit` — keeps the
+   normal mechanism and keeps row-level security meaningful.
+2. Give it the `Admin` role — defeats the point of a read-only account.
+
+Do not "fix" this by removing 8 from `MOH_LEVEL_ONE_DASHBOARD_IDS`. That
+disables a deliberate access control for everyone, on an instance holding a
+copy of production's data.
+
 ### A quirk worth knowing when you test with curl
 
 `GET /api/v1/chart/<id>/data/` fails for uncached charts with a marshmallow
