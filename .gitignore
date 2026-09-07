@@ -144,3 +144,7 @@ oxc-custom-build/
 
 # Runtime Gemini key list (used by superset/moh_ai_chat.py)
 superset/.runtime_gemini_keys
+
+# Per-instance Superset runtime state (uploads, beat schedule, SQLite fallbacks).
+# Each deployment has its own; none of it belongs in the repository.
+.superset/
