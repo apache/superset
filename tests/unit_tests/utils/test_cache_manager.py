@@ -18,12 +18,43 @@ import hashlib
 from unittest.mock import MagicMock, patch
 
 import pytest
+from flask import Flask
+from freezegun import freeze_time
 
 from superset.utils.cache_manager import (
     configurable_hash_method,
     ConfigurableHashMethod,
     SupersetCache,
 )
+
+
+def test_superset_cache_memoize_lifecycle() -> None:
+    """Memoization supports cache hits, refresh, invalidation, and expiration."""
+    app = Flask(__name__)
+    app.config.update(HASH_ALGORITHM="sha256", DEBUG=True)
+    cache = SupersetCache(app, config={"CACHE_TYPE": "SimpleCache"})
+    calls = 0
+    force_refresh = False
+
+    @cache.memoize(timeout=60, forced_update=lambda: force_refresh)
+    def compute() -> int:
+        """Return a distinct value each time the function is evaluated."""
+        nonlocal calls
+        calls += 1
+        return calls
+
+    with app.app_context(), freeze_time("2026-01-01") as clock:
+        assert compute() == 1
+        assert compute() == 1
+        force_refresh = True
+        assert compute() == 2
+        force_refresh = False
+        assert compute() == 2
+        cache.delete_memoized(compute)
+        assert compute() == 3
+        assert compute() == 3
+        clock.tick(61)
+        assert compute() == 4
 
 
 def test_configurable_hash_method_uses_sha256():

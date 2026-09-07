@@ -147,19 +147,17 @@ class SupersetCache(Cache):
     def _memoize_make_cache_key(
         self,
         make_name: Callable[..., Any] | None = None,
-        timeout: Callable[..., Any] | None = None,
-        forced_update: bool = False,
         hash_method: Callable[..., Any] = configurable_hash_method,
         source_check: bool | None = False,
         args_to_ignore: Any | None = None,
+        **kwargs: Any,
     ) -> Callable[..., Any]:
         return super()._memoize_make_cache_key(
             make_name=make_name,
-            timeout=timeout,
-            forced_update=forced_update,
             hash_method=hash_method,
             source_check=source_check,
             args_to_ignore=args_to_ignore,
+            **kwargs,
         )
 
 
