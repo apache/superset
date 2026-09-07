@@ -46,6 +46,11 @@ get_export_ids_schema = {
     "items": {"type": "integer"},
     "example": [1, 2, 3],
 }
+get_related_objects_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 get_drill_info_schema = {
     "type": "object",
     "properties": {
