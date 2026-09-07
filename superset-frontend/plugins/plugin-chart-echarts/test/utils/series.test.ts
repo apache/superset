@@ -303,7 +303,7 @@ test('sortRows by max ascending', () => {
       sortData,
       totalStackedValues,
       'my_x_axis',
-      SortSeriesType.Min,
+      SortSeriesType.Max,
       true,
     ),
   ).toEqual([
@@ -319,7 +319,7 @@ test('sortRows by max descending', () => {
       sortData,
       totalStackedValues,
       'my_x_axis',
-      SortSeriesType.Min,
+      SortSeriesType.Max,
       false,
     ),
   ).toEqual([
