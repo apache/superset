@@ -20,7 +20,47 @@
 from typing import Any
 from unittest.mock import MagicMock
 
+from flask import Flask, Response
+from freezegun import freeze_time
 from pytest_mock import MockerFixture
+
+
+def test_etag_cache_lifecycle() -> None:
+    """ETag views cache responses, handle conditional GETs, and expire."""
+    from superset.utils.cache import etag_cache
+    from superset.utils.cache_manager import SupersetCache
+
+    app = Flask(__name__)
+    app.config.update(HASH_ALGORITHM="sha256", DEBUG=True)
+    cache = SupersetCache(app, config={"CACHE_TYPE": "SimpleCache"})
+    calls = 0
+
+    with app.app_context():
+
+        @app.route("/cached")
+        @etag_cache(cache=cache, max_age=60)
+        def cached_view() -> Response:
+            """Return a distinct response when the cached value expires."""
+            nonlocal calls
+            calls += 1
+            return Response(str(calls))
+
+    with app.test_client() as client, freeze_time("2026-01-01") as clock:
+        first = client.get("/cached")
+        assert first.status_code == 200
+        assert first.data == b"1"
+        assert first.headers.get("ETag")
+        assert client.get("/cached").data == b"1"
+        conditional = client.get(
+            "/cached", headers={"If-None-Match": first.headers["ETag"]}
+        )
+        assert conditional.status_code == 304
+        assert calls == 1
+        clock.tick(61)
+        expired = client.get("/cached")
+        assert expired.status_code == 200
+        assert expired.data == b"2"
+        assert expired.headers["ETag"] != first.headers["ETag"]
 
 
 def test_memoized_func(mocker: MockerFixture) -> None:
