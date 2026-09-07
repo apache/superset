@@ -60,7 +60,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
       - name: Python unit tests
