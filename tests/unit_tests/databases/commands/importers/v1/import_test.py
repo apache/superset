@@ -426,6 +426,47 @@ def test_import_database_existing_no_overwrite_no_permission_skips_backfill(
     mock_add_permissions.assert_not_called()
 
 
+def test_import_database_existing_no_overwrite_backfill_oauth2_redirect_is_nonfatal(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    The permission backfill on the existing/no-overwrite branch must tolerate
+    an ``OAuth2RedirectError`` from ``add_permissions()`` the same way the
+    fresh-import path already does (see
+    ``test_import_database_oauth2_redirect_is_nonfatal``) -- logged, not
+    propagated, so the import still returns the existing database normally.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.exceptions import OAuth2RedirectError
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_add_permissions = mocker.patch(
+        "superset.commands.database.importers.v1.utils.add_permissions"
+    )
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    existing = import_database(config)
+    mock_add_permissions.reset_mock()
+    mock_add_permissions.side_effect = OAuth2RedirectError(
+        url="https://oauth.example.com/authorize",
+        tab_id="abc-123",
+        redirect_uri="https://superset.example.com/callback",
+    )
+
+    again = copy.deepcopy(database_config)
+    result = import_database(again, overwrite=False)
+
+    assert result.id == existing.id
+    mock_add_permissions.assert_called_once_with(existing)
+
+
 def test_import_database_oauth2_redirect_is_nonfatal(
     mocker: MockerFixture,
     session: Session,

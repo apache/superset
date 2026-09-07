@@ -106,6 +106,17 @@ def _refuse_stored_secret_reuse(existing: Database, config: dict[str, Any]) -> N
                 )
 
 
+def _sync_permissions_best_effort(database: Database) -> None:
+    """
+    Sync catalog/schema permissions for ``database``, tolerating a transient
+    or OAuth2 failure rather than letting it fail the import.
+    """
+    try:
+        add_permissions(database)
+    except (SupersetDBAPIConnectionError, OAuth2RedirectError) as ex:
+        logger.warning(ex.message)
+
+
 def import_database(  # noqa: C901
     config: dict[str, Any],
     overwrite: bool = False,
@@ -126,10 +137,7 @@ def import_database(  # noqa: C901
                 # grant through this path either. ``add_permissions()`` does
                 # a live, uncached metadata scan, so this can be slow for
                 # cross-catalog-enabled engines -- see its own comment.
-                try:
-                    add_permissions(existing)
-                except (SupersetDBAPIConnectionError, OAuth2RedirectError) as ex:
-                    logger.warning(ex.message)
+                _sync_permissions_best_effort(existing)
             return existing
         config["id"] = existing.id
         # Stored secrets must not be rebound to a different endpoint: without
@@ -206,9 +214,6 @@ def import_database(  # noqa: C901
             recursive=False,
         )
 
-    try:
-        add_permissions(database)
-    except (SupersetDBAPIConnectionError, OAuth2RedirectError) as ex:
-        logger.warning(ex.message)
+    _sync_permissions_best_effort(database)
 
     return database
