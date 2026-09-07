@@ -43,22 +43,8 @@ const findNamedControl = (name: string): ControlConfig | null => {
   return null;
 };
 
-const findConditionalFormattingControl = (): ControlConfig | null => {
-  for (const section of config.controlPanelSections) {
-    if (!section) continue;
-    for (const row of section.controlSetRows) {
-      for (const control of row) {
-        if (
-          isCustomControlItem(control) &&
-          control.name === 'conditional_formatting'
-        ) {
-          return control.config;
-        }
-      }
-    }
-  }
-  return null;
-};
+const findConditionalFormattingControl = (): ControlConfig | null =>
+  findNamedControl('conditional_formatting');
 
 const findMetricsMapStateToProps = ():
   | ControlConfig['mapStateToProps']
