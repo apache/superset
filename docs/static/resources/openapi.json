@@ -3897,6 +3897,16 @@
           "params": {
             "type": "string"
           },
+          "partition_column": {
+            "type": "string"
+          },
+          "partition_filter_mapping": {
+            "nullable": true,
+            "type": "object"
+          },
+          "partition_mapped_column": {
+            "type": "string"
+          },
           "perm": {
             "type": "string"
           },
@@ -5788,6 +5798,15 @@
             "nullable": true,
             "type": "boolean"
           },
+          "partition_transform_is_monotonic": {
+            "default": false,
+            "type": "boolean"
+          },
+          "partition_value_transform": {
+            "description": "SQL expression containing a :value placeholder. Filters on this column are mirrored onto the dataset's partition column with the value passed through this transform.",
+            "nullable": true,
+            "type": "string"
+          },
           "python_date_format": {
             "maxLength": 255,
             "minLength": 1,
@@ -6252,6 +6271,16 @@
           },
           "order_by_choices": {
             "readOnly": true
+          },
+          "partition_column": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
+          },
+          "partition_mapped_column": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
           },
           "schema": {
             "maxLength": 255,
@@ -6721,6 +6750,18 @@
             "default": false,
             "type": "boolean"
           },
+          "partition_column": {
+            "maxLength": 250,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "partition_mapped_column": {
+            "maxLength": 250,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
           "schema": {
             "maxLength": 250,
             "minLength": 0,
@@ -6846,6 +6887,18 @@
           "offset": {
             "nullable": true,
             "type": "integer"
+          },
+          "partition_column": {
+            "maxLength": 250,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "partition_mapped_column": {
+            "maxLength": 250,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
           },
           "schema": {
             "maxLength": 255,

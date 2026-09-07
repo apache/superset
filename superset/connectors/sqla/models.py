@@ -1069,6 +1069,24 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
     python_date_format = Column(String(255))
     datetime_format = Column(String(100))
     extra = Column(Text)
+    # Partition filter mapping (§ PARTITION_FILTER_MAPPING). The transform is a
+    # SQL expression containing a `:value` placeholder; filters on this column
+    # are mirrored onto the dataset's `partition_column` as
+    # `partition_column <op> <transform evaluated at :value>`.
+    partition_value_transform = Column(Text)
+    # Whether the transform preserves ordering. Range operators (and time
+    # ranges) are only mirrored when it does; see the operator matrix in
+    # `superset.connectors.sqla.partition_mapping`.
+    #
+    # Nullable, like every other boolean on this model. The legacy datasource
+    # editor saves through `update_from_object`, which writes `obj.get(attr)`
+    # for every field in `update_from_object_fields` -- so any field its payload
+    # omits is written as NULL. A NOT NULL column here fails that save outright.
+    # Readers coerce with `bool(...)`, so NULL means "not declared", which is
+    # the safe direction: ranges stop mirroring rather than mirroring unsoundly.
+    partition_transform_is_monotonic = Column(
+        Boolean, default=False, server_default=sa.false()
+    )
 
     table: Mapped["SqlaTable"] = relationship(
         "SqlaTable",
@@ -1091,6 +1109,8 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         "python_date_format",
         "datetime_format",
         "extra",
+        "partition_value_transform",
+        "partition_transform_is_monotonic",
     ]
 
     update_from_object_fields = [s for s in export_fields if s not in ("table_id",)]
@@ -1361,6 +1381,8 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             "type_generic",
             "verbose_name",
             "warning_markdown",
+            "partition_value_transform",
+            "partition_transform_is_monotonic",
         )
 
         return {s: getattr(self, s) for s in attrs if hasattr(self, s)}
@@ -1595,6 +1617,13 @@ class SqlaTable(
     normalize_columns = Column(Boolean, default=False)
     always_filter_main_dttm = Column(Boolean, default=False)
     folders = Column(JSON, nullable=True)
+    # Physical column the engine partitions on. Filters on the effective mapped
+    # column are mirrored onto it so the engine can prune partitions.
+    partition_column = Column(String(250))
+    # Explicit override for the column whose filters are mirrored. NULL means
+    # "follow `main_dttm_col`", so re-pointing the default datetime column moves
+    # the mapping with it.
+    partition_mapped_column = Column(String(250))
 
     baselink = "tablemodelview"
 
@@ -1618,6 +1647,8 @@ class SqlaTable(
         "normalize_columns",
         "always_filter_main_dttm",
         "folders",
+        "partition_column",
+        "partition_mapped_column",
     ]
     update_from_object_fields = [f for f in export_fields if f != "database_id"]
     export_parent = "database"
@@ -1845,7 +1876,43 @@ class SqlaTable(
             data_["extra"] = self.extra
             data_["always_filter_main_dttm"] = self.always_filter_main_dttm
             data_["normalize_columns"] = self.normalize_columns
+            data_["partition_column"] = self.partition_column
+            data_["partition_mapped_column"] = self.partition_mapped_column
+            data_["partition_filter_mapping"] = self.partition_filter_mapping_summary
         return data_
+
+    @property
+    def partition_filter_mapping_summary(self) -> dict[str, Any] | None:
+        """
+        Self-contained summary of the mapping for the Explore indicator.
+
+        Deliberately not a lookup into `columns`: `data_for_slices` prunes
+        columns no chart references, and the partition column is typically
+        referenced by none of them, so anything reading it out of
+        `datasource.columns` would work in Explore and break on dashboards.
+
+        `active` is derived from cheap signals only. This property is serialized
+        on every chart and dashboard load, so parsing the transform here would
+        put a per-request cost on a hot path for a value that only changes on
+        save.
+        """
+        if not self.partition_column:
+            return None
+
+        columns_by_name = {column.column_name: column for column in self.columns}
+        mapped_column_name = self.partition_mapped_column or self.main_dttm_col
+        mapped_column = columns_by_name.get(mapped_column_name or "")
+        active = bool(
+            self.partition_column in columns_by_name
+            and mapped_column is not None
+            and mapped_column_name != self.partition_column
+            and (mapped_column.partition_value_transform or "").strip()
+        )
+        return {
+            "partition_column": self.partition_column,
+            "mapped_column": mapped_column_name,
+            "active": active,
+        }
 
     @property
     def extra_dict(self) -> dict[str, Any]:
