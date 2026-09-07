@@ -915,7 +915,7 @@ def build_middleware_list(
 
 
 def _structured_output_enabled(flask_app: Any) -> bool:
-    """Resolve the structured-output setting consistently for every startup path."""
+    """Resolve the structured-output setting for server-managed startup paths."""
     return flask_app.config.get(
         "MCP_STRUCTURED_OUTPUT_ENABLED", MCP_STRUCTURED_OUTPUT_ENABLED
     )

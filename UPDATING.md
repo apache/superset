@@ -69,6 +69,7 @@ tags are included in asset export and import.
 
 Set `FEATURE_FLAGS = {"TAGGING_SYSTEM": False}` to restore the previous
 behavior. Existing tag rows are left untouched.
+
 ### MCP structured tool outputs are opt-in
 
 Native MCP tools define concrete output schemas, but Superset preserves the
