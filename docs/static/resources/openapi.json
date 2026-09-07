@@ -14109,6 +14109,17 @@
         },
         "type": "object"
       },
+      "get_related_objects_ids_schema": {
+        "example": [
+          1,
+          2,
+          3
+        ],
+        "items": {
+          "type": "integer"
+        },
+        "type": "array"
+      },
       "get_related_schema": {
         "properties": {
           "filter": {
@@ -23648,6 +23659,60 @@
           }
         ],
         "summary": "Get related fields data",
+        "tags": [
+          "Datasets"
+        ]
+      }
+    },
+    "/api/v1/dataset/related_objects/": {
+      "get": {
+        "description": "Aggregates the charts built on any of the requested datasets and the dashboards those charts appear on. Each chart and dashboard is listed once even if it depends on several of the datasets.",
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_related_objects_ids_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetRelatedObjectsResponse"
+                }
+              }
+            },
+            "description": "Query result"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get charts and dashboards associated to multiple datasets",
         "tags": [
           "Datasets"
         ]
