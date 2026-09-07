@@ -530,6 +530,11 @@ class DatasetColumnDrillInfoSchema(Schema):
     verbose_name = fields.String(required=False)
 
 
+class DatasetMetricDrillInfoSchema(Schema):
+    metric_name = fields.String(required=True)
+    verbose_name = fields.String(required=False)
+
+
 class UserSchema(Schema):
     # Deliberately excludes ``email``: drill_info is reachable by any user
     # with read access to the dataset (and, via the dashboard fallback, by
@@ -555,6 +560,7 @@ class DrillInfoEditorSchema(Schema):
 class DatasetDrillInfoSchema(Schema):
     id = fields.Integer()
     columns = fields.List(fields.Nested(DatasetColumnDrillInfoSchema))
+    metrics = fields.List(fields.Nested(DatasetMetricDrillInfoSchema))
     table_name = fields.String()
     editors = fields.List(fields.Nested(DrillInfoEditorSchema))
     created_by = fields.Nested(UserSchema)
@@ -570,6 +576,9 @@ class DatasetDrillInfoSchema(Schema):
         """
         Clear API response to avoid exposing sensitive information for embedded users,
         and filter columns to only include those with groupby=True for drill operations.
+        Metrics are passed through unfiltered since they are used to resolve display
+        labels (e.g. for the dashboard "View as table" results grid) rather than for
+        drill-by dimension selection.
         """
         dimensions = {
             col.column_name
@@ -583,5 +592,9 @@ class DatasetDrillInfoSchema(Schema):
         ]
 
         if security_manager.is_guest_user():
-            return {"id": serialized["id"], "columns": serialized["columns"]}
+            return {
+                "id": serialized["id"],
+                "columns": serialized["columns"],
+                "metrics": serialized.get("metrics", []),
+            }
         return serialized
