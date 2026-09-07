@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Icons } from '../Icons';
+import { Button } from '../Button';
 import MetadataBar, { MetadataType } from '../MetadataBar';
 import { Menu } from '../Menu';
 import { PageHeaderWithActions, PageHeaderWithActionsProps } from '.';
@@ -35,9 +37,15 @@ export default {
 };
 
 // Mirrors src/dashboard/components/Header's real composition: an editable
-// title plus a MetadataBar (Last Modified + Editor) rendered in
-// titlePanelAdditionalItems, so this story reproduces the header's real
-// narrow-viewport layout behavior, not just the isolated MetadataBar.
+// title, the certified badge, and a titlePanelAdditionalItems cluster of a
+// refresh button, an auto-refresh indicator, a published-status toggle, and
+// a MetadataBar (Last Modified + Editor) -- the same items the real
+// dashboard header packs into that space -- so this story reproduces the
+// header's real narrow-viewport layout behavior, not just the isolated
+// MetadataBar. The real RefreshButton/AutoRefreshIndicator/PublishedStatus
+// components live in src/dashboard and depend on this package, so they
+// can't be imported here without inverting that dependency; these are
+// same-sized stand-ins built from core components instead.
 export const DashboardHeader = (args: PageHeaderWithActionsProps) => (
   <PageHeaderWithActions {...args} />
 );
@@ -51,11 +59,22 @@ DashboardHeader.args = {
     label: 'Dashboard title',
   },
   showTitlePanelItems: true,
-  certificatiedBadgeProps: {},
+  certificatiedBadgeProps: {
+    certifiedBy: 'Jane Doe',
+    details: 'Certified by the BI team',
+  },
   showFaveStar: true,
   faveStarProps: { itemId: 1, saveFaveStar: () => {}, isStarred: false },
-  titlePanelAdditionalItems: (
+  titlePanelAdditionalItems: [
+    <Button key="refresh-button" buttonStyle="link" tooltip="Refresh dashboard">
+      <Icons.ReloadOutlined iconSize="l" />
+    </Button>,
+    <Icons.SyncOutlined key="auto-refresh-indicator" iconSize="l" />,
+    <Button key="published-status" buttonStyle="link">
+      Published
+    </Button>,
     <MetadataBar
+      key="metadata-bar"
       tooltipPlacement="bottom"
       items={[
         {
@@ -70,8 +89,8 @@ DashboardHeader.args = {
           createdOn: 'a week ago',
         },
       ]}
-    />
-  ),
+    />,
+  ],
   rightPanelAdditionalItems: <button type="button">Edit dashboard</button>,
   additionalActionsMenu: (
     <Menu

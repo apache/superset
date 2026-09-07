@@ -62,11 +62,12 @@ test('Renders', async () => {
 
 test('clips the title panel buttons/metadata cluster instead of letting it overflow into the actions menu', () => {
   // jsdom doesn't compute real flexbox layout, so it can't verify the
-  // overlap itself is fixed -- that's covered by the real-browser
-  // playwright/storybook/dashboard-header-metadata-bar.spec.ts spec. This
-  // guards the underlying CSS from regressing: without `overflow: hidden`,
-  // the badges/metadata-bar cluster can render outside its allotted flex
-  // space and overlap the actions menu once the title has fully collapsed.
+  // overlap itself is fixed; this guards the underlying CSS from
+  // regressing instead. Without `overflow: hidden`, this wrapper's
+  // automatic flex minimum size is based on its content rather than 0, so
+  // it refuses to shrink -- forcing the title to absorb all the space
+  // pressure until the cluster's content renders outside its box and
+  // overlaps the actions menu once the title has fully collapsed.
   const { styles } = buttonsStyles(supersetTheme);
   expect(styles).toMatch(/overflow:\s*hidden/);
 });
