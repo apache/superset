@@ -109,6 +109,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
 # Representative full top-level contracts guard against partial schema drift,
 # including fields whose names overlap JSON Schema annotations.
 EXPECTED_TOP_LEVEL_OUTPUT_FIELDS = {
+    "get_chart_info": {"id", "slice_name", "viz_type", "form_data"},
     "get_dashboard_info": {"dashboard_title", "charts", "filter_state"},
     "get_dataset_info": {"table_name", "schema", "columns", "metrics"},
     "open_sql_lab_with_context": {"url", "title", "database_id"},
