@@ -417,65 +417,87 @@ export async function setupDashboardWithBigNumberCharts(
 
 export interface GaqSignals {
   /**
-   * Chart-data submit status by slice id. A native filter's value fetch hits
-   * the same endpoint without a `slice_id`, so it is keyed under `undefined`
-   * (see {@link sliceIdFromChartDataUrl}).
+   * Every chart-data response status seen for a slice, in order. Under the
+   * Global Task Framework an async chart-data request produces *two* responses
+   * for the same URL: the 202 that hands the work to GTF, then the 200 the
+   * client gets when it re-issues the request and is served from the cache the
+   * tasks populated. A single value per slice would hide one of them.
+   *
+   * A native filter's value fetch hits the same endpoint without a `slice_id`,
+   * so it is keyed under `undefined` (see {@link sliceIdFromChartDataUrl}).
    */
+  submitStatusesFor(sliceId?: number): readonly number[];
+  /** First status seen for a slice; `undefined` if it has not responded yet. */
   submitStatusFor(sliceId?: number): number | undefined;
   /** Poll/fetch events are counted, not flagged: on a busy dashboard they arrive per chart. */
-  readonly asyncEventPollCount: number;
-  readonly finalFetchCount: number;
-  readonly sawAsyncEventPoll: boolean;
-  readonly sawFinalCachedFetch: boolean;
+  readonly taskStatusPollCount: number;
+  /** Chart-data re-requests that were served synchronously (200) after a 202. */
+  readonly cachedRereadCount: number;
+  readonly sawTaskStatusPoll: boolean;
+  /** True once some slice went 202 -> 200: a full async round trip completed. */
+  readonly sawAsyncRoundTrip: boolean;
 }
 
 /**
- * Records the GAQ lifecycle signals seen from now on: each chart-data
- * submission's status, polls of the async-event endpoint, and fetches of the
- * final cached payload.
+ * Records the GAQ lifecycle signals seen from now on.
+ *
+ * Under GTF the cycle is: `POST /api/v1/chart/data` with `async_mode` returns
+ * **202** with task ids; the client observes completion via
+ * `GET /api/v1/task/status_changes` (the poll transport, which is what runs
+ * unless `WEBSOCKET_ENABLE` is on); it then **re-issues the same POST**, which
+ * returns **200** from the per-query cache the tasks warmed. There is no
+ * separate result-fetch endpoint any more -- the old `/chart/data/qc-<hash>`
+ * replay route was removed with the GTF migration.
  *
  * Attach only once the traffic you care about is the *next* thing to happen --
- * an initial dashboard load fires the same three signals, so tracking from
- * before it would attribute that load's cycle to whatever you trigger after.
+ * an initial dashboard load fires the same signals, so tracking from before it
+ * would attribute that load's cycle to whatever you trigger after.
  *
  * Reads are live getters rather than a snapshot, so callers can poll them from
  * inside an `expect(...).toPass()` retry block.
  */
 export function trackGaqSignals(page: Page): GaqSignals {
-  const submitStatuses = new Map<number | undefined, number>();
-  let asyncEventPollCount = 0;
-  let finalFetchCount = 0;
+  const submitStatuses = new Map<number | undefined, number[]>();
+  let taskStatusPollCount = 0;
+  let cachedRereadCount = 0;
 
   page.on('response', response => {
     const request = response.request();
     const url = response.url();
 
     if (request.method() === 'POST' && url.includes('/api/v1/chart/data')) {
-      submitStatuses.set(sliceIdFromChartDataUrl(url), response.status());
+      const sliceId = sliceIdFromChartDataUrl(url);
+      const seen = submitStatuses.get(sliceId) ?? [];
+      // A 200 following a 202 for the same slice is the re-request being served
+      // from the warmed cache -- the completion half of the round trip.
+      if (response.status() === 200 && seen.includes(202)) {
+        cachedRereadCount += 1;
+      }
+      submitStatuses.set(sliceId, [...seen, response.status()]);
       return;
     }
-    if (request.method() === 'GET' && url.includes('/api/v1/async_event/')) {
-      asyncEventPollCount += 1;
-      return;
-    }
-    if (request.method() === 'GET' && /\/api\/v1\/chart\/data\/qc-/.test(url)) {
-      finalFetchCount += 1;
+    if (
+      request.method() === 'GET' &&
+      url.includes('/api/v1/task/status_changes')
+    ) {
+      taskStatusPollCount += 1;
     }
   });
 
   return {
-    submitStatusFor: sliceId => submitStatuses.get(sliceId),
-    get asyncEventPollCount() {
-      return asyncEventPollCount;
+    submitStatusesFor: sliceId => submitStatuses.get(sliceId) ?? [],
+    submitStatusFor: sliceId => submitStatuses.get(sliceId)?.[0],
+    get taskStatusPollCount() {
+      return taskStatusPollCount;
     },
-    get finalFetchCount() {
-      return finalFetchCount;
+    get cachedRereadCount() {
+      return cachedRereadCount;
     },
-    get sawAsyncEventPoll() {
-      return asyncEventPollCount > 0;
+    get sawTaskStatusPoll() {
+      return taskStatusPollCount > 0;
     },
-    get sawFinalCachedFetch() {
-      return finalFetchCount > 0;
+    get sawAsyncRoundTrip() {
+      return cachedRereadCount > 0;
     },
   };
 }

@@ -51,16 +51,16 @@ test.beforeEach(async ({ page }) => {
   );
 });
 
-test('runs a simple SELECT normally with GLOBAL_ASYNC_QUERIES enabled, never touching the GAQ polling endpoint', async ({
+test('runs a simple SELECT normally with GLOBAL_ASYNC_QUERIES enabled, never touching the GAQ task-status endpoint', async ({
   page,
 }) => {
-  let sawAsyncEventPoll = false;
+  let sawTaskStatusPoll = false;
   page.on('response', response => {
     if (
       response.request().method() === 'GET' &&
-      response.url().includes('/api/v1/async_event/')
+      response.url().includes('/api/v1/task/status_changes')
     ) {
-      sawAsyncEventPoll = true;
+      sawTaskStatusPoll = true;
     }
   });
 
@@ -72,7 +72,7 @@ test('runs a simple SELECT normally with GLOBAL_ASYNC_QUERIES enabled, never tou
   expect(headers.some(h => h.includes('test_col'))).toBe(true);
 
   expect(
-    sawAsyncEventPoll,
-    "SQL Lab execution should never touch GAQ's async_event polling endpoint -- it has its own, separate async mechanism",
+    sawTaskStatusPoll,
+    "SQL Lab execution should never touch GAQ's task-status polling endpoint -- it has its own, separate async mechanism",
   ).toBe(false);
 });
