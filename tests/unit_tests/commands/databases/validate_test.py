@@ -24,7 +24,9 @@ from superset.commands.database.exceptions import (
     InvalidParametersError,
 )
 from superset.commands.database.validate import ValidateDatabaseParametersCommand
+from superset.constants import PASSWORD_MASK
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.utils import json
 
 
 def test_command(mocker: MockerFixture) -> None:
@@ -646,6 +648,127 @@ def test_validate_ssh_tunnel_feature_disabled_via_parameters_ssh(
         err.extra is not None and err.extra.get("ssh_tunnel") is True
         for err in excinfo.value.errors
     )
+
+
+def test_validate_engine_params_change_requires_new_credentials(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Validating an existing database's parameters (unchanged host/port/etc,
+    so `sqlalchemy_uri` matches the stored masked URI) must not silently
+    reuse the stored password when `extra.engine_params` would redirect the
+    actual DBAPI connect kwargs elsewhere.
+    """
+    existing = mocker.MagicMock()
+    existing.safe_sqlalchemy_uri.return_value = "postgresql://u:XXXXXXXXXX@host1/d"
+    existing.sqlalchemy_uri_decrypted = "postgresql://u:realpass@host1/d"
+    existing.encrypted_extra = "{}"
+    existing.extra = "{}"
+    existing.ssh_tunnel = None
+
+    DatabaseDAO = mocker.patch(  # noqa: N806
+        "superset.commands.database.validate.DatabaseDAO"
+    )
+    DatabaseDAO.find_by_id.return_value = existing
+    DatabaseDAO.validate_update_uniqueness.return_value = True
+
+    mocker.patch(
+        "superset.commands.database.validate.get_engine_spec",
+        return_value=mocker.MagicMock(
+            validate_parameters=mocker.MagicMock(return_value=[]),
+            build_sqlalchemy_uri=mocker.MagicMock(
+                return_value="postgresql://u:XXXXXXXXXX@host1/d"
+            ),
+            unmask_encrypted_extra=mocker.MagicMock(return_value="{}"),
+        ),
+    )
+
+    properties = {
+        "id": 1,
+        "engine": "postgresql",
+        "parameters": {
+            "host": "host1",
+            "port": 5432,
+            "username": "u",
+            "database": "d",
+        },
+        "extra": json.dumps(
+            {
+                "engine_params": {
+                    "connect_args": {"host": "attacker.example.com", "port": 15432}
+                }
+            }
+        ),
+    }
+    command = ValidateDatabaseParametersCommand(properties)
+    with pytest.raises(InvalidParametersError):
+        command.run()
+
+    DatabaseDAO.build_db_for_connection_test.assert_not_called()
+
+
+def test_validate_ssh_tunnel_host_change_requires_new_credentials(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Validating with an unchanged host/parameters set must not silently
+    reuse the stored SSH tunnel password when the tunnel endpoint itself
+    is being redirected.
+    """
+    mocker.patch(
+        "superset.commands.database.validate.is_feature_enabled",
+        return_value=True,
+    )
+
+    tunnel = mocker.MagicMock()
+    tunnel.server_address = "10.0.0.1"
+    tunnel.server_port = 22
+
+    existing = mocker.MagicMock()
+    existing.safe_sqlalchemy_uri.return_value = "postgresql://u:XXXXXXXXXX@host1/d"
+    existing.sqlalchemy_uri_decrypted = "postgresql://u:realpass@host1/d"
+    existing.encrypted_extra = "{}"
+    existing.extra = "{}"
+    existing.ssh_tunnel = tunnel
+
+    DatabaseDAO = mocker.patch(  # noqa: N806
+        "superset.commands.database.validate.DatabaseDAO"
+    )
+    DatabaseDAO.find_by_id.return_value = existing
+    DatabaseDAO.validate_update_uniqueness.return_value = True
+
+    mocker.patch(
+        "superset.commands.database.validate.get_engine_spec",
+        return_value=mocker.MagicMock(
+            validate_parameters=mocker.MagicMock(return_value=[]),
+            build_sqlalchemy_uri=mocker.MagicMock(
+                return_value="postgresql://u:XXXXXXXXXX@host1/d"
+            ),
+            unmask_encrypted_extra=mocker.MagicMock(return_value="{}"),
+        ),
+    )
+
+    properties = {
+        "id": 1,
+        "engine": "postgresql",
+        "parameters": {
+            "host": "host1",
+            "port": 5432,
+            "username": "u",
+            "database": "d",
+        },
+        "ssh_tunnel": {
+            "server_address": "attacker.example.com",
+            "server_port": 22,
+            "username": "tunnel_user",
+            "password": PASSWORD_MASK,
+        },
+    }
+    command = ValidateDatabaseParametersCommand(properties)
+    with pytest.raises(InvalidParametersError):
+        command.run()
+
+    DatabaseDAO.build_db_for_connection_test.assert_not_called()
 
 
 def test_ssh_tunnel_missing_message_is_interpolated(
