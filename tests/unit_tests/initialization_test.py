@@ -133,6 +133,72 @@ class TestSupersetAppInitializer:
         # Assert that sync_config_to_db was called on the app
         mock_app.sync_config_to_db.assert_called_once()
 
+    @patch("superset.core.mcp.core_mcp_injection.initialize_core_mcp_host_tools")
+    @patch("superset.core.mcp.core_mcp_injection.initialize_core_mcp_decorators")
+    @patch("superset.core.api.core_api_injection.initialize_core_api_dependencies")
+    def test_init_core_dependencies_registers_host_tools_by_default(
+        self,
+        mock_init_api,
+        mock_init_decorators,
+        mock_init_host_tools,
+    ):
+        """Default config (flag absent): decorators and host tools both register."""
+        mock_app = MagicMock()
+        mock_app.config = {}
+        app_initializer = SupersetAppInitializer(mock_app)
+
+        app_initializer.init_core_dependencies()
+
+        mock_init_api.assert_called_once()
+        # Decorators are always registered so extensions using @tool/@prompt at
+        # import time keep working in every process.
+        mock_init_decorators.assert_called_once()
+        # Host tools default to on.
+        mock_init_host_tools.assert_called_once()
+
+    @patch("superset.core.mcp.core_mcp_injection.initialize_core_mcp_host_tools")
+    @patch("superset.core.mcp.core_mcp_injection.initialize_core_mcp_decorators")
+    @patch("superset.core.api.core_api_injection.initialize_core_api_dependencies")
+    def test_init_core_dependencies_registers_host_tools_when_enabled(
+        self,
+        mock_init_api,
+        mock_init_decorators,
+        mock_init_host_tools,
+    ):
+        """Flag True: decorators and host tools both register (unchanged behavior)."""
+        mock_app = MagicMock()
+        mock_app.config = {"CORE_MCP_HOST_TOOLS_ENABLED": True}
+        app_initializer = SupersetAppInitializer(mock_app)
+
+        app_initializer.init_core_dependencies()
+
+        mock_init_api.assert_called_once()
+        mock_init_decorators.assert_called_once()
+        mock_init_host_tools.assert_called_once()
+
+    @patch("superset.core.mcp.core_mcp_injection.initialize_core_mcp_host_tools")
+    @patch("superset.core.mcp.core_mcp_injection.initialize_core_mcp_decorators")
+    @patch("superset.core.api.core_api_injection.initialize_core_api_dependencies")
+    def test_init_core_dependencies_skips_host_tools_when_disabled(
+        self,
+        mock_init_api,
+        mock_init_decorators,
+        mock_init_host_tools,
+    ):
+        """Flag False: host-tool registration is skipped, but core init and the
+        decorator swap still run (so @tool/@prompt extensions don't break)."""
+        mock_app = MagicMock()
+        mock_app.config = {"CORE_MCP_HOST_TOOLS_ENABLED": False}
+        app_initializer = SupersetAppInitializer(mock_app)
+
+        app_initializer.init_core_dependencies()
+
+        # Core API deps and the decorator swap still run.
+        mock_init_api.assert_called_once()
+        mock_init_decorators.assert_called_once()
+        # The heavy MCP service app import is skipped.
+        mock_init_host_tools.assert_not_called()
+
     def test_database_uri_lazy_property(self):
         """Test database_uri property uses lazy initialization with smart caching."""
         # Setup

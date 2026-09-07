@@ -539,10 +539,15 @@ CURRENCIES = ["USD", "EUR", "GBP", "INR", "MXN", "JPY", "CNY"]
 #   - stable: Production-ready, tested and supported
 #   - deprecated: Will be removed in a future major release
 
-# Whether this process registers the MCP host tools at startup. Only processes
-# that serve MCP (the web app and the standalone MCP service) need them;
-# deployments can set this to False for processes that never serve MCP (e.g.
-# Celery workers) to avoid the memory cost of importing the MCP stack.
+# Whether this process registers the MCP *host tools* at startup. Registering
+# them imports the MCP service app, which has a real per-process memory cost, and
+# only processes that serve MCP (the web app and the standalone MCP service) need
+# them. Deployments can set this to False for processes that never serve MCP (e.g.
+# Celery workers) to avoid that cost.
+#
+# This gates only host-tool registration. The MCP decorators (@tool/@prompt) are
+# always registered regardless of this flag, so extensions that apply them at
+# import time keep working in every process.
 CORE_MCP_HOST_TOOLS_ENABLED = True
 
 DEFAULT_FEATURE_FLAGS: dict[str, bool] = {

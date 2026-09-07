@@ -272,12 +272,17 @@ def create_prompt_decorator(
     return parameterized_decorator
 
 
-def initialize_core_mcp_dependencies() -> None:
+def initialize_core_mcp_decorators() -> None:
     """
-    Initialize MCP dependency injection by replacing abstract functions
-    in superset_core.api.mcp with concrete implementations.
+    Replace the abstract MCP decorators in ``superset_core.mcp.decorators`` with
+    concrete host implementations.
 
-    Also imports MCP service app to register all host tools BEFORE extension loading.
+    This must run in *every* process that may import extensions -- not only those
+    that serve MCP. Extensions can apply ``@tool``/``@prompt`` at import time, and
+    the abstract decorators raise ``NotImplementedError`` until they are replaced
+    here, so skipping this step would break such extensions at import. It is
+    comparatively cheap: it does not import the MCP service app or register any
+    host tools (see ``initialize_core_mcp_host_tools`` for that).
     """
     import superset_core.mcp.decorators
 
@@ -296,6 +301,18 @@ def initialize_core_mcp_dependencies() -> None:
 
     logger.info("MCP dependency injection initialized successfully")
 
+
+def initialize_core_mcp_host_tools() -> None:
+    """
+    Import the MCP service app so that all host tools are registered BEFORE
+    extension loading.
+
+    This carries a real per-process memory cost -- it imports the MCP service app
+    and every host tool module -- and is only needed in processes that actually
+    serve MCP (the web app and the standalone MCP service). Deployments gate it
+    off (``CORE_MCP_HOST_TOOLS_ENABLED = False``) for processes that never serve
+    MCP, e.g. Celery workers.
+    """
     try:
         # Import MCP service app to register host tools BEFORE extension loading
         # This prevents host tools from being registered during extension context
@@ -304,3 +321,19 @@ def initialize_core_mcp_dependencies() -> None:
         logger.info("MCP service app imported - host tools registered")
     except Exception as e:
         logger.error("Failed to register MCP host tools: %s", e)
+
+
+def initialize_core_mcp_dependencies() -> None:
+    """
+    Initialize MCP dependency injection by replacing abstract functions
+    in superset_core.api.mcp with concrete implementations, then registering the
+    host tools.
+
+    Kept for backwards compatibility and callers that want the full MCP setup in a
+    single call. Processes that must avoid the host-tool import cost should instead
+    call ``initialize_core_mcp_decorators`` unconditionally and gate
+    ``initialize_core_mcp_host_tools`` on ``CORE_MCP_HOST_TOOLS_ENABLED`` (see
+    ``SupersetAppInitializer.init_core_dependencies``).
+    """
+    initialize_core_mcp_decorators()
+    initialize_core_mcp_host_tools()
