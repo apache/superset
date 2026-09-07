@@ -220,8 +220,8 @@ class CategoricalColorScale extends ExtensibleFunction {
   /**
    * Colors that already belong to a label other than the given one, either
    * because a custom label color forces them or because the shared dashboard
-   * color map assigned them. Such colors have an owner and must not be handed
-   * to a label that has no color yet.
+   * color map assigned them. Such colors have an owner and are avoided, when
+   * possible, for a label that has no color yet.
    *
    * @param currentLabel the label a color is being resolved for
    * @returns the set of colors owned by other labels
