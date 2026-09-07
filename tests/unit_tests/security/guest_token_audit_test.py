@@ -93,8 +93,11 @@ def test_guest_token_size_budget(budget: int | None, exceeded: bool) -> None:
     assert payload["header_budget_exceeded"] is exceeded
 
 
-@pytest.mark.parametrize("budget", [None, 19, 20, 21])
-def test_guest_token_issuance_preserves_response(budget: int | None) -> None:
+@pytest.mark.parametrize(
+    "budget,warning",
+    [(None, False), (19, True), (20, False), (21, False), ("19", False), (True, False)],
+)
+def test_guest_token_issuance_preserves_response(budget: object, warning: bool) -> None:
     """Diagnostics neither reject issuance nor change the encoded token or grants."""
     from superset.security.api import SecurityRestApi
 
@@ -124,6 +127,35 @@ def test_guest_token_issuance_preserves_response(budget: int | None) -> None:
     api.appbuilder.sm.create_guest_access_token.assert_called_once_with(
         body["user"], body["resources"], body["rls"]
     )
-    assert log.warning.called is (budget is not None and budget < 20)
+    assert log.warning.called is warning
     assert token not in str(log.mock_calls)
     assert "private_sql" not in str(log.mock_calls)
+
+
+@pytest.mark.parametrize(
+    "configured,expected",
+    [
+        ("16384", None),
+        ("invalid", None),
+        (True, None),
+        (False, None),
+        ([], None),
+        ({}, None),
+        (20.5, None),
+        (float("nan"), None),
+        (float("inf"), None),
+        (float("-inf"), None),
+        (2**53, None),
+        (2**53 - 1, 2**53 - 1),
+        (16384.0, 16384),
+    ],
+)
+def test_guest_token_budget_normalization(
+    configured: object, expected: int | None
+) -> None:
+    """Normalize invalid configuration safely and match browser integer semantics."""
+    payload = build_guest_token_audit_payload(
+        None, None, {}, "t", header_budget_bytes=configured
+    )
+    assert payload["header_budget_bytes"] == expected
+    assert payload["header_budget_exceeded"] is False

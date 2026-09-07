@@ -32,7 +32,7 @@ def build_guest_token_audit_payload(
     body: dict[str, Any],
     token: str,
     header_name: str = "X-GuestToken",
-    header_budget_bytes: Optional[int] = None,
+    header_budget_bytes: object = None,
 ) -> dict[str, Any]:
     """Build security-relevant metadata for a guest-token issuance event.
 
@@ -45,8 +45,15 @@ def build_guest_token_audit_payload(
     token_bytes = len(token.encode("utf-8"))
     # HTTP/1-style accounting: name + colon-space + value + CRLF.
     header_bytes = token_bytes + len(header_name.encode("utf-8")) + 4
+    # Match JavaScript's positive safe-integer budget, without coercing settings.
+    # Invalid deployment values must not turn successful issuance into an error.
     budget = (
-        header_budget_bytes if header_budget_bytes and header_budget_bytes > 0 else None
+        int(header_budget_bytes)
+        if isinstance(header_budget_bytes, (int, float))
+        and not isinstance(header_budget_bytes, bool)
+        and 0 < header_budget_bytes <= 2**53 - 1
+        and int(header_budget_bytes) == header_budget_bytes
+        else None
     )
     return {
         "token_bytes": token_bytes,

@@ -29,7 +29,7 @@ export type GuestTokenSize = {
 export function measureGuestToken(
   token: string,
   headerName = 'X-GuestToken',
-  budget?: number | null,
+  budget?: unknown,
 ): GuestTokenSize {
   const encoder = new TextEncoder();
   const tokenBytes = encoder.encode(token).length;
@@ -60,7 +60,7 @@ export function guestAuthenticationMessage(
   // Explicit auth/server failures have other causes. Some non-JSON proxy
   // failures lose their status during parsing, so size remains the evidence.
   const possibleHeaderFailure =
-    status === undefined || status === 400 || status === 431;
+    status === undefined || status === 400 || status === 431 || status === 494;
   return size?.headerBudgetExceeded && possibleHeaderFailure
     ? t(
         'Embedded authentication failed. The guest token may exceed the request-header size limit. Reduce the token payload; large inline RLS lists can be replaced with an entitlements-table lookup.',

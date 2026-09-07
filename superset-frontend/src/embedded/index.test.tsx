@@ -286,6 +286,12 @@ test('refresh during pending authentication does not misattribute size evidence'
     'may exceed',
   );
   expect(mockGetMeWithRole).toHaveBeenCalledTimes(1);
+
+  // Clearing the guard after failure lets a subsequent token retry authentication.
+  mockGetMeWithRole.mockResolvedValue({ result: { roles: {} } });
+  mockSwitchboard.handler!({ guestToken: 'retry' });
+  await flush();
+  expect(mockGetMeWithRole).toHaveBeenCalledTimes(2);
 });
 
 test('Switchboard does not log credential-bearing message bodies', async () => {

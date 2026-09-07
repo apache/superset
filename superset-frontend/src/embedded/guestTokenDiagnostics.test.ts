@@ -55,3 +55,47 @@ test('no size evidence uses generic authentication message', () => {
     'may exceed',
   );
 });
+
+test.each([
+  ['16384', null],
+  ['invalid', null],
+  [true, null],
+  [false, null],
+  [[], null],
+  [{}, null],
+  [20.5, null],
+  [NaN, null],
+  [Infinity, null],
+  [-Infinity, null],
+  [2 ** 53, null],
+  [Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER],
+  [16384.0, 16384],
+])('normalizes configured budget %p to %p', (configured, expected) => {
+  const size = measureGuestToken('t', undefined, configured);
+  expect(size.headerBudgetBytes).toBe(expected);
+  expect(size.headerBudgetExceeded).toBe(false);
+});
+
+test.each([undefined, 400, 431, 494])(
+  'uses header-size evidence for status %p',
+  status => {
+    expect(
+      guestAuthenticationMessage(measureGuestToken('t', undefined, 1), {
+        status,
+      }),
+    ).toContain('may exceed');
+    expect(
+      guestAuthenticationMessage(measureGuestToken('t', undefined, 100), {
+        status,
+      }),
+    ).not.toContain('may exceed');
+  },
+);
+
+test.each([401, 403, 413, 500])('keeps status %p generic', status => {
+  expect(
+    guestAuthenticationMessage(measureGuestToken('t', undefined, 1), {
+      status,
+    }),
+  ).not.toContain('may exceed');
+});

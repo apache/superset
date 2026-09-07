@@ -168,7 +168,10 @@ bytes of `GUEST_TOKEN_HEADER_NAME`, `: `, the encoded token, and `\r\n`
 equality does not. This is consistent diagnostic accounting, not a prediction of
 every proxy's wire-level accounting, HTTP/2 compression, or total-header limits.
 Leave a safety margin and validate your actual deployment, including custom
-header names. Zero or negative values disable budget warnings.
+header names. Zero, negative, non-integral, or non-numeric values (including strings and
+booleans) disable budget warnings, as do values above JavaScript's maximum safe
+integer (2^53 − 1). Whole-number floats are accepted. Convert environment-variable
+strings to integers in deployment configuration to enable the budget.
 
 Issuance audit metadata includes `token_bytes`, `header_bytes`,
 `header_budget_bytes`, and `header_budget_exceeded`. Issuance remains HTTP 200
@@ -177,7 +180,7 @@ and configured header name; reload the iframe after changing deployment config.
 The embedded client measures initial and refreshed tokens and warns in the
 developer console with sizes only. Initial authentication failures get a targeted
 suggestion only when the request's token exceeds the budget and the failure has
-no status or HTTP 400/431; other statuses and ambiguous in-flight
+no status or HTTP 400/431/494; other statuses and ambiguous in-flight
 refreshes use the generic error. Refresh warnings do not restart authentication.
 These diagnostics do not record JWTs, decoded claims, RLS SQL, or request headers.
 
