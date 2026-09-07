@@ -158,6 +158,13 @@
         "description": "Enable caching per impersonation key in datasources with user impersonation"
       },
       {
+        "name": "DASHBOARD_REPORTS_BROWSER_PRINT_PDF",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Enable native browser-print (Playwright page.pdf()) for dashboard PDF reports. Produces vector PDFs with selectable text instead of raster-screenshot PDFs. Requires PLAYWRIGHT_REPORTS_AND_THUMBNAILS. When enabled, a block of additional PDF options (font size, orientation, 2-column layout, header/footer slots) appears in the Alerts & Reports modal for dashboard PDF reports. Any rendering failure falls back transparently to the screenshot path. Important: enabling this flag activates header/footer defaults (including a \"Confidential\" footer label). Review BROWSER_PRINT_PDF_HEADER_CONTENT and BROWSER_PRINT_PDF_FOOTER_CONTENT in superset_config.py before deploying.",
+        "docs": "https://superset.apache.org/admin-docs/configuration/alerts-reports#browser-print-pdf-for-dashboards"
+      },
+      {
         "name": "DATE_FORMAT_IN_EMAIL_SUBJECT",
         "default": false,
         "lifecycle": "testing",
@@ -214,6 +221,13 @@
         "default": false,
         "lifecycle": "testing",
         "description": "When impersonating a user, use the email prefix instead of username"
+      },
+      {
+        "name": "PLAYWRIGHT_REPORTS_AND_THUMBNAILS",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Use Playwright (Chromium) for dashboard/chart screenshots and thumbnails instead of Selenium. Playwright always uses Chromium; WEBDRIVER_TYPE is ignored when this flag is enabled. Requires the playwright Python package and Chromium: `pip install playwright && playwright install chromium`.",
+        "docs": "https://superset.apache.org/admin-docs/configuration/alerts-reports"
       },
       {
         "name": "RLS_IN_SQLLAB",
