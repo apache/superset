@@ -17,6 +17,11 @@
 """Tests for guest-token issuance audit metadata."""
 
 import hashlib
+import inspect
+from unittest.mock import MagicMock, patch
+
+import pytest
+from flask import Flask
 
 from superset.security.guest_token import build_guest_token_audit_payload
 
@@ -72,3 +77,53 @@ def test_build_guest_token_audit_payload_omits_rls_clause_text() -> None:
     # Clause text (which can carry data values) is not recorded.
     assert "secret_value = 'pii'" not in str(payload)
     assert payload["rls_datasets"] == [7]
+
+
+@pytest.mark.parametrize(
+    "budget,exceeded",
+    [(20, True), (21, False), (22, False), (None, False), (0, False), (-1, False)],
+)
+def test_guest_token_size_budget(budget: int | None, exceeded: bool) -> None:
+    """Budget includes UTF-8 header name, colon-space, token and CRLF."""
+    payload = build_guest_token_audit_payload(
+        None, None, {}, "é" * 3, header_name="X-Custom-É", header_budget_bytes=budget
+    )
+    assert payload["token_bytes"] == 6
+    assert payload["header_bytes"] == 21
+    assert payload["header_budget_exceeded"] is exceeded
+
+
+@pytest.mark.parametrize("budget", [None, 19, 20, 21])
+def test_guest_token_issuance_preserves_response(budget: int | None) -> None:
+    """Diagnostics neither reject issuance nor change the encoded token or grants."""
+    from superset.security.api import SecurityRestApi
+
+    app = Flask(__name__)
+    app.config.update(
+        GUEST_TOKEN_HEADER_NAME="X-Test",  # noqa: S106
+        GUEST_TOKEN_HEADER_MAX_BYTES=budget,
+    )
+    api = MagicMock()
+    token = "encodedjwt"  # noqa: S105
+    api.appbuilder.sm.create_guest_access_token.return_value = token
+    body = {
+        "user": {"username": "guest"},
+        "resources": [],
+        "rls": [{"clause": "private_sql = 1"}],
+    }
+    with (
+        app.test_request_context(json=body),
+        patch("superset.security.api.guest_token_create_schema") as schema,
+        patch("superset.security.api.get_user_id", return_value=1),
+        patch("superset.security.api.logger") as log,
+    ):
+        schema.load.return_value = body
+        result = inspect.unwrap(SecurityRestApi.guest_token)(api)
+    api.response.assert_called_once_with(200, token=token)
+    assert result is api.response.return_value
+    api.appbuilder.sm.create_guest_access_token.assert_called_once_with(
+        body["user"], body["resources"], body["rls"]
+    )
+    assert log.warning.called is (budget is not None and budget < 20)
+    assert token not in str(log.mock_calls)
+    assert "private_sql" not in str(log.mock_calls)

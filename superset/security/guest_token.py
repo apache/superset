@@ -31,6 +31,8 @@ def build_guest_token_audit_payload(
     source_ip: Optional[str],
     body: dict[str, Any],
     token: str,
+    header_name: str = "X-GuestToken",
+    header_budget_bytes: Optional[int] = None,
 ) -> dict[str, Any]:
     """Build security-relevant metadata for a guest-token issuance event.
 
@@ -40,7 +42,17 @@ def build_guest_token_audit_payload(
     """
     resources = body.get("resources") or []
     rls = body.get("rls") or []
+    token_bytes = len(token.encode("utf-8"))
+    # HTTP/1-style accounting: name + colon-space + value + CRLF.
+    header_bytes = token_bytes + len(header_name.encode("utf-8")) + 4
+    budget = (
+        header_budget_bytes if header_budget_bytes and header_budget_bytes > 0 else None
+    )
     return {
+        "token_bytes": token_bytes,
+        "header_bytes": header_bytes,
+        "header_budget_bytes": budget,
+        "header_budget_exceeded": budget is not None and header_bytes > budget,
         "issuer_user_id": issuer_user_id,
         "source_ip": source_ip,
         "resources": [
