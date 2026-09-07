@@ -263,3 +263,66 @@ def test_submit_async_noop_when_not_pending() -> None:
     command = _make_command()
     command._pending_async = False
     command.submit_async()  # must not raise / schedule
+
+
+@patch(f"{_EXEC}.app")
+@patch(f"{_EXEC}.is_feature_enabled", return_value=False)
+def test_execute_sync_entry_error_builds_failed_payload(
+    mock_flag: MagicMock, mock_app: MagicMock
+) -> None:
+    """An execution error is turned into a FAILED payload (via handle_query_error)
+    and surfaced as a rich SupersetErrorsException."""
+    import dataclasses
+
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetErrorsException
+
+    mock_app.config = {"SQLLAB_TIMEOUT": 30}
+    ctx = _sync_context()
+    failed_payload = {
+        "status": "failed",
+        "errors": [
+            dataclasses.asdict(
+                SupersetError(
+                    message="db boom",
+                    error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+        ],
+    }
+    patch(_ENTRY, side_effect=RuntimeError("db boom")).start()
+    patch("superset.sql_lab.get_query", return_value=ctx.query).start()
+    patch("superset.sql_lab.handle_query_error", return_value=failed_payload).start()
+    try:
+        command = _make_command(execution_context=ctx)
+        with pytest.raises(SupersetErrorsException):
+            command._execute("SELECT 1")
+    finally:
+        patch.stopall()
+
+
+def test_submit_async_schedule_failure_marks_query_failed() -> None:
+    """A scheduling failure marks the Query FAILED and raises."""
+    from superset.exceptions import SupersetErrorException
+
+    ctx = MagicMock()
+    ctx.select_as_cta = False
+    ctx.expand_data = False
+    ctx.query.id = 7
+    ctx.query.client_id = "abc123"
+    command = _make_command(execution_context=ctx)
+    command._pending_async = True
+    command._rendered_query = "SELECT 1"
+    patch(
+        "superset.tasks.sql_queries.run_sql_lab_query.schedule",
+        side_effect=RuntimeError("broker down"),
+    ).start()
+    patch(f"{_EXEC}.get_username", return_value="admin").start()
+    patch(f"{_EXEC}.db").start()
+    try:
+        with pytest.raises(SupersetErrorException):
+            command.submit_async()
+        assert ctx.query.status == "failed"
+    finally:
+        patch.stopall()

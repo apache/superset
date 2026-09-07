@@ -94,6 +94,13 @@ class QueryDAO(BaseDAO[Query]):
         )
         if task is not None:
             CancelTaskCommand(task.uuid).run()
+            # A PENDING task aborts straight to ABORTED with no worker run, so
+            # nothing would mirror the terminal state onto the Query row; and even
+            # for a running task, marking STOPPED here (as the classic path did)
+            # is what the cooperative between-block check keys off. Idempotent with
+            # the task body's own mirror.
+            query.status = QueryStatus.STOPPED
+            query.end_time = now_as_float()
             return
 
         # Sync / non-GTF query: cancel the warehouse query directly and mark STOPPED.

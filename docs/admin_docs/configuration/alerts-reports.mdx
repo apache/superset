@@ -301,17 +301,12 @@ REDIS_PORT = "6379"
 class CeleryConfig:
     broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
     imports = (
-        "superset.sql_lab",
+        "superset.tasks.sql_queries",
         "superset.tasks.scheduler",
     )
     result_backend = f"redis://{REDIS_HOST}:{REDIS_PORT}/0"
     worker_prefetch_multiplier = 10
     task_acks_late = True
-    task_annotations = {
-        "sql_lab.get_sql_results": {
-            "rate_limit": "100/s",
-        },
-    }
     beat_schedule = {
         "reports.scheduler": {
             "task": "reports.scheduler",

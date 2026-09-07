@@ -364,5 +364,6 @@ def test_query_dao_stop_query_via_gtf_task(
 
     cancel.assert_called_once_with("task-uuid-1")
     cancel.return_value.run.assert_called_once()
-    # The task (not stop_query) mirrors STOPPED, so the row is untouched here.
-    assert query_obj.status == QueryStatus.RUNNING
+    # The pending→aborted path has no worker to mirror status, so stop_query marks
+    # the Query STOPPED itself.
+    assert query_obj.status == QueryStatus.STOPPED

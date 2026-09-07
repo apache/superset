@@ -40,6 +40,13 @@ from superset.common.db_query_status import QueryStatus
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.exceptions import SupersetErrorException, SupersetErrorsException
 from superset.models.sql_lab import Query
+from superset.sql.execution.sqllab_executor import (
+    # Result serialization moved to the execution feature with the executor; keep
+    # it importable as ``sql_lab._serialize_*`` for callers/tests that reference
+    # the historical location.
+    _serialize_and_expand_data as _serialize_and_expand_data,  # noqa: PLC0414
+    _serialize_payload as _serialize_payload,  # noqa: PLC0414
+)
 from superset.utils.core import QuerySource
 from superset.utils.dates import now_as_float
 

@@ -643,9 +643,6 @@ class TestSqlLab(SupersetTestCase):
         )
         assert data["errors"][0]["error_type"] == "GENERIC_BACKEND_ERROR"
 
-    @mock.patch("superset.sql_lab.db")
-    @mock.patch("superset.sql_lab.get_query")
-    @mock.patch("superset.sql_lab.execute_query")
     def test_sql_json_soft_timeout(self):
         examples_db = get_example_database()
         if examples_db.backend == "sqlite":

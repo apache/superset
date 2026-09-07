@@ -34,7 +34,6 @@ from superset.exceptions import (
     SupersetErrorsException,
     SupersetGenericDBErrorException,
     SupersetGenericErrorException,
-    SupersetTimeoutException,
 )
 from superset.models.core import Database
 from superset.models.sql_lab import Query
@@ -202,31 +201,25 @@ class ExecuteSqlCommand(BaseCommand):
             is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE")
             and not context.select_as_cta
         )
-        try:
-            with utils.timeout(
-                seconds=timeout,
-                error_message=f"The query exceeded the {timeout} seconds timeout.",
-            ):
-                try:
-                    data = execute_sql_lab_query(
-                        query,
-                        rendered_query,
-                        return_results=True,
-                        store_results=store_results,
-                        expand_data=context.expand_data,
-                        log_params=self._log_params,
-                    )
-                except Exception as ex:  # pylint: disable=broad-except
-                    # Re-fetch (the session may be poisoned) and build the error
-                    # payload, mirroring the classic synchronous path.
-                    data = handle_query_error(ex, get_query(query_id=query.id))
-        except SupersetTimeoutException:
-            raise
-        except Exception as ex:
-            logger.exception("Query %i failed unexpectedly", query.id)
-            raise SupersetGenericDBErrorException(
-                utils.error_msg_from_exception(ex)
-            ) from ex
+        with utils.timeout(
+            seconds=timeout,
+            error_message=f"The query exceeded the {timeout} seconds timeout.",
+        ):
+            try:
+                data = execute_sql_lab_query(
+                    query,
+                    rendered_query,
+                    return_results=True,
+                    store_results=store_results,
+                    expand_data=context.expand_data,
+                    log_params=self._log_params,
+                )
+            except Exception as ex:  # pylint: disable=broad-except
+                # Any execution error (including a soft timeout raised via the
+                # timeout context) becomes a FAILED payload — the classic sync path
+                # caught everything the same way. Re-fetch first: the session may be
+                # poisoned by the failed statement.
+                data = handle_query_error(ex, get_query(query_id=query.id))
 
         context.set_execution_result(data)
         if data and data.get("status") == QueryStatus.FAILED:
