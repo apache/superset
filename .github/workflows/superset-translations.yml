@@ -32,7 +32,7 @@ jobs:
 
       - name: Check for file changes
         id: check
-        uses: ./.github/actions/change-detector/
+        uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -45,7 +45,7 @@ jobs:
           cache-dependency-path: "superset-frontend/package-lock.json"
       - name: Install dependencies
         if: steps.check.outputs.frontend
-        uses: ./.github/actions/cached-dependencies
+        uses: $/.github/actions/cached-dependencies
         with:
           run: npm-install
       - name: lint
@@ -68,13 +68,13 @@ jobs:
 
       - name: Check for file changes
         id: check
-        uses: ./.github/actions/change-detector/
+        uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
         if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
 
       - name: Install gettext tools
         if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
