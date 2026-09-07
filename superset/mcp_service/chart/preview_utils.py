@@ -29,8 +29,8 @@ from typing import Any, Dict, List
 
 from superset.mcp_service.chart.query_result import (
     metric_result_label,
+    normalize_gauge_query_result,
     query_result_failure,
-    validate_gauge_query_result,
 )
 from superset.mcp_service.chart.schemas import (
     ASCIIPreview,
@@ -102,8 +102,9 @@ def generate_preview_from_form_data(
 
         if query_failure := query_result_failure(result):
             return query_failure
-        if gauge_failure := validate_gauge_query_result(result, form_data):
-            return gauge_failure
+        result = normalize_gauge_query_result(result, form_data)
+        if isinstance(result, ChartError):
+            return result
         if not result or not result.get("queries"):
             return ChartError(
                 error="No data returned from query", error_type="EmptyResult"
@@ -507,11 +508,12 @@ def _prepare_gauge_preview(  # noqa: C901
     data: Any, form_data: Dict[str, Any]
 ) -> tuple[list[dict[str, Any]], dict[str, Any]] | ChartError:
     """Validate Gauge rows and derive display values used by both previews."""
-    failure = validate_gauge_query_result(
+    normalized = normalize_gauge_query_result(
         {"queries": [{"data": data}]}, {**form_data, "viz_type": "gauge_chart"}
     )
-    if failure is not None:
-        return failure
+    if isinstance(normalized, ChartError):
+        return normalized
+    data = normalized["queries"][0]["data"]
     metric_label = metric_result_label(form_data.get("metric"))
     if not isinstance(data, list) or metric_label is None:
         return ChartError(
@@ -830,6 +832,10 @@ def generate_gauge_vega_lite_preview(  # noqa: C901
             "tooltip": tooltip,
         },
     }
+    facet_width, dial_height = 200, 300
+    # Faceted value expressions cannot use the outer width/height signals.
+    center_x = str(facet_width / 2) if metadata["group_labels"] else "width / 2"
+    center_y = str(dial_height / 2) if metadata["group_labels"] else "height / 2"
     pointer_layer = {
         "transform": [
             {
@@ -842,10 +848,14 @@ def generate_gauge_vega_lite_preview(  # noqa: C901
         ],
         "mark": {"type": "rule", "strokeWidth": 3, "color": "#444"},
         "encoding": {
-            "x": {"value": {"expr": "width / 2"}},
-            "y": {"value": {"expr": "height / 2"}},
-            "x2": {"value": {"expr": "width / 2 + 52 * sin(datum.__mcp_gauge_angle)"}},
-            "y2": {"value": {"expr": "height / 2 - 52 * cos(datum.__mcp_gauge_angle)"}},
+            "x": {"value": {"expr": center_x}},
+            "y": {"value": {"expr": center_y}},
+            "x2": {
+                "value": {"expr": f"{center_x} + 52 * sin(datum.__mcp_gauge_angle)"}
+            },
+            "y2": {
+                "value": {"expr": f"{center_y} - 52 * cos(datum.__mcp_gauge_angle)"}
+            },
             "tooltip": tooltip,
         },
     }
@@ -864,7 +874,7 @@ def generate_gauge_vega_lite_preview(  # noqa: C901
         "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
         "data": {"values": decorated},
         "width": "container",
-        "height": 300,
+        "height": dial_height,
         "usermeta": {
             "viz_type": "gauge_chart",
             "min_val": metadata["minimum"],
@@ -887,7 +897,7 @@ def generate_gauge_vega_lite_preview(  # noqa: C901
     }
     if metadata["group_labels"]:
         specification.pop("width")
-        unit_spec["width"] = 200
+        unit_spec["width"] = facet_width
         unit_spec["height"] = specification.pop("height")
         specification.update(
             {

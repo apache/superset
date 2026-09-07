@@ -46,8 +46,8 @@ from superset.mcp_service.chart.chart_helpers import (
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.query_result import (
+    normalize_gauge_query_result,
     query_result_failure,
-    validate_gauge_query_result,
 )
 from superset.mcp_service.chart.schemas import (
     ChartData,
@@ -769,8 +769,9 @@ async def get_chart_data(  # noqa: C901
 
             if query_failure := query_result_failure(result):
                 return query_failure
-            if gauge_failure := validate_gauge_query_result(result, form_data):
-                return gauge_failure
+            result = normalize_gauge_query_result(result, form_data)
+            if isinstance(result, ChartError):
+                return result
 
             if rejected := _rejected_requested_filter_columns(
                 result, request.extra_form_data
@@ -1136,8 +1137,9 @@ async def _query_from_form_data(  # noqa: C901
 
         if query_failure := query_result_failure(result):
             return query_failure
-        if gauge_failure := validate_gauge_query_result(result, form_data):
-            return gauge_failure
+        result = normalize_gauge_query_result(result, form_data)
+        if isinstance(result, ChartError):
+            return result
 
         if rejected := _rejected_requested_filter_columns(
             result, request.extra_form_data

@@ -42,9 +42,10 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset.commands.exceptions import CommandException
 from superset.errors import SupersetErrorType
 from superset.mcp_service.chart.query_result import (
+    normalize_gauge_query_result,
     query_result_failure,
-    validate_gauge_query_result,
 )
+from superset.mcp_service.chart.schemas import ChartError
 from superset.mcp_service.chart.validation.dataset_validator import (
     AmbiguousDatasetReferenceError,
     build_dataset_context_from_orm,
@@ -130,9 +131,13 @@ def _compile_chart(
     try:
         query_form_data = deepcopy(form_data)
         query_form_data["datasource"] = f"{dataset_id}__table"
+        query_form_data["datasource_id"] = dataset_id
+        query_form_data["datasource_type"] = "table"
         query_context = build_query_context_from_form_data(
             query_form_data,
-            row_limit=2,
+            row_limit=min(10, int(form_data.get("row_limit") or 10))
+            if form_data.get("viz_type") == "gauge_chart"
+            else 2,
             force=False,
         )
 
@@ -151,16 +156,17 @@ def _compile_chart(
                 tier="compile",
                 error_obj=_build_compile_error(error_str),
             )
-        if gauge_failure := validate_gauge_query_result(result, form_data):
+        result = normalize_gauge_query_result(result, form_data)
+        if isinstance(result, ChartError):
             return CompileResult(
                 success=False,
-                error=gauge_failure.error,
+                error=result.error,
                 error_code="INVALID_GAUGE_RESULT",
                 tier="compile",
                 error_obj=ChartGenerationError(
-                    error_type=gauge_failure.error_type,
+                    error_type=result.error_type,
                     message="Gauge metric query returned invalid values",
-                    details=gauge_failure.error,
+                    details=result.error,
                     suggestions=[
                         "Use a numeric-producing metric",
                         "Check the metric alias and SQL expression",

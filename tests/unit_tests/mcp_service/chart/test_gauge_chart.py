@@ -1024,3 +1024,113 @@ def test_gauge_pointer_uses_cartesian_endpoints(
         assert set(encoding) == {"x", "y", "x2", "y2", "tooltip"}
         assert "sin(datum.__mcp_gauge_angle)" in encoding["x2"]["value"]["expr"]
         assert "cos(datum.__mcp_gauge_angle)" in encoding["y2"]["value"]["expr"]
+
+
+@pytest.mark.parametrize(
+    "renderer", [generate_gauge_ascii_preview, generate_gauge_vega_lite_preview]
+)
+def test_gauge_mixed_finite_dials_survive(renderer: Callable[..., Any]) -> None:
+    """Empty aggregates do not discard other groups, in either preview format."""
+    rows = [
+        {"team": str(i), "score": value}
+        for i, value in enumerate(
+            [None, float("nan"), float("inf"), -float("inf"), "bad", True, 0, 42]
+        )
+    ]
+    result = renderer(rows, {"metric": "score", "groupby": ["team"]})
+    assert not isinstance(result, ChartError)
+    if renderer == generate_gauge_vega_lite_preview:
+        assert [r["score"] for r in result.specification["data"]["values"]] == [0, 42]
+    else:
+        assert "42" in result
+        assert "nan" not in result.lower()
+    assert len(rows) == 8
+
+
+@pytest.mark.parametrize("temporal_column", ["omitted", "event_time", None])
+def test_gauge_duplicate_generated_binding_self_heals(
+    temporal_column: str | None,
+) -> None:
+    """Updating a legacy Gauge removes redundant neutral filters, not user ranges."""
+    binding = {
+        "expressionType": "SIMPLE",
+        "clause": "WHERE",
+        "subject": "event_time",
+        "operator": "TEMPORAL_RANGE",
+        "comparator": "No filter",
+    }
+    config = GaugeChartConfig.model_validate(
+        {
+            "metric": {"name": "score", "saved_metric": True},
+            **(
+                {"temporal_column": temporal_column}
+                if temporal_column != "omitted"
+                else {}
+            ),
+        }
+    )
+    existing = {
+        "viz_type": "gauge_chart",
+        "metric": "score",
+        MCP_DASHBOARD_TIME_FILTER_SUBJECT: "event_time",
+        "adhoc_filters": [
+            binding,
+            dict(binding),
+            {**binding, "comparator": "Last week"},
+        ],
+    }
+    mapped = map_config_to_form_data(config)
+    merged = merge_chart_form_data(existing, mapped, config)
+    assert (
+        len([f for f in merged["adhoc_filters"] if f["comparator"] == "No filter"]) <= 1
+    )
+    assert [f for f in merged["adhoc_filters"] if f["comparator"] == "Last week"] == [
+        {**binding, "comparator": "Last week"}
+    ]
+
+
+@pytest.mark.parametrize("top_range", ["Last week", "No filter", None])
+def test_gauge_native_no_filter_is_a_dashboard_binding(top_range: str | None) -> None:
+    """The neutral native sentinel must not conflict with a real time restriction."""
+    config = GaugeChartConfig.model_validate(
+        {
+            "metric": "score",
+            "time_range": top_range,
+            "granularity_sqla": "event_time",
+            "adhoc_filters": [
+                {
+                    "subject": "event_time",
+                    "operator": "TEMPORAL_RANGE",
+                    "comparator": "No filter",
+                },
+                {
+                    "subject": "event_time",
+                    "operator": "TEMPORAL_RANGE",
+                    "comparator": "Last week",
+                },
+            ],
+        }
+    )
+    assert config.time_range == "Last week"
+    assert config.temporal_column == "event_time"
+    mapped = map_config_to_form_data(config)
+    assert mapped["time_range"] == "Last week"
+    assert mapped["adhoc_filters"][0]["comparator"] == "No filter"
+
+
+def test_gauge_finite_normalization_does_not_mutate_cached_result() -> None:
+    """Filtering dials copies the envelope and updates the returned row count."""
+    from superset.mcp_service.chart.query_result import normalize_gauge_query_result
+
+    rows = [{"score": None}, {"score": 0}, {"score": 42}, {"score": float("inf")}]
+    original = {"queries": [{"data": rows, "rowcount": 4, "colnames": ["score"]}]}
+    normalized = normalize_gauge_query_result(
+        original, {"viz_type": "gauge_chart", "metric": "score"}
+    )
+    assert not isinstance(normalized, ChartError)
+    assert normalized["queries"][0]["data"] == [{"score": 0}, {"score": 42}]
+    assert normalized["queries"][0]["rowcount"] == 2
+    assert normalized["queries"][0]["colnames"] == ["score"]
+    assert original["queries"][0]["data"] is rows
+    assert original["queries"][0]["rowcount"] == 4
+    assert len(rows) == 4

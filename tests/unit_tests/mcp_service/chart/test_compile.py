@@ -467,10 +467,10 @@ class TestValidateAndCompileTier2:
 
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data")
-def test_compile_gauge_uses_shared_query_builder_and_checks_every_value(
+def test_compile_gauge_uses_shared_query_builder_and_skips_invalid_dials(
     mock_build_query_context, mock_cmd_cls
 ):
-    """Gauge compile matches frontend ordering and rejects runtime text metrics."""
+    """Gauge compile matches frontend ordering and retains finite groups."""
     from superset.mcp_service.chart.compile import _compile_chart
 
     mock_build_query_context.return_value = Mock()
@@ -500,15 +500,14 @@ def test_compile_gauge_uses_shared_query_builder_and_checks_every_value(
 
     result = _compile_chart(form_data, dataset_id=3)
 
-    assert not result.success
-    assert result.error_obj is not None
-    assert result.error_obj.error_type == "NonNumericGaugeMetric"
+    assert result.success
+    assert result.row_count == 1
     query_form_data = mock_build_query_context.call_args.args[0]
     assert query_form_data["sort_by_metric"] is True
     assert query_form_data["metric"] == form_data["metric"]
     assert query_form_data["datasource"] == "3__table"
     mock_build_query_context.assert_called_once_with(
-        query_form_data, row_limit=2, force=False
+        query_form_data, row_limit=10, force=False
     )
 
 

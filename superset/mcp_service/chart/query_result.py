@@ -122,12 +122,17 @@ def metric_result_label(metric: Any) -> str | None:
     return None
 
 
-def validate_gauge_query_result(  # noqa: C901
+def normalize_gauge_query_result(  # noqa: C901
     result: Any, form_data: Mapping[str, Any]
-) -> ChartError | None:
-    """Validate every returned Gauge value against its resolved metric alias."""
+) -> Any:
+    """Copy Gauge query envelopes with only finite dials; preserve empty results.
+
+    Malformed envelopes/aliases remain errors. Invalid dial values are skipped,
+    but a nonempty query with no finite dials returns an actionable error.
+    Non-Gauge results and the caller's query payloads are left untouched.
+    """
     if form_data.get("viz_type") != "gauge_chart":
-        return None
+        return result
     if failure := query_result_failure(result):
         return failure
 
@@ -148,6 +153,7 @@ def validate_gauge_query_result(  # noqa: C901
             error="Gauge query result has no queries array.",
             error_type="InvalidGaugeResult",
         )
+    normalized_queries = []
     for query_index, query in enumerate(queries):
         if not isinstance(query, Mapping):
             return ChartError(
@@ -160,6 +166,8 @@ def validate_gauge_query_result(  # noqa: C901
                 error=f"Gauge query {query_index} data is not an array of rows.",
                 error_type="InvalidGaugeResult",
             )
+        finite_rows = []
+        value_error = None
         for row_index, row in enumerate(data):
             if not isinstance(row, Mapping):
                 return ChartError(
@@ -178,23 +186,40 @@ def validate_gauge_query_result(  # noqa: C901
                 )
             value = row[metric_label]
             if isinstance(value, bool) or not isinstance(value, (int, float)):
-                return ChartError(
+                value_error = value_error or ChartError(
                     error=(
                         f"Gauge query {query_index} row {row_index} metric "
                         f"{metric_label!r} is not numeric."
                     ),
                     error_type="NonNumericGaugeMetric",
                 )
+                continue
             try:
                 finite = math.isfinite(float(value))
             except (OverflowError, ValueError):
                 finite = False
             if not finite:
-                return ChartError(
+                value_error = value_error or ChartError(
                     error=(
                         f"Gauge query {query_index} row {row_index} metric "
                         f"{metric_label!r} is not finite."
                     ),
                     error_type="NonFiniteGaugeMetric",
                 )
-    return None
+                continue
+            finite_rows.append(row)
+        if data and not finite_rows:
+            return value_error
+        normalized_query = {**query, "data": finite_rows}
+        if len(finite_rows) != len(data) and "rowcount" in query:
+            normalized_query["rowcount"] = len(finite_rows)
+        normalized_queries.append(normalized_query)
+    return {**result, "queries": normalized_queries}
+
+
+def validate_gauge_query_result(
+    result: Any, form_data: Mapping[str, Any]
+) -> ChartError | None:
+    """Check Gauge results using the same finite-dial contract as rendering."""
+    normalized = normalize_gauge_query_result(result, form_data)
+    return normalized if isinstance(normalized, ChartError) else None

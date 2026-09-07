@@ -100,7 +100,10 @@ class TestGenerateChart:
         assert result.chart_type_label == "table chart"
 
     @pytest.mark.asyncio
-    async def test_unsaved_gauge_generate_preserves_controls_and_compiles(self) -> None:
+    @pytest.mark.parametrize("has_finite", [True, False])
+    async def test_unsaved_gauge_generate_preserves_controls_and_compiles(
+        self, has_finite: bool
+    ) -> None:
         """Gauge generate returns native form_data and checks concrete values."""
         request = GenerateChartRequest(
             dataset_id=7,
@@ -148,11 +151,29 @@ class TestGenerateChart:
                 return_value=True,
             ),
             patch(
-                "superset.mcp_service.chart.tool.generate_chart._compile_chart",
-                return_value=CompileResult(success=True),
-            ) as mock_compile,
+                "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+                return_value=Mock(),
+            ) as mock_build,
+            patch(
+                "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            ) as mock_command,
         ):
+            mock_command.return_value.run.return_value = {
+                "queries": [
+                    {
+                        "data": [
+                            {"team": "Empty", "AVG(score)": None},
+                            {"team": "NaN", "AVG(score)": float("nan")},
+                        ]
+                        + ([{"team": "Blue", "AVG(score)": 75}] if has_finite else [])
+                    }
+                ]
+            }
             result = await generate_chart(request, ctx=ctx)
+        if not has_finite:
+            assert result.success is False
+            assert result.error is not None
+            return
 
         assert result.success is True
         assert result.form_data["viz_type"] == "gauge_chart"
@@ -160,7 +181,8 @@ class TestGenerateChart:
         assert result.form_data["groupby"] == ["team"]
         assert result.form_data["show_pointer"] is False
         assert result.form_data["intervals"] == "50,100"
-        mock_compile.assert_called_once_with(result.form_data, 7)
+        assert mock_build.call_args.kwargs["row_limit"] == 10
+        mock_command.return_value.validate.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_generate_chart_request_structure(self):

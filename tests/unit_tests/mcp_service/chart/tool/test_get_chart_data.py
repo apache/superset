@@ -519,7 +519,11 @@ class TestUnsavedChartDataQueryConstruction:
                 return {
                     "queries": [
                         {
-                            "data": [{"team": "Blue", "saved_sla": 98.5}],
+                            "data": [
+                                {"team": "Empty", "saved_sla": None},
+                                {"team": "Blue", "saved_sla": 98.5},
+                                {"team": "NaN", "saved_sla": float("nan")},
+                            ],
                             "colnames": ["team", "saved_sla"],
                             "rowcount": 1,
                         }
@@ -555,6 +559,8 @@ class TestUnsavedChartDataQueryConstruction:
         )
 
         assert not isinstance(result, ChartError)
+        assert result.data == [{"team": "Blue", "saved_sla": 98.5}]
+        assert result.row_count == 1
         query = captured[0]["queries"][0]
         assert query["metrics"] == ["saved_sla"]
         assert query["orderby"] == [("saved_sla", False)]
@@ -1722,8 +1728,13 @@ class TestSavedChartExtraFormDataFilters:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("stored_viz_type", [None, "table", "gauge_chart"])
+    @pytest.mark.parametrize("has_finite", [True, False])
     async def test_saved_gauge_fastmcp_entry_rejects_text_metric_result(
-        self, mcp_server: Any, mock_auth: Any, stored_viz_type: str | None
+        self,
+        mcp_server: Any,
+        mock_auth: Any,
+        stored_viz_type: str | None,
+        has_finite: bool,
     ) -> None:
         """Saved Gauge query results are numeric-checked at the public tool."""
         module = importlib.import_module(
@@ -1773,7 +1784,19 @@ class TestSavedChartExtraFormDataFilters:
             def validate(self) -> None: ...
             def run(self) -> dict[str, Any]:
                 return {
-                    "queries": [{"data": [{"team": "Blue", "saved_sla": "unknown"}]}]
+                    "queries": [
+                        {
+                            "data": [
+                                {"team": "Empty", "saved_sla": None},
+                                {"team": "NaN", "saved_sla": float("nan")},
+                            ]
+                            + (
+                                [{"team": "Blue", "saved_sla": 42}]
+                                if has_finite
+                                else []
+                            )
+                        }
+                    ]
                 }
 
         with (
@@ -1797,7 +1820,11 @@ class TestSavedChartExtraFormDataFilters:
                 )
 
         data = json.loads(result.content[0].text)
-        assert data["error_type"] == "NonNumericGaugeMetric"
+        if has_finite:
+            assert data["data"] == [{"team": "Blue", "saved_sla": 42}]
+            assert data["row_count"] == 1
+        else:
+            assert data["error_type"] == "NonNumericGaugeMetric"
 
 
 class TestOAuthErrorRouting:

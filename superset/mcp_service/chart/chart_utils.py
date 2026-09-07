@@ -742,6 +742,22 @@ def merge_chart_form_data(  # noqa: C901
             merged.pop(_GAUGE_FORM_DATA_FIELD_MAP[nullable_field], None)
     if temporal_explicit and config.temporal_column is None:
         merged.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    if subject := merged.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT):
+        seen_binding = False
+        filters = []
+        for filter_ in merged.get("adhoc_filters", []):
+            is_binding = (
+                isinstance(filter_, dict)
+                and filter_.get("subject") == subject
+                and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+                and filter_.get("comparator") == NO_TIME_RANGE
+                and filter_.get("clause") == "WHERE"
+                and filter_.get("expressionType") == "SIMPLE"
+            )
+            if not is_binding or not seen_binding:
+                filters.append(filter_)
+            seen_binding = seen_binding or is_binding
+        merged["adhoc_filters"] = filters
     return merged
 
 

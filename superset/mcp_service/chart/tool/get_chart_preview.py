@@ -44,8 +44,8 @@ from superset.mcp_service.chart.preview_utils import (
     generate_gauge_vega_lite_preview,
 )
 from superset.mcp_service.chart.query_result import (
+    normalize_gauge_query_result,
     query_result_failure,
-    validate_gauge_query_result,
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
@@ -280,8 +280,9 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
 
             if query_failure := query_result_failure(result):
                 return query_failure
-            if gauge_failure := validate_gauge_query_result(result, form_data):
-                return gauge_failure
+            result = normalize_gauge_query_result(result, form_data)
+            if isinstance(result, ChartError):
+                return result
 
             data: list[Any] = []
             if result and "queries" in result and len(result["queries"]) > 0:
@@ -358,8 +359,9 @@ class TablePreviewStrategy(PreviewFormatStrategy):
 
             if query_failure := query_result_failure(result):
                 return query_failure
-            if gauge_failure := validate_gauge_query_result(result, form_data):
-                return gauge_failure
+            result = normalize_gauge_query_result(result, form_data)
+            if isinstance(result, ChartError):
+                return result
 
             data: list[Any] = []
             if result and "queries" in result and len(result["queries"]) > 0:
@@ -456,8 +458,9 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
             if query_failure := query_result_failure(result):
                 return query_failure
-            if gauge_failure := validate_gauge_query_result(result, form_data):
-                return gauge_failure
+            result = normalize_gauge_query_result(result, form_data)
+            if isinstance(result, ChartError):
+                return result
 
             # Extract data from result
             chart_data = []

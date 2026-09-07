@@ -629,6 +629,7 @@ async def update_chart(  # noqa: C901
 
         if (
             request.dataset_id is not None
+            and request.dataset_id != getattr(chart, "datasource_id", None)
             and request.config is None
             and getattr(chart, "viz_type", None) == "gauge_chart"
         ):

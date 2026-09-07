@@ -1546,3 +1546,48 @@ def test_saved_gauge_dispatch_and_validation_agree(
     assert isinstance(result, ChartError)
     assert result.error_type == "NonNumericGaugeMetric"
     assert build.call_args.args[0]["viz_type"] == "gauge_chart"
+
+
+@pytest.mark.parametrize(
+    "strategy", [ASCIIPreviewStrategy, TablePreviewStrategy, VegaLitePreviewStrategy]
+)
+def test_saved_gauge_preview_skips_empty_aggregate_groups(
+    strategy: type[PreviewFormatStrategy],
+) -> None:
+    """Every saved preview format retains the finite dial from mixed query output."""
+    chart = _gauge_chart()
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview.build_query_context_from_form_data"
+        ) as build,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        build.return_value = SimpleNamespace(
+            queries=[SimpleNamespace(metrics=["saved_sla"])]
+        )
+        command.return_value.run.return_value = {
+            "queries": [
+                {
+                    "data": [
+                        {"team": "Empty", "saved_sla": None},
+                        {"team": "NaN", "saved_sla": float("nan")},
+                        {"team": "Blue", "saved_sla": 42},
+                    ]
+                }
+            ]
+        }
+        result = strategy(chart, GetChartPreviewRequest(identifier=104)).generate()
+    assert not isinstance(result, ChartError)
+    if isinstance(result, VegaLitePreview):
+        assert [row["saved_sla"] for row in result.specification["data"]["values"]] == [
+            42
+        ]
+    elif isinstance(result, TablePreview):
+        assert result.row_count == 1
+        assert "Blue" in result.table_data
+        assert "Empty" not in result.table_data
+    else:
+        assert "Blue" in result.ascii_content
+        assert "Empty" not in result.ascii_content

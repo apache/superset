@@ -42,7 +42,7 @@ from pydantic import (
 )
 from typing_extensions import Self
 
-from superset.constants import TimeGrain
+from superset.constants import NO_TIME_RANGE, TimeGrain
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import (
     CacheStatus,
@@ -1240,9 +1240,22 @@ class GaugeChartConfig(BaseChartConfig):
                             f"adhoc_filters[{index}] requires a temporal comparator"
                         )
                     validate_time_range(comparator)
-                    if data.get("granularity_sqla") not in (None, subject) or data.get(
-                        "time_range"
-                    ) not in (None, comparator):
+                    if comparator == NO_TIME_RANGE:
+                        if data.get("temporal_column") not in (None, subject):
+                            raise ValueError(
+                                f"adhoc_filters[{index}] conflicts with another "
+                                "dashboard temporal binding"
+                            )
+                        data["temporal_column"] = subject
+                        continue
+                    if (
+                        data.get("granularity_sqla") not in (None, subject)
+                        and data.get("time_range") != NO_TIME_RANGE
+                    ) or data.get("time_range") not in (
+                        None,
+                        NO_TIME_RANGE,
+                        comparator,
+                    ):
                         raise ValueError(
                             f"adhoc_filters[{index}] conflicts with another temporal "
                             "range; multiple distinct temporal ranges are not supported"
