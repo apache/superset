@@ -48,6 +48,10 @@ class ImpalaEngineSpec(BaseEngineSpec):
     engine = "impala"
     engine_name = "Apache Impala"
 
+    # Epoch-integer partition keys are the common Impala layout, and the
+    # one-argument form takes the bound being mirrored rather than "now".
+    partition_value_transform_default = "unix_timestamp(:value)"
+
     metadata = {
         "description": (
             "Apache Impala is an open-source massively parallel "

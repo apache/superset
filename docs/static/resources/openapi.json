@@ -6282,6 +6282,9 @@
             "nullable": true,
             "type": "string"
           },
+          "partition_value_transform_default": {
+            "readOnly": true
+          },
           "schema": {
             "maxLength": 255,
             "nullable": true,
@@ -6509,6 +6512,14 @@
           "is_dttm": {
             "nullable": true,
             "type": "boolean"
+          },
+          "partition_transform_is_monotonic": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "partition_value_transform": {
+            "nullable": true,
+            "type": "string"
           },
           "python_date_format": {
             "maxLength": 255,
@@ -7822,13 +7833,43 @@
       },
       "PartitionMappingPreviewSchema": {
         "properties": {
+          "is_monotonic": {
+            "default": false,
+            "description": "Whether the owner has declared the transform order-preserving. Range operators only mirror when they have.",
+            "type": "boolean"
+          },
           "mapped_column": {
             "description": "Column whose filters would be mirrored",
             "type": "string"
           },
-          "sample_value": {
-            "description": "Value to evaluate the transform at",
+          "operator": {
+            "default": "==",
+            "description": "Filter operator being mirrored. Only operators that can be mirrored at all are accepted.",
+            "enum": [
+              "<",
+              "<=",
+              "==",
+              ">",
+              ">=",
+              "IN",
+              "TEMPORAL_RANGE"
+            ],
             "type": "string"
+          },
+          "partition_column": {
+            "default": null,
+            "description": "Candidate partition column. The editor previews a mapping before it is saved, so this overrides the stored value; omitted, the stored one is used.",
+            "nullable": true,
+            "type": "string"
+          },
+          "sample_values": {
+            "description": "Values to evaluate the transform at. A comparison operator takes one; IN takes the whole list.",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "type": "array"
           },
           "value_transform": {
             "description": "SQL expression containing a :value placeholder",
@@ -7838,7 +7879,7 @@
         },
         "required": [
           "mapped_column",
-          "sample_value",
+          "sample_values",
           "value_transform"
         ],
         "type": "object"
@@ -24295,7 +24336,7 @@
     },
     "/api/v1/dataset/{pk}/partition_mapping/preview/": {
       "post": {
-        "description": "Evaluate a partition value transform at a sample value and return the predicate that would be appended to queries. Parse and denylist checks run before anything reaches the engine, so an unparseable transform costs no query.",
+        "description": "Evaluate a partition value transform at sample values and return the predicate that would be appended to queries. The predicate is built by the same code the query path uses, so the preview cannot drift from what a chart emits. Parse and denylist checks run before anything reaches the engine, so an unparseable transform costs no query.",
         "parameters": [
           {
             "description": "The dataset ID",
@@ -24329,6 +24370,9 @@
                           "type": "string"
                         },
                         "error": {
+                          "type": "string"
+                        },
+                        "sample_input": {
                           "type": "string"
                         },
                         "valid": {
