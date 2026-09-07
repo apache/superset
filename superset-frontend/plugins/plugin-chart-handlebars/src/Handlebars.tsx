@@ -31,19 +31,22 @@ const Styles = styled.div<HandlebarsStylesProps>`
 
 export default function Handlebars(props: HandlebarsProps) {
   const { data, height, width, formData } = props;
-  const styleTemplateSource = formData.styleTemplate
+  const styleSource = formData.styleTemplate
     ? `<style>${formData.styleTemplate}</style>`
-    : '';
-  const handlebarTemplateSource = formData.handlebarsTemplate
+    : undefined;
+  const templateSource = formData.handlebarsTemplate
     ? formData.handlebarsTemplate
     : '{{data}}';
-  const templateSource = `${handlebarTemplateSource}\n${styleTemplateSource} `;
 
   const rootElem = createRef<HTMLDivElement>();
 
   return (
     <Styles ref={rootElem} height={height} width={width}>
-      <HandlebarsViewer data={{ data }} templateSource={templateSource} />
+      <HandlebarsViewer
+        data={{ data }}
+        templateSource={templateSource}
+        styleSource={styleSource}
+      />
     </Styles>
   );
 }

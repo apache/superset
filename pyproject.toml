@@ -44,13 +44,13 @@ dependencies = [
     # without the ``base.txt`` lock file (#40962).
     "cachetools>=7.1.7, <8",
     "celery>=5.6.3, <6.0.0",
-    "click>=8.4.2",
+    "click>=8.5.0",
     "click-option-group",
     "colorama",
     "flask-cors>=6.0.5, <7.0",
     "croniter>=6.2.4",
     "cron-descriptor",
-    "cryptography>=50.0.0, <51.0.0",
+    "cryptography>=50.0.1, <51.0.0",
     "deprecation>=2.1.0, <2.2.0",
     "flask>=2.2.5, <4.0.0",
     "flask-appbuilder>=5.2.2, <6.0.0",
@@ -82,8 +82,8 @@ dependencies = [
     # https://github.com/apache/superset/issues/33162
     "marshmallow>=3.0, <5",
     "marshmallow-union>=0.1.15.post1",
-    "msgpack>=1.2.0, <1.3",
-    "nh3>=0.3.5, <0.4",
+    "msgpack>=1.2.2, <1.3",
+    "nh3>=0.3.7, <0.4",
     "numpy>=1.23.5, <2.5",
     "packaging",
     # --------------------------
@@ -96,7 +96,7 @@ dependencies = [
     "pgsanity",
     "Pillow>=12.3.0, <13", # raise floor to match resolved pin; closes SCA false-positive on 11.x-range CVEs already fixed in 12.3.0
     "polyline>=2.0.4, <3.0",
-    "pydantic>=2.8.0",
+    "pydantic>=2.13.5",
     "pyparsing>=3.3.2, <4",
     "python-dateutil",
     "python-dotenv", # optional dependencies for Flask but required for Superset, see https://flask.palletsprojects.com/en/stable/installation/#optional-dependencies
@@ -109,11 +109,14 @@ dependencies = [
 
     "shillelagh[gsheetsapi]>=1.4.5, <2.0",
     "sshtunnel>=0.4.0, <0.5",
-    "simplejson>=4.1.1",
-    "slack_sdk>=3.43.0, <4",
+    "simplejson>=4.1.2",
+    "slack_sdk>=3.44.0, <4",
     "sqlalchemy>=2.0.52, <2.1",
     "sqlalchemy-continuum>=1.6.0, <2.0.0",
     "sqlalchemy-utils>=0.42.1, <0.43", # expanding lowerbound to work with pydoris
+    # Dialect-specific gaps/bugs against this pin are worked around in
+    # superset/sql/dialects/ (e.g. starrocks.py); check there for anything
+    # that can be cleaned up when bumping
     "sqlglot>=30.17.0, <31", # 30.16.0 adds Trino inline UDF IF/CASE routine statement parsing
     # newer pandas needs 0.9+
     "tabulate>=0.10.0, <1.0",
@@ -135,11 +138,11 @@ athena = ["pyathena[pandas]>=3.35.4, <4"]
 # superset/db_engine_specs/aurora.py's known_incompatibilities metadata.
 aurora-data-api = ["preset-sqlalchemy-aurora-data-api>=0.2.8,<0.3"]
 bigquery = [
-    "pandas-gbq>=0.35.1",
+    "pandas-gbq>=0.35.2",
     # 1.17.1 is likely the final release: googleapis/python-bigquery-sqlalchemy
     # was archived 2026-05-16. Both 1.17.0 and 1.17.1 support SQLAlchemy 1.4/2.0.
     "sqlalchemy-bigquery>=1.17.2",
-    "google-cloud-bigquery>=3.42.3",
+    "google-cloud-bigquery>=3.44.0",
 ]
 clickhouse = ["clickhouse-connect>=1.7.2, <2.0"]
 # The `cockroachdb` PyPI package (last released 2021) is abandoned and its
@@ -210,7 +213,7 @@ firebird = ["sqlalchemy-firebird>=2.2.0"]
 firebolt = ["firebolt-sqlalchemy>=1.1.2, <2"]
 gevent = ["gevent>=26.8.0"]
 gsheets = ["shillelagh[gsheetsapi]>=1.4.5, <2"]
-hana = ["hdbcli==2.29.25", "sqlalchemy_hana==3.0.3"]
+hana = ["hdbcli==2.29.27", "sqlalchemy_hana==3.0.3"]
 hive = [
     "pyhive[hive_pure_sasl]>=0.7.0",
     "tableschema",
@@ -270,7 +273,7 @@ tdengine = [
     "taospy>=2.8.10",
     "taos-ws-py>=0.7.0"
 ]
-teradata = ["teradatasql>=20.0.0.66"]
+teradata = ["teradatasql>=20.0.0.67"]
 thumbnails = [] # deprecated, will be removed in 7.0
 vertica = ["sqlalchemy-vertica-python>= 0.6.3, < 0.7"]
 netezza = ["nzalchemy>= 11.1.2, < 11.2"]
@@ -285,7 +288,7 @@ development = [
     "docker",
     "flask-testing",
     "freezegun",
-    "grpcio>=1.82.1",
+    "grpcio>=1.83.1",
     "openapi-spec-validator",
     "parameterized",
     "pip",
