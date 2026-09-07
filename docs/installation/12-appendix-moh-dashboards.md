@@ -295,18 +295,125 @@ Note that role grants are a red herring here. `OrgUnitViewer` and `Gamma` hold
 instances, yet national users load it fine — the gate is the org-unit level,
 not the grant table.
 
-`mohr` is denied because it is an account created locally, so it has no row in
-`moh.dim_user_orgunit` at all. That is the correct outcome for a read-only
-account that is not a real MoH user. If you do want it to reach dashboard 8,
-the options in increasing bluntness are:
-
-1. Add a level-1 row for it in ClickHouse `moh.dim_user_orgunit` — keeps the
-   normal mechanism and keeps row-level security meaningful.
-2. Give it the `Admin` role — defeats the point of a read-only account.
+`mohr` was initially denied because it is an account created locally, so it had
+no row in `moh.dim_user_orgunit` at all. It has since been mapped to
+`b3aCK1PTn5S` (Federal Ministry Of Health, level 1) — the same org unit as
+`admin`, `moh` and `moh_1` — which both satisfies this gate and gives its
+charts data (see the next section). It remains read-only: `POST
+/api/v1/dashboard/` still returns 403.
 
 Do not "fix" this by removing 8 from `MOH_LEVEL_ONE_DASHBOARD_IDS`. That
 disables a deliberate access control for everyone, on an instance holding a
 copy of production's data.
+
+### A user with no org-unit mapping sees empty charts, with no error at all
+
+This is the second, quieter failure mode, and it is easy to confuse with the
+403 above. Every MoH chart's SQL carries a row-level-security block that
+resolves the logged-in user's org unit from ClickHouse:
+
+```sql
+-- RLS: resolve the logged-in user's org unit via dim_user_orgunit
+user_org_unit AS (SELECT org_unit_id FROM moh.dim_user_orgunit WHERE username = ...)
+```
+
+If the user has **no row** in `moh.dim_user_orgunit`, that subquery returns
+nothing, the filter matches nothing, and every chart returns **zero rows**.
+Not a 403, not a 500 — an empty chart with `rowcount: 0` and HTTP 200.
+
+The give-away is that the same chart returns different results for different
+users:
+
+```
+chart 1:  admin  rows=2   first={'monnth_No':'01-Hamle','Baseline':97.1,...}
+chart 1:  mohr   rows=0   first=None
+```
+
+Any account you create yourself hits this, because `dim_user_orgunit` is
+populated for real MoH users only — creating a Superset user does not add a row
+to it.
+
+Check whether a user is mapped:
+
+```bash
+sudo -u sysadmin bash -c '
+  set -a; . /etc/moh-dashboards-superset/superset.env; set +a
+  cd /var/moh-dashboards/moh-superset
+  export PYTHONPATH=/var/moh-dashboards/moh-superset
+  ./.venv/bin/python - <<PY
+from superset.app import create_app
+from sqlalchemy import text
+app = create_app()
+with app.app_context():
+    from superset import db
+    from superset.models.core import Database
+    ch = db.session.query(Database).filter_by(database_name="MOH_Click_Hhouse").one()
+    with ch.get_sqla_engine() as e:
+        rows = e.connect().execute(text("""
+            SELECT d.username, d.org_unit_id, ou.level, ou.name
+              FROM moh.dim_user_orgunit d
+              JOIN moh.org_units ou ON ou.id = d.org_unit_id
+             WHERE d.username IN ('admin','<USERNAME>')
+        """)).fetchall()
+        for r in rows: print(r)
+PY'
+```
+
+To map an account at national level — which is also what satisfies the
+level-one gate on dashboard 8:
+
+```sql
+INSERT INTO moh.dim_user_orgunit (username, org_unit_id, created_at)
+VALUES ('<USERNAME>', 'b3aCK1PTn5S', now());   -- Federal Ministry Of Health, level 1
+```
+
+The table is `ReplacingMergeTree(created_at) ORDER BY (username)`, so there is
+exactly one row per user and re-inserting replaces rather than duplicates.
+
+> **Warning**
+> `moh.dim_user_orgunit` lives in the ClickHouse warehouse that **production
+> also reads**. It is not part of this instance's metadata database, and
+> nothing here is isolated from production. Only add usernames that do not
+> exist in production's Superset, and get the change agreed before you run it.
+> To undo:
+>
+> ```sql
+> ALTER TABLE moh.dim_user_orgunit DELETE WHERE username = '<USERNAME>';
+> ```
+
+After changing a mapping, the verdict is cached in Redis for a short TTL under
+`superset_meta_moh_level_one:<username>:<level>`, and memoised per request.
+Clear it, or you will keep seeing the old answer:
+
+```bash
+for k in $(redis-cli -p 6383 -n 1 --scan --pattern '*moh_level_one*<USERNAME>*'); do
+  redis-cli -p 6383 -n 1 del "$k"
+done
+sudo systemctl restart moh-dashboards-superset
+```
+
+> **Warning**
+> Fixing the mapping is not enough on its own. Chart results are cached **per
+> user's RLS context**, so every dashboard the affected user opened while
+> unmapped left behind a cached `rowcount: 0` result. Those entries are served
+> back as `HTTP 200, is_cached: true, rows=0` for the full
+> `DATA_CACHE_CONFIG` timeout (7200s), so the account still shows nothing and
+> it looks like the fix failed.
+>
+> The entries are keyed by hash, so they cannot be picked out individually.
+> Flush this instance's result caches and let them repopulate:
+>
+> ```bash
+> redis-cli -p 6383 -n 2 flushdb   # DATA_CACHE -- chart query results
+> redis-cli -p 6383 -n 3 flushdb   # filter state / thumbnails
+> redis-cli -p 6383 -n 4 flushdb   # explore form data
+> redis-cli -p 6383 -n 5 flushdb   # SQL Lab results
+> ```
+>
+> Check the port. `6383` is this instance's own Redis; `6379` is production's
+> and flushing it would drop the live portal's entire cache. Then re-run the
+> warm-up from the previous section so the next visitor does not pay for every
+> cold query.
 
 ### A quirk worth knowing when you test with curl
 
