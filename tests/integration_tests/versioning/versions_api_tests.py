@@ -172,14 +172,22 @@ class TestChartVersionsApi(SupersetTestCase):
 
     def test_list_versions_denies_unauthorized_user(self) -> None:
         """The per-object editorship gate (``raise_for_editorship``) must
-        refuse a user who is no editor — as a 403, or 404 if the object
+        refuse a user who is not an editor — as a 403, or 404 if the object
         isn't even visible to them."""
         chart_uuid = str(self._girls_chart().uuid)
         self.login(GAMMA_USERNAME)
         rv = self.client.get(f"/api/v1/chart/{chart_uuid}/versions/")
         assert rv.status_code in (403, 404), rv.data
 
-    def test_list_versions_denies_read_only_non_editor_chart(self) -> None:
+    def _births_dashboard(self) -> Dashboard:
+        # Commit first so fixture state created in this test process is
+        # visible to the request-side session (same idiom as
+        # ``_girls_chart`` and the activity suite's
+        # ``_persist_fixture_state``).
+        db.session.commit()
+        return db.session.query(Dashboard).filter(Dashboard.slug == "births").one()
+
+    def test_list_versions_denies_write_capable_non_editor_chart(self) -> None:
         """sc-120001 pin: version history is EDIT-gated. Alpha carries broad
         read + datasource access — the OLD read gate admitted it — but is no
         editor/owner of this chart, so the endpoint must refuse with 403.
@@ -190,12 +198,11 @@ class TestChartVersionsApi(SupersetTestCase):
         rv = self.client.get(f"/api/v1/chart/{chart_uuid}/versions/")
         assert rv.status_code == 403, rv.data
 
-    def test_list_versions_denies_read_only_non_editor_dashboard(self) -> None:
+    def test_list_versions_denies_write_capable_non_editor_dashboard(self) -> None:
         """sc-120001 pin, dashboard flavour — the same edit gate refuses a
         read-capable non-editor on the dashboard endpoint (this is QA
         TC-062/TC-066's leak, closed)."""
-        db.session.commit()
-        dashboard = db.session.query(Dashboard).filter(Dashboard.slug == "births").one()
+        dashboard = self._births_dashboard()
         self.login(ALPHA_USERNAME)
         rv = self.client.get(f"/api/v1/dashboard/{dashboard.uuid}/versions/")
         assert rv.status_code == 403, rv.data
@@ -212,8 +219,10 @@ class TestChartVersionsApi(SupersetTestCase):
         chart = self._girls_chart()
         chart_uuid = str(chart.uuid)
         gamma = security_manager.find_user(GAMMA_USERNAME)
+        gamma_subject = get_user_subject(gamma.id)
+        assert gamma_subject is not None, "gamma user has no USER subject row"
         original_editors = list(chart.editors)
-        chart.editors = [get_user_subject(gamma.id)]
+        chart.editors = [gamma_subject]
         db.session.commit()
         try:
             self.login(GAMMA_USERNAME)
@@ -228,7 +237,10 @@ class TestChartVersionsApi(SupersetTestCase):
         """sc-120001 / M10 pin: an embedded guest-token principal is never
         an editor, so the editorship gate the version endpoints run refuses
         it outright — guests read embedded dashboards, never their change
-        logs."""
+        logs. Deliberately pins the gate directly (guest HTTP-session
+        plumbing isn't worth the cost here); the endpoint→gate wiring is
+        pinned by the unit not-called test and the Alpha/Gamma HTTP
+        matrix."""
         # pylint: disable=import-outside-toplevel
         from unittest.mock import patch as mock_patch
 
@@ -434,6 +446,15 @@ class TestDatasetVersionsApi(SupersetTestCase):
                 f"/api/v1/dataset/{ds_id}",
                 json={"description": original},
             )
+
+    def test_list_versions_denies_write_capable_non_editor_dataset(self) -> None:
+        """sc-120001 pin, dataset flavour: Alpha carries all-datasource
+        access — the flavour where read-vs-edit confusion would most
+        plausibly regress — and is still refused as a non-editor."""
+        ds_uuid = str(self._dataset().uuid)
+        self.login(ALPHA_USERNAME)
+        rv = self.client.get(f"/api/v1/dataset/{ds_uuid}/versions/")
+        assert rv.status_code == 403, rv.data
 
     def test_put_override_columns_returns_version_fields(self) -> None:
         """The ``override_columns`` save is two commits / two Continuum

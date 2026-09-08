@@ -123,7 +123,7 @@ class TestDashboardActivityView(SupersetTestCase):
         rv = self._activity(str(dashboard.uuid), since="yesterday")
         assert rv.status_code == 400
 
-    def test_activity_denies_read_only_non_editor(self) -> None:
+    def test_activity_denies_write_capable_non_editor(self) -> None:
         """sc-120001: activity is EDIT-gated. A non-editor with broad read +
         datasource access (Alpha) is refused — the endpoint enforces
         object-level editorship (``raise_for_editorship``), matching the
@@ -922,7 +922,7 @@ class TestChartActivityView(SupersetTestCase):
         rv = self._activity(str(chart.uuid), include="upstream")
         assert rv.status_code == 400
 
-    def test_chart_activity_denies_read_only_non_editor(self) -> None:
+    def test_chart_activity_denies_write_capable_non_editor(self) -> None:
         """sc-120001: same edit gate as the dashboard endpoint — a
         read-access non-editor (Alpha) is refused with 403."""
         _persist_fixture_state()
@@ -1122,7 +1122,7 @@ class TestDatasetActivityView(SupersetTestCase):
         rv = self._activity(str(dataset.uuid), include="upstream")
         assert rv.status_code == 400
 
-    def test_dataset_activity_denies_read_only_non_editor(self) -> None:
+    def test_dataset_activity_denies_write_capable_non_editor(self) -> None:
         """sc-120001: the dataset activity endpoint shares the edit gate —
         a read-access non-editor (Alpha) is refused with 403."""
         _persist_fixture_state()

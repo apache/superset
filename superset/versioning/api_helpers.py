@@ -19,8 +19,9 @@
 Each ``ChartRestApi`` / ``DashboardRestApi`` / ``DatasetRestApi`` carries
 the same read endpoint methods — ``list_versions`` and ``get_version`` —
 plus the ``activity`` endpoint on each resource. The bodies are
-byte-for-byte identical apart from the model class and the
-``security_manager.raise_for_access`` kwarg. Extracting the bodies here
+byte-for-byte identical apart from the model class; authorization is a
+single object-level editorship gate in ``resolve_endpoint_path_entity``
+(``security_manager.raise_for_editorship``). Extracting the bodies here
 lets each per-resource method collapse to a single delegation call, while
 the OpenAPI docstring + FAB decorators stay at the method site where they
 belong.

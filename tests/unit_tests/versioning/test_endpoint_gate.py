@@ -62,7 +62,13 @@ def test_preflight_enforces_editorship_not_read_access(
     mocker.patch.object(
         api_helpers.VersionDAO, "find_active_by_uuid", return_value=entity
     )
-    sm = mocker.patch.object(api_helpers, "security_manager")
+    # Explicit MagicMock: the module attribute is a werkzeug LocalProxy,
+    # whose attribute forwarding fools unittest.mock's async detection —
+    # a bare patch creates an AsyncMock whose calls return un-awaited
+    # coroutines, so raising side_effects never fire on this synchronous
+    # path.
+    sm = MagicMock()
+    mocker.patch.object(api_helpers, "security_manager", sm)
 
     resolved, _ = resolve_endpoint_path_entity(_api(), Dashboard, _UUID)
 
@@ -76,8 +82,10 @@ def test_preflight_maps_editorship_refusal_to_403(
 ) -> None:
     """A non-editor principal gets the 403 response, nothing else. The
     security manager is stubbed with a plain object whose gate raises the
-    real exception type (a MagicMock-based raising side_effect proved
-    unreliable in this suite's environment)."""
+    real exception type — and whose read gate raises AssertionError if
+    consulted, doubling as a not-called pin on the refusal path. (A bare
+    ``mocker.patch.object`` here would yield an AsyncMock — see the
+    LocalProxy note in the sibling test.)"""
     entity = SimpleNamespace(id=1)
     mocker.patch.object(
         api_helpers.VersionDAO, "find_active_by_uuid", return_value=entity
@@ -110,7 +118,7 @@ def test_preflight_fails_closed_for_unwired_models(
     """A model outside the version-endpoint allowlist raises rather than
     silently inheriting any gate."""
 
-    class Unwired:  # noqa: N801
+    class Unwired:
         pass
 
     mocker.patch.object(
