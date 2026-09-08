@@ -27,11 +27,14 @@ message unless the error is one Superset authored itself.
 from __future__ import annotations
 
 import dataclasses
+import logging
 from typing import Any
 
 from flask_babel import lazy_gettext as _
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+
+logger = logging.getLogger(__name__)
 
 GENERIC_ERROR_MESSAGE = _("An error occurred while fetching the data.")
 GENERIC_ACCESS_MESSAGE = _("You don't have permission to access this resource.")
@@ -78,11 +81,28 @@ ACCESS_STATUSES = frozenset({401, 403})
 def is_sanitization_required() -> bool:
     """
     Whether the principal of the current request is an embedded guest viewer.
+
+    This runs inside Flask's HTTP error handler, which has no handler of its own:
+    if resolving the principal raises, Flask discards the intended status and
+    returns a bare 500. Some Flask-Login user loaders (e.g. a JWT request loader)
+    raise rather than fall back to an anonymous user when a request carries no
+    valid credential, so the lookup below must never be allowed to propagate. A
+    request whose principal cannot be resolved is by definition not an embedded
+    guest viewer, so there is nothing to redact and ``False`` is the safe answer.
     """
     # pylint: disable=import-outside-toplevel
     from superset import security_manager
 
-    return security_manager.is_guest_user()
+    try:
+        return security_manager.is_guest_user()
+    except Exception:  # pylint: disable=broad-except
+        # Never let identifying the principal break the error handler itself.
+        logger.warning(
+            "Could not resolve the request principal while deciding whether to "
+            "sanitize an error response; treating it as a non-guest request.",
+            exc_info=True,
+        )
+        return False
 
 
 def sanitize_error_message(message: str, status: int | None = None) -> str:

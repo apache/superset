@@ -49,7 +49,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@ant-design/icons": "^6.3.2",
+    "@ant-design/icons": "^6.3.4",
     "@apache-superset/core": "*",
     "@babel/runtime": "^7.29.7",
     "@braintree/sanitize-url": "^7.1.2",
@@ -80,7 +80,7 @@
     "re-resizable": "^6.11.2",
     "react-ace": "^14.0.1",
     "react-draggable": "^4.7.1",
-    "react-error-boundary": "^6.1.3",
+    "react-error-boundary": "^6.1.4",
     "react-js-cron": "^6.0.2",
     "react-markdown": "^10.1.0",
     "react-resize-detector": "^7.1.2",
@@ -119,7 +119,7 @@
     "@emotion/styled": "^11.14.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "*",
-    "@testing-library/react": "^15.0.0",
+    "@testing-library/react": "*",
     "@testing-library/user-event": "*",
     "@types/react": "*",
     "@types/react-loadable": "*",
