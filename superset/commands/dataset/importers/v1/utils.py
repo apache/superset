@@ -249,11 +249,13 @@ def _get_template_params(dataset: SqlaTable) -> dict[str, Any]:
     """
     Return a dataset's template params as a dict for the access check.
 
-    They are persisted as a JSON string; an unusable value yields an empty
-    dict so the check still runs against the raw SQL.
+    Delegates to ``template_params_dict`` so the check reads the params the
+    same way rendering does, but tolerates the two inputs that property does
+    not guard: it raises on malformed JSON and passes non-dict JSON through.
+    Either yields an empty dict so the check still runs against the raw SQL.
     """
     try:
-        params = json.loads(dataset.template_params or "{}")
+        params = dataset.template_params_dict
     except json.JSONDecodeError:
         logger.warning(
             "Unable to decode template_params for dataset %s", dataset.table_name
@@ -589,14 +591,13 @@ def import_dataset(  # noqa: C901
                 )
         except SupersetSecurityException as ex:
             raise DatasetAccessDeniedError() from ex
-        except (SupersetParseError, TemplateError) as ex:
-            # SQL that can't be parsed or rendered can't be access-checked, so
-            # fail closed, but as an invalid payload (422) rather than an
-            # access denial or a server error.
-            message = (
-                ex.error.message if isinstance(ex, SupersetParseError) else str(ex)
-            )
-            raise IncorrectFormatError(f"Invalid SQL: {message}") from ex
+        # SQL that can't be parsed or rendered can't be access-checked, so fail
+        # closed, but as an invalid payload (422) rather than an access denial
+        # or a server error.
+        except SupersetParseError as ex:
+            raise IncorrectFormatError(f"Invalid SQL: {ex.error.message}") from ex
+        except TemplateError as ex:
+            raise IncorrectFormatError(f"Invalid SQL: {ex}") from ex
 
     try:
         table_exists = dataset.database.has_table(

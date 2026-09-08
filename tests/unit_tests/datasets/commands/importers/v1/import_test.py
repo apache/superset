@@ -29,6 +29,7 @@ import pytest
 import yaml
 from flask import current_app
 from flask_appbuilder.security.sqla.models import Role, User
+from jinja2.exceptions import TemplateError
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
@@ -706,8 +707,15 @@ def test_import_dataset_virtual_sql_check_receives_template_params(
     assert sql_call.kwargs["schema"] is None
 
 
+@pytest.mark.parametrize(
+    "error",
+    [
+        SupersetParseError("SELECT", message="Could not parse SQL"),
+        TemplateError("Could not render SQL"),
+    ],
+)
 def test_import_dataset_virtual_invalid_sql_is_rejected_as_bad_payload(
-    mocker: MockerFixture, session: Session
+    error: Exception, mocker: MockerFixture, session: Session
 ) -> None:
     """
     SQL that cannot be parsed or rendered can't be access-checked, so the
@@ -721,10 +729,15 @@ def test_import_dataset_virtual_invalid_sql_is_rejected_as_bad_payload(
     db.session.flush()
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    def raise_for_access(**kwargs: object) -> None:
+        # Only the SQL/table-level check fails, so the test still fails if the
+        # datasource-level call is the one that raises.
+        if kwargs.get("sql"):
+            raise error
+
     mocker.patch.object(
-        security_manager,
-        "raise_for_access",
-        side_effect=SupersetParseError("SELECT", message="Could not parse SQL"),
+        security_manager, "raise_for_access", side_effect=raise_for_access
     )
 
     config = copy.deepcopy(dataset_fixture)
