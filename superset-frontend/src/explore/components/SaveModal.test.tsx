@@ -557,6 +557,7 @@ test('updates slice name and selected dashboard', async () => {
     expect.anything(),
     expect.anything(),
   );
+  expect(setFormData).not.toHaveBeenCalled();
 });
 
 test('set dataset name when chart source is query', () => {

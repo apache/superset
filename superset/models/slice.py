@@ -496,6 +496,13 @@ def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) ->
     # pylint: disable=import-outside-toplevel
     from superset.daos.datasource import DatasourceDAO
 
+    # This listener also runs on updates, so clear the derived values before
+    # attempting to resolve the datasource. Otherwise an unmapped or deleted
+    # datasource can retain permission strings copied from a previous one.
+    target.perm = None
+    target.catalog_perm = None
+    target.schema_perm = None
+
     src_class = DatasourceDAO.sources.get(target.datasource_type)
     if src_class is None:
         # The chart API accepts every ``DatasourceType``, but only some of them

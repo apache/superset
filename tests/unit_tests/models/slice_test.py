@@ -229,7 +229,9 @@ class TestSlice:
         assert '"onmouseover' not in html
 
 
-def _run_set_related_perm(datasource_type: str) -> Slice:
+def _run_set_related_perm(
+    datasource_type: str, *, with_existing_perms: bool = False
+) -> Slice:
     """Run the perm-denormalizing listener against a stand-in datasource.
 
     The stand-in is specced against the model class registered for
@@ -242,6 +244,10 @@ def _run_set_related_perm(datasource_type: str) -> Slice:
     target = Slice()
     target.datasource_type = datasource_type
     target.datasource_id = 1
+    if with_existing_perms:
+        target.perm = "old-perm"
+        target.catalog_perm = "old-catalog-perm"
+        target.schema_perm = "old-schema-perm"
 
     src_class = DatasourceDAO.sources.get(datasource_type)
     datasource = MagicMock(spec=src_class) if src_class else None
@@ -306,6 +312,18 @@ def test_set_related_perm_tolerates_unmapped_datasource_type(
     the listener leaves them null rather than failing the save.
     """
     target = _run_set_related_perm(datasource_type)
+
+    assert target.perm is None
+    assert target.catalog_perm is None
+    assert target.schema_perm is None
+
+
+@pytest.mark.parametrize("datasource_type", ["dataset", "view"])
+def test_set_related_perm_clears_stale_perms_for_unmapped_datasource_type(
+    app_context: None, datasource_type: str
+) -> None:
+    """An update to an unmapped type must not retain the previous datasource's perms."""
+    target = _run_set_related_perm(datasource_type, with_existing_perms=True)
 
     assert target.perm is None
     assert target.catalog_perm is None

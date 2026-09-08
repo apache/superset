@@ -532,8 +532,13 @@ const SaveModal = ({
           }
         }
 
-        // Sets the form data
-        actions.setFormData({ ...formData });
+        // Saving a Query as a dataset synchronously updates form_data through
+        // changeDatasource. Re-applying this render's Query-backed form_data
+        // would overwrite that conversion just before createSlice reads the
+        // store, causing the chart API to receive datasource_type="query".
+        if (datasource?.type !== DatasourceType.Query) {
+          actions.setFormData({ ...formData });
+        }
 
         //  Update or create slice
         let value: { id: number };
