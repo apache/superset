@@ -225,11 +225,28 @@ class UpdateDatabaseCommand(BaseCommand):
         ):
             connection_identity_changed = True
 
-        if connection_identity_changed and submitted_password in (
-            None,
-            PASSWORD_MASK,
-        ):
-            raise DatabaseInvalidError(exceptions=[DatabaseUpdateUnsafeRebindError()])
+        if connection_identity_changed:
+            try:
+                stored_uri_password = make_url_safe(model.sqlalchemy_uri).password
+            except DatabaseInvalidError:
+                stored_uri_password = None
+            uri_password_reused = stored_uri_password is not None and (
+                submitted_password in (None, PASSWORD_MASK)
+            )
+            # encrypted_extra is a blob with per-field masks, so "reused" means
+            # unmasking the submission against the stored value changes nothing.
+            encrypted_extra_reused = bool(model.encrypted_extra) and (
+                "masked_encrypted_extra" not in self._properties
+                or model.db_engine_spec.unmask_encrypted_extra(
+                    model.encrypted_extra,
+                    self._properties["masked_encrypted_extra"],
+                )
+                == model.encrypted_extra
+            )
+            if uri_password_reused or encrypted_extra_reused:
+                raise DatabaseInvalidError(
+                    exceptions=[DatabaseUpdateUnsafeRebindError()]
+                )
 
         if "ssh_tunnel" in self._properties and ssh_tunnel_rebind_unsafe(
             model.ssh_tunnel, self._properties["ssh_tunnel"]
