@@ -37,6 +37,7 @@ import sqlalchemy as sa
 from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
+from superset.utils.core import override_user
 from superset.versioning.api_helpers import lock_entity_for_update
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (  # noqa: F401
@@ -109,8 +110,11 @@ class TestConditionalWriteLockRefresh(SupersetTestCase):
             # Pins the coupling the fix relies on: BaseDAO._query only
             # re-hydrates under force_fetch, so the command's lookup returns
             # the refreshed object. If DatasetDAO ever flips force_fetch,
-            # this catches the fix being silently undone.
-            fetched = DatasetDAO.find_by_id(dataset_id)
+            # this catches the fix being silently undone. The DAO's base
+            # filters read g.user, which a direct test-process call must
+            # supply.
+            with override_user(self.get_user("admin")):
+                fetched = DatasetDAO.find_by_id(dataset_id)
             assert fetched is dataset
             assert fetched.description == "committed by a concurrent request"
         finally:
@@ -140,7 +144,8 @@ class TestConditionalWriteLockRefresh(SupersetTestCase):
         try:
             locked = lock_entity_for_update(SqlaTable, dataset_id)
             assert locked is not None
-            fetched = DatasetDAO.find_by_id(dataset_id)
+            with override_user(self.get_user("admin")):
+                fetched = DatasetDAO.find_by_id(dataset_id)
             assert fetched is locked
         finally:
             db.session.rollback()
