@@ -168,3 +168,50 @@ def test_set_dash_metadata_updates_refresh_frequency_when_present(
     assert md["refresh_frequency"] == 0, (
         "refresh_frequency should be updated when present in data"
     )
+
+
+def test_prefetch_chart_access_loads_editors_and_viewers(
+    session: Session,
+) -> None:
+    """The per-chart access check reads editors and viewers on every slice.
+
+    Without the prefetch those are two lazy loads per chart, so the dashboard
+    GET issues a pair of queries for each member chart it narrows.
+    """
+    from sqlalchemy import inspect
+
+    from superset.subjects.models import Subject
+    from superset.subjects.types import SubjectType
+
+    Dashboard.metadata.create_all(session.get_bind())
+
+    editor = Subject(label="editor", type=SubjectType.ROLE)
+    viewer = Subject(label="viewer", type=SubjectType.ROLE)
+    dashboard = Dashboard(dashboard_title="prefetch", slug="prefetch")
+    for i in range(3):
+        dashboard.slices.append(
+            Slice(
+                slice_name=f"chart-{i}",
+                datasource_type="table",
+                datasource_id=1,
+                viz_type="table",
+                editors=[editor],
+                viewers=[viewer],
+            )
+        )
+    session.add(dashboard)
+    session.flush()
+
+    # Drop everything from the identity map so the relationships start unloaded.
+    session.expire_all()
+    dashboard = session.query(Dashboard).filter_by(slug="prefetch").one()
+    assert all("editors" in inspect(slc).unloaded for slc in dashboard.slices)
+
+    DashboardDAO.prefetch_chart_access(dashboard)
+
+    for slc in dashboard.slices:
+        unloaded = inspect(slc).unloaded
+        assert "editors" not in unloaded
+        assert "viewers" not in unloaded
+        assert [s.label for s in slc.editors] == ["editor"]
+        assert [s.label for s in slc.viewers] == ["viewer"]

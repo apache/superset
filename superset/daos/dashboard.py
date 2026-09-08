@@ -24,7 +24,7 @@ from typing import Any, Dict, List
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy import or_, select
-from sqlalchemy.orm import Query
+from sqlalchemy.orm import lazyload, Query, selectinload
 
 from superset import security_manager
 from superset.commands.dashboard.exceptions import (
@@ -204,6 +204,23 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return dashboard
 
     @staticmethod
+    def prefetch_chart_access(dashboard: Dashboard) -> None:
+        """
+        Load the editors and viewers of a dashboard's charts up front.
+
+        The per-chart access check reads both on every slice, so without this
+        they are two lazy loads per chart rather than two queries in total.
+        """
+        if slice_ids := [slc.id for slc in dashboard.slices]:
+            db.session.query(Slice).options(
+                # The rows are already in the session, we only want the two
+                # relationships, so don't re-fire the model's own eager loads.
+                lazyload("*"),
+                selectinload(Slice.editors),
+                selectinload(Slice.viewers),
+            ).filter(Slice.id.in_(slice_ids)).all()
+
+    @staticmethod
     def get_datasets_for_dashboard(id_or_slug: str) -> list[tuple[Any, dict[str, Any]]]:
         dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
         return dashboard.datasets_trimmed_for_slices()
@@ -215,7 +232,10 @@ class DashboardDAO(BaseDAO[Dashboard]):
 
     @staticmethod
     def get_charts_for_dashboard(id_or_slug: str) -> list[Slice]:
-        return DashboardDAO.get_by_id_or_slug(id_or_slug).slices
+        dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
+        # The caller narrows each chart by access, which reads these.
+        DashboardDAO.prefetch_chart_access(dashboard)
+        return dashboard.slices
 
     @staticmethod
     def get_dashboard_changed_on(id_or_slug_or_dashboard: str | Dashboard) -> datetime:
