@@ -1908,6 +1908,12 @@ class TestSavedChartExtraFormDataFilters:
             assert [
                 row[0] for row in list(workbook.active.values)[1:]
             ] == expected_groups
+            assert [row[1] for row in list(workbook.active.values)[1:]] == [
+                None,
+                "nan",
+                "inf",
+                "-inf",
+            ] + ([42] if has_finite else [])
         assert payload["queries"][0]["data"] is rows
         assert payload["queries"][0]["rowcount"] == source_rowcount
 

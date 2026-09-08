@@ -20,6 +20,7 @@ MCP tool: get_chart_data
 """
 
 import logging
+import math
 import time
 from typing import Any, Dict, List, TYPE_CHECKING
 
@@ -1315,6 +1316,9 @@ def _write_excel_data(ws: Any, data: List[Dict[str, Any]], columns: List[str]) -
             value = row.get(col, "")
             if value is None:
                 value = ""
+            elif isinstance(value, float) and not math.isfinite(value):
+                # XLSX has no non-finite numbers; preserve them as CSV-style text.
+                value = str(value)
             elif isinstance(value, (list, dict)):
                 value = str(value)
             ws.cell(row=row_idx, column=col_idx, value=value)
