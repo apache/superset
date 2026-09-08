@@ -2545,6 +2545,9 @@ ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
 # which leaves the report schedule stuck in the WORKING state. Set to None to
 # disable (not recommended).
 ALERT_REPORTS_CSV_REQUEST_TIMEOUT = 60
+# Opt in to at most one transient CSV/Excel transport retry within the original
+# request timeout and report execution budget. Does not retry unbounded requests.
+ALERT_REPORTS_CSV_REQUEST_RETRY = False
 # Custom width for screenshots
 ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
 ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
