@@ -156,6 +156,72 @@ class TestWebDriverPlaywrightFallback:
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.app")
+    def test_get_screenshot_expands_scrollable_content_before_capture(
+        self, mock_app, mock_browser_manager
+    ):
+        """A dense table taller than its dashboard tile renders fully in the
+        DOM but is visually clipped by a fixed height + internal scrollbar.
+        `get_screenshot` must un-clip that content (ag-Grid print layout /
+        CSS overflow reset, see EXPAND_SCROLLABLE_CONTENT_JS) before taking
+        the screenshot, and must do so *before* the capture call so the
+        expanded layout is what actually gets captured (#38090)."""
+        from superset.utils.screenshot_utils import EXPAND_SCROLLABLE_CONTENT_JS
+
+        mock_user = MagicMock()
+        mock_user.username = "test_user"
+
+        mock_app.config = {
+            "WEBDRIVER_OPTION_ARGS": [],
+            "WEBDRIVER_WINDOW": {"pixel_density": 1},
+            "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
+            "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "networkidle",
+            "SCREENSHOT_SELENIUM_HEADSTART": 0,
+            "SCREENSHOT_SELENIUM_ANIMATION_WAIT": 0,
+            "SCREENSHOT_REPLACE_UNEXPECTED_ERRORS": False,
+            "SCREENSHOT_TILED_ENABLED": False,
+            "SCREENSHOT_LOCATE_WAIT": 10,
+            "SCREENSHOT_LOAD_WAIT": 10,
+        }
+
+        mock_browser = MagicMock()
+        mock_context = MagicMock()
+        mock_page = MagicMock()
+        mock_element = MagicMock()
+
+        mock_browser_manager.get_browser.return_value = mock_browser
+        mock_browser.new_context.return_value = mock_context
+        mock_context.new_page.return_value = mock_page
+        mock_page.locator.return_value = mock_element
+
+        capture_order: list[str] = []
+
+        def evaluate_side_effect(script, *args, **kwargs):
+            if script == EXPAND_SCROLLABLE_CONTENT_JS:
+                capture_order.append("expand")
+                return None
+            # FIND_CHART_HOLDER_STATES_JS (readiness diagnostics) expects an
+            # iterable of holder states; every other call in this (non-tiled,
+            # non-report) path is only ever logged, not branched on.
+            return []
+
+        mock_page.evaluate.side_effect = evaluate_side_effect
+        mock_page.screenshot.side_effect = lambda **k: (
+            capture_order.append("capture") or b"fake_screenshot"
+        )
+
+        with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
+            driver = WebDriverPlaywright("chrome")
+            result = driver.get_screenshot(
+                "http://example.com", "standalone", mock_user
+            )
+
+        assert result == b"fake_screenshot"
+        mock_page.evaluate.assert_any_call(EXPAND_SCROLLABLE_CONTENT_JS)
+        assert capture_order == ["expand", "capture"]
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
     @patch("superset.utils.webdriver.logger")
     def test_get_screenshot_handles_playwright_timeout(
         self, mock_logger, mock_browser_manager
@@ -258,6 +324,25 @@ class TestWebDriverPlaywrightErrorHandling:
         mock_logger.exception.assert_called_once_with(
             "Failed to capture unexpected errors%s", ""
         )
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver.logger")
+    def test_expand_scrollable_content_swallows_playwright_error(self, mock_logger):
+        """A failure while un-clipping scrollable content must not abort the
+        screenshot -- a clipped-but-present capture beats none at all."""
+        from superset.utils.webdriver import PlaywrightError
+
+        mock_page = MagicMock()
+        mock_page.evaluate.side_effect = PlaywrightError("boom")
+
+        WebDriverPlaywright._expand_scrollable_content(
+            mock_page, log_context="execution_id=abc-123"
+        )
+
+        mock_logger.warning.assert_called_once()
+        warning_args = mock_logger.warning.call_args.args
+        assert "Failed to expand scrollable chart content" in warning_args[0]
+        assert warning_args[1] == " [execution_id=abc-123]"
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver.sync_playwright")
@@ -979,12 +1064,15 @@ class TestWebDriverPlaywrightChartReadiness:
 
         assert result == b"screenshot"
         # Readiness diagnostics are emitted before polling so a task killed by
-        # an outer limit still leaves useful state in the logs.
-        assert mock_page.evaluate.call_count == 2
-        assert all(
-            "state: 'rendered'" in call.args[0]
+        # an outer limit still leaves useful state in the logs. One additional
+        # evaluate() call expands scrollable content before capture (#38090).
+        readiness_calls = [
+            call
             for call in mock_page.evaluate.call_args_list
-        )
+            if "state: 'rendered'" in call.args[0]
+        ]
+        assert len(readiness_calls) == 2
+        assert mock_page.evaluate.call_count == 3
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -1599,8 +1687,9 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
 
         mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
 
-        # Small dashboard: 3 charts, 1000px height — below both thresholds
-        mock_page.evaluate.side_effect = [3, 1000, [], []]
+        # Small dashboard: 3 charts, 1000px height — below both thresholds.
+        # First item is consumed by the pre-capture scrollable-content expansion.
+        mock_page.evaluate.side_effect = [None, 3, 1000, [], []]
 
         call_order: list[str] = []
 
@@ -1642,7 +1731,8 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
             "SCREENSHOT_TILED_VIEWPORT_HEIGHT": 600,
         }
         mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
-        mock_page.evaluate.side_effect = [25, 500, [], []]
+        # First item is consumed by the pre-capture scrollable-content expansion.
+        mock_page.evaluate.side_effect = [None, 25, 500, [], []]
 
         with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
             result = WebDriverPlaywright("chrome").get_screenshot(
@@ -1673,8 +1763,9 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
 
         mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
 
-        # Large dashboard: 25 charts, 6000px height
-        mock_page.evaluate.side_effect = [25, 6000]
+        # Large dashboard: 25 charts, 6000px height. First item is consumed
+        # by the pre-capture scrollable-content expansion.
+        mock_page.evaluate.side_effect = [None, 25, 6000]
         mock_take_tiled.return_value = b"tiled_screenshot"
 
         with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
@@ -1727,7 +1818,8 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         }
 
         mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
-        mock_page.evaluate.side_effect = [25, 6000]
+        # First item is consumed by the pre-capture scrollable-content expansion.
+        mock_page.evaluate.side_effect = [None, 25, 6000]
         # Empty bytes — falsy but not None; was silently passed through before the fix
         mock_take_tiled.return_value = b""
         # _get_screenshot("standalone") calls page.screenshot(full_page=True); it

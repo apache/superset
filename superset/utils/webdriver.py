@@ -34,6 +34,7 @@ from superset.utils.screenshot_utils import (
     CHART_CONTAINER_READY_JS,
     CHART_CONTAINER_STATE_JS,
     CHART_HOLDERS_READY_JS,
+    EXPAND_SCROLLABLE_CONTENT_JS,
     FIND_ALL_UNREADY_CHART_HOLDERS_JS,
     FIND_CHART_HOLDER_STATES_JS,
     FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS,
@@ -237,6 +238,26 @@ class WebDriverPlaywright(WebDriverProxy):
             return page.screenshot(full_page=True, **timeout_kwargs)
         else:
             return element.screenshot(**timeout_kwargs)
+
+    @staticmethod
+    def _expand_scrollable_content(page: Page, log_context: str | None = None) -> None:
+        """
+        Un-clip chart content that is fully present in the DOM but visually
+        cropped by a fixed height + internal scrollbar (e.g. a table taller
+        than the space its dashboard tile gives it) before the page is
+        captured.
+
+        Best-effort: a failure here should not abort the screenshot, since a
+        clipped-but-present capture beats none at all.
+        """
+        try:
+            page.evaluate(EXPAND_SCROLLABLE_CONTENT_JS)
+        except PlaywrightError:
+            logger.warning(
+                "Failed to expand scrollable chart content before screenshot%s",
+                f" [{log_context}]" if log_context else "",
+                exc_info=True,
+            )
 
     @staticmethod
     def _wait_for_charts_ready(  # noqa: C901
@@ -712,6 +733,14 @@ class WebDriverPlaywright(WebDriverProxy):
                             unexpected_errors,
                             context_suffix,
                         )
+                # Un-clip scrollable/virtualized chart content (dense tables
+                # taller than their dashboard tile) before measuring height or
+                # capturing, so both the tiling decision below and the
+                # eventual screenshot see the full content (#38090).
+                WebDriverPlaywright._expand_scrollable_content(
+                    page, log_context=log_context
+                )
+
                 # Detect large dashboards and use tiled screenshots if enabled
                 tiled_enabled = app.config.get("SCREENSHOT_TILED_ENABLED", False)
 

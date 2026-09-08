@@ -1610,3 +1610,34 @@ def test_ag_grid_no_rows_overlay_is_a_terminal_empty_state() -> None:
         CHART_CONTAINER_READY_JS,
     ):
         assert ".ag-overlay-no-rows-wrapper:not(.ag-hidden)" in predicate
+
+
+def test_expand_scrollable_content_js_unrolls_ag_grid_and_css_scroll() -> None:
+    """The pre-capture DOM-expansion script must reach both flavors of
+    clipped table content: ag-Grid's row virtualization (needs its own API
+    to force a full render) and plain CSS overflow/height clipping (the
+    content already exists in the DOM and just needs the constraint lifted).
+    Mirrors what the client-side "download as image" export already does
+    (superset-frontend/src/utils/downloadAsImage.tsx) for the same widgets
+    (#38090)."""
+    from superset.utils.screenshot_utils import (
+        AG_GRID_HOST_SELECTOR,
+        EXPAND_SCROLLABLE_CONTENT_JS,
+        SCROLLABLE_CONTENT_SELECTORS,
+    )
+
+    assert AG_GRID_HOST_SELECTOR in EXPAND_SCROLLABLE_CONTENT_JS
+    assert "setGridOption('domLayout', 'print')" in EXPAND_SCROLLABLE_CONTENT_JS
+    assert "grid._agGridApi" in EXPAND_SCROLLABLE_CONTENT_JS
+
+    assert SCROLLABLE_CONTENT_SELECTORS == [
+        ".ant-table-body",
+        ".table-container",
+        ".ant-table-container",
+        ".table-wrapper",
+        ".virtual-table",
+    ]
+    for selector in SCROLLABLE_CONTENT_SELECTORS:
+        assert repr(selector) in EXPAND_SCROLLABLE_CONTENT_JS
+    assert "overflow = 'visible'" in EXPAND_SCROLLABLE_CONTENT_JS
+    assert "maxHeight = 'none'" in EXPAND_SCROLLABLE_CONTENT_JS

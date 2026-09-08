@@ -437,6 +437,67 @@ CHART_CONTAINER_STATE_JS = f"""
 }}
 """
 
+# Content that is fully present in the DOM but visually clipped by a fixed
+# height + internal scrollbar -- e.g. a table taller than the space its
+# dashboard tile gives it. These mirror the selectors the client-side
+# "download as image" export unrolls before rasterizing
+# (superset-frontend/src/utils/downloadAsImage.tsx) so both capture paths
+# treat scrollable widgets the same way (#38090).
+SCROLLABLE_CONTENT_SELECTORS = [
+    ".ant-table-body",
+    ".table-container",
+    ".ant-table-container",
+    ".table-wrapper",
+    ".virtual-table",
+]
+
+# ag-Grid virtualizes rows for performance, so a plain height/overflow reset
+# would still leave off-screen rows unrendered. `domLayout: "print"` is
+# ag-Grid's own "render every row into the DOM" mode -- the same mode the
+# client-side image export switches to via the GridApi that
+# ThemedAgGridReact (superset-ui-core) stashes on the grid's host element
+# specifically so screenshot/export code can reach it.
+#
+# `page.screenshot(full_page=True)` already expands the outer dashboard
+# scroll to include every below-the-fold chart (#31158); it has no effect on
+# a chart's own internal scroll container, which is what this JS unrolls
+# in-place before the page is captured.
+EXPAND_SCROLLABLE_CONTENT_JS = f"""
+async () => {{
+    const agGrids = Array.from(
+        document.querySelectorAll('{AG_GRID_HOST_SELECTOR}')
+    );
+    await Promise.all(agGrids.map(async (grid) => {{
+        const api = grid._agGridApi;
+        if (!api) {{ return; }}
+        api.setGridOption('domLayout', 'print');
+        if (api.resetRowHeights) {{ api.resetRowHeights(); }}
+        let lastHeight = grid.scrollHeight;
+        let stableCount = 0;
+        const deadline = Date.now() + 5000;
+        while (Date.now() < deadline && stableCount < 5) {{
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            const height = grid.scrollHeight;
+            if (height === lastHeight) {{
+                stableCount += 1;
+            }} else {{
+                stableCount = 0;
+                lastHeight = height;
+            }}
+        }}
+    }}));
+
+    const scrollableSelectors = {SCROLLABLE_CONTENT_SELECTORS!r};
+    scrollableSelectors.forEach((selector) => {{
+        document.querySelectorAll(selector).forEach((el) => {{
+            el.style.overflow = 'visible';
+            el.style.height = 'auto';
+            el.style.maxHeight = 'none';
+        }});
+    }});
+}}
+"""
+
 
 def combine_screenshot_tiles(
     screenshot_tiles: list[bytes],
