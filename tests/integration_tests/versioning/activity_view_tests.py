@@ -124,7 +124,9 @@ class TestDashboardActivityView(SupersetTestCase):
         assert rv.status_code == 400
 
     def test_activity_denies_write_capable_non_editor(self) -> None:
-        """sc-120001: activity is EDIT-gated. A non-editor with broad read +
+        """sc-120001: activity is EDIT-gated.
+
+        A non-editor with broad read +
         datasource access (Alpha) is refused — the endpoint enforces
         object-level editorship (``raise_for_editorship``), matching the
         UI's edit-gated menu, not the read gate. Visibility filtering of
@@ -923,8 +925,9 @@ class TestChartActivityView(SupersetTestCase):
         assert rv.status_code == 400
 
     def test_chart_activity_denies_write_capable_non_editor(self) -> None:
-        """sc-120001: same edit gate as the dashboard endpoint — a
-        read-access non-editor (Alpha) is refused with 403."""
+        """The chart activity endpoint refuses a write-capable non-editor.
+
+        Same edit gate as the dashboard endpoint (sc-120001)."""
         _persist_fixture_state()
         chart = self._get_birth_names_chart()
         assert chart is not None
@@ -1123,8 +1126,9 @@ class TestDatasetActivityView(SupersetTestCase):
         assert rv.status_code == 400
 
     def test_dataset_activity_denies_write_capable_non_editor(self) -> None:
-        """sc-120001: the dataset activity endpoint shares the edit gate —
-        a read-access non-editor (Alpha) is refused with 403."""
+        """The dataset activity endpoint refuses a write-capable non-editor.
+
+        It shares the same edit gate (sc-120001)."""
         _persist_fixture_state()
         dataset = _get_birth_names_dataset()
         assert dataset is not None

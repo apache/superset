@@ -55,9 +55,10 @@ def _api() -> MagicMock:
 def test_preflight_enforces_editorship_not_read_access(
     mocker: MockerFixture, app_context: None
 ) -> None:
-    """The gate called is ``raise_for_editorship``; the read gate is never
-    consulted. (Reverted-gate control: restoring the read gate fails the
-    not-called assertion.)"""
+    """The preflight consults only the editorship gate.
+
+    The read gate must never run. (Reverted-gate control: restoring the
+    read gate fails the not-called assertion.)"""
     entity = SimpleNamespace(id=1)
     mocker.patch.object(
         api_helpers.VersionDAO, "find_active_by_uuid", return_value=entity
@@ -68,6 +69,7 @@ def test_preflight_enforces_editorship_not_read_access(
     # coroutines, so raising side_effects never fire on this synchronous
     # path.
     sm = MagicMock()
+    sm.is_guest_user.return_value = False
     mocker.patch.object(api_helpers, "security_manager", sm)
 
     resolved, _ = resolve_endpoint_path_entity(_api(), Dashboard, _UUID)
@@ -101,6 +103,7 @@ def test_preflight_maps_editorship_refusal_to_403(
         api_helpers,
         "security_manager",
         SimpleNamespace(
+            is_guest_user=lambda: False,
             raise_for_editorship=_deny,
             raise_for_access=_read_gate_must_not_run,
         ),
@@ -115,13 +118,16 @@ def test_preflight_maps_editorship_refusal_to_403(
 def test_preflight_fails_closed_for_unwired_models(
     mocker: MockerFixture, app_context: None
 ) -> None:
-    """A model outside the version-endpoint allowlist raises rather than
-    silently inheriting any gate."""
+    """Unwired models fail closed before any parsing or database work.
 
-    class Unwired:
+    The allowlist compares class IDENTITY: an unrelated class that
+    happens to be NAMED like a wired model must not slip through, and
+    the DAO is never consulted for it."""
+
+    class Slice:  # same __name__ as the wired model, different class
         pass
 
-    mocker.patch.object(
+    dao = mocker.patch.object(
         api_helpers.VersionDAO,
         "find_active_by_uuid",
         return_value=SimpleNamespace(id=1),
@@ -129,4 +135,38 @@ def test_preflight_fails_closed_for_unwired_models(
     mocker.patch.object(api_helpers, "security_manager")
 
     with pytest.raises(LookupError):
-        resolve_endpoint_path_entity(_api(), Unwired, _UUID)
+        resolve_endpoint_path_entity(_api(), Slice, _UUID)
+
+    dao.assert_not_called()
+
+
+def test_preflight_denies_guest_principals_outright(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """Guest principals are refused before any editorship evaluation.
+
+    A guest's ROLE subjects feed ``is_editor``, so a role subject granted
+    editorship would otherwise admit every guest holding that role — the
+    M10 case. Neither gate may even be consulted."""
+    entity = SimpleNamespace(id=1)
+    mocker.patch.object(
+        api_helpers.VersionDAO, "find_active_by_uuid", return_value=entity
+    )
+
+    def _gate_must_not_run(*_args: Any, **_kwargs: Any) -> None:
+        raise AssertionError("no gate may run for a guest principal")
+
+    mocker.patch.object(
+        api_helpers,
+        "security_manager",
+        SimpleNamespace(
+            is_guest_user=lambda: True,
+            raise_for_editorship=_gate_must_not_run,
+            raise_for_access=_gate_must_not_run,
+        ),
+    )
+
+    with pytest.raises(PathEntityResponseError) as exc:
+        resolve_endpoint_path_entity(_api(), Dashboard, _UUID)
+
+    assert exc.value.response == "resp-403"

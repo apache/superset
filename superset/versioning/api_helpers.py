@@ -222,14 +222,22 @@ def concurrency_token_from(info: EntityVersionInfo) -> str | None:
     return info.version_uuid or unversioned_entity_token(info.entity_uuid)
 
 
-# The versioned model classes whose /versions/ and /activity/ endpoint
-# families are wired through ``resolve_endpoint_path_entity``. Kept as an
-# explicit allowlist so a future entity added to the versioning surface
-# without an authorization decision fails closed rather than silently
-# inheriting a gate.
-_VERSION_ENDPOINT_MODELS: frozenset[str] = frozenset(
-    {"Slice", "Dashboard", "SqlaTable"}
-)
+def _version_endpoint_models() -> tuple[type, ...]:
+    """The exact model classes wired for the version endpoint families.
+
+    An explicit allowlist so a future entity added to the versioning
+    surface without an authorization decision fails closed rather than
+    silently inheriting a gate. Compared by class IDENTITY, not name —
+    an unrelated class that happens to be called ``Slice`` /
+    ``Dashboard`` / ``SqlaTable`` must not slip through. Deferred
+    imports keep this module out of the model-import cycle.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+
+    return (Slice, Dashboard, SqlaTable)
 
 
 class PathEntityResponseError(Exception):
@@ -273,6 +281,14 @@ def resolve_endpoint_path_entity(
     ``api.response_400`` / ``api.response_403`` / ``api.response_404``
     on it. Pass ``self`` from the endpoint method.
     """
+    # Static wiring validation runs first: an unwired model must fail
+    # closed loudly before any parsing or database work, not surface as
+    # an incidental AttributeError inside the DAO lookup.
+    if model_cls not in _version_endpoint_models():
+        raise LookupError(
+            f"Model {model_cls.__name__!r} is not wired for version endpoints"
+        )
+
     try:
         entity_uuid = UUID(uuid_str)
     except ValueError as exc:
@@ -282,10 +298,14 @@ def resolve_endpoint_path_entity(
     if entity is None:
         raise PathEntityResponseError(api.response_404())
 
-    if model_cls.__name__ not in _VERSION_ENDPOINT_MODELS:
-        raise LookupError(
-            f"Model {model_cls.__name__!r} is not wired for version endpoints"
-        )
+    # M10 / SECURITY.md's guest row: an embedded guest's capability is
+    # reading the dashboards its token authorizes — never their change
+    # logs (author identities, field-level diffs). Denied explicitly
+    # BEFORE the editorship check: ``is_editor`` maps a guest's ROLE
+    # subjects into the editor set, so a role subject granted editorship
+    # would otherwise admit every guest holding that role.
+    if security_manager.is_guest_user():
+        raise PathEntityResponseError(api.response_403())
     # Version history is EDIT-gated, not read-gated (sc-120001 decision,
     # following the sc-103156 SIP): the full change log — author
     # identities, timestamps, field-level before/after diffs — is for
