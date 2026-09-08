@@ -115,6 +115,24 @@ class QueryResultSchema(Schema):
     extra = fields.Dict(keys=fields.String())
 
 
+class AsyncJobSchema(Schema):
+    task_id = fields.String(
+        metadata={"description": "UUID of the GTF task executing this query"}
+    )
+    cursor = fields.String(
+        metadata={
+            "description": (
+                "Server-captured pre-task status cursor; the recovery watermark "
+                "for polling/catching up on /api/v1/task/status_changes"
+            )
+        }
+    )
+    tab_id = fields.String(
+        required=False,
+        metadata={"description": "Per-tab id the subscription policy recorded"},
+    )
+
+
 class QueryExecutionResponseSchema(Schema):
     status = fields.String()
     data = fields.List(fields.Dict())
@@ -123,6 +141,17 @@ class QueryExecutionResponseSchema(Schema):
     expanded_columns = fields.List(fields.Dict())
     query = fields.Nested(QueryResultSchema)
     query_id = fields.Integer()
+    async_job = fields.Nested(
+        AsyncJobSchema,
+        required=False,
+        metadata={
+            "description": (
+                "Present on an asynchronous (202) response: the GTF task the "
+                "client awaits via task.status (with the status_changes poll as "
+                "backstop)"
+            )
+        },
+    )
 
 
 class TableSchema(Schema):
