@@ -223,3 +223,20 @@ def test_real_rls_enforcement_does_not_go_through_the_cache_key_helper(
 
     assert len(filters) == 1
     assert "tenant_id" in str(filters[0])
+
+
+def test_database_folds_unquoted_identifiers() -> None:
+    """The RLS lookup only falls back to a case-insensitive table match on
+    engines that fold unquoted identifiers (e.g. PostgreSQL). Case-sensitive
+    engines keep the exact match."""
+    from superset.utils.rls import _database_folds_unquoted_identifiers
+
+    def _db(engine: str) -> MagicMock:
+        database = MagicMock()
+        database.db_engine_spec.engine = engine
+        return database
+
+    assert _database_folds_unquoted_identifiers(_db("postgresql")) is True
+    assert _database_folds_unquoted_identifiers(_db("sqlite")) is True
+    assert _database_folds_unquoted_identifiers(_db("mysql")) is False
+    assert _database_folds_unquoted_identifiers(_db("no_such_engine")) is False
