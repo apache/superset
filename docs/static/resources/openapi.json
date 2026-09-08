@@ -13719,6 +13719,111 @@
         ],
         "type": "object"
       },
+      "chart_get_list_schema": {
+        "properties": {
+          "columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "filters": {
+            "items": {
+              "properties": {
+                "col": {
+                  "type": "string"
+                },
+                "opr": {
+                  "type": "string"
+                },
+                "value": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "boolean"
+                    },
+                    {
+                      "items": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "boolean"
+                          }
+                        ]
+                      },
+                      "type": "array"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "col",
+                "opr",
+                "value"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "keys": {
+            "items": {
+              "enum": [
+                "list_columns",
+                "order_columns",
+                "label_columns",
+                "description_columns",
+                "list_title",
+                "none"
+              ],
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "order_column": {
+            "type": "string"
+          },
+          "order_direction": {
+            "enum": [
+              "asc",
+              "desc"
+            ],
+            "type": "string"
+          },
+          "page": {
+            "type": "integer"
+          },
+          "page_size": {
+            "type": "integer"
+          },
+          "select_columns": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "viz_type_order": {
+            "description": "Visualization type slugs in display-name order. Used only when order_column is viz_type.",
+            "items": {
+              "maxLength": 250,
+              "type": "string"
+            },
+            "maxItems": 256,
+            "type": "array",
+            "uniqueItems": true
+          }
+        },
+        "type": "object"
+      },
       "database_catalogs_query_schema": {
         "properties": {
           "force": {
@@ -15680,10 +15785,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/get_list_schema"
+                  "$ref": "#/components/schemas/chart_get_list_schema"
                 }
               }
             },
+            "description": "Rison-encoded list query. viz_type_order may contain up to 256 unique visualization type slugs, each at most 250 characters, in the display-name order to use when sorting by viz_type.",
             "in": "query",
             "name": "q"
           }
@@ -15695,57 +15801,15 @@
                 "schema": {
                   "properties": {
                     "count": {
-                      "description": "The total record count on the backend",
-                      "type": "number"
-                    },
-                    "description_columns": {
-                      "properties": {
-                        "column_name": {
-                          "description": "The description for the column name. Will be translated by babel",
-                          "example": "A Nice description for the column",
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
+                      "type": "integer"
                     },
                     "ids": {
-                      "description": "A list of item ids, useful when you don't know the column id",
                       "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "label_columns": {
-                      "properties": {
-                        "column_name": {
-                          "description": "The label for the column name. Will be translated by babel",
-                          "example": "A Nice label for the column",
-                          "type": "string"
-                        }
-                      },
-                      "type": "object"
-                    },
-                    "list_columns": {
-                      "description": "A list of columns",
-                      "items": {
-                        "type": "string"
-                      },
-                      "type": "array"
-                    },
-                    "list_title": {
-                      "description": "A title to render. Will be translated by babel",
-                      "example": "List Items",
-                      "type": "string"
-                    },
-                    "order_columns": {
-                      "description": "A list of allowed columns to sort",
-                      "items": {
-                        "type": "string"
+                        "type": "integer"
                       },
                       "type": "array"
                     },
                     "result": {
-                      "description": "The result from the get list query",
                       "items": {
                         "$ref": "#/components/schemas/ChartRestApi.get_list"
                       },
@@ -15756,7 +15820,7 @@
                 }
               }
             },
-            "description": "Items from Model"
+            "description": "Charts"
           },
           "400": {
             "$ref": "#/components/responses/400"
@@ -18416,6 +18480,83 @@
         ]
       }
     },
+    "/api/v1/dashboard/export_xlsx/download/{job_id}/": {
+      "get": {
+        "description": "Intentionally requires no login: the unguessable job_id, emailed only to the original requester (or handed to their own session via export_xlsx_status), is the credential. The dashboard access check already ran once, when the export was requested -- see security_manager.raise_for_access in export_xlsx. The file streams through Superset with the deployment's own storage credentials instead of redirecting to a signed storage URL, so it works for ambient identities that cannot sign (e.g. workload identity federation) and never mints a bearer URL Superset cannot observe or revoke.",
+        "parameters": [
+          {
+            "description": "The job_id from the export_xlsx response",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The .xlsx file as an attachment"
+          },
+          "410": {
+            "description": "The link is unknown, expired, or the export failed"
+          },
+          "501": {
+            "description": "Excel export is not configured on this server"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Download a completed dashboard Excel export",
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
+    "/api/v1/dashboard/export_xlsx/status/{job_id}/": {
+      "get": {
+        "description": "For a session with no email address to be notified at (e.g. an embedded/guest session), the frontend polls this endpoint with the job_id from the export_xlsx response instead of waiting for an email. Behind the same @protect() as the export request itself, unlike the login-free download_xlsx stream (which also has to work when clicked from a plain email link, possibly with no active session at all).",
+        "parameters": [
+          {
+            "description": "The job_id from the export_xlsx response",
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Job status: {\"status\": \"pending\"} while queued, {\"status\": \"running\"} once a worker has started executing, {\"status\": \"ready\", \"download_url\": \"...\"} once the file is available, or {\"status\": \"error\", \"message\": \"...\"} if the export failed."
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Poll the status of a dashboard Excel export job",
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
     "/api/v1/dashboard/favorite_status/": {
       "get": {
         "parameters": [
@@ -19661,7 +19802,7 @@
     },
     "/api/v1/dashboard/{pk}/export_xlsx/": {
       "post": {
-        "description": "Enqueues an async task that writes each chart's data to its own worksheet, uploads the .xlsx to S3, and emails the requesting user a pre-signed download link. Returns immediately with a job id.",
+        "description": "Enqueues an async task that writes each chart's data to its own worksheet, uploads the .xlsx to the configured export storage, and records a download link. The requesting user is emailed the link when they have an address on file; either way the returned job id can be polled at export_xlsx/status/<job_id>/ for status and, once ready, the download link.",
         "parameters": [
           {
             "description": "The dashboard id",
