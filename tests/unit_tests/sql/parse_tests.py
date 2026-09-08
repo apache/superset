@@ -1878,7 +1878,6 @@ def test_custom_dialect(app: None) -> None:
 @pytest.mark.parametrize(
     "engine",
     [
-        "ascend",
         "awsathena",
         "base",
         "bigquery",

@@ -50,7 +50,6 @@ are compatible with Superset.
 | [Apache Pinot](/user-docs/6.0.0/configuration/databases#apache-pinot)                                     | `pip install pinotdb`                                                       | `pinot://BROKER:5436/query?server=http://CONTROLLER:5983/`                                                                                                             |
 | [Apache Solr](/user-docs/6.0.0/configuration/databases#apache-solr)                                       | `pip install sqlalchemy-solr`                                               | `solr://{username}:{password}@{hostname}:{port}/{server_path}/{collection}`                                                                                            |
 | [Apache Spark SQL](/user-docs/6.0.0/configuration/databases#apache-spark-sql)                             | `pip install pyhive`                                                        | `hive://hive@{hostname}:{port}/{database}`                                                                                                                             |
-| [Ascend.io](/user-docs/6.0.0/configuration/databases#ascendio)                                            | `pip install impyla`                                                        | `ascend://{username}:{password}@{hostname}:{port}/{database}?auth_mechanism=PLAIN;use_ssl=true`                                                                        |
 | [Azure MS SQL](/user-docs/6.0.0/configuration/databases#sql-server)                                       | `pip install pymssql`                                                       | `mssql+pymssql://UserName@presetSQL:TestPassword@presetSQL.database.windows.net:1433/TestSchema`                                                                       |
 | [ClickHouse](/user-docs/6.0.0/configuration/databases#clickhouse)                                         | `pip install clickhouse-connect`                                            | `clickhousedb://{username}:{password}@{hostname}:{port}/{database}`                                                                                                    |
 | [CockroachDB](/user-docs/6.0.0/configuration/databases#cockroachdb)                                       | `pip install cockroachdb`                                                   | `cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable`                                                                                                      |
@@ -187,16 +186,6 @@ purposes of isolating the problem.
 Repeat this process for each type of database you want Superset to connect to.
 
 ### Database-specific Instructions
-
-#### Ascend.io
-
-The recommended connector library to Ascend.io is [impyla](https://github.com/cloudera/impyla).
-
-The expected connection string is formatted as follows:
-
-```
-ascend://{username}:{password}@{hostname}:{port}/{database}?auth_mechanism=PLAIN;use_ssl=true
-```
 
 #### Apache Doris
 
