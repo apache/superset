@@ -1745,6 +1745,11 @@ class QueryStringExtended(NamedTuple):
     sql: str
     sql_shifted_temporal_labels: set[str]
 
+    @property
+    def full_sql(self) -> str:
+        """The prequeries and the main query as one displayable statement."""
+        return ";\n\n".join([*self.prequeries, self.sql]) + ";"
+
 
 class SqlaQuery(NamedTuple):
     applied_template_filters: list[str]
@@ -3640,6 +3645,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     from_sql = parsed_script.format()
 
             except Exception as ex:  # pylint: disable=broad-except
+                # A caught DB error can leave db.session in "pending rollback"
+                # state, which would poison unrelated queries later in this request.
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+
                 # RLS injection failures fail closed: only continue when it is
                 # positively confirmed that no RLS predicates apply to the
                 # referenced tables; any other outcome aborts the query.
@@ -3860,9 +3869,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return values
 
     def get_query_str(self, query_obj: QueryObjectDict) -> str:
-        query_str_ext = self.get_query_str_extended(query_obj)
-        all_queries = query_str_ext.prequeries + [query_str_ext.sql]
-        return ";\n\n".join(all_queries) + ";"
+        return self.get_query_str_extended(query_obj).full_sql
 
     def _get_series_orderby(
         self,
