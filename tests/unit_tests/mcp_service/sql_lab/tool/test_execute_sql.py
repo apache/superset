@@ -381,7 +381,11 @@ class TestExecuteSql:
             assert data["success"] is False
             assert "Access denied to database" in data["error"]
 
-    @patch("superset.security_manager")
+    # ``new_callable=MagicMock`` is required here: ``security_manager`` is a
+    # LocalProxy, which a bare ``patch`` replaces with an AsyncMock whose
+    # ``side_effect`` fires only when awaited. ``raise_for_access`` is called
+    # synchronously, so the deny path would never be exercised.
+    @patch("superset.security_manager", new_callable=MagicMock)
     @patch("superset.db")
     @pytest.mark.asyncio
     async def test_execute_sql_denies_unauthorized_table(
