@@ -593,6 +593,49 @@ def test_import_database_host_change_with_new_credentials(
     assert database.password == "newpass"  # noqa: S105
 
 
+def test_import_database_engine_params_change_requires_new_credentials(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite that changes `extra.engine_params` (e.g.
+    `connect_args.host`/`port`, which the DBAPI merges into the actual
+    connection target ahead of anything carried in `sqlalchemy_uri`) must
+    not silently reuse the stored password: the submitted URI can still
+    match the stored host, while the DBAPI actually connects elsewhere.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    database = import_database(config)
+    assert database.password == "pass"  # noqa: S105
+
+    hostile = copy.deepcopy(database_config)
+    hostile["sqlalchemy_uri"] = f"postgresql://user:{PASSWORD_MASK}@host1"
+    hostile["extra"] = {
+        "engine_params": {
+            "connect_args": {"host": "attacker.example.com", "port": 15432}
+        }
+    }
+    with pytest.raises(ImportFailedError):
+        import_database(hostile, overwrite=True)
+
+    # the same engine_params (a normal re-import of an exported bundle) still works
+    unchanged = copy.deepcopy(database_config)
+    unchanged["sqlalchemy_uri"] = f"postgresql://user:{PASSWORD_MASK}@host1"
+    unchanged["password"] = "pass"  # noqa: S105
+    database = import_database(unchanged, overwrite=True)
+    assert database.password == "pass"  # noqa: S105
+
+
 def test_import_database_unparseable_uri_treated_as_change(
     mocker: MockerFixture, session: Session
 ) -> None:

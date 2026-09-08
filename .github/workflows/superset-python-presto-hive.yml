@@ -33,7 +33,7 @@ jobs:
           persist-credentials: false
       - name: Check for file changes
         id: check
-        uses: ./.github/actions/change-detector/
+        uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -80,7 +80,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
       - name: Setup Postgres
         uses: ./.github/actions/cached-dependencies
         with:
@@ -141,7 +141,7 @@ jobs:
       - name: Start hadoop and hive
         run: docker compose -f scripts/databases/hive/docker-compose.yml up -d
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
       - name: Setup Postgres
         uses: ./.github/actions/cached-dependencies
         with:
