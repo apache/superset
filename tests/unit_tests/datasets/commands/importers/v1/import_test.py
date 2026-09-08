@@ -44,10 +44,11 @@ from superset.commands.dataset.importers.v1.utils import (
     validate_data_uri,
 )
 from superset.commands.exceptions import ImportFailedError
+from superset.commands.importers.exceptions import IncorrectFormatError
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
 from superset.utils import json
 from superset.utils.core import override_user
@@ -635,9 +636,9 @@ def _dataset_config_with_children(
 def test_import_dataset_virtual_checks_sql_table_access(
     mocker: MockerFixture, session: Session
 ) -> None:
-    """A virtual dataset import validates access to the tables its SQL
-    references, matching the create and update commands, not only access to
-    the dataset object itself.
+    """
+    A virtual dataset import validates access to the tables its SQL
+    references, not only access to the dataset object itself.
     """
     engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
@@ -646,7 +647,9 @@ def test_import_dataset_virtual_checks_sql_table_access(
     db.session.add(database)
     db.session.flush()
 
-    def raise_for_access(*args: Any, **kwargs: Any) -> None:
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    def raise_for_access(**kwargs: object) -> None:
         # Deny only the SQL/table-level check; the datasource-level check passes.
         if kwargs.get("sql"):
             raise SupersetSecurityException(
@@ -661,23 +664,74 @@ def test_import_dataset_virtual_checks_sql_table_access(
         security_manager, "raise_for_access", side_effect=raise_for_access
     )
 
-    config = {
-        "table_name": "virtual_dataset",
-        "schema": "my_schema",
-        "catalog": "public",
-        "sql": "SELECT * FROM secret_table",
-        "params": None,
-        "template_params": None,
-        "filter_select_enabled": True,
-        "extra": {},
-        "uuid": uuid.uuid4(),
-        "metrics": [],
-        "columns": [],
-        "database_uuid": database.uuid,
-        "database_id": database.id,
-    }
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+    config["sql"] = "SELECT * FROM secret_table"
 
     with pytest.raises(DatasetAccessDeniedError):
+        import_dataset(config)
+
+
+def test_import_dataset_virtual_sql_check_receives_template_params(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Jinja-templated SQL only resolves its real table references once the
+    template params are applied, so they must reach the access check.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    raise_for_access = mocker.patch.object(security_manager, "raise_for_access")
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+    config["sql"] = (
+        "{% if flag %}SELECT * FROM secret_table{% else %}SELECT 1{% endif %}"  # noqa: E501
+    )
+    config["template_params"] = {"flag": True}
+
+    import_dataset(config)
+
+    sql_call = next(
+        call for call in raise_for_access.call_args_list if call.kwargs.get("sql")
+    )
+    assert sql_call.kwargs["template_params"] == {"flag": True}
+    # Empty strings in the export payload must not be forwarded verbatim.
+    assert sql_call.kwargs["schema"] is None
+
+
+def test_import_dataset_virtual_invalid_sql_is_rejected_as_bad_payload(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    SQL that cannot be parsed or rendered can't be access-checked, so the
+    import fails closed as an invalid payload rather than an access denial.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(
+        security_manager,
+        "raise_for_access",
+        side_effect=SupersetParseError("SELECT", message="Could not parse SQL"),
+    )
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+    config["sql"] = "SELECT +/"
+
+    with pytest.raises(IncorrectFormatError, match="Invalid SQL"):
         import_dataset(config)
 
 
