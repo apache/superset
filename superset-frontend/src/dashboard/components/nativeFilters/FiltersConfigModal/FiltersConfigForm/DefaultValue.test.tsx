@@ -112,7 +112,7 @@ test('produces a new filterState object once the underlying value actually chang
 
   expect(capturedFilterStates).toHaveLength(2);
   expect(capturedFilterStates[0]).not.toBe(capturedFilterStates[1]);
-  expect(
-    (capturedFilterStates[1] as { value: number[] }).value,
-  ).toEqual([1, 2, 3]);
+  expect((capturedFilterStates[1] as { value: number[] }).value).toEqual([
+    1, 2, 3,
+  ]);
 });
