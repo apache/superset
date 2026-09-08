@@ -207,6 +207,34 @@ test('renders time comparison grouping headers without configured header groups'
   expect(container.querySelector('.anticon-minus-circle')).toBeInTheDocument();
 });
 
+test('does not show a comparison hide toggle when a group spans mixed comparison keys', () => {
+  const base = transformProps(testData.comparison);
+  const mainColumn = base.columns.find(column => column.label === 'Main');
+  const hashColumns = base.columns.filter(column => column.label === '#');
+  if (!mainColumn || hashColumns.length < 2) {
+    throw new Error('expected Main and hash columns for two metrics');
+  }
+
+  const props = {
+    ...base,
+    headerGroups: [
+      {
+        id: 'mixed',
+        label: 'Mixed',
+        columns: [mainColumn.key, hashColumns[1].key],
+      },
+    ],
+  };
+
+  const { container } = render(<TableChart {...props} sticky={false} />);
+  const mixedHeader = Array.from(container.querySelectorAll('thead th')).find(
+    header => header.textContent === 'Mixed',
+  );
+
+  expect(mixedHeader).toBeDefined();
+  expect(mixedHeader?.querySelector('.anticon-minus-circle')).toBeNull();
+});
+
 test('does not hide a dimension whose name starts with a comparison prefix', () => {
   const base = transformProps(testData.comparison);
   const hashColumn = base.columns.find(column => column.label === '#');

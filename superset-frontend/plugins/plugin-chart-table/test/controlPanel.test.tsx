@@ -435,4 +435,6 @@ test('column_config mapStateToProps expands comparison columns for metrics', () 
   expect(result.columnsPropsObject.colnames).toEqual(
     expect.arrayContaining(['Main col1', '# col1', '△ col1', '% col1']),
   );
+  expect(result.columnsPropsObject.childColumnMap['Main col1']).toBe(false);
+  expect(result.columnsPropsObject.childColumnMap['# col1']).toBe(true);
 });

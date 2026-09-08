@@ -171,10 +171,7 @@ export function syncTimeComparisonGroups(
       if (group.source !== 'time_compare') {
         return group;
       }
-      const fresh = autoById.get(group.id);
-      if (!fresh) {
-        return group;
-      }
+      const fresh = autoById.get(group.id) as HeaderGroupConfig;
       return refreshTimeComparisonGroup(group, fresh.columns, true);
     });
   const missing = timeComparisonGroups.filter(

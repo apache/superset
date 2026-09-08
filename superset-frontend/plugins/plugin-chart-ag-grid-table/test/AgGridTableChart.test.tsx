@@ -17,7 +17,13 @@
  * under the License.
  */
 import '@testing-library/jest-dom';
-import { render, screen, waitFor } from '@superset-ui/core/spec';
+import {
+  render,
+  screen,
+  waitFor,
+  userEvent,
+  within,
+} from '@superset-ui/core/spec';
 import { QueryMode, TimeGranularity, SMART_DATE_ID } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -484,6 +490,53 @@ test('AgGridTableChart renders with time comparison', async () => {
   expect(headerTexts).toContain('#');
   expect(headerTexts).toContain('△');
   expect(headerTexts).toContain('%');
+});
+
+test('AgGridTableChart keeps Main columns when a comparison type is selected', async () => {
+  const props = transformProps(testData.comparison);
+  props.isUsingTimeComparison = true;
+
+  render(
+    ProviderWrapper({
+      children: (
+        <AgGridTableChart
+          {...props}
+          setDataMask={mockSetDataMask}
+          slice_id={1}
+        />
+      ),
+    }),
+  );
+
+  await waitFor(() => {
+    expect(document.querySelector('.ag-container')).toBeInTheDocument();
+  });
+
+  await userEvent.click(
+    document.querySelector(
+      '.time-comparison-dropdown .ant-dropdown-trigger',
+    ) as HTMLElement,
+  );
+  const dropdownMenu = await waitFor(() => {
+    const menu = document.querySelector(
+      '.ant-dropdown:not(.ant-dropdown-hidden)',
+    );
+    if (!menu) {
+      throw new Error('expected time comparison dropdown menu');
+    }
+    return menu;
+  });
+  await userEvent.click(within(dropdownMenu as HTMLElement).getByText('#'));
+
+  await waitFor(() => {
+    const headerTexts = Array.from(
+      document.querySelectorAll('.ag-header-cell-text'),
+    ).map(el => el.textContent);
+    expect(headerTexts).toContain('#');
+    expect(headerTexts).toContain('metric_1');
+    expect(headerTexts).not.toContain('△');
+    expect(headerTexts).not.toContain('%');
+  });
 });
 
 test('AgGridTableChart handles raw records mode', async () => {

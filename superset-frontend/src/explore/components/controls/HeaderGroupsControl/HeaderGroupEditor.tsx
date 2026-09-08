@@ -235,7 +235,8 @@ function HeaderGroupForm({
   const isTopLevel = path.length === 1;
   const hasSubgroups = (group.children ?? []).length > 0;
   const canCollapse = showRemove || hasSubgroups;
-  const settingsCollapsed = onToggleSettings
+  const isCollapseControlled = settingsCollapsedProp !== undefined;
+  const settingsCollapsed = isCollapseControlled
     ? Boolean(settingsCollapsedProp)
     : localCollapsed;
   const showSettings = !canCollapse || !settingsCollapsed;
@@ -449,32 +450,39 @@ export default function HeaderGroupEditor({
   };
 
   const handleChange = (nextPath: number[], next: HeaderGroupConfig) => {
-    const nextDraft =
-      updateHeaderGroupAt([draft], toDraftPath(nextPath), () => next)[0] ??
-      draft;
+    const nextDraft = updateHeaderGroupAt(
+      [draft],
+      toDraftPath(nextPath),
+      () => next,
+    )[0]!;
     setDraft(nextDraft);
     persistDraftIfValid(nextDraft);
   };
 
   const handleAddChild = (nextPath: number[]) => {
-    const nextDraft =
-      updateHeaderGroupAt([draft], toDraftPath(nextPath), current => ({
+    const nextDraft = updateHeaderGroupAt(
+      [draft],
+      toDraftPath(nextPath),
+      current => ({
         ...current,
         children: [...(current.children ?? []), createHeaderGroup()],
-      }))[0] ?? draft;
+      }),
+    )[0]!;
     setDraft(nextDraft);
   };
 
   const handleRemove = (nextPath: number[]) => {
-    const nextDraft =
-      removeHeaderGroupAt([draft], toDraftPath(nextPath))[0] ?? draft;
+    const nextDraft = removeHeaderGroupAt([draft], toDraftPath(nextPath))[0]!;
     setDraft(nextDraft);
     persistDraftIfValid(nextDraft);
   };
 
   const handleMove = (nextPath: number[], toIndex: number) => {
-    const nextDraft =
-      moveHeaderGroupAt([draft], toDraftPath(nextPath), toIndex)[0] ?? draft;
+    const nextDraft = moveHeaderGroupAt(
+      [draft],
+      toDraftPath(nextPath),
+      toIndex,
+    )[0]!;
     setDraft(nextDraft);
     persistDraftIfValid(nextDraft);
   };
@@ -518,7 +526,6 @@ export default function HeaderGroupEditor({
           onMove={handleMove}
           onApply={isAddMode ? handleApply : undefined}
           settingsCollapsed={settingsCollapsed}
-          onToggleSettings={() => setSettingsCollapsed(collapsed => !collapsed)}
         />
       }
     >

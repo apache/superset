@@ -133,6 +133,10 @@ test('collectHeaderGroupColumns walks nested groups', () => {
   ]);
 });
 
+test('collectUsedHeaderGroupColumns defaults to empty groups and options', () => {
+  expect(collectUsedHeaderGroupColumns()).toEqual([]);
+});
+
 test('collectUsedHeaderGroupColumns hides a base metric claimed by comparison columns', () => {
   const used = collectUsedHeaderGroupColumns(
     [

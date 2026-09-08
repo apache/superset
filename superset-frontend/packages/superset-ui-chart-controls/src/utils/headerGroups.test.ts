@@ -441,6 +441,52 @@ test('syncTimeComparisonGroups regenerates auto-group columns from current compa
   ]);
 });
 
+test('syncTimeComparisonGroups remaps nested comparison slots onto current keys', () => {
+  const next = syncTimeComparisonGroups(
+    [
+      {
+        id: 'time-compare-revenue',
+        label: 'Revenue',
+        columns: ['Principal revenue'],
+        source: 'time_compare',
+        children: [
+          {
+            id: 'slots',
+            label: 'Slots',
+            columns: ['Main revenue', '# old', '△ old', '% old'],
+          },
+          {
+            id: 'kept',
+            label: 'Kept',
+            columns: ['Main revenue', '# revenue'],
+          },
+        ],
+      },
+    ],
+    [
+      {
+        id: 'time-compare-revenue',
+        label: 'Revenue',
+        columns: comparisonRevenueColumns,
+        source: 'time_compare',
+      },
+    ],
+  );
+
+  expect(next[0].children).toEqual([
+    {
+      id: 'slots',
+      label: 'Slots',
+      columns: comparisonRevenueColumns,
+    },
+    {
+      id: 'kept',
+      label: 'Kept',
+      columns: ['Main revenue', '# revenue'],
+    },
+  ]);
+});
+
 test('resolveHeaderGroups labels percent metrics after stripping the prefix', () => {
   expect(
     resolveHeaderGroups([], {
