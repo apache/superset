@@ -702,3 +702,93 @@ async def test_data_mask_round_trips_through_get_dashboard_layout(mcp_server):
             redacted = json.loads(result.content[0].text)
 
     assert "dataMask" not in redacted["filter_state"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("backend_defined", "publish_fails", "expected"),
+    [(True, False, True), (False, False, False), (True, True, False)],
+)
+async def test_realtime_publish_outcome(
+    mcp_server: object,
+    mock_auth: Mock,
+    backend_defined: bool,
+    publish_fails: bool,
+    expected: bool,
+) -> None:
+    """Publish only an opaque permalink nudge to the authenticated caller."""
+    mock_auth.return_value.id = 42
+    captured: dict[str, Any] = {}
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([SELECT_FILTER])),
+        patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
+        patch(
+            "superset.coordination.base.CoordinationService.is_backend_defined",
+            return_value=backend_defined,
+        ),
+        patch(
+            "superset.coordination.base.CoordinationService.publish",
+            side_effect=RuntimeError("publish failed") if publish_fails else None,
+        ) as publish,
+        patch(
+            "superset.security_manager.get_current_guest_user_if_guest",
+            return_value=None,
+        ),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Region", "values": ["EMEA"]}],
+            },
+        )
+
+    assert data["live_update_pushed"] is expected
+    assert data["error"] is None
+    assert data["permalink_key"] == "permakey123"
+    if backend_defined:
+        publish.assert_called_once()
+        assert json.loads(publish.call_args.args[1]) == {
+            "topic": "dashboard.filters_applied",
+            "scope": "principal",
+            "routes": ["user:42"],
+            "payload": {"dashboard_id": 1, "permalink_key": "permakey123"},
+        }
+    else:
+        publish.assert_not_called()
+
+
+@pytest.mark.parametrize("channel", [None, "guest:opaque-hmac"])
+def test_realtime_guest_or_missing_principal(channel: str | None) -> None:
+    """Guest routing uses the token-derived key; missing identities never broadcast."""
+    from superset.mcp_service.dashboard.tool.apply_dashboard_filters import (
+        _publish_filters_applied,
+    )
+
+    with (
+        patch(
+            "superset.coordination.base.CoordinationService.is_backend_defined",
+            return_value=True,
+        ),
+        patch(
+            "superset.realtime.publish.publish_realtime", return_value=True
+        ) as publish,
+        patch(
+            "superset.security_manager.get_current_guest_user_if_guest",
+            return_value=Mock(),
+        ),
+        patch(
+            "superset.websocket.channel.get_current_guest_subscriber_key",
+            return_value=channel,
+        ),
+    ):
+        assert _publish_filters_applied(1, "key") is (channel is not None)
+    if channel is None:
+        publish.assert_not_called()
+    else:
+        publish.assert_called_once_with(
+            topic="dashboard.filters_applied",
+            scope="principal",
+            payload={"dashboard_id": 1, "permalink_key": "key"},
+            routes=[channel],
+        )

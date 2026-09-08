@@ -65,6 +65,31 @@ class _FilterApplyError(Exception):
     """Raised internally when a requested filter value cannot be applied."""
 
 
+def _publish_filters_applied(dashboard_id: int, permalink_key: str) -> bool:
+    """Best-effort principal nudge; filter state stays in the authorized permalink."""
+    from superset.coordination.base import CoordinationService
+    from superset.realtime.publish import publish_realtime
+    from superset.websocket.channel import get_realtime_principal
+
+    try:
+        if not CoordinationService.is_backend_defined():
+            return False
+        principal = get_realtime_principal()
+        if principal is None:
+            return False
+        return publish_realtime(
+            topic="dashboard.filters_applied",
+            scope="principal",
+            payload={"dashboard_id": dashboard_id, "permalink_key": permalink_key},
+            routes=[principal["channel"]],
+        )
+    except Exception:  # noqa: BLE001 pylint: disable=broad-except
+        logger.warning(
+            "Failed to publish filters applied for dashboard %s", dashboard_id
+        )
+        return False
+
+
 def _describe_filters(configs: list[dict[str, Any]]) -> str:
     """Render the dashboard's filters as a name/ID list for error messages."""
     if not configs:
@@ -343,6 +368,7 @@ async def apply_dashboard_filters(
             dashboard_url=build_dashboard_permalink_url(key),
             permalink_key=key,
             applied_filters=summaries,
+            live_update_pushed=_publish_filters_applied(request.dashboard_id, key),
         )
 
     except DashboardNotFoundError:
