@@ -251,13 +251,15 @@ def test_resample_rejects_calendar_frequency_over_row_limit(monkeypatch):
     Calendar frequencies (month/quarter/year) have no fixed Timedelta. Master's
     Timedelta-only check skipped them; period arithmetic still enforces the cap.
     """
-    # Use a dotted path: ``pandas_postprocessing.resample`` is already bound to
-    # the function in the package ``__init__``, so a plain ``import ...resample``
-    # resolves to that function rather than the submodule.
-    monkeypatch.setattr(
-        "superset.utils.pandas_postprocessing.resample.MAX_RESAMPLE_ROWS",
-        10,
+    import importlib
+
+    # ``pandas_postprocessing.resample`` is rebound to the function in the
+    # package ``__init__``, so getattr/import and pytest dotted paths all resolve
+    # to that function. ``import_module`` loads the actual submodule.
+    resample_mod = importlib.import_module(
+        "superset.utils.pandas_postprocessing.resample"
     )
+    monkeypatch.setattr(resample_mod, "MAX_RESAMPLE_ROWS", 10)
     df = pd.DataFrame(
         index=to_datetime(["2010-01-01", "2020-01-01"]),
         data={"y": [1.0, 2.0]},
