@@ -266,6 +266,12 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.time_grain_sqla,
               visibility: ({ controls }) => {
+                // Time grain only applies to the aggregate query, so the
+                // control must follow the query mode like its siblings do.
+                if (!isAggMode({ controls })) {
+                  return false;
+                }
+
                 const dttmLookup = Object.fromEntries(
                   ensureIsArray(controls?.groupby?.options).map(option => [
                     (option.column_name || '').toLowerCase(),
@@ -545,8 +551,37 @@ const config: ControlPanelConfig = {
               default: false,
               renderTrigger: true,
               description: t(
-                'Show a summary row of total aggregations: the selected metrics in aggregate mode, or the sum of numeric columns in raw records mode. Note that row limit does not apply to the result.',
+                'Show a summary row of total aggregations: the selected metrics in aggregate mode, or an aggregation of numeric columns in raw records mode. Note that row limit does not apply to the result.',
               ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'totals_aggregate',
+            config: {
+              type: 'SelectControl',
+              label: t('Summary aggregation'),
+              renderTrigger: true,
+              description: t(
+                'Aggregation used for the summary row. By default each metric ' +
+                  'keeps its own aggregation; Sum and Average override it for ' +
+                  'the summary row only. The override applies to simple ' +
+                  'metrics (a metric built from custom SQL always keeps its ' +
+                  'own aggregation). Overriding a count or a distinct count ' +
+                  'sums the counted column instead, which fails outright on a ' +
+                  'non-numeric column.',
+              ),
+              default: 'ORIGINAL',
+              clearable: false,
+              choices: [
+                ['ORIGINAL', t("Each metric's own")],
+                ['SUM', t('Sum')],
+                ['AVG', t('Average')],
+              ],
+              visibility: ({ controls }) =>
+                Boolean(controls?.show_totals?.value),
+              resetOnHide: false,
             },
           },
         ],
@@ -770,12 +805,8 @@ const config: ControlPanelConfig = {
                 const extraColorChoices = hasTimeComparison
                   ? [
                       {
-                        value: ColorSchemeEnum.Green,
-                        label: t('Green for increase, red for decrease'),
-                      },
-                      {
-                        value: ColorSchemeEnum.Red,
-                        label: t('Red for increase, green for decrease'),
+                        label: t('Trend colors'),
+                        colors: [ColorSchemeEnum.Green, ColorSchemeEnum.Red],
                       },
                     ]
                   : [];
@@ -858,6 +889,9 @@ const config: ControlPanelConfig = {
                   verboseMap,
                   allColumns,
                   extraColorChoices,
+                  serverPagination: Boolean(
+                    explore?.controls?.server_pagination?.value,
+                  ),
                 };
               },
             },

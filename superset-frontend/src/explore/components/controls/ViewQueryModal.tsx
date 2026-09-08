@@ -18,7 +18,7 @@
  */
 import { FC, Fragment, useCallback, useEffect, useState } from 'react';
 
-import { omit } from 'lodash';
+import { omit } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,

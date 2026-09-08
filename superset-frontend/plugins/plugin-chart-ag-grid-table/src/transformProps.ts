@@ -855,6 +855,8 @@ const transformProps = (
       ),
       passedData,
       theme,
+      undefined,
+      serverPagination,
     ) ?? [];
 
   const hasPageLength = isPositiveNumber(pageLength);

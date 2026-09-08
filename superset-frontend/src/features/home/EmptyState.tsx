@@ -24,6 +24,7 @@ import { TableTab } from 'src/views/CRUD/types';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { navigateTo } from 'src/utils/navigationUtils';
+import { useIsMobile } from 'src/hooks/useIsMobile';
 import { WelcomeTable } from './types';
 
 const EmptyContainer = styled.div`
@@ -76,12 +77,19 @@ export interface EmptyStateProps {
 }
 
 export default function EmptyState({ tableName, tab }: EmptyStateProps) {
+  const isMobile = useIsMobile();
   const getActionButton = () => {
     if (tableName === WelcomeTable.Recents) {
       return null;
     }
 
     const isFavorite = tab === TableTab.Favorite;
+
+    // Creation flows aren't part of the mobile consumption experience;
+    // only offer the "See all ..." navigation there
+    if (isMobile && !isFavorite) {
+      return null;
+    }
     const buttonText = isFavorite
       ? LABELS.viewAll[tableName]
       : LABELS.create[tableName];
@@ -111,7 +119,7 @@ export default function EmptyState({ tableName, tab }: EmptyStateProps) {
     <EmptyContainer>
       <EmptyStateComponent
         image={image}
-        size="large"
+        size={isMobile ? 'small' : 'large'}
         description={t('Nothing here yet')}
       >
         {getActionButton()}

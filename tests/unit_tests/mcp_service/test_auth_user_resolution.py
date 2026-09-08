@@ -233,6 +233,36 @@ def test_raises_when_no_auth_source(app) -> None:
                 get_user_from_request()
 
 
+def test_rejected_guest_token_does_not_fall_through_to_dev_username(app) -> None:
+    """A guest-marked token rejected for disabled guest auth must not degrade
+    to a weaker auth source (MCP_DEV_USERNAME here) via get_user_from_request.
+
+    Before the fix, _resolve_user_from_jwt_context returned None for this
+    case, which get_user_from_request treats identically to "no token
+    present" and falls through to the next priority source -- silently
+    executing the caller as MCP_DEV_USERNAME in a JWT-only deployment with a
+    dev username configured.
+    """
+    from superset.mcp_service.guest_token_verifier import GUEST_TOKEN_CLAIM
+
+    token = MagicMock()
+    token.claims = {GUEST_TOKEN_CLAIM: True, "sub": "attacker"}
+    token.client_id = "guest"
+
+    with app.app_context():
+        app.config["MCP_DEV_USERNAME"] = "dev_admin"
+        app.config["MCP_EMBEDDED_GUEST_AUTH_ENABLED"] = False
+        try:
+            with patch(
+                "fastmcp.server.dependencies.get_access_token", return_value=token
+            ):
+                with pytest.raises(ValueError, match="Guest-marked token"):
+                    get_user_from_request()
+        finally:
+            app.config.pop("MCP_DEV_USERNAME", None)
+            app.config.pop("MCP_EMBEDDED_GUEST_AUTH_ENABLED", None)
+
+
 def test_no_auth_source_error_message_has_no_config_details(app) -> None:
     """Client-facing auth error must be generic — no server config disclosed.
 
@@ -465,7 +495,8 @@ def test_sync_wrapper_handles_ssl_error_on_pre_call_remove(app) -> None:
                 SAOperationalError(
                     "SSL connection has been closed unexpectedly", None, None
                 ),
-                None,  # second call succeeds
+                None,  # retry succeeds
+                None,  # exit-path cleanup in _request_tool_call_context
             ]
 
             with patch(
@@ -476,8 +507,8 @@ def test_sync_wrapper_handles_ssl_error_on_pre_call_remove(app) -> None:
 
     assert result == "fresh"
     assert mock_db.session.invalidate.called, "invalidate() must be called on SSL error"
-    assert mock_db.session.remove.call_count == 2, (
-        "remove() must be retried after SSL error"
+    assert mock_db.session.remove.call_count == 3, (
+        "remove() must be retried after SSL error, plus once more on exit"
     )
 
 
@@ -605,22 +636,101 @@ def test_setup_user_context_allows_active_user(app) -> None:
             assert g.user is active_user
 
 
+# -- _mcp_user_id_var (ContextVar surviving the per-call app context pop) --
+#
+# g.user is only valid for the lifetime of the per-call app context that
+# _get_app_context_manager() pushes around tool execution; it's popped
+# before LoggingMiddleware's finally block runs, so get_user_id() there
+# always sees a stale/cleared g. _mcp_user_id_var is a plain ContextVar,
+# not tied to that app-context lifecycle, set here so it survives to be
+# read later for audit logging.
+
+
+def test_setup_user_context_sets_contextvar_for_active_user(app) -> None:
+    """_mcp_user_id_var carries the resolved user's id past this call."""
+    from superset.mcp_service.auth import _mcp_user_id_var, _setup_user_context
+
+    active_user = _make_mock_user("active_user")
+    active_user.is_active = True
+    active_user.active = True
+    active_user.id = 321
+
+    with app.test_request_context():
+        with patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=active_user,
+        ):
+            _setup_user_context()
+            assert _mcp_user_id_var.get() == 321
+
+
+def test_setup_user_context_clears_stale_contextvar_on_failure(app) -> None:
+    """A previous call's user_id must not leak into a call that fails to
+    resolve a user (e.g. sequential calls sharing one asyncio task)."""
+    from superset.mcp_service.auth import _mcp_user_id_var, _setup_user_context
+
+    with app.test_request_context():
+        _mcp_user_id_var.set(999)
+        with patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            side_effect=ValueError("no user"),
+        ):
+            with pytest.raises(ValueError, match="no user"):
+                _setup_user_context()
+            assert _mcp_user_id_var.get() is None
+
+
+def test_setup_user_context_leaves_contextvar_unset_for_guest_user(app) -> None:
+    """GuestUser (embedded auth) has no numeric id -- the ContextVar must
+    stay cleared rather than store a bogus value."""
+    from superset.mcp_service.auth import _mcp_user_id_var, _setup_user_context
+
+    guest_user = _make_mock_user("guest_user")
+    guest_user.is_active = True
+    guest_user.active = True
+    guest_user.id = None
+
+    with app.test_request_context():
+        with patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=guest_user,
+        ):
+            _setup_user_context()
+            assert _mcp_user_id_var.get() is None
+
+
 # -- Multi-issuer binding guard --
 
 
-def test_multi_issuer_warns_without_custom_resolver(app, caplog) -> None:
+def test_multi_issuer_fails_closed_without_custom_resolver(app) -> None:
     """When multiple issuers are trusted and no issuer-aware resolver is set,
-    a WARNING is emitted about unbound (non-issuer-scoped) user resolution."""
-    import logging
+    resolution fails closed (raises) instead of returning a user via an
+    unbound (non-issuer-scoped) lookup."""
+    from superset.mcp_service.mcp_config import MCPAuthConfigError
 
-    mock_user = _make_mock_user("alice")
     token = _make_access_token(claims={"sub": "alice", "iss": "issuer-a"})
 
     with app.app_context():
         app.config["MCP_JWT_ISSUER"] = ["issuer-a", "issuer-b"]
         try:
+            with patch(
+                "fastmcp.server.dependencies.get_access_token", return_value=token
+            ):
+                with pytest.raises(MCPAuthConfigError):
+                    _resolve_user_from_jwt_context(app)
+        finally:
+            app.config.pop("MCP_JWT_ISSUER", None)
+
+
+def test_single_issuer_does_not_fail_closed(app) -> None:
+    """A single configured issuer is safe and resolves normally."""
+    mock_user = _make_mock_user("alice")
+    token = _make_access_token(claims={"sub": "alice", "iss": "issuer-a"})
+
+    with app.app_context():
+        app.config["MCP_JWT_ISSUER"] = "issuer-a"
+        try:
             with (
-                caplog.at_level(logging.WARNING),
                 patch(
                     "fastmcp.server.dependencies.get_access_token", return_value=token
                 ),
@@ -633,44 +743,12 @@ def test_multi_issuer_warns_without_custom_resolver(app, caplog) -> None:
         finally:
             app.config.pop("MCP_JWT_ISSUER", None)
 
-    assert result is not None
-    warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
-    assert any("Multiple JWT issuers are trusted" in m for m in warnings)
+    assert result is mock_user
 
 
-def test_single_issuer_does_not_warn(app, caplog) -> None:
-    """A single configured issuer is safe and emits no multi-issuer warning."""
-    import logging
-
-    mock_user = _make_mock_user("alice")
-    token = _make_access_token(claims={"sub": "alice", "iss": "issuer-a"})
-
-    with app.app_context():
-        app.config["MCP_JWT_ISSUER"] = "issuer-a"
-        try:
-            with (
-                caplog.at_level(logging.WARNING),
-                patch(
-                    "fastmcp.server.dependencies.get_access_token", return_value=token
-                ),
-                patch(
-                    "superset.mcp_service.auth.load_user_with_relationships",
-                    return_value=mock_user,
-                ),
-            ):
-                _resolve_user_from_jwt_context(app)
-        finally:
-            app.config.pop("MCP_JWT_ISSUER", None)
-
-    warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
-    assert not any("Multiple JWT issuers are trusted" in m for m in warnings)
-
-
-def test_multi_issuer_no_warn_with_custom_resolver(app, caplog) -> None:
-    """A custom MCP_USER_RESOLVER (assumed issuer-aware) suppresses the
-    multi-issuer warning."""
-    import logging
-
+def test_multi_issuer_does_not_fail_closed_with_custom_resolver(app) -> None:
+    """A custom MCP_USER_RESOLVER (assumed issuer-aware) is exempt from the
+    multi-issuer fail-closed guard and resolves normally."""
     mock_user = _make_mock_user("alice")
     token = _make_access_token(claims={"sub": "alice", "iss": "issuer-a"})
 
@@ -679,7 +757,6 @@ def test_multi_issuer_no_warn_with_custom_resolver(app, caplog) -> None:
         app.config["MCP_USER_RESOLVER"] = MagicMock(return_value="alice")
         try:
             with (
-                caplog.at_level(logging.WARNING),
                 patch(
                     "fastmcp.server.dependencies.get_access_token", return_value=token
                 ),
@@ -688,10 +765,9 @@ def test_multi_issuer_no_warn_with_custom_resolver(app, caplog) -> None:
                     return_value=mock_user,
                 ),
             ):
-                _resolve_user_from_jwt_context(app)
+                result = _resolve_user_from_jwt_context(app)
         finally:
             app.config.pop("MCP_JWT_ISSUER", None)
             app.config.pop("MCP_USER_RESOLVER", None)
 
-    warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
-    assert not any("Multiple JWT issuers are trusted" in m for m in warnings)
+    assert result is mock_user

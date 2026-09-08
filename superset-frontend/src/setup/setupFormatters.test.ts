@@ -41,6 +41,7 @@ jest.mock('@superset-ui/core', () => ({
   createSmartDateVerboseFormatter: jest.fn(() => jest.fn()),
   createSmartDateDetailedFormatter: jest.fn(() => jest.fn()),
   createLengthFormatter: jest.fn(() => jest.fn()),
+  createThroughputFormatter: jest.fn(() => jest.fn()),
   NumberFormats: { INTEGER: ',d', INTEGER_SIGNED: '+,d' },
   SMART_DATE_ID: 'smart_date',
   SMART_DATE_DETAILED_ID: 'smart_date_detailed',
@@ -69,4 +70,25 @@ test('setupFormatters forwards an underscore-formatted locale to setCurrencyLoca
   await runSetupFormatters('pt_BR');
 
   expect(mockSetCurrencyLocale).toHaveBeenCalledWith('pt_BR');
+});
+
+test('registers both network throughput formats with matching converters', async () => {
+  await runSetupFormatters('en-US');
+
+  const { getNumberFormatterRegistry, createThroughputFormatter } =
+    await import('@superset-ui/core');
+
+  expect(createThroughputFormatter).toHaveBeenCalledWith();
+  expect(createThroughputFormatter).toHaveBeenCalledWith({ fromBytes: true });
+
+  const [bitsFormatter, bytesFormatter] = (
+    createThroughputFormatter as jest.Mock
+  ).mock.results.map(result => result.value);
+
+  const registry = (getNumberFormatterRegistry as jest.Mock).mock.results[0]
+    .value;
+  const registered = new Map(registry.registerValue.mock.calls);
+
+  expect(registered.get('NETWORK_THROUGHPUT')).toBe(bitsFormatter);
+  expect(registered.get('NETWORK_THROUGHPUT_FROM_BYTES')).toBe(bytesFormatter);
 });

@@ -54,6 +54,9 @@ from superset.versioning.activity.orchestrator import (
     _MAX_PAGE_SIZE,
 )
 from superset.versioning.activity.queries import (
+    _attachment_windows,
+    _M2M_OP_DELETE,
+    _M2M_OP_INSERT,
     _merge_result_into_heap,
     _record_sort_key,
     BoundedRecordHeap,
@@ -225,6 +228,13 @@ def test_decoration_redacts_record_from_reused_entity_id() -> None:
     assert record["entity_name"] == ""
     assert record["from_value"] is None
     assert record["to_value"] is None
+    # The editor identity of the deleted related entity must be redacted at the
+    # decoration layer (render.py sets ``changed_by = None``), so the seeded
+    # author "Ada Lovelace" is suppressed and cannot be surfaced or searched.
+    # Without this assertion the redaction can regress silently.
+    assert record["changed_by"] is None
+    assert "first_name" not in record
+    assert "last_name" not in record
 
 
 def test_bounded_heap_merges_newer_rows_from_later_id_chunks() -> None:
@@ -800,6 +810,62 @@ def test_record_matches_falsy_values_and_json_form() -> None:
     assert _record_matches(nested, '"label"')  # JSON double-quoted key
 
 
+def test_record_matches_searches_author_name() -> None:
+    """The q filter also matches the change author's display name from the
+    projected ``changed_by`` DTO (sc-119374: author-scoped search returned
+    "No actions found" because the author was absent from the haystack)."""
+    from superset.versioning.activity.orchestrator import _record_matches
+
+    record = {
+        "summary": "",
+        "entity_name": "Sales",
+        "kind": "field",
+        "path": ["params"],
+        "from_value": None,
+        "to_value": None,
+        "changed_by": {
+            "id": 1,
+            "first_name": "Test Primary",
+            "last_name": "Contributor",
+        },
+    }
+    assert _record_matches(record, "Primary")  # first-name substring
+    assert _record_matches(record, "contributor")  # last name, case-insensitive
+    assert _record_matches(record, "Test Primary Contributor")  # full name
+    assert not _record_matches(record, "Nonexistent Author")
+
+
+def test_record_matches_author_partial_and_missing_name() -> None:
+    """A user with only one name part still matches on it, and a record
+    whose author is redacted/absent (``changed_by`` is None — the
+    tombstoned-related-entity security contract) contributes no author
+    text and is not matchable by author."""
+    from superset.versioning.activity.orchestrator import _record_matches
+
+    first_only = {
+        "summary": "",
+        "entity_name": "",
+        "kind": "field",
+        "path": [],
+        "from_value": None,
+        "to_value": None,
+        "changed_by": {"id": 2, "first_name": "Ada", "last_name": None},
+    }
+    assert _record_matches(first_only, "ada")
+
+    redacted = {**first_only, "changed_by": None}
+    assert not _record_matches(redacted, "ada")
+
+    # A present DTO with both name parts null (a user row with no names) is
+    # distinct from redaction: it yields an empty author name and is likewise
+    # unsearchable by author, without matching on the literal 'None'.
+    nameless = {
+        **first_only,
+        "changed_by": {"id": 3, "first_name": None, "last_name": None},
+    }
+    assert not _record_matches(nameless, "none")
+
+
 def test_build_summary_meta_headline_branches() -> None:
     """The __meta__ headline dispatches on the transaction's action_kind
     (path is pure navigation): restore renders 'restored to version N'
@@ -825,3 +891,64 @@ def test_build_summary_meta_headline_branches() -> None:
         "entity_name": "",
     }
     assert _build_summary("Dashboard", unknown) == "Dashboard updated"
+
+
+# ---- _attachment_windows -------------------------------------------------
+
+
+def test_attachment_windows_closes_at_detach() -> None:
+    """sc-119770: a chart removed from a dashboard is bounded at the detach
+    transaction, not left open-ended. Continuum never closes an association
+    shadow row's end_transaction_id, so the detach boundary is the DELETE
+    row's transaction id — an INSERT at t1 paired with a DELETE at t3 yields
+    the half-open window [t1, t3), so an edit at t2 (while attached) is
+    inside it and an edit at t4 (after removal) is not."""
+    windows = _attachment_windows([(7, 1, 0), (7, 3, 2)])  # INSERT@1, DELETE@3
+
+    assert windows == [(7, Window(1, 3))]
+    window = windows[0][1]
+    assert window.contains(2)  # edit while attached
+    assert not window.contains(3)  # detach tx itself (half-open)
+    assert not window.contains(4)  # edit after removal — excluded
+
+
+def test_attachment_windows_still_attached_is_open_ended() -> None:
+    """A chart with an INSERT and no following DELETE is still on the
+    dashboard, so its window is open-ended (end_tx = None) and every later
+    edit remains in scope."""
+    assert _attachment_windows([(7, 5, 0)]) == [(7, Window(5, None))]
+
+
+def test_attachment_windows_reattach_cycles_and_ordering() -> None:
+    """Multiple attach/detach episodes yield one window each, and the pairing
+    is independent of the row order the query returns them in (the rows are
+    sorted by (slice_id, transaction_id) internally)."""
+    rows = [(7, 7, 2), (7, 1, 0), (7, 5, 0), (7, 3, 2)]  # deliberately shuffled
+    assert _attachment_windows(rows) == [(7, Window(1, 3)), (7, Window(5, 7))]
+
+
+def test_attachment_windows_add_and_remove_same_transaction() -> None:
+    """Attaching and detaching in a single save (INSERT and DELETE at the
+    same transaction) leaves the chart on no committed dashboard state, so it
+    contributes no window (and no degenerate zero-width interval)."""
+    assert _attachment_windows([(7, 2, 0), (7, 2, 2)]) == []
+
+
+def test_attachment_windows_separates_slices() -> None:
+    """Each slice gets its own independent windows."""
+    rows = [(7, 1, 0), (7, 3, 2), (9, 2, 0)]
+    assert _attachment_windows(rows) == [
+        (7, Window(1, 3)),
+        (9, Window(2, None)),
+    ]
+
+
+def test_m2m_op_constants_match_continuum() -> None:
+    """The association-shadow operation-type constants used by
+    _attachment_windows are the numeric values of Continuum's Operation enum.
+    Pin them so a library renumber fails here loudly rather than silently
+    mis-pairing attach/detach rows."""
+    from sqlalchemy_continuum import Operation
+
+    assert _M2M_OP_INSERT == Operation.INSERT
+    assert _M2M_OP_DELETE == Operation.DELETE

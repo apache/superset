@@ -20,6 +20,7 @@ import transformProps from '../src/transformProps';
 import { TableChartProps } from '../src/types';
 import { GenericDataType } from '@apache-superset/core/common';
 import { QueryMode } from '@superset-ui/core';
+import { BoundUnit } from '@superset-ui/chart-controls';
 
 function createMockChartProps(
   overrides: Partial<TableChartProps> = {},
@@ -429,4 +430,60 @@ test('allowRenderHtml is false when allow_render_html is explicitly false', () =
   });
   const result = transformProps(props);
   expect(result.allowRenderHtml).toBe(false);
+});
+
+test('retains saved percentage rules with automatic bounds when server pagination is enabled', () => {
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: ['metric_a', 'metric_b'],
+      percent_metrics: [],
+      column_config: {},
+      table_timestamp_format: '',
+      granularity_sqla: 'day',
+      time_range: 'No filter',
+      server_pagination: true,
+      conditional_formatting: [
+        {
+          column: 'metric_a',
+          operator: 'None',
+          colorScheme: '#FF0000',
+          boundUnit: BoundUnit.Percent,
+          minBound: 0,
+          maxBound: 100,
+        },
+        {
+          column: 'metric_b',
+          operator: 'None',
+          colorScheme: '#00FF00',
+          boundUnit: BoundUnit.Value,
+        },
+      ],
+    } as unknown as TableChartProps['rawFormData'],
+    queriesData: [
+      {
+        data: [{ metric_a: 10, metric_b: 20 }],
+        colnames: ['metric_a', 'metric_b'],
+        coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+      {
+        data: [{ rowcount: 1 }],
+        colnames: ['rowcount'],
+        coltypes: [GenericDataType.Numeric],
+        rowcount: 1,
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ] as unknown as TableChartProps['queriesData'],
+  });
+
+  const result = transformProps(props);
+  expect(
+    result.columnColorFormatters.map(formatter => formatter.column),
+  ).toEqual(['metric_a', 'metric_b']);
 });

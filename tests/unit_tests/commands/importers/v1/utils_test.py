@@ -16,10 +16,14 @@
 # under the License.
 """Tests for superset/commands/dataset/importers/v1/utils.py temporal helpers."""
 
+import gzip
+import io
 from unittest.mock import patch
 
 import pandas as pd
 import pytest
+from marshmallow.exceptions import ValidationError
+from sqlalchemy.orm import Session
 
 
 class TestConvertTemporalColumns:
@@ -119,6 +123,28 @@ class TestConvertTemporalColumns:
         assert call_args[1] == 2  # 2 out-of-bounds, 1 pre-existing null
 
 
+class TestReadBounded:
+    """``_read_bounded`` caps the bytes materialized from a dataset import
+    data URI, including after gzip decompression, so a small compressed
+    payload can't expand to an unbounded in-memory allocation."""
+
+    def test_rejects_oversized_gzip_stream(self) -> None:
+        """A small compressed payload that decompresses past the cap must fail."""
+        from superset.commands.dataset.importers.v1.utils import _read_bounded
+        from superset.commands.exceptions import ImportFailedError
+
+        payload = gzip.compress(b"a" * 100_000)
+        stream = gzip.GzipFile(fileobj=io.BytesIO(payload))
+        with pytest.raises(ImportFailedError):
+            _read_bounded(stream, max_bytes=10_000)
+
+    def test_passes_small_payload_through(self) -> None:
+        from superset.commands.dataset.importers.v1.utils import _read_bounded
+
+        buffer = _read_bounded(io.BytesIO(b"a,b\n1,2\n"), max_bytes=10_000)
+        assert buffer.read() == b"a,b\n1,2\n"
+
+
 class TestLoadYaml:
     def test_parser_error_raises_validation_error(self) -> None:
         """A malformed flow sequence raises yaml.parser.ParserError."""
@@ -138,3 +164,230 @@ class TestLoadYaml:
 
         with pytest.raises(ValidationError):
             load_yaml("test.yaml", 'key: "unterminated string')
+
+
+class TestLoadConfigs:
+    """
+    load_configs() merges caller-supplied ``encrypted_extra_secrets`` into the
+    ``masked_encrypted_extra`` field of each config, which comes straight from
+    the imported YAML (before schema validation). A malformed value there used
+    to raise a raw simplejson.JSONDecodeError that escaped uncaught (opaque
+    500); it must instead be collected as a ValidationError like every other
+    per-file failure.
+    """
+
+    @staticmethod
+    def _trivial_schema():
+        from marshmallow import EXCLUDE, Schema
+
+        class TrivialSchema(Schema):
+            class Meta:
+                unknown = EXCLUDE
+
+        return TrivialSchema()
+
+    @patch("superset.commands.importers.v1.utils.db")
+    def test_invalid_json_in_masked_encrypted_extra_is_collected(
+        self, mock_db: object
+    ) -> None:
+        """A non-JSON ``masked_encrypted_extra`` is converted into a
+        ValidationError appended to ``exceptions`` rather than raising."""
+        from marshmallow.exceptions import ValidationError
+
+        from superset.commands.importers.v1.utils import load_configs
+
+        # No existing databases / ssh tunnels in the (mocked) metadata DB.
+        mock_db.session.query.return_value.all.return_value = []  # type: ignore[attr-defined]
+
+        file_name = "databases/db.yaml"
+        contents = {
+            file_name: (
+                "uuid: abc-123\n"
+                "password: secret\n"
+                "masked_encrypted_extra: not valid json\n"
+            )
+        }
+        exceptions: list[ValidationError] = []
+
+        configs = load_configs(
+            contents=contents,
+            schemas={"databases/": self._trivial_schema()},
+            passwords={},
+            exceptions=exceptions,
+            ssh_tunnel_passwords={},
+            ssh_tunnel_private_keys={},
+            ssh_tunnel_priv_key_passwords={},
+            encrypted_extra_secrets={file_name: {"$.foo": "actual_secret"}},
+        )
+
+        # The bad file is not added to configs, and a structured error is
+        # collected instead of a raw JSONDecodeError propagating out.
+        assert file_name not in configs
+        assert len(exceptions) == 1
+        assert isinstance(exceptions[0], ValidationError)
+        assert file_name in exceptions[0].messages
+        assert "masked_encrypted_extra" in exceptions[0].messages[file_name]
+
+    @patch("superset.commands.importers.v1.utils.db")
+    def test_valid_json_in_masked_encrypted_extra_still_merges(
+        self, mock_db: object
+    ) -> None:
+        """Control: valid JSON in ``masked_encrypted_extra`` still has the
+        secrets merged in and produces no exceptions."""
+        from marshmallow.exceptions import ValidationError
+
+        from superset.commands.importers.v1.utils import load_configs
+        from superset.utils import json
+
+        mock_db.session.query.return_value.all.return_value = []  # type: ignore[attr-defined]
+
+        file_name = "databases/db.yaml"
+        contents = {
+            file_name: (
+                "uuid: abc-123\n"
+                "password: secret\n"
+                'masked_encrypted_extra: \'{"foo": "XXXXXXXXXX"}\'\n'
+            )
+        }
+        exceptions: list[ValidationError] = []
+
+        configs = load_configs(
+            contents=contents,
+            schemas={"databases/": self._trivial_schema()},
+            passwords={},
+            exceptions=exceptions,
+            ssh_tunnel_passwords={},
+            ssh_tunnel_private_keys={},
+            ssh_tunnel_priv_key_passwords={},
+            encrypted_extra_secrets={file_name: {"$.foo": "actual_secret"}},
+        )
+
+        assert exceptions == []
+        assert file_name in configs
+        merged = json.loads(configs[file_name]["masked_encrypted_extra"])
+        assert merged == {"foo": "actual_secret"}
+
+
+class TestLoadConfigsNonMappingYaml:
+    """A syntactically valid YAML document whose top-level value is a
+    scalar or list (not a mapping) must be reported as a schema validation
+    error, not raise an unhandled AttributeError from the ``config.get()``
+    calls that assume a mapping."""
+
+    def test_top_level_list_is_reported_as_validation_error(
+        self, session: Session
+    ) -> None:
+        from superset.commands.importers.v1.utils import load_configs
+        from superset.databases.schemas import ImportV1DatabaseSchema
+        from superset.models.core import Database
+
+        engine = session.get_bind()
+        Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+        contents = {"databases/malformed.yaml": "- not\n- a\n- mapping\n"}
+        exceptions: list[ValidationError] = []
+
+        configs = load_configs(
+            contents,
+            {"databases/": ImportV1DatabaseSchema()},
+            {},
+            exceptions,
+            {},
+            {},
+            {},
+            {},
+        )
+
+        assert configs == {}
+        assert len(exceptions) == 1
+        assert "databases/malformed.yaml" in exceptions[0].messages
+
+    def test_top_level_scalar_is_reported_as_validation_error(
+        self, session: Session
+    ) -> None:
+        from superset.commands.importers.v1.utils import load_configs
+        from superset.databases.schemas import ImportV1DatabaseSchema
+        from superset.models.core import Database
+
+        engine = session.get_bind()
+        Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+        contents = {"databases/malformed.yaml": "just a string"}
+        exceptions: list[ValidationError] = []
+
+        configs = load_configs(
+            contents,
+            {"databases/": ImportV1DatabaseSchema()},
+            {},
+            exceptions,
+            {},
+            {},
+            {},
+            {},
+        )
+
+        assert configs == {}
+        assert len(exceptions) == 1
+        assert "databases/malformed.yaml" in exceptions[0].messages
+
+
+class TestDatabaseConnectionIdentityUnchanged:
+    """Stored database secrets (password, SSH tunnel key) may only be
+    re-attached to an import when the incoming config still points at the
+    same connection endpoint as the stored one — a UUID match alone is not
+    enough, since UUIDs are not secrets (they appear in every exported
+    bundle)."""
+
+    def test_same_endpoint_differing_masked_credential_is_unchanged(self) -> None:
+        from superset.commands.importers.v1.utils import (
+            database_connection_identity_unchanged,
+        )
+
+        assert database_connection_identity_unchanged(
+            "postgresql://user:XXXXXXXXXX@host1:5432/db",
+            "postgresql://user:pass@host1:5432/db",
+        )
+
+    def test_host_change_is_changed(self) -> None:
+        from superset.commands.importers.v1.utils import (
+            database_connection_identity_unchanged,
+        )
+
+        assert not database_connection_identity_unchanged(
+            "postgresql://user:XXXXXXXXXX@host1:5432/db",
+            "postgresql://user:XXXXXXXXXX@attacker.example.com:5432/db",
+        )
+
+    def test_port_change_is_changed(self) -> None:
+        from superset.commands.importers.v1.utils import (
+            database_connection_identity_unchanged,
+        )
+
+        assert not database_connection_identity_unchanged(
+            "postgresql://user:XXXXXXXXXX@host1:5432/db",
+            "postgresql://user:XXXXXXXXXX@host1:5433/db",
+        )
+
+    def test_query_args_can_redirect_the_connection(self) -> None:
+        """Query args become driver connect args (e.g. psycopg2 ``?host=``)
+        and can redirect the connection just like the host segment."""
+        from superset.commands.importers.v1.utils import (
+            database_connection_identity_unchanged,
+        )
+
+        assert not database_connection_identity_unchanged(
+            "postgresql://user:XXXXXXXXXX@host1:5432/db",
+            "postgresql://user:XXXXXXXXXX@host1:5432/db?host=attacker.example.com",
+        )
+
+    def test_missing_either_side_is_never_reusable(self) -> None:
+        from superset.commands.importers.v1.utils import (
+            database_connection_identity_unchanged,
+        )
+
+        assert not database_connection_identity_unchanged(
+            None, "postgresql://user:pass@host1:5432/db"
+        )
+        assert not database_connection_identity_unchanged(
+            "postgresql://user:XXXXXXXXXX@host1:5432/db", None
+        )

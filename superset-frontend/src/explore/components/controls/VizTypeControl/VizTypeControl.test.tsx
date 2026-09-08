@@ -278,6 +278,24 @@ describe('VizTypeControl', () => {
     ).not.toBeInTheDocument();
   });
 
+  test('Thumbnail labels expose the full chart name via a title tooltip', async () => {
+    // Labels are clamped to a fixed two-line block so every tile is the same
+    // height; the full (possibly truncated) name must stay discoverable through
+    // the title attribute.
+    await waitForRenderWrapper();
+    userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
+
+    const visualizations = screen.getByTestId(getTestId('viz-row'));
+    const labels = await within(visualizations).findAllByTestId(
+      getTestId('viztype-label'),
+    );
+
+    expect(labels.length).toBeGreaterThan(0);
+    labels.forEach(label => {
+      expect(label).toHaveAttribute('title', label.textContent ?? '');
+    });
+  });
+
   test('Submit on viz type double-click', async () => {
     await waitForRenderWrapper();
     userEvent.click(screen.getByRole('tab', { name: 'All charts' }));

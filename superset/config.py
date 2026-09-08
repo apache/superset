@@ -53,9 +53,9 @@ from superset.advanced_data_type.plugins.internet_address import internet_addres
 from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
 from superset.constants import (
-    CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET,
     CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
     CHANGE_ME_SECRET_KEY,
+    CHANGE_ME_WEBSOCKET_JWT_SECRET,
 )
 from superset.jinja_context import BaseTemplateProcessor
 from superset.key_value.types import JsonKeyValueCodec
@@ -94,7 +94,7 @@ EVENT_LOGGER = DBEventLogger()
 
 SUPERSET_LOG_VIEW = True
 
-# This config is used to enable/disable the folowing security menu items:
+# This config is used to enable/disable the following security menu items:
 # List Users, List Roles, List Groups
 SUPERSET_SECURITY_VIEW_MENU = True
 
@@ -350,10 +350,24 @@ SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
 # (database passwords, SSH tunnel credentials, OAuth tokens, ...) will make
 # those values undecryptable unless they are re-encrypted first. See the
 # authenticated-encryption SIP/migration before switching an existing install.
+# Leaving this at "aes" logs a startup warning
+# (SupersetAppInitializer.check_encryption_engine) pointing at the
+# `superset re-encrypt-secrets --engine aes-gcm` migration path.
 SQLALCHEMY_ENCRYPTED_FIELD_ENGINE: Literal["aes", "aes-gcm"] = "aes"
 
 # Extends the default SQLGlot dialects with additional dialects
 SQLGLOT_DIALECTS_EXTENSIONS: DialectExtensions | Callable[[], DialectExtensions] = {}
+
+# Extra pandas post-processing operations to register alongside the built-in ones.
+# Each entry must be a named callable (i.e. have a __name__ attribute) with the
+# signature:
+#   def my_op(df: pandas.DataFrame, **options: Any) -> pandas.DataFrame
+# The function is registered under its __name__ as the operation name. Callables
+# without __name__ (e.g. functools.partial, lambda) are silently ignored.
+# Example:
+#   from mypackage.ops import my_custom_op
+#   EXTRA_PANDAS_POSTPROCESSING_OPS = [my_custom_op]
+EXTRA_PANDAS_POSTPROCESSING_OPS: list[Callable[..., Any]] = []
 
 # The limit of queries fetched for query search
 QUERY_SEARCH_LIMIT = 1000
@@ -364,6 +378,9 @@ WTF_CSRF_ENABLED = True
 # Add endpoints that need to be exempt from CSRF protection
 WTF_CSRF_EXEMPT_LIST = [
     "superset.charts.data.api.data",
+    # Headless query endpoint for token-authenticated API clients, exempted for
+    # the same reason as the chart data endpoint above.
+    "superset.datasource.api.query",
     "superset.dashboards.api.cache_dashboard_screenshot",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
@@ -485,8 +502,7 @@ FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT = False
 # AUTH_REMOTE_USER : Is for using REMOTE_USER from web server
 AUTH_TYPE = AUTH_DB
 
-# Uncomment to setup Full admin role name
-# AUTH_ROLE_ADMIN = 'Admin'
+# AUTH_ROLE_ADMIN = "Admin"
 
 # Uncomment to setup Public role name, no authentication needed
 # AUTH_ROLE_PUBLIC = 'Public'
@@ -551,6 +567,7 @@ LANGUAGES = {
     "fi": {"flag": "fi", "name": "Finnish"},
     "th": {"flag": "th", "name": "Thai"},
     "tr": {"flag": "tr", "name": "Turkish"},
+    "ta": {"flag": "in", "name": "Tamil"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
@@ -694,7 +711,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # the move-back lever; removed (along with its two gate points —
     # BaseDAO.delete routing and the do_orm_execute visibility listener) once
     # post-flip confidence is established.
-    # @lifecycle: development
+    # @lifecycle: testing
     "SOFT_DELETE": True,
     # Enable semantic layers and show semantic views alongside datasets
     # @lifecycle: development
@@ -708,6 +725,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable Matrixify feature for matrix-style chart layouts
     # @lifecycle: development
     "MATRIXIFY": False,
+    # Serve a consumption-only mobile experience (dashboards, dashboard list,
+    # and home page) on small screens; other views show a "not supported on
+    # mobile" screen. Authoring features are hidden on mobile when enabled.
+    # @lifecycle: development
+    "MOBILE_CONSUMPTION_MODE": False,
     # Try to optimize SQL queries — for now only predicate pushdown is supported
     # @lifecycle: development
     "OPTIMIZE_SQL": False,
@@ -723,9 +745,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     "TAGGING_SYSTEM": False,
     # Enables the version history panel on Explore and Dashboard pages.
     # History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on;
-    # with capture off the panel renders but stays empty, so the two ship
-    # with matching defaults and should be changed together.
-    # @lifecycle: development
+    # with capture off the panel renders empty or stale history, so the two
+    # ship with matching defaults and should be changed together.
+    # @lifecycle: testing
     "VERSION_HISTORY": True,
     # =================================================================
     # IN TESTING
@@ -740,6 +762,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     # @docs: https://superset.apache.org/docs/configuration/alerts-reports
     "ALERT_REPORTS": False,
+    # Enables automatic retry functionality for failed report executions
+    # @lifecycle: testing
+    "ALERT_REPORTS_RETRY": False,
     # Enables Slack V2 integration for Alerts and Reports.
     # Defaults to True; the legacy Slack v1 path is deprecated and will be removed
     # in the next major release. Operators must grant the Slack bot both the
@@ -792,10 +817,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # When impersonating a user, use the email prefix instead of username
     # @lifecycle: testing
     "IMPERSONATE_WITH_EMAIL_PREFIX": False,
-    # Replace Selenium with Playwright for reports and thumbnails.
-    # Supports deck.gl visualizations. Requires playwright pip package.
-    # @lifecycle: testing
-    "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": False,
     # Apply RLS rules to SQL Lab queries. Requires query parsing/manipulation.
     # May break queries or allow RLS bypass. Use with care!
     # @lifecycle: testing
@@ -1063,6 +1084,12 @@ COMMON_BOOTSTRAP_OVERRIDES_FUNC: Callable[  # noqa: E731
 # This is merely a default
 EXTRA_CATEGORICAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 
+# EXTRA_THEME_TOKENS lets a deployment register additional custom theme token
+# names so they validate cleanly in the theme editor instead of being flagged as
+# unknown Ant Design tokens. Deployments and plugins that consume their own
+# tokens via useTheme add them here. This is merely a default.
+EXTRA_THEME_TOKENS: list[str] = []
+
 # -----------------------------------------------------------------------------
 # Theme System Configuration
 # -----------------------------------------------------------------------------
@@ -1302,24 +1329,12 @@ SUPERSET_CACHE_WARMUP_USER: str | None = None
 SCREENSHOT_LOCATE_WAIT = int(timedelta(seconds=10).total_seconds())
 # Time before screenshot capture times out while waiting for chart readiness.
 SCREENSHOT_LOAD_WAIT = int(timedelta(minutes=1).total_seconds())
-# Maximum time (in seconds) selenium waits for an initial page navigation
-# (driver.get) to complete. Without it the navigation blocks indefinitely when
-# the target page never finishes loading (e.g. an unreachable WEBDRIVER_BASEURL),
-# which leaves the report schedule stuck in the WORKING state. Set to None to
-# disable (not recommended).
-SCREENSHOT_PAGE_LOAD_WAIT = int(timedelta(minutes=2).total_seconds())
-# Selenium destroy retries
-SCREENSHOT_SELENIUM_RETRIES = 5
-# Give selenium an headstart, in seconds
+# Give the browser an initial headstart, in seconds
 SCREENSHOT_SELENIUM_HEADSTART = 3
 # Wait for the chart animation, in seconds
 SCREENSHOT_SELENIUM_ANIMATION_WAIT = 5
 # Replace unexpected errors in screenshots with real error messages
 SCREENSHOT_REPLACE_UNEXPECTED_ERRORS = False
-# Max time to wait for error message modal to show up, in seconds
-SCREENSHOT_WAIT_FOR_ERROR_MODAL_VISIBLE = 5
-# Max time to wait for error message modal to close, in seconds
-SCREENSHOT_WAIT_FOR_ERROR_MODAL_INVISIBLE = 5
 # Event that Playwright waits for when loading a new page
 # Possible values: "load", "commit", "domcontentloaded", "networkidle"
 # Docs: https://playwright.dev/python/docs/api/class-page#page-goto-option-wait-until
@@ -1544,6 +1559,22 @@ EXCEL_EXPORT_S3_CLIENT_KWARGS: dict[str, Any] = {}
 # a rendered image. Set to None to fall back to the built-in default.
 EXCEL_EXPORT_TABLE_VIZ_TYPES: set[str] | None = None
 
+# Optional hook to build a query context for a chart that has no saved
+# ``query_context``, called before the built-in form-data rebuild. Receives the
+# chart's form data (its ``params`` with ``viz_type`` and the
+# ``datasource="{id}__{type}"`` string injected — i.e. ``Slice.form_data``) and
+# returns a query-context payload dict (the shape ``ChartDataQueryContextSchema``
+# loads) or ``None``. A deployment can point this at a service that runs the
+# chart's real frontend ``buildQuery`` (faithful post-processing / multi-query)
+# for viz types the built-in rebuild can't handle. Must return ``None`` — not a
+# partial/stub context — whenever it cannot build the chart faithfully, so the
+# export falls through to the built-in rebuild. The export deep-copies whatever
+# it returns before applying dashboard filters, so a builder is free to memoize
+# or share its payloads. Defaults to ``None`` (built-in behavior only).
+EXCEL_EXPORT_QUERY_CONTEXT_BUILDER: (
+    Callable[[dict[str, Any]], dict[str, Any] | None] | None
+) = None
+
 # ---------------------------------------------------
 # Time grain configurations
 # ---------------------------------------------------
@@ -1669,17 +1700,9 @@ DATETIME_FORMAT_DETECTION_SAMPLE_SIZE = 1000
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
 
-# Master switch for entity-version-history capture. Capture is enabled by
-# default, so saves write shadow rows and a ``version_transaction`` /
-# ``version_changes`` record. Set this to a falsy value in
-# ``superset_config.py`` (or via the environment variable of the same name) to
-# disable the before-flush listeners while keeping the /versions/ endpoints
-# available read-only.
-# Capture ships on. It is an operational escape hatch — set the environment
-# variable to a falsy value when a versioning-induced regression needs a
-# 30-second recovery instead of revert-and-redeploy — not a feature flag,
-# and it remains permanently as the kill-switch rather than being removed
-# with the rollout toggles.
+# Master switch for entity-version-history capture. A falsy value disables
+# version writes while keeping existing history available read-only through the
+# ``/versions/`` endpoints; Restore is unavailable while capture is disabled.
 ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
     os.environ.get("ENABLE_VERSIONING_CAPTURE", "true")
 )
@@ -1824,7 +1847,17 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         #     "schedule": crontab(minute="*", hour="*"),
         #     "kwargs": {"retention_period_days": 180, "max_rows_per_run": 10000},
         # },
-        # Uncomment to enable pruning of the tasks table
+        # Uncomment to enable reaping of orphaned GTF tasks — active tasks whose
+        # worker died without finishing them. Runs on a short interval (reaping
+        # latency, incl. cancelling an abandoned warehouse query, tracks this
+        # cadence). Independent of prune_tasks below, which is a heavy retention
+        # delete better run infrequently.
+        # "reap_orphaned_tasks": {
+        #     "task": "reap_orphaned_tasks",
+        #     "schedule": crontab(minute="*", hour="*"),
+        # },
+        # Uncomment to enable pruning of the tasks table (retention delete of old
+        # terminal rows).
         # "prune_tasks": {
         #     "task": "prune_tasks",
         #     "schedule": crontab(minute=0, hour=0),
@@ -2095,7 +2128,16 @@ TROUBLESHOOTING_LINK = ""
 WTF_CSRF_TIME_LIMIT = int(timedelta(weeks=1).total_seconds())
 
 # This link should lead to a page with instructions on how to gain access to a
-# Datasource. It will be placed at the bottom of permissions errors.
+# Datasource. It is surfaced as a "Request Access" link on data-permission
+# errors (e.g. when a viewer opens a chart whose dataset they cannot access).
+# The URL may include any of these placeholders, which are substituted with
+# URL-encoded values so the link can deep-link into an access-request system:
+#   {datasource_id}    - id of the denied dataset (datasource errors)
+#   {datasource_name}  - name of the denied dataset (datasource errors)
+#   {table_names}      - comma-separated denied table names (table/SQL errors)
+#   {username}         - the requesting user's username
+# A URL with no placeholders is used as-is. Example:
+#   "https://access.example.com/request?dataset={datasource_id}&user={username}"
 PERMISSION_INSTRUCTIONS_LINK = ""
 
 # Integrate external Blueprints to the app by passing them to your
@@ -2516,6 +2558,12 @@ REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 # Enforce HTTPS for webhook alerts/reports
 ALERT_REPORTS_WEBHOOK_HTTPS_ONLY = True
 
+# Socket timeout (in seconds) for the HTTP request that dispatches webhook
+# alerts/reports. Without a timeout the request blocks indefinitely if the
+# webhook target is unreachable, which leaves the report schedule stuck in
+# the WORKING state. Set to None to disable (not recommended).
+ALERT_REPORTS_WEBHOOK_TIMEOUT = 60
+
 # When True, webhook alert/report dispatch is permitted to call private/internal
 # IP addresses (RFC-1918, loopback, link-local). Intended for deployments where
 # the webhook target is on an internal network (a chatops bridge, an internal
@@ -2558,23 +2606,20 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 # For workspaces with 10k+ channels, consider increasing to 10
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
 
+# Cooldown (in seconds) after an on-demand Slack channel-cache refresh.
+SLACK_CHANNEL_REFRESH_COOLDOWN_SECONDS = 300
+
 # Timeout (in seconds) for outbound Slack API calls. The Slack SDK defaults to 30s;
 # exposing it here lets operators grant more time for large file uploads (multi-MB
 # CSVs, PDFs, screenshot sets) to congested or rate-limited Slack endpoints without
 # patching code, consistent with the SMTP/CSV/screenshot timeouts.
 SLACK_API_TIMEOUT = 30
 
-# The webdriver to use for generating reports when using Selenium (not Playwright).
-# This setting is ignored when PLAYWRIGHT_REPORTS_AND_THUMBNAILS is enabled, as
-# Playwright always uses Chromium regardless of this value.
-# Use one of the following:
-# firefox
-#   Requires: geckodriver and firefox installations
-#   Limitations: can be buggy at times
-# chrome:
-#   Requires: headless chrome
-#   Limitations: unable to generate screenshots of elements
-WEBDRIVER_TYPE = "firefox"
+# Application retry budget (in seconds) shared by all Slack channels, files, and
+# upload phases in one report execution. Increase this for slow or large-file
+# reports. The effective configured value is floored at one second longer than
+# SLACK_API_TIMEOUT, then clamped to the report's remaining working timeout.
+SLACK_SEND_RETRY_MAX_TIME = 150
 
 # Window size - this will impact the rendering of the data
 WEBDRIVER_WINDOW = {
@@ -2583,20 +2628,12 @@ WEBDRIVER_WINDOW = {
     "pixel_density": 1,
 }
 
-# An optional override to the default auth hook used to provide auth to the offline
-# webdriver (when using Selenium) or browser context (when using Playwright - see
-# PLAYWRIGHT_REPORTS_AND_THUMBNAILS feature flag)
+# An optional override to the default auth hook used to provide auth to the
+# browser context when using Playwright
 WEBDRIVER_AUTH_FUNC = None
 
-# Any config options to be passed as-is to the webdriver
-WEBDRIVER_CONFIGURATION = {
-    "options": {"capabilities": {}, "preferences": {}, "binary_location": ""},
-    "service": {"log_output": "/dev/null", "service_args": [], "port": 0, "env": {}},
-}
-
-# Additional args to be passed as arguments to the config object
-# Note: If using Chrome, you'll want to add the "--marionette" arg.
-WEBDRIVER_OPTION_ARGS = ["--headless"]
+# Additional args to be passed to the Playwright browser launch.
+WEBDRIVER_OPTION_ARGS: list[str] = []
 
 # The base URL to query for accessing the user interface
 WEBDRIVER_BASEURL = "http://0.0.0.0:8080/"
@@ -2679,7 +2716,7 @@ DATABASE_OAUTH2_CLIENTS: dict[str, dict[str, Any]] = {
     # },
 }
 
-# OAuth2 state is encoded in a JWT using the alogorithm below.
+# OAuth2 state is encoded in a JWT using the algorithm below.
 DATABASE_OAUTH2_JWT_ALGORITHM = "HS256"
 
 # By default the redirect URI points to /api/v1/database/oauth2/ and doesn't have to be
@@ -2885,50 +2922,107 @@ SQLA_TABLE_MUTATOR = lambda table: table  # noqa: E731
 
 
 # Global async query config options.
-# Requires GLOBAL_ASYNC_QUERIES feature flag to be enabled.
-GLOBAL_ASYNC_QUERY_MANAGER_CLASS = (
-    "superset.async_events.async_query_manager.AsyncQueryManager"
-)
-GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX = "async-events-"
-GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT = 1000
-GLOBAL_ASYNC_QUERIES_REDIS_STREAM_LIMIT_FIREHOSE = 1000000
-GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS = True
-GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME = "async-token"
-GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SECURE = False
-GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE: None | (Literal["None", "Lax", "Strict"]) = (
-    None
-)
-GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
-GLOBAL_ASYNC_QUERIES_JWT_SECRET = CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
-# Lifetime of the async-query JWT, in seconds. After this period the token
-# expires and a fresh one is issued on the next request.
-GLOBAL_ASYNC_QUERIES_JWT_EXPIRATION_SECONDS = int(timedelta(hours=1).total_seconds())
-GLOBAL_ASYNC_QUERIES_TRANSPORT: Literal["polling", "ws"] = "polling"
+# Requires the GLOBAL_ASYNC_QUERIES feature flag to be enabled. Async chart-data
+# queries run on the Global Task Framework (one task per QueryObject) over
+# DISTRIBUTED_COORDINATION_CONFIG; the client polls /api/v1/task/status_changes at
+# this interval (milliseconds) and re-issues its request once the tasks succeed.
 GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
     timedelta(milliseconds=500).total_seconds() * 1000
 )
-GLOBAL_ASYNC_QUERIES_WEBSOCKET_URL = "ws://127.0.0.1:8080/"
 
-# Global async queries cache backend configuration options:
-# - Set 'CACHE_TYPE' to 'RedisCache' for RedisCacheBackend.
-# - Set 'CACHE_TYPE' to 'RedisSentinelCache' for RedisSentinelCacheBackend.
-GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
-    "CACHE_TYPE": "RedisCache",
-    "CACHE_REDIS_HOST": "localhost",
-    "CACHE_REDIS_PORT": 6379,
-    "CACHE_REDIS_USER": "",
-    "CACHE_REDIS_PASSWORD": "",
-    "CACHE_REDIS_DB": 0,
-    "CACHE_DEFAULT_TIMEOUT": 300,
-    "CACHE_REDIS_SENTINELS": [("localhost", 26379)],
-    "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
-    "CACHE_REDIS_SENTINEL_PASSWORD": None,
-    "CACHE_REDIS_SSL": False,  # True or False
-    "CACHE_REDIS_SSL_CERTFILE": None,
-    "CACHE_REDIS_SSL_KEYFILE": None,
-    "CACHE_REDIS_SSL_CERT_REQS": "required",
-    "CACHE_REDIS_SSL_CA_CERTS": None,
-}
+# Ceiling (milliseconds) for the status-poll interval. The client polls eagerly at
+# GLOBAL_ASYNC_QUERIES_POLLING_DELAY, then backs off exponentially while the tasks
+# it is awaiting stay quiet — up to this maximum — snapping back to eager the moment
+# an awaited task changes.
+GLOBAL_ASYNC_QUERIES_POLLING_MAX_DELAY = int(
+    timedelta(seconds=30).total_seconds() * 1000
+)
+
+# How long (milliseconds) the client keeps polling with no progress on the tasks it
+# is awaiting before it gives up and surfaces an error. Guards against a stuck or
+# orphaned task (e.g. a worker killed mid-execution) keeping a chart spinning — and
+# the poll running — forever. The clock resets whenever an awaited task changes, so
+# steady progress is never interrupted.
+GLOBAL_ASYNC_QUERIES_POLLING_STALE_TIMEOUT = int(
+    timedelta(minutes=10).total_seconds() * 1000
+)
+
+# Minimum cache TTL (seconds) for chart-data results produced by an *async*
+# request. The async flow caches each query's result and the client then
+# re-issues the request to read it back, so a cache TTL shorter than the round
+# trip could evict the result before it is fetched, hanging the chart. When a
+# query runs async, its result-cache TTL is floored to this value (a longer
+# slice/dataset/deployment TTL is kept as-is, and 0 — "cache forever" — is left
+# untouched). This floor applies ONLY to async execution; synchronous
+# ``/chart/data`` requests are unaffected even when GLOBAL_ASYNC_QUERIES is on.
+GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL = int(timedelta(minutes=5).total_seconds())
+
+# Timeout (seconds) for an async chart-data query task. When reached, the task is
+# aborted; on engines that support query cancellation the abort handler also
+# cancels the underlying warehouse query (over a fresh connection), so the task
+# ends promptly as TIMED_OUT. On engines without cancel support the query is not
+# interrupted (the task is freed once the query returns on its own). Default None
+# leaves async chart-data queries unbounded (matching prior behavior); set an int
+# to enforce a ceiling.
+GLOBAL_ASYNC_QUERIES_QUERY_TIMEOUT: int | None = None
+
+# Deployment default for whether the UI runs chart-data queries asynchronously when
+# GLOBAL_ASYNC_QUERIES is enabled. This is a FRONTEND-ONLY policy input: async is
+# opt-in per request via an ``async_mode`` flag on ``/chart/data`` (an absent flag is
+# treated as synchronous, so programmatic API clients keep the synchronous 200 flow),
+# and the frontend resolves the flag it sends via a policy chain — per-dashboard
+# override → this default → the feature-flag gate. Default ``True`` preserves the UI's
+# existing async behavior; set ``False`` to make the UI synchronous by default and roll
+# async out per dashboard.
+GLOBAL_ASYNC_QUERIES_DEFAULT = True
+
+# Realtime websocket transport (the `superset-websocket` server) config.
+# When enabled, GTF task changes are pushed to the browser so charts and list
+# views update without polling: with the websocket on, the recurring
+# `/task/status_changes` poll is not run at all — the socket is the mechanism, and
+# a single catch-up fetch on waiter registration and on socket reconnect
+# reconciles anything missed (the interval poll is used only when the websocket is
+# disabled). Requires the superset-websocket server, a Redis coordination
+# backend (DISTRIBUTED_COORDINATION_CONFIG), and `can_read` on `Realtime`.
+# Two delivery scopes, carried on one best-effort `realtime` pub/sub channel as a
+# self-describing `{topic, scope, routes, payload}` envelope:
+#   - `authenticated_global` — a broadcast nudge (e.g. topic `entity.changed`,
+#     opaque entity ids only) delivered to every authenticated socket for
+#     list-view activity, and
+#   - `principal`/`tab` — targeted messages (e.g. topic `task.status` for the
+#     dashboard chart-data path), fanned out by the websocket server to the
+#     routing keys the producer names. Keys are principal-grain by default (all of
+#     a principal's tabs); a task type may narrow them to a per-tab channel so only
+#     the tab watching a task is notified. The route never reaches the browser,
+#     which dispatches on `topic`.
+# The JWT authenticates the socket connection and binds it to its principal
+# channel; a browser may also advertise a tab id on the connect URL to bind a
+# per-tab channel (derived from the authorized principal channel). Set a strong
+# random WEBSOCKET_JWT_SECRET (>= 32 bytes) in production.
+# The websocket server can be configured with a previous validation secret
+# during rotations; the Flask app always mints new cookies with the current key.
+# The websocket server validates the signed token at connection time and
+# terminates sockets after JWT expiry; the Flask app re-mints the cookie inside a
+# sliding window before expiry (on any request), and the browser proactively
+# refreshes and reconnects, so an active realtime surface stays connected. Post-
+# mint permission revocation is bounded by this lifetime plus the ping interval.
+WEBSOCKET_ENABLE = False
+WEBSOCKET_URL = "ws://127.0.0.1:8080/"
+WEBSOCKET_JWT_SECRET = CHANGE_ME_WEBSOCKET_JWT_SECRET
+WEBSOCKET_JWT_COOKIE_NAME = "superset-ws-token"  # noqa: S105
+WEBSOCKET_JWT_COOKIE_SECURE = False
+WEBSOCKET_JWT_COOKIE_SAMESITE: None | (Literal["None", "Lax", "Strict"]) = None
+WEBSOCKET_JWT_COOKIE_DOMAIN = None
+WEBSOCKET_JWT_EXPIRATION_SECONDS = int(timedelta(minutes=15).total_seconds())
+
+# Prefix for the realtime pub/sub channel (default ""). Redis pub/sub is not
+# scoped by DB number, so deployments sharing one Redis/Valkey would cross-deliver
+# realtime envelopes (opaque entity-change + task-status nudges) — cross-tenant id
+# leakage and spurious refetches. Set a per-deployment value (e.g. "<keyPrefix>:")
+# here AND on the websocket server (REALTIME_CHANNEL_PREFIX env) to isolate them.
+# May be a string or a zero-argument callable, resolved once at startup, mirroring
+# Superset's other cache-key helpers. Empty is a no-op for single-instance setups.
+REALTIME_CHANNEL_PREFIX: Callable[[], str] | str = ""
 
 # Embedded config options
 GUEST_ROLE_NAME = "Public"
@@ -3127,6 +3221,14 @@ EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
 EXTRA_EDITORS_RESOLVER: Callable[..., list[Any]] | None = None
 # Post-create hook for charts/dashboards. Receives (model, asset_type).
 AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None
+# Contribute extra fields to a chart or dashboard export. Receives
+# (model, asset_type) and returns a mapping serialised under the "extra" key of
+# the exported YAML. Lets deployments carry their own metadata through
+# export/import without forking the export commands.
+EXTRA_ASSET_EXPORT_FIELDS: Callable[[Any, str], dict[str, Any]] | None = None
+# Consume the "extra" mapping when importing a chart or dashboard. Receives
+# (model, asset_type, extra) once the asset exists.
+EXTRA_ASSET_IMPORT_HANDLER: Callable[[Any, str, dict[str, Any]], None] | None = None
 
 
 # The migrations that add catalog permissions might take a considerably long time
@@ -3182,6 +3284,24 @@ TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
 # Set to 0 to disable throttling (write every update to DB).
 TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 
+# GTF worker-liveness heartbeat. While a worker holds a task it bumps
+# tasks.last_heartbeat every GTF_TASK_HEARTBEAT_INTERVAL seconds. The
+# reap_orphaned_tasks beat job reaps any ACTIVE task whose heartbeat is older
+# than GTF_ORPHAN_TASK_TIMEOUT — a worker that died mid-execution — by marking it
+# FAILURE (releasing waiters), revoking its Celery job, and, on engines that
+# support it, cancelling the abandoned warehouse query. A task still being worked
+# on keeps a fresh heartbeat and is left to its own cooperative abort, so reaping
+# never interferes with a live worker. As the worker-side complement, a worker
+# whose heartbeat writes keep failing for this same window (cut off from the
+# metastore though still alive) self-fences: it fails the task from the inside,
+# cancelling any in-flight query, rather than run work the reaper has already
+# given up on. Keep the timeout comfortably larger than the interval (>= ~3x) so
+# a brief GC pause or CPU-bound stretch does not look like a dead worker. Reaping
+# only runs when the reap_orphaned_tasks beat schedule is enabled (see
+# CELERY_CONFIG.beat_schedule).
+GTF_TASK_HEARTBEAT_INTERVAL = 15  # seconds
+GTF_ORPHAN_TASK_TIMEOUT = 60  # seconds
+
 # ---------------------------------------------------
 # Distributed Coordination Configuration
 # ---------------------------------------------------
@@ -3194,24 +3314,34 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 # These features require Redis primitives unavailable in generic cache backends:
 # - Pub/Sub: Real-time message broadcasting between workers
 # - SET NX EX: Atomic lock acquisition with automatic expiration
-# - Streams: Persistent ordered event logs (future)
+# - Streams: Persistent ordered event logs (task completion signalling)
 #
 # When configured, enables:
 # - Real-time abort/completion notifications for GTF tasks (vs database polling)
 # - Redis-based distributed locking (vs KeyValueDAO-backed DistributedLock)
+# - Async chart-data queries (Global Task Framework task streams)
 #
-# Future: This backend will power a higher-level coordination service exposing
-# standardized interfaces for distributed locks, pub/sub, and streams — consolidating
-# all advanced Redis primitives under a single connection. Global Async Queries
-# (GLOBAL_ASYNC_QUERIES_CACHE_BACKEND) will also be migrated to this configuration.
+# This backend powers the higher-level coordination service
+# (``superset.coordination.base.CoordinationService``) exposing standardized interfaces
+# for distributed locks, pub/sub, and streams under a single connection. It is the
+# single source of truth for the coordinator's consumers: distributed locks, the
+# Global Task Framework (including async chart-data queries), and future
+# stream/pub-sub users.
 #
 # Example with standard Redis:
 # DISTRIBUTED_COORDINATION_CONFIG: CacheConfig = {
 #     "CACHE_TYPE": "RedisCache",
 #     "CACHE_REDIS_HOST": "localhost",
 #     "CACHE_REDIS_PORT": 6379,
-#     "CACHE_REDIS_DB": 0,
+#     "CACHE_REDIS_USER": "",
 #     "CACHE_REDIS_PASSWORD": "",
+#     "CACHE_REDIS_DB": 0,
+#     "CACHE_DEFAULT_TIMEOUT": 300,
+#     "CACHE_REDIS_SSL": False,  # True or False
+#     "CACHE_REDIS_SSL_CERTFILE": None,
+#     "CACHE_REDIS_SSL_KEYFILE": None,
+#     "CACHE_REDIS_SSL_CERT_REQS": "required",
+#     "CACHE_REDIS_SSL_CA_CERTS": None,
 # }
 #
 # Example with Redis Sentinel:
@@ -3224,6 +3354,13 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 #     "CACHE_REDIS_PASSWORD": "",
 # }
 DISTRIBUTED_COORDINATION_CONFIG: CacheConfig | None = None
+
+# Retention (seconds) for the Redis Streams the coordination service uses to deliver
+# signals (e.g. task completion/abort). Each signal is one short-lived stream entry
+# that a waiter consumes almost immediately; the TTL is a safety net so signal
+# streams for tasks that never get awaited cannot accumulate in Redis/Valkey
+# indefinitely. Defaults to 24 hours.
+DISTRIBUTED_COORDINATION_SIGNAL_TTL = int(timedelta(hours=24).total_seconds())
 
 # Default lock TTL (time-to-live) in seconds for distributed locks.
 # Can be overridden per-call via the `ttl_seconds` parameter.

@@ -16,7 +16,7 @@
 # under the License.
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast, TYPE_CHECKING
 
 from flask import current_app
 
@@ -30,6 +30,9 @@ from superset.explorables.base import Explorable
 from superset.models.slice import Slice
 from superset.superset_typing import Column
 from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import BaseDatasource
 
 
 def create_query_object_factory() -> QueryObjectFactory:
@@ -52,7 +55,9 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         result_type: ChartDataResultType | None = None,
         result_format: ChartDataResultFormat | None = None,
         force: bool = False,
+        force_nonce: str | None = None,
         custom_cache_timeout: int | None = None,
+        preserve_null_row_limit: bool = False,
     ) -> QueryContext:
         datasource_model_instance = None
         if datasource:
@@ -81,7 +86,11 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                 self._query_object_factory.create(
                     result_type,
                     datasource=datasource,
+                    datasource_model_instance=cast(
+                        "BaseDatasource", datasource_model_instance
+                    ),
                     server_pagination=server_pagination,
+                    preserve_null_row_limit=preserve_null_row_limit,
                     **query_obj,
                 ),
             )
@@ -101,6 +110,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             result_type=result_type,
             result_format=result_format,
             force=force,
+            force_nonce=force_nonce,
             custom_cache_timeout=custom_cache_timeout,
             cache_values=cache_values,
         )
@@ -285,19 +295,30 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     ),
                     None,
                 )
-                # Replaces x-axis column values with granularity
+                # Point the x-axis at the overridden Time Column (granularity).
                 if x_axis_column:
                     if isinstance(x_axis_column, dict):
+                        # Only swap the underlying expression, keeping the
+                        # column's original label. The temporal offset join
+                        # (``processing_time_offsets``), the post-processing
+                        # pivot ``index`` and the frontend all reference this
+                        # column by its label; renaming it to the granularity
+                        # here desynchronizes those consumers from the label
+                        # the saved chart still advertises, which — with a Time
+                        # Comparison offset — collapses the series into a single
+                        # point.
                         x_axis_column["sqlExpression"] = granularity
-                        x_axis_column["label"] = granularity
                     else:
+                        # A bare string x-axis has no distinct label, so it is
+                        # replaced wholesale and the pivot ``index`` must be
+                        # realigned to the overridden column.
                         query_object.columns = [
                             granularity if column == x_axis_column else column
                             for column in query_object.columns
                         ]
-                    for post_processing in query_object.post_processing:
-                        if post_processing.get("operation") == "pivot":
-                            post_processing["options"]["index"] = [granularity]
+                        for post_processing in query_object.post_processing:
+                            if post_processing.get("operation") == "pivot":
+                                post_processing["options"]["index"] = [granularity]
 
             # If no temporal x-axis, then get the default temporal filter
             if not filter_to_remove:

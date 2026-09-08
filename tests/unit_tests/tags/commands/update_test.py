@@ -264,3 +264,155 @@ def test_update_command_remove_all_tagged_objects(
     assert (
         len(db.session.query(TaggedObject).filter_by(tag_id=updated_tag.id).all()) == 0
     )
+
+
+def test_update_command_skips_removal_of_inaccessible_objects(
+    session_with_data: Session, mocker: MockerFixture
+):
+    """Associations on objects the user cannot modify must survive an update.
+
+    Regression test: the deletion branch of ``create_tag_relationship``
+    removed every association absent from the submitted set with no
+    per-object check, so a low-privilege user could strip a tag from
+    objects they are not allowed to modify (or from every object, by
+    sending an empty ``objects_to_tag``).
+    """
+    from superset.commands.tag.create import CreateCustomTagWithRelationshipsCommand
+    from superset.commands.tag.update import UpdateTagCommand
+    from superset.daos.tag import TagDAO
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.tags.models import ObjectType, TaggedObject
+
+    dashboard = db.session.query(Dashboard).first()
+    chart = db.session.query(Slice).first()
+
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.is_admin", return_value=True
+    )
+    mocker.patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart)
+    mocker.patch(
+        "superset.daos.dashboard.DashboardDAO.find_by_id", return_value=dashboard
+    )
+
+    # An admin tags both a dashboard and a chart
+    CreateCustomTagWithRelationshipsCommand(
+        data={
+            "name": "test_tag",
+            "objects_to_tag": [
+                (ObjectType.dashboard, dashboard.id),
+                (ObjectType.chart, chart.id),
+            ],
+        }
+    ).run()
+
+    tag = TagDAO.find_by_name("test_tag")
+    assert len(tag.objects) == 2
+
+    # A non-admin who may modify the chart but not the dashboard submits
+    # only the chart: the dashboard association must not be deleted.
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.is_admin", return_value=False
+    )
+
+    def can_modify(model):
+        return isinstance(model, Slice)
+
+    mocker.patch(
+        "superset.commands.tag.update.current_user_can_modify_object",
+        side_effect=can_modify,
+    )
+    mocker.patch(
+        "superset.commands.utils.current_user_can_modify_object",
+        side_effect=can_modify,
+    )
+
+    UpdateTagCommand(
+        tag.id,
+        {
+            "name": "test_tag",
+            "description": "test_description",
+            "objects_to_tag": [(ObjectType.chart, chart.id)],
+        },
+    ).run()
+
+    remaining = {
+        (obj.object_type, obj.object_id)
+        for obj in db.session.query(TaggedObject).filter_by(tag_id=tag.id).all()
+    }
+    assert (ObjectType.dashboard, dashboard.id) in remaining
+    assert (ObjectType.chart, chart.id) in remaining
+
+
+def test_update_command_empty_objects_to_tag_only_removes_accessible(
+    session_with_data: Session, mocker: MockerFixture
+):
+    """An empty/omitted objects_to_tag must not mass-delete every association.
+
+    A PUT with no objects_to_tag used to be treated as "delete every current
+    association" with zero per-object check. Now each deletion is
+    access-checked, so objects the caller cannot modify keep their
+    association.
+    """
+    from superset.commands.tag.create import CreateCustomTagWithRelationshipsCommand
+    from superset.commands.tag.update import UpdateTagCommand
+    from superset.daos.tag import TagDAO
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.tags.models import ObjectType, TaggedObject
+
+    dashboard = db.session.query(Dashboard).first()
+    chart = db.session.query(Slice).first()
+
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.is_admin", return_value=True
+    )
+    mocker.patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart)
+    mocker.patch(
+        "superset.daos.dashboard.DashboardDAO.find_by_id", return_value=dashboard
+    )
+
+    CreateCustomTagWithRelationshipsCommand(
+        data={
+            "name": "test_tag",
+            "objects_to_tag": [
+                (ObjectType.dashboard, dashboard.id),
+                (ObjectType.chart, chart.id),
+            ],
+        }
+    ).run()
+
+    tag = TagDAO.find_by_name("test_tag")
+    assert len(tag.objects) == 2
+
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.is_admin", return_value=False
+    )
+
+    def can_modify(model):
+        return isinstance(model, Slice)
+
+    mocker.patch(
+        "superset.commands.tag.update.current_user_can_modify_object",
+        side_effect=can_modify,
+    )
+    mocker.patch(
+        "superset.commands.utils.current_user_can_modify_object",
+        side_effect=can_modify,
+    )
+
+    UpdateTagCommand(
+        tag.id,
+        {
+            "name": "test_tag",
+            "description": "test_description",
+            "objects_to_tag": [],
+        },
+    ).run()
+
+    remaining = {
+        (obj.object_type, obj.object_id)
+        for obj in db.session.query(TaggedObject).filter_by(tag_id=tag.id).all()
+    }
+    assert (ObjectType.dashboard, dashboard.id) in remaining
+    assert (ObjectType.chart, chart.id) not in remaining

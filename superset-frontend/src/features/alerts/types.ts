@@ -135,6 +135,7 @@ export type AlertObject = {
   force_screenshot: boolean;
   grace_period?: number;
   id: number;
+  include_cta?: boolean;
   last_eval_dttm?: number;
   last_state?:
     | 'Success'

@@ -752,8 +752,17 @@ const transformProps = (
   const basicColorFormatters =
     comparisonColorEnabled && getBasicColorFormatter(baseQuery?.data, columns);
   const columnColorFormatters =
-    getColorFormatters(conditionalFormatting, passedData, theme) ??
-    defaultColorFormatters;
+    getColorFormatters(
+      (conditionalFormatting || []).filter(
+        (config: ConditionalFormattingConfig) =>
+          config.colorScheme !== ColorSchemeEnum.Green &&
+          config.colorScheme !== ColorSchemeEnum.Red,
+      ),
+      passedData,
+      theme,
+      undefined,
+      serverPagination,
+    ) ?? defaultColorFormatters;
 
   const basicColorColumnFormatters = getBasicColorFormatterForColumn(
     baseQuery?.data,

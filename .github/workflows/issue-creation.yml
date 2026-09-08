@@ -7,6 +7,9 @@ on:
   pull_request:
     types: [opened, edited]
 
+permissions:
+  contents: read
+
 jobs:
   superbot-orglabel:
     runs-on: ubuntu-slim
