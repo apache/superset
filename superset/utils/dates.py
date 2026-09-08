@@ -31,7 +31,7 @@ def datetime_to_epoch(dttm: datetime) -> float:
 
 
 def now_as_float() -> float:
-    return datetime_to_epoch(datetime.now(timezone.utc).replace(tzinfo=None))
+    return datetime_to_epoch(naive_utcnow())
 
 
 def naive_utcnow() -> datetime:
@@ -41,5 +41,8 @@ def naive_utcnow() -> datetime:
     every writer and comparator of such columns (the baseline capture
     stamp, the retention prune's cutoff) must derive its value from this
     one helper so their agreement is structural, not comment-enforced.
+    Callers in different processes still read their own host's wall
+    clock — the guarantee is a shared UTC reference and derivation, not
+    cross-process monotonic ordering.
     """
     return datetime.now(timezone.utc).replace(tzinfo=None)

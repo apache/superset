@@ -180,6 +180,37 @@ def test_baseline_keeps_historical_attribution_and_shadow_shape(
     assert shadow["value"] == "pre-edit state"
 
 
+def test_fresh_baseline_is_not_in_the_prune_candidate_window(
+    version_store: SimpleNamespace, mocker: MockerFixture
+) -> None:
+    """End-to-end lock on the two callers' clock agreement: a baseline
+    captured now via the real ``_insert_baseline_row`` — then closed, as
+    the same flush's real edit closes it in production, so the live-row
+    preservation rule cannot be what saves it — is not even a CANDIDATE
+    for the real ``_resolve_prune_window`` at a 90-day cutoff. With an
+    audit-field stamp the baseline would be both candidate and prunable
+    on the spot."""
+    # pylint: disable=import-outside-toplevel
+    from superset.tasks.version_history_retention import _resolve_prune_window
+
+    historical = _naive_utc_now() - timedelta(days=100)
+    conn, tx_id = _insert_baseline(version_store, mocker, historical)
+    conn.close()
+    with version_store.engine.begin() as setup_conn:
+        setup_conn.execute(
+            version_store.ver.update()
+            .where(version_store.ver.c.transaction_id == tx_id)
+            .values(end_transaction_id=tx_id + 1)
+        )
+
+    cutoff = _naive_utc_now() - timedelta(days=90)
+    with version_store.engine.connect() as prune_conn:
+        window = _resolve_prune_window(prune_conn, cutoff, [version_store.ver], 0, 100)
+
+    assert window.candidate_count == 0
+    assert tx_id not in window.prunable
+
+
 # ---------------------------------------------------------------------------
 # Race 2: snapshot fetch under concurrent prune (superset/versioning/queries.py)
 # ---------------------------------------------------------------------------

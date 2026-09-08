@@ -490,8 +490,10 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
     tables = _resolve_shadow_tables(versioning_manager.transaction_cls.__table__)
     # Naive-UTC to match ``version_transaction.issued_at`` (Continuum stores
     # it tz-naive via ``utc_now()``), derived from the shared clock helper —
-    # the baseline capture stamp uses the same one, so retention and capture
-    # cannot drift onto different clocks.
+    # the baseline capture stamp uses the same one, so both sides share one
+    # UTC reference and derivation. (They still read their own process's
+    # wall clock — web/worker vs Celery beat — so NTP-scale skew between
+    # hosts remains possible; immaterial against a windows-of-days cutoff.)
     cutoff = naive_utcnow() - timedelta(days=retention_days)
 
     # Drain the backlog one bounded, id-ordered window at a time. Each

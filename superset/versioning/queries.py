@@ -580,8 +580,9 @@ def get_version(
         # age out closed child shadow rows that were valid at target_tx —
         # columns/metrics silently missing rather than a 404. Pre-existing
         # retention policy behavior (the prune can also erase closed child
-        # history while the parent survives), noted rather than closed
-        # here.
+        # history while the parent survives) — tracked as SC-120012
+        # (snapshot-isolated reads + child-history retention policy), which
+        # also covers the restore command's use of the same child path.
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlMetric, TableColumn
         from superset.versioning.changes import shadow_rows_valid_at
