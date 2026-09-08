@@ -28,6 +28,7 @@ from typing import Any
 
 import pandas as pd
 from fastmcp import Context
+from jinja2.exceptions import TemplateError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset_core.queries.types import (
     CacheOptions,
@@ -40,6 +41,7 @@ from superset.errors import SupersetErrorType
 from superset.exceptions import (
     OAuth2Error,
     OAuth2RedirectError,
+    SupersetParseError,
     SupersetSecurityException,
 )
 from superset.extensions import event_logger
@@ -165,22 +167,11 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                     error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR.value,
                 )
 
-            if not security_manager.can_access_database(database):
-                await ctx.warning(
-                    "Access denied to database: %s" % database.database_name
-                )
-                return ExecuteSqlResponse(
-                    success=False,
-                    error=f"Access denied to database {database.database_name}",
-                    error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR.value,
-                )
-
-        # 1b. Enforce dataset/table-level access, matching the SQL Lab
-        # execution path (which calls raise_for_access(..., force_dataset_match=
-        # True)). Access to the database connection alone does not authorize
-        # every table on it: the query must resolve to datasets the user is
-        # granted, so the tables it references are validated here before it runs.
-        with event_logger.log_context(action="mcp.execute_sql.table_access_validation"):
+            # Authorize through the same entry point as the SQL Lab
+            # execution path (``superset/sqllab/validators.py``), so both
+            # surfaces scope a query the same way: it covers database-level
+            # access and, for a user without it, requires every table the
+            # query references to resolve to a dataset they are granted.
             try:
                 security_manager.raise_for_access(
                     database=database,
@@ -191,11 +182,26 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                     force_dataset_match=True,
                 )
             except SupersetSecurityException as ex:
-                await ctx.warning("Access denied to a table referenced by the query")
+                await ctx.warning(
+                    "Access denied for query on database: %s" % database.database_name
+                )
                 return ExecuteSqlResponse(
                     success=False,
                     error=ex.error.message,
-                    error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR.value,
+                    error_type=ex.error.error_type.value,
+                )
+            except (SupersetParseError, TemplateError):
+                # Authorising the query means rendering and parsing it, so
+                # malformed Jinja or SQL surfaces here rather than in the DDL
+                # pre-check below. Report it as invalid input, not a crash.
+                await ctx.error("Query could not be parsed for access validation")
+                return ExecuteSqlResponse(
+                    success=False,
+                    error=(
+                        "SQL could not be parsed for security validation. "
+                        "Please check your SQL syntax and try again."
+                    ),
+                    error_type=SupersetErrorType.INVALID_SQL_ERROR.value,
                 )
 
         # 2. Block destructive DDL (DROP, TRUNCATE, ALTER)

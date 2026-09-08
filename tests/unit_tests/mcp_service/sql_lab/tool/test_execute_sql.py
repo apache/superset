@@ -31,8 +31,11 @@ import pandas as pd
 import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
+from jinja2.exceptions import TemplateSyntaxError
 from superset_core.queries.types import QueryResult, QueryStatus, StatementResult
 
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.app import mcp
 from superset.mcp_service.sql_lab.schemas import ColumnInfo
 
@@ -152,7 +155,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -201,7 +203,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -247,7 +248,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
         mock_is_feature_enabled.return_value = False
 
         request = {
@@ -283,7 +283,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
         mock_is_feature_enabled.return_value = True
 
         request = {
@@ -315,7 +314,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
         mock_is_feature_enabled.return_value = False
 
         request = {"database_id": 1, "sql": "SELECT id FROM users"}
@@ -356,31 +354,6 @@ class TestExecuteSql:
             assert data["success"] is False
             assert "Database with ID 999 not found" in data["error"]
 
-    @patch("superset.security_manager", new_callable=MagicMock)
-    @patch("superset.db")
-    @pytest.mark.asyncio
-    async def test_execute_sql_access_denied(
-        self, mock_db, mock_security_manager, mcp_server
-    ):
-        """Test error when user lacks database access."""
-        mock_database = _mock_database()
-        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
-            mock_database
-        )
-        mock_security_manager.can_access_database.return_value = False
-
-        request = {
-            "database_id": 1,
-            "sql": "SELECT 1",
-            "limit": 1,
-        }
-
-        async with Client(mcp_server) as client:
-            result = await client.call_tool("execute_sql", {"request": request})
-            data = result.structured_content
-            assert data["success"] is False
-            assert "Access denied to database" in data["error"]
-
     # ``new_callable=MagicMock`` is required here: ``security_manager`` is a
     # LocalProxy, which a bare ``patch`` replaces with an AsyncMock whose
     # ``side_effect`` fires only when awaited. ``raise_for_access`` is called
@@ -388,23 +361,32 @@ class TestExecuteSql:
     @patch("superset.security_manager", new_callable=MagicMock)
     @patch("superset.db")
     @pytest.mark.asyncio
-    async def test_execute_sql_denies_unauthorized_table(
-        self, mock_db, mock_security_manager, mcp_server
+    @pytest.mark.parametrize(
+        "error_type, message",
+        [
+            (
+                SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
+                "You need access to the following database: examples",
+            ),
+            (
+                SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                "You need access to the following tables: secret_table",
+            ),
+        ],
+    )
+    async def test_execute_sql_access_denied(
+        self, mock_db, mock_security_manager, mcp_server, error_type, message
     ):
-        """A user with database access but no access to a referenced table is
-        denied (matching the SQL Lab execution path), and the query is not run."""
-        from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-        from superset.exceptions import SupersetSecurityException
-
+        """A query the user is not authorized to run, at either the database or
+        the table level, is rejected and never executed."""
         mock_database = _mock_database()
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
         mock_security_manager.raise_for_access.side_effect = SupersetSecurityException(
             SupersetError(
-                message="You need access to the following tables: secret_table",
-                error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                message=message,
+                error_type=error_type,
                 level=ErrorLevel.ERROR,
             )
         )
@@ -419,10 +401,41 @@ class TestExecuteSql:
             result = await client.call_tool("execute_sql", {"request": request})
             data = result.structured_content
             assert data["success"] is False
-            assert "secret_table" in data["error"]
+            assert data["error"] == message
+            assert data["error_type"] == error_type.value
 
         mock_security_manager.raise_for_access.assert_called_once()
-        # the query must not run when table-level access is denied
+        # the query must not run when access is denied
+        mock_database.execute.assert_not_called()
+
+    @patch("superset.security_manager", new_callable=MagicMock)
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    async def test_execute_sql_malformed_template(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """Malformed Jinja is reported as invalid SQL, not as a crash: the
+        access check renders the template, so it fails there first."""
+        mock_database = _mock_database()
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.raise_for_access.side_effect = TemplateSyntaxError(
+            "unexpected end of template", 1
+        )
+
+        request = {
+            "database_id": 1,
+            "sql": "SELECT * FROM {{ table",
+            "limit": 10,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+            data = result.structured_content
+            assert data["success"] is False
+            assert data["error_type"] == SupersetErrorType.INVALID_SQL_ERROR.value
+
         mock_database.execute.assert_not_called()
 
     @patch("superset.security_manager")
@@ -441,7 +454,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -475,7 +487,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -509,7 +520,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -559,7 +569,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -604,7 +613,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -655,7 +663,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -738,7 +745,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -818,7 +824,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -881,7 +886,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -978,7 +982,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         # No 'limit' key — should default to None (no override)
         request = {
@@ -1012,7 +1015,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -1073,7 +1075,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -1132,7 +1133,6 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -1260,7 +1260,6 @@ class TestExecuteSqlOAuth2:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -1293,7 +1292,6 @@ class TestExecuteSqlOAuth2:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.can_access_database.return_value = True
 
         request = {
             "database_id": 1,
@@ -1371,13 +1369,12 @@ class TestDestructiveDDLBlocking:
         """Common mock wiring for DDL blocking tests."""
         with (
             patch("superset.db") as mock_db,
-            patch("superset.security_manager") as mock_sm,
+            patch("superset.security_manager"),
         ):
             mock_database = _mock_database()
             mock_database.db_engine_spec.engine = "postgresql"
             query_chain = mock_db.session.query.return_value
             query_chain.filter_by.return_value.first.return_value = mock_database
-            mock_sm.can_access_database.return_value = True
             yield mock_database
 
     @pytest.mark.asyncio
