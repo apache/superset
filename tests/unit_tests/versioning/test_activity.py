@@ -44,6 +44,7 @@ from superset.versioning.activity import (
     Window,
 )
 from superset.versioning.activity.impact import (
+    _count_attached_charts_at,
     collect_impact_pairs,
     impact_for_record,
 )
@@ -896,7 +897,7 @@ def test_build_summary_meta_headline_branches() -> None:
 # ---- attachment_windows -------------------------------------------------
 
 
-def testattachment_windows_closes_at_detach() -> None:
+def test_attachment_windows_closes_at_detach() -> None:
     """sc-119770: a chart removed from a dashboard is bounded at the detach
     transaction, not left open-ended. Continuum never closes an association
     shadow row's end_transaction_id, so the detach boundary is the DELETE
@@ -912,14 +913,14 @@ def testattachment_windows_closes_at_detach() -> None:
     assert not window.contains(4)  # edit after removal — excluded
 
 
-def testattachment_windows_still_attached_is_open_ended() -> None:
+def test_attachment_windows_still_attached_is_open_ended() -> None:
     """A chart with an INSERT and no following DELETE is still on the
     dashboard, so its window is open-ended (end_tx = None) and every later
     edit remains in scope."""
     assert attachment_windows([(7, 5, 0)]) == [(7, Window(5, None))]
 
 
-def testattachment_windows_reattach_cycles_and_ordering() -> None:
+def test_attachment_windows_reattach_cycles_and_ordering() -> None:
     """Multiple attach/detach episodes yield one window each, and the pairing
     is independent of the row order the query returns them in (the rows are
     sorted by (slice_id, transaction_id) internally)."""
@@ -927,14 +928,14 @@ def testattachment_windows_reattach_cycles_and_ordering() -> None:
     assert attachment_windows(rows) == [(7, Window(1, 3)), (7, Window(5, 7))]
 
 
-def testattachment_windows_add_and_remove_same_transaction() -> None:
+def test_attachment_windows_add_and_remove_same_transaction() -> None:
     """Attaching and detaching in a single save (INSERT and DELETE at the
     same transaction) leaves the chart on no committed dashboard state, so it
     contributes no window (and no degenerate zero-width interval)."""
     assert attachment_windows([(7, 2, 0), (7, 2, 2)]) == []
 
 
-def testattachment_windows_separates_slices() -> None:
+def test_attachment_windows_separates_slices() -> None:
     """Each slice gets its own independent windows."""
     rows = [(7, 1, 0), (7, 3, 2), (9, 2, 0)]
     assert attachment_windows(rows) == [
@@ -952,3 +953,63 @@ def test_m2m_op_constants_match_continuum() -> None:
 
     assert M2M_OP_INSERT == Operation.INSERT
     assert M2M_OP_DELETE == Operation.DELETE
+
+
+# ---- _count_attached_charts_at (batch_chart_counts membership) -----------
+
+
+def _slice_row(
+    slice_id: int, datasource_id: int, start: int, end: int | None
+) -> dict[str, Any]:
+    """A chart→dataset parent-shadow row as batch_chart_counts fetches it."""
+    return {
+        "slice_id": slice_id,
+        "datasource_id": datasource_id,
+        "slice_start": start,
+        "slice_end": end,
+    }
+
+
+def test_count_attached_charts_excludes_chart_removed_before_target() -> None:
+    """sc-119907: a chart attached@1 and removed@5 must NOT be counted for a
+    dataset rollup at target_tx=10. Its attachment window [1, 5) does not
+    contain 10, even though its (never-closed) association shadow row would
+    pass a naive end_transaction_id validity filter."""
+    attach_windows = {7: [Window(1, 5)]}
+    slice_rows = [_slice_row(7, 100, 1, None)]  # chart→dataset open the whole time
+    result = _count_attached_charts_at(attach_windows, slice_rows, {100: [10]})
+    assert result == {}  # zero-count pairs are omitted
+
+
+def test_count_attached_charts_counts_chart_inside_its_window() -> None:
+    """The same chart IS counted at a target inside its attachment window."""
+    attach_windows = {7: [Window(1, 5)]}
+    slice_rows = [_slice_row(7, 100, 1, None)]
+    result = _count_attached_charts_at(attach_windows, slice_rows, {100: [3]})
+    assert result == {(100, 3): 1}
+
+
+def test_count_attached_charts_requires_both_windows() -> None:
+    """A chart attached at target_tx but not yet pointing at the dataset (its
+    chart→dataset window starts later) is not counted."""
+    attach_windows = {7: [Window(1, None)]}
+    slice_rows = [_slice_row(7, 100, 8, None)]  # points at dataset only from tx8
+    assert _count_attached_charts_at(attach_windows, slice_rows, {100: [3]}) == {}
+
+
+def test_count_attached_charts_dedupes_within_pair() -> None:
+    """Multiple parent-shadow rows for the same slice count the slice once."""
+    attach_windows = {7: [Window(1, None)]}
+    slice_rows = [_slice_row(7, 100, 1, 4), _slice_row(7, 100, 4, None)]
+    assert _count_attached_charts_at(attach_windows, slice_rows, {100: [5]}) == {
+        (100, 5): 1
+    }
+
+
+def test_count_attached_charts_ignores_slice_never_on_dashboard() -> None:
+    """A slice pointing at the dataset but with no attachment window (never on
+    this dashboard) does not contribute — guards the no-join fetch that may
+    return slices from other dashboards sharing the dataset."""
+    attach_windows: dict[int, list[Window]] = {}
+    slice_rows = [_slice_row(7, 100, 1, None)]
+    assert _count_attached_charts_at(attach_windows, slice_rows, {100: [3]}) == {}

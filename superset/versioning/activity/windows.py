@@ -62,7 +62,10 @@ def attachment_windows(
     transaction id; an attachment with no following DELETE stays open (the
     association is still live). A DELETE at the same transaction as its open
     (add-and-remove in one save) yields no window — the association was never
-    on a committed state.
+    on a committed state. That last case is a deliberate divergence from
+    Continuum's own ``association_subquery`` reverter, which (selecting the
+    ``MAX(tx) <= T`` row and excluding only DELETEs) would treat such a pair as
+    a member; the never-committed reading is the safer one for restore.
 
     This is the M2M-correct counterpart to
     :func:`~superset.versioning.changes.shadow_queries.shadow_rows_valid_at`,

@@ -195,42 +195,40 @@ def _restore_dashboard_membership(dashboard: Any, transaction_id: int) -> list[i
     """Reset *dashboard*'s chart membership to what it was at
     *transaction_id*, reattaching only charts that still exist.
 
-    Reads the validity-windowed ``dashboard_slices_version`` shadow
-    (Continuum's auto-generated M2M table): a slice was a member at tx T
-    iff a non-DELETE row has ``transaction_id <= T`` and an open or
-    later-closing validity window.
+    Membership is derived from the ``dashboard_slices_version`` shadow
+    (Continuum's auto-generated M2M table) by pairing each slice's
+    INSERT/DELETE rows into ``[attach, detach)`` windows: a slice was a
+    member at tx T iff one of its attachment windows contains T. The
+    ``shadow_rows_valid_at`` validity filter must **not** be used here —
+    Continuum never closes an association shadow's ``end_transaction_id``,
+    so that filter would re-attach a chart that had been removed before T
+    (attached@1, removed@5, restore to tx10 → the chart wrongly returns).
+    ``shadow_rows_valid_at`` stays correct for parent/child shadows, whose
+    ``end_transaction_id`` the validity backfill does close (sc-119907).
 
     Returns the ids of snapshot members that no longer exist and were
     skipped. Live charts' content is never touched — restoring a chart's
     content is the chart's own restore endpoint's job.
     """
     # pylint: disable=import-outside-toplevel
-    # Local imports: models.slice transitively imports models.core, which
-    # needs the initialised app — module-top import would recreate the
-    # bootstrap cycle documented in changes/listener.py; shadow_queries is
-    # imported lazily for the same reason (see queries.get_version).
+    # Local imports: models.slice transitively imports models.core, which needs
+    # the initialised app — a module-top import would recreate the bootstrap
+    # cycle documented in changes/listener.py. charts_attached_to_dashboard is
+    # imported lazily for the same reason (it inline-imports the model classes)
+    # and to avoid pulling the activity read-path package into this write-path
+    # module's load.
     from superset.models.slice import Slice
-    from superset.versioning.changes import shadow_rows_valid_at
+    from superset.versioning.activity.queries import charts_attached_to_dashboard
 
-    ver_cls = version_class(type(dashboard))
-    m2m_tbl = ver_cls.__table__.metadata.tables.get("dashboard_slices_version")
-    if m2m_tbl is None:  # pragma: no cover — shadow tables always exist here
-        return []
-
-    # shadow_rows_valid_at owns the validity-window semantics (open or
-    # later-closing window, non-DELETE) — the same predicate the version
-    # snapshot's column/metric reconstruction uses.
+    # charts_attached_to_dashboard owns the association-shadow read and the
+    # attach/detach window pairing (the single place that must never filter the
+    # M2M shadow by end_transaction_id — Continuum never closes it). A slice was
+    # a member at transaction_id iff one of its windows contains it (sc-119907).
     member_ids = sorted(
         {
-            row["slice_id"]
-            for row in shadow_rows_valid_at(
-                db.session,
-                m2m_tbl,
-                "dashboard_id",
-                dashboard.id,
-                transaction_id,
-            )
-            if row["slice_id"] is not None
+            slice_id
+            for slice_id, window in charts_attached_to_dashboard(dashboard.id)
+            if window.contains(transaction_id)
         }
     )
     if not member_ids:
