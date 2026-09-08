@@ -968,7 +968,7 @@ With the flag on, delete confirmations across the chart/dashboard/dataset list p
 
 This also resolves the limitation noted under *Soft delete and restore for datasets*: a database blocked by soft-deleted datasets can now be freed by purging those datasets (per-entity endpoint, retention task, or `force-purge` CLI) instead of hard-deleting `tables` rows out-of-band.
 
-The `purge_audit_log` table is **never pruned by design** — the audit must survive the entities it names; operators who need to age it out should prune manually.
+The `purge_audit_log` table is pruned automatically by the `deletion_retention.prune_purge_audit` Celery beat task (daily, 03:30), so it no longer grows unbounded and does not need manual pruning. The policy is written to preserve the audit's meaning rather than trade it away: within an entity's current blockage streak the earliest — "blocked since" — record always survives (only redundant duplicate `blocked` records are collapsed), and completed-destruction evidence (`confirmed`, `target_absent`) is **never** removed unless the separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is explicitly set. What ages out is operational noise — `blocked` records from already-resolved streaks and `failed` records — once older than `PURGE_AUDIT_RETENTION_DAYS` (default 90). Set `PURGE_AUDIT_PRUNING_ENABLED = False` to restore the previous never-pruned, unbounded-growth behavior. See the release-note entry above for the beat-schedule and `CELERY_CONFIG` details.
 
 
 ### Webhook alerts/reports block private/internal hosts by default
