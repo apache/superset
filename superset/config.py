@@ -3029,6 +3029,9 @@ GUEST_ROLE_NAME = "Public"
 GUEST_TOKEN_JWT_SECRET = CHANGE_ME_GUEST_TOKEN_JWT_SECRET
 GUEST_TOKEN_JWT_ALGO = "HS256"  # noqa: S105
 GUEST_TOKEN_HEADER_NAME = "X-GuestToken"  # noqa: S105
+# Diagnostic budget for UTF-8 bytes of "header-name: encoded-token\r\n".
+# None disables size warnings, not issuance or authentication. Deployment-specific.
+GUEST_TOKEN_HEADER_MAX_BYTES: int | None = None
 GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
 # Audience for the Superset guest token used in embedded mode.
 # Can be a string or a callable. Defaults to WEBDRIVER_BASEURL.
