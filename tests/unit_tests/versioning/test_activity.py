@@ -45,6 +45,7 @@ from superset.versioning.activity import (
 )
 from superset.versioning.activity.impact import (
     _count_attached_charts_at,
+    batch_chart_counts,
     collect_impact_pairs,
     impact_for_record,
 )
@@ -1023,3 +1024,56 @@ def test_count_attached_charts_ignores_slice_never_on_dashboard() -> None:
     attach_windows: dict[int, list[Window]] = {}
     slice_rows = [_slice_row(7, 100, 1, None)]
     assert _count_attached_charts_at(attach_windows, slice_rows, {100: [3]}) == {}
+
+
+# ---- batch_chart_counts bind-variable floor (sc-119907) ------------------
+
+
+def test_batch_chart_counts_stays_under_sqlite_bind_floor(app_context: None) -> None:
+    """sc-119907: a wide dashboard (many member charts AND many requested
+    datasets) must not build a slice-scan statement that exceeds SQLite's 999
+    bind-variable floor. The member-id IN is chunked; the requested-dataset IN
+    is dropped to Python-side filtering when it would not co-bind under the
+    floor. Compiles every issued statement and asserts its bind count stays
+    safely under 999 — the pre-fix code (dataset IN always on) bound
+    500 member + 600 dataset + scalars = ~1104 and would 500 on SQLite."""
+
+    from sqlalchemy.dialects import sqlite
+
+    member_windows = [(sid, Window(1, None)) for sid in range(1, 601)]
+    pairs = {(ds, 5) for ds in range(10_000, 10_600)}  # 600 requested datasets
+    captured: list[Any] = []
+
+    class _FakeResult:
+        def mappings(self) -> "_FakeResult":
+            return self
+
+        def all(self) -> list[Any]:
+            return []
+
+    def _fake_execute(stmt: Any) -> "_FakeResult":
+        captured.append(stmt)
+        return _FakeResult()
+
+    with (
+        patch(
+            "superset.versioning.membership.charts_attached_to_dashboard",
+            return_value=member_windows,
+        ),
+        patch("superset.versioning.activity.impact.db") as mock_db,
+    ):
+        mock_db.session.connection.return_value.execute.side_effect = _fake_execute
+        batch_chart_counts(1, pairs)
+
+    assert captured, "expected at least one slice-scan statement"
+    for stmt in captured:
+        # render_postcompile expands ``IN (...)`` (an expanding bind in
+        # SQLAlchemy 2.0) into one param per element, so the count reflects
+        # what actually hits SQLite — a plain compile would show one bind per
+        # IN and hide the overflow.
+        compiled = stmt.compile(
+            dialect=sqlite.dialect(),
+            compile_kwargs={"render_postcompile": True},
+        )
+        n_binds = len(compiled.params)
+        assert n_binds < 999, f"statement binds {n_binds} params (SQLite floor 999)"

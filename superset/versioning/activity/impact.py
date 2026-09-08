@@ -54,6 +54,11 @@ from superset.versioning.activity.kinds import (
 )
 from superset.versioning.baseline import OPERATION_DELETE
 
+# Headroom left below SQLite's 999 bind-variable floor for the handful of scalar
+# binds in the slice-scan WHERE (datasource_type, operation_type, the two tx
+# bounds) once a member-id chunk and the dataset IN are accounted for.
+_SCALAR_BIND_HEADROOM = 20
+
 
 def collect_impact_pairs(
     records: list[dict[str, Any]], path_kind: str
@@ -126,20 +131,24 @@ def batch_chart_counts(
     # Chart→dataset validity from the slice parent shadow, whose
     # end_transaction_id the validity backfill *does* close, so the ordinary
     # half-open validity predicate is correct here. Bounded on the DB side to
-    # this dashboard's member charts (the attach_windows keys) AND the requested
-    # datasets and transaction range, so the scan is pruned before Python sees
-    # it; the member-id IN-clause is chunked to stay under SQLite's
-    # bind-variable floor.
+    # this dashboard's member charts (the attach_windows keys) and the
+    # transaction range; the member-id IN-clause is chunked to stay under
+    # SQLite's 999 bind-variable floor.
+    #
+    # The requested-dataset prune is applied on the DB side too, but only when
+    # the dataset set co-binds with a full member chunk under that floor — a
+    # member chunk (<= ENTITY_ID_CHUNK_SIZE) plus the dataset IN plus the few
+    # scalar binds must stay < 999. When there are too many requested datasets,
+    # the DB-side dataset predicate is dropped and the combiner filters datasets
+    # in Python (it already keys on pairs_by_dataset), so a wide dashboard does
+    # not overflow the bind limit (sc-119907 review).
+    filter_datasets_in_sql = (
+        len(dataset_ids) <= 999 - ENTITY_ID_CHUNK_SIZE - _SCALAR_BIND_HEADROOM
+    )
     slice_rows: list[Any] = []
     for chunk in chunked_ids(set(attach_windows), ENTITY_ID_CHUNK_SIZE):
-        stmt = sa.select(
-            slices_tbl.c.id.label("slice_id"),
-            slices_tbl.c.datasource_id,
-            slices_tbl.c.transaction_id.label("slice_start"),
-            slices_tbl.c.end_transaction_id.label("slice_end"),
-        ).where(
+        conditions = [
             slices_tbl.c.id.in_(chunk),
-            slices_tbl.c.datasource_id.in_(dataset_ids),
             slices_tbl.c.datasource_type == "table",
             slices_tbl.c.operation_type != OPERATION_DELETE,
             slices_tbl.c.transaction_id <= max_tx,
@@ -147,7 +156,15 @@ def batch_chart_counts(
                 slices_tbl.c.end_transaction_id.is_(None),
                 slices_tbl.c.end_transaction_id > min_tx,
             ),
-        )
+        ]
+        if filter_datasets_in_sql:
+            conditions.append(slices_tbl.c.datasource_id.in_(dataset_ids))
+        stmt = sa.select(
+            slices_tbl.c.id.label("slice_id"),
+            slices_tbl.c.datasource_id,
+            slices_tbl.c.transaction_id.label("slice_start"),
+            slices_tbl.c.end_transaction_id.label("slice_end"),
+        ).where(*conditions)
         slice_rows.extend(db.session.connection().execute(stmt).mappings().all())
 
     pairs_by_dataset: dict[int, list[int]] = {}
