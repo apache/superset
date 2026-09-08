@@ -66,12 +66,15 @@ def test_process_tab_diff_deactivates_reports_on_deleted_tabs(
         },
     )
     model = MagicMock()
+    model.id = 1
     type(model).tabs = PropertyMock(
         return_value={"all_tabs": {"TAB-1": "First", "TAB-2": "Second"}}
     )
     command._model = model  # noqa: SLF001
 
     report = MagicMock()
+    report.id = 10
+    report.dashboard_id = 1
     report.editors = []
     with patch("superset.commands.dashboard.update.ReportScheduleDAO") as report_dao:
         report_dao.find_by_extra_metadata.return_value = [report]
@@ -80,3 +83,53 @@ def test_process_tab_diff_deactivates_reports_on_deleted_tabs(
     # TAB-2 is gone from the new layout, TAB-1 is not.
     report_dao.find_by_extra_metadata.assert_called_once_with("TAB-2")
     report_dao.update.assert_called_once_with(report, {"active": False})
+
+
+def test_process_tab_diff_only_touches_reports_on_the_updated_dashboard(
+    app_context: None,
+) -> None:
+    """Report schedules are scoped to the dashboard being updated: a tab
+    removed from one dashboard only deactivates that dashboard's own
+    schedules, not schedules attached to a different dashboard.
+    """
+    command = UpdateDashboardCommand(
+        1,
+        {
+            "position_json": json.dumps(
+                {
+                    "ROOT_ID": {
+                        "id": "ROOT_ID",
+                        "type": "ROOT",
+                        "children": ["TAB-1"],
+                    },
+                    "TAB-1": {
+                        "id": "TAB-1",
+                        "type": "TAB",
+                        "meta": {"text": "First"},
+                        "children": [],
+                    },
+                }
+            )
+        },
+    )
+    model = MagicMock()
+    model.id = 1
+    type(model).tabs = PropertyMock(
+        return_value={"all_tabs": {"TAB-1": "First", "TAB-2": "Second"}}
+    )
+    command._model = model  # noqa: SLF001
+
+    own_report = MagicMock()
+    own_report.id = 10
+    own_report.dashboard_id = 1
+    own_report.editors = []
+    other_report = MagicMock()
+    other_report.id = 20
+    other_report.dashboard_id = 2  # belongs to a different dashboard
+    other_report.editors = []
+    with patch("superset.commands.dashboard.update.ReportScheduleDAO") as report_dao:
+        report_dao.find_by_extra_metadata.return_value = [own_report, other_report]
+        command.process_tab_diff()
+
+    # Only the report on the updated dashboard is deactivated.
+    report_dao.update.assert_called_once_with(own_report, {"active": False})
