@@ -1129,7 +1129,10 @@ def test_guest_download_link_ttl_is_clamped(mocks: dict[str, Any]) -> None:
 
 def test_status_expiries_are_naive_local(mocks: dict[str, Any]) -> None:
     """KeyValueEntry.is_expired() compares naive local datetime.now(); a
-    naive-UTC expiry breaks the store on any non-UTC server."""
+    naive-UTC expiry breaks the store on any non-UTC server. The process
+    timezone is pinned off UTC so a regression to naive UTC actually fails
+    here instead of passing on UTC-only CI."""
+    import time
     from datetime import datetime, timedelta
 
     mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
@@ -1137,16 +1140,28 @@ def test_status_expiries_are_naive_local(mocks: dict[str, Any]) -> None:
         "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
     }
 
-    _run()
+    original_tz = os.environ.get("TZ")
+    os.environ["TZ"] = "Europe/Berlin"
+    time.tzset()
+    try:
+        _run()
 
-    (_, running_expiry), _ = mocks["mark_export_running"].call_args
-    assert running_expiry.tzinfo is None
-    assert (
-        abs(
-            (running_expiry - (datetime.now() + timedelta(seconds=960))).total_seconds()
+        (_, running_expiry), _ = mocks["mark_export_running"].call_args
+        assert running_expiry.tzinfo is None
+        assert (
+            abs(
+                (
+                    running_expiry - (datetime.now() + timedelta(seconds=960))
+                ).total_seconds()
+            )
+            < 30
         )
-        < 30
-    )
+    finally:
+        if original_tz is None:
+            os.environ.pop("TZ", None)
+        else:
+            os.environ["TZ"] = original_tz
+        time.tzset()
 
 
 def test_partial_failure_appends_summary_sheet(mocks: dict[str, Any]) -> None:

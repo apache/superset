@@ -33,12 +33,6 @@ import {
 } from '@superset-ui/core';
 import { useDownloadMenuItems } from '.';
 
-const mockRedirect = jest.fn();
-jest.mock('src/utils/navigationUtils', () => ({
-  ...jest.requireActual('src/utils/navigationUtils'),
-  redirect: (url: string) => mockRedirect(url),
-}));
-
 const mockAddSuccessToast = jest.fn();
 const mockAddDangerToast = jest.fn();
 const mockAddInfoToast = jest.fn();
@@ -99,6 +93,14 @@ const MenuWrapperWithProps = (
   const menuItems: MenuItem[] = [downloadMenuItem];
   return <Menu forceSubMenuRender items={menuItems} />;
 };
+
+const rawDownloadResponse = () =>
+  ({
+    headers: {
+      get: () => 'attachment; filename="export.xlsx"',
+    },
+    blob: jest.fn().mockResolvedValue(new Blob(['PK'])),
+  }) as never;
 
 const originalCreateObjectURL = window.URL.createObjectURL;
 const originalRevokeObjectURL = window.URL.revokeObjectURL;
@@ -213,12 +215,16 @@ test('Export Data to Excel polls status and auto-downloads once ready', async ()
   mockSupersetClient.post.mockResolvedValue({
     json: { job_id: 'abc' },
   } as never);
-  mockSupersetClient.get.mockResolvedValue({
-    json: {
-      status: 'ready',
-      download_url: '/api/v1/dashboard/export_xlsx/download/abc/',
-    },
-  } as never);
+  window.URL.createObjectURL = jest.fn().mockReturnValue('blob:url');
+  window.URL.revokeObjectURL = jest.fn();
+  mockSupersetClient.get
+    .mockResolvedValueOnce({
+      json: {
+        status: 'ready',
+        download_url: '/api/v1/dashboard/export_xlsx/download/abc/',
+      },
+    } as never)
+    .mockResolvedValueOnce(rawDownloadResponse());
 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
@@ -238,13 +244,45 @@ test('Export Data to Excel polls status and auto-downloads once ready', async ()
     expect(mockSupersetClient.get).toHaveBeenCalledWith({
       endpoint: '/api/v1/dashboard/export_xlsx/status/abc/',
     });
-    expect(mockRedirect).toHaveBeenCalledWith(
-      '/api/v1/dashboard/export_xlsx/download/abc/',
-    );
+    expect(mockSupersetClient.get).toHaveBeenCalledWith({
+      endpoint: '/api/v1/dashboard/export_xlsx/download/abc/',
+      parseMethod: 'raw',
+    });
     expect(mockAddSuccessToast).toHaveBeenCalledWith(
       'Your export is ready and downloading.',
     );
   });
+});
+
+test('a dead download link surfaces a retryable toast without navigating', async () => {
+  jest.useFakeTimers();
+  mockSupersetClient.post.mockResolvedValue({
+    json: { job_id: 'abc' },
+  } as never);
+  mockSupersetClient.get
+    .mockResolvedValueOnce({
+      json: {
+        status: 'ready',
+        download_url: '/api/v1/dashboard/export_xlsx/download/abc/',
+      },
+    } as never)
+    .mockRejectedValueOnce(new Error('410 gone'));
+
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
+
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+  await waitFor(() => expect(mockSupersetClient.post).toHaveBeenCalled());
+
+  await act(async () => {
+    jest.advanceTimersByTime(3000);
+  });
+
+  await waitFor(() => {
+    expect(mockAddDangerToast).toHaveBeenCalledWith(
+      'Your export could not be downloaded. It may have expired; please export again.',
+    );
+  });
+  expect(mockAddSuccessToast).not.toHaveBeenCalled();
 });
 
 test('Export Data to Excel keeps polling while status is pending', async () => {
@@ -278,7 +316,9 @@ test('Export Data to Excel keeps polling while status is pending', async () => {
 
   // Still pending -- no terminal toast, and the browser never navigated.
   expect(mockAddDangerToast).not.toHaveBeenCalled();
-  expect(mockRedirect).not.toHaveBeenCalled();
+  expect(mockAddSuccessToast).not.toHaveBeenCalledWith(
+    'Your export is ready and downloading.',
+  );
 });
 
 test('Export Data to Excel shows an error toast when the export job fails', async () => {
@@ -309,7 +349,9 @@ test('Export Data to Excel shows an error toast when the export job fails', asyn
       'The export could not be built.',
     );
   });
-  expect(mockRedirect).not.toHaveBeenCalled();
+  expect(mockAddSuccessToast).not.toHaveBeenCalledWith(
+    'Your export is ready and downloading.',
+  );
 });
 
 test('Export Data to Excel shows an "already in progress" toast when throttled', async () => {
@@ -569,7 +611,10 @@ test('a "running" status restarts the wait window, so queue delay is not counted
         status: 'ready',
         download_url: '/api/v1/dashboard/export_xlsx/download/abc/',
       },
-    } as never);
+    } as never)
+    .mockResolvedValueOnce(rawDownloadResponse());
+  window.URL.createObjectURL = jest.fn().mockReturnValue('blob:url');
+  window.URL.revokeObjectURL = jest.fn();
 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
@@ -594,9 +639,12 @@ test('a "running" status restarts the wait window, so queue delay is not counted
     jest.advanceTimersByTime(3000);
   });
   await waitFor(() => {
-    expect(mockSupersetClient.get).toHaveBeenCalledTimes(3);
-    expect(mockRedirect).toHaveBeenCalledWith(
-      '/api/v1/dashboard/export_xlsx/download/abc/',
+    expect(mockSupersetClient.get).toHaveBeenCalledWith({
+      endpoint: '/api/v1/dashboard/export_xlsx/download/abc/',
+      parseMethod: 'raw',
+    });
+    expect(mockAddSuccessToast).toHaveBeenCalledWith(
+      'Your export is ready and downloading.',
     );
   });
 });
@@ -613,7 +661,10 @@ test('a transient poll failure keeps polling and still downloads', async () => {
         status: 'ready',
         download_url: '/api/v1/dashboard/export_xlsx/download/abc/',
       },
-    } as never);
+    } as never)
+    .mockResolvedValueOnce(rawDownloadResponse());
+  window.URL.createObjectURL = jest.fn().mockReturnValue('blob:url');
+  window.URL.revokeObjectURL = jest.fn();
 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
@@ -630,9 +681,12 @@ test('a transient poll failure keeps polling and still downloads', async () => {
     jest.advanceTimersByTime(3000);
   });
   await waitFor(() => {
-    expect(mockSupersetClient.get).toHaveBeenCalledTimes(2);
-    expect(mockRedirect).toHaveBeenCalledWith(
-      '/api/v1/dashboard/export_xlsx/download/abc/',
+    expect(mockSupersetClient.get).toHaveBeenCalledWith({
+      endpoint: '/api/v1/dashboard/export_xlsx/download/abc/',
+      parseMethod: 'raw',
+    });
+    expect(mockAddSuccessToast).toHaveBeenCalledWith(
+      'Your export is ready and downloading.',
     );
   });
 });
@@ -663,7 +717,9 @@ test('poll failures past the deadline give up with an error toast', async () => 
       'Sorry, something went wrong. Try again later.',
     );
   });
-  expect(mockRedirect).not.toHaveBeenCalled();
+  expect(mockAddSuccessToast).not.toHaveBeenCalledWith(
+    'Your export is ready and downloading.',
+  );
 });
 
 test('a "ready" status with no download_url is an error, not a fake success', async () => {
@@ -690,7 +746,9 @@ test('a "ready" status with no download_url is an error, not a fake success', as
     );
   });
   expect(mockAddSuccessToast).not.toHaveBeenCalled();
-  expect(mockRedirect).not.toHaveBeenCalled();
+  expect(mockAddSuccessToast).not.toHaveBeenCalledWith(
+    'Your export is ready and downloading.',
+  );
 });
 
 test('unmounting stops the polling loop', async () => {
