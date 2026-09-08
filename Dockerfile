@@ -200,7 +200,6 @@ RUN /app/docker/apt-install.sh \
       libsasl2-dev \
       libsasl2-modules-gssapi-mit \
       libpq-dev \
-      libecpg-dev \
       libldap2-dev
 
 # Create data directory for DuckDB examples database

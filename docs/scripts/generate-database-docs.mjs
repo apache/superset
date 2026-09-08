@@ -556,7 +556,7 @@ for class_name, info in class_info.items():
             'query_cancelation': bool({'cancel_query', 'has_implicit_cancel'} & cap_methods),
             'query_cost_estimation': bool({'estimate_statement_cost', 'estimate_query_cost'} & cap_methods),
             # SQL validation is implemented in external validator classes keyed by engine name
-            'sql_validation': engine_attr in {'presto', 'postgresql'},
+            'sql_validation': engine_attr in {'presto'},
             'user_impersonation': bool(
                 {'impersonate_user', 'update_impersonation_config', 'get_url_for_impersonation'} & cap_methods
             ),

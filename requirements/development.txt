@@ -666,10 +666,6 @@ parsedatetime==2.6
     #   apache-superset
 pathable==0.4.3
     # via jsonschema-path
-pgsanity==0.2.9
-    # via
-    #   -c requirements/base-constraint.txt
-    #   apache-superset
 pillow==12.3.0
     # via
     #   -c requirements/base-constraint.txt

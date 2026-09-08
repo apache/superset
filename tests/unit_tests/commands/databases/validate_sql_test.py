@@ -35,7 +35,7 @@ from superset.exceptions import (
 
 @pytest.fixture
 def mock_database(mocker: MockerFixture) -> MagicMock:
-    """Create a mock database with PostgreSQL engine."""
+    """Create a mock database with a Presto engine."""
     database = mocker.MagicMock()
     database.id = 1
     database.db_engine_spec.engine = "presto"

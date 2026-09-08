@@ -2172,7 +2172,7 @@
       "where_latest_partition": false,
       "expand_data": false,
       "query_cost_estimation": true,
-      "sql_validation": true,
+      "sql_validation": false,
       "score": 104,
       "max_score": 201,
       "documentation": {
@@ -2395,7 +2395,7 @@
       "where_latest_partition": false,
       "expand_data": false,
       "query_cost_estimation": true,
-      "sql_validation": true,
+      "sql_validation": false,
       "score": 104,
       "max_score": 201,
       "documentation": {
@@ -6807,7 +6807,7 @@
       "where_latest_partition": false,
       "expand_data": false,
       "query_cost_estimation": true,
-      "sql_validation": true,
+      "sql_validation": false,
       "score": 104,
       "max_score": 201,
       "documentation": {
