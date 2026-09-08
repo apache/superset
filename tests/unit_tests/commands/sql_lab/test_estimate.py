@@ -27,6 +27,7 @@ from superset.commands.sql_lab.estimate import (
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    OAuth2RedirectError,
     SupersetErrorException,
     SupersetGenericDBErrorException,
     SupersetSecurityException,
@@ -533,3 +534,46 @@ def test_run_wraps_raw_dbapi_error_from_cost_estimation(
 
     assert exc_info.value.status == 400
     assert exc_info.value.error.error_type == SupersetErrorType.GENERIC_DB_ENGINE_ERROR
+
+
+# ---------------------------------------------------------------------------
+# OAuth2RedirectError must pass through run() untouched, not be swallowed
+# by the broad DBAPI-error catch-all above
+# ---------------------------------------------------------------------------
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
+def test_run_reraises_oauth2_redirect_error_from_cost_estimation(
+    mock_dao: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_app: MagicMock,
+) -> None:
+    """``OAuth2RedirectError`` raised by ``estimate_query_cost`` (via
+    ``get_raw_connection`` -> ``check_for_oauth2``) must propagate unchanged
+    so the frontend can drive the interactive re-auth flow — it must not be
+    re-wrapped into ``SupersetGenericDBErrorException`` by the broad
+    except-Exception clause, mirroring the sibling guard in
+    ``sql_lab.py``'s ``execute_sql_statements()``."""
+    mock_database = MagicMock()
+    mock_dao.find_by_id.return_value = mock_database
+    mock_security_manager.raise_for_access.return_value = None
+    mock_app.config = {
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+    }
+    mock_database.db_engine_spec.estimate_query_cost.side_effect = OAuth2RedirectError(
+        url="https://example.org/oauth2/authorize",
+        tab_id="tab-1",
+        redirect_uri="https://example.org/oauth2/callback",
+    )
+
+    sql = "SELECT 1"
+    command = QueryEstimationCommand(_make_params(sql=sql))
+    with pytest.raises(OAuth2RedirectError) as exc_info:
+        command.run()
+
+    assert exc_info.value.status == 403

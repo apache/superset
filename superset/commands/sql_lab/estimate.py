@@ -28,6 +28,7 @@ from superset.commands.base import BaseCommand
 from superset.daos.database import DatabaseDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    OAuth2RedirectError,
     SupersetDisallowedSQLFunctionException,
     SupersetDisallowedSQLTableException,
     SupersetDMLNotAllowedException,
@@ -222,6 +223,9 @@ class QueryEstimationCommand(BaseCommand):
                 ),
                 status=500,
             ) from ex
+        except OAuth2RedirectError:
+            # user needs to authenticate with OAuth2 in order to run query
+            raise
         except Exception as ex:
             logger.exception("Query cost estimation failed unexpectedly")
             raise SupersetGenericDBErrorException(
