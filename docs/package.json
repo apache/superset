@@ -44,6 +44,7 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.3.3",
+    "@ant-design/icons-svg": "^6.0.0",
     "@docusaurus/core": "^3.10.2",
     "@docusaurus/faster": "^3.10.2",
     "@docusaurus/plugin-client-redirects": "^3.10.2",
