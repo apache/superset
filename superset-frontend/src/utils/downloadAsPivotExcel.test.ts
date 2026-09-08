@@ -18,6 +18,7 @@
  */
 import type { WorkBook } from 'xlsx';
 import { getNumberFormatterRegistry } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import exportPivotExcel from './downloadAsPivotExcel';
 
 const mockWriteFile = jest.fn();
@@ -28,6 +29,14 @@ jest.mock('xlsx', () => {
     ...actual,
     writeFile: (...args: unknown[]) => mockWriteFile(...args),
   };
+});
+
+jest.mock('@apache-superset/core/utils', () => ({
+  logging: { error: jest.fn() },
+}));
+
+afterEach(() => {
+  jest.restoreAllMocks();
 });
 
 // Renders a single-row pivot table with the given cell values, runs the
@@ -113,4 +122,14 @@ test('leaves date-shaped strings as text rather than reinterpreting them as date
   expect(sheet.A1).toMatchObject({ t: 's', v: '2024-01-01' });
   expect(sheet.B1).toMatchObject({ t: 's', v: '2024-01-01 13:45:30' });
   expect(sheet.C1).toMatchObject({ t: 's', v: 'not-a-date' });
+});
+
+test('should log an error and return early when table element is not found', () => {
+  jest.spyOn(document, 'querySelector').mockReturnValue(null);
+
+  exportPivotExcel('.non-existent-selector', 'test-file');
+
+  expect(logging.error as jest.Mock).toHaveBeenCalledWith(
+    '[exportPivotExcel] No element found for selector: ".non-existent-selector"',
+  );
 });

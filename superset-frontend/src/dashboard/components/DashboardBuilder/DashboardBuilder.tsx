@@ -165,19 +165,48 @@ const StyledContent = styled.div<{
 }>`
   grid-column: 2;
   grid-row: 2;
-  /* @z-index-above-dashboard-header (100) + 1 = 101 */
-  ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 101;`}
+  /* @z-index-above-dashboard-header (100) + 2 = 102: a maximized chart
+     must also cover the version-history overlay (101) so the two stack the
+     same way on both sides of the overlay breakpoint. */
+  ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 102;`}
 `;
 
 // Sticks alongside the page scroll so the panel stays fully visible.
+// Below the XXL breakpoint the dashboard grid's min-content width plus the
+// panel exceed the viewport (the content column cannot shrink), which would
+// push the panel past the page's right edge and clip its own controls
+// (sc-119737). Mirror the Explore panel host in spirit — Explore anchors
+// absolutely inside its relatively-positioned container, but the dashboard
+// page owns the scroll, so this pins to the viewport instead. While open at
+// these widths the overlay covers the page's right edge (including the top
+// navbar while scrolled to the top) — accepted: it is a closable surface.
 const VersionHistoryColumn = styled.div`
-  grid-column: 3;
-  grid-row: 1 / span 2;
-  position: sticky;
-  top: 0;
-  align-self: start;
-  height: 100vh;
-  z-index: 99;
+  ${({ theme }) => css`
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    z-index: 99;
+    @media (max-width: ${theme.screenXLMax}px) {
+      /* @z-index-above-dashboard-header (100) + 1 = 101 */
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      height: auto;
+      z-index: 101;
+      box-shadow: ${theme.boxShadow};
+      /* Load-bearing contract with DashboardVersionHistory's closed state:
+         it must render nothing in place (its restore modal portals out of
+         the column), so the column stays :empty and this zero-width fixed
+         box paints no stray shadow at the viewport edge. Pinned by the
+         closed-state test in DashboardVersionHistory.test.tsx. */
+      &:empty {
+        box-shadow: none;
+      }
+    }
+  `}
 `;
 
 const DashboardContentWrapper = styled.div`

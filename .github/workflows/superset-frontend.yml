@@ -111,7 +111,7 @@ jobs:
   report-coverage:
     needs: [sharded-jest-tests]
     if: needs.frontend-build.outputs.should-run == 'true'
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     timeout-minutes: 15
     permissions:
       id-token: write
@@ -206,7 +206,7 @@ jobs:
   actions-timeline:
     needs: [report-coverage, lint-frontend, validate-frontend, test-storybook]
     if: always()
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     permissions:
       actions: read
     steps:

@@ -37,7 +37,7 @@ from superset.exceptions import (
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database
 from superset.sql.parse import SQLScript
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.rls import apply_rls
 
 logger = logging.getLogger(__name__)
@@ -205,6 +205,18 @@ class QueryEstimationCommand(BaseCommand):
                         sqllab_timeout=app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"],
                     ),
                     error_type=SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                status=500,
+            ) from ex
+        except json.JSONDecodeError as ex:
+            logger.exception(ex)
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "Unable to parse the cost estimate returned by the database."
+                    ),
+                    error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
                     level=ErrorLevel.ERROR,
                 ),
                 status=500,

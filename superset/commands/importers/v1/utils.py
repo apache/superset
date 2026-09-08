@@ -325,6 +325,20 @@ def load_configs(
                     )
                 exc.messages = {file_name: exc.messages}
                 exceptions.append(exc)
+            except json.JSONDecodeError as exc:
+                # masked_encrypted_extra comes straight from the imported YAML
+                # (before schema validation) and may not be valid JSON. Convert
+                # the raw decode error into a ValidationError so it flows into
+                # the aggregated CommandInvalidError like every other per-file
+                # validation failure, instead of escaping as an opaque 500.
+                logger.error(
+                    "Invalid JSON in masked_encrypted_extra for %s: %s",
+                    file_name,
+                    exc,
+                )
+                exceptions.append(
+                    ValidationError({file_name: {"masked_encrypted_extra": [str(exc)]}})
+                )
 
     return configs
 

@@ -2270,6 +2270,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                         "stagger_refresh": True,
                         "stagger_time": 500,
                         "timed_refresh_immune_slices": [1, 2],
+                        "async_mode": "force_off",
                     }
                 )
             },
@@ -2282,6 +2283,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert saved_metadata["stagger_refresh"] is True
         assert saved_metadata["stagger_time"] == 500
         assert saved_metadata["timed_refresh_immune_slices"] == [1, 2]
+        assert saved_metadata["async_mode"] == "force_off"
 
         db.session.delete(model)
         db.session.commit()

@@ -137,6 +137,41 @@ services:
     healthcheck:
       disable: true
 
+  # Realtime WebSocket transport, launched from the official image via its
+  # alternate entrypoint (no separate image needed). Opt-in — start it with
+  # `docker compose --profile websocket up`. To actually use it, the Superset
+  # app must also set WEBSOCKET_ENABLE=true, WEBSOCKET_URL, and a matching
+  # WEBSOCKET_JWT_SECRET (== the JWT_SECRET below) in docker/.env-local.
+  superset-websocket:
+    build:
+      <<: *common-build
+    container_name: superset_websocket
+    profiles:
+      - websocket
+    # Neither a volume mount nor the root user is needed: the entrypoint and the
+    # Node bundle it runs are both baked into the image, and the server is
+    # configured entirely through the environment below.
+    command: ["/app/docker/entrypoints/run-websocket.sh"]
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PORT: 8080
+      JWT_COOKIE_NAME: superset-ws-token
+      # Dev-only default; must match the app's WEBSOCKET_JWT_SECRET and be
+      # replaced with a strong secret (>= 32 bytes) outside local development.
+      JWT_SECRET: ${WEBSOCKET_JWT_SECRET:-dev-only-websocket-secret-change-me!}
+      # Optional verify-only old key for websocket JWT secret rotation.
+      PREVIOUS_JWT_SECRET: ${WEBSOCKET_PREVIOUS_JWT_SECRET:-}
+    restart: unless-stopped
+    ports:
+      - 8080:8080
+    depends_on:
+      redis:
+        condition: service_started
+    # Overrides the image-level HEALTHCHECK, which probes the Superset app.
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health"]
+
 volumes:
   superset_home:
     external: false

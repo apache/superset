@@ -47,6 +47,7 @@ type LayoutElementLabel =
 export class DashboardPage {
   private readonly page: Page;
   private readonly filterBar: DashboardFilterBar;
+  private readonly dashboardTabs: Tabs;
 
   private static readonly SELECTORS = {
     DASHBOARD_HEADER: '[data-test="dashboard-header-container"]',
@@ -72,11 +73,19 @@ export class DashboardPage {
     ACE_CONTENT: '.ace_content',
     ACE_TEXT_INPUT: '.ace_text-input',
     RESIZE_HANDLE_BOTTOM: '.resizable-container-handle--bottom',
+    DASHBOARD_TABS: '[data-test="dashboard-component-tabs"]',
   } as const;
 
   constructor(page: Page) {
     this.page = page;
     this.filterBar = new DashboardFilterBar(page);
+    this.dashboardTabs = new Tabs(
+      page,
+      page
+        .locator(DashboardPage.SELECTORS.DASHBOARD_TABS)
+        .first()
+        .locator(':scope > [data-test="nav-list"]'),
+    );
   }
 
   /**
@@ -214,6 +223,16 @@ export class DashboardPage {
   async waitForFilterBar(): Promise<DashboardFilterBar> {
     await this.filterBar.waitForReady();
     return this.filterBar;
+  }
+
+  /**
+   * Switches to a top-level dashboard tab and waits for it to become active.
+   */
+  async switchDashboardTab(tabName: string): Promise<void> {
+    await this.dashboardTabs.clickTab(tabName);
+    await expect
+      .poll(() => this.dashboardTabs.getActiveTabName())
+      .toBe(tabName);
   }
 
   /**

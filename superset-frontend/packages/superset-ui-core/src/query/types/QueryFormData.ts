@@ -181,6 +181,8 @@ export interface BaseFormData extends TimeRange, FormDataResidual {
   timeseries_limit_metric?: QueryFormMetric;
   /** Force refresh */
   force?: boolean;
+  /** Idempotency token for a forced refresh (see requestChartDataResolved) */
+  force_nonce?: string;
   result_format?: string;
   result_type?: string;
   annotation_layers?: AnnotationLayer[];

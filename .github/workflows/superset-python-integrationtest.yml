@@ -257,7 +257,7 @@ jobs:
   actions-timeline:
     needs: [test-mysql, test-postgres, test-sqlite, test-postgres-required]
     if: always()
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     permissions:
       actions: read
     steps:

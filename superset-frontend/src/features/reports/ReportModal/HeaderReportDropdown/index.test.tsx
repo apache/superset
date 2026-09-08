@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import fetchMock from 'fetch-mock';
 import { act, render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
@@ -141,6 +142,36 @@ describe('Header Report Dropdown', () => {
 
   afterAll(() => {
     mockedIsFeatureEnabled.mockRestore();
+  });
+
+  afterEach(() => {
+    fetchMock.clearHistory().removeRoutes();
+  });
+
+  test('switches to the manage menu once the existing report is fetched', async () => {
+    const mockedProps = createProps();
+    fetchMock.get('glob:*/api/v1/report/?q=*', {
+      count: 1,
+      result: [
+        {
+          active: true,
+          creation_method: 'dashboards',
+          crontab: '0 12 * * 1',
+          dashboard_id: 1,
+          chart_id: null,
+          id: 5,
+          name: 'Weekly Report',
+          report_format: 'PNG',
+          type: 'Report',
+        },
+      ],
+    });
+    act(() => {
+      setup(mockedProps, stateWithOnlyUser);
+    });
+    expect(await screen.findByText('Email reports active')).toBeInTheDocument();
+    expect(screen.getByText('Edit email report')).toBeInTheDocument();
+    expect(screen.getByText('Delete email report')).toBeInTheDocument();
   });
 
   test('renders correctly', () => {

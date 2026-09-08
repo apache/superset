@@ -1947,6 +1947,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             "columns.column_name",
             "columns.verbose_name",
             "columns.groupby",
+            "metrics.metric_name",
+            "metrics.verbose_name",
         ]
         dataset_schema = DatasetDrillInfoSchema()
 

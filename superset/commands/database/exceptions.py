@@ -44,6 +44,26 @@ class DatabaseExistsValidationError(ValidationError):
         )
 
 
+class DatabaseUpdateUnsafeRebindError(ValidationError):
+    """
+    Marshmallow validation error for an update that would change a
+    database's effective connection destination while leaving the stored
+    password/encrypted_extra/SSH tunnel credential masked.
+    """
+
+    def __init__(self, field_name: str = "sqlalchemy_uri") -> None:
+        super().__init__(
+            _(
+                "This update would change the connection's effective "
+                "destination (host/port, engine parameters, or SSH tunnel "
+                "endpoint) while reusing the stored credential. Provide "
+                "the real password (or SSH tunnel credential) to confirm "
+                "a connection move."
+            ),
+            field_name=field_name,
+        )
+
+
 class DatabaseRequiredFieldValidationError(ValidationError):
     def __init__(self, field_name: str) -> None:
         super().__init__(
@@ -172,6 +192,15 @@ class DatabaseTestConnectionFailedError(SupersetErrorsException):
 
 class DatabaseSecurityUnsafeError(CommandInvalidError):
     message = _("Stopped an unsafe database connection")
+
+
+class DatabaseTestConnectionUnsafeRebindError(CommandInvalidError):
+    message = _(
+        "Testing this connection would change its effective destination "
+        "(engine parameters or SSH tunnel endpoint) while reusing the stored "
+        "password. Provide the real password to test a connection whose "
+        "destination has changed."
+    )
 
 
 class DatabaseTestConnectionDriverError(CommandInvalidError):

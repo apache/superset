@@ -2878,20 +2878,29 @@ def test_readiness_timeout_retries_terminal_persistence_and_allows_next_schedule
     "load_birth_names_dashboard_with_slices", "create_report_email_chart_with_csv"
 )
 @patch("superset.reports.notifications.email.send_email_smtp")
-@patch("superset.utils.csv.urllib.request.urlopen")
 @patch("superset.utils.csv.urllib.request.OpenerDirector.open")
-@patch("superset.utils.csv.get_chart_csv_data")
 def test_fail_csv(
-    csv_mock, mock_open, mock_urlopen, email_mock, create_report_email_chart_with_csv
-):
+    mock_open: Mock,
+    email_mock: Mock,
+    create_report_email_chart_with_csv: ReportSchedule,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     """
     ExecuteReport Command: Test error on csv
     """
 
-    response = Mock()
-    mock_open.return_value = response
-    mock_urlopen.return_value = response
-    mock_urlopen.return_value.getcode.return_value = 500
+    from email.message import Message
+    from io import BytesIO
+    from urllib.error import HTTPError
+
+    caplog.set_level(logging.INFO, logger="superset.commands.report.execute")
+    mock_open.side_effect = HTTPError(
+        "http://localhost/api/v1/chart/data",
+        500,
+        "Internal Server Error",
+        Message(),
+        BytesIO(b'{"message":"error details"}'),
+    )
 
     with pytest.raises(ReportScheduleCsvFailedError):
         AsyncExecuteReportScheduleCommand(
@@ -2903,8 +2912,17 @@ def test_fail_csv(
     assert email_mock.call_args[0][0] == DEFAULT_OWNER_EMAIL
 
     assert_log(
-        ReportState.ERROR, error_message="Failed generating csv <urlopen error 500>"
+        ReportState.ERROR,
+        error_message="Chart data request failed: category=http status=500",
     )
+
+    terminals = [
+        record.message
+        for record in caplog.records
+        if "report_execution_terminal" in record.message
+    ]
+    assert len(terminals) == 1
+    assert "category=http status=500" in terminals[0]
 
 
 @pytest.mark.usefixtures(
@@ -3568,3 +3586,76 @@ def test_get_retry_delay_exponential_backoff() -> None:
     assert state._get_retry_delay(5) == 1920  # 60 * 2^5 = 1920
     assert state._get_retry_delay(6) == 3600  # 60 * 2^6 = 3840 → capped at 3600
     assert state._get_retry_delay(10) == 3600  # still capped
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@pytest.mark.parametrize("report_format", [ReportDataFormat.CSV, ReportDataFormat.XLSX])
+@pytest.mark.parametrize("post", [False, True])
+@pytest.mark.parametrize("wrapped", [False, True])
+@pytest.mark.parametrize("retry", [False, True])
+def test_scheduler_tabular_transport_timeout_records_failure(
+    create_report_email_chart_with_csv: ReportSchedule,
+    report_format: ReportDataFormat,
+    post: bool,
+    wrapped: bool,
+    retry: bool,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Socket timeouts remain task failures with one ERROR outcome and notification."""
+    import socket
+    from urllib.error import URLError
+
+    from superset.commands.report.exceptions import (
+        ReportScheduleCsvTimeout,
+        ReportScheduleXlsxTimeout,
+    )
+    from superset.tasks.scheduler import execute
+
+    schedule = create_report_email_chart_with_csv
+    schedule.report_format = report_format
+    schedule.chart.query_context = "{}" if post else None
+    db.session.commit()
+    timeout = socket.timeout("TRANSPORT_SECRET")
+    error = URLError(timeout) if wrapped else timeout
+    expected = (
+        ReportScheduleCsvTimeout
+        if report_format == ReportDataFormat.CSV
+        else ReportScheduleXlsxTimeout
+    )()
+    caplog.set_level(logging.INFO)
+    with (
+        patch.dict(app.config, {"ALERT_REPORTS_CSV_REQUEST_RETRY": retry}),
+        patch.object(BaseReportState, "_update_query_context"),
+        patch(
+            "superset.utils.csv.urllib.request.OpenerDirector.open", side_effect=error
+        ) as fetch,
+        patch("superset.commands.report.chart_data.time.sleep"),
+        patch("superset.reports.notifications.email.send_email_smtp") as email,
+        patch.object(execute, "update_state") as update_state,
+    ):
+        execute.push_request(id=TEST_ID)
+        try:
+            execute.run(schedule.id)
+        finally:
+            execute.pop_request()
+
+    assert fetch.call_count == (2 if retry else 1)
+    assert isinstance(fetch.call_args.args[0], str) is not post
+    update_state.assert_called_once_with(state="FAILURE")
+    errors = [
+        record
+        for record in caplog.records
+        if record.name == "superset.tasks.scheduler" and record.levelno >= logging.ERROR
+    ]
+    assert len(errors) == 1
+    assert errors[0].exc_info is not None
+    assert isinstance(errors[0].exc_info[1], type(expected))
+    assert "TRANSPORT_SECRET" not in caplog.text
+    db.session.refresh(schedule)
+    assert schedule.last_state == ReportState.ERROR
+    assert_log(ReportState.ERROR, error_message=str(expected))
+    assert (
+        sum("report_execution_terminal" in record.message for record in caplog.records)
+        == 1
+    )
+    email.assert_called_once()

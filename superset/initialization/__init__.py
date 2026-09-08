@@ -50,16 +50,15 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.constants import (
-    CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET,
     CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
     CHANGE_ME_SECRET_KEY,
+    CHANGE_ME_WEBSOCKET_JWT_SECRET,
 )
 from superset.databases.utils import make_url_safe
 from superset.extensions import (
     _event_logger,
     APP_DIR,
     appbuilder,
-    async_query_manager_factory,
     cache_manager,
     celery_app,
     csrf,
@@ -181,7 +180,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.advanced_data_type.api import AdvancedDataTypeRestApi
         from superset.annotation_layers.annotations.api import AnnotationRestApi
         from superset.annotation_layers.api import AnnotationLayerRestApi
-        from superset.async_events.api import AsyncEventsRestApi
         from superset.available_domains.api import AvailableDomainsRestApi
         from superset.cachekeys.api import CacheRestApi
         from superset.charts.api import ChartRestApi
@@ -271,7 +269,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         appbuilder.add_api(AnnotationRestApi)
         appbuilder.add_api(AnnotationLayerRestApi)
-        appbuilder.add_api(AsyncEventsRestApi)
         appbuilder.add_api(AdvancedDataTypeRestApi)
         appbuilder.add_api(AvailableDomainsRestApi)
         appbuilder.add_api(CacheRestApi)
@@ -1040,10 +1037,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_url_map_converters()
         self.configure_data_sources()
         self.configure_auth_provider()
-        self.configure_async_queries()
         self.configure_ssh_manager()
         self.configure_stats_manager()
         self.configure_task_manager()
+        self.configure_websocket()
 
         # Hook that provides administrators a handle on the Flask APP
         # after initialization
@@ -1131,29 +1128,25 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         sys.exit(1)
 
-    def check_async_query_secret(self) -> None:
-        """Refuse to start with the default async JWT secret when GAQ is enabled."""
-        if not feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+    def check_websocket_secret(self) -> None:
+        """Refuse to start with a default/weak websocket JWT secret when enabled."""
+        if not self.config.get("WEBSOCKET_ENABLE"):
             return
-        if (
-            self.config.get("GLOBAL_ASYNC_QUERIES_JWT_SECRET")
-            != CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
-        ):
+        secret = self.config.get("WEBSOCKET_JWT_SECRET") or ""
+        if secret != CHANGE_ME_WEBSOCKET_JWT_SECRET and len(secret) >= 32:
             return
         self._log_config_warning(
-            "GLOBAL_ASYNC_QUERIES is enabled but GLOBAL_ASYNC_QUERIES_JWT_SECRET "
-            "has not been changed from its default value.\n"
-            "The default value is publicly known and must be replaced before "
-            "running in production.\n"
-            "Set a strong random value (at least 32 bytes) in superset_config.py:\n"
-            "  GLOBAL_ASYNC_QUERIES_JWT_SECRET = "
-            "'<output of: openssl rand -base64 42>'"
+            "WEBSOCKET_ENABLE is on but WEBSOCKET_JWT_SECRET is the default "
+            "placeholder or shorter than 32 bytes.\n"
+            "The default is publicly known; a weak secret lets an attacker forge "
+            "channel tokens and subscribe to another user's private channel.\n"
+            "Set a strong random value in superset_config.py:\n"
+            "  WEBSOCKET_JWT_SECRET = '<output of: openssl rand -base64 42>'"
         )
         if self.superset_app.debug or self.superset_app.config["TESTING"] or is_test():
             return
         logger.error(
-            "Refusing to start: insecure GLOBAL_ASYNC_QUERIES_JWT_SECRET "
-            "with GLOBAL_ASYNC_QUERIES enabled"
+            "Refusing to start: insecure WEBSOCKET_JWT_SECRET with WEBSOCKET_ENABLE"
         )
         sys.exit(1)
 
@@ -1340,7 +1333,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # conditionally
         self.configure_feature_flags()
         self.check_guest_token_secret()
-        self.check_async_query_secret()
+        self.check_websocket_secret()
         self.check_encryption_engine()
         self.configure_db_encrypt()
         self.setup_db()
@@ -1622,26 +1615,19 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             for ex in csrf_exempt_list:
                 csrf.exempt(ex)
 
-    def configure_async_queries(self) -> None:
-        if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
-            # In production, check_async_query_secret() already aborts startup when
-            # the default secret is present, so this branch is never reached with it.
-            # In debug/testing the check only warns, so skip async-query init here to
-            # avoid AsyncQueryManager.init_app() hard-failing on the too-short default
-            # secret and crashing startup despite the warn-only intent.
-            if (
-                self.config.get("GLOBAL_ASYNC_QUERIES_JWT_SECRET")
-                == CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
-            ):
-                return
-            async_query_manager_factory.init_app(self.superset_app)
-
     def configure_task_manager(self) -> None:
         """Initialize the TaskManager for GTF realtime notifications."""
         if feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
             from superset.tasks.manager import TaskManager
 
             TaskManager.init_app(self.superset_app)
+
+    def configure_websocket(self) -> None:
+        """Mint the websocket channel-token cookie when the transport is enabled."""
+        if self.config.get("WEBSOCKET_ENABLE"):
+            from superset.websocket.channel import register_ws_channel_cookie
+
+            register_ws_channel_cookie(self.superset_app)
 
     def register_blueprints(self) -> None:
         # Register custom blueprints from config

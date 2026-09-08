@@ -445,3 +445,45 @@ def test_run_wraps_raw_jinja_undefined_error(
 
     assert exc_info.value.status == 400
     assert exc_info.value.error.error_type == SupersetErrorType.GENERIC_COMMAND_ERROR
+
+
+# ---------------------------------------------------------------------------
+# estimate_query_cost() error handling: a raw simplejson JSONDecodeError from
+# parsing the engine's cost-estimate response must not leak from run()
+# ---------------------------------------------------------------------------
+
+
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
+def test_run_wraps_raw_jsondecodeerror_from_cost_estimation(
+    mock_dao: MagicMock,
+    mock_security_manager: MagicMock,
+) -> None:
+    """A raw ``simplejson.JSONDecodeError`` raised while parsing the engine's
+    cost-estimate response (e.g. Presto/Trino ``EXPLAIN (TYPE IO, FORMAT JSON)``
+    emitting a bare ``NaN`` token for tables lacking computed statistics) must
+    not leak past ``run()`` -- it should surface as a typed
+    ``SupersetErrorException`` with a 500 ``GENERIC_BACKEND_ERROR``, mirroring
+    the sibling ``TemplateError`` conversion in the same function."""
+    # ``superset.utils.json`` is simplejson-backed, so ``json.JSONDecodeError``
+    # here *is* ``simplejson.errors.JSONDecodeError`` -- the concrete class the
+    # Presto/Trino cost-estimate parse raises, which is distinct from the stdlib
+    # ``json.JSONDecodeError``. Using the util keeps us off the banned direct
+    # ``simplejson`` import while exercising the exact raised type.
+    from superset.utils import json
+
+    mock_database = MagicMock()
+    mock_dao.find_by_id.return_value = mock_database
+    mock_security_manager.raise_for_access.return_value = None
+    # The raw class actually raised by superset.utils.json (simplejson-backed)
+    # when the driver response contains a literal NaN token.
+    mock_database.db_engine_spec.estimate_query_cost.side_effect = json.JSONDecodeError(
+        "Expecting value", "{}", 0
+    )
+
+    command = QueryEstimationCommand(_make_params())
+    with pytest.raises(SupersetErrorException) as exc_info:
+        command.run()
+
+    assert exc_info.value.status == 500
+    assert exc_info.value.error.error_type == SupersetErrorType.GENERIC_BACKEND_ERROR

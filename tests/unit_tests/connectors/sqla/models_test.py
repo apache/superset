@@ -1912,3 +1912,44 @@ def test_dttm_cols_excludes_column_after_temporal_flag_removed(
     # ``main_dttm_col`` is never cleared, so ``dttm_cols`` still contains the stale,
     # non-temporal column and this assertion fails (bug reproduced).
     assert "not_really_a_date" not in dataset.dttm_cols
+
+
+def test_count_distinct_calculated_column_is_parenthesized() -> None:
+    """
+    A legacy SIMPLE ``COUNT_DISTINCT`` metric over a boolean/OR calculated
+    column resolves through ``TableColumn.get_sqla_col`` and must parenthesize
+    the expression: ``COUNT(DISTINCT (<expr>))``.  Without the parentheses the
+    bare ``OR`` would leak into the aggregate argument.
+    """
+    calc_expr = "state = 'CA' OR state = 'NY'"
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(table_name="t", database=database)
+    calc_col = TableColumn(
+        column_name="is_ca_or_ny",
+        expression=calc_expr,
+        type="BOOLEAN",
+        table=table,
+    )
+
+    metric: AdhocMetric = {
+        "expressionType": "SIMPLE",
+        "aggregate": "COUNT_DISTINCT",
+        "column": {"column_name": "is_ca_or_ny"},
+        "label": "distinct_ca_or_ny",
+    }
+
+    sqla_metric = table.adhoc_metric_to_sqla(metric, {"is_ca_or_ny": calc_col})
+
+    rendered = str(
+        sqla_metric.compile(
+            dialect=sqlite.dialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+
+    # SQLite renders the aggregate function name in lowercase (``count``); the
+    # DISTINCT keyword and the expression keep their case.
+    assert f"DISTINCT ({calc_expr}))" in rendered, (
+        f"COUNT_DISTINCT over a calculated column should parenthesize the "
+        f"expression. Rendered: {rendered}"
+    )
