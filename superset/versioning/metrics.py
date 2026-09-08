@@ -61,9 +61,12 @@ def emit_capture_timing(stage: str, duration_ms: float) -> None:
     ``ENABLE_VERSIONING_CAPTURE`` kill-switch, flipped on save-path
     slowdown — this series
     (``superset.versioning.capture.<stage>.latency``) is the signal an
-    operator alerts on before flipping it. The counters above cover
-    *loss*; this covers *slowdown*. Best-effort under the same fail-open
-    posture: metrics emission must never itself break a user's save.
+    operator alerts on before flipping it. :func:`incr_capture_error`
+    covers *loss*; this covers *slowdown*. The series includes every
+    commit on the session — commits touching no versioned entity still
+    pay the listener overhead — so alerts belong on upper percentiles,
+    not the mean. Best-effort under the same fail-open posture: metrics
+    emission must never itself break a user's save.
     """
     # pylint: disable=import-outside-toplevel
     try:
