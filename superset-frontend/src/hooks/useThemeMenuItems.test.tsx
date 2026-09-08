@@ -271,4 +271,14 @@ describe('useThemeMenuItems', () => {
 
     expect(divider).toBeNull();
   });
+
+  test('renders the down-chevron caret icon, not the caret glyph (regression #43531)', async () => {
+    renderThemeMenu();
+
+    const menuItem = await screen.findByRole('menuitem');
+    const caret = menuItem.querySelector('.ant-menu-item-icon');
+
+    expect(caret).toHaveClass('anticon-down');
+    expect(caret?.querySelector('svg')).toHaveAttribute('data-icon', 'down');
+  });
 });

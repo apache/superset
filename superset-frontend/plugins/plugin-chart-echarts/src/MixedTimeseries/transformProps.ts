@@ -44,9 +44,14 @@ import {
   ValueFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import { getOriginalSeries } from '@superset-ui/chart-controls';
+import {
+  getOriginalSeries,
+  getTimeOffset,
+  isDerivedSeries,
+} from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { SeriesOption } from 'echarts';
+import type { LineStyleOption } from 'echarts/types/src/util/types';
 import {
   DEFAULT_FORM_DATA,
   EchartsMixedTimeseriesChartTransformedProps,
@@ -59,6 +64,7 @@ import {
   LegendOrientation,
   Refs,
 } from '../types';
+import { BarValueLabelPosition } from '../Timeseries/types';
 import { parseAxisBound } from '../utils/controls';
 import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import {
@@ -73,6 +79,8 @@ import {
   getLegendProps,
   getMinAndMaxFromBounds,
   getOverMaxHiddenFormatter,
+  getTemporalAxisTickConfig,
+  resolveTemporalTickValues,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -97,10 +105,16 @@ import {
   transformSeries,
   transformTimeseriesAnnotation,
 } from '../Timeseries/transformers';
-import { TIMEGRAIN_TO_TIMESTAMP, TIMESERIES_CONSTANTS } from '../constants';
+import {
+  TIMEGRAIN_TO_TIMESTAMP,
+  TIMESERIES_CONSTANTS,
+  OpacityEnum,
+} from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
+  createSpacedXAxisFormatter,
   getTooltipTimeFormatter,
+  getXAxisDomain,
   getXAxisFormatter,
   getYAxisFormatter,
 } from '../utils/formatters';
@@ -448,6 +462,10 @@ export default function transformProps(
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
   const inverted = invert(verboseMap);
+  // Tracks a stable pattern index per time offset so that derived series
+  // sharing the same comparison window (across both queries A and B) get
+  // the same dash pattern, mirroring the regular Timeseries transform.
+  const offsetPatterns: { [key: string]: number } = {};
 
   // The rendered ECharts series names are display names that can diverge from
   // the backend `label_map` keys: the metric display name is prepended when
@@ -462,6 +480,22 @@ export default function transformProps(
   rawSeriesA.forEach(entry => {
     const entryName = String(entry.name || '');
     const seriesName = inverted[entryName] || entryName;
+    const derivedSeries = isDerivedSeries(
+      entry,
+      chartProps.rawFormData,
+      seriesName,
+    );
+    const lineStyle: LineStyleOption = {};
+    if (derivedSeries && timeShiftColor) {
+      const offset = getTimeOffset(entry, array) || seriesName;
+      if (!offsetPatterns[offset]) {
+        offsetPatterns[offset] = Object.keys(offsetPatterns).length + 1;
+      }
+      const patternIndex = offsetPatterns[offset];
+      // use a combination of dash and dot for the line style
+      lineStyle.type = [(patternIndex % 5) + 1, (patternIndex % 3) + 1];
+      lineStyle.opacity = OpacityEnum.DerivedSeries;
+    }
     const colorScaleKey = getOriginalSeries(seriesName, array);
 
     const labelMapValues = rawLabelMap?.[seriesName];
@@ -517,6 +551,7 @@ export default function transformProps(
         areaOpacity: opacity,
         seriesType,
         showValue,
+        valueLabelPosition: BarValueLabelPosition.OutsideEnd,
         onlyTotal,
         stack: Boolean(stack),
         stackIdSuffix: '\na',
@@ -538,6 +573,7 @@ export default function transformProps(
         timeShiftColor,
         theme,
         labelPosition,
+        lineStyle,
       },
     );
 
@@ -550,6 +586,23 @@ export default function transformProps(
   rawSeriesB.forEach(entry => {
     const entryName = String(entry.name || '');
     const seriesEntry = inverted[entryName] || entryName;
+    const derivedSeries = isDerivedSeries(
+      entry,
+      chartProps.rawFormData,
+      seriesEntry,
+    );
+    const lineStyle: LineStyleOption = {};
+    if (derivedSeries && timeShiftColor) {
+      const offset = getTimeOffset(entry, array) || seriesEntry;
+      if (!offsetPatterns[offset]) {
+        offsetPatterns[offset] = Object.keys(offsetPatterns).length + 1;
+      }
+      const patternIndex = offsetPatterns[offset];
+      // use a combination of dash and dot for the line style
+      lineStyle.type = [(patternIndex % 5) + 1, (patternIndex % 3) + 1];
+      lineStyle.opacity = OpacityEnum.DerivedSeries;
+    }
+
     const colorScaleKey = getOriginalSeries(seriesEntry, array);
 
     const labelMapValuesB = rawLabelMapB?.[seriesEntry];
@@ -606,6 +659,7 @@ export default function transformProps(
         areaOpacity: opacityB,
         seriesType: seriesTypeB,
         showValue: showValueB,
+        valueLabelPosition: BarValueLabelPosition.OutsideEnd,
         onlyTotal: onlyTotalB,
         stack: Boolean(stackB),
         stackIdSuffix: '\nb',
@@ -627,6 +681,7 @@ export default function transformProps(
         timeShiftColor,
         theme,
         labelPosition: labelPositionB,
+        lineStyle,
       },
     );
 
@@ -659,44 +714,26 @@ export default function transformProps(
       ? getXAxisFormatter(xAxisTimeFormat, resolvedTimeGrain)
       : String;
 
+  // hideOverlap must stay off so the forced boundary label from showMaxLabel
+  // is never suppressed (#39899). The formatter itself dedupes consecutive
+  // identical labels and thins out labels that would otherwise visually
+  // collide, since hideOverlap can no longer do that for us.
   const showMaxLabel =
     xAxisType === AxisType.Time &&
     xAxisLabelRotation === 0 &&
     !!resolvedTimeGrain;
   const deduplicatedFormatter = showMaxLabel
-    ? (() => {
-        let lastLabel: string | undefined;
-        let lastValue: number | undefined;
-        const wrapper = (value: number | string) => {
-          // ECharts formats the labels in repeated ascending passes. Reset the
-          // dedup state when the sequence restarts so a forced boundary label
-          // (e.g. the min date) isn't blanked by the previous pass's last label
-          // when both format identically (e.g. a May-to-May range).
-          if (
-            typeof value === 'number' &&
-            lastValue !== undefined &&
-            value <= lastValue
-          ) {
-            lastLabel = undefined;
-          }
-          if (typeof value === 'number') {
-            lastValue = value;
-          }
-          const label =
-            typeof xAxisFormatter === 'function'
-              ? (xAxisFormatter as Function)(value)
-              : String(value);
-          if (label === lastLabel) {
-            return '';
-          }
-          lastLabel = label;
-          return label;
-        };
-        if (typeof xAxisFormatter === 'function' && 'id' in xAxisFormatter) {
-          (wrapper as any).id = (xAxisFormatter as any).id;
-        }
-        return wrapper;
-      })()
+    ? createSpacedXAxisFormatter(
+        xAxisFormatter,
+        ...getXAxisDomain(
+          [
+            rebasedDataA as Record<string, unknown>[],
+            rebasedDataB as Record<string, unknown>[],
+          ],
+          xAxisLabel,
+        ),
+        Math.max(width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft, 0),
+      )
     : xAxisFormatter;
 
   const yAxisTitleMarginPx = convertInteger(yAxisTitleMargin);
@@ -764,6 +801,26 @@ export default function transformProps(
   const { setDataMask = () => {}, onContextMenu } = hooks;
   const alignTicks = yAxisIndex !== yAxisIndexB;
 
+  // Both queries share the axis, so a bucket contributed by either needs a tick.
+  const temporalTickValues = resolveTemporalTickValues(
+    [...rebasedDataA, ...rebasedDataB],
+    xAxisLabel,
+    xAxisType,
+    resolvedTimeGrain,
+    annotationLayers,
+  );
+
+  const temporalAxisTickConfig = getTemporalAxisTickConfig(
+    temporalTickValues,
+    showMaxLabel,
+    xAxisType,
+    xAxisLabelRotation,
+    xAxisLabelInterval,
+    deduplicatedFormatter,
+    false,
+    zoomable,
+  );
+
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
     grid: {
@@ -775,22 +832,12 @@ export default function transformProps(
       name: xAxisTitle,
       nameGap: xAxisTitleMarginPx,
       nameLocation: 'middle',
-      axisLabel: {
-        hideOverlap: showMaxLabel
-          ? false
-          : !(xAxisType === AxisType.Time && xAxisLabelRotation !== 0),
-        formatter: deduplicatedFormatter,
-        rotate: xAxisLabelRotation,
-        interval: xAxisLabelInterval,
-        ...(showMaxLabel && {
-          showMaxLabel: true,
-          alignMaxLabel: 'right',
-          showMinLabel: true,
-          alignMinLabel: 'left',
-        }),
-      },
+      ...temporalAxisTickConfig,
       minorTick: { show: minorTicks },
-      axisTick: { show: axisTicks ? 'auto' : false },
+      axisTick: {
+        ...temporalAxisTickConfig.axisTick,
+        show: axisTicks ? 'auto' : false,
+      },
       ...(gridlines ? {} : { splitLine: { show: false } }),
       minInterval:
         xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval

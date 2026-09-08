@@ -362,6 +362,7 @@ describe('SqlEditor', () => {
   test('enables the save dataset button when the latest query succeeded', async () => {
     const { findByLabelText } = setupWithLatestQuery({
       state: QueryState.Success,
+      sql: mockedProps.queryEditor.sql,
     });
     expect(await findByLabelText('Save dataset')).toBeEnabled();
   });

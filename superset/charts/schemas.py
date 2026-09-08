@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import Any, TYPE_CHECKING
 
 from flask import current_app
+from flask_appbuilder.api.schemas import get_list_schema
 from flask_babel import gettext as _
 from marshmallow import (
     EXCLUDE,
@@ -30,7 +31,7 @@ from marshmallow import (
     validates,
     ValidationError,
 )
-from marshmallow.validate import Length, Range
+from marshmallow.validate import Length, NoneOf, Range
 from marshmallow_union import Union
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
@@ -113,6 +114,26 @@ def validate_prophet_periods(value: int) -> None:
 #
 # RISON/JSON schemas for query parameters
 #
+MAX_VIZ_TYPE_ORDER_LENGTH = 256
+MAX_VIZ_TYPE_LENGTH = 250
+
+chart_get_list_schema = {
+    **get_list_schema,
+    "properties": {
+        **get_list_schema["properties"],
+        "viz_type_order": {
+            "type": "array",
+            "items": {"type": "string", "maxLength": MAX_VIZ_TYPE_LENGTH},
+            "maxItems": MAX_VIZ_TYPE_ORDER_LENGTH,
+            "uniqueItems": True,
+            "description": (
+                "Visualization type slugs in display-name order. Used only when "
+                "order_column is viz_type."
+            ),
+        },
+    },
+}
+
 get_delete_ids_schema = {
     "type": "array",
     "items": {"type": "integer"},
@@ -1012,7 +1033,15 @@ class ChartDataGeodeticParseOptionsSchema(
 
 
 class ChartDataPostProcessingOperationSchema(Schema):
-    _builtin_ops = pandas_postprocessing.__all__
+    # OPERATIONS excludes escape_separator/unescape_separator: those are
+    # internal str -> str helpers used by flatten, not DataFrame
+    # post-processing operations, so dispatching one against a DataFrame
+    # raises a confusing TypeError instead of the intended clean validation
+    # error. No field-level `validate=` here: it would run before, and thus
+    # reject, any EXTRA_PANDAS_POSTPROCESSING_OPS-registered custom
+    # operation, which `validate_operation` below is responsible for
+    # allowing.
+    _builtin_ops = pandas_postprocessing.OPERATIONS
 
     operation = fields.String(
         metadata={
@@ -1568,6 +1597,19 @@ class ChartDataQueryObjectSchema(Schema):
                 data[new] = value
         return data
 
+    force_nonce = fields.String(
+        metadata={
+            "description": "Per-query forced-refresh idempotency token: the async "
+            "task's UUID (as returned in the 202 `task_ids`, in query order). Sent "
+            "on the synchronous read-back of a forced refresh so it reads the "
+            "result the task warmed instead of recomputing. Because the token is "
+            "the task's identity, concurrent refreshes joining the same shared task "
+            "read back under the same token. Ignored when `force` is false."
+        },
+        required=False,
+        allow_none=True,
+    )
+
 
 class ChartDataQueryContextSchema(Schema):
     query_context_factory: QueryContextFactory | None = None
@@ -1587,14 +1629,71 @@ class ChartDataQueryContextSchema(Schema):
         allow_none=True,
     )
 
+    force_nonce = fields.String(
+        metadata={
+            "description": "Forced-refresh idempotency token for a single-query "
+            "request: the async task's UUID (as returned in the 202 `task_ids`). "
+            "Sent on the synchronous read-back of a forced refresh so it reads the "
+            "result the task warmed instead of recomputing; concurrent refreshes "
+            "joining the same shared task read back under the same token. Multi-query "
+            "requests set the per-query `force_nonce` on each query instead. Ignored "
+            "when `force` is false."
+        },
+        required=False,
+        allow_none=True,
+    )
+
     result_type = fields.Enum(ChartDataResultType, by_value=True)
-    result_format = fields.Enum(ChartDataResultFormat, by_value=True)
+    result_format = fields.Enum(
+        ChartDataResultFormat,
+        by_value=True,
+        # Arrow is served only by the datasource query endpoint;
+        # ``_send_chart_response`` has no Arrow branch. Rejecting it here fails
+        # fast, rather than executing the query and only then returning
+        # "Unsupported result_format".
+        validate=NoneOf(
+            [ChartDataResultFormat.ARROW],
+            error=(
+                "result_format 'arrow' is not supported by this endpoint; use "
+                "POST /api/v1/datasource/<type>/<id>/query."
+            ),
+        ),
+    )
 
     form_data = fields.Raw(allow_none=True, required=False)
+
+    async_mode = fields.Boolean(
+        metadata={
+            "description": "Opt this request into asynchronous execution on the "
+            "Global Task Framework (requires the GLOBAL_ASYNC_QUERIES feature "
+            "flag). When true the response is HTTP 202 with the query task ids to "
+            "poll; when absent or false the query runs synchronously (HTTP 200). "
+            "Default: `false`."
+        },
+        required=False,
+        allow_none=True,
+    )
+
+    tab_id = fields.String(
+        metadata={
+            "description": "Opaque per-browser-tab id (see the frontend `getTabId`). "
+            "On an async request it ref-counts this tab as a consumer of the shared "
+            "chart-data task so a cancel/navigate-away from one tab doesn't abort a "
+            "task another tab still awaits. Read by the API as a request-level "
+            "routing hint; not part of the query context."
+        },
+        required=False,
+        allow_none=True,
+    )
 
     # pylint: disable=unused-argument
     @post_load
     def make_query_context(self, data: dict[str, Any], **kwargs: Any) -> QueryContext:
+        # ``async_mode`` and ``tab_id`` are request-level hints (read by the API to
+        # decide sync vs async and to route the per-tab subscription), not part of
+        # the QueryContext, so drop them before building one.
+        data.pop("async_mode", None)
+        data.pop("tab_id", None)
         query_context = self.get_query_context_factory().create(**data)
         return query_context
 
@@ -1821,25 +1920,32 @@ class ChartDataResponseSchema(Schema):
 
 
 class ChartDataAsyncResponseSchema(Schema):
-    channel_id = fields.String(
-        metadata={"description": "Unique session async channel ID"},
+    task_ids = fields.List(
+        fields.String(),
+        metadata={
+            "description": "UUIDs of the scheduled GTF tasks (one per QueryObject "
+            "that missed the cache), in query order. The client polls "
+            "`/api/v1/task/status_changes`, aggregates these tasks' statuses, and "
+            "re-issues this request once they all succeed."
+        },
         allow_none=False,
     )
-    job_id = fields.String(
-        metadata={"description": "Unique async job ID"},
+    cursor = fields.String(
+        metadata={
+            "description": "Status-changes recovery cursor captured before any task "
+            "was created. The client polls `/api/v1/task/status_changes` from it and "
+            "is guaranteed to observe each task's completion."
+        },
         allow_none=False,
     )
-    user_id = fields.String(
-        metadata={"description": "Requesting user ID"},
+    tab_id = fields.String(
+        metadata={
+            "description": "The per-client (e.g. browser-tab) id echoed back when the "
+            "caller advertised one, so a later cancel detaches exactly that client. "
+            "Absent when the caller supplied none."
+        },
+        required=False,
         allow_none=True,
-    )
-    status = fields.String(
-        metadata={"description": "Status value for async job"},
-        allow_none=False,
-    )
-    result_url = fields.String(
-        metadata={"description": "Unique result URL for fetching async query data"},
-        allow_none=False,
     )
 
 
@@ -1872,6 +1978,7 @@ class ImportV1ChartSchema(Schema):
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
     tags = fields.List(fields.String(), allow_none=True)
+    extra = fields.Dict(allow_none=True, load_only=True)
 
 
 class ChartCacheWarmUpRequestSchema(Schema):

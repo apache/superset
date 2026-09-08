@@ -101,6 +101,7 @@ from superset.utils.oauth2 import (
     generate_code_challenge,
     generate_code_verifier,
     get_oauth2_redirect_uri,
+    is_oauth2_retry_active,
 )
 
 if TYPE_CHECKING:
@@ -406,6 +407,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     _date_trunc_functions: dict[str, str] = {}
     _time_grain_expressions: dict[str | None, str] = {}
+
+    # Whether the output of ``normalize_custom_sql_metric`` may be embedded in
+    # generated SQL verbatim (after line comments are converted to block
+    # comments) instead of being re-rendered by ``sanitize_clause``. Specs that
+    # override ``normalize_custom_sql_metric`` with a source-preserving
+    # normalizer set this so re-rendering cannot undo the normalization.
+    preserves_custom_sql_metric_source = False
+
+    @classmethod
+    def normalize_custom_sql_metric(cls, expression: str) -> str:
+        """Return custom metric SQL in the engine's canonical form."""
+        return expression
+
     _default_column_type_mappings: tuple[ColumnTypeMapping, ...] = (
         (
             re.compile(r"^string", re.IGNORECASE),
@@ -976,7 +990,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             else requests.post(uri, json=req_body, timeout=timeout)
         )
         if response.status_code in (400, 401, 403):
-            raise OAuth2TokenRefreshError()
+            try:
+                payload = response.json()
+                if not isinstance(payload, dict):
+                    payload = json.loads(response.text)
+                error = payload.get("error")
+            except (ValueError, TypeError, AttributeError):
+                error = None
+            # RFC 6749 defines invalid_grant for an invalid, expired, or revoked
+            # refresh token. Other error responses can be transient or indicate a
+            # client configuration problem and must not invalidate stored tokens.
+            if error == "invalid_grant":
+                raise OAuth2TokenRefreshError()
         response.raise_for_status()
         return response.json()
 
@@ -1811,7 +1836,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             )
             if cancel_query_id is not None:
                 query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
-                db.session.commit()
+                db.session.commit()  # pylint: disable=consider-using-transaction
         logger.debug("Query %d: Handling cursor", query.id)
         cls.handle_cursor(cursor, query)
 
@@ -2387,7 +2412,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         try:
             cursor.execute(query)
         except Exception as ex:
-            if database.is_oauth2_enabled() and cls.needs_oauth2(ex):
+            if (
+                not is_oauth2_retry_active()
+                and database.is_oauth2_enabled()
+                and cls.needs_oauth2(ex)
+            ):
                 cls.start_oauth2_dance(database)
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
@@ -2957,6 +2986,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ):
             return dialect.denormalize_name(name)
 
+        return name
+
+    @classmethod
+    def prepare_identifier(
+        cls,
+        name: str,
+        normalize_columns: bool = False,
+    ) -> str:
+        """
+        Prepare a physical identifier for SQLAlchemy column construction.
+
+        The default preserves SQLAlchemy's automatic identifier-quoting behavior.
+        """
         return name
 
     @classmethod

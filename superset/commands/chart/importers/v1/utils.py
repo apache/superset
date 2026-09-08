@@ -21,7 +21,10 @@ from typing import Any
 
 from superset import db, security_manager
 from superset.commands.exceptions import ImportFailedError
-from superset.commands.importers.v1.utils import find_existing_for_import
+from superset.commands.importers.v1.utils import (
+    apply_extra_import_fields,
+    find_existing_for_import,
+)
 from superset.migrations.shared.migrate_viz import processors
 from superset.migrations.shared.migrate_viz.base import MigrateViz
 from superset.models.slice import Slice
@@ -199,6 +202,7 @@ def import_chart(
     # migrate old viz types to new ones
     config = migrate_chart(config)
 
+    extra = config.pop("extra", None)
     chart = Slice.import_from_dict(config, recursive=False, allow_reparenting=True)
     if chart.id is None:
         db.session.flush()
@@ -226,6 +230,8 @@ def import_chart(
         for viewer in viewers:
             if viewer not in chart.viewers:
                 chart.viewers.append(viewer)
+
+    apply_extra_import_fields(chart, "chart", extra)
 
     return chart
 

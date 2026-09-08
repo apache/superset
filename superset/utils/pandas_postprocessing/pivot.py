@@ -20,14 +20,17 @@ import pandas as pd
 from flask_babel import gettext as _
 from pandas import DataFrame
 
-from superset.constants import NULL_STRING, PandasAxis
+from superset.constants import (
+    NULL_STRING,
+    PandasAxis,
+    SHOW_VALUES_AS_PERCENT_MODES,
+    ShowValuesAs,
+)
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing.utils import (
     _get_aggregate_funcs,
     validate_column_args,
 )
-
-_PERCENT_MODES = frozenset({"percent_row", "percent_col", "percent_total"})
 
 # Aggregate operator names that produce additive results across groups —
 # the sum of the per-cell values equals the row/column/grand rollup the
@@ -60,10 +63,10 @@ def _apply_percent_transform_to_group(g: DataFrame, mode: str) -> DataFrame:
     from division-by-zero, matching the client's ``if (acc === null)
     return null`` guard in ``fractionOf``.
     """
-    if mode == "percent_row":
+    if mode == ShowValuesAs.PERCENT_OF_ROW:
         row_totals = g.sum(axis=PandasAxis.COLUMN, skipna=True).replace(0, float("nan"))
         return _div_preserving_nan(g, row_totals, axis=PandasAxis.ROW)
-    if mode == "percent_col":
+    if mode == ShowValuesAs.PERCENT_OF_COLUMN:
         col_totals = g.sum(axis=PandasAxis.ROW, skipna=True).replace(0, float("nan"))
         return _div_preserving_nan(g, col_totals, axis=PandasAxis.COLUMN)
     # percent_total
@@ -250,8 +253,8 @@ def pivot(  # pylint: disable=too-many-arguments  # noqa: C901
     # ``""`` / ``"actual"`` are the no-op sentinels — anything else must
     # be a known percent mode.
     percent_mode: Optional[str] = None
-    if show_values_as not in (None, "", "actual"):
-        if show_values_as not in _PERCENT_MODES:
+    if show_values_as not in (None, "", ShowValuesAs.ACTUAL):
+        if show_values_as not in SHOW_VALUES_AS_PERCENT_MODES:
             raise InvalidPostProcessingError(
                 _(
                     "Unsupported show_values_as value: %(mode)s. "

@@ -40,25 +40,29 @@ from superset.mcp_service.dashboard.schemas import (
     dashboard_serializer,
     DashboardError,
     DashboardInfo,
-    DEFAULT_GET_DASHBOARD_INFO_COLUMNS,
     GetDashboardInfoRequest,
+    redact_filter_state_data_model_metadata,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
+from superset.mcp_service.privacy import user_can_view_data_model_metadata
 
 logger = logging.getLogger(__name__)
 
 
 def _apply_permalink_state(
     result: DashboardInfo,
-    permalink_key: str,
+    permalink_key: str | None,
     permalink_state: dict[str, object],
+    is_permalink: bool = True,
 ) -> DashboardInfo:
-    """Attach permalink fields without changing their stored values."""
+    """Attach the filter state without changing its stored values.
+    is_permalink is False when the state was supplied directly, not resolved
+    from a permalink."""
     return result.model_copy(
         update={
             "permalink_key": permalink_key,
             "filter_state": permalink_state,
-            "is_permalink_state": True,
+            "is_permalink_state": is_permalink,
         }
     )
 
@@ -214,6 +218,15 @@ async def get_dashboard_info(
                         "permalink_key provided but no permalink found. "
                         "The permalink may have expired or is invalid."
                     )
+            elif request.filter_state is not None:
+                # Filter context supplied directly (no permalink), e.g. embedded.
+                await ctx.info("Applying caller-supplied filter_state")
+                filter_state = request.filter_state
+                if not user_can_view_data_model_metadata():
+                    filter_state = redact_filter_state_data_model_metadata(filter_state)
+                result = _apply_permalink_state(
+                    result, None, filter_state, is_permalink=False
+                )
 
             await ctx.info(
                 "Dashboard information retrieved successfully: id=%s, title=%s, "
@@ -226,12 +239,13 @@ async def get_dashboard_info(
                     result.is_permalink_state,
                 )
             )
-            # When permalink_key is supplied and the caller did not explicitly
-            # override select_columns, ensure filter_state is present so the
-            # caller gets the data they came for.
+            # Include filter_state by default when present, but honor an explicit
+            # select_columns projection (model_fields_set = caller chose it).
             effective_select_columns = list(request.select_columns)
-            if result.is_permalink_state and effective_select_columns == list(
-                DEFAULT_GET_DASHBOARD_INFO_COLUMNS
+            if (
+                result.filter_state is not None
+                and "select_columns" not in request.model_fields_set
+                and "filter_state" not in effective_select_columns
             ):
                 effective_select_columns.append("filter_state")
 

@@ -2296,3 +2296,26 @@ def test_prequery_listener_mutation_race_deterministic(
     assert not t_b.is_alive(), "thread B deadlocked"
 
     assert not errors, f"deterministic interleaving raised: {errors!r}"
+
+
+def test_function_names_returns_engine_spec_functions(mocker: MockerFixture) -> None:
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    spec = mocker.MagicMock()
+    spec.get_function_names.return_value = ["abs", "avg", "cardinality"]
+    database.get_db_engine_spec = mocker.MagicMock(return_value=spec)
+
+    assert database.function_names == ["abs", "avg", "cardinality"]
+    spec.get_function_names.assert_called_once_with(database)
+
+
+def test_function_names_returns_empty_list_when_engine_spec_raises(
+    mocker: MockerFixture,
+) -> None:
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    spec = mocker.MagicMock()
+    spec.get_function_names.side_effect = Exception("Connection refused")
+    database.get_db_engine_spec = mocker.MagicMock(return_value=spec)
+    logger = mocker.patch("superset.models.core.logger")
+
+    assert database.function_names == []
+    assert logger.error.called

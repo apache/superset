@@ -144,11 +144,14 @@ def get_available_engine_specs() -> dict[type[BaseEngineSpec], set[str]]:  # noq
                 issubclass(dialect, DefaultDialect)
                 and hasattr(dialect, "driver")
                 # adodbapi dialect is removed in SQLA 1.4 and doesn't implement the
-                # `dbapi` method, hence needs to be ignored to avoid logging a warning
+                # DBAPI import method, hence needs to be ignored to avoid a warning
                 and dialect.driver != "adodbapi"
             ):
                 try:
-                    dialect.dbapi()
+                    if hasattr(dialect, "import_dbapi"):
+                        dialect.import_dbapi()
+                    else:
+                        dialect.dbapi()
                 except ModuleNotFoundError:
                     continue
                 except Exception as ex:  # pylint: disable=broad-except

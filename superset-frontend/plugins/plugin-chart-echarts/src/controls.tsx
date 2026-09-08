@@ -34,6 +34,7 @@ import {
   StackControlOptionsWithoutStream,
 } from './constants';
 import { DEFAULT_FORM_DATA } from './Timeseries/constants';
+import { BarValueLabelPosition } from './Timeseries/types';
 import { defaultXAxis } from './defaults';
 
 const { legendMargin, legendOrientation, legendType, showLegend } =
@@ -137,6 +138,32 @@ export const showValueControl: ControlSetItem = {
     default: false,
     renderTrigger: true,
     description: t('Show series values on the chart'),
+  },
+};
+
+// Bar-only: fit-aware placement (Auto avoids/suppresses colliding labels on
+// stacked segments) plus explicit end/center/base positions. Wired into
+// showValueSectionWithoutStream (Bar charts) instead of labelPositionControl
+// below, which stays the generic picker for every other "Show value" chart.
+export const valueLabelPositionControl: ControlSetItem = {
+  name: 'value_label_position',
+  config: {
+    type: 'SelectControl',
+    freeForm: false,
+    clearable: false,
+    label: t('Value label position'),
+    choices: [
+      [BarValueLabelPosition.Auto, t('Auto')],
+      [BarValueLabelPosition.InsideEnd, t('Inside End')],
+      [BarValueLabelPosition.OutsideEnd, t('Outside End')],
+      [BarValueLabelPosition.InsideCenter, t('Inside Center')],
+      [BarValueLabelPosition.InsideBase, t('Inside Base')],
+    ],
+    default: DEFAULT_FORM_DATA.valueLabelPosition,
+    renderTrigger: true,
+    description: t('Choose where to display values relative to the bars'),
+    visibility: ({ controls }: ControlPanelsContainerProps) =>
+      Boolean(controls?.show_value?.value),
   },
 };
 
@@ -257,9 +284,11 @@ export const showValueSectionWithoutStack: ControlSetRow[] = [
   [onlyTotalControl],
 ];
 
+// Bar charts (the only consumer of this section) use the fit-aware
+// valueLabelPositionControl instead of the generic labelPositionControl.
 export const showValueSectionWithoutStream: ControlSetRow[] = [
   [showValueControl],
-  [labelPositionControl],
+  [valueLabelPositionControl],
   [stackControlWithoutStream],
   [onlyTotalControl],
   [percentageThresholdControl],
