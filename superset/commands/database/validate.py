@@ -101,11 +101,14 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         # actual DBAPI connect kwargs, e.g. `connect_args.host`/`port`) and
         # the SSH tunnel endpoint can both override it independently.
         identity_changed = False
+        ssh_tunnel_changed = False
         if (model := self._model) is not None:
-            identity_changed = engine_params_changed(
-                model.extra, self._properties.get("extra", "{}")
-            ) or ssh_tunnel_endpoint_changed(
+            ssh_tunnel_changed = ssh_tunnel_endpoint_changed(
                 model.ssh_tunnel, self._properties.get("ssh_tunnel")
+            )
+            identity_changed = (
+                engine_params_changed(model.extra, self._properties.get("extra", "{}"))
+                or ssh_tunnel_changed
             )
 
         serialized_encrypted_extra = self._properties.get(
@@ -155,7 +158,7 @@ class ValidateDatabaseParametersCommand(BaseCommand):
             ssh_tunnel_properties
             and self._model
             and self._model.ssh_tunnel
-            and not identity_changed
+            and not ssh_tunnel_changed
         ):
             ssh_tunnel_properties = unmask_password_info(
                 ssh_tunnel_properties,

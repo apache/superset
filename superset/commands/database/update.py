@@ -226,16 +226,29 @@ class UpdateDatabaseCommand(BaseCommand):
             connection_identity_changed = True
 
         if connection_identity_changed:
-            try:
-                stored_uri_password = make_url_safe(model.sqlalchemy_uri).password
-            except DatabaseInvalidError:
-                stored_uri_password = None
-            uri_password_reused = stored_uri_password is not None and (
-                submitted_password in (None, PASSWORD_MASK)
+            # The URI password is only one of the secrets that can silently
+            # carry over onto a changed destination. `encrypted_extra` (e.g.
+            # a service-account key or OAuth2 client secret) is reattached
+            # unconditionally in `run()` via `unmask_encrypted_extra` unless
+            # we catch it here -- gating on the URI password alone would
+            # both miss that reuse when a fresh URI password is supplied,
+            # and wrongly block engines that keep credentials entirely in
+            # `encrypted_extra` and carry no URI password at all (BigQuery,
+            # GSheets), since those never have a "fresh" URI password to
+            # give.
+            uri_password_reused = model.password is not None and submitted_password in (
+                None,
+                PASSWORD_MASK,
             )
-            # encrypted_extra is a blob with per-field masks, so "reused" means
-            # unmasking the submission against the stored value changes nothing.
-            encrypted_extra_reused = bool(model.encrypted_extra) and (
+            # encrypted_extra is a blob with per-field masks, so "reused"
+            # means unmasking the submission against the stored value
+            # changes nothing -- including not submitting it at all, which
+            # leaves the old (real) value attached unchanged.
+            encrypted_extra_reused = model.encrypted_extra not in (
+                None,
+                "",
+                "{}",
+            ) and (
                 "masked_encrypted_extra" not in self._properties
                 or model.db_engine_spec.unmask_encrypted_extra(
                     model.encrypted_extra,
@@ -251,4 +264,6 @@ class UpdateDatabaseCommand(BaseCommand):
         if "ssh_tunnel" in self._properties and ssh_tunnel_rebind_unsafe(
             model.ssh_tunnel, self._properties["ssh_tunnel"]
         ):
-            raise DatabaseInvalidError(exceptions=[DatabaseUpdateUnsafeRebindError()])
+            raise DatabaseInvalidError(
+                exceptions=[DatabaseUpdateUnsafeRebindError(field_name="ssh_tunnel")]
+            )

@@ -23,7 +23,6 @@ from urllib.parse import unquote
 
 import requests
 from flask import current_app as app
-from flask_appbuilder.models.sqla.interface import SQLAInterface
 from sqlalchemy.orm import joinedload
 
 try:
@@ -192,9 +191,7 @@ class DatabaseDAO(BaseDAO[Database]):
         query = db.session.query(Database).filter(
             Database.database_name == database_name
         )
-        query = DatabaseFilter("id", SQLAInterface(Database, db.session)).apply(
-            query, None
-        )
+        query = DatabaseDAO._apply_base_filter(query)
         return query.one_or_none()
 
     @staticmethod

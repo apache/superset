@@ -809,6 +809,104 @@ def test_update_ssh_tunnel_private_key_password_not_carried_over(
     database_dao.update.assert_not_called()
 
 
+def test_update_encrypted_extra_reused_when_uri_password_fresh_requires_new_credentials(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A fresh URI password alone isn't enough: if `encrypted_extra` carries a
+    real secret and the submission leaves it masked, the destination change
+    must still be refused, or that secret silently rides along to the new
+    destination too.
+    """
+
+    def _unmask(old: str, new: str) -> str:
+        old_config = json.loads(old)
+        new_config = json.loads(new)
+        for key, value in new_config.items():
+            if value == PASSWORD_MASK and key in old_config:
+                new_config[key] = old_config[key]
+        return json.dumps(new_config)
+
+    old_database = mocker.MagicMock()
+    old_database.sqlalchemy_uri = "postgresql://user:XXXXXXXXXX@host1"
+    old_database.password = "oldpass"  # noqa: S105
+    old_database.extra = "{}"
+    old_database.encrypted_extra = json.dumps({"client_secret": "real-secret"})
+    old_database.ssh_tunnel = None
+    old_database.db_engine_spec.unmask_encrypted_extra.side_effect = _unmask
+
+    database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    database_dao.find_by_id.return_value = old_database
+
+    with pytest.raises(DatabaseInvalidError):
+        UpdateDatabaseCommand(
+            1,
+            {
+                "sqlalchemy_uri": (
+                    "postgresql://user:newpass@attacker.example.com:5432/prod"
+                ),
+                "masked_encrypted_extra": json.dumps({"client_secret": PASSWORD_MASK}),
+            },
+        ).run()
+
+    database_dao.update.assert_not_called()
+
+
+def test_update_destination_change_with_fresh_encrypted_extra_and_no_uri_password(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Engines that store credentials entirely in `encrypted_extra` and carry
+    no URI password at all (BigQuery, GSheets) must still be able to move
+    destinations when a genuinely fresh credential is supplied -- gating
+    solely on URI-password freshness would block them unconditionally,
+    since they never have one to give.
+    """
+
+    def _unmask(old: str, new: str) -> str:
+        old_config = json.loads(old)
+        new_config = json.loads(new)
+        for key, value in new_config.items():
+            if value == PASSWORD_MASK and key in old_config:
+                new_config[key] = old_config[key]
+        return json.dumps(new_config)
+
+    old_database = mocker.MagicMock(allow_multi_catalog=False)
+    old_database.sqlalchemy_uri = "bigquery://old-project"
+    old_database.password = None
+    old_database.extra = "{}"
+    old_database.encrypted_extra = json.dumps({"credentials_info": "old-creds"})
+    old_database.ssh_tunnel = None
+    old_database.db_engine_spec.unmask_encrypted_extra.side_effect = _unmask
+    old_database.get_default_catalog.return_value = "old-project"
+    old_database.id = 1
+
+    new_database = mocker.MagicMock(allow_multi_catalog=False)
+    new_database.get_default_catalog.return_value = "new-project"
+
+    database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    database_dao.find_by_id.return_value = old_database
+    database_dao.update.return_value = new_database
+
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand")
+    mocker.patch.object(UpdateDatabaseCommand, "_update_catalog_attribute")
+
+    UpdateDatabaseCommand(
+        1,
+        {
+            "sqlalchemy_uri": "bigquery://old-project",
+            "extra": json.dumps(
+                {"engine_params": {"connect_args": {"host": "new-host"}}}
+            ),
+            "masked_encrypted_extra": json.dumps(
+                {"credentials_info": "brand-new-creds"}
+            ),
+        },
+    ).run()
+
+    database_dao.update.assert_called_once()
+
+
 def test_update_host_change_with_new_credentials(mocker: MockerFixture) -> None:
     """
     A deliberate connection move is still possible when the update supplies
@@ -816,7 +914,9 @@ def test_update_host_change_with_new_credentials(mocker: MockerFixture) -> None:
     """
     old_database = mocker.MagicMock(allow_multi_catalog=False)
     old_database.sqlalchemy_uri = "postgresql://user:XXXXXXXXXX@host1"
+    old_database.password = "oldpass"  # noqa: S105
     old_database.extra = "{}"
+    old_database.encrypted_extra = "{}"
     old_database.ssh_tunnel = None
     old_database.get_default_catalog.return_value = "prod"
     old_database.id = 1

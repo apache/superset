@@ -51,7 +51,7 @@ class DatabaseUpdateUnsafeRebindError(ValidationError):
     password/encrypted_extra/SSH tunnel credential masked.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, field_name: str = "sqlalchemy_uri") -> None:
         super().__init__(
             _(
                 "This update would change the connection's effective "
@@ -60,7 +60,7 @@ class DatabaseUpdateUnsafeRebindError(ValidationError):
                 "the real password (or SSH tunnel credential) to confirm "
                 "a connection move."
             ),
-            field_name="sqlalchemy_uri",
+            field_name=field_name,
         )
 
 

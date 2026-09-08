@@ -71,6 +71,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
     _context: dict[str, Any]
     _uri: str
     _identity_changed: bool
+    _ssh_tunnel_endpoint_changed: bool
 
     def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
@@ -80,6 +81,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
 
         uri = self._properties.get("sqlalchemy_uri", "")
         self._identity_changed = False
+        self._ssh_tunnel_endpoint_changed = False
         if (model := self._model) is not None:
             # A stored password (and, below, encrypted_extra / SSH tunnel
             # credentials) must never be rehydrated onto a connection whose
@@ -88,10 +90,12 @@ class TestConnectionDatabaseCommand(BaseCommand):
             # `extra.engine_params` (merged into the DBAPI connect kwargs,
             # e.g. `connect_args.host`/`port`) and the SSH tunnel endpoint
             # can both override it after this decision is made.
-            self._identity_changed = engine_params_changed(
-                model.extra, self._properties.get("extra", "{}")
-            ) or ssh_tunnel_endpoint_changed(
+            self._ssh_tunnel_endpoint_changed = ssh_tunnel_endpoint_changed(
                 model.ssh_tunnel, self._properties.get("ssh_tunnel")
+            )
+            self._identity_changed = (
+                engine_params_changed(model.extra, self._properties.get("extra", "{}"))
+                or self._ssh_tunnel_endpoint_changed
             )
             if uri == model.safe_sqlalchemy_uri():
                 if self._identity_changed:
@@ -138,7 +142,7 @@ class TestConnectionDatabaseCommand(BaseCommand):
             ssh_tunnel_properties
             and self._model
             and self._model.ssh_tunnel
-            and not self._identity_changed
+            and not self._ssh_tunnel_endpoint_changed
         ):
             # unmask password while allowing for updated values
             ssh_tunnel_properties = unmask_password_info(
