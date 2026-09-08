@@ -85,6 +85,7 @@ class DatabaseDAO(BaseDAO[Database]):
         query_options: list[Any] | None = None,
         *,
         skip_visibility_filter: bool = False,
+        force_fetch: bool | None = None,
     ) -> Database | None:
         """
         Find a database by id, eagerly loading the SSH tunnel relationship.
@@ -92,7 +93,7 @@ class DatabaseDAO(BaseDAO[Database]):
         all_options = [joinedload(Database.ssh_tunnel)]
         if query_options:
             all_options.extend(query_options)
-        query = db.session.query(cls.model_cls).options(*all_options)
+        query = cls._query(force_fetch).options(*all_options)
         if skip_visibility_filter:
             query = query.execution_options(
                 **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}

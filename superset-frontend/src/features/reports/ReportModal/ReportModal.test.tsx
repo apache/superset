@@ -170,8 +170,43 @@ test('creates a new email report via modal Add button', async () => {
   // creation_method, editors, and recipients are set server-side; not in the client payload
   expect(body.creation_method).toBeUndefined();
   expect(body.recipients).toBeUndefined();
+  expect(body.dashboard).toBe(1);
+  expect(body.chart).toBeUndefined();
 
   fetchMock.removeRoute('post-subscribe');
+});
+
+test('creating a chart report in a dashboard context sends only the chart id', async () => {
+  // Explore opened from a dashboard passes a dashboardId alongside the chart;
+  // a payload carrying both ids is rejected by the API with a 422.
+  fetchMock.post(
+    'glob:*/api/v1/report/subscribe',
+    { id: 1, result: {} },
+    { name: 'post-subscribe-chart' },
+  );
+
+  const chartFromDashboardProps = {
+    ...defaultProps,
+    dashboardId: 7,
+    chart: { id: 119, sliceFormData: { viz_type: VizType.Line } },
+    creationMethod: 'charts' as const,
+  };
+  render(<ReportModal {...chartFromDashboardProps} />, { useRedux: true });
+
+  const addButton = screen.getByRole('button', { name: /add/i });
+  await userEvent.click(addButton);
+
+  await waitFor(() => {
+    const postCalls = fetchMock.callHistory.calls('post-subscribe-chart');
+    expect(postCalls).toHaveLength(1);
+  });
+
+  const postCalls = fetchMock.callHistory.calls('post-subscribe-chart');
+  const body = JSON.parse(postCalls[0].options.body as string);
+  expect(body.chart).toBe(119);
+  expect(body.dashboard).toBeUndefined();
+
+  fetchMock.removeRoute('post-subscribe-chart');
 });
 
 test('text-based chart hides screenshot width and shows message content', () => {
@@ -288,6 +323,76 @@ test('renders edit mode when report exists in store', () => {
   expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
 });
 
+test('edit mode in a dashboard context resolves and saves the chart report', async () => {
+  // With both schedules in the store, the modal must load the chart's own
+  // report, not the dashboard's, and PUT to its id with only the chart set.
+  const dashboardReport = {
+    id: 42,
+    name: 'Existing Dashboard Report',
+    creation_method: 'dashboards',
+    crontab: '0 12 * * 1',
+    dashboard_id: 7,
+    chart_id: null,
+    report_format: 'PNG',
+    active: true,
+    type: 'Report',
+    timezone: 'America/New_York',
+  };
+  const chartReport = {
+    ...dashboardReport,
+    id: 77,
+    name: 'Existing Chart Report',
+    creation_method: 'charts',
+    dashboard_id: null,
+    chart_id: 119,
+  };
+  const store = createStore(
+    {
+      reports: {
+        dashboards: { 7: dashboardReport },
+        charts: { 119: chartReport },
+      },
+    },
+    reducerIndex,
+  );
+
+  fetchMock.put(
+    'glob:*/api/v1/report/77',
+    { id: 77, result: {} },
+    { name: 'put-report-77' },
+  );
+
+  const chartFromDashboardProps = {
+    ...defaultProps,
+    dashboardId: 7,
+    chart: { id: 119, sliceFormData: { viz_type: VizType.Line } },
+    creationMethod: 'charts' as const,
+  };
+  render(<ReportModal {...chartFromDashboardProps} />, {
+    useRedux: true,
+    store,
+  });
+
+  expect(screen.getByTestId('report-name-test')).toHaveDisplayValue(
+    'Existing Chart Report',
+  );
+
+  const saveButton = screen.getByRole('button', { name: /save/i });
+  await userEvent.click(saveButton);
+
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls('put-report-77');
+    expect(calls.length).toBeGreaterThan(0);
+  });
+
+  const calls = fetchMock.callHistory.calls('put-report-77');
+  const body = JSON.parse(calls[calls.length - 1].options.body as string);
+  expect(body.chart).toBe(119);
+  expect(body.dashboard).toBeUndefined();
+
+  fetchMock.removeRoute('put-report-77');
+});
+
 test('edit mode dispatches editReport via PUT on save', async () => {
   const existingReport = {
     id: 42,
@@ -350,6 +455,67 @@ test('edit mode dispatches editReport via PUT on save', async () => {
   expect(body.recipients[0].type).toBe('Email');
 
   fetchMock.removeRoute('put-report-42');
+});
+
+test('edit mode preserves the fetched report_format on save', async () => {
+  // XLSX is never the visualization default, so this fails if the stored
+  // format is dropped and the save falls back to defaultNotificationFormat.
+  const fetchedReport = {
+    active: true,
+    chart_id: 96,
+    creation_method: 'charts',
+    crontab: '0 12 * * 1',
+    dashboard_id: null,
+    description: '',
+    id: 44,
+    name: 'Existing XLSX Report',
+    report_format: 'XLSX',
+    timezone: 'America/New_York',
+    type: 'Report',
+  };
+  const store = createStore(
+    {
+      reports: {
+        charts: { 96: fetchedReport },
+      },
+    },
+    reducerIndex,
+  );
+
+  fetchMock.put(
+    'glob:*/api/v1/report/44',
+    { id: 44, result: {} },
+    {
+      name: 'put-report-44',
+    },
+  );
+
+  const chartProps = {
+    ...defaultProps,
+    dashboardId: undefined,
+    chart: { id: 96, sliceFormData: { viz_type: VizType.Line } },
+    creationMethod: 'charts' as const,
+  };
+  render(<ReportModal {...chartProps} />, { useRedux: true, store });
+
+  expect(screen.getByText('Edit email report')).toBeInTheDocument();
+  expect(
+    screen.getByRole('radio', { name: 'Formatted Excel attached in email' }),
+  ).toBeChecked();
+
+  const saveButton = screen.getByRole('button', { name: /save/i });
+  await userEvent.click(saveButton);
+
+  await waitFor(() => {
+    const calls = fetchMock.callHistory.calls('put-report-44');
+    expect(calls.length).toBeGreaterThan(0);
+  });
+
+  const calls = fetchMock.callHistory.calls('put-report-44');
+  const body = JSON.parse(calls[calls.length - 1].options.body as string);
+  expect(body.report_format).toBe('XLSX');
+
+  fetchMock.removeRoute('put-report-44');
 });
 
 test('edit mode does not fall back to user id when subject id is unavailable', async () => {
