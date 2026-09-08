@@ -53,6 +53,9 @@ Scheduled report and alert captures require chart readiness to remain stable
 immediately before Chromium captures the image. A capture that re-enters a loading
 state during that window fails instead of delivering a screenshot with spinners.
 
+### Improve Db2 Time Grain Expressions
+The Db2 engine specification's for time grains has been streamlined with DATE_TRUNC scalar functions supported in Db2 11.1.0 or higher. As part of this change, the `WEEK` time grain also shifts the first day of the week to Monday according to ISO 8601 standards.
+
 ### Resample "Fill the entire time range"
 
 Charts with Resample can enable **Fill the entire time range** so gap-filling
