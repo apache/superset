@@ -1561,7 +1561,7 @@ describe('plugin-chart-ag-grid-table', () => {
       expect(queries[1].metrics).toEqual(['count']);
     });
 
-    test('defaults aggregate-mode totals to SUM for a simple metric', () => {
+    test("defaults aggregate-mode totals to the metric's own aggregate", () => {
       const simpleMetric = {
         expressionType: 'SIMPLE' as const,
         column: { column_name: 'sales' },
@@ -1580,9 +1580,29 @@ describe('plugin-chart-ag-grid-table', () => {
         { ownState: {} },
       );
 
-      expect(queries[1].metrics).toEqual([
-        { ...simpleMetric, aggregate: 'SUM' },
-      ]);
+      expect(queries[1].metrics).toEqual([simpleMetric]);
+    });
+
+    test('keeps COUNT_DISTINCT in aggregate-mode totals by default', () => {
+      const countDistinctMetric = {
+        expressionType: 'SIMPLE' as const,
+        column: { column_name: 'contract_id' },
+        aggregate: 'COUNT_DISTINCT' as const,
+        label: 'contracts',
+      };
+      const { queries } = buildQuery(
+        {
+          viz_type: VizType.Table,
+          datasource: '11__table',
+          query_mode: QueryMode.Aggregate,
+          groupby: ['state'],
+          metrics: [countDistinctMetric],
+          show_totals: true,
+        },
+        { ownState: {} },
+      );
+
+      expect(queries[1].metrics).toEqual([countDistinctMetric]);
     });
 
     test('overrides aggregate-mode totals to AVG for a simple metric when totals_aggregate is set', () => {

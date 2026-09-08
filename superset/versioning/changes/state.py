@@ -46,6 +46,10 @@ import sqlalchemy as sa
 from flask_appbuilder import Model
 from sqlalchemy.orm import Session
 
+from superset.versioning.changes.normalization import (
+    consume_normalization_context,
+    filter_normalization_records,
+)
 from superset.versioning.changes.table import version_changes_table
 from superset.versioning.diff import (
     cap_records,
@@ -213,6 +217,16 @@ def bulk_insert_records(
         return
     rows = []
     for (entity_kind, entity_id), records in buffered.items():
+        if entity_kind == "chart":
+            try:
+                records = filter_normalization_records(
+                    records, consume_normalization_context(session, entity_id)
+                )
+            except Exception:  # pylint: disable=broad-except
+                logger.exception(
+                    "version_changes: normalization filtering failed for chart id=%s",
+                    entity_id,
+                )
         # Bound a single save's output: collapse field-level record explosions
         # and truncate over-large values before they hit version_changes.
         for seq, r in enumerate(cap_records(records)):

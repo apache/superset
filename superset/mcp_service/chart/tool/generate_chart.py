@@ -20,7 +20,6 @@ MCP tool: generate_chart (simplified schema)
 
 import logging
 import time
-from typing import Any
 
 from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
@@ -47,14 +46,11 @@ from superset.mcp_service.chart.compile import (
 from superset.mcp_service.chart.preview_utils import SUPPORTED_FORM_DATA_PREVIEW_FORMATS
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
-    CHART_FORM_DATA_EXCLUDED_FIELD_NAMES,
     ChartError,
     GenerateChartRequest,
     GenerateChartResponse,
     PerformanceMetadata,
-    wrap_sql_adhoc_metrics,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -63,24 +59,6 @@ from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
-
-GENERATE_CHART_FORM_DATA_EXCLUDED_FIELD_NAMES = (
-    CHART_FORM_DATA_EXCLUDED_FIELD_NAMES
-    | frozenset({"cache_key", "database", "database_name", "schema"})
-)
-
-
-def _sanitize_generate_chart_form_data_for_llm_context(
-    form_data: dict[str, Any],
-) -> dict[str, Any]:
-    """Wrap generated-chart form_data before returning it to LLM clients."""
-    wrapped = sanitize_for_llm_context(
-        form_data,
-        field_path=("form_data",),
-        excluded_field_names=GENERATE_CHART_FORM_DATA_EXCLUDED_FIELD_NAMES,
-    )
-    wrap_sql_adhoc_metrics(wrapped)
-    return wrapped
 
 
 __all__ = ["CompileResult", "_compile_chart", "validate_and_compile", "generate_chart"]
@@ -93,6 +71,8 @@ __all__ = ["CompileResult", "_compile_chart", "validate_and_compile", "generate_
         title="Create chart",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 async def generate_chart(  # noqa: C901
@@ -106,14 +86,15 @@ async def generate_chart(  # noqa: C901
     - LLM clients MUST display returned chart URL to users
     - Use numeric dataset ID or UUID (NOT schema.table_name format)
     - MUST include chart_type in config (one of: 'xy', 'table', 'pie',
-      'pivot_table', 'mixed_timeseries', 'handlebars', 'big_number',
-      'histogram', 'box_plot', 'waterfall')
+      'gauge_chart', 'pivot_table', 'mixed_timeseries', 'handlebars',
+      'big_number', 'histogram', 'box_plot', 'waterfall', plus host-gated
+      types returned by get_chart_type_schema such as 'interactive_pivot')
 
     IMPORTANT: The 'chart_type' field in the config is a DISCRIMINATOR that determines
     which chart configuration schema to use. It MUST be included and MUST match the
-    other fields in your configuration. There are exactly 9 valid chart_type values,
-    listed below. Values such as 'line', 'bar', 'area', and 'scatter' are 'kind'
-    values WITHIN chart_type='xy', not chart_type values themselves:
+    other fields in your configuration. Values such as 'line', 'bar', 'area',
+    and 'scatter' are 'kind' values WITHIN chart_type='xy', not chart_type
+    values themselves. Call get_chart_type_schema to confirm host-gated types:
 
     - chart_type='xy' for charts with x and y axes (line, bar, area, scatter).
       Required fields: y (x is optional — defaults to dataset's primary
@@ -129,6 +110,11 @@ async def generate_chart(  # noqa: C901
     - chart_type='pivot_table' for pivot table visualizations.
       Required fields: rows, metrics (columns is optional, for cross-tabs)
 
+    - chart_type='interactive_pivot' for an extension-provided AG Grid pivot.
+      Required fields: rows, metrics (columns is optional). This is distinct
+      from pivot_table/pivot_table_v2 and is rejected when its host feature is
+      unavailable. Call get_chart_type_schema('interactive_pivot') first.
+
     - chart_type='mixed_timeseries' for dual-axis time-series charts.
       Required fields: x, y (primary metrics), y_secondary (secondary metrics)
 
@@ -137,6 +123,10 @@ async def generate_chart(  # noqa: C901
 
     - chart_type='big_number' for single KPI metric displays.
       Required fields: metric
+
+    - chart_type='gauge_chart' for a dial/gauge display of a metric.
+      Required fields: metric; optional: groupby (one dial per value),
+      min_val, max_val
 
     - chart_type='histogram' for value-distribution charts.
       Required fields: column (numeric); optional: bins, groupby, normalize,
@@ -156,8 +146,11 @@ async def generate_chart(  # noqa: C901
     - "pie chart" / "donut chart" -> chart_type='pie'
     - "table" / "data grid" -> chart_type='table'
     - "pivot table" / "cross-tab" -> chart_type='pivot_table'
+    - "interactive pivot" / "AG Grid pivot" -> chart_type='interactive_pivot'
+      only when get_chart_type_schema confirms it is available
     - "compare two metrics over time" -> chart_type='mixed_timeseries'
     - "single number" / "KPI" / "scorecard" -> chart_type='big_number'
+    - "gauge" / "dial" / "speedometer" -> chart_type='gauge_chart'
     - "custom HTML template" -> chart_type='handlebars'
     - "histogram" / "distribution" -> chart_type='histogram'
     - "box plot" / "box and whisker" -> chart_type='box_plot'
@@ -447,11 +440,7 @@ async def generate_chart(  # noqa: C901
                     {
                         "chart": None,
                         "error": error.model_dump(),
-                        "form_data": (
-                            _sanitize_generate_chart_form_data_for_llm_context(
-                                form_data
-                            )
-                        ),
+                        "form_data": (form_data),
                         "performance": {
                             "query_duration_ms": execution_time,
                             "cache_status": "error",
@@ -663,11 +652,7 @@ async def generate_chart(  # noqa: C901
                         {
                             "chart": None,
                             "error": error.model_dump(),
-                            "form_data": (
-                                _sanitize_generate_chart_form_data_for_llm_context(
-                                    form_data
-                                )
-                            ),
+                            "form_data": (form_data),
                             "performance": {
                                 "query_duration_ms": execution_time,
                                 "cache_status": "error",
@@ -857,7 +842,7 @@ async def generate_chart(  # noqa: C901
             "explore_url": explore_url,
             "chart_type_label": get_table_chart_type_label(form_data.get("viz_type")),
             # Form data fields - REQUIRED for chatbot/external client rendering
-            "form_data": _sanitize_generate_chart_form_data_for_llm_context(form_data),
+            "form_data": (form_data),
             "form_data_key": form_data_key,
             "api_endpoints": {
                 "data": f"{get_superset_base_url()}/api/v1/chart/{chart_id}/data/",

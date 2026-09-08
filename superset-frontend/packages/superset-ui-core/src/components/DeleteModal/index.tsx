@@ -40,6 +40,9 @@ export function DeleteModal({
   title,
   name,
   recoverable = false,
+  disablePrimaryButton = false,
+  loading = false,
+  confirmationResetKey,
 }: DeleteModalProps) {
   // Recoverable (archive) deletes drop the "type DELETE to confirm" step;
   // a permanent delete keeps it.
@@ -53,6 +56,11 @@ export function DeleteModal({
       inputRef.current.focus();
     }
   }, [open]);
+
+  useEffect(() => {
+    setConfirmation('');
+    setDisableChange(true);
+  }, [confirmationResetKey]);
 
   // Re-arm the gate alongside clearing the text: resetting only the string
   // leaves disableChange=false behind, so a user who typed DELETE, cancelled,
@@ -76,14 +84,19 @@ export function DeleteModal({
   };
 
   const onPressEnter = () => {
-    if (!disableChange) {
+    if (!disableChange && !disablePrimaryButton && !loading) {
       confirm();
     }
   };
 
   return (
     <Modal
-      disablePrimaryButton={showConfirmationInput ? disableChange : false}
+      disablePrimaryButton={
+        disablePrimaryButton ||
+        loading ||
+        (showConfirmationInput ? disableChange : false)
+      }
+      primaryButtonLoading={loading}
       onHide={hide}
       onHandledPrimaryAction={confirm}
       primaryButtonName={recoverable ? t('Archive') : t('Delete')}
@@ -91,6 +104,10 @@ export function DeleteModal({
       show={open}
       name={name}
       title={title}
+      wrapProps={{ 'aria-busy': loading }}
+      // Remove the modal from the DOM on close so a confirmed delete tears it
+      // down deterministically even inside memoized list-view table cells.
+      destroyOnHidden
       centered
     >
       {description}

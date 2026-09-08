@@ -49,5 +49,6 @@ export { default as finestTemporalGrainFormatter } from './formatters/finestTemp
 
 export { default as normalizeTimestamp } from './utils/normalizeTimestamp';
 export { default as denormalizeTimestamp } from './utils/denormalizeTimestamp';
+export { default as createTimeRangeFromGranularity } from './utils/createTimeRangeFromGranularity';
 
 export * from './types';

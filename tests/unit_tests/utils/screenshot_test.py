@@ -129,6 +129,24 @@ class TestComputeAndCache:
         cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
         assert cache_payload["status"] == "Updated"
 
+    def test_stamps_cache_scope_when_set(self, mocker: MockerFixture, screenshot_obj):
+        """A caller (the thumbnail Celery tasks) sets `cache_scope` before
+        calling compute_and_cache so the persisted entry can later be checked
+        against the object a caller-supplied digest is being used to access."""
+        self._setup_compute_and_cache(mocker, screenshot_obj)
+        screenshot_obj.cache_scope = "dashboard:5"
+        screenshot_obj.compute_and_cache(force=False)
+        cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
+        assert cache_payload["scope"] == "dashboard:5"
+
+    def test_scope_unset_when_caller_never_sets_it(
+        self, mocker: MockerFixture, screenshot_obj
+    ):
+        self._setup_compute_and_cache(mocker, screenshot_obj)
+        screenshot_obj.compute_and_cache(force=False)
+        cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
+        assert cache_payload["scope"] is None
+
     def test_passes_cache_key_log_context_to_capture(
         self, mocker: MockerFixture, screenshot_obj
     ):
@@ -206,6 +224,29 @@ class TestComputeAndCache:
         cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
         assert cache_payload["image"] != b"initial_value"
 
+    def test_recomputes_updated_entry_with_mismatched_scope(
+        self, mocker: MockerFixture, screenshot_obj
+    ):
+        """A cache entry that already has a valid image but a scope that
+        doesn't match this screenshot object's `cache_scope` (e.g. an entry
+        written before scope tracking existed, or written for a different
+        object) must be treated as a cache miss and recomputed -- otherwise
+        it can never be re-stamped with the right scope and stays
+        unservable forever."""
+        mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
+        cached_value = ScreenshotCachePayload(image=b"initial_value")
+        get_from_cache_key = mocks.get("get_from_cache_key")
+        get_from_cache_key.return_value = cached_value
+
+        screenshot_obj.cache_scope = "dashboard:5"
+        screenshot_obj.compute_and_cache(force=False)
+
+        get_screenshot = mocks.get("get_screenshot")
+        get_screenshot.assert_called_once()
+        cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
+        assert cache_payload["image"] != b"initial_value"
+        assert cache_payload["scope"] == "dashboard:5"
+
     def test_resize(self, mocker: MockerFixture, screenshot_obj):
         mocks = self._setup_compute_and_cache(mocker, screenshot_obj)
         window_size = thumb_size = (10, 10)
@@ -265,6 +306,72 @@ class TestScreenshotCachePayloadGetImage:
 
         # Should be different BytesIO instances
         assert result1 is not result2
+
+
+class TestScreenshotCachePayloadScope:
+    """
+    Cache entries are shared across every dashboard and chart in the same
+    cache backend. `scope` records which object (e.g. "dashboard:5") an
+    entry was actually rendered for, so a caller-supplied digest/cache_key
+    can be checked against the object it's being used to authorize before
+    serving the image.
+    """
+
+    def test_scope_defaults_to_none(self):
+        payload = ScreenshotCachePayload(image=b"data")
+        assert payload.get_scope() is None
+
+    def test_set_scope(self):
+        payload = ScreenshotCachePayload(image=b"data")
+        payload.set_scope("dashboard:5")
+        assert payload.get_scope() == "dashboard:5"
+
+    def test_scope_round_trips_through_to_dict_from_dict(self):
+        payload = ScreenshotCachePayload(image=b"data", scope="dashboard:5")
+        restored = ScreenshotCachePayload.from_dict(payload.to_dict())
+        assert restored.get_scope() == "dashboard:5"
+
+    def test_legacy_dict_without_scope_key_tolerated(self):
+        """A cache entry written before `scope` existed has no "scope" key at
+        all -- from_dict must not raise and must report no scope rather than
+        matching any caller-supplied scope."""
+        legacy_dict: ScreenshotCachePayloadType = {
+            "image": None,
+            "timestamp": "2024-01-01T00:00:00",
+            "status": "Updated",
+        }  # type: ignore[typeddict-item]
+        restored = ScreenshotCachePayload.from_dict(legacy_dict)
+        assert restored.get_scope() is None
+
+    def test_should_trigger_task_ignores_scope_by_default(self):
+        """Without an `expected_scope`, an updated entry with a real image is
+        never re-triggered -- existing (scope-agnostic) callers keep their
+        current behavior."""
+        payload = ScreenshotCachePayload(image=b"data", scope="dashboard:5")
+        assert payload.should_trigger_task(force=False) is False
+
+    def test_should_trigger_task_true_on_scope_mismatch(self):
+        """An updated entry whose scope doesn't match what the caller expects
+        (including a legacy entry with no scope at all) must be treated as a
+        cache miss so it gets recomputed and re-scoped."""
+        payload = ScreenshotCachePayload(image=b"data", scope=None)
+        assert (
+            payload.should_trigger_task(force=False, expected_scope="dashboard:5")
+            is True
+        )
+
+        mismatched = ScreenshotCachePayload(image=b"data", scope="dashboard:6")
+        assert (
+            mismatched.should_trigger_task(force=False, expected_scope="dashboard:5")
+            is True
+        )
+
+    def test_should_trigger_task_false_on_scope_match(self):
+        payload = ScreenshotCachePayload(image=b"data", scope="dashboard:5")
+        assert (
+            payload.should_trigger_task(force=False, expected_scope="dashboard:5")
+            is False
+        )
 
 
 class TestBaseScreenshotDriverFallback:

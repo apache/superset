@@ -55,7 +55,7 @@ def is_v2_dash(positions):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     dashboards = session.query(Dashboard).all()
     for i, dashboard in enumerate(dashboards):  # noqa: B007

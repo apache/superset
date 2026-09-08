@@ -40,6 +40,7 @@ from superset.commands.dashboard.embedded.exceptions import (
     EmbeddedDashboardNotFoundError,
 )
 from superset.commands.exceptions import ForbiddenError
+from superset.constants import RouteMethod
 from superset.exceptions import SupersetGenericErrorException
 from superset.extensions import db, event_logger
 from superset.security.guest_token import (
@@ -244,15 +245,23 @@ class SecurityRestApi(BaseSupersetApi):
                 body["rls"],
                 **({"datasets": body["datasets"]} if "datasets" in body else {}),
             )
-            logger.info(
-                "Guest token issued: %s",
-                build_guest_token_audit_payload(
-                    issuer_user_id=get_user_id(),
-                    source_ip=request.remote_addr,
-                    body=body,
-                    token=token,
-                ),
+            audit_payload = build_guest_token_audit_payload(
+                issuer_user_id=get_user_id(),
+                source_ip=request.remote_addr,
+                body=body,
+                token=token,
+                header_name=current_app.config["GUEST_TOKEN_HEADER_NAME"],
+                header_budget_bytes=current_app.config["GUEST_TOKEN_HEADER_MAX_BYTES"],
             )
+            logger.info("Guest token issued: %s", audit_payload)
+            if audit_payload["header_budget_exceeded"]:
+                logger.warning(
+                    "Guest token exceeds configured request-header budget: "
+                    "token_bytes=%s header_bytes=%s header_budget_bytes=%s",
+                    audit_payload["token_bytes"],
+                    audit_payload["header_bytes"],
+                    audit_payload["header_budget_bytes"],
+                )
             return self.response(200, token=token)
         except EmbeddedDashboardNotFoundError as error:
             return self.response_400(message=error.message)
@@ -423,6 +432,20 @@ class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
     resource_name = "security/user_registrations"
     datamodel = SQLAInterface(RegisterUser)
     allow_browser_login = True
+    # POST/PUT are intentionally excluded: restricting the exposed routes
+    # keeps the FAB default create/update handlers from ever being
+    # registered, so a mis-granted role cannot silently alter a pending
+    # registration. DELETE is kept: the User Registrations admin page
+    # deletes pending registrations through this route, and the class is
+    # gated Admin-only via ADMIN_ONLY_VIEW_MENUS (keyed on the view-menu
+    # name, i.e. every permission on this class, not just specific ones),
+    # so exposing it does not grant non-Admin roles anything.
+    include_route_methods = {
+        RouteMethod.GET,
+        RouteMethod.GET_LIST,
+        RouteMethod.INFO,
+        RouteMethod.DELETE,
+    }
     # NOTE: registration_hash is intentionally excluded from both list_columns
     # and search_columns. It is a bearer token for the
     # /register/activation/<hash> flow; exposing it in API responses (and thus

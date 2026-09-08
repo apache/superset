@@ -311,19 +311,9 @@ def test_empty_target_tab_rejected_by_schema() -> None:
     assert req.target_tab is None
 
 
-def test_add_chart_response_error_is_sanitized_for_llm_context() -> None:
-    """Error field wraps user-supplied target_tab and dashboard tab labels.
-
-    The error string echoes user-provided input (target_tab) and
-    dashboard-controlled tab labels.  Both must be wrapped in
-    UNTRUSTED-CONTENT delimiters so the LLM treats them as data, not
-    instructions.
-    """
+def test_add_chart_response_error_preserves_application_text() -> None:
+    """Error fields do not add presentation markup to application text."""
     from superset.mcp_service.dashboard.schemas import AddChartToDashboardResponse
-    from superset.mcp_service.utils.sanitization import (
-        LLM_CONTEXT_CLOSE_DELIMITER,
-        LLM_CONTEXT_OPEN_DELIMITER,
-    )
 
     raw_error = (
         "Tab 'malicious tab <script>alert(1)</script>' not found in dashboard 42. "
@@ -336,12 +326,7 @@ def test_add_chart_response_error_is_sanitized_for_llm_context() -> None:
         error=raw_error,
     )
 
-    assert response.error is not None
-    assert LLM_CONTEXT_OPEN_DELIMITER in response.error
-    assert LLM_CONTEXT_CLOSE_DELIMITER in response.error
-    # Core text is still present inside the wrapper
-    assert "not found" in response.error
-    assert "Available tabs" in response.error
+    assert response.error == raw_error
     # None error is passed through unchanged
     empty_response = AddChartToDashboardResponse(
         dashboard=None, dashboard_url=None, position=None, error=None

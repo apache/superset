@@ -101,6 +101,7 @@ from superset.utils.oauth2 import (
     generate_code_challenge,
     generate_code_verifier,
     get_oauth2_redirect_uri,
+    is_oauth2_retry_active,
 )
 
 if TYPE_CHECKING:
@@ -406,6 +407,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
     _date_trunc_functions: dict[str, str] = {}
     _time_grain_expressions: dict[str | None, str] = {}
+
+    # Whether the output of ``normalize_custom_sql_metric`` may be embedded in
+    # generated SQL verbatim (after line comments are converted to block
+    # comments) instead of being re-rendered by ``sanitize_clause``. Specs that
+    # override ``normalize_custom_sql_metric`` with a source-preserving
+    # normalizer set this so re-rendering cannot undo the normalization.
+    preserves_custom_sql_metric_source = False
+
+    @classmethod
+    def normalize_custom_sql_metric(cls, expression: str) -> str:
+        """Return custom metric SQL in the engine's canonical form."""
+        return expression
+
     _default_column_type_mappings: tuple[ColumnTypeMapping, ...] = (
         (
             re.compile(r"^string", re.IGNORECASE),
@@ -539,6 +553,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # the ``array_*`` capability methods below must be implemented. Defaults to
     # False so engines that have not opted in keep treating arrays as strings.
     supports_multivalue_columns = False
+    supports_temporal_column_shift: bool = False
     allows_joins = True
     allows_subqueries = True
     allows_alias_in_select = True
@@ -632,6 +647,33 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # issuing one query per level. Conservative default of False; engines opt in.
     supports_grouping_sets = False
 
+    # SQL-generating callables for metric aggregates that have no safe, universal
+    # cross-dialect spelling -- unlike SUM/COUNT/AVG/MIN/MAX/COUNT_DISTINCT (see
+    # `SqlaTable.sqla_aggregations`), which SQLAlchemy's generic `sa.func` can emit
+    # unchanged on every engine. Keyed by `Aggregate` name (see
+    # `superset-frontend/packages/superset-ui-core/src/query/types/Metric.ts`);
+    # each value takes a SQLAlchemy column and returns the aggregate expression.
+    # Absent by default: an aggregate not present here is unsupported on this
+    # engine, and callers must surface a clear "not supported" error rather than
+    # emit unverified SQL (a wrong statistic returned silently is worse than an
+    # error). Engines opt in via `get_extended_aggregation_func` below once the
+    # expression has been verified against real engine behavior, not assumed
+    # from syntax alone -- see the MySQL engine spec for a concrete example of
+    # why this distinction matters (its `VARIANCE()` computes the *population*
+    # variance, not the *sample* variance `VAR_SAMP` denotes).
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {}
+
+    @classmethod
+    def get_extended_aggregation_func(
+        cls, aggregate: str
+    ) -> Callable[[ColumnElement], ColumnElement] | None:
+        """
+        SQL-generating callable for an aggregate not handled by the generic
+        `sa.func` mapping (e.g. MEDIAN, STDDEV_SAMP, VAR_SAMP). Returns None if
+        this engine has no verified, correct expression for it.
+        """
+        return cls._extended_aggregations.get(aggregate)
+
     # Is the DB engine spec able to change the default schema? This requires implementing  # noqa: E501
     # a custom `adjust_engine_params` method.
     supports_dynamic_schema = False
@@ -718,18 +760,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     @classmethod
     def encrypted_extra_sensitive_field_paths(cls) -> set[str]:
         """
-        Returns a set of paths for fields that should be masked in the
-        ``masked_encrypted_extra`` JSON.
+        Returns a set of JSONPath expressions for fields that should be masked
+        in the ``masked_encrypted_extra`` JSON.
 
-        :param cls: Description
-        :return: Description
-        :rtype: set[str]
+        The OAuth2 client secret is always included, since
+        ``Database.get_oauth2_config`` reads ``oauth2_client_info`` from the
+        ``encrypted_extra`` of any database regardless of its engine, so engine
+        specs that override ``encrypted_extra_sensitive_fields`` cannot
+        accidentally expose it.
         """
-        return (
-            set(cls.encrypted_extra_sensitive_fields)
-            if isinstance(cls.encrypted_extra_sensitive_fields, dict)
-            else cls.encrypted_extra_sensitive_fields
-        )
+        return set(cls.encrypted_extra_sensitive_fields) | {
+            "$.oauth2_client_info.secret"
+        }
 
     @classmethod
     def get_rls_method(cls) -> RLSMethod:
@@ -948,7 +990,18 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             else requests.post(uri, json=req_body, timeout=timeout)
         )
         if response.status_code in (400, 401, 403):
-            raise OAuth2TokenRefreshError()
+            try:
+                payload = response.json()
+                if not isinstance(payload, dict):
+                    payload = json.loads(response.text)
+                error = payload.get("error")
+            except (ValueError, TypeError, AttributeError):
+                error = None
+            # RFC 6749 defines invalid_grant for an invalid, expired, or revoked
+            # refresh token. Other error responses can be transient or indicate a
+            # client configuration problem and must not invalidate stored tokens.
+            if error == "invalid_grant":
+                raise OAuth2TokenRefreshError()
         response.raise_for_status()
         return response.json()
 
@@ -1216,6 +1269,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return TimestampExpression(time_expr, col, type_=col.type)
 
     @classmethod
+    def get_temporal_column_shift_expr(
+        cls,
+        col: ColumnClause,
+        offset_hours: int,
+    ) -> TimestampExpression:
+        """Shift a temporal SQL expression by a bounded number of hours."""
+        return TimestampExpression(
+            f"{{col}} + INTERVAL '{offset_hours}' HOUR",
+            col,
+            type_=col.type,
+        )
+
+    @classmethod
     def _apply_year_to_dttm(cls, time_expr: str) -> str:
         """
         Substitute `{col}` in ``time_expr`` with the ``year_to_dttm`` expression.
@@ -1351,12 +1417,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 return cursor.fetchmany(limit)
             data = cursor.fetchall()
             description = cursor.description or []
-            # Create a mapping between column name and a mutator function to normalize
-            # values with. The first two items in the description row are
-            # the column name and type.
+            # Create a mapping between column index and a mutator function to normalize
+            # values with. The first two items in the description row are the column
+            # name and type.
             column_mutators = {
-                row[0]: func
-                for row in description
+                index: func
+                for index, row in enumerate(description)
                 if (
                     func := cls.column_type_mutators.get(
                         type(cls.get_sqla_column_type(cls.get_datatype(row[1])))
@@ -1364,11 +1430,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 )
             }
             if column_mutators:
-                indexes = {row[0]: idx for idx, row in enumerate(description)}
+                if not isinstance(data, list):
+                    data = list(data)
                 for row_idx, row in enumerate(data):
                     new_row = list(row)
-                    for col, func in column_mutators.items():
-                        col_idx = indexes[col]
+                    for col_idx, func in column_mutators.items():
                         new_row[col_idx] = func(row[col_idx])
                     data[row_idx] = tuple(new_row)
 
@@ -1770,7 +1836,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             )
             if cancel_query_id is not None:
                 query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
-                db.session.commit()
+                db.session.commit()  # pylint: disable=consider-using-transaction
         logger.debug("Query %d: Handling cursor", query.id)
         cls.handle_cursor(cursor, query)
 
@@ -2346,7 +2412,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         try:
             cursor.execute(query)
         except Exception as ex:
-            if database.is_oauth2_enabled() and cls.needs_oauth2(ex):
+            if (
+                not is_oauth2_retry_active()
+                and database.is_oauth2_enabled()
+                and cls.needs_oauth2(ex)
+            ):
                 cls.start_oauth2_dance(database)
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
@@ -2829,7 +2899,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         corresponding entry is updated, otherwise the old value is used (see
         `unmask_encrypted_extra` below).
         """
-        if encrypted_extra is None or not cls.encrypted_extra_sensitive_fields:
+        if encrypted_extra is None:
             return encrypted_extra
 
         try:
@@ -2916,6 +2986,19 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ):
             return dialect.denormalize_name(name)
 
+        return name
+
+    @classmethod
+    def prepare_identifier(
+        cls,
+        name: str,
+        normalize_columns: bool = False,
+    ) -> str:
+        """
+        Prepare a physical identifier for SQLAlchemy column construction.
+
+        The default preserves SQLAlchemy's automatic identifier-quoting behavior.
+        """
         return name
 
     @classmethod
@@ -3010,6 +3093,11 @@ class BasicParametersMixin:
     # for Databend this would be `{"sslmode": "disable"}`, eg.
     encryption_disable_parameters: dict[str, str] = {}
 
+    # parameters that `validate_parameters` treats as mandatory; subclasses
+    # override this to relax a parameter (e.g. `port`) without duplicating
+    # the rest of `validate_parameters`
+    required_parameters: set[str] = {"host", "port", "username", "database"}
+
     @classmethod
     def build_sqlalchemy_uri(  # pylint: disable=unused-argument
         cls,
@@ -3081,7 +3169,7 @@ class BasicParametersMixin:
         """
         errors: list[SupersetError] = []
 
-        required = {"host", "port", "username", "database"}
+        required = cls.required_parameters
         parameters = properties.get("parameters", {})
         present = {key for key in parameters if parameters.get(key, ())}
 
@@ -3110,7 +3198,7 @@ class BasicParametersMixin:
             return errors
 
         port = parameters.get("port", None)
-        if not port:
+        if port is None or port == "":
             return errors
         try:
             port = int(port)
