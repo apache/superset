@@ -187,8 +187,10 @@ def entity_concurrency_token(
     ) or unversioned_entity_token(entity_uuid)
 
 
-def lock_entity_for_update(model_cls: type[Model], entity_id: int | None) -> None:
-    """Row-lock *entity* and refresh its loaded state to committed data.
+def lock_entity_for_update(
+    model_cls: type[Model], entity_id: int | None
+) -> Model | None:
+    """Row-lock *entity*, refresh it to committed data, and return it.
 
     ``If-Match`` is verified against a read taken before the update command
     runs. Without a lock two overlapping requests can both read the same live
@@ -215,6 +217,14 @@ def lock_entity_for_update(model_cls: type[Model], entity_id: int | None) -> Non
     attribute state, and the query's autoflush would flush earlier
     mutations mid-request.
 
+    The caller MUST hold the returned entity for as long as the refreshed
+    state matters (through the update command's run). The identity map
+    references clean persistent objects weakly, so a discarded return
+    value can be garbage-collected immediately -- after which the
+    command's lookup re-hydrates a new object from a plain read, which on
+    MySQL REPEATABLE READ is the pre-lock snapshot again, silently
+    undoing the refresh.
+
     The refresh covers the entity row itself. Lazy-loaded child
     collections (columns, metrics) are still plain consistent reads
     afterwards, as is the version-info read behind the ``If-Match``
@@ -228,20 +238,24 @@ def lock_entity_for_update(model_cls: type[Model], entity_id: int | None) -> Non
 
     Renders no ``FOR UPDATE`` on SQLite, which serialises writers anyway.
 
-    Missing rows are not this function's concern: the query result is
-    discarded (soft-deleted rows filter out like any ORM read), and
-    existence keeps being decided by the update command's own lookup (404
-    semantics unchanged).
+    Missing rows are not this function's concern: ``None`` is returned
+    (soft-deleted rows filter out like any ORM read), and existence keeps
+    being decided by the update command's own lookup (404 semantics
+    unchanged).
     """
     try:
         # The PUT route declares ``/<pk>`` (a string segment), so a non-numeric
         # id must not raise a SQL cast error ahead of the command's 404.
         entity_id = int(entity_id)  # type: ignore[arg-type]
     except (TypeError, ValueError):
-        return
-    db.session.query(model_cls).populate_existing().filter(
-        model_cls.id == entity_id
-    ).with_for_update().one_or_none()
+        return None
+    return (
+        db.session.query(model_cls)
+        .populate_existing()
+        .filter(model_cls.id == entity_id)
+        .with_for_update()
+        .one_or_none()
+    )
 
 
 def concurrency_token_from(info: EntityVersionInfo) -> str | None:

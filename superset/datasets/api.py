@@ -709,7 +709,12 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         # consistent read and can predate the lock; see the caveats on
         # lock_entity_for_update.)
         if is_conditional_write():
-            lock_entity_for_update(SqlaTable, pk)
+            # Hold the locked entity for the rest of the request: the
+            # session's identity map references clean objects weakly, so
+            # discarding the return value could let the refreshed object
+            # be collected and the command's find_by_id re-read a stale
+            # row on MySQL REPEATABLE READ (see lock_entity_for_update).
+            _locked_entity = lock_entity_for_update(SqlaTable, pk)
 
         # Live version identifiers before the update (empty + query-free when
         # ``ENABLE_VERSIONING_CAPTURE`` is off).

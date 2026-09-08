@@ -47,14 +47,18 @@ def _mock_db(mocker: MockerFixture) -> MagicMock:
 
 
 def test_lock_is_a_populating_locking_read(mocker: MockerFixture) -> None:
-    """The lock statement is an ORM entity read chained through
-    populate_existing() AND with_for_update(), and its result is consumed
-    via one_or_none() (no exception for a missing row -- 404 semantics stay
-    with the update command's own lookup)."""
+    """The lock is a populating, locking ORM read that RETURNS the entity.
+
+    The chain must carry populate_existing() AND with_for_update(), consume
+    the result via one_or_none() (no exception for a missing row -- 404
+    semantics stay with the update command's own lookup), and hand the
+    entity back so the caller can hold a strong reference -- the identity
+    map alone holds it only weakly.
+    """
     db = _mock_db(mocker)
     model_cls = MagicMock()
 
-    lock_entity_for_update(model_cls, 42)
+    result = lock_entity_for_update(model_cls, 42)
 
     db.session.query.assert_called_once_with(model_cls)
     query = db.session.query.return_value
@@ -68,15 +72,20 @@ def test_lock_is_a_populating_locking_read(mocker: MockerFixture) -> None:
     filtered = populated.filter.return_value
     filtered.with_for_update.assert_called_once_with()
     filtered.with_for_update.return_value.one_or_none.assert_called_once_with()
+    assert result is filtered.with_for_update.return_value.one_or_none.return_value
 
 
 def test_non_numeric_id_skips_the_lock(mocker: MockerFixture) -> None:
-    """The PUT route declares /<pk> as a string segment; a non-numeric id
-    must not reach SQL (no cast error ahead of the command's 404)."""
+    """A non-numeric id never reaches SQL and returns None.
+
+    The PUT route declares /<pk> as a string segment; a cast error here
+    would pre-empt the command's 404.
+    """
     db = _mock_db(mocker)
 
-    lock_entity_for_update(MagicMock(), "not-a-pk")  # type: ignore[arg-type]
+    result = lock_entity_for_update(MagicMock(), "not-a-pk")  # type: ignore[arg-type]
 
+    assert result is None
     db.session.query.assert_not_called()
 
 

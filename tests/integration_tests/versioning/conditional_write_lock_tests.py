@@ -28,6 +28,9 @@ dialect-independent statement-shape pin lives in
 tests/unit_tests/versioning/test_lock_entity.py.
 """
 
+import gc
+import weakref
+
 import pytest
 import sqlalchemy as sa
 
@@ -77,8 +80,10 @@ class TestConditionalWriteLockRefresh(SupersetTestCase):
             pytest.skip("two-connection interleave is not expressible on SQLite")
 
     def test_lock_refreshes_entity_to_concurrently_committed_state(self) -> None:
-        """A commit landing between the entity load and the lock is visible
-        on the loaded entity once the lock is taken.
+        """A concurrent commit becomes visible once the lock is taken.
+
+        A commit landing between the entity load and the lock must show on
+        the loaded entity afterwards.
 
         Pre-fix, the id-only lock left ``dataset.description`` at the value
         loaded before the concurrent commit, and the update command's diff
@@ -113,10 +118,53 @@ class TestConditionalWriteLockRefresh(SupersetTestCase):
             db.session.rollback()
             _write_description_out_of_band(dataset_id, original)
 
+    def test_locked_entity_must_be_held_by_the_caller(self) -> None:
+        """The helper returns the entity, and the caller must keep it alive.
+
+        Two halves, mirroring the production PUT path (which loads nothing
+        before the lock): held, the returned reference makes the command's
+        ``DatasetDAO.find_by_id`` hand back the very same refreshed
+        instance; discarded, the object is weakly referenced by the
+        identity map and is collectible -- after which find_by_id would
+        re-hydrate from a plain read (on MySQL REPEATABLE READ: the
+        pre-lock snapshot), silently undoing the fix. That is why
+        ``datasets/api.py`` binds the return value.
+        """
+        self._skip_on_sqlite()
+        dataset_id = (
+            db.session.query(SqlaTable.id)
+            .filter(SqlaTable.table_name == "birth_names")
+            .scalar()
+        )
+
+        try:
+            locked = lock_entity_for_update(SqlaTable, dataset_id)
+            assert locked is not None
+            fetched = DatasetDAO.find_by_id(dataset_id)
+            assert fetched is locked
+        finally:
+            db.session.rollback()
+
+        try:
+            still_held = lock_entity_for_update(SqlaTable, dataset_id)
+            tracker = weakref.ref(still_held)
+            del still_held, locked, fetched
+            gc.collect()
+            assert tracker() is None, (
+                "locked entity survived without a caller-held reference; "
+                "if SQLAlchemy starts pinning it, the hold-the-return "
+                "contract (and this test) can be retired"
+            )
+        finally:
+            db.session.rollback()
+
     def test_lock_is_a_no_op_refresh_without_concurrent_writes(self) -> None:
-        """Quiet-path control: locking without an interleaved commit leaves
-        the loaded entity exactly as it was — the refresh only surfaces
-        state that actually changed underneath the session."""
+        """Quiet-path control: no interleaved commit, no observable change.
+
+        The refresh only surfaces state that actually changed underneath
+        the session; without a concurrent writer the entity is untouched
+        and nothing is dirtied.
+        """
         self._skip_on_sqlite()
         dataset = self._dataset()
         dataset_id = dataset.id
