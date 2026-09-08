@@ -49,7 +49,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@ant-design/icons": "^6.3.3",
+    "@ant-design/icons": "^6.3.4",
     "@apache-superset/core": "*",
     "@babel/runtime": "^7.29.7",
     "@braintree/sanitize-url": "^7.1.2",

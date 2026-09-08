@@ -1,0 +1,46 @@
+# Verifies that every `uses:` ref under .github/ is on the ASF Infrastructure
+# GitHub Actions allowlist (apache/infrastructure-actions). An action that is
+# not allowlisted fails at "Set up job" with no logs and no notification, so
+# this check surfaces the problem at PR time instead. It also warns (without
+# failing) when a pinned SHA's allowlist entry is about to expire.
+name: ASF Allowlist Check
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - ".github/**"
+  push:
+    branches:
+      - "master"
+      - "[0-9].[0-9]*"
+    paths:
+      - ".github/**"
+  schedule:
+    # Weekly, so allowlist expirations are surfaced even when nothing under
+    # .github/ has changed.
+    - cron: "0 6 * * 1"
+
+permissions:
+  contents: read
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  asf-allowlist-check:
+    runs-on: ubuntu-26.04
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Check action refs against the ASF allowlist
+        uses: apache/infrastructure-actions/allowlist-check@61dcea11f19e2bbe1263f14d72235e8da17d3ad0 # allowlist-check/v1.0.0
+        with:
+          # Default scan-glob is .github/**/*.yml, which misses .yaml files.
+          scan-glob: ".github/**/*.y*ml"
