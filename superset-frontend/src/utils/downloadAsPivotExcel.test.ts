@@ -19,6 +19,7 @@
 import type { WorkBook } from 'xlsx';
 import { getNumberFormatterRegistry } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
+import { addWarningToast } from 'src/components/MessageToasts/actions';
 import exportPivotExcel from './downloadAsPivotExcel';
 
 const mockWriteFile = jest.fn();
@@ -34,6 +35,16 @@ jest.mock('xlsx', () => {
 jest.mock('@apache-superset/core/utils', () => ({
   logging: { error: jest.fn() },
 }));
+
+jest.mock('src/components/MessageToasts/actions', () => ({
+  addWarningToast: jest.fn(),
+}));
+
+jest.mock('@apache-superset/core/translation', () => ({
+  t: (str: string) => str,
+}));
+
+const mockAddWarningToast = addWarningToast as jest.Mock;
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -124,12 +135,15 @@ test('leaves date-shaped strings as text rather than reinterpreting them as date
   expect(sheet.C1).toMatchObject({ t: 's', v: 'not-a-date' });
 });
 
-test('should log an error and return early when table element is not found', () => {
+test('logs an error, warns the user, and returns early when table element is not found', () => {
   jest.spyOn(document, 'querySelector').mockReturnValue(null);
 
   exportPivotExcel('.non-existent-selector', 'test-file');
 
   expect(logging.error as jest.Mock).toHaveBeenCalledWith(
     '[exportPivotExcel] No element found for selector: ".non-existent-selector"',
+  );
+  expect(mockAddWarningToast).toHaveBeenCalledWith(
+    'Pivot table download failed, please refresh and try again.',
   );
 });

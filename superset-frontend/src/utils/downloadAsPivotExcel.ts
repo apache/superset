@@ -17,7 +17,9 @@
  * under the License.
  */
 import { getNumberFormatterRegistry } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
+import { addWarningToast } from 'src/components/MessageToasts/actions';
 import { utils, writeFile } from 'xlsx';
 import type { WorkSheet } from 'xlsx';
 
@@ -69,6 +71,9 @@ export default function exportPivotExcel(
   if (!table) {
     logging.error(
       `[exportPivotExcel] No element found for selector: "${tableSelector}"`,
+    );
+    addWarningToast(
+      t('Pivot table download failed, please refresh and try again.'),
     );
     return;
   }
