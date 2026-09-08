@@ -2326,9 +2326,9 @@ class ApplyDashboardFiltersResponse(BaseModel):
     live_update_pushed: bool = Field(
         default=False,
         description=(
-            "True when the filter values were also pushed to the user's open "
-            "dashboard session in real time. False means the values are only "
-            "reachable by opening dashboard_url."
+            "True when a realtime notification was published to the caller. "
+            "This does not confirm browser delivery or application. "
+            "Open dashboard_url as the fallback."
         ),
     )
     error: str | None = Field(None, description="Error message, if the call failed")

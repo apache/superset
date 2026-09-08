@@ -41,6 +41,25 @@ flowchart LR
     C --> D[("Database<br/>(Postgres)")]
 ```
 
+## Dashboard filter notifications
+
+After creating a dashboard permalink, `apply_dashboard_filters` attempts a
+best-effort `dashboard.filters_applied` realtime notification scoped to the
+calling principal. Its payload contains only `dashboard_id` and `permalink_key`;
+filter values and resolved state are not included. Consumers must resolve the
+key through the dashboard's authorized permalink load path.
+
+Publishing requires a configured `DISTRIBUTED_COORDINATION_CONFIG` backend.
+The MCP process and websocket transport must use the same
+`REALTIME_CHANNEL_PREFIX`. This publisher does not require the Global Task
+Framework feature flag.
+
+The response's `live_update_pushed` field reports publication success, not
+browser receipt or application. Without a backend, an identifiable principal,
+or a successful publish, it is `false`; the created `dashboard_url` remains
+the fallback. The server notification alone does not implement a browser-side
+filter update.
+
 ---
 
 ## Quick Start
