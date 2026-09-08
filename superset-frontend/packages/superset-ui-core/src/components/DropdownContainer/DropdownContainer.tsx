@@ -334,8 +334,10 @@ export const DropdownContainer = forwardRef(
             recalculating
               ? {
                   ...style,
-                  // Clamp the transient all-items row to the wrapper width.
-                  maxWidth: width,
+                  /* Clamp the transient all-items row to the wrapper width.
+                   * `width` is 0 until the first resize callback, so fall back
+                   * to the consumer's value rather than clamping to nothing. */
+                  maxWidth: width || style?.maxWidth,
                   overflow: 'hidden',
                 }
               : style
