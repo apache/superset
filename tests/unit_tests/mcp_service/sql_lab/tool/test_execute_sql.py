@@ -384,6 +384,46 @@ class TestExecuteSql:
     @patch("superset.security_manager")
     @patch("superset.db")
     @pytest.mark.asyncio
+    async def test_execute_sql_denies_unauthorized_table(
+        self, mock_db, mock_security_manager, mcp_server
+    ):
+        """A user with database access but no access to a referenced table is
+        denied (matching the SQL Lab execution path), and the query is not run."""
+        from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+        from superset.exceptions import SupersetSecurityException
+
+        mock_database = _mock_database()
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+        mock_security_manager.can_access_database.return_value = True
+        mock_security_manager.raise_for_access.side_effect = SupersetSecurityException(
+            SupersetError(
+                message="You need access to the following tables: secret_table",
+                error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+
+        request = {
+            "database_id": 1,
+            "sql": "SELECT * FROM secret_table",
+            "limit": 10,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+            data = result.structured_content
+            assert data["success"] is False
+            assert "secret_table" in data["error"]
+
+        mock_security_manager.raise_for_access.assert_called_once()
+        # the query must not run when table-level access is denied
+        mock_database.execute.assert_not_called()
+
+    @patch("superset.security_manager")
+    @patch("superset.db")
+    @pytest.mark.asyncio
     async def test_execute_sql_dml_success(
         self, mock_db, mock_security_manager, mcp_server
     ):
