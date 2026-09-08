@@ -38,6 +38,8 @@ from functools import partial
 from typing import Any, ClassVar
 from uuid import UUID
 
+from sqlalchemy.orm.exc import ObjectDeletedError
+
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.exceptions import SupersetSecurityException
@@ -89,6 +91,27 @@ class BaseRestoreVersionCommand(BaseCommand):
 
     def _do_restore(self) -> RestoreResult:
         entity = self.validate()
+
+        # Re-read the live row under a FOR UPDATE lock in one statement. This
+        # both serialises the revert against a concurrent write on the same row
+        # (the lock is held for the rest of this transaction) and reloads the
+        # in-memory entity from the *current committed* state — a plain
+        # refresh() is a non-locking consistent read, which on MySQL/InnoDB
+        # REPEATABLE READ returns the transaction's first-read snapshot (taken
+        # in validate(), before any lock) and would miss an edit committed in
+        # between, silently dropping it from the revert UPDATE (sc-115423).
+        # This is the pessimistic (serialise) half; the restore endpoint does
+        # not yet also honor an If-Match precondition to *detect* (rather than
+        # serialise) a concurrent edit — a separate follow-up.
+        try:
+            db.session.refresh(entity, with_for_update=True)
+        except ObjectDeletedError as ex:
+            # The row was hard-deleted and committed between validate() and the
+            # lock; surface the documented 404 (the same race the
+            # restore_version None-return handles below), not the transaction
+            # wrapper's generic 422.
+            raise self.not_found_exc() from ex
+
         resolved = resolve_version(
             self.model_cls, self._uuid, self._version_uuid, entity=entity
         )
@@ -130,8 +153,10 @@ class BaseRestoreVersionCommand(BaseCommand):
             self.model_cls, self._uuid, transaction_id, entity=entity
         )
         if result is None:
-            # Race: entity deleted, or the target version row pruned,
-            # between validate()/resolve and the engine's re-check.
+            # Race: the target version row was pruned, or the entity deleted,
+            # between resolve and the engine's re-check. (A hard delete before
+            # the lock is already caught at the refresh above; this covers the
+            # narrower window after it.)
             raise self.not_found_exc()
         return result
 

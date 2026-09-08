@@ -25,10 +25,13 @@ the documented 400/404 errors for malformed or unknown UUIDs.
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 import pytest
+import sqlalchemy as sa
 from sqlalchemy_continuum import version_class
 
+from superset.commands.chart.restore_version import RestoreChartVersionCommand
 from superset.extensions import db
 from superset.models.slice import Slice
 from superset.utils import json as _json
@@ -161,6 +164,63 @@ class TestChartRestoreApi(SupersetTestCase):
             chart.is_managed_externally = False
             chart.slice_name = "Boys"
             db.session.commit()
+
+    def test_restore_fully_overwrites_a_concurrently_committed_edit(self) -> None:
+        """sc-115423: end-to-end, a restore fully overwrites an edit committed
+        by another connection — the concurrent value does not survive.
+
+        The dialect-independent regression guard for the fix is the unit test
+        asserting ``refresh(..., with_for_update=True)`` (dropping the flag
+        fails there on every backend). This test exercises the real command +
+        DB through the locking-refresh path and asserts the correct end state.
+        It reproduces the MySQL/InnoDB REPEATABLE-READ staleness the flag
+        guards against *only* when the restore shares this session's pre-edit
+        read view (no commit between the load below and the ``@transaction``
+        restore); where that holds, the pre-fix (plain-refresh) code leaves the
+        concurrent edit in place and this assertion fails. It is not relied on
+        as the sole MySQL guard for that reason.
+        """
+        _persist_fixture_state()
+        chart: Slice = (
+            db.session.query(Slice).filter(Slice.slice_name == "Boys").first()
+        )
+        assert chart is not None
+        chart_id = chart.id
+        chart_uuid = chart.uuid
+
+        # Edit + commit so there is a version whose value equals the *current*
+        # live value — that version is the restore target.
+        chart.slice_name = "Boys v1"
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        listing = _json.loads(self._list(str(chart_uuid)).data.decode("utf-8"))
+        target = listing["result"][-1]  # the latest version == "Boys v1"
+        target_uuid = UUID(target["version_uuid"])
+
+        # Load the chart into THIS session (establishing its read snapshot /
+        # identity map) BEFORE the concurrent edit; then commit an edit from a
+        # SEPARATE connection. This is the interleaving a non-locking refresh
+        # would miss.
+        loaded = db.session.query(Slice).filter(Slice.id == chart_id).one()
+        assert loaded.slice_name == "Boys v1"  # loaded == restore target
+        with db.engine.begin() as conn:
+            conn.execute(
+                sa.text("UPDATE slices SET slice_name = :n WHERE id = :i"),
+                {"n": "edited by another connection", "i": chart_id},
+            )
+
+        RestoreChartVersionCommand(chart_uuid, target_uuid).run()
+
+        db.session.expire_all()
+        live = db.session.query(Slice).filter(Slice.id == chart_id).one()
+        assert live.slice_name == "Boys v1", (
+            f"restore did not fully overwrite the concurrent edit: {live.slice_name!r}"
+        )
+
+        # Cleanup
+        live.slice_name = "Boys"
+        db.session.commit()
 
     def test_restore_returns_404_for_unknown_uuid(self) -> None:
         self.login(ADMIN_USERNAME)
