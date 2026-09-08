@@ -46,7 +46,6 @@ from superset.mcp_service.chart.chart_helpers import (
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.query_result import (
-    normalize_gauge_query_result,
     query_result_failure,
 )
 from superset.mcp_service.chart.schemas import (
@@ -769,9 +768,6 @@ async def get_chart_data(  # noqa: C901
 
             if query_failure := query_result_failure(result):
                 return query_failure
-            result = normalize_gauge_query_result(result, form_data)
-            if isinstance(result, ChartError):
-                return result
 
             if rejected := _rejected_requested_filter_columns(
                 result, request.extra_form_data
@@ -1137,9 +1133,6 @@ async def _query_from_form_data(  # noqa: C901
 
         if query_failure := query_result_failure(result):
             return query_failure
-        result = normalize_gauge_query_result(result, form_data)
-        if isinstance(result, ChartError):
-            return result
 
         if rejected := _rejected_requested_filter_columns(
             result, request.extra_form_data
@@ -1205,6 +1198,23 @@ async def _query_from_form_data(  # noqa: C901
         )
 
         chart_name = form_data.get("slice_name", "Unsaved chart")
+        if request.format in {"csv", "excel"}:
+            from superset.models.slice import Slice
+
+            # A transient chart supplies export metadata without saving anything.
+            chart = Slice(id=0, slice_name=chart_name, viz_type=viz_type)
+            export = (
+                _export_data_as_csv
+                if request.format == "csv"
+                else _export_data_as_excel
+            )
+            return export(
+                chart,
+                data[: request.limit] if request.limit else data,
+                raw_columns,
+                cache_status,
+                PerformanceMetadata(query_duration_ms=0, cache_status="fresh_query"),
+            )
         summary = (
             f"Unsaved chart ({viz_type}). "
             f"Contains {len(data)} rows across {len(raw_columns)} columns."
@@ -1405,7 +1415,9 @@ def _create_excel_with_xlsxwriter(
     import xlsxwriter
 
     output = io.BytesIO()
-    workbook = xlsxwriter.Workbook(output, {"in_memory": True})
+    workbook = xlsxwriter.Workbook(
+        output, {"in_memory": True, "nan_inf_to_errors": True}
+    )
     sheet_name = chart.slice_name[:31] if chart.slice_name else "Chart Data"
     worksheet = workbook.add_worksheet(sheet_name)
 

@@ -525,7 +525,7 @@ class TestUnsavedChartDataQueryConstruction:
                                 {"team": "NaN", "saved_sla": float("nan")},
                             ],
                             "colnames": ["team", "saved_sla"],
-                            "rowcount": 1,
+                            "rowcount": 3,
                         }
                     ]
                 }
@@ -559,8 +559,9 @@ class TestUnsavedChartDataQueryConstruction:
         )
 
         assert not isinstance(result, ChartError)
-        assert result.data == [{"team": "Blue", "saved_sla": 98.5}]
-        assert result.row_count == 1
+        assert [row["team"] for row in result.data] == ["Empty", "Blue", "NaN"]
+        assert result.row_count == result.total_rows == 3
+        assert result.data_quality["completeness"] == pytest.approx(5 / 6)
         query = captured[0]["queries"][0]
         assert query["metrics"] == ["saved_sla"]
         assert query["orderby"] == [("saved_sla", False)]
@@ -1727,16 +1728,18 @@ class TestSavedChartExtraFormDataFilters:
         assert "USA" not in result.content[0].text
 
     @pytest.mark.asyncio
-    @pytest.mark.parametrize("stored_viz_type", [None, "table", "gauge_chart"])
+    @pytest.mark.parametrize("data_path", ["saved", "saved_cache", "unsaved_cache"])
+    @pytest.mark.parametrize("export_format", ["json", "csv", "excel"])
     @pytest.mark.parametrize("has_finite", [True, False])
-    async def test_saved_gauge_fastmcp_entry_rejects_text_metric_result(
+    async def test_gauge_fastmcp_preserves_raw_groups_and_exports(
         self,
         mcp_server: Any,
         mock_auth: Any,
-        stored_viz_type: str | None,
+        data_path: str,
+        export_format: str,
         has_finite: bool,
     ) -> None:
-        """Saved Gauge query results are numeric-checked at the public tool."""
+        """Raw Gauge inspection and exports retain every source group, even all-null."""
         module = importlib.import_module(
             "superset.mcp_service.chart.tool.get_chart_data"
         )
@@ -1760,7 +1763,7 @@ class TestSavedChartExtraFormDataFilters:
             ),
             params=json.dumps(
                 {
-                    "viz_type": stored_viz_type,
+                    "viz_type": "gauge_chart",
                     "metric": "saved_sla",
                     "groupby": ["team"],
                 }
@@ -1779,27 +1782,53 @@ class TestSavedChartExtraFormDataFilters:
                 form_data={},
             )
 
+        rows: list[dict[str, Any]] = [
+            {"team": "Empty", "saved_sla": None},
+            {"team": "NaN", "saved_sla": float("nan")},
+            {"team": "Infinity", "saved_sla": float("inf")},
+            {"team": "Negative infinity", "saved_sla": -float("inf")},
+        ]
+        if has_finite:
+            rows.append({"team": "Blue", "saved_sla": 42})
+        source_rowcount = len(rows) + 7
+        payload = {
+            "queries": [
+                {
+                    "data": rows,
+                    "rowcount": source_rowcount,
+                    "colnames": ["team", "saved_sla"],
+                }
+            ]
+        }
+
         class Command:
             def __init__(self, query_context: Any) -> None: ...
             def validate(self) -> None: ...
             def run(self) -> dict[str, Any]:
-                return {
-                    "queries": [
-                        {
-                            "data": [
-                                {"team": "Empty", "saved_sla": None},
-                                {"team": "NaN", "saved_sla": float("nan")},
-                            ]
-                            + (
-                                [{"team": "Blue", "saved_sla": 42}]
-                                if has_finite
-                                else []
-                            )
-                        }
-                    ]
-                }
+                return payload
 
+        cached_form_data = {
+            "viz_type": "gauge_chart",
+            "datasource": "1__table",
+            "metric": "saved_sla",
+            "groupby": ["team"],
+            "slice_name": "SLA",
+        }
+        query = {"columns": ["team"], "metrics": ["saved_sla"]}
         with (
+            patch.object(
+                module,
+                "get_cached_form_data",
+                return_value=json.dumps(cached_form_data),
+            ),
+            patch.object(
+                module, "build_query_dicts_from_form_data", return_value=[query]
+            ),
+            patch.object(
+                module,
+                "build_query_context_from_form_data",
+                return_value=fake_load(None, {"queries": [query]}),
+            ),
             patch.object(module, "find_chart_by_identifier", return_value=chart),
             patch.object(
                 module,
@@ -1815,16 +1844,45 @@ class TestSavedChartExtraFormDataFilters:
             ),
         ):
             async with Client(mcp_server) as client:
-                result = await client.call_tool(
-                    "get_chart_data", {"request": {"identifier": "10"}}
-                )
+                request = {"format": export_format}
+                if data_path != "unsaved_cache":
+                    request["identifier"] = "10"
+                if data_path != "saved":
+                    request["form_data_key"] = "raw-gauge-cache"
+                result = await client.call_tool("get_chart_data", {"request": request})
 
         data = json.loads(result.content[0].text)
-        if has_finite:
-            assert data["data"] == [{"team": "Blue", "saved_sla": 42}]
-            assert data["row_count"] == 1
+        assert "error_type" not in data, data
+        assert data["row_count"] == len(rows)
+        assert data["total_rows"] == (
+            source_rowcount if export_format == "json" else len(rows)
+        )
+        expected_groups = [row["team"] for row in rows]
+        if export_format == "json":
+            assert [row["team"] for row in data["data"]] == expected_groups
+            assert data["data_quality"]["completeness"] == pytest.approx(
+                1 - 1 / (len(rows) * 2)
+            )
+            assert data.get("query_results") is None
+        elif export_format == "csv":
+            import csv
+            from io import StringIO
+
+            exported = list(csv.DictReader(StringIO(data["csv_data"])))
+            assert [row["team"] for row in exported] == expected_groups
         else:
-            assert data["error_type"] == "NonNumericGaugeMetric"
+            import base64
+            from io import BytesIO
+
+            from openpyxl import load_workbook
+
+            workbook = load_workbook(BytesIO(base64.b64decode(data["excel_data"])))
+            assert list(workbook.active.values)[0] == ("team", "saved_sla")
+            assert [
+                row[0] for row in list(workbook.active.values)[1:]
+            ] == expected_groups
+        assert payload["queries"][0]["data"] is rows
+        assert payload["queries"][0]["rowcount"] == source_rowcount
 
 
 class TestOAuthErrorRouting:
@@ -2779,3 +2837,30 @@ async def test_query_from_form_data_refreshed_reflects_force_refresh_only(
     assert isinstance(result, ChartData)
     assert result.cache_status is not None
     assert result.cache_status.refreshed is expected_refreshed
+
+
+def test_xlsxwriter_preserves_nonfinite_group_rows() -> None:
+    """The optional XLSX fallback preserves groups with non-finite metrics."""
+    import base64
+    from io import BytesIO
+
+    from openpyxl import load_workbook
+
+    from superset.mcp_service.chart.tool.get_chart_data import (
+        _create_excel_with_xlsxwriter,
+    )
+
+    rows: list[dict[str, Any]] = [
+        {"team": "Empty", "score": None},
+        {"team": "NaN", "score": float("nan")},
+        {"team": "Infinity", "score": float("inf")},
+        {"team": "Negative infinity", "score": -float("inf")},
+        {"team": "Finite", "score": 42},
+    ]
+    chart = MagicMock(slice_name="Gauge")
+    content = _create_excel_with_xlsxwriter(chart, rows, ["team", "score"])
+    workbook = load_workbook(BytesIO(base64.b64decode(content)))
+    assert list(workbook.active.values)[0] == ("team", "score")
+    assert [row[0] for row in list(workbook.active.values)[1:]] == [
+        row["team"] for row in rows
+    ]

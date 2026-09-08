@@ -1208,6 +1208,9 @@ class GaugeChartConfig(BaseChartConfig):
                 for value in groupby
             ]
 
+        if isinstance(data.get("time_range"), str):
+            data["time_range"] = validate_time_range(data["time_range"]) or None
+
         # Supported native SIMPLE filters are represented by FilterConfig.
         # SQL adhoc filters remain intentionally unsupported on the typed MCP
         # surface. TEMPORAL_RANGE is represented by time_range/granularity.
@@ -1235,11 +1238,11 @@ class GaugeChartConfig(BaseChartConfig):
                         raise ValueError(
                             f"adhoc_filters[{index}] has no temporal subject"
                         )
-                    if not isinstance(comparator, str) or not comparator.strip():
+                    if not isinstance(comparator, str):
                         raise ValueError(
                             f"adhoc_filters[{index}] requires a temporal comparator"
                         )
-                    validate_time_range(comparator)
+                    comparator = validate_time_range(comparator) or NO_TIME_RANGE
                     if comparator == NO_TIME_RANGE:
                         if data.get("temporal_column") not in (None, subject):
                             raise ValueError(

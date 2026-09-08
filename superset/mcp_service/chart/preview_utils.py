@@ -756,6 +756,8 @@ def generate_gauge_vega_lite_preview(  # noqa: C901
     else:
         progress_color = {"value": _GAUGE_COLORS[0]}
 
+    inner_radius, outer_radius = 55, 82
+    pointer_radius = (inner_radius + outer_radius) / 2
     background_layers: list[dict[str, Any]] = []
     previous_ratio = 0.0
     for bound, color in zip(interval_bounds, metadata["interval_colors"], strict=False):
@@ -774,8 +776,8 @@ def generate_gauge_vega_lite_preview(  # noqa: C901
             {
                 "mark": {
                     "type": "arc",
-                    "innerRadius": 55,
-                    "outerRadius": 82,
+                    "innerRadius": inner_radius,
+                    "outerRadius": outer_radius,
                     "color": color,
                     "opacity": 0.35,
                 },
@@ -796,8 +798,8 @@ def generate_gauge_vega_lite_preview(  # noqa: C901
             {
                 "mark": {
                     "type": "arc",
-                    "innerRadius": 55,
-                    "outerRadius": 82,
+                    "innerRadius": inner_radius,
+                    "outerRadius": outer_radius,
                     "color": "#D3D3D3",
                 },
                 "encoding": {
@@ -815,8 +817,8 @@ def generate_gauge_vega_lite_preview(  # noqa: C901
     progress_layer = {
         "mark": {
             "type": "arc",
-            "innerRadius": 55,
-            "outerRadius": 82,
+            "innerRadius": inner_radius,
+            "outerRadius": outer_radius,
             "cornerRadius": 4 if form_data.get("round_cap") else 0,
             "tooltip": True,
         },
@@ -851,10 +853,18 @@ def generate_gauge_vega_lite_preview(  # noqa: C901
             "x": {"value": {"expr": center_x}},
             "y": {"value": {"expr": center_y}},
             "x2": {
-                "value": {"expr": f"{center_x} + 52 * sin(datum.__mcp_gauge_angle)"}
+                "value": {
+                    "expr": (
+                        f"{center_x} + {pointer_radius} * sin(datum.__mcp_gauge_angle)"
+                    )
+                }
             },
             "y2": {
-                "value": {"expr": f"{center_y} - 52 * cos(datum.__mcp_gauge_angle)"}
+                "value": {
+                    "expr": (
+                        f"{center_y} - {pointer_radius} * cos(datum.__mcp_gauge_angle)"
+                    )
+                }
             },
             "tooltip": tooltip,
         },

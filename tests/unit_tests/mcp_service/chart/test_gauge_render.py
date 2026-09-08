@@ -85,12 +85,14 @@ const fs = require('fs');
         assert.equal(rule.x, arc.x, 'needle x must be at its own dial center');
         assert.equal(rule.y, arc.y, 'needle y must be at its own dial center');
       }
+      const radius = (arcs[0].innerRadius + arcs[0].outerRadius) / 2;
+      assert(radius > arcs[0].innerRadius && radius < arcs[0].outerRadius);
       assert(rule.x > 0 && rule.y > 0);
       assert([rule.x, rule.y, rule.x2, rule.y2].every(Number.isFinite));
-      assert(Math.abs(Math.hypot(rule.x2 - rule.x, rule.y2 - rule.y) - 52) < 1e-8);
+      assert(Math.abs(Math.hypot(rule.x2 - rule.x, rule.y2 - rule.y) - radius) < 1e-8);
       const angle = rule.datum.__mcp_gauge_angle;
-      assert(Math.abs(rule.x2 - rule.x - 52 * Math.sin(angle)) < 1e-8);
-      assert(Math.abs(rule.y2 - rule.y + 52 * Math.cos(angle)) < 1e-8);
+      assert(Math.abs(rule.x2 - rule.x - radius * Math.sin(angle)) < 1e-8);
+      assert(Math.abs(rule.y2 - rule.y + radius * Math.cos(angle)) < 1e-8);
     }
     view.finalize();
   }

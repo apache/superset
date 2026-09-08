@@ -816,7 +816,7 @@ def test_gauge_vega_clips_intervals_to_automatic_range() -> None:
     ]
 
 
-@pytest.mark.parametrize("comparator", [None, "", " ", 123])
+@pytest.mark.parametrize("comparator", [None, 123])
 def test_gauge_native_temporal_range_requires_comparator(comparator: Any) -> None:
     """Native filters cannot silently discard a missing temporal restriction."""
     with pytest.raises(ValidationError, match="requires a temporal comparator"):
@@ -880,6 +880,11 @@ def test_gauge_all_zero_auto_range(renderer: Callable[..., Any]) -> None:
     """Zero-valued results remain renderable without weakening explicit bounds."""
     result = renderer([{"score": 0}], {"viz_type": "gauge_chart", "metric": "score"})
     assert not isinstance(result, ChartError)
+    if isinstance(result, str):
+        assert "Range: 0 to 1" in result
+    else:
+        assert result.specification["usermeta"]["min_val"] == 0
+        assert result.specification["usermeta"]["max_val"] == 1
     for bounds in ({"min_val": 0, "max_val": 0}, {"max_val": 0}):
         invalid = renderer(
             [{"score": 0}], {"viz_type": "gauge_chart", "metric": "score", **bounds}
@@ -1022,6 +1027,19 @@ def test_gauge_pointer_uses_cartesian_endpoints(
     if show_pointer:
         encoding = rules[0]["encoding"]
         assert set(encoding) == {"x", "y", "x2", "y2", "tooltip"}
+        if groupby:
+            # Numeric child-scoped origins must not depend on outer Vega signals.
+            assert float(encoding["x"]["value"]["expr"]) == unit["width"] / 2
+            assert float(encoding["y"]["value"]["expr"]) == unit["height"] / 2
+        else:
+            assert encoding["x"]["value"]["expr"] == "width / 2"
+            assert encoding["y"]["value"]["expr"] == "height / 2"
+        arc = next(
+            layer["mark"] for layer in unit["layer"] if layer["mark"]["type"] == "arc"
+        )
+        radius = (arc["innerRadius"] + arc["outerRadius"]) / 2
+        assert f"+ {radius} * sin" in encoding["x2"]["value"]["expr"]
+        assert f"- {radius} * cos" in encoding["y2"]["value"]["expr"]
         assert "sin(datum.__mcp_gauge_angle)" in encoding["x2"]["value"]["expr"]
         assert "cos(datum.__mcp_gauge_angle)" in encoding["y2"]["value"]["expr"]
 
@@ -1134,3 +1152,30 @@ def test_gauge_finite_normalization_does_not_mutate_cached_result() -> None:
     assert original["queries"][0]["data"] is rows
     assert original["queries"][0]["rowcount"] == 4
     assert len(rows) == 4
+
+
+@pytest.mark.parametrize("top_range", ["", "   ", "\t", "No filter", " No filter "])
+@pytest.mark.parametrize("comparator", ["Last week", "", "   ", "No filter"])
+def test_gauge_native_time_sentinels_are_neutral(
+    top_range: str, comparator: str
+) -> None:
+    """Explicit blank sentinels are neutral; absent comparators still reject."""
+    config = GaugeChartConfig.model_validate(
+        {
+            "metric": "score",
+            "time_range": top_range,
+            "adhoc_filters": [
+                {
+                    "subject": "event_time",
+                    "operator": "TEMPORAL_RANGE",
+                    "comparator": comparator,
+                }
+            ],
+        }
+    )
+    if comparator == "Last week":
+        assert config.time_range == "Last week"
+        assert config.granularity_sqla == "event_time"
+    else:
+        assert config.temporal_column == "event_time"
+        assert config.time_range in (None, "No filter")
