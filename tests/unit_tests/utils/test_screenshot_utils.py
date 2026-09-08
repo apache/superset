@@ -32,6 +32,7 @@ from superset.utils.screenshot_utils import (
     is_screenshot_nearly_uniform,
     resolve_screenshot_task_budget_seconds,
     SCREENSHOT_TASK_BUDGET_MAX_MARGIN_SECONDS,
+    ScreenshotBlankCaptureError,
     ScreenshotCaptureTimeoutError,
     ScreenshotTaskBudgetExceededError,
     SCROLL_SETTLE_TIMEOUT_MS,
@@ -43,6 +44,16 @@ from superset.utils.screenshot_utils import (
 
 def _png(width: int, height: int, color: str) -> bytes:
     image = Image.new("RGB", (width, height), color)
+    output = io.BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def _two_tone_blank(width: int = 100, height: int = 100) -> bytes:
+    image = Image.new("RGB", (width, height), "white")
+    for y in range(int(height * 0.85), height):
+        for x in range(width):
+            image.putpixel((x, y), (245, 245, 245))
     output = io.BytesIO()
     image.save(output, format="PNG")
     return output.getvalue()
@@ -67,6 +78,25 @@ class TestScreenshotBlankDetection:
 
         assert is_blank is False
         assert dominant_ratio < 0.995
+
+    def test_two_tone_near_white_png_is_blank(self):
+        is_blank, dominant_ratio = is_screenshot_nearly_uniform(_two_tone_blank())
+
+        assert is_blank is True
+        assert dominant_ratio == 0.85
+
+    def test_sparse_png_with_dark_content_is_not_blank(self):
+        image = Image.new("RGB", (100, 100), "white")
+        for x in range(20, 80):
+            for y in range(20, 24):
+                image.putpixel((x, y), (50, 50, 50))
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+
+        is_blank, dominant_ratio = is_screenshot_nearly_uniform(output.getvalue())
+
+        assert is_blank is False
+        assert dominant_ratio == 0.976
 
     def test_non_image_bytes_are_left_for_combination_validation(self):
         assert is_screenshot_nearly_uniform(b"not an image") == (False, 0.0)
@@ -320,7 +350,7 @@ class TestTakeTiledScreenshot:
         )
         assert retry_log.args[1] == 1
 
-    def test_repeated_uniform_tiles_are_retained_with_warning(self, mock_page):
+    def test_repeated_blank_tiles_fail_closed_for_reports(self, mock_page):
         element_info = {"height": 2000, "top": 0, "left": 0, "width": 800}
 
         def evaluate(script, _arg=None):
@@ -336,30 +366,26 @@ class TestTakeTiledScreenshot:
         mock_page.screenshot.return_value = _png(800, 1000, "white")
 
         with (
-            patch("superset.utils.screenshot_utils.logger") as mock_logger,
+            patch("superset.utils.screenshot_utils.logger"),
             patch(
-                "superset.utils.screenshot_utils.combine_screenshot_tiles",
-                return_value=b"combined",
+                "superset.utils.screenshot_utils.combine_screenshot_tiles"
             ) as mock_combine,
+            pytest.raises(
+                ScreenshotBlankCaptureError,
+                match="blank tile 1/2 after 3 attempts",
+            ),
         ):
-            result = take_tiled_screenshot(
+            take_tiled_screenshot(
                 mock_page,
                 "dashboard",
                 tile_height=1000,
                 report_execution_context=_report_context(),
             )
 
-        assert result == b"combined"
-        assert mock_page.screenshot.call_count == 6
-        assert len(mock_combine.call_args.args[0]) == 2
-        retained_warnings = [
-            call
-            for call in mock_logger.warning.call_args_list
-            if call.args[0].startswith("report_capture_uniform_tile_retained")
-        ]
-        assert len(retained_warnings) == 2
+        assert mock_page.screenshot.call_count == 3
+        mock_combine.assert_not_called()
 
-    def test_single_uniform_content_tile_is_retained(self, mock_page):
+    def test_single_uniform_content_tile_fails_closed_for_reports(self, mock_page):
         element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
         uniform_tile = _png(800, 1000, "navy")
 
@@ -375,24 +401,21 @@ class TestTakeTiledScreenshot:
         mock_page.evaluate.side_effect = evaluate
         mock_page.screenshot.return_value = uniform_tile
 
-        with patch(
-            "superset.utils.screenshot_utils.combine_screenshot_tiles",
-            return_value=b"combined",
-        ) as mock_combine:
-            result = take_tiled_screenshot(
+        with (
+            patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles"
+            ) as mock_combine,
+            pytest.raises(ScreenshotBlankCaptureError),
+        ):
+            take_tiled_screenshot(
                 mock_page,
                 "dashboard",
                 tile_height=2000,
                 report_execution_context=_report_context(),
             )
 
-        assert result == b"combined"
         assert mock_page.screenshot.call_count == 3
-        mock_combine.assert_called_once_with(
-            [uniform_tile],
-            allow_partial_fallback=False,
-            log_context=_report_context().log_context,
-        )
+        mock_combine.assert_not_called()
 
     def test_uniform_tile_without_visible_charts_is_allowed(self, mock_page):
         element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
@@ -536,7 +559,7 @@ class TestTakeTiledScreenshot:
             for call in mock_logger.warning.call_args_list
         )
         assert any(
-            call.args[0].startswith("report_capture_uniform_tile_retained")
+            call.args[0].startswith("report_capture_blank_tile_retained")
             for call in mock_logger.warning.call_args_list
         )
 

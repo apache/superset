@@ -15,15 +15,18 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import io
 from unittest.mock import ANY, MagicMock, patch
 from uuid import UUID
 
 import pytest
+from PIL import Image
 
 from superset.utils.report_execution import (
     ReportExecutionContext,
     ReportExecutionDeadline,
 )
+from superset.utils.screenshot_utils import ScreenshotBlankCaptureError
 from superset.utils.webdriver import (
     check_playwright_availability,
     PLAYWRIGHT_AVAILABLE,
@@ -55,6 +58,13 @@ def _report_context(
         delivery_reserve_seconds=120,
         cleanup_reserve_seconds=30,
     )
+
+
+def _png(color: str) -> bytes:
+    image = Image.new("RGB", (100, 100), color)
+    output = io.BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
 
 
 @pytest.fixture()
@@ -90,6 +100,66 @@ class TestPlaywrightAvailabilityCheck:
         assert result is True
         # Only checks sync_playwright is not None — never launches browser
         mock_sync_playwright.assert_not_called()
+
+
+class TestStandardScreenshotValidation:
+    def test_blank_capture_retries_then_accepts_content(self):
+        page = MagicMock()
+        element = MagicMock()
+        valid = Image.new("RGB", (100, 100), "white")
+        for x in range(20, 80):
+            for y in range(20, 80):
+                valid.putpixel((x, y), (50, 50, 50))
+        output = io.BytesIO()
+        valid.save(output, format="PNG")
+        page.screenshot.side_effect = [_png("white"), output.getvalue()]
+
+        result = WebDriverPlaywright._get_validated_screenshot(
+            page,
+            element,
+            "standalone",
+            "execution_id=test",
+            _report_context(),
+        )
+
+        assert result == output.getvalue()
+        assert page.screenshot.call_count == 2
+        page.bring_to_front.assert_called_once_with()
+
+    def test_repeated_blank_capture_fails_closed(self):
+        page = MagicMock()
+        element = MagicMock()
+        page.screenshot.return_value = _png("white")
+
+        with pytest.raises(
+            ScreenshotBlankCaptureError,
+            match="blank standard screenshot after 3 attempts",
+        ):
+            WebDriverPlaywright._get_validated_screenshot(
+                page,
+                element,
+                "standalone",
+                "execution_id=test",
+                _report_context(),
+            )
+
+        assert page.screenshot.call_count == 3
+
+    def test_non_report_capture_preserves_existing_behavior(self):
+        page = MagicMock()
+        element = MagicMock()
+        page.screenshot.return_value = _png("white")
+
+        result = WebDriverPlaywright._get_validated_screenshot(
+            page,
+            element,
+            "standalone",
+            None,
+            None,
+        )
+
+        assert result == _png("white")
+        page.screenshot.assert_called_once_with(full_page=True)
 
 
 class TestWebDriverPlaywrightFallback:
@@ -1576,9 +1646,9 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         assert "animation_wait" in call_order
         spinner_idx = call_order.index("spinner_wait")
         anim_idx = call_order.index("animation_wait")
-        assert spinner_idx < anim_idx, (
-            "spinner wait must precede animation wait in non-tiled path"
-        )
+        assert (
+            spinner_idx < anim_idx
+        ), "spinner wait must precede animation wait in non-tiled path"
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -1701,9 +1771,9 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
             for call in mock_page.wait_for_timeout.call_args_list
             if call[0][0] == 2 * 1000
         ]
-        assert animation_waits == [], (
-            "No global 2s animation wait_for_timeout should fire on the tiled path"
-        )
+        assert (
+            animation_waits == []
+        ), "No global 2s animation wait_for_timeout should fire on the tiled path"
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -1773,6 +1843,6 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         timeout_values = [
             call[0][0] for call in mock_page.wait_for_timeout.call_args_list
         ]
-        assert timeout_values == [0], (
-            f"Expected only [0] (headstart), got {timeout_values}"
-        )
+        assert timeout_values == [
+            0
+        ], f"Expected only [0] (headstart), got {timeout_values}"
