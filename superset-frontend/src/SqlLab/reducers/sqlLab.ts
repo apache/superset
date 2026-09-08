@@ -431,6 +431,11 @@ export default function sqlLabReducer(
         state: QueryState.Fetching,
       });
     },
+    [actions.SET_QUERY_TASK_ID]() {
+      return alterInObject(state, 'queries', action.query!, {
+        taskId: action.taskId,
+      });
+    },
     [actions.QUERY_SUCCESS]() {
       // prevent race condition where query succeeds shortly after being canceled
       // or the final result was unsuccessful

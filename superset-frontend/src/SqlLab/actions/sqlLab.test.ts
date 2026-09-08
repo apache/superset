@@ -553,6 +553,37 @@ describe('async actions', () => {
       });
     });
 
+    test('sends the tab id in the request body', () =>
+      makeRequest().then(() => {
+        const call = fetchMock.callHistory.calls(runQueryEndpoint)[0];
+        const body = JSON.parse(call.options.body as string);
+        expect(body.tab_id).toBeDefined();
+      }));
+
+    test('stores the async task id from the 202 response', () => {
+      expect.assertions(2);
+
+      fetchMock.removeRoute(runQueryEndpoint);
+      fetchMock.post(
+        runQueryEndpoint,
+        { async_job: { task_id: 'task-uuid-123' } },
+        { name: runQueryEndpoint },
+      );
+
+      const store = mockStore({});
+      const asyncQuery = { ...query, runAsync: true };
+      const request = actions.runQuery(asyncQuery);
+      return request(store.dispatch, () => typedInitialState, undefined).then(
+        () => {
+          const setTaskIdAction = store
+            .getActions()
+            .find(a => a.type === actions.SET_QUERY_TASK_ID);
+          expect(setTaskIdAction).toBeDefined();
+          expect(setTaskIdAction?.taskId).toBe('task-uuid-123');
+        },
+      );
+    });
+
     test('calls queryFailed on fetch error and logs the error details', () => {
       expect.assertions(2);
 

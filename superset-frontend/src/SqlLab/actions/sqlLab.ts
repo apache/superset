@@ -42,6 +42,7 @@ import { LOG_ACTIONS_SQLLAB_FETCH_FAILED_QUERY } from 'src/logger/LogUtils';
 import type { BootstrapData } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { logEvent } from 'src/logger/actions';
+import { getTabId } from 'src/hooks/useTabId';
 import type { QueryEditor, SqlLabRootState, Table } from '../types';
 import { newQueryTabName } from '../utils/newQueryTabName';
 import getInitialState from '../reducers/getInitialState';
@@ -80,6 +81,7 @@ export interface Query {
   inLocalStorage?: boolean;
   executedSql?: string;
   query_id?: number;
+  taskId?: string;
 }
 
 export interface Database {
@@ -114,6 +116,24 @@ export interface SqlExecuteResponse {
   expanded_columns?: QueryColumn[];
   query: SqlExecuteQueryResult;
   query_id?: number;
+}
+
+/**
+ * The GTF task an async query runs under, echoed in the execute 202 (see
+ * QueryExecutionResponseSchema.async_job). `task_id` is the uuid used to settle
+ * the query immediately on its terminal `task.status` websocket push.
+ */
+export interface AsyncJob {
+  task_id: string;
+  cursor?: string;
+  tab_id?: string;
+}
+
+/**
+ * The 202 body from POST /api/v1/sqllab/execute/ when the query runs async.
+ */
+export interface SqlExecuteAsyncResponse {
+  async_job?: AsyncJob;
 }
 
 export const RESET_STATE = 'RESET_STATE';
@@ -161,6 +181,7 @@ export const STOP_QUERY = 'STOP_QUERY';
 export const REQUEST_QUERY_RESULTS = 'REQUEST_QUERY_RESULTS';
 export const QUERY_SUCCESS = 'QUERY_SUCCESS';
 export const QUERY_FAILED = 'QUERY_FAILED';
+export const SET_QUERY_TASK_ID = 'SET_QUERY_TASK_ID';
 export const CLEAR_INACTIVE_QUERIES = 'CLEAR_INACTIVE_QUERIES';
 export const CLEAR_QUERY_RESULTS = 'CLEAR_QUERY_RESULTS';
 export const REMOVE_DATA_PREVIEW = 'REMOVE_DATA_PREVIEW';
@@ -234,6 +255,7 @@ export interface SqlLabAction {
   json?: Record<string, unknown>;
   oldQueryId?: string;
   newQuery?: { id: string };
+  taskId?: string;
 }
 
 // Use AnyAction for ThunkAction/ThunkDispatch to maintain compatibility with
@@ -412,6 +434,10 @@ export function querySuccess(query: Query, results: SqlExecuteResponse) {
   return { type: QUERY_SUCCESS, query, results } as const;
 }
 
+export function setQueryTaskId(query: Query, taskId: string) {
+  return { type: SET_QUERY_TASK_ID, query, taskId } as const;
+}
+
 export function logFailedQuery(
   query: Query,
   errors?: SupersetError[],
@@ -535,6 +561,9 @@ export function runQuery(
       templateParams: query.templateParams,
       queryLimit: query.queryLimit,
       expand_data: true,
+      // Advertise the originating tab so the backend can route this query's
+      // terminal `task.status` websocket push back to it (accelerates settling).
+      tab_id: getTabId(),
     };
 
     const search = window.location.search || '';
@@ -547,6 +576,14 @@ export function runQuery(
       .then(({ json }) => {
         if (!query.runAsync) {
           dispatch(querySuccess(query, json as SqlExecuteResponse));
+        } else {
+          // The async 202 carries the GTF task uuid; store it on the query so
+          // QueryAutoRefresh can settle immediately on its terminal
+          // `task.status` push (the 2s poll remains the backstop).
+          const taskId = (json as SqlExecuteAsyncResponse)?.async_job?.task_id;
+          if (taskId) {
+            dispatch(setQueryTaskId(query, taskId));
+          }
         }
       })
       .catch(response =>

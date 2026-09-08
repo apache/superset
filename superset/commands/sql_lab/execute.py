@@ -256,23 +256,37 @@ class ExecuteSqlCommand(BaseCommand):
         self._pending_async = True
         return SqlJsonExecutionStatus.QUERY_IS_RUNNING
 
-    def submit_async(self) -> None:
+    def submit_async(self) -> dict[str, Any] | None:
         """Schedule the async GTF SQL task, outside this command's transaction.
 
         Called by the endpoint after ``run`` commits. Scheduling a GTF task
         acquires its own lock/transaction and refuses to run inside an outer
         ``@transaction`` (see ``SubmitTaskCommand``), so it must happen here.
+
+        Returns the ``async_job`` descriptor the endpoint surfaces in the 202
+        (``{task_id, cursor, tab_id?}``): the scheduled task's UUID, a
+        server-captured pre-task status cursor (the recovery watermark the client
+        polls/catches up ``/api/v1/task/status_changes`` from — captured *before*
+        scheduling so no completion can slip in ahead of the client's waiter), and
+        the per-tab id the subscription policy recorded (so a later cancel detaches
+        exactly this tab). ``None`` when there is nothing to schedule.
         """
         if not self._pending_async:
-            return
+            return None
         from superset_core.tasks.types import TaskOptions
 
         from superset.tasks.sql_queries import run_sql_lab_query
+        from superset.tasks.subscription import get_request_tab_id
+        from superset.tasks.utils import floored_status_cursor
 
         context = self._execution_context
         query = context.query
+        # Capture the status-poll cursor BEFORE the task is created so the client is
+        # guaranteed to observe its completion even if the task finishes before the
+        # waiter is established (floored to whole seconds; see floored_status_cursor).
+        poll_cursor = floored_status_cursor()
         try:
-            run_sql_lab_query.schedule(
+            task = run_sql_lab_query.schedule(
                 query.id,
                 self._rendered_query,
                 store_results=not context.select_as_cta,
@@ -293,6 +307,14 @@ class ExecuteSqlCommand(BaseCommand):
             )
             self._fail_query(error)
             raise SupersetErrorException(error) from ex
+
+        async_job: dict[str, Any] = {
+            "task_id": str(task.uuid),
+            "cursor": poll_cursor.isoformat(),
+        }
+        if tab_id := get_request_tab_id():
+            async_job["tab_id"] = tab_id
+        return async_job
 
     def _fail_query(self, error: SupersetError) -> None:
         """Mark the query FAILED with ``error`` (own transaction — submit_async

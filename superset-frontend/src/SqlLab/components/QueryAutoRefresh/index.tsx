@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { isObject } from 'lodash-es';
@@ -31,6 +31,11 @@ import {
 } from '@superset-ui/core';
 import { QueryDictionary, SqlLabRootState } from 'src/SqlLab/types';
 import useInterval from 'src/SqlLab/utils/useInterval';
+import { subscribeRealtime } from 'src/middleware/realtime';
+import {
+  TASK_STATUS_TOPIC,
+  TERMINAL_STATUSES,
+} from 'src/middleware/asyncEvent';
 import {
   refreshQueries,
   clearInactiveQueries,
@@ -155,6 +160,46 @@ function QueryAutoRefresh({
   useInterval(() => {
     checkForRefresh();
   }, QUERY_UPDATE_FREQ);
+
+  // The interval poll above is the correctness backstop. When the realtime
+  // websocket is enabled, a query's GTF task publishes a terminal `task.status`
+  // push routed to this tab; reacting to it triggers an immediate refresh
+  // instead of waiting up to QUERY_UPDATE_FREQ. It is a pure accelerator: the
+  // poll still settles everything on its own if the push is missed. Refs keep
+  // the single subscription reading the latest queries / refresh closure without
+  // re-subscribing on every render.
+  const queriesRef = useRef(queries);
+  queriesRef.current = queries;
+  const checkForRefreshRef = useRef(checkForRefresh);
+  checkForRefreshRef.current = checkForRefresh;
+
+  useEffect(
+    () =>
+      subscribeRealtime(TASK_STATUS_TOPIC, payload => {
+        if (!payload || typeof payload !== 'object') {
+          return;
+        }
+        const { task_id: taskId, status } = payload as {
+          task_id?: unknown;
+          status?: unknown;
+        };
+        if (typeof taskId !== 'string' || typeof status !== 'string') {
+          return;
+        }
+        if (!TERMINAL_STATUSES.has(status)) {
+          return;
+        }
+        // Only react to task ids of currently-running SQL Lab queries, so
+        // unrelated `task.status` messages (e.g. chart-data) are ignored.
+        const isTracked = Object.values(queriesRef.current).some(
+          query => isQueryRunning(query) && query?.taskId === taskId,
+        );
+        if (isTracked) {
+          checkForRefreshRef.current();
+        }
+      }),
+    [],
+  );
 
   return null;
 }
