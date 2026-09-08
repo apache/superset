@@ -2198,6 +2198,79 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         db.session.delete(model)
         db.session.commit()
 
+    def test_update_dashboard_reconciles_dangling_position_json(self) -> None:
+        """PUT: a raw ``position_json`` layout node referencing a chart absent
+        from every Slice row is persisted as a markdown placeholder (sc-115325).
+
+        Pins that ``UpdateDashboardCommand.run`` actually invokes
+        ``reconcile_position_json`` on the raw-``position_json`` path — the DAO
+        unit tests exercise the helper directly, so they would stay green if a
+        refactor dropped the ``run()`` call; only an end-to-end PUT proves the
+        wiring. No ``json_metadata`` is sent, so ``set_dash_metadata`` does not
+        run and this exercises the raw path in isolation.
+        """
+        admin = self.get_user("admin")
+        dashboard_id = self.insert_dashboard(
+            "dangle-recon", "dangle-recon", [admin.id]
+        ).id
+        self.login(ADMIN_USERNAME)
+        absent_chart_id = 999_999_999  # resolves to no Slice row
+        positions = {
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["CHART-gone"]},
+            "CHART-gone": {
+                "id": "CHART-gone",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": absent_chart_id, "width": 4, "height": 50},
+            },
+        }
+        uri = f"api/v1/dashboard/{dashboard_id}"
+        rv = self.put_assert_metric(
+            uri, {"position_json": json.dumps(positions)}, "put"
+        )
+        assert rv.status_code == 200, rv.data
+
+        model = db.session.query(Dashboard).get(dashboard_id)
+        stored = json.loads(model.position_json)
+        node = stored["CHART-gone"]
+        # The dangling CHART node is now a markdown placeholder, node id,
+        # children, and geometry preserved, chart reference dropped.
+        assert node["type"] == "MARKDOWN", node
+        assert node["id"] == "CHART-gone"
+        assert node["children"] == []
+        assert node["meta"]["code"] == "This chart no longer exists."
+        assert node["meta"]["width"] == 4
+        assert node["meta"]["height"] == 50
+        assert "chartId" not in node["meta"]
+        # The slot id is unchanged, so its parent's children stay valid.
+        assert stored["ROOT_ID"]["children"] == ["CHART-gone"]
+
+        db.session.delete(model)
+        db.session.commit()
+
+    def test_update_dashboard_position_json_non_object_is_left_intact(self) -> None:
+        """A raw ``position_json`` that is valid JSON but not an object
+        (``"[]"``, ``"null"``, a scalar) must survive the PUT unchanged, not
+        500 (sc-115325 python-review: the reconcile guard and the tab-diff
+        guard both tolerate a non-dict layout). Exercises the whole command,
+        where tab-diff processing runs before reconciliation."""
+        admin = self.get_user("admin")
+        self.login(ADMIN_USERNAME)
+        for payload in ("[]", "null", "5", '"just a string"'):
+            dashboard_id = self.insert_dashboard(
+                f"nonobj-{payload!r}", None, [admin.id]
+            ).id
+            rv = self.put_assert_metric(
+                f"api/v1/dashboard/{dashboard_id}",
+                {"position_json": payload},
+                "put",
+            )
+            assert rv.status_code == 200, (payload, rv.data)
+            model = db.session.query(Dashboard).get(dashboard_id)
+            assert json.loads(model.position_json) == json.loads(payload)
+            db.session.delete(model)
+            db.session.commit()
+
     def test_update_dashboard_preserves_unsent_json_metadata_fields(self):
         """
         Dashboard API: a PUT whose ``json_metadata`` omits a field must not
