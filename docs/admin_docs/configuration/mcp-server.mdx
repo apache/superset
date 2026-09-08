@@ -1003,3 +1003,19 @@ The callable must be cheap and in-process (consult already-loaded feature flags 
 - **[MCP Integration](/developer-docs/extensions/mcp)** -- Build custom MCP tools and prompts via Superset extensions
 - **[Security](/developer-docs/extensions/security)** -- Security best practices for extensions
 - **[Deployment](/developer-docs/extensions/deployment)** -- Package and deploy Superset extensions
+
+## Bullet chart compatibility
+
+The MCP Bullet plugin uses `chart_type: "bullet"` and the native ECharts
+`viz_type: "bullet"`. Its optional `dimensions` hierarchy maps to `groupby`.
+
+Dimension and metric output names are case-sensitive: quoted physical columns
+such as `Region` and `region` remain distinct. Reference lookup prefers exact
+names and uses case-insensitive matching only when there is a single candidate;
+ambiguous references require the exact spelling.
+
+Range, marker, and marker-line label lists may be shorter than their value lists.
+As in Explore, missing or empty range labels are not displayed, and missing or
+empty marker labels use the formatted numeric value. Extra labels have no value
+to annotate and are ignored. These rules also apply to saved-chart previews and
+updates; omitted label controls preserve the saved state.

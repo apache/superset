@@ -49,8 +49,8 @@ def _wire_contribution_totals(mock_query_context: MagicMock) -> None:
     ``QueryContext`` owns the normalization and the processor delegates to it, so a
     bare MagicMock would return a value the processor cannot unpack.
     """
-    mock_query_context.prepare_contribution_totals.side_effect = (
-        lambda: normalize_contribution_totals(
+    mock_query_context.prepare_contribution_totals.side_effect = lambda: (
+        normalize_contribution_totals(
             mock_query_context.queries, mock_query_context.cache_values
         )
     )

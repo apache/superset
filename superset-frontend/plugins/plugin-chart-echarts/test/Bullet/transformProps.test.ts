@@ -375,3 +375,52 @@ test('splits into one bullet row per group value with shared markers', () => {
   // grouped bar tooltips name the row
   expect(series[0].tooltip.formatter({ dataIndex: 1 })).toContain('NY');
 });
+
+test('keeps exact-case dimensions and uses per-index fallbacks for short labels', () => {
+  const { echartOptions } = transformProps(
+    chartProps(
+      {
+        groupby: ['Region', 'region'],
+        ranges: '100,200,300',
+        rangeLabels: 'low',
+        markers: '150,160',
+        markerLabels: 'goal',
+        markerLines: '250,260',
+        markerLineLabels: 'stretch',
+        showLabels: true,
+        yAxisFormat: '.1f',
+      },
+      [{ Region: 1, region: 2, sum__num: 120 }],
+    ),
+  );
+  type Label = { show?: boolean; formatter: () => string };
+  const options = echartOptions as {
+    yAxis: { data: string[] };
+    series: Array<{
+      type: string;
+      symbol?: string;
+      label?: Label;
+      markArea?: { data: Array<[{ label: Label }, { xAxis: number }]> };
+      markLine?: { data: Array<{ label: Label }> };
+      data: Array<{ label?: Label }>;
+    }>;
+  };
+  expect(options.yAxis.data).toEqual(['1, 2']);
+  const bands = options.series[0].markArea?.data;
+  expect(bands?.map(band => band[0].label.show)).toEqual([false, false, true]);
+  expect(bands?.map(band => band[0].label.formatter())).toEqual([
+    '',
+    '',
+    'low',
+  ]);
+  expect(
+    options.series
+      .filter(series => series.symbol === 'triangle')
+      .map(series => series.label?.formatter()),
+  ).toEqual(['goal', '160.0']);
+  expect(
+    options.series
+      .filter(series => series.type === 'line')
+      .map(series => series.markLine?.data[0].label.formatter()),
+  ).toEqual(['stretch', '260.0']);
+});

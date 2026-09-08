@@ -549,20 +549,20 @@ def test_bullet_rejects_invalid_roles_and_output_collisions() -> None:
     with pytest.raises(ValidationError, match="Duplicate Bullet dimension"):
         BulletChartConfig(
             metric=_simple_metric(),
-            dimensions=[{"name": "Region"}, {"name": "region"}],
+            dimensions=[{"name": "Region"}, {"name": "Region"}],
         )
     with pytest.raises(ValidationError, match="conflicts with a dimension"):
         BulletChartConfig(
             metric={"name": "revenue", "aggregate": "SUM", "label": "Region"},
-            dimensions=[{"name": "region", "label": "Region"}],
+            dimensions=[{"name": "Region", "label": "Friendly"}],
         )
 
 
-def test_bullet_rejects_misaligned_labels_and_bad_order_target() -> None:
-    with pytest.raises(ValidationError, match="one label per ranges"):
-        BulletChartConfig(
-            metric=_simple_metric(), ranges=[1, 2], range_labels=["Only one"]
-        )
+def test_bullet_accepts_short_labels_and_rejects_bad_order_target() -> None:
+    config = BulletChartConfig(
+        metric=_simple_metric(), ranges=[1, 2], range_labels=["Only one"]
+    )
+    assert config.range_labels == ["Only one"]
     with pytest.raises(ValidationError, match="unknown: not_a_role"):
         BulletChartConfig(metric=_simple_metric(), order_by=[{"column": "not_a_role"}])
 
@@ -958,10 +958,6 @@ def test_bullet_result_validation_accepts_null_and_numeric_strings() -> None:
     [
         ({"ranges": "10,nope"}, r"ranges\[1\].*not numeric"),
         ({"markers": "NaN"}, r"markers\[0\].*NaN or infinite"),
-        (
-            {"ranges": "10,20", "range_labels": "Only one"},
-            "one label per value",
-        ),
     ],
 )
 def test_bullet_result_validation_rejects_malformed_presentation(
@@ -3235,8 +3231,7 @@ def test_bullet_presentation_updates_are_atomic_and_comma_safe() -> None:
 
     stale = dict(existing)
     stale["ranges"] = "10"
-    with pytest.raises(ValidationError, match="one label per ranges"):
-        validate_merged_bullet_form_data(stale)
+    assert validate_merged_bullet_form_data(stale) is not None
 
 
 def test_mapping_other_registered_chart_type_is_unchanged() -> None:
@@ -3401,6 +3396,7 @@ async def test_update_chart_tool_persists_native_bullet_round_trip() -> None:
         "metric": "old_metric",
         "groupby": ["Region"],
         "ranges": "100,250",
+        "range_labels": "Low",
         "show_legend": True,
     }
     chart = SimpleNamespace(
@@ -3470,4 +3466,81 @@ async def test_update_chart_tool_persists_native_bullet_round_trip() -> None:
     assert persisted["metric"]["column"]["column_name"] == "NewRevenue"
     assert persisted["groupby"] == ["Region"]
     assert persisted["ranges"] == "100,250"
+    assert persisted["range_labels"] == "Low"
     assert persisted["show_legend"] is True
+
+
+def test_bullet_exact_case_dimensions_survive_normalization_and_query() -> None:
+    from superset.mcp_service.chart.registry import get
+
+    context = DatasetContext(
+        id=7,
+        table_name="sales",
+        schema=None,
+        database_name="main",
+        available_columns=[
+            {"name": "Revenue", "type": "NUMERIC", "is_numeric": True},
+            {"name": "Region", "type": "VARCHAR"},
+            {"name": "region", "type": "VARCHAR"},
+        ],
+        available_metrics=[],
+    )
+    config = BulletChartConfig(
+        metric={"name": "Revenue", "aggregate": "SUM", "label": "REGION"},
+        dimensions=[{"name": "Region"}, {"name": "region"}],
+        order_by=[{"column": "Region"}, {"column": "region"}],
+    )
+    plugin = get("bullet")
+    assert plugin is not None
+    normalized = plugin.normalize_column_refs(config, context)
+    assert [item.column for item in normalized.order_by] == ["Region", "region"]
+    form_data = map_bullet_config(normalized)
+    assert build_query_dicts_from_form_data(form_data, 7, "table")[0]["columns"] == [
+        "Region",
+        "region",
+    ]
+    model = resolve_bullet_render_model(
+        [{"Region": "North", "region": "South", "REGION": 42}],
+        form_data,
+    )
+    assert model.dimensions == ["Region", "region"]
+    assert model.metric_field == "REGION"
+    with pytest.raises(ValueError, match="Ambiguous Bullet dimension"):
+        plugin.normalize_column_refs(
+            BulletChartConfig(metric=_simple_metric(), dimensions=[{"name": "rEgIoN"}]),
+            context,
+        )
+    with pytest.raises(ValidationError, match="ambiguous"):
+        BulletChartConfig(
+            metric=_simple_metric(),
+            dimensions=[{"name": "Region"}, {"name": "region"}],
+            order_by=[{"column": "REGION"}],
+        )
+
+
+@pytest.mark.parametrize("scale", ["linear", "log", None])
+def test_explicit_axis_scale_update_writes_native_boolean(scale: str | None) -> None:
+    config = XYChartConfig(
+        x={"name": "Region"},
+        y=[_simple_metric()],
+        y_axis={"scale": scale},
+    )
+    mapped = map_config_to_form_data(config)
+    from superset.mcp_service.chart.chart_utils import merge_same_viz_form_data
+
+    merge_same_viz_form_data(
+        {"viz_type": mapped["viz_type"], "logAxis": True}, mapped, config
+    )
+    assert mapped["logAxis"] is (None if scale is None else scale == "log")
+
+
+def test_bullet_ignores_foreign_sort_flag_after_master_merge() -> None:
+    form_data = {
+        "viz_type": "bullet",
+        "metric": "Revenue",
+        "groupby": ["Region"],
+        "sort_by_metric": True,
+        "orderby": [["Region", True]],
+    }
+    query = build_query_dicts_from_form_data(form_data, 7, "table")[0]
+    assert query["orderby"] == [["Region", True]]

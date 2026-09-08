@@ -27,7 +27,11 @@ from superset.mcp_service.chart.chart_utils import (
     map_bullet_config,
 )
 from superset.mcp_service.chart.plugin import BaseChartPlugin
-from superset.mcp_service.chart.schemas import BulletChartConfig, ColumnRef
+from superset.mcp_service.chart.schemas import (
+    BulletChartConfig,
+    ColumnRef,
+    resolve_bullet_order_target,
+)
 from superset.mcp_service.chart.validation.dataset_validator import (
     DatasetValidator,
     is_numeric_column,
@@ -210,26 +214,18 @@ class BulletChartPlugin(BaseChartPlugin):
         config_dict = config.model_dump(exclude_unset=True)
         columns = [column["name"] for column in dataset_context.available_columns]
         metrics = [metric["name"] for metric in dataset_context.available_metrics]
-        canonical_roles: dict[str, str] = {}
 
         metric = config_dict["metric"]
         if not metric.get("sql_expression"):
-            original_metric = metric["name"]
             metric["name"] = _canonical_reference(
                 metric["name"],
                 metrics if metric.get("saved_metric") else columns,
                 "saved metric" if metric.get("saved_metric") else "metric column",
             )
-            canonical_roles[original_metric.casefold()] = metric["name"]
-        for original, dimension in zip(
-            config.dimensions or [],
-            config_dict.get("dimensions") or [],
-            strict=True,
-        ):
+        for dimension in config_dict.get("dimensions") or []:
             dimension["name"] = _canonical_reference(
                 dimension["name"], columns, "dimension"
             )
-            canonical_roles[(original.name or "").casefold()] = dimension["name"]
         if temporal := config_dict.get("temporal_column"):
             config_dict["temporal_column"] = _canonical_reference(
                 temporal, columns, "temporal column"
@@ -242,8 +238,13 @@ class BulletChartPlugin(BaseChartPlugin):
         # Sort targets may use ergonomic role names or labels. Canonicalize
         # physical-name targets and leave explicit display labels untouched.
         for order in config_dict.get("order_by") or []:
-            if canonical := canonical_roles.get(order["column"].casefold()):
-                order["column"] = canonical
+            role, index = resolve_bullet_order_target(
+                order["column"], config.dimensions or [], config.metric
+            )
+            if role == "dimension" and index is not None:
+                order["column"] = config_dict["dimensions"][index]["name"]
+            elif not metric.get("sql_expression") and not metric.get("label"):
+                order["column"] = metric["name"]
 
         normalized = BulletChartConfig.model_validate(config_dict)
         normalized.model_fields_set.clear()

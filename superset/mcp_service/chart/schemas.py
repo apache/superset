@@ -2579,42 +2579,20 @@ class BulletChartConfig(BaseChartConfig):
                     f"dimensions[{index}] must be a physical dimension, not a metric"
                 )
             name = dimension.name or ""
-            if name.casefold() in seen_names:
+            if name in seen_names:
                 raise ValueError(f"Duplicate Bullet dimension: {name!r}")
-            seen_names.add(name.casefold())
+            seen_names.add(name)
 
-        metric_output = _bullet_metric_output_label(self.metric)
         # ``map_bullet_config`` deliberately emits physical groupby names. The
         # frontend therefore reads dimension results under those names even when
         # a friendly ``ColumnRef.label`` was supplied. Only the metric is emitted
         # with an output alias. Keep validation aligned with those actual result
         # fields instead of treating dimension display labels as SQL aliases.
-        if metric_output.casefold() in seen_names:
+        if (metric_output := _bullet_metric_output_label(self.metric)) in seen_names:
             raise ValueError(
                 f"Bullet metric output label {metric_output!r} conflicts with a "
                 "dimension (its physical output name); provide a unique metric label"
             )
-
-        pairs = (
-            ("range_labels", self.range_labels, "ranges", self.ranges),
-            ("marker_labels", self.marker_labels, "markers", self.markers),
-            (
-                "marker_line_labels",
-                self.marker_line_labels,
-                "marker_lines",
-                self.marker_lines,
-            ),
-        )
-        for label_field, labels, value_field, values in pairs:
-            if (
-                label_field in self.model_fields_set
-                and value_field in self.model_fields_set
-                and labels
-                and len(labels) != len(values)
-            ):
-                raise ValueError(
-                    f"{label_field} must contain one label per {value_field} value"
-                )
 
         resolved_order: list[tuple[str, int | None]] = []
         for item in self.order_by:

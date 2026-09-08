@@ -1698,7 +1698,9 @@ def _apply_explicit_form_controls(  # noqa: C901
             if "format" in axis_fields:
                 new_form_data[format_key] = axis.format
             if scale_key and "scale" in axis_fields:
-                new_form_data[scale_key] = axis.scale
+                new_form_data[scale_key] = (
+                    None if axis.scale is None else axis.scale == "log"
+                )
 
         if config.chart_type == "xy" and "legend" in explicit_fields:
             legend = config.legend

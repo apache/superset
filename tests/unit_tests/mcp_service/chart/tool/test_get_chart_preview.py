@@ -2592,3 +2592,130 @@ def test_authorize_guest_query_noop_for_non_guest() -> None:
         strategy._authorize_guest_query(MagicMock())
 
     mock_authorize.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("format_", ["ascii", "vega_lite"])
+@pytest.mark.parametrize("saved", [True, False])
+async def test_bullet_short_labels_and_case_distinct_dimensions_reach_fastmcp(
+    format_: str,
+    saved: bool,
+) -> None:
+    from contextlib import nullcontext
+
+    from fastmcp import Client
+
+    from superset.mcp_service.app import mcp
+
+    preview_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_preview"
+    )
+    command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+    form_data = {
+        "viz_type": "bullet",
+        "datasource": "1__table",
+        "metric": "Revenue",
+        "groupby": ["Region", "region"],
+        "ranges": "10,20,30",
+        "range_labels": "Low",
+        "markers": "12,22",
+        "marker_labels": "Plan",
+        "marker_lines": "13,23",
+        "marker_line_labels": "Forecast",
+        "show_labels": True,
+        "y_axis_format": ".1f",
+    }
+    chart = SimpleNamespace(
+        id=121,
+        slice_name="Number boundaries",
+        viz_type="bullet",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(form_data),
+    )
+    rows = [{"Region": "North", "region": "South", "Revenue": 15}]
+
+    class _Command:
+        def __init__(self, _query_context: Any) -> None: ...
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return {
+                "queries": [
+                    {
+                        "data": rows,
+                        "colnames": ["Region", "region", "Revenue"],
+                    }
+                ]
+            }
+
+    query_context = SimpleNamespace(
+        form_data={},
+        queries=[SimpleNamespace(metrics=["Revenue"], columns=["Region", "region"])],
+    )
+    user = MagicMock(id=1, username="admin", roles=[], groups=[])
+    with (
+        patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
+        patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
+        patch(
+            "superset.commands.explore.form_data.get.GetFormDataCommand.run",
+            return_value=utils_json.dumps(form_data),
+        ),
+        patch.object(preview_module, "find_chart_by_identifier", return_value=chart),
+        patch.object(preview_module.db.session, "refresh", return_value=None),
+        patch.object(
+            preview_module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch.object(
+            preview_module.event_logger,
+            "log_context",
+            side_effect=lambda **_kwargs: nullcontext(),
+        ),
+        patch.object(
+            preview_module,
+            "build_query_context_from_form_data",
+            return_value=query_context,
+        ),
+        patch.object(preview_module, "set_query_context_form_data", return_value=None),
+        patch.object(command_module, "ChartDataCommand", _Command),
+        patch.object(
+            preview_module, "get_superset_base_url", return_value="http://localhost"
+        ),
+    ):
+        request_payload: dict[str, str | int] = {"format": format_}
+        if saved:
+            request_payload["id"] = 121
+        else:
+            request_payload["form_data_key"] = "short-labels"
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "get_chart_preview",
+                {"request": request_payload},
+            )
+
+    payload = utils_json.loads(result.content[0].text)
+    assert payload["chart_type"] == "bullet"
+    if format_ == "ascii":
+        assert "North, South" in payload["content"]["ascii_content"]
+    else:
+        spec = payload["content"]["specification"]
+        bar = next(layer for layer in spec["layer"] if layer["mark"]["type"] == "bar")
+        category = bar["encoding"]["y"]["field"]
+        assert spec["data"]["values"][0][category] == "North, South"
+        labels = {
+            layer["encoding"]["x"]["datum"]: layer["encoding"]["text"]["value"]
+            for layer in spec["layer"]
+            if layer["mark"]["type"] == "text"
+        }
+        assert labels == {
+            10.0: "Low",
+            12.0: "Plan",
+            22.0: "22.0",
+            13.0: "Forecast",
+            23.0: "23.0",
+        }

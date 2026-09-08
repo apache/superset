@@ -1553,7 +1553,12 @@ def _build_single_query_dict(  # noqa: C901
     # builds the query dict directly and never reads a top-level
     # form_data['orderby'], so translate the flag here or a row_limit truncates
     # an unordered result (dropping the heaviest rows rather than the top-N).
-    if form_data.get("sort_by_metric") and metrics:
+    if (
+        form_data.get("viz_type")
+        in {"pie", "funnel", "treemap_v2", "sankey_v2", "gauge_chart"}
+        and form_data.get("sort_by_metric")
+        and metrics
+    ):
         qd["orderby"] = [(metrics[0], False)]
     if orderby:
         qd["orderby"] = orderby

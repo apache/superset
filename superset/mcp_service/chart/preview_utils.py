@@ -700,7 +700,13 @@ def _containing_bullet_range_label(
     measure: float, ranges: list[float], labels: list[str]
 ) -> str | None:
     """Match the frontend's labelled containing-range tooltip selection."""
-    ascending = sorted(zip(ranges, labels, strict=True), key=lambda entry: entry[0])
+    ascending = sorted(
+        (
+            (value, labels[index] if index < len(labels) else "")
+            for index, value in enumerate(ranges)
+        ),
+        key=lambda entry: entry[0],
+    )
     for threshold, label in ascending:
         if measure <= threshold:
             return label or None
@@ -815,16 +821,6 @@ def resolve_bullet_render_model(  # noqa: C901
     marker_line_labels = _bullet_string_tokens(
         dict.get(form_data, "marker_line_labels")
     )
-    for role, labels, values in (
-        ("range", range_labels, ranges),
-        ("marker", marker_labels, markers),
-        ("marker line", marker_line_labels, marker_lines),
-    ):
-        if labels and len(labels) != len(values):
-            raise BulletOutputError(
-                f"Bullet {role} labels must contain one label per value"
-            )
-
     return BulletRenderModel(
         rows=copied_rows,
         metric_field=metric_field,
@@ -1191,7 +1187,11 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
     def label_at(labels: list[str], index: int, value: float, prefix: str) -> str:
         if index < len(labels) and labels[index]:
             return labels[index]
-        return f"{prefix} {_format_bullet_number(model.y_axis_format, value)}"
+        return (
+            ""
+            if prefix == "Range"
+            else _format_bullet_number(model.y_axis_format, value)
+        )
 
     def legend_color(name: str) -> dict[str, Any]:
         return {
@@ -1224,8 +1224,8 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
                     "x2": {"datum": threshold},
                     "y": y_encoding,
                     "color": legend_color(
-                        f"{label}: ≤ "
-                        f"{_format_bullet_number(model.y_axis_format, threshold)}"
+                        (f"{label}: " if label else "")
+                        + f"≤ {_format_bullet_number(model.y_axis_format, threshold)}"
                     ),
                     "tooltip": [
                         {"value": label, "title": "Range"},
@@ -1239,7 +1239,7 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
                 },
             }
         )
-        if model.show_labels and index < len(model.range_labels):
+        if model.show_labels and label:
             layers.append(
                 {
                     "mark": {"type": "text", "align": "right", "dx": -3},
