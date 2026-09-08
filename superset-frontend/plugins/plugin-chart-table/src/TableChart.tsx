@@ -47,6 +47,7 @@ import {
   extractTextFromHTML,
   TimeGranularity,
   forceHexAlpha,
+  DateWithFormatter,
 } from '@superset-ui/core';
 import {
   styled,

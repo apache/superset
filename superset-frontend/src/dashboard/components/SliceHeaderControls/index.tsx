@@ -196,13 +196,22 @@ const SliceHeaderControls = (
       .get(props.slice.viz_type)
       ?.behaviors?.includes(Behavior.InteractiveChart);
   const canExplore = props.supersetCanExplore;
-  const { canDrillToDetail, canViewQuery, canViewTable } = usePermissions();
+  const { canDrillToDetail, canGetDrillInfo, canViewQuery, canViewTable } =
+    usePermissions();
 
+  // Single predicate for the "View as table" entry, so the fetch that feeds its
+  // column headers cannot drift from the set of users who can open it.
+  const canViewResultsTable = canExplore || canViewTable;
+
+  // The dataset's verbose map resolves friendly Labels for both the drill-to-detail
+  // pane and the results grid, and those are separate permissions — so fetch it for
+  // either one, as long as the drill_info endpoint itself is readable (it is gated
+  // by `can_get_drill_info` on Dataset).
   const datasetResource = useDatasetDrillInfo(
     props.slice.datasource,
     props.dashboardId,
     props.formData,
-    !canDrillToDetail,
+    !canGetDrillInfo || !(canDrillToDetail || canViewResultsTable),
   );
 
   const datasetWithVerboseMap =
@@ -594,7 +603,7 @@ const SliceHeaderControls = (
     });
   }
 
-  if (canExplore || canViewTable) {
+  if (canViewResultsTable) {
     newMenuItems.push({
       key: MenuKeys.ViewResults,
       label: (

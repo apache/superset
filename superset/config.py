@@ -2545,6 +2545,9 @@ ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
 # which leaves the report schedule stuck in the WORKING state. Set to None to
 # disable (not recommended).
 ALERT_REPORTS_CSV_REQUEST_TIMEOUT = 60
+# Opt in to at most one transient CSV/Excel transport retry within the original
+# request timeout and report execution budget. Does not retry unbounded requests.
+ALERT_REPORTS_CSV_REQUEST_RETRY = False
 # Custom width for screenshots
 ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
 ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
@@ -3029,6 +3032,9 @@ GUEST_ROLE_NAME = "Public"
 GUEST_TOKEN_JWT_SECRET = CHANGE_ME_GUEST_TOKEN_JWT_SECRET
 GUEST_TOKEN_JWT_ALGO = "HS256"  # noqa: S105
 GUEST_TOKEN_HEADER_NAME = "X-GuestToken"  # noqa: S105
+# Diagnostic budget for UTF-8 bytes of "header-name: encoded-token\r\n".
+# None disables size warnings, not issuance or authentication. Deployment-specific.
+GUEST_TOKEN_HEADER_MAX_BYTES: int | None = None
 GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
 # Audience for the Superset guest token used in embedded mode.
 # Can be a string or a callable. Defaults to WEBDRIVER_BASEURL.
