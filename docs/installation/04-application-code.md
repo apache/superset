@@ -162,17 +162,97 @@ du -sh <APP_DIR>/superset/static/assets      # expect ~99M
 
 ### Option B — build from source (20–40 minutes)
 
+> **Warning**
+> If you took Option A, `node_modules` was **never installed** in this checkout —
+> copying the compiled assets does not install the toolchain that produced them.
+> `npm run build` then fails immediately with:
+>
+> ```
+> sh: 1: cross-env: not found
+> ```
+>
+> `cross-env` is a devDependency, so the message means "dependencies are
+> missing", not "cross-env is broken". Run `npm ci` first.
+
+**1. Use the Node version the project pins.** `superset-frontend/.nvmrc` and the
+`engines` block in `package.json` both pin it, and they are frequently *not*
+what the system provides:
+
 ```bash
-cd <APP_DIR>/superset-frontend
-sudo -u <APP_USER> npm ci
-sudo -u <APP_USER> npm run build
+cat superset-frontend/.nvmrc                       # e.g. v22.22.0
+node --version                                     # e.g. v23.10.0  <- mismatch
+python3 -c "import json;print(json.load(open('superset-frontend/package.json'))['engines'])"
 ```
 
+Do not upgrade or replace the system Node on a shared server — other services
+depend on it. Install the pinned version alongside it:
+
+```bash
+V=22.22.0
+cd /opt
+sudo curl -fsSL -o node.tar.xz \
+  "https://nodejs.org/dist/v$V/node-v$V-linux-x64.tar.xz"
+sudo tar -xJf node.tar.xz && sudo rm node.tar.xz
+/opt/node-v$V-linux-x64/bin/node --version         # confirm
+```
+
+Then wrap it, so nobody has to remember the PATH:
+
+```bash
+sudo tee /usr/local/bin/<INSTANCE>-frontend > /dev/null <<'EOF2'
+#!/bin/bash
+# npm for the Superset frontend, on the Node version the project pins.
+# The system Node is deliberately left alone; other services use it.
+export PATH=/opt/node-v22.22.0-linux-x64/bin:$PATH
+export NODE_OPTIONS=--max_old_space_size=8192
+cd <APP_DIR>/superset-frontend || exit 1
+exec npm "$@"
+EOF2
+sudo chmod 0755 /usr/local/bin/<INSTANCE>-frontend
+```
+
+**2. Back up the assets before building.** `npm run build` writes straight into
+`superset/static/assets/`, which is the directory nginx serves. A failed or
+interrupted build leaves the live site with a half-written asset tree:
+
+```bash
+sudo cp -a <APP_DIR>/superset/static/assets \
+          /var/backups/<INSTANCE>/assets-before-build-$(date +%F-%H%M%S)
+```
+
+**3. Install and build.**
+
+```bash
+sudo -u <APP_USER> <INSTANCE>-frontend ci        # ~2 GB, 1700 packages, 10-20 min
+sudo -u <APP_USER> <INSTANCE>-frontend run build # webpack, a few minutes
+```
+
+Expect `webpack <version> compiled with N warnings`. Warnings are normal;
+`ERROR` or `Module build failed` is not.
+
+**4. Restart and verify.** Superset reads the webpack manifest at boot, and a
+rebuild changes every content hash:
+
+```bash
+sudo systemctl restart <INSTANCE>
+curl -s -o /dev/null -w "%{http_code}\n" https://<DOMAIN>/login/
+```
+
+Then open the site and confirm it renders. If it does not, restore the backup
+from step 2 and restart — that is what it is for.
+
 > **Note**
-> The build needs a lot of memory and is routinely killed by the kernel on
-> small servers. If it dies without a clear error, check `dmesg | tail` for
-> `Out of memory`. Raising Node's heap sometimes helps:
-> `export NODE_OPTIONS=--max-old-space-size=8192`.
+> `/static/assets/pwa-manifest.js` returns 404 on this codebase. It is
+> referenced by a template but never emitted by the build, and it 404s on the
+> production instance too — so it is not evidence that your build went wrong.
+> Check a hashed bundle instead, e.g.
+> `curl -o /dev/null -w '%{http_code}' https://<DOMAIN>/static/assets/menu.<hash>.entry.js`.
+
+> **Note**
+> The build needs a lot of memory and is routinely killed by the kernel on small
+> servers. If it dies without a clear error, check `dmesg | tail` for
+> `Out of memory`. `NODE_OPTIONS=--max_old_space_size=8192` (set by the wrapper
+> above) is what the build script itself expects.
 
 ## 4.4 Restore the `superset` command
 
