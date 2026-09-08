@@ -96,19 +96,87 @@ export function buildTimeComparisonHeaderGroups(
   }));
 }
 
+function isTimeComparisonSlotKey(column: string, prefix: string): boolean {
+  return column.startsWith(`${prefix} `);
+}
+
+function remapTimeComparisonColumns(
+  columns: string[],
+  currentKeys: string[],
+): string[] {
+  const currentSet = new Set(currentKeys);
+  if (columns.every(column => currentSet.has(column))) {
+    return columns;
+  }
+  const mainKey = currentKeys.find(
+    key =>
+      !isTimeComparisonSlotKey(key, '#') &&
+      !isTimeComparisonSlotKey(key, '△') &&
+      !isTimeComparisonSlotKey(key, '%'),
+  );
+  const hashKey = currentKeys.find(key => isTimeComparisonSlotKey(key, '#'));
+  const deltaKey = currentKeys.find(key => isTimeComparisonSlotKey(key, '△'));
+  const percentKey = currentKeys.find(key => isTimeComparisonSlotKey(key, '%'));
+  const remapped = columns
+    .map(column => {
+      if (currentSet.has(column)) {
+        return column;
+      }
+      if (isTimeComparisonSlotKey(column, '#')) {
+        return hashKey;
+      }
+      if (isTimeComparisonSlotKey(column, '△')) {
+        return deltaKey;
+      }
+      if (isTimeComparisonSlotKey(column, '%')) {
+        return percentKey;
+      }
+      return mainKey;
+    })
+    .filter((column): column is string => Boolean(column));
+  return remapped.length > 0 ? [...new Set(remapped)] : currentKeys;
+}
+
+function refreshTimeComparisonGroup(
+  group: HeaderGroupConfig,
+  currentKeys: string[],
+  replaceColumns: boolean,
+): HeaderGroupConfig {
+  return {
+    ...group,
+    columns: replaceColumns
+      ? currentKeys
+      : remapTimeComparisonColumns(group.columns ?? [], currentKeys),
+    children: group.children?.map(child =>
+      refreshTimeComparisonGroup(child, currentKeys, false),
+    ),
+  };
+}
+
 export function syncTimeComparisonGroups(
   groups: HeaderGroupConfig[],
   timeComparisonGroups: HeaderGroupConfig[] = [],
 ): HeaderGroupConfig[] {
-  const autoIds = new Set(timeComparisonGroups.map(group => group.id));
+  const autoById = new Map(
+    timeComparisonGroups.map(group => [group.id, group]),
+  );
   const existingAutoIds = new Set(
     groups
       .filter(group => group.source === 'time_compare')
       .map(group => group.id),
   );
-  const kept = groups.filter(
-    group => group.source !== 'time_compare' || autoIds.has(group.id),
-  );
+  const kept = groups
+    .filter(group => group.source !== 'time_compare' || autoById.has(group.id))
+    .map(group => {
+      if (group.source !== 'time_compare') {
+        return group;
+      }
+      const fresh = autoById.get(group.id);
+      if (!fresh) {
+        return group;
+      }
+      return refreshTimeComparisonGroup(group, fresh.columns, true);
+    });
   const missing = timeComparisonGroups.filter(
     group => !existingAutoIds.has(group.id),
   );

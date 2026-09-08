@@ -394,6 +394,51 @@ test('syncTimeComparisonGroups adds missing auto groups and keeps edits', () => 
     'time-compare-profit',
   ]);
   expect(next[1].label).toBe('Renamed');
+  expect(next[1].columns).toEqual(comparisonRevenueColumns);
+});
+
+test('syncTimeComparisonGroups regenerates auto-group columns from current comparison keys', () => {
+  const next = syncTimeComparisonGroups(
+    [
+      {
+        id: 'time-compare-revenue',
+        label: 'Revenue',
+        columns: ['Principal revenue', '# revenue', '△ revenue', '% revenue'],
+        source: 'time_compare',
+        children: [
+          {
+            id: 'main-only',
+            label: 'Current',
+            columns: ['Principal revenue'],
+          },
+        ],
+      },
+    ],
+    [
+      {
+        id: 'time-compare-revenue',
+        label: 'Revenue',
+        columns: comparisonRevenueColumns,
+        source: 'time_compare',
+      },
+    ],
+  );
+
+  expect(next).toEqual([
+    {
+      id: 'time-compare-revenue',
+      label: 'Revenue',
+      columns: comparisonRevenueColumns,
+      source: 'time_compare',
+      children: [
+        {
+          id: 'main-only',
+          label: 'Current',
+          columns: ['Main revenue'],
+        },
+      ],
+    },
+  ]);
 });
 
 test('resolveHeaderGroups labels percent metrics after stripping the prefix', () => {

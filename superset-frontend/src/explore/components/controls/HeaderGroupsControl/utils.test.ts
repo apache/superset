@@ -320,6 +320,7 @@ test('syncTimeComparisonGroups adds missing and drops stale auto groups', () => 
     'time-compare-profit',
   ]);
   expect(next[1].label).toBe('Renamed sales');
+  expect(next[1].columns).toEqual(['Main SUM(sales)', '# SUM(sales)']);
 });
 
 test('headerGroupsHaveSameColumns compares ids and columns', () => {
