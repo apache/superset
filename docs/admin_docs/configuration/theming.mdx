@@ -240,6 +240,39 @@ Font URLs are validated against a configurable allowlist. By default, fonts from
 
 This feature works with the stock Docker image - no custom build required!
 
+## Results Grid Configuration Overrides
+
+Superset exposes a handful of opt-in tokens that customize the appearance of
+the results grid in SQL Lab. These tokens have no effect unless explicitly
+set, since the results grid otherwise falls back to its built-in defaults.
+
+```python
+THEME_DEFAULT = {
+    "token": {
+        "colorPrimary": "#2893B3",
+        # ... other Ant Design tokens
+
+        # Results grid overrides
+        "resultsGridRowHeight": 32,
+        "resultsGridHeaderFontSize": 13,
+        "resultsGridHeaderFontWeight": 600,
+        "resultsGridBorderRadius": 4,
+        "resultsGridNoStriping": True,
+    }
+}
+```
+
+| Token | Type | Description |
+| --- | --- | --- |
+| `resultsGridRowHeight` | `number` | Row and header height, in pixels. |
+| `resultsGridHeaderFontSize` | `number` | Header cell font size, in pixels. |
+| `resultsGridHeaderFontWeight` | `number` | Header cell font weight. |
+| `resultsGridBorderRadius` | `number` | Border radius applied to the grid and its wrapper, in pixels. |
+| `resultsGridNoStriping` | `boolean` | When `true`, disables alternating row background striping. |
+
+These tokens can also be set through the theme CRUD interface's JSON editor,
+alongside any other Superset-specific tokens.
+
 ## ECharts Configuration Overrides
 
 :::note

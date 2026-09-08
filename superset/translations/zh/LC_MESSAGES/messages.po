@@ -5475,10 +5475,12 @@ msgid "Deleted %(num)d saved query"
 msgid_plural "Deleted %(num)d saved queries"
 msgstr[0] "删除 %(num)d 个保存的查询"
 
+#, python-format
 msgid "Deleted %(num)d semantic view"
 msgid_plural "Deleted %(num)d semantic views"
 msgstr[0] "删除了 %(num)d 个语义视图"
 
+#, python-format
 msgid "Deleted %(num)d theme"
 msgid_plural "Deleted %(num)d themes"
 msgstr[0] "删除了 %(num)d 个主题"
@@ -7061,7 +7063,7 @@ msgid "Failed to load columns for %s %s"
 msgstr "无法加载 %s %s 的列"
 
 msgid "Failed to load top values"
-msgstr "加载前 N 个值失败"
+msgstr "加载顶部值失败"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -7894,8 +7896,6 @@ msgstr "数据应分组成多少个桶。"
 msgid "How many periods into the future do we want to predict"
 msgstr "我们想要预测未来多少个周期"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
-# ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "How many top values to select"
 msgstr "要选择多少个顶部值"
 
@@ -10447,7 +10447,7 @@ msgid "Options"
 msgstr "选项"
 
 msgid "Or choose from a list of other databases we support:"
-msgstr "或者从我们支持的 other 数据库列表中选择："
+msgstr "或者从我们支持的其他数据库列表中选择："
 
 msgid "Order results by selected columns"
 msgstr "按选定列对结果进行排序"
@@ -13199,7 +13199,7 @@ msgid "Shift + Click to sort by multiple columns"
 msgstr "Shift + 点击可按多列排序"
 
 msgid "Shift start date"
-msgstr "平移开始日期"
+msgstr "偏移开始日期"
 
 msgid "Short description must be unique for this layer"
 msgstr "此层的简述必须是唯一的"
@@ -13863,7 +13863,7 @@ msgid "Start at (UTC)"
 msgstr "开始于（UTC）"
 
 msgid "Start date"
-msgstr "开始时间"
+msgstr "开始日期"
 
 msgid "Start date included in time range"
 msgstr "开始日期包含在时间范围内"
@@ -15710,30 +15710,36 @@ msgstr "预览所选查询时出现问题。%s"
 
 #, python-format
 msgid ""
-"These %(type)s will be moved to Recently Archived. You can recover them "
-"there within %(days)s days."
-msgstr "这些 %(type)s 将被移至“最近归档”。您可以在 %(days)s 天内从那里恢复它们。"
+"These %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover them there within %(days)s day."
+msgid_plural ""
+"These %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover them there within %(days)s days."
+msgstr[0] "这些 %(type)s 将被移至设置菜单中的“最近归档”。您可以在 %(days)s 天内从那里恢复它们。"
 
 #, python-format
 msgid ""
-"These %(type)s will be moved to Recently Archived. You can recover them "
-"there."
-msgstr "这些 %(type)s 将被移至“最近归档”。您可以在那里恢复它们。"
+"These %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover them there."
+msgstr "这些 %(type)s 将被移至设置菜单中的“最近归档”。您可以在那里恢复它们。"
 
 msgid "These are the datasets this filter will be applied to."
 msgstr "这些是此筛选器将应用到的数据集。"
 
 #, python-format
 msgid ""
-"This %(type)s will be moved to Recently Archived. You can recover it "
-"there within %(days)s days."
-msgstr "此 %(type)s 将被移至“最近归档”。您可以在 %(days)s 天内从那里恢复它。"
+"This %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover it there within %(days)s day."
+msgid_plural ""
+"This %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover it there within %(days)s days."
+msgstr[0] "此 %(type)s 将被移至设置菜单中的“最近归档”。您可以在 %(days)s 天内从那里恢复它。"
 
 #, python-format
 msgid ""
-"This %(type)s will be moved to Recently Archived. You can recover it "
-"there."
-msgstr "此 %(type)s 将被移至“最近归档”。您可以在那里恢复它。"
+"This %(type)s will be moved to Recently Archived in the Settings menu. "
+"You can recover it there."
+msgstr "此 %(type)s 将被移至设置菜单中的“最近归档”。您可以在那里恢复它。"
 
 msgid ""
 "This JSON object is generated dynamically when clicking the save or "
@@ -16092,7 +16098,6 @@ msgid ""
 " is not the case."
 msgstr "此页面设计为嵌入在 iframe 中，但看起来并非如此。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "This password is too common; please choose a less guessable one."
 msgstr "此密码过于常见；请选择一个不易被猜到的密码。"
 
@@ -17017,7 +17022,6 @@ msgstr "上传CSV"
 msgid "Upload CSV to database"
 msgstr "将 CSV 上传到数据库"
 
-#, fuzzy
 msgid "Upload Columnar"
 msgstr "上传列式文件"
 

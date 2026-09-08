@@ -22,6 +22,7 @@ import logging
 import re
 import time
 from collections import defaultdict
+from collections.abc import Set as AbstractSet
 from math import ceil
 from types import SimpleNamespace
 from typing import (
@@ -1629,11 +1630,25 @@ def query_context_modified(query_context: "QueryContext") -> bool:
         )
         return True
 
-    stored_query_context = (
-        json.loads(cast(str, stored_chart.query_context))
-        if stored_chart.query_context
-        else None
-    )
+    try:
+        stored_query_context = (
+            json.loads(cast(str, stored_chart.query_context))
+            if stored_chart.query_context
+            else None
+        )
+    except (json.JSONDecodeError, TypeError):
+        # A stored query_context that fails to parse cannot be compared against
+        # the guest payload, so it is treated as modified/tampered (returning
+        # True triggers the SupersetSecurityException 403 in raise_for_access),
+        # consistent with the other rejection branches below. Malformed
+        # query_context can be persisted by the query-context-only update path
+        # (see ChartUpdateCommand._validate_query_context_datasource).
+        logger.warning(
+            "Guest chart payload rejected for slice %s: stored query_context "
+            "is not valid JSON",
+            stored_chart.id,
+        )
+        return True
 
     # A rejected guest load is most often a chart whose saved query_context is
     # NULL or stale rather than genuine tampering, and the generic 403 gives no
@@ -1807,6 +1822,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "can_external_metadata_by_name",
         "can_read",
         "can_get_drill_info",
+        # Datasource querying is a read operation. Without this, Datasource
+        # being in GAMMA_READ_ONLY_MODEL_VIEWS makes _is_alpha_only withhold
+        # can_query from Gamma.
+        "can_query",
     }
 
     ALPHA_ONLY_PERMISSIONS = {
@@ -2626,7 +2645,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self,
         database: "Database",
         catalog: Optional[str],
-        schemas: set[str],
+        schemas: AbstractSet[str] | list[str],
         hierarchical: bool = True,
     ) -> set[str]:
         """
@@ -2636,13 +2655,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :param database: The SQL database
         :param catalog: An optional database catalog
-        :param schemas: A set of candidate schemas
+        :param schemas: The candidate schemas
         :param hierarchical: Whether to check using the hierarchical permission logic
         :returns: The set of accessible database schemas
         """
 
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlaTable
+
+        # Candidate names may come from cached metadata calls (eg,
+        # ``Database.get_all_schema_names``) whose values can be deserialized
+        # as lists rather than sets depending on the cache serializer, so
+        # normalize before applying set operations.
+        schemas = set(schemas)
 
         default_catalog = database.get_default_catalog()
         catalog = catalog or default_catalog
@@ -2696,19 +2721,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def get_catalogs_accessible_by_user(
         self,
         database: "Database",
-        catalogs: set[str],
+        catalogs: AbstractSet[str] | list[str],
         hierarchical: bool = True,
     ) -> set[str]:
         """
         Returned a filtered list of the catalogs accessible by the user.
 
         :param database: The SQL database
-        :param catalogs: A set of candidate catalogs
+        :param catalogs: The candidate catalogs
         :param hierarchical: Whether to check using the hierarchical permission logic
         :returns: The set of accessible database catalogs
         """
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlaTable
+
+        # Candidate names may come from cached metadata calls (eg,
+        # ``Database.get_all_catalog_names``) whose values can be deserialized
+        # as lists rather than sets depending on the cache serializer, so
+        # normalize before applying set operations.
+        catalogs = set(catalogs)
 
         if hierarchical and self.can_access_database(database):
             return catalogs

@@ -128,6 +128,7 @@ dashboard_slices = Table(
         ForeignKey("slices.id", ondelete="CASCADE"),
         primary_key=True,
     ),
+    sqla.Index("ix_dashboard_slices_slice_id", "slice_id"),
 )
 
 

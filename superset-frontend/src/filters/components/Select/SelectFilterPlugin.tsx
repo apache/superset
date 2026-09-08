@@ -643,6 +643,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               allowNewOptions={creatable !== false}
               allowNewOptionsOnPaste={multiSelect && searchAllOptions}
               allowSelectAll={!searchAllOptions}
+              stableSelectAll={!searchAllOptions}
               value={multiSelect ? filterState.value || [] : filterState.value}
               disabled={isDisabled}
               getPopupContainer={getSelectPopupContainer}
