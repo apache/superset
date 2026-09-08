@@ -188,7 +188,10 @@ def folds_unquoted_identifiers(engine: str) -> bool:
     ``BaseEngineSpec.denormalize_name`` answers the same question from the
     SQLAlchemy dialect, for callers working with a live connection.
     """
-    if (dialect := SQLGLOT_DIALECTS.get(engine)) is None:
+    dialect = SQLGLOT_DIALECTS.get(engine)
+    if dialect is None or dialect is Dialects.DIALECT:
+        # an engine with no dialect of its own (including ``base``, what engines
+        # without a spec report): don't guess at its identifier semantics
         return False
     try:
         strategy = Dialect.get_or_raise(dialect).NORMALIZATION_STRATEGY

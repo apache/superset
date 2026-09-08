@@ -28,6 +28,7 @@ from superset.utils import json
 from superset.utils.core import get_user_id
 
 if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
     from superset.sql.parse import BaseSQLStatement
 
@@ -95,6 +96,67 @@ def apply_rls(
     return has_predicates
 
 
+def _find_case_insensitive_dataset(
+    table: Table,
+    database: Database,
+    default_catalog: str | None,
+    extra_filters: list[Any],
+) -> SqlaTable | None:
+    """
+    Find the dataset a case-mismatched table reference resolves to.
+
+    Mirrors the tiers of the exact lookup in ``get_predicates_for_table`` (exact
+    schema, then the default schema for a dataset stored without one), but folds
+    every identifier, since the engine doesn't treat unquoted identifiers as
+    case-sensitive. An ambiguous match is ignored rather than guessed at.
+
+    :param extra_filters: Filters shared with the exact lookup that aren't
+        identifier comparisons (database and dataset exclusion).
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    catalog_predicate = (
+        func.lower(SqlaTable.catalog) == table.catalog.lower()
+        if table.catalog
+        else SqlaTable.catalog.is_(None)
+    )
+    if (
+        table.catalog
+        and default_catalog
+        and table.catalog.lower() == default_catalog.lower()
+    ):
+        catalog_predicate = or_(catalog_predicate, SqlaTable.catalog.is_(None))
+
+    filters = [
+        *extra_filters,
+        catalog_predicate,
+        func.lower(SqlaTable.table_name) == table.table.lower(),
+    ]
+
+    def unique_match(schema_predicate: Any) -> SqlaTable | None:
+        # 0, 1 or "ambiguous" is all this needs to tell apart
+        matches = (
+            db.session.query(SqlaTable)
+            .filter(and_(*filters, schema_predicate))
+            .limit(2)
+            .all()
+        )
+        return matches[0] if len(matches) == 1 else None
+
+    if not table.schema:
+        return unique_match(SqlaTable.schema.is_(None))
+
+    if dataset := unique_match(func.lower(SqlaTable.schema) == table.schema.lower()):
+        return dataset
+
+    if null_schema_dataset := unique_match(SqlaTable.schema.is_(None)):
+        default_schema = database.get_default_schema(table.catalog)
+        if default_schema and table.schema.lower() == default_schema.lower():
+            return null_schema_dataset
+
+    return None
+
+
 def get_predicates_for_table(
     table: Table,
     database: Database,
@@ -119,18 +181,18 @@ def get_predicates_for_table(
             SqlaTable.catalog.is_(None),
         )
 
-    base_filters = [
-        SqlaTable.database_id == database.id,
-        catalog_predicate,
-    ]
+    # Filters that aren't identifier comparisons, and so are shared as-is with the
+    # case-insensitive fallback below.
+    shared_filters = [SqlaTable.database_id == database.id]
     # When applying RLS to a virtual dataset's inner SQL, skip a match against
     # the dataset itself — its RLS is already applied on the outer WHERE via
     # get_sqla_row_level_filters(). Without this, a virtual dataset whose
     # table_name happens to equal a table in its own SQL (e.g. after a
     # physical→virtual conversion) double-applies its own predicates.
     if exclude_dataset_id is not None:
-        base_filters.append(SqlaTable.id != exclude_dataset_id)
+        shared_filters.append(SqlaTable.id != exclude_dataset_id)
 
+    base_filters = [*shared_filters, catalog_predicate]
     exact_name = SqlaTable.table_name == table.table
 
     dataset = (
@@ -161,28 +223,17 @@ def get_predicates_for_table(
         # The matches above are case-sensitive, but an engine that doesn't treat
         # unquoted identifiers as case-sensitive resolves a case-mismatched
         # reference (e.g. ``BIRTH_NAMES``) to the same physical table as the
-        # registered dataset (``birth_names``), so match both name and schema
-        # case-insensitively here. A parsed reference carries no quoting
-        # information, so this also matches a quoted reference, which is a
-        # distinct table on those engines: that direction applies extra predicates
-        # rather than dropping one that should have applied.
-        matches = (
-            db.session.query(SqlaTable)
-            .filter(
-                and_(
-                    *base_filters,
-                    func.lower(SqlaTable.table_name) == table.table.lower(),
-                    func.lower(SqlaTable.schema) == table.schema.lower()
-                    if table.schema
-                    else SqlaTable.schema.is_(None),
-                )
-            )
-            # 0, 1 or "ambiguous" is all this needs to tell apart
-            .limit(2)
-            .all()
+        # registered dataset (``birth_names``), so retry the lookup folding every
+        # identifier. A parsed reference carries no quoting information, so this
+        # also matches a quoted reference, which is a distinct table on those
+        # engines: that direction applies extra predicates rather than dropping
+        # one that should have applied.
+        dataset = _find_case_insensitive_dataset(
+            table,
+            database,
+            default_catalog,
+            shared_filters,
         )
-        if len(matches) == 1:
-            dataset = matches[0]
 
     if not dataset:
         return []

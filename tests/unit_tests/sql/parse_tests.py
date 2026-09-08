@@ -6403,13 +6403,14 @@ def test_has_aggregate(expression: str, expected: bool) -> None:
         ("sqlite", True),
         ("snowflake", True),
         ("mysql", False),
+        ("base", False),
         ("no_such_engine", False),
     ],
 )
 def test_folds_unquoted_identifiers(engine: str, expected: bool) -> None:
     """
-    ``folds_unquoted_identifiers`` reports whether an engine folds unquoted
-    identifiers to a single case, and reports False for an engine with no known
-    dialect so callers keep their exact-match behavior.
+    ``folds_unquoted_identifiers`` reports whether an engine treats unquoted
+    identifiers as case-sensitive, and reports False for an engine with no dialect
+    of its own so callers keep their exact-match behavior.
     """
     assert folds_unquoted_identifiers(engine) is expected

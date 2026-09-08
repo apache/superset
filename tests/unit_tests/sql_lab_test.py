@@ -707,11 +707,13 @@ def test_get_predicates_for_table_prefers_exact_schema_match(session: Session) -
 
 def test_get_predicates_for_table_case_mismatched_reference(session: Session) -> None:
     """
-    On an engine that folds unquoted identifiers, a reference whose table or
-    schema casing differs from the registered dataset still resolves to the same
-    physical table, so the dataset's RLS predicates must be applied. An engine
-    that doesn't fold keeps the exact match, and an ambiguous case-insensitive
-    match is ignored rather than guessed at.
+    On an engine that doesn't treat unquoted identifiers as case-sensitive, a
+    reference whose catalog, schema or table casing differs from the registered
+    dataset still resolves to the same physical table, so the dataset's RLS
+    predicates must be applied. That includes a dataset stored without a schema,
+    which is scoped to the database's default schema. An engine that does treat
+    them as case-sensitive keeps the exact match, and an ambiguous
+    case-insensitive match is ignored rather than guessed at.
     """
     from superset.connectors.sqla.models import SqlaTable
 
@@ -720,12 +722,18 @@ def test_get_predicates_for_table_case_mismatched_reference(session: Session) ->
     folding = Database(database_name="rls_db_ci", sqlalchemy_uri="sqlite://")
     exact = Database(database_name="rls_db_cs", sqlalchemy_uri="mysql://localhost/db")
     ambiguous = Database(database_name="rls_db_ambiguous", sqlalchemy_uri="sqlite://")
+    null_schema = Database(
+        database_name="rls_db_null_schema", sqlalchemy_uri="sqlite://"
+    )
     session.add_all(
         [
             folding,
             exact,
             ambiguous,
-            SqlaTable(table_name="t1", schema="public", catalog=None, database=folding),
+            null_schema,
+            SqlaTable(
+                table_name="t1", schema="public", catalog="cat", database=folding
+            ),
             SqlaTable(table_name="t1", schema="public", catalog=None, database=exact),
             SqlaTable(
                 table_name="t1", schema="public", catalog=None, database=ambiguous
@@ -733,19 +741,35 @@ def test_get_predicates_for_table_case_mismatched_reference(session: Session) ->
             SqlaTable(
                 table_name="T1", schema="public", catalog=None, database=ambiguous
             ),
+            SqlaTable(table_name="t1", schema=None, catalog=None, database=null_schema),
         ]
     )
     session.flush()
 
-    with patch.object(
-        SqlaTable, "get_sqla_row_level_filters", return_value=[text("c1 = 1")]
+    with (
+        patch.object(
+            SqlaTable, "get_sqla_row_level_filters", return_value=[text("c1 = 1")]
+        ),
+        patch.object(Database, "get_default_schema", return_value="public"),
     ):
-        assert get_predicates_for_table(Table("T1", "public", None), folding, None) == [
-            "c1 = 1"
-        ]
-        assert get_predicates_for_table(Table("T1", "PUBLIC", None), folding, None) == [
-            "c1 = 1"
-        ]
+        for reference in (
+            Table("T1", "public", "cat"),
+            Table("T1", "PUBLIC", "cat"),
+            Table("t1", "public", "CAT"),
+        ):
+            assert get_predicates_for_table(reference, folding, "cat") == ["c1 = 1"], (
+                f"no predicates for {reference}"
+            )
+
+        # dataset stored without a schema, referenced via the default schema
+        assert get_predicates_for_table(
+            Table("T1", "PUBLIC", None), null_schema, None
+        ) == ["c1 = 1"]
+        assert (
+            get_predicates_for_table(Table("T1", "other", None), null_schema, None)
+            == []
+        )
+
         assert get_predicates_for_table(Table("T1", "public", None), exact, None) == []
         assert (
             get_predicates_for_table(Table("t1", "PUBLIC", None), ambiguous, None) == []
