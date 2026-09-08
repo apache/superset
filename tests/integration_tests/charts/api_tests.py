@@ -969,15 +969,17 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         db.session.delete(user_alpha2)
         db.session.commit()
 
-    def test_update_chart_refuses_externally_managed(self):
-        """sc-120011: PUT is refused server-side for an externally managed
-        chart even for an admin who could otherwise edit it -- the update
-        would be overwritten on the next external sync, and the browser-only
-        gate can be bypassed by calling the endpoint directly. Chart is the
-        representative real-endpoint case; the guard is the shared
-        raise_if_managed_externally helper called by all three update
-        commands, pinned across chart/dashboard/dataset by
-        tests/unit_tests/commands/test_update_managed_externally.py."""
+    def test_update_chart_refuses_externally_managed(self) -> None:
+        """sc-120011: PUT on an externally managed chart is refused with 403.
+
+        Refused server-side even for an admin who could otherwise edit it:
+        the update would be overwritten on the next external sync, and the
+        browser-only gate can be bypassed by calling the endpoint
+        directly. Chart is the representative real-endpoint case; the
+        guard is the shared raise_if_managed_externally helper called by
+        all three update commands, pinned across chart/dashboard/dataset
+        by tests/unit_tests/commands/test_update_managed_externally.py.
+        """
         admin = self.get_user("admin")
         chart = self.insert_chart("external source of truth", [admin.id], 1)
         chart.is_managed_externally = True
