@@ -39,6 +39,7 @@ from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.commands.utils import (
     compute_subjects,
     get_datasource_by_id,
+    raise_if_managed_externally,
     update_tags,
     validate_tags,
 )
@@ -171,6 +172,10 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
                 raise ChartForbiddenError() from ex
             except ValidationError as ex:
                 exceptions.append(ex)
+            # The query-context-only branch below is deliberately exempt
+            # from this gate: query context is derived state (persisted by
+            # report workers), not an edit the external source of truth owns.
+            raise_if_managed_externally(self._model, ChartForbiddenError)
         else:
             try:
                 security_manager.raise_for_access(chart=self._model)

@@ -38,6 +38,7 @@ from superset.commands.dashboard.exceptions import (
 )
 from superset.commands.utils import (
     compute_subjects,
+    raise_if_managed_externally,
     update_tags,
     validate_tags,
 )
@@ -56,6 +57,14 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateDashboardCommand(UpdateMixin, BaseCommand):
+    #: Ordinary edits of an externally managed dashboard are refused
+    #: server-side (see ``raise_if_managed_externally``).
+    #: ``UpdateDashboardColorsConfigCommand`` flips this off: colors sync
+    #: persists derived state in the background while a dashboard is merely
+    #: viewed, not an edit the external source of truth owns -- the same
+    #: exemption the chart command gives query-context-only saves.
+    _refuses_externally_managed: bool = True
+
     def __init__(self, model_id: int, data: dict[str, Any]):
         self._model_id = model_id
         self._properties = data.copy()
@@ -118,6 +127,9 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             security_manager.raise_for_editorship(self._model)
         except SupersetSecurityException as ex:
             raise DashboardForbiddenError() from ex
+
+        if self._refuses_externally_managed:
+            raise_if_managed_externally(self._model, DashboardForbiddenError)
 
         # Validate slug uniqueness
         if not DashboardDAO.validate_update_slug_uniqueness(self._model_id, slug):
@@ -283,6 +295,10 @@ class UpdateDashboardChartCustomizationsCommand(UpdateDashboardCommand):
 
 
 class UpdateDashboardColorsConfigCommand(UpdateDashboardCommand):
+    # Background colors sync must keep working for externally managed
+    # dashboards; see _refuses_externally_managed on the parent.
+    _refuses_externally_managed = False
+
     def __init__(
         self, model_id: int, data: dict[str, Any], mark_updated: bool = True
     ) -> None:

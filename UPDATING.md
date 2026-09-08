@@ -69,6 +69,9 @@ tags are included in asset export and import.
 
 Set `FEATURE_FLAGS = {"TAGGING_SYSTEM": False}` to restore the previous
 behavior. Existing tag rows are left untouched.
+### Updates of externally managed entities are refused server-side
+
+`PUT /api/v1/{chart,dashboard,dataset}/<id>` now refuses an **externally managed** entity (`is_managed_externally = True`) with HTTP 403, enforcing server-side what the UI already does by hiding the edit affordances. Previously the refusal existed only in the browser, so an otherwise-authorized editor could mutate such an entity by calling the endpoint directly and have the change overwritten on the next external sync. The chart query-context-only save path (used by report workers to persist refreshed query context) and the dashboard colors-sync path (`PUT /api/v1/dashboard/<id>/colors`, fired in the background while a dashboard is viewed) are deliberately unaffected: both persist derived state rather than edits the external source of truth owns. A matching gate for version restore is added separately in #44013.
 
 ### Global Async Queries re-platformed onto the Global Task Framework (breaking)
 
