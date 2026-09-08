@@ -108,10 +108,28 @@ function saveDashboardFilters(
   dashboardId: number,
   userId: number | undefined,
   nativeFilterMask: Record<string, unknown>,
+  nativeFilters: Record<string, any>,
 ) {
   try {
     const key = getStorageKey(dashboardId, userId);
-    const nextValue = JSON.stringify(nativeFilterMask);
+
+    // Create a lightweight snapshot of the filter definition (targets and type)
+    // to detect when a dashboard editor retargets or reconfigures a filter,
+    // so we can invalidate the stale extraFormData.
+    const filterDefinitions = Object.fromEntries(
+      Object.entries(nativeFilters).map(([filterId, filter]) => [
+        filterId,
+        {
+          targets: filter.targets,
+          type: filter.filterType,
+        },
+      ]),
+    );
+
+    const nextValue = JSON.stringify({
+      dataMask: nativeFilterMask,
+      filterDefinitions,
+    });
     // Skip the write if the value has not changed to avoid unnecessary
     // synchronous main-thread work on every dataMask state update.
     if (localStorage.getItem(key) !== nextValue) {
@@ -280,21 +298,47 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           typeof savedFilters === 'object' &&
           !Array.isArray(savedFilters)
         ) {
+          const isVersioned =
+            'dataMask' in savedFilters && 'filterDefinitions' in savedFilters;
+          const maskToRestore = isVersioned
+            ? savedFilters.dataMask
+            : savedFilters;
+          const savedDefinitions = isVersioned
+            ? savedFilters.filterDefinitions
+            : {};
+
+          const currentFilters = (dashboard?.metadata
+            ?.native_filter_configuration ?? []) as NativeFilterConfigEntry[];
+
           // Only restore entries whose filter ID still exists in the current
-          // native filter configuration. This prevents stale extraFormData from
-          // a reconfigured filter (e.g. retargeted to a different column or
-          // dataset) from being hydrated and silently applying the old selection.
-          const knownFilterIds = new Set(
-            (
-              (dashboard?.metadata?.native_filter_configuration ??
-                []) as NativeFilterConfigEntry[]
-            ).map((f: NativeFilterConfigEntry) => f.id),
-          );
+          // native filter configuration. If we have a snapshotted definition
+          // (from the newer versioned schema), we also verify that the filter's
+          // target columns/datasets and type have not changed. This prevents
+          // stale extraFormData from a retargeted filter from being hydrated.
           const validatedFilters = Object.fromEntries(
-            Object.entries(savedFilters).filter(([filterId]) =>
-              knownFilterIds.has(filterId),
-            ),
+            Object.entries(maskToRestore).filter(([filterId]) => {
+              const currentConfig = currentFilters.find(f => f.id === filterId);
+              if (!currentConfig) return false;
+
+              if (isVersioned) {
+                const savedDef = savedDefinitions[filterId];
+                if (!savedDef) return false;
+
+                // Validate that the target column(s) and filter type have not changed
+                const currentTargets = JSON.stringify(currentConfig.targets);
+                const savedTargets = JSON.stringify(savedDef.targets);
+
+                if (
+                  currentTargets !== savedTargets ||
+                  currentConfig.filterType !== savedDef.type
+                ) {
+                  return false;
+                }
+              }
+              return true;
+            }),
           );
+
           if (Object.keys(validatedFilters).length > 0) {
             dataMask = validatedFilters;
           }
@@ -474,7 +518,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         .filter(filterId => filterId in fullDataMask)
         .map(filterId => [filterId, fullDataMask[filterId]]),
     );
-    saveDashboardFilters(id, userId, nativeFilterMask);
+    saveDashboardFilters(id, userId, nativeFilterMask, nativeFilters);
   }, [id, hydratedDashboardId, fullDataMask, nativeFilters, userId]);
 
   if (error && !isNotFoundError) throw error; // caught in error boundary

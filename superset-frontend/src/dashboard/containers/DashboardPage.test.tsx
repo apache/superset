@@ -843,3 +843,115 @@ test('ignores corrupted localStorage data (array) and uses empty dataMask', asyn
 
   localStorage.removeItem('dashboard__native_filters__1');
 });
+
+test('restores versioned localStorage filters and drops them if targets change', async () => {
+  const savedVersionedData = {
+    dataMask: {
+      'NATIVE_FILTER-versioned': {
+        filterState: { value: ['California'] },
+        extraFormData: {
+          filters: [{ col: 'state', op: 'IN', val: ['California'] }],
+        },
+      },
+    },
+    filterDefinitions: {
+      'NATIVE_FILTER-versioned': {
+        targets: [{ column: { name: 'state' } }],
+        type: 'filter_select',
+      },
+    },
+  };
+
+  localStorage.setItem(
+    'dashboard__native_filters__1',
+    JSON.stringify(savedVersionedData),
+  );
+
+  // 1. Simulate the dashboard where the target matches
+  mockUseDashboard.mockReturnValueOnce({
+    result: {
+      ...mockDashboard,
+      metadata: {
+        native_filter_configuration: [
+          {
+            id: 'NATIVE_FILTER-versioned',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'state' } }],
+          },
+        ],
+      },
+    },
+  });
+
+  const { render } = jest.requireActual('spec/helpers/testing-library');
+  const { unmount } = render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  // hydrateDashboard should be called with the restored value since target matches
+  expect(hydrateDashboard).toHaveBeenCalledWith(
+    expect.objectContaining({
+      dataMask: expect.objectContaining({
+        'NATIVE_FILTER-versioned': expect.anything(),
+      }),
+    }),
+  );
+
+  unmount();
+  (hydrateDashboard as jest.Mock).mockClear();
+
+  // 2. Simulate the dashboard where the target has changed
+  mockUseDashboard.mockReturnValueOnce({
+    result: {
+      ...mockDashboard,
+      metadata: {
+        native_filter_configuration: [
+          {
+            id: 'NATIVE_FILTER-versioned',
+            filterType: 'filter_select',
+            targets: [{ column: { name: 'country' } }],
+          },
+        ],
+      },
+    },
+  });
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  // hydrateDashboard should NOT have the dropped filter since target mismatch
+  expect(hydrateDashboard).not.toHaveBeenCalledWith(
+    expect.objectContaining({
+      dataMask: expect.objectContaining({
+        'NATIVE_FILTER-versioned': expect.anything(),
+      }),
+    }),
+  );
+
+  localStorage.removeItem('dashboard__native_filters__1');
+});
