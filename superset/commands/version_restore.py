@@ -149,4 +149,13 @@ class BaseRestoreVersionCommand(BaseCommand):
             security_manager.raise_for_editorship(entity)
         except SupersetSecurityException as ex:
             raise self.forbidden_exc() from ex
+        # Restore is withheld from externally managed entities: their source of
+        # truth lives outside Superset and would overwrite the restore on the
+        # next sync (documented in version-history.mdx). This must be enforced
+        # server-side, not only in the browser — an authorized editor could
+        # otherwise call the endpoint directly. Raised as forbidden_exc (HTTP
+        # 403); that response carries no body, so it reads the same as a
+        # permission denial (a FAB response_403 limitation).
+        if entity.is_managed_externally:
+            raise self.forbidden_exc()
         return entity
