@@ -27,7 +27,7 @@ Create Date: 2026-08-26 11:00:00.000000
 
 """
 
-from sqlalchemy import Column, DateTime, Integer, String, Text
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text
 
 from superset.migrations.shared.utils import (
     create_fks_for_table,
@@ -54,13 +54,15 @@ def upgrade():
         Column("id", Integer, primary_key=True),
         Column("name", String(150), nullable=False, unique=True),
         Column("description", Text, nullable=True),
-        Column("enabled", String(1), nullable=False, server_default="1"),
+        Column("enabled", Boolean, nullable=False, server_default="1"),
         # FK → dbs.id (ClickHouse connection)
         Column("database_id", Integer, nullable=False),
         Column("sql_query", Text, nullable=False),
         Column("crontab", String(1000), nullable=False),
         Column(
-            "timezone", String(100), nullable=False,
+            "timezone",
+            String(100),
+            nullable=False,
             server_default="Africa/Addis_Ababa",
         ),
         Column("grace_period", Integer, nullable=False, server_default="14400"),
@@ -190,7 +192,7 @@ def upgrade():
         Column("org_unit_id", String(32), nullable=True),
         Column("org_unit_level", Integer, nullable=True),
         Column("facilities", Integer, nullable=False, server_default="0"),
-        Column("sent", String(1), nullable=False, server_default="0"),
+        Column("sent", Boolean, nullable=False, server_default="0"),
     )
 
     create_index(

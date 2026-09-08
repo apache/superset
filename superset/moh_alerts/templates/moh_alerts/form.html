@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% if is_new %}New{% else %}Edit{% endif %} alert — MoH Alerts</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; background: #f4f6fb; color: #222; }
+    .wrap { max-width: 900px; margin: 24px auto; padding: 0 16px; }
+    .card { background: #fff; border: 1px solid #e3e6ef; border-radius: 10px; padding: 18px; margin-bottom: 18px; }
+    h1 { color: #12346b; margin: 0 0 16px; }
+    label { display: block; margin: 10px 0 4px; font-weight: 600; font-size: 13px; }
+    input[type=text], input[type=number], textarea, select { width: 100%; padding: 8px; box-sizing: border-box;
+        border: 1px solid #ccd2e0; border-radius: 6px; font-size: 13px; }
+    textarea { font-family: ui-monospace, monospace; }
+    .row { display: flex; gap: 12px; }
+    .row > div { flex: 1; }
+    .muted { color: #777; font-size: 12px; }
+    .btn { display: inline-block; padding: 8px 14px; border: 0; border-radius: 6px;
+           background: #1a5cff; color: #fff; cursor: pointer; font-size: 13px; text-decoration: none; }
+    pre { background: #f6f8fc; padding: 10px; border-radius: 6px; overflow: auto; font-size: 12px; }
+    .result { border: 1px solid #e3e6ef; border-radius: 8px; padding: 12px; margin-top: 14px; background: #fafbfe; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <a href="{{ url_for('moh_alerts.list_alerts') }}">&larr; Back to alerts</a>
+      <h1 style="margin-top:12px">{% if is_new %}New alert{% else %}Edit: {{ alert.name }}{% endif %}</h1>
+
+      <form method="post">
+        <div class="row">
+          <div><label>Name</label><input type="text" name="name" value="{{ alert.name or '' }}" required></div>
+          <div><label>Time zone</label><input type="text" name="timezone" value="{{ alert.timezone or 'Africa/Addis_Ababa' }}"></div>
+        </div>
+        <div class="row">
+          <div><label>Database</label>
+            <select name="database_id">
+              {% for d in databases %}
+              <option value="{{ d.id }}" {% if alert.database_id == d.id %}selected{% endif %}>{{ d.database_name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div><label>Dashboard (deep link)</label>
+            <input type="number" name="dashboard_id" value="{{ alert.dashboard_id or '' }}">
+            <div class="muted">Dashboard id used for the "open filtered" link.</div>
+          </div>
+        </div>
+        <label>SQL condition <span class="muted">
+          — must return one row per failing org unit, with a column named
+          <code>org_unit_id</code> carrying the org-unit id (the <code>orgunit</code>
+          column value). Include <code>WHERE is_parent_rollup = 0</code> for facility
+          rows only. Example:</span></label>
+        <textarea name="sql_query" rows="8" required>{{ alert.sql_query or '' }}</textarea>
+        <pre>SELECT orgunit AS org_unit_id, org_unit_name, region, zone, woreda, value, period
+FROM moh.dataset_core_v2
+WHERE is_parent_rollup = 0
+  AND period = (SELECT MAX(period) FROM moh.dataset_core_v2)
+  AND indicator = 'Essential Drugs Availability'
+  AND value &lt; 50
+GROUP BY orgunit, org_unit_name, region, zone, woreda, value, period</pre>
+        <div class="row">
+          <div><label>Cron</label><input type="text" name="crontab" value="{{ alert.crontab or '0 0 * * *' }}" required></div>
+          <div><label>Grace period (sec)</label><input type="number" name="grace_period" value="{{ alert.grace_period or 14400 }}"></div>
+        </div>
+        <div class="row">
+          <div><label>Subject template</label>
+            <input type="text" name="subject_template" value="{{ alert.subject_template or '' }}">
+            <div class="muted">Placeholders: {alert_name}, {period}</div>
+          </div>
+          <div><label>Working timeout (sec)</label><input type="number" name="working_timeout" value="{{ alert.working_timeout or 120 }}"></div>
+        </div>
+        <label>html_extra (JSON column mapping) <span class="muted">— e.g. {"facility_name_col": "org_unit_name", "period_col": "period", "metric_cols": ["value"]}</span></label>
+        <textarea name="html_extra" rows="2">{{ alert.html_extra or '{}' }}</textarea>
+        <label>Description</label>
+        <input type="text" name="description" value="{{ alert.description or '' }}">
+        <div style="margin-top:16px;display:flex;gap:10px;align-items:center">
+          <button class="btn" type="submit">Save</button>
+          <label style="margin:0;font-weight:400">
+            <input type="checkbox" name="enabled" {% if alert.enabled %}checked{% endif %}> Enabled
+          </label>
+        </div>
+      </form>
+
+      {% if test %}
+      <div class="result">
+        <h2 style="margin-top:0;color:#12346b">Test result (dry-run, nothing sent)</h2>
+        {% if test.error %}
+          <pre>{{ test.error }}</pre>
+        {% else %}
+          <p>Failing facilities: <b>{{ test.facilities }}</b> ({{ test.ignored }} ignored)</p>
+          <p>Recipients: <b>{{ test.recipients|length }}</b></p>
+          <pre>{{ test.recipients | tojson(indent=2) }}</pre>
+        {% endif %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>
