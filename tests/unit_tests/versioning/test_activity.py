@@ -928,6 +928,16 @@ def test_attachment_windows_reattach_cycles_and_ordering() -> None:
     assert attachment_windows(rows) == [(7, Window(1, 3)), (7, Window(5, 7))]
 
 
+def test_attachment_windows_reattach_leaves_the_last_episode_open() -> None:
+    """Attach@1, detach@5, re-attach@8 with no later detach: the first episode
+    is the closed window [1, 5) and the current attachment is open-ended
+    [8, None). An edit at tx 10 falls inside the live episode."""
+    windows = attachment_windows([(7, 1, 0), (7, 5, 2), (7, 8, 0)])
+    assert windows == [(7, Window(1, 5)), (7, Window(8, None))]
+    assert windows[1][1].contains(10)
+    assert not windows[0][1].contains(10)
+
+
 def test_attachment_windows_add_and_remove_same_transaction() -> None:
     """Attaching and detaching in a single save (INSERT and DELETE at the
     same transaction) leaves the chart on no committed dashboard state, so it

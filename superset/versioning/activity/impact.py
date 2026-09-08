@@ -24,9 +24,11 @@ request:
 
 * :func:`collect_impact_pairs` — pulls the distinct
   ``(dataset_id, transaction_id)`` pairs that need counts.
-* :func:`batch_chart_counts` — one SQL query joining
-  ``dashboard_slices_version`` and ``slices_version`` to count
-  the matching charts validity-strategy-style.
+* :func:`batch_chart_counts` — counts the matching charts without a
+  join: dashboard membership comes from ``charts_attached_to_dashboard``'s
+  attach/detach windows over ``dashboard_slices_version``, and a
+  member-scoped ``slices_version`` scan supplies the chart→dataset window;
+  the two are combined per pair by :func:`_count_attached_charts_at`.
 * :func:`impact_for_record` — pure projection from the pre-fetched
   counts onto each record (returns ``None`` for non-Dashboard paths
   or non-SqlaTable kinds, matching the ``impact`` computation).
@@ -102,10 +104,11 @@ def batch_chart_counts(
     from sqlalchemy_continuum import version_class
 
     from superset.models.slice import Slice
-    from superset.versioning.activity.queries import charts_attached_to_dashboard
+    from superset.versioning.membership import charts_attached_to_dashboard
 
     slices_tbl = version_class(Slice).__table__
 
+    dataset_ids: set[int] = {dataset_id for dataset_id, _ in pairs}
     target_txs: set[int] = {target_tx for _, target_tx in pairs}
     min_tx, max_tx = min(target_txs), max(target_txs)
 
@@ -122,11 +125,11 @@ def batch_chart_counts(
 
     # Chart→dataset validity from the slice parent shadow, whose
     # end_transaction_id the validity backfill *does* close, so the ordinary
-    # half-open validity predicate is correct here. Bounded to this dashboard's
-    # member charts (the attach_windows keys) and the requested transaction
-    # range; chunk the member-id IN-clause to stay under SQLite's bind-variable
-    # floor. Requested datasets are matched in Python below, so no separate
-    # datasource IN-clause is needed.
+    # half-open validity predicate is correct here. Bounded on the DB side to
+    # this dashboard's member charts (the attach_windows keys) AND the requested
+    # datasets and transaction range, so the scan is pruned before Python sees
+    # it; the member-id IN-clause is chunked to stay under SQLite's
+    # bind-variable floor.
     slice_rows: list[Any] = []
     for chunk in chunked_ids(set(attach_windows), ENTITY_ID_CHUNK_SIZE):
         stmt = sa.select(
@@ -136,6 +139,7 @@ def batch_chart_counts(
             slices_tbl.c.end_transaction_id.label("slice_end"),
         ).where(
             slices_tbl.c.id.in_(chunk),
+            slices_tbl.c.datasource_id.in_(dataset_ids),
             slices_tbl.c.datasource_type == "table",
             slices_tbl.c.operation_type != OPERATION_DELETE,
             slices_tbl.c.transaction_id <= max_tx,

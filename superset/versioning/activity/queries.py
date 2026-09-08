@@ -16,8 +16,10 @@
 # under the License.
 """DB-touching helpers for the activity-view read path.
 
-All Phase A relationship walks (``charts_attached_to_dashboard``,
-``datasets_used_by_chart``, ``batch_datasets_used_by_charts``),
+The Phase A relationship walks (``datasets_used_by_chart``,
+``batch_datasets_used_by_charts``; the dashboard-membership walk
+``charts_attached_to_dashboard`` lives in
+:mod:`superset.versioning.membership`),
 the Phase B change-record fetch (``fetch_change_records`` /
 ``_select_change_rows_for_kinds``), the name-denormalization helpers
 (``_resolve_names_for_kind`` / ``apply_entity_name_denormalization``), the
@@ -56,10 +58,7 @@ from superset.versioning.activity.kinds import (
     TABLE_KIND_TO_API,
     Window,
 )
-from superset.versioning.activity.windows import (
-    attachment_windows,
-    row_within_any_window,
-)
+from superset.versioning.activity.windows import row_within_any_window
 from superset.versioning.changes import version_changes_table
 
 logger = logging.getLogger(__name__)
@@ -119,45 +118,6 @@ def first_tracked_tx(
 
 
 # ---- Phase A: relationship-traversal queries ------------------------------
-
-
-def charts_attached_to_dashboard(dashboard_id: int) -> list[tuple[int, Window]]:
-    """Return ``(slice_id, window)`` for every chart that has ever been on
-    *dashboard_id*, with each attachment episode's validity window in
-    transaction-id space.
-
-    Reads from ``dashboard_slices_version`` (Continuum's auto-generated M2M
-    shadow) and pairs its INSERT/DELETE rows via
-    :func:`~superset.versioning.activity.windows.attachment_windows`,
-    so a chart removed from the dashboard is bounded at the detach transaction
-    rather than open-ended — otherwise the chart's edits made *after* removal
-    would surface in the dashboard's related history.
-    """
-    # pylint: disable=import-outside-toplevel
-    from sqlalchemy_continuum import version_class
-
-    from superset.models.dashboard import Dashboard
-
-    metadata = version_class(Dashboard).__table__.metadata
-    m2m_tbl = metadata.tables.get("dashboard_slices_version")
-    if m2m_tbl is None:
-        return []
-
-    rows = (
-        db.session.connection()
-        .execute(
-            sa.select(
-                m2m_tbl.c.slice_id,
-                m2m_tbl.c.transaction_id,
-                m2m_tbl.c.operation_type,
-            ).where(
-                m2m_tbl.c.dashboard_id == dashboard_id,
-                m2m_tbl.c.slice_id.is_not(None),
-            )
-        )
-        .all()
-    )
-    return attachment_windows([(row[0], row[1], row[2]) for row in rows])
 
 
 def datasets_used_by_chart(slice_id: int) -> list[tuple[int, Window]]:

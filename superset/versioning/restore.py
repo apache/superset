@@ -214,11 +214,11 @@ def _restore_dashboard_membership(dashboard: Any, transaction_id: int) -> list[i
     # Local imports: models.slice transitively imports models.core, which needs
     # the initialised app — a module-top import would recreate the bootstrap
     # cycle documented in changes/listener.py. charts_attached_to_dashboard is
-    # imported lazily for the same reason (it inline-imports the model classes)
-    # and to avoid pulling the activity read-path package into this write-path
-    # module's load.
+    # imported lazily for the same reason: it pulls the window helpers, whose
+    # package transitively imports the versioning.changes listener graph, so a
+    # module-top import here would re-enter that same bootstrap cycle.
     from superset.models.slice import Slice
-    from superset.versioning.activity.queries import charts_attached_to_dashboard
+    from superset.versioning.membership import charts_attached_to_dashboard
 
     # charts_attached_to_dashboard owns the association-shadow read and the
     # attach/detach window pairing (the single place that must never filter the
