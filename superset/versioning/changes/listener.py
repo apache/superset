@@ -395,6 +395,39 @@ def _persist_buffered_records(
         incr_capture_error("bulk_insert")
 
 
+def finalize_change_records(session: Session) -> None:
+    """Build and persist the transaction's change records at commit time.
+
+    Module-level (rather than a closure inside the registration function)
+    so the capture write path can be exercised directly by unit tests
+    against an isolated session; it depends only on the session and the
+    module helpers, never on the registered entity classes.
+    """
+    if session.in_nested_transaction() or session.info.get(_FINALIZING_KEY):
+        return
+
+    session.info[_FINALIZING_KEY] = True
+    try:
+        session.flush()
+        initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
+            session.info.get(_INITIAL_STATES_KEY, {})
+        )
+        buffer = _build_scalar_buffer(initial_states)
+
+        tx_id = _current_transaction_id(session)
+        if tx_id is None:
+            return
+
+        _stamp_action_kind_on_transaction(session, tx_id)
+        _append_child_records_to_buffer(session, tx_id, buffer)
+        _inject_action_meta_record(session, buffer)
+
+        if buffer:
+            _persist_buffered_records(session, tx_id, buffer)
+    finally:
+        session.info.pop(_FINALIZING_KEY, None)
+
+
 def register_change_record_listener() -> None:  # noqa: C901
     """Attach transaction-scoped version-change listeners.
 
@@ -424,31 +457,6 @@ def register_change_record_listener() -> None:  # noqa: C901
         for obj in list(session.dirty):
             if isinstance(obj, versioned_classes):
                 _capture_dirty_entity_initial_state(session, obj, initial_states)
-
-    def finalize_change_records(session: Session) -> None:
-        if session.in_nested_transaction() or session.info.get(_FINALIZING_KEY):
-            return
-
-        session.info[_FINALIZING_KEY] = True
-        try:
-            session.flush()
-            initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
-                session.info.get(_INITIAL_STATES_KEY, {})
-            )
-            buffer = _build_scalar_buffer(initial_states)
-
-            tx_id = _current_transaction_id(session)
-            if tx_id is None:
-                return
-
-            _stamp_action_kind_on_transaction(session, tx_id)
-            _append_child_records_to_buffer(session, tx_id, buffer)
-            _inject_action_meta_record(session, buffer)
-
-            if buffer:
-                _persist_buffered_records(session, tx_id, buffer)
-        finally:
-            session.info.pop(_FINALIZING_KEY, None)
 
     event.listen(db.session, "before_flush", capture_initial_states)
     event.listen(db.session, "before_commit", finalize_change_records)
