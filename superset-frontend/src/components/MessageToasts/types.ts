@@ -28,6 +28,8 @@ export interface ToastMeta {
   toastType: ToastType;
   text: string;
   duration: number;
+  /** Optional interactive action, dismissed after activation. */
+  action?: { label: string; onClick: () => void };
   /** Whether to skip displaying this message if there are another toast
    * with the same message. */
   noDuplicate?: boolean;

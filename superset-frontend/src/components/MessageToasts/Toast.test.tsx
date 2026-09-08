@@ -127,3 +127,17 @@ test('a link requested through the action creator survives to the rendered toast
   expect(link).not.toBeNull();
   expect(link).toHaveAttribute('href', '/explore/?slice_id=1');
 });
+
+test('an action button invokes its callback and dismisses the toast', async () => {
+  const onClick = jest.fn();
+  const onCloseToast = jest.fn();
+  const { getByRole } = setup({
+    toast: { ...props.toast, action: { label: 'Undo', onClick } },
+    onCloseToast,
+  });
+  fireEvent.click(getByRole('button', { name: 'Undo' }));
+  expect(onClick).toHaveBeenCalledTimes(1);
+  await waitFor(() =>
+    expect(onCloseToast).toHaveBeenCalledWith(props.toast.id),
+  );
+});

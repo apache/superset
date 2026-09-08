@@ -57,8 +57,16 @@ Framework feature flag.
 The response's `live_update_pushed` field reports publication success, not
 browser receipt or application. Without a backend, an identifiable principal,
 or a successful publish, it is `false`; the created `dashboard_url` remains
-the fallback. The server notification alone does not implement a browser-side
-filter update.
+the fallback. An open dashboard resolves matching notifications through the
+existing dashboard permalink API and applies the returned filters without a
+reload. A “Filters applied from chat” toast offers **Undo** for eight seconds,
+restoring the affected filters' previous selections. Filters not present in the
+notification's permalink keep their existing selections in the open dashboard.
+
+Reconnect deliberately does not fetch or replay filter state: there is no
+latest-per-user permalink lookup, and replaying a previously received permalink
+could overwrite manual changes or undo. If a notification is missed or its
+permalink cannot be resolved, open `dashboard_url` from chat.
 
 ---
 
