@@ -21,13 +21,11 @@ from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.utils import json
 
 
-def _command_keeping_only_tab_1(
-    stored_tabs: dict[str, str],
-) -> UpdateDashboardCommand:
+def _tab_diff_command(*stored_tab_ids: str) -> UpdateDashboardCommand:
     """A command on dashboard 1 whose new layout holds TAB-1 alone.
 
-    ``stored_tabs`` is the layout as currently stored, so every one of its
-    tabs other than TAB-1 is dropped by the update.
+    Every one of ``stored_tab_ids`` other than TAB-1 is therefore dropped by
+    the update.
     """
     command = UpdateDashboardCommand(
         1,
@@ -51,7 +49,9 @@ def _command_keeping_only_tab_1(
     )
     model = MagicMock()
     model.id = 1
-    type(model).tabs = PropertyMock(return_value={"all_tabs": stored_tabs})
+    type(model).tabs = PropertyMock(
+        return_value={"all_tabs": {tab: tab for tab in stored_tab_ids}}
+    )
     command._model = model  # noqa: SLF001
     return command
 
@@ -88,7 +88,7 @@ def test_process_tab_diff_deactivates_reports_on_deleted_tabs(
     app_context: None,
 ) -> None:
     """An update that drops a tab still deactivates the reports using it."""
-    command = _command_keeping_only_tab_1({"TAB-1": "First", "TAB-2": "Second"})
+    command = _tab_diff_command("TAB-1", "TAB-2")
     report = _report(10, dashboard_id=1)
 
     with patch("superset.commands.dashboard.update.ReportScheduleDAO") as report_dao:
@@ -103,12 +103,8 @@ def test_process_tab_diff_deactivates_reports_on_deleted_tabs(
 def test_process_tab_diff_only_touches_reports_on_the_updated_dashboard(
     app_context: None,
 ) -> None:
-    """A report is only deactivated when it belongs to the updated dashboard.
-
-    The lookup matches a substring of ``extra_json``, so it answers with
-    reports from every dashboard that happens to name the same tab id.
-    """
-    command = _command_keeping_only_tab_1({"TAB-1": "First", "TAB-2": "Second"})
+    """A report is only deactivated when it belongs to the updated dashboard."""
+    command = _tab_diff_command("TAB-1", "TAB-2")
     own_report = _report(10, dashboard_id=1)
     other_report = _report(20, dashboard_id=2)
 
@@ -123,7 +119,7 @@ def test_process_tab_diff_deactivates_a_report_spanning_two_deleted_tabs_once(
     app_context: None,
 ) -> None:
     """One report naming several deleted tabs is deactivated a single time."""
-    command = _command_keeping_only_tab_1({"TAB-2": "Second", "TAB-3": "Third"})
+    command = _tab_diff_command("TAB-2", "TAB-3")
     report = _report(10, dashboard_id=1)
 
     with patch("superset.commands.dashboard.update.ReportScheduleDAO") as report_dao:
@@ -139,8 +135,7 @@ def test_process_native_filter_diff_only_touches_reports_on_the_updated_dashboar
 ) -> None:
     """The filter path is scoped to the updated dashboard as well.
 
-    It shares its report lookup with the tab path, so the scoping has to hold
-    for both.
+    It shares its report lookup with the tab path.
     """
     command = UpdateDashboardCommand(
         1,

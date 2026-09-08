@@ -176,21 +176,18 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         finder: Callable[[str], list[ReportSchedule]],
         keys: list[str],
     ) -> list[ReportSchedule]:
-        """
-        Resolve the report schedules referencing any of ``keys``, keeping only
-        those attached to the dashboard being updated.
+        """Reports referencing any of ``keys`` that belong to this dashboard.
 
-        ``finder`` matches on a substring of ``extra_json``, so it answers with
-        reports from every dashboard; the caller only ever wants its own. A
-        single report can also reference several ``keys``, hence the
+        A single report can reference several ``keys``, hence the
         de-duplication by id.
         """
+        dashboard_id = self._model.id  # type: ignore
         return remove_duplicates(
             (
                 report
                 for key in keys
                 for report in finder(key)
-                if report.dashboard_id == self._model.id  # type: ignore
+                if report.dashboard_id == dashboard_id
             ),
             key=lambda report: report.id,
         )
@@ -207,25 +204,18 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             position = json.loads(position_json)
             return [tab for tab in current_tabs["all_tabs"] if tab not in position]
 
-        def send_deactivated_email_warning(report: ReportSchedule) -> None:
-            description = textwrap.dedent(
-                """
-                The dashboard tab used in this report has been deleted and your report has been deactivated.
-                Please update your report settings to remove or change the tab used.
-                """  # noqa: E501
-            )
-            self._send_deactivated_report_email(report, description)
-
-        def deactivate_reports(reports_list: list[ReportSchedule]) -> None:
-            for report in reports_list:
-                ReportScheduleDAO.update(report, {"active": False})
-                send_deactivated_email_warning(report)
-
-        deleted_tabs = find_deleted_tabs()
-        reports = self._reports_on_this_dashboard(
-            ReportScheduleDAO.find_by_extra_metadata, deleted_tabs
+        description = textwrap.dedent(
+            """
+            The dashboard tab used in this report has been deleted and your report has been deactivated.
+            Please update your report settings to remove or change the tab used.
+            """  # noqa: E501
         )
-        deactivate_reports(reports)
+        deleted_tabs = find_deleted_tabs()
+        for report in self._reports_on_this_dashboard(
+            ReportScheduleDAO.find_by_extra_metadata, deleted_tabs
+        ):
+            ReportScheduleDAO.update(report, {"active": False})
+            self._send_deactivated_report_email(report, description)
 
     def process_native_filter_diff(self) -> None:
         def find_deleted_native_filter_ids() -> list[str]:
