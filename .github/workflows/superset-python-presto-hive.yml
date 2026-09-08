@@ -82,11 +82,11 @@ jobs:
       - name: Setup Python
         uses: $/.github/actions/setup-backend/
       - name: Setup Postgres
-        uses: $/.github/actions/cached-dependencies
+        uses: ./.github/actions/cached-dependencies
         with:
           run: setup-postgres
       - name: Start Celery worker
-        uses: $/.github/actions/cached-dependencies
+        uses: ./.github/actions/cached-dependencies
         with:
           run: celery-worker
       - name: Python unit tests (PostgreSQL)
@@ -143,11 +143,11 @@ jobs:
       - name: Setup Python
         uses: $/.github/actions/setup-backend/
       - name: Setup Postgres
-        uses: $/.github/actions/cached-dependencies
+        uses: ./.github/actions/cached-dependencies
         with:
           run: setup-postgres
       - name: Start Celery worker
-        uses: $/.github/actions/cached-dependencies
+        uses: ./.github/actions/cached-dependencies
         with:
           run: celery-worker
       - name: Python unit tests (PostgreSQL)
