@@ -479,6 +479,9 @@ falling back to the legacy GET export when a query context cannot be generated.
 `ALERT_REPORTS_CSV_REQUEST_TIMEOUT` (60 seconds by default) limits socket operations;
 the report execution budget and its delivery/cleanup reserves also cap the request.
 Connection and read timeouts are reported as CSV/Excel generation timeouts.
+These attachment timeouts are logged at error level and explicitly mark the report
+task as failed, while the report execution retains its ERROR state and separate
+error-notification history. Other HTTP 408 exception handling is unchanged.
 
 To tolerate short-lived transport failures, operators can opt in with
 `ALERT_REPORTS_CSV_REQUEST_RETRY = True` (default: `False`). This permits **one** retry
