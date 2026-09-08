@@ -2153,6 +2153,34 @@ def test_raise_for_access_evaluates_access_before_validate():
     query.validate.assert_not_called()
 
 
+def test_raise_for_access_wraps_template_error_for_query_datasource():
+    """
+    When the datasource is a SQL Lab Query and raise_for_access() Jinja-renders
+    malformed SQL, the raw jinja2 TemplateError must be wrapped in
+    SupersetTemplateException (422) instead of leaking as an unhandled 500.
+    """
+    from jinja2.exceptions import TemplateSyntaxError
+
+    from superset.exceptions import SupersetTemplateException
+    from superset.utils.core import DatasourceType
+
+    query = MagicMock()
+    query_context = MagicMock()
+    query_context.queries = [query]
+    query_context.datasource.type = DatasourceType.QUERY
+
+    processor = QueryContextProcessor(query_context)
+
+    with patch(
+        "superset.common.query_context_processor.security_manager.raise_for_access",
+        side_effect=TemplateSyntaxError("unexpected end of template", lineno=1),
+    ):
+        with pytest.raises(SupersetTemplateException):
+            processor.raise_for_access()
+
+    query.validate.assert_not_called()
+
+
 def test_grouping_sets_fallback_handles_adhoc_and_physical_columns() -> None:
     """
     The fallback used on engines without native GROUPING SETS support must

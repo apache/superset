@@ -24,6 +24,7 @@ from typing import Any, cast, ClassVar, Sequence, TYPE_CHECKING
 import pandas as pd
 from flask import current_app
 from flask_babel import gettext as _
+from jinja2.exceptions import TemplateError
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.db_query_status import QueryStatus
@@ -37,6 +38,7 @@ from superset.daos.chart import ChartDAO
 from superset.exceptions import (
     QueryObjectValidationError,
     SupersetException,
+    SupersetTemplateException,
 )
 from superset.explorables.base import Explorable
 from superset.extensions import cache_manager, security_manager
@@ -696,7 +698,10 @@ class QueryContextProcessor:
         # come first to avoid rendering caller-supplied input for a resource the
         # caller is not allowed to access.
         if self._qc_datasource.type == DatasourceType.QUERY:
-            security_manager.raise_for_access(query=self._qc_datasource)
+            try:
+                security_manager.raise_for_access(query=self._qc_datasource)
+            except TemplateError as ex:
+                raise SupersetTemplateException(str(ex)) from ex
         else:
             security_manager.raise_for_access(query_context=self._query_context)
 
