@@ -374,6 +374,8 @@ class ChartPutSchema(Schema):
             data.pop("is_managed_externally", None)
         return data
 
+    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
+
     slice_name = fields.String(
         metadata={"description": slice_name_description},
         allow_none=True,

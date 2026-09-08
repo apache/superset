@@ -498,6 +498,8 @@ class DashboardPutSchema(BaseDashboardSchema):
             data.pop("is_managed_externally", None)
         return data
 
+    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
+
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description},
         allow_none=True,

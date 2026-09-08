@@ -294,6 +294,18 @@ class Superset(BaseSupersetView):
                 status=403,
             )
 
+        # Externally managed charts refuse the legacy overwrite too: this
+        # path assigns request values (params, query_context, ...) directly
+        # to the loaded chart and persists via ChartDAO.update, bypassing
+        # UpdateChartCommand's raise_if_managed_externally gate. Same 403
+        # message as the editorship denial above, so nothing new is
+        # disclosed (see superset/commands/utils.py).
+        if action == "overwrite" and slc is not None and slc.is_managed_externally:
+            return json_error_response(
+                _("You don't have the rights to alter this chart"),
+                status=403,
+            )
+
         if action == "saveas" and not slice_add_perm:
             return json_error_response(
                 _("You don't have the rights to create a chart"),

@@ -256,10 +256,12 @@ def test_put_schemas_discard_is_managed_externally(schema_cls: type[Schema]) -> 
 
     A client-set True would be irreversible via the API once the gate
     refuses edits of flagged entities, so the ordinary PUT schemas drop
-    the key on load (rather than declaring it, which would persist it, or
-    rejecting it as unknown, which would 422 clients echoing GET payloads).
+    the key in a pre_load hook. The field stays DECLARED so the published
+    OpenAPI contract (and generated clients) keep the property, and
+    echoing it back never 422s -- but because pre_load runs before field
+    loading, the key can never reach the loaded payload.
     """
-    assert "is_managed_externally" not in schema_cls().fields
+    assert "is_managed_externally" in schema_cls().fields
     loaded: dict[str, Any] = schema_cls().load({"is_managed_externally": True})
     assert "is_managed_externally" not in loaded
 

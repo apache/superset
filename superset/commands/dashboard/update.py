@@ -59,10 +59,10 @@ logger = logging.getLogger(__name__)
 class UpdateDashboardCommand(UpdateMixin, BaseCommand):
     #: Ordinary edits of an externally managed dashboard are refused
     #: server-side (see ``raise_if_managed_externally``).
-    #: ``UpdateDashboardColorsConfigCommand`` flips this off: colors sync
-    #: persists derived state in the background while a dashboard is merely
-    #: viewed, not an edit the external source of truth owns -- the same
-    #: exemption the chart command gives query-context-only saves.
+    #: ``UpdateDashboardColorsConfigCommand`` flips this off so background
+    #: colors sync keeps working while a dashboard is merely viewed -- but
+    #: only for derived color values; its validate() override refuses
+    #: changes to the authoritative inputs.
     _refuses_externally_managed: bool = True
 
     def __init__(self, model_id: int, data: dict[str, Any]):

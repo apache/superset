@@ -199,6 +199,8 @@ class DatasetPutSchema(Schema):
             data.pop("is_managed_externally", None)
         return data
 
+    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
+
     table_name = fields.String(allow_none=True, validate=Length(1, 250))
     database_id = fields.Integer()
     sql = fields.String(allow_none=True)
