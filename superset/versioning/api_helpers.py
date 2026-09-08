@@ -188,7 +188,7 @@ def entity_concurrency_token(
 
 
 def lock_entity_for_update(model_cls: type[Model], entity_id: int | None) -> None:
-    """Row-lock *entity* so a conditional write's check and its update are atomic.
+    """Row-lock *entity* and refresh its loaded state to committed data.
 
     ``If-Match`` is verified against a read taken before the update command
     runs. Without a lock two overlapping requests can both read the same live
@@ -197,7 +197,41 @@ def lock_entity_for_update(model_cls: type[Model], entity_id: int | None) -> Non
     held until the command commits, because both run in the same scoped
     session.
 
+    An id-only locking ``SELECT`` would serialise writers without fixing
+    what this transaction can *see*: InnoDB's default REPEATABLE READ pins
+    every consistent read to the snapshot established by the transaction's
+    first read (the request's auth queries), so an entity load issued after
+    such a lock still returns the pre-lock snapshot -- and the ORM, which
+    only emits UPDATEs for attributes that differ from the *loaded* values,
+    can silently discard a concurrent commit that landed before the lock.
+
+    The lock is therefore taken as a full-entity ORM read.
+    ``with_for_update()`` makes it a locking read, exempt from the
+    REPEATABLE READ snapshot, returning current committed data;
+    ``populate_existing()`` writes that data into the identity-map object,
+    which a later plain lookup (e.g. the update command's ``find_by_id``)
+    returns without re-hydrating from its own stale row. Call this before
+    the session's entity is modified: the refresh overwrites pending
+    attribute state, and the query's autoflush would flush earlier
+    mutations mid-request.
+
+    The refresh covers the entity row itself. Lazy-loaded child
+    collections (columns, metrics) are still plain consistent reads
+    afterwards, as is the version-info read behind the ``If-Match``
+    comparison -- on MySQL REPEATABLE READ both can still observe the
+    pre-lock snapshot.
+
+    Postgres (READ COMMITTED) and SQLite are not exposed to the staleness,
+    and the refresh is harmless there. (Version restore has the same
+    staleness class; the matching locking-refresh fix is proposed in
+    apache/superset#44015.)
+
     Renders no ``FOR UPDATE`` on SQLite, which serialises writers anyway.
+
+    Missing rows are not this function's concern: the query result is
+    discarded (soft-deleted rows filter out like any ORM read), and
+    existence keeps being decided by the update command's own lookup (404
+    semantics unchanged).
     """
     try:
         # The PUT route declares ``/<pk>`` (a string segment), so a non-numeric
@@ -205,9 +239,9 @@ def lock_entity_for_update(model_cls: type[Model], entity_id: int | None) -> Non
         entity_id = int(entity_id)  # type: ignore[arg-type]
     except (TypeError, ValueError):
         return
-    db.session.execute(
-        sa.select(model_cls.id).where(model_cls.id == entity_id).with_for_update()
-    )
+    db.session.query(model_cls).populate_existing().filter(
+        model_cls.id == entity_id
+    ).with_for_update().one_or_none()
 
 
 def concurrency_token_from(info: EntityVersionInfo) -> str | None:

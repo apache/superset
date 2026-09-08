@@ -705,6 +705,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         # the live version, the command writes, and the two must not interleave
         # with another request's. Only a conditional save pays for the lock; an
         # unconditional PUT behaves exactly as it did before the guard existed.
+        # (On MySQL REPEATABLE READ the version read below is still a plain
+        # consistent read and can predate the lock; see the caveats on
+        # lock_entity_for_update.)
         if is_conditional_write():
             lock_entity_for_update(SqlaTable, pk)
 
