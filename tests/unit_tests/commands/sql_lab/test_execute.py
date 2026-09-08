@@ -32,7 +32,6 @@ def _make_command(**overrides: MagicMock) -> ExecuteSqlCommand:
         "database_dao": MagicMock(),
         "access_validator": MagicMock(),
         "sql_query_render": MagicMock(),
-        "sql_json_executor": MagicMock(),
         "execution_context_convertor": MagicMock(),
     }
     kwargs.update(overrides)
@@ -134,28 +133,196 @@ def test_run_sql_json_exec_from_scratch_revalidates_rendered_sql(
     sql_query_render = MagicMock()
     sql_query_render.render.return_value = "SELECT * FROM sales"
 
-    sql_json_executor = MagicMock()
-    sql_json_executor.execute.return_value = SqlJsonExecutionStatus.HAS_RESULTS
-
     command = _make_command(
         execution_context=execution_context,
         database_dao=database_dao,
         access_validator=access_validator,
         sql_query_render=sql_query_render,
-        sql_json_executor=sql_json_executor,
     )
     command._sqllab_ctas_no_limit = True
+    # Stub the actual execution dispatch; this test only pins the re-validation
+    # of the literal rendered SQL before it reaches execution.
+    execute = MagicMock(return_value=SqlJsonExecutionStatus.HAS_RESULTS)
+    command._execute = execute  # type: ignore[method-assign]
 
     command._run_sql_json_exec_from_scratch()
 
     # Authorized twice: once before rendering (macros with side effects run
     # at render time) and again against the literal, already-rendered SQL
-    # that the executor is about to run.
+    # that execution is about to run.
     assert access_validator.validate.call_count == 2
     assert validate_calls == [None, "SELECT * FROM sales"]
     # executed_sql is not left pinned; the execution path assigns its own
     # final value.
     assert query.executed_sql is None
-    sql_json_executor.execute.assert_called_once_with(
-        execution_context, "SELECT * FROM sales", None
-    )
+    execute.assert_called_once_with("SELECT * FROM sales")
+
+
+# ---------------------------------------------------------------------------
+# _execute / _execute_sync / _prepare_async / submit_async dispatch
+# ---------------------------------------------------------------------------
+
+_EXEC = "superset.commands.sql_lab.execute"
+_ENTRY = "superset.sql.execution.sqllab_executor.execute_sql_lab_query"
+
+
+def _sync_context() -> MagicMock:
+    ctx = MagicMock()
+    ctx.is_run_asynchronous.return_value = False
+    ctx.select_as_cta = False
+    ctx.expand_data = False
+    ctx.query.id = 1
+    return ctx
+
+
+@patch(f"{_EXEC}.app")
+@patch(f"{_EXEC}.is_feature_enabled", return_value=False)
+def test_execute_sync_runs_entry_and_sets_result(
+    mock_flag: MagicMock, mock_app: MagicMock
+) -> None:
+    """Sync dispatch runs the executor entry inline and stores the payload."""
+    mock_app.config = {"SQLLAB_TIMEOUT": 30}
+    ctx = _sync_context()
+    entry = patch(_ENTRY, return_value={"status": "success"}).start()
+    try:
+        command = _make_command(execution_context=ctx)
+        assert command._execute("SELECT 1") == SqlJsonExecutionStatus.HAS_RESULTS
+        entry.assert_called_once()
+        assert entry.call_args.kwargs["return_results"] is True
+        ctx.set_execution_result.assert_called_once_with({"status": "success"})
+    finally:
+        patch.stopall()
+
+
+@patch(f"{_EXEC}.app")
+@patch(f"{_EXEC}.is_feature_enabled", return_value=False)
+def test_execute_sync_failed_payload_raises(
+    mock_flag: MagicMock, mock_app: MagicMock
+) -> None:
+    """A FAILED payload from the sync path surfaces as an error exception."""
+    from superset.exceptions import SupersetGenericDBErrorException
+
+    mock_app.config = {"SQLLAB_TIMEOUT": 30}
+    ctx = _sync_context()
+    patch(_ENTRY, return_value={"status": "failed", "error": "boom"}).start()
+    try:
+        command = _make_command(execution_context=ctx)
+        with pytest.raises(SupersetGenericDBErrorException):
+            command._execute("SELECT 1")
+    finally:
+        patch.stopall()
+
+
+@patch(f"{_EXEC}.is_feature_enabled", return_value=True)
+def test_prepare_async_defers_scheduling(mock_flag: MagicMock) -> None:
+    """Async dispatch (GTF enabled) prepares but does not schedule inline."""
+    ctx = MagicMock()
+    ctx.is_run_asynchronous.return_value = True
+    command = _make_command(execution_context=ctx)
+    assert command._execute("SELECT 1") == SqlJsonExecutionStatus.QUERY_IS_RUNNING
+    assert command._pending_async is True
+    assert command._rendered_query == "SELECT 1"
+
+
+@patch(f"{_EXEC}.db")
+@patch(f"{_EXEC}.is_feature_enabled", return_value=False)
+def test_prepare_async_requires_gtf(mock_flag: MagicMock, mock_db: MagicMock) -> None:
+    """Async with GLOBAL_TASK_FRAMEWORK disabled fails fast with a clear error."""
+    from superset.exceptions import SupersetErrorException
+
+    ctx = MagicMock()
+    ctx.is_run_asynchronous.return_value = True
+    command = _make_command(execution_context=ctx)
+    with pytest.raises(SupersetErrorException):
+        command._execute("SELECT 1")
+    assert ctx.query.status == "failed"
+
+
+def test_submit_async_schedules_task_keyed_by_client_id() -> None:
+    """submit_async schedules the GTF task keyed by the browser client_id."""
+    ctx = MagicMock()
+    ctx.select_as_cta = False
+    ctx.expand_data = False
+    ctx.query.id = 7
+    ctx.query.client_id = "abc123"
+    command = _make_command(execution_context=ctx)
+    command._pending_async = True
+    command._rendered_query = "SELECT 1"
+    schedule = patch("superset.tasks.sql_queries.run_sql_lab_query.schedule").start()
+    patch(f"{_EXEC}.get_username", return_value="admin").start()
+    try:
+        command.submit_async()
+        schedule.assert_called_once()
+        assert schedule.call_args.kwargs["options"].task_key == "abc123"
+    finally:
+        patch.stopall()
+
+
+def test_submit_async_noop_when_not_pending() -> None:
+    """submit_async does nothing for a sync command."""
+    command = _make_command()
+    command._pending_async = False
+    command.submit_async()  # must not raise / schedule
+
+
+@patch(f"{_EXEC}.app")
+@patch(f"{_EXEC}.is_feature_enabled", return_value=False)
+def test_execute_sync_entry_error_builds_failed_payload(
+    mock_flag: MagicMock, mock_app: MagicMock
+) -> None:
+    """An execution error is turned into a FAILED payload (via handle_query_error)
+    and surfaced as a rich SupersetErrorsException."""
+    import dataclasses
+
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetErrorsException
+
+    mock_app.config = {"SQLLAB_TIMEOUT": 30}
+    ctx = _sync_context()
+    failed_payload = {
+        "status": "failed",
+        "errors": [
+            dataclasses.asdict(
+                SupersetError(
+                    message="db boom",
+                    error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
+        ],
+    }
+    patch(_ENTRY, side_effect=RuntimeError("db boom")).start()
+    patch("superset.sql_lab.get_query", return_value=ctx.query).start()
+    patch("superset.sql_lab.handle_query_error", return_value=failed_payload).start()
+    try:
+        command = _make_command(execution_context=ctx)
+        with pytest.raises(SupersetErrorsException):
+            command._execute("SELECT 1")
+    finally:
+        patch.stopall()
+
+
+def test_submit_async_schedule_failure_marks_query_failed() -> None:
+    """A scheduling failure marks the Query FAILED and raises."""
+    from superset.exceptions import SupersetErrorException
+
+    ctx = MagicMock()
+    ctx.select_as_cta = False
+    ctx.expand_data = False
+    ctx.query.id = 7
+    ctx.query.client_id = "abc123"
+    command = _make_command(execution_context=ctx)
+    command._pending_async = True
+    command._rendered_query = "SELECT 1"
+    patch(
+        "superset.tasks.sql_queries.run_sql_lab_query.schedule",
+        side_effect=RuntimeError("broker down"),
+    ).start()
+    patch(f"{_EXEC}.get_username", return_value="admin").start()
+    patch(f"{_EXEC}.db").start()
+    try:
+        with pytest.raises(SupersetErrorException):
+            command.submit_async()
+        assert ctx.query.status == "failed"
+    finally:
+        patch.stopall()

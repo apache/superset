@@ -78,6 +78,32 @@ class QueryDAO(BaseDAO[Query]):
             )
             return
 
+        # An async query runs as a GTF task (superset.sql_lab, keyed by client_id).
+        # Cancel through GTF so stopping from SQL Lab and from the Task List view are
+        # the same operation: the task's abort handler kills the warehouse query and
+        # the task mirrors STOPPED onto the Query row.
+        from superset.commands.tasks.cancel import CancelTaskCommand
+        from superset.daos.tasks import TaskDAO
+        from superset.tasks.sql_queries import SQL_LAB_TASK
+
+        user_id = get_user_id()
+        task = (
+            TaskDAO.find_by_task_key(SQL_LAB_TASK, client_id, "private", user_id)
+            if user_id is not None
+            else None
+        )
+        if task is not None:
+            CancelTaskCommand(task.uuid).run()
+            # A PENDING task aborts straight to ABORTED with no worker run, so
+            # nothing would mirror the terminal state onto the Query row; and even
+            # for a running task, marking STOPPED here (as the classic path did)
+            # is what the cooperative between-block check keys off. Idempotent with
+            # the task body's own mirror.
+            query.status = QueryStatus.STOPPED
+            query.end_time = now_as_float()
+            return
+
+        # Sync / non-GTF query: cancel the warehouse query directly and mark STOPPED.
         if not sql_lab.cancel_query(query):
             raise SupersetCancelQueryException("Could not cancel query")
 

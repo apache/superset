@@ -21,21 +21,27 @@ seconds), it is necessary to configure an asynchronous backend for Superset whic
 Configuring Celery requires defining a `CELERY_CONFIG` in your `superset_config.py`. Both the worker
 and web server processes should have the same configuration.
 
+:::note
+
+Asynchronous SQL Lab execution now runs on the **Global Task Framework (GTF)**. Enable the
+`GLOBAL_TASK_FRAMEWORK` feature flag (in addition to configuring Celery and a results backend, and
+setting **Asynchronous query execution** on the database) — with it disabled, a query that requests
+asynchronous execution returns an error. Synchronous execution is unaffected. The dedicated
+`sql_lab.get_sql_results` Celery task has been removed; the SQL task is registered via
+`superset.tasks.sql_queries`.
+
+:::
+
 ```python
 class CeleryConfig(object):
     broker_url = "redis://localhost:6379/0"
     imports = (
-        "superset.sql_lab",
+        "superset.tasks.sql_queries",
         "superset.tasks.scheduler",
     )
     result_backend = "redis://localhost:6379/0"
     worker_prefetch_multiplier = 10
     task_acks_late = True
-    task_annotations = {
-        "sql_lab.get_sql_results": {
-            "rate_limit": "100/s",
-        },
-    }
 
 CELERY_CONFIG = CeleryConfig
 ```

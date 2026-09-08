@@ -169,7 +169,10 @@ FAB_API_SWAGGER_UI = True
 
 class CeleryConfig:
     broker_url = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_CELERY_DB}"
-    imports = ("superset.sql_lab",)
+    # Async SQL Lab runs as a GTF task; the worker must import the task module so
+    # ``run_sql_lab_query`` is registered in the TaskRegistry (the generic
+    # ``tasks.execute`` dispatcher is registered via ``superset.tasks.celery_app``).
+    imports = ("superset.tasks.sql_queries",)
     result_backend = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_RESULTS_DB}"
     concurrency = 1
 

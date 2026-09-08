@@ -17,8 +17,6 @@
 # isort:skip_file
 """Unit tests for Sql Lab"""
 
-from textwrap import dedent
-
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 from parameterized import parameterized
@@ -31,16 +29,12 @@ from superset.connectors.sqla.models import SqlaTable  # noqa: F401
 from superset.db_engine_specs import BaseEngineSpec
 from superset.db_engine_specs.hive import HiveEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException, SupersetInvalidCVASException
+from superset.errors import ErrorLevel, SupersetErrorType
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sql.parse import CTASMethod
-from superset.sql_lab import (
-    cancel_query,
-    execute_sql_statements,
-)
+from superset.sql_lab import cancel_query
 from superset.utils.core import backend
 from superset.utils import json
 from superset.utils.json import datetime_to_epoch  # noqa: F401
@@ -649,228 +643,6 @@ class TestSqlLab(SupersetTestCase):
         )
         assert data["errors"][0]["error_type"] == "GENERIC_BACKEND_ERROR"
 
-    @mock.patch("superset.sql_lab.db")
-    @mock.patch("superset.sql_lab.get_query")
-    @mock.patch("superset.sql_lab.execute_query")
-    def test_execute_sql_statements(
-        self,
-        mock_execute_query,
-        mock_get_query,
-        mock_db,
-    ):
-        sql = dedent(
-            """
-            -- comment
-            SET @value = 42;
-            SELECT /*+ hint */ @value AS foo;
-        """
-        )
-        mock_db = mock.MagicMock()  # noqa: F841
-        mock_query = mock.MagicMock(select_as_cta=False)
-        mock_query.database.allow_run_async = False
-        mock_cursor = mock.MagicMock()
-        mock_query.database.get_raw_connection().__enter__().cursor.return_value = (
-            mock_cursor
-        )
-        mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
-        mock_query.database.mutate_sql_based_on_config.side_effect = (
-            lambda sql_, **kwargs: sql_
-        )
-        mock_get_query.return_value = mock_query
-
-        execute_sql_statements(
-            query_id=1,
-            rendered_query=sql,
-            return_results=True,
-            store_results=False,
-            start_time=None,
-            expand_data=False,
-            log_params=None,
-        )
-        mock_execute_query.assert_has_calls(
-            [
-                mock.call(mock_query, mock_cursor, None),
-                mock.call(mock_query, mock_cursor, None),
-            ]
-        )
-
-    @mock.patch("superset.sql_lab.results_backend", None)
-    @mock.patch("superset.sql_lab.get_query")
-    @mock.patch("superset.sql_lab.execute_query")
-    def test_execute_sql_statements_no_results_backend(
-        self,
-        mock_execute_query,
-        mock_get_query,
-    ):
-        sql = dedent(
-            """
-            -- comment
-            SET @value = 42;
-            SELECT /*+ hint */ @value AS foo;
-        """
-        )
-        mock_query = mock.MagicMock()
-        mock_query.database.allow_run_async = True
-        mock_cursor = mock.MagicMock()
-        mock_query.database.get_raw_connection().__enter__().cursor.return_value = (
-            mock_cursor
-        )
-        mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
-        mock_get_query.return_value = mock_query
-
-        with pytest.raises(SupersetErrorException) as excinfo:
-            execute_sql_statements(
-                query_id=1,
-                rendered_query=sql,
-                return_results=True,
-                store_results=False,
-                start_time=None,
-                expand_data=False,
-                log_params=None,
-            )
-
-        assert excinfo.value.error == SupersetError(
-            message="Results backend is not configured.",
-            error_type=SupersetErrorType.RESULTS_BACKEND_NOT_CONFIGURED_ERROR,
-            level=ErrorLevel.ERROR,
-            extra={
-                "issue_codes": [
-                    {
-                        "code": 1021,
-                        "message": (
-                            "Issue 1021 - Results backend needed for asynchronous "
-                            "queries is not configured."
-                        ),
-                    }
-                ]
-            },
-        )
-
-    @mock.patch("superset.sql_lab.db")
-    @mock.patch("superset.sql_lab.get_query")
-    @mock.patch("superset.sql_lab.execute_query")
-    def test_execute_sql_statements_ctas(
-        self,
-        mock_execute_query,
-        mock_get_query,
-        mock_db,
-    ):
-        sql = dedent(
-            """
-            -- comment
-            SET @value = 42;
-            SELECT /*+ hint */ @value AS foo;
-        """
-        )
-        mock_db = mock.MagicMock()  # noqa: F841
-        mock_query = mock.MagicMock(
-            select_as_cta=True,
-            ctas_method=CTASMethod.TABLE.name,
-            tmp_table_name="table",
-            tmp_schema_name="schema",
-            catalog="catalog",
-        )
-        mock_query.database.allow_run_async = False
-        mock_cursor = mock.MagicMock()
-        mock_query.database.get_raw_connection().__enter__().cursor.return_value = (
-            mock_cursor
-        )
-        mock_query.database.db_engine_spec.run_multiple_statements_as_one = False
-        mock_query.database.mutate_sql_based_on_config.side_effect = (
-            lambda sql_, **kwargs: sql_
-        )
-        mock_get_query.return_value = mock_query
-
-        # set the query to CTAS
-        mock_query.select_as_cta = True
-        mock_query.ctas_method = CTASMethod.TABLE.name
-
-        execute_sql_statements(
-            query_id=1,
-            rendered_query=sql,
-            return_results=True,
-            store_results=False,
-            start_time=None,
-            expand_data=False,
-            log_params=None,
-        )
-        mock_execute_query.assert_has_calls(
-            [
-                mock.call(mock_query, mock_cursor, None),
-                mock.call(mock_query, mock_cursor, None),
-            ]
-        )
-
-        # try invalid CTAS
-        sql = "DROP TABLE my_table"
-        with pytest.raises(SupersetErrorException) as excinfo:
-            execute_sql_statements(
-                query_id=1,
-                rendered_query=sql,
-                return_results=True,
-                store_results=False,
-                start_time=None,
-                expand_data=False,
-                log_params=None,
-            )
-        assert excinfo.value.error == SupersetError(
-            message="CTAS (create table as select) can only be run with a query where the last statement is a SELECT. Please make sure your query has a SELECT as its last statement. Then, try running your query again.",  # noqa: E501
-            error_type=SupersetErrorType.INVALID_CTAS_QUERY_ERROR,
-            level=ErrorLevel.ERROR,
-            extra={
-                "issue_codes": [
-                    {
-                        "code": 1023,
-                        "message": "Issue 1023 - The CTAS (create table as select) doesn't have a SELECT statement at the end. Please make sure your query has a SELECT as its last statement. Then, try running your query again.",  # noqa: E501
-                    }
-                ]
-            },
-        )
-
-        # try invalid CVAS
-        mock_query.ctas_method = CTASMethod.VIEW.name
-        sql = dedent(
-            """
-            -- comment
-            SET @value = 42;
-            SELECT /*+ hint */ @value AS foo;
-        """
-        )
-        with pytest.raises(SupersetInvalidCVASException) as excinfo:
-            execute_sql_statements(
-                query_id=1,
-                rendered_query=sql,
-                return_results=True,
-                store_results=False,
-                start_time=None,
-                expand_data=False,
-                log_params=None,
-            )
-        assert excinfo.value.error == SupersetError(
-            message="CVAS (create view as select) can only be run with a query with a single SELECT statement. Please make sure your query has only a SELECT statement. Then, try running your query again.",  # noqa: E501
-            error_type=SupersetErrorType.INVALID_CVAS_QUERY_ERROR,
-            level=ErrorLevel.ERROR,
-            extra={
-                "issue_codes": [
-                    {
-                        "code": 1024,
-                        "message": "Issue 1024 - CVAS (create view as select) query has more than one statement.",  # noqa: E501
-                    },
-                    {
-                        "code": 1025,
-                        "message": "Issue 1025 - CVAS (create view as select) query is not a SELECT statement.",  # noqa: E501
-                    },
-                ]
-            },
-        )
-
-    @pytest.mark.skip(
-        reason=(
-            "TODO: Fix test to work with DuckDB example data format. "
-            "Birth names fixture conflicts with new example data structure."
-        )
-    )
-    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_json_soft_timeout(self):
         examples_db = get_example_database()
         if examples_db.backend == "sqlite":

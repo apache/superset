@@ -1797,7 +1797,6 @@ CELERY_BEAT_SCHEDULER_EXPIRES = timedelta(weeks=1)
 class CeleryConfig:  # pylint: disable=too-few-public-methods
     broker_url = "sqla+sqlite:///celerydb.sqlite"
     imports = (
-        "superset.sql_lab",
         "superset.tasks.deletion_retention",
         "superset.tasks.scheduler",
         "superset.tasks.sql_queries",
@@ -1810,11 +1809,7 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
     result_backend = "db+sqlite:///celery_results.sqlite"
     worker_prefetch_multiplier = 1
     task_acks_late = False
-    task_annotations = {
-        "sql_lab.get_sql_results": {
-            "rate_limit": "100/s",
-        },
-    }
+    task_annotations: dict[str, Any] = {}
     beat_schedule = {
         "reports.scheduler": {
             "task": "reports.scheduler",
