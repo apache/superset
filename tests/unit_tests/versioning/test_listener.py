@@ -250,3 +250,61 @@ def test_transient_persist_failure_is_logged_and_counted(
 
     log_spy.assert_called_once()
     metric_spy.assert_called_once_with("bulk_insert")
+
+
+def test_capture_latency_metric_fires_on_commit(
+    lifecycle_session: Session,
+) -> None:
+    """sc-115617: the finalizer emits the write-path latency series on every
+    save-path commit — the kill-switch's own decision signal. Driven through
+    the real module-level finalizer on an isolated session (no versioning
+    tables needed: the tx-id early return still passes the timing's
+    ``finally``)."""
+    from unittest.mock import MagicMock, patch
+
+    sa.event.listen(
+        lifecycle_session, "before_commit", listener.finalize_change_records
+    )
+    manager = MagicMock()
+    with patch("superset.extensions.stats_logger_manager", manager):
+        lifecycle_session.add(LifecycleRow(value="timed"))
+        lifecycle_session.commit()
+
+    calls = [
+        call
+        for call in manager.instance.timing.call_args_list
+        if call.args[0] == "superset.versioning.capture.finalize.latency"
+    ]
+    assert len(calls) == 1
+    duration_ms = calls[0].args[1]
+    assert isinstance(duration_ms, float)
+    assert duration_ms >= 0
+
+
+def test_capture_latency_metric_skips_reentrant_finalize(
+    lifecycle_session: Session,
+) -> None:
+    """The reentrancy guard returns before the timer starts: a nested or
+    re-entered finalize must not dilute the latency series with instant
+    zero samples."""
+    from unittest.mock import MagicMock, patch
+
+    manager = MagicMock()
+    lifecycle_session.info[listener._FINALIZING_KEY] = True
+    with patch("superset.extensions.stats_logger_manager", manager):
+        listener.finalize_change_records(lifecycle_session)
+
+    manager.instance.timing.assert_not_called()
+
+
+def test_emit_capture_timing_is_fail_open() -> None:
+    """A broken stats backend must never break a user's save (the same
+    posture as incr_capture_error, pinned)."""
+    from unittest.mock import MagicMock, patch
+
+    from superset.versioning.metrics import emit_capture_timing
+
+    manager = MagicMock()
+    manager.instance.timing.side_effect = RuntimeError("statsd down")
+    with patch("superset.extensions.stats_logger_manager", manager):
+        emit_capture_timing("finalize", 1.0)  # must not raise

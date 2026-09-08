@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Metrics for swallowed capture-path failures.
+"""Write-path metrics for the versioning capture listeners.
 
 The capture listeners fail open (a versioning bug must never break a
 user's save), so the read path (``activity/orchestrator``) is richly
@@ -52,3 +52,25 @@ def incr_capture_error(stage: str) -> None:
         stats_logger_manager.instance.incr(f"{_CAPTURE_METRIC_PREFIX}.{stage}.error")
     except Exception:  # pylint: disable=broad-except
         logger.exception("versioning: failed to emit capture-error metric")
+
+
+def emit_capture_timing(stage: str, duration_ms: float) -> None:
+    """Emit the write-path latency for one capture *stage*, in milliseconds.
+
+    The documented recovery lever for capture trouble is the
+    ``ENABLE_VERSIONING_CAPTURE`` kill-switch, flipped on save-path
+    slowdown — this series
+    (``superset.versioning.capture.<stage>.latency``) is the signal an
+    operator alerts on before flipping it. The counters above cover
+    *loss*; this covers *slowdown*. Best-effort under the same fail-open
+    posture: metrics emission must never itself break a user's save.
+    """
+    # pylint: disable=import-outside-toplevel
+    try:
+        from superset.extensions import stats_logger_manager
+
+        stats_logger_manager.instance.timing(
+            f"{_CAPTURE_METRIC_PREFIX}.{stage}.latency", duration_ms
+        )
+    except Exception:  # pylint: disable=broad-except
+        logger.exception("versioning: failed to emit capture-latency metric")

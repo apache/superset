@@ -50,6 +50,7 @@ from sqlalchemy import event
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import Session, SessionTransaction
 
+from superset.utils.dates import now_as_float
 from superset.versioning.changes.normalization import NORMALIZATION_CONTEXT_KEY
 from superset.versioning.changes.shadow_queries import (
     _dashboard_child_records_for_tx_from_shadows,
@@ -66,7 +67,7 @@ from superset.versioning.diff import (
     ChangeRecord,
     fold_dashboard_layout_with_chart_changes,
 )
-from superset.versioning.metrics import incr_capture_error
+from superset.versioning.metrics import emit_capture_timing, incr_capture_error
 
 logger = logging.getLogger(__name__)
 
@@ -407,6 +408,9 @@ def finalize_change_records(session: Session) -> None:
         return
 
     session.info[_FINALIZING_KEY] = True
+    # Timed after the reentrancy guard, so the series measures the real
+    # per-commit capture cost and is not diluted by instant re-entries.
+    start = now_as_float()
     try:
         session.flush()
         initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
@@ -426,6 +430,7 @@ def finalize_change_records(session: Session) -> None:
             _persist_buffered_records(session, tx_id, buffer)
     finally:
         session.info.pop(_FINALIZING_KEY, None)
+        emit_capture_timing("finalize", now_as_float() - start)
 
 
 def register_change_record_listener() -> None:  # noqa: C901
