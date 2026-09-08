@@ -114,6 +114,12 @@ class BaseRestoreVersionCommand(BaseCommand):
         entity = (
             db.session.query(self.model_cls)
             .populate_existing()
+            # Disable eager loaders before FOR UPDATE. A ``lazy="subquery"``
+            # relationship (e.g. ``Slice.table``) wraps the primary query into
+            # ``SELECT DISTINCT … FOR UPDATE`` to fetch its related rows, and
+            # Postgres rejects ``FOR UPDATE`` with ``DISTINCT``. We only need the
+            # locked row's own columns here; relationships load lazily after.
+            .enable_eagerloads(False)
             .filter_by(id=entity.id, deleted_at=None)
             .with_for_update()
             .one_or_none()

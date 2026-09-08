@@ -50,6 +50,7 @@ def _self_returning_query(mock_db: MagicMock) -> MagicMock:
     that object so a test can set ``one_or_none`` and assert the calls."""
     query = mock_db.session.query.return_value
     query.populate_existing.return_value = query
+    query.enable_eagerloads.return_value = query
     query.filter_by.return_value = query
     query.with_for_update.return_value = query
     return query
@@ -84,6 +85,12 @@ def test_do_restore_reads_the_entity_under_a_row_lock(
 
     mock_db.session.query.assert_called_once_with(cmd.model_cls)
     query.populate_existing.assert_called_once_with()
+    # Eager loaders MUST be disabled before FOR UPDATE: a ``lazy="subquery"``
+    # relationship (e.g. Slice.table) otherwise emits ``SELECT DISTINCT …
+    # FOR UPDATE``, which Postgres rejects. This guards that regression (the
+    # real SQL only compiles that way at execution against Postgres, so the
+    # integration suite is the behavioural guard; this pins the call site).
+    query.enable_eagerloads.assert_called_once_with(False)
     # The active-row predicate (deleted_at IS NULL) is what makes a concurrent
     # *soft* delete read as absent — assert it is part of the locking filter.
     query.filter_by.assert_called_once_with(id=entity.id, deleted_at=None)
