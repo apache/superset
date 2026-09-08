@@ -16,7 +16,11 @@
 # under the License.
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
+
+import apsw
+from sqlalchemy import event
+from sqlalchemy.engine.base import Engine
 
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
@@ -63,3 +67,29 @@ class ShillelaghEngineSpec(SqliteEngineSpec):
             "version",
             "get_metadata",
         ]
+
+    @classmethod
+    def register_engine_events(cls, engine: Engine) -> None:
+        super().register_engine_events(engine)
+        event.listen(engine, "connect", cls._scope_connection_to_adapters)
+
+    @staticmethod
+    def _scope_connection_to_adapters(
+        dbapi_connection: Any,
+        connection_record: Any,  # pylint: disable=unused-argument
+    ) -> None:
+        """
+        Keep a query scoped to the connection's configured data source.
+
+        A shillelagh database targets external sources through its adapters (for
+        example a Google Sheet); ``ATTACH DATABASE`` is not part of that surface,
+        and the underlying driver is a full APSW/SQLite engine that would
+        otherwise let a query open unrelated local SQLite files. Setting the
+        attached-database limit to zero disables ``ATTACH`` on the connection,
+        matching the ``check_sqlalchemy_uri`` guard in
+        ``superset/security/analytics_db_safety.py`` that already excludes the
+        bare ``sqlite``/``shillelagh``/``duckdb`` schemes at registration.
+        """
+        apsw_connection = getattr(dbapi_connection, "_connection", None)
+        if isinstance(apsw_connection, apsw.Connection):
+            apsw_connection.limit(apsw.SQLITE_LIMIT_ATTACHED, 0)

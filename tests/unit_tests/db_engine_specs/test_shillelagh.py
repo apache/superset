@@ -1,0 +1,70 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+import sqlite3
+
+import pytest
+from sqlalchemy import create_engine, text
+
+from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
+
+
+@pytest.fixture
+def local_sqlite_file(tmp_path):
+    """A standalone SQLite file that ATTACH would otherwise be able to open."""
+    path = tmp_path / "other.db"
+    conn = sqlite3.connect(str(path))
+    conn.execute("CREATE TABLE t (x TEXT)")
+    conn.execute("INSERT INTO t VALUES ('value')")
+    conn.commit()
+    conn.close()
+    return path
+
+
+def test_register_engine_events_disables_attach(local_sqlite_file) -> None:
+    """
+    After ``register_engine_events``, ``ATTACH DATABASE`` is rejected on a
+    shillelagh connection while ordinary queries keep working.
+    """
+    pytest.importorskip("shillelagh")
+    pytest.importorskip("apsw")
+
+    engine = create_engine("shillelagh://")
+    ShillelaghEngineSpec.register_engine_events(engine)
+
+    with engine.connect() as connection:
+        # a normal query is unaffected
+        assert connection.execute(text("SELECT 1")).scalar() == 1
+
+        # ATTACH is refused: the attached-database limit is zero
+        with pytest.raises(Exception, match="attached databases"):
+            connection.execute(text(f"ATTACH DATABASE '{local_sqlite_file}' AS other"))
+
+
+def test_attach_enabled_without_registration(local_sqlite_file) -> None:
+    """
+    Control: a plain shillelagh engine (no event registration) still permits
+    ATTACH, confirming the fixture exercises the real driver capability and the
+    protection comes from ``register_engine_events``.
+    """
+    pytest.importorskip("shillelagh")
+    pytest.importorskip("apsw")
+
+    engine = create_engine("shillelagh://")
+    with engine.connect() as connection:
+        connection.execute(text(f"ATTACH DATABASE '{local_sqlite_file}' AS other"))
+        assert connection.execute(text("SELECT x FROM other.t")).scalar() == "value"
