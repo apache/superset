@@ -38,8 +38,6 @@ from functools import partial
 from typing import Any, ClassVar
 from uuid import UUID
 
-from sqlalchemy.orm.exc import ObjectDeletedError
-
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.exceptions import SupersetSecurityException
@@ -92,25 +90,36 @@ class BaseRestoreVersionCommand(BaseCommand):
     def _do_restore(self) -> RestoreResult:
         entity = self.validate()
 
-        # Re-read the live row under a FOR UPDATE lock in one statement. This
-        # both serialises the revert against a concurrent write on the same row
-        # (the lock is held for the rest of this transaction) and reloads the
-        # in-memory entity from the *current committed* state — a plain
-        # refresh() is a non-locking consistent read, which on MySQL/InnoDB
-        # REPEATABLE READ returns the transaction's first-read snapshot (taken
-        # in validate(), before any lock) and would miss an edit committed in
-        # between, silently dropping it from the revert UPDATE (sc-115423).
-        # This is the pessimistic (serialise) half; the restore endpoint does
-        # not yet also honor an If-Match precondition to *detect* (rather than
-        # serialise) a concurrent edit — a separate follow-up.
-        try:
-            db.session.refresh(entity, with_for_update=True)
-        except ObjectDeletedError as ex:
-            # The row was hard-deleted and committed between validate() and the
-            # lock; surface the documented 404 (the same race the
-            # restore_version None-return handles below), not the transaction
-            # wrapper's generic 422.
-            raise self.not_found_exc() from ex
+        # Re-read the live row under a FOR UPDATE lock, refreshing the
+        # in-memory entity (``populate_existing``) from the *current committed*
+        # state, and re-assert it is still active (``deleted_at IS NULL``). A
+        # single locking query closes three races opened between validate()'s
+        # unlocked read and the revert:
+        #   * a concurrent content edit — a plain, non-locking read (bare
+        #     refresh()) returns the transaction's first-read snapshot on
+        #     MySQL/InnoDB REPEATABLE READ and would silently drop the edit
+        #     from the revert UPDATE;
+        #   * a concurrent hard delete — the row is gone, so the query returns
+        #     None;
+        #   * a concurrent soft delete — column loads (get()/refresh()) bypass
+        #     the global active-row filter, so without the explicit
+        #     ``deleted_at IS NULL`` predicate the revert would resurrect an
+        #     archived entity and report success.
+        # A None result (hard- or soft-deleted) is surfaced as the documented
+        # 404 — not the transaction wrapper's generic 422, and not via a
+        # refresh() whose missing-row failure is a hard-to-catch
+        # InvalidRequestError. This is the pessimistic (serialise) half; the
+        # restore endpoint does not yet also honor an If-Match precondition to
+        # *detect* (rather than serialise) a concurrent edit — a follow-up.
+        entity = (
+            db.session.query(self.model_cls)
+            .populate_existing()
+            .filter_by(id=entity.id, deleted_at=None)
+            .with_for_update()
+            .one_or_none()
+        )
+        if entity is None:
+            raise self.not_found_exc()
 
         resolved = resolve_version(
             self.model_cls, self._uuid, self._version_uuid, entity=entity
@@ -154,9 +163,9 @@ class BaseRestoreVersionCommand(BaseCommand):
         )
         if result is None:
             # Race: the target version row was pruned, or the entity deleted,
-            # between resolve and the engine's re-check. (A hard delete before
-            # the lock is already caught at the refresh above; this covers the
-            # narrower window after it.)
+            # between resolve and the engine's re-check. (A hard/soft delete
+            # before the lock is already caught by the locking query above;
+            # this covers the narrower window after it.)
             raise self.not_found_exc()
         return result
 
