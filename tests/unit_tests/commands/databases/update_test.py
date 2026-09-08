@@ -800,6 +800,29 @@ def test_update_unreachable_database_changed_connection_fails(
     commit.assert_not_called()
 
 
+@pytest.mark.parametrize("field", ["extra", "encrypted_extra"])
+@pytest.mark.parametrize("invalid_original", [False, True], ids=["incoming", "stored"])
+def test_update_unreachable_database_invalid_json_fails(
+    mocker: MockerFixture,
+    unreachable_database: Database,
+    field: str,
+    invalid_original: bool,
+) -> None:
+    """Invalid JSON must not allow an update to skip a failed permission sync."""
+    properties: dict[str, Any] = {"expose_in_sqllab": False, field: "{invalid"}
+    if invalid_original:
+        setattr(unreachable_database, field, "{invalid")
+        properties[field] = "{}"
+    rollback = mocker.patch.object(db.session, "rollback")
+    commit = mocker.patch.object(db.session, "commit")
+
+    with pytest.raises(DatabaseConnectionFailedError):
+        UpdateDatabaseCommand(1, properties).run()
+
+    rollback.assert_called_once()
+    commit.assert_not_called()
+
+
 @pytest.mark.parametrize("connection_alive", [False, True])
 def test_update_with_missing_old_password(
     mocker: MockerFixture,
