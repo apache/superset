@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import sqlite3
 from contextlib import closing
+from typing import Any
 
 from flask import current_app as app
 from flask_appbuilder.security.sqla.models import (
@@ -30,12 +31,107 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from superset import security_manager
+from superset.commands.database.exceptions import DatabaseInvalidError
+from superset.constants import PASSWORD_MASK
+from superset.databases.ssh_tunnel.models import SSHTunnel
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import GenericDBException
 from superset.models.core import Database
 from superset.security.manager import SupersetSecurityManager
+from superset.utils import json
 from superset.utils.core import timeout
 
 logger = logging.getLogger(__name__)
+
+
+def uri_identity_changed(existing_uri: str | None, submitted_uri: str | None) -> bool:
+    """
+    Whether two SQLAlchemy URIs differ once their password is stripped --
+    i.e. whether the effective connection destination (driver, host, port,
+    database, username, query params) changed.
+    """
+    try:
+        stored = make_url_safe(existing_uri or "")._replace(password=None)
+        incoming = make_url_safe(submitted_uri or "")._replace(password=None)
+    except DatabaseInvalidError:
+        # An unparseable URI cannot be compared: treat it as a change so a
+        # stored secret never survives onto it.
+        return True
+    return stored != incoming
+
+
+def engine_params_changed(
+    existing_extra: str | None, submitted_extra: str | None
+) -> bool:
+    """
+    Whether ``submitted_extra`` carries different ``engine_params`` than
+    ``existing_extra``.
+
+    ``engine_params`` (in particular ``engine_params.connect_args``) is
+    merged into the actual DBAPI connect kwargs, so it can override the
+    host/port/etc. carried in the SQLAlchemy URI itself. Any caller that
+    conditionally reattaches a stored secret (password, encrypted_extra, SSH
+    tunnel credentials) based on the URI being unchanged must also check
+    this, or the destination can be silently redirected while the real
+    secret rides along.
+    """
+
+    def _engine_params(serialized_extra: str | None) -> dict[str, Any]:
+        try:
+            return json.loads(serialized_extra or "{}").get("engine_params", {})
+        except (json.JSONDecodeError, AttributeError):
+            # Unparseable/non-dict `extra` cannot be compared: treat it as a
+            # change so a stored secret never rides along with input that
+            # can't be verified to leave the connection identity untouched.
+            return {"__unparseable__": True}
+
+    return _engine_params(submitted_extra) != _engine_params(existing_extra)
+
+
+def ssh_tunnel_endpoint_changed(
+    existing_tunnel: SSHTunnel | None, submitted_tunnel: dict[str, Any] | None
+) -> bool:
+    """
+    Whether a submitted SSH tunnel config points at a different endpoint
+    than the stored tunnel it would otherwise inherit credentials from.
+    """
+    if not submitted_tunnel or not existing_tunnel:
+        return False
+    return bool(
+        submitted_tunnel.get("server_address") != existing_tunnel.server_address
+        or submitted_tunnel.get("server_port") != existing_tunnel.server_port
+    )
+
+
+def ssh_tunnel_rebind_unsafe(
+    existing_tunnel: SSHTunnel | None, submitted_tunnel: dict[str, Any] | None
+) -> bool:
+    """
+    Whether a submitted SSH tunnel config repoints the tunnel at a
+    different endpoint without supplying credentials fresh enough to
+    justify it -- i.e. whether carrying the stored tunnel secrets over
+    onto this submission would be unsafe.
+    """
+    if not ssh_tunnel_endpoint_changed(existing_tunnel, submitted_tunnel):
+        return False
+
+    assert submitted_tunnel is not None
+    assert existing_tunnel is not None
+
+    has_fresh_credential = any(
+        submitted_tunnel.get(field) not in (None, PASSWORD_MASK)
+        for field in ("password", "private_key")
+    )
+    # A passphrase-protected private key's stored passphrase is a secret in
+    # its own right: if the existing tunnel had one, a repoint that
+    # supplies a fresh private_key but leaves private_key_password
+    # masked/absent would keep the old passphrase attached to the new key
+    # rather than requiring the caller to confirm it too.
+    stale_private_key_password = (
+        existing_tunnel.private_key_password is not None
+        and submitted_tunnel.get("private_key_password") in (None, PASSWORD_MASK)
+    )
+    return not has_fresh_credential or stale_private_key_password
 
 
 def ping(engine: Engine) -> bool:
