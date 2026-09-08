@@ -18,6 +18,8 @@
 from datetime import timedelta
 from unittest.mock import patch
 
+import pytest
+from flask import current_app
 from superset_core.tasks.types import TaskScope, TaskStatus
 
 from superset import db
@@ -25,6 +27,26 @@ from superset.commands.tasks.reap import ORPHAN_ERROR_MESSAGE, ReapOrphanedTasks
 from superset.daos.tasks import TaskDAO
 from superset.models.tasks import Task
 from superset.tasks.utils import naive_utcnow
+
+
+@pytest.fixture(autouse=True)
+def _drain_preexisting_orphans(app_context):
+    """Isolate the reaper tests from orphans leaked by other integration tests.
+
+    ``ReapOrphanedTasksCommand`` acts on the reaper's *global* view of the
+    metastore, and the assertions here count reaped tasks / revoke + cancel calls.
+    An async task left in a non-terminal, stale-heartbeat state by an earlier test
+    (e.g. a chart-data async or timeout/abort task) would otherwise be reaped
+    alongside the test's own orphan and inflate those counts. Such tasks are
+    already abandoned (no live worker), so draining them before each test is safe
+    and leaves healthy PENDING/RUNNING tasks from other suites untouched.
+    """
+    timeout = current_app.config["GTF_ORPHAN_TASK_TIMEOUT"]
+    for task_uuid in TaskDAO.find_orphaned(timeout):
+        if task := db.session.query(Task).filter_by(uuid=task_uuid).first():
+            db.session.delete(task)
+    db.session.commit()
+    return
 
 
 def _make_task(
