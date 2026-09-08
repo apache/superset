@@ -35,7 +35,11 @@ from jinja2.exceptions import TemplateSyntaxError
 from superset_core.queries.types import QueryResult, QueryStatus, StatementResult
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import (
+    SupersetParseError,
+    SupersetSecurityException,
+    SupersetTemplateException,
+)
 from superset.mcp_service.app import mcp
 from superset.mcp_service.sql_lab.schemas import ColumnInfo
 
@@ -404,15 +408,78 @@ class TestExecuteSql:
             assert data["error"] == message
             assert data["error_type"] == error_type.value
 
-        mock_security_manager.raise_for_access.assert_called_once()
+        mock_security_manager.raise_for_access.assert_called_once_with(
+            database=mock_database,
+            sql="SELECT * FROM secret_table",
+            catalog=None,
+            schema=None,
+            template_params={},
+            force_dataset_match=True,
+        )
         # the query must not run when access is denied
         mock_database.execute.assert_not_called()
 
     @patch("superset.security_manager", new_callable=MagicMock)
     @patch("superset.db")
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("template_params", [None, {}, {"a": 1}])
+    async def test_execute_sql_authorizes_the_sql_that_executes(
+        self, mock_db, mock_security_manager, mcp_server, template_params
+    ):
+        """The access check and the executor must be handed the same
+        template_params.
+
+        The check renders via ``process_jinja_sql``, which treats ``None`` like
+        ``{}`` and always renders, while the executor skips rendering for
+        ``None``. If the two disagree, the authorized SQL is not the SQL that
+        runs, and Jinja that only expands on one side (e.g. a table reference
+        hidden behind ``{% if %}``) escapes the table-access check.
+        """
+        mock_database = _mock_database()
+        mock_database.execute.return_value = _create_select_result(
+            rows=[{"id": 1}],
+            columns=["id"],
+        )
+        mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
+            mock_database
+        )
+
+        request: dict[str, Any] = {
+            "database_id": 1,
+            "sql": "SELECT id FROM users",
+            "limit": 10,
+        }
+        if template_params is not None:
+            request["template_params"] = template_params
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("execute_sql", {"request": request})
+            assert result.structured_content["success"] is True
+
+        authorized = mock_security_manager.raise_for_access.call_args.kwargs[
+            "template_params"
+        ]
+        executed = mock_database.execute.call_args[0][1].template_params
+        assert authorized == executed
+        # never None, so the executor cannot skip a render the check performed
+        assert executed == (template_params or {})
+
+    @patch("superset.security_manager", new_callable=MagicMock)
+    @patch("superset.db")
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "side_effect",
+        [
+            TemplateSyntaxError("unexpected end of template", 1),
+            # raised by macros such as ``metric()`` while rendering; a
+            # SupersetException rather than a jinja2 one, so it needs
+            # catching separately to avoid surfacing as a crash
+            SupersetTemplateException("Please specify the Dataset ID"),
+            SupersetParseError("SELECT", "postgresql", message="cannot parse"),
+        ],
+    )
     async def test_execute_sql_malformed_template(
-        self, mock_db, mock_security_manager, mcp_server
+        self, mock_db, mock_security_manager, mcp_server, side_effect
     ):
         """Malformed Jinja is reported as invalid SQL, not as a crash: the
         access check renders the template, so it fails there first."""
@@ -420,9 +487,7 @@ class TestExecuteSql:
         mock_db.session.query.return_value.filter_by.return_value.first.return_value = (
             mock_database
         )
-        mock_security_manager.raise_for_access.side_effect = TemplateSyntaxError(
-            "unexpected end of template", 1
-        )
+        mock_security_manager.raise_for_access.side_effect = side_effect
 
         request = {
             "database_id": 1,
