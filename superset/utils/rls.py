@@ -26,7 +26,7 @@ from sqlalchemy import and_, func, or_
 from superset import db, security_manager
 from superset.sql.parse import folds_unquoted_object_names, Table
 from superset.utils import json
-from superset.utils.core import get_user_id
+from superset.utils.core import get_user_id, remove_duplicates
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -115,27 +115,29 @@ def _identifiers_match(left: str | None, right: str | None, fold: bool) -> bool:
     return left == right
 
 
-def _find_dataset(
+def _find_datasets(
     table: Table,
     database: Database,
     default_catalog: str | None,
     exclude_dataset_id: int | None,
     fold: bool,
-) -> SqlaTable | None:
+) -> list[SqlaTable]:
     """
-    Find the dataset a table reference resolves to.
+    Find the datasets a table reference resolves to.
 
-    Matches an exact schema first, then a dataset stored without a schema, which
-    is scoped to the database's default schema. These are separate queries rather
-    than one ``OR`` so that a schema match always wins; resolving the default
+    Matches the reference's schema first, then a dataset stored without a schema,
+    which is scoped to the database's default schema. These are separate queries
+    rather than one ``OR`` so that a schema match wins; resolving the default
     schema probes the analytic database, so it is deferred until a null-schema
     dataset is known to exist. A dataset stored with a null catalog is likewise
     scoped to the default catalog.
 
     :param fold: Compare identifiers case-insensitively, for an engine that
-        doesn't treat unquoted identifiers as case-sensitive. An ambiguous folded
-        match is ignored rather than guessed at, whereas an ambiguous exact match
-        raises, as it always has.
+        doesn't treat unquoted identifiers as case-sensitive. Datasets are unique
+        per exact ``(database, catalog, schema, table name)``, so folding can
+        match several that differ only in case. They all name the same physical
+        table, so all of them are returned and the caller applies every one's
+        predicates, rather than picking one and dropping the rest.
     """
     from superset.connectors.sqla.models import SqlaTable
 
@@ -159,25 +161,24 @@ def _find_dataset(
     if exclude_dataset_id is not None:
         filters.append(SqlaTable.id != exclude_dataset_id)
 
-    def match(schema_predicate: Any) -> SqlaTable | None:
+    def match(schema_predicate: Any) -> list[SqlaTable]:
         query = db.session.query(SqlaTable).filter(and_(*filters, schema_predicate))
-        if not fold:
-            return query.one_or_none()
-        # 0, 1 or "ambiguous" is all the folded lookup needs to tell apart
-        matches = query.limit(2).all()
-        return matches[0] if len(matches) == 1 else None
+        if fold:
+            return query.all()
+        dataset = query.one_or_none()
+        return [dataset] if dataset else []
 
-    if dataset := match(eq(SqlaTable.schema, table.schema)):
-        return dataset
+    if datasets := match(eq(SqlaTable.schema, table.schema)):
+        return datasets
 
     if (
         table.schema
-        and (null_schema_dataset := match(SqlaTable.schema.is_(None)))
+        and (null_schema_datasets := match(SqlaTable.schema.is_(None)))
         and same(table.schema, database.get_default_schema(table.catalog))
     ):
-        return null_schema_dataset
+        return null_schema_datasets
 
-    return None
+    return []
 
 
 def get_predicates_for_table(
@@ -193,32 +194,25 @@ def get_predicates_for_table(
     table must be fully qualified, with catalog (null if the DB doesn't support) and
     schema.
     """
-    dataset = _find_dataset(
+    datasets = _find_datasets(
         table,
         database,
         default_catalog,
         exclude_dataset_id,
-        fold=False,
+        # An engine that doesn't treat unquoted identifiers as case-sensitive
+        # resolves a case-mismatched reference (e.g. ``BIRTH_NAMES``) to the same
+        # physical table as the registered dataset (``birth_names``), so every
+        # dataset whose name differs only in case describes that one table and
+        # all of their predicates apply. Matching the exact casing first instead
+        # would let a dataset registered as ``Birth_Names`` shadow the protected
+        # one and drop its predicates. A parsed reference carries no quoting
+        # information, so this also matches a quoted reference, which is a
+        # distinct table on those engines: that direction applies extra
+        # predicates rather than dropping one that should have applied.
+        fold=folds_unquoted_object_names(database.db_engine_spec.engine),
     )
 
-    if not dataset and folds_unquoted_object_names(database.db_engine_spec.engine):
-        # The match above is case-sensitive, but an engine that doesn't treat
-        # unquoted identifiers as case-sensitive resolves a case-mismatched
-        # reference (e.g. ``BIRTH_NAMES``) to the same physical table as the
-        # registered dataset (``birth_names``), so retry it folding every
-        # identifier. A parsed reference carries no quoting information, so this
-        # also matches a quoted reference, which is a distinct table on those
-        # engines: that direction applies extra predicates rather than dropping
-        # one that should have applied.
-        dataset = _find_dataset(
-            table,
-            database,
-            default_catalog,
-            exclude_dataset_id,
-            fold=True,
-        )
-
-    if not dataset:
+    if not datasets:
         return []
 
     # Exclude global (unscoped) guest RLS to prevent double application in
@@ -231,17 +225,17 @@ def get_predicates_for_table(
     # (PUBLIC_EXCLUDED_VIEW_MENUS in security/manager.py). If the guest role is
     # extended to include SQL Lab access, global guest RLS predicates for
     # underlying tables would be skipped here.
-    return [
-        str(
-            predicate.compile(
-                dialect=database.get_dialect(),
-                compile_kwargs={"literal_binds": True},
-            )
-        )
+    # A folded match can resolve to several datasets naming the same physical
+    # table, in which case every one's predicates apply; deduplicated because a
+    # single RLS rule can be attached to more than one of them.
+    dialect = database.get_dialect()
+    return remove_duplicates(
+        str(predicate.compile(dialect=dialect, compile_kwargs={"literal_binds": True}))
+        for dataset in datasets
         for predicate in dataset.get_sqla_row_level_filters(
             include_global_guest_rls=False
         )
-    ]
+    )
 
 
 def collect_rls_predicates_for_sql(

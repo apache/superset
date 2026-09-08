@@ -182,6 +182,8 @@ CASE_SENSITIVE_OBJECT_NAMES = {
     # keywords are not
     "bigquery",
     "datastore",
+    # the dfs plugin's table names are filesystem paths
+    "drill",
     # datasource names are case-sensitive
     "druid",
     # shillelagh-backed: the "table" is a URL or an adapter-specific identifier
@@ -206,9 +208,6 @@ def folds_unquoted_object_names(engine: str) -> bool:
     This reads the sqlglot dialect, for callers already working with parsed SQL.
     ``BaseEngineSpec.denormalize_name`` answers a related question from the
     SQLAlchemy dialect, for callers working with a live connection.
-
-    Answers False unless the engine is known to fold, so an engine this can't
-    classify keeps the caller's exact-match behavior.
 
     Note that the dataset lookup behind ``raise_for_access``
     (``query_datasources_by_name``) deliberately stays case-sensitive: matching a

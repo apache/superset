@@ -711,9 +711,12 @@ def test_get_predicates_for_table_case_mismatched_reference(session: Session) ->
     reference whose catalog, schema or table casing differs from the registered
     dataset still resolves to the same physical table, so the dataset's RLS
     predicates must be applied. That includes a dataset stored without a schema,
-    which is scoped to the database's default schema. An engine that does treat
-    them as case-sensitive keeps the exact match, and an ambiguous
-    case-insensitive match is ignored rather than guessed at.
+    which is scoped to the database's default schema, or without a catalog, which
+    is scoped to the default catalog. An engine that does treat them as
+    case-sensitive keeps the exact match. Several datasets can differ only in
+    case, all naming that one physical table: every one's predicates apply, so
+    the exact-case dataset's predicates are never dropped and a dataset
+    registered under a different casing cannot shadow it.
     """
     from superset.connectors.sqla.models import SqlaTable
 
@@ -725,12 +728,16 @@ def test_get_predicates_for_table_case_mismatched_reference(session: Session) ->
     null_schema = Database(
         database_name="rls_db_null_schema", sqlalchemy_uri="sqlite://"
     )
+    null_catalog = Database(
+        database_name="rls_db_null_catalog", sqlalchemy_uri="sqlite://"
+    )
     session.add_all(
         [
             folding,
             exact,
             ambiguous,
             null_schema,
+            null_catalog,
             SqlaTable(
                 table_name="t1", schema="public", catalog="cat", database=folding
             ),
@@ -742,13 +749,24 @@ def test_get_predicates_for_table_case_mismatched_reference(session: Session) ->
                 table_name="T1", schema="public", catalog=None, database=ambiguous
             ),
             SqlaTable(table_name="t1", schema=None, catalog=None, database=null_schema),
+            SqlaTable(
+                table_name="t1", schema="public", catalog=None, database=null_catalog
+            ),
         ]
     )
     session.flush()
 
+    def row_level_filters(
+        self: Any, include_global_guest_rls: bool = True
+    ) -> list[Any]:
+        return [text(f"c1 = '{self.table_name}'")]
+
     with (
         patch.object(
-            SqlaTable, "get_sqla_row_level_filters", return_value=[text("c1 = 1")]
+            SqlaTable,
+            "get_sqla_row_level_filters",
+            autospec=True,
+            side_effect=row_level_filters,
         ),
         patch.object(Database, "get_default_schema", return_value="public"),
     ):
@@ -757,23 +775,39 @@ def test_get_predicates_for_table_case_mismatched_reference(session: Session) ->
             Table("T1", "PUBLIC", "cat"),
             Table("t1", "public", "CAT"),
         ):
-            assert get_predicates_for_table(reference, folding, "cat") == ["c1 = 1"], (
-                f"no predicates for {reference}"
-            )
+            assert get_predicates_for_table(reference, folding, "cat") == [
+                "c1 = 't1'"
+            ], f"no predicates for {reference}"
+
+        # dataset stored without a catalog, referenced via the default catalog
+        assert get_predicates_for_table(
+            Table("T1", "public", "CAT"), null_catalog, "cat"
+        ) == ["c1 = 't1'"]
 
         # dataset stored without a schema, referenced via the default schema
         assert get_predicates_for_table(
             Table("T1", "PUBLIC", None), null_schema, None
-        ) == ["c1 = 1"]
+        ) == ["c1 = 't1'"]
         assert (
             get_predicates_for_table(Table("T1", "other", None), null_schema, None)
             == []
         )
 
         assert get_predicates_for_table(Table("T1", "public", None), exact, None) == []
-        assert (
-            get_predicates_for_table(Table("t1", "PUBLIC", None), ambiguous, None) == []
-        )
+
+        # ``t1`` and ``T1`` name the same physical table here, so both sets of
+        # predicates apply whichever casing is referenced: the exact-case
+        # dataset's predicates are always among them, and neither dataset can
+        # shadow the other by registering a different casing
+        for reference in (
+            Table("t1", "public", None),
+            Table("T1", "public", None),
+            Table("t1", "PUBLIC", None),
+        ):
+            assert sorted(get_predicates_for_table(reference, ambiguous, None)) == [
+                "c1 = 'T1'",
+                "c1 = 't1'",
+            ], f"missing predicates for {reference}"
 
 
 def test_get_predicates_for_table_excludes_self(mocker: MockerFixture) -> None:
