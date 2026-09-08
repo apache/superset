@@ -251,7 +251,7 @@ def test_resample_rejects_calendar_frequency_over_row_limit(monkeypatch):
     Calendar frequencies (month/quarter/year) have no fixed Timedelta. Master's
     Timedelta-only check skipped them; period arithmetic still enforces the cap.
     """
-    from superset.utils.pandas_postprocessing import resample as resample_mod
+    import superset.utils.pandas_postprocessing.resample as resample_mod
 
     monkeypatch.setattr(resample_mod, "MAX_RESAMPLE_ROWS", 10)
     df = pd.DataFrame(

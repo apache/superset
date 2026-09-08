@@ -134,6 +134,10 @@ def test_exec_post_processing_resample_fills_time_range():
         from_dttm=datetime(2019, 1, 1),
         to_dttm=datetime(2019, 1, 5),
     )
+    # ``fill_time_range`` is not a ``resample()`` kwarg; it must survive
+    # ``_drop_unsupported_options`` so ``exec_post_processing`` can resolve it.
+    assert query_object.post_processing[0]["options"].get("fill_time_range") is True
+
     df = pd.DataFrame(
         index=pd.to_datetime(["2019-01-03"]),
         data={"y": [1.0]},

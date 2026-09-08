@@ -77,6 +77,13 @@ DEPRECATED_EXTRAS_FIELDS = (
     DeprecatedField(old_name="having", new_name="having"),
 )
 
+# Post-processing options that QueryObject resolves before calling the operation.
+# They are not parameters of the pandas function and would otherwise be stripped
+# by ``_drop_unsupported_options``.
+_QUERY_OBJECT_RESOLVED_OPTIONS: dict[str, frozenset[str]] = {
+    "resample": frozenset({"fill_time_range"}),
+}
+
 
 class QueryObject:  # pylint: disable=too-many-instance-attributes
     """
@@ -287,6 +294,11 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 inspect.Parameter.KEYWORD_ONLY,
             )
         }
+        # Options that QueryObject resolves itself before invoking the operation
+        # (e.g. ``fill_time_range`` → ``time_range_start`` / ``time_range_end``).
+        # They are not kwargs of the pandas function, but must survive until
+        # ``exec_post_processing``.
+        keyword_parameters |= _QUERY_OBJECT_RESOLVED_OPTIONS.get(operation, frozenset())
 
         options = post_proc.get("options") or {}
         unsupported = {key for key in options if key not in keyword_parameters}
