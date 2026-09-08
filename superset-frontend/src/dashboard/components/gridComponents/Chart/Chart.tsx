@@ -575,7 +575,9 @@ const Chart = (props: ChartProps) => {
       const exportOwnState = state
         ? {
             ...baseOwnState,
-            ...convertChartStateToOwnState(sliceVizType, state),
+            ...convertChartStateToOwnState(sliceVizType, state, {
+              forExport: true,
+            }),
           }
         : baseOwnState;
 

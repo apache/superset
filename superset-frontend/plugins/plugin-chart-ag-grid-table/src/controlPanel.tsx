@@ -500,6 +500,36 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [
+          {
+            name: 'allow_rearrange_columns',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Allow columns to be rearranged'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                "Allow end user to drag-and-drop column headers to rearrange them. Note their changes won't persist for the next time they open the chart.",
+              ),
+              visibility: ({ controls }: ControlPanelsContainerProps) =>
+                isEmpty(controls?.time_compare?.value),
+            },
+          },
+        ],
+        [
+          {
+            name: 'allow_render_html',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Render columns in HTML format'),
+              renderTrigger: true,
+              default: true,
+              description: t(
+                'Renders table cells as HTML when applicable. For example, HTML <a> tags will be rendered as hyperlinks.',
+              ),
+            },
+          },
+        ],
       ],
     },
     {

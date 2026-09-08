@@ -171,6 +171,39 @@ test('shows 413 error toast when Export Current View CSV server path fails with 
   });
 });
 
+test('Export Current View CSV takes the client path for a filter that matches zero rows, rather than falling back to an unfiltered backend export', async () => {
+  global.URL.revokeObjectURL = jest.fn();
+
+  render(
+    <TestComponent
+      {...defaultProps}
+      latestQueryFormData={{
+        datasource: '1__table',
+        viz_type: 'table',
+      }}
+      ownState={{
+        clientView: {
+          rows: [],
+          columns: [{ key: 'name', label: 'Name' }],
+        },
+      }}
+    />,
+    { useRedux: true },
+  );
+
+  userEvent.hover(await screen.findByText('Data Export Options'));
+  userEvent.hover(await screen.findByText('Export Current View'));
+  userEvent.click(await screen.findByText('Export to .CSV'));
+
+  // The client path builds and clicks a download link directly rather than
+  // calling exportChart; asserting exportChart was never called is what
+  // distinguishes it from the backend fallback path (which doesn't know
+  // about the empty client-side filter and would export every row).
+  await waitFor(() => {
+    expect(mockExportChart).not.toHaveBeenCalled();
+  });
+});
+
 const CHART_SELECTOR = '.panel-body .chart-container';
 const SLICE_NAME = 'My chart';
 const CHART_ID = 42;

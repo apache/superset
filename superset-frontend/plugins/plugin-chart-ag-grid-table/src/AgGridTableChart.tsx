@@ -56,7 +56,7 @@ import {
 } from './utils/getCrossFilterDataMask';
 import { StyledChartContainer } from './styles';
 import type { FilterState } from './utils/filterStateManager';
-import DateWithFormatter from './utils/DateWithFormatter';
+import DateWithFormatter, { isEmptyDateInput } from './utils/DateWithFormatter';
 import { formatColumnValue } from './utils/formatValue';
 import getTimeRangeFromGranularity from './utils/getTimeRangeFromGranularity';
 import getScrollBarSize from './utils/getScrollBarSize';
@@ -70,6 +70,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     data,
     includeSearch,
     allowRearrangeColumns,
+    allowRenderHtml,
     pageSize,
     serverPagination,
     rowCount,
@@ -98,6 +99,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     rawSummaryColumns,
     showNumberedColumn,
     onContextMenu,
+    formData,
   } = props;
 
   // The dashboard's layout engine reports a burst of close-but-not-identical
@@ -350,11 +352,15 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     colorPositiveNegative,
     columnColorFormatters,
     allowRearrangeColumns,
+    allowRenderHtml,
     basicColorFormatters,
     isUsingTimeComparison,
     emitCrossFilters,
     alignPositiveNegative,
     slice_id,
+    conditionalFormatting: formData?.conditional_formatting,
+    comparisonColorEnabled: formData?.comparison_color_enabled,
+    comparisonColorScheme: formData?.comparison_color_scheme,
   });
 
   const isActiveFilterValue = useCallback(
@@ -483,7 +489,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         if (
           dataRecordValue == null ||
           (dataRecordValue instanceof DateWithFormatter &&
-            dataRecordValue.input == null)
+            isEmptyDateInput(dataRecordValue.input))
         ) {
           drillToDetailFilters.push({
             col: col.key,
@@ -535,7 +541,8 @@ export default function TableChart<D extends DataRecord = DataRecord>(
 
       const isCellValueNull =
         cellValue == null ||
-        (cellValue instanceof DateWithFormatter && cellValue.input == null);
+        (cellValue instanceof DateWithFormatter &&
+          isEmptyDateInput(cellValue.input));
 
       onContextMenu(nativeEvent.clientX, nativeEvent.clientY, {
         drillToDetail: drillToDetailFilters,

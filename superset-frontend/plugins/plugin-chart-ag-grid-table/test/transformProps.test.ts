@@ -377,3 +377,56 @@ test('excludes Green/Red color-scheme rules from columnColorFormatters', () => {
   // ...but the Green rule is excluded.
   expect(formattedColumns).not.toContain('metric_a');
 });
+
+test('allowRearrangeColumns defaults to true when allow_rearrange_columns is unset', () => {
+  // Pre-existing v2 charts saved before this control existed have no
+  // allow_rearrange_columns key at all -- they must keep the always-on
+  // behavior v2 originally shipped with, not v1's false default.
+  const props = createMockChartProps();
+  const result = transformProps(props);
+  expect(result.allowRearrangeColumns).toBe(true);
+});
+
+test('allowRearrangeColumns is false when allow_rearrange_columns is explicitly false', () => {
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: [],
+      percent_metrics: [],
+      column_config: {},
+      table_timestamp_format: '',
+      granularity_sqla: 'day',
+      time_range: 'No filter',
+      allow_rearrange_columns: false,
+    } as unknown as TableChartProps['rawFormData'],
+  });
+  const result = transformProps(props);
+  expect(result.allowRearrangeColumns).toBe(false);
+});
+
+test('allowRenderHtml defaults to true when allow_render_html is unset', () => {
+  const props = createMockChartProps();
+  const result = transformProps(props);
+  expect(result.allowRenderHtml).toBe(true);
+});
+
+test('allowRenderHtml is false when allow_render_html is explicitly false', () => {
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: [],
+      percent_metrics: [],
+      column_config: {},
+      table_timestamp_format: '',
+      granularity_sqla: 'day',
+      time_range: 'No filter',
+      allow_render_html: false,
+    } as unknown as TableChartProps['rawFormData'],
+  });
+  const result = transformProps(props);
+  expect(result.allowRenderHtml).toBe(false);
+});

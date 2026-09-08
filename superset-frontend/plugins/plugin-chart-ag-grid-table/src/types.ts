@@ -82,6 +82,7 @@ export type TableChartFormData = QueryFormData & {
   time_grain_sqla?: TimeGranularity;
   column_config?: Record<string, TableColumnConfig>;
   allow_rearrange_columns?: boolean;
+  allow_render_html?: boolean;
   show_numbered_column?: boolean;
 };
 

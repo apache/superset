@@ -24,6 +24,7 @@ import {
   useCallback,
   useImperativeHandle,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import ReactDOM from 'react-dom';
@@ -110,6 +111,11 @@ const ChartContextMenu = (
   );
 
   const [visible, setVisible] = useState(false);
+  // `visible` state updates aren't synchronous, so a second open() call that
+  // runs before React re-renders would still see the stale `false` closure.
+  // This ref is updated synchronously (both here and in onOpenChange) so the
+  // guard below always reflects the latest known open state.
+  const visibleRef = useRef(false);
 
   const isDisplayed = (item: ContextMenuItem) =>
     displayedItems === ContextMenuItem.All ||
@@ -397,7 +403,13 @@ const ChartContextMenu = (
       // span here on the second call would immediately close the menu we
       // just opened. Only click it when the menu isn't already visible; the
       // position/filters update above still applies on every call.
-      if (!visible) {
+      //
+      // visibleRef (not the `visible` state) drives this guard: the state
+      // update from the first call's click hasn't been committed by the time
+      // the second call runs, so a state-based check would still read the
+      // stale `false` from this render's closure and click twice anyway.
+      if (!visibleRef.current) {
+        visibleRef.current = true;
         // Ant Design's Dropdown does not offer an imperative API and we
         // can't attach event triggers to charts' SVG elements, so we use a
         // hidden span that gets clicked on when receiving click events from
@@ -405,7 +417,7 @@ const ChartContextMenu = (
         document.getElementById(`hidden-span-${id}`)?.click();
       }
     },
-    [id, itemsCount, visible],
+    [id, itemsCount],
   );
 
   useImperativeHandle(
@@ -425,6 +437,7 @@ const ChartContextMenu = (
               ? menuItems
               : [{ key: 'no-actions', label: t('No actions'), disabled: true }],
           onClick: () => {
+            visibleRef.current = false;
             setVisible(false);
             onClose();
           },
@@ -434,6 +447,7 @@ const ChartContextMenu = (
         )}
         trigger={['click']}
         onOpenChange={value => {
+          visibleRef.current = value;
           setVisible(value);
           if (!value) {
             onClose();

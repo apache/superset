@@ -28,7 +28,10 @@ import { useCallback, useMemo } from 'react';
 import { DataRecordValue, JsonObject } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useTheme } from '@apache-superset/core/theme';
-import { ColorFormatters } from '@superset-ui/chart-controls';
+import {
+  ColorFormatters,
+  ConditionalFormattingConfig,
+} from '@superset-ui/chart-controls';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
 import {
   BasicColorFormatterType,
@@ -68,11 +71,15 @@ type UseColDefsProps = {
   colorPositiveNegative: boolean;
   columnColorFormatters: ColorFormatters;
   allowRearrangeColumns?: boolean;
+  allowRenderHtml?: boolean;
   basicColorFormatters?: { [Key: string]: BasicColorFormatterType }[];
   isUsingTimeComparison?: boolean;
   emitCrossFilters?: boolean;
   alignPositiveNegative: boolean;
   slice_id: number;
+  conditionalFormatting?: ConditionalFormattingConfig[];
+  comparisonColorEnabled?: boolean;
+  comparisonColorScheme?: string;
 };
 
 function getValueRange(
@@ -233,21 +240,37 @@ export const useColDefs = ({
   colorPositiveNegative,
   columnColorFormatters,
   allowRearrangeColumns,
+  allowRenderHtml,
   basicColorFormatters,
   isUsingTimeComparison,
   emitCrossFilters,
   alignPositiveNegative,
   slice_id,
+  conditionalFormatting,
+  comparisonColorEnabled,
+  comparisonColorScheme,
 }: UseColDefsProps) => {
   const theme = useTheme();
   // transformProps.ts computes these fresh on every call (no memoization),
   // so a reference-based dependency here would recreate getCommonColProps -
   // and therefore colDefs - on every render regardless of whether the
   // formatting actually changed. Compare by content instead.
+  //
+  // columnColorFormatters/basicColorFormatters can't be stringified directly:
+  // each entry's getColorFromValue closes over the rule's operator/
+  // thresholds/gradient/color, none of which are mirrored as serializable
+  // fields on the entry itself, so JSON.stringify drops them and two
+  // differently-configured rules for the same column serialize identically.
+  // Depend on the raw, fully-serializable formData that produced those
+  // formatters instead.
   const stringifiedColumnColorFormatters = JSON.stringify(
-    columnColorFormatters,
+    conditionalFormatting,
   );
-  const stringifiedBasicColorFormatters = JSON.stringify(basicColorFormatters);
+  const stringifiedBasicColorFormatters = JSON.stringify([
+    conditionalFormatting,
+    comparisonColorEnabled,
+    comparisonColorScheme,
+  ]);
   const getCommonColProps = useCallback(
     (
       col: InputColumn,
@@ -392,7 +415,7 @@ export const useColDefs = ({
               cellRenderer: (p: CellRendererProps) =>
                 isTextColumn ? TextCellRenderer(p) : NumericCellRenderer(p),
               cellRendererParams: {
-                allowRenderHtml: true,
+                allowRenderHtml,
                 columns,
                 hasBasicColorFormatters,
                 col,
@@ -406,6 +429,12 @@ export const useColDefs = ({
           isMetric,
           isPercentMetric,
           isNumeric,
+          // colId (`field` above) has "Main " stripped for comparison
+          // columns, but row data is still keyed by the unstripped
+          // originalKey -- consumers reading row values by column (e.g. the
+          // "Export Current View" snapshot) need this to look values up
+          // correctly.
+          dataKey: originalKey,
         },
         lockPinned: !allowRearrangeColumns,
         sortable: !serverPagination || !isPercentMetric,
@@ -440,6 +469,7 @@ export const useColDefs = ({
       isRawRecords,
       emitCrossFilters,
       allowRearrangeColumns,
+      allowRenderHtml,
       serverPagination,
       alignPositiveNegative,
       theme.colorBgBase,

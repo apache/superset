@@ -345,74 +345,85 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       [serverPagination, gridInitialState, percentMetrics, onSortChange],
     );
 
-    const handleGridStateChange = useCallback(
+    const captureGridState = useCallback(() => {
+      const { api } = gridRef.current ?? {};
+      if (!api) return null;
+
+      const columnState = api.getColumnState ? api.getColumnState() : [];
+      const filterModel = api.getFilterModel ? api.getFilterModel() : {};
+      const sortModel = columnState
+        .filter(col => col.sort)
+        .map(col => ({
+          colId: col.colId,
+          sort: col.sort as 'asc' | 'desc',
+          sortIndex: col.sortIndex || 0,
+        }))
+        .sort((a, b) => (a.sortIndex || 0) - (b.sortIndex || 0));
+
+      return {
+        stateToSave: {
+          columnState,
+          sortModel,
+          filterModel,
+          timestamp: Date.now(),
+          serverPagination: !!serverPagination,
+        },
+        stateHash: getColumnStateSignature(columnState, sortModel, filterModel),
+      };
+    }, [serverPagination]);
+
+    const persistGridStateChange = useCallback(
       debounce(() => {
-        if (onColumnStateChange && gridRef.current?.api) {
-          try {
-            const { api } = gridRef.current;
+        if (!onColumnStateChange) return;
+        try {
+          const captured = captureGridState();
+          if (!captured) return;
+          const { stateToSave, stateHash } = captured;
 
-            const columnState = api.getColumnState ? api.getColumnState() : [];
+          if (stateHash !== lastCapturedStateRef.current) {
+            lastCapturedStateRef.current = stateHash;
 
-            const filterModel = api.getFilterModel ? api.getFilterModel() : {};
-
-            const sortModel = columnState
-              .filter(col => col.sort)
-              .map(col => ({
-                colId: col.colId,
-                sort: col.sort as 'asc' | 'desc',
-                sortIndex: col.sortIndex || 0,
-              }))
-              .sort((a, b) => (a.sortIndex || 0) - (b.sortIndex || 0));
-
-            const stateToSave = {
-              columnState,
-              sortModel,
-              filterModel,
-              timestamp: Date.now(),
-              serverPagination: !!serverPagination,
-            };
-
-            const stateHash = getColumnStateSignature(
-              columnState,
-              sortModel,
-              filterModel,
-            );
-
-            // AG Grid fires onStateUpdated once as it applies the initial
-            // column/sort/filter state on mount, before any user
-            // interaction. That first event just reflects the state the grid
-            // was initialized with (chartState/gridInitialState) - not a
-            // user-driven change - so it's skipped rather than compared
-            // against `lastCapturedStateRef`, which is always null right
-            // after mount. Persisting it anyway would write a chart-state
-            // change on every mount, which can cascade into a
-            // remount/onStateUpdated loop.
-            if (!hasCapturedInitialGridStateRef.current) {
-              hasCapturedInitialGridStateRef.current = true;
-              lastCapturedStateRef.current = stateHash;
-              return;
-            }
-
-            if (stateHash !== lastCapturedStateRef.current) {
-              lastCapturedStateRef.current = stateHash;
-
-              onColumnStateChange(stateToSave);
-            }
-          } catch (error) {
-            console.warn('Error capturing AG Grid state:', error);
+            onColumnStateChange(stateToSave);
           }
+        } catch (error) {
+          console.warn('Error capturing AG Grid state:', error);
         }
       }, Constants.SLOW_DEBOUNCE),
-      [onColumnStateChange, serverPagination],
+      [onColumnStateChange, captureGridState],
     );
+
+    const handleGridStateChange = useCallback(() => {
+      // AG Grid fires onStateUpdated once as it applies the initial
+      // column/sort/filter state on mount, before any user interaction.
+      // That first event just reflects the state the grid was initialized
+      // with (chartState/gridInitialState) - not a user-driven change - so
+      // it's captured synchronously as the baseline rather than persisted.
+      // This check runs on every raw call, before debouncing, so a real
+      // user action that lands inside the same debounce window as this
+      // first call is never coalesced into it and dropped.
+      if (!hasCapturedInitialGridStateRef.current) {
+        hasCapturedInitialGridStateRef.current = true;
+        try {
+          const captured = captureGridState();
+          if (captured) {
+            lastCapturedStateRef.current = captured.stateHash;
+          }
+        } catch (error) {
+          console.warn('Error capturing AG Grid state:', error);
+        }
+        return;
+      }
+
+      persistGridStateChange();
+    }, [captureGridState, persistGridStateChange]);
 
     useEffect(
       () =>
         // Cleanup debounced grid-state capture
         () => {
-          handleGridStateChange.cancel();
+          persistGridStateChange.cancel();
         },
-      [handleGridStateChange],
+      [persistGridStateChange],
     );
 
     const handleFilterChanged = useCallback(async () => {
@@ -472,15 +483,14 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     // snapshot can't represent the full filtered/sorted result and export
     // falls back to a fresh backend query instead (see useExploreAdditionalActionsMenu).
     const lastClientViewSignatureRef = useRef<string | null>(null);
-    // AG Grid fires onModelUpdated once as it applies the initial row data on
-    // mount, before any user interaction. That first event reflects data the
-    // chart already has - not a view change worth persisting - so it's
-    // skipped rather than compared against `lastClientViewSignatureRef`,
-    // which is always null right after mount. Persisting it anyway would
-    // write an ownState change on every mount, which (if the dashboard
-    // decides that warrants a requery) unmounts/remounts this component and
-    // re-fires onModelUpdated, looping forever.
-    const hasCapturedInitialModelRef = useRef(false);
+    // Unlike handleGridStateChange's columnState/sortModel/filterModel,
+    // clientView is excluded from ownState re-query comparisons on both the
+    // Explore (ExploreViewContainer) and dashboard (activeAllDashboardFilters)
+    // paths, so publishing it - including the very first snapshot right
+    // after mount - can't trigger a requery/remount loop. It's therefore
+    // always persisted below rather than having its initial value skipped;
+    // skipping it would leave "Export Current View" without a snapshot to
+    // export until some later grid event changes the signature.
     // Debounced (like handleGridStateChange below) because the full
     // filtered+sorted traversal is O(n) and onModelUpdated can fire rapidly
     // in succession (e.g. while typing into a quick filter); only the
@@ -494,10 +504,18 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
         const displayedColumns = api
           .getAllDisplayedColumns()
           .filter(column => column.getColId() !== ROW_NUMBER_COL_ID);
-        const columns = displayedColumns.map(column => ({
-          key: column.getColId(),
-          label: column.getColDef().headerName || column.getColId(),
-        }));
+        const columns = displayedColumns.map(column => {
+          const colDef = column.getColDef();
+          // For comparison columns, colId has "Main " stripped for display,
+          // but row data is still keyed by the unstripped original field
+          // (colDef.context.dataKey, set in useColDefs) -- use that to read
+          // row values so exported rows aren't blank for the main metric.
+          const dataKey = colDef.context?.dataKey ?? column.getColId();
+          return {
+            key: dataKey,
+            label: colDef.headerName || column.getColId(),
+          };
+        });
 
         const rows: Record<string, unknown>[] = [];
         api.forEachNodeAfterFilterAndSort(node => {
@@ -514,12 +532,6 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
         // both value changes (e.g. a refresh with the same row count) and
         // order changes (e.g. a pure sort), not just count/column changes.
         const signature = `${JSON.stringify(rows)}|${columns.map(c => c.key).join(',')}`;
-
-        if (!hasCapturedInitialModelRef.current) {
-          hasCapturedInitialModelRef.current = true;
-          lastClientViewSignatureRef.current = signature;
-          return;
-        }
 
         if (signature === lastClientViewSignatureRef.current) {
           return;

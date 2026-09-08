@@ -86,11 +86,13 @@ const getCellStyle = (params: CellStyleParams) => {
         : columnKey;
 
     // Formatters with no formatting target color their own source column,
-    // keyed off this cell's own value.
+    // keyed off this cell's own value. Excludes legacy v1 `toAllRow` rules,
+    // which are entire-row formatters handled below.
     columnColorFormatters!
       .filter(
         formatter =>
           !formatter.columnFormatting &&
+          !formatter.toAllRow &&
           resolveColumnKey(formatter.column) === colDef.field,
       )
       .forEach(formatter => applyFormatter(formatter, value));
@@ -113,10 +115,14 @@ const getCellStyle = (params: CellStyleParams) => {
 
     // Entire-row formatters apply to every cell in the row, keyed off the
     // value in the formatter's own column rather than this cell's column.
+    // `toAllRow` is the legacy v1 flag for the same behavior; migrated
+    // charts carry it over unchanged rather than being rewritten to
+    // `columnFormatting: ENTIRE_ROW`, so both are honored here.
     columnColorFormatters!
       .filter(
         formatter =>
-          formatter.columnFormatting === ObjectFormattingEnum.ENTIRE_ROW,
+          formatter.columnFormatting === ObjectFormattingEnum.ENTIRE_ROW ||
+          formatter.toAllRow,
       )
       .forEach(formatter =>
         applyFormatter(

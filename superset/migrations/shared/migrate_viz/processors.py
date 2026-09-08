@@ -658,12 +658,19 @@ class MigrateSankey(MigrateViz):
         return build_query_context(self.data, process)
 
 
-def _get_table_chart_time_offsets(form_data: dict[str, Any]) -> list[Any]:
+def _get_table_chart_time_offsets(
+    form_data: dict[str, Any], base_query_object: dict[str, Any]
+) -> list[Any]:
     """
     Resolve time_compare into the list of shifts buildQuery.ts sends as
     time_offsets. table charts use a single-select time_compare control
     whose choices include the special 'custom'/'inherit' shifts, which
     resolve to start_date_offset/'inherit' rather than being used verbatim.
+
+    Chart-level shifts only apply when is_time_comparison(...) holds,
+    mirroring buildQuery.ts; the dashboard-level extra_form_data override
+    below is applied regardless, since it can force a comparison the chart
+    itself isn't configured for.
     """
     time_compare_shifts = ensure_is_array(form_data.get("time_compare"))
     non_custom_or_inherit_shifts = [
@@ -673,11 +680,13 @@ def _get_table_chart_time_offsets(form_data: dict[str, Any]) -> list[Any]:
         shift for shift in time_compare_shifts if shift in ("custom", "inherit")
     ]
 
-    time_offsets: list[Any] = list(non_custom_or_inherit_shifts)
-    if "custom" in custom_or_inherit_shifts:
-        time_offsets.append(form_data.get("start_date_offset"))
-    if "inherit" in custom_or_inherit_shifts:
-        time_offsets.append("inherit")
+    time_offsets: list[Any] = []
+    if is_time_comparison(form_data, base_query_object):
+        time_offsets = list(non_custom_or_inherit_shifts)
+        if "custom" in custom_or_inherit_shifts:
+            time_offsets.append(form_data.get("start_date_offset"))
+        if "inherit" in custom_or_inherit_shifts:
+            time_offsets.append("inherit")
 
     # Dashboard filter override - allows dashboard-level time shifts to
     # OVERRIDE chart-level time shift settings, mirroring buildQuery.ts.
@@ -727,17 +736,18 @@ def _reorder_table_chart_temporal_column(
 class MigrateTableChart(MigrateViz):
     source_viz_type = "table"
     target_viz_type = "ag-grid-table"
-    remove_keys = {"allow_rearrange_columns", "allow_render_html"}
+    # allow_rearrange_columns/allow_render_html are kept as-is: v2 reads them
+    # under the same names (see rename_keys below), so nothing to remove.
+    remove_keys: set[str] = set()
     rename_keys: dict[str, str] = {}  # no renames needed; names match 1:1
 
     def _pre_action(self) -> None:
-        # page_length: 0 ("All") has no dropdown choice in v2, but the control
-        # is freeForm and 0 still works at runtime — map to v2's largest
-        # PAGE_SIZE_OPTIONS entry (200) so the migrated chart keeps showing as
-        # many rows per page as v2 supports, rather than an arbitrary smaller
-        # value
-        if self.data.get("page_length") in (0, "0"):
-            self.data["page_length"] = 200
+        # page_length: 0 means "All rows" (no pagination) in both v1 and v2.
+        # v2's control panel doesn't offer 0 as a page_length dropdown
+        # choice, but it's still a working runtime value there -- e.g.
+        # getPageSize() in transformProps.ts picks 0 automatically for any
+        # chart under 5000 cells when page_length isn't set at all -- so
+        # keep it as-is rather than rewriting it to a paginated value.
 
         # Table charts are explicitly excluded from Matrixify
         # (MATRIXIFY_INCOMPATIBLE_CHARTS), so drop any matrixify_* keys
@@ -883,7 +893,7 @@ class MigrateTableChart(MigrateViz):
         raw_mode = query_mode == "raw" or (query_mode is None and len(all_columns) > 0)
 
         def process(base_query_object: dict[str, Any]) -> list[dict[str, Any]]:
-            time_offsets = _get_table_chart_time_offsets(self.data)
+            time_offsets = _get_table_chart_time_offsets(self.data, base_query_object)
 
             if raw_mode:
                 metrics = base_query_object.get("metrics")

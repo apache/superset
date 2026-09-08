@@ -57,6 +57,8 @@ jest.mock('@superset-ui/core/components/ThemedAgGridReact', () => ({
 import AgGridTableChart from '../src/AgGridTableChart';
 // eslint-disable-next-line import/first
 import transformProps from '../src/transformProps';
+// eslint-disable-next-line import/first
+import DateWithFormatter from '../src/utils/DateWithFormatter';
 
 function renderChart(
   onContextMenu: jest.Mock,
@@ -169,6 +171,41 @@ test('right-clicking a null cell emits an IS NULL drillBy filter with a null val
   const [, , filters] = onContextMenu.mock.calls[0];
   // op and val must agree: IS NULL must carry a null val, not the clicked
   // cell's (possibly wrapped) value.
+  expect(filters.drillBy).toEqual({
+    filters: [{ col: '__timestamp', op: 'IS NULL', val: null }],
+    groupbyFieldName: 'groupby',
+  });
+});
+
+test('right-clicking a blank (empty-string) date cell emits IS NULL, not an equality filter on an invalid date', async () => {
+  // A blank temporal value arrives wrapped as DateWithFormatter(input: ''),
+  // not null/undefined -- the null checks below must treat that the same
+  // as null rather than falling through to the temporal/equality branches,
+  // which would build an invalid Date or serialize the filter value as null
+  // under an '==' op instead of an 'IS NULL' op.
+  const onContextMenu = jest.fn();
+  const blankDate = new DateWithFormatter('');
+  renderChart(onContextMenu);
+  await waitFor(() => expect(captured.props?.onCellContextMenu).toBeDefined());
+
+  captured.props?.onCellContextMenu?.({
+    column: makeColumn('__timestamp'),
+    data: { __timestamp: blankDate, name: 'Michael', sum__num: 2467063 },
+    value: blankDate,
+    event: {
+      preventDefault: jest.fn(),
+      stopPropagation: jest.fn(),
+      clientX: 0,
+      clientY: 0,
+    },
+  });
+
+  const [, , filters] = onContextMenu.mock.calls[0];
+  expect(filters.drillToDetail).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ col: '__timestamp', op: 'IS NULL' }),
+    ]),
+  );
   expect(filters.drillBy).toEqual({
     filters: [{ col: '__timestamp', op: 'IS NULL', val: null }],
     groupbyFieldName: 'groupby',

@@ -19,6 +19,7 @@
 
 import {
   BackendOwnState,
+  ChartStateConverterOptions,
   QuerySortBy,
   type AgGridChartState,
   type AgGridSortModel,
@@ -353,11 +354,21 @@ export function convertFilterModel(
  */
 export function convertAgGridStateToOwnState(
   agGridState: AgGridChartState,
+  options: ChartStateConverterOptions = {},
 ): Partial<BackendOwnState> {
-  // In client mode, AG Grid handles sort/filter/pagination locally and none
-  // of it needs to reach the backend query, so folding it into ownState only
-  // triggers an unnecessary requery/remount.
-  if (!agGridState.serverPagination) {
+  // In client mode, AG Grid handles sort/filter/pagination locally, so for
+  // the *live* query none of it needs to reach the backend -- folding it
+  // into ownState there would only trigger an unnecessary requery/remount.
+  // A *download* query has no client-side pass to apply that state though:
+  // dashboard doesn't consume the Explore-only clientView snapshot, so
+  // exports still need it converted to reproduce the displayed
+  // sort/filter/columns (options.forExport).
+  //
+  // Only an explicit `false` is treated as "definitely client mode":
+  // legacy persisted table_state/permalinks predate serverPagination and
+  // have it `undefined`, and treating that the same as `false` would
+  // silently drop their persisted server-side sort/filter on restore.
+  if (agGridState.serverPagination === false && !options.forExport) {
     return {};
   }
 

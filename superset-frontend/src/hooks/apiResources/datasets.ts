@@ -84,9 +84,17 @@ export const useDatasetDrillInfo = (
     const numericDatasetId = getDatasetId(datasetId);
     if (Number.isNaN(numericDatasetId)) {
       // datasetId isn't resolved yet (e.g. the dashboard's slice entity hasn't
-      // hydrated after a client-side navigation back from Explore). Stay in
-      // Loading rather than firing a request for dataset "NaN"; the effect
-      // reruns once datasetId settles to a real value.
+      // hydrated after a client-side navigation back from Explore). Reset to
+      // Loading rather than firing a request for dataset "NaN" -- and rather
+      // than leaving a previous id's Complete/Error result in place, which
+      // would let the context menu expose drill metadata for the wrong
+      // dataset until this one resolves. The effect reruns once datasetId
+      // settles to a real value.
+      setResource({
+        status: ResourceStatus.Loading,
+        result: null,
+        error: null,
+      });
       return;
     }
     const fetchDataset = async () => {

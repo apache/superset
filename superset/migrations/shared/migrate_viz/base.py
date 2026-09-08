@@ -158,6 +158,11 @@ class MigrateViz:
     def upgrade_slice(cls, slc: Slice) -> None:
         try:
             clz = cls(slc.params)
+            # Back up params exactly as they were stored, before synthesizing
+            # "datasource" below, so downgrade_slice() restores the original
+            # chart verbatim rather than a copy carrying an injected key it
+            # never had.
+            form_data_bak = copy.deepcopy(clz.data)
             # Some charts don't carry a "datasource" key in params — outside
             # of migrations, callers always read it via Slice.form_data,
             # which injects "datasource" from the datasource_id/
@@ -166,7 +171,6 @@ class MigrateViz:
             # synthesize it here the same way for the charts missing it.
             if "datasource" not in clz.data and slc.datasource_id is not None:
                 clz.data["datasource"] = f"{slc.datasource_id}__{slc.datasource_type}"
-            form_data_bak = copy.deepcopy(clz.data)
 
             clz._pre_action()
             clz._migrate()

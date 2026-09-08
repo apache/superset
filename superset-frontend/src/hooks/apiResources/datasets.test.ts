@@ -310,6 +310,33 @@ test('useDatasetDrillInfo does not fetch when datasource ID resolves to NaN', as
   });
 });
 
+test('useDatasetDrillInfo resets to loading when datasetId regresses to NaN after resolving another dataset', async () => {
+  // Regression test: if the hook already completed for one dataset and then
+  // receives a transient malformed id (e.g. a fresh navigation clears the
+  // resolved datasetId before the new one hydrates), it must not keep
+  // exposing the previous dataset's Complete result -- the context menu
+  // would otherwise offer drill metadata for the wrong dataset.
+  const mockDataset = { id: 123, columns: [], metrics: [] };
+  mockedCachedSupersetGet.mockResolvedValue({
+    json: { result: mockDataset },
+  } as any);
+
+  const { result, rerender } = renderHook(
+    ({ id }: { id: string | number }) => useDatasetDrillInfo(id, 456),
+    { initialProps: { id: 123 } },
+  );
+
+  await waitFor(() => {
+    expect(result.current.status).toBe('complete');
+  });
+  expect(result.current.result).toMatchObject({ id: 123 });
+
+  rerender({ id: 'abc' });
+
+  expect(result.current.status).toBe('loading');
+  expect(result.current.result).toBeNull();
+});
+
 test('useDatasetDrillInfo fetches dataset via extension when extension and formData provided', async () => {
   setupExtensionMock();
 

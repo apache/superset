@@ -588,9 +588,9 @@ const transformProps = (
     comparison_color_enabled: comparisonColorEnabled = false,
     comparison_color_scheme: comparisonColorScheme = ColorSchemeEnum.Green,
     show_numbered_column: showNumberedColumn = false,
+    allow_rearrange_columns: allowRearrangeColumns = true,
+    allow_render_html: allowRenderHtml = true,
   } = formData;
-
-  const allowRearrangeColumns = true;
 
   // Calculate time comparison settings early since they're used in multiple places
   const isUsingTimeComparison =
@@ -923,6 +923,7 @@ const transformProps = (
     filters: filterState.filters,
     emitCrossFilters,
     allowRearrangeColumns,
+    allowRenderHtml,
     slice_id,
     serverPagination,
     rowCount,

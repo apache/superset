@@ -60,6 +60,8 @@ TARGET_FORM_DATA: dict[str, Any] = {
     "show_cell_bars": True,
     "align_pn": False,
     "color_pn": True,
+    "allow_rearrange_columns": True,
+    "allow_render_html": True,
     "form_data_bak": SOURCE_FORM_DATA,
 }
 
@@ -141,24 +143,24 @@ def test_migration_raw_mode() -> None:
     migrate_and_assert(MigrateTableChart, source, target)
 
 
-def test_migration_page_length_all_maps_to_max() -> None:
-    """page_length: 0 ('All rows') has no v2 dropdown choice; map to 200,
-    the max of v2's PAGE_SIZE_OPTIONS, so migrated charts keep showing as
-    many rows per page as v2 supports."""
+def test_migration_page_length_all_is_preserved() -> None:
+    """page_length: 0 means 'All rows' (no pagination) in both v1 and v2,
+    so it should carry over unchanged rather than being rewritten to a
+    paginated value."""
     source: dict[str, Any] = {**SOURCE_FORM_DATA, "page_length": 0}
     target: dict[str, Any] = {
         **TARGET_FORM_DATA,
-        "page_length": 200,
+        "page_length": 0,
         "form_data_bak": source,
     }
     migrate_and_assert(MigrateTableChart, source, target)
 
 
-def test_migration_page_length_all_as_string_maps_to_max() -> None:
+def test_migration_page_length_all_as_string_is_preserved() -> None:
     source: dict[str, Any] = {**SOURCE_FORM_DATA, "page_length": "0"}
     target: dict[str, Any] = {
         **TARGET_FORM_DATA,
-        "page_length": 200,
+        "page_length": "0",
         "form_data_bak": source,
     }
     migrate_and_assert(MigrateTableChart, source, target)
@@ -333,3 +335,41 @@ def test_build_query_percent_metric_expands_with_time_comparison() -> None:
         "%sum__sales",
         "%sum__sales__1 year ago",
     ]
+
+
+def test_build_query_stale_time_compare_without_comparison_type_is_ignored() -> None:
+    """time_compare shifts require a valid comparison_type, mirroring
+    isTimeComparison() in both Table buildQuery implementations. A chart
+    with a stale time_compare left over from a prior configuration but no
+    (or an invalid) comparison_type should not request offset queries the
+    runtime chart itself would never send."""
+    form_data: dict[str, Any] = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "query_mode": "aggregate",
+        "groupby": ["name"],
+        "metrics": ["count"],
+        "time_compare": ["1 year ago"],
+    }
+    main_query = MigrateTableChart(json.dumps(form_data))._build_query()["queries"][0]
+    assert main_query["time_offsets"] == []
+
+
+def test_build_query_raw_mode_stale_time_compare_is_ignored() -> None:
+    """A chart switched to raw mode retains its old time_compare/
+    comparison_type controls (hidden rather than cleared) while metrics is
+    cleared to []. With no metrics to offset, isTimeComparison()'s
+    get_metric_offsets_map() is empty, so time_offsets should stay empty
+    rather than requesting shifts a raw-mode chart never sends."""
+    form_data: dict[str, Any] = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "query_mode": "raw",
+        "groupby": [],
+        "metrics": [],
+        "all_columns": ["name", "sales"],
+        "time_compare": ["1 year ago"],
+        "comparison_type": "values",
+    }
+    main_query = MigrateTableChart(json.dumps(form_data))._build_query()["queries"][0]
+    assert main_query["time_offsets"] == []

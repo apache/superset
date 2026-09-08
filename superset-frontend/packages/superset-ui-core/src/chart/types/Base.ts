@@ -106,8 +106,19 @@ export interface BackendOwnState {
  * Each chart plugin can implement this to convert its internal state representation
  * to the standardized backend format.
  */
+export interface ChartStateConverterOptions {
+  // Set when converting for a download/export query rather than the chart's
+  // live (re-)query. Some chart-specific state (e.g. AG Grid's client-side
+  // sort/filter) is normally excluded from the live query's ownState to
+  // avoid triggering an unnecessary requery, but a downloaded file has no
+  // client-side pass to apply that state, so it still needs to be converted
+  // for exports to reproduce the displayed view.
+  forExport?: boolean;
+}
+
 export type ChartStateConverter<TChartState = JsonObject> = (
   chartState: TChartState,
+  options?: ChartStateConverterOptions,
 ) => Partial<BackendOwnState>;
 
 export interface PlainObject {
