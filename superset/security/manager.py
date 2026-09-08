@@ -1529,6 +1529,28 @@ def _stored_param_values(params: dict[str, Any], keys: tuple[str, ...]) -> set[s
     return values
 
 
+def _ensure_list(value: Any) -> list[Any]:
+    """
+    Normalize a value to a list for iteration.
+
+    Some viz types (e.g. heatmap_v2's 'groupby' control) store a single
+    value as a bare string rather than a one-item list. Iterating a string
+    directly yields its individual characters, which silently breaks the
+    guest payload comparison for any such chart.
+
+    ``None`` and an empty string are treated as "no value set" (mirroring
+    ``_stored_param_values``'s treatment of an unset control) and return
+    ``[]`` — an unset scalar control must not be compared as if the guest
+    had explicitly requested an empty string. A ``list``/``tuple`` is
+    filtered the same way, element by element; any other scalar is wrapped
+    in a single-item list.
+    """
+    if value is None:
+        return []
+    items = value if isinstance(value, (list, tuple)) else [value]
+    return [item for item in items if item is not None and item != ""]
+
+
 def _columns_metrics_modified(
     query_context: "QueryContext",
     form_data: dict[str, Any],
@@ -1558,7 +1580,7 @@ def _columns_metrics_modified(
         # ``_payload_value_identity``); metrics compare by exact frozen value.
         requested_values = {
             _payload_value_identity(value, is_metric=is_metric)
-            for value in form_data.get(key) or []
+            for value in _ensure_list(form_data.get(key))
         }
         # Stored params are read across every control name that can hold a
         # metric or column for some chart type: charts whose query is built
@@ -1577,7 +1599,7 @@ def _columns_metrics_modified(
         queries_values = {
             _payload_value_identity(value, is_metric=is_metric)
             for query in query_context.queries
-            for value in getattr(query, key, []) or []
+            for value in _ensure_list(getattr(query, key, None))
         }
         if stored_query_context:
             for query in stored_query_context.get("queries") or []:
@@ -1721,7 +1743,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     """Set to False in subclasses that provide their own auth view."""
     register_superset_registeruser_view = True
     """Set to False in subclasses that provide their own register user view."""
-    READ_ONLY_MODEL_VIEWS = {"Database", "DynamicPlugin"}
+    READ_ONLY_MODEL_VIEWS = {
+        "Database",
+        "DynamicPlugin",
+        # A semantic layer is a credentialed connection to an external
+        # system --- structurally a Database: its configuration carries
+        # authentication material. Database parity: writes are admin-only,
+        # reads are broadly visible but return masked secrets.
+        "SemanticLayer",
+    }
 
     role_api = SupersetRoleApi
     user_api = SupersetUserApi
@@ -1743,6 +1773,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "CssTemplate",
         "Dataset",
         "Datasource",
+        # A semantic view is a queryable model definition on top of a
+        # layer's connection, with no credentials of its own --- structurally
+        # a Dataset: writes are Alpha-tier, reads Gamma-tier.
+        "SemanticView",
         "Theme",
     } | READ_ONLY_MODEL_VIEWS
 
@@ -2231,6 +2265,31 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # Non-SQL explorables don't have schema hierarchy
         return False
+
+    def _semantic_layer_grant_allows(
+        self, datasource: "BaseDatasource | Explorable"
+    ) -> bool:
+        """True when a grant on a semantic view's parent layer covers it.
+
+        A ``datasource_access`` grant on a semantic layer covers every view
+        under it — the data path enforces this in
+        ``SemanticView.raise_for_access``; object authorization mirrors the
+        same fallback (sc-119501). Only a ``SemanticView`` is ever consulted:
+        the isinstance guard (rather than attribute sniffing) keeps
+        mock-shaped or future ``semantic_layer``-bearing datasources from
+        reaching the permission lookup, and a view with no layer or layer
+        perm returns False, matching the data path's ``if layer_perm and …``
+        guard.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.semantic_layers.models import SemanticView
+
+        if not isinstance(datasource, SemanticView):
+            return False
+        layer_perm: str | None = getattr(datasource.semantic_layer, "perm", None)
+        if not layer_perm:
+            return False
+        return self.can_access("datasource_access", layer_perm)
 
     def can_access_datasource(self, datasource: "BaseDatasource") -> bool:
         """
@@ -2871,9 +2930,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Create custom FAB permissions.
         """
+        from superset.websocket.permissions import (
+            REALTIME_NOTIFICATION_PERMISSION,
+            REALTIME_NOTIFICATION_RESOURCE,
+        )
+
         self.add_permission_view_menu("all_datasource_access", "all_datasource_access")
         self.add_permission_view_menu("all_database_access", "all_database_access")
         self.add_permission_view_menu("all_query_access", "all_query_access")
+        self.add_permission_view_menu(
+            REALTIME_NOTIFICATION_PERMISSION,
+            REALTIME_NOTIFICATION_RESOURCE,
+        )
         self.add_permission_view_menu("can_csv", "Superset")
         self.add_permission_view_menu("can_export_data", "Superset")
         self.add_permission_view_menu("can_export_image", "Superset")
@@ -4347,6 +4415,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         schema: Optional[str] = None,
         template_params: Optional[dict[str, Any]] = None,
         force_dataset_match: bool = False,
+        allow_query_authorship_bypass: bool = False,
     ) -> None:
         """
         Raise an exception if the user cannot access the resource.
@@ -4369,12 +4438,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             The default (False) preserves the historical semantics for
             chart-data, dataset CRUD, ``/table_metadata/``, and
             ``/select_star/``.
+        :param allow_query_authorship_bypass: When True, a SQL Lab query's
+            own author is granted access to that exact, already-succeeded
+            query without an additional dataset-level ``datasource_access``
+            grant. Deliberately opt-in and scoped to the one-time
+            explore/create-chart transition: repeat, ongoing access to a
+            query-backed chart or dashboard (fetching its data, exporting
+            it) must keep going through the regular catalog/schema/
+            datasource_access checks below on every call, since authorship
+            alone does not track whether the author still holds that
+            access, and a query's SQL may be templated such that the
+            tables actually touched depend on parameters supplied at
+            request time.
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
         from flask import current_app
 
         from superset import is_feature_enabled
+        from superset.common.db_query_status import QueryStatus
         from superset.connectors.sqla.models import SqlaTable
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
@@ -4396,6 +4478,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     get_user_id(),
                 )
                 return
+
+        # An ephemeral Query built below from a raw `sql=` string always
+        # stamps the *current* user as its `user_id`, since there's no real
+        # query to attribute authorship to yet -- that must not be confused
+        # with a genuine, previously-persisted Query the caller fetched by
+        # id (e.g. from SQL Lab history), whose authorship bypass further
+        # down is meant to reward a query that was already run and stored.
+        is_ephemeral_query = bool(sql and database)
 
         if sql and database:
             query = Query(
@@ -4437,6 +4527,52 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             default_catalog = database.get_default_catalog()
 
             if self.can_access_database(database):
+                return
+
+            # A SQL Lab query's own author should be able to explore/chart
+            # the exact query they already ran without an additional
+            # dataset-level ``datasource_access`` grant on every table it
+            # happens to touch. This mirrors the ownership bypass already
+            # granted to dataset owners via ``is_editor`` further below in
+            # this same method; the query path had no equivalent authorship
+            # bypass.
+            #
+            # Gated on the explicit ``allow_query_authorship_bypass`` opt-in
+            # rather than firing for every ``not force_dataset_match`` call:
+            # that flag is also False for call sites unrelated to the
+            # one-time explore/create-chart transition this bypass is meant
+            # to cover, e.g. fetching or exporting a query-backed chart's
+            # data (``query_context_processor.raise_for_access``), which
+            # runs on every view of an already-created chart or dashboard.
+            # Those call sites must keep re-checking catalog/schema/
+            # datasource_access on every call: authorship alone does not
+            # track whether the author still holds that access, and the
+            # query's SQL may be templated such that the tables actually
+            # touched depend on parameters supplied at request time.
+            #
+            # Does not apply to the ephemeral query built above either:
+            # that one's ``user_id`` is always the current user by
+            # construction, which would trivially bypass the very check
+            # being performed on a brand new, never-before-run SQL string.
+            #
+            # Also requires ``status == SUCCESS``: SQL Lab persists a Query
+            # row (stamped with the current user's id) *before* running the
+            # strict ``force_dataset_match`` check at execute time, and
+            # marks it FAILED rather than deleting it when that check
+            # denies the statement. Without this guard, authorship alone
+            # would let that same user replay the denied SQL through this
+            # non-strict path merely by revisiting the failed query's id,
+            # defeating the very check that just rejected it.
+            if (
+                query
+                and not is_ephemeral_query
+                and not force_dataset_match
+                and allow_query_authorship_bypass
+                and hasattr(query, "user_id")
+                and (user_id := get_user_id()) is not None
+                and query.user_id == user_id
+                and getattr(query, "status", None) == QueryStatus.SUCCESS
+            ):
                 return
 
             # Type narrow: this path only applies to SQL Lab Query objects
@@ -4659,6 +4795,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if not (
                 self.can_access_schema(datasource)
                 or self.can_access("datasource_access", datasource.perm or "")
+                # A grant on a semantic view's parent layer covers the view,
+                # matching SemanticView.raise_for_access (sc-119501).
+                or self._semantic_layer_grant_allows(datasource)
                 or self.is_editor(datasource)
                 or (
                     # Grant access to the datasource only if dashboard RBAC is enabled
@@ -4800,11 +4939,36 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if dashboard.viewers:
                 if dashboard.published and self.is_viewer(dashboard):
                     return
-            elif not dashboard.datasources or any(
-                self.can_access_datasource(datasource)
-                for datasource in dashboard.datasources
-            ):
-                return
+            else:
+                # Datasource-based fallback. Member chart datasources are
+                # resolved across datasource types via
+                # ``Slice.resolved_datasource`` — ``Dashboard.datasources``
+                # only ever contains SqlaTable-backed datasources, so an
+                # unqualified emptiness check would grant every authenticated
+                # user access to a dashboard composed solely of, e.g.,
+                # semantic-view charts. A dashboard with no charts remains
+                # accessible; a chart whose datasource cannot be resolved
+                # counts as inaccessible, never as absent. Resolution is
+                # lazy and deduplicated per (type, id) so the first
+                # accessible datasource short-circuits the remaining lookups.
+                member_slices = dashboard.slices
+
+                def member_datasource_accessible() -> bool:
+                    seen: set[tuple[str | None, int | None]] = set()
+                    for slc in member_slices:
+                        key = (slc.datasource_type, slc.datasource_id)
+                        if key in seen:
+                            continue
+                        seen.add(key)
+                        resolved = slc.resolved_datasource
+                        if resolved is not None and self.can_access_datasource(
+                            resolved
+                        ):
+                            return True
+                    return False
+
+                if not member_slices or member_datasource_accessible():
+                    return
 
             raise SupersetSecurityException(
                 self.get_dashboard_access_error_object(dashboard)
@@ -4817,7 +4981,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             if chart.viewers:
                 if self.is_viewer(chart):
                     return
-            elif chart.datasource and self.can_access_datasource(chart.datasource):
+            elif (
+                # Resolved across datasource types: ``chart.datasource`` is
+                # SqlaTable-only, which silently denied entitled users of
+                # semantic-view charts here.
+                chart_datasource := chart.resolved_datasource
+            ) is not None and self.can_access_datasource(chart_datasource):
                 return
 
             # An embedded guest may access a member chart of a dashboard their
@@ -4833,6 +5002,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 and any(
                     self.has_guest_access(dashboard_) for dashboard_ in chart.dashboards
                 )
+                # Deliberately table-pinned: the guest token ``datasets``
+                # allowlist is dataset-id space, so resolving other
+                # datasource types here would reintroduce id-collision
+                # ambiguity — a semantic-view member chart under an
+                # allowlist therefore fails closed.
                 and self._guest_token_allows_dataset(
                     chart.datasource.id if chart.datasource else None
                 )

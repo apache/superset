@@ -97,6 +97,37 @@ This setting only applies to requests detected as native filter option queries. 
 over the per-chart/dataset/database timeouts, but not over an explicit per-request
 `custom_cache_timeout` override (e.g. "Force refresh").
 
+## Async Query Result Cache TTL
+
+When [Global Async Queries](/admin-docs/configuration/configuring-superset#feature-flags) is
+enabled, a chart-data request that runs asynchronously does not return the result inline. Instead the
+query executes on a background task that **writes the result to the data cache**, and the browser
+then re-issues the same request to read that result back out of the cache once the task succeeds.
+
+This read-back is what makes the result-cache TTL matter for correctness, not just performance: if
+the effective TTL is shorter than the full async round trip (task execution + the client's poll
+interval + the re-fetch), the entry can be **evicted before the client reads it**, leaving the chart
+stuck re-running instead of loading. To prevent this, async requests floor their result-cache TTL to
+`GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL` (seconds, default `300` — five minutes):
+
+```python
+GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL = 300  # seconds
+```
+
+How the floor interacts with the timeouts above:
+
+- It applies **only to async execution**. Synchronous `/chart/data` requests keep their normal
+  chart/dataset/database/`DATA_CACHE_CONFIG` timeout even when Global Async Queries is enabled.
+- A **longer** effective TTL from that chain is kept as-is — the floor only raises TTLs that are
+  shorter than it.
+- A TTL of `0` ("cache forever") is left untouched.
+
+Tuning guidance: raise this value if your workload's async round trip can exceed five minutes (very
+long-running queries or slow warehouses), otherwise those charts may intermittently fail to load. Be
+aware of the trade-off — because the floor can raise an async result's TTL above a shorter cache
+retention policy, it keeps async results in the cache longer and modestly increases cache
+(Redis/Valkey) usage. Do not lower it below your worst-case async round trip.
+
 ## Limiting Cached Result Size
 
 Very large chart or SQL query results can flood the cache backend (Redis/Memcached), evicting many
@@ -316,13 +347,24 @@ high-performance distributed operations. This configuration enables:
 
 - **Distributed locking**: Moves lock operations from the metadata database to Redis, improving
   performance and reducing metastore load
-- **Real-time event notifications**: Enables instant pub/sub messaging for task abort signals and
-  completion notifications instead of polling-based approaches
+- **Event-driven notifications**: Task completion and abort signals are delivered over Redis
+  **Streams**, so waiters (sync join-and-wait, task-dependency DAGs, abort listeners) wake when a
+  signal lands instead of polling the metadata database. Because stream entries are persisted, a
+  waiter that reads slightly late, reconnects, or fails over still receives the signal. Without this
+  backend, these operations poll the metadata database instead.
 
 :::note
-This requires Redis or Valkey specifically—it uses Redis-specific features (pub/sub, `SET NX EX`)
-that are not available in general Flask-Caching backends.
+This requires Redis or Valkey specifically—it uses Redis-specific features (Streams, pub/sub,
+`SET NX EX`) that are not available in general Flask-Caching backends.
 :::
+
+Each signal stream keeps only its latest entry and is given a TTL, so signal streams for tasks that
+are never awaited do not accumulate in Redis/Valkey. Set the retention window with
+`DISTRIBUTED_COORDINATION_SIGNAL_TTL` (seconds, default 24 hours):
+
+```python
+DISTRIBUTED_COORDINATION_SIGNAL_TTL = 24 * 60 * 60
+```
 
 ### Configuration
 
@@ -366,9 +408,8 @@ DISTRIBUTED_COORDINATION_CONFIG = {
 }
 ```
 
-By default, connections opened for `DISTRIBUTED_COORDINATION_CONFIG` (as well as
-`GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`, which uses the same `RedisCache`/`RedisSentinelCache`
-backend) have no socket timeout. This can be overridden with `CACHE_REDIS_SOCKET_TIMEOUT` and
+By default, connections opened for `DISTRIBUTED_COORDINATION_CONFIG` have no socket
+timeout. This can be overridden with `CACHE_REDIS_SOCKET_TIMEOUT` and
 `CACHE_REDIS_SOCKET_CONNECT_TIMEOUT`, both in seconds:
 
 ```python

@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Comparator, ObjectFormattingEnum } from '@superset-ui/chart-controls';
+import {
+  Comparator,
+  ObjectFormattingEnum,
+  BoundUnit,
+  PercentDenominator,
+} from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
 
 export const operatorOptions = [
@@ -62,6 +67,16 @@ export const formattingOptions = [
     value: ObjectFormattingEnum.CELL_BAR,
     label: t('cell bar'),
   },
+];
+
+export const boundUnitOptions = [
+  { value: BoundUnit.Value, label: t('Value') },
+  { value: BoundUnit.Percent, label: t('% of column') },
+];
+
+export const percentDenominatorOptions = [
+  { value: PercentDenominator.Max, label: t('Column max') },
+  { value: PercentDenominator.Sum, label: t('Column sum') },
 ];
 
 // Use theme token names instead of hex values to support theme switching
