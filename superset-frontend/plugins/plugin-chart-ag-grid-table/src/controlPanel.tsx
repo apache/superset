@@ -821,7 +821,8 @@ const config: ControlPanelConfig = {
                     (item: ConditionalFormattingConfig, index, array) => {
                       if (
                         item.colorScheme &&
-                        !['Green', 'Red'].includes(item.colorScheme)
+                        (typeof item.colorScheme !== 'string' ||
+                          !['Green', 'Red'].includes(item.colorScheme))
                       ) {
                         if (item.columnFormatting === undefined) {
                           // eslint-disable-next-line no-param-reassign

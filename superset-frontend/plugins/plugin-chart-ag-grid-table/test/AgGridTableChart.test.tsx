@@ -303,7 +303,7 @@ test('AgGridTableChart resets currentPage when the search column changes', async
   const searchByDropdown = within(searchByContainer).getByRole('combobox');
   await userEvent.click(searchByDropdown);
   const otherOption = await waitFor(() =>
-    within(document.querySelector('.rc-virtual-list')!).getByText('abc.com'),
+    within(screen.getByRole('listbox')).getByText('abc.com'),
   );
   await userEvent.click(otherOption);
 
