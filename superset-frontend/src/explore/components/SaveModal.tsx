@@ -480,6 +480,17 @@ const SaveModal = ({
       };
 
       try {
+        // Persist the form data before any datasource conversion. Saving a
+        // Query as a dataset rewrites form_data through changeDatasource, so
+        // re-applying this render's Query-backed copy afterwards would undo
+        // that conversion right before createSlice reads the store, making
+        // the chart API receive datasource_type="query". Dashboard assignment
+        // does not travel through form_data -- create/updateSlice receive it
+        // as an explicit argument.
+        const formData = form_data || {};
+        delete formData.url_params;
+        actions.setFormData({ ...formData });
+
         if (datasource?.type === DatasourceType.Query) {
           const { schema, sql, database } = datasource;
           const { templateParams } = datasource;
@@ -498,9 +509,6 @@ const SaveModal = ({
         if (slice && action === 'overwrite') {
           sliceDashboards = await actions.getSliceDashboards(slice);
         }
-
-        const formData = form_data || {};
-        delete formData.url_params;
 
         let dashboardResult: DashboardGetResponse | null = null;
         let selectedTabId: string | undefined;
@@ -522,7 +530,6 @@ const SaveModal = ({
             sliceDashboards = sliceDashboards.includes(dashboardResult.id)
               ? sliceDashboards
               : [...sliceDashboards, dashboardResult.id];
-            formData.dashboards = sliceDashboards;
             if (
               action === ChartStatusType.saveas &&
               selectedTab?.value !== 'OUT_OF_TAB'
@@ -530,14 +537,6 @@ const SaveModal = ({
               selectedTabId = selectedTab?.value as string;
             }
           }
-        }
-
-        // Saving a Query as a dataset synchronously updates form_data through
-        // changeDatasource. Re-applying this render's Query-backed form_data
-        // would overwrite that conversion just before createSlice reads the
-        // store, causing the chart API to receive datasource_type="query".
-        if (datasource?.type !== DatasourceType.Query) {
-          actions.setFormData({ ...formData });
         }
 
         //  Update or create slice
