@@ -26,6 +26,7 @@ import { t } from '@apache-superset/core/translation';
 import cx from 'classnames';
 import { Interweave } from 'interweave';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Button } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { ToastType, ToastMeta } from './types';
 
@@ -152,6 +153,17 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
         {icon}
         <Interweave content={toast.text} noHtml={!toast.allowHtml} />
       </div>
+      {toast.action && (
+        <Button
+          size="small"
+          onClick={() => {
+            toast.action?.onClick();
+            handleClosePress();
+          }}
+        >
+          {toast.action.label}
+        </Button>
+      )}
       {/* role is auto-computed by BaseIconComponent as "button" since
           onClick is present, so no explicit role needed here. */}
       <Icons.CloseOutlined
