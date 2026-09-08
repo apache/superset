@@ -51,13 +51,14 @@ def _get_tab_user_id(tab_state_id: int) -> int | None:
     return db.session.query(TabState.user_id).filter_by(id=tab_state_id).scalar()
 
 
-# Columns a client may set through ``TabStateView.put``. Identity columns
-# (``id``, ``user_id``) are intentionally excluded so a tab state stays bound
-# to its creating user.
+# Columns a client may set through ``TabStateView.put``: the fields the SQL Lab
+# editor auto-sync sends, plus ``saved_query_id``. Identity columns (``id``,
+# ``user_id``) are excluded so a tab state stays bound to its creating user, and
+# ``active`` is excluded because ``activate`` owns it -- that endpoint rewrites
+# the flag across all of the user's tabs to keep exactly one of them active.
 _TAB_STATE_PUT_FIELDS = frozenset(
     {
         "label",
-        "active",
         "database_id",
         "catalog",
         "schema",
@@ -168,10 +169,11 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("<int:tab_state_id>", methods=("PUT",))
     def put(self, tab_state_id: int) -> FlaskResponse:
+        user_id = get_user_id()
         tab_user_id = _get_tab_user_id(tab_state_id)
         if tab_user_id is None:
             return Response(status=404)
-        if tab_user_id != get_user_id():
+        if tab_user_id != user_id:
             return Response(status=403)
 
         try:
@@ -180,17 +182,19 @@ class TabStateView(BaseSupersetView):
                 for k, v in request.form.to_dict().items()
                 if k in _TAB_STATE_PUT_FIELDS
             }
-            # A latest_query_id may reference the requester's own query or an
-            # unowned one; drop it only when it points at a query owned by a
-            # different user.
-            latest_query_id = fields.get("latest_query_id")
-            if latest_query_id is not None:
-                query_owner_id = (
-                    db.session.query(Query.user_id)
-                    .filter_by(client_id=latest_query_id)
-                    .scalar()
+            # Drop latest_query_id only when it points at a query owned by a
+            # different user; the caller's own and unowned queries are fine.
+            if (latest_query_id := fields.get("latest_query_id")) is not None:
+                owned_by_other = (
+                    db.session.query(Query.id)
+                    .filter(
+                        Query.client_id == latest_query_id,
+                        Query.user_id.isnot(None),
+                        Query.user_id != user_id,
+                    )
+                    .first()
                 )
-                if query_owner_id is not None and query_owner_id != get_user_id():
+                if owned_by_other:
                     del fields["latest_query_id"]
             db.session.query(TabState).filter_by(id=tab_state_id).update(fields)
             db.session.commit()
@@ -203,17 +207,27 @@ class TabStateView(BaseSupersetView):
     @expose("<int:tab_state_id>/migrate_query", methods=("POST",))
     def migrate_query(self, tab_state_id: int) -> FlaskResponse:
         try:
+            user_id = get_user_id()
             tab_user_id = _get_tab_user_id(tab_state_id)
             if tab_user_id is None:
                 return Response(status=404)
-            if tab_user_id != get_user_id():
+            if tab_user_id != user_id:
                 return Response(status=403)
 
             client_id = json.loads(request.form["queryId"])
-            db.session.query(Query).filter(
-                Query.client_id == client_id,
-                or_(Query.user_id == get_user_id(), Query.user_id.is_(None)),
-            ).update({"sql_editor_id": tab_state_id})
+            rebound = (
+                db.session.query(Query)
+                .filter(
+                    Query.client_id == client_id,
+                    or_(Query.user_id == user_id, Query.user_id.is_(None)),
+                )
+                .update({"sql_editor_id": tab_state_id})
+            )
+            if not rebound:
+                # No query the caller may rebind matches this client_id, so
+                # report the miss instead of a success the client would use to
+                # update its own state.
+                return Response(status=404)
             db.session.commit()
             return json_success(json.dumps(tab_state_id))
         except Exception as ex:  # pylint: disable=broad-except
