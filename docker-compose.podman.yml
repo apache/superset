@@ -165,6 +165,10 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_SSL=false
+    # Overrides the image-level HEALTHCHECK (which probes the Flask app).
+    # For the websocket service we probe the websocket endpoint instead.
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/health"]
 
   superset-init:
     build:
