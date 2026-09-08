@@ -371,7 +371,14 @@ class Query(
 
     @property
     def schema_perm(self) -> str:
-        return f"{self.database.database_name}.{self.schema}"
+        return (
+            security_manager.get_schema_perm(
+                self.database.database_name,
+                getattr(self, "catalog", None),
+                self.schema,
+            )
+            or ""
+        )
 
     @property
     def perm(self) -> str:
