@@ -124,7 +124,13 @@ class TestChartRestoreApi(SupersetTestCase):
         """sc-115616: restore is withheld server-side from an externally
         managed chart even for an admin who could otherwise edit it — the
         endpoint returns 403, not 200, so a direct API call cannot bypass the
-        browser gate."""
+        browser gate.
+
+        Chart is the representative real-model/real-endpoint case; the guard
+        lives in the shared BaseRestoreVersionCommand.validate(), so the
+        dashboard and dataset commands inherit it (pinned across all three by
+        the parametrized unit test in
+        tests/unit_tests/commands/test_base_restore_version_command.py)."""
         _persist_fixture_state()
         chart: Slice = (
             db.session.query(Slice).filter(Slice.slice_name == "Boys").first()

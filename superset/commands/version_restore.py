@@ -64,9 +64,10 @@ class BaseRestoreVersionCommand(BaseCommand):
     #: failure modes. ``not_found_exc`` covers "no such entity",
     #: "version_uuid not on this entity", and "capture disabled" (the
     #: route is inert under the kill-switch); the API handler maps each
-    #: to HTTP 404. ``forbidden_exc`` covers the row-level editorship
-    #: denial (HTTP 403). ``failed_exc`` wraps unexpected failures inside
-    #: the transaction (HTTP 422).
+    #: to HTTP 404. ``forbidden_exc`` covers the row-level editorship denial
+    #: and the refusal to restore an externally managed entity (both HTTP
+    #: 403). ``failed_exc`` wraps unexpected failures inside the transaction
+    #: (HTTP 422).
     not_found_exc: ClassVar[type[Exception]]
     forbidden_exc: ClassVar[type[Exception]]
     failed_exc: ClassVar[type[Exception]]
