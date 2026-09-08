@@ -507,11 +507,10 @@ def get_version(
         if entity is None:
             return None
 
-    version_num = resolve_version_uuid(
-        model_cls, entity_uuid, version_uuid, entity=entity
-    )
-    if version_num is None:
+    resolved = resolve_version(model_cls, entity_uuid, version_uuid, entity=entity)
+    if resolved is None:
         return None
+    version_num, transaction_id = resolved
 
     ver_tbl, tx_tbl, user_tbl = _resolve_version_tables(model_cls)
     stmt = (
@@ -521,14 +520,15 @@ def get_version(
             *_user_select_cols(user_tbl),
         )
         .select_from(_version_with_tx_user_join(ver_tbl, tx_tbl, user_tbl))
-        # Must pin identically to the count ``resolve_version_uuid`` derived
-        # ``version_num`` from: an offset counted over one row set and applied
-        # to a wider one addresses the wrong row. Pinned there but not here,
-        # a recycled id would surface a predecessor's snapshot under the
-        # successor's version uuid.
+        # Address the snapshot by the ``transaction_id`` that
+        # ``resolve_version`` already pinned — never by positional OFFSET:
+        # a retention prune committing between resolution and this fetch
+        # shifts the offset and silently surfaces a different version's
+        # snapshot under the requested version uuid. The identity filter
+        # stays so a transaction id recycled on another entity can never
+        # match.
         .where(identity_filter(ver_tbl.c, entity.id, entity_uuid))
-        .order_by(*_baseline_first_ordering(ver_tbl))
-        .offset(version_num)
+        .where(ver_tbl.c.transaction_id == transaction_id)
         .limit(1)
     )
     row = db.session.execute(stmt).mappings().first()
