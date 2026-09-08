@@ -33,7 +33,7 @@ from superset.sql.parse import (
     count_referenced_tables,
     CTASMethod,
     extract_tables_from_statement,
-    folds_unquoted_identifiers,
+    folds_unquoted_object_names,
     has_aggregate,
     JinjaSQLResult,
     KQLTokenType,
@@ -6405,12 +6405,41 @@ def test_has_aggregate(expression: str, expected: bool) -> None:
         ("mysql", False),
         ("base", False),
         ("no_such_engine", False),
+        # dialect normalizes identifiers, but object names are case-sensitive
+        ("bigquery", False),
+        ("datastore", False),
+        ("druid", False),
+        ("gsheets", False),
+        ("shillelagh", False),
+        ("superset", False),
     ],
 )
-def test_folds_unquoted_identifiers(engine: str, expected: bool) -> None:
+def test_folds_unquoted_object_names(engine: str, expected: bool) -> None:
     """
-    ``folds_unquoted_identifiers`` reports whether an engine treats unquoted
-    identifiers as case-sensitive, and reports False for an engine with no dialect
-    of its own so callers keep their exact-match behavior.
+    ``folds_unquoted_object_names`` reports whether an engine treats unquoted
+    catalog, schema and table names as case-sensitive. It reports False for an
+    engine with no dialect of its own, and for an engine whose dialect normalizes
+    identifiers but whose object names are case-sensitive anyway (BigQuery table
+    ids, a Google Sheets URL), so callers keep their exact-match behavior.
     """
-    assert folds_unquoted_identifiers(engine) is expected
+    assert folds_unquoted_object_names(engine) is expected
+
+
+def test_folds_unquoted_object_names_uninstalled_plugin_dialect(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A dialect named by string in ``SQLGLOT_DIALECTS`` comes from an optional plugin
+    (see ``yql``/``ydb``). When that plugin isn't installed sqlglot can't resolve
+    it, leaving the engine's identifier semantics unknown, so callers keep their
+    exact-match behavior.
+    """
+    mocker.patch.dict(
+        "superset.sql.parse.SQLGLOT_DIALECTS",
+        {"uninstalled_plugin": "notaninstalleddialect"},
+    )
+    folds_unquoted_object_names.cache_clear()
+    try:
+        assert folds_unquoted_object_names("uninstalled_plugin") is False
+    finally:
+        folds_unquoted_object_names.cache_clear()

@@ -1453,13 +1453,13 @@ def test_rls_predicates_apply_with_case_mismatched_table_name() -> None:
     mismatched casing (``BIRTH_NAMES``) resolves to the same physical table as
     the registered dataset (``birth_names``) and must still pick up its RLS
     predicates, matching the exact-case reference."""
-    from superset.sql.parse import folds_unquoted_identifiers, Table
+    from superset.sql.parse import folds_unquoted_object_names, Table
     from superset.utils.rls import get_predicates_for_table
 
     g.user = _get_user(username="gamma")
     tbl = _get_table(name="birth_names")
     database = tbl.database
-    if not folds_unquoted_identifiers(database.db_engine_spec.engine):
+    if not folds_unquoted_object_names(database.db_engine_spec.engine):
         pytest.skip("engine does not fold unquoted identifiers")
 
     default_catalog = database.get_default_catalog()
