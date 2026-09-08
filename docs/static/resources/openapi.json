@@ -7820,6 +7820,29 @@
         },
         "type": "object"
       },
+      "PartitionMappingPreviewSchema": {
+        "properties": {
+          "mapped_column": {
+            "description": "Column whose filters would be mirrored",
+            "type": "string"
+          },
+          "sample_value": {
+            "description": "Value to evaluate the transform at",
+            "type": "string"
+          },
+          "value_transform": {
+            "description": "SQL expression containing a :value placeholder",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "mapped_column",
+          "sample_value",
+          "value_transform"
+        ],
+        "type": "object"
+      },
       "PermissionApi.get": {
         "properties": {
           "id": {
@@ -24265,6 +24288,87 @@
           }
         ],
         "summary": "Delete a dataset metric",
+        "tags": [
+          "Datasets"
+        ]
+      }
+    },
+    "/api/v1/dataset/{pk}/partition_mapping/preview/": {
+      "post": {
+        "description": "Evaluate a partition value transform at a sample value and return the predicate that would be appended to queries. Parse and denylist checks run before anything reaches the engine, so an unparseable transform costs no query.",
+        "parameters": [
+          {
+            "description": "The dataset ID",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartitionMappingPreviewSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "properties": {
+                        "emitted_predicate": {
+                          "type": "string"
+                        },
+                        "error": {
+                          "type": "string"
+                        },
+                        "valid": {
+                          "type": "boolean"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Preview result"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "429": {
+            "$ref": "#/components/responses/400"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Preview a partition filter mapping",
         "tags": [
           "Datasets"
         ]
