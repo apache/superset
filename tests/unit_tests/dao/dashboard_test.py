@@ -17,6 +17,7 @@
 from datetime import datetime, timezone
 from typing import Any
 
+from sqlalchemy import inspect
 from sqlalchemy.orm.session import Session
 
 from superset import db
@@ -24,6 +25,8 @@ from superset.connectors.sqla.models import Database, SqlaTable
 from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
 from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 
@@ -178,11 +181,6 @@ def test_prefetch_chart_access_loads_editors_and_viewers(
     Without the prefetch those are two lazy loads per chart, so the dashboard
     GET issues a pair of queries for each member chart it narrows.
     """
-    from sqlalchemy import inspect
-
-    from superset.subjects.models import Subject
-    from superset.subjects.types import SubjectType
-
     Dashboard.metadata.create_all(session.get_bind())
 
     editor = Subject(label="editor", type=SubjectType.ROLE)
