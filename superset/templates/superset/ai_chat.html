@@ -80,7 +80,7 @@
 
 <header class="topbar">
   <img class="logo" src="/moh-static/logomohnewww.png" alt="Ministry of Health">
-  <span class="title">{% if request.args.get('embedded') == '1' %}HABT AI{% else %}AI Assistant{% endif %}</span>
+  <span class="title">{% if request.args.get('embedded') == '1' %}ASK AI{% else %}AI Assistant{% endif %}</span>
   {% if request.args.get('embedded') != '1' %}
     <a class="back" href="/">← Back to portal</a>
   {% endif %}

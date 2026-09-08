@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MoH Alerts — Administration</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; background: #f4f6fb; color: #222; }
+    .wrap { max-width: 1000px; margin: 24px auto; padding: 0 16px; }
+    .card { background: #fff; border: 1px solid #e3e6ef; border-radius: 10px; padding: 18px; margin-bottom: 18px; }
+    h1 { color: #12346b; margin: 0 0 16px; }
+    h2 { color: #12346b; margin: 0 0 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eef0f5; }
+    th { background: #eef2f8; color: #12346b; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+    .ok { background: #e6f6e6; color: #1a7f37; }
+    .bad { background: #fdecea; color: #c62828; }
+    .run { background: #e3f0ff; color: #1a5cff; }
+    .skip { background: #f3f4f6; color: #555; }
+    .btn { display: inline-block; padding: 6px 12px; border: 0; border-radius: 6px;
+           background: #1a5cff; color: #fff; cursor: pointer; font-size: 13px; text-decoration: none; }
+    .btn.ghost { background: #eef2f8; color: #1a5cff; }
+    label { display: block; margin: 10px 0 4px; font-weight: 600; font-size: 13px; }
+    input[type=text], input[type=number], textarea, select { width: 100%; padding: 8px; box-sizing: border-box;
+        border: 1px solid #ccd2e0; border-radius: 6px; font-size: 13px; }
+    textarea { font-family: ui-monospace, monospace; }
+    .row { display: flex; gap: 12px; }
+    .row > div { flex: 1; }
+    .muted { color: #777; font-size: 12px; }
+    pre { background: #f6f8fc; padding: 10px; border-radius: 6px; overflow: auto; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h1 style="margin:0">MoH Alerts</h1>
+        <a class="btn" href="{{ url_for('moh_alerts.upsert') }}">+ New alert</a>
+      </div>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Name</th><th>Cron</th><th>Status</th><th>Last run</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          {% for a in alerts %}
+          <tr>
+            <td>{{ a.id }}</td>
+            <td>
+              <a href="{{ url_for('moh_alerts.upsert', alert_id=a.id) }}">{{ a.name }}</a>
+              {% if a.description %}<div class="muted">{{ a.description }}</div>{% endif %}
+            </td>
+            <td><code>{{ a.crontab }}</code></td>
+            <td>
+              <span class="badge {{ 'ok' if a.enabled else 'skip' }}">{{ 'enabled' if a.enabled else 'disabled' }}</span>
+            </td>
+            <td>
+              {% if a.last_run_status == 'success' %}<span class="badge ok">success</span>
+              {% elif a.last_run_status == 'failed' %}<span class="badge bad">failed</span>
+              {% elif a.last_run_status %}<span class="badge run">{{ a.last_run_status }}</span>
+              {% else %}<span class="muted">never</span>{% endif %}
+              {% if a.last_error %}<div class="muted">{{ a.last_error[:80] }}</div>{% endif %}
+            </td>
+            <td style="white-space:nowrap">
+              <form method="post" action="{{ url_for('moh_alerts.toggle', alert_id=a.id) }}" style="display:inline">
+                <button class="btn ghost" type="submit">{{ 'Disable' if a.enabled else 'Enable' }}</button>
+              </form>
+              <form method="post" action="{{ url_for('moh_alerts.run_now', alert_id=a.id) }}" style="display:inline">
+                <button class="btn ghost" type="submit">Run now</button>
+              </form>
+              <form method="post" action="{{ url_for('moh_alerts.test', alert_id=a.id) }}" style="display:inline">
+                <button class="btn ghost" type="submit">Test</button>
+              </form>
+              <a class="btn ghost" href="{{ url_for('moh_alerts.deliveries', alert_id=a.id) }}">Deliveries</a>
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="muted">No alerts defined yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

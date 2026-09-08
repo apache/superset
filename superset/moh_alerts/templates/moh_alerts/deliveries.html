@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Deliveries — {{ alert.name }}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; background: #f4f6fb; color: #222; }
+    .wrap { max-width: 1000px; margin: 24px auto; padding: 0 16px; }
+    .card { background: #fff; border: 1px solid #e3e6ef; border-radius: 10px; padding: 18px; margin-bottom: 18px; }
+    h1 { color: #12346b; margin: 0 0 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #eef0f5; }
+    th { background: #eef2f8; color: #12346b; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+    .ok { background: #e6f6e6; color: #1a7f37; }
+    .bad { background: #fdecea; color: #c62828; }
+    .run { background: #e3f0ff; color: #1a5cff; }
+    .skip { background: #f3f4f6; color: #555; }
+    .muted { color: #777; font-size: 12px; }
+    details { font-size: 13px; }
+    summary { cursor: pointer; color: #1a5cff; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <a href="{{ url_for('moh_alerts.list_alerts') }}">&larr; Back</a>
+      <h1 style="margin-top:12px">Deliveries — {{ alert.name }}</h1>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>Started</th><th>Status</th><th>Facilities</th><th>Recipients</th><th>Recipient detail</th></tr>
+        </thead>
+        <tbody>
+          {% for d in rows %}
+          <tr>
+            <td>{{ d.id }}</td>
+            <td>{{ d.started_at.strftime('%Y-%m-%d %H:%M') if d.started_at else '' }}</td>
+            <td>
+              <span class="badge {{ 'ok' if d.status == 'success' else ('bad' if d.status == 'failed' else 'run') }}">{{ d.status }}</span>
+              {% if d.error_message %}<div class="muted">{{ d.error_message[:100] }}</div>{% endif %}
+            </td>
+            <td>{{ d.failing_facilities }}{% if d.ignored_rows %} <span class="muted">({{ d.ignored_rows }} ignored)</span>{% endif %}</td>
+            <td>{{ d.recipients }}</td>
+            <td>
+              {% if d.recipient_rows %}
+              <details>
+                <summary>show {{ d.recipient_rows|length }} recipients</summary>
+                <ul>
+                  {% for r in d.recipient_rows %}
+                  <li>{{ r.email or r.username }} — level {{ r.org_unit_level or '?' }} — {{ r.facilities }} facilities {{ '' if r.sent else '(not sent)' }}</li>
+                  {% endfor %}
+                </ul>
+              </details>
+              {% else %}<span class="muted">—</span>{% endif %}
+            </td>
+          </tr>
+          {% else %}
+          <tr><td colspan="6" class="muted">No deliveries recorded.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>
