@@ -43,6 +43,7 @@ produce zero change records by design.
 from __future__ import annotations
 
 import logging
+from time import perf_counter
 from typing import Any
 
 import sqlalchemy as sa
@@ -50,7 +51,6 @@ from sqlalchemy import event
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import Session, SessionTransaction
 
-from superset.utils.dates import now_as_float
 from superset.versioning.changes.normalization import NORMALIZATION_CONTEXT_KEY
 from superset.versioning.changes.shadow_queries import (
     _dashboard_child_records_for_tx_from_shadows,
@@ -408,11 +408,17 @@ def finalize_change_records(session: Session) -> None:
         return
 
     session.info[_FINALIZING_KEY] = True
-    # Timed after the reentrancy guard, so the series measures the real
-    # per-commit capture cost and is not diluted by instant re-entries.
-    start = now_as_float()
+    # The latency series measures CAPTURE overhead only: the timer starts
+    # after the transaction's own final flush — a cost that exists with
+    # versioning disabled and must not be charged to capture — and runs
+    # through every capture step and early return. Every commit on the
+    # session emits a sample, including commits touching no versioned
+    # entity, because the whole-listener overhead is exactly what the
+    # kill-switch removes; a flush that raises emits nothing.
+    start: float | None = None
     try:
         session.flush()
+        start = perf_counter()
         initial_states: dict[tuple[str, int], tuple[Any, dict[str, Any]]] = (
             session.info.get(_INITIAL_STATES_KEY, {})
         )
@@ -430,10 +436,11 @@ def finalize_change_records(session: Session) -> None:
             _persist_buffered_records(session, tx_id, buffer)
     finally:
         session.info.pop(_FINALIZING_KEY, None)
-        emit_capture_timing("finalize", now_as_float() - start)
+        if start is not None:
+            emit_capture_timing("finalize", (perf_counter() - start) * 1000.0)
 
 
-def register_change_record_listener() -> None:  # noqa: C901
+def register_change_record_listener() -> None:
     """Attach transaction-scoped version-change listeners.
 
     Registered from :class:`superset.initialization.SupersetAppInitializer`
