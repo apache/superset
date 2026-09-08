@@ -201,15 +201,15 @@ msgstr "\"%s\" 现在是系统默认主题"
 
 #, no-python-format
 msgid "% calculation"
-msgstr "% c 计算"
+msgstr "% 计算"
 
 #, no-python-format
 msgid "% of parent"
-msgstr "父项的% o"
+msgstr "父项的 %"
 
 #, no-python-format
 msgid "% of total"
-msgstr "% of 总计"
+msgstr "总计的 %"
 
 #, python-format
 msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
@@ -227,11 +227,11 @@ msgstr "%(label)s 文件"
 
 #, python-format
 msgid "%(name)s deleted successfully"
-msgstr ""
+msgstr "%(name)s 已成功删除"
 
 #, python-format
 msgid "%(name)s restored successfully"
-msgstr ""
+msgstr "%(name)s 已成功恢复"
 
 #, python-format
 msgid "%(name)s.%(extension)s"
@@ -437,7 +437,7 @@ msgid ""
 msgid_plural ""
 "%s of the selected items are semantic views, which cannot be archived: "
 "they will be deleted permanently and cannot be recovered."
-msgstr[0] ""
+msgstr[0] "所选项目中有 %s 个是语义视图，无法归档：这些项目将被永久删除且无法恢复。"
 
 #, python-format
 msgid "%s operator(s)"
@@ -1593,18 +1593,18 @@ msgid "Alert query returned a non-number value."
 msgstr "告警查询返回非数字值。"
 
 msgid "Alert query returned more than one column."
-msgstr "告警查询返回的列数超过 one 列。"
+msgstr "告警查询返回的列数超过一列。"
 
 #, python-format
 msgid "Alert query returned more than one column. %(num_cols)s columns returned"
-msgstr "告警查询返回的列数超过 one 列。实际返回 %(num_cols)s 列"
+msgstr "告警查询返回的列数超过一列。实际返回 %(num_cols)s 列"
 
 msgid "Alert query returned more than one row."
-msgstr "告警查询返回了超过 one 行。"
+msgstr "告警查询返回了超过一行。"
 
 #, python-format
 msgid "Alert query returned more than one row. %(num_rows)s rows returned"
-msgstr "告警查询返回了超过 one 行。实际返回 %(num_rows)s 行"
+msgstr "告警查询返回了超过一行。实际返回 %(num_rows)s 行"
 
 msgid "Alert running"
 msgstr "告警运行中"
@@ -1659,7 +1659,7 @@ msgid "All records"
 msgstr "所有记录"
 
 msgid "All time"
-msgstr ""
+msgstr "所有时间"
 
 msgid "Allow CREATE TABLE AS"
 msgstr "允许 CREATE TABLE AS"
@@ -2225,7 +2225,7 @@ msgstr "可以添加任何允许通过SQL Alchemy URI进行连接的数据库。
 msgid ""
 "Any databases that allow connections via SQL Alchemy URIs can be added. "
 "Learn about how to connect a database driver "
-msgstr "可以添加任何允许通过SQL AlChemy URI进行连接的数据库。了解如何连接数据库驱动程序"
+msgstr "可以添加任何允许通过SQL Alchemy URI进行连接的数据库。了解如何连接数据库驱动程序"
 
 #, fuzzy, python-format
 msgid "Applied cross-filters (%d)"
@@ -2298,39 +2298,39 @@ msgid "Arc"
 msgstr "圆弧"
 
 msgid "Archive"
-msgstr ""
+msgstr "归档"
 
 #, python-format
 msgid "Archive %(name)s?"
-msgstr ""
+msgstr "归档 %(name)s？"
 
 #, python-format
 msgid "Archive selected %s?"
-msgstr ""
+msgstr "归档选中的 %s？"
 
 msgid "Archive selected charts?"
-msgstr ""
+msgstr "归档所选的图表？"
 
 msgid "Archive selected dashboards?"
-msgstr ""
+msgstr "归档所选的看板？"
 
 msgid "Archived"
-msgstr ""
+msgstr "已归档"
 
 #, python-format
 msgid "Archived %s item(s)"
-msgstr ""
+msgstr "已归档 %s 个项目"
 
 #, python-format
 msgid "Archived %s item(s); permanently deleted %s semantic view(s)"
-msgstr ""
+msgstr "已归档 %s 个项目；永久删除了 %s 个语义视图"
 
 msgid "Archived by"
-msgstr ""
+msgstr "归档人"
 
 #, python-format
 msgid "Archived: %s"
-msgstr ""
+msgstr "已归档：%s"
 
 msgid "Are you sure you intend to overwrite the following values?"
 msgstr "您确实要覆盖以下值吗？"
@@ -2933,14 +2933,14 @@ msgid "CSV upload"
 msgstr "CSV 上传"
 
 msgid "CTAS & CVAS SCHEMA"
-msgstr "CTAS和CVAS方案"
+msgstr "CTAS 与 CVAS 架构"
 
 msgid ""
 "CTAS (create table as select) can only be run with a query where the last"
 " statement is a SELECT. Please make sure your query has a SELECT as its "
 "last statement. Then, try running your query again."
 msgstr ""
-"CTA（create table as "
+"CTAS（create table as "
 "select）只能与最后一条语句为SELECT的查询一起运行。请确保查询的最后一个语句是SELECT。然后再次尝试运行查询。"
 
 msgid ""
@@ -2951,7 +2951,7 @@ msgstr ""
 "CVAS（create view as select）只能与带有单个SELECT语句的查询一起运行。请确保您的查询只有SELECT语句。然后再次尝试运行查询。"
 
 msgid "CVAS (create view as select) query has more than one statement."
-msgstr "CVAS (create view as select) 查询包含超过 one 条语句。"
+msgstr "CVAS (create view as select) 查询包含超过一条语句。"
 
 msgid "CVAS (create view as select) query is not a SELECT statement."
 msgstr "CVAS (create view as select)查询不是SELECT语句。"
@@ -3215,7 +3215,7 @@ msgid "Changes the sort value of the items in the legend only"
 msgstr "仅更改图例中项目的排序值"
 
 msgid "Changing one or more of these dashboards is forbidden"
-msgstr "禁止修改这些看板中的one个或更多"
+msgstr "禁止修改这些看板中的一个或多个"
 
 msgid ""
 "Changing the dataset may break the chart if the chart relies on columns "
@@ -3652,7 +3652,7 @@ msgstr "单击锁定以防止进一步更改。"
 msgid ""
 "Click this link to switch to an alternate form that allows you to input "
 "the SQLAlchemy URL for this database manually."
-msgstr "单击此链接可切换到备用表单，该表单允许您手动输入此数据库的SQLAlChemy URL。"
+msgstr "单击此链接可切换到备用表单，该表单允许您手动输入此数据库的SQLAlchemy URL。"
 
 msgid ""
 "Click this link to switch to an alternate form that exposes only the "
@@ -3711,7 +3711,7 @@ msgid "Close"
 msgstr "关闭"
 
 msgid "Close all other tabs"
-msgstr "关闭所有other选项卡"
+msgstr "关闭所有其他选项卡"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -3890,7 +3890,7 @@ msgid "Column referenced by aggregate is undefined: %(column)s"
 msgstr "聚合引用的列未定义：%(column)s"
 
 msgid "Column select"
-msgstr "列 select"
+msgstr "列选择"
 
 #, fuzzy
 msgid "Column to group by"
@@ -4736,7 +4736,7 @@ msgstr "看板无法收藏。"
 msgid ""
 "Dashboard cannot be restored because its slug is now used by another "
 "active dashboard. Rename one of the dashboards and retry."
-msgstr "看板无法恢复，因为其 slug 现已被另一个活跃的看板使用。请重命名这些看板的 one 后重试。"
+msgstr "看板无法恢复，因为其 slug 现已被另一个活跃的看板使用。请重命名其中一个看板后重试。"
 
 msgid "Dashboard cannot be unfavorited."
 msgstr "看板无法取消收藏。"
@@ -5397,11 +5397,11 @@ msgid "Delete item"
 msgstr "删除项目"
 
 msgid "Delete permanently"
-msgstr ""
+msgstr "永久删除"
 
 #, python-format
 msgid "Delete permanently %(name)s?"
-msgstr ""
+msgstr "永久删除 %(name)s？"
 
 msgid "Delete query"
 msgstr "删除查询"
@@ -5475,15 +5475,13 @@ msgid "Deleted %(num)d saved query"
 msgid_plural "Deleted %(num)d saved queries"
 msgstr[0] "删除 %(num)d 个保存的查询"
 
-#, fuzzy, python-format
 msgid "Deleted %(num)d semantic view"
 msgid_plural "Deleted %(num)d semantic views"
-msgstr[0] "删除了 %(num)d 个css模板"
+msgstr[0] "删除了 %(num)d 个语义视图"
 
-#, fuzzy, python-format
 msgid "Deleted %(num)d theme"
 msgid_plural "Deleted %(num)d themes"
-msgstr[0] "删除 %(num)d 个数据集"
+msgstr[0] "删除了 %(num)d 个主题"
 
 #, fuzzy, python-format
 msgid "Deleted %s"
@@ -5686,7 +5684,7 @@ msgstr "显示全部"
 msgid ""
 "Display charts on a map. For using this plugin, users first have to "
 "create any other chart that can then be placed on the map."
-msgstr "在地图上显示图表。要使用此插件，用户首先必须创建任何 other 图表，然后可以将其放置在地图上。"
+msgstr "在地图上显示图表。要使用此插件，用户首先必须创建任何其他图表，然后可以将其放置在地图上。"
 
 msgid "Display column in the chart"
 msgstr "在图表中显示列"
@@ -6565,7 +6563,7 @@ msgid "Error executing query. "
 msgstr "执行查询时出错。 "
 
 msgid "Error faving chart"
-msgstr "保存图表时发生错误"
+msgstr "收藏图表时发生错误"
 
 #, fuzzy
 msgid "Error fetching charts"
@@ -7008,11 +7006,11 @@ msgstr "创建报告失败"
 
 #, python-format
 msgid "Failed to delete %(name)s"
-msgstr ""
+msgstr "删除 %(name)s 失败"
 
 #, python-format
 msgid "Failed to delete %(name)s: %(errMsg)s"
-msgstr ""
+msgstr "删除 %(name)s 失败：%(errMsg)s"
 
 #, python-format
 msgid "Failed to establish an SSH tunnel to the database: %(reason)s"
@@ -7062,9 +7060,8 @@ msgstr "加载图表数据失败。"
 msgid "Failed to load columns for %s %s"
 msgstr "无法加载 %s %s 的列"
 
-#, fuzzy
 msgid "Failed to load top values"
-msgstr "停止查询失败。 %s"
+msgstr "加载前 N 个值失败"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -7083,11 +7080,11 @@ msgstr "移除系统默认主题失败：%s"
 
 #, python-format
 msgid "Failed to restore %(name)s"
-msgstr ""
+msgstr "恢复 %(name)s 失败"
 
 #, python-format
 msgid "Failed to restore %(name)s: %(errMsg)s"
-msgstr ""
+msgstr "恢复 %(name)s 失败：%(errMsg)s"
 
 #, fuzzy
 msgid "Failed to retrieve advanced type"
@@ -7625,7 +7622,7 @@ msgid ""
 msgstr "甘特图在时间跨度上可视化重要事件。每个数据点沿水平线显示为独立事件。"
 
 msgid "Gauge Chart"
-msgstr "看板图表"
+msgstr "仪表图"
 
 msgid "General"
 msgstr "一般"
@@ -7895,12 +7892,12 @@ msgid "How many buckets should the data be grouped in."
 msgstr "数据应分组成多少个桶。"
 
 msgid "How many periods into the future do we want to predict"
-msgstr "我们想要预测未来多少个many周期"
+msgstr "我们想要预测未来多少个周期"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "How many top values to select"
-msgstr "如何将 many 个顶部值应用于 select"
+msgstr "要选择多少个顶部值"
 
 msgid ""
 "How to display time shifts: as individual lines; as the difference "
@@ -7963,7 +7960,7 @@ msgid "If table already exists"
 msgstr "如果表已存在"
 
 msgid "If you delete this item, you won't be able to recover it."
-msgstr ""
+msgstr "如果删除此项目，您将无法恢复它。"
 
 msgid "If you did not request this, you can ignore this email."
 msgstr "如果您未请求此操作，可以忽略此邮件。"
@@ -8392,7 +8389,7 @@ msgid "Is tagged"
 msgstr "有标签"
 
 msgid "Is temporal"
-msgstr "时间条件"
+msgstr "是否为时间列"
 
 msgid "Is true"
 msgstr "为真"
@@ -8585,13 +8582,13 @@ msgid "Last"
 msgstr "最后一个"
 
 msgid "Last 30 days"
-msgstr ""
+msgstr "最近 30 天"
 
 msgid "Last 7 days"
-msgstr ""
+msgstr "最近 7 天"
 
 msgid "Last 90 days"
-msgstr ""
+msgstr "最近 90 天"
 
 msgid "Last Name"
 msgstr "姓氏"
@@ -8836,8 +8833,7 @@ msgid ""
 " Line chart is a type of chart which displays information as a series of "
 "data points connected by straight line segments. It is a basic type of "
 "chart common in many fields."
-msgstr ""
-"折线图用于可视化在给定类别上进行的测量。折线图是一种图表类型，它将信息显示为一系列由直线段连接的数据点。它是many领域中常见的一种基本图表类型。"
+msgstr "折线图用于可视化在给定类别上进行的测量。折线图是一种图表类型，它将信息显示为一系列由直线段连接的数据点。它是许多领域中常见的一种基本图表类型。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -9049,11 +9045,10 @@ msgstr "主"
 msgid "Main navigation"
 msgstr "主导航"
 
-#, fuzzy
 msgid ""
 "Make sure that the controls are configured properly and the datasource "
 "contains data for the selected time range"
-msgstr "此查询没有返回任何结果。如果希望返回结果，请确保所有过滤选择的配置正确，并且数据源包含所选时间范围的数据。"
+msgstr "请确保控件配置正确，且数据源包含所选时间范围内的数据。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -9846,7 +9841,7 @@ msgid "No applied filters"
 msgstr "没有应用过滤器"
 
 msgid "No archived items"
-msgstr ""
+msgstr "没有已归档的项目"
 
 msgid "No available filters."
 msgstr "没有可用的筛选器。"
@@ -10449,7 +10444,7 @@ msgstr "关于使用此指标的可选警告"
 
 # 以下部分来源于 superset-ui 项目
 msgid "Options"
-msgstr "设置"
+msgstr "选项"
 
 msgid "Or choose from a list of other databases we support:"
 msgstr "或者从我们支持的 other 数据库列表中选择："
@@ -10779,7 +10774,7 @@ msgid "Physical"
 msgstr "物理"
 
 msgid "Physical (table or view)"
-msgstr "实体（表或视图）"
+msgstr "物理（表或视图）"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -10809,7 +10804,7 @@ msgstr "选择至少一个指标"
 msgid ""
 "Pick one or more columns that should be shown in the annotation. If you "
 "don't select a column all of them will be shown."
-msgstr "选择注释中应该显示的一个或多个列如果您不选择一列，所有的选项都会显示出来。"
+msgstr "选择注释中应该显示的一个或多个列。如果您不选择列，所有列都会显示出来。"
 
 msgid "Pick your favorite markup language"
 msgstr "选择您最爱的 Markup 语言"
@@ -10833,7 +10828,7 @@ msgid "Piecewise"
 msgstr "分段"
 
 msgid "Pin"
-msgstr "标记"
+msgstr "固定"
 
 msgid "Pin Column"
 msgstr "固定列"
@@ -11395,10 +11390,10 @@ msgid "Raw records"
 msgstr "原始记录"
 
 msgid "Recently Archived"
-msgstr ""
+msgstr "最近归档"
 
 msgid "Recently archived"
-msgstr ""
+msgstr "最近归档"
 
 msgid "Recently modified"
 msgstr "最近修改"
@@ -11413,13 +11408,13 @@ msgid "Records"
 msgstr "记录"
 
 msgid "Recover"
-msgstr ""
+msgstr "恢复"
 
 msgid "Recover this item"
-msgstr ""
+msgstr "恢复此项目"
 
 msgid "Recover this item to open it"
-msgstr ""
+msgstr "恢复此项目并打开"
 
 msgid "Rectangle"
 msgstr "长方形"
@@ -12312,7 +12307,7 @@ msgid ""
 "Scatter Plot has the horizontal axis in linear units, and the points are "
 "connected in order. It shows a statistical relationship between two "
 "variables."
-msgstr "散点图在水平轴上以线性单位表示，点按顺序连接。它显示了two变量之间的统计关系。"
+msgstr "散点图在水平轴上以线性单位表示，点按顺序连接。它显示了两个变量之间的统计关系。"
 
 msgid "Schedule"
 msgstr "调度"
@@ -12406,7 +12401,7 @@ msgstr "按名称搜索计算列"
 # es, fa, fi, fr, it, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
 # th, tr, uk]
 msgid "Search charts by name, editor, or dashboard"
-msgstr "按名称、所有者或看板搜索图表"
+msgstr "按名称、编辑者或看板搜索图表"
 
 msgid "Search columns"
 msgstr "搜索列"
@@ -12430,7 +12425,7 @@ msgid "Search metrics by key or label"
 msgstr "按键或标签搜索指标"
 
 msgid "Search records"
-msgstr ""
+msgstr "搜索记录"
 
 msgid "Search tags"
 msgstr "搜索标签"
@@ -12792,9 +12787,8 @@ msgstr "选择或输入自定义值..."
 msgid "Select or type currency symbol"
 msgstr "选择或输入货币符号"
 
-#, fuzzy
 msgid "Select or type dataset name"
-msgstr "选择表或输入数据集名称"
+msgstr "选择或输入数据集名称"
 
 msgid "Select or type email recipients"
 msgstr "选择或输入电子邮件收件人"
@@ -13205,7 +13199,7 @@ msgid "Shift + Click to sort by multiple columns"
 msgstr "Shift + 点击可按多列排序"
 
 msgid "Shift start date"
-msgstr "轮班开始日期"
+msgstr "平移开始日期"
 
 msgid "Short description must be unique for this layer"
 msgstr "此层的简述必须是唯一的"
@@ -13868,7 +13862,6 @@ msgstr "开始角度"
 msgid "Start at (UTC)"
 msgstr "开始于（UTC）"
 
-#, fuzzy
 msgid "Start date"
 msgstr "开始时间"
 
@@ -14580,7 +14573,7 @@ msgid ""
 msgstr ""
 "经典图表。非常适合展示每位投资者获得公司的多少份额、关注你博客的人群特征，或预算中用于军工复合体的比例。\n"
 "\n"
-"        饼图可能难以精确解读。如果相对比例的清晰度很重要，请考虑改用柱状图或 other 图表类型。"
+"        饼图可能难以精确解读。如果相对比例的清晰度很重要，请考虑改用柱状图或其他图表类型。"
 
 msgid "The color for points and clusters in RGB"
 msgstr "点和聚合群的颜色（RGB）"
@@ -15117,7 +15110,7 @@ msgid ""
 msgstr "找不到与这些结果相关联的查询。你需要重新运行查询"
 
 msgid "The query contains one or more malformed template parameters."
-msgstr "该查询包含 one 个或更多格式不正确的模板参数。"
+msgstr "该查询包含一个或多个格式不正确的模板参数。"
 
 msgid "The query context datasource does not match the chart datasource"
 msgstr "查询上下文的数据源与图表的数据源不匹配"
@@ -15163,7 +15156,7 @@ msgstr "点要素的半径，单位如下所示。最终渲染大小为此值乘
 
 #, python-format
 msgid "The remaining %s will be moved to Recently Archived."
-msgstr ""
+msgstr "其余 %s 将被移至“最近归档”。"
 
 msgid "The report has been created"
 msgstr "报告已创建"
@@ -15256,7 +15249,7 @@ msgid "The size of the point icons"
 msgstr "点图标的大小"
 
 msgid "The size of the square cell, in pixels"
-msgstr "平方单元的大小，以像素为单位"
+msgstr "方形单元格的大小，以像素为单位"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -15574,23 +15567,23 @@ msgstr "您的请求有错误"
 
 #, python-format
 msgid "There was an issue archiving %s: %s"
-msgstr ""
+msgstr "归档 %s 时出现问题：%s"
 
 #, python-format
 msgid "There was an issue archiving the selected %s"
-msgstr ""
+msgstr "归档所选的 %s 时出现问题"
 
 #, python-format
 msgid "There was an issue archiving the selected charts: %s"
-msgstr ""
+msgstr "归档所选的图表时出现问题：%s"
 
 #, python-format
 msgid "There was an issue archiving the selected dashboards: %s"
-msgstr ""
+msgstr "归档所选的看板时出现问题：%s"
 
 #, python-format
 msgid "There was an issue archiving: %s"
-msgstr ""
+msgstr "归档时出现问题：%s"
 
 #, python-format
 msgid "There was an issue cancelling the task: %s"
@@ -15630,7 +15623,7 @@ msgstr "删除所选图表时出现问题：%s"
 
 #, python-format
 msgid "There was an issue deleting the selected dashboards: %s"
-msgstr ""
+msgstr "删除所选的看板时出现问题：%s"
 
 #, python-format
 msgid "There was an issue deleting the selected layers: %s"
@@ -15719,13 +15712,13 @@ msgstr "预览所选查询时出现问题。%s"
 msgid ""
 "These %(type)s will be moved to Recently Archived. You can recover them "
 "there within %(days)s days."
-msgstr ""
+msgstr "这些 %(type)s 将被移至“最近归档”。您可以在 %(days)s 天内从那里恢复它们。"
 
 #, python-format
 msgid ""
 "These %(type)s will be moved to Recently Archived. You can recover them "
 "there."
-msgstr ""
+msgstr "这些 %(type)s 将被移至“最近归档”。您可以在那里恢复它们。"
 
 msgid "These are the datasets this filter will be applied to."
 msgstr "这些是此筛选器将应用到的数据集。"
@@ -15734,13 +15727,13 @@ msgstr "这些是此筛选器将应用到的数据集。"
 msgid ""
 "This %(type)s will be moved to Recently Archived. You can recover it "
 "there within %(days)s days."
-msgstr ""
+msgstr "此 %(type)s 将被移至“最近归档”。您可以在 %(days)s 天内从那里恢复它。"
 
 #, python-format
 msgid ""
 "This %(type)s will be moved to Recently Archived. You can recover it "
 "there."
-msgstr ""
+msgstr "此 %(type)s 将被移至“最近归档”。您可以在那里恢复它。"
 
 msgid ""
 "This JSON object is generated dynamically when clicking the save or "
@@ -16101,7 +16094,7 @@ msgstr "此页面设计为嵌入在 iframe 中，但看起来并非如此。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "This password is too common; please choose a less guessable one."
-msgstr "此密码过于常见；请选择一个不易被猜到的one。"
+msgstr "此密码过于常见；请选择一个不易被猜到的密码。"
 
 msgid ""
 "This section allows you to configure how to use the slice\n"
@@ -16153,7 +16146,7 @@ msgid "This value should be greater than the left target value"
 msgstr "这个值应该大于左边的目标值"
 
 msgid "This value should be smaller than the right target value"
-msgstr "这个值应该小于正确的目标值"
+msgstr "该值应小于右侧的目标值"
 
 #, fuzzy
 msgid "This visualization type does not support cross-filtering."
@@ -16406,7 +16399,7 @@ msgid "Title"
 msgstr "标题"
 
 msgid "Title Column"
-msgstr "标题栏"
+msgstr "标题列"
 
 msgid "Title is required"
 msgstr "标题是必填项"
@@ -16580,7 +16573,7 @@ msgid "True"
 msgstr "真"
 
 msgid "Truncate Axis"
-msgstr "截断Y轴"
+msgstr "截断坐标轴"
 
 #, fuzzy
 msgid "Truncate Cells"
@@ -16614,7 +16607,7 @@ msgstr "将长单元格截断为上方设置的\"最小宽度\""
 msgid ""
 "Truncate the metric axis. Can be overridden by specifying a min or max "
 "bound."
-msgstr "截断Y轴。可以通过指定最小或最大界限来重写。"
+msgstr "截断指标轴。可通过指定最小或最大界限来覆盖。"
 
 msgid "Truncates the specified date to the accuracy specified by the date unit."
 msgstr "将指定的日期截取为指定的日期单位精度。"
@@ -17022,7 +17015,7 @@ msgid "Upload CSV"
 msgstr "上传CSV"
 
 msgid "Upload CSV to database"
-msgstr "上传CSV文件"
+msgstr "将 CSV 上传到数据库"
 
 #, fuzzy
 msgid "Upload Columnar"
@@ -17168,8 +17161,7 @@ msgid ""
 "along two axes. Examples: Sales numbers by region and month, tasks by "
 "status and assignee, active users by age and location. Not the most "
 "visually stunning visualization, but highly informative and versatile."
-msgstr ""
-"用于通过将多个统计信息沿 two 轴分组在一起来汇总一组数据。示例：按地区和月份统计的销售额，按状态和负责人统计的任务，按年龄和位置统计的活跃用户。虽然不是最视觉震撼的可视化，但信息丰富且用途广泛。"
+msgstr "用于通过将多个统计信息沿两个轴分组在一起来汇总一组数据。示例：按地区和月份统计的销售额，按状态和负责人统计的任务，按年龄和位置统计的活跃用户。虽然不是最视觉震撼的可视化，但信息丰富且用途广泛。"
 
 msgid "User"
 msgstr "用户"
@@ -17228,7 +17220,7 @@ msgid ""
 "Uses a gauge to showcase progress of a metric towards a target. The "
 "position of the dial represents the progress and the terminal value in "
 "the gauge represents the target value."
-msgstr "使用看板来展示一个指标朝着目标的进度。指针的位置表示进度，而看板的终点值代表目标值。"
+msgstr "使用仪表盘展示一个指标朝着目标的进度。指针的位置表示进度，而仪表盘的终点值代表目标值。"
 
 msgid ""
 "Uses circles to visualize the flow of data through different stages of a "
@@ -17362,7 +17354,7 @@ msgstr "预览"
 
 #, python-format
 msgid "View %(type)s"
-msgstr ""
+msgstr "查看 %(type)s"
 
 msgid "View All »"
 msgstr "查看所有 »"
@@ -17473,7 +17465,7 @@ msgid ""
 "Visualize two different series using the same x-axis. Note that both "
 "series can be visualized with a different chart type (e.g. 1 using bars "
 "and 1 using a line)."
-msgstr "使用相同的x轴可视化two个不同的序列。请注意，两个序列可以使用不同的图表类型进行可视化（例如，一个使用条形图，一个使用折线图）。"
+msgstr "使用相同的x轴可视化两个不同的序列。请注意，两个序列可以使用不同的图表类型进行可视化（例如，一个使用条形图，一个使用折线图）。"
 
 msgid ""
 "Visualizes a metric across three dimensions of data in a single chart (X "
@@ -18066,13 +18058,13 @@ msgid "XYZ"
 msgstr "XYZ"
 
 msgid "Y 2 bounds"
-msgstr "Y 界限"
+msgstr "Y 轴 2 界限"
 
 msgid "Y Axis"
 msgstr "Y 轴"
 
 msgid "Y Axis 2 Bounds"
-msgstr "Y 轴界限"
+msgstr "Y 轴 2 界限"
 
 msgid "Y Axis Bounds"
 msgstr "Y 轴界限"
@@ -18297,7 +18289,7 @@ msgstr "您没有编辑此图表的权限"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "You don't have access to one or more of the referenced datasources."
-msgstr "您没有访问 one 个或更多所引用数据源的权限。"
+msgstr "您没有访问其中一个或多个所引用数据源的权限。"
 
 #, fuzzy
 msgid "You don't have access to this chart."
@@ -18384,7 +18376,7 @@ msgstr "您已用完所有 %(historyLength)s 个撤销槽位，将无法完全�
 msgid ""
 "You must be a %s editor in order to edit. Please reach out to a %s editor"
 " to request modifications or edit access."
-msgstr "您必须是 %s 编辑器才能进行编辑。请联系 %s 编辑器以请求修改或编辑权限。"
+msgstr "您必须是 %s 编辑者才能编辑。请联系 %s 编辑者请求修改或编辑权限。"
 
 msgid ""
 "You must be a chart editor in order to delete. Please reach out to a "
@@ -18394,17 +18386,17 @@ msgstr "您必须是图表编辑者才能删除。请联系图表编辑者请求
 msgid ""
 "You must be a chart editor in order to edit. Please reach out to a chart "
 "editor to request modifications or edit access."
-msgstr ""
+msgstr "您必须是图表编辑者才能编辑。请联系图表编辑者请求修改或编辑权限。"
 
 msgid ""
 "You must be a dashboard editor in order to delete. Please reach out to a "
 "dashboard editor to request modifications or edit access."
-msgstr ""
+msgstr "您必须是看板编辑者才能删除。请联系看板编辑者请求修改或编辑权限。"
 
 msgid ""
 "You must be a dashboard editor in order to edit. Please reach out to a "
 "dashboard editor to request modifications or edit access."
-msgstr ""
+msgstr "您必须是看板编辑者才能编辑。请联系看板编辑者请求修改或编辑权限。"
 
 msgid ""
 "You must be a dataset editor in order to delete. Please reach out to a "
@@ -18417,7 +18409,7 @@ msgstr "您必须是数据集编辑者才能删除。请联系数据集编辑者
 msgid ""
 "You must be a dataset editor in order to edit. Please reach out to a "
 "dataset editor to request modifications or edit access."
-msgstr "您必须是数据集所有者才能进行编辑。请联系数据集所有者请求修改或编辑权限。"
+msgstr "您必须是数据集编辑者才能编辑。请联系数据集编辑者请求修改或编辑权限。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, tr]
 msgid "You must change your password before continuing."
@@ -18627,7 +18619,7 @@ msgstr "`operation` 后处理对象的属性未定义"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, python-format
 msgid "`periods` must be between 1 and %(max)s"
-msgstr "数值必须在 `periods` 和 %(max)s 之间"
+msgstr "`periods` 必须介于 1 和 %(max)s 之间"
 
 msgid "`prophet` package not installed"
 msgstr "未安装程序包 `prophet`"
@@ -18651,7 +18643,7 @@ msgid "`window` must be between 1 and 10000"
 msgstr "`window` 必须介于 1 和 10000 之间。"
 
 msgid "a few seconds"
-msgstr "a few 秒"
+msgstr "几秒"
 
 msgid "aggregate"
 msgstr "合计"
