@@ -371,7 +371,18 @@ class Query(
 
     @property
     def schema_perm(self) -> str:
-        return f"{self.database.database_name}.{self.schema}"
+        # Use the canonical bracketed form ([db].[schema] / [db].[cat].[schema])
+        # so it matches what sync_permissions stores and can_access() can find it.
+        from superset.extensions import security_manager as sm
+
+        return (
+            sm.get_schema_perm(
+                self.database.database_name,
+                self.catalog,
+                self.schema,
+            )
+            or ""
+        )
 
     @property
     def perm(self) -> str:

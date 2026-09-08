@@ -2245,8 +2245,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if self.can_access_all_datasources():
             return True
 
-        # SQL-specific hierarchy checks
-        if isinstance(datasource, BaseDatasource):
+        # Also accept SQL Lab Query objects, which carry .database but are not
+        # BaseDatasource subclasses.
+        if isinstance(datasource, BaseDatasource) or hasattr(datasource, "database"):
             # Database-level access grants all schemas
             if self.can_access_database(datasource.database):
                 return True
@@ -2259,11 +2260,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ):
                 return True
 
-            # Schema-level permission (SQL only)
+            # Schema-level access
             if self.can_access("schema_access", datasource.schema_perm or ""):
                 return True
 
-        # Non-SQL explorables don't have schema hierarchy
         return False
 
     def _semantic_layer_grant_allows(
@@ -4738,6 +4738,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise SupersetSecurityException(
                     self.get_table_access_error_object(denied)
                 )
+
+            # The query branch has fully decided access; don't fall into the
+            # datasource= tail below, which a Query object cannot satisfy.
+            if query:
+                return
 
         # Guest users MUST not modify the payload so it's requesting a
         # different chart or different ad-hoc metrics from what's saved.
