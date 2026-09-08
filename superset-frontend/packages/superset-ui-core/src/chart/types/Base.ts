@@ -45,6 +45,13 @@ export interface ContextMenuFilters {
     filters: BinaryQueryObjectFilterClause[];
     groupbyFieldName: string;
     adhocFilterFieldName?: string;
+    /**
+     * Filters scoped to the clicked x-axis value (category or time bucket),
+     * as opposed to `filters`, which are scoped to the clicked series.
+     * When both are present, the Drill By UI lets the user choose which
+     * of the two (or both) to apply to the drilled chart.
+     */
+    xAxisFilters?: BinaryQueryObjectFilterClause[];
   };
 }
 

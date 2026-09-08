@@ -37,6 +37,9 @@ from flask_babel import _
 from werkzeug.exceptions import BadRequest
 
 from superset import appbuilder, dataframe, db, result_set
+from superset.charts.data.dashboard_filter_context import (
+    get_dashboard_filter_context,
+)
 from superset.common.db_query_status import QueryStatus
 from superset.exceptions import (
     SerializationError,
@@ -502,11 +505,20 @@ def get_dashboard_extra_filters(
         return []
 
     with contextlib.suppress(json.JSONDecodeError):
-        # does this dashboard have default filters?
         json_metadata = json.loads(dashboard.json_metadata)
+        native_filters = [
+            flt
+            for flt in get_dashboard_filter_context(
+                dashboard_id=dashboard_id,
+                chart_id=slice_id,
+            ).extra_form_data.get("filters", [])
+            if isinstance(flt, dict)
+        ]
+
+        # does this dashboard have legacy default filters?
         default_filters = json.loads(json_metadata.get("default_filters", "null"))
         if not default_filters:
-            return []
+            return native_filters
 
         # are default filters applicable to the given slice?
         filter_scopes = json_metadata.get("filter_scopes", {})
@@ -517,7 +529,15 @@ def get_dashboard_extra_filters(
             and isinstance(filter_scopes, dict)
             and isinstance(default_filters, dict)
         ):
-            return build_extra_filters(layout, filter_scopes, default_filters, slice_id)
+            return [
+                *build_extra_filters(
+                    layout,
+                    filter_scopes,
+                    default_filters,
+                    slice_id,
+                ),
+                *native_filters,
+            ]
     return []
 
 

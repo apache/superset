@@ -1240,6 +1240,66 @@ class TestTableFormattingOptions:
 
         assert "color_scheme" not in result
 
+    def test_column_config_in_form_data(self) -> None:
+        config = TableChartConfig.model_validate(
+            {
+                "chart_type": "table",
+                "columns": [
+                    {"name": "order_date"},
+                    {"name": "revenue", "aggregate": "SUM", "label": "Revenue"},
+                ],
+                "column_config": {
+                    "order_date": {
+                        "columnWidth": 120,
+                        "d3TimeFormat": "%Y-%m-%d",
+                    },
+                    "Revenue": {"d3NumberFormat": "$,.2f"},
+                },
+            }
+        )
+
+        result = map_table_config(config)
+
+        assert result["column_config"] == {
+            "order_date": {"columnWidth": 120, "d3TimeFormat": "%Y-%m-%d"},
+            "Revenue": {"d3NumberFormat": "$,.2f"},
+        }
+
+    def test_column_config_rejects_unknown_setting(self) -> None:
+        with pytest.raises(ValidationError, match="Unknown field 'width'"):
+            TableChartConfig.model_validate(
+                {
+                    "chart_type": "table",
+                    "columns": [{"name": "product"}],
+                    "column_config": {"product": {"width": 120}},
+                }
+            )
+
+    def test_column_config_preserves_explicit_null_to_clear_formatting(self) -> None:
+        config = TableChartConfig.model_validate(
+            {
+                "chart_type": "table",
+                "columns": [{"name": "revenue"}],
+                "column_config": {
+                    "revenue": {
+                        "columnWidth": None,
+                        "d3NumberFormat": None,
+                        "d3TimeFormat": None,
+                    }
+                },
+            }
+        )
+
+        result = map_table_config(config)
+
+        assert result["column_config"] == {
+            "revenue": {
+                "columnWidth": None,
+                "d3NumberFormat": None,
+                "d3TimeFormat": None,
+            }
+        }
+
 
 class TestCurrencyFormatModel:
     """CurrencyFormat schema validation."""

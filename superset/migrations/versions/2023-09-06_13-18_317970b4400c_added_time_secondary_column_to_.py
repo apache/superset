@@ -60,7 +60,7 @@ def upgrade():
         )
 
         bind = op.get_bind()
-        session = db.Session(bind=bind, future=True)
+        session = db.Session(bind=bind)
 
         for table in paginated_update(session.query(SqlaTable)):
             table.always_filter_main_dttm = False

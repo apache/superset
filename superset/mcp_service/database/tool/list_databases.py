@@ -59,6 +59,7 @@ _DEFAULT_LIST_DATABASES_REQUEST = ListDatabasesRequest()
         title="List databases",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 @requires_data_model_metadata_access

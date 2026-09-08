@@ -645,7 +645,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 
       {loading && (
         <div style={{ textAlign: 'center', marginTop: 8 }}>
-          <Loading position="inline" />
+          <Loading position="inline" size="s" muted />
         </div>
       )}
     </div>

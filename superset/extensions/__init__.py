@@ -40,8 +40,6 @@ from flask_talisman import Talisman
 from flask_wtf.csrf import CSRFProtect
 from werkzeug.local import LocalProxy
 
-from superset.async_events.async_query_manager import AsyncQueryManager
-from superset.async_events.async_query_manager_factory import AsyncQueryManagerFactory
 from superset.extensions.ssh import SSHManagerFactory
 from superset.extensions.stats_logger import BaseStatsLoggerManager
 from superset.security.manager import SupersetSecurityManager
@@ -147,14 +145,22 @@ class ProfilingExtension:  # pylint: disable=too-few-public-methods
 
 APP_DIR = os.path.join(os.path.dirname(__file__), os.path.pardir)
 appbuilder = AppBuilder(update_perms=False)
-async_query_manager_factory = AsyncQueryManagerFactory()
-async_query_manager: AsyncQueryManager = LocalProxy(
-    async_query_manager_factory.instance
-)
 cache_manager = CacheManager()
 celery_app = celery.Celery()
 csrf = CSRFProtect()
-db = get_sqla_class()()
+
+# Flask-SQLAlchemy 3.x scopes db.session by the identity of the current Flask
+# app-context object (id(app_ctx)) rather than by thread/greenlet identity like
+# 2.x did. Superset's codebase (and its test fixtures) widely assumes a single
+# shared session per thread across nested `app.app_context()` blocks, often
+# relying on that implicit sharing instead of an explicit commit. Restoring the
+# 2.x scopefunc here keeps that assumption valid under FSA 3.x.
+try:
+    from greenlet import getcurrent as _session_scopefunc
+except ImportError:
+    from threading import get_ident as _session_scopefunc
+
+db = get_sqla_class()(session_options={"scopefunc": _session_scopefunc})
 
 # make_versioned() MUST be called immediately after db is constructed and before
 # any versioned model class is defined.  Continuum patches the SQLAlchemy

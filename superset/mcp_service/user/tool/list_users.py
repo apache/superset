@@ -54,6 +54,7 @@ _DEFAULT_LIST_USERS_REQUEST = ListUsersRequest()
         title="List users",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def list_users(

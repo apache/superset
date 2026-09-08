@@ -49,6 +49,13 @@ export default class DateWithFormatter extends Date {
       if (this.formatter === String) {
         return String(this.input);
       }
+      // Values that are not parseable timestamps - durations such as
+      // "00:01:54" or "0 days 00:01:54", for instance - produce an Invalid
+      // Date, and formatting one renders as "NaN:NaN:NaN". Fall back to the
+      // original value instead.
+      if (Number.isNaN(this.getTime())) {
+        return String(this.input);
+      }
       return this.formatter ? this.formatter(this) : Date.toString.call(this);
     };
   }

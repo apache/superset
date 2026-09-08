@@ -630,7 +630,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         dataset = DatasetDAO.find_by_id(dataset_id)
         if not dataset:
             return None
-        return db.session.query(SqlMetric).get(metric_id)
+        return db.session.get(SqlMetric, metric_id)
 
     @staticmethod
     def get_table_by_name(database_id: int, table_name: str) -> SqlaTable | None:

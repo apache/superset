@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import importlib
 from collections.abc import Generator
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
@@ -179,6 +180,73 @@ async def test_query_dataset_success(mcp_server: FastMCP) -> None:
     assert data["row_count"] == 2
     assert len(data["data"]) == 2
     assert data["data"][0]["category"] == "Electronics"
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_exposes_filters_to_jinja_macros(
+    mcp_server: FastMCP,
+) -> None:
+    """The MCP query path populates the form data read by dataset Jinja macros."""
+    from superset.common.query_object import QueryObject
+
+    dataset = _make_dataset()
+    query = QueryObject(
+        filters=[{"col": "category", "op": "IN", "val": ["Electronics"]}],
+        columns=["category"],
+        metrics=["count"],
+    )
+    query_context = SimpleNamespace(queries=[query], form_data={})
+    observed: dict[str, Any] = {}
+
+    def run_query() -> dict[str, Any]:
+        from superset.jinja_context import ExtraCache, get_dataset_id_from_context
+
+        extra_cache = ExtraCache()
+        observed["filter_values"] = extra_cache.filter_values("category")
+        observed["get_filters"] = extra_cache.get_filters("category")
+        # metric() without an explicit dataset ID uses this same context lookup.
+        observed["metric_dataset_id"] = get_dataset_id_from_context("count")
+        return _mock_command_result()
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=query_context,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            side_effect=run_query,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "columns": ["category"],
+                        "filters": [
+                            {
+                                "col": "category",
+                                "op": "IN",
+                                "val": ["Electronics"],
+                            }
+                        ],
+                    }
+                },
+            )
+
+    assert not result.is_error
+    assert observed["filter_values"] == ["Electronics"]
+    assert observed["get_filters"] == [
+        {"col": "category", "op": "IN", "val": ["Electronics"]}
+    ]
+    assert observed["metric_dataset_id"] == 1
 
 
 @pytest.mark.asyncio

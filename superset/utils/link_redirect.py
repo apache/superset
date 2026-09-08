@@ -140,11 +140,17 @@ def is_safe_redirect_url(url: str) -> bool:
     # following a Location header).
     stripped = _URL_STRIPPED_CONTROL_CHARS.sub("", url.strip())
 
-    # Block protocol-relative URLs
-    if stripped.startswith("//") or stripped.startswith("\\\\"):
+    # WHATWG URL parsers treat backslashes as forward slashes in special
+    # schemes, while urllib does not. Normalize backslashes to slashes before
+    # every structural check, mirroring Django's
+    # ``url_has_allowed_host_and_scheme``.
+    normalized = stripped.replace("\\", "/")
+
+    # Block protocol-relative URLs (any leading mix of slash and backslash)
+    if normalized.startswith("//"):
         return False
 
-    parsed = urlparse(stripped)
+    parsed = urlparse(normalized)
 
     # Relative paths are safe
     if not parsed.scheme and not parsed.netloc:

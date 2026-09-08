@@ -25,7 +25,7 @@ import {
   CacheProvider as EmotionCacheProvider,
 } from '@emotion/react';
 import createCache from '@emotion/cache';
-import { noop, mergeWith } from 'lodash-es';
+import { mergeWith } from 'lodash-es';
 import { GlobalStyles } from './GlobalStyles';
 import {
   AntdThemeConfig,
@@ -156,8 +156,8 @@ export class Theme {
       }),
     } as SupersetTheme;
 
-    // Update the providers with the fully formed theme
-    this.updateProviders(
+    // Update every mounted provider with the fully formed theme
+    this.notifyProviders(
       this.theme,
       this.antdConfig,
       createCache({ key: 'superset' }),
@@ -196,6 +196,27 @@ export class Theme {
       newConfig.algorithm = newAlgorithm;
     }
 
+    // Skip the update (and the notifyProviders fan-out it triggers) if the
+    // theme is already in the requested mode. Docs pages mount one
+    // dark-mode-sync bridge per live component demo (see
+    // docs/src/components/StorybookWrapper.jsx's ThemeSync), so a single
+    // toggle event calls this once per demo on the page. Without this
+    // check, every one of those calls would recompute the theme and
+    // notify every mounted provider, turning a single real toggle into
+    // O(n^2) provider notifications across n demos.
+    // Compare the algorithm sets rather than positions: reordering
+    // non-mode algorithms to the front doesn't change the effective
+    // theme, so it shouldn't count as a change either.
+    const currentAlgorithm = this.antdConfig.algorithm;
+    const algorithmUnchanged = Array.isArray(newConfig.algorithm)
+      ? Array.isArray(currentAlgorithm) &&
+        newConfig.algorithm.length === currentAlgorithm.length &&
+        newConfig.algorithm.every(alg => currentAlgorithm.includes(alg))
+      : newConfig.algorithm === currentAlgorithm;
+    if (algorithmUnchanged) {
+      return;
+    }
+
     // Update the theme with the new configuration
     this.setConfig(newConfig);
   }
@@ -204,13 +225,29 @@ export class Theme {
     return JSON.stringify(serializeThemeConfig(this.antdConfig), null, 2);
   }
 
-  private updateProviders(
+  // Every currently-mounted SupersetThemeProvider for this Theme instance
+  // registers a listener here (see the useEffect below). A single
+  // "last write wins" callback isn't enough once more than one provider can
+  // be mounted from the same Theme instance at a time -- e.g. multiple live
+  // component demos on one docs page -- since each render would overwrite
+  // the previous provider's callback and only the most-recently-rendered
+  // provider would ever hear about a setConfig/toggleDarkMode call.
+  private providerListeners = new Set<
+    (
+      theme: SupersetTheme,
+      antdConfig: AntdThemeConfig,
+      emotionCache: any,
+    ) => void
+  >();
+
+  private notifyProviders(
     theme: SupersetTheme,
     antdConfig: AntdThemeConfig,
     emotionCache: any,
   ): void {
-    noop(theme, antdConfig, emotionCache);
-    // Overridden at runtime by SupersetThemeProvider using setThemeState
+    this.providerListeners.forEach(listener =>
+      listener(theme, antdConfig, emotionCache),
+    );
   }
 
   SupersetThemeProvider({ children }: { children: React.ReactNode }) {
@@ -225,9 +262,42 @@ export class Theme {
       emotionCache: createCache({ key: 'superset' }),
     });
 
-    this.updateProviders = (theme, antdConfig, emotionCache) => {
-      setThemeState({ theme, antdConfig, emotionCache });
-    };
+    // Register (and, on unmount, deregister) this provider instance's own
+    // listener rather than assigning a single shared callback on every
+    // render, so every concurrently mounted provider for this Theme
+    // instance receives updates, not just the last one to render.
+    //
+    // Use useLayoutEffect (not useEffect) so registration happens in the
+    // same commit phase as any layout effect elsewhere that might call
+    // setConfig/toggleDarkMode on this instance during mount (e.g. the
+    // docs site's dark-mode sync in StorybookWrapper.jsx, which reads the
+    // toggle and pushes it onto the singleton via a layout effect of its
+    // own). Layout effects run bottom-up, so a listener registered here
+    // (this component is nested inside that caller) is guaranteed to be
+    // in place before an ancestor's layout effect can fire and notify it.
+    // If this were a passive effect instead, an ancestor's layout effect
+    // could call toggleDarkMode before this listener exists, dropping that
+    // notification, and the provider would render stale until a later
+    // toggle.
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    React.useLayoutEffect(() => {
+      const listener = (
+        nextTheme: SupersetTheme,
+        nextAntdConfig: AntdThemeConfig,
+        nextEmotionCache: any,
+      ) => {
+        setThemeState({
+          theme: nextTheme,
+          antdConfig: nextAntdConfig,
+          emotionCache: nextEmotionCache,
+        });
+      };
+      this.providerListeners.add(listener);
+      return () => {
+        this.providerListeners.delete(listener);
+      };
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
       <EmotionCacheProvider value={themeState.emotionCache}>

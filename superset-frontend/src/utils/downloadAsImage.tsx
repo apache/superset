@@ -27,9 +27,22 @@ import { forceLoadAllCharts, restoreVirtualization } from './downloadUtils';
 
 const IMAGE_DOWNLOAD_QUALITY = 0.95;
 const PNG_SCALE = 2; // Higher quality for PNG
+// ECharts canvas charts (e.g. sunburst) bake their pixel detail into the on-screen backing
+// store (CSS size × devicePixelRatio). Copying that 1:1 and then letting the PNG path upscale
+// it via transform: scale(PNG_SCALE) only stretches the bitmap, producing a blurry export. To
+// keep the export crisp, these charts are re-rendered at this pixel ratio at capture time; it is
+// tied to PNG_SCALE so the re-render matches the scaled output box.
+const EXPORT_CANVAS_PIXEL_RATIO = PNG_SCALE;
+// The div passed to ECharts `init()` carries this class (source of truth:
+// plugins/plugin-chart-echarts/src/components/Echart.tsx `ECHARTS_HOST_CLASS`). It lets the
+// exporter recover the live ECharts instance for a canvas via `getInstanceByDom`.
+const ECHARTS_HOST_CLASS = 'echarts-host';
 export type BackgroundType = 'transparent' | 'solid';
 const TRANSPARENT_RGBA = 'transparent';
 const POLL_INTERVAL_MS = 100;
+
+// Resolved lazily via a dynamic import so echarts stays out of the core bundle.
+type EChartsGetInstanceByDom = typeof import('echarts/core').getInstanceByDom;
 
 // Tracks original cell styles to restore after capture
 type CellFixup = { el: HTMLElement; minHeight: string; overflow: string };
@@ -223,30 +236,73 @@ const processCloneForVisibility = (clone: HTMLElement) => {
     });
 };
 
-const preserveCanvasContent = (original: Element, clone: Element) => {
+const preserveCanvasContent = (
+  original: Element,
+  clone: Element,
+  getInstanceByDom?: EChartsGetInstanceByDom,
+) => {
   const originalCanvases = original.querySelectorAll('canvas');
   const clonedCanvases = clone.querySelectorAll('canvas');
+  // `renderToCanvas` flattens all of an ECharts instance's zrender layers into a single canvas,
+  // so once a host is re-rendered its other <canvas> layers (e.g. a hover layer) are skipped;
+  // if the re-render throws, the host is marked 'failed' so each layer falls back to a 1:1 copy.
+  const hostRenderState = new Map<Element, 'rendered' | 'failed'>();
 
   originalCanvases.forEach((originalCanvas, i) => {
-    if (originalCanvases[i] && clonedCanvases[i]) {
-      const clonedCanvas = clonedCanvases[i] as HTMLCanvasElement;
-      const ctx = clonedCanvas.getContext('2d');
-      if (ctx) {
-        clonedCanvas.width = originalCanvas.width;
-        clonedCanvas.height = originalCanvas.height;
-        ctx.drawImage(originalCanvas, 0, 0);
+    const clonedCanvas = clonedCanvases[i] as HTMLCanvasElement | undefined;
+    if (!clonedCanvas) return;
+    const ctx = clonedCanvas.getContext('2d');
+    if (!ctx) return;
+
+    // For ECharts (canvas renderer) charts such as sunburst, re-render the chart at a higher
+    // pixel ratio instead of copying the on-screen bitmap, so the PNG path upscales a matching
+    // high-resolution source rather than stretching a low-resolution one. `getInstanceByDom` is
+    // only supplied on the PNG path, so JPEG (and non-ECharts canvases) keep the 1:1 copy below.
+    const host = originalCanvas.closest(`.${ECHARTS_HOST_CLASS}`);
+    const hostState = host ? hostRenderState.get(host) : undefined;
+    // Sibling layer of a host already re-rendered: the flattened render covers it.
+    if (hostState === 'rendered') return;
+    const instance =
+      host && hostState !== 'failed'
+        ? getInstanceByDom?.(host as HTMLElement)
+        : undefined;
+    if (host && instance) {
+      try {
+        // No `backgroundColor` is passed, so renderToCanvas inherits the chart's own configured
+        // background (transparent when unset) — matching the on-screen canvas. The overall export
+        // background is applied separately via the dom-to-image `bgcolor` option.
+        const hiResCanvas = instance.renderToCanvas({
+          pixelRatio: EXPORT_CANVAS_PIXEL_RATIO,
+        });
+        clonedCanvas.width = hiResCanvas.width;
+        clonedCanvas.height = hiResCanvas.height;
+        ctx.drawImage(hiResCanvas, 0, 0);
+        hostRenderState.set(host, 'rendered');
+        return;
+      } catch {
+        // A valid but unhealthy instance (mid-dispose, errored chart) can throw. Mark the host
+        // 'failed' and fall back to the on-screen 1:1 copy below so a single bad chart can never
+        // abort the whole export (e.g. a 20-chart dashboard capture).
+        hostRenderState.set(host, 'failed');
       }
     }
+
+    // Non-ECharts canvases (deck.gl/WebGL and friends), and the fallback when a re-render is
+    // unavailable or threw: preserve the on-screen bitmap as-is.
+    clonedCanvas.width = originalCanvas.width;
+    clonedCanvas.height = originalCanvas.height;
+    ctx.drawImage(originalCanvas, 0, 0);
   });
 };
 
 const createEnhancedClone = (
   originalElement: Element,
   theme?: SupersetTheme,
+  getInstanceByDom?: EChartsGetInstanceByDom,
 ): { clone: HTMLElement; cleanup: () => void } => {
   const clone = originalElement.cloneNode(true) as HTMLElement;
   copyAllComputedStyles(originalElement, clone, theme);
-  preserveCanvasContent(originalElement, clone);
+  preserveCanvasContent(originalElement, clone, getInstanceByDom);
 
   const tempContainer = document.createElement('div');
   tempContainer.style.cssText = `
@@ -504,10 +560,26 @@ export default function downloadAsImageOptimized(
     // All other chart types: use the clone-based approach
     let cleanup: (() => void) | null = null;
 
+    // Only the PNG path upscales the layout (transform: scale(PNG_SCALE)), so only there does a
+    // higher-resolution canvas help; JPEG keeps the throw-free 1:1 copy. Re-render ECharts
+    // (canvas renderer) charts, e.g. sunburst, at a higher pixel ratio so the upscale samples a
+    // matching source instead of stretching the on-screen bitmap. echarts is pulled in lazily —
+    // only when a chart is actually present — so it stays out of the core bundle; if the import
+    // fails the canvases fall back to a 1:1 copy.
+    let getInstanceByDom: EChartsGetInstanceByDom | undefined;
+    if (isPng && elementToPrint.querySelector(`.${ECHARTS_HOST_CLASS}`)) {
+      try {
+        ({ getInstanceByDom } = await import('echarts/core'));
+      } catch {
+        // echarts not available in this context; canvases keep their on-screen resolution.
+      }
+    }
+
     try {
       const { clone, cleanup: cleanupFn } = createEnhancedClone(
         elementToPrint,
         theme,
+        getInstanceByDom,
       );
       cleanup = cleanupFn;
 

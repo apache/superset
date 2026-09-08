@@ -19,6 +19,7 @@
 
 import { render, waitFor, configure, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import type { QueryData } from '../..';
 import StatefulChart from './StatefulChart';
 import getChartControlPanelRegistry from '../registries/ChartControlPanelRegistrySingleton';
 import getChartBuildQueryRegistry from '../registries/ChartBuildQueryRegistrySingleton';
@@ -714,10 +715,7 @@ test('should refetch when mixing renderTrigger string control with non-renderTri
 
 test('resolves async (202) responses via the injected handleAsyncChartData hook', async () => {
   const asyncJob = {
-    channel_id: 'c1',
-    job_id: 'j1',
-    status: 'running',
-    result_url: '/api/v1/chart/data/abc',
+    task_ids: ['task-1', 'task-2'],
   };
   mockChartClient.client.post.mockResolvedValue({
     response: { status: 202 } as Response,
@@ -738,10 +736,12 @@ test('resolves async (202) responses via the injected handleAsyncChartData hook'
   await waitFor(() => {
     expect(handleAsyncChartData).toHaveBeenCalledTimes(1);
   });
-  // Delegates the raw response + job metadata (and abort signal)
+  // Delegates the raw response + async job (task_ids), a refetch thunk, and the
+  // abort signal.
   expect(handleAsyncChartData).toHaveBeenCalledWith(
     { status: 202 },
     asyncJob,
+    expect.any(Function),
     expect.any(AbortSignal),
   );
   // Chart renders once the async data resolves
@@ -750,10 +750,178 @@ test('resolves async (202) responses via the injected handleAsyncChartData hook'
   });
 });
 
+test('forced async read-back re-sends force with per-query task ids as nonces', async () => {
+  mockChartClient.client.post
+    .mockResolvedValueOnce({
+      response: { status: 202 } as Response,
+      json: { task_ids: ['task-1', 'task-2'] },
+    })
+    .mockResolvedValueOnce({
+      response: { status: 200 } as Response,
+      json: [{ data: 'cached' }],
+    });
+  // The handler resolves by re-issuing the request with the task ids (the
+  // force nonces), mirroring how the app-level async middleware calls refetch.
+  const handleAsyncChartData = jest.fn(
+    async (
+      _response: Response,
+      _json: unknown,
+      refetch: (nonces?: string[]) => Promise<QueryData[]>,
+    ) => refetch(['task-1', 'task-2']),
+  );
+
+  render(
+    <StatefulChart
+      formData={mockFormData}
+      chartType="test_chart"
+      force
+      hooks={{ handleAsyncChartData }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(2);
+  });
+  const { jsonPayload } = mockChartClient.client.post.mock.calls[1][0];
+  // Read-back re-forces so the marker can suppress recompute, stamps each query
+  // with its task id, and resolves inline (no async_mode).
+  expect(jsonPayload.force).toBe(true);
+  expect(jsonPayload.queries[0].force_nonce).toBe('task-1');
+  expect(jsonPayload.async_mode).toBeUndefined();
+});
+
+test('non-forced async read-back carries neither force nor a nonce', async () => {
+  mockChartClient.client.post
+    .mockResolvedValueOnce({
+      response: { status: 202 } as Response,
+      json: { task_ids: ['task-1'] },
+    })
+    .mockResolvedValueOnce({
+      response: { status: 200 } as Response,
+      json: [{ data: 'cached' }],
+    });
+  const handleAsyncChartData = jest.fn(
+    async (
+      _response: Response,
+      _json: unknown,
+      refetch: (nonces?: string[]) => Promise<QueryData[]>,
+    ) => refetch(['task-1']),
+  );
+
+  render(
+    <StatefulChart
+      formData={mockFormData}
+      chartType="test_chart"
+      hooks={{ handleAsyncChartData }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(2);
+  });
+  const { jsonPayload } = mockChartClient.client.post.mock.calls[1][0];
+  expect(jsonPayload.force).not.toBe(true);
+  expect(jsonPayload.queries[0].force_nonce).toBeUndefined();
+});
+
+test('requests async_mode and the tab id when opting in and 202 is handled', async () => {
+  mockChartClient.client.post.mockResolvedValue({
+    response: { status: 200 } as Response,
+    json: [{ data: 'sync-from-cache' }],
+  });
+  const handleAsyncChartData = jest.fn().mockResolvedValue([{ data: 'x' }]);
+
+  render(
+    <StatefulChart
+      formData={mockFormData}
+      chartType="test_chart"
+      hooks={{
+        handleAsyncChartData,
+        resolveAsyncMode: () => true,
+        getTabId: () => 'tab-7',
+      }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
+  });
+  const { jsonPayload } = mockChartClient.client.post.mock.calls[0][0];
+  expect(jsonPayload.async_mode).toBe(true);
+  // The tab id lets the backend ref-count this tab (per-tab cancel/detach).
+  expect(jsonPayload.tab_id).toBe('tab-7');
+});
+
+test('omits the tab id when no getTabId hook is wired', async () => {
+  mockChartClient.client.post.mockResolvedValue({
+    response: { status: 200 } as Response,
+    json: [{ data: 'sync-from-cache' }],
+  });
+  const handleAsyncChartData = jest.fn().mockResolvedValue([{ data: 'x' }]);
+
+  render(
+    <StatefulChart
+      formData={mockFormData}
+      chartType="test_chart"
+      hooks={{ handleAsyncChartData, resolveAsyncMode: () => true }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
+  });
+  const { jsonPayload } = mockChartClient.client.post.mock.calls[0][0];
+  expect(jsonPayload.async_mode).toBe(true);
+  expect(jsonPayload.tab_id).toBeUndefined();
+});
+
+test('omits async_mode when resolveAsyncMode opts out', async () => {
+  mockChartClient.client.post.mockResolvedValue({
+    response: { status: 200 } as Response,
+    json: [{ data: 'sync' }],
+  });
+  const handleAsyncChartData = jest.fn();
+
+  render(
+    <StatefulChart
+      formData={mockFormData}
+      chartType="test_chart"
+      hooks={{ handleAsyncChartData, resolveAsyncMode: () => false }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
+  });
+  const { jsonPayload } = mockChartClient.client.post.mock.calls[0][0];
+  expect(jsonPayload.async_mode).toBeUndefined();
+});
+
+test('omits async_mode when no async handler is wired even if resolveAsyncMode opts in', async () => {
+  mockChartClient.client.post.mockResolvedValue({
+    response: { status: 200 } as Response,
+    json: [{ data: 'sync' }],
+  });
+
+  render(
+    <StatefulChart
+      formData={mockFormData}
+      chartType="test_chart"
+      hooks={{ resolveAsyncMode: () => true }}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(mockChartClient.client.post).toHaveBeenCalledTimes(1);
+  });
+  const { jsonPayload } = mockChartClient.client.post.mock.calls[0][0];
+  expect(jsonPayload.async_mode).toBeUndefined();
+});
+
 test('errors on async (202) response when no async handler is provided', async () => {
   mockChartClient.client.post.mockResolvedValue({
     response: { status: 202 } as Response,
-    json: { job_id: 'j1', channel_id: 'c1', status: 'running' },
+    json: { task_ids: ['task-1'] },
   });
   const onError = jest.fn();
 
@@ -792,7 +960,7 @@ test('renders synchronous (200) responses that include a response object', async
 test('does not apply a superseded async response over a newer one', async () => {
   mockChartClient.client.post.mockResolvedValue({
     response: { status: 202 } as Response,
-    json: { job_id: 'j', channel_id: 'c' },
+    json: { task_ids: ['task-1'] },
   });
   let resolveFirst: (data: unknown) => void = () => {};
   let resolveSecond: (data: unknown) => void = () => {};
@@ -859,7 +1027,7 @@ test('does not apply a superseded async response over a newer one', async () => 
 test('preserves the detailed message from an async (array) rejection', async () => {
   mockChartClient.client.post.mockResolvedValue({
     response: { status: 202 } as Response,
-    json: { job_id: 'j', channel_id: 'c' },
+    json: { task_ids: ['task-1'] },
   });
   const handleAsyncChartData = jest
     .fn()
@@ -919,7 +1087,7 @@ test('refetches with the latest formData rather than the initial props', async (
 test('does not revert a render-only change when a slow async request resolves', async () => {
   mockChartClient.client.post.mockResolvedValue({
     response: { status: 202 } as Response,
-    json: { job_id: 'j', channel_id: 'c' },
+    json: { task_ids: ['task-1'] },
   });
   // color_scheme is a renderTrigger control -> its change does not refetch
   jest.mocked(getChartControlPanelRegistry).mockReturnValue({
@@ -933,10 +1101,10 @@ test('does not revert a render-only change when a slow async request resolves', 
       ],
     }),
   } as unknown as ReturnType<typeof getChartControlPanelRegistry>);
-  let resolveAsync: (data: unknown) => void = () => {};
+  let resolveAsync: (data: QueryData[]) => void = () => {};
   const handleAsyncChartData = jest.fn(
     () =>
-      new Promise(resolve => {
+      new Promise<QueryData[]>(resolve => {
         resolveAsync = resolve;
       }),
   );
@@ -976,9 +1144,9 @@ test('does not revert a render-only change when a slow async request resolves', 
 test('passes an abort signal to the async handler and aborts it on unmount', async () => {
   mockChartClient.client.post.mockResolvedValue({
     response: { status: 202 } as Response,
-    json: { job_id: 'j', channel_id: 'c' },
+    json: { task_ids: ['task-1'] },
   });
-  // Typed with a rest param so mock.calls is indexable (the 3rd arg is the signal)
+  // Typed with a rest param so mock.calls is indexable (the 4th arg is the signal)
   const handleAsyncChartData = jest.fn(
     (..._args: unknown[]) => new Promise<never>(() => {}), // never resolves
   );
@@ -994,7 +1162,7 @@ test('passes an abort signal to the async handler and aborts it on unmount', asy
   await waitFor(() => {
     expect(handleAsyncChartData).toHaveBeenCalledTimes(1);
   });
-  const signal = handleAsyncChartData.mock.calls[0][2] as AbortSignal;
+  const signal = handleAsyncChartData.mock.calls[0][3] as AbortSignal;
   expect(signal).toBeInstanceOf(AbortSignal);
   expect(signal.aborted).toBe(false);
 
@@ -1006,7 +1174,7 @@ test('passes an abort signal to the async handler and aborts it on unmount', asy
 test('suppresses stale error state from a superseded request', async () => {
   mockChartClient.client.post.mockResolvedValue({
     response: { status: 202 } as Response,
-    json: { job_id: 'j', channel_id: 'c' },
+    json: { task_ids: ['task-1'] },
   });
   let rejectFirst: (err: unknown) => void = () => {};
   const handleAsyncChartData = jest
@@ -1056,7 +1224,7 @@ test('does not publish stale data when switching from chartId to formData mode',
   mockChartClient.loadFormData.mockResolvedValue({ ...mockFormData });
   mockChartClient.client.post.mockResolvedValue({
     response: { status: 202 } as Response,
-    json: { job_id: 'j', channel_id: 'c' },
+    json: { task_ids: ['task-1'] },
   });
   let resolveFirst: (data: unknown) => void = () => {};
   const handleAsyncChartData = jest

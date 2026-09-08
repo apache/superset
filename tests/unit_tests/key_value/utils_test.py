@@ -62,16 +62,20 @@ def test_random_key_rejects_weak_entropy(nbytes: int) -> None:
         random_key(nbytes)
 
 
-def test_uuid_namespace_from_md5_warns(caplog) -> None:
-    """The deprecated MD5 namespace path emits a deprecation warning."""
+def test_uuid_namespace_from_md5_logs_deprecation_at_info(caplog) -> None:
+    """The deprecated MD5 namespace path logs at info (fires on every legacy
+    fallback lookup, so warning would be indefinite noise)."""
     import logging
 
     from superset.key_value.utils import _uuid_namespace_from_md5
 
-    with caplog.at_level(logging.WARNING):
+    with caplog.at_level(logging.INFO):
         _uuid_namespace_from_md5("seed")
 
-    assert any("deprecated" in record.message.lower() for record in caplog.records)
+    assert any(
+        "deprecated" in record.message.lower() and record.levelno == logging.INFO
+        for record in caplog.records
+    )
 
 
 @pytest.mark.parametrize(

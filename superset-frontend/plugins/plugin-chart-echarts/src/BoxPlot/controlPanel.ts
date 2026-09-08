@@ -195,7 +195,10 @@ const config: ControlPanelConfig = {
           (!control?.value ||
             (Array.isArray(control?.value) && control.value.length === 0))
         ) {
-          return [getTemporalColumns(state.datasource).defaultTemporalColumn];
+          const { defaultTemporalColumn } = getTemporalColumns(
+            state.datasource,
+          );
+          return defaultTemporalColumn ? [defaultTemporalColumn] : [];
         }
         return control.value;
       },
