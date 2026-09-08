@@ -34,12 +34,14 @@ the real production functions.
 from __future__ import annotations
 
 import uuid as uuid_lib
+from collections.abc import Iterator
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
-from typing import Any, Iterator
+from typing import Any
 
 import pytest
 import sqlalchemy as sa
+from pytest_mock import MockerFixture
 from sqlalchemy.orm import sessionmaker
 
 
@@ -96,7 +98,7 @@ class _Owner:
 
 
 def _insert_baseline(
-    version_store: SimpleNamespace, mocker: Any, changed_on: datetime
+    version_store: SimpleNamespace, mocker: MockerFixture, changed_on: datetime
 ) -> tuple[Any, int]:
     """Drive the real ``_insert_baseline_row`` against the in-memory store
     for an entity whose last pre-versioning edit happened at *changed_on*."""
@@ -128,14 +130,13 @@ def _insert_baseline(
 
 
 def test_baseline_survives_a_full_retention_window_from_capture(
-    version_store: SimpleNamespace, mocker: Any
+    version_store: SimpleNamespace, mocker: MockerFixture
 ) -> None:
     """The retention prune deletes transactions with ``issued_at`` older
     than its cutoff. A baseline captured NOW for an entity last edited 100
-    days ago must survive a 90-day window — stamped with capture time, not
-    the historical audit timestamp (which the reverted fix would use,
-    letting the very next prune erase the entity's only pre-edit
-    history)."""
+    days ago must survive a 90-day window — stamped with capture time; an
+    audit-field timestamp would let the very next prune erase the entity's
+    only pre-edit history."""
     historical = _naive_utc_now() - timedelta(days=100)
     before = _naive_utc_now()
     conn, tx_id = _insert_baseline(version_store, mocker, historical)
@@ -150,12 +151,14 @@ def test_baseline_survives_a_full_retention_window_from_capture(
     assert before <= issued_at <= after
     assert issued_at != historical
     # One clock: naive-UTC, matching Continuum's storage and the prune's
-    # cutoff derivation (no server-local sa.func.now()).
+    # cutoff derivation. (SQLite round-trips DATETIME naive regardless —
+    # the capture-window bracket above is the load-bearing assertion; the
+    # clock agreement itself is structural via the shared naive_utcnow.)
     assert issued_at.tzinfo is None
 
 
 def test_baseline_keeps_historical_attribution_and_shadow_shape(
-    version_store: SimpleNamespace, mocker: Any
+    version_store: SimpleNamespace, mocker: MockerFixture
 ) -> None:
     """Only the retention clock moves to capture time: the baseline stays
     attributed to the pre-versioning author, and the shadow row still
@@ -232,7 +235,7 @@ def _seed_history(version_store: SimpleNamespace, entity_uuid: uuid_lib.UUID) ->
 
 def _patched_get_version(
     version_store: SimpleNamespace,
-    mocker: Any,
+    mocker: MockerFixture,
     entity_uuid: uuid_lib.UUID,
     resolved: tuple[int, int],
 ) -> dict[str, Any] | None:
@@ -263,12 +266,12 @@ def _patched_get_version(
 
 
 def test_get_version_returns_resolved_tx_after_concurrent_prune(
-    version_store: SimpleNamespace, mocker: Any
+    version_store: SimpleNamespace, mocker: MockerFixture
 ) -> None:
     """The request resolved v1 (display index 1, tx 101); a retention prune
     then removes the baseline before the snapshot fetch. Addressed by
-    transaction_id the fetch still returns v1 — the reverted OFFSET fetch
-    would count index 1 over the shrunken row set and silently return v2's
+    transaction_id the fetch still returns v1 — an OFFSET fetch would
+    count index 1 over the shrunken row set and silently return v2's
     snapshot under v1's version uuid."""
     entity_uuid = uuid_lib.uuid4()
     _seed_history(version_store, entity_uuid)
@@ -285,8 +288,27 @@ def test_get_version_returns_resolved_tx_after_concurrent_prune(
     assert result["value"] == "v1"
 
 
+def test_get_version_returns_none_when_resolved_version_is_pruned(
+    version_store: SimpleNamespace, mocker: MockerFixture
+) -> None:
+    """Third outcome: the prune removes the REQUESTED version itself
+    between resolution and fetch. The honest answer is None (a 404),
+    never a neighbouring snapshot served under the requested uuid."""
+    entity_uuid = uuid_lib.uuid4()
+    _seed_history(version_store, entity_uuid)
+
+    with version_store.engine.begin() as conn:
+        conn.execute(
+            version_store.ver.delete().where(version_store.ver.c.transaction_id == 101)
+        )
+        conn.execute(version_store.tx.delete().where(version_store.tx.c.id == 101))
+
+    result = _patched_get_version(version_store, mocker, entity_uuid, (1, 101))
+    assert result is None
+
+
 def test_get_version_without_prune_is_unchanged(
-    version_store: SimpleNamespace, mocker: Any
+    version_store: SimpleNamespace, mocker: MockerFixture
 ) -> None:
     """Sanity control: with no concurrent prune, the tx-addressed fetch
     returns the same snapshot the OFFSET fetch used to."""

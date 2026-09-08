@@ -469,7 +469,11 @@ def resolve_version_uuid(
     """Translate a ``version_uuid`` into its 0-based ``version_number``.
 
     Thin wrapper over :func:`resolve_version` for read-side callers that
-    only need the display index.
+    only need the display index. No in-repo caller remains (the snapshot
+    fetch addresses rows by ``transaction_id``); retained as DAO façade
+    surface — anything that must survive a concurrent retention prune
+    should use :func:`resolve_version` and address by transaction id,
+    never by this prune-unstable index.
     """
     resolved = resolve_version(model_cls, entity_uuid, version_uuid, entity=entity)
     return None if resolved is None else resolved[0]
@@ -496,7 +500,7 @@ def get_version(
 
     Pass *entity* to skip the ``find_active_by_uuid`` lookup; see
     :func:`list_versions` for the rationale. The same *entity* is threaded
-    into :func:`resolve_version_uuid` to eliminate a second redundant
+    into :func:`resolve_version` to eliminate a second redundant
     lookup on the same request.
     """
     # pylint: disable=import-outside-toplevel
@@ -526,7 +530,8 @@ def get_version(
         # shifts the offset and silently surfaces a different version's
         # snapshot under the requested version uuid. The identity filter
         # stays so a transaction id recycled on another entity can never
-        # match.
+        # match. (The display ``version_number`` resolved above may still
+        # lag a concurrent prune; the snapshot itself cannot.)
         .where(identity_filter(ver_tbl.c, entity.id, entity_uuid))
         .where(ver_tbl.c.transaction_id == transaction_id)
         .limit(1)
@@ -570,6 +575,13 @@ def get_version(
     # (``table_columns_version`` / ``sql_metrics_version``). Empty lists
     # when the dataset had no children at this tx.
     if model_cls is SqlaTable:
+        # Residual read-consistency window: these child fetches run after
+        # the parent snapshot fetch, so a prune committing in between can
+        # age out closed child shadow rows that were valid at target_tx —
+        # columns/metrics silently missing rather than a 404. Pre-existing
+        # retention policy behavior (the prune can also erase closed child
+        # history while the parent survives), noted rather than closed
+        # here.
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlMetric, TableColumn
         from superset.versioning.changes import shadow_rows_valid_at

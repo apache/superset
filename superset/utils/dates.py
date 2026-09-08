@@ -32,3 +32,14 @@ def datetime_to_epoch(dttm: datetime) -> float:
 
 def now_as_float() -> float:
     return datetime_to_epoch(datetime.now(timezone.utc).replace(tzinfo=None))
+
+
+def naive_utcnow() -> datetime:
+    """Naive-UTC now — the single clock for naive-UTC datetime columns.
+
+    Continuum stores ``version_transaction.issued_at`` tz-naive in UTC;
+    every writer and comparator of such columns (the baseline capture
+    stamp, the retention prune's cutoff) must derive its value from this
+    one helper so their agreement is structural, not comment-enforced.
+    """
+    return datetime.now(timezone.utc).replace(tzinfo=None)
