@@ -33,6 +33,7 @@ Two complementary helpers:
 from __future__ import annotations
 
 import logging
+from datetime import datetime, timezone
 from typing import Any
 
 import sqlalchemy as sa
@@ -109,15 +110,22 @@ def _insert_baseline_row(
 
     # Insert a version_transaction row for the baseline.
     #
-    # ``issued_at`` and ``user_id`` are sourced from the entity's audit fields
-    # (``changed_on`` / ``changed_by_fk``, falling back to ``created_on`` /
-    # ``created_by_fk`` if the row was never edited), so the baseline reads
-    # in the version-history UI as "this is the state at the time of the
-    # last pre-versioning edit, by that user." Using ``now()`` and the
-    # current user would have made the baseline look chronologically newer
-    # than subsequent edits and attributed historical content to the user
-    # who happened to trigger the first save under versioning.
-    baseline_issued_at = row.get("changed_on") or row.get("created_on") or sa.func.now()
+    # ``issued_at`` is CAPTURE time, on one clock (naive-UTC, matching how
+    # Continuum stores ``issued_at`` and how the retention prune computes
+    # its cutoff). Retention keys on this column, so stamping the baseline
+    # with the entity's historical ``changed_on`` let a freshly captured
+    # baseline expire at the very next prune whenever the last
+    # pre-versioning edit predated the retention window — permanently
+    # emptying the entity's pre-edit history. Panel ordering is unaffected
+    # (operation_type sorts the baseline first, not ``issued_at``), and
+    # the earlier ``sa.func.now()`` fallback mixed the database server's
+    # local clock into an otherwise-UTC column.
+    #
+    # ``user_id`` stays sourced from the audit fields (``changed_by_fk``,
+    # falling back to ``created_by_fk``) so the baseline remains attributed
+    # to the author of the pre-versioning state, not whoever happened to
+    # trigger the first save under versioning.
+    baseline_issued_at = datetime.now(timezone.utc).replace(tzinfo=None)
     baseline_user_id = row.get("changed_by_fk") or row.get("created_by_fk")
     tx_table = versioning_manager.transaction_cls.__table__
     result = conn.execute(
