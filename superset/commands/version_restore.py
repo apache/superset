@@ -155,8 +155,10 @@ class BaseRestoreVersionCommand(BaseCommand):
         # next sync (documented in version-history.mdx). This must be enforced
         # server-side, not only in the browser — an authorized editor could
         # otherwise call the endpoint directly. Raised as forbidden_exc (HTTP
-        # 403); that response carries no body, so it reads the same as a
-        # permission denial (a FAB response_403 limitation).
+        # 403); FAB's response_403 returns a fixed ``{"message": "Forbidden"}``
+        # body with no reason detail, identical to the editorship denial above,
+        # so the refusal discloses nothing but also can't be distinguished from
+        # a permission denial.
         if entity.is_managed_externally:
             raise self.forbidden_exc()
         return entity
