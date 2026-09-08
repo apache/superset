@@ -164,6 +164,8 @@ export interface QueryContext {
   };
   /** Force refresh of all queries */
   force: boolean;
+  /** Idempotency token for a forced refresh (present only when forcing) */
+  force_nonce?: string;
   /** Type of result to return for queries */
   result_type: string;
   /** Response format */

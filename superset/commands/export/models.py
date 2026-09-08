@@ -17,9 +17,10 @@
 
 from collections.abc import Iterator
 from datetime import datetime, timezone
-from typing import Callable
+from typing import Any, Callable
 
 import yaml
+from flask import current_app
 from flask_appbuilder import Model
 
 from superset.commands.base import BaseCommand
@@ -28,6 +29,18 @@ from superset.daos.base import BaseDAO
 from superset.utils.dict_import_export import EXPORT_VERSION
 
 METADATA_FILE_NAME = "metadata.yaml"
+
+
+def get_extra_export_fields(model: Model, asset_type: str) -> dict[str, Any]:
+    """Collect deployment-specific fields to serialise under ``extra``.
+
+    Returns an empty mapping when no ``EXTRA_ASSET_EXPORT_FIELDS`` hook is
+    configured, so exports are unchanged by default.
+    """
+    hook = current_app.config.get("EXTRA_ASSET_EXPORT_FIELDS")
+    if not hook:
+        return {}
+    return hook(model, asset_type) or {}
 
 
 class ExportModelsCommand(BaseCommand):

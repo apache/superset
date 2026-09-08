@@ -34,6 +34,7 @@ import {
   CrossFilterTransformedProps,
   LabelPositionEnum,
   LegendFormData,
+  LegendOrientation,
   StackType,
   TitleFormData,
 } from '../types';
@@ -51,6 +52,14 @@ export enum EchartsTimeseriesSeriesType {
   Start = 'start',
   Middle = 'middle',
   End = 'end',
+}
+
+export enum BarValueLabelPosition {
+  Auto = 'auto',
+  InsideEnd = 'insideEnd',
+  OutsideEnd = 'outsideEnd',
+  InsideCenter = 'insideCenter',
+  InsideBase = 'insideBase',
 }
 
 export type EchartsTimeseriesFormData = QueryFormData & {
@@ -102,6 +111,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   xAxisLabelRotation: number;
   xAxisLabelInterval: number | string;
   showValue: boolean;
+  valueLabelPosition: BarValueLabelPosition;
   /**
    * Where the data label sits relative to its data point, applied when
    * `showValue` is on.
@@ -124,10 +134,28 @@ export interface EchartsTimeseriesChartProps extends BaseChartProps<EchartsTimes
   formData: EchartsTimeseriesFormData;
 }
 
+export type TimeseriesLegendItem = {
+  color: string;
+  interactive: boolean;
+  name: string;
+  selected: boolean;
+};
+
+export type TimeseriesCustomLegend = {
+  grid: {
+    bottom: number | string;
+    top: number | string;
+  };
+  items: TimeseriesLegendItem[];
+  orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+  showSelectors: boolean;
+};
+
 export type TimeseriesChartTransformedProps =
   BaseTransformedProps<EchartsTimeseriesFormData> &
     ContextMenuTransformedProps &
     CrossFilterTransformedProps & {
+      customLegend?: TimeseriesCustomLegend;
       legendData?: OptionName[];
       isRefreshing?: boolean;
       xValueFormatter: TimeFormatter | StringConstructor;

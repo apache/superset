@@ -553,6 +553,9 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
                     fk("slices", "report_schedule", "id", "chart_id", "inbound"),
                     version("slices", "slices_version"),
                     relationship("slices", "tables", "manytoone", "table"),
+                    relationship(
+                        "slices", "semantic_views", "manytoone", "semantic_view"
+                    ),
                     fk("chart_editors", "slices", "chart_id", "id", "outbound"),
                     fk("chart_editors", "subjects", "subject_id", "id", "outbound"),
                     fk("chart_viewers", "slices", "chart_id", "id", "outbound"),
@@ -581,6 +584,7 @@ def purge_policy_registry() -> Mapping[type[Any], PurgeEntityPolicy]:
                     DependencyClassification.ASSOCIATION,
                     DependencyClassification.BLOCK,
                     DependencyClassification.VERSION_OWNED,
+                    DependencyClassification.PRESERVE,
                     DependencyClassification.PRESERVE,
                     DependencyClassification.PRESERVE,
                     DependencyClassification.PRESERVE,
@@ -988,17 +992,13 @@ def dangling_chart_uuids(
     """Return chart UUIDs left by the dataset preservation policy."""
     if policy.entity_type != "dataset":
         return []
-    # avoid circular import: the chart model participates in registry assembly
-    from superset.models.slice import Slice
+    from superset.commands.deletion_retention.purge_impact import (
+        collect_dataset_purge_impact,
+        DatasetPurgeImpact,
+    )
 
-    return [
-        str(chart_uuid)
-        for (chart_uuid,) in session.execute(
-            sa.select(Slice.uuid)
-            .where(Slice.datasource_id == entity_id)
-            .where(Slice.datasource_type == "table")
-        )
-    ]
+    impact: DatasetPurgeImpact = collect_dataset_purge_impact(session, entity_id)
+    return [chart.uuid for chart in impact.charts]
 
 
 def delete_associations(

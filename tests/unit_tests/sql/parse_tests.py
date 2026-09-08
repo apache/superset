@@ -587,6 +587,35 @@ def test_extract_tables_show_tables_from() -> None:
     ).has_unparseable_statement
 
 
+def test_extract_tables_show_tables_starrocks_catalog_schema() -> None:
+    """
+    Regression guard for the StarRocks catalog-qualified schema override.
+
+    Unlike MySQL, `db` there can itself be an ``exp.Table`` (built via
+    ``_parse_table_parts(is_db_reference=True)`` so a dotted
+    ``catalog.schema`` parses), which ``find_all(exp.Table)`` would
+    otherwise also pick up as a phantom, empty-name table reference --
+    breaking the invariant that a schema-only `SHOW TABLES` target extracts
+    no tables and is flagged unparseable for authorization purposes.
+    """
+    assert (
+        extract_tables_from_sql("SHOW TABLES IN catalog_1.schema_a", "starrocks")
+        == set()
+    )
+    assert extract_tables_from_sql("SHOW TABLES FROM schema_a", "starrocks") == set()
+    assert SQLScript(
+        "SHOW TABLES IN catalog_1.schema_a", "starrocks"
+    ).has_unparseable_statement
+
+    # A target-bearing SHOW must still resolve the real table, threading the
+    # catalog.schema `db` scope through correctly rather than dropping it
+    # (`exp.Table.name` is empty for a schema-only reference; the schema and
+    # catalog live in `.db`/`.catalog` instead).
+    assert extract_tables_from_sql(
+        "SHOW COLUMNS FROM tbl FROM catalog_1.schema_a", "starrocks"
+    ) == {Table("tbl", "schema_a", "catalog_1")}
+
+
 def test_extract_tables_show_create_table() -> None:
     """
     Test `SHOW CREATE TABLE`.
@@ -2473,6 +2502,21 @@ LATERAL generate_series(1, value) AS i;
         ),
         # not really valid SQL, but let's roll with it
         ("SELECT * FROM my_table LIMIT invalid", "postgresql", None),
+        # A ClickHouse `LIMIT ... BY` caps rows per group, not overall, so it is
+        # not a row limit. sqlglot hangs the `BY` columns off the `Limit` node,
+        # or off the `Offset` node for the `OFFSET` / `m, n` spellings.
+        ("SELECT * FROM t ORDER BY id, val LIMIT 2 BY id", "clickhouse", None),
+        ("SELECT * FROM t ORDER BY id, val LIMIT 2 BY id, val", "clickhouse", None),
+        (
+            "SELECT * FROM t ORDER BY id, val LIMIT 2 OFFSET 1 BY id",
+            "clickhouse",
+            None,
+        ),
+        ("SELECT * FROM t ORDER BY id, val LIMIT 1, 2 BY id", "clickhouse", None),
+        # ... while a plain ClickHouse limit, with or without an offset, is.
+        ("SELECT * FROM t ORDER BY c LIMIT 555", "clickhouse", 555),
+        ("SELECT * FROM t LIMIT 5 OFFSET 3", "clickhouse", 5),
+        ("SELECT * FROM t LIMIT 3, 5", "clickhouse", 5),
     ],
 )
 def test_get_limit_value(sql: str, engine: str, expected: str) -> None:
@@ -2688,6 +2732,158 @@ LIMIT 1000
             LimitMethod.FETCH_MANY,
             "SELECT\n  *\nFROM birth_names\nLIMIT 555",
         ),
+        # A ClickHouse `LIMIT ... BY` shares the `limit`/`offset` slot with the
+        # row limit, so `FORCE_LIMIT` wraps instead of overwriting it.
+        (
+            "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 BY id",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id,
+    val
+  LIMIT 2 BY id
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 BY id, val",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id,
+    val
+  LIMIT 2 BY id, val
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        # For `LIMIT n OFFSET m BY x` sqlglot hangs the `BY` columns off the
+        # `Offset` node instead, so the `limit` arg alone doesn't reveal them.
+        (
+            "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 OFFSET 1 BY id",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id,
+    val
+  LIMIT 2
+  OFFSET 1 BY id
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        (
+            "SELECT * FROM limit_by ORDER BY id, val LIMIT 1, 2 BY id",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id,
+    val
+  LIMIT 2
+  OFFSET 1 BY id
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        # `WITH TOTALS` rides into the subquery untouched: ClickHouse keeps
+        # emitting the totals block for a wrapped query, so the cap really is
+        # the only thing the rewrite adds.
+        (
+            "SELECT id, count() AS c FROM limit_by "
+            "GROUP BY id WITH TOTALS ORDER BY id LIMIT 2 BY id",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    id,
+    count() AS c
+  FROM limit_by
+  GROUP BY
+    id
+  WITH TOTALS
+  ORDER BY
+    id
+  LIMIT 2 BY id
+)
+LIMIT 1001
+            """.strip(),
+        ),
+        # `SETTINGS` and `FORMAT` do not survive a demotion into the subquery,
+        # so they move up onto the wrapper instead.
+        (
+            "SELECT * FROM limit_by ORDER BY id LIMIT 2 BY id "
+            "SETTINGS extremes = 1 FORMAT JSONCompact",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            """
+SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM limit_by
+  ORDER BY
+    id
+  LIMIT 2 BY id
+)
+LIMIT 1001
+SETTINGS extremes = 1
+FORMAT JSONCompact
+            """.strip(),
+        ),
+        # A ClickHouse limit without a `BY` still takes the in-place path.
+        (
+            "SELECT * FROM t ORDER BY c LIMIT 555",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM t\nORDER BY\n  c\nLIMIT 1001",
+        ),
+        (
+            "SELECT * FROM t LIMIT 5 OFFSET 3",
+            "clickhouse",
+            1001,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM t\nLIMIT 1001\nOFFSET 3",
+        ),
     ],
 )
 def test_set_limit_value(
@@ -2700,6 +2896,88 @@ def test_set_limit_value(
     statement = SQLStatement(sql, engine)
     statement.set_limit_value(limit, method)
     assert statement.format() == expected
+
+
+@pytest.mark.parametrize("engine", ["clickhouse", "clickhousedb"])
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 BY id",
+        "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 BY id, val",
+        "SELECT * FROM limit_by ORDER BY id, val LIMIT 2 OFFSET 1 BY id",
+        "SELECT * FROM limit_by ORDER BY id, val LIMIT 1, 2 BY id",
+    ],
+)
+def test_set_limit_value_preserves_clickhouse_limit_by(sql: str, engine: str) -> None:
+    """
+    A row limit must not cannibalize a ClickHouse ``LIMIT ... BY``.
+
+    ``LIMIT 2 BY id`` keeps 2 rows *per id*; ``FORCE_LIMIT`` used to build a
+    fresh ``Limit`` node over ``args["limit"]``, dropping the ``BY`` columns and
+    turning the query into a flat ``LIMIT 1001`` -- a different result set, with
+    no error to hint at it. ``get_limit_value()`` reported the per-group 2 as a
+    row cap on top of that, so ``_set_query_limit()`` clamped the query to 2 rows.
+
+    The cap can't simply be appended next to the ``BY`` either: sqlglot cannot
+    parse ClickHouse's own ``LIMIT n BY x LIMIT m`` ("Found multiple 'LIMIT'
+    clauses"), so the result would not survive a reparse. Wrapping the query is
+    what keeps both the grouping and the cap.
+    """
+    statement = SQLStatement(sql, engine)
+    assert statement.get_limit_value() is None
+
+    statement.set_limit_value(1001, LimitMethod.FORCE_LIMIT)
+    limited = statement.format()
+
+    assert "BY id" in limited
+    assert limited.endswith("LIMIT 1001")
+    # The rewrite has to be valid ClickHouse, not just valid-looking.
+    assert SQLStatement(limited, engine).format() == limited
+
+
+def test_set_limit_value_keeps_clickhouse_top_level_modifiers() -> None:
+    """
+    The wrap must not demote clauses that only work at the top level.
+
+    ClickHouse rejects `FORMAT` inside a subquery outright, and a `SETTINGS`
+    attached to a subquery binds to that subquery alone -- top-level-only
+    settings such as ``extremes`` would silently stop applying. Both therefore
+    move onto the wrapper, which is where the original query had them.
+
+    The row-producing modifiers are left alone, because ClickHouse honors them
+    inside a `FROM` subquery: a wrapped `WITH TOTALS` query still emits its
+    totals block, and `WITH ROLLUP`/`WITH CUBE` still emit their extra rows.
+    Hoisting those would change the result rather than preserve it.
+    """
+    statement = SQLStatement(
+        "SELECT id, count() AS c FROM limit_by "
+        "GROUP BY id WITH TOTALS ORDER BY id LIMIT 2 BY id "
+        "SETTINGS extremes = 1 FORMAT JSONCompact",
+        "clickhouse",
+    )
+    statement.set_limit_value(1001, LimitMethod.FORCE_LIMIT)
+    limited = statement.format()
+
+    assert limited.endswith("LIMIT 1001\nSETTINGS extremes = 1\nFORMAT JSONCompact")
+    # `WITH TOTALS` stays with the aggregation it belongs to.
+    assert "WITH TOTALS\n" in limited.split("LIMIT 2 BY id")[0]
+    assert SQLStatement(limited, "clickhouse").format() == limited
+
+
+@pytest.mark.parametrize(
+    "engine", ["clickhouse", "clickhousedb", "postgresql", "mysql"]
+)
+def test_set_limit_value_without_limit_by_stays_in_place(engine: str) -> None:
+    """
+    Queries with no ``LIMIT ... BY`` keep the cheaper in-place rewrite.
+
+    The wrap is reserved for the ``LIMIT ... BY`` case; everything else -- every
+    non-ClickHouse dialect, and ClickHouse's own plain ``LIMIT`` -- must still
+    have its limit replaced without gaining a subquery.
+    """
+    statement = SQLStatement("SELECT * FROM t ORDER BY c LIMIT 555", engine)
+    statement.set_limit_value(1001, LimitMethod.FORCE_LIMIT)
+    assert statement.format() == "SELECT\n  *\nFROM t\nORDER BY\n  c\nLIMIT 1001"
 
 
 @pytest.mark.parametrize(
@@ -2754,6 +3032,449 @@ def test_set_limit_value_leaves_show_statements_unchanged(
     statement.set_limit_value(1000, method)
     assert statement.format() == original
     assert "LIMIT" not in statement.format()
+
+
+@pytest.mark.parametrize(
+    "sql, expected_catalog, expected_db",
+    [
+        ("SHOW TABLES IN catalog_1.schema_a", "catalog_1", "schema_a"),
+        ("SHOW TABLES FROM catalog_1.schema_a", "catalog_1", "schema_a"),
+        ("SHOW TABLES IN schema_a", None, "schema_a"),
+        ("SHOW TABLES FROM schema_a", None, "schema_a"),
+        ("SHOW DATABASES IN catalog_1", None, "catalog_1"),
+    ],
+)
+def test_show_tables_in_catalog_qualified_schema(
+    sql: str, expected_catalog: str | None, expected_db: str
+) -> None:
+    """
+    StarRocks supports a catalog-qualified schema reference in
+    ``SHOW TABLES/DATABASES FROM|IN <schema>``, e.g.
+    ``SHOW TABLES IN catalog.schema``, which sqlglot's MySQL-derived parser
+    doesn't support: the schema is parsed with ``_parse_id_var()``, which only
+    ever consumes a single identifier, leaving the ``.schema`` part dangling
+    and rejected as an unexpected token. The ``superset.sql.dialects.StarRocks``
+    override reparses the schema with ``_parse_table_parts(is_db_reference=True)``
+    so a dotted ``catalog.schema`` (or a plain schema) both parse correctly.
+    """
+    show = SQLStatement(sql, "starrocks")._parsed
+    assert isinstance(show, exp.Show)
+
+    db = show.args.get("db")
+    assert isinstance(db, exp.Table)
+    catalog = db.args.get("catalog")
+    assert (catalog.name if catalog else None) == expected_catalog
+    assert db.args.get("db").name == expected_db
+
+
+def test_show_binlog_events_in_log_name_still_parses() -> None:
+    """
+    Regression guard: the override must not break the pre-existing meaning of
+    ``IN`` for ``SHOW BINLOG/RELAYLOG EVENTS IN 'log_name'``, where ``IN``
+    introduces a string log name rather than a schema reference.
+    """
+    show = SQLStatement(
+        "SHOW BINLOG EVENTS IN 'log.000001' FROM 4", "starrocks"
+    )._parsed
+    assert isinstance(show, exp.Show)
+    assert show.args.get("log").name == "log.000001"
+    assert show.args.get("position").name == "4"
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        # Admin / cluster / job-control statements sqlglot's MySQL-derived
+        # grammar has no dedicated handling for, so it used to try (and
+        # fail) to read the head keyword as a generic expression.
+        'ADMIN SET FRONTEND CONFIG ("disable_balance" = "true")',
+        'ADMIN CHECK TABLET (10000, 10001) PROPERTIES("type" = "consistency")',
+        "ADMIN REPAIR TABLE tbl1 PARTITION (p1, p2)",
+        "BACKUP SNAPSHOT example_db.snapshot_label1 TO example_repo "
+        'PROPERTIES ("type" = "full")',
+        "RESTORE SNAPSHOT example_db.snapshot_label1 FROM example_repo "
+        'ON (backup_tbl) PROPERTIES("backup_timestamp"="2018-05-04-16-45-08")',
+        "RECOVER DATABASE example_db",
+        "RECOVER TABLE example_db.example_tbl",
+        "RECOVER PARTITION p1 FROM example_tbl",
+        "CANCEL BACKUP FROM example_db",
+        "CANCEL RESTORE FROM example_db",
+        'CANCEL LOAD WHERE LABEL = "example_label"',
+        'CANCEL EXPORT WHERE queryid = "921d8f80-7c9d-11eb-9342-acde48001121"',
+        "CANCEL ALTER TABLE COLUMN FROM example_db.my_table",
+        'EXPORT TABLE testTbl TO "hdfs://h:9000/a/b/c/testTbl_" WITH BROKER',
+        "PAUSE ROUTINE LOAD FOR example_db.example_tbl1_ordertest1",
+        "RESUME ROUTINE LOAD FOR example_db.example_tbl1_ordertest1",
+        "STOP ROUTINE LOAD FOR example_db.example_tbl1_ordertest1",
+        "SUBMIT TASK etl0 AS CREATE TABLE tbl1 AS SELECT * FROM src_tbl",
+        "SUBMIT TASK AS INSERT OVERWRITE tbl2 SELECT * FROM src_tbl",
+        "DEALLOCATE PREPARE select_by_id_stmt",
+        # StarRocks blacklist management. ADD/DELETE already mean something
+        # else in the grammar (ALTER TABLE ADD ..., the DML DELETE
+        # statement), so these need the specific-phrase peek in
+        # `_parse_statement`, not a blanket keyword remap.
+        'ADD SQLBLACKLIST "select count(*) from .+"',
+        "DELETE SQLBLACKLIST 3, 4",
+        "ADD BACKEND BLACKLIST 10001",
+        "DELETE BACKEND BLACKLIST 10001",
+        "ADD COMPUTE NODE BLACKLIST 10005",
+        # Ordinary ADD/DELETE must be unaffected by the blacklist peek.
+        "ALTER TABLE t ADD COLUMN c INT",
+        "DELETE FROM my_table WHERE k1 = 3",
+        # TRANSLATE TRINO translates a Trino SELECT into StarRocks SQL. Like
+        # ADD/DELETE, TRANSLATE can't be remapped to TokenType.COMMAND
+        # outright -- it also names the ordinary TRANSLATE(string, from, to)
+        # scalar function -- so this needs the same specific-phrase peek.
+        "TRANSLATE TRINO SELECT 1",
+        "TRANSLATE TRINO SELECT id, name FROM products WHERE category = 'Electronics'",
+        # Ordinary use of the scalar function must be unaffected by the peek.
+        "SELECT TRANSLATE(col, 'a', 'b') FROM t",
+    ],
+)
+def test_starrocks_admin_and_job_control_statements_parse(sql: str) -> None:
+    SQLStatement(sql, "starrocks")
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "KILL ANALYZE 266030",
+        "KILL QUERY 5",
+        "KILL 20",
+        "REFRESH DICTIONARY dict_obj",
+        "REFRESH CONNECTIONS",
+        "REFRESH MATERIALIZED VIEW lo_mv1",
+        "REFRESH MATERIALIZED VIEW lo_mv1 FORCE",
+        'REFRESH MATERIALIZED VIEW lo_mv1 PARTITION START ("2020-02-01") '
+        'END ("2020-03-01") FORCE',
+        "REFRESH MATERIALIZED VIEW lo_mv1 WITH SYNC MODE",
+        "CANCEL REFRESH MATERIALIZED VIEW lo_mv1",
+        "CANCEL REFRESH MATERIALIZED VIEW lo_mv1 FORCE",
+        "CANCEL REFRESH DICTIONARY dict_obj",
+        "SHOW CREATE FUNCTION default_db.python_add(BIGINT)",
+        "SHOW CREATE FUNCTION default_db.python_add",
+        "CREATE MATERIALIZED VIEW lo_mv3 DISTRIBUTED BY HASH(`lo_orderkey`) "
+        "REFRESH SCHEDULE START ('2023-07-01 10:00:00') EVERY (INTERVAL 1 DAY) "
+        "AS SELECT lo_orderkey FROM lineorder",
+        "SHOW COLUMNS FROM t1",
+        "REFRESH TABLE t1",
+        "SHOW PROFILE",
+        # No REFRESH kind keyword matches; falls back to an opaque Command
+        # rather than raising.
+        "REFRESH foo",
+        # No START/EVERY schedule at all.
+        "CREATE MATERIALIZED VIEW mv1 DISTRIBUTED BY HASH(x) REFRESH MANUAL "
+        "AS SELECT x FROM t",
+        # Existing forms these overrides must not regress.
+        "REFRESH EXTERNAL TABLE t1",
+        # REFRESH EXTERNAL TABLE / TABLE's own PARTITION(...) clause -- using
+        # `_parse_table_parts` unconditionally for the target would raise
+        # before this clause is ever reached.
+        "REFRESH EXTERNAL TABLE hudi1 PARTITION('date=2022-12-20', 'date=2022-12-21')",
+        "REFRESH TABLE t1 PARTITION('p1')",
+        "CREATE MATERIALIZED VIEW lo_mv1 DISTRIBUTED BY HASH(`lo_orderkey`) "
+        "REFRESH ASYNC START ('2023-07-01 10:00:00') EVERY (INTERVAL 1 DAY) "
+        "AS SELECT lo_orderkey FROM lineorder",
+    ],
+)
+def test_starrocks_kill_refresh_show_create_function_parse(sql: str) -> None:
+    SQLStatement(sql, "starrocks")
+
+
+@pytest.mark.parametrize(
+    ("sql", "expected"),
+    [
+        # `this` is a placeholder Var required by the base Refresh expression,
+        # not a real target name; the generic REFRESH {kind} {this} rendering
+        # would otherwise duplicate the word.
+        ("REFRESH CONNECTIONS", "REFRESH CONNECTIONS"),
+        # A standalone ALTER TABLE ADD ROLLUP action's own "ADD ROLLUP"
+        # keywords live on the RollupIndex node, not on the enclosing ALTER.
+        (
+            "ALTER TABLE db.tbl ADD ROLLUP r1(col1, col2) FROM r0",
+            "ALTER TABLE db.tbl\nADD ROLLUP r1(col1, col2) FROM r0",
+        ),
+        # Dual-bound `VALUES [(...), (...))` range partition must round-trip
+        # as the same half-open bound, not collapse into a single-bound
+        # `VALUES LESS THAN (...)` partition with a different meaning.
+        (
+            "CREATE TABLE t(k1 INT) PARTITION BY RANGE (k1) "
+            "(PARTITION p1 VALUES [('2021-01-01'), ('2021-01-31'))) "
+            "DISTRIBUTED BY HASH(k1)",
+            "CREATE TABLE t (\n  k1 INT\n)\n"
+            "PARTITION BY RANGE (k1) (PARTITION p1 VALUES "
+            "[('2021-01-01'), ('2021-01-31')))\n"
+            "DISTRIBUTED BY HASH (\n  k1\n)",
+        ),
+        # StarRocks' single-argument INTERVAL form must round-trip with the
+        # INTERVAL keyword, not the generic positional Func rendering.
+        (
+            "CREATE TABLE t(dt DATETIME) PARTITION BY time_slice(dt, INTERVAL 7 day) "
+            "DISTRIBUTED BY HASH(dt)",
+            "CREATE TABLE t (\n  dt DATETIME\n)\n"
+            "PARTITION BY TIME_SLICE(dt, INTERVAL '7' DAY)\n"
+            "DISTRIBUTED BY HASH (\n  dt\n)",
+        ),
+        # The 3-argument boundary form, and the non-CONNECTIONS/non-dual-bound/
+        # non-ALTER-action fallback paths of each override above, must keep
+        # deferring to the base StarRocks generator rather than always taking
+        # the specialized branch.
+        (
+            "CREATE TABLE t(dt DATETIME) "
+            "PARTITION BY TIME_SLICE(dt, INTERVAL 7 DAY, FLOOR) "
+            "DISTRIBUTED BY HASH(dt)",
+            "CREATE TABLE t (\n  dt DATETIME\n)\n"
+            "PARTITION BY TIME_SLICE(dt, INTERVAL '7' DAY, FLOOR)\n"
+            "DISTRIBUTED BY HASH (\n  dt\n)",
+        ),
+        ("REFRESH TABLE t1", "REFRESH TABLE t1"),
+        ("REFRESH DICTIONARY dict_obj", "REFRESH DICTIONARY dict_obj"),
+        (
+            "CREATE TABLE t (k1 INT, k2 INT) DUPLICATE KEY (k1) "
+            "DISTRIBUTED BY HASH (k1) ROLLUP (r1 (k1) FROM t)",
+            "CREATE TABLE t (\n  k1 INT,\n  k2 INT\n)\n"
+            "DUPLICATE KEY (k1)\n"
+            "DISTRIBUTED BY HASH (\n  k1\n)\n"
+            "ROLLUP (r1(k1) FROM t)",
+        ),
+        (
+            "CREATE TABLE t(k1 INT) PARTITION BY RANGE (k1) "
+            '(PARTITION p1 VALUES LESS THAN ("10")) DISTRIBUTED BY HASH(k1)',
+            "CREATE TABLE t (\n  k1 INT\n)\n"
+            "PARTITION BY RANGE (k1) (PARTITION p1 VALUES LESS THAN ('10'))\n"
+            "DISTRIBUTED BY HASH (\n  k1\n)",
+        ),
+        # REFRESH MATERIALIZED VIEW's FORCE / PARTITION START(...) END(...) /
+        # WITH {SYNC|ASYNC} MODE clauses must round-trip, not vanish --
+        # `format()` is what SQL Lab actually sends to the database.
+        (
+            "REFRESH MATERIALIZED VIEW lo_mv1 FORCE",
+            "REFRESH MATERIALIZED VIEW lo_mv1 FORCE",
+        ),
+        (
+            "REFRESH MATERIALIZED VIEW lo_mv1 PARTITION START ('2020-02-01') "
+            "END ('2020-03-01')",
+            "REFRESH MATERIALIZED VIEW lo_mv1 PARTITION START ('2020-02-01') "
+            "END ('2020-03-01')",
+        ),
+        # FORCE is accepted either right after the view name or after the
+        # PARTITION clause; it always renders after PARTITION.
+        (
+            "REFRESH MATERIALIZED VIEW lo_mv1 FORCE PARTITION START ('2020-02-01') "
+            "END ('2020-03-01')",
+            "REFRESH MATERIALIZED VIEW lo_mv1 PARTITION START ('2020-02-01') "
+            "END ('2020-03-01') FORCE",
+        ),
+        (
+            "REFRESH MATERIALIZED VIEW lo_mv1 PARTITION START ('2020-02-01') "
+            "END ('2020-03-01') FORCE",
+            "REFRESH MATERIALIZED VIEW lo_mv1 PARTITION START ('2020-02-01') "
+            "END ('2020-03-01') FORCE",
+        ),
+        (
+            "REFRESH MATERIALIZED VIEW lo_mv1 WITH SYNC MODE",
+            "REFRESH MATERIALIZED VIEW lo_mv1 WITH SYNC MODE",
+        ),
+        (
+            "REFRESH MATERIALIZED VIEW lo_mv1 WITH ASYNC MODE",
+            "REFRESH MATERIALIZED VIEW lo_mv1 WITH ASYNC MODE",
+        ),
+    ],
+)
+def test_starrocks_generator_round_trip(sql: str, expected: str) -> None:
+    # SQL Lab regenerates SQL from this AST via `format()` for every
+    # statement it executes (see `build_statement_blocks` in
+    # `superset/sql/execution/executor.py`), so an incorrect round-trip here
+    # would send malformed or semantically wrong SQL to the database.
+    assert SQLStatement(sql, "starrocks").format() == expected
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        # Aggregate/unique-key column agg-function suffix.
+        "CREATE TABLE t(k1 INT, v2 INT SUM) AGGREGATE KEY(k1) DISTRIBUTED BY HASH(k1)",
+        'CREATE TABLE t(k1 INT, v2 INT REPLACE_IF_NOT_NULL DEFAULT "10") '
+        "AGGREGATE KEY(k1) DISTRIBUTED BY HASH(k1)",
+        # Generated columns without the parenthesized `AS (expr)` form.
+        "CREATE TABLE t1(id INT, newcol1 INT AS id + 1)",
+        "CREATE TABLE test_tbl1(id INT NOT NULL, data_array ARRAY<int> NOT NULL, "
+        "newcol1 DOUBLE AS array_avg(data_array)) PRIMARY KEY (id) "
+        "DISTRIBUTED BY HASH(id)",
+        "CREATE TABLE t1(id INT, newcol1 INT AS (id + 1))",  # existing form
+        # Bare, unnamed inline KEY constraint (a primary/duplicate key marker
+        # with no name or column list is also accepted; see the CONSTRAINT_
+        # PARSERS override below).
+        "CREATE TABLE t (k1 INT, KEY (k1))",
+        # GIN/NGRAM full-text index with an inline properties list.
+        "CREATE TABLE t(k1 INT, INDEX idx (k1) USING GIN ('parser' = 'english')) "
+        "DUPLICATE KEY(k1) DISTRIBUTED BY HASH(k1)",
+        "CREATE TABLE t(k1 INT, INDEX idx (k1) USING BITMAP) "
+        "DUPLICATE KEY(k1) DISTRIBUTED BY HASH(k1)",  # existing form
+        # Inherited MySQL inline-index forms/options, unrelated to the
+        # StarRocks-specific GIN case above, but reachable through the same
+        # overridden method.
+        "CREATE TABLE t (c TEXT, FULLTEXT idx (c))",
+        "CREATE TABLE t (k1 INT, INDEX idx (k1) KEY_BLOCK_SIZE = 1024)",
+        "CREATE TABLE t (k1 INT, INDEX idx (k1) WITH PARSER ngram)",
+        "CREATE TABLE t (k1 INT, INDEX idx (k1) COMMENT 'my index')",
+        "CREATE TABLE t (k1 INT, INDEX idx (k1) VISIBLE)",
+        "CREATE TABLE t (k1 INT, INDEX idx (k1) INVISIBLE)",
+        "CREATE TABLE t (k1 INT, INDEX idx (k1) ENGINE_ATTRIBUTE = 'foo')",
+        "CREATE TABLE t (k1 INT, INDEX idx (k1) SECONDARY_ENGINE_ATTRIBUTE = 'foo')",
+        # Range partition VALUES forms.
+        "CREATE TABLE t(k1 INT) PARTITION BY RANGE (k1) "
+        '(PARTITION p1 VALUES LESS THAN ("10")) DISTRIBUTED BY HASH(k1)',
+        "CREATE TABLE t(k1 INT) PARTITION BY RANGE (k1) "
+        "(PARTITION p1 VALUES LESS THAN MAXVALUE) DISTRIBUTED BY HASH(k1)",
+        # Legacy parenthesized MAXVALUE form, distinct from the bare form
+        # immediately above.
+        "CREATE TABLE t(k1 INT) PARTITION BY RANGE (k1) "
+        "(PARTITION p1 VALUES LESS THAN (MAXVALUE)) DISTRIBUTED BY HASH(k1)",
+        "CREATE TABLE t(k1 INT) PARTITION BY RANGE (k1) "
+        '(PARTITION p1 VALUES [("2021-01-01"), ("2021-01-31"))) '
+        "DISTRIBUTED BY HASH(k1)",
+        # A range partition item with no VALUES clause at all.
+        "CREATE TABLE t(k1 INT) PARTITION BY RANGE (k1) "
+        "(PARTITION p1) DISTRIBUTED BY HASH(k1)",
+        "CREATE TABLE t(dt DATETIME) PARTITION BY time_slice(dt, INTERVAL 7 day) "
+        "DISTRIBUTED BY HASH(dt)",
+        # ALTER TABLE clause variants.
+        "ALTER TABLE example_db.my_table DROP PARTITION p1",
+        "ALTER TABLE example_db.my_table DROP PARTITION IF EXISTS p1 FORCE",
+        "ALTER TABLE example_db.my_table DROP TEMPORARY PARTITION p1",  # existing
+        "ALTER TABLE example_db.my_table DROP PARTITION (p1, p2)",  # existing
+        "ALTER TABLE db.tbl ADD ROLLUP r1(col1,col2) FROM r0",
+        "ALTER TABLE db.tbl ADD ROLLUP r1(col1,col2)",
+        "ALTER TABLE db.tbl DROP ROLLUP r1",  # existing
+        "ALTER TABLE my_table ADD COLUMN new_col INT KEY DEFAULT '0' FIRST",
+        # existing form:
+        "ALTER TABLE my_table ADD COLUMN new_col INT DEFAULT '0' AFTER col1",
+        "ALTER TABLE my_table ADD COLUMN (c1 INT DEFAULT '0', c2 INT DEFAULT '0')",
+        # existing form:
+        "ALTER TABLE my_table ADD COLUMNS (c1 INT DEFAULT '0', c2 INT DEFAULT '0')",
+        "ALTER TABLE my_table ADD COLUMN c1 INT DEFAULT '0'",  # existing
+        # Degenerate input where the "(" right after ADD COLUMN turns out not
+        # to be a column list (disambiguated from a subquery start), so the
+        # multi-column fast path backs off to the generic ADD handling.
+        "ALTER TABLE t ADD COLUMN (SELECT 1)",
+        "DROP INDEX index_name ON db.table1",
+        "DROP COLUMN t1.c1",
+        "DROP TABLE t1 ON cluster_name",
+        "DROP FUNCTION my_func(INT, VARCHAR)",
+        "DELETE FROM my_table PARTITION p1 WHERE k1 = 3",
+        "DELETE FROM my_table PARTITION (p1, p2) WHERE k1 = 3",
+        # MySQL "Multiple-Table Syntax" delete, where the target list
+        # precedes FROM instead of following it directly.
+        "DELETE t1 FROM t1 JOIN t2 ON t1.id = t2.id WHERE t2.x = 1",
+        # INSERT clause variants.
+        "INSERT OVERWRITE test PARTITION(p1, p2) WITH LABEL `label1` "
+        "SELECT * FROM test3",
+        "INSERT OVERWRITE test WITH LABEL `label1` (c1, c2) SELECT * FROM test3",
+        "INSERT INTO test WITH LABEL `label1` SELECT * FROM test3",
+        'INSERT INTO FILES("path" = "s3://bucket/x/", "format" = "parquet") '
+        "SELECT * FROM t",
+        "INSERT OVERWRITE test SELECT * FROM test3",  # existing form
+        # Regression guard: the ordinary `INSERT INTO t (col1, col2) VALUES
+        # (...)` column-list form -- with no WITH LABEL and no table
+        # function -- must still resolve via the normal schema=True path,
+        # not get misread as a table-valued-function call.
+        "INSERT INTO t (c1) VALUES (1)",
+        "INSERT INTO t AS t_alias VALUES (1)",
+    ],
+)
+def test_starrocks_create_alter_table_clauses_parse(sql: str) -> None:
+    SQLStatement(sql, "starrocks")
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        # ANALYZE writes CBO statistics server-side; structured `exp.Analyze`
+        # was missing from the mutating-node tuple.
+        ("ANALYZE TABLE tbl_name", True),
+        ("ANALYZE TABLE tbl_name DROP HISTOGRAM ON col_name", True),
+        ("ANALYZE TABLE tbl_name UPDATE HISTOGRAM ON v1,v2 WITH 32 BUCKETS", True),
+        ("KILL ANALYZE 266030", True),
+        ("KILL QUERY 5", True),
+        ("KILL 20", True),
+        # REFRESH MATERIALIZED VIEW/DICTIONARY/CONNECTIONS/EXTERNAL TABLE all
+        # parse to a structured `exp.Refresh`, also missing from the tuple.
+        ("REFRESH MATERIALIZED VIEW lo_mv1", True),
+        ("REFRESH DICTIONARY dict_obj", True),
+        ("REFRESH CONNECTIONS", True),
+        ("REFRESH EXTERNAL TABLE t1", True),
+        ("CANCEL REFRESH MATERIALIZED VIEW lo_mv1", True),
+        # SET PASSWORD/ROLE/DEFAULT ROLE/DEFAULT STORAGE VOLUME all fall
+        # back to an opaque `exp.Command` with head "SET", which the
+        # dialect gate only recognised for PostgreSQL.
+        ("SET PASSWORD FOR 'jack'@'192.%' = PASSWORD('123456')", True),
+        ("SET ROLE db_admin", True),
+        ("SET ROLE ALL EXCEPT db_admin", True),
+        ("SET DEFAULT ROLE db_admin TO test", True),
+        ("SET DEFAULT STORAGE VOLUME my_s3_volume", True),
+        # `SET PASSWORD = ...` (own account) parses as a plain structured
+        # `exp.Set`, indistinguishable from a benign session variable except
+        # by inspecting the assignment target.
+        ("SET PASSWORD = PASSWORD('123456')", True),
+        # Ordinary session variables must still read as non-mutating.
+        ("SET time_zone = 'UTC'", False),
+        ("SET SESSION time_zone = 'UTC'", False),
+        ("SET @myvar = 1", False),
+        ("SET NAMES utf8mb4", False),
+        # Admin/ops/job-control commands that always fall back to an opaque
+        # `exp.Command` with one of these heads.
+        (
+            "BACKUP SNAPSHOT example_db.snapshot_label1 TO example_repo "
+            'PROPERTIES ("type" = "full")',
+            True,
+        ),
+        ("CANCEL BACKUP FROM example_db", True),
+        ("CANCEL RESTORE FROM example_db", True),
+        ('CANCEL LOAD WHERE LABEL = "example_label"', True),
+        ("CANCEL ALTER TABLE COLUMN FROM example_db.my_table", True),
+        (
+            'EXPORT TABLE testTbl TO "hdfs://h:9000/a/b/c/testTbl_" WITH BROKER',
+            True,
+        ),
+        ("PAUSE ROUTINE LOAD FOR example_db.example_tbl1_ordertest1", True),
+        ("RESUME ROUTINE LOAD FOR example_db.example_tbl1_ordertest1", True),
+        ("STOP ROUTINE LOAD FOR example_db.example_tbl1_ordertest1", True),
+        ("SUBMIT TASK etl0 AS CREATE TABLE tbl1 AS SELECT * FROM src_tbl", True),
+        ("RECOVER DATABASE example_db", True),
+        ("RECOVER TABLE example_db.example_tbl", True),
+        (
+            'ADMIN SET FRONTEND CONFIG ("disable_balance" = "true")',
+            True,
+        ),
+        # StarRocks blacklist management via the ADD/DELETE peek.
+        ('ADD SQLBLACKLIST "select count(*) from .+"', True),
+        ("DELETE SQLBLACKLIST 3, 4", True),
+        ("ADD BACKEND BLACKLIST 10001", True),
+        ("DELETE BACKEND BLACKLIST 10001", True),
+        # Ordinary DELETE (and the ADD/DELETE peek generally) must not
+        # misclassify unrelated statements.
+        ("DELETE FROM my_table WHERE k1 = 3", True),
+        ("DELETE FROM my_table PARTITION p1 WHERE k1 = 3", True),
+        # TRANSLATE TRINO only returns translated SQL text; it is a read.
+        ("TRANSLATE TRINO SELECT 1", False),
+        ("SELECT 1", False),
+        ("SHOW TABLES", False),
+        ("SHOW TABLES IN catalog_1.schema_a", False),
+    ],
+)
+def test_is_mutating_starrocks_command_constructs(sql: str, expected: bool) -> None:
+    """
+    Several StarRocks constructs are either structured nodes sqlglot models
+    but ``is_mutating`` didn't check (``exp.Analyze``, ``exp.Kill``,
+    ``exp.Refresh``), or fall back to an opaque ``exp.Command`` whose head
+    keyword wasn't in the mutating set, or -- for ``SET PASSWORD`` on the
+    caller's own account -- parse identically to a benign session variable.
+    Every one of these must be classified as mutating so a query-only role
+    can't run them through the SQL Lab read-only gate; ordinary session
+    variables and reads must stay classified as non-mutating.
+    """
+    assert SQLStatement(sql, "starrocks").is_mutating() == expected
 
 
 @pytest.mark.parametrize(
@@ -5576,6 +6297,41 @@ def test_parse_predicate_length_check() -> None:
     stmt = SQLStatement("SELECT 1", "postgresql")
     with pytest.raises(SupersetParseError):
         stmt.parse_predicate("x" * 101)
+
+
+def test_parse_predicate_invalid_sql_raises_superset_parse_error() -> None:
+    """
+    A syntactically invalid RLS predicate raises ``SupersetParseError``.
+
+    ``parse_predicate`` is reachable via ``apply_rls`` for any RLS clause
+    configured on a queried table; an invalid clause must surface as the
+    typed 422 parse error rather than leaking a raw ``sqlglot`` exception.
+    """
+    stmt = SQLStatement("SELECT 1", "postgresql")
+    with pytest.raises(SupersetParseError) as excinfo:
+        stmt.parse_predicate("a >")
+    assert excinfo.value.status == 422
+
+
+def test_parse_predicate_sqlglot_error_raises_superset_parse_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A non-``ParseError`` ``sqlglot`` failure also surfaces as a typed error.
+
+    ``parse_predicate`` catches the generic ``SqlglotError`` base class as a
+    fallback so any sqlglot failure (e.g. tokenize errors) is converted into a
+    ``SupersetParseError`` rather than leaking a raw sqlglot exception.
+    """
+    # Build the statement before patching, since the constructor also parses.
+    stmt = SQLStatement("SELECT 1", "postgresql")
+    mocker.patch(
+        "sqlglot.parse_one",
+        side_effect=sqlglot.errors.SqlglotError("boom"),
+    )
+    with pytest.raises(SupersetParseError) as excinfo:
+        stmt.parse_predicate("a > 1")
+    assert excinfo.value.status == 422
 
 
 @pytest.mark.usefixtures("_small_parse_cap")

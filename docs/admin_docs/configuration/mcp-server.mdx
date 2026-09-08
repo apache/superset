@@ -253,6 +253,58 @@ def my_custom_auth_factory(app):
 MCP_AUTH_FACTORY = my_custom_auth_factory
 ```
 
+### Embedded Guest Authentication
+
+Superset's [embedded dashboards](/user-docs/using-superset/embedding) feature mints short-lived **guest tokens** for anonymous/embedded viewers. The MCP server can accept these same guest tokens, so an embedded guest (e.g. an in-app chatbot next to an embedded dashboard) can call MCP tools scoped to the dashboards/resources named in its token.
+
+This is opt-in and reuses the existing core guest-token configuration -- there is no MCP-specific guest secret or audience.
+
+```python
+# superset_config.py
+FEATURE_FLAGS = {"EMBEDDED_SUPERSET": True}   # required -- guest tokens only exist when this is on
+MCP_EMBEDDED_GUEST_AUTH_ENABLED = True        # opt-in for the MCP transport (default False)
+```
+
+Present the guest token the same way as any other bearer token:
+
+```bash
+curl -X POST http://localhost:5008/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_GUEST_TOKEN' \
+  -d '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}'
+```
+
+**How it works**
+
+- A dedicated guest-token verifier validates the token against the same `GUEST_TOKEN_JWT_SECRET` / `GUEST_TOKEN_JWT_ALGO` / `GUEST_TOKEN_JWT_AUDIENCE` config used by embedded dashboards, replays the embedded structural checks, and enforces revocation (global version bumps and per-dashboard `guest_token_revoked_before` cutoffs). It runs *before* the JWT verifier described above, since guest tokens are signed with a different key/algorithm and would otherwise be rejected at the transport.
+- A verified guest resolves to a Superset guest user as the highest-priority identity, so it's never downgraded to API-key / `MCP_DEV_USERNAME` / dev-mode resolution. Data access is scoped by the same checks (dataset allowlist, dashboard access, row-level security) that apply to embedded dashboard views.
+- Guests are restricted to a default-deny allow-list, `MCP_GUEST_ALLOWED_TOOLS`, regardless of `MCP_RBAC_ENABLED`. Sensitive enumeration tools like `find_users` and `get_instance_info` are denied simply by being absent from the default list.
+- Setting `MCP_AUTH_FACTORY` bypasses this whole path: a configured factory is tried first, and the default factory that wires up the guest-token verifier is never reached. If you rely on a custom auth factory (e.g. your own OIDC provider) alongside guest auth, that factory must verify guest tokens itself -- otherwise they're rejected regardless of `MCP_EMBEDDED_GUEST_AUTH_ENABLED`.
+
+```python
+# superset_config.py
+MCP_GUEST_ALLOWED_TOOLS = {
+    "get_dashboard_info",
+    "get_dashboard_layout",
+    "list_dashboards",
+    "list_charts",
+    "get_chart_info",
+    "get_chart_data",
+    "get_chart_preview",
+}  # default
+```
+
+**Deployment requirements**
+
+- The MCP server and the service that mints guest tokens (the Superset web app) must share `GUEST_TOKEN_JWT_SECRET` and `GUEST_TOKEN_JWT_AUDIENCE`. Set `GUEST_TOKEN_JWT_AUDIENCE` explicitly -- if it's unset, audience validation falls back to the URL host, which can differ between the two services and cause every guest token to fail validation.
+- The `GUEST_ROLE_NAME` role (default `Public`) must exist -- a guest token is rejected if it does not.
+- Don't set `MCP_DEV_USERNAME` on a deployment that also serves embedded guests.
+- Restart the MCP process after toggling `EMBEDDED_SUPERSET` or `MCP_EMBEDDED_GUEST_AUTH_ENABLED` -- guest auth is wired up once at startup.
+
+:::warning
+`GUEST_TOKEN_JWT_SECRET` guards both the web embedding and MCP guest-auth surfaces. With `MCP_EMBEDDED_GUEST_AUTH_ENABLED` on, leaving it at its insecure default isn't just a forgery risk -- the MCP server refuses to start (`MCPAuthConfigError`) until you set a real secret shared with the guest-token minting service.
+:::
+
 ---
 
 ## Connecting AI Clients
@@ -523,6 +575,8 @@ All MCP settings go in `superset_config.py`. Defaults are defined in `superset/m
 | `MCP_JWT_DEBUG_ERRORS` | `False`   | Log detailed JWT errors server-side (never exposed in HTTP responses per RFC 6750)                                                                                                                                               |
 | `MCP_AUTH_FACTORY`     | `None`    | Custom auth provider factory `(flask_app) -> auth_provider`. Takes precedence over built-in JWT                                                                                                                                  |
 | `MCP_USER_RESOLVER`    | `None`    | Custom function `(app, access_token) -> username` to extract a Superset username from a validated JWT token. When `None`, the default resolver checks `preferred_username`, `username`, `email`, and `sub` claims in that order. |
+| `MCP_EMBEDDED_GUEST_AUTH_ENABLED` | `False` | Accept embedded [guest tokens](#embedded-guest-authentication) as Bearer auth. Also requires the `EMBEDDED_SUPERSET` feature flag. |
+| `MCP_GUEST_ALLOWED_TOOLS` | see [default list](#embedded-guest-authentication) | The only tool names callable by embedded guests (default-deny), regardless of `MCP_RBAC_ENABLED`. |
 
 ### Response Size Guard
 

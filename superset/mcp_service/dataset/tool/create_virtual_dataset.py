@@ -220,6 +220,8 @@ async def create_virtual_dataset(  # noqa: C901
             error=f"Failed to update dataset metadata (creation rolled back): {exc}",
         )
     except SupersetGenericDBErrorException as exc:
+        # Defensive backstop for direct raises (see
+        # test_create_virtual_dataset_sql_error_is_actionable).
         logger.warning("Virtual dataset SQL validation failed", exc_info=True)
         await ctx.warning(f"Virtual dataset SQL failed validation: {exc}")
         return CreateVirtualDatasetResponse(
