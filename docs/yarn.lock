@@ -4969,85 +4969,85 @@
   resolved "https://registry.yarnpkg.com/@swc/counter/-/counter-0.1.3.tgz#cc7463bd02949611c6329596fccd2b0ec782b0e9"
   integrity sha512-e2BR4lsJkkRlKZ/qCHPw9ZaSxc0MVUd7gtbtaB7aMvHeJVYe8sOB8DBZkP2DtISHGSku9sCK6T6cnY0CtXrOCQ==
 
-"@swc/html-darwin-arm64@1.15.43":
-  version "1.15.43"
-  resolved "https://registry.yarnpkg.com/@swc/html-darwin-arm64/-/html-darwin-arm64-1.15.43.tgz#c88069f140ead901724018f96ad709779526a368"
-  integrity sha512-+PFbHbeeN+zB0zfvR1V1NmvPriuWPI+sijQXpI+wq/nLIujxvtENWjOKVHgouC9TIN/uKmL2zu9HAq6L6YxnPA==
+"@swc/html-darwin-arm64@1.16.2":
+  version "1.16.2"
+  resolved "https://registry.yarnpkg.com/@swc/html-darwin-arm64/-/html-darwin-arm64-1.16.2.tgz#dfe45d70266262a59aaaa0d93740b6161803f192"
+  integrity sha512-SNBUxkxLBXD0ATwnOG1rF8mpSrRtFDfqWnEUmbm/g4KwmCt7NuHHv9YYqA3lqfq90Ucc+Xlk7afx8KAW/utz4A==
 
-"@swc/html-darwin-x64@1.15.43":
-  version "1.15.43"
-  resolved "https://registry.yarnpkg.com/@swc/html-darwin-x64/-/html-darwin-x64-1.15.43.tgz#9bc8171494d3b98eac017b5b73f0f63054558626"
-  integrity sha512-LQJ2U8Oxcx4T1rRF25y4h+/p05nn58FugTe/uGxC5OT3K83c2MftcSZLYaahOu4GVHRZeS1NI94CkSvQV++TVw==
+"@swc/html-darwin-x64@1.16.2":
+  version "1.16.2"
+  resolved "https://registry.yarnpkg.com/@swc/html-darwin-x64/-/html-darwin-x64-1.16.2.tgz#72066bda0d843c024dd5230aa013445d10037cde"
+  integrity sha512-WVBgn6yrBPMZu+DL95/XGAXYcgd1nhd67Ml1UjMtFoFMVKY+VRpCq8JpTZTMXhWbVoRENUHk+3PHu0nNjlE/Fg==
 
-"@swc/html-linux-arm-gnueabihf@1.15.43":
-  version "1.15.43"
-  resolved "https://registry.yarnpkg.com/@swc/html-linux-arm-gnueabihf/-/html-linux-arm-gnueabihf-1.15.43.tgz#271a5d345719fa2c381df45355f70870faaaf35c"
-  integrity sha512-DKIen6DuIRO7Xc5gAbgBT5QyRHJGEGXreIdM1VBosYWTGnnrQ//Hwd7bLD6UbT8X8eU1vqvpXwQ1E24QRqRaBQ==
+"@swc/html-linux-arm-gnueabihf@1.16.2":
+  version "1.16.2"
+  resolved "https://registry.yarnpkg.com/@swc/html-linux-arm-gnueabihf/-/html-linux-arm-gnueabihf-1.16.2.tgz#efa7dd85b03b941ac173ae2870355f9721993905"
+  integrity sha512-V9F/Akd2TXrf5nUhdLgdy3FoVFxQbw8pA2AOyqnEOa2Mbm1R7DZJJ0GdShEMcoyMyMDB9r/4pWuWfxNtP4mFHA==
 
-"@swc/html-linux-arm64-gnu@1.15.43":
-  version "1.15.43"
-  resolved "https://registry.yarnpkg.com/@swc/html-linux-arm64-gnu/-/html-linux-arm64-gnu-1.15.43.tgz#93cd3202f204351e7279efd07abc280fe0b2d193"
-  integrity sha512-0AuHiyfcE86CZ/CajFIszLzZVzbM2wn5p01oet8Q9RikflCGwyH79Nv9TrAKD1Cx7juUrONzDk+f2b/x73wLTg==
+"@swc/html-linux-arm64-gnu@1.16.2":
+  version "1.16.2"
+  resolved "https://registry.yarnpkg.com/@swc/html-linux-arm64-gnu/-/html-linux-arm64-gnu-1.16.2.tgz#4b6a02b42a40463e9ed9a96e0c42b7095b244f48"
+  integrity sha512-jonZVtHc6BesMjC/muUEJGzE1L2kVdgiPVuHc7CL79MrUm0Hjf8LS4Wmtjqe2bLTfRcaMfaYl/60ZcRXHCaYSQ==
 
-"@swc/html-linux-arm64-musl@1.15.43":
-  version "1.15.43"
-  resolved "https://registry.yarnpkg.com/@swc/html-linux-arm64-musl/-/html-linux-arm64-musl-1.15.43.tgz#a6c0c2a1646755b1ee53a6bddbee68674f8edaea"
-  integrity sha512-TweIdl/g9ugkoiYvcL/qbu+gbglDY3TqNxfXH84WXc4rSqEP20owVlxLya2NjVct8LIP2wDrtutpOwAXWC+Eew==
+"@swc/html-linux-arm64-musl@1.16.2":
+  version "1.16.2"
+  resolved "https://registry.yarnpkg.com/@swc/html-linux-arm64-musl/-/html-linux-arm64-musl-1.16.2.tgz#0334e071cb8a01e0423fe7da27204b71f1afed66"
+  integrity sha512-dvki9/sgacHk9ouORmnIok5FbpeE9zUE8yqGGhL1kitNJi6/TKzfnMOpRxSxeDk1/ccvJTAdjRGDIGkT45+b3Q==
 
-"@swc/html-linux-ppc64-gnu@1.15.43":
-  version "1.15.43"
-  resolved "https://registry.yarnpkg.com/@swc/html-linux-ppc64-gnu/-/html-linux-ppc64-gnu-1.15.43.tgz#51319cc1a4184b788613e0e556fc33ff77af0c52"
-  integrity sha512-4oue1pB38/W6mbudp+w0q1jbwxuwdbdbaOj85ay0pisCs213WkgP+MPN8Zqa5VVPjQnVk2CTY9kmEc74XQI/sA==
+"@swc/html-linux-ppc64-gnu@1.16.2":
+  version "1.16.2"
+  resolved "https://registry.yarnpkg.com/@swc/html-linux-ppc64-gnu/-/html-linux-ppc64-gnu-1.16.2.tgz#6c0d7293a1f7f7631e975c767755eb5236769193"
+  integrity sha512-6m0vVWHl9MW7cmWKVgKlFW6yhRv0uahMEaDxNIvXrPC3LdbbiiYZui+ryhyQGIYeVps3OMujzUjc0GihNz/afQ==
 
-"@swc/html-linux-s390x-gnu@1.15.43":
-  version "1.15.43"
-  resolved "https://registry.yarnpkg.com/@swc/html-linux-s390x-gnu/-/html-linux-s390x-gnu-1.15.43.tgz#a612115a5f2f6c9df438a52ab2cf8bc4fd3865b1"
-  integrity sha512-/tceMNvAxK70SKUZtcn3X+K0vcElMGk3i8Sz0CmPdtooso8MZ7WfAvVP1qi3TWgh1rpQ3cC+Al3433AHlET6+w==
+"@swc/html-linux-s390x-gnu@1.16.2":
+  version "1.16.2"
+  resolved "https://registry.yarnpkg.com/@swc/html-linux-s390x-gnu/-/html-linux-s390x-gnu-1.16.2.tgz#853018d7b57377e2f3b23d369a1571862c34d2b9"
+  integrity sha512-TOlz6wgKyZjg4THJsNZfDz/rAMO+rBa0s2eewTeHEfuJhI+jGu7H6Co6bdbMpN3oyDvTMG7N1f1ktSbkE0erAg==
 
-"@swc/html-linux-x64-gnu@1.15.43":
-  version "1.15.43"
-  resolved "https://registry.yarnpkg.com/@swc/html-linux-x64-gnu/-/html-linux-x64-gnu-1.15.43.tgz#028980da812e1797316f0a06a758a49aca699318"
-  integrity sha512-YE7ltlTt5ZFl59GsoHTDrIHnCBY8EDBio66CVj4bqkElFXbE/28xmpVE5ksdGoI5c5aQ/8byUCfHxqzCzQQSVg==
+"@swc/html-linux-x64-gnu@1.16.2":
+  version "1.16.2"
+  resolved "https://registry.yarnpkg.com/@swc/html-linux-x64-gnu/-/html-linux-x64-gnu-1.16.2.tgz#a347921e256f6ecb8847956bbacd4a23e1476adb"
+  integrity sha512-5EduoVpsnuAAkG9BW8COxcIKAe5swgNAEo+BVkAJCOy1ZMZm0krQYBdvlaDCsGGE9yLDKVPm7rpYIi7vTTZTbA==
 
-"@swc/html-linux-x64-musl@1.15.43":
-  version "1.15.43"
-  resolved "https://registry.yarnpkg.com/@swc/html-linux-x64-musl/-/html-linux-x64-musl-1.15.43.tgz#363ac7ce3866b664db0c35d78a6a90636f280139"
-  integrity sha512-nS20HmbOk+dEEzdosJqqxAeyjMIiS5yrCAti8LUf0+dgr4eRmjkH4MlkjfPjf49aayR8o+eMJ1jsDZ7whx4zog==
+"@swc/html-linux-x64-musl@1.16.2":
+  version "1.16.2"
+  resolved "https://registry.yarnpkg.com/@swc/html-linux-x64-musl/-/html-linux-x64-musl-1.16.2.tgz#ebfbbdb05f2f991a34bc500dce0ca10bfbcdfc3b"
+  integrity sha512-c0Z84dvBd0oh1ZcBHnM18itmvJFLbCZBKFF2lEDHsGBSLQ/1sPbggEKsVO4KgWkkhwQV2l9AB4jnsw1HrwZJCg==
 
-"@swc/html-win32-arm64-msvc@1.15.43":
-  version "1.15.43"
-  resolved "https://registry.yarnpkg.com/@swc/html-win32-arm64-msvc/-/html-win32-arm64-msvc-1.15.43.tgz#d0aa3f99c091577aaaa1aaf51a3695c98278564d"
-  integrity sha512-Yz7aQQhXT/Yc6QcuMDQDZP9jqf2phkVyU+qSu8ZRWEcJgIorrPL6q7YLqMk+MB5PpZyu5XJEODvc1/UVDE1Kyg==
+"@swc/html-win32-arm64-msvc@1.16.2":
+  version "1.16.2"
+  resolved "https://registry.yarnpkg.com/@swc/html-win32-arm64-msvc/-/html-win32-arm64-msvc-1.16.2.tgz#69207d99cd80e55fe1ea722c8c8d5174b3d3cd2a"
+  integrity sha512-Aq7V2B5gS23X59DzV2z892c4NBHYtJbwhvsCjJN1MBMx723htjgNE9KVIJp9dQaJBr2PrNfb/u3QFwnWV2tAoQ==
 
-"@swc/html-win32-ia32-msvc@1.15.43":
-  version "1.15.43"
-  resolved "https://registry.yarnpkg.com/@swc/html-win32-ia32-msvc/-/html-win32-ia32-msvc-1.15.43.tgz#e2cfe4dd26ce8b8c5787ca1fdd69ef6b5dc94822"
-  integrity sha512-muUgfsSQRZk6YBRuhaGKSLvXy0bV9BW6/mHLI0N/06btWuf0hekoHhIzR7dUmS98NXKCA7Hv+buBPE/0vXUwyA==
+"@swc/html-win32-ia32-msvc@1.16.2":
+  version "1.16.2"
+  resolved "https://registry.yarnpkg.com/@swc/html-win32-ia32-msvc/-/html-win32-ia32-msvc-1.16.2.tgz#9473a17f22c65ec20059533bd8cc78b32c82a711"
+  integrity sha512-9gslPcsfXxKvAZtOvDkxGuEbM7lqBrONzLAyRsyUtw8KxFcSYkGIO48RDTstGWOkgTgKjjAq/WWqt9qr/NcE3A==
 
-"@swc/html-win32-x64-msvc@1.15.43":
-  version "1.15.43"
-  resolved "https://registry.yarnpkg.com/@swc/html-win32-x64-msvc/-/html-win32-x64-msvc-1.15.43.tgz#ee1a8a7fe4d928595268c214cf17c72867ee8f0f"
-  integrity sha512-tuLDy4MxPXsLi6jW+ozCdFWO61AoMMnlhePWJxMafefC2Ojm+iILxP2zI2Hgfu6F16y1q7ITdXdpEuqptu5fHw==
+"@swc/html-win32-x64-msvc@1.16.2":
+  version "1.16.2"
+  resolved "https://registry.yarnpkg.com/@swc/html-win32-x64-msvc/-/html-win32-x64-msvc-1.16.2.tgz#7c7aeaa21b8848a765be2d4f7ee2ee3fecfd0f52"
+  integrity sha512-Kdb4VdC8FyF5s1MQaFUNeASLckHECrb/oYy/6OCtU+hbgxQ/o/JCgE4uCe8YAg0LCWSOjhx73PCZDGwPf1TpKw==
 
 "@swc/html@^1.15.40":
-  version "1.15.43"
-  resolved "https://registry.yarnpkg.com/@swc/html/-/html-1.15.43.tgz#421da1ffc3226d149fd57c73f73755c6e6148427"
-  integrity sha512-SKbkbdGi9SDO9cTdV+6H0/AYifnb2nDOlz5BlWxlWMXACV3kmX6WwZDo0bBdyGlO/G4jCVWdR5r84qfotU2now==
+  version "1.16.2"
+  resolved "https://registry.yarnpkg.com/@swc/html/-/html-1.16.2.tgz#91ee34374e4c926c6c8a8f43561688192b8a1725"
+  integrity sha512-RmWH8m5dePWDFpHpmFKquZCRe5SyD/Sb0FBPxWcWv/tsjtlJl6oHeaxBsTL2edvaHuW385Fy5nPuTjDD/a+GEA==
   dependencies:
     "@swc/counter" "^0.1.3"
   optionalDependencies:
-    "@swc/html-darwin-arm64" "1.15.43"
-    "@swc/html-darwin-x64" "1.15.43"
-    "@swc/html-linux-arm-gnueabihf" "1.15.43"
-    "@swc/html-linux-arm64-gnu" "1.15.43"
-    "@swc/html-linux-arm64-musl" "1.15.43"
-    "@swc/html-linux-ppc64-gnu" "1.15.43"
-    "@swc/html-linux-s390x-gnu" "1.15.43"
-    "@swc/html-linux-x64-gnu" "1.15.43"
-    "@swc/html-linux-x64-musl" "1.15.43"
-    "@swc/html-win32-arm64-msvc" "1.15.43"
-    "@swc/html-win32-ia32-msvc" "1.15.43"
-    "@swc/html-win32-x64-msvc" "1.15.43"
+    "@swc/html-darwin-arm64" "1.16.2"
+    "@swc/html-darwin-x64" "1.16.2"
+    "@swc/html-linux-arm-gnueabihf" "1.16.2"
+    "@swc/html-linux-arm64-gnu" "1.16.2"
+    "@swc/html-linux-arm64-musl" "1.16.2"
+    "@swc/html-linux-ppc64-gnu" "1.16.2"
+    "@swc/html-linux-s390x-gnu" "1.16.2"
+    "@swc/html-linux-x64-gnu" "1.16.2"
+    "@swc/html-linux-x64-musl" "1.16.2"
+    "@swc/html-win32-arm64-msvc" "1.16.2"
+    "@swc/html-win32-ia32-msvc" "1.16.2"
+    "@swc/html-win32-x64-msvc" "1.16.2"
 
 "@swc/types@^0.1.28":
   version "0.1.28"

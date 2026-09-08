@@ -36,6 +36,7 @@ import {
   TimeFormatter,
   AgGridChartState,
   AgGridFilterModel,
+  DateWithFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { isEmpty, isEqual, merge } from 'lodash-es';
@@ -45,7 +46,6 @@ import {
   ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 import isEqualColumns from './utils/isEqualColumns';
-import DateWithFormatter from './utils/DateWithFormatter';
 import { BASIC_COLOR_FORMATTERS_ROW_KEY } from './consts';
 import {
   DataColumnMeta,
