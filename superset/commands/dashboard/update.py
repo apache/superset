@@ -40,7 +40,7 @@ from superset.commands.utils import (
     update_tags,
     validate_tags,
 )
-from superset.daos.dashboard import DashboardDAO
+from superset.daos.dashboard import DashboardDAO, reconcile_position_json
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
@@ -77,11 +77,18 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                     ObjectType.dashboard, self._model.id, self._model.tags, tags
                 )
 
-            # Re-serialize position_json to escape 4-byte Unicode characters
+            # Re-serialize position_json to escape 4-byte Unicode characters,
+            # and reconcile it against membership: a layout node referencing a
+            # chart that no longer resolves to any Slice row (hard-deleted) is
+            # swapped for a placeholder so ``position_json`` cannot keep
+            # accumulating dangling chart references (sc-115325). The
+            # ``set_dash_metadata`` path reconciles its own ``positions`` from
+            # ``json_metadata``; this covers a PUT that sends only the raw
+            # ``position_json`` field.
             if position_json := self._properties.get("position_json"):
-                self._properties["position_json"] = json.dumps(
-                    json.loads(position_json)
-                )
+                positions: object = json.loads(position_json)
+                reconcile_position_json(positions, self._model.id)
+                self._properties["position_json"] = json.dumps(positions)
 
             # ``set_dash_metadata`` merges the incoming metadata against
             # ``dashboard.params_dict`` (the *stored* ``json_metadata``) to
@@ -180,6 +187,11 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             # own: nothing is diffed against the new layout.
             current_tabs = self._model.tabs  # type: ignore
             position = json.loads(position_json)
+            # ``position_json`` is validated as parseable JSON, not as an
+            # object; a non-dict layout (``"[]"``/``"null"``/scalar) has no
+            # tabs to diff and must not raise on ``tab not in position``.
+            if not isinstance(position, dict):
+                return []
             return [tab for tab in current_tabs["all_tabs"] if tab not in position]
 
         def find_reports_containing_tabs(tabs: list[str]) -> list[ReportSchedule]:
