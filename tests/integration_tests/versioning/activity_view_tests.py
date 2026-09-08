@@ -123,12 +123,12 @@ class TestDashboardActivityView(SupersetTestCase):
         rv = self._activity(str(dashboard.uuid), since="yesterday")
         assert rv.status_code == 400
 
-    def test_activity_allows_read_non_owner(self) -> None:
-        """Activity is a read endpoint: a non-owner with read access (Alpha,
-        which carries broad read + datasource access) can read a dashboard's
-        activity stream — ``raise_for_access(dashboard=)`` does not reject —
-        so the endpoint returns 200. Visibility of *related* rows is filtered
-        separately, inside the activity layer."""
+    def test_activity_denies_read_only_non_editor(self) -> None:
+        """sc-120001: activity is EDIT-gated. A non-editor with broad read +
+        datasource access (Alpha) is refused — the endpoint enforces
+        object-level editorship (``raise_for_editorship``), matching the
+        UI's edit-gated menu, not the read gate. Visibility filtering of
+        *related* rows (AV-008) still applies for editors."""
         _persist_fixture_state()
         dashboard = _get_birth_names_dashboard()
         assert dashboard is not None
@@ -136,7 +136,7 @@ class TestDashboardActivityView(SupersetTestCase):
 
         self.login(ALPHA_USERNAME)
         rv = self._activity(dashboard_uuid)
-        assert rv.status_code == 200
+        assert rv.status_code == 403
 
     def test_visibility_filter_silently_drops_inaccessible_related(self) -> None:
         """AV-008 security control: a related record whose entity the caller
@@ -922,16 +922,15 @@ class TestChartActivityView(SupersetTestCase):
         rv = self._activity(str(chart.uuid), include="upstream")
         assert rv.status_code == 400
 
-    def test_chart_activity_allows_read_non_owner(self) -> None:
-        """Same shape as the dashboard endpoint: a read-access non-owner
-        (Alpha) can read a chart's activity, so ``raise_for_access(chart=)``
-        does not reject and the endpoint returns 200."""
+    def test_chart_activity_denies_read_only_non_editor(self) -> None:
+        """sc-120001: same edit gate as the dashboard endpoint — a
+        read-access non-editor (Alpha) is refused with 403."""
         _persist_fixture_state()
         chart = self._get_birth_names_chart()
         assert chart is not None
         self.login(ALPHA_USERNAME)
         rv = self._activity(str(chart.uuid))
-        assert rv.status_code == 200
+        assert rv.status_code == 403
 
     # ---- 200 happy paths ----
 
@@ -1123,15 +1122,15 @@ class TestDatasetActivityView(SupersetTestCase):
         rv = self._activity(str(dataset.uuid), include="upstream")
         assert rv.status_code == 400
 
-    def test_dataset_activity_allows_read_non_owner(self) -> None:
-        """A read-access non-owner (Alpha) can read a dataset's activity
-        stream, so the read endpoint returns 200."""
+    def test_dataset_activity_denies_read_only_non_editor(self) -> None:
+        """sc-120001: the dataset activity endpoint shares the edit gate —
+        a read-access non-editor (Alpha) is refused with 403."""
         _persist_fixture_state()
         dataset = _get_birth_names_dataset()
         assert dataset is not None
         self.login(ALPHA_USERNAME)
         rv = self._activity(str(dataset.uuid))
-        assert rv.status_code == 200
+        assert rv.status_code == 403
 
     # ---- 200 happy paths ----
 

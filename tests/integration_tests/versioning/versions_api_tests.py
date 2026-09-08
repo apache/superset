@@ -42,7 +42,11 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
+from tests.integration_tests.constants import (
+    ADMIN_USERNAME,
+    ALPHA_USERNAME,
+    GAMMA_USERNAME,
+)
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
@@ -167,13 +171,94 @@ class TestChartVersionsApi(SupersetTestCase):
         assert rv.status_code == 404, rv.data
 
     def test_list_versions_denies_unauthorized_user(self) -> None:
-        """The per-object access gate (``raise_for_access(chart=...)``) must
-        refuse a user without access — as a 403, or 404 if the object isn't
-        even visible to them."""
+        """The per-object editorship gate (``raise_for_editorship``) must
+        refuse a user who is no editor — as a 403, or 404 if the object
+        isn't even visible to them."""
         chart_uuid = str(self._girls_chart().uuid)
         self.login(GAMMA_USERNAME)
         rv = self.client.get(f"/api/v1/chart/{chart_uuid}/versions/")
         assert rv.status_code in (403, 404), rv.data
+
+    def test_list_versions_denies_read_only_non_editor_chart(self) -> None:
+        """sc-120001 pin: version history is EDIT-gated. Alpha carries broad
+        read + datasource access — the OLD read gate admitted it — but is no
+        editor/owner of this chart, so the endpoint must refuse with 403.
+        (Reverted-gate control: with the read gate restored this test fails
+        with a 200.)"""
+        chart_uuid = str(self._girls_chart().uuid)
+        self.login(ALPHA_USERNAME)
+        rv = self.client.get(f"/api/v1/chart/{chart_uuid}/versions/")
+        assert rv.status_code == 403, rv.data
+
+    def test_list_versions_denies_read_only_non_editor_dashboard(self) -> None:
+        """sc-120001 pin, dashboard flavour — the same edit gate refuses a
+        read-capable non-editor on the dashboard endpoint (this is QA
+        TC-062/TC-066's leak, closed)."""
+        db.session.commit()
+        dashboard = db.session.query(Dashboard).filter(Dashboard.slug == "births").one()
+        self.login(ALPHA_USERNAME)
+        rv = self.client.get(f"/api/v1/dashboard/{dashboard.uuid}/versions/")
+        assert rv.status_code == 403, rv.data
+
+    def test_list_versions_allows_object_editor(self) -> None:
+        """sc-120001 matrix: object-level editorship admits — Gamma made an
+        EDITOR of this one chart reads its history, while remaining unable
+        to read other charts' history (object-level, not model-level
+        can_write)."""
+        # pylint: disable=import-outside-toplevel
+        from superset import security_manager
+        from superset.subjects.utils import get_user_subject
+
+        chart = self._girls_chart()
+        chart_uuid = str(chart.uuid)
+        gamma = security_manager.find_user(GAMMA_USERNAME)
+        original_editors = list(chart.editors)
+        chart.editors = [get_user_subject(gamma.id)]
+        db.session.commit()
+        try:
+            self.login(GAMMA_USERNAME)
+            rv = self.client.get(f"/api/v1/chart/{chart_uuid}/versions/")
+            assert rv.status_code == 200, rv.data
+        finally:
+            chart = self._girls_chart()
+            chart.editors = original_editors
+            db.session.commit()
+
+    def test_editorship_gate_refuses_guest_principal(self) -> None:
+        """sc-120001 / M10 pin: an embedded guest-token principal is never
+        an editor, so the editorship gate the version endpoints run refuses
+        it outright — guests read embedded dashboards, never their change
+        logs."""
+        # pylint: disable=import-outside-toplevel
+        from unittest.mock import patch as mock_patch
+
+        from superset import security_manager
+        from superset.exceptions import SupersetSecurityException
+        from superset.security.guest_token import GuestTokenResourceType
+        from superset.utils.core import override_user
+
+        dashboard = db.session.query(Dashboard).filter(Dashboard.slug == "births").one()
+        with mock_patch.dict(
+            "superset.extensions.feature_flag_manager._feature_flags",
+            EMBEDDED_SUPERSET=True,
+        ):
+            guest = security_manager.get_guest_user_from_token(
+                {
+                    "user": {},
+                    "iat": 0,
+                    "exp": 9999999999,
+                    "rls_rules": [],
+                    "resources": [
+                        {
+                            "type": GuestTokenResourceType.DASHBOARD,
+                            "id": str(dashboard.uuid),
+                        }
+                    ],
+                }
+            )
+            with override_user(guest):
+                with pytest.raises(SupersetSecurityException):
+                    security_manager.raise_for_editorship(dashboard)
 
     def test_put_non_numeric_pk_does_not_500_with_capture_on(self) -> None:
         """The PUT route is ``/<pk>`` (a string); with capture on, a

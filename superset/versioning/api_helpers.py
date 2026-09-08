@@ -221,16 +221,14 @@ def concurrency_token_from(info: EntityVersionInfo) -> str | None:
     return info.version_uuid or unversioned_entity_token(info.entity_uuid)
 
 
-# Maps the versioned model class name to the keyword argument
-# ``security_manager.raise_for_access`` expects for the per-resource
-# gate. Slice → ``chart=``, Dashboard → ``dashboard=``, SqlaTable →
-# ``datasource=``. Centralised here so /versions/ and /activity/
-# endpoints share one source of truth for the dispatch.
-_RAISE_FOR_ACCESS_KWARG: dict[str, str] = {
-    "Slice": "chart",
-    "Dashboard": "dashboard",
-    "SqlaTable": "datasource",
-}
+# The versioned model classes whose /versions/ and /activity/ endpoint
+# families are wired through ``resolve_endpoint_path_entity``. Kept as an
+# explicit allowlist so a future entity added to the versioning surface
+# without an authorization decision fails closed rather than silently
+# inheriting a gate.
+_VERSION_ENDPOINT_MODELS: frozenset[str] = frozenset(
+    {"Slice", "Dashboard", "SqlaTable"}
+)
 
 
 class PathEntityResponseError(Exception):
@@ -238,7 +236,7 @@ class PathEntityResponseError(Exception):
 
     Endpoints catch it and return
     the carried response directly. The shape exists so the
-    UUID-parse + find-by-uuid + read-access check can live in one
+    UUID-parse + find-by-uuid + editorship check can live in one
     place across the ``/versions/`` and ``/activity/`` endpoint
     families."""
 
@@ -255,8 +253,8 @@ def resolve_endpoint_path_entity(
     1. Parse *uuid_str* into a UUID (or raise → 400).
     2. Look up the live entity via ``VersionDAO.find_active_by_uuid``
        (or raise → 404).
-    3. Run ``security_manager.raise_for_access`` with the resource-typed
-       kwarg (or raise → 403).
+    3. Enforce object-level editorship via
+       ``security_manager.raise_for_editorship`` (or raise → 403).
 
     Returns ``(entity, entity_uuid)`` on success — the parsed UUID is
     threaded out so callers don't re-parse the path-string. Raises
@@ -283,18 +281,22 @@ def resolve_endpoint_path_entity(
     if entity is None:
         raise PathEntityResponseError(api.response_404())
 
-    # Direct ``[…]`` would leak the unknown model name into a generic 500
-    # via the unhandled ``KeyError`` exception text. The three resource
-    # families wired today cover every key; a future entity added to the
-    # versioning surface without updating this dispatch table should fail
-    # closed (the test suite picks it up) rather than silently disclose.
-    kwarg = _RAISE_FOR_ACCESS_KWARG.get(model_cls.__name__)
-    if kwarg is None:
+    if model_cls.__name__ not in _VERSION_ENDPOINT_MODELS:
         raise LookupError(
-            f"No raise_for_access kwarg registered for {model_cls.__name__!r}"
+            f"Model {model_cls.__name__!r} is not wired for version endpoints"
         )
+    # Version history is EDIT-gated, not read-gated (sc-120001 decision,
+    # following the sc-103156 SIP): the full change log — author
+    # identities, timestamps, field-level before/after diffs — is for
+    # principals who may alter the entity, matching the UI's edit-gated
+    # menu and the restore command's gate. Object-level editorship
+    # (owner/editor/admin via ``raise_for_editorship``) rather than
+    # model-level ``can_write``, so a write-capable role cannot read the
+    # history of entities it does not own. Related-entity records inside
+    # the ACTIVITY stream additionally pass per-record read-visibility
+    # filtering (AV-008's silent filter), which is unchanged.
     try:
-        security_manager.raise_for_access(**{kwarg: entity})
+        security_manager.raise_for_editorship(entity)
     except SupersetSecurityException as exc:
         raise PathEntityResponseError(api.response_403()) from exc
 

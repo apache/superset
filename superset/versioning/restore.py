@@ -63,7 +63,7 @@ logger = logging.getLogger(__name__)
 #
 # Unknown models fail closed (``LookupError``) rather than defaulting to a
 # relation-less restore — a silently partial restore is worse than a loud
-# failure (mirrors ``_RAISE_FOR_ACCESS_KWARG`` in ``api_helpers``).
+# failure (mirrors ``_VERSION_ENDPOINT_MODELS`` in ``api_helpers``).
 _RESTORE_RELATIONS: dict[str, list[str]] = {
     "SqlaTable": ["columns", "metrics"],
     "Dashboard": [],

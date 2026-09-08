@@ -87,7 +87,7 @@ def test_restore_version_fails_closed_for_unregistered_model(
     mock_db, mock_version_class
 ) -> None:
     """An unregistered model must raise, not silently restore without its
-    child relations (mirrors _RAISE_FOR_ACCESS_KWARG's fail-closed
+    child relations (mirrors _VERSION_ENDPOINT_MODELS's fail-closed
     dispatch)."""
     mock_db.session = _engine_with_target(MagicMock(operation_type=0))
     with pytest.raises(LookupError, match="SomeNewModel"):
