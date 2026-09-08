@@ -119,10 +119,9 @@ def get_predicates_for_table(
             SqlaTable.catalog.is_(None),
         )
 
-    filters = [
+    base_filters = [
         SqlaTable.database_id == database.id,
         catalog_predicate,
-        SqlaTable.table_name == table.table,
     ]
     # When applying RLS to a virtual dataset's inner SQL, skip a match against
     # the dataset itself — its RLS is already applied on the outer WHERE via
@@ -130,11 +129,13 @@ def get_predicates_for_table(
     # table_name happens to equal a table in its own SQL (e.g. after a
     # physical→virtual conversion) double-applies its own predicates.
     if exclude_dataset_id is not None:
-        filters.append(SqlaTable.id != exclude_dataset_id)
+        base_filters.append(SqlaTable.id != exclude_dataset_id)
+
+    exact_name = SqlaTable.table_name == table.table
 
     dataset = (
         db.session.query(SqlaTable)
-        .filter(and_(*filters, SqlaTable.schema == table.schema))
+        .filter(and_(*base_filters, exact_name, SqlaTable.schema == table.schema))
         .one_or_none()
     )
     if not dataset and table.schema:
@@ -148,7 +149,7 @@ def get_predicates_for_table(
         # until a null-schema dataset is known to exist.
         null_schema_dataset = (
             db.session.query(SqlaTable)
-            .filter(and_(*filters, SqlaTable.schema.is_(None)))
+            .filter(and_(*base_filters, exact_name, SqlaTable.schema.is_(None)))
             .one_or_none()
         )
         if null_schema_dataset and table.schema == database.get_default_schema(
@@ -157,31 +158,29 @@ def get_predicates_for_table(
             dataset = null_schema_dataset
 
     if not dataset and folds_unquoted_identifiers(database.db_engine_spec.engine):
-        # The matches above are case-sensitive, but an engine that folds unquoted
-        # identifiers resolves a case-mismatched reference (e.g. ``BIRTH_NAMES``)
-        # to the same physical table as the registered dataset (``birth_names``).
-        # Fall back to a case-insensitive match so the dataset's RLS predicates
-        # still apply. Schema is folded the same way, since it's subject to the
-        # same rule. The exact matches always take precedence, so this never
-        # changes an existing match; an ambiguous (multi-row) match is ignored
-        # rather than guessed at.
-        #
-        # A parsed reference carries no quoting information, so a quoted
-        # mismatched-case reference -- a distinct physical table on these engines
-        # -- also matches here. That direction is restrictive (it applies extra
-        # predicates to a table nothing is registered for) rather than permissive,
-        # so it can't drop a filter that should have applied.
-        ci_filters = [
-            SqlaTable.database_id == database.id,
-            catalog_predicate,
-            func.lower(SqlaTable.table_name) == table.table.lower(),
-            func.lower(SqlaTable.schema) == table.schema.lower()
-            if table.schema
-            else SqlaTable.schema.is_(None),
-        ]
-        if exclude_dataset_id is not None:
-            ci_filters.append(SqlaTable.id != exclude_dataset_id)
-        matches = db.session.query(SqlaTable).filter(and_(*ci_filters)).all()
+        # The matches above are case-sensitive, but an engine that doesn't treat
+        # unquoted identifiers as case-sensitive resolves a case-mismatched
+        # reference (e.g. ``BIRTH_NAMES``) to the same physical table as the
+        # registered dataset (``birth_names``), so match both name and schema
+        # case-insensitively here. A parsed reference carries no quoting
+        # information, so this also matches a quoted reference, which is a
+        # distinct table on those engines: that direction applies extra predicates
+        # rather than dropping one that should have applied.
+        matches = (
+            db.session.query(SqlaTable)
+            .filter(
+                and_(
+                    *base_filters,
+                    func.lower(SqlaTable.table_name) == table.table.lower(),
+                    func.lower(SqlaTable.schema) == table.schema.lower()
+                    if table.schema
+                    else SqlaTable.schema.is_(None),
+                )
+            )
+            # 0, 1 or "ambiguous" is all this needs to tell apart
+            .limit(2)
+            .all()
+        )
         if len(matches) == 1:
             dataset = matches[0]
 

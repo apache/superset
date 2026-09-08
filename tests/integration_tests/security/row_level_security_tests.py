@@ -1448,7 +1448,7 @@ def test_guest_dataset_id_can_be_string():
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "rls_filters")
-def test_rls_predicates_apply_with_case_mismatched_table_name():
+def test_rls_predicates_apply_with_case_mismatched_table_name() -> None:
     """On engines that fold unquoted identifiers, a table referenced with
     mismatched casing (``BIRTH_NAMES``) resolves to the same physical table as
     the registered dataset (``birth_names``) and must still pick up its RLS

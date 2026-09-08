@@ -23,6 +23,7 @@ import logging
 import re
 import urllib.parse
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
 
 import sqlglot
@@ -33,11 +34,11 @@ from sqlglot.dialects.dialect import (
     Dialect,
     Dialects,
     DialectType,
+    NormalizationStrategy,
 )
 from sqlglot.dialects.singlestore import SingleStore
-from sqlglot.errors import ParseError, SqlglotError
+from sqlglot.errors import ParseError
 from sqlglot.generator import Generator
-from sqlglot.optimizer.normalize_identifiers import normalize_identifiers
 from sqlglot.optimizer.pushdown_predicates import (
     pushdown_predicates,
 )
@@ -172,26 +173,29 @@ SQLGLOT_DIALECTS = {
 }
 
 
+@lru_cache(maxsize=None)
 def folds_unquoted_identifiers(engine: str) -> bool:
     """
-    Return True when the engine folds unquoted identifiers to a single case
-    (e.g. PostgreSQL lowercases them, Snowflake uppercases them).
+    Return True when the engine doesn't treat unquoted identifiers as
+    case-sensitive, either folding them to a single case (PostgreSQL lowercases,
+    Snowflake uppercases) or ignoring case entirely (SQLite).
 
     On such an engine a table referenced with mismatched casing still resolves to
     the same physical table, so callers matching a reference against a stored name
     must compare case-insensitively rather than exactly.
+
+    This reads the sqlglot dialect, for callers already working with parsed SQL.
+    ``BaseEngineSpec.denormalize_name`` answers the same question from the
+    SQLAlchemy dialect, for callers working with a live connection.
     """
-    dialect = SQLGLOT_DIALECTS.get(engine)
-    if dialect is None:
+    if (dialect := SQLGLOT_DIALECTS.get(engine)) is None:
         return False
-    probe = "aXbYcZ"
     try:
-        folded = normalize_identifiers(
-            exp.to_identifier(probe, quoted=False), dialect=dialect
-        ).name
-    except SqlglotError:
+        strategy = Dialect.get_or_raise(dialect).NORMALIZATION_STRATEGY
+    except ValueError:
+        # plugin dialect named by string (see SQLGLOT_DIALECTS) that isn't installed
         return False
-    return folded != probe
+    return strategy is not NormalizationStrategy.CASE_SENSITIVE
 
 
 def has_aggregate(expression: str, engine: str = "base") -> bool:

@@ -740,16 +740,13 @@ def test_get_predicates_for_table_case_mismatched_reference(session: Session) ->
     with patch.object(
         SqlaTable, "get_sqla_row_level_filters", return_value=[text("c1 = 1")]
     ):
-        # mismatched table case, and mismatched schema case
         assert get_predicates_for_table(Table("T1", "public", None), folding, None) == [
             "c1 = 1"
         ]
         assert get_predicates_for_table(Table("T1", "PUBLIC", None), folding, None) == [
             "c1 = 1"
         ]
-        # engine that doesn't fold unquoted identifiers keeps the exact match
         assert get_predicates_for_table(Table("T1", "public", None), exact, None) == []
-        # two datasets differing only in case: no single resolution
         assert (
             get_predicates_for_table(Table("t1", "PUBLIC", None), ambiguous, None) == []
         )
