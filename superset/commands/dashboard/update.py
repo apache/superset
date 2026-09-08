@@ -295,9 +295,19 @@ class UpdateDashboardChartCustomizationsCommand(UpdateDashboardCommand):
 
 
 class UpdateDashboardColorsConfigCommand(UpdateDashboardCommand):
-    # Background colors sync must keep working for externally managed
-    # dashboards; see _refuses_externally_managed on the parent.
+    # The blanket gate is skipped so background colors sync (fired while a
+    # dashboard is merely viewed) keeps working for externally managed
+    # dashboards -- but only for the DERIVED color values. The authoritative
+    # inputs are the dashboard's real content, owned by the external source
+    # of truth; validate() refuses a payload that would change them.
     _refuses_externally_managed = False
+
+    #: json_metadata keys a colors-config save may NOT change on an
+    #: externally managed dashboard. The other accepted keys
+    #: (color_scheme_domain, shared_label_colors, map_label_colors) are
+    #: derived from these plus chart state (see
+    #: DashboardDAO.update_colors_config).
+    _AUTHORITATIVE_COLOR_KEYS: tuple[str, ...] = ("color_scheme", "label_colors")
 
     def __init__(
         self, model_id: int, data: dict[str, Any], mark_updated: bool = True
@@ -305,11 +315,25 @@ class UpdateDashboardColorsConfigCommand(UpdateDashboardCommand):
         super().__init__(model_id, data)
         self._mark_updated = mark_updated
 
+    def validate(self) -> None:
+        super().validate()
+        assert self._model
+        if self._model.is_managed_externally and self._changes_authoritative_colors():
+            raise DashboardForbiddenError()
+
+    def _changes_authoritative_colors(self) -> bool:
+        assert self._model
+        metadata = json.loads(self._model.json_metadata or "{}")
+        return any(
+            key in self._properties and self._properties[key] != metadata.get(key)
+            for key in self._AUTHORITATIVE_COLOR_KEYS
+        )
+
     @transaction(
         on_error=partial(on_error, reraise=DashboardColorsConfigUpdateFailedError)
     )
     def run(self) -> Model:
-        super().validate()
+        self.validate()
         assert self._model
 
         original_changed_on = self._model.changed_on

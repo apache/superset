@@ -481,6 +481,23 @@ class DashboardCopySchema(Schema):
 
 
 class DashboardPutSchema(BaseDashboardSchema):
+    # pylint: disable=unused-argument
+    @pre_load
+    def _discard_is_managed_externally(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        """Accept and discard ``is_managed_externally`` for wire compatibility.
+
+        The flag is not client-writable: the managed-externally update gate
+        refuses edits of flagged entities, so a client-set ``True`` would be
+        irreversible via the API. Older clients echo GET payloads back on
+        PUT, and this schema raises on unknown fields, so the key is dropped
+        here rather than removed from the accepted payload.
+        """
+        if isinstance(data, dict):
+            data.pop("is_managed_externally", None)
+        return data
+
     dashboard_title = fields.String(
         metadata={"description": dashboard_title_description},
         allow_none=True,
@@ -528,7 +545,6 @@ class DashboardPutSchema(BaseDashboardSchema):
     certification_details = fields.String(
         metadata={"description": certification_details_description}, allow_none=True
     )
-    is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True, validate=validate_external_url)
     tags = fields.List(
         fields.Integer(metadata={"description": tags_description}, allow_none=True)
