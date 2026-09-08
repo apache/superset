@@ -740,9 +740,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable Table V2 time comparison feature
     # @lifecycle: development
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
-    # Enables the tagging system for organizing assets
-    # @lifecycle: development
-    "TAGGING_SYSTEM": False,
     # Enables the version history panel on Explore and Dashboard pages.
     # History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on;
     # with capture off the panel renders empty or stale history, so the two
@@ -826,6 +823,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     # @docs: https://superset.apache.org/docs/configuration/setup-ssh-tunneling
     "SSH_TUNNELING": False,
+    # Enables the tagging system for organizing assets
+    # @lifecycle: testing
+    "TAGGING_SYSTEM": True,
     # Enable AWS IAM authentication for database connections (Aurora, Redshift).
     # Allows cross-account role assumption via STS AssumeRole.
     # Security note: When enabled, ensure Superset's IAM role has restricted

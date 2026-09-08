@@ -24,6 +24,34 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Tagging is on by default
+
+`TAGGING_SYSTEM` now ships **on**. The Tags menu entry, the tag columns and
+filters on the chart, dashboard and saved-query lists, and the Tags field in the
+chart and dashboard property modals are all visible without configuration, and
+tags are included in asset export and import.
+
+**What operators should expect:**
+
+- **Implicit tags accrue.** Saving a chart, dashboard, dataset or saved query,
+  and favoriting an asset, write rows to `tag` and `tagged_object` (`type:chart`,
+  `editor:<user id>`, `favorited_by:<user id>`). These have always been created
+  when the flag was on; they are simply no longer opt-in.
+- **Exports gain a `tags` key and a `tags.yaml` file.** Chart and dashboard
+  export bundles carry custom tags. Importers on 6.0 and later understand both;
+  older importers skip the unrecognized `tags.yaml` file but reject chart and
+  dashboard YAML that contains a `tags` key, so strip that key before importing
+  a bundle into Superset 5.x or earlier.
+- **The flag is honored at write time.** The tagging SQLA event listeners are
+  always attached at startup; the ones that create tags check `TAGGING_SYSTEM`
+  when they fire, so the flag, including a runtime override through
+  `GET_FEATURE_FLAGS_FUNC` or `IS_FEATURE_ENABLED_FUNC`, takes effect without a
+  restart. The cleanup listeners run regardless of the flag, so deleting an
+  asset never leaves orphaned `tagged_object` rows behind.
+
+Set `FEATURE_FLAGS = {"TAGGING_SYSTEM": False}` to restore the previous
+behavior. Existing tag rows are left untouched.
+
 ### Global Async Queries re-platformed onto the Global Task Framework (breaking)
 
 Global Async Queries (GAQ) no longer runs on its own bespoke async-events
