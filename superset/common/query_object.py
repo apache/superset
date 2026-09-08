@@ -273,6 +273,9 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             # reports it as InvalidPostProcessingError.
             return post_proc
 
+        # ``function`` is only resolved when ``operation`` is a known builtin name.
+        assert isinstance(operation, str)
+
         parameters = inspect.signature(function).parameters
         if any(
             parameter.kind is inspect.Parameter.VAR_KEYWORD
