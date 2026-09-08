@@ -23,7 +23,7 @@ from typing import Any, TYPE_CHECKING
 from sqlalchemy import and_, func, or_
 
 from superset import db, security_manager
-from superset.sql.parse import Table
+from superset.sql.parse import folds_unquoted_identifiers, Table
 from superset.utils import json
 from superset.utils.core import get_user_id
 
@@ -95,33 +95,6 @@ def apply_rls(
     return has_predicates
 
 
-def _database_folds_unquoted_identifiers(database: Database) -> bool:
-    """
-    Return True when the database folds unquoted identifiers to a single case
-    (e.g. PostgreSQL lowercases them).
-
-    For such engines a table referenced with mismatched casing still resolves to
-    the same physical table, so the dataset lookup used to inject RLS predicates
-    must match the registered dataset case-insensitively rather than exactly.
-    """
-    from sqlglot import exp
-    from sqlglot.optimizer.normalize_identifiers import normalize_identifiers
-
-    from superset.sql.parse import SQLGLOT_DIALECTS
-
-    dialect = SQLGLOT_DIALECTS.get(database.db_engine_spec.engine)
-    if dialect is None:
-        return False
-    probe = "aXbYcZ"
-    try:
-        folded = normalize_identifiers(
-            exp.to_identifier(probe, quoted=False), dialect=dialect
-        ).name
-    except Exception:  # pylint: disable=broad-except
-        return False
-    return folded != probe
-
-
 def get_predicates_for_table(
     table: Table,
     database: Database,
@@ -183,31 +156,32 @@ def get_predicates_for_table(
         ):
             dataset = null_schema_dataset
 
-    if not dataset and _database_folds_unquoted_identifiers(database):
+    if not dataset and folds_unquoted_identifiers(database.db_engine_spec.engine):
         # The matches above are case-sensitive, but an engine that folds unquoted
         # identifiers resolves a case-mismatched reference (e.g. ``BIRTH_NAMES``)
         # to the same physical table as the registered dataset (``birth_names``).
         # Fall back to a case-insensitive match so the dataset's RLS predicates
-        # still apply. The exact matches always take precedence, so this never
+        # still apply. Schema is folded the same way, since it's subject to the
+        # same rule. The exact matches always take precedence, so this never
         # changes an existing match; an ambiguous (multi-row) match is ignored
         # rather than guessed at.
+        #
+        # A parsed reference carries no quoting information, so a quoted
+        # mismatched-case reference -- a distinct physical table on these engines
+        # -- also matches here. That direction is restrictive (it applies extra
+        # predicates to a table nothing is registered for) rather than permissive,
+        # so it can't drop a filter that should have applied.
         ci_filters = [
             SqlaTable.database_id == database.id,
             catalog_predicate,
             func.lower(SqlaTable.table_name) == table.table.lower(),
+            func.lower(SqlaTable.schema) == table.schema.lower()
+            if table.schema
+            else SqlaTable.schema.is_(None),
         ]
         if exclude_dataset_id is not None:
             ci_filters.append(SqlaTable.id != exclude_dataset_id)
-        schema_predicate = (
-            SqlaTable.schema == table.schema
-            if table.schema
-            else SqlaTable.schema.is_(None)
-        )
-        matches = (
-            db.session.query(SqlaTable)
-            .filter(and_(*ci_filters, schema_predicate))
-            .all()
-        )
+        matches = db.session.query(SqlaTable).filter(and_(*ci_filters)).all()
         if len(matches) == 1:
             dataset = matches[0]
 

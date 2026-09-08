@@ -705,6 +705,56 @@ def test_get_predicates_for_table_prefers_exact_schema_match(session: Session) -
         ) == ["c1 = 'public'"]
 
 
+def test_get_predicates_for_table_case_mismatched_reference(session: Session) -> None:
+    """
+    On an engine that folds unquoted identifiers, a reference whose table or
+    schema casing differs from the registered dataset still resolves to the same
+    physical table, so the dataset's RLS predicates must be applied. An engine
+    that doesn't fold keeps the exact match, and an ambiguous case-insensitive
+    match is ignored rather than guessed at.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    folding = Database(database_name="rls_db_ci", sqlalchemy_uri="sqlite://")
+    exact = Database(database_name="rls_db_cs", sqlalchemy_uri="mysql://localhost/db")
+    ambiguous = Database(database_name="rls_db_ambiguous", sqlalchemy_uri="sqlite://")
+    session.add_all(
+        [
+            folding,
+            exact,
+            ambiguous,
+            SqlaTable(table_name="t1", schema="public", catalog=None, database=folding),
+            SqlaTable(table_name="t1", schema="public", catalog=None, database=exact),
+            SqlaTable(
+                table_name="t1", schema="public", catalog=None, database=ambiguous
+            ),
+            SqlaTable(
+                table_name="T1", schema="public", catalog=None, database=ambiguous
+            ),
+        ]
+    )
+    session.flush()
+
+    with patch.object(
+        SqlaTable, "get_sqla_row_level_filters", return_value=[text("c1 = 1")]
+    ):
+        # mismatched table case, and mismatched schema case
+        assert get_predicates_for_table(Table("T1", "public", None), folding, None) == [
+            "c1 = 1"
+        ]
+        assert get_predicates_for_table(Table("T1", "PUBLIC", None), folding, None) == [
+            "c1 = 1"
+        ]
+        # engine that doesn't fold unquoted identifiers keeps the exact match
+        assert get_predicates_for_table(Table("T1", "public", None), exact, None) == []
+        # two datasets differing only in case: no single resolution
+        assert (
+            get_predicates_for_table(Table("t1", "PUBLIC", None), ambiguous, None) == []
+        )
+
+
 def test_get_predicates_for_table_excludes_self(mocker: MockerFixture) -> None:
     """
     When ``exclude_dataset_id`` is supplied, the lookup query must add an

@@ -35,8 +35,9 @@ from sqlglot.dialects.dialect import (
     DialectType,
 )
 from sqlglot.dialects.singlestore import SingleStore
-from sqlglot.errors import ParseError
+from sqlglot.errors import ParseError, SqlglotError
 from sqlglot.generator import Generator
+from sqlglot.optimizer.normalize_identifiers import normalize_identifiers
 from sqlglot.optimizer.pushdown_predicates import (
     pushdown_predicates,
 )
@@ -169,6 +170,28 @@ SQLGLOT_DIALECTS = {
     # hence a string name rather than a class reference like the built-in dialects.
     "yql": "ydb",
 }
+
+
+def folds_unquoted_identifiers(engine: str) -> bool:
+    """
+    Return True when the engine folds unquoted identifiers to a single case
+    (e.g. PostgreSQL lowercases them, Snowflake uppercases them).
+
+    On such an engine a table referenced with mismatched casing still resolves to
+    the same physical table, so callers matching a reference against a stored name
+    must compare case-insensitively rather than exactly.
+    """
+    dialect = SQLGLOT_DIALECTS.get(engine)
+    if dialect is None:
+        return False
+    probe = "aXbYcZ"
+    try:
+        folded = normalize_identifiers(
+            exp.to_identifier(probe, quoted=False), dialect=dialect
+        ).name
+    except SqlglotError:
+        return False
+    return folded != probe
 
 
 def has_aggregate(expression: str, engine: str = "base") -> bool:

@@ -33,6 +33,7 @@ from superset.sql.parse import (
     count_referenced_tables,
     CTASMethod,
     extract_tables_from_statement,
+    folds_unquoted_identifiers,
     has_aggregate,
     JinjaSQLResult,
     KQLTokenType,
@@ -6393,3 +6394,22 @@ def test_has_aggregate(expression: str, expected: bool) -> None:
     function sqlglot can't model.
     """
     assert has_aggregate(expression) is expected
+
+
+@pytest.mark.parametrize(
+    "engine,expected",
+    [
+        ("postgresql", True),
+        ("sqlite", True),
+        ("snowflake", True),
+        ("mysql", False),
+        ("no_such_engine", False),
+    ],
+)
+def test_folds_unquoted_identifiers(engine: str, expected: bool) -> None:
+    """
+    ``folds_unquoted_identifiers`` reports whether an engine folds unquoted
+    identifiers to a single case, and reports False for an engine with no known
+    dialect so callers keep their exact-match behavior.
+    """
+    assert folds_unquoted_identifiers(engine) is expected
