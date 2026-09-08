@@ -82,6 +82,12 @@
         "description": "Try to optimize SQL queries \u2014 for now only predicate pushdown is supported"
       },
       {
+        "name": "PARTITION_FILTER_MAPPING",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Mirror filters on a dataset's business column onto its physical partition column, so engines that require an explicit partition predicate can prune."
+      },
+      {
         "name": "PRESTO_EXPAND_DATA",
         "default": false,
         "lifecycle": "development",

@@ -160,6 +160,11 @@ _COLUMN_DESCRIPTIONS: dict[str, str] = {
     "filter_select_enabled": "Whether filter select is enabled",
     "normalize_columns": "Whether to normalize column names",
     "always_filter_main_dttm": "Whether to always filter on the main datetime column",
+    "partition_column": "Physical column the engine partitions on",
+    "partition_mapped_column": (
+        "Column whose filters are mirrored onto the partition column; "
+        "defaults to the main datetime column"
+    ),
     "fetch_values_predicate": "SQL predicate for fetching filter values",
     "default_endpoint": "Default endpoint URL",
     "offset": "Row offset for queries",

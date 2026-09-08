@@ -46,6 +46,10 @@ from superset.commands.dataset.exceptions import (
 )
 from superset.commands.utils import compute_subjects
 from superset.connectors.sqla.models import SqlaTable, validate_stored_expression
+from superset.connectors.sqla.partition_mapping import (
+    parse_skeleton,
+    validate_partition_mapping,
+)
 from superset.daos.dataset import DatasetDAO
 from superset.datasets.schemas import FolderSchema
 from superset.exceptions import (
@@ -281,6 +285,8 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         if predicate := self._properties.get("fetch_values_predicate"):
             self._validate_fetch_values_predicate(predicate, exceptions)
 
+        self._validate_partition_mapping(exceptions)
+
         if folders := self._properties.get("folders"):
             valid_uuids: set[UUID] = set()
             if metrics:
@@ -388,6 +394,103 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                         field_name=f"{label}.{idx}.expression",
                     )
                 )
+
+    def _validate_partition_mapping(self, exceptions: list[ValidationError]) -> None:
+        """
+        Validate the dataset's partition filter mapping.
+
+        Only the blocking (Tier 1) issues become validation errors. Tier 2
+        issues -- an unparseable transform, a transform missing `:value` --
+        deliberately let the save through and leave the mapping inactive, per
+        the PRD, so a half-written transform doesn't cost the owner the rest of
+        their edits. They are surfaced by the editor, not by rejecting the PUT.
+
+        The transform is authored by a dataset owner, the same principal and
+        trust level as a calculated-column expression, so it also goes through
+        `validate_stored_expression` -- the parser gate that already governs
+        stored expressions.
+        """
+        self._model = cast(SqlaTable, self._model)
+
+        columns = self._properties.get("columns")
+        column_names = (
+            {column["column_name"] for column in columns}
+            if columns is not None
+            else {column.column_name for column in self._model.columns}
+        )
+
+        partition_column = self._properties.get(
+            "partition_column", self._model.partition_column
+        )
+        partition_mapped_column = self._properties.get(
+            "partition_mapped_column", self._model.partition_mapped_column
+        )
+        main_dttm_col = self._properties.get("main_dttm_col", self._model.main_dttm_col)
+        if not partition_column:
+            return
+
+        database = self._properties.get("database") or self._model.database
+        catalog = self._properties.get("catalog", self._model.catalog)
+        schema = self._properties.get("schema", self._model.schema)
+
+        effective_mapped_column = partition_mapped_column or main_dttm_col
+        transform = self._effective_transform(columns, effective_mapped_column)
+
+        for issue in validate_partition_mapping(
+            column_names=column_names,
+            partition_column=partition_column,
+            partition_mapped_column=partition_mapped_column,
+            main_dttm_col=main_dttm_col,
+            transform=transform,
+            engine=database.backend,
+        ):
+            if issue.blocking:
+                exceptions.append(
+                    ValidationError(str(issue.message), field_name=issue.field)
+                )
+
+        if transform:
+            try:
+                validate_stored_expression(
+                    database, catalog, schema, parse_skeleton(transform)
+                )
+            except (SupersetSecurityException, QueryClauseValidationException) as ex:
+                message = (
+                    ex.error.message
+                    if isinstance(ex, SupersetSecurityException)
+                    else ex.message
+                )
+                exceptions.append(
+                    ValidationError(
+                        message,
+                        field_name="partition_value_transform",
+                    )
+                )
+
+    def _effective_transform(
+        self,
+        columns: list[dict[str, Any]] | None,
+        mapped_column: str | None,
+    ) -> str | None:
+        """
+        The value transform on the effective mapped column.
+
+        Reads from the payload when the request carries columns, and from the
+        persisted model otherwise -- a PUT that changes only `partition_column`
+        still has to be validated against the transform already stored.
+        """
+        if not mapped_column:
+            return None
+        if columns is not None:
+            for column in columns:
+                if column.get("column_name") == mapped_column:
+                    return column.get("partition_value_transform")
+            return None
+        model = cast(SqlaTable, self._model)
+        for existing in model.columns:
+            if existing.column_name == mapped_column:
+                return existing.partition_value_transform
+        return None
 
     def _validate_fetch_values_predicate(
         self,
