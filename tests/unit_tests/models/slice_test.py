@@ -22,7 +22,7 @@ import pytest
 from flask import current_app
 from parameterized import parameterized
 
-from superset.models.slice import id_or_uuid_filter, Slice
+from superset.models.slice import id_or_uuid_filter, set_related_perm, Slice
 
 
 class TestSlice:
@@ -227,6 +227,89 @@ class TestSlice:
         # The injected tag and attribute-breakout quote are escaped.
         assert "<img" not in html
         assert '"onmouseover' not in html
+
+
+def _run_set_related_perm(datasource_type: str) -> Slice:
+    """Run the perm-denormalizing listener against a stand-in datasource.
+
+    The stand-in is specced against the model class registered for
+    ``datasource_type``, so it exposes exactly the perm attributes that class
+    really defines -- the whole point being that they differ per type.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.daos.datasource import DatasourceDAO
+
+    target = Slice()
+    target.datasource_type = datasource_type
+    target.datasource_id = 1
+
+    src_class = DatasourceDAO.sources.get(datasource_type)
+    datasource = MagicMock(spec=src_class) if src_class else None
+
+    with patch("superset.models.slice.db") as mock_db:
+        query = mock_db.session.query.return_value.filter_by.return_value
+        query.first.return_value = datasource
+        set_related_perm(None, None, target)
+
+    return target
+
+
+@pytest.mark.parametrize("datasource_type", ["table", "semantic_view"])
+def test_set_related_perm_denormalizes_all_perms(
+    app_context: None, datasource_type: str
+) -> None:
+    """Types whose model defines all three perm strings get all three copied."""
+    target = _run_set_related_perm(datasource_type)
+
+    assert target.perm is not None
+    assert target.catalog_perm is not None
+    assert target.schema_perm is not None
+
+
+def test_set_related_perm_tolerates_query_without_catalog_perm(
+    app_context: None,
+) -> None:
+    """A chart on a SQL Lab query saves even though ``Query`` has no catalog_perm.
+
+    ``catalog_perm`` is defined on ``SqlaTable``/``SemanticView`` only, so
+    copying it unconditionally raised AttributeError and turned chart creation
+    from SQL Lab into a 500. Leaving it null matches the behavior before the
+    assignment was introduced, and is fail-closed: the access filter ORs
+    ``catalog_perm.in_(...)``, which is never true for NULL.
+    """
+    target = _run_set_related_perm("query")
+
+    assert target.perm is not None
+    assert target.schema_perm is not None
+    assert target.catalog_perm is None
+
+
+def test_set_related_perm_tolerates_datasource_without_any_perms(
+    app_context: None,
+) -> None:
+    """``SavedQuery`` defines none of the three, and must not raise either."""
+    target = _run_set_related_perm("saved_query")
+
+    assert target.perm is None
+    assert target.catalog_perm is None
+    assert target.schema_perm is None
+
+
+@pytest.mark.parametrize("datasource_type", ["dataset", "view"])
+def test_set_related_perm_tolerates_unmapped_datasource_type(
+    app_context: None, datasource_type: str
+) -> None:
+    """The chart API accepts every ``DatasourceType``, but only some are mapped.
+
+    ``dataset`` and ``view`` have no entry in ``DatasourceDAO.sources``, so
+    indexing it raised KeyError. There is no datasource to read perms from, so
+    the listener leaves them null rather than failing the save.
+    """
+    target = _run_set_related_perm(datasource_type)
+
+    assert target.perm is None
+    assert target.catalog_perm is None
+    assert target.schema_perm is None
 
 
 def test_thumbnail_url_is_router_relative_at_root(app_context: None) -> None:

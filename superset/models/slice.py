@@ -496,13 +496,29 @@ def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) ->
     # pylint: disable=import-outside-toplevel
     from superset.daos.datasource import DatasourceDAO
 
-    src_class = DatasourceDAO.sources[target.datasource_type]
+    src_class = DatasourceDAO.sources.get(target.datasource_type)
+    if src_class is None:
+        # The chart API accepts every ``DatasourceType``, but only some of them
+        # map to a model here. Leave the perm strings null rather than failing
+        # the save; there is no datasource to derive them from.
+        logger.warning(
+            "Chart datasource type %s has no datasource model; "
+            "leaving permission strings unset",
+            target.datasource_type,
+        )
+        return
+
     if id_ := target.datasource_id:
         ds = db.session.query(src_class).filter_by(id=int(id_)).first()
         if ds:
-            target.perm = ds.perm
-            target.catalog_perm = ds.catalog_perm
-            target.schema_perm = ds.schema_perm
+            # Not every datasource model defines all three perm strings --
+            # ``catalog_perm`` is specific to tables and semantic views, and a
+            # ``SavedQuery`` defines none of them. A missing one stays null,
+            # which is fail-closed: the access filter ORs ``<perm>.in_(...)``,
+            # and NULL never matches.
+            target.perm = getattr(ds, "perm", None)
+            target.catalog_perm = getattr(ds, "catalog_perm", None)
+            target.schema_perm = getattr(ds, "schema_perm", None)
 
 
 def event_after_chart_changed(
