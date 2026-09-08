@@ -215,12 +215,17 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
 
   useEffect(() => {
     if (!otherTabFilters || WelcomeMainExtension) {
-      return;
+      return undefined;
     }
+    // Guards against out-of-order responses: if `refreshKey` changes again
+    // (e.g. a rapid follow-up delete) before this run's requests resolve,
+    // its results are discarded instead of overwriting newer state.
+    let isStale = false;
     const activeTab = getItem(LocalStorageKeys.HomepageActivityFilter, null);
     setActiveState(collapseState.length > 0 ? collapseState : DEFAULT_TAB_ARR);
     getRecentActivityObjs(user.userId!, recent, addDangerToast, otherTabFilters)
       .then(res => {
+        if (isStale) return;
         const data: ActivityData | null = {};
         data[TableTab.Other] = res.other;
         if (res.viewed) {
@@ -237,6 +242,7 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
       })
       .catch(
         createErrorHandler((errMsg: unknown) => {
+          if (isStale) return;
           setActivityData(activityData => ({
             ...activityData,
             [TableTab.Viewed]: [],
@@ -258,43 +264,55 @@ function Welcome({ user, addDangerToast }: WelcomeProps) {
     Promise.all([
       getUserEditableObjects(id, 'dashboard')
         .then(r => {
-          setDashboardData(r);
+          if (!isStale) setDashboardData(r);
           return Promise.resolve();
         })
         .catch((err: unknown) => {
-          setDashboardData([]);
-          addDangerToast(
-            t('There was an issue fetching your dashboards: %s', err),
-          );
+          if (!isStale) {
+            setDashboardData([]);
+            addDangerToast(
+              t('There was an issue fetching your dashboards: %s', err),
+            );
+          }
           return Promise.resolve();
         }),
       getUserEditableObjects(id, 'chart')
         .then(r => {
-          setChartData(r);
+          if (!isStale) setChartData(r);
           return Promise.resolve();
         })
         .catch((err: unknown) => {
-          setChartData([]);
-          addDangerToast(t('There was an issue fetching your chart: %s', err));
+          if (!isStale) {
+            setChartData([]);
+            addDangerToast(
+              t('There was an issue fetching your chart: %s', err),
+            );
+          }
           return Promise.resolve();
         }),
       canReadSavedQueries
         ? getUserEditableObjects(id, 'saved_query', ownSavedQueryFilters)
             .then(r => {
-              setQueryData(r);
+              if (!isStale) setQueryData(r);
               return Promise.resolve();
             })
             .catch((err: unknown) => {
-              setQueryData([]);
-              addDangerToast(
-                t('There was an issue fetching your saved queries: %s', err),
-              );
+              if (!isStale) {
+                setQueryData([]);
+                addDangerToast(
+                  t('There was an issue fetching your saved queries: %s', err),
+                );
+              }
               return Promise.resolve();
             })
         : Promise.resolve(),
     ]).then(() => {
-      setIsFetchingActivityData(false);
+      if (!isStale) setIsFetchingActivityData(false);
     });
+
+    return () => {
+      isStale = true;
+    };
   }, [otherTabFilters, refreshKey]);
 
   const handleToggle = () => {
