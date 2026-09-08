@@ -44,7 +44,6 @@ from superset.extensions import event_logger, security_manager
 from superset.jinja_context import get_template_processor
 from superset.models.sql_lab import Query
 from superset.sql.parse import SQLScript
-from superset.sql_lab import get_sql_results
 from superset.sqllab.command_status import SqlJsonExecutionStatus
 from superset.sqllab.exceptions import (
     QueryIsForbiddenToAccessException,
@@ -59,11 +58,6 @@ from superset.sqllab.schemas import (
     QueryExecutionResponseSchema,
     sql_lab_get_results_schema,
     SQLLabBootstrapSchema,
-)
-from superset.sqllab.sql_json_executer import (
-    ASynchronousSqlJsonExecutor,
-    SqlJsonExecutor,
-    SynchronousSqlJsonExecutor,
 )
 from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 from superset.sqllab.utils import bootstrap_sqllab_data
@@ -591,6 +585,12 @@ class SqlLabRestApi(BaseSupersetApi):
             command = self._create_sql_json_command(execution_context, log_params)
             command_result: CommandResult = command.run()
 
+            # Schedule the async GTF task AFTER the command's transaction commits:
+            # scheduling acquires its own lock/transaction and must not run inside
+            # an outer @transaction (see ExecuteSqlCommand.submit_async).
+            if command_result["status"] == SqlJsonExecutionStatus.QUERY_IS_RUNNING:
+                command.submit_async()
+
             response_status = (
                 202
                 if command_result["status"] == SqlJsonExecutionStatus.QUERY_IS_RUNNING
@@ -611,9 +611,6 @@ class SqlLabRestApi(BaseSupersetApi):
         execution_context: SqlJsonExecutionContext, log_params: Optional[dict[str, Any]]
     ) -> ExecuteSqlCommand:
         query_dao = QueryDAO()
-        sql_json_executor = SqlLabRestApi._create_sql_json_executor(
-            execution_context, query_dao
-        )
         execution_context_convertor = ExecutionContextConvertor()
         execution_context_convertor.set_max_row_in_display(
             int(app.config.get("DISPLAY_MAX_ROW"))
@@ -624,24 +621,7 @@ class SqlLabRestApi(BaseSupersetApi):
             DatabaseDAO(),
             CanAccessQueryValidatorImpl(),
             SqlQueryRenderImpl(get_template_processor),
-            sql_json_executor,
             execution_context_convertor,
             app.config["SQLLAB_CTAS_NO_LIMIT"],
             log_params,
         )
-
-    @staticmethod
-    def _create_sql_json_executor(
-        execution_context: SqlJsonExecutionContext, query_dao: QueryDAO
-    ) -> SqlJsonExecutor:
-        sql_json_executor: SqlJsonExecutor
-        if execution_context.is_run_asynchronous():
-            sql_json_executor = ASynchronousSqlJsonExecutor(query_dao, get_sql_results)
-        else:
-            sql_json_executor = SynchronousSqlJsonExecutor(
-                query_dao,
-                get_sql_results,
-                app.config.get("SQLLAB_TIMEOUT"),
-                is_feature_enabled("SQLLAB_BACKEND_PERSISTENCE"),
-            )
-        return sql_json_executor

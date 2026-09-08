@@ -24,6 +24,16 @@ assists people when migrating to a new version.
 
 ## Next
 
+### SQL Lab query execution re-platformed onto the Global Task Framework (breaking)
+
+SQL Lab no longer runs queries on its own bespoke Celery task. Query execution now goes through the unified SQL execution feature (`superset/sql/execution/`): synchronous requests run it inline, and **asynchronous** requests run it as a Global Task Framework (GTF) task (`superset.sql_lab`, one task per query). As a result an executing async SQL Lab statement appears in the Task List and is cancellable from there, and stopping a query (SQL Lab's Stop button / `POST /api/v1/query/stop`) routes through the native GTF cancel.
+
+Breaking changes (no deprecation window):
+
+- **Async SQL Lab execution now requires the `GLOBAL_TASK_FRAMEWORK` feature flag.** With it disabled, a request that asks to run asynchronously returns a clear error rather than executing; synchronous execution is unaffected and needs no feature flag. (Async also continues to require a configured `RESULTS_BACKEND` and Celery workers, as before.)
+- The `sql_lab.get_sql_results` Celery task is removed, along with its `CeleryConfig.task_annotations` rate-limit entry and its entry in `CeleryConfig.imports`. Deployments that referenced `sql_lab.get_sql_results` in a custom `beat_schedule`/`task_annotations`/rate-limit override should drop it.
+- The internal functions `superset.sql_lab.execute_sql_statements` / `execute_query` and the module `superset.sqllab.sql_json_executer` (`SqlJsonExecutor`, `SynchronousSqlJsonExecutor`, `ASynchronousSqlJsonExecutor`) are removed. `superset.sql_lab` still exposes `get_query`, `handle_query_error`, and `cancel_query`.
+
 ### Global Async Queries re-platformed onto the Global Task Framework (breaking)
 
 Global Async Queries (GAQ) no longer runs on its own bespoke async-events

@@ -404,7 +404,7 @@ class TestSqlLabApi(SupersetTestCase):
 
     @mock.patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
     def test_execute_valid_request(self) -> None:
-        from superset import sql_lab as core
+        from superset.sql.execution import sqllab_executor as core
 
         core.results_backend = mock.Mock()
         core.results_backend.get.return_value = {}
@@ -424,7 +424,7 @@ class TestSqlLabApi(SupersetTestCase):
     @mock.patch(
         "tests.integration_tests.superset_test_custom_template_processors.datetime"
     )
-    @mock.patch("superset.sqllab.api.get_sql_results")
+    @mock.patch("superset.sql.execution.sqllab_executor.execute_sql_lab_query")
     def test_execute_custom_templated(self, sql_lab_mock, mock_dt) -> None:
         mock_dt.utcnow = mock.Mock(return_value=datetime.datetime(1970, 1, 1))
         self.login(ADMIN_USERNAME)

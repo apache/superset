@@ -138,48 +138,6 @@ def test_legacy_handle_query_error_payload_omits_stacktrace_when_disabled() -> N
 
 
 # ---------------------------------------------------------------------------
-# Legacy sql_lab — outer except in get_sql_results logs exc_info
-# ---------------------------------------------------------------------------
-
-
-def test_legacy_get_sql_results_outer_except_logs_exc_info() -> None:
-    """
-    The outer ``except Exception`` block in ``get_sql_results`` must log with
-    ``exc_info=True`` (or call ``logger.exception``) so that the full Python
-    traceback appears in Celery worker logs.
-
-    The current code at the time of filing calls:
-        logger.debug("Query %d: %s", query_id, ex)
-    which silently discards the traceback.
-
-    Regression for #28248.
-    """
-    # Inspect the source of get_sql_results to detect the logging call.
-    # This is a structural test: we verify the outer except block uses
-    # exc_info rather than a plain debug-level call.
-    import inspect
-
-    import superset.sql_lab as sql_lab_module
-
-    source = inspect.getsource(sql_lab_module.get_sql_results)
-
-    # The outer except must NOT rely solely on debug-without-exc_info.
-    # We check that the function uses logger.exception, or passes exc_info=True.
-    uses_exc_info = (
-        "logger.exception(" in source
-        or "exc_info=True" in source
-        or "exc_info=ex" in source
-    )
-
-    assert uses_exc_info, (
-        "get_sql_results must use logger.exception() or pass exc_info=True "
-        "in the outer except block so the traceback is preserved in Celery "
-        "worker logs (regression for #28248). "
-        "Found source:\n" + source
-    )
-
-
-# ---------------------------------------------------------------------------
 # New celery_task._handle_query_error — stacktrace present (SHOW_STACKTRACE=True)
 # ---------------------------------------------------------------------------
 

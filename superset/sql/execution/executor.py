@@ -62,7 +62,7 @@ import logging
 import time
 import uuid
 from datetime import datetime
-from typing import Any, NoReturn, TYPE_CHECKING
+from typing import Any, NoReturn, TYPE_CHECKING, TypeVar
 
 from flask import current_app as app, g, has_app_context
 from flask_babel import gettext as __
@@ -78,7 +78,7 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.extensions import cache_manager
-from superset.sql.parse import SQLScript
+from superset.sql.parse import CTASMethod, SQLScript, Table
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
@@ -92,7 +92,9 @@ if TYPE_CHECKING:
 
     from superset.db_engine_specs.base import BaseEngineSpec
     from superset.models.core import Database
+    from superset.models.sql_lab import Query
     from superset.result_set import SupersetResultSet
+    from superset.sql.parse import BaseSQLStatement
 
 logger = logging.getLogger(__name__)
 
@@ -260,6 +262,14 @@ def execute_sql_with_cursor(
         if log_query_fn:
             log_query_fn(stmt_sql, query.schema)
 
+        # Hand the live cursor to any active cancellation sink (a GTF task
+        # wrapping this execution) before the blocking execute, so it can capture
+        # an engine cancel id — the same seam ``Database.get_df`` uses for
+        # chart-data. A no-op when no sink is registered (e.g. the MCP sync path).
+        from superset.tasks.query_cancel import notify_cursor
+
+        notify_cursor(cursor)
+
         # Execute - use custom function or default
         if execute_fn:
             execute_fn(cursor, stmt_sql)
@@ -296,6 +306,58 @@ def execute_sql_with_cursor(
         db.session.commit()  # pylint: disable=consider-using-transaction
 
     return results
+
+
+S = TypeVar("S", bound="BaseSQLStatement[Any]")
+
+
+def apply_ctas(query: "Query", parsed_statement: S) -> S:
+    """
+    Apply CTAS/CVAS: rewrite the SELECT to materialize into the query's temp table.
+
+    Shared by the SQL executor and (until retired) the classic SQL Lab path so
+    both build the same ``CREATE TABLE/VIEW AS`` from the ``Query`` row.
+    """
+    if not query.tmp_table_name:
+        start_dttm = datetime.fromtimestamp(query.start_time)
+        prefix = f"tmp_{query.user_id}_table"
+        query.tmp_table_name = start_dttm.strftime(f"{prefix}_%Y_%m_%d_%H_%M_%S")
+
+    catalog = (
+        query.catalog
+        if query.database.db_engine_spec.supports_cross_catalog_queries
+        else None
+    )
+    table = Table(query.tmp_table_name, query.tmp_schema_name, catalog)
+    method = CTASMethod[query.ctas_method.upper()]
+
+    return parsed_statement.as_create_table(table, method)  # type: ignore[return-value]
+
+
+def apply_limit(query: "Query", parsed_statement: "BaseSQLStatement[Any]") -> None:
+    """
+    Apply the query's row limit to a statement, honoring ``SQLLAB_CTAS_NO_LIMIT``.
+
+    Shared by the SQL executor and (until retired) the classic SQL Lab path.
+    """
+    sqllab_ctas_no_limit = app.config["SQLLAB_CTAS_NO_LIMIT"]
+    sql_max_row = app.config["SQL_MAX_ROW"]
+
+    # Do not apply limit to the CTA queries when SQLLAB_CTAS_NO_LIMIT is set to true
+    if parsed_statement.is_mutating() or (
+        query.select_as_cta_used and sqllab_ctas_no_limit
+    ):
+        return
+
+    if sql_max_row and (not query.limit or query.limit > sql_max_row):
+        query.limit = sql_max_row
+
+    if query.limit:
+        parsed_statement.set_limit_value(
+            # fetch an extra row to inform user if there are more rows
+            query.limit + 1,
+            query.database.db_engine_spec.limit_method,
+        )
 
 
 class SQLExecutor:

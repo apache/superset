@@ -2626,3 +2626,86 @@ def test_store_in_cache_skips_when_identity_unknown(
     executor._store_in_cache(result, "SELECT * FROM salaries", QueryOptions())
 
     mock_cache_set.assert_not_called()
+
+
+# =============================================================================
+# Module-level apply_ctas / apply_limit tests
+# =============================================================================
+
+
+def test_apply_ctas_generates_tmp_table_name(app_context: None) -> None:
+    """``apply_ctas`` derives a temp table name and rewrites the last statement as
+    a ``CREATE TABLE AS``."""
+    from superset.sql.execution.executor import apply_ctas
+
+    query = MagicMock()
+    query.tmp_table_name = None
+    query.start_time = 1_600_000_000.0
+    query.user_id = 5
+    query.catalog = "cat"
+    query.tmp_schema_name = "sch"
+    query.ctas_method = "table"
+    query.database.db_engine_spec.supports_cross_catalog_queries = True
+    statement = MagicMock()
+
+    result = apply_ctas(query, statement)
+
+    # A temp table name was generated from the query start time.
+    assert query.tmp_table_name
+    statement.as_create_table.assert_called_once()
+    assert result is statement.as_create_table.return_value
+
+
+def test_apply_limit_returns_early_for_mutation(app_context: None) -> None:
+    """``apply_limit`` skips mutating statements entirely."""
+    from superset.sql.execution.executor import apply_limit
+
+    query = MagicMock()
+    statement = MagicMock()
+    statement.is_mutating.return_value = True
+
+    apply_limit(query, statement)
+
+    statement.set_limit_value.assert_not_called()
+
+
+def test_apply_limit_caps_at_sql_max_row(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """``apply_limit`` caps an over-large limit at ``SQL_MAX_ROW`` and applies it."""
+    from superset.sql.execution.executor import apply_limit
+
+    mocker.patch.dict(
+        current_app.config, {"SQL_MAX_ROW": 100, "SQLLAB_CTAS_NO_LIMIT": False}
+    )
+    query = MagicMock()
+    query.select_as_cta_used = False
+    query.limit = 500
+    statement = MagicMock()
+    statement.is_mutating.return_value = False
+
+    apply_limit(query, statement)
+
+    assert query.limit == 100
+    statement.set_limit_value.assert_called_once()
+
+
+def test_apply_limit_skips_when_no_limit(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """With no limit requested and no ``SQL_MAX_ROW`` cap, ``apply_limit`` applies
+    nothing to the statement."""
+    from superset.sql.execution.executor import apply_limit
+
+    mocker.patch.dict(
+        current_app.config, {"SQL_MAX_ROW": None, "SQLLAB_CTAS_NO_LIMIT": False}
+    )
+    query = MagicMock()
+    query.select_as_cta_used = False
+    query.limit = None
+    statement = MagicMock()
+    statement.is_mutating.return_value = False
+
+    apply_limit(query, statement)
+
+    statement.set_limit_value.assert_not_called()
