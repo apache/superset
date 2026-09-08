@@ -212,6 +212,33 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         Returns one of: "database", "semantic_layer", "all", or "empty".
         "empty" signals that the caller should short-circuit and return no results
         (used when the user explicitly requests semantic views but lacks access).
+
+        Resolution follows a single precedence order (highest to lowest). This
+        is what makes a dataset-only filter (schema/sql) combined with a
+        semantic-view result behave consistently across entry points, with one
+        deliberate exception noted below:
+
+        1. Access — a principal never sees a source type it cannot read; a
+           dataset-only filter applied by a user without dataset access yields
+           "empty" (nothing to match).
+        2. Explicit ``Source`` selection — an explicit ``source_type`` of
+           "database"/"semantic_layer" is authoritative and suppresses
+           otherwise-contradictory cross-type filters (a leftover Schema chip
+           becomes a no-op rather than a contradiction). This is the one place a
+           dataset-only filter is intentionally dropped instead of yielding
+           "empty".
+        3. Implicit narrowing and content filters — honest AND: a filter that
+           cannot match the resulting rows returns "empty" rather than being
+           silently dropped. This covers Type="Semantic View" + schema and the
+           semantic-layer-*connection* + schema route (see
+           ``_resolve_connection_source_type``).
+
+        Consequence: "views + schema=X" resolves to "empty" via the Type filter
+        and via a semantic-layer connection, but an explicit ``Source``="Semantic
+        layer" selection shows all views with the schema ignored (rule 2). A
+        views-only user hits rule 1 first, so the same explicit selection yields
+        "empty" for them — access restrictions outrank the explicit-selection
+        escape hatch. All intended.
         """
         if not self._can_read_semantic_views:
             # If the user explicitly asked for semantic views but cannot read them,
