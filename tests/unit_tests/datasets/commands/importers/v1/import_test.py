@@ -46,6 +46,8 @@ from superset.commands.dataset.importers.v1.utils import (
 from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.utils import json
 from superset.utils.core import override_user
@@ -628,6 +630,55 @@ def _dataset_config_with_children(
         "metrics": metrics,
         "columns": columns,
     }
+
+
+def test_import_dataset_virtual_checks_sql_table_access(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """A virtual dataset import validates access to the tables its SQL
+    references, matching the create and update commands, not only access to
+    the dataset object itself.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    def raise_for_access(*args: Any, **kwargs: Any) -> None:
+        # Deny only the SQL/table-level check; the datasource-level check passes.
+        if kwargs.get("sql"):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                    message="You need access to the following tables",
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+    mocker.patch.object(
+        security_manager, "raise_for_access", side_effect=raise_for_access
+    )
+
+    config = {
+        "table_name": "virtual_dataset",
+        "schema": "my_schema",
+        "catalog": "public",
+        "sql": "SELECT * FROM secret_table",
+        "params": None,
+        "template_params": None,
+        "filter_select_enabled": True,
+        "extra": {},
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    with pytest.raises(DatasetAccessDeniedError):
+        import_dataset(config)
 
 
 def test_import_dataset_schema_rejects_duplicate_metric_uuids() -> None:

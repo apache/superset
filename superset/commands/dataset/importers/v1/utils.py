@@ -45,7 +45,7 @@ from superset.commands.importers.v1.utils import find_existing_for_import
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.dataset import DatasetDAO
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
 from superset.models.helpers import ChildMultipleResultsFound
 from superset.sql.parse import Table
@@ -552,7 +552,16 @@ def import_dataset(  # noqa: C901
     if not ignore_permissions:
         try:
             security_manager.raise_for_access(datasource=dataset)
-        except SupersetSecurityException as ex:
+            # For virtual datasets, also validate access to the tables the
+            # SQL references, matching the create and update commands.
+            if dataset.sql:
+                security_manager.raise_for_access(
+                    database=dataset.database,
+                    sql=dataset.sql,
+                    catalog=dataset.catalog,
+                    schema=dataset.schema,
+                )
+        except (SupersetParseError, SupersetSecurityException) as ex:
             raise DatasetAccessDeniedError() from ex
 
     try:
