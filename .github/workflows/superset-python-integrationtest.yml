@@ -210,7 +210,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
       - name: Install dependencies
         uses: ./.github/actions/cached-dependencies
         with:
