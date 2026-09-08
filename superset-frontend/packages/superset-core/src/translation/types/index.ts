@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Jed as BaseJed, JedOptions, DomainData, Translations } from './jed';
+import type { Jed as BaseJed, JedOptions, DomainData, Translations } from './jed';
 
-export { Translations, DomainConfig, DomainData, JedOptions } from './jed';
+export type { Translations, DomainConfig, DomainData, JedOptions } from './jed';
 
 /**
  * Superset supported languages.
