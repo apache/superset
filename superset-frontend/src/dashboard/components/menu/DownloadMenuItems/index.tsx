@@ -34,7 +34,6 @@ import { MenuKeys, RootState } from 'src/dashboard/types';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import handleResourceExport from 'src/utils/export';
-import { redirect } from 'src/utils/navigationUtils';
 import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
@@ -211,6 +210,42 @@ export const useDownloadMenuItems = (
     }
   };
 
+  const triggerExportDownload = async (downloadUrl: string) => {
+    // Fetch the file and save it via an anchor instead of navigating: a link
+    // whose object is already gone answers a JSON error, and a navigation
+    // would replace the dashboard (fatal inside an embedded iframe) instead
+    // of surfacing a retryable toast.
+    const response = await SupersetClient.get({
+      endpoint: downloadUrl,
+      parseMethod: 'raw',
+    });
+    const disposition = response.headers.get('Content-Disposition');
+    let fileName = 'dashboard_export.xlsx';
+    if (disposition) {
+      try {
+        const parsed = parseContentDisposition(disposition);
+        if (parsed?.parameters?.filename) {
+          fileName = parsed.parameters.filename;
+        }
+      } catch (error) {
+        logging.warn('Failed to parse Content-Disposition header:', error);
+      }
+    }
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } finally {
+      window.URL.revokeObjectURL(url);
+    }
+  };
+
   const pollExportStatus = (jobId: string, pollState: ExportPollState) => {
     if (unmountedRef.current) {
       return;
@@ -231,8 +266,18 @@ export const useDownloadMenuItems = (
         } = json as ExportStatusResponse;
         if (status === 'ready') {
           if (downloadUrl) {
-            redirect(downloadUrl);
-            addSuccessToast(t('Your export is ready and downloading.'));
+            triggerExportDownload(downloadUrl)
+              .then(() =>
+                addSuccessToast(t('Your export is ready and downloading.')),
+              )
+              .catch(error => {
+                logging.error(error);
+                addDangerToast(
+                  t(
+                    'Your export could not be downloaded. It may have expired; please export again.',
+                  ),
+                );
+              });
           } else {
             addDangerToast(t('Sorry, something went wrong. Try again later.'));
           }
