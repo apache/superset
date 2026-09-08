@@ -21,7 +21,7 @@ from flask import request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import gettext as __
-from sqlalchemy import and_
+from sqlalchemy import and_, or_
 
 from superset import db
 from superset.models.sql_lab import Query, TableSchema, TabState
@@ -49,6 +49,28 @@ class SavedQueryView(BaseSupersetView):
 
 def _get_tab_user_id(tab_state_id: int) -> int | None:
     return db.session.query(TabState.user_id).filter_by(id=tab_state_id).scalar()
+
+
+# Columns a client may set through ``TabStateView.put``. Identity columns
+# (``id``, ``user_id``) are intentionally excluded so a tab state stays bound
+# to its creating user.
+_TAB_STATE_PUT_FIELDS = frozenset(
+    {
+        "label",
+        "active",
+        "database_id",
+        "catalog",
+        "schema",
+        "sql",
+        "query_limit",
+        "latest_query_id",
+        "autorun",
+        "template_params",
+        "hide_left_bar",
+        "saved_query_id",
+        "extra_json",
+    }
+)
 
 
 class TabStateView(BaseSupersetView):
@@ -153,7 +175,23 @@ class TabStateView(BaseSupersetView):
             return Response(status=403)
 
         try:
-            fields = {k: json.loads(v) for k, v in request.form.to_dict().items()}
+            fields = {
+                k: json.loads(v)
+                for k, v in request.form.to_dict().items()
+                if k in _TAB_STATE_PUT_FIELDS
+            }
+            # A latest_query_id may reference the requester's own query or an
+            # unowned one; drop it only when it points at a query owned by a
+            # different user.
+            latest_query_id = fields.get("latest_query_id")
+            if latest_query_id is not None:
+                query_owner_id = (
+                    db.session.query(Query.user_id)
+                    .filter_by(client_id=latest_query_id)
+                    .scalar()
+                )
+                if query_owner_id is not None and query_owner_id != get_user_id():
+                    del fields["latest_query_id"]
             db.session.query(TabState).filter_by(id=tab_state_id).update(fields)
             db.session.commit()
             return json_success(json.dumps(tab_state_id))
@@ -172,9 +210,10 @@ class TabStateView(BaseSupersetView):
                 return Response(status=403)
 
             client_id = json.loads(request.form["queryId"])
-            db.session.query(Query).filter_by(client_id=client_id).update(
-                {"sql_editor_id": tab_state_id}
-            )
+            db.session.query(Query).filter(
+                Query.client_id == client_id,
+                or_(Query.user_id == get_user_id(), Query.user_id.is_(None)),
+            ).update({"sql_editor_id": tab_state_id})
             db.session.commit()
             return json_success(json.dumps(tab_state_id))
         except Exception as ex:  # pylint: disable=broad-except
