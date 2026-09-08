@@ -4715,6 +4715,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # name is left untouched and still denied (there is no
                 # permission format to authorize it for these engines).
                 effective_catalog = table_.catalog
+                # The comparison below is intentionally exact, not case-
+                # folded. Whether two differently-cased identifiers refer to
+                # the same catalog/database is governed by the target
+                # engine's own identifier semantics (e.g. server/database
+                # collation on MSSQL, which can itself be configured
+                # case-sensitive) -- there is currently no engine-aware
+                # Superset abstraction to query that. ``denormalize_name``
+                # doesn't answer it either: it round-trips a name through
+                # SQLAlchemy's reflection layer for a specific dialect, not
+                # "are these two identifiers equal under this engine's
+                # collation." This is authorization logic, so a false
+                # positive (treating two genuinely distinct databases as the
+                # same one) would broaden access; a false negative just
+                # falls back to today's pre-existing denial. Exact matching
+                # is the safer default until a real engine-aware comparison
+                # exists -- see the PR discussion on #43974 for the
+                # case-insensitive alternative considered and rejected here.
                 if (
                     effective_catalog
                     and not database.db_engine_spec.supports_catalog
