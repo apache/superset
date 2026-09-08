@@ -41,7 +41,10 @@ from superset.commands.dataset.exceptions import (
     MultiCatalogDisabledValidationError,
 )
 from superset.commands.exceptions import ImportFailedError
-from superset.commands.importers.v1.utils import find_existing_for_import
+from superset.commands.importers.v1.utils import (
+    find_existing_by_import_identity,
+    find_existing_for_import,
+)
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.dataset import DatasetDAO
@@ -295,27 +298,12 @@ def import_dataset(  # noqa: C901
 
     existing = find_existing_for_import(SqlaTable, config["uuid"])
     if not existing and can_write:
-        # A config carrying a fresh UUID but a (database, catalog, schema,
-        # table) identity that already belongs to an active dataset would be
-        # matched-and-updated on that unique key by ``import_from_dict``,
-        # without passing through the overwrite gate below (which only ran on a
-        # UUID match). Resolve that collision to the existing dataset here so
-        # the same gate applies; align the UUID so the subsequent import updates
-        # that row deterministically. (Soft-deleted twins are handled in the
-        # create branch further down.)
-        active_twin = (
-            db.session.query(SqlaTable)
-            .filter_by(
-                database_id=config["database_id"],
-                catalog=config.get("catalog"),
-                schema=config.get("schema"),
-                table_name=config["table_name"],
-            )
-            .first()
-        )
-        if active_twin is not None:
-            config["uuid"] = str(active_twin.uuid)
-            existing = find_existing_for_import(SqlaTable, config["uuid"])
+        # A fresh UUID over the (database, catalog, schema, table) identity of
+        # an existing dataset is still matched-and-updated by
+        # ``import_from_dict``, so resolving only the UUID would leave that
+        # update ungated. Resolve the identity the same way the import will.
+        # (Soft-deleted twins are handled in the create branch further down.)
+        existing = find_existing_by_import_identity(SqlaTable, config)
     if existing:
         if existing.deleted_at is not None:
             # RESTORE path — re-importing a soft-deleted UUID is an implicit
@@ -543,10 +531,8 @@ def import_dataset(  # noqa: C901
         # raise so the operator can resolve the legacy-NULL-schema
         # ambiguity before re-uploading.
         if is_soft_deleted_match:
-            # ``is_soft_deleted_match`` is only ever set inside the
-            # ``if existing := ...`` walrus block, so ``existing`` is
-            # guaranteed non-None here. The assert pins the invariant
-            # for mypy.
+            # Set only inside the ``if existing:`` block above; the assert
+            # pins that invariant for mypy.
             assert existing is not None
             existing.deleted_at = original_deleted_at
             db.session.flush()
@@ -557,17 +543,20 @@ def import_dataset(  # noqa: C901
                 "manually before retrying."
             ) from ex
         # On the non-soft-deleted overwrite path the legacy contract
-        # holds: return the existing row unmodified. Bypasses the
-        # visibility filter so a soft-deleted duplicate can be located
-        # too — without the bypass the listener would hide the row and
-        # the ``.one()`` would raise NoResultFound, masking the
-        # original MultipleResultsFound.
-        dataset = (
-            db.session.query(SqlaTable)
-            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
-            .filter_by(uuid=config["uuid"])
-            .one()
-        )
+        # holds: return the existing row unmodified. Prefer the row already
+        # resolved above — on an identity match the incoming uuid belongs to
+        # no row at all, so looking it up again would raise NoResultFound and
+        # mask the original MultipleResultsFound. Falling back to the uuid
+        # lookup bypasses the visibility filter so a soft-deleted duplicate
+        # can still be located, for the same reason.
+        dataset = existing
+        if dataset is None:
+            dataset = (
+                db.session.query(SqlaTable)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+                .filter_by(uuid=config["uuid"])
+                .one()
+            )
 
     if dataset.id is None:
         db.session.flush()
