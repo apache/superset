@@ -290,7 +290,7 @@ class Superset(BaseSupersetView):
 
         if action == "overwrite" and not slice_overwrite_perm:
             return json_error_response(
-                _("You don't have the rights to alter this chart"),
+                __("You don't have the rights to alter this chart"),
                 status=403,
             )
 
@@ -302,7 +302,7 @@ class Superset(BaseSupersetView):
         # disclosed (see superset/commands/utils.py).
         if action == "overwrite" and slc is not None and slc.is_managed_externally:
             return json_error_response(
-                _("You don't have the rights to alter this chart"),
+                __("You don't have the rights to alter this chart"),
                 status=403,
             )
 
