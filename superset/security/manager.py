@@ -4942,8 +4942,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             else:
                 # Datasource-based fallback, published dashboards only —
                 # matching the list filter's fallback branch
-                # (superset/dashboards/filters.py), so a dashboard invisible
-                # in every list is not readable by direct URL, and emptying
+                # (superset/dashboards/filters.py), so an unpublished
+                # dashboard excluded by the fallback is not readable by
+                # direct URL (published chart-less dashboards stay directly
+                # readable while absent from lists — that asymmetry is
+                # intentional), and emptying
                 # the viewers list can no longer WIDEN access (the viewer
                 # branch above is published-gated; a fallback with no
                 # published gate would otherwise take over). Editors —
