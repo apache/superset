@@ -308,9 +308,9 @@ def _repeats_an_earlier_block(
 
     A ``force`` row is exempt: it is never reported as a repeat (see the
     return), so it is kept out of the duplicate category and marked a
-    survivor while its streak is current. This is not blanket immortality —
-    once the streak resolves, a force block ages on the operational window
-    like any other resolved-streak blocked row.
+    survivor while its streak is current. It is also exempt from operational
+    age-out (see :func:`_operational_candidates`), so an operator force-purge
+    block is retained permanently — never pruned by either category.
     """
     earlier: sa.FromClause = table.alias("earlier_block")
     between: sa.FromClause = table.alias("reason_change")
@@ -357,12 +357,12 @@ def _repeats_an_earlier_block(
     # scheduled same-reason blocks, so the pruner does not collapse a force row
     # either — it is never reported as a repeat. This keeps it out of the
     # duplicate category and (via ``sa.not_`` in the operational category) marks
-    # it a survivor while its streak is current. It is not blanket immortality:
-    # once the streak resolves the force block ages on the operational window
-    # like any resolved-streak blocked row, the confirmed/target_absent boundary
-    # being the durable record. A force row may still be the *earlier* anchor a
-    # later scheduled repeat collapses into — only the force row itself is
-    # protected from duplicate removal.
+    # it a survivor while its streak is current. It is also exempt from
+    # operational age-out (``_operational_candidates`` excludes force blocks), so
+    # a force block is retained permanently — full immortality for operator
+    # force-purge blocks. A force row may still be the *earlier* anchor a later
+    # scheduled repeat collapses into — only the force row itself is protected
+    # from duplicate removal.
     return sa.and_(table.c.trigger != TRIGGER_FORCE, repeats)
 
 
@@ -455,6 +455,11 @@ def _operational_candidates(
     streak is exactly the "blocked for years" case FR-009 protects — so this
     category needs the guard as much as the duplicate category does.
     ``failed`` rows neither join nor break streaks, so they are unaffected.
+
+    ``force`` blocked rows are exempt from age-out entirely: an operator
+    force-purge block is retained permanently, not just while its streak is
+    current, so it never ages at the cutoff. ``failed`` rows (force-triggered
+    or not) age normally.
     """
     table: sa.Table = PurgeAuditLog.__table__
     boundary: sa.Subquery = _streak_boundary_subquery(now)
@@ -472,6 +477,17 @@ def _operational_candidates(
             is_survivor,
         ),
     )
+    # A ``force`` blocked row never ages out — full immortality for operator
+    # force-purge blocks. It is already kept out of the duplicate category and
+    # marked a survivor while its streak is current; this extends the exemption
+    # to the operational window, so a *resolved*-streak force block is retained
+    # permanently rather than aged at the cutoff. (A longer-but-not-forever
+    # cleanup pass for these is a possible follow-up, deliberately out of scope.)
+    # ``force`` gates only ``blocked`` rows here; ``failed`` rows age normally.
+    force_block: sa.ColumnElement[bool] = sa.and_(
+        table.c.status == STATUS_BLOCKED,
+        table.c.trigger == TRIGGER_FORCE,
+    )
     return (
         sa.select(table.c.id)
         .select_from(_with_boundary(table, boundary))
@@ -479,6 +495,7 @@ def _operational_candidates(
         .where(table.c.created_on < cutoff)
         .where(table.c.created_on <= now)
         .where(sa.not_(unstable_block))
+        .where(sa.not_(force_block))
         # Oldest first, so a budget-truncated run makes progress on the
         # rows closest to expiry. (Blocked rows never outlive the boundary
         # that resolved them, but that is enforced by the boundary guard in

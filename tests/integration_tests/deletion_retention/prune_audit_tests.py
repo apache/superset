@@ -783,15 +783,15 @@ class TestPruneAudit(SupersetTestCase):
             "a later scheduled same-reason repeat should still be pruned"
         )
 
-    def test_resolved_streak_force_block_ages_on_operational_window(self) -> None:
-        """Scope boundary of the force exemption (characterization).
+    def test_force_block_survives_operational_window_permanently(self) -> None:
+        """A force block is never pruned by either category — full immortality.
 
-        The exemption protects a force block from duplicate collapse and, while
-        its streak is current, from operational aging. It is NOT blanket
-        immortality: once a confirmed/target_absent row breaks the streak, a
-        force block behind that boundary ages on the operational window like any
-        resolved-streak blocked row — the boundary is the durable evidence. If
-        this boundary is ever revisited, this is the test that pins it.
+        The exemption is blanket: a force block is kept out of duplicate
+        collapse AND out of operational age-out, even once a
+        confirmed/target_absent row breaks its streak. An operator force-purge
+        block older than the operational window therefore survives, alongside
+        the boundary that resolved it. (A longer-but-not-forever cleanup pass
+        for these is a possible follow-up, deliberately out of scope.)
         """
         force = self.add_row(
             STATUS_BLOCKED, age_days=100, reason=_REASON_A, trigger=audit.TRIGGER_FORCE
@@ -800,5 +800,8 @@ class TestPruneAudit(SupersetTestCase):
 
         self.run_prune(**{OPERATIONAL_RETENTION_KEY: 90})
         survivors = set(self.remaining_ids())
-        assert force not in survivors
+        assert force in survivors, (
+            "a resolved-streak force block must survive the operational window "
+            "(permanent immortality per the force exemption)"
+        )
         assert boundary in survivors
