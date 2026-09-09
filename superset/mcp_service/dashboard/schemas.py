@@ -1070,7 +1070,11 @@ class DashboardMutationErrorFields(BaseModel):
     error: str | None = Field(None, description="Error message, if operation failed")
     permission_denied: bool = Field(
         default=False,
-        description=("True when the user lacks edit rights on the target dashboard."),
+        description=(
+            "True when the user lacks edit rights on the target dashboard, "
+            "or the dashboard refuses the mutation (e.g. it is managed "
+            "externally)."
+        ),
     )
 
 

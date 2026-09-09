@@ -58,9 +58,10 @@ class TestManageDashboardCertification:
     ) -> None:
         """sc-120051: certification of a managed dashboard is refused.
 
-        This tool writes by direct attribute assignment + commit,
-        bypassing UpdateDashboardCommand's raise_if_managed_externally
-        gate — so the refusal lives in the tool, and nothing may be
+        The dashboard command layer does not yet enforce
+        is_managed_externally (apache/superset#44025 proposes that gate),
+        and this tool writes by direct attribute assignment + commit in
+        any case — so the refusal lives in the tool, and nothing may be
         assigned or committed on the refused path."""
         dash: Mock = _mock_dashboard(is_managed_externally=True)
         mock_get.return_value = dash
@@ -80,6 +81,33 @@ class TestManageDashboardCertification:
         assert payload["permission_denied"] is True
         assert "managed externally" in payload["error"]
         assert dash.certified_by is None
+        mock_session.commit.assert_not_called()
+
+    @patch(DAO_GET)
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_no_fields_on_managed_dashboard_still_inspects(
+        self, mock_session: Mock, mock_get: Mock, mcp_server: object
+    ) -> None:
+        """The no-field inspect path is not gated: reading changes nothing.
+
+        The refusal covers CHANGES only; a no-field call on a managed
+        dashboard returns current values (which the caller can read via
+        get_dashboard_info anyway) instead of a misleading denial."""
+        dash: Mock = _mock_dashboard(
+            certified_by="External Certifier", is_managed_externally=True
+        )
+        mock_get.return_value = dash
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "manage_dashboard_certification",
+                {"request": {"identifier": 42}},
+            )
+
+        payload: dict[str, Any] = json.loads(result.content[0].text)
+        assert payload.get("permission_denied") is not True
+        assert payload["certified_by"] == "External Certifier"
         mock_session.commit.assert_not_called()
 
     @patch(DAO_GET)

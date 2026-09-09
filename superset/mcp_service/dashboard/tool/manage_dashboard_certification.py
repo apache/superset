@@ -83,15 +83,25 @@ def manage_dashboard_certification(
         return auth_error
     assert dashboard is not None  # narrows for mypy
 
-    # Externally managed dashboards refuse certification changes: their
+    if request.certified_by is None and request.certification_details is None:
+        return ManageDashboardCertificationResponse(
+            certified_by=dashboard.certified_by,
+            certification_details=dashboard.certification_details,
+            dashboard_url=dashboard_url(dashboard),
+            changed_fields=[],
+            warnings=["No fields provided; dashboard unchanged."],
+        )
+
+    # Externally managed dashboards refuse certification CHANGES (the
+    # no-field inspect path above still returns current values): their
     # source of truth lives outside Superset, so a badge set here would be
     # overwritten (or drift from the certifying system) on the next
-    # external sync. This tool writes by direct attribute assignment +
-    # commit, bypassing UpdateDashboardCommand's shared
-    # raise_if_managed_externally gate, so the refusal must live here.
-    # Placed after the editorship check, mirroring the command-layer
-    # ordering: a caller with no edit rights keeps getting the plain
-    # editorship denial.
+    # external sync. The dashboard command layer does not yet enforce
+    # is_managed_externally (apache/superset#44025 proposes that gate for
+    # the ordinary update paths), and this tool writes by direct attribute
+    # assignment + commit in any case — so the refusal lives here, after
+    # the editorship check, where a caller with no edit rights keeps
+    # getting the plain editorship denial.
     if dashboard.is_managed_externally:
         return ManageDashboardCertificationResponse(
             permission_denied=True,
@@ -100,15 +110,6 @@ def manage_dashboard_certification(
                 "is managed externally; its certification is owned by the "
                 "external system and cannot be changed here."
             ),
-        )
-
-    if request.certified_by is None and request.certification_details is None:
-        return ManageDashboardCertificationResponse(
-            certified_by=dashboard.certified_by,
-            certification_details=dashboard.certification_details,
-            dashboard_url=dashboard_url(dashboard),
-            changed_fields=[],
-            warnings=["No fields provided; dashboard unchanged."],
         )
 
     changed_fields: list[str] = []
