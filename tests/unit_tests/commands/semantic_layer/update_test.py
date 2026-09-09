@@ -545,6 +545,26 @@ def test_unmask_configuration_rejects_secret_reveal_with_changed_field() -> None
         )
 
 
+def test_unmask_configuration_rejects_secret_reveal_with_new_none_valued_key() -> None:
+    """
+    A newly introduced key with an explicit ``None`` value must be treated
+    as a configuration change, the same as any other new/changed key --
+    ``dict.get(key)`` alone can't distinguish "key absent from storage" from
+    "key present and stored as None" (both return None), which would let
+    this slip through as "unchanged" and reveal the masked secret alongside
+    it.
+    """
+    with pytest.raises(SemanticLayerInvalidError):
+        _unmask_configuration(
+            '{"account": "prod-account", "password": "hunter2"}',
+            {
+                "account": "prod-account",
+                "password": PASSWORD_MASK,
+                "proxy_host": None,
+            },
+        )
+
+
 def test_unmask_configuration_allows_fresh_secret_with_changed_field() -> None:
     """
     A deliberate configuration change is still possible when a genuinely

@@ -15,11 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 import ipaddress
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from superset.utils.network import is_safe_host, is_safe_ip
+from superset.utils.network import (
+    get_ssrf_safe_requester,
+    is_safe_host,
+    is_safe_ip,
+    PeerValidatingHTTPAdapter,
+    SSRFProtectionError,
+)
 
 
 @pytest.mark.parametrize(
@@ -164,3 +170,64 @@ def test_is_safe_host_rejects_cgnat_range() -> None:
         return_value=[(None, None, None, None, ("100.100.100.200", 0))],
     ):
         assert is_safe_host("cgnat-host") is False
+
+
+def test_peer_validating_connection_blocks_rebound_peer() -> None:
+    """
+    A hostname that passes ``is_safe_host`` at validation time and then
+    re-resolves to an internal address by the time the connection is opened
+    (DNS rebinding) must be rejected before any request bytes are sent --
+    mirrors the equivalent test for webhook dispatch and dataset-import
+    data-URI fetches, which use the same pattern.
+    """
+    from urllib3.connection import HTTPConnection
+
+    from superset.utils.network import _PeerValidatingHTTPConnection
+
+    sock = MagicMock()
+    sock.getpeername.return_value = ("169.254.169.254", 80)
+
+    with patch.object(
+        HTTPConnection, "connect", lambda self: setattr(self, "sock", sock)
+    ):
+        conn = _PeerValidatingHTTPConnection("rebinder.example.com")
+        with pytest.raises(SSRFProtectionError):
+            conn.connect()
+
+
+def test_peer_validating_connection_allows_public_peer() -> None:
+    """A connection whose actual peer resolves to a public address is
+    allowed through unmodified."""
+    from urllib3.connection import HTTPConnection
+
+    from superset.utils.network import _PeerValidatingHTTPConnection
+
+    sock = MagicMock()
+    sock.getpeername.return_value = ("93.184.216.34", 80)  # example.com, public
+
+    with patch.object(
+        HTTPConnection, "connect", lambda self: setattr(self, "sock", sock)
+    ):
+        conn = _PeerValidatingHTTPConnection("example.com")
+        conn.connect()  # should not raise
+
+
+def test_get_ssrf_safe_requester_returns_plain_requests_when_allowed() -> None:
+    """
+    With ``allow_unsafe_hosts=True`` (an explicit, documented operator
+    opt-in), the plain ``requests`` module is returned -- no peer pinning.
+    """
+    import requests
+
+    assert get_ssrf_safe_requester(allow_unsafe_hosts=True) is requests
+
+
+def test_get_ssrf_safe_requester_pins_peer_by_default() -> None:
+    """
+    By default, ``get_ssrf_safe_requester`` returns a session whose adapters
+    validate the connected peer address rather than the plain ``requests``
+    module.
+    """
+    requester = get_ssrf_safe_requester()
+    assert isinstance(requester.get_adapter("http://x/"), PeerValidatingHTTPAdapter)
+    assert isinstance(requester.get_adapter("https://x/"), PeerValidatingHTTPAdapter)

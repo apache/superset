@@ -43,6 +43,10 @@ from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
+# Sentinel distinguishing "key absent" from "key present with value None"
+# when reading the stored configuration -- dict.get's own default can't.
+_MISSING = object()
+
 
 def _unmask_configuration(
     existing_raw_configuration: str | None,
@@ -93,8 +97,13 @@ def _unmask_configuration(
         for key, value in new_configuration.items()
         if value == PASSWORD_MASK and key in existing_configuration
     }
+    # `.get(key)` alone can't tell "key absent from storage" apart from "key
+    # present and stored as None" -- both return None -- so a newly
+    # introduced key with an explicit None value would be misread as
+    # unchanged and let a masked secret slip through alongside it. A
+    # sentinel default makes that distinction explicit.
     if masked_keys and any(
-        key not in masked_keys and existing_configuration.get(key) != value
+        key not in masked_keys and existing_configuration.get(key, _MISSING) != value
         for key, value in new_configuration.items()
     ):
         raise SemanticLayerInvalidError(

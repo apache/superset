@@ -1061,7 +1061,7 @@ def test_get_oauth2_token_without_pkce(mocker: MockerFixture) -> None:
     """
     from superset.db_engine_specs.base import BaseEngineSpec
 
-    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post = _mock_requester(mocker).return_value.post
     mock_post.return_value.json.return_value = {
         "access_token": "test-access-token",  # noqa: S105
         "expires_in": 3600,
@@ -1094,7 +1094,7 @@ def test_get_oauth2_token_with_pkce(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.base import BaseEngineSpec
     from superset.utils.oauth2 import generate_code_verifier
 
-    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post = _mock_requester(mocker).return_value.post
     mock_post.return_value.json.return_value = {
         "access_token": "test-access-token",  # noqa: S105
         "expires_in": 3600,
@@ -1178,7 +1178,7 @@ def test_get_oauth2_token_additional_params(mocker: MockerFixture) -> None:
             "audience": "https://api.example.com",
         }
 
-    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post = _mock_requester(mocker).return_value.post
     mock_post.return_value.json.return_value = {
         "access_token": "test-access-token",  # noqa: S105
         "expires_in": 3600,
@@ -1215,7 +1215,7 @@ def test_get_oauth2_fresh_token_success(mocker: MockerFixture) -> None:
     """
     from superset.db_engine_specs.base import BaseEngineSpec
 
-    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post = _mock_requester(mocker).return_value.post
     mock_post.return_value.status_code = 200
     mock_post.return_value.json.return_value = {
         "access_token": "new-access-token",
@@ -1246,7 +1246,7 @@ def test_get_oauth2_fresh_token_raises_on_invalid_grant(
     from superset.db_engine_specs.base import BaseEngineSpec
     from superset.exceptions import OAuth2TokenRefreshError
 
-    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post = _mock_requester(mocker).return_value.post
     mock_post.return_value.status_code = 400
     mock_post.return_value.json.return_value = {"error": "invalid_grant"}
 
@@ -1280,7 +1280,7 @@ def test_get_oauth2_fresh_token_preserves_token_on_ambiguous_error(
 
     from superset.db_engine_specs.base import BaseEngineSpec
 
-    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post = _mock_requester(mocker).return_value.post
     mock_post.return_value.status_code = status_code
     mock_post.return_value.json.return_value = {"error": error}
     mock_post.return_value.raise_for_status.side_effect = HTTPError()
@@ -1309,7 +1309,7 @@ def test_get_oauth2_fresh_token_raises_on_server_error(mocker: MockerFixture) ->
 
     from superset.db_engine_specs.base import BaseEngineSpec
 
-    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post = _mock_requester(mocker).return_value.post
     mock_post.return_value.status_code = 500
     mock_post.return_value.raise_for_status.side_effect = HTTPError("500 Server Error")
 
@@ -1325,6 +1325,15 @@ def test_get_oauth2_fresh_token_raises_on_server_error(mocker: MockerFixture) ->
 
     with pytest.raises(HTTPError):
         BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
+
+
+def _mock_requester(mocker: MockerFixture) -> Any:
+    """
+    Patch ``get_ssrf_safe_requester`` where ``base.py`` looks it up and
+    return the mock, so callers can configure ``.return_value.post`` and/or
+    assert whether (and how) a requester was obtained at all.
+    """
+    return mocker.patch("superset.db_engine_specs.base.get_ssrf_safe_requester")
 
 
 def _oauth2_config_targeting(uri: str) -> OAuth2ClientConfig:
@@ -1348,14 +1357,14 @@ def test_get_oauth2_token_rejects_unsafe_host(mocker: MockerFixture) -> None:
     must be refused rather than silently reaching it.
     """
     mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=False)
-    mock_requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = _mock_requester(mocker)
 
     config = _oauth2_config_targeting("http://169.254.169.254/latest/meta-data/")
 
     with pytest.raises(OAuth2Error):
         BaseEngineSpec.get_oauth2_token(config, "code")
 
-    mock_requests.post.assert_not_called()
+    mock_get_requester.assert_not_called()
 
 
 def test_get_oauth2_fresh_token_rejects_unsafe_host(mocker: MockerFixture) -> None:
@@ -1363,14 +1372,14 @@ def test_get_oauth2_fresh_token_rejects_unsafe_host(mocker: MockerFixture) -> No
     Same protection as ``get_oauth2_token``, for the refresh-token exchange.
     """
     mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=False)
-    mock_requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = _mock_requester(mocker)
 
     config = _oauth2_config_targeting("http://10.0.0.5/token")
 
     with pytest.raises(OAuth2Error):
         BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
 
-    mock_requests.post.assert_not_called()
+    mock_get_requester.assert_not_called()
 
 
 def test_get_oauth2_authorization_uri_rejects_unsafe_host(
@@ -1400,7 +1409,7 @@ def test_oauth2_endpoint_rejects_non_http_scheme(mocker: MockerFixture) -> None:
     A non-http(s) scheme is refused outright, before any host resolution.
     """
     is_safe_host = mocker.patch("superset.db_engine_specs.base.is_safe_host")
-    mock_requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mock_get_requester = _mock_requester(mocker)
 
     config = _oauth2_config_targeting("file:///etc/passwd")
 
@@ -1408,7 +1417,7 @@ def test_oauth2_endpoint_rejects_non_http_scheme(mocker: MockerFixture) -> None:
         BaseEngineSpec.get_oauth2_token(config, "code")
 
     is_safe_host.assert_not_called()
-    mock_requests.post.assert_not_called()
+    mock_get_requester.assert_not_called()
 
 
 def test_oauth2_endpoint_allows_internal_host_when_configured(
@@ -1424,7 +1433,8 @@ def test_oauth2_endpoint_allows_internal_host_when_configured(
         {"DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS": True},
     )
     is_safe_host = mocker.patch("superset.db_engine_specs.base.is_safe_host")
-    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_get_requester = _mock_requester(mocker)
+    mock_post = mock_get_requester.return_value.post
     mock_post.return_value.json.return_value = {
         "access_token": "access-token",
         "expires_in": 3600,
@@ -1435,7 +1445,100 @@ def test_oauth2_endpoint_allows_internal_host_when_configured(
     BaseEngineSpec.get_oauth2_token(config, "code")
 
     is_safe_host.assert_not_called()
+    mock_get_requester.assert_called_once_with(allow_unsafe_hosts=True)
     mock_post.assert_called_once()
+
+
+def test_oauth2_endpoint_scheme_check_applies_even_with_internal_hosts_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS widens which *hosts* are acceptable,
+    not which URI *schemes* are -- a non-http(s) scheme (e.g. ``file://``)
+    must still be refused even when that flag is set.
+    """
+    mocker.patch.dict(
+        "superset.db_engine_specs.base.app.config",
+        {"DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS": True},
+    )
+    is_safe_host = mocker.patch("superset.db_engine_specs.base.is_safe_host")
+    mock_get_requester = _mock_requester(mocker)
+
+    config = _oauth2_config_targeting("file:///etc/passwd")
+
+    with pytest.raises(OAuth2Error):
+        BaseEngineSpec.get_oauth2_token(config, "code")
+
+    is_safe_host.assert_not_called()
+    mock_get_requester.assert_not_called()
+
+
+def test_oauth2_endpoint_malformed_uri_raises_oauth2_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``urlparse`` raises a bare ``ValueError`` (not caught anywhere upstream
+    of ``get_oauth2_authorization_uri``) for malformed IPv6 bracket syntax.
+    That must surface as ``OAuth2Error`` rather than an uncaught ValueError.
+    """
+    is_safe_host = mocker.patch("superset.db_engine_specs.base.is_safe_host")
+
+    config = _oauth2_config_targeting("http://[::1/authorize")
+    state: OAuth2State = {
+        "database_id": 1,
+        "user_id": 1,
+        "default_redirect_uri": "http://localhost:8088/api/v1/oauth2/",
+        "tab_id": "1234",
+    }
+
+    with pytest.raises(OAuth2Error):
+        BaseEngineSpec.get_oauth2_authorization_uri(config, state)
+
+    is_safe_host.assert_not_called()
+
+
+def test_get_oauth2_token_does_not_follow_redirects(mocker: MockerFixture) -> None:
+    """
+    A hostname check alone doesn't stop a server at that (safe) host from
+    responding with a 30x that redirects the actual request -- carrying
+    ``client_secret`` -- to an internal target. The request must be made
+    with ``allow_redirects=False``.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=True)
+    mock_get_requester = _mock_requester(mocker)
+    mock_post = mock_get_requester.return_value.post
+    mock_post.return_value.json.return_value = {
+        "access_token": "access-token",
+        "expires_in": 3600,
+    }
+
+    config = _oauth2_config_targeting("https://oauth.example.com/token")
+
+    BaseEngineSpec.get_oauth2_token(config, "code")
+
+    mock_get_requester.assert_called_once_with(allow_unsafe_hosts=False)
+    assert mock_post.call_args.kwargs["allow_redirects"] is False
+
+
+def test_get_oauth2_fresh_token_does_not_follow_redirects(
+    mocker: MockerFixture,
+) -> None:
+    """Same protection as ``get_oauth2_token``, for the refresh-token exchange."""
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=True)
+    mock_get_requester = _mock_requester(mocker)
+    mock_post = mock_get_requester.return_value.post
+    mock_post.return_value.status_code = 200
+    mock_post.return_value.json.return_value = {
+        "access_token": "access-token",
+        "expires_in": 3600,
+    }
+
+    config = _oauth2_config_targeting("https://oauth.example.com/token")
+
+    BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
+
+    mock_get_requester.assert_called_once_with(allow_unsafe_hosts=False)
+    assert mock_post.call_args.kwargs["allow_redirects"] is False
 
 
 def test_start_oauth2_dance_uses_config_redirect_uri(mocker: MockerFixture) -> None:
