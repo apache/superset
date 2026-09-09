@@ -15677,7 +15677,7 @@ msgid ""
 "one dataset with a table.\n"
 msgstr ""
 "Esta tabela já possui um conjunto de dados associado a ela. Você só pode "
-"associar um conjunto de dados a uma tabela."
+"associar um conjunto de dados a uma tabela.\n"
 
 msgid "This theme is set locally"
 msgstr "Esse tema está definido localmente"
