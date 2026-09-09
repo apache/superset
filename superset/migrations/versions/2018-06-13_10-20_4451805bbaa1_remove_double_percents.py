@@ -68,7 +68,7 @@ class Database(Base):
 
 
 def replace(source, target):
-    with db.Session(bind=op.get_bind(), future=True) as session:
+    with db.Session(bind=op.get_bind()) as session:
         with session.begin():
             query = (
                 session.query(Slice, Database)
@@ -80,7 +80,7 @@ def replace(source, target):
 
             for slc, database in query:
                 try:
-                    engine = create_engine(database.sqlalchemy_uri, future=True)
+                    engine = create_engine(database.sqlalchemy_uri)
 
                     if engine.dialect.identifier_preparer._double_percents:
                         params = json.loads(slc.params)

@@ -34,8 +34,12 @@ from superset.utils.screenshot_utils import (
     CHART_CONTAINER_READY_JS,
     CHART_CONTAINER_STATE_JS,
     CHART_HOLDERS_READY_JS,
+    EXPAND_SCROLLABLE_CONTENT_JS,
+    EXPAND_SCROLLABLE_CONTENT_MAX_WAIT_SECONDS,
+    FIND_ALL_UNREADY_CHART_HOLDERS_JS,
     FIND_CHART_HOLDER_STATES_JS,
-    REPORT_CHART_HOLDERS_READY_JS,
+    FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS,
+    REPORT_ALL_CHART_HOLDERS_READY_JS,
     resolve_screenshot_task_budget_seconds,
     ScreenshotTaskBudgetExceededError,
     take_tiled_screenshot,
@@ -237,6 +241,43 @@ class WebDriverPlaywright(WebDriverProxy):
             return element.screenshot(**timeout_kwargs)
 
     @staticmethod
+    def _expand_scrollable_content(
+        page: Page,
+        log_context: str | None = None,
+        report_execution_context: ReportExecutionContext | None = None,
+    ) -> None:
+        """
+        Un-clip chart content that is fully present in the DOM but visually
+        cropped by a fixed height + internal scrollbar (e.g. a table taller
+        than the space its dashboard tile gives it) before the page is
+        captured.
+
+        The ag-Grid branch of this step polls for a stable row count, so it
+        is bounded by the report's own deadline the same way every other
+        wait in this method is, rather than an unconditional fixed sleep.
+
+        Best-effort: a failure here should not abort the screenshot, since a
+        clipped-but-present capture beats none at all.
+        """
+        max_wait_seconds = (
+            report_execution_context.deadline.timeout_seconds(
+                "scrollable_content_expansion",
+                requested_seconds=EXPAND_SCROLLABLE_CONTENT_MAX_WAIT_SECONDS,
+                reserve_seconds=report_execution_context.readiness_reserve_seconds,
+            )
+            if report_execution_context
+            else EXPAND_SCROLLABLE_CONTENT_MAX_WAIT_SECONDS
+        )
+        try:
+            page.evaluate(EXPAND_SCROLLABLE_CONTENT_JS, max_wait_seconds * 1000)
+        except PlaywrightError:
+            logger.warning(
+                "Failed to expand scrollable chart content before screenshot%s",
+                f" [{log_context}]" if log_context else "",
+                exc_info=True,
+            )
+
+    @staticmethod
     def _wait_for_charts_ready(  # noqa: C901
         page: Page,
         url: str,
@@ -382,7 +423,19 @@ class WebDriverPlaywright(WebDriverProxy):
         if element_name == "chart-container":
             readiness_predicate = CHART_CONTAINER_READY_JS
         elif report_execution_context:
-            readiness_predicate = REPORT_CHART_HOLDERS_READY_JS
+            # This non-tiled path captures the whole element in one shot
+            # (`_get_screenshot` uses `full_page=True` / `element.screenshot()`),
+            # so below-the-fold holders end up in the image. Force every
+            # virtualized row to render up front -- mirroring the client-side
+            # "Download as Image/PDF" path -- and then require *all* mounted
+            # holders (not just the viewport-visible ones) to reach a terminal
+            # state. If an off-screen holder never renders, the wait times out
+            # and the report fails loudly instead of silently delivering a
+            # blank/partial screenshot as a Success. The tiled path keeps the
+            # viewport-scoped predicate because it scrolls each region into view
+            # before capturing it.
+            page.evaluate(FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS)
+            readiness_predicate = REPORT_ALL_CHART_HOLDERS_READY_JS
         else:
             # Preserve the thumbnail behavior introduced by #42253. The
             # stricter zero-holder gate is report-specific because an empty
@@ -430,6 +483,16 @@ class WebDriverPlaywright(WebDriverProxy):
             ready_holders = sum(
                 holder.get("state") in ready_states for holder in chart_holder_states
             )
+            # `FIND_CHART_HOLDER_STATES_JS` short-circuits off-screen holders to
+            # "virtualized" (counted as ready above), so on the report path -- a
+            # full-page capture that includes below-the-fold holders -- the real
+            # culprits (off-screen holders that never rendered) would be hidden.
+            # Surface them explicitly using the non-viewport-scoped scan.
+            below_fold_unready = (
+                page.evaluate(FIND_ALL_UNREADY_CHART_HOLDERS_JS)
+                if report_execution_context
+                else unready_chart_holders
+            )
             deadline_elapsed = deadline.elapsed_seconds if deadline else elapsed
             deadline_remaining = (
                 deadline.remaining_seconds if deadline else remaining_budget
@@ -438,7 +501,8 @@ class WebDriverPlaywright(WebDriverProxy):
                 "report_readiness_terminal url=%s expected_holders=%s "
                 "mounted_holders=%s ready_holders=%s elapsed_seconds=%.2f "
                 "remaining_seconds=%s effective_wait_seconds=%.2f%s "
-                "terminal_reason=readiness_timeout unready_holders=%s states=%s; "
+                "terminal_reason=readiness_timeout unready_holders=%s "
+                "all_unready_holders=%s states=%s; "
                 "aborting before capture or delivery",
                 url,
                 expected_holders,
@@ -453,6 +517,7 @@ class WebDriverPlaywright(WebDriverProxy):
                 effective_load_wait,
                 context_suffix,
                 unready_chart_holders,
+                below_fold_unready,
                 chart_holder_states,
             )
             raise
@@ -686,6 +751,19 @@ class WebDriverPlaywright(WebDriverProxy):
                             unexpected_errors,
                             context_suffix,
                         )
+                # Un-clip scrollable/virtualized chart content (dense tables
+                # taller than their dashboard tile) before measuring height,
+                # so the tiling decision below sees the full content when
+                # possible. A chart whose ag-Grid hasn't fired GridReady yet
+                # at this point is re-expanded below, after readiness --
+                # `.chart-container` elements attaching (waited on above) is
+                # not the same as ag-Grid finishing its own internal init.
+                WebDriverPlaywright._expand_scrollable_content(
+                    page,
+                    log_context=log_context,
+                    report_execution_context=report_execution_context,
+                )
+
                 # Detect large dashboards and use tiled screenshots if enabled
                 tiled_enabled = app.config.get("SCREENSHOT_TILED_ENABLED", False)
 
@@ -747,9 +825,21 @@ class WebDriverPlaywright(WebDriverProxy):
                             context_suffix,
                         )
 
-                    # Use tiled screenshots for large dashboards
+                    # Use tiled screenshots for large dashboards. For scheduled
+                    # reports a likely-large dashboard whose measured height is
+                    # at or below a single tile is almost always mid-layout
+                    # (charts still virtualized/collapsed at measurement time),
+                    # not genuinely short -- a 52-chart dashboard is never really
+                    # <one viewport tall. Routing it to the single-shot,
+                    # full-page non-tiled capture risks shipping a windowed
+                    # partial render. Prefer the tiled path, which scrolls every
+                    # region into view and waits per tile; worst case it is a
+                    # single tile. The tiled decision for thumbnails is
+                    # unchanged.
                     use_tiled = likely_large_dashboard and (
-                        height_unknown or dashboard_height > tile_height
+                        height_unknown
+                        or dashboard_height > tile_height
+                        or report_execution_context is not None
                     )
 
                     if use_tiled:
@@ -827,6 +917,14 @@ class WebDriverPlaywright(WebDriverProxy):
                             screenshot_started_at=screenshot_started_at,
                             report_execution_context=report_execution_context,
                         )
+                        # Re-run now that readiness has confirmed every chart
+                        # actually rendered: a grid whose GridReady hadn't
+                        # fired yet at the earlier call above is expanded here.
+                        WebDriverPlaywright._expand_scrollable_content(
+                            page,
+                            log_context=log_context,
+                            report_execution_context=report_execution_context,
+                        )
                         if selenium_animation_wait > 0:
                             if report_execution_context:
                                 selenium_animation_wait = min(
@@ -889,6 +987,14 @@ class WebDriverPlaywright(WebDriverProxy):
                         element_name,
                         log_context=log_context,
                         screenshot_started_at=screenshot_started_at,
+                        report_execution_context=report_execution_context,
+                    )
+                    # Re-run now that readiness has confirmed every chart
+                    # actually rendered: a grid whose GridReady hadn't fired
+                    # yet at the earlier call above is expanded here.
+                    WebDriverPlaywright._expand_scrollable_content(
+                        page,
+                        log_context=log_context,
                         report_execution_context=report_execution_context,
                     )
                     if selenium_animation_wait > 0:

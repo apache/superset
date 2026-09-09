@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { DataRecord, DTTM_ALIAS, ValueFormatter } from '@superset-ui/core';
+import {
+  DataRecord,
+  DTTM_ALIAS,
+  truncateLabel,
+  TooltipTruncationMode,
+  ValueFormatter,
+} from '@superset-ui/core';
 import type { OptionName, SeriesOption } from 'echarts/types/src/util/types';
 import type { TooltipMarker } from 'echarts/types/src/util/format';
 import {
@@ -52,6 +58,21 @@ export const extractForecastSeriesContexts = (
       return { ...agg, [context.name]: currentContexts };
     },
     {} as { [key: string]: ForecastSeriesEnum[] },
+  );
+
+/**
+ * Collapses raw ECharts series ids onto the names used to key tooltip rows.
+ *
+ * Tooltip values are grouped by forecast-stripped name, so any ordering derived
+ * from the raw series ids has to be expressed in the same terms before it can be
+ * matched against them. This matters beyond real Prophet output: a metric simply
+ * labelled `ci__yhat_lower` collapses to `ci` exactly like a forecast bound
+ * does, and a chart whose every series carries such a suffix has no id that
+ * survives the comparison untouched.
+ */
+export const collapseForecastKeys = (seriesIds: string[]): string[] =>
+  Array.from(
+    new Set(seriesIds.map(id => extractForecastSeriesContext(id).name)),
   );
 
 export const extractForecastValuesFromTooltipParams = (
@@ -91,12 +112,16 @@ export const formatForecastTooltipSeries = ({
   forecastUpper,
   marker,
   formatter,
+  truncation = 'end',
 }: ForecastValue & {
   seriesName: string;
   marker: TooltipMarker;
   formatter: ValueFormatter;
+  truncation?: TooltipTruncationMode;
 }): string[] => {
-  const name = `${marker}${sanitizeHtml(seriesName)}`;
+  // Truncate before sanitizing and before the marker is prepended: slicing a
+  // string that already contains markup would cut into the marker's tag.
+  const name = `${marker}${sanitizeHtml(truncateLabel(seriesName, truncation))}`;
   let value = typeof observation === 'number' ? formatter(observation) : '';
   // Use finite-number checks rather than truthiness so that legitimate
   // zero values (e.g. a forecast that crosses zero, or a confidence bound of

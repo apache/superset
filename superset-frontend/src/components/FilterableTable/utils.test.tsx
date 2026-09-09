@@ -64,6 +64,35 @@ test('should render cellData value for default cell data', () => {
   expect(container).toHaveTextContent('regular_text');
 });
 
+test('should render HTML cell data as inert text by default', () => {
+  const { container } = render(
+    <>
+      {renderResultCell({
+        cellData: '<img src="https://attacker.example/beacon.gif" />link',
+        columnKey: 'a',
+      })}
+    </>,
+  );
+  expect(container.querySelector('img')).not.toBeInTheDocument();
+  expect(container).toHaveTextContent(
+    '<img src="https://attacker.example/beacon.gif" />link',
+  );
+});
+
+test('should render sanitized HTML only when allowHTML is explicitly enabled', () => {
+  const { container } = render(
+    <>
+      {renderResultCell({
+        cellData: '<b>bold</b>',
+        columnKey: 'a',
+        allowHTML: true,
+      })}
+    </>,
+  );
+  expect(container.querySelector('b')).toBeInTheDocument();
+  expect(container).toHaveTextContent('bold');
+});
+
 test('should transform cell data by getCellContent for the regular text', () => {
   const { container } = render(
     <>

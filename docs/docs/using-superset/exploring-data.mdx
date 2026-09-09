@@ -151,6 +151,20 @@ see some data!
 You should see months in the rows and Department and Travel Class in the columns. Publish this chart
 to your existing Tutorial Dashboard you created earlier.
 
+:::note
+Row and column totals/subtotals for the Pivot Table are correct even for non-additive metrics,
+such as ratios (`SUM(a)/SUM(b)`), `COUNT_DISTINCT`, `AVG`, and percentiles, not just additive ones
+like `SUM` or `COUNT`. Totals derive client-side, by reducing the same full-detail query results
+used to build the table, only when every selected metric is additive; if any selected metric is
+non-additive, Superset instead issues a database query at each total's own granularity for all
+metrics, so the total reflects each metric's own definition evaluated at that level rather than an
+incorrect combination of the displayed cells. Because of this, there's no separate "Aggregation
+function" control for totals in the Pivot Table: a total always reflects the metric's own
+definition. The Table chart's **Show summary** row is different: its **Summary aggregation**
+control can override a simple metric's own aggregation (to Sum or Average) for the summary row
+only — metrics built from custom SQL keep their own aggregation regardless.
+:::
+
 ### Line Chart
 
 In this section, we are going to create a line chart to understand the average price of a ticket by

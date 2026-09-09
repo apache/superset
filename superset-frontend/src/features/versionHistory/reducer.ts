@@ -18,6 +18,8 @@
  */
 import type {
   ActivityInclude,
+  AutomaticNormalizationTransitions,
+  ChartNormalizationTrackingState,
   SessionLogEntry,
   VersionedEntityType,
   VersionHistoryState,
@@ -33,6 +35,12 @@ export const VERSION_PREVIEW_APPLIED = 'VERSION_PREVIEW_APPLIED';
 export const VERSION_RESTORED = 'VERSION_RESTORED';
 export const APPEND_VERSION_SESSION_LOG = 'APPEND_VERSION_SESSION_LOG';
 export const CLEAR_VERSION_SESSION_LOG = 'CLEAR_VERSION_SESSION_LOG';
+export const HYDRATE_CHART_NORMALIZATION = 'HYDRATE_CHART_NORMALIZATION';
+export const INVALIDATE_CHART_NORMALIZATION_CONTROLS =
+  'INVALIDATE_CHART_NORMALIZATION_CONTROLS';
+export const BEGIN_CHART_NORMALIZATION_SAVE = 'BEGIN_CHART_NORMALIZATION_SAVE';
+export const COMPLETE_CHART_NORMALIZATION_SAVE =
+  'COMPLETE_CHART_NORMALIZATION_SAVE';
 
 /** Upper bound on retained unsaved-edit entries; older ones drop off. */
 export const MAX_SESSION_LOG_ENTRIES = 50;
@@ -86,6 +94,31 @@ interface ClearSessionLogAction {
   type: typeof CLEAR_VERSION_SESSION_LOG;
 }
 
+interface HydrateChartNormalizationAction {
+  type: typeof HYDRATE_CHART_NORMALIZATION;
+  tracking: ChartNormalizationTrackingState;
+}
+
+interface InvalidateChartNormalizationControlsAction {
+  type: typeof INVALIDATE_CHART_NORMALIZATION_CONTROLS;
+  controls: string[];
+}
+
+interface BeginChartNormalizationSaveAction {
+  type: typeof BEGIN_CHART_NORMALIZATION_SAVE;
+  chartId: number;
+  hydrationSessionId: string;
+  saveAttemptId: string;
+}
+
+interface CompleteChartNormalizationSaveAction {
+  type: typeof COMPLETE_CHART_NORMALIZATION_SAVE;
+  chartId: number;
+  hydrationSessionId: string;
+  saveAttemptId: string;
+  transitions: AutomaticNormalizationTransitions;
+}
+
 export type VersionHistoryAction =
   | OpenPanelAction
   | ClosePanelAction
@@ -95,7 +128,11 @@ export type VersionHistoryAction =
   | PreviewAppliedAction
   | VersionRestoredAction
   | AppendSessionLogAction
-  | ClearSessionLogAction;
+  | ClearSessionLogAction
+  | HydrateChartNormalizationAction
+  | InvalidateChartNormalizationControlsAction
+  | BeginChartNormalizationSaveAction
+  | CompleteChartNormalizationSaveAction;
 
 export const openVersionHistoryPanel = (
   entityType: VersionedEntityType,
@@ -161,6 +198,44 @@ export const clearVersionSessionLog = (): ClearSessionLogAction => ({
   type: CLEAR_VERSION_SESSION_LOG,
 });
 
+export const hydrateChartNormalization = (
+  tracking: ChartNormalizationTrackingState,
+): HydrateChartNormalizationAction => ({
+  type: HYDRATE_CHART_NORMALIZATION,
+  tracking,
+});
+
+export const invalidateChartNormalizationControls = (
+  controls: string[],
+): InvalidateChartNormalizationControlsAction => ({
+  type: INVALIDATE_CHART_NORMALIZATION_CONTROLS,
+  controls,
+});
+
+export const beginChartNormalizationSave = (
+  chartId: number,
+  hydrationSessionId: string,
+  saveAttemptId: string,
+): BeginChartNormalizationSaveAction => ({
+  type: BEGIN_CHART_NORMALIZATION_SAVE,
+  chartId,
+  hydrationSessionId,
+  saveAttemptId,
+});
+
+export const completeChartNormalizationSave = (
+  chartId: number,
+  hydrationSessionId: string,
+  saveAttemptId: string,
+  transitions: AutomaticNormalizationTransitions,
+): CompleteChartNormalizationSaveAction => ({
+  type: COMPLETE_CHART_NORMALIZATION_SAVE,
+  chartId,
+  hydrationSessionId,
+  saveAttemptId,
+  transitions,
+});
+
 const initialState: VersionHistoryState = {
   isPanelOpen: false,
   entityType: null,
@@ -170,6 +245,7 @@ const initialState: VersionHistoryState = {
   sessionLog: [],
   restoreCount: 0,
   lastRestoredEntityUuid: null,
+  chartNormalization: null,
 };
 
 export default function versionHistoryReducer(
@@ -240,6 +316,58 @@ export default function versionHistoryReducer(
     }
     case CLEAR_VERSION_SESSION_LOG:
       return { ...state, sessionLog: [] };
+    case HYDRATE_CHART_NORMALIZATION:
+      return { ...state, chartNormalization: action.tracking };
+    case INVALIDATE_CHART_NORMALIZATION_CONTROLS: {
+      if (!state.chartNormalization || action.controls.length === 0) {
+        return state;
+      }
+      const invalidatedControls = {
+        ...state.chartNormalization.invalidatedControls,
+      };
+      action.controls.forEach(control => {
+        invalidatedControls[control] = true;
+      });
+      return {
+        ...state,
+        chartNormalization: {
+          ...state.chartNormalization,
+          invalidatedControls,
+        },
+      };
+    }
+    case BEGIN_CHART_NORMALIZATION_SAVE:
+      if (
+        state.chartNormalization?.chartId !== action.chartId ||
+        state.chartNormalization.hydrationSessionId !==
+          action.hydrationSessionId
+      ) {
+        return state;
+      }
+      return {
+        ...state,
+        chartNormalization: {
+          ...state.chartNormalization,
+          saveAttemptId: action.saveAttemptId,
+        },
+      };
+    case COMPLETE_CHART_NORMALIZATION_SAVE:
+      if (
+        state.chartNormalization?.chartId !== action.chartId ||
+        state.chartNormalization.hydrationSessionId !==
+          action.hydrationSessionId ||
+        state.chartNormalization.saveAttemptId !== action.saveAttemptId
+      ) {
+        return state;
+      }
+      return {
+        ...state,
+        chartNormalization: {
+          ...state.chartNormalization,
+          transitions: action.transitions,
+          saveAttemptId: null,
+        },
+      };
     default:
       return state;
   }
@@ -292,3 +420,6 @@ export const selectVersionLastRestoredUuid = (state: VersionHistoryRootState) =>
 
 export const selectVersionSessionLog = (state: VersionHistoryRootState) =>
   selectVersionHistory(state).sessionLog;
+
+export const selectChartNormalization = (state: VersionHistoryRootState) =>
+  selectVersionHistory(state).chartNormalization;

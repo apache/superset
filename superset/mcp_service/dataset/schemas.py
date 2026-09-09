@@ -58,11 +58,8 @@ from superset.mcp_service.system.schemas import (
     SubjectInfo,
     TagInfo,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
 from superset.mcp_service.utils.response_utils import humanize_timestamp
+from superset.sql.parse import has_aggregate
 from superset.utils import json
 
 
@@ -277,12 +274,6 @@ class DatasetError(BaseModel):
     timestamp: str | datetime | None = Field(None, description="Error timestamp")
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
-    @field_validator("error")
-    @classmethod
-    def sanitize_error_for_llm_context(cls, value: str) -> str:
-        """Wrap error text before it is exposed to LLM context."""
-        return sanitize_for_llm_context(value, field_path=("error",))
-
     @classmethod
     def create(cls, error: str, error_type: str) -> "DatasetError":
         """Create a standardized DatasetError with timestamp."""
@@ -386,12 +377,26 @@ class CreateDatasetMetric(BaseModel):
     """Metric definition for dataset creation."""
 
     metric_name: str = Field(..., description="Name of the metric")
-    expression: str = Field(..., description="SQL expression for the metric")
+    expression: str = Field(
+        ...,
+        description="Aggregate SQL expression for the metric, e.g. SUM(amount)",
+    )
     verbose_name: str | None = None
     description: str | None = None
     metric_type: str | None = None
     d3format: str | None = None
     warning_text: str | None = None
+
+    @field_validator("expression")
+    @classmethod
+    def expression_must_aggregate(cls, value: str) -> str:
+        if not has_aggregate(value):
+            raise ValueError(
+                "saved metrics must aggregate rows; wrap a row-level column in "
+                "an aggregate such as MAX(column), or omit the saved metric and "
+                "use the dataset column directly"
+            )
+        return value
 
 
 class CreateDatasetCalculatedColumn(BaseModel):
@@ -890,90 +895,6 @@ def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
     return value
 
 
-def _sanitize_dataset_info_for_llm_context(dataset_info: DatasetInfo) -> DatasetInfo:
-    """Wrap dataset read-path descriptive fields before LLM exposure."""
-    payload = dataset_info.model_dump(mode="python")
-
-    for field_name in ("description", "certified_by", "certification_details", "sql"):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-        )
-
-    for field_name in ("table_name", "schema_name", "database_name", "schema_perm"):
-        payload[field_name] = escape_llm_context_delimiters(payload.get(field_name))
-
-    payload["extra"] = sanitize_for_llm_context(
-        payload.get("extra"),
-        field_path=("extra",),
-        excluded_field_names=frozenset(),
-    )
-
-    for field_name in ("params", "template_params"):
-        payload[field_name] = sanitize_for_llm_context(
-            payload.get(field_name),
-            field_path=(field_name,),
-            excluded_field_names=frozenset(),
-        )
-
-    payload["columns"] = [
-        {
-            **column,
-            "column_name": escape_llm_context_delimiters(
-                column.get("column_name"),
-            ),
-            "description": sanitize_for_llm_context(
-                column.get("description"),
-                field_path=("columns", str(index), "description"),
-            ),
-            "verbose_name": sanitize_for_llm_context(
-                column.get("verbose_name"),
-                field_path=("columns", str(index), "verbose_name"),
-            ),
-        }
-        for index, column in enumerate(payload.get("columns", []))
-    ]
-
-    payload["metrics"] = [
-        {
-            **metric,
-            "metric_name": escape_llm_context_delimiters(
-                metric.get("metric_name"),
-            ),
-            "expression": sanitize_for_llm_context(
-                metric.get("expression"),
-                field_path=("metrics", str(index), "expression"),
-            ),
-            "description": sanitize_for_llm_context(
-                metric.get("description"),
-                field_path=("metrics", str(index), "description"),
-            ),
-            "verbose_name": sanitize_for_llm_context(
-                metric.get("verbose_name"),
-                field_path=("metrics", str(index), "verbose_name"),
-            ),
-        }
-        for index, metric in enumerate(payload.get("metrics", []))
-    ]
-
-    payload["tags"] = [
-        {
-            **tag,
-            "name": sanitize_for_llm_context(
-                tag.get("name"),
-                field_path=("tags", str(index), "name"),
-            ),
-            "description": sanitize_for_llm_context(
-                tag.get("description"),
-                field_path=("tags", str(index), "description"),
-            ),
-        }
-        for index, tag in enumerate(payload.get("tags", []))
-    ]
-
-    return DatasetInfo.model_validate(payload)
-
-
 def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
     if not dataset:
         return None
@@ -1008,59 +929,53 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         )
         for metric in getattr(dataset, "metrics", [])
     ]
-    return _sanitize_dataset_info_for_llm_context(
-        DatasetInfo(
-            id=getattr(dataset, "id", None),
-            table_name=getattr(dataset, "table_name", None),
-            schema_name=getattr(dataset, "schema", None),
-            database_name=getattr(dataset.database, "database_name", None)
-            if getattr(dataset, "database", None)
-            else None,
-            description=getattr(dataset, "description", None),
-            certified_by=getattr(dataset, "certified_by", None),
-            certification_details=getattr(dataset, "certification_details", None),
-            changed_on=getattr(dataset, "changed_on", None),
-            changed_on_humanized=humanize_timestamp(
-                getattr(dataset, "changed_on", None)
-            ),
-            created_on=getattr(dataset, "created_on", None),
-            created_on_humanized=humanize_timestamp(
-                getattr(dataset, "created_on", None)
-            ),
-            tags=[
-                TagInfo.model_validate(tag, from_attributes=True)
-                for tag in getattr(dataset, "tags", [])
-            ]
-            if getattr(dataset, "tags", None)
-            else [],
-            editors=[
-                info
-                for editor in getattr(dataset, "editors", [])
-                if (info := serialize_subject_object(editor)) is not None
-            ]
-            if getattr(dataset, "editors", None)
-            else [],
-            is_virtual=getattr(dataset, "is_virtual", None),
-            database_id=getattr(dataset, "database_id", None),
-            uuid=str(getattr(dataset, "uuid", ""))
-            if getattr(dataset, "uuid", None)
-            else None,
-            schema_perm=getattr(dataset, "schema_perm", None),
-            url=(
-                f"{get_superset_base_url()}/explore/"
-                f"?datasource_type=table&datasource_id={getattr(dataset, 'id', None)}"
-                if getattr(dataset, "id", None)
-                else None
-            ),
-            sql=getattr(dataset, "sql", None),
-            main_dttm_col=getattr(dataset, "main_dttm_col", None),
-            offset=getattr(dataset, "offset", None),
-            cache_timeout=getattr(dataset, "cache_timeout", None),
-            params=params,
-            template_params=_parse_json_field(dataset, "template_params"),
-            extra=_parse_json_field(dataset, "extra"),
-            columns=columns,
-            metrics=metrics,
-            is_favorite=getattr(dataset, "is_favorite", None),
-        )
+    return DatasetInfo(
+        id=getattr(dataset, "id", None),
+        table_name=getattr(dataset, "table_name", None),
+        schema_name=getattr(dataset, "schema", None),
+        database_name=getattr(dataset.database, "database_name", None)
+        if getattr(dataset, "database", None)
+        else None,
+        description=getattr(dataset, "description", None),
+        certified_by=getattr(dataset, "certified_by", None),
+        certification_details=getattr(dataset, "certification_details", None),
+        changed_on=getattr(dataset, "changed_on", None),
+        changed_on_humanized=humanize_timestamp(getattr(dataset, "changed_on", None)),
+        created_on=getattr(dataset, "created_on", None),
+        created_on_humanized=humanize_timestamp(getattr(dataset, "created_on", None)),
+        tags=[
+            TagInfo.model_validate(tag, from_attributes=True)
+            for tag in getattr(dataset, "tags", [])
+        ]
+        if getattr(dataset, "tags", None)
+        else [],
+        editors=[
+            info
+            for editor in getattr(dataset, "editors", [])
+            if (info := serialize_subject_object(editor)) is not None
+        ]
+        if getattr(dataset, "editors", None)
+        else [],
+        is_virtual=getattr(dataset, "is_virtual", None),
+        database_id=getattr(dataset, "database_id", None),
+        uuid=str(getattr(dataset, "uuid", ""))
+        if getattr(dataset, "uuid", None)
+        else None,
+        schema_perm=getattr(dataset, "schema_perm", None),
+        url=(
+            f"{get_superset_base_url()}/explore/"
+            f"?datasource_type=table&datasource_id={getattr(dataset, 'id', None)}"
+            if getattr(dataset, "id", None)
+            else None
+        ),
+        sql=getattr(dataset, "sql", None),
+        main_dttm_col=getattr(dataset, "main_dttm_col", None),
+        offset=getattr(dataset, "offset", None),
+        cache_timeout=getattr(dataset, "cache_timeout", None),
+        params=params,
+        template_params=_parse_json_field(dataset, "template_params"),
+        extra=_parse_json_field(dataset, "extra"),
+        columns=columns,
+        metrics=metrics,
+        is_favorite=getattr(dataset, "is_favorite", None),
     )

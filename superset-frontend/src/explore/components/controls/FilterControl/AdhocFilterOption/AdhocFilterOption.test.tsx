@@ -71,6 +71,24 @@ test('should render the control label', async () => {
   expect(await screen.findByText('value > 10')).toBeInTheDocument();
 });
 
+test('should render the control label using the column verbose_name when one is set', async () => {
+  render(
+    setup({
+      ...mockedProps,
+      options: [
+        {
+          type: 'DOUBLE',
+          column_name: 'value',
+          verbose_name: 'total_count',
+          id: 3,
+        },
+      ],
+    }),
+    { useDnd: true, useRedux: true },
+  );
+  expect(await screen.findByText('total_count > 10')).toBeInTheDocument();
+});
+
 test('should render the remove button', async () => {
   render(setup(mockedProps), { useDnd: true, useRedux: true });
   const removeBtn = await screen.findByTestId('remove-control-button');

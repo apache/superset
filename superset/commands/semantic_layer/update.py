@@ -23,9 +23,9 @@ from typing import Any
 from flask_appbuilder.models.sqla import Model
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.semantic_layer.exceptions import (
+    SemanticLayerForbiddenError,
     SemanticLayerInvalidError,
     SemanticLayerNotFoundError,
     SemanticLayerUpdateFailedError,
@@ -33,14 +33,52 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticViewNotFoundError,
     SemanticViewUpdateFailedError,
 )
+from superset.commands.utils import current_user_can_modify_object
+from superset.constants import PASSWORD_MASK
 from superset.daos.semantic_layer import SemanticLayerDAO, SemanticViewDAO
-from superset.exceptions import SupersetSecurityException
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
 from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
+
+
+def _unmask_configuration(
+    existing_raw_configuration: str | None,
+    new_configuration: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    Replace ``PASSWORD_MASK`` sentinels in an incoming update payload with
+    the value already stored.
+
+    The GET/list endpoints mask write-only configuration values (see
+    ``superset.semantic_layers.api._mask_configuration``), and fail closed by
+    masking every truthy value when the connector's schema can't be
+    determined. A client that round-trips that response back on an update
+    (e.g. a name-only edit) would otherwise overwrite the real stored
+    values -- secret or not -- with the literal mask string. Restore any key
+    whose incoming value is exactly the mask sentinel from the stored
+    configuration regardless of whether the schema currently marks it
+    write-only, since a client only ever sends the sentinel back for a value
+    it previously received masked (including a value masked by the
+    fail-closed fallback).
+    """
+    try:
+        existing_configuration = (
+            json.loads(existing_raw_configuration) if existing_raw_configuration else {}
+        )
+    except (TypeError, ValueError):
+        existing_configuration = {}
+
+    return {
+        key: (
+            existing_configuration[key]
+            if value == PASSWORD_MASK and key in existing_configuration
+            else value
+        )
+        for key, value in new_configuration.items()
+    }
 
 
 class UpdateSemanticViewCommand(BaseCommand):
@@ -66,10 +104,8 @@ class UpdateSemanticViewCommand(BaseCommand):
         if not self._model:
             raise SemanticViewNotFoundError()
 
-        try:
-            security_manager.raise_for_editorship(self._model)
-        except SupersetSecurityException as ex:
-            raise SemanticViewForbiddenError() from ex
+        if not current_user_can_modify_object(self._model):
+            raise SemanticViewForbiddenError()
 
         name = self._properties.get("name", self._model.name)
         layer_uuid = str(self._model.semantic_layer_uuid)
@@ -116,9 +152,18 @@ class UpdateSemanticLayerCommand(BaseCommand):
         if not self._model:
             raise SemanticLayerNotFoundError()
 
+        if not current_user_can_modify_object(self._model):
+            raise SemanticLayerForbiddenError()
+
         name = self._properties.get("name")
         if name and not SemanticLayerDAO.validate_update_uniqueness(self._uuid, name):
             raise SemanticLayerInvalidError(f"Name already exists: {name}")
+
+        if isinstance(self._properties.get("configuration"), dict):
+            self._properties["configuration"] = _unmask_configuration(
+                self._model.configuration,
+                self._properties["configuration"],
+            )
 
         if configuration := self._properties.get("configuration"):
             sl_type = self._model.type
