@@ -75,7 +75,7 @@ def _invalid_sql_response() -> ExecuteSqlResponse:
 
 
 async def _validate_non_destructive_sql(
-    request: ExecuteSqlRequest,
+    sql: str,
     ctx: Context,
     database: Any,
     sql_preview: str,
@@ -90,7 +90,7 @@ async def _validate_non_destructive_sql(
             from superset.jinja_context import get_template_processor
 
             tp = get_template_processor(database=database)
-            sql_to_check: str = tp.process_template(request.sql, **template_params)
+            sql_to_check: str = tp.process_template(sql, **template_params)
 
             script = SQLScript(sql_to_check, database.db_engine_spec.engine)
             if script.has_destructive():
@@ -168,13 +168,12 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                     error_type=SupersetErrorType.DATABASE_NOT_FOUND_ERROR.value,
                 )
 
-            # ``process_jinja_sql`` (used by the access check below) always
-            # renders, treating ``None`` like ``{}``, while the executor
-            # (``SQLExecutor._render_sql_template``) skips rendering entirely
-            # for ``None``. Left as-is, the query authorized here would not be
-            # the query that runs. Normalize once so every step downstream
-            # renders the same text. A no-op when template processing is
-            # disabled, since the processor is then a no-op.
+            # The access check below always renders, treating ``None`` like
+            # ``{}``, while the executor (``SQLExecutor._render_sql_template``)
+            # skips rendering entirely for ``None``. Normalize once so the
+            # query authorized here is the query that runs. Nothing is
+            # rendered when template processing is disabled, since the
+            # processor is then a no-op.
             template_params = request.template_params or {}
 
             # Authorize through the same entry point as the SQL Lab
@@ -214,7 +213,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         validation_error: (
             ExecuteSqlResponse | None
         ) = await _validate_non_destructive_sql(
-            request, ctx, database, sql_preview, template_params
+            request.sql, ctx, database, sql_preview, template_params
         )
         if validation_error is not None:
             return validation_error

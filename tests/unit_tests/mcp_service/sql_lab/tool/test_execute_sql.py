@@ -427,13 +427,8 @@ class TestExecuteSql:
         self, mock_db, mock_security_manager, mcp_server, template_params
     ):
         """The access check and the executor must be handed the same
-        template_params.
-
-        The check renders via ``process_jinja_sql``, which treats ``None`` like
-        ``{}`` and always renders, while the executor skips rendering for
-        ``None``. If the two disagree, the authorized SQL is not the SQL that
-        runs, and Jinja that only expands on one side (e.g. a table reference
-        hidden behind ``{% if %}``) escapes the table-access check.
+        template_params, otherwise the authorized SQL is not the SQL that runs
+        and Jinja expanding on only one side escapes the table-access check.
         """
         mock_database = _mock_database()
         mock_database.execute.return_value = _create_select_result(
