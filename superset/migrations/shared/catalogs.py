@@ -24,7 +24,7 @@ from typing import Any, Type, Union
 import sqlalchemy as sa
 from alembic import op
 from flask import current_app
-from sqlalchemy.orm import declarative_base, lazyload, Session
+from sqlalchemy.orm import declarative_base, Session
 
 # Note: Import Database functionality without importing the actual model
 from superset import db, db_engine_specs, security_manager
@@ -447,15 +447,7 @@ def upgrade_catalog_perms(engines: set[str] | None = None) -> None:
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    # The Database model has an eager-loaded (``lazy="joined"``) ``ssh_tunnel``
-    # backref. Eager-loading it here would SELECT every column on ``ssh_tunnels``,
-    # including columns added by later migrations that do not yet exist at the
-    # revision this helper runs in (e.g. on a fresh DB upgraded in one pass). The
-    # catalog upgrade only needs scalar ``Database`` columns, so disable the eager
-    # join to keep the query schema-safe across migration revisions.
-    for database in (
-        session.query(Database).options(lazyload(Database.ssh_tunnel)).all()
-    ):
+    for database in session.query(Database).all():
         db_engine_spec = database.db_engine_spec
         if (
             engines and db_engine_spec.engine not in engines
@@ -652,11 +644,7 @@ def downgrade_catalog_perms(engines: set[str] | None = None) -> None:
     bind = op.get_bind()
     session = db.Session(bind=bind)
 
-    # See upgrade_catalog_perms: avoid eager-loading the ``ssh_tunnel`` backref so the
-    # query stays schema-safe across migration revisions.
-    for database in (
-        session.query(Database).options(lazyload(Database.ssh_tunnel)).all()
-    ):
+    for database in session.query(Database).all():
         db_engine_spec = database.db_engine_spec
         if (
             engines and db_engine_spec.engine not in engines
