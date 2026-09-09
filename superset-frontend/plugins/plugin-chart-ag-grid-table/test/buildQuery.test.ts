@@ -834,6 +834,51 @@ describe('plugin-chart-ag-grid-table', () => {
         expect(totalsQuery.extras).toBeDefined();
       });
 
+      test('should exclude AG Grid HAVING filters from totals query', () => {
+        const { queries } = buildQuery(
+          {
+            ...basicFormData,
+            server_pagination: true,
+            show_totals: true,
+            query_mode: QueryMode.Aggregate,
+          },
+          {
+            ownState: {
+              agGridHavingClause: 'count > 10',
+            },
+          },
+        );
+
+        const mainQuery = queries[0];
+        const totalsQuery = queries[2]; // queries[1] is rowcount, queries[2] is totals
+
+        expect(mainQuery.extras?.having).toBe('count > 10');
+        expect(totalsQuery.extras?.having).toBeUndefined();
+      });
+
+      test('should exclude download HAVING filters (sqlClauses) from totals query', () => {
+        const { queries } = buildQuery(
+          {
+            ...basicFormData,
+            show_totals: true,
+            query_mode: QueryMode.Aggregate,
+            result_format: 'csv',
+          },
+          {
+            ownState: {
+              sqlClauses: { count: 'count > 10' },
+            },
+          },
+        );
+
+        const mainQuery = queries[0];
+        // Downloads never get a rowcount query, so totals is queries[1].
+        const totalsQuery = queries[1];
+
+        expect(mainQuery.extras?.having).toBe('count > 10');
+        expect(totalsQuery.extras?.having).toBeUndefined();
+      });
+
       test('should not modify totals query when no AG Grid filters applied', () => {
         const { queries } = buildQuery(
           {
@@ -851,6 +896,43 @@ describe('plugin-chart-ag-grid-table', () => {
 
         expect(totalsQuery.columns).toEqual([]);
         expect(totalsQuery.row_limit).toBe(0);
+      });
+
+      test('all_records percent-metric denominator reflects AG Grid filters but totals do not', () => {
+        // Regression test: the all_records denominator query is built from
+        // the post-filter queryObject (so it matches the main query's result
+        // set), while the totals query intentionally strips AG Grid
+        // WHERE/HAVING so it summarizes the unfiltered chart-level data.
+        const { queries } = buildQuery(
+          {
+            ...basicFormData,
+            metrics: ['count'],
+            percent_metrics: ['count'],
+            percent_metric_calculation: 'all_records',
+            show_totals: true,
+            server_pagination: true,
+            query_mode: QueryMode.Aggregate,
+          },
+          {
+            ownState: {
+              agGridComplexWhere: 'age > 18',
+            },
+          },
+        );
+
+        // [main, rowcount, all_records denominator, totals]
+        const allRecordsQuery = queries[2];
+        const totalsQuery = queries[3];
+
+        expect(allRecordsQuery.extras?.where).toBe('age > 18');
+        expect(allRecordsQuery.columns).toEqual([]);
+        expect(allRecordsQuery.metrics).toEqual(['count']);
+        expect(allRecordsQuery.row_limit).toBe(0);
+        expect(allRecordsQuery.row_offset).toBe(0);
+        expect(allRecordsQuery.orderby).toEqual([]);
+        expect(allRecordsQuery.is_timeseries).toBe(false);
+
+        expect(totalsQuery.extras?.where).toBeUndefined();
       });
 
       test('should reapply percent-metric contribution op to totals query', () => {
