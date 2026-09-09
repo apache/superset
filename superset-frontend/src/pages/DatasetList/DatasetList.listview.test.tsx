@@ -1022,7 +1022,7 @@ test('edit action is enabled for dataset editor', async () => {
 
   const row = screen.getByText(dataset.table_name).closest('tr');
   const editIcon = within(row!).getByTestId('edit');
-  const editButton = editIcon.closest('[role="button"]');
+  const editButton = editIcon.closest('button');
 
   // Should be enabled (not disabled)
   expect(editButton).toHaveAttribute('aria-disabled', 'false');
@@ -1045,7 +1045,7 @@ test('edit action is disabled for non-editor', async () => {
 
   const row = screen.getByText(dataset.table_name).closest('tr');
   const editIcon = within(row!).getByTestId('edit');
-  const editButton = editIcon.closest('[role="button"]');
+  const editButton = editIcon.closest('button');
 
   // Should be disabled
   expect(editButton).toHaveAttribute('aria-disabled', 'true');
@@ -1072,10 +1072,10 @@ test('all action buttons are clickable and enabled for admin user', async () => 
   const editIcon = within(row!).getByTestId('edit');
   const duplicateIcon = within(row!).getByTestId('copy');
 
-  const deleteButton = deleteIcon.closest('[role="button"]');
-  const exportButton = exportIcon.closest('[role="button"]');
-  const editButton = editIcon.closest('[role="button"]');
-  const duplicateButton = duplicateIcon.closest('[role="button"]');
+  const deleteButton = deleteIcon.closest('button');
+  const exportButton = exportIcon.closest('button');
+  const editButton = editIcon.closest('button');
+  const duplicateButton = duplicateIcon.closest('button');
 
   // None should be disabled (export/duplicate never set aria-disabled at all)
   expect(deleteButton).not.toHaveAttribute('aria-disabled', 'true');
@@ -1155,6 +1155,34 @@ test('dataset links use internal routing when PREVENT_UNSAFE_DEFAULT_URLS_ON_DAT
   internalLinks.forEach(link => {
     expect(link).toHaveAttribute('href');
   });
+});
+
+test('legacy dashboard default URLs use the registered client route', async () => {
+  const dataset = {
+    ...mockDatasets[0],
+    explore_url: '/superset/dashboard/123/?standalone=1#section',
+  };
+  mockDatasetListEndpoints({ result: [dataset], count: 1 });
+
+  renderDatasetList(
+    mockAdminUser,
+    {},
+    {
+      common: {
+        conf: {
+          PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET: true,
+        },
+      },
+    },
+  );
+
+  const datasetLink = await screen.findByRole('link', {
+    name: dataset.table_name,
+  });
+  expect(datasetLink).toHaveAttribute(
+    'href',
+    '/dashboard/123/?standalone=1#section',
+  );
 });
 
 // Note: These delete error tests verify that the modal doesn't open when fetching
@@ -1635,9 +1663,7 @@ test('type filter persists after duplicating a dataset', async () => {
   expect(row).toBeInTheDocument();
 
   const duplicateIcon = await within(row!).findByTestId('copy');
-  const duplicateButton = duplicateIcon.closest(
-    '[role="button"]',
-  ) as HTMLElement | null;
+  const duplicateButton = duplicateIcon.closest('button') as HTMLElement | null;
   expect(duplicateButton).toBeTruthy();
 
   await userEvent.click(duplicateButton!);
@@ -1781,8 +1807,13 @@ test('bulk export error shows toast and clears loading state', async () => {
     );
   });
 
-  // Click bulk export
-  const exportButton = await screen.findByRole('button', { name: /export/i });
+  // Click bulk export. Disambiguate from the row-level export action (now
+  // sharing the same accessible name since it carries a real aria-label) and
+  // from the bulk-delete action (same data-test, different action key).
+  const exportButton = (
+    await screen.findByTestId('bulk-select-controls')
+  ).querySelector('[data-test-action-key="export"]') as HTMLElement;
+  expect(exportButton).toBeTruthy();
   await userEvent.click(exportButton);
 
   // Wait for error toast

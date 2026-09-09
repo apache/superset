@@ -152,10 +152,11 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
         {icon}
         <Interweave content={toast.text} noHtml={!toast.allowHtml} />
       </div>
+      {/* role is auto-computed by BaseIconComponent as "button" since
+          onClick is present, so no explicit role needed here. */}
       <Icons.CloseOutlined
         iconSize="m"
         className="toast__close pointer"
-        role="button"
         tabIndex={0}
         onClick={handleClosePress}
         aria-label={t('Close')}

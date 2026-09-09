@@ -62,14 +62,14 @@ function toggleCheckbox(apiUrlPrefix: string, selector: string) {
 
 export default function setupApp() {
   $(document).ready(function () {
-    $(':checkbox[data-checkbox-api-prefix]').change(function (
-      this: HTMLElement,
-    ) {
-      const $this = $(this);
-      const prefix = $this.data('checkbox-api-prefix');
-      const id = $this.attr('id');
-      toggleCheckbox(prefix, `#${id}`);
-    });
+    $(':checkbox[data-checkbox-api-prefix]').change(
+      function (this: HTMLElement) {
+        const $this = $(this);
+        const prefix = $this.data('checkbox-api-prefix');
+        const id = $this.attr('id');
+        toggleCheckbox(prefix, `#${id}`);
+      },
+    );
 
     // for language picker dropdown
     $<HTMLAnchorElement>('#language-picker a').click(function (

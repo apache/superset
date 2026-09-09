@@ -101,6 +101,22 @@ def _apply_subject_list_filters(query: Query) -> Query:
     return _apply_extra_related_query_filters(_apply_excluded_users(query))
 
 
+class SubjectListFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """Scope a Subject query to the principals a deployment chooses to expose.
+
+    The related-item endpoints backing the editor/viewer pickers already apply
+    ``EXCLUDE_USERS_FROM_LISTS`` and ``EXTRA_RELATED_QUERY_FILTERS``.
+    ``SubjectRestApi`` serves the same principal directory — including
+    ``user.email`` on its show endpoint — so it applies them too.
+    """
+
+    name = _("Subject list")
+    arg_name = "subject_list"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        return _apply_subject_list_filters(query)
+
+
 def subject_type_filter(entity_config_key: str | None = None) -> type[BaseFilter]:
     """Return a BaseFilter subclass scoped to a specific entity config.
 

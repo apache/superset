@@ -19,7 +19,7 @@ import logging
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset.constants import RouteMethod
-from superset.subjects.filters import SubjectAllTextFilter
+from superset.subjects.filters import SubjectAllTextFilter, SubjectListFilter
 from superset.subjects.models import Subject
 from superset.subjects.schemas import openapi_spec_methods_override
 from superset.views.base_api import BaseSupersetModelRestApi
@@ -52,6 +52,7 @@ class SubjectRestApi(BaseSupersetModelRestApi):
 
     resource_name = "security/subject"
     allow_browser_login = True
+    base_filters = [["id", SubjectListFilter, lambda: []]]
     openapi_spec_tag = "Security Subjects"
     openapi_spec_methods = openapi_spec_methods_override
 

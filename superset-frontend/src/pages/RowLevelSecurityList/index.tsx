@@ -17,9 +17,12 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { SupersetClient, handleKeyboardActivation } from '@superset-ui/core';
+import { SupersetClient } from '@superset-ui/core';
 import { useCallback, useMemo, useState } from 'react';
-import { ConfirmStatusChange, Tooltip } from '@superset-ui/core/components';
+import {
+  ActionButton,
+  ConfirmStatusChange,
+} from '@superset-ui/core/components';
 import {
   ModifiedInfo,
   ListView,
@@ -199,21 +202,15 @@ function RowLevelSecurityList(props: RLSProps) {
           return (
             <div className="actions">
               {canEdit && (
-                <Tooltip
-                  id="edit-action-tooltip"
-                  title={t('Edit')}
+                <ActionButton
+                  label={t('Edit')}
+                  tooltip={t('Edit')}
                   placement="bottom"
-                >
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={handleEdit}
-                    onKeyDown={handleKeyboardActivation(handleEdit)}
-                  >
+                  icon={
                     <Icons.EditOutlined data-test="edit-alt" iconSize="l" />
-                  </span>
-                </Tooltip>
+                  }
+                  onClick={handleEdit}
+                />
               )}
               {canWrite && (
                 <ConfirmStatusChange
@@ -227,24 +224,18 @@ function RowLevelSecurityList(props: RLSProps) {
                   onConfirm={handleDelete}
                 >
                   {confirmDelete => (
-                    <Tooltip
-                      id="delete-action-tooltip"
-                      title={t('Delete')}
+                    <ActionButton
+                      label={t('Delete')}
+                      tooltip={t('Delete')}
                       placement="bottom"
-                    >
-                      <span
-                        role="button"
-                        tabIndex={0}
-                        className="action-button"
-                        onClick={confirmDelete}
-                        onKeyDown={handleKeyboardActivation(confirmDelete)}
-                      >
+                      icon={
                         <Icons.DeleteOutlined
                           data-test="rls-list-trash-icon"
                           iconSize="l"
                         />
-                      </span>
-                    </Tooltip>
+                      }
+                      onClick={confirmDelete}
+                    />
                   )}
                 </ConfirmStatusChange>
               )}

@@ -30,8 +30,8 @@ const ROOT = path.resolve(__dirname, '..');
 // Directories to check for storybook coverage
 const PLUGIN_PATTERNS = [
   'plugins/plugin-chart-*/src',
-  'plugins/legacy-plugin-chart-*/src',
-  'plugins/legacy-preset-chart-*/src',
+  'plugins/plugin-chart-*/src',
+  'plugins/preset-chart-*/src',
 ];
 
 const CORE_COMPONENT_PATTERNS = ['packages/superset-ui-core/src/components/*'];

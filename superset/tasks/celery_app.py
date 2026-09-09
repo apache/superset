@@ -35,7 +35,7 @@ flask_app = create_app()
 # Need to import late, as the celery_app will have been setup by "create_app()"
 # ruff: noqa: E402, F401
 # pylint: disable=wrong-import-position, unused-import
-from . import cache, scheduler
+from . import cache, scheduler, version_history_retention
 
 # Export the celery app globally for Celery (as run on the cmd line) to find
 app = celery_app

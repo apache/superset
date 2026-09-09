@@ -22,7 +22,10 @@ sidebar_label: Button
     under the License.
 -->
 
-import { StoryWithControls, ComponentGallery } from '../../../../src/components/StorybookWrapper';
+import {
+  StoryWithControls,
+  ComponentGallery,
+} from '../../../../src/components/StorybookWrapper';
 
 # Button
 
@@ -32,8 +35,8 @@ The Button component from Superset's UI library.
 
 <ComponentGallery
   component="Button"
-  sizes={["xsmall","small","default"]}
-  styles={["primary","secondary","dashed","danger","link"]}
+  sizes={['xsmall', 'small', 'default']}
+  styles={['primary', 'secondary', 'dashed', 'danger', 'link']}
   sizeProp="buttonSize"
   styleProp="buttonStyle"
 />
@@ -43,64 +46,54 @@ The Button component from Superset's UI library.
 <StoryWithControls
   component="Button"
   props={{
-  buttonStyle: "primary",
-  buttonSize: "default",
-  children: "Button!"
-}}
+    buttonStyle: 'primary',
+    buttonSize: 'default',
+    children: 'Button!',
+  }}
   controls={[
-  {
-    name: "buttonStyle",
-    label: "Button Style",
-    type: "select",
-    options: [
-      "primary",
-      "secondary",
-      "dashed",
-      "danger",
-      "link"
-    ],
-    description: "The style variant of the button."
-  },
-  {
-    name: "buttonSize",
-    label: "Button Size",
-    type: "select",
-    options: [
-      "xsmall",
-      "small",
-      "default"
-    ],
-    description: "The size of the button."
-  },
-  {
-    name: "children",
-    label: "Children",
-    type: "text",
-    description: "The button text or content."
-  },
-  {
-    name: "target",
-    label: "Target",
-    type: "select"
-  },
-  {
-    name: "href",
-    label: "Href",
-    type: "select"
-  },
-  {
-    name: "disabled",
-    label: "Disabled",
-    type: "boolean",
-    description: "Whether the button is disabled."
-  },
-  {
-    name: "loading",
-    label: "Loading",
-    type: "boolean",
-    description: "Whether to show loading spinner."
-  }
-]}
+    {
+      name: 'buttonStyle',
+      label: 'Button Style',
+      type: 'select',
+      options: ['primary', 'secondary', 'dashed', 'danger', 'link'],
+      description: 'The style variant of the button.',
+    },
+    {
+      name: 'buttonSize',
+      label: 'Button Size',
+      type: 'select',
+      options: ['xsmall', 'small', 'default'],
+      description: 'The size of the button.',
+    },
+    {
+      name: 'children',
+      label: 'Children',
+      type: 'text',
+      description: 'The button text or content.',
+    },
+    {
+      name: 'target',
+      label: 'Target',
+      type: 'select',
+    },
+    {
+      name: 'href',
+      label: 'Href',
+      type: 'select',
+    },
+    {
+      name: 'disabled',
+      label: 'Disabled',
+      type: 'boolean',
+      description: 'Whether the button is disabled.',
+    },
+    {
+      name: 'loading',
+      label: 'Loading',
+      type: 'boolean',
+      description: 'Whether to show loading spinner.',
+    },
+  ]}
 />
 
 ## Try It
@@ -110,10 +103,7 @@ Edit the code below to experiment with the component:
 ```tsx live
 function Demo() {
   return (
-    <Button
-      buttonStyle="primary"
-      buttonSize="default"
-    >
+    <Button buttonStyle="primary" buttonSize="default">
       Button!
     </Button>
   );
@@ -122,11 +112,11 @@ function Demo() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
+| Prop          | Type     | Default     | Description                      |
+| ------------- | -------- | ----------- | -------------------------------- |
 | `buttonStyle` | `string` | `"primary"` | The style variant of the button. |
-| `buttonSize` | `string` | `"default"` | The size of the button. |
-| `children` | `string` | `"Button!"` | The button text or content. |
+| `buttonSize`  | `string` | `"default"` | The size of the button.          |
+| `children`    | `string` | `"Button!"` | The button text or content.      |
 
 ## Import
 

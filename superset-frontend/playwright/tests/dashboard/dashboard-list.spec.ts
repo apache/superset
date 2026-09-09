@@ -81,11 +81,10 @@ test('should delete a dashboard with confirmation', async ({
   const deleteModal = new DeleteConfirmationModal(page);
   await deleteModal.waitForVisible();
 
-  // Type "DELETE" to confirm
-  await deleteModal.fillConfirmationInput('DELETE');
-
-  // Click the Delete button (waits for it to become enabled)
-  await deleteModal.clickDelete();
+  // Confirm: types "DELETE" while the modal is destructive, and goes straight
+  // through once SOFT_DELETE makes it a recoverable archive instead. Either
+  // way it waits for the action to become enabled.
+  await deleteModal.confirmDeletion();
 
   // Modal should close
   await deleteModal.waitForHidden();
@@ -191,11 +190,9 @@ test('should bulk delete multiple dashboards', async ({
   const deleteModal = new DeleteConfirmationModal(page);
   await deleteModal.waitForVisible();
 
-  // Type "DELETE" to confirm
-  await deleteModal.fillConfirmationInput('DELETE');
-
-  // Click the Delete button
-  await deleteModal.clickDelete();
+  // Confirm: types "DELETE" while the modal is destructive, and goes straight
+  // through once SOFT_DELETE makes it a recoverable archive instead.
+  await deleteModal.confirmDeletion();
 
   // Modal should close
   await deleteModal.waitForHidden();

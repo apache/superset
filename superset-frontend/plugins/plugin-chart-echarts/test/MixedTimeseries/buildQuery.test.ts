@@ -219,19 +219,13 @@ test('should compile AA in query A', () => {
   });
   // cumsum
   expect(
-    // prettier-ignore
-    query
-      .post_processing
-      ?.find(operator => operator?.operation === 'cum')
+    query.post_processing?.find(operator => operator?.operation === 'cum')
       ?.operation,
   ).toEqual('cum');
 
   // resample
   expect(
-    // prettier-ignore
-    query
-      .post_processing
-      ?.find(operator => operator?.operation === 'resample'),
+    query.post_processing?.find(operator => operator?.operation === 'resample'),
   ).toEqual({
     operation: 'resample',
     options: {
@@ -249,10 +243,7 @@ test('should compile AA in query B', () => {
 
   // rolling total
   expect(
-    // prettier-ignore
-    query
-      .post_processing
-      ?.find(operator => operator?.operation === 'rolling'),
+    query.post_processing?.find(operator => operator?.operation === 'rolling'),
   ).toEqual({
     operation: 'rolling',
     options: {
@@ -268,10 +259,7 @@ test('should compile AA in query B', () => {
 
   // resample
   expect(
-    // prettier-ignore
-    query
-      .post_processing
-      ?.find(operator => operator?.operation === 'resample'),
+    query.post_processing?.find(operator => operator?.operation === 'resample'),
   ).toEqual({
     operation: 'resample',
     options: {

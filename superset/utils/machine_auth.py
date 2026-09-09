@@ -23,7 +23,6 @@ from urllib.parse import urlparse
 
 from flask import current_app as app, Flask, request, Response, session
 from flask_login import login_user
-from selenium.webdriver.remote.webdriver import WebDriver
 from werkzeug.http import parse_cookie
 
 from superset.utils.class_utils import load_class_from_name
@@ -43,39 +42,13 @@ if TYPE_CHECKING:
 class MachineAuthProvider:
     def __init__(
         self,
-        auth_webdriver_func_override: Callable[
-            [WebDriver | BrowserContext, User], WebDriver | BrowserContext
-        ]
+        auth_webdriver_func_override: Callable[[BrowserContext, User], BrowserContext]
         | None = None,
     ):
-        # This is here in order to allow for the authenticate_webdriver
-        # or authenticate_browser_context (if PLAYWRIGHT_REPORTS_AND_THUMBNAILS is
-        # enabled) func to be overridden via config, as opposed to the entire
+        # This is here in order to allow for the authenticate_browser_context
+        # func to be overridden via config, as opposed to the entire
         # provider implementation
         self._auth_webdriver_func_override = auth_webdriver_func_override
-
-    def authenticate_webdriver(
-        self,
-        driver: WebDriver,
-        user: User,
-    ) -> WebDriver:
-        """
-        Default AuthDriverFuncType type that sets a session cookie flask-login style
-        :return: The WebDriver passed in (fluent)
-        """
-        # Short-circuit this method if we have an override configured
-        if self._auth_webdriver_func_override:
-            return self._auth_webdriver_func_override(driver, user)
-
-        # Setting cookies requires doing a request first
-        driver.get(headless_url("/login/"))
-
-        cookies = self.get_cookies(user)
-
-        for cookie_name, cookie_val in cookies.items():
-            driver.add_cookie({"name": cookie_name, "value": cookie_val})
-
-        return driver
 
     def authenticate_browser_context(
         self,

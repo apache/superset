@@ -44,6 +44,10 @@ export interface TableCollectionProps<T extends object> {
   columns: ColumnInstance<T>[];
   loading: boolean;
   highlightRowId?: number;
+  // Optional predicate to highlight arbitrary rows (in addition to
+  // highlightRowId). Receives the mapped record (which spreads row.original), so
+  // callers can match on any field, e.g. by uuid.
+  isRowHighlighted?: (record: Record<string, unknown>) => boolean;
   columnsForWrapText?: string[];
   setSortBy?: (updater: SortingRule<T>[]) => void;
   bulkSelectEnabled?: boolean;
@@ -66,12 +70,6 @@ const StyledTable = styled(Table)<{
   showRowCount?: boolean;
 }>`
   ${({ theme, isPaginationSticky, showRowCount }) => `
-    th.ant-column-cell {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
     .actions {
       opacity: 0;
       font-size: ${theme.fontSizeXL}px;
@@ -167,6 +165,7 @@ function TableCollection<T extends object>({
   rows,
   loading,
   highlightRowId,
+  isRowHighlighted,
   setSortBy,
   headerGroups,
   columnsForWrapText,
@@ -298,10 +297,44 @@ function TableCollection<T extends object>({
 
   const getRowClassName = useCallback(
     (record: Record<string, unknown>) =>
-      highlightRowId !== undefined && record?.id === highlightRowId
+      (highlightRowId !== undefined && record?.id === highlightRowId) ||
+      isRowHighlighted?.(record)
         ? 'table-row-highlighted'
         : '',
-    [highlightRowId],
+    [highlightRowId, isRowHighlighted],
+  );
+
+  // Memoize the custom cell/row components. A fresh `components` object (with
+  // new inner function identities) makes antd treat them as new component types
+  // and remount every row and cell on each render — which would, for example,
+  // tear down an open hover popover inside a cell whenever the table re-renders
+  // (e.g. when rowClassName changes for row highlighting).
+  const tableComponents = useMemo(
+    () => ({
+      header: {
+        cell: (props: HTMLAttributes<HTMLTableCellElement>) => {
+          const isSelectionColumn =
+            props.className?.includes('ant-table-selection-column') ?? false;
+          return (
+            <th
+              {...props}
+              data-test={
+                isSelectionColumn ? 'header-toggle-all' : 'sort-header'
+              }
+            />
+          );
+        },
+      },
+      body: {
+        row: (props: HTMLAttributes<HTMLTableRowElement>) => (
+          <tr {...props} data-test="table-row" />
+        ),
+        cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
+          <td {...props} data-test="table-row-cell" />
+        ),
+      },
+    }),
+    [],
   );
 
   return (
@@ -328,30 +361,7 @@ function TableCollection<T extends object>({
         getRowClassName as unknown as TableProps<object>['rowClassName']
       }
       expandable={expandable}
-      components={{
-        header: {
-          cell: (props: HTMLAttributes<HTMLTableCellElement>) => {
-            const isSelectionColumn =
-              props.className?.includes('ant-table-selection-column') ?? false;
-            return (
-              <th
-                {...props}
-                data-test={
-                  isSelectionColumn ? 'header-toggle-all' : 'sort-header'
-                }
-              />
-            );
-          },
-        },
-        body: {
-          row: (props: HTMLAttributes<HTMLTableRowElement>) => (
-            <tr {...props} data-test="table-row" />
-          ),
-          cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
-            <td {...props} data-test="table-row-cell" />
-          ),
-        },
-      }}
+      components={tableComponents}
       onChange={handleTableChange as unknown as TableProps<object>['onChange']}
     />
   );

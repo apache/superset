@@ -43,7 +43,7 @@ const ContributorAvatars = ({ contributors }: { contributors?: string[] }) => {
   if (!contributors?.length) return null;
   return (
     <Avatar.Group size="small" max={{ count: 3 }}>
-      {contributors.map((handle) => {
+      {contributors.map(handle => {
         const username = handle.replace('@', '');
         return (
           <a
@@ -51,7 +51,7 @@ const ContributorAvatars = ({ contributors }: { contributors?: string[] }) => {
             href={`https://github.com/${username}`}
             target="_blank"
             rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
+            onClick={e => e.stopPropagation()}
           >
             <Avatar
               src={`https://github.com/${username}.png?size=40`}
@@ -69,7 +69,10 @@ const ContributorAvatars = ({ contributors }: { contributors?: string[] }) => {
 
 export default function InTheWild() {
   return (
-    <Layout title="In the Wild" description="Organizations using Apache Superset">
+    <Layout
+      title="In the Wild"
+      description="Organizations using Apache Superset"
+    >
       <main>
         <BlurredSection>
           <SectionHeader
@@ -87,7 +90,9 @@ export default function InTheWild() {
           </div>
         </BlurredSection>
 
-        <div style={{ maxWidth: 850, margin: '70px auto 60px', padding: '0 20px' }}>
+        <div
+          style={{ maxWidth: 850, margin: '70px auto 60px', padding: '0 20px' }}
+        >
           <Collapse
             bordered={false}
             defaultActiveKey={Object.keys(typedDataSet.categories)}
@@ -96,68 +101,119 @@ export default function InTheWild() {
               border: '1px solid var(--ifm-border-color)',
               borderRadius: 10,
             }}
-            items={Object.entries(typedDataSet.categories).map(([category, items]) => {
-              const logoItems = items.filter(({ logo }) => logo?.trim());
-              const textItems = items.filter(({ logo }) => !logo?.trim());
+            items={Object.entries(typedDataSet.categories).map(
+              ([category, items]) => {
+                const logoItems = items.filter(({ logo }) => logo?.trim());
+                const textItems = items.filter(({ logo }) => !logo?.trim());
 
-              return {
-                key: category,
-                label: (
-                  <Text strong style={{ fontSize: 16, lineHeight: '22px', color: 'var(--ifm-font-base-color)' }}>
-                    {category} ({items.length})
-                  </Text>
-                ),
-                children: (
-                  <>
-                    {logoItems.length > 0 && (
-                      <Row gutter={[16, 16]} style={{ marginBottom: textItems.length > 0 ? 24 : 0 }}>
-                        {logoItems.map(({ name, url, logo, contributors }) => (
-                          <Col xs={24} sm={12} md={8} key={name}>
-                            <a href={url} target="_blank" rel="noreferrer">
-                              <Card
-                                hoverable
-                                style={{ height: 150, position: 'relative' }}
-                                styles={{ body: { padding: 16, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' } }}
-                              >
-                                <img
-                                  src={`/img/logos/${logo}`}
-                                  alt={name}
-                                  style={{ maxHeight: 80, maxWidth: '100%', objectFit: 'contain' }}
-                                />
-                                {contributors?.length && (
-                                  <div style={{ position: 'absolute', bottom: 8, right: 8 }}>
-                                    <ContributorAvatars contributors={contributors} />
-                                  </div>
-                                )}
-                              </Card>
-                            </a>
-                          </Col>
-                        ))}
-                      </Row>
-                    )}
+                return {
+                  key: category,
+                  label: (
+                    <Text
+                      strong
+                      style={{
+                        fontSize: 16,
+                        lineHeight: '22px',
+                        color: 'var(--ifm-font-base-color)',
+                      }}
+                    >
+                      {category} ({items.length})
+                    </Text>
+                  ),
+                  children: (
+                    <>
+                      {logoItems.length > 0 && (
+                        <Row
+                          gutter={[16, 16]}
+                          style={{
+                            marginBottom: textItems.length > 0 ? 24 : 0,
+                          }}
+                        >
+                          {logoItems.map(
+                            ({ name, url, logo, contributors }) => (
+                              <Col xs={24} sm={12} md={8} key={name}>
+                                <a href={url} target="_blank" rel="noreferrer">
+                                  <Card
+                                    hoverable
+                                    style={{
+                                      height: 150,
+                                      position: 'relative',
+                                    }}
+                                    styles={{
+                                      body: {
+                                        padding: 16,
+                                        height: '100%',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                      },
+                                    }}
+                                  >
+                                    <img
+                                      src={`/img/logos/${logo}`}
+                                      alt={name}
+                                      style={{
+                                        maxHeight: 80,
+                                        maxWidth: '100%',
+                                        objectFit: 'contain',
+                                      }}
+                                    />
+                                    {contributors?.length && (
+                                      <div
+                                        style={{
+                                          position: 'absolute',
+                                          bottom: 8,
+                                          right: 8,
+                                        }}
+                                      >
+                                        <ContributorAvatars
+                                          contributors={contributors}
+                                        />
+                                      </div>
+                                    )}
+                                  </Card>
+                                </a>
+                              </Col>
+                            ),
+                          )}
+                        </Row>
+                      )}
 
-                    {textItems.length > 0 && (
-                      <Row gutter={[8, 8]}>
-                        {textItems.map(({ name, url, contributors }) => (
-                          <Col xs={24} sm={12} md={8} key={name}>
-                            <a href={url} target="_blank" rel="noreferrer">
-                              <Card
-                                size="small"
-                                hoverable
-                                styles={{ body: { padding: '8px 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 } }}
-                              >
-                                <Text ellipsis style={{ flex: 1 }}>{name}</Text>
-                                <ContributorAvatars contributors={contributors} />
-                              </Card>
-                            </a>
-                          </Col>
-                        ))}
-                      </Row>
-                    )}
-                  </>
-                ),
-              };
-            })}
+                      {textItems.length > 0 && (
+                        <Row gutter={[8, 8]}>
+                          {textItems.map(({ name, url, contributors }) => (
+                            <Col xs={24} sm={12} md={8} key={name}>
+                              <a href={url} target="_blank" rel="noreferrer">
+                                <Card
+                                  size="small"
+                                  hoverable
+                                  styles={{
+                                    body: {
+                                      padding: '8px 12px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      gap: 8,
+                                    },
+                                  }}
+                                >
+                                  <Text ellipsis style={{ flex: 1 }}>
+                                    {name}
+                                  </Text>
+                                  <ContributorAvatars
+                                    contributors={contributors}
+                                  />
+                                </Card>
+                              </a>
+                            </Col>
+                          ))}
+                        </Row>
+                      )}
+                    </>
+                  ),
+                };
+              },
+            )}
           />
         </div>
       </main>

@@ -78,6 +78,7 @@ const AlertStateLabel: Record<AlertState, string> = {
   [AlertState.Error]: t('Error'),
   [AlertState.Noop]: t('Not triggered'),
   [AlertState.Grace]: t('On Grace'),
+  [AlertState.Retrying]: t('Retrying'),
 };
 
 interface AlertListProps {

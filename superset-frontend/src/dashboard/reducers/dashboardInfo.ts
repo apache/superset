@@ -66,7 +66,8 @@ export interface HydrateDashboardInfoAction {
 }
 
 type DashboardInfoReducerAction =
-  DashboardInfoAction | HydrateDashboardInfoAction;
+  | DashboardInfoAction
+  | HydrateDashboardInfoAction;
 
 type DashboardInfoState = Partial<DashboardInfo> & {
   last_modified_time?: number;

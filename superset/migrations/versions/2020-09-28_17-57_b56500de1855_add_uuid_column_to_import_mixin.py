@@ -140,10 +140,11 @@ def upgrade():
             batch_op.create_unique_constraint(f"uq_{table_name}_uuid", ["uuid"])
 
     # add UUID to Dashboard.position_json
+    slices_model = models["slices"]
     slice_uuid_map = {
         slc.id: slc.uuid
-        for slc in session.query(models["slices"])
-        .options(load_only("id", "uuid"))
+        for slc in session.query(slices_model)
+        .options(load_only(slices_model.id, slices_model.uuid))
         .all()
     }
     update_dashboards(session, slice_uuid_map)

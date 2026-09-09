@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Imported first: loading this before 'spec/helpers/testing-library' or
+// '@superset-ui/core' ensures mockAntdWithDesktopBreakpoint is defined
+// before anything transitively requires (and thus mocks) 'antd'.
+import { mockAntdWithDesktopBreakpoint } from 'spec/helpers/mobileTestUtils';
 import * as redux from 'redux';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { screen, userEvent, within, waitFor } from '@superset-ui/core/spec';
@@ -185,6 +189,9 @@ const recordSuccess = jest.fn();
 const recordError = jest.fn();
 const setPaused = jest.fn();
 const setPausedByTab = jest.fn();
+
+// Mock useBreakpoint to return desktop breakpoints (prevents mobile rendering)
+jest.mock('antd', () => mockAntdWithDesktopBreakpoint());
 
 jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
   useUnsavedChangesPrompt: jest.fn(),
@@ -522,12 +529,15 @@ test('should disable both buttons when no actions available', () => {
   expect(onRedo).not.toHaveBeenCalled();
 });
 
-test('should render the "Discard" button as disabled', () => {
+test('should render an enabled "Exit edit mode" button when there are no unsaved changes', () => {
   setup(editableState);
-  expect(screen.getByRole('button', { name: /discard/i })).toBeDisabled();
+  expect(screen.getByRole('button', { name: /exit edit mode/i })).toBeEnabled();
+  expect(
+    screen.queryByRole('button', { name: /discard/i }),
+  ).not.toBeInTheDocument();
 });
 
-test('should enable the "Discard" button when there are unsaved changes', () => {
+test('should render an enabled "Discard" button when there are unsaved changes', () => {
   const unsavedState = {
     ...editableState,
     dashboardState: {
@@ -537,6 +547,9 @@ test('should enable the "Discard" button when there are unsaved changes', () => 
   };
   setup(unsavedState);
   expect(screen.getByRole('button', { name: /discard/i })).toBeEnabled();
+  expect(
+    screen.queryByRole('button', { name: /exit edit mode/i }),
+  ).not.toBeInTheDocument();
 });
 
 test('should render the "Save" button as disabled', () => {

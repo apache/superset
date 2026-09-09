@@ -26,8 +26,9 @@ from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
-from sqlalchemy import types
+from sqlalchemy import func, types
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.expression import ColumnElement
 from urllib3.exceptions import NewConnectionError
 
 from superset.databases.utils import make_url_safe
@@ -55,9 +56,65 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
 
     time_groupby_inline = True
     supports_multivalues_insert = True
+    supports_multivalue_columns = True
+
+    # ClickHouse doesn't support IS true/false syntax, use = true/false instead
+    use_equality_for_boolean_filters = True
+
+    # ClickHouse enforces max_rows_to_read against a pre-execution estimate
+    # that ignores LIMIT, so bounded sampling queries on large tables are
+    # rejected with TOO_MANY_ROWS before reading begins. Break mode keeps the
+    # operator's row cap as the read bound and returns the partial result
+    # instead of erroring. The clause is applied on its own line because the
+    # retry operates on the final statement text, which SQL mutators may have
+    # terminated with a single-line comment.
+    sampling_read_limit_override_suffix = "\nSETTINGS read_overflow_mode='break'"
+
+    @classmethod
+    def apply_sampling_read_limit_override(cls, sql: str) -> str | None:
+        """Append a read-overflow override so bounded sampling SQL succeeds.
+
+        Returns ``None`` when no retry should be attempted: the SQL already
+        carries the override, or it contains a SETTINGS clause from another
+        source (ClickHouse permits only one per statement, so appending a
+        second would produce invalid SQL — including subquery SETTINGS in
+        this check merely degrades to the engine's normal rejection). The
+        guard matches the clause shape ``SETTINGS <key> = ...`` rather than
+        the bare token, and string literals, quoted identifiers, and comments
+        are blanked out before matching, so a column named ``settings`` or a
+        literal/comment merely containing that text does not suppress the
+        retry. A trailing statement terminator is stripped so the SETTINGS
+        clause attaches to the statement itself.
+        """
+        code_only = re.sub(
+            r"'(?:[^']|'')*'"  # single-quoted string literals ('' escape)
+            r'|"(?:[^"]|"")*"'  # double-quoted identifiers
+            r"|`[^`]*`"  # backtick-quoted identifiers
+            r"|--[^\n]*"  # single-line comments
+            r"|/\*.*?\*/",  # block comments
+            " ",
+            sql,
+            flags=re.DOTALL,
+        )
+        if re.search(r"\bSETTINGS\s+\w+\s*=", code_only, re.IGNORECASE):
+            return None
+        stripped = sql.rstrip().rstrip(";").rstrip()
+        return f"{stripped}{cls.sampling_read_limit_override_suffix}"
+
+    @classmethod
+    def is_read_limit_error(cls, ex: Exception) -> bool:
+        """Recognize ClickHouse's max_rows_to_read rejection (TOO_MANY_ROWS).
+
+        Anchored to the error-code tokens ClickHouse emits ("Code: 158" /
+        "TOO_MANY_ROWS") rather than the setting name, so unrelated errors
+        that merely mention the setting are not misclassified.
+        """
+        message = str(ex)
+        return "TOO_MANY_ROWS" in message or "Code: 158" in message
 
     _time_grain_expressions = {
         None: "{col}",
+        "PT1S": "toStartOfSecond(toDateTime64({col}, 3))",
         "PT1M": "toStartOfMinute(toDateTime({col}))",
         "PT5M": "toDateTime(intDiv(toUInt32(toDateTime({col})), 300)*300)",
         "PT10M": "toDateTime(intDiv(toUInt32(toDateTime({col})), 600)*600)",
@@ -73,12 +130,18 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
 
     column_type_mappings = (
         (
-            re.compile(r".*Enum.*", re.IGNORECASE),
+            # Anchor to the start so only top-level arrays match. This must be
+            # ordered before the ``Enum`` entry below: ``Array(Enum8(...))`` is a
+            # real array and should classify as MULTI_VALUE, not STRING. The
+            # anchor also prevents over-matching nested arrays such as
+            # ``Map(String, Array(String))`` or ``Tuple(Array(String))``, which
+            # are not themselves array columns and must keep their own type.
+            re.compile(r"^Array\(", re.IGNORECASE),
             types.String(),
-            GenericDataType.STRING,
+            GenericDataType.MULTI_VALUE,
         ),
         (
-            re.compile(r".*Array.*", re.IGNORECASE),
+            re.compile(r".*Enum.*", re.IGNORECASE),
             types.String(),
             GenericDataType.STRING,
         ),
@@ -118,6 +181,56 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
             GenericDataType.TEMPORAL,
         ),
     )
+
+    @classmethod
+    def array_contains_any(cls, col: ColumnElement, values: list[Any]) -> ColumnElement:
+        # ClickHouse: hasAny(arr, [v1, v2]) -> 1 if arr shares any element.
+        # func.array(*values) renders as array(v1, v2) == [v1, v2].
+        return func.hasAny(col, func.array(*values))
+
+    @classmethod
+    def array_contains_all(cls, col: ColumnElement, values: list[Any]) -> ColumnElement:
+        # ClickHouse: hasAll(arr, [v1, v2]) -> 1 if arr contains all elements.
+        return func.hasAll(col, func.array(*values))
+
+    @classmethod
+    def array_length(cls, col: ColumnElement) -> ColumnElement:
+        # ClickHouse: length(arr) -> number of elements
+        return func.length(col)
+
+    @classmethod
+    def array_literal(cls, values: list[Any]) -> ColumnElement:
+        # ClickHouse: array(v1, v2) is equivalent to the literal [v1, v2].
+        return func.array(*values)
+
+    @classmethod
+    def array_explode(cls, col: ColumnElement) -> ColumnElement:
+        # ClickHouse: arrayJoin(arr) yields one row per element, so
+        # SELECT DISTINCT arrayJoin(arr) returns the distinct elements.
+        return func.arrayJoin(col)
+
+    # Matches the element type inside a top-level ``Array(...)`` column, e.g.
+    # ``Array(Int32)`` -> ``Int32``, ``Array(Nullable(String))`` -> ``String``.
+    _ARRAY_ELEMENT_RE = re.compile(r"^Array\((?P<inner>.+)\)$", re.IGNORECASE)
+    # Element-type wrappers that don't change the underlying generic type.
+    _ELEMENT_WRAPPER_RE = re.compile(
+        r"^(?:Nullable|LowCardinality)\((?P<inner>.+)\)$", re.IGNORECASE
+    )
+
+    @classmethod
+    def get_array_element_type(cls, native_type: str | None) -> GenericDataType | None:
+        if not native_type:
+            return None
+        match = cls._ARRAY_ELEMENT_RE.match(native_type.strip())
+        if not match:
+            return None
+        inner = match.group("inner").strip()
+        # Peel wrappers (Nullable/LowCardinality) that don't alter the generic
+        # type so the inner scalar type drives classification.
+        while wrapper := cls._ELEMENT_WRAPPER_RE.match(inner):
+            inner = wrapper.group("inner").strip()
+        spec = cls.get_column_spec(inner)
+        return spec.generic_type if spec else None
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
@@ -433,17 +546,19 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         if not url_params.get("database"):
             url_params["database"] = "__default__"
 
-        return str(
-            URL.create(
-                f"{cls.engine}+{cls.default_driver}",
-                username=url_params.get("username"),
-                password=url_params.get("password"),
-                host=url_params.get("host"),
-                port=url_params.get("port"),
-                database=url_params.get("database"),
-                query=url_params.get("query"),
-            )
-        )
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return URL.create(
+            f"{cls.engine}+{cls.default_driver}",
+            username=url_params.get("username"),
+            password=url_params.get("password"),
+            host=url_params.get("host"),
+            port=url_params.get("port"),
+            database=url_params.get("database"),
+            query=url_params.get("query"),
+        ).render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(
@@ -531,3 +646,15 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         if schema:
             uri = uri.set(database=parse.quote(schema, safe=""))
         return uri, connect_args
+
+    @classmethod
+    def get_column_description_retry_sql(cls, sql: str) -> str | None:
+        # clickhouse-connect's cursor only backfills `cursor.description` for
+        # a zero-row result -- e.g. the `WHERE false` probe used to detect an
+        # adhoc column's type without scanning any rows -- when the operation
+        # string starts with SELECT/WITH after stripping whitespace. Leading
+        # SQL comments inserted by SQL_QUERY_MUTATOR (e.g. query attribution)
+        # defeat that check, so wrap the untouched, already-mutated SQL in a
+        # bare outer SELECT to satisfy it without altering or dropping any of
+        # the mutator's comments.
+        return f"SELECT * FROM (\n{sql}\n) AS __superset_type_probe LIMIT 0"  # noqa: S608

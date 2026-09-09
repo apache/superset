@@ -18,7 +18,7 @@ import re
 from typing import Any, Mapping, Union
 
 from marshmallow import fields, post_dump, post_load, pre_load, Schema
-from marshmallow.validate import Length, ValidationError
+from marshmallow.validate import Length, OneOf, ValidationError
 
 from superset import security_manager
 from superset.subjects.schemas import SubjectResponseSchema
@@ -26,9 +26,21 @@ from superset.tags.models import TagType
 from superset.utils import json
 from superset.utils.schema import validate_external_url
 
-get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
-get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
-get_fav_star_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_delete_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
+get_export_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
+get_fav_star_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 thumbnail_query_schema = {
     "type": "object",
     "properties": {"force": {"type": "boolean"}},
@@ -196,6 +208,7 @@ class DashboardJSONMetadataSchema(Schema):
     # deprecated wrt dashboard-native filters
     filter_scopes = fields.Dict()
     expanded_slices = fields.Dict()
+    expand_all_slices = fields.Boolean()
     refresh_frequency = fields.Integer()
     # deprecated wrt dashboard-native filters
     default_filters = fields.Str()
@@ -205,7 +218,9 @@ class DashboardJSONMetadataSchema(Schema):
     color_namespace = fields.Str(allow_none=True)
     positions = fields.Dict(allow_none=True)
     label_colors = fields.Dict()
-    shared_label_colors = SharedLabelsColorsField()
+    shared_label_colors = SharedLabelsColorsField(
+        metadata={"type": "array", "items": {"type": "string"}}
+    )
     map_label_colors = fields.Dict()
     color_scheme_domain = fields.List(fields.Str())
     cross_filters_enabled = fields.Boolean(dump_default=True)
@@ -216,6 +231,10 @@ class DashboardJSONMetadataSchema(Schema):
     remote_id = fields.Integer()
     filter_bar_orientation = fields.Str(allow_none=True)
     native_filter_migration = fields.Dict()
+    async_mode = fields.Str(
+        allow_none=True,
+        validate=OneOf(["default", "force_on", "force_off"]),
+    )
 
     @pre_load
     def remove_show_native_filters(  # pylint: disable=unused-argument
@@ -533,7 +552,9 @@ class DashboardColorsConfigUpdateSchema(BaseDashboardSchema):
     color_namespace = fields.String(allow_none=True)
     color_scheme = fields.String(allow_none=True)
     map_label_colors = fields.Dict(allow_none=False)
-    shared_label_colors = SharedLabelsColorsField()
+    shared_label_colors = SharedLabelsColorsField(
+        metadata={"type": "array", "items": {"type": "string"}}
+    )
     label_colors = fields.Dict(allow_none=False)
     color_scheme_domain = fields.List(fields.String(), allow_none=False)
 
@@ -590,6 +611,7 @@ class ImportV1DashboardSchema(Schema):
     roles = fields.List(fields.Raw(), allow_none=True, load_only=True)
     theme_uuid = fields.UUID(allow_none=True)
     theme_id = fields.Integer(allow_none=True)
+    extra = fields.Dict(allow_none=True, load_only=True)
 
 
 class EmbeddedDashboardConfigSchema(Schema):
@@ -628,3 +650,30 @@ class CacheScreenshotSchema(Schema):
         fields.List(fields.Str(), validate=lambda x: len(x) == 2), required=False
     )
     permalinkKey = fields.Str(required=False)  # noqa: N815
+
+
+class DashboardExportXlsxPostSchema(Schema):
+    active_data_mask = fields.Dict(
+        keys=fields.Str(),
+        values=fields.Dict(),
+        load_default=dict,
+        metadata={
+            "description": "Live dashboard filter state keyed by native filter id, "
+            "each carrying an extraFormData object."
+        },
+    )
+    mode = fields.String(
+        load_default="data",
+        validate=OneOf(["data", "images"]),
+        metadata={
+            "description": "Export mode: 'data' streams each chart's tabular result "
+            "(default); 'images' embeds non-table charts as rendered images and "
+            "keeps table charts tabular."
+        },
+    )
+
+
+class DashboardExportXlsxResponseSchema(Schema):
+    job_id = fields.String(
+        metadata={"description": "Correlation id for the async export task"}
+    )

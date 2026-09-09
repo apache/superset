@@ -15,18 +15,22 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, cast, ClassVar, Optional
 
 from flask import current_app as app, g
 from flask_appbuilder.models.filters import BaseFilter
 from flask_babel import lazy_gettext
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, false as sa_false, or_
 from sqlalchemy.orm import Query
 
 from superset import security_manager
 from superset.extensions import db
-from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES, SoftDeleteMixin
+from superset.models.helpers import (
+    format_time_humanized,
+    SKIP_VISIBILITY_FILTER_CLASSES,
+    SoftDeleteMixin,
+)
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
@@ -227,11 +231,29 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
         (``arg_name`` + ``model``) instead of carrying verbatim copies of
         this body. ``any()`` emits an EXISTS subquery so it composes with
         the entity's base access filter without duplicate rows from a join.
-        Entities without an ``editors`` relationship opt out automatically.
+
+        "Mirrors" is deliberately approximate in two known, fail-safe ways:
+        editorship granted through ``EXTRA_EDITORS_RESOLVER`` and guest users
+        whose editorship derives from roles have no SQL form (the resolver is
+        arbitrary per-deployment Python), so both can restore via a direct
+        ``POST /restore`` yet see an under-enumerated archive. Narrower than
+        the true audience, never wider.
+
+        A model *without* an ``editors`` relationship fails closed for
+        non-admins: there is no audience to scope to, so nothing is
+        enumerable. Returning the query unfiltered here would hand every
+        soft-deleted row of a future ``SoftDeleteMixin`` adopter to anyone
+        with list access -- a fail-open default on a security-scoped filter.
         """
-        editors = getattr(self.model, "editors", None)
-        if editors is None or security_manager.is_admin():
+        if security_manager.is_admin():
             return query
+        editors = getattr(self.model, "editors", None)
+        if editors is None:
+            if normalized == "only":
+                # Nothing is enumerable; emit an always-false predicate rather
+                # than an empty result-set hack so pagination stays coherent.
+                return query.filter(sa_false())
+            return query.filter(self.model.deleted_at.is_(None))
         user_id = get_user_id()
         from superset.subjects.models import Subject  # noqa: PLC0415
         from superset.subjects.utils import (  # noqa: PLC0415
@@ -290,6 +312,44 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
         the session level on the filter's own model class.
         """
         setattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, True)
+
+
+class BaseDeletedRecencyFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """Keep rows archived within the last *value* days, by the server's clock.
+
+    ``deleted_at`` is stamped with the server's naive-local
+    ``datetime.now()``, so only a cutoff resolved here -- on the clock that
+    stamped the column -- is correct on non-UTC deployments. An absolute
+    client-computed cutoff would be shifted by the server offset and frozen
+    at page mount (a long-lived tab drifts a day per day). The client sends
+    a stable day count, which also survives the URL and stays shareable.
+
+    Subclasses set ``arg_name`` (e.g. ``"chart_deleted_recency"``).
+    """
+
+    name = lazy_gettext("Archived within")
+
+    def apply(self, query: Query, value: Any) -> Query:
+        try:
+            days = int(value)
+        except (TypeError, ValueError):
+            # Filter values arrive from the URL; refusing loudly would turn a
+            # mangled query string into a 500. An unfiltered list is the same
+            # answer every other malformed FAB filter value produces.
+            return query
+        if days <= 0:
+            return query
+        try:
+            cutoff = datetime.now() - timedelta(days=days)
+        except OverflowError:
+            # int() parses arbitrarily large values, and both timedelta()
+            # and the subtraction raise OverflowError beyond their bounds
+            # (~2.7 million days) -- which would be exactly the 500 the
+            # comment above promises to avoid. A window wider than the
+            # datetime range keeps every archived row, so unfiltered is
+            # also the semantically correct answer.
+            return query
+        return query.filter(self.model.deleted_at > cutoff)
 
 
 class SoftDeleteApiMixin:
@@ -365,9 +425,18 @@ class SoftDeleteApiMixin:
         ids = cast(list[Any], data.get("ids", []))
         deleted_at_map = self._get_deleted_at_map(ids)
         for row, row_id in zip(data.get("result", []), ids, strict=False):
-            row["deleted_at"] = deleted_at_map.get(row_id)
+            iso_value, humanized = deleted_at_map.get(row_id, (None, None))
+            row["deleted_at"] = iso_value
+            # Humanized on the server, like changed_on_delta_humanized on the
+            # sibling list pages: deleted_at is stamped with the server's
+            # naive-local clock, so any client-side parse has to guess the
+            # timezone -- and the archive UI guessed UTC, shifting every
+            # displayed age by the server offset on non-UTC deployments.
+            row["deleted_at_delta_humanized"] = humanized
 
-    def _get_deleted_at_map(self, ids: list[Any]) -> dict[Any, str | None]:
+    def _get_deleted_at_map(
+        self, ids: list[Any]
+    ) -> dict[Any, tuple[str | None, str | None]]:
         if not ids:
             return {}
         # Raw session query — read-only projection of two columns on
@@ -384,7 +453,10 @@ class SoftDeleteApiMixin:
             .all()
         )
         return {
-            row_id: self._serialize_deleted_at(deleted_at)
+            row_id: (
+                self._serialize_deleted_at(deleted_at),
+                format_time_humanized(deleted_at) if deleted_at else None,
+            )
             for row_id, deleted_at in rows
         }
 

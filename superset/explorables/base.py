@@ -204,7 +204,7 @@ class Explorable(Protocol):
         object describing what data to fetch (columns, metrics, filters, time range,
         etc.) and returns a QueryResult containing a pandas DataFrame with the results.
 
-        :param query_obj: QueryObject describing the query
+        :param query_object: QueryObject describing the query
 
         :return: QueryResult containing:
             - df: pandas DataFrame with query results
@@ -484,6 +484,16 @@ class Explorable(Protocol):
     # =========================================================================
     # Optional Properties
     # =========================================================================
+
+    def raise_for_access(self) -> None:
+        """
+        Raise if the current user may not access this explorable.
+
+        Implemented by every explorable and relied on by callers before any
+        query is built, so it belongs on the protocol.
+
+        :raises SupersetSecurityException: if access is denied
+        """
 
     @property
     def is_rls_supported(self) -> bool:

@@ -52,6 +52,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
 from superset.queries.saved_queries.schemas import ImportV1SavedQuerySchema
+from superset.subjects.utils import get_default_viewers_for_current_user
 from superset.utils.decorators import on_error, transaction
 
 
@@ -134,11 +135,19 @@ class ImportAssetsCommand(BaseCommand):
             if file_name.startswith("datasets/"):
                 config["database_id"] = database_ids[config["database_uuid"]]
                 dataset = import_dataset(config, overwrite=overwrite)
-                dataset_info[str(dataset.uuid)] = {
+                # Key on the bundle's own uuid, which is what the bundle's
+                # charts reference. An import that resolves onto an existing
+                # dataset by physical identity returns a row whose uuid
+                # differs, and keying on that would strand those charts.
+                dataset_info[str(config["uuid"])] = {
                     "datasource_id": dataset.id,
                     "datasource_type": dataset.datasource_type,
                     "datasource_name": dataset.table_name,
                 }
+
+        # Resolve the creator's default viewers once for the whole bundle
+        # rather than once per chart/dashboard (a membership query each).
+        default_viewers = get_default_viewers_for_current_user()
 
         # import charts
         charts = []
@@ -146,7 +155,9 @@ class ImportAssetsCommand(BaseCommand):
             if file_name.startswith("charts/"):
                 dataset_dict = dataset_info[config["dataset_uuid"]]
                 config = update_chart_config_dataset(config, dataset_dict)
-                chart = import_chart(config, overwrite=overwrite)
+                chart = import_chart(
+                    config, overwrite=overwrite, default_viewers=default_viewers
+                )
                 charts.append(chart)
                 chart_ids[str(chart.uuid)] = chart.id
 
@@ -161,7 +172,9 @@ class ImportAssetsCommand(BaseCommand):
         for file_name, config in configs.items():
             if file_name.startswith("dashboards/"):
                 config = update_id_refs(config, chart_ids, dataset_info)
-                dashboard = import_dashboard(config, overwrite=overwrite)
+                dashboard = import_dashboard(
+                    config, overwrite=overwrite, default_viewers=default_viewers
+                )
 
                 # set ref in the dashboard_slices table
                 # Use ORM-level reassignment instead of Core

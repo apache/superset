@@ -63,6 +63,7 @@ const DATABASE_FETCH_ENDPOINT = 'glob:*/api/v1/database/10';
 const AVAILABLE_DB_ENDPOINT = 'glob:*/api/v1/database/available*';
 const VALIDATE_PARAMS_ENDPOINT = 'glob:*/api/v1/database/validate_parameters*';
 const DATABASE_CONNECT_ENDPOINT = 'glob:*/api/v1/database/';
+const IMPORT_DB_ENDPOINT = 'glob:*/api/v1/database/import/';
 
 const databaseFixture: DatabaseObject = {
   id: 123,
@@ -135,6 +136,7 @@ describe('DatabaseModal', () => {
                 format: 'int32',
                 maximum: 65536,
                 minimum: 0,
+                nullable: true,
                 type: 'integer',
               },
               query: {
@@ -152,7 +154,7 @@ describe('DatabaseModal', () => {
                 type: 'string',
               },
             },
-            required: ['database', 'host', 'port', 'username'],
+            required: ['database', 'host', 'username'],
             type: 'object',
           },
           preferred: true,
@@ -1599,6 +1601,59 @@ describe('DatabaseModal', () => {
         expect(importDbButton.files?.[0]).toStrictEqual(testFile);
         expect(importDbButton.files?.item(0)).toStrictEqual(testFile);
         expect(importDbButton.files).toHaveLength(1);
+      });
+
+      test('resets the upload entry after an invalid file error', async () => {
+        fetchMock.post(IMPORT_DB_ENDPOINT, {
+          status: 422,
+          body: {
+            errors: [
+              {
+                message:
+                  'Could not find a valid command to import file. Please re-export your file and try importing again',
+                error_type: 'GENERIC_COMMAND_ERROR',
+                level: 'warning',
+                extra: { issue_codes: [] },
+              },
+            ],
+          },
+        });
+
+        // jsdom does not implement scrollIntoView, which the modal calls
+        // once the importing filename renders
+        Element.prototype.scrollIntoView = jest.fn();
+
+        setup();
+
+        await screen.findByTestId('import-database-btn');
+        const fileInput = document.querySelector(
+          'input[type="file"]',
+        ) as HTMLInputElement;
+        // rc-upload spreads e.target.files, so pass a real iterable
+        fireEvent.change(fileInput, {
+          target: {
+            files: [new File([new ArrayBuffer(1)], 'invalid_export.zip')],
+          },
+        });
+
+        await screen.findByText(/could not find a valid command to import/i);
+
+        const uploadItem = document.querySelector('.ant-upload-list-item');
+        expect(uploadItem).toBeInTheDocument();
+        // the spinner must settle rather than spin forever
+        expect(uploadItem).not.toHaveClass('ant-upload-list-item-uploading');
+
+        const removeButton = (uploadItem as HTMLElement).querySelector(
+          'button',
+        ) as HTMLButtonElement;
+        expect(removeButton).toBeInTheDocument();
+        fireEvent.click(removeButton);
+
+        await waitFor(() =>
+          expect(
+            document.querySelector('.ant-upload-list-item'),
+          ).not.toBeInTheDocument(),
+        );
       });
     });
   });

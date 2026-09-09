@@ -25,18 +25,21 @@ lets each per-resource method collapse to a single delegation call, while
 the OpenAPI docstring + FAB decorators stay at the method site where they
 belong.
 
-(The restore endpoint ships in a later PR; only the read + activity
-endpoints are wired here.)
+The write side follows the same pattern: ``restore_version_endpoint``
+holds the shared body of the three ``POST .../versions/<uuid>/restore``
+routes; authorization and the capture kill-switch gate live in the
+restore command's ``validate()``, not here.
 """
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
 import sqlalchemy as sa
-from flask import current_app, Response
+from flask import Response
 from flask_appbuilder import Model
 
 from superset.daos.version import VersionDAO
@@ -53,6 +56,8 @@ from superset.versioning.schemas import VersionListItemSchema
 #: carry UUID instances, the snapshot block pre-stringifies).
 _version_item_schema = VersionListItemSchema()
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class EntityVersionInfo:
@@ -67,10 +72,21 @@ class EntityVersionInfo:
     version: int | None = None
     transaction_id: int | None = None
     version_uuid: str | None = None
+    #: Resolved uuid of the entity itself, carried so callers that need a
+    #: concurrency token for an entity with no version rows yet don't have to
+    #: re-run the ``SELECT uuid`` this helper already issued. Not part of the
+    #: API response.
+    entity_uuid: UUID | None = None
 
 
 def _capture_enabled() -> bool:
-    return bool(current_app.config.get("ENABLE_VERSIONING_CAPTURE", False))
+    # Delegates to the shared gate so the read helpers and the restore
+    # command can't disagree about what "capture is on" means.
+    from superset.versioning.utils import (  # pylint: disable=import-outside-toplevel
+        capture_enabled,
+    )
+
+    return capture_enabled()
 
 
 def current_entity_version_info(
@@ -98,15 +114,21 @@ def current_entity_version_info(
         entity_uuid = db.session.scalar(
             sa.select(model_cls.uuid).where(model_cls.id == entity_id)
         )
+    if entity_uuid is None:
+        return EntityVersionInfo()
+    version, transaction_id = VersionDAO.current_version_info(
+        model_cls, entity_id, entity_uuid
+    )
     version_uuid = (
-        VersionDAO.current_live_version_uuid(model_cls, entity_id, entity_uuid)
-        if entity_uuid is not None
+        VersionDAO.derive_version_uuid(entity_uuid, transaction_id)
+        if transaction_id is not None
         else None
     )
     return EntityVersionInfo(
-        version=VersionDAO.current_version_number(model_cls, entity_id),
-        transaction_id=VersionDAO.current_live_transaction_id(model_cls, entity_id),
+        version=version,
+        transaction_id=transaction_id,
         version_uuid=str(version_uuid) if version_uuid else None,
+        entity_uuid=entity_uuid,
     )
 
 
@@ -126,6 +148,77 @@ def current_entity_etag_uuid(
         model_cls, entity_id, entity_uuid
     )
     return str(version_uuid) if version_uuid else None
+
+
+# Sentinel Continuum transaction id for an entity that has no version rows
+# yet. Continuum sequences start at 1, so it can never collide with a real
+# one, and the derived uuid stops matching the moment the first version row
+# lands — which is exactly the transition a concurrency guard must catch.
+_UNVERSIONED_TRANSACTION_ID = 0
+
+
+def unversioned_entity_token(entity_uuid: UUID) -> str:
+    """Concurrency token for an entity Continuum hasn't versioned yet."""
+    return str(VersionDAO.derive_version_uuid(entity_uuid, _UNVERSIONED_TRANSACTION_ID))
+
+
+def entity_concurrency_token(
+    model_cls: type[Model],
+    entity_id: int | None,
+    entity_uuid: UUID | None,
+) -> str | None:
+    """Resolve the optimistic-concurrency validator for *entity*.
+
+    Differs from :func:`current_entity_etag_uuid` in what it does for an
+    entity with no version rows: baseline rows are written lazily, on the
+    first update after the versioning migration, so a never-since-saved
+    entity has none. Reporting ``None`` there would leave the *first*
+    concurrent save on every such entity unguarded — the exact case a
+    two-tab race hits on a pristine entity. Those entities get a
+    deterministic unversioned token instead.
+
+    ``None`` still means "no validator exists": capture is off, or the
+    entity is missing.
+    """
+    if entity_id is None or entity_uuid is None or not _capture_enabled():
+        return None
+    return current_entity_etag_uuid(
+        model_cls, entity_id, entity_uuid
+    ) or unversioned_entity_token(entity_uuid)
+
+
+def lock_entity_for_update(model_cls: type[Model], entity_id: int | None) -> None:
+    """Row-lock *entity* so a conditional write's check and its update are atomic.
+
+    ``If-Match`` is verified against a read taken before the update command
+    runs. Without a lock two overlapping requests can both read the same live
+    version, both pass the check, and then commit one after the other,
+    reintroducing the lost update the check exists to prevent. The lock is
+    held until the command commits, because both run in the same scoped
+    session.
+
+    Renders no ``FOR UPDATE`` on SQLite, which serialises writers anyway.
+    """
+    try:
+        # The PUT route declares ``/<pk>`` (a string segment), so a non-numeric
+        # id must not raise a SQL cast error ahead of the command's 404.
+        entity_id = int(entity_id)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return
+    db.session.execute(
+        sa.select(model_cls.id).where(model_cls.id == entity_id).with_for_update()
+    )
+
+
+def concurrency_token_from(info: EntityVersionInfo) -> str | None:
+    """Concurrency token for an already-resolved :class:`EntityVersionInfo`.
+
+    Lets a write endpoint reuse the pre-update version lookup it already
+    made rather than issuing a second one.
+    """
+    if info.entity_uuid is None:
+        return None
+    return info.version_uuid or unversioned_entity_token(info.entity_uuid)
 
 
 # Maps the versioned model class name to the keyword argument
@@ -263,4 +356,57 @@ def get_version_endpoint(
         model_cls,
         entity_uuid,
         entity_id=entity.id,
+    )
+
+
+def restore_version_endpoint(
+    api: Any,
+    model_cls: type[Model],
+    command_cls: type[Any],
+    uuid_str: str,
+    version_uuid_str: str,
+) -> Response:
+    """Body of ``POST /api/v1/{resource}/<uuid>/versions/<version_uuid>/restore``.
+
+    *command_cls* is the entity's ``BaseRestoreVersionCommand`` subclass;
+    its ``not_found_exc`` / ``forbidden_exc`` / ``failed_exc`` ClassVars
+    drive the exception→HTTP mapping, so this body stays generic.
+    Authorization and the ``ENABLE_VERSIONING_CAPTURE`` kill-switch gate
+    live in the command's ``validate()`` — with capture off the route is
+    inert (404) because a revert without Continuum's write listeners
+    would be a destructive, untracked write.
+    """
+    try:
+        entity_uuid = UUID(uuid_str)
+    except ValueError:
+        return api.response_400(message="Invalid UUID")
+    try:
+        version_uuid = UUID(version_uuid_str)
+    except ValueError:
+        return api.response_400(message="Invalid version UUID")
+
+    try:
+        result = command_cls(entity_uuid, version_uuid).run()
+    except command_cls.not_found_exc:
+        return api.response_404()
+    except command_cls.forbidden_exc:
+        return api.response_403()
+    except command_cls.failed_exc as ex:
+        logger.exception("Error restoring %s version", model_cls.__name__)
+        return api.response_422(message=str(ex))
+
+    message = "OK"
+    if result.skipped_slice_ids:
+        message = (
+            f"OK; {len(result.skipped_slice_ids)} chart(s) referenced by "
+            "the snapshot no longer exist and were not reattached"
+        )
+    return set_version_etag_by_uuid(
+        api.response(200, message=message),
+        model_cls,
+        entity_uuid,
+        # The command already loaded the entity; passing its id skips the
+        # extra id-by-uuid SELECT (same optimization as the sibling
+        # list/get endpoints).
+        entity_id=result.entity.id,
     )

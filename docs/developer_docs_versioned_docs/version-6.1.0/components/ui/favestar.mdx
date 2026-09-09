@@ -33,30 +33,30 @@ FaveStar component for marking items as favorites
 <StoryWithControls
   component="FaveStar"
   props={{
-  itemId: 1,
-  isStarred: false,
-  showTooltip: true
-}}
+    itemId: 1,
+    isStarred: false,
+    showTooltip: true,
+  }}
   controls={[
-  {
-    name: "itemId",
-    label: "Item ID",
-    type: "number",
-    description: "Unique identifier for the item"
-  },
-  {
-    name: "isStarred",
-    label: "Is Starred",
-    type: "boolean",
-    description: "Whether the item is currently starred."
-  },
-  {
-    name: "showTooltip",
-    label: "Show Tooltip",
-    type: "boolean",
-    description: "Show tooltip on hover."
-  }
-]}
+    {
+      name: 'itemId',
+      label: 'Item ID',
+      type: 'number',
+      description: 'Unique identifier for the item',
+    },
+    {
+      name: 'isStarred',
+      label: 'Is Starred',
+      type: 'boolean',
+      description: 'Whether the item is currently starred.',
+    },
+    {
+      name: 'showTooltip',
+      label: 'Show Tooltip',
+      type: 'boolean',
+      description: 'Show tooltip on hover.',
+    },
+  ]}
 />
 
 ## Try It
@@ -65,22 +65,17 @@ Edit the code below to experiment with the component:
 
 ```tsx live
 function Demo() {
-  return (
-    <FaveStar
-      itemId={1}
-      showTooltip
-    />
-  );
+  return <FaveStar itemId={1} showTooltip />;
 }
 ```
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `itemId` | `number` | `1` | Unique identifier for the item |
-| `isStarred` | `boolean` | `false` | Whether the item is currently starred. |
-| `showTooltip` | `boolean` | `true` | Show tooltip on hover. |
+| Prop          | Type      | Default | Description                            |
+| ------------- | --------- | ------- | -------------------------------------- |
+| `itemId`      | `number`  | `1`     | Unique identifier for the item         |
+| `isStarred`   | `boolean` | `false` | Whether the item is currently starred. |
+| `showTooltip` | `boolean` | `true`  | Show tooltip on hover.                 |
 
 ## Import
 

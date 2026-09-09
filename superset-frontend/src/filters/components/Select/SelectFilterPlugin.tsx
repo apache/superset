@@ -43,6 +43,7 @@ import {
 import {
   hasOption,
   propertyComparator,
+  stripSurroundingQuotes,
 } from '@superset-ui/core/components/Select/utils';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { getDataRecordFormatter, getSelectExtraFormData } from '../../utils';
@@ -156,7 +157,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const [col] = groupby;
   const [initialColtypeMap] = useState(coltypeMap);
   const [search, setSearch] = useState('');
-  const prevDataRef = useRef(data);
+  const userClearedRef = useRef(false);
   const [dataMask, dispatchDataMask] = useImmerReducer(reducer, {
     extraFormData: {},
     filterState,
@@ -270,7 +271,10 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
             type: 'ownState',
             ownState: {
               coltypeMap: initialColtypeMap,
-              search,
+              // The dropdown offers `stripSurroundingQuotes(search)` as the
+              // creatable option, so the server has to be asked for the same
+              // string or the two disagree about what was searched for.
+              search: stripSurroundingQuotes(search).trim(),
             },
           });
         }
@@ -280,16 +284,20 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const handleBlur = useCallback(() => {
     unsetFocusedFilter();
-    onSearch('');
-  }, [onSearch, unsetFocusedFilter]);
+    if (search) {
+      onSearch('');
+    }
+  }, [onSearch, search, unsetFocusedFilter]);
 
   const handleChange = useCallback(
     (value?: SelectValue | number | string) => {
       const values = value === null ? [null] : ensureIsArray(value);
 
       if (values.length === 0) {
+        userClearedRef.current = true;
         updateDataMask(null);
       } else {
+        userClearedRef.current = false;
         updateDataMask(values);
       }
     },
@@ -300,6 +308,25 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     data.length === 0
       ? t('No data')
       : tn('%s option', '%s options', data.length, data.length);
+
+  // A capped list reads as the whole set, so a value sitting past the row
+  // limit looks like a value that does not exist. Each sentence is only added
+  // when it is actually true of this filter's configuration.
+  const rowLimit = Number(formData.rowLimit) || 0;
+  const helperText = useMemo(() => {
+    if (!rowLimit || data.length < rowLimit) {
+      return undefined;
+    }
+    return [
+      t('Only the first %s values are listed.', data.length),
+      searchAllOptions ? t('Type to search all of them.') : undefined,
+      creatable !== false
+        ? t('You can enter a value that is not listed.')
+        : undefined,
+    ]
+      .filter(Boolean)
+      .join(' ');
+  }, [creatable, data.length, rowLimit, searchAllOptions]);
 
   const formItemExtra = useMemo(() => {
     if (filterState.validateMessage) {
@@ -330,19 +357,19 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [data, datatype, col, labelFormatter, creatable, filterState.value]);
 
   const options = useMemo(() => {
+    const unquotedSearch = stripSurroundingQuotes(search);
     if (
-      search &&
-      !searchAllOptions &&
+      unquotedSearch &&
       creatable !== false &&
-      !hasOption(search, uniqueOptions, true)
+      !hasOption(unquotedSearch, uniqueOptions, true)
     ) {
       return [
-        { label: search, value: search, isNewOption: true },
+        { label: unquotedSearch, value: unquotedSearch, isNewOption: true },
         ...uniqueOptions,
       ];
     }
     return uniqueOptions;
-  }, [search, uniqueOptions, creatable, searchAllOptions]);
+  }, [search, uniqueOptions, creatable]);
 
   const sortComparator = useCallback(
     (a: LabeledValue, b: LabeledValue) => {
@@ -352,14 +379,20 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
         return 0; // Preserve the original order from the backend
       }
 
-      // Only apply alphabetical sorting when no sortMetric is specified
-      const labelComparator = propertyComparator('label');
+      // Only apply sorting when no sortMetric is specified. `label` is always
+      // a formatted string (see getDataRecordFormatter), so comparing by it
+      // never reaches propertyComparator's numeric branch; numeric columns
+      // sort by the raw `value` instead so "2, 10, 100" doesn't collapse
+      // into lexicographic "10, 100, 2".
+      const comparator = propertyComparator(
+        datatype === GenericDataType.Numeric ? 'value' : 'label',
+      );
       if (formData.sortAscending) {
-        return labelComparator(a, b);
+        return comparator(a, b);
       }
-      return labelComparator(b, a);
+      return comparator(b, a);
     },
-    [formData.sortAscending, formData.sortMetric],
+    [formData.sortAscending, formData.sortMetric, datatype],
   );
 
   // Use effect for initialisation for filter plugin
@@ -378,6 +411,12 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       return;
     }
 
+    // Reset userClearedRef when clearAllTrigger fires so auto-select
+    // can re-apply if the filter is re-initialised after a global clear
+    if (clearAllTrigger) {
+      userClearedRef.current = false;
+    }
+
     if (filterState.value !== undefined) {
       // Set the filter state value if it is defined
       updateDataMask(filterState.value);
@@ -388,7 +427,7 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     // Skip default values when clearAllTrigger is active to prevent
     // defaults from being applied during Clear All operation
     if (!clearAllTrigger) {
-      if (defaultToFirstItem) {
+      if (defaultToFirstItem && !userClearedRef.current) {
         // Set to first item if defaultToFirstItem is true
         const firstItem: SelectValue = data[0]
           ? (groupby.map(col => data[0][col]) as string[])
@@ -414,26 +453,6 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   ]);
 
   useEffect(() => {
-    const prev = prevDataRef.current;
-    const curr = data;
-
-    const hasDataChanged =
-      prev?.length !== curr?.length ||
-      prev?.some((row, i) => {
-        const prevVal = row[col];
-        const currVal = curr[i][col];
-        return typeof prevVal === 'bigint' || typeof currVal === 'bigint'
-          ? prevVal?.toString() !== currVal?.toString()
-          : prevVal !== currVal;
-      });
-
-    // If data actually changed (e.g., due to parent filter), reset flag
-    if (hasDataChanged) {
-      prevDataRef.current = data;
-    }
-  }, [data, col]);
-
-  useEffect(() => {
     if (
       filterState.value?.every((value?: any) =>
         data.some(row => row[col] === value),
@@ -445,12 +464,17 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       ? (groupby.map(col => data[0][col]) as string[])
       : null;
 
-    // Skip default value update when clearAllTrigger is active
+    // Skip default value update when clearAllTrigger is active.
+    // `null` is a persisted "user cleared this" state, as opposed to
+    // `undefined` for "never set", so it must not be re-defaulted either —
+    // `userClearedRef` alone would not survive a reload.
     if (
       !clearAllTrigger &&
       defaultToFirstItem &&
+      !userClearedRef.current &&
       Object.keys(formData?.extraFormData || {}).length &&
       filterState.value !== undefined &&
+      filterState.value !== null &&
       firstItem !== null &&
       filterState.value !== firstItem
     ) {
@@ -616,15 +640,17 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
               name={formData.nativeFilterId}
               allowClear
               autoClearSearchValue
-              allowNewOptions={!searchAllOptions && creatable !== false}
+              allowNewOptions={creatable !== false}
               allowNewOptionsOnPaste={multiSelect && searchAllOptions}
               allowSelectAll={!searchAllOptions}
+              stableSelectAll={!searchAllOptions}
               value={multiSelect ? filterState.value || [] : filterState.value}
               disabled={isDisabled}
               getPopupContainer={getSelectPopupContainer}
               showSearch={showSearch}
               mode={multiSelect ? 'multiple' : 'single'}
               placeholder={placeholderText}
+              helperText={helperText}
               onClear={() => onSearch('')}
               onSearch={onSearch}
               onBlur={handleBlur}

@@ -57,9 +57,12 @@ import {
   getSuffixIcon,
   dropDownRenderHelper,
   handleFilterOptionHelper,
+  makeQuoteAwareTokenizer,
   mapOptions,
   getOption,
   isObject,
+  splitWithQuoteEscaping,
+  stripSurroundingQuotes,
   isEqual as utilsIsEqual,
 } from './utils';
 import {
@@ -173,6 +176,21 @@ const AsyncSelect = forwardRef(
     // request is still pending.
     const inFlightFetchesRef = useRef(0);
     const mappedMode = isSingleMode ? undefined : 'multiple';
+
+    const reconcileTokensRef = useRef<(tokens: string[]) => void>(() => {});
+    const fullSelectOptionsRef = useRef<SelectOptionsType>(EMPTY_OPTIONS);
+
+    const quoteAwareTokenSeparators = useMemo(() => {
+      const tokenize = makeQuoteAwareTokenizer(tokenSeparators);
+      return (input: string) => {
+        const tokens = tokenize(input);
+        if (tokens.length !== 1 || tokens[0] !== input) {
+          reconcileTokensRef.current(tokens);
+        }
+        return tokens;
+      };
+    }, [tokenSeparators]);
+
     const allowFetch = !fetchOnlyOnSearch || inputValue;
     const [maxTagCount, setMaxTagCount] = useState(
       propsMaxTagCount ?? MAX_TAG_COUNT,
@@ -281,6 +299,39 @@ const AsyncSelect = forwardRef(
       onSelect?.(selectedItem, option);
     };
 
+    // The underlying Select silently drops tokens it cannot match against the
+    // rendered options. That happens whenever tokenization outpaces the
+    // debounced option registration, e.g. dead-key keyboard layouts deliver a
+    // closing quote and a separator in a single input event.
+    reconcileTokensRef.current = (tokens: string[]) => {
+      if (isSingleMode || !allowNewOptions) {
+        return;
+      }
+      setTimeout(() => {
+        tokens.forEach(token => {
+          const matched = getOption(token, fullSelectOptionsRef.current, true);
+          const matchedValue = isObject(matched) ? matched.value : matched;
+          if (hasOption(matchedValue ?? token, selectValueRef.current)) {
+            return;
+          }
+          const option = isObject(matched)
+            ? (matched as AntdLabeledValue)
+            : { label: token, value: token, isNewOption: true };
+          if (!matched) {
+            setSelectOptions(previous =>
+              hasOption(token, previous, true)
+                ? previous
+                : [option, ...previous],
+            );
+          }
+          handleOnSelect(
+            { label: option.label, value: option.value } as AntdLabeledValue,
+            option as AntdLabeledValue,
+          );
+        });
+      });
+    };
+
     const handleOnDeselect: SelectProps['onDeselect'] = (value, option) => {
       if (Array.isArray(selectValue)) {
         if (isLabeledValue(value)) {
@@ -318,6 +369,8 @@ const AsyncSelect = forwardRef(
       [onError],
     );
 
+    fullSelectOptionsRef.current = fullSelectOptions;
+
     const mergeData = useCallback(
       (data: SelectOptionsType) => {
         let mergedData: SelectOptionsType = [];
@@ -348,6 +401,10 @@ const AsyncSelect = forwardRef(
     const fetchPage = useMemo(
       () => (search: string, page: number) => {
         setPage(page);
+        // A previous fetch may have left an error on screen. Clear it before
+        // any early return so a page served from cache, or from an already
+        // complete option set, is not shown next to a stale error.
+        setError('');
         if (allValuesLoaded) {
           setIsLoading(false);
           return;
@@ -394,6 +451,14 @@ const AsyncSelect = forwardRef(
               initialOptionsRef.current = accumulated;
               if (!fetchOnlyOnSearch && accumulated.length >= totalCount) {
                 setAllValuesLoaded(true);
+                // Once every base value is loaded, searches are served by
+                // client-side filtering (fetchPage short-circuits), so the
+                // full set must reach the live options even when this
+                // response lands mid-search — otherwise the dropdown stays
+                // empty for the active search.
+                if (!matchesCurrentSearch) {
+                  mergeData(accumulated);
+                }
               }
               fetchedQueries.current.set(key, totalCount);
               if (matchesCurrentSearch) {
@@ -425,7 +490,19 @@ const AsyncSelect = forwardRef(
               setTotalCount(totalCount);
             }
           })
-          .catch(internalOnError)
+          .catch((response: Response) => {
+            // Mirror the results guard above: a failure belonging to a search
+            // the user has since moved on from must not replace the outcome
+            // of the fetch that superseded it. Base fetches (search === '')
+            // are exempt exactly as their results are — they maintain the
+            // accumulator and allValuesLoaded, so their failures must stay
+            // visible even when they land mid-search. The consumer's onError
+            // is skipped along with the banner for superseded searches.
+            if (search && inputValueRef.current !== search) {
+              return undefined;
+            }
+            return internalOnError(response);
+          })
           .finally(() => {
             inFlightFetchesRef.current = Math.max(
               0,
@@ -452,37 +529,87 @@ const AsyncSelect = forwardRef(
       [fetchPage],
     );
 
-    const handleOnSearch = debounce((search: string) => {
-      const searchValue = search.trim();
-      if (allowNewOptions) {
-        const newOption = searchValue &&
-          !hasOption(searchValue, fullSelectOptions, true) && {
-            label: searchValue,
-            value: searchValue,
-            isNewOption: true,
-          };
-        const cleanSelectOptions = fullSelectOptions.filter(
-          opt => !opt.isNewOption || hasOption(opt.value, selectValue),
-        );
-        const newOptions = newOption
-          ? [newOption, ...cleanSelectOptions]
-          : cleanSelectOptions;
-        setSelectOptions(newOptions);
-      }
-      if (
-        !allValuesLoaded &&
-        loadingEnabled &&
-        !fetchedQueries.current.has(getQueryCacheKey(searchValue, 0, pageSize))
-      ) {
-        // if fetch only on search but search value is empty, then should not be
-        // in loading state
-        setIsLoading(!(fetchOnlyOnSearch && !searchValue));
-      }
-      setInputValue(search);
-      onSearch?.(searchValue);
-    }, Constants.FAST_DEBOUNCE);
+    const searchStateRef = useRef({
+      allowNewOptions,
+      fullSelectOptions,
+      selectValue,
+      allValuesLoaded,
+      loadingEnabled,
+      fetchOnlyOnSearch,
+      pageSize,
+      onSearch,
+    });
 
-    useEffect(() => () => handleOnSearch.cancel(), [handleOnSearch]);
+    useEffect(() => {
+      searchStateRef.current = {
+        allowNewOptions,
+        fullSelectOptions,
+        selectValue,
+        allValuesLoaded,
+        loadingEnabled,
+        fetchOnlyOnSearch,
+        pageSize,
+        onSearch,
+      };
+    });
+
+    const handleOnSearch = useMemo(
+      () =>
+        debounce((search: string) => {
+          const {
+            allowNewOptions,
+            fullSelectOptions,
+            selectValue,
+            allValuesLoaded,
+            loadingEnabled,
+            fetchOnlyOnSearch,
+            pageSize,
+            onSearch,
+          } = searchStateRef.current;
+
+          const searchValue = search.trim();
+
+          if (allowNewOptions) {
+            const unquotedSearch = stripSurroundingQuotes(searchValue);
+            const newOption = unquotedSearch &&
+              !hasOption(unquotedSearch, fullSelectOptions, true) && {
+                label: unquotedSearch,
+                value: unquotedSearch,
+                isNewOption: true,
+              };
+            const cleanSelectOptions = fullSelectOptions.filter(
+              opt => !opt.isNewOption || hasOption(opt.value, selectValue),
+            );
+            const newOptions = newOption
+              ? [newOption, ...cleanSelectOptions]
+              : cleanSelectOptions;
+            setSelectOptions(newOptions);
+          }
+
+          if (
+            !allValuesLoaded &&
+            loadingEnabled &&
+            !fetchedQueries.current.has(
+              getQueryCacheKey(searchValue, 0, pageSize),
+            )
+          ) {
+            // if fetch only on search but search value is empty, then should not be
+            // in loading state
+            setIsLoading(!(fetchOnlyOnSearch && !searchValue));
+          }
+
+          setInputValue(search);
+          onSearch?.(searchValue);
+        }, Constants.FAST_DEBOUNCE),
+      [],
+    );
+
+    useEffect(
+      () => () => {
+        handleOnSearch.cancel?.();
+      },
+      [handleOnSearch],
+    );
 
     const handlePagination = (e: UIEvent<HTMLElement>) => {
       const vScroll = e.currentTarget;
@@ -695,22 +822,11 @@ const AsyncSelect = forwardRef(
           setSelectValue(value);
         }
       } else {
-        // antd v6 widened `tokenSeparators` to `string[] | (input => string[])`;
-        // Superset always uses the array form.
+        // Superset's prop is the array form; antd receives the function form
         const separators = Array.isArray(tokenSeparators)
           ? tokenSeparators
           : [];
-        const token = separators.find((token: string) =>
-          pastedText.includes(token),
-        );
-        const array = token
-          ? uniq(
-              pastedText
-                .split(token)
-                .map(s => s.trim())
-                .filter(Boolean),
-            )
-          : [pastedText.trim()].filter(Boolean);
+        const array = uniq(splitWithQuoteEscaping(pastedText, separators));
         const values = (
           await Promise.all(array.map(item => getPastedTextValue(item)))
         ).filter(item => item !== undefined) as AntdLabeledValue[];
@@ -757,7 +873,7 @@ const AsyncSelect = forwardRef(
           getPopupContainer={
             getPopupContainer ||
             ((triggerNode: HTMLElement) =>
-              (triggerNode?.closest('.ant-modal-content') as HTMLElement) ||
+              (triggerNode?.closest('.ant-modal-container') as HTMLElement) ||
               (triggerNode.parentNode as HTMLElement))
           }
           headerPosition={headerPosition}
@@ -791,7 +907,7 @@ const AsyncSelect = forwardRef(
           optionRender={option => <Space>{option.label || option.value}</Space>}
           placeholder={placeholder}
           showSearch={shouldShowSearch}
-          tokenSeparators={tokenSeparators}
+          tokenSeparators={quoteAwareTokenSeparators}
           builtinPlacements={DROPDOWN_BUILTIN_PLACEMENTS}
           value={selectValue}
           suffixIcon={getSuffixIcon(

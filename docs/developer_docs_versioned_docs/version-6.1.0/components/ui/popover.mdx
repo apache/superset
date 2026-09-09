@@ -33,69 +33,66 @@ A floating card that appears when hovering or clicking a trigger element. Suppor
 <StoryWithControls
   component="Popover"
   props={{
-  content: "Popover sample content",
-  title: "Popover title",
-  arrow: true,
-  color: "#fff"
-}}
+    content: 'Popover sample content',
+    title: 'Popover title',
+    arrow: true,
+    color: '#fff',
+  }}
   controls={[
-  {
-    name: "content",
-    label: "Content",
-    type: "text",
-    description: "Content displayed inside the popover body."
-  },
-  {
-    name: "title",
-    label: "Title",
-    type: "text",
-    description: "Title displayed in the popover header."
-  },
-  {
-    name: "arrow",
-    label: "Arrow",
-    type: "boolean",
-    description: "Whether to show the popover's arrow pointing to the trigger."
-  },
-  {
-    name: "color",
-    label: "Color",
-    type: "color",
-    description: "The background color of the popover."
-  },
-  {
-    name: "placement",
-    label: "Placement",
-    type: "select",
-    options: [
-      "topLeft",
-      "top",
-      "topRight",
-      "leftTop",
-      "left",
-      "leftBottom",
-      "rightTop",
-      "right",
-      "rightBottom",
-      "bottomLeft",
-      "bottom",
-      "bottomRight"
-    ],
-    description: "Position of the popover relative to the trigger element."
-  },
-  {
-    name: "trigger",
-    label: "Trigger",
-    type: "select",
-    options: [
-      "hover",
-      "click",
-      "focus"
-    ],
-    description: "Event that triggers the popover to appear."
-  }
-]}
-  sampleChildren={[{"component":"Button","props":{"children":"Hover me"}}]}
+    {
+      name: 'content',
+      label: 'Content',
+      type: 'text',
+      description: 'Content displayed inside the popover body.',
+    },
+    {
+      name: 'title',
+      label: 'Title',
+      type: 'text',
+      description: 'Title displayed in the popover header.',
+    },
+    {
+      name: 'arrow',
+      label: 'Arrow',
+      type: 'boolean',
+      description:
+        "Whether to show the popover's arrow pointing to the trigger.",
+    },
+    {
+      name: 'color',
+      label: 'Color',
+      type: 'color',
+      description: 'The background color of the popover.',
+    },
+    {
+      name: 'placement',
+      label: 'Placement',
+      type: 'select',
+      options: [
+        'topLeft',
+        'top',
+        'topRight',
+        'leftTop',
+        'left',
+        'leftBottom',
+        'rightTop',
+        'right',
+        'rightBottom',
+        'bottomLeft',
+        'bottom',
+        'bottomRight',
+      ],
+      description: 'Position of the popover relative to the trigger element.',
+    },
+    {
+      name: 'trigger',
+      label: 'Trigger',
+      type: 'select',
+      options: ['hover', 'click', 'focus'],
+      description: 'Event that triggers the popover to appear.',
+    },
+  ]}
+  sampleChildren={[{ component: 'Button', props: { children: 'Hover me' } }]}
 />
 
 ## Try It
@@ -105,11 +102,7 @@ Edit the code below to experiment with the component:
 ```tsx live
 function Demo() {
   return (
-    <Popover
-      content="Popover sample content"
-      title="Popover title"
-      arrow
-    >
+    <Popover content="Popover sample content" title="Popover title" arrow>
       <Button>Hover me</Button>
     </Popover>
   );
@@ -137,7 +130,15 @@ function ClickPopover() {
 ```tsx live
 function PlacementsDemo() {
   return (
-    <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', justifyContent: 'center', padding: '60px 0' }}>
+    <div
+      style={{
+        display: 'flex',
+        gap: 16,
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+        padding: '60px 0',
+      }}
+    >
       {['top', 'right', 'bottom', 'left'].map(placement => (
         <Popover
           key={placement}
@@ -162,9 +163,15 @@ function RichPopover() {
       title="Dashboard Info"
       content={
         <div>
-          <p><strong>Created by:</strong> Admin</p>
-          <p><strong>Last modified:</strong> Jan 2025</p>
-          <p><strong>Charts:</strong> 12</p>
+          <p>
+            <strong>Created by:</strong> Admin
+          </p>
+          <p>
+            <strong>Last modified:</strong> Jan 2025
+          </p>
+          <p>
+            <strong>Charts:</strong> 12
+          </p>
         </div>
       }
     >
@@ -178,12 +185,12 @@ function RichPopover() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `content` | `string` | `"Popover sample content"` | Content displayed inside the popover body. |
-| `title` | `string` | `"Popover title"` | Title displayed in the popover header. |
-| `arrow` | `boolean` | `true` | Whether to show the popover's arrow pointing to the trigger. |
-| `color` | `string` | `"#fff"` | The background color of the popover. |
+| Prop      | Type      | Default                    | Description                                                  |
+| --------- | --------- | -------------------------- | ------------------------------------------------------------ |
+| `content` | `string`  | `"Popover sample content"` | Content displayed inside the popover body.                   |
+| `title`   | `string`  | `"Popover title"`          | Title displayed in the popover header.                       |
+| `arrow`   | `boolean` | `true`                     | Whether to show the popover's arrow pointing to the trigger. |
+| `color`   | `string`  | `"#fff"`                   | The background color of the popover.                         |
 
 ## Import
 

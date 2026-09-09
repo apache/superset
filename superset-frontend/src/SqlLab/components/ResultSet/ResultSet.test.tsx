@@ -355,6 +355,35 @@ describe('ResultSet', () => {
     expect(errorMessages).toHaveLength(errors.length);
   });
 
+  test('deduplicates errors present in both query.errors and query.extra.errors', async () => {
+    // The async fallback path (QueryAutoRefresh) populates both
+    // `query.errors` (via queryFailed) and `query.extra.errors` (via
+    // refreshQueries) with the same errors. ResultSet should render each
+    // error only once, not twice.
+    const duplicatedErrorQuery = {
+      ...failedQueryWithErrors,
+      extra: { errors: failedQueryWithErrors.errors },
+    };
+    const duplicatedErrorState = {
+      ...initialState,
+      sqlLab: {
+        ...initialState.sqlLab,
+        queries: {
+          [duplicatedErrorQuery.id]: duplicatedErrorQuery,
+        },
+      },
+    };
+
+    await waitFor(() => {
+      setup(
+        { ...mockedProps, queryId: duplicatedErrorQuery.id },
+        mockStore(duplicatedErrorState),
+      );
+    });
+    const errorMessages = screen.getAllByTestId('error-message');
+    expect(errorMessages).toHaveLength(failedQueryWithErrors.errors.length);
+  });
+
   test('should render a timeout error with a retrial button', async () => {
     await waitFor(() => {
       setup(

@@ -162,6 +162,10 @@ export const StatusIndicatorDot: FC<StatusIndicatorDotProps> = ({
   return (
     <span
       css={dotStyles}
+      // role="status" is the standard WAI-ARIA live-region pattern for a
+      // status indicator; <output> (the suggested tag) is for form
+      // calculation results, not a fit here.
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role="status"
       aria-label={`Auto-refresh status: ${displayStatus}`}
       data-test="status-indicator-dot"

@@ -40,7 +40,7 @@ concurrency:
 
 jobs:
   config:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     outputs:
       has-secrets: ${{ steps.check.outputs.has-secrets }}
       latest-release: ${{ steps.latest.outputs.tag }}
@@ -93,23 +93,33 @@ jobs:
     needs: config
     if: needs.config.outputs.has-secrets == '1'
     name: docker-rebuild
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     strategy:
       # Mirror the same matrix the release publisher uses so every variant
       # operators consume from Docker Hub gets the refreshed base.
       matrix:
-        build_preset: ["dev", "lean", "py310", "websocket", "dockerize", "py311", "py312"]
+        build_preset: ["dev", "lean", "websocket", "dockerize", "py311", "py312"]
       fail-fast: false
     steps:
       - name: "Checkout release tag: ${{ needs.config.outputs.latest-release }}"
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ needs.config.outputs.latest-release }}
           fetch-depth: 0
           persist-credentials: false
 
+      # Keep workflow tooling on the triggering revision. Release tags can
+      # contain action pins that no longer satisfy the repository allowlist.
+      - name: Checkout workflow actions
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          path: workflow-source
+          persist-credentials: false
+          sparse-checkout: .github/actions
+
       - name: Setup Docker Environment
-        uses: ./.github/actions/setup-docker
+        uses: ./workflow-source/.github/actions/setup-docker
         with:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -117,12 +127,12 @@ jobs:
           build: "true"
 
       - name: Use Node.js 20
-        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 20
 
       - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
+        uses: ./workflow-source/.github/actions/setup-supersetbot/
 
       - name: Rebuild and push
         env:
@@ -155,7 +165,7 @@ jobs:
   notify-on-failure:
     needs: [config, docker-rebuild]
     if: failure() && needs.config.outputs.has-secrets == '1'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       issues: write
@@ -171,7 +181,7 @@ jobs:
             --repo "$REPOSITORY" \
             --title "Scheduled Docker image refresh failed for ${LATEST_RELEASE}" \
             --label "infra:container" \
-            --label "bug" \
+            --label "#bug" \
             --body "The weekly Docker base-image refresh failed for release \`${LATEST_RELEASE}\`. Published images may be missing upstream base-layer security patches until this is resolved.
 
           Failed run: ${RUN_URL}"

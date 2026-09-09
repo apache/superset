@@ -27,7 +27,7 @@ from flask_appbuilder.api import (
 )
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from flask_babel import ngettext
+from flask_babel import gettext, ngettext
 from marshmallow import ValidationError
 
 from superset import is_feature_enabled
@@ -63,7 +63,10 @@ from superset.reports.schemas import (
     ReportScheduleSubscribeSchema,
 )
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
-from superset.utils.slack import get_channels_with_search
+from superset.utils.slack import (
+    get_channels_with_search,
+    SlackChannelListingClientError,
+)
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -127,6 +130,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "extra",
         "force_screenshot",
         "grace_period",
+        "include_cta",
         "last_eval_dttm",
         "last_state",
         "last_value",
@@ -147,6 +151,11 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "validator_type",
         "working_timeout",
         "email_subject",
+        "retry_on_failure",
+        "retry_max_attempts",
+        "send_failed_reports",
+        "retry_notify_owners",
+        "retry_notify_recipients",
     ]
     show_select_columns = show_columns + [
         "chart.datasource_id",
@@ -177,8 +186,14 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "name",
         "recipients.id",
         "recipients.type",
+        "report_format",
         "timezone",
         "type",
+        "retry_on_failure",
+        "retry_max_attempts",
+        "send_failed_reports",
+        "retry_notify_owners",
+        "retry_notify_recipients",
     ]
     add_columns = [
         "active",
@@ -194,6 +209,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "extra",
         "force_screenshot",
         "grace_period",
+        "include_cta",
         "log_retention",
         "name",
         "recipients",
@@ -204,6 +220,11 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "validator_config_json",
         "validator_type",
         "working_timeout",
+        "retry_on_failure",
+        "retry_max_attempts",
+        "send_failed_reports",
+        "retry_notify_owners",
+        "retry_notify_recipients",
     ]
     edit_columns = add_columns
     add_model_schema = ReportSchedulePostSchema()
@@ -277,6 +298,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
 
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
+        "get_slack_channels_schema": get_slack_channels_schema,
     }
     openapi_spec_tag = "Report Schedules"
     openapi_spec_methods = openapi_spec_methods_override
@@ -699,7 +721,15 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
                 start = page * page_size
                 channels = channels[start : start + page_size]
             return self.response(200, count=count, result=channels)
+        except SlackChannelListingClientError as ex:
+            # Permanent token/client-setup failures are expected, already-handled
+            # noise (e.g. a revoked bot token), so log at WARNING to keep Sentry
+            # clear of an actionable-looking signal.
+            logger.warning("Error fetching slack channels %s", str(ex))
+            return self.response_422(message=str(ex))
         except SupersetException as ex:
+            # Transient listing failures (rate limits, transport errors) mean
+            # Slack is unavailable, so keep ERROR to preserve an actionable signal.
             logger.error("Error fetching slack channels %s", str(ex))
             return self.response_422(message=str(ex))
 
@@ -756,7 +786,9 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
                 **response_schema.dump(
                     {
                         "execution_id": execution_id,
-                        "message": "Report schedule execution started successfully",
+                        "message": gettext(
+                            "Report schedule execution started successfully"
+                        ),
                     }
                 ),
             )

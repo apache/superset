@@ -734,7 +734,7 @@ describe('async actions', () => {
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('popSavedQuery', () => {
     const supersetClientGetSpy = jest.spyOn(SupersetClient, 'get');
-    const store = mockStore({});
+    const store = mockStore(initialState);
 
     const mockSavedQueryApiResponse = {
       catalog: null,
@@ -826,17 +826,61 @@ describe('async actions', () => {
     });
 
     test('should dispatch addDangerToast on API error', async () => {
-      supersetClientGetSpy.mockResolvedValue(new Error() as any);
+      supersetClientGetSpy.mockRejectedValue(new Error('not found'));
 
       await makeRequest(1);
 
-      const addToastAction = store
-        .getActions()
-        .find(action => action.type === ADD_TOAST);
-
-      expect(addToastAction).toBeTruthy();
-      expect(addToastAction?.payload?.toastType).toBe(ToastType.Danger);
+      const dispatchedActions = store.getActions();
+      expect(dispatchedActions).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            type: ADD_TOAST,
+            payload: expect.objectContaining({
+              toastType: ToastType.Danger,
+            }),
+          }),
+        ]),
+      );
     });
+  });
+
+  test.each([
+    {
+      name: 'popPermalink',
+      action: () => actions.popPermalink('abc123'),
+    },
+    {
+      name: 'popStoredQuery',
+      action: () => actions.popStoredQuery('456'),
+    },
+    {
+      name: 'popQuery',
+      action: () => actions.popQuery('789'),
+    },
+    {
+      name: 'popDatasourceQuery',
+      action: () => actions.popDatasourceQuery('1__table'),
+    },
+  ])('$name dispatches addDangerToast on API error', async ({ action }) => {
+    const store = mockStore(initialState);
+    jest
+      .spyOn(SupersetClient, 'get')
+      .mockRejectedValueOnce(new Error('not found'));
+
+    const thunk = action();
+    await thunk(store.dispatch, () => typedInitialState, undefined);
+
+    const dispatchedActions = store.getActions();
+    expect(dispatchedActions).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: ADD_TOAST,
+          payload: expect.objectContaining({
+            toastType: ToastType.Danger,
+          }),
+        }),
+      ]),
+    );
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks

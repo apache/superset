@@ -36,6 +36,7 @@ import {
   TimeFormatter,
   AgGridChartState,
   AgGridFilterModel,
+  DateWithFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { isEmpty, isEqual, merge } from 'lodash-es';
@@ -45,7 +46,6 @@ import {
   ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
 import isEqualColumns from './utils/isEqualColumns';
-import DateWithFormatter from './utils/DateWithFormatter';
 import { BASIC_COLOR_FORMATTERS_ROW_KEY } from './consts';
 import {
   DataColumnMeta,
@@ -779,6 +779,8 @@ const transformProps = (
       ),
       passedData,
       theme,
+      undefined,
+      serverPagination,
     ) ?? [];
 
   const hasPageLength = isPositiveNumber(pageLength);
@@ -822,7 +824,8 @@ const transformProps = (
 
   // Strip saved filter from chartState after initial application to prevent re-injection
   let chartState = serverPaginationData?.chartState as
-    AgGridChartState | undefined;
+    | AgGridChartState
+    | undefined;
   const chartStateHasFilter = !!(
     chartState?.filterModel && Object.keys(chartState.filterModel).length > 0
   );

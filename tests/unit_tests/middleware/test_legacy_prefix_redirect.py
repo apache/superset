@@ -84,9 +84,6 @@ _GET_REDIRECT_ROWS: list[tuple[str, str]] = [
     ("/superset/explore/", "/explore/"),
     ("/superset/explore/table/5/", "/explore/table/5/"),
     ("/superset/explore/p/key123/", "/explore/p/key123/"),
-    ("/superset/explore_json/", "/explore_json/"),
-    ("/superset/explore_json/table/5/", "/explore_json/table/5/"),
-    ("/superset/explore_json/data/cache_abc/", "/explore_json/data/cache_abc/"),
     ("/superset/tags/", "/tags/"),
     ("/superset/all_entities/", "/all_entities/"),
 ]
@@ -95,8 +92,6 @@ _GET_REDIRECT_ROWS: list[tuple[str, str]] = [
 _POST_BODY_PRESERVED_ROWS: list[tuple[str, str]] = [
     ("/superset/explore/", "/explore/"),
     ("/superset/explore/table/5/", "/explore/table/5/"),
-    ("/superset/explore_json/", "/explore_json/"),
-    ("/superset/explore_json/table/5/", "/explore_json/table/5/"),
     ("/superset/log/", "/log/"),
 ]
 
@@ -112,7 +107,6 @@ _POST_410_ROWS: list[str] = [
     "/superset/file-handler",
     "/superset/sqllab/history/",
     "/superset/explore/p/key123/",
-    "/superset/explore_json/data/cache_abc/",
     "/superset/tags/",
     "/superset/all_entities/",
 ]
@@ -642,8 +636,6 @@ _EXPECTED_KEYSET: frozenset[str] = frozenset(
         "/file-handler",
         "/log/",
         "/sqllab/history/",
-        "/explore_json/",
-        "/explore_json/data/",
         "/explore/",
         "/explore/p/",
         "/tags/",

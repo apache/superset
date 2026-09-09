@@ -44,12 +44,17 @@ const QueryViewToggle = styled.div`
   display: flex;
 `;
 
-const TabButton = styled.div`
+const TabButton = styled.button`
+  appearance: none;
+  border: none;
+  background: none;
+  font: inherit;
   font-size: ${({ theme }) => theme.fontSizeSM}px;
   padding: ${({ theme }) => theme.sizeUnit * 2}px
     ${({ theme }) => theme.sizeUnit * 4}px;
   margin-right: ${({ theme }) => theme.sizeUnit * 4}px;
   color: ${({ theme }) => theme.colorPrimaryText};
+  cursor: pointer;
 
   &.active,
   &:focus,
@@ -147,8 +152,7 @@ function QueryPreviewModal({
         <QueryLabel>{query.tab_name}</QueryLabel>
         <QueryViewToggle>
           <TabButton
-            role="button"
-            tabIndex={0}
+            type="button"
             data-test="toggle-user-sql"
             className={cx({ active: currentTab === 'user' })}
             onClick={() => setCurrentTab('user')}
@@ -156,8 +160,7 @@ function QueryPreviewModal({
             {t('User query')}
           </TabButton>
           <TabButton
-            role="button"
-            tabIndex={0}
+            type="button"
             data-test="toggle-executed-sql"
             className={cx({ active: currentTab === 'executed' })}
             onClick={() => setCurrentTab('executed')}

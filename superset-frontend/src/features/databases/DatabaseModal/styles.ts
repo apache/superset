@@ -158,7 +158,7 @@ export const antDErrorAlertStyles = (theme: SupersetTheme) => css`
 export const antdWarningAlertStyles = (theme: SupersetTheme) => css`
   margin: ${theme.sizeUnit * 4}px 0;
 
-  .ant-alert-message {
+  .ant-alert-title {
     margin: 0;
   }
 `;
@@ -535,11 +535,7 @@ export const StyledCatalogTable = styled.div`
 
 export const StyledUploadWrapper = styled.div`
   margin: ${({ theme }) => theme.sizeUnit * 4}px;
-  .ant-progress-inner {
-    display: none;
-  }
-
-  .ant-upload-list-item-card-actions {
+  .ant-progress-rail {
     display: none;
   }
 `;

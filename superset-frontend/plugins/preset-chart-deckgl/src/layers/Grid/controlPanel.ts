@@ -25,10 +25,6 @@ import { validateNonEmpty } from '@superset-ui/core';
 import {
   filterNulls,
   autozoom,
-  jsColumns,
-  jsDataMutator,
-  jsTooltip,
-  jsOnclickHref,
   extruded,
   gridSize,
   viewport,
@@ -73,15 +69,6 @@ const config: ControlPanelConfig = {
         [autozoom],
         [gridSize],
         [extruded],
-      ],
-    },
-    {
-      label: t('Advanced'),
-      controlSetRows: [
-        [jsColumns],
-        [jsDataMutator],
-        [jsTooltip],
-        [jsOnclickHref],
       ],
     },
   ],

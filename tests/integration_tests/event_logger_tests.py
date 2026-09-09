@@ -21,10 +21,11 @@ from datetime import timedelta
 from typing import Any, Optional
 from unittest.mock import patch
 
-from flask import current_app  # noqa: F401
+from flask import current_app, g  # noqa: F401
 from freezegun import freeze_time
 
 from superset import security_manager
+from superset.security.guest_token import GuestUser
 from superset.utils.log import (
     AbstractEventLogger,
     DBEventLogger,
@@ -230,6 +231,88 @@ class TestEventLogger(unittest.TestCase):
             )
 
         assert logger.records[0]["user_id"] == None  # noqa: E711
+
+    def test_log_with_context_guest_user_skips_warning(self):
+        """Guest/anonymous users are never DB-mapped; adding them to the
+        session is expected to be a no-op, not a warning-worthy failure."""
+
+        class DummyEventLogger(AbstractEventLogger):
+            def __init__(self):
+                self.records = []
+
+            def log(
+                self,
+                user_id: Optional[int],
+                action: str,
+                dashboard_id: Optional[int],
+                duration_ms: Optional[int],
+                slice_id: Optional[int],
+                referrer: Optional[str],
+                *args: Any,
+                **kwargs: Any,
+            ):
+                self.records.append(
+                    {**kwargs, "user_id": user_id, "duration": duration_ms}
+                )
+
+        logger = DummyEventLogger()
+
+        with app.test_request_context():
+            g.user = GuestUser(
+                token={"user": {"username": "guest"}, "resources": []},
+                roles=[],
+            )
+            with self.assertNoLogs(level="WARNING"):
+                logger.log_with_context(
+                    action="foo",
+                    duration=timedelta(seconds=1),
+                    log_to_statsd=False,
+                )
+
+        assert logger.records[0]["user_id"] is None
+
+    @patch("superset.db")
+    def test_log_with_context_unexpected_add_failure_logs_debug(self, mock_db):
+        """A genuinely unexpected failure (not the guest-user case) should
+        still be surfaced, but at debug level rather than warning."""
+
+        class DummyEventLogger(AbstractEventLogger):
+            def __init__(self):
+                self.records = []
+
+            def log(
+                self,
+                user_id: Optional[int],
+                action: str,
+                dashboard_id: Optional[int],
+                duration_ms: Optional[int],
+                slice_id: Optional[int],
+                referrer: Optional[str],
+                *args: Any,
+                **kwargs: Any,
+            ):
+                self.records.append(
+                    {**kwargs, "user_id": user_id, "duration": duration_ms}
+                )
+
+        logger = DummyEventLogger()
+        mock_db.session.add.side_effect = Exception("boom")
+
+        with app.test_request_context():
+            # A DB-mapped (but unpersisted) user instance so sa_inspect()
+            # treats it as mapped and the code proceeds to db.session.add(),
+            # independent of any test-database fixture data.
+            g.user = security_manager.user_model()
+            with self.assertNoLogs(level="WARNING"):
+                with self.assertLogs("superset.utils.log", level="DEBUG") as debug_logs:
+                    logger.log_with_context(
+                        action="foo",
+                        duration=timedelta(seconds=1),
+                        log_to_statsd=False,
+                    )
+
+        assert "Failed to add user to db session" in debug_logs.output[0]
+        assert logger.records[0]["user_id"] is None
 
     @patch.object(DBEventLogger, "log")
     def test_log_this_with_context_and_extra_payload(self, mock_log):

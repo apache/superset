@@ -28,18 +28,13 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
-    field_validator,
     model_serializer,
-    model_validator,
-    PositiveInt,
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from superset.mcp_service.system.schemas import PaginationInfo
-from superset.mcp_service.utils.schema_utils import (
-    parse_json_or_list,
-    parse_json_or_model_list,
+from superset.mcp_service.common.pagination_schemas import (
+    PaginatedListRequest,
+    PaginatedResponse,
 )
 
 DEFAULT_RLS_COLUMNS = ["id", "name", "filter_type", "clause"]
@@ -119,86 +114,12 @@ class RlsFilterInfo(BaseModel):
         return data
 
 
-class RlsFilterList(BaseModel):
+class RlsFilterList(PaginatedResponse[RlsColumnFilter]):
     rls_filters: List[RlsFilterInfo]
-    count: int
-    total_count: int
-    page: int
-    page_size: int
-    total_pages: int
-    has_previous: bool
-    has_next: bool
-    columns_requested: List[str] = Field(default_factory=list)
-    columns_loaded: List[str] = Field(default_factory=list)
-    columns_available: List[str] = Field(default_factory=list)
-    sortable_columns: List[str] = Field(default_factory=list)
-    filters_applied: List[RlsColumnFilter] = Field(default_factory=list)
-    pagination: PaginationInfo | None = None
-    timestamp: datetime | None = None
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListRlsFiltersRequest(BaseModel):
+class ListRlsFiltersRequest(PaginatedListRequest[RlsColumnFilter]):
     """Request schema for list_rls_filters."""
-
-    filters: Annotated[
-        List[RlsColumnFilter],
-        Field(
-            default_factory=list,
-            description="List of filter objects (col, opr, value). "
-            "Cannot be used with search.",
-        ),
-    ]
-    select_columns: Annotated[
-        List[str],
-        Field(
-            default_factory=list,
-            description="Columns to include in response. Defaults to common columns.",
-        ),
-    ]
-    search: Annotated[
-        str | None,
-        Field(
-            default=None,
-            description="Text search on filter name. Cannot be used with filters.",
-        ),
-    ]
-    order_column: Annotated[
-        str | None, Field(default=None, description="Column to order results by")
-    ]
-    order_direction: Annotated[
-        Literal["asc", "desc"],
-        Field(default="desc", description="Sort direction"),
-    ]
-    page: Annotated[
-        PositiveInt,
-        Field(default=1, description="Page number (1-based)"),
-    ]
-    page_size: Annotated[
-        int,
-        Field(
-            default=DEFAULT_PAGE_SIZE,
-            gt=0,
-            le=MAX_PAGE_SIZE,
-            description=f"Items per page (max {MAX_PAGE_SIZE})",
-        ),
-    ]
-
-    @field_validator("filters", mode="before")
-    @classmethod
-    def parse_filters(cls, v: Any) -> List[RlsColumnFilter]:
-        return parse_json_or_model_list(v, RlsColumnFilter, "filters")
-
-    @field_validator("select_columns", mode="before")
-    @classmethod
-    def parse_columns(cls, v: Any) -> List[str]:
-        return parse_json_or_list(v, "select_columns")
-
-    @model_validator(mode="after")
-    def validate_search_and_filters(self) -> "ListRlsFiltersRequest":
-        if self.search and self.filters:
-            raise ValueError("Cannot use both 'search' and 'filters' simultaneously.")
-        return self
 
 
 class RlsFilterError(BaseModel):

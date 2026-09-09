@@ -31,6 +31,7 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticViewCreateFailedError,
     SemanticViewForbiddenError,
 )
+from superset.commands.utils import current_user_can_modify_object
 from superset.daos.semantic_layer import SemanticLayerDAO, SemanticViewDAO
 from superset.exceptions import SupersetSecurityException
 from superset.semantic_layers.registry import registry
@@ -101,6 +102,9 @@ class CreateSemanticViewCommand(BaseCommand):
             layer.raise_for_access()
         except SupersetSecurityException as ex:
             raise SemanticViewForbiddenError() from ex
+
+        if not current_user_can_modify_object(layer):
+            raise SemanticViewForbiddenError()
 
         name: str = self._properties.get("name", "")
         configuration: dict[str, Any] = self._properties.get("configuration") or {}

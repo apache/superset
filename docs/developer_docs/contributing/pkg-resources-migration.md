@@ -61,6 +61,7 @@ Update all dependencies to use `importlib.metadata` instead of `pkg_resources`:
 #### Migration Example
 
 **Old (deprecated):**
+
 ```python
 import pkg_resources
 
@@ -69,6 +70,7 @@ entry_points = pkg_resources.iter_entry_points("group_name")
 ```
 
 **New (recommended):**
+
 ```python
 from importlib.metadata import version, entry_points
 
@@ -79,11 +81,13 @@ eps = entry_points(group="group_name")
 ## Action Items
 
 ### For Superset Maintainers
+
 1. The Superset codebase already uses `importlib.metadata`
 2. Monitor third-party dependencies for updates
 3. Update setuptools pin once the ecosystem is ready
 
 ### For Extension Developers
+
 1. **Update your packages** to use `importlib.metadata` instead of `pkg_resources`
 2. **Test with setuptools >= 81.0.0** once all packages are migrated
 

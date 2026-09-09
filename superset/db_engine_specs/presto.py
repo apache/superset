@@ -26,7 +26,7 @@ from collections import defaultdict, deque
 from datetime import datetime
 from re import Pattern
 from textwrap import dedent
-from typing import Any, cast, Optional, TYPE_CHECKING
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING
 from urllib import parse
 
 import pandas as pd
@@ -166,10 +166,30 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
 
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+
+    encrypted_extra_sensitive_fields = {
+        "$.auth_params.password": "Password",
+        "$.auth_params.token": "JWT Token",
+        "$.connect_args.requests_kwargs.jwt": "JWT Token",
+    }
+    # Not set here: GROUPING SETS support is opted in per-concrete-engine
+    # (``PrestoEngineSpec``, ``TrinoEngineSpec``) rather than on this shared
+    # base, since Hive-family descendants (``HiveEngineSpec``, ``SparkEngineSpec``,
+    # ``DatabricksHiveEngineSpec``) have not been verified against this query
+    # pattern and should not silently inherit it.
     # Presto/Trino don't reliably support IS true/false on computed boolean
     # expressions (e.g. columns defined as `(expiration = 1) AS expiration`),
     # which raises a query error. Use = true/false instead.
     use_equality_for_boolean_filters = True
+
+    # Presto/Trino's coordinator sends query results as JSON, which has no
+    # literal for NaN/Infinity/-Infinity, so REAL/DOUBLE columns holding
+    # those values arrive as quoted strings. Coerce them back to real
+    # floats so numeric post-processing (e.g. a pivot's mean) doesn't choke
+    # on a string value.
+    column_type_mutators: dict[types.TypeEngine, Callable[[Any], Any]] = {
+        types.FLOAT: lambda val: float(val) if isinstance(val, str) else val
+    }
 
     column_type_mappings = (
         (
@@ -914,6 +934,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
     engine = "presto"
     engine_name = "Presto"
     allows_alias_to_source_column = False
+    supports_grouping_sets = True
 
     metadata = {
         "description": "Presto is a distributed SQL query engine for big data.",
@@ -1229,6 +1250,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         all_columns: list[ResultSetColumnType] = []
         expanded_columns = []
         current_array_level = None
+        unnested_rows: dict[int, int] = defaultdict(int)
         while to_process:
             column, level = to_process.popleft()
             if column["column_name"] not in [
@@ -1242,7 +1264,7 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             # added by the first. every time we change a level in the nested arrays
             # we reinitialize this.
             if level != current_array_level:
-                unnested_rows: dict[int, int] = defaultdict(int)
+                unnested_rows = defaultdict(int)
                 current_array_level = level
 
             name = column["column_name"]

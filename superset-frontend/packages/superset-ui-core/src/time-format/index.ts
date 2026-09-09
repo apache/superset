@@ -19,6 +19,7 @@
 
 export { default as TimeFormats, LOCAL_PREFIX } from './TimeFormats';
 export { default as TimeFormatter, PREVIEW_TIME } from './TimeFormatter';
+export { default as DateWithFormatter } from './DateWithFormatter';
 export { DEFAULT_D3_TIME_FORMAT } from './D3FormatConfig';
 
 export {
@@ -49,5 +50,6 @@ export { default as finestTemporalGrainFormatter } from './formatters/finestTemp
 
 export { default as normalizeTimestamp } from './utils/normalizeTimestamp';
 export { default as denormalizeTimestamp } from './utils/denormalizeTimestamp';
+export { default as createTimeRangeFromGranularity } from './utils/createTimeRangeFromGranularity';
 
 export * from './types';

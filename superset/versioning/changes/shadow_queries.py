@@ -37,7 +37,10 @@ from typing import Any
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
-from superset.versioning.baseline import CONTINUUM_BOOKKEEPING_COLUMNS
+from superset.versioning.baseline import (
+    CONTINUUM_BOOKKEEPING_COLUMNS,
+    OPERATION_DELETE,
+)
 from superset.versioning.changes.state import jsonable
 from superset.versioning.diff import (
     ChangeRecord,
@@ -76,7 +79,7 @@ def shadow_rows_valid_at(
                     shadow_table.c.end_transaction_id.is_(None),
                     shadow_table.c.end_transaction_id > tx,
                 ),
-                shadow_table.c.operation_type != 2,
+                shadow_table.c.operation_type != OPERATION_DELETE,
             )
         )
         .mappings()
@@ -266,13 +269,13 @@ def _dashboard_slice_uuids_at_tx(
                     m2m_tbl.c.end_transaction_id.is_(None),
                     m2m_tbl.c.end_transaction_id > tx,
                 ),
-                m2m_tbl.c.operation_type != 2,
+                m2m_tbl.c.operation_type != OPERATION_DELETE,
                 slices_tbl.c.transaction_id <= tx,
                 sa.or_(
                     slices_tbl.c.end_transaction_id.is_(None),
                     slices_tbl.c.end_transaction_id > tx,
                 ),
-                slices_tbl.c.operation_type != 2,
+                slices_tbl.c.operation_type != OPERATION_DELETE,
             )
         )
         .all()

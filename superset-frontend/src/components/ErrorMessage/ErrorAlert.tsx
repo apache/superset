@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { handleKeyboardActivation } from '@superset-ui/core';
 import { useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
-import { useTheme } from '@apache-superset/core/theme';
+import { css, useTheme } from '@apache-superset/core/theme';
 import {
   Icons,
   Modal,
@@ -100,15 +99,21 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
               {descriptionDetails}
             </Typography.Paragraph>
           )}
-          <span
-            role="button"
-            tabIndex={0}
+          <button
+            type="button"
             onClick={toggleDescription}
-            onKeyDown={handleKeyboardActivation(toggleDescription)}
+            css={css`
+              appearance: none;
+              border: none;
+              background: none;
+              padding: 0;
+              font: inherit;
+              color: inherit;
+            `}
             style={{ textDecoration: 'underline', cursor: 'pointer' }}
           >
             {isDescriptionVisible ? t('See less') : t('See more')}
-          </span>
+          </button>
         </div>
       )}
       {children}
@@ -129,14 +134,19 @@ export const ErrorAlert: React.FC<ErrorAlertProps> = ({
     return (
       <>
         <Tooltip title={`${errorType}: ${message}`}>
-          <span
-            role="button"
+          <button
+            type="button"
+            css={css`
+              appearance: none;
+              border: none;
+              background: none;
+              padding: 0;
+              font: inherit;
+            `}
             onClick={() => setShowModal(true)}
-            onKeyDown={handleKeyboardActivation(() => setShowModal(true))}
-            tabIndex={0}
           >
             {renderTrigger()}
-          </span>
+          </button>
         </Tooltip>
         <Modal
           name={errorType}

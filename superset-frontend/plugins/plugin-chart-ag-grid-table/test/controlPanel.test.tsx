@@ -47,7 +47,8 @@ const findConditionalFormattingControl = (): ControlConfig | null => {
 };
 
 const findMetricsMapStateToProps = ():
-  ControlConfig['mapStateToProps'] | null => {
+  | ControlConfig['mapStateToProps']
+  | null => {
   for (const section of config.controlPanelSections) {
     if (!section) continue;
     for (const row of section.controlSetRows) {
@@ -153,12 +154,8 @@ test('extraColorChoices included when time comparison is enabled', () => {
 
   expect(result.extraColorChoices).toEqual([
     {
-      value: ColorSchemeEnum.Green,
-      label: expect.stringContaining('Green for increase'),
-    },
-    {
-      value: ColorSchemeEnum.Red,
-      label: expect.stringContaining('Red for increase'),
+      label: expect.stringContaining('Trend colors'),
+      colors: [ColorSchemeEnum.Green, ColorSchemeEnum.Red],
     },
   ]);
   expect(result.columnOptions).not.toEqual(

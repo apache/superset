@@ -74,6 +74,13 @@ MCP_JWT_ALGORITHM = "HS256"
 MCP_JWT_SECRET = "your-shared-secret-key"
 ```
 
+**Multiple Trusted Issuers**: `MCP_JWT_ISSUER` may also be set to a list of
+issuers. The default user resolver maps token claims to Superset users by
+username/email without binding the token's `iss` claim, so trusting more
+than one issuer requires a custom, issuer-aware `MCP_USER_RESOLVER` (e.g.
+one that derives a compound `iss`+`sub` identity). The service refuses to
+start in this configuration until such a resolver is provided.
+
 **JWT Token Structure**:
 
 ```json

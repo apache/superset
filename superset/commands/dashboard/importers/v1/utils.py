@@ -20,9 +20,13 @@ from typing import Any
 
 from superset import db, security_manager
 from superset.commands.exceptions import ImportFailedError
-from superset.commands.importers.v1.utils import find_existing_for_import
+from superset.commands.importers.v1.utils import (
+    apply_extra_import_fields,
+    find_existing_for_import,
+)
 from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
+from superset.subjects.models import Subject
 from superset.utils import json
 from superset.utils.core import get_user
 
@@ -277,6 +281,7 @@ def import_dashboard(  # noqa: C901
     config: dict[str, Any],
     overwrite: bool = False,
     ignore_permissions: bool = False,
+    default_viewers: list[Subject] | None = None,
 ) -> Dashboard:
     """Import a dashboard from a config dict, handling existing matches.
 
@@ -444,15 +449,31 @@ def import_dashboard(  # noqa: C901
             except TypeError:
                 logger.info("Unable to encode `%s` field: %s", key, value)
 
+    extra = config.pop("extra", None)
     dashboard = Dashboard.import_from_dict(config, recursive=False)
     if dashboard.id is None:
         db.session.flush()
 
     if not existing and user:
-        from superset.subjects.utils import get_user_subject
+        from superset.subjects.utils import (
+            get_default_viewers_for_new_asset,
+            get_user_subject,
+        )
 
         subj = get_user_subject(user.id)
         if subj and subj not in dashboard.editors:
             dashboard.editors.append(subj)
+        # Resolved once by bulk importers and passed in; recomputed here only
+        # for direct callers that omit it (one membership query per asset).
+        viewers = (
+            default_viewers
+            if default_viewers is not None
+            else get_default_viewers_for_new_asset(user.id)
+        )
+        for viewer in viewers:
+            if viewer not in dashboard.viewers:
+                dashboard.viewers.append(viewer)
+
+    apply_extra_import_fields(dashboard, "dashboard", extra)
 
     return dashboard

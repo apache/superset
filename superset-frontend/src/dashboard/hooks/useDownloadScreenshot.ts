@@ -146,7 +146,11 @@ export const useDownloadScreenshot = (
         }
         if (retries >= MAX_RETRIES) {
           stopIntervals('failure');
-          logging.error('Max retries reached');
+          logging.error('Max retries reached', {
+            cacheKey,
+            dashboardId,
+            format,
+          });
           return;
         }
         isFetching = true;
@@ -180,7 +184,11 @@ export const useDownloadScreenshot = (
           fetchImageWithRetry(cacheKey);
         })
         .catch(error => {
-          logging.error(error);
+          logging.error('Failed to trigger dashboard screenshot', {
+            dashboardId,
+            format,
+            error,
+          });
           stopIntervals('failure');
         })
         .finally(() => {

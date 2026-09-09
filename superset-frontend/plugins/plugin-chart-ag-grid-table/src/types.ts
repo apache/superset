@@ -189,7 +189,10 @@ export interface InputColumn {
   isPercentMetric: boolean;
   config: TableColumnConfig;
   formatter?:
-    TimeFormatter | NumberFormatter | CustomFormatter | CurrencyFormatter;
+    | TimeFormatter
+    | NumberFormatter
+    | CustomFormatter
+    | CurrencyFormatter;
   originalLabel?: string;
   metricName?: string;
   description?: string;
@@ -231,5 +234,3 @@ export type Dataset = {
   metrics?: Metric[];
   verbose_map?: Record<string, string>;
 };
-
-export default {};

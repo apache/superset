@@ -74,6 +74,57 @@ class TestDashboardDAO(SupersetTestCase):
             db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    def test_set_dash_metadata_preserves_unsent_fields(self, mock_sm_g, mock_g):
+        """
+        set_dash_metadata must not reset metadata fields that are absent from the
+        incoming payload, such as a ``refresh_frequency`` edited directly in the
+        Advanced JSON editor (#42116). Fields that are present still override.
+        """
+        mock_g.user = mock_sm_g.user = security_manager.find_user("admin")
+        with self.client.application.test_request_context():
+            dashboard = (
+                db.session.query(Dashboard).filter_by(slug="world_health").first()
+            )
+            original_json_metadata = dashboard.json_metadata
+            try:
+                # Seed existing values in the stored metadata, including
+                # cross_filters_enabled=False -- its default is True, so this
+                # is the field that actually exercises this PR's change (the
+                # refresh_frequency preservation alone already landed in
+                # #42354).
+                metadata = json.loads(dashboard.json_metadata or "{}")
+                metadata["refresh_frequency"] = 60
+                metadata["cross_filters_enabled"] = False
+                dashboard.json_metadata = json.dumps(metadata)
+                db.session.commit()
+
+                # Payload omits refresh_frequency and cross_filters_enabled:
+                # both must be preserved, not reset to their defaults.
+                DashboardDAO.set_dash_metadata(
+                    dashboard, {"color_scheme": "d3Category10"}
+                )
+                db.session.commit()
+                saved = json.loads(dashboard.json_metadata)
+                assert saved["refresh_frequency"] == 60
+                assert saved["cross_filters_enabled"] is False
+                assert saved["color_scheme"] == "d3Category10"
+
+                # An explicitly-sent value still overrides.
+                DashboardDAO.set_dash_metadata(
+                    dashboard,
+                    {"refresh_frequency": 30, "cross_filters_enabled": True},
+                )
+                db.session.commit()
+                saved = json.loads(dashboard.json_metadata)
+                assert saved["refresh_frequency"] == 30
+                assert saved["cross_filters_enabled"] is True
+            finally:
+                dashboard.json_metadata = original_json_metadata
+                db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.daos.dashboard.g")
     @patch("superset.security.manager.g")
     def test_copy_dashboard(self, mock_sm_g, mock_g):

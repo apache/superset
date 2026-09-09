@@ -98,7 +98,10 @@ class Tag(CoreTag, AuditMixinNullable):
     description = Column(Text)
 
     objects = relationship(
-        "TaggedObject", back_populates="tag", overlaps="objects,tags"
+        "TaggedObject",
+        back_populates="tag",
+        cascade_backrefs=False,
+        overlaps="objects,tags",
     )
 
     users_favorited = relationship(
@@ -122,7 +125,12 @@ class TaggedObject(Model, AuditMixinNullable):
     object_id = Column(Integer)
     object_type = Column(Enum(ObjectType))
 
-    tag = relationship("Tag", back_populates="objects", overlaps="tags")
+    tag = relationship(
+        "Tag",
+        back_populates="objects",
+        cascade_backrefs=False,
+        overlaps="tags",
+    )
     __table_args__ = (
         UniqueConstraint(
             "tag_id", "object_id", "object_type", name="uix_tagged_object"
@@ -160,6 +168,28 @@ def get_object_type(class_name: str) -> ObjectType:
         raise Exception(  # pylint: disable=broad-exception-raised
             f"No mapping found for {class_name}"
         ) from ex
+
+
+def tagging_enabled() -> bool:
+    """
+    Whether the tagging system is enabled.
+
+    The SQLA event listeners below are attached unconditionally at app startup
+    (see ``superset.app.SupersetApp.sync_config_to_db``). Listeners that
+    *create* tags check the flag when they fire, so the flag, including a
+    runtime override, is honored on the write path the same way it is on the
+    UI, export and import paths. The ``after_delete`` listeners deliberately
+    skip this check: they only remove ``tagged_object`` rows, and skipping that
+    cleanup would orphan rows pointing at a deleted object whose id may later
+    be reused.
+    """
+    # Resolved through the manager on every call rather than bound at import
+    # time, so that patching the manager (as the tests do) takes effect.
+    from superset.extensions import (  # pylint: disable=import-outside-toplevel
+        feature_flag_manager,
+    )
+
+    return feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM")
 
 
 class ObjectUpdater:
@@ -227,6 +257,9 @@ class ObjectUpdater:
         connection: Connection,
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
+        if not tagging_enabled():
+            return
+
         with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             # add `editor:` tags
             cls._add_editors(session, target)
@@ -245,6 +278,9 @@ class ObjectUpdater:
         connection: Connection,
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
+        if not tagging_enabled():
+            return
+
         with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             # Fetch current editor tags
             existing_tags = (
@@ -337,6 +373,9 @@ class FavStarUpdater:
     def after_insert(
         cls, _mapper: Mapper, connection: Connection, target: FavStar
     ) -> None:
+        if not tagging_enabled():
+            return
+
         with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             name = f"favorited_by:{target.user_id}"
             tag = get_tag(name, session, TagType.favorited_by)

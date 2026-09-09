@@ -135,6 +135,7 @@ const SqlEditorLeftBar = ({
       data-test="DatabaseSelector"
       css={css`
         min-width: 500px;
+        max-width: 500px;
       `}
     >
       <Typography.Title level={5} style={{ margin: 0 }}>
@@ -160,6 +161,7 @@ const SqlEditorLeftBar = ({
         }
         schema={modalSchema?.value}
         sqlLabMode={false}
+        filterBySqlLab
       />
       <Flex justify="flex-end" gap="small">
         <Button

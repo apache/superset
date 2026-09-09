@@ -34,19 +34,18 @@ from flask import (
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import _
-from sqlalchemy.exc import NoResultFound
+from werkzeug.exceptions import BadRequest
 
-from superset import appbuilder, dataframe, db, result_set, viz
+from superset import appbuilder, dataframe, db, result_set
+from superset.charts.data.dashboard_filter_context import (
+    get_dashboard_filter_context,
+)
 from superset.common.db_query_status import QueryStatus
-from superset.daos.datasource import DatasourceDAO
-from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
-    CacheLoadError,
     SerializationError,
     SupersetException,
-    SupersetSecurityException,
 )
-from superset.extensions import cache_manager, feature_flag_manager, security_manager
+from superset.extensions import security_manager
 from superset.legacy import update_time_range
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
@@ -60,27 +59,9 @@ from superset.superset_typing import (
 from superset.utils import json
 from superset.utils.core import DatasourceType
 from superset.utils.decorators import stats_timing
-from superset.viz import BaseViz
 
 logger = logging.getLogger(__name__)
 stats_logger = app.config["STATS_LOGGER"]
-
-# Form-data keys whose values are executed as JavaScript at render time by the
-# deck.gl charts (via the frontend ``sandboxedEval`` helper). These are stripped
-# from incoming form_data unless the ``ENABLE_JAVASCRIPT_CONTROLS`` feature flag
-# is enabled. Keep this list in sync with every ``sandboxedEval(fd.<key>)`` call
-# site in the deck.gl plugins.
-JS_CONTROL_FORM_DATA_KEYS: list[str] = [
-    "js_tooltip",
-    "js_onclick_href",
-    "js_data_mutator",
-    "label_javascript_config_generator",
-    "icon_javascript_config_generator",
-]
-
-REJECTED_FORM_DATA_KEYS: list[str] = []
-if not feature_flag_manager.is_feature_enabled("ENABLE_JAVASCRIPT_CONTROLS"):
-    REJECTED_FORM_DATA_KEYS = list(JS_CONTROL_FORM_DATA_KEYS)
 
 
 def redirect_to_login(next_target: str | None = None) -> FlaskResponse:
@@ -181,24 +162,6 @@ def get_permissions(
     return roles_permissions, transformed_permissions
 
 
-def get_viz(
-    form_data: FormData,
-    datasource_type: str,
-    datasource_id: int,
-    force: bool = False,
-    force_cached: bool = False,
-) -> BaseViz:
-    viz_type = form_data.get("viz_type", "table")
-    datasource = DatasourceDAO.get_datasource(
-        DatasourceType(datasource_type),
-        datasource_id,
-    )
-    viz_obj = viz.viz_types[viz_type](
-        datasource, form_data=form_data, force=force, force_cached=force_cached
-    )
-    return viz_obj
-
-
 def loads_request_json(request_json_data: str) -> dict[Any, Any]:
     """Parse a JSON request payload, coercing non-objects to ``{}``.
 
@@ -212,6 +175,27 @@ def loads_request_json(request_json_data: str) -> dict[Any, Any]:
     except (TypeError, json.JSONDecodeError):
         return {}
     return parsed if isinstance(parsed, dict) else {}
+
+
+def get_request_json_body() -> dict[Any, Any]:
+    """Parse the request body as JSON, coercing failures to ``{}``.
+
+    ``request.is_json`` only inspects the Content-Type header, not whether the
+    body is actually parseable JSON. Callers reaching ``get_form_data`` from a
+    non-HTTP-chart-data context (e.g. an MCP tool call rendering
+    ``filter_values()``) can have a request context whose Content-Type claims
+    JSON but whose body isn't a JSON chart-data payload, which makes Werkzeug
+    raise ``BadRequest`` from ``request.get_json()``. A well-formed but
+    non-object JSON body (e.g. ``null``, a scalar, or an array) is coerced to
+    ``{}`` too, since callers treat the result as a mapping.
+    """
+    if not request.is_json:
+        return {}
+    try:
+        data = request.get_json(cache=True)
+    except BadRequest:
+        return {}
+    return data if isinstance(data, dict) else {}
 
 
 #: Parameter names `url_for` interprets itself rather than appending to the
@@ -362,7 +346,7 @@ def get_form_data(
     form_data: dict[str, Any] = initial_form_data or {}
 
     if has_request_context():
-        json_data = request.get_json(cache=True) if request.is_json else {}
+        json_data = get_request_json_body()
 
         # chart data API requests are JSON
         first_query = (
@@ -395,8 +379,6 @@ def get_form_data(
         # chart data API requests are JSON
         json_data = form_data["queries"][0] if "queries" in form_data else {}
         form_data.update(json_data)
-
-    form_data = {k: v for k, v in form_data.items() if k not in REJECTED_FORM_DATA_KEYS}
 
     # When a slice_id is present, load from DB and override
     # the form_data from the DB with the other form_data provided
@@ -523,11 +505,20 @@ def get_dashboard_extra_filters(
         return []
 
     with contextlib.suppress(json.JSONDecodeError):
-        # does this dashboard have default filters?
         json_metadata = json.loads(dashboard.json_metadata)
+        native_filters = [
+            flt
+            for flt in get_dashboard_filter_context(
+                dashboard_id=dashboard_id,
+                chart_id=slice_id,
+            ).extra_form_data.get("filters", [])
+            if isinstance(flt, dict)
+        ]
+
+        # does this dashboard have legacy default filters?
         default_filters = json.loads(json_metadata.get("default_filters", "null"))
         if not default_filters:
-            return []
+            return native_filters
 
         # are default filters applicable to the given slice?
         filter_scopes = json_metadata.get("filter_scopes", {})
@@ -538,7 +529,15 @@ def get_dashboard_extra_filters(
             and isinstance(filter_scopes, dict)
             and isinstance(default_filters, dict)
         ):
-            return build_extra_filters(layout, filter_scopes, default_filters, slice_id)
+            return [
+                *build_extra_filters(
+                    layout,
+                    filter_scopes,
+                    default_filters,
+                    slice_id,
+                ),
+                *native_filters,
+            ]
     return []
 
 
@@ -634,81 +633,6 @@ def check_resource_permissions(
         return wrapper
 
     return decorator
-
-
-def check_explore_cache_perms(_self: Any, cache_key: str) -> None:
-    """
-    Loads async explore_json request data from cache and performs access check
-
-    :param _self: the Superset view instance
-    :param cache_key: the cache key passed into /explore_json/data/
-    :raises SupersetSecurityException: If the user cannot access the resource
-    """
-    cached = cache_manager.cache.get(cache_key)
-    if not cached:
-        raise CacheLoadError("Cached data not found")
-
-    check_datasource_perms(_self, form_data=cached["form_data"])
-
-
-def check_datasource_perms(
-    _self: Any,
-    datasource_type: Optional[str] = None,
-    datasource_id: Optional[int] = None,
-    **kwargs: Any,
-) -> None:
-    """
-    Check if user can access a cached response from explore_json.
-
-    This function takes `self` since it must have the same signature as the
-    the decorated method.
-
-    :param datasource_type: The datasource type
-    :param datasource_id: The datasource ID
-    :raises SupersetSecurityException: If the user cannot access the resource
-    """
-
-    form_data = kwargs["form_data"] if "form_data" in kwargs else get_form_data()[0]
-
-    try:
-        datasource_id, datasource_type = get_datasource_info(
-            datasource_id, datasource_type, form_data
-        )
-    except SupersetException as ex:
-        raise SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.FAILED_FETCHING_DATASOURCE_INFO_ERROR,
-                level=ErrorLevel.ERROR,
-                message=str(ex),
-            )
-        ) from ex
-
-    if datasource_type is None:
-        raise SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
-                level=ErrorLevel.ERROR,
-                message=_("Could not determine datasource type"),
-            )
-        )
-
-    try:
-        viz_obj = get_viz(
-            datasource_type=datasource_type,
-            datasource_id=datasource_id,
-            form_data=form_data,
-            force=False,
-        )
-    except NoResultFound as ex:
-        raise SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.UNKNOWN_DATASOURCE_TYPE_ERROR,
-                level=ErrorLevel.ERROR,
-                message=_("Could not find viz object"),
-            )
-        ) from ex
-
-    viz_obj.raise_for_access()
 
 
 def _deserialize_results_payload(

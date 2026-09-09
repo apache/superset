@@ -21,11 +21,12 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
 from superset.mcp_service.common.cache_schemas import CacheStatus
 from superset.mcp_service.common.error_schemas import MCPBaseError
+from superset.mcp_service.common.time_range_validation import validate_time_range
 
 # ---------------------------------------------------------------------------
 # Shared error schema
@@ -147,6 +148,18 @@ class GetTableFilter(BaseModel):
         description="Filter value. Use a list for 'IN'/'NOT IN' operators.",
     )
 
+    @model_validator(mode="after")
+    def _validate_temporal_range_val(self) -> "GetTableFilter":
+        """Hold a TEMPORAL_RANGE filter to the same grammar as ``time_range``.
+
+        This operator resolves through ``get_since_until()`` exactly like the
+        dedicated ``time_range`` field does, so an unparseable value here
+        produces the same silent full-table match.
+        """
+        if self.op == "TEMPORAL_RANGE" and isinstance(self.val, str):
+            self.val = validate_time_range(self.val)
+        return self
+
 
 class GetTableRequest(BaseModel):
     """Request schema for get_table."""
@@ -183,8 +196,12 @@ class GetTableRequest(BaseModel):
     time_range: str | None = Field(
         default=None,
         description=(
-            "Optional time range string, e.g. 'Last 7 days', 'Last 30 days', "
-            "'2024-01-01 : 2024-12-31'. Requires a datetime dimension."
+            "Optional time range string. Use Superset relative shorthands "
+            "like 'Last 7 days', 'Last 30 days', 'Last year', 'Current "
+            "week', 'previous calendar year', or an ISO-8601 range like "
+            "'2024-01-01 : 2024-12-31'. Requires a datetime dimension. "
+            "Bracket shorthands like '[year]' or '[quarter]' are also "
+            "accepted and normalized to the equivalent 'Last <unit>' form."
         ),
     )
     time_column: str | None = Field(
@@ -213,6 +230,11 @@ class GetTableRequest(BaseModel):
         default=False,
         description="Force a cache refresh even when cached results exist.",
     )
+
+    @field_validator("time_range")
+    @classmethod
+    def _validate_time_range(cls, v: str | None) -> str | None:
+        return validate_time_range(v)
 
 
 class GetTableResponse(BaseModel):

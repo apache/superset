@@ -107,12 +107,14 @@ const getAllSelectOptions = () =>
 
 const findSelectOption = (text: string) =>
   waitFor(() =>
-    within(getElementByClassName('.rc-virtual-list')).getByText(text),
+    within(getElementByClassName('.ant-select-dropdown-list')).getByText(text),
   );
 
 const querySelectOption = (text: string) =>
   waitFor(() =>
-    within(getElementByClassName('.rc-virtual-list')).queryByText(text),
+    within(getElementByClassName('.ant-select-dropdown-list')).queryByText(
+      text,
+    ),
   );
 
 const findAllSelectOptions = () =>
@@ -644,7 +646,7 @@ test('does not add a new option if the option already exists', async () => {
   await type(option);
   await waitFor(() => {
     const array = within(
-      getElementByClassName('.rc-virtual-list'),
+      getElementByClassName('.ant-select-dropdown-list'),
     ).getAllByText(option);
     expect(array.length).toBe(1);
   });
@@ -748,6 +750,97 @@ test('displays an error message when an exception is thrown while fetching', asy
   render(<AsyncSelect {...defaultProps} options={loadOptions} />);
   await open();
   expect(screen.getByText(error)).toBeInTheDocument();
+});
+
+test('clears a previous fetch error once a later fetch succeeds', async () => {
+  const error = 'Fetch error';
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === 'fail') {
+      throw new Error(error);
+    }
+    // Report more results than are loaded so every new search hits the server.
+    return { data: [{ label: search, value: search }], totalCount: 100 };
+  });
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await type('fail');
+  expect(await screen.findByText(error)).toBeInTheDocument();
+
+  await type('retry');
+  expect(await findSelectOption('retry')).toBeInTheDocument();
+  expect(screen.queryByText(error)).not.toBeInTheDocument();
+});
+
+test('clears a previous fetch error when the next page comes from cache', async () => {
+  const error = 'Fetch error';
+  const loadOptions = jest.fn(
+    async (search: string, page: number, pageSize: number) => {
+      if (search === 'fail') {
+        throw new Error(error);
+      }
+      return defaultProps.options(search, page, pageSize);
+    },
+  );
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await findSelectOption(OPTIONS[0].label);
+
+  await type('fail');
+  expect(await screen.findByText(error)).toBeInTheDocument();
+
+  // Clearing the input re-requests the first page, which is already cached
+  // and therefore never reaches the network.
+  await userEvent.clear(getSelect());
+  expect(await findSelectOption(OPTIONS[0].label)).toBeInTheDocument();
+  expect(screen.queryByText(error)).not.toBeInTheDocument();
+});
+
+test('ignores a late failure from a search the user has moved on from', async () => {
+  const error = 'Fetch error';
+  let rejectSlow: (reason: Error) => void = () => {};
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === 'slow') {
+      return new Promise<never>((_, reject) => {
+        rejectSlow = reject;
+      });
+    }
+    return { data: [{ label: search, value: search }], totalCount: 100 };
+  });
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await type('slow');
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('slow', 0, 10));
+
+  await type('fast');
+  expect(await findSelectOption('fast')).toBeInTheDocument();
+
+  rejectSlow(new Error(error));
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(3));
+  expect(screen.queryByText(error)).not.toBeInTheDocument();
+  expect(await findSelectOption('fast')).toBeInTheDocument();
+});
+
+test('still surfaces a base-fetch failure that lands mid-search', async () => {
+  const error = 'Fetch error';
+  let rejectBase: (reason: Error) => void = () => {};
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === '') {
+      // Defer the base page so it can fail after the user starts searching.
+      return new Promise<never>((_, reject) => {
+        rejectBase = reject;
+      });
+    }
+    return { data: [{ label: search, value: search }], totalCount: 100 };
+  });
+  render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+  await open();
+  await type('abc');
+  expect(await findSelectOption('abc')).toBeInTheDocument();
+
+  // Base fetches keep the accumulator and allValuesLoaded up to date even
+  // mid-search, so their failures must surface too.
+  rejectBase(new Error(error));
+  expect(await screen.findByText(error)).toBeInTheDocument();
 });
 
 test('does not fire a new request for the same search input', async () => {
@@ -870,14 +963,14 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
 test('does not fire onChange when searching but no selection', async () => {
   const onChange = jest.fn();
   render(
-    <div role="main">
+    <main>
       <AsyncSelect
         {...defaultProps}
         onChange={onChange}
         mode="multiple"
         allowNewOptions
       />
-    </div>,
+    </main>,
   );
   await open();
   await type('Joh');
@@ -987,6 +1080,52 @@ test('shows all options when filterOption is false', async () => {
   const options = await findAllSelectOptions();
   expect(options).toHaveLength(5);
   expect(options[0]).toHaveTextContent('Server 0');
+});
+
+test('renders a server-matched option whose label diverges from the search term when filterOption is false (regression for #42041)', async () => {
+  // Mirrors the real permissions-search bug: the remote fetch legitimately
+  // matches the raw, underscore-containing value (e.g. a schema name like
+  // "stg_silver"), but the returned option's displayed label has had
+  // underscores replaced with spaces (see formatPermissionLabel in
+  // features/roles/utils.ts). filterOption defaults to true, which
+  // re-filters already-matched options against that same relabeled text
+  // client-side, so the underscore search term never matches and the
+  // legitimately fetched option gets hidden -- this is why
+  // PermissionsField (features/roles/RoleFormItems.tsx) sets
+  // filterOption={false}: the loader is already the authoritative filter,
+  // and its match doesn't depend on the label used to render the option.
+  const searchData = [{ label: 'stg silver', value: 100 }];
+  const loadOptions = jest.fn(async (search: string) =>
+    // totalCount must exceed the empty initial page here, otherwise
+    // AsyncSelect marks allValuesLoaded and short-circuits every later
+    // fetch, including the search request this test depends on.
+    search === ''
+      ? { data: [], totalCount: 1 }
+      : { data: searchData, totalCount: 1 },
+  );
+
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      options={loadOptions}
+      filterOption={false}
+    />,
+  );
+  await open();
+
+  await type('stg_silver');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith(
+      'stg_silver',
+      expect.anything(),
+      expect.anything(),
+    ),
+  );
+
+  // The backend legitimately matched and returned this option (asserted
+  // above); it should render in the dropdown despite the search term using
+  // underscores while the label uses spaces.
+  expect(await findSelectOption('stg silver')).toBeInTheDocument();
 });
 
 test('preserves new option entry across search fetch when allowNewOptions is on', async () => {
@@ -1352,7 +1491,7 @@ test('appends page>1 results during an active search and discards them when sear
   // scrollTop via e.currentTarget in its onFallbackScroll handler, which
   // then forwards to onPopupScroll (handlePagination here).
   const holder = document.querySelector(
-    '.rc-virtual-list-holder',
+    '.ant-select-dropdown-list-holder',
   ) as HTMLElement | null;
   if (!holder) throw new Error('virtual-list holder not rendered');
   Object.defineProperty(holder, 'scrollHeight', {
@@ -1513,6 +1652,28 @@ test('does not fire onChange if the same value is selected in single mode', asyn
   expect(onChange).toHaveBeenCalledTimes(1);
   await userEvent.click(await findSelectOption(optionText));
   expect(onChange).toHaveBeenCalledTimes(1);
+});
+
+test('cancels pending debounce on unmount', async () => {
+  const mockOnSearch = jest.fn();
+
+  const { unmount } = render(
+    <AsyncSelect
+      {...defaultProps}
+      allowNewOptions
+      mode="multiple"
+      onSearch={mockOnSearch}
+    />,
+  );
+
+  await type('test');
+  await new Promise(resolve => setTimeout(resolve, 300));
+  expect(mockOnSearch).toHaveBeenCalledWith('test');
+  mockOnSearch.mockClear();
+  await type('unmounted');
+  unmount();
+  await new Promise(resolve => setTimeout(resolve, 300));
+  expect(mockOnSearch).not.toHaveBeenCalled();
 });
 
 /*

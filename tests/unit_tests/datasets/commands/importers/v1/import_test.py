@@ -26,8 +26,10 @@ from unittest.mock import Mock, patch
 from urllib import request
 
 import pytest
+import yaml
 from flask import current_app
 from flask_appbuilder.security.sqla.models import Role, User
+from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
@@ -253,6 +255,451 @@ def test_import_dataset(mocker: MockerFixture, session: Session) -> None:
     assert sqla_table.database.id == database.id
 
 
+def test_export_import_round_trip_preserves_metric_folder_membership(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A metric (or column) assigned to a custom folder must stay in that folder
+    after the dataset is exported and imported into another workspace.
+
+    Folder leaves reference metrics/columns by UUID. If the export drops the
+    metric/column UUIDs, the importer recreates them with fresh random UUIDs
+    while the ``folders`` JSON still points at the originals — so the metric can
+    no longer be matched to its folder and is re-homed to the default folder.
+    This exercises the full export -> import round trip and asserts the
+    imported metric/column keep the UUIDs the folder leaves reference.
+    """
+    from superset.commands.dataset.export import ExportDatasetsCommand
+    from superset.connectors.sqla.models import SqlMetric
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    # --- source workspace: a dataset with a metric + column pinned to a custom
+    # folder, referenced by UUID ---
+    source_db = Database(database_name="source_db", sqlalchemy_uri="sqlite://")
+    db.session.add(source_db)
+    db.session.flush()
+
+    metric_uuid = uuid.UUID("00000000-0000-0000-0000-0000000000a1")
+    column_uuid = uuid.UUID("00000000-0000-0000-0000-0000000000b2")
+    folder_uuid = uuid.UUID("00000000-0000-0000-0000-0000000000c3")
+
+    sqla_table = SqlaTable(
+        table_name="my_table",
+        database=source_db,
+        columns=[
+            TableColumn(column_name="profit", type="INTEGER", uuid=column_uuid),
+        ],
+        metrics=[
+            SqlMetric(metric_name="cnt", expression="COUNT(*)", uuid=metric_uuid),
+        ],
+        folders=[
+            {
+                "uuid": str(folder_uuid),
+                "type": "folder",
+                "name": "Custom",
+                "children": [
+                    {"uuid": str(metric_uuid), "type": "metric"},
+                    {"uuid": str(column_uuid), "type": "column"},
+                ],
+            },
+        ],
+    )
+    db.session.add(sqla_table)
+    db.session.flush()
+
+    # --- export (command-level YAML payload) ---
+    config = yaml.safe_load(ExportDatasetsCommand._file_content(sqla_table))  # pylint: disable=protected-access
+
+    # The exported metric/column must carry their UUIDs so the folder
+    # references survive the round trip.
+    assert config["metrics"][0].get("uuid") == str(metric_uuid)
+    assert any(col.get("uuid") == str(column_uuid) for col in config["columns"])
+
+    # The import schema must accept and preserve those UUIDs; without the schema
+    # fields it would reject them as unknown and the round trip would break.
+    loaded = ImportV1DatasetSchema().load(config)
+    assert loaded["metrics"][0]["uuid"] == metric_uuid
+    assert any(col["uuid"] == column_uuid for col in loaded["columns"])
+
+    # --- import into another workspace ---
+    # Model a separate workspace: drop the source dataset so its UUIDs are free
+    # (a fresh workspace has never seen them), then import against a fresh
+    # database and a brand-new dataset UUID so the importer creates the
+    # metric/column anew from the exported payload.
+    db.session.delete(sqla_table)
+    db.session.flush()
+
+    target_db = Database(database_name="target_db", sqlalchemy_uri="sqlite://")
+    db.session.add(target_db)
+    db.session.flush()
+    config["database_id"] = target_db.id
+    config["uuid"] = str(uuid.uuid4())
+
+    imported = import_dataset(config)
+
+    # The metric/column must be recreated with their original UUIDs so the
+    # typed folder leaves still resolve to them — i.e. they stay in the custom
+    # folder rather than being re-homed to the default one.
+    imported_metric = next(m for m in imported.metrics if m.metric_name == "cnt")
+    assert imported_metric.uuid == metric_uuid
+    imported_column = next(c for c in imported.columns if c.column_name == "profit")
+    assert imported_column.uuid == column_uuid
+
+    # The folders JSON is stored verbatim (it round-trips with or without the
+    # fix); the uuid assertions above are the real gate that its leaves still
+    # resolve to the imported children. This just documents the expected shape.
+    assert imported.folders == [
+        {
+            "uuid": str(folder_uuid),
+            "type": "folder",
+            "name": "Custom",
+            "children": [
+                {"uuid": str(metric_uuid), "type": "metric"},
+                {"uuid": str(column_uuid), "type": "column"},
+            ],
+        },
+    ]
+
+
+def test_import_dataset_clone_with_duplicate_child_uuid_gets_fresh_uuid(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Cloning a dataset by importing its config under a new dataset UUID must not
+    fail when the original — and its metric/column UUIDs — still exist.
+
+    Metric/column UUIDs are globally unique but matched only within their parent
+    on import, so an unchanged child UUID under a *new* dataset would otherwise
+    violate the unique constraint on INSERT. The importer drops the colliding
+    UUID and lets a fresh one be assigned, so the clone imports cleanly (the
+    pre-uuid-export behavior for that workflow).
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    metric_uuid = "00000000-0000-0000-0000-0000000000d4"
+    column_uuid = "00000000-0000-0000-0000-0000000000e5"
+    config = {
+        "table_name": "my_table",
+        "uuid": str(uuid.uuid4()),
+        "metrics": [
+            {"metric_name": "cnt", "expression": "COUNT(*)", "uuid": metric_uuid},
+        ],
+        "columns": [
+            {"column_name": "profit", "type": "INTEGER", "uuid": column_uuid},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    original = import_dataset(copy.deepcopy(config))
+    assert str(original.metrics[0].uuid) == metric_uuid
+    assert str(original.columns[0].uuid) == column_uuid
+
+    # Clone: same child UUIDs, but a new dataset UUID and name (as a user editing
+    # the exported config to duplicate the dataset would produce).
+    clone_config = copy.deepcopy(config)
+    clone_config["table_name"] = "my_table_clone"
+    clone_config["uuid"] = str(uuid.uuid4())
+
+    clone = import_dataset(clone_config)
+
+    # The clone imports without hitting the unique constraint, and its children
+    # receive fresh UUIDs while the original keeps its own.
+    assert clone.id != original.id
+    assert [m.metric_name for m in clone.metrics] == ["cnt"]
+    assert [c.column_name for c in clone.columns] == ["profit"]
+    assert str(clone.metrics[0].uuid) != metric_uuid
+    assert str(clone.columns[0].uuid) != column_uuid
+    assert str(original.metrics[0].uuid) == metric_uuid
+    assert str(original.columns[0].uuid) == column_uuid
+
+
+def test_import_dataset_clone_overwrite_reimport_keeps_fresh_child_uuid(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Overwriting a cloned dataset with its own bundle must not resurrect the
+    original's child UUIDs.
+
+    On the overwrite path children sync with ``sync=["columns", "metrics"]`` and
+    are matched within the parent by name, so re-importing the clone bundle
+    (which still carries the original's metric/column UUIDs) would otherwise
+    ``setattr`` those UUIDs onto the clone's children and violate the global
+    unique constraint at flush. The importer drops any incoming child UUID owned
+    by a different row on the UPDATE branch too, so the overwrite succeeds and
+    the clone's children keep the fresh UUIDs assigned on first import.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    metric_uuid = "00000000-0000-0000-0000-0000000000d6"
+    column_uuid = "00000000-0000-0000-0000-0000000000e7"
+    config = {
+        "table_name": "my_table",
+        "uuid": str(uuid.uuid4()),
+        "metrics": [
+            {"metric_name": "cnt", "expression": "COUNT(*)", "uuid": metric_uuid},
+        ],
+        "columns": [
+            {"column_name": "profit", "type": "INTEGER", "uuid": column_uuid},
+        ],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    original = import_dataset(copy.deepcopy(config))
+
+    # Clone under a new dataset UUID and name; its children get fresh UUIDs
+    # because the originals still exist.
+    clone_config = copy.deepcopy(config)
+    clone_config["table_name"] = "my_table_clone"
+    clone_config["uuid"] = str(uuid.uuid4())
+    clone = import_dataset(copy.deepcopy(clone_config))
+    fresh_metric_uuid = str(clone.metrics[0].uuid)
+    fresh_column_uuid = str(clone.columns[0].uuid)
+    assert fresh_metric_uuid != metric_uuid
+    assert fresh_column_uuid != column_uuid
+
+    # Re-import the same clone bundle with overwrite=True. The children match by
+    # (table_id, name), and the bundle still carries the original's UUIDs; the
+    # guard must keep this from writing them onto the clone's children.
+    reimported = import_dataset(copy.deepcopy(clone_config), overwrite=True)
+
+    assert reimported.id == clone.id
+    assert [m.metric_name for m in reimported.metrics] == ["cnt"]
+    assert [c.column_name for c in reimported.columns] == ["profit"]
+    # The clone keeps its fresh child UUIDs and the original is untouched.
+    assert str(reimported.metrics[0].uuid) == fresh_metric_uuid
+    assert str(reimported.columns[0].uuid) == fresh_column_uuid
+    assert str(original.metrics[0].uuid) == metric_uuid
+    assert str(original.columns[0].uuid) == column_uuid
+
+
+def test_import_dataset_null_child_uuid_keeps_existing(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An explicit ``uuid: null`` must not wipe an existing child's UUID.
+
+    The child import schemas accept ``uuid=None``. Without the guard the
+    overwrite path would ``setattr`` that ``None`` onto the matched child and
+    persist a literal NULL — the column is nullable and ``unique`` permits
+    repeated NULLs, so it would fail silently and orphan every folder leaf
+    pointing at that child.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    metric_uuid = "00000000-0000-0000-0000-0000000000f8"
+    config: dict[str, Any] = {
+        "table_name": "my_table",
+        "uuid": str(uuid.uuid4()),
+        "metrics": [
+            {"metric_name": "cnt", "expression": "COUNT(*)", "uuid": metric_uuid},
+        ],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+    dataset = import_dataset(copy.deepcopy(config))
+    assert str(dataset.metrics[0].uuid) == metric_uuid
+
+    # Re-import the same bundle with the child uuid explicitly nulled.
+    nulled = copy.deepcopy(config)
+    nulled["metrics"][0]["uuid"] = None
+    reimported = import_dataset(nulled, overwrite=True)
+
+    assert reimported.id == dataset.id
+    assert reimported.metrics[0].uuid is not None
+    assert str(reimported.metrics[0].uuid) == metric_uuid
+
+
+def test_import_dataset_ambiguous_child_aborts_instead_of_half_applying(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An ambiguous metric/column match must abort the import, not half-apply it.
+
+    Children are matched within their parent by name *or* UUID, so a payload
+    metric can match one existing metric by name and a *different* one by UUID.
+    That raises ``MultipleResultsFound`` from inside the child import — after
+    the dataset's own fields were already updated and after earlier siblings
+    were already imported. Swallowing it (the legacy dataset-level contract)
+    would report success over a partially-applied import, so the importer must
+    raise ``ImportFailedError`` and let the transaction roll everything back.
+    """
+    from superset.connectors.sqla.models import SqlMetric
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    a_uuid = "00000000-0000-0000-0000-0000000000a1"
+    cnt_uuid = "00000000-0000-0000-0000-0000000000a2"
+    dataset_uuid = str(uuid.uuid4())
+    config: dict[str, Any] = {
+        "table_name": "my_table",
+        "description": "as exported",
+        "uuid": dataset_uuid,
+        "metrics": [
+            {"metric_name": "a", "expression": "COUNT(*)", "uuid": a_uuid},
+            {"metric_name": "cnt", "expression": "COUNT(*)", "uuid": cnt_uuid},
+        ],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+    dataset = import_dataset(copy.deepcopy(config))
+
+    # Simulate the target instance drifting: ``cnt`` is renamed to ``cnt_old``
+    # (keeping its UUID) and a brand-new metric takes the name ``cnt``. The
+    # dataset itself is edited too.
+    renamed = next(m for m in dataset.metrics if m.metric_name == "cnt")
+    renamed.metric_name = "cnt_old"
+    new_cnt_uuid = str(uuid.uuid4())
+    dataset.metrics.append(
+        SqlMetric(metric_name="cnt", expression="COUNT(1)", uuid=new_cnt_uuid)
+    )
+    dataset.description = "edited in the UI"
+    db.session.flush()
+    db.session.commit()
+
+    # Re-import the *original* bundle: its ``cnt``/``cnt_uuid`` metric matches
+    # the new ``cnt`` by name and ``cnt_old`` by UUID.
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_dataset(copy.deepcopy(config), overwrite=True)
+
+    assert "matches two different existing" in str(excinfo.value)
+    assert "my_table" in str(excinfo.value)
+
+    # Because it raised, the caller's transaction can undo everything; nothing
+    # from the aborted import is visible afterwards.
+    db.session.rollback()
+
+    reloaded = db.session.query(SqlaTable).filter_by(uuid=dataset_uuid).one()
+    # The parent's scalar fields were NOT overwritten by the aborted payload.
+    assert reloaded.description == "edited in the UI"
+    # No metric was added, renamed, or deleted by the aborted import.
+    assert sorted(m.metric_name for m in reloaded.metrics) == ["a", "cnt", "cnt_old"]
+    assert {m.metric_name: str(m.uuid) for m in reloaded.metrics} == {
+        "a": a_uuid,
+        "cnt_old": cnt_uuid,
+        "cnt": new_cnt_uuid,
+    }
+
+
+def _dataset_config_with_children(
+    metrics: list[dict[str, Any]],
+    columns: list[dict[str, Any]],
+) -> dict[str, Any]:
+    return {
+        "version": "1.0.0",
+        "table_name": "my_table",
+        "uuid": str(uuid.uuid4()),
+        "database_uuid": str(uuid.uuid4()),
+        "metrics": metrics,
+        "columns": columns,
+    }
+
+
+def test_import_dataset_schema_rejects_duplicate_metric_uuids() -> None:
+    """
+    Two metrics sharing a UUID must be rejected by the import schema.
+
+    UUIDs are globally unique, so such a payload cannot be imported faithfully:
+    the second metric would match the first one by UUID and overwrite it in
+    place, silently collapsing two metrics into one.
+    """
+    duplicate = str(uuid.uuid4())
+    config = _dataset_config_with_children(
+        metrics=[
+            {"metric_name": "cnt", "expression": "COUNT(*)", "uuid": duplicate},
+            {"metric_name": "cnt2", "expression": "COUNT(1)", "uuid": duplicate},
+        ],
+        columns=[],
+    )
+
+    with pytest.raises(ValidationError) as excinfo:
+        ImportV1DatasetSchema().load(config)
+
+    assert "metrics" in excinfo.value.messages
+    assert duplicate in str(excinfo.value.messages["metrics"])
+
+
+def test_import_dataset_schema_rejects_duplicate_column_uuids() -> None:
+    """
+    Two columns sharing a UUID must be rejected by the import schema.
+    """
+    duplicate = str(uuid.uuid4())
+    config = _dataset_config_with_children(
+        metrics=[],
+        columns=[
+            {"column_name": "profit", "type": "INTEGER", "uuid": duplicate},
+            {"column_name": "revenue", "type": "INTEGER", "uuid": duplicate},
+        ],
+    )
+
+    with pytest.raises(ValidationError) as excinfo:
+        ImportV1DatasetSchema().load(config)
+
+    assert "columns" in excinfo.value.messages
+    assert duplicate in str(excinfo.value.messages["columns"])
+
+
+def test_import_dataset_schema_allows_distinct_and_missing_child_uuids() -> None:
+    """
+    Distinct UUIDs — and children with no UUID at all — remain valid.
+
+    Only the ``null``/absent case may repeat: a pre-uuid-export bundle has no
+    child UUIDs whatsoever and must keep importing.
+    """
+    config = _dataset_config_with_children(
+        metrics=[
+            {"metric_name": "cnt", "expression": "COUNT(*)", "uuid": str(uuid.uuid4())},
+            {"metric_name": "cnt2", "expression": "COUNT(1)"},
+            {"metric_name": "cnt3", "expression": "COUNT(2)", "uuid": None},
+        ],
+        columns=[
+            {"column_name": "profit", "type": "INTEGER", "uuid": str(uuid.uuid4())},
+            {"column_name": "revenue", "type": "INTEGER"},
+            {"column_name": "expenses", "type": "INTEGER", "uuid": None},
+        ],
+    )
+
+    loaded = ImportV1DatasetSchema().load(config)
+
+    assert len(loaded["metrics"]) == 3
+    assert len(loaded["columns"]) == 3
+
+
 def test_import_dataset_no_folder(mocker: MockerFixture, session: Session) -> None:
     """
     Test importing a dataset that was exported without folders.
@@ -324,6 +771,148 @@ def test_import_dataset_no_folder(mocker: MockerFixture, session: Session) -> No
 
     sqla_table = import_dataset(config)
     assert sqla_table.folders is None
+
+
+def test_import_dataset_skips_has_table_check_without_data_uri(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Importing a dataset with no ``data`` URI should never call
+    ``Database.has_table`` - its result only ever gates ``load_data``, which
+    is already a no-op when there's no data URI to load. Skipping the call
+    avoids an unnecessary round trip to the target database on every
+    imported dataset, which is what made bulk imports of many datasets slow
+    enough to hit the gunicorn worker timeout.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    has_table = mocker.patch.object(Database, "has_table")
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = {
+        "table_name": "no_data_table",
+        "main_dttm_col": None,
+        "description": None,
+        "default_endpoint": None,
+        "offset": 0,
+        "cache_timeout": None,
+        "schema": None,
+        "sql": None,
+        "params": None,
+        "template_params": None,
+        "filter_select_enabled": False,
+        "fetch_values_predicate": None,
+        "extra": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    import_dataset(config)
+
+    has_table.assert_not_called()
+
+
+def test_import_dataset_checks_has_table_with_data_uri(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    When a ``data`` URI is present, ``Database.has_table`` should still be
+    consulted to decide whether the data needs to be (re-)loaded. A table that
+    already exists means the data is there, so it must not be re-loaded.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    has_table = mocker.patch.object(Database, "has_table", return_value=True)
+    load_data = mocker.patch("superset.commands.dataset.importers.v1.utils.load_data")
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = {
+        "table_name": "has_data_table",
+        "main_dttm_col": None,
+        "description": None,
+        "default_endpoint": None,
+        "offset": 0,
+        "cache_timeout": None,
+        "schema": None,
+        "sql": None,
+        "params": None,
+        "template_params": None,
+        "filter_select_enabled": False,
+        "fetch_values_predicate": None,
+        "extra": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+        "data": "https://example.com/data.csv",
+    }
+
+    import_dataset(config)
+
+    has_table.assert_called_once()
+    load_data.assert_not_called()
+
+
+def test_import_dataset_loads_data_when_table_is_missing(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    When a ``data`` URI is present and the target table doesn't exist yet, the
+    data must actually be loaded. This is the case ``has_table`` exists to
+    detect, and the one an inverted or misindented condition would silently
+    skip while still satisfying the checks above.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    has_table = mocker.patch.object(Database, "has_table", return_value=False)
+    load_data = mocker.patch("superset.commands.dataset.importers.v1.utils.load_data")
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = {
+        "table_name": "missing_data_table",
+        "main_dttm_col": None,
+        "description": None,
+        "default_endpoint": None,
+        "offset": 0,
+        "cache_timeout": None,
+        "schema": None,
+        "sql": None,
+        "params": None,
+        "template_params": None,
+        "filter_select_enabled": False,
+        "fetch_values_predicate": None,
+        "extra": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+        "data": "https://example.com/data.csv",
+    }
+
+    import_dataset(config)
+
+    has_table.assert_called_once()
+    load_data.assert_called_once()
 
 
 def test_import_dataset_rejects_non_default_catalog_when_multi_catalog_disabled(
@@ -1792,3 +2381,308 @@ def test_import_restore_blocked_by_active_twin_at_incoming_identity(
     assert "another active dataset" in str(excinfo.value)
     # Check-before-mutate: the failed import leaves the row soft-deleted.
     assert existing.deleted_at is not None
+
+
+@pytest.mark.parametrize("config_catalog", ["public", None])
+def test_import_dataset_identity_collision_requires_overwrite_permission(
+    mocker: MockerFixture, session: Session, config_catalog: str | None
+) -> None:
+    """
+    A config with a fresh UUID but the physical identity of an existing ACTIVE
+    dataset must go through the same overwrite permission gate as a UUID match.
+
+    The ``None`` case matters on its own: ``import_from_dict`` drops null keys
+    from its uniqueness predicate, so a catalog-less config still reaches a
+    dataset stored under a catalog.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=False)
+    mocker.patch.object(security_manager, "is_admin", return_value=False)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    victim = SqlaTable(
+        table_name="salaries",
+        schema="finance",
+        catalog="public",
+        database_id=database.id,
+        uuid="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        sql="SELECT * FROM finance.salaries",
+    )
+    db.session.add(victim)
+    db.session.flush()
+
+    importer_user = User(
+        username="importer",
+        first_name="at",
+        last_name="tacker",
+        email="importer@example.com",
+    )
+
+    # Fresh UUID, but the same physical identity as ``victim``.
+    config = {
+        "table_name": "salaries",
+        "schema": "finance",
+        "catalog": config_catalog,
+        "sql": "SELECT * FROM finance.salaries -- clobbered",
+        "uuid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    with override_user(importer_user):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_dataset(copy.deepcopy(config), overwrite=True)
+    assert "overwrite" in str(excinfo.value).lower()
+
+    # The victim dataset must not have been clobbered.
+    assert victim.sql == "SELECT * FROM finance.salaries"
+
+
+def test_import_dataset_identity_collision_overwrites_in_place_for_editor(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Once the gate passes, an identity collision updates the existing dataset in
+    place rather than creating a twin, and the caller's config is left alone so
+    a bundle importer that re-reads or retries it still sees its own UUID.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    existing = SqlaTable(
+        table_name="salaries",
+        schema="finance",
+        catalog="public",
+        database_id=database.id,
+        uuid="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        sql="SELECT * FROM finance.salaries",
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    config = {
+        "table_name": "salaries",
+        "schema": "finance",
+        "catalog": "public",
+        "sql": "SELECT * FROM finance.salaries -- updated",
+        "uuid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    imported = import_dataset(config, overwrite=True)
+
+    assert imported.id == existing.id
+    assert imported.sql == "SELECT * FROM finance.salaries -- updated"
+    assert db.session.query(SqlaTable).count() == 1
+    assert config["uuid"] == "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+
+
+def test_import_dataset_identity_collision_with_duplicate_rows_returns_existing(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A config that omits the catalog matches every row sharing its (database,
+    schema, table), so it can be ambiguous. ``import_from_dict`` then raises
+    ``MultipleResultsFound`` and the legacy fallback returns the existing row
+    unmodified. It must not look the incoming UUID up again: on an identity
+    match that UUID belongs to no row, and the lookup would raise.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    for dataset_uuid, catalog in (
+        ("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "public"),
+        ("cccccccc-cccc-cccc-cccc-cccccccccccc", "private"),
+    ):
+        db.session.add(
+            SqlaTable(
+                table_name="salaries",
+                schema="finance",
+                catalog=catalog,
+                database_id=database.id,
+                uuid=dataset_uuid,
+                sql="SELECT * FROM finance.salaries",
+            )
+        )
+    db.session.flush()
+
+    config = {
+        "table_name": "salaries",
+        "schema": "finance",
+        "sql": "SELECT * FROM finance.salaries -- updated",
+        "uuid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    dataset = import_dataset(copy.deepcopy(config), overwrite=True)
+
+    assert str(dataset.uuid) == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    assert dataset.sql == "SELECT * FROM finance.salaries"
+
+
+def test_peer_validating_connection_blocks_rebound_peer() -> None:
+    """
+    The import fetch validates the connected peer address, so a hostname that
+    passes ``is_safe_host`` and then re-resolves to an internal address (DNS
+    rebinding) is rejected before any request bytes are sent.
+    """
+    from http.client import HTTPConnection
+    from unittest.mock import MagicMock, patch
+
+    from superset.commands.dataset.exceptions import DatasetForbiddenDataURI
+    from superset.commands.dataset.importers.v1.utils import (
+        _PeerValidatingHTTPConnection,
+    )
+
+    sock = MagicMock()
+    sock.getpeername.return_value = ("169.254.169.254", 80)
+
+    with patch.object(
+        HTTPConnection, "connect", lambda self: setattr(self, "sock", sock)
+    ):
+        conn = _PeerValidatingHTTPConnection("rebinder.example.com")
+        with pytest.raises(DatasetForbiddenDataURI):
+            conn.connect()
+
+
+def test_load_data_disables_proxy_when_internal_urls_disallowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``load_data`` builds its opener with an explicit no-proxy handler when
+    internal data URLs are disallowed, so a configured HTTP(S) proxy can't
+    intercept the connection the peer check validates.
+    """
+    from superset.commands.dataset.importers.v1.utils import load_data
+
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+
+    mocker.patch("superset.commands.dataset.importers.v1.utils.validate_data_uri")
+    mocker.patch(
+        "superset.examples.helpers.normalize_example_data_url",
+        side_effect=lambda uri: uri,
+    )
+    mocker.patch(
+        "superset.commands.dataset.importers.v1.utils._convert_temporal_columns"
+    )
+    mocker.patch("superset.commands.dataset.importers.v1.utils.db.session.connection")
+    mock_df = Mock()
+    mock_df.keys.return_value = []
+    mocker.patch(
+        "superset.commands.dataset.importers.v1.utils.pd.read_csv",
+        return_value=mock_df,
+    )
+    mock_opener = Mock()
+    mock_opener.open.return_value = io.BytesIO(b"")
+    mock_build_opener = mocker.patch(
+        "superset.commands.dataset.importers.v1.utils.request.build_opener",
+        return_value=mock_opener,
+    )
+
+    dataset = Mock(spec=SqlaTable)
+    dataset.columns = []
+    dataset.table_name = "my_table"
+    dataset.schema = None
+
+    database = Mock(spec=Database)
+    database.sqlalchemy_uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
+
+    load_data("https://example.org/data.csv", dataset, database)
+
+    handlers = mock_build_opener.call_args.args
+    assert any(
+        isinstance(handler, request.ProxyHandler) and not handler.proxies  # type: ignore[attr-defined]
+        for handler in handlers
+    )
+
+
+def test_load_data_bounds_gzip_download_before_decompression(
+    mocker: MockerFixture,
+) -> None:
+    """
+    For a ``.gz`` data URI, ``load_data`` must bound the raw (compressed)
+    download before decompressing it, not just the decompressed output --
+    otherwise an oversized or malformed compressed response could be read
+    in full before any size check applies.
+    """
+    from superset.commands.dataset.importers.v1.utils import load_data
+
+    mocker.patch("superset.commands.dataset.importers.v1.utils.validate_data_uri")
+    mocker.patch(
+        "superset.examples.helpers.normalize_example_data_url",
+        side_effect=lambda uri: uri,
+    )
+    mocker.patch(
+        "superset.commands.dataset.importers.v1.utils._convert_temporal_columns"
+    )
+    mocker.patch("superset.commands.dataset.importers.v1.utils.db.session.connection")
+    mock_df = Mock()
+    mock_df.keys.return_value = []
+    mocker.patch(
+        "superset.commands.dataset.importers.v1.utils.pd.read_csv",
+        return_value=mock_df,
+    )
+
+    raw_response = Mock()
+    mock_opener = Mock()
+    mock_opener.open.return_value = raw_response
+    mocker.patch(
+        "superset.commands.dataset.importers.v1.utils.request.build_opener",
+        return_value=mock_opener,
+    )
+
+    bounded_raw = io.BytesIO(b"")
+    decompressed = Mock()
+    mock_read_bounded = mocker.patch(
+        "superset.commands.dataset.importers.v1.utils._read_bounded",
+        side_effect=[bounded_raw, io.BytesIO(b"")],
+    )
+    mock_gzip_open = mocker.patch(
+        "superset.commands.dataset.importers.v1.utils.gzip.open",
+        return_value=decompressed,
+    )
+
+    dataset = Mock(spec=SqlaTable)
+    dataset.columns = []
+    dataset.table_name = "my_table"
+    dataset.schema = None
+
+    database = Mock(spec=Database)
+    database.sqlalchemy_uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
+
+    load_data("https://example.org/data.csv.gz", dataset, database)
+
+    # the raw (still compressed) response is bounded first...
+    assert mock_read_bounded.call_args_list[0].args[0] is raw_response
+    # ...then gzip.open() decompresses the bounded buffer...
+    mock_gzip_open.assert_called_once_with(bounded_raw)
+    # ...and the decompressed output is bounded again before parsing.
+    assert mock_read_bounded.call_args_list[1].args[0] is decompressed

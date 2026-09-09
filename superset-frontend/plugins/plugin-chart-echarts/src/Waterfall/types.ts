@@ -29,7 +29,11 @@ import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import { BaseTransformedProps, LegendFormData } from '../types';
 
 export type WaterfallFormXTicksLayout =
-  '45°' | '90°' | 'auto' | 'flat' | 'staggered';
+  | '45°'
+  | '90°'
+  | 'auto'
+  | 'flat'
+  | 'staggered';
 
 export type ISeriesData = {
   originalValue?: number;
@@ -51,8 +55,10 @@ export type EchartsWaterfallFormData = QueryFormData &
     xAxisLabel: string;
     xAxisTimeFormat?: string;
     xTicksLayout?: WaterfallFormXTicksLayout;
+    showXAxis: boolean;
     yAxisLabel: string;
     yAxisFormat: string;
+    showYAxis: boolean;
     increaseLabel?: string;
     decreaseLabel?: string;
     totalLabel?: string;
@@ -61,6 +67,8 @@ export type EchartsWaterfallFormData = QueryFormData &
 
 export const DEFAULT_FORM_DATA: Partial<EchartsWaterfallFormData> = {
   showLegend: true,
+  showXAxis: true,
+  showYAxis: true,
 };
 
 export interface EchartsWaterfallChartProps extends ChartProps {

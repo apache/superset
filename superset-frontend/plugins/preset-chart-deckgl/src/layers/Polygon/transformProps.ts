@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ChartProps, getMetricLabel, QueryFormMetric } from '@superset-ui/core';
-import { addJsColumnsToExtraProps, DataRecord } from '../spatialUtils';
+import { DataRecord } from '../spatialUtils';
 import {
   createBaseTransformResult,
   getRecordsFromQuery,
@@ -104,7 +104,6 @@ function processPolygonData(
     metric,
     point_radius_fixed,
     reverse_long_lat,
-    js_columns,
   } = formData;
 
   if (!line_column || !records.length) {
@@ -139,7 +138,7 @@ function processPolygonData(
     }
   }
 
-  const excludeKeys = new Set([line_column, ...(js_columns || [])]);
+  const excludeKeys = new Set([line_column]);
 
   return records.flatMap(record => {
     let feature: PolygonFeature = {
@@ -147,7 +146,6 @@ function processPolygonData(
       metrics: {},
     };
 
-    feature = addJsColumnsToExtraProps(feature, record, js_columns);
     const updatedFeature = addPropertiesToFeature(
       feature as unknown as Record<string, unknown>,
       record,

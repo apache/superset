@@ -51,7 +51,8 @@ export type QueryFormColumn = PhysicalColumn | AdhocColumn;
  * Format: [metric/column, is_ascending].
  */
 export type QueryFormOrderBy =
-  [QueryFormColumn | QueryFormMetric | {}, boolean] | [];
+  | [QueryFormColumn | QueryFormMetric | {}, boolean]
+  | [];
 
 export interface FormDataResidual {
   [key: string]: any;
@@ -180,6 +181,8 @@ export interface BaseFormData extends TimeRange, FormDataResidual {
   timeseries_limit_metric?: QueryFormMetric;
   /** Force refresh */
   force?: boolean;
+  /** Idempotency token for a forced refresh (see requestChartDataResolved) */
+  force_nonce?: string;
   result_format?: string;
   result_type?: string;
   annotation_layers?: AnnotationLayer[];
@@ -211,5 +214,3 @@ export type LatestQueryFormData = Partial<QueryFormData>;
 //---------------------------------------------------
 // Type guards
 //---------------------------------------------------
-
-export default {};

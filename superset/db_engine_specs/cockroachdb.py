@@ -15,9 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 from sqlalchemy import types
+from sqlalchemy.sql.elements import ColumnElement
 
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.postgres import PostgresEngineSpec
@@ -26,6 +27,12 @@ from superset.db_engine_specs.postgres import PostgresEngineSpec
 class CockroachDbEngineSpec(PostgresEngineSpec):
     engine = "cockroachdb"
     engine_name = "CockroachDB"
+
+    # `PostgresEngineSpec._extended_aggregations` (MEDIAN/STDDEV_SAMP/VAR_SAMP)
+    # is verified against real Postgres behavior, not CockroachDB's distributed
+    # query engine; disable it here until someone confirms the same expressions
+    # against a live CockroachDB instance.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {}
 
     metadata = {
         "description": (
@@ -37,7 +44,7 @@ class CockroachDbEngineSpec(PostgresEngineSpec):
             DatabaseCategory.TRADITIONAL_RDBMS,
             DatabaseCategory.OPEN_SOURCE,
         ],
-        "pypi_packages": ["cockroachdb"],
+        "pypi_packages": ["sqlalchemy-cockroachdb", "psycopg2"],
         "connection_string": "cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable",
         "default_port": 26257,
         "docs_url": "https://github.com/cockroachdb/sqlalchemy-cockroachdb",

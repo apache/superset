@@ -111,12 +111,16 @@ def boxplot(  # noqa: C901
     # "mean"/"median" are passed as strings rather than np.mean/np.median: the
     # callables trigger a pandas FutureWarning in GroupBy.agg (see
     # _PANDAS_STRING_AGGREGATORS in pandas_postprocessing/utils.py) and the
-    # string form resolves to the exact same aggregation.
+    # string form resolves to the exact same aggregation. Under MINMAX,
+    # whisker_high/whisker_low are themselves plain np.max/np.min, so the same
+    # substitution applies there; under TUKEY/PERCENTILE they're closures and
+    # aren't eligible for the string shortcut.
+    is_minmax = whisker_type == PostProcessingBoxplotWhiskerType.MINMAX
     operators: dict[str, Union[str, Callable[[Any], Any]]] = {
         "mean": "mean",
         "median": "median",
-        "max": whisker_high,
-        "min": whisker_low,
+        "max": "max" if is_minmax else whisker_high,
+        "min": "min" if is_minmax else whisker_low,
         "q1": quartile1,
         "q3": quartile3,
         "count": np.ma.count,

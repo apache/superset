@@ -45,7 +45,16 @@ describe('reactify(renderFn)', () => {
     content: 'ghi',
   };
 
-  const willUnmountCb = jest.fn();
+  let latestUnmountContext:
+    | {
+        container?: HTMLDivElement;
+        props?: { content?: string; id?: string };
+      }
+    | undefined;
+
+  const willUnmountCb = jest.fn(function captureUnmountContext() {
+    latestUnmountContext = this as typeof latestUnmountContext;
+  });
 
   const TheChart = reactify(renderFn);
   const TheChartWithWillUnmountHook = reactify(renderFn, {
@@ -66,12 +75,22 @@ describe('reactify(renderFn)', () => {
   }
 
   function AnotherTestComponent() {
-    return <TheChartWithWillUnmountHook id="another_test" />;
+    const [content, setContent] = useState('abc');
+
+    useEffect(() => {
+      const timer = setTimeout(() => {
+        setContent('def');
+      }, 10);
+      return () => clearTimeout(timer);
+    }, []);
+
+    return <TheChartWithWillUnmountHook id="another_test" content={content} />;
   }
 
   beforeEach(() => {
     (renderFn as jest.Mock).mockClear();
     willUnmountCb.mockClear();
+    latestUnmountContext = undefined;
   });
 
   test('returns a React component and re-renders on prop changes', async () => {
@@ -126,9 +145,22 @@ describe('reactify(renderFn)', () => {
     expect(anotherRenderFn).toHaveBeenCalled();
     unmount();
   });
-  test('calls willUnmount hook when it is provided', () => {
+  test('calls willUnmount hook with the committed container and latest props', async () => {
     const { unmount } = render(<AnotherTestComponent />);
+
+    await waitFor(() => {
+      expect(screen.getByText('def')).toBeInTheDocument();
+    });
+
+    const committedContainer = screen.getByText('def').parentElement;
+
     unmount();
+
     expect(willUnmountCb).toHaveBeenCalledTimes(1);
+    expect(latestUnmountContext?.props).toMatchObject({
+      id: 'another_test',
+      content: 'def',
+    });
+    expect(latestUnmountContext?.container).toBe(committedContainer);
   });
 });

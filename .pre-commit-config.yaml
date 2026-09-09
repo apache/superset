@@ -62,12 +62,21 @@ repos:
         args: ["--markdown-linebreak-ext=md"]
   - repo: local
     hooks:
-      - id: prettier-frontend
-        name: prettier (frontend)
-        entry: bash -c 'cd superset-frontend && files=(); for f in "$@"; do files+=("${f#superset-frontend/}"); done; npx prettier --write -- "${files[@]}"' --
+      - id: oxfmt-frontend
+        name: oxfmt (frontend)
+        entry: ./scripts/oxfmt.sh superset-frontend
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx|css|scss|sass|json)$
+      - id: oxfmt-websocket
+        name: oxfmt (websocket)
+        entry: ./scripts/oxfmt.sh superset-websocket
+        language: system
+        pass_filenames: true
+        # JSON is excluded: superset-websocket/.oxfmtrc.json ignores *.json, so
+        # passing them here would only ever be a no-op (notably for the tracked
+        # package-lock.json).
+        files: ^superset-websocket/.*\.(js|ts)$
   - repo: local
     hooks:
       - id: oxlint-frontend
@@ -88,9 +97,9 @@ repos:
         language: system
         pass_filenames: true
         files: ^superset-frontend/.*\.(js|jsx|ts|tsx)$
-      - id: eslint-docs
-        name: eslint (docs)
-        entry: bash -c 'cd docs && FILES=$(printf "%s\n" "$@" | sed "s|^docs/||" | tr "\n" " ") && yarn eslint --fix --quiet $FILES'
+      - id: oxlint-docs
+        name: oxlint (docs)
+        entry: bash -c 'cd docs && FILES=$(printf "%s\n" "$@" | sed "s|^docs/||" | tr "\n" " ") && yarn lint --fix --quiet $FILES'
         language: system
         pass_filenames: true
         files: ^docs/.*\.(js|jsx|ts|tsx)$
@@ -144,7 +153,7 @@ repos:
               git fetch --no-recurse-submodules origin "$TARGET_BRANCH" 2>/dev/null || true
             fi
             BASE=$(git merge-base origin/"$TARGET_BRANCH" HEAD 2>/dev/null) || BASE="HEAD"
-            files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD 2>/dev/null | grep '^superset/.*\.py$' || true)
+            files=$(git diff --name-only --diff-filter=ACM "$BASE"..HEAD 2>/dev/null | grep '^superset/.*\.py$' | grep -v '^superset/migrations/' || true)
             if [ -n "$files" ]; then
               pylint --rcfile=.pylintrc --load-plugins=superset.extensions.pylint --reports=no $files
             else
@@ -169,7 +178,7 @@ repos:
         name: zizmor (GHA security audit)
         entry: zizmor
         language: python
-        additional_dependencies: [zizmor==1.25.2]
+        additional_dependencies: [zizmor==1.30.0]
         files: ^\.github/
         types: [yaml]
         pass_filenames: false

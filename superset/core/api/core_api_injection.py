@@ -34,9 +34,6 @@ if TYPE_CHECKING:
     from superset_core.rest_api.api import RestApi
 
 
-__all__ = ["initialize_core_api_dependencies"]
-
-
 def inject_dao_implementations() -> None:
     """
     Replace abstract DAO classes in superset_core common/queries/tasks daos with
@@ -191,9 +188,14 @@ def inject_rest_api_implementations() -> None:
 
             if context:
                 # EXTENSION CONTEXT
-                manifest = context.manifest
-                base_path = f"/extensions/{manifest.publisher}/{manifest.name}"
-                prefixed_id = f"extensions.{manifest.publisher}.{manifest.name}.{id}"
+                base_path = (
+                    f"/extensions/{context.extension.publisher}/"
+                    f"{context.extension.name}"
+                )
+                prefixed_id = (
+                    f"extensions.{context.extension.publisher}."
+                    f"{context.extension.name}.{id}"
+                )
 
             else:
                 # HOST CONTEXT
@@ -261,8 +263,10 @@ def inject_semantic_layer_implementations() -> None:
     ) -> Callable[[Any], Any]:
         def decorator(cls: Any) -> Any:
             if context := context_module.get_current_extension_context():
-                manifest = context.manifest
-                prefixed_id = f"extensions.{manifest.publisher}.{manifest.name}.{id}"
+                prefixed_id = (
+                    f"extensions.{context.extension.publisher}."
+                    f"{context.extension.name}.{id}"
+                )
             else:
                 prefixed_id = id
 
@@ -275,6 +279,40 @@ def inject_semantic_layer_implementations() -> None:
         return decorator
 
     core_sl_module.semantic_layer = semantic_layer_impl  # type: ignore[assignment]
+
+
+def inject_storage_implementations() -> None:
+    """
+    Replace abstract storage classes in superset_core.extensions.storage with concrete
+    implementations from Superset.
+    """
+    import superset_core.extensions.storage.dao as core_storage_dao
+    import superset_core.extensions.storage.ephemeral as core_ephemeral_state
+    import superset_core.extensions.storage.models as core_storage_models
+    import superset_core.extensions.storage.persistent as core_persistent_state
+
+    from superset.extensions.storage.ephemeral import EphemeralState
+    from superset.extensions.storage.persistent import PersistentState
+    from superset.extensions.storage.persistent_dao import ExtensionStorageDAO
+    from superset.extensions.storage.persistent_model import ExtensionStorage
+
+    # Replace abstract classes with concrete implementations
+    core_ephemeral_state.EphemeralState = EphemeralState  # type: ignore[misc,assignment]
+    core_persistent_state.PersistentState = PersistentState  # type: ignore[misc,assignment]
+    core_storage_models.ExtensionStorageEntry = ExtensionStorage  # type: ignore[misc,assignment]
+    core_storage_dao.ExtensionStorageDAO = ExtensionStorageDAO  # type: ignore[misc,assignment]
+
+
+def inject_extension_context() -> None:
+    """
+    Replace abstract get_context in superset_core.extensions.context
+    with concrete implementation from Superset.
+    """
+    import superset_core.extensions.context as core_context
+
+    from superset.extensions.context import get_context
+
+    core_context.get_context = get_context
 
 
 def initialize_core_api_dependencies() -> None:
@@ -291,3 +329,5 @@ def initialize_core_api_dependencies() -> None:
     inject_task_implementations()
     inject_rest_api_implementations()
     inject_semantic_layer_implementations()
+    inject_storage_implementations()
+    inject_extension_context()

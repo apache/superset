@@ -36,6 +36,27 @@ import {
 
 type SqlLabState = SqlLabRootState['sqlLab'];
 
+/**
+ * A database's `extra` column is free-form and frequently empty: it is nullable
+ * in the metadata database and the API returns it verbatim. `JSON.parse` cannot
+ * represent that, and `JSON.parse(extra || '')` is guaranteed to throw, since
+ * the empty string is never valid JSON — so a single database row with no
+ * `extra` took down the whole SET_DATABASES reducer and with it SQL Lab.
+ * Malformed JSON is treated the same way: one bad row must not cost the user
+ * every other database.
+ */
+function parseDatabaseExtra(extra: unknown): Record<string, unknown> {
+  if (typeof extra !== 'string' || extra.trim() === '') {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(extra);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
 function alterUnsavedQueryEditorState(
   state: SqlLabState,
   updatedState: Partial<QueryEditor>,
@@ -613,7 +634,8 @@ export default function sqlLabReducer(
           ? actionId
           : ((
               getFromArr(state.queryEditors, actionId, 'tabViewId') as
-                QueryEditor | undefined
+                | QueryEditor
+                | undefined
             )?.id ?? actionId);
       if (
         unsavedQueryEditor?.id === normalizedId &&
@@ -726,7 +748,7 @@ export default function sqlLabReducer(
       (action.databases as any[])!.forEach((db: any) => {
         databases[db.id] = {
           ...db,
-          extra_json: JSON.parse(db.extra || ''),
+          extra_json: parseDatabaseExtra(db.extra),
         };
       });
       return {
@@ -768,14 +790,15 @@ export default function sqlLabReducer(
               }),
               // race condition:
               // because of async behavior, sql lab may still poll a couple of seconds
-              // when it started fetching or finished rendering results
+              // after it started fetching or finished rendering results. Guard only
+              // against re-applying a redundant Success onto a state that's already at
+              // or past Success (Fetching/Success) — Running is strictly before
+              // Success, so an incoming Success there is new information, not a stale
+              // poll, and must be allowed through (otherwise an async query can never
+              // leave Running once observed there).
               state:
                 currentState === QueryState.Success &&
-                [
-                  QueryState.Fetching,
-                  QueryState.Success,
-                  QueryState.Running,
-                ].includes(prevState)
+                [QueryState.Fetching, QueryState.Success].includes(prevState)
                   ? prevState
                   : currentState,
             };

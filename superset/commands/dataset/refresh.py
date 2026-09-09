@@ -31,7 +31,10 @@ from superset.commands.dataset.exceptions import (
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
 from superset.datasets.datetime_format_detector import DatetimeFormatDetector
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import (
+    SupersetSecurityException,
+    SupersetVirtualTableParseException,
+)
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -46,7 +49,22 @@ class RefreshDatasetCommand(BaseCommand):
     def run(self) -> Model:
         self.validate()
         assert self._model
-        self._model.fetch_metadata()
+        try:
+            self._model.fetch_metadata()
+        except SupersetVirtualTableParseException as ex:
+            # The virtual dataset's SQL could not be parsed or templated at
+            # save time — typically Jinja blocks (e.g. ``{% if from_dttm %}``)
+            # that have no runtime context here. The row has already been
+            # persisted by ``UpdateDatasetCommand`` before this refresh runs,
+            # so surfacing an "Invalid SQL" toast is misleading. Genuine
+            # driver, connection, and permission errors still raise the
+            # broader ``SupersetGenericDBErrorException`` and continue to
+            # bubble up. See #38012.
+            logger.warning(
+                "Dataset column refresh skipped for %s: %s",
+                self._model.table_name,
+                ex.message,
+            )
 
         # Detect datetime formats if feature is enabled
         if current_app.config.get("DATASET_AUTO_DETECT_DATETIME_FORMATS", True):
