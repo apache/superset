@@ -35,7 +35,7 @@ from typing import (
     TypedDict,
     Union,
 )
-from urllib.parse import urlencode, urljoin
+from urllib.parse import urlencode, urljoin, urlparse
 from uuid import UUID, uuid4
 
 import pandas as pd
@@ -95,7 +95,7 @@ from superset.utils import core as utils, json
 from superset.utils.core import ColumnSpec, GenericDataType, QuerySource
 from superset.utils.hashing import hash_from_str
 from superset.utils.json import redact_sensitive, reveal_sensitive
-from superset.utils.network import is_hostname_valid, is_port_open
+from superset.utils.network import is_hostname_valid, is_port_open, is_safe_host
 from superset.utils.oauth2 import (
     encode_oauth2_state,
     generate_code_challenge,
@@ -901,6 +901,38 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         return config
 
+    @staticmethod
+    def _validate_oauth2_endpoint_host(uri: str) -> None:
+        """
+        Validate an OAuth2 authorization/token endpoint URI before it's used.
+
+        ``config["authorization_request_uri"]``/``config["token_request_uri"]``
+        can come from a database's own ``encrypted_extra.oauth2_client_info``
+        (editable by anyone with ``can_write`` on Database, not just the
+        deployment operator). The authorization URI is handed to the user's
+        browser as a redirect target; the token URI is POSTed to directly by
+        this server, carrying the connection's ``client_secret`` in the
+        request body. Neither is otherwise validated, so an attacker with
+        write access to one database's config could point either at an
+        internal host, exfiltrating the client secret (token URI) or using
+        Superset as an open redirect into the internal network (authorization
+        URI) -- and since the connection is typically shared, this is
+        exercised by every user who goes through that database's OAuth2 flow,
+        not just the one who configured it.
+
+        Operators with a legitimately internal IdP can opt out via
+        ``DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS``.
+        """
+        if app.config["DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS"]:
+            return
+
+        parsed = urlparse(uri)
+        if parsed.scheme not in ("http", "https"):
+            raise OAuth2Error("Invalid OAuth2 endpoint URI")
+        if not parsed.hostname or not is_safe_host(parsed.hostname):
+            logger.warning("OAuth2 endpoint refused: target host is not allowed")
+            raise OAuth2Error("Invalid OAuth2 endpoint URI")
+
     @classmethod
     def get_oauth2_authorization_uri(
         cls,
@@ -916,6 +948,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         (e.g., Google's prompt=consent).
         """
         uri = config["authorization_request_uri"]
+        cls._validate_oauth2_endpoint_host(uri)
         params: dict[str, str] = {
             "scope": config["scope"],
             "response_type": "code",
@@ -947,6 +980,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         timeout = app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
         uri = config["token_request_uri"]
+        cls._validate_oauth2_endpoint_host(uri)
         req_body: dict[str, str] = {
             "code": code,
             "client_id": config["id"],
@@ -978,6 +1012,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         timeout = app.config["DATABASE_OAUTH2_TIMEOUT"].total_seconds()
         uri = config["token_request_uri"]
+        cls._validate_oauth2_endpoint_host(uri)
         req_body = {
             "client_id": config["id"],
             "client_secret": config["secret"],
