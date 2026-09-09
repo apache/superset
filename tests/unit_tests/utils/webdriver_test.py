@@ -1532,6 +1532,18 @@ class TestWebDriverPlaywrightChartReadiness:
         page.screenshot.return_value = _png("white")
         page.evaluate.return_value = False
 
+        def signature_checked_wait(
+            expression,
+            *,
+            arg=None,
+            timeout=None,
+            polling=None,
+        ):
+            assert "__supersetCaptureReadiness" in expression
+            assert arg["stabilityMs"] == 500
+
+        page.wait_for_function.side_effect = signature_checked_wait
+
         result = WebDriverPlaywright._get_validated_screenshot(
             page,
             element,
@@ -1543,7 +1555,7 @@ class TestWebDriverPlaywrightChartReadiness:
         assert result == _png("white")
         readiness_call = page.wait_for_function.call_args
         assert "__supersetCaptureReadiness" in readiness_call.args[0]
-        assert readiness_call.args[1]["stabilityMs"] == 500
+        assert readiness_call.kwargs["arg"]["stabilityMs"] == 500
         assert readiness_call.kwargs["timeout"] == 690_000
 
     def test_report_readiness_budget_exhaustion_skips_poll_and_capture(self):

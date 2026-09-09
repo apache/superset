@@ -489,8 +489,9 @@ these failures.
 Immediately before each scheduled report screenshot, chart readiness must remain
 stable for 500 milliseconds. This final check runs after scrolling, content
 expansion, and animation waits so a chart that returns to a loading state is not
-captured. Successful checks emit `report_capture_readiness_stable`; a timeout
-emits `report_capture_readiness_changed` and stops capture and delivery.
+captured during the stability window. Successful checks emit
+`report_capture_readiness_stable`; a timeout emits
+`report_capture_readiness_changed` and stops capture and delivery.
 
 ### Confirm feature flag is enabled and you have sufficient permissions
 

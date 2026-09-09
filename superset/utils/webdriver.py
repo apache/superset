@@ -280,7 +280,7 @@ class WebDriverPlaywright(WebDriverProxy):
                 try:
                     page.wait_for_function(
                         stable_predicate,
-                        {
+                        arg={
                             "token": str(time.monotonic_ns()),
                             "stabilityMs": REPORT_CAPTURE_READINESS_STABILITY_MS,
                         },

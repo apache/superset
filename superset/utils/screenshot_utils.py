@@ -1193,7 +1193,7 @@ def take_tiled_screenshot(  # noqa: C901
                     try:
                         page.wait_for_function(
                             STABLE_REPORT_CHART_HOLDERS_READY_JS,
-                            {
+                            arg={
                                 "token": str(time.monotonic_ns()),
                                 "stabilityMs": REPORT_CAPTURE_READINESS_STABILITY_MS,
                             },

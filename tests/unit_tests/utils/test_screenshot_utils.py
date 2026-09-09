@@ -836,11 +836,18 @@ class TestTakeTiledScreenshot:
         element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
         wait_calls = 0
 
-        def wait_for_function(*args, **kwargs):
+        def wait_for_function(
+            expression,
+            *,
+            arg=None,
+            timeout=None,
+            polling=None,
+        ):
             nonlocal wait_calls
             if wait_calls == 0:
                 events.append("mount")
-            elif "__supersetCaptureReadiness" in args[0]:
+            elif "__supersetCaptureReadiness" in expression:
+                assert arg["stabilityMs"] == 500
                 events.append("stable_ready")
             else:
                 events.append("ready")
@@ -1116,7 +1123,7 @@ class TestTakeTiledScreenshot:
         assert len(stable_calls) == 3
         for stable_call in stable_calls:
             assert "__supersetCaptureReadiness" in stable_call.args[0]
-            assert stable_call.args[1]["stabilityMs"] == 500
+            assert stable_call.kwargs["arg"]["stabilityMs"] == 500
 
         # Each call uses viewport-scoped JS and the load_wait timeout
         mount_call, *tile_calls = mock_page.wait_for_function.call_args_list
@@ -1127,7 +1134,7 @@ class TestTakeTiledScreenshot:
             assert "getBoundingClientRect" in js
             assert "window.innerHeight" in js
             assert "dashboard-component-chart-holder" in js
-            assert call[1]["timeout"] == 30 * 1000
+            assert call.kwargs["timeout"] == 30 * 1000
 
     def test_per_tile_readiness_timeout_raises_and_skips_capture(self, mock_page):
         """A per-tile readiness timeout raises and does not capture that tile.
