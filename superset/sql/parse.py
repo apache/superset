@@ -775,6 +775,21 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
     # PostgreSQL counterparts), so ``is_mutating()`` applies this list for
     # every dialect: an opaque command with one of these heads is treated as
     # mutating.
+    # The subset of opaque ``exp.Command`` heads whose body is another
+    # statement kept as unparsed text (rather than server state the head
+    # keyword fully describes, as in ``VACUUM`` or ``REFRESH``). Anything the
+    # nested body does is invisible to node-type matching, so checks that
+    # inspect the tree have to fall back to the raw text for these.
+    _NESTED_BODY_COMMAND_NAMES: frozenset[str] = frozenset(
+        {
+            "DO",  # PL/pgSQL anonymous block
+            "PREPARE",  # body is the prepared statement
+            "EXECUTE",  # body is the prepared statement
+            "EXEC",  # MSSQL spelling of EXECUTE
+            "CALL",  # procedure body
+        }
+    )
+
     _MUTATING_COMMAND_NAMES: frozenset[str] = frozenset(
         {
             "DO",  # PL/pgSQL anonymous block
@@ -1298,11 +1313,8 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         A rebind makes unqualified references in later statements resolve to a
         schema other than the caller's ``default_schema``, so denylist matching
         against ``default_schema`` alone becomes unreliable once such a
-        statement is present. A rebind can be expressed as a structured
-        ``SET search_path = ...``, as a ``set_config(...)`` call, or inside a
-        statement the parser leaves opaque, so each is matched in turn.
-        Detection errs towards ``True`` where the setting name or the statement
-        body cannot be resolved statically.
+        statement is present. Detection errs towards ``True`` where the setting
+        name or the statement body can't be resolved statically.
         """
         # `SET search_path = schema` (and the `TO`/`SESSION`/`LOCAL` variants)
         # parse as a structured exp.Set, surfaced by get_settings(). Strip any
@@ -1312,35 +1324,42 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             return True
         # `set_config('search_path', ...)` rebinds the search path through a
         # function call rather than a SET statement, so it never reaches
-        # get_settings() and must be detected on the parsed tree.
+        # get_settings() and must be detected on the parsed tree. Postgres
+        # evaluates the setting name as an expression, so a non-literal name
+        # (e.g. `set_config('search_' || 'path', ...)`) rebinds the path just
+        # like the literal form but can't be resolved statically.
         for func in self._parsed.find_all(exp.Anonymous):
-            if func.name.lower() != "set_config" or not func.expressions:
+            if func.name.lower() != "set_config":
                 continue
-            setting = func.expressions[0]
-            # Postgres evaluates the setting name as an expression, so
-            # `set_config('search_' || 'path', ...)` rebinds the search path
-            # just like the literal form. A non-literal name can't be resolved
-            # statically, so treat it as a change rather than letting it pass.
-            if not isinstance(setting, exp.Literal):
+            setting = func.expressions[0] if func.expressions else None
+            if (
+                not isinstance(setting, exp.Literal)
+                or setting.name.lower() == "search_path"
+            ):
                 return True
-            if setting.name.lower() == "search_path":
-                return True
+        parsed = self._parsed
+        if not isinstance(parsed, exp.Command):
+            return False
+        body = str(parsed.expression)
         # Exotic forms (e.g. `SET search_path TO "$user", public`) fall back to
         # an opaque exp.Command. Match the leading setting name rather than
         # scanning the whole expression, so `SET ROLE my_search_path_role`
         # (whose value merely contains the substring) is not misclassified.
-        parsed = self._parsed
-        if isinstance(parsed, exp.Command):
-            if parsed.name.upper() == "SET":
-                tokens = str(parsed.expression).replace("=", " ").split()
-                while tokens and tokens[0].upper() in {"SESSION", "LOCAL"}:
-                    tokens.pop(0)
-                return bool(tokens) and tokens[0].strip('"').lower() == "search_path"
-            # Statements the parser can't model (e.g. a PL/pgSQL `DO` block)
-            # keep their whole body as opaque text, so a `set_config` call
-            # inside one is invisible to the tree scan above. Match the
-            # function name in the raw text rather than letting it through.
-            return "set_config" in parsed.sql(dialect=self._dialect).lower()
+        if parsed.name.upper() == "SET":
+            tokens = body.replace("=", " ").split()
+            while tokens and tokens[0].upper() in {"SESSION", "LOCAL"}:
+                tokens.pop(0)
+            return bool(tokens) and tokens[0].strip('"').lower() == "search_path"
+        # A command whose body is another statement (e.g. a PL/pgSQL `DO`
+        # block) keeps that body as opaque text, so a rebind inside it is
+        # invisible to the tree scan above, whether spelled as `set_config` or
+        # as a nested `SET search_path`. Match the setting name in the raw text
+        # rather than letting it through. Opaque commands that cannot carry a
+        # nested statement (`VACUUM`, `EXPLAIN ANALYZE`, `SHOW search_path`)
+        # are left alone, so merely naming the setting does not block them.
+        if parsed.name.upper() in self._NESTED_BODY_COMMAND_NAMES:
+            lowered = body.lower()
+            return "search_path" in lowered or "set_config" in lowered
         return False
 
     def changes_default_schema(self) -> bool:
@@ -1372,14 +1391,6 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             key.strip('"').lower() in rebinding_settings for key in self.get_settings()
         ):
             return True
-        # A `set_config()` with a non-literal setting name may set
-        # `search_path` at runtime, so treat it as a schema change; literal
-        # names are handled by `changes_search_path`.
-        for func in self._parsed.find_all(exp.Anonymous):
-            if func.name.lower() == "set_config" and not (
-                func.expressions and isinstance(func.expressions[0], exp.Literal)
-            ):
-                return True
         # `SET SCHEMA` / `SET CATALOG` forms that fall back to an opaque
         # exp.Command: match the leading setting name, mirroring
         # `changes_search_path`.
@@ -2193,14 +2204,6 @@ class SQLScript:
         :return: True if the script contains mutating statements
         """
         return any(statement.is_mutating() for statement in self.statements)
-
-    def changes_search_path(self) -> bool:
-        """
-        Check if any statement in the script changes the session ``search_path``.
-
-        :return: True if the script changes the session ``search_path``
-        """
-        return any(statement.changes_search_path() for statement in self.statements)
 
     def has_destructive(self) -> bool:
         """
