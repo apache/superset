@@ -690,15 +690,14 @@ export function syncQueryEditor(
       const { tables, queries } = getState().sqlLab;
       let databaseWasRemoved = false;
       if (queryEditor.dbId != null) {
-        const query = rison.encode({
-          filters: [{ col: 'id', opr: 'eq', value: queryEditor.dbId }],
-          page: 0,
-          page_size: 1,
+        await SupersetClient.get({
+          endpoint: `/api/v1/database/${queryEditor.dbId}`,
+        }).catch(error => {
+          if (error.status !== 404) {
+            throw error;
+          }
+          databaseWasRemoved = true;
         });
-        const { json } = await SupersetClient.get({
-          endpoint: `/api/v1/database/?q=${query}`,
-        });
-        databaseWasRemoved = json.count === 0;
       }
       const queryEditorToMigrate = databaseWasRemoved
         ? {

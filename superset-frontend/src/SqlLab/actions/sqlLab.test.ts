@@ -1090,10 +1090,10 @@ describe('async actions', () => {
     fetchMock.delete(updateTableSchemaEndpoint, {});
     fetchMock.post(updateTableSchemaEndpoint, JSON.stringify({ id: 1 }));
 
-    const getDatabaseEndpoint = /\/api\/v1\/database\/\?q=/;
+    const getDatabaseEndpoint = /\/api\/v1\/database\/\d+$/;
     fetchMock.get(
       getDatabaseEndpoint,
-      { count: 1, result: [{}] },
+      { result: { id: queryEditor.dbId } },
       { name: 'getDatabase' },
     );
 
@@ -1113,7 +1113,7 @@ describe('async actions', () => {
         (feature: string) => feature === 'SQLLAB_BACKEND_PERSISTENCE',
       );
       fetchMock.modifyRoute('getDatabase', {
-        response: { count: 1, result: [{}] },
+        response: { result: { id: queryEditor.dbId } },
       });
     });
 
@@ -2051,7 +2051,7 @@ describe('async actions', () => {
       });
 
       test('clears a deleted database before migrating the tab state', async () => {
-        expect.assertions(6);
+        expect.assertions(7);
 
         const oldQueryEditor = {
           ...queryEditor,
@@ -2074,7 +2074,7 @@ describe('async actions', () => {
           },
         });
         fetchMock.modifyRoute('getDatabase', {
-          response: { count: 0, result: [] },
+          response: { status: 404, body: { message: 'Not found' } },
         });
 
         await store.dispatch(actions.syncQueryEditor(oldQueryEditor));
@@ -2091,6 +2091,9 @@ describe('async actions', () => {
         expect(persistedQueryEditor).not.toHaveProperty('catalog');
         expect(persistedQueryEditor).not.toHaveProperty('schema');
         expect(fetchMock.callHistory.calls('getDatabase')).toHaveLength(1);
+        expect(fetchMock.callHistory.calls('getDatabase')[0].url).toMatch(
+          /\/api\/v1\/database\/99$/,
+        );
         expect(
           fetchMock.callHistory.calls(updateTableSchemaEndpoint),
         ).toHaveLength(0);
@@ -2115,35 +2118,45 @@ describe('async actions', () => {
         ]);
       });
 
-      test('does not migrate when database validation fails', async () => {
-        const oldQueryEditor = {
-          ...queryEditor,
-          dbId: 99,
-          inLocalStorage: true,
-        };
-        const store = mockStore({
-          sqlLab: {
-            queries: [],
-            tables: [],
-            databases: { 99: {} },
-          },
-        });
-        fetchMock.modifyRoute('getDatabase', {
-          response: { throws: new Error('database lookup failed') },
-        });
+      test.each([
+        { status: 400, body: { message: 'Bad request' } },
+        { status: 403, body: { message: 'Forbidden' } },
+        { status: 500, body: { message: 'Server error' } },
+        { throws: new Error('database lookup failed') },
+      ])(
+        'does not migrate when database validation fails: %o',
+        async response => {
+          const oldQueryEditor = {
+            ...queryEditor,
+            dbId: 99,
+            inLocalStorage: true,
+          };
+          const store = mockStore({
+            sqlLab: {
+              queries: [],
+              tables: [],
+              databases: { 99: {} },
+            },
+          });
+          fetchMock.modifyRoute('getDatabase', {
+            response,
+          });
 
-        await store.dispatch(actions.syncQueryEditor(oldQueryEditor));
+          await store.dispatch(actions.syncQueryEditor(oldQueryEditor));
 
-        expect(
-          fetchMock.callHistory.calls(updateTabStateEndpoint),
-        ).toHaveLength(0);
-        expect(store.getActions()).toEqual([
-          expect.objectContaining({
-            type: ADD_TOAST,
-            payload: expect.objectContaining({ toastType: ToastType.Warning }),
-          }),
-        ]);
-      });
+          expect(
+            fetchMock.callHistory.calls(updateTabStateEndpoint),
+          ).toHaveLength(0);
+          expect(store.getActions()).toEqual([
+            expect.objectContaining({
+              type: ADD_TOAST,
+              payload: expect.objectContaining({
+                toastType: ToastType.Warning,
+              }),
+            }),
+          ]);
+        },
+      );
     });
   });
 
