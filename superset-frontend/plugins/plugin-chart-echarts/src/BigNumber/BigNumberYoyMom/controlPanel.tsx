@@ -24,6 +24,7 @@ import {
   getStandardizedControls,
   sharedControls,
 } from '@superset-ui/chart-controls';
+import { subtitleFontSize } from '../sharedControls';
 import {
   COMPARISON_OFFSET_CHOICES,
   DEFAULT_BACKGROUND_COLOR,
@@ -43,7 +44,6 @@ import {
   DEFAULT_COMPARISON_TOP,
   DEFAULT_COMPARISON_ZERO_COLOR,
   DEFAULT_TITLE_COLOR,
-  DEFAULT_TITLE_FONT_SIZE,
   DEFAULT_TITLE_LEFT,
   DEFAULT_TITLE_TOP,
 } from './constants';
@@ -209,11 +209,8 @@ const config: ControlPanelConfig = {
           {
             name: 'title_font_size',
             config: {
-              type: 'TextControl',
+              ...subtitleFontSize.config,
               label: t('Title font size'),
-              isInt: true,
-              renderTrigger: true,
-              default: DEFAULT_TITLE_FONT_SIZE,
             },
           },
         ],
