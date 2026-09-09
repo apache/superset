@@ -1337,3 +1337,23 @@ def test_get_data_route_passes_loaded_chart_to_data_response(
         get_data(api, 1)
 
     assert mock_response.call_args.kwargs["slice_"] is chart
+
+
+def test_create_query_context_from_form_converts_value_error_to_400() -> None:
+    """
+    A ValueError raised while loading the query context (e.g. a reversed date
+    range where since > until) is re-raised as a marshmallow ValidationError so
+    the API returns a 400 instead of an unhandled 500.
+    """
+    from marshmallow import ValidationError
+
+    api = ChartDataRestApi()
+    message = "From date cannot be larger than to date"
+    with patch(
+        "superset.charts.data.api.ChartDataQueryContextSchema.load",
+        side_effect=ValueError(message),
+    ):
+        with pytest.raises(ValidationError) as excinfo:
+            api._create_query_context_from_form({})
+
+    assert message in str(excinfo.value)
