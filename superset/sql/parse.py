@@ -824,6 +824,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # MySQL LOAD DATA INFILE ingests server files into a table;
             # PostgreSQL LOAD '/path/lib.so' dlopens a shared library.
             "LOAD",
+            # MySQL REPLACE INTO is destructive DML and RENAME TABLE is DDL;
+            # both fall back to an opaque exp.Command with these heads (no
+            # structured node), and neither has a read-only form.
+            "REPLACE",
+            "RENAME",
             # NOTE: `SHOW` is intentionally NOT included. It is a read (mutates
             # nothing), so classifying it as mutating would be wrong for every
             # is_mutating()/has_mutation() consumer (the commit decision, the
@@ -854,6 +859,10 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         {
             Dialects.POSTGRES,
             Dialects.STARROCKS,
+            # MySQL shares StarRocks' parser: ordinary `SET var = value` parses
+            # as exp.Set, so the opaque-Command fallback is reached only by the
+            # dangerous forms (SET PASSWORD FOR .../SET ROLE).
+            Dialects.MYSQL,
         }
     )
 
@@ -1035,6 +1044,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # fires for dialects where this instead falls back to
             # exp.Command.
             exp.Refresh,
+            # ATTACH/DETACH (SQLite) connect or disconnect a database file;
+            # ATTACH can bring a writable database into scope. Structured
+            # nodes on SQLite, so the exp.Command fallback never sees them.
+            exp.Attach,
+            exp.Detach,
         )
 
         if self._parsed.find(*mutating_nodes):
