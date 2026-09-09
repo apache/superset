@@ -641,15 +641,33 @@ async (maxWaitMs) => {{
         (el) => {{ el.style.height = 'auto'; }}
     );
 
-    document.querySelectorAll('{GENERIC_SCROLLABLE_DESCENDANT_SELECTOR}').forEach(
-        (el) => {{
-            if (el.scrollHeight > el.clientHeight) {{
-                el.style.overflow = 'visible';
-                el.style.height = 'auto';
-                el.style.maxHeight = 'none';
+    // A single pass can miss an ancestor whose own fixed height was
+    // computed as the sum of its (still-clipped) children -- e.g.
+    // plugin-chart-table's sticky wrapper (useSticky.tsx) is a
+    // `role="table"` div with a fixed height + `overflow: hidden` around
+    // its scrollable body. Before this loop runs, that wrapper's own
+    // scrollHeight already equals its clientHeight (nothing has grown yet),
+    // so the scrollHeight > clientHeight gate below skips it on the pass
+    // that also expands its child. Only after the child's height resolves
+    // to 'auto' does the wrapper's own overflow become visible to a
+    // re-check -- so repeat until a pass makes no further changes, capped
+    // to bound the cost of a pathologically deep DOM.
+    let changedInPass = true;
+    let passes = 0;
+    while (changedInPass && passes < 5) {{
+        changedInPass = false;
+        passes += 1;
+        document.querySelectorAll('{GENERIC_SCROLLABLE_DESCENDANT_SELECTOR}').forEach(
+            (el) => {{
+                if (el.scrollHeight > el.clientHeight) {{
+                    el.style.overflow = 'visible';
+                    el.style.height = 'auto';
+                    el.style.maxHeight = 'none';
+                    changedInPass = true;
+                }}
             }}
-        }}
-    );
+        );
+    }}
 }}
 """
 
