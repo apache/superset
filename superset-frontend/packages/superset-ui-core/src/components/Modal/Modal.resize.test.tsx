@@ -24,10 +24,9 @@ let lastDraggableProps: any = null;
 let lastResizableProps: any = null;
 
 jest.mock('react-draggable', () => {
-  const React = require('react'); // eslint-disable-line global-require
   const MockDraggable = (props: any) => {
     lastDraggableProps = props;
-    const { children, disabled, position, handle, bounds, onStart, onDrag, nodeRef, ...domProps } = props;
+    const { children, disabled, position, handle } = props;
     return (
       <div
         data-test="mock-draggable"
@@ -45,10 +44,9 @@ jest.mock('react-draggable', () => {
 });
 
 jest.mock('re-resizable', () => {
-  const React = require('react'); // eslint-disable-line global-require
   const MockResizable = (props: any) => {
     lastResizableProps = props;
-    const { children, className, enable, onResize, ...rest } = props;
+    const { children, className, enable } = props;
     return (
       <div
         className={className}
@@ -236,6 +234,40 @@ describe('Modal controlled Draggable', () => {
       );
     });
 
+    expect(lastDraggableProps.position).toEqual({ x: 0, y: 0 });
+  });
+
+  test('shifts Draggable left when resizing from the left edge', () => {
+    renderModal();
+
+    act(() => {
+      lastResizableProps.onResize({}, 'left', {}, { width: 50, height: 0 });
+    });
+
+    // Bottom-right corner must stay anchored: growing left by 50px means
+    // the modal itself moves right by 50px.
+    expect(lastDraggableProps.position).toEqual({ x: 50, y: 0 });
+  });
+
+  test('shifts Draggable up when resizing from the top edge', () => {
+    renderModal();
+
+    act(() => {
+      lastResizableProps.onResize({}, 'top', {}, { width: 0, height: 40 });
+    });
+
+    expect(lastDraggableProps.position).toEqual({ x: 0, y: 40 });
+  });
+
+  test('does not move Draggable when resizing from the bottom-right corner', () => {
+    renderModal();
+
+    act(() => {
+      lastResizableProps.onResize({}, 'bottomRight', {}, { width: 30, height: 20 });
+    });
+
+    // Bottom/right handles grow away from the anchored top-left; position
+    // must stay untouched (no drift).
     expect(lastDraggableProps.position).toEqual({ x: 0, y: 0 });
   });
 });
