@@ -35,6 +35,10 @@ logger = logging.getLogger(__name__)
 # Time to wait after scrolling for content to settle and load (in milliseconds)
 SCROLL_SETTLE_TIMEOUT_MS = 1000
 
+# Ceiling for un-clipping scrollable chart content (ag-Grid stabilization
+# polling) before a screenshot, absent a report deadline to bound it against.
+EXPAND_SCROLLABLE_CONTENT_MAX_WAIT_SECONDS = 5.0
+
 # Chromium can occasionally return a valid but uniformly blank PNG for an
 # off-screen clip. Retry after forcing a compositor frame, but keep each CDP
 # capture bounded so a wedged compositor cannot consume the report deadline.
@@ -434,6 +438,99 @@ CHART_CONTAINER_STATE_JS = f"""
         return 'terminal';
     }}
     return 'mounted_pre_terminal';
+}}
+"""
+
+CHART_CONTAINER_SELECTOR = ".chart-container"
+
+# `.slice_container` (superset-frontend/src/components/Chart/Chart.tsx) is
+# the one ancestor every chart type shares, directly inside `.chart-container`,
+# with an explicit pixel height matching the dashboard tile. A locator-bounded
+# capture (`element.screenshot()`, used for single-chart exports) clips to
+# `.chart-container`'s own bounding box, which only has a `min-height` --
+# so it stays exactly `.slice_container`'s fixed height unless that fixed
+# height is lifted too. Un-clipping a scrollable *descendant* (the ag-Grid
+# host, a table's own scroll body) is not enough on its own: the descendant
+# can grow, but its ancestor's box does not, and the extra content just
+# overflows the ancestor unseen by a bounding-box screenshot (#38090).
+SLICE_CONTAINER_SELECTOR_FOR_EXPANSION = ".slice_container"
+
+# Legacy/other chart-table implementations that scroll via an inline style
+# rather than a stable class name (e.g. plugin-chart-table's sticky body,
+# `superset-frontend/plugins/plugin-chart-table/src/DataTable/hooks/useSticky.tsx`)
+# aren't reachable by a fixed class-selector list, so this catches any
+# descendant of a chart that is *actually* clipping its own content
+# (scrollHeight > clientHeight) rather than guessing at class names that may
+# not exist in every plugin version. `.ant-table-body` is kept alongside it
+# for a real Ant Design `<Table>` if one ever renders inside a chart.
+GENERIC_SCROLLABLE_DESCENDANT_SELECTOR = (
+    f'{CHART_CONTAINER_SELECTOR} [style*="overflow"], '
+    f"{CHART_CONTAINER_SELECTOR} .ant-table-body"
+)
+
+# ag-Grid virtualizes rows for performance, so a plain height/overflow reset
+# would still leave off-screen rows unrendered. `domLayout: "print"` is
+# ag-Grid's own "render every row into the DOM" mode -- the same mode the
+# client-side "download as image" export switches to via the GridApi that
+# ThemedAgGridReact (superset-ui-core) stashes on the grid's host element
+# specifically so screenshot/export code can reach it. The grid's own host
+# element and its immediate parent (the ag-Grid table plugin's container,
+# which sets an explicit pixel height via inline style -- see
+# `plugin-chart-ag-grid-table/src/AgGridTable/index.tsx`) are reset for the
+# same ancestor-box reason as `.slice_container` above.
+#
+# `page.screenshot(full_page=True)` already expands the outer dashboard
+# scroll to include every below-the-fold chart (#31158); it has no effect on
+# a chart's own internal scroll container, which is what this JS unrolls
+# in-place before the page is captured.
+EXPAND_SCROLLABLE_CONTENT_JS = f"""
+async (maxWaitMs) => {{
+    const agGrids = Array.from(
+        document.querySelectorAll('{AG_GRID_HOST_SELECTOR}')
+    );
+    await Promise.all(agGrids.map(async (grid) => {{
+        const api = grid._agGridApi;
+        if (!api) {{ return; }}
+        api.setGridOption('domLayout', 'print');
+        if (api.resetRowHeights) {{ api.resetRowHeights(); }}
+        grid.style.height = 'auto';
+        if (grid.parentElement) {{ grid.parentElement.style.height = 'auto'; }}
+        // ag-Grid's autoHeight rows batch-measure asynchronously, so this
+        // polls for a stable scrollHeight instead of a fixed sleep. Five
+        // consecutive unchanged 100ms polls is a deliberate match for the
+        // client-side export's own
+        // waitForStableScrollHeight(agRootWrapper, 5000, 5) (downloadAsImage.tsx):
+        // always paid in full even when nothing is still settling, so both
+        // paths trust the measurement after the same wait rather than
+        // racing a batch that hasn't finished yet.
+        let lastHeight = grid.scrollHeight;
+        let stableCount = 0;
+        const deadline = Date.now() + maxWaitMs;
+        while (Date.now() < deadline && stableCount < 5) {{
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            const height = grid.scrollHeight;
+            if (height === lastHeight) {{
+                stableCount += 1;
+            }} else {{
+                stableCount = 0;
+                lastHeight = height;
+            }}
+        }}
+    }}));
+
+    document.querySelectorAll('{SLICE_CONTAINER_SELECTOR_FOR_EXPANSION}').forEach(
+        (el) => {{ el.style.height = 'auto'; }}
+    );
+
+    document.querySelectorAll('{GENERIC_SCROLLABLE_DESCENDANT_SELECTOR}').forEach(
+        (el) => {{
+            if (el.scrollHeight > el.clientHeight) {{
+                el.style.overflow = 'visible';
+                el.style.height = 'auto';
+                el.style.maxHeight = 'none';
+            }}
+        }}
+    );
 }}
 """
 

@@ -486,6 +486,39 @@ Log in as an admin user to ensure you have adequate permissions.
 
 This is the best source of information about the problem. In a docker compose deployment, you can do this with a command like `docker logs superset_worker --since 1h`.
 
+### CSV and Excel chart-data request failures
+
+The worker uses the saved query context to POST to the chart-data export endpoint,
+falling back to the legacy GET export when a query context cannot be generated.
+`ALERT_REPORTS_CSV_REQUEST_TIMEOUT` (60 seconds by default) limits socket operations;
+the report execution budget and its delivery/cleanup reserves also cap the request.
+Connection and read timeouts are reported as CSV/Excel generation timeouts.
+These attachment timeouts are logged at error level and explicitly mark the report
+task as failed, while the report execution retains its ERROR state and separate
+error-notification history. Other HTTP 408 exception handling is unchanged.
+
+To tolerate short-lived transport failures, operators can opt in with
+`ALERT_REPORTS_CSV_REQUEST_RETRY = True` (default: `False`). This permits **one** retry
+for transient connection/read failures and HTTP 429, 500, 502, 503, or 504. Other
+HTTP statuses are not retried. Backoff is 0.5 seconds, extended to at most 2 seconds
+for a numeric `Retry-After`; longer, invalid, or date-based delays are not retried
+inline. Both attempts and backoff share the initial request timeout allowance and
+respect the remaining execution budget. Unbounded requests are not retried.
+A request that consumes its entire timeout does **not** get another full timeout.
+Socket timeouts are not wall-clock cancellation: existing report task limits still
+interrupt in-flight work. A timed-out server query can continue running, so enabling
+retries can increase database load. Leave retries disabled unless appropriate for
+your deployment; disable the setting to roll back retry behavior.
+
+Worker diagnostics include schedule/chart identifiers, a fixed endpoint path (no
+query string), error category, HTTP status, timeout, elapsed duration, and attempt.
+For HTTP errors, at most 4097 response bytes are read to enforce a 4096-byte limit.
+Only recognized Superset error types from up to four JSON errors are retained;
+free-form messages, extra fields, and non-JSON or oversized bodies are redacted or
+omitted. Cookies, authentication headers, URLs, SQL, and query payloads are not
+included in these transport diagnostics. HTTP 400 therefore remains a failure to
+investigate, not a reason to repeat the same request.
+
 ### Check web browser and webdriver installation
 
 To take a screenshot, the worker visits the dashboard or chart using a headless browser, then takes a screenshot. If you are able to send a chart as CSV, XLSX, or text but can't send as PNG, your problem may lie with the browser.
