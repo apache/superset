@@ -21,6 +21,12 @@ import type {
   extensions as extensionsApi,
 } from '@apache-superset/core';
 import {
+  addDangerToast,
+  addInfoToast,
+  addWarningToast,
+} from 'src/components/MessageToasts/actions';
+import { store } from 'src/views/store';
+import {
   createBrowserStorage,
   createEphemeralState,
   createPersistentState,
@@ -37,8 +43,31 @@ class ExtensionContext implements ExtensionContextType {
 
   private _storage?: ExtensionContextType['storage'];
 
+  private _window?: ExtensionContextType['window'];
+
   constructor(extension: Extension) {
     this.extension = extension;
+  }
+
+  get window(): ExtensionContextType['window'] {
+    if (!this._window) {
+      // Dispatched against the app-level `store` singleton directly, not
+      // via a `useDispatch()` hook, since this surface must also work from
+      // non-component extension code (e.g. a registered command's
+      // callback), not just from within a React render.
+      this._window = {
+        showInformationMessage: (message: string) => {
+          store.dispatch(addInfoToast(message));
+        },
+        showWarningMessage: (message: string) => {
+          store.dispatch(addWarningToast(message));
+        },
+        showErrorMessage: (message: string) => {
+          store.dispatch(addDangerToast(message));
+        },
+      };
+    }
+    return this._window!;
   }
 
   get storage(): ExtensionContextType['storage'] {
