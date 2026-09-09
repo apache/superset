@@ -35,12 +35,14 @@ jest.mock('src/utils/cachedSupersetGet');
 // only need a stand-in that lets us trigger onDrillBy with a distinguishable
 // config, so we can assert ChartContextMenu wires it into the modal.
 jest.mock('../DrillBy/DrillBySubmenu', () => ({
-  DrillBySubmenu: ({ onDrillBy, dataset }: any) => (
+  DrillBySubmenu: ({ onDrillBy, onCloseMenu, dataset }: any) => (
     <>
       <button
         type="button"
         data-test="fake-drill-by-submenu"
-        onClick={() =>
+        onClick={() => {
+          // Mirrors DrillBySubmenu's real handleSelection, which calls
+          // onDrillBy and onCloseMenu together once a column is picked.
           onDrillBy(
             { column_name: 'city', groupby: true },
             { id: 1, columns: [], metrics: [] },
@@ -48,8 +50,9 @@ jest.mock('../DrillBy/DrillBySubmenu', () => ({
               filters: [{ col: 'selected_scope' }],
               groupbyFieldName: 'groupby',
             },
-          )
-        }
+          );
+          onCloseMenu?.();
+        }}
       >
         Fake Drill By
       </button>
@@ -219,6 +222,39 @@ test('drill by modal uses the scope selected in the submenu over the raw context
     screen.getByTestId('drill-by-modal').textContent || '{}',
   );
   expect(modalConfig.filters).toEqual([{ col: 'selected_scope' }]);
+});
+
+test('context menu can be reopened after Drill By closes it via onCloseMenu', async () => {
+  // Ant Design's Dropdown keeps its overlay mounted and toggles an
+  // `ant-dropdown-hidden` class rather than unmounting, so open/closed is
+  // asserted on that class instead of the overlay's presence in the DOM.
+  const isMenuOpen = () =>
+    !screen
+      .getByTestId('chart-context-menu')
+      .closest('.ant-dropdown')
+      ?.classList.contains('ant-dropdown-hidden');
+
+  setup();
+
+  const openButton = screen.getByTestId('open-context-menu');
+  userEvent.click(openButton);
+
+  await waitFor(() => {
+    expect(isMenuOpen()).toBe(true);
+  });
+
+  const submenuButton = await screen.findByTestId('fake-drill-by-submenu');
+  userEvent.click(submenuButton);
+
+  await waitFor(() => {
+    expect(isMenuOpen()).toBe(false);
+  });
+
+  userEvent.click(openButton);
+
+  await waitFor(() => {
+    expect(isMenuOpen()).toBe(true);
+  });
 });
 
 test('drill by only offers dimension columns', async () => {
