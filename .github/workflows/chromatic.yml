@@ -1,0 +1,108 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# Publishes superset-frontend's Storybook to Chromatic for visual
+# regression testing. See https://www.chromatic.com/docs/github-actions
+#
+# Runs on pushes to master (keeps the Chromatic baseline in sync with
+# mainline) and on pull requests that touch superset-frontend. Fork PRs
+# don't receive CHROMATIC_PROJECT_TOKEN -- GitHub withholds repository
+# secrets from pull_request runs triggered by a fork -- so the publish
+# steps below no-op for them (via the CHROMATIC_PROJECT_TOKEN != '' guard)
+# rather than failing.
+#
+# Non-blocking for now (exitZeroOnChanges: true): visual changes are
+# surfaced as a PR check/comment for review, not enforced as a merge gate.
+# A prior Chromatic setup here (#21095) was removed in #27232 for being
+# unmaintained and overlapping with Applitools (since also discontinued).
+# Keep this one simple and watch it before considering a required check.
+name: Chromatic
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "superset-frontend/**"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+    paths:
+      - "superset-frontend/**"
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  TAG: apache/superset:chromatic-${{ github.run_id }}
+  CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+
+permissions:
+  contents: read
+
+jobs:
+  chromatic:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    # pull-requests: write lets chromaui/action post its check and PR
+    # comment. Withheld automatically by GitHub for fork-triggered
+    # pull_request runs, same as CHROMATIC_PROJECT_TOKEN above.
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          # TurboSnap (onlyChanged below) needs full history to diff
+          # against the baseline commit.
+          fetch-depth: 0
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+
+      - name: Build Docker Image
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
+        run: |
+          docker buildx build \
+            -t $TAG \
+            --cache-from=type=registry,ref=apache/superset-cache:3.11-slim-trixie \
+            --target superset-node-ci \
+            .
+
+      - name: Build Storybook
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
+        run: |
+          mkdir -p ${{ github.workspace }}/superset-frontend/storybook-static
+          docker run \
+          -v ${{ github.workspace }}/superset-frontend/storybook-static:/app/superset-frontend/storybook-static \
+          --rm $TAG \
+          bash -c "npm i && npm run build-storybook"
+
+      - name: Publish to Chromatic
+        if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
+        uses: chromaui/action@6b31c4307e3f5a150ab5345b051bb40a62923a5f # v18.7.3
+        with:
+          projectToken: ${{ env.CHROMATIC_PROJECT_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          workingDir: superset-frontend
+          storybookBuildDir: storybook-static
+          # TurboSnap: only re-snapshot stories affected by files changed
+          # since the baseline build.
+          onlyChanged: true
+          exitZeroOnChanges: true
+          zip: true
