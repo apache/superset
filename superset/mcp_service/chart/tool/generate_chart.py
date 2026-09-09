@@ -86,7 +86,8 @@ async def generate_chart(  # noqa: C901
     - LLM clients MUST display returned chart URL to users
     - Use numeric dataset ID or UUID (NOT schema.table_name format)
     - MUST include chart_type in config (one of: 'xy', 'table', 'pie',
-      'gauge', 'pivot_table', 'mixed_timeseries', 'handlebars',
+      'gauge', 'funnel', 'pivot_table', 'mixed_timeseries',
+      'handlebars',
       'big_number', 'histogram', 'box_plot', 'waterfall', plus host-gated
       types returned by get_chart_type_schema such as 'interactive_pivot')
 
@@ -128,6 +129,9 @@ async def generate_chart(  # noqa: C901
       Required fields: metric; optional: groupby (one dial per value),
       min_val, max_val
 
+    - chart_type='funnel' for a funnel of stages by a metric.
+      Required fields: dimension (the stages), metric
+
     - chart_type='histogram' for value-distribution charts.
       Required fields: column (numeric); optional: bins, groupby, normalize,
       cumulative
@@ -151,6 +155,7 @@ async def generate_chart(  # noqa: C901
     - "compare two metrics over time" -> chart_type='mixed_timeseries'
     - "single number" / "KPI" / "scorecard" -> chart_type='big_number'
     - "gauge" / "dial" / "speedometer" -> chart_type='gauge'
+    - "funnel" / "conversion funnel" -> chart_type='funnel'
     - "custom HTML template" -> chart_type='handlebars'
     - "histogram" / "distribution" -> chart_type='histogram'
     - "box plot" / "box and whisker" -> chart_type='box_plot'
