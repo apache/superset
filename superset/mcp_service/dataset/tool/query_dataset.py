@@ -191,6 +191,33 @@ async def query_dataset(  # noqa: C901
             metrics_empty_hint=_NO_SAVED_METRICS_HINT,
         )
 
+        missing_dimensions = [
+            name for name in request.columns if name not in valid_columns
+        ]
+        if missing_dimensions:
+            available = ", ".join(sorted(valid_columns)[:10]) or "(none)"
+            remaining = max(0, len(valid_columns) - 10)
+            if remaining:
+                available += f" (and {remaining} more)"
+            validation_errors.append(
+                f"Dataset '{dataset_name}' (id={dataset.id}). "
+                f"Available columns: {available}. "
+                "Use get_dataset_info with this dataset_id for the full column list."
+            )
+            for name in missing_dimensions:
+                if "." in name:
+                    validation_errors.append(
+                        f"'{name}' is not registered as a column on this dataset. "
+                        "query_dataset requires exact registered column names; "
+                        "registering a parent struct does not expose its "
+                        "nested fields. "
+                        "Refresh the dataset columns if the database exposes "
+                        "this field, "
+                        "or add a calculated column using the warehouse's field-access "
+                        "expression and query its registered name. "
+                        "Use execute_sql if you need an ad-hoc nested-field expression."
+                    )
+
         if validation_errors:
             error_msg = "; ".join(validation_errors)
             await ctx.error("Validation failed: %s" % (error_msg,))

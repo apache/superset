@@ -1578,3 +1578,148 @@ async def test_query_dataset_cached_bounds_across_rollover(
     assert cached_data["performance"]["cache_status"] == (
         "no_data" if empty else "cached"
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("dimension", ["address.city.name", "event_name"])
+async def test_query_dataset_unregistered_dimension_is_actionable(
+    mcp_server: FastMCP, dimension: str
+) -> None:
+    """Unregistered struct paths and wrong-dataset names explain how to recover."""
+    dataset = _make_dataset(
+        table_name="example_events",
+        columns=[_make_column("address"), _make_column("channel")],
+    )
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(query_dataset_module, "execute_tabular_query") as execute,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "columns": [dimension],
+                    }
+                },
+            )
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "ValidationError"
+    assert dimension in data["error"]
+    assert "example_events" in data["error"]
+    assert "Available columns: address, channel" in data["error"]
+    assert "get_dataset_info" in data["error"]
+    if "." in dimension:
+        assert "not registered" in data["error"]
+        assert "calculated column" in data["error"]
+    execute.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("engine", ["sqlite", "bigquery"])
+async def test_query_dataset_registered_dotted_groupby(
+    mcp_server: FastMCP, engine: str
+) -> None:
+    """Registered dotted names reach SQL generation without MCP sanitization.
+
+    SQLite treats the dot as part of a literal identifier, not a struct path.
+    Splitting every dotted dimension into SQL identifiers would break this case.
+    """
+    from sqlalchemy.dialects.sqlite import dialect
+
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.models.core import Database
+
+    sql_dialect = (
+        pytest.importorskip("sqlalchemy_bigquery").BigQueryDialect()
+        if engine == "bigquery"
+        else dialect()
+    )
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri="bigquery://test-project"
+        if engine == "bigquery"
+        else "sqlite://",
+    )
+    mock_engine = MagicMock()
+    mock_engine.dialect = sql_dialect
+    engine_context = MagicMock()
+    engine_context.__enter__.return_value = mock_engine
+    dimension = "address.city.name"
+    dataset = SqlaTable(
+        id=1,
+        table_name="example_locations",
+        database=database,
+        columns=[TableColumn(column_name=dimension, type="TEXT")],
+        metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
+    )
+    compiled: list[str] = []
+
+    def compile_query(
+        dataset_id: int, datasource_type: str, query: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        """Exercise the real dataset SQL builder without a warehouse connection."""
+        assert query["columns"] == [dimension]
+        sqla_query = dataset.get_sqla_query(
+            groupby=query["columns"], metrics=query["metrics"], is_timeseries=False
+        )
+        compiled.append(str(sqla_query.sqla_query.compile(dialect=sql_dialect)))
+        return _mock_command_result(
+            data=[{dimension: "Sports", "count": 2}], colnames=[dimension, "count"]
+        )
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(database, "get_sqla_engine", return_value=engine_context),
+        patch.object(dataset, "get_sqla_row_level_filters", return_value=[]),
+        patch.object(
+            query_dataset_module, "execute_tabular_query", side_effect=compile_query
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "columns": [dimension],
+                    }
+                },
+            )
+    data = json.loads(result.content[0].text)
+    assert data["data"] == [{dimension: "Sports", "count": 2}]
+    assert len(compiled) == 1
+    if engine == "bigquery":
+        assert "`address`.`city`.`name`" in compiled[0]
+        assert "GROUP BY" in compiled[0]
+    else:
+        assert 'GROUP BY "address.city.name"' in compiled[0]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("column_count", [0, 12])
+async def test_query_dataset_available_columns_preview(
+    mcp_server: FastMCP, column_count: int
+) -> None:
+    """Dimension errors bound the preview and handle datasets without columns."""
+    dataset = _make_dataset()
+    dataset.columns = [_make_column(f"col_{i:02}") for i in range(column_count)]
+    with patch.object(query_dataset_module, "resolve_dataset", return_value=dataset):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {"request": {"dataset_id": 1, "columns": ["missing"]}},
+            )
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "ValidationError"
+    if column_count:
+        assert "col_00" in data["error"]
+        assert "col_09" in data["error"]
+        assert "col_10" not in data["error"]
+        assert "(and 2 more)" in data["error"]
+    else:
+        assert "Available columns: (none)" in data["error"]
+    assert "get_dataset_info with this dataset_id" in data["error"]
