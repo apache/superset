@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from flask_appbuilder import Model
@@ -157,6 +157,49 @@ def _compile(column_element) -> str:
             compile_kwargs={"literal_binds": True},
         )
     )
+
+
+@pytest.mark.parametrize(
+    ("catalog", "schema", "database_name", "expected"),
+    [
+        (None, "s1", "db", "[db].[s1]"),
+        ("cat", "s1", "db", "[db].[cat].[s1]"),
+        (None, None, "db", ""),
+    ],
+)
+def test_query_schema_perm(catalog, schema, database_name, expected) -> None:
+    """Query.schema_perm yields the canonical bracketed permission string.
+
+    Regression test for the schema_access explore fix: the property must
+    delegate to security_manager.get_schema_perm (which produces the format
+    created by sync_permissions) so that can_access_schema can match granted
+    schema_access, and must not raise when the schema is unset.
+    """
+    database = MagicMock()
+    database.database_name = database_name
+    query = Query(sql="SELECT * FROM t1", schema=schema, catalog=catalog)
+    query.database = database
+    with patch.object(
+        sql_lab_module.security_manager,
+        "get_schema_perm",
+        return_value=expected or None,
+    ) as mock_get_schema_perm:
+        result = query.schema_perm
+        assert result == expected
+        if expected:
+            mock_get_schema_perm.assert_called_once_with(database_name, catalog, schema)
+        else:
+            mock_get_schema_perm.assert_called_once_with(database_name, catalog, schema)
+
+
+def test_query_schema_perm_guards_unset_database() -> None:
+    """schema_perm returns "" instead of raising when the database is unset.
+
+    Transient queries may be built from just a database_id with the relationship
+    never loaded; accessing database.database_name would raise AttributeError.
+    """
+    query = Query(sql="SELECT * FROM t1", schema="s1", database_id=1)
+    assert query.schema_perm == ""
 
 
 def test_adhoc_column_to_sqla_applies_time_grain_for_unsaved_dataset() -> None:
