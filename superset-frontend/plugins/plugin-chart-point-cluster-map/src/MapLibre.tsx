@@ -29,7 +29,7 @@ import { useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import ScatterPlotOverlay from './components/ScatterPlotOverlay';
 import { getMapboxApiKey } from './utils/mapbox';
-import { DEFAULT_MAX_ZOOM, DEFAULT_POINT_RADIUS } from './mapLibreDefaults';
+import { DEFAULT_POINT_RADIUS } from './mapLibreDefaults';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapLibre.css';
 
@@ -44,8 +44,6 @@ import './MapLibre.css';
 maplibregl.setWorkerUrl(`${__webpack_public_path__}maplibre-gl-worker.mjs`);
 
 const DEFAULT_MAP_STYLE = 'https://tiles.openfreemap.org/styles/liberty';
-
-export { DEFAULT_MAX_ZOOM, DEFAULT_POINT_RADIUS };
 
 interface Viewport {
   longitude: number;
