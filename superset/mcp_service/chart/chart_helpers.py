@@ -746,8 +746,8 @@ def _build_single_query_dict(
         qd["row_limit"] = effective_row_limit
     if order_desc is not None:
         qd["order_desc"] = order_desc
-    # sort_by_metric charts (pie/funnel/treemap/sankey/gauge) order by the
-    # metric descending. buildQuery derives this on the frontend; translate
+    # sort_by_metric charts (pie/funnel/treemap/sankey/gauge/radar) order by
+    # the metric descending. buildQuery derives this on the frontend; translate
     # the flag here when there is no explicit ordering or a row_limit truncates
     # an unordered result (dropping the heaviest rows rather than the top-N).
     if form_data.get("sort_by_metric") and metrics and not qd.get("orderby"):

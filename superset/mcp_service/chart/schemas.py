@@ -1673,6 +1673,73 @@ class BubbleChartConfig(BaseChartConfig):
         return self
 
 
+class RadarChartConfig(BaseChartConfig):
+    """Config for radar charts (viz_type ``radar``).
+
+    Matches the frontend Radar buildQuery contract: multiple ``metrics``
+    become the radar axes (indicators), and an optional ``groupby`` splits the
+    data into one polygon per category. With no groupby the whole dataset is a
+    single polygon. The query orders by the first metric descending.
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["radar"] = "radar"
+    metrics: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description="Value metrics forming the radar axes (one axis per "
+        "metric; radars read best with 3 or more)",
+    )
+    groupby: List[ColumnRef] | None = Field(
+        None,
+        description="Optional category columns; each row becomes one polygon. "
+        "Omit for a single-polygon radar.",
+    )
+    row_limit: int = Field(10, description="Max series polygons", ge=1, le=10000)
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors', "
+            "'googleCategory10c', 'd3Category10'). Defaults to 'supersetColors'."
+        ),
+        max_length=100,
+    )
+
+    @model_validator(mode="after")
+    def reject_metric_style_groupby(self) -> "RadarChartConfig":
+        """groupby entries are dimensions, not metrics."""
+        for i, col in enumerate(self.groupby or []):
+            _reject_sql_expression_on_dimension(col, f"groupby[{i}]")
+            if col.is_metric:
+                raise ValueError(
+                    f"groupby[{i}] must be a plain column, not a metric; drop "
+                    "'aggregate'/'saved_metric' (metrics belong in the 'metrics' "
+                    "field)"
+                )
+        return self
+
+    @model_validator(mode="after")
+    def record_implicit_metric_aggregate(self) -> "RadarChartConfig":
+        """Each axis is a metric slot, so a bare column is summed.
+
+        ``create_metric_object`` applies that default when it builds the
+        form_data. Recording it here keeps the aggregate-compatibility check
+        from skipping the ref — SUM of a text column is then rejected with a
+        clear message instead of rendering a polygon of zeros.
+        """
+        self.metrics = [
+            col if col.is_metric else col.model_copy(update={"aggregate": "SUM"})
+            for col in self.metrics
+        ]
+        return self
+
+
 class PivotTableChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -3683,6 +3750,7 @@ ChartConfig = Annotated[
     | GaugeChartConfig
     | TreemapChartConfig
     | BubbleChartConfig
+    | RadarChartConfig
     | PivotTableChartConfig
     | InteractivePivotChartConfig
     | MixedTimeseriesChartConfig
@@ -3696,7 +3764,7 @@ ChartConfig = Annotated[
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'gauge', 'treemap_v2', 'bubble_v2', 'pivot_table', "
+            "'pie', 'gauge', 'treemap_v2', 'bubble_v2', 'radar', 'pivot_table', "
             "'interactive_pivot', 'mixed_timeseries', 'handlebars', "
             "'big_number', 'histogram', 'box_plot', 'waterfall', or 'gantt'"
         ),
