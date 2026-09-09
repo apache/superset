@@ -56,3 +56,34 @@ test('normalizeTimestamp should not rewrite timestamps with an explicit UTC offs
     '2026-01-15 12:30:00+0330',
   );
 });
+
+test('normalizeTimestamp preserves fractional seconds on offset-carrying values', () => {
+  // DateTime64(3) arrives with milliseconds: the offset-aware passthrough
+  // must keep them verbatim, not truncate to whole seconds.
+  expect(normalizeTimestamp('2026-01-15T12:30:00.123000+03:30')).toEqual(
+    '2026-01-15T12:30:00.123000+03:30',
+  );
+  expect(normalizeTimestamp('2026-01-15T12:30:00.123+03:30')).toEqual(
+    '2026-01-15T12:30:00.123+03:30',
+  );
+});
+
+test('a DST fall-back pair keeps distinct instants distinct', () => {
+  // 2026-11-01 is the US DST fall-back: identical wall times with -04:00
+  // (still EDT) and -05:00 (after the switch) are one hour apart. The old
+  // normalizer collapsed both to the same epoch by rewriting the offset
+  // to Z; the passthrough must keep them distinguishable.
+  const edt = '2026-11-01T01:30:00-04:00';
+  const est = '2026-11-01T01:30:00-05:00';
+  expect(normalizeTimestamp(edt)).toEqual(edt);
+  expect(normalizeTimestamp(est)).toEqual(est);
+  expect(new Date(normalizeTimestamp(edt)).getTime()).toBe(
+    new Date('2026-11-01T05:30:00Z').getTime(),
+  );
+  expect(new Date(normalizeTimestamp(est)).getTime()).toBe(
+    new Date('2026-11-01T06:30:00Z').getTime(),
+  );
+  expect(new Date(normalizeTimestamp(edt)).getTime()).not.toBe(
+    new Date(normalizeTimestamp(est)).getTime(),
+  );
+});
