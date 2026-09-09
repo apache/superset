@@ -343,13 +343,13 @@ curl -f http://localhost:8088/health && echo "✅ Superset ready"
 
 - Always validate environment setup first using the health checks above
 - Use focused validation commands: `pre-commit run` (not `--all-files`)
-- **Read [LLMS.md](https://github.com/apache/superset/blob/master/LLMS.md) first** - Contains comprehensive development guidelines, coding standards, and critical refactor information
+- **Read [AGENTS.md](https://github.com/apache/superset/blob/master/AGENTS.md) first** - Contains comprehensive development guidelines, coding standards, and critical refactor information
 - **Check platform-specific files** when available:
   - `CLAUDE.md` - For Claude/Anthropic tools
   - `CURSOR.md` - For Cursor editor
   - `GEMINI.md` - For Google Gemini tools
   - `GPT.md` - For OpenAI/ChatGPT tools
-- Follow the TypeScript migration guidelines and avoid deprecated patterns listed in LLMS.md
+- Follow the TypeScript migration guidelines and avoid deprecated patterns listed in AGENTS.md
 
 ### Key Development Commands
 
@@ -368,7 +368,7 @@ pytest tests/unit_tests/specific_test.py  # Run single test file
 pytest tests/unit_tests/  # Run all tests in directory
 ```
 
-For detailed development context, environment setup, and coding guidelines, see [LLMS.md](https://github.com/apache/superset/blob/master/LLMS.md).
+For detailed development context, environment setup, and coding guidelines, see [AGENTS.md](https://github.com/apache/superset/blob/master/AGENTS.md).
 
 ## Alternatives to `docker compose`
 
@@ -677,7 +677,7 @@ If you want to use the same flag in the client code, also add it to the FeatureF
 
 ```typescript
 export enum FeatureFlag {
-  SCOPED_FILTER = 'SCOPED_FILTER',
+  SCOPED_FILTER = "SCOPED_FILTER",
 }
 ```
 
@@ -993,7 +993,7 @@ To debug Flask running in POD inside a kubernetes cluster, you'll need to make s
 ```yaml
 securityContext:
   capabilities:
-    add: ['SYS_PTRACE']
+    add: ["SYS_PTRACE"]
 ```
 
 See [set capabilities for a container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-capabilities-for-a-container) for more details.
