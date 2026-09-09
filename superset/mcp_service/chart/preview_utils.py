@@ -26,6 +26,7 @@ import logging
 import math
 import re
 import unicodedata
+from collections.abc import Callable
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import date, datetime, time, timezone
@@ -1642,7 +1643,9 @@ def generate_histogram_vega_lite_preview(
 
 
 # Vega-Lite renderers for native viz types that have no plugin-owned preview.
-_FALLBACK_VEGA_RENDERERS = {"funnel": generate_funnel_vega_lite_preview}
+_FALLBACK_VEGA_RENDERERS: Dict[
+    str, Callable[[List[Any], Dict[str, Any]], VegaLitePreview | ChartError | None]
+] = {}
 
 
 def fallback_vega_lite_preview(

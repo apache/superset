@@ -31,6 +31,7 @@ from superset.mcp_service.chart.plugins.big_number import BigNumberChartPlugin
 from superset.mcp_service.chart.plugins.box_plot import BoxPlotChartPlugin
 from superset.mcp_service.chart.plugins.bubble import BubbleChartPlugin
 from superset.mcp_service.chart.plugins.bullet import BulletChartPlugin
+from superset.mcp_service.chart.plugins.funnel import FunnelChartPlugin
 from superset.mcp_service.chart.plugins.gantt import GanttChartPlugin
 from superset.mcp_service.chart.plugins.gauge import GaugeChartPlugin
 from superset.mcp_service.chart.plugins.geographic import (
@@ -62,6 +63,7 @@ register(TableChartPlugin())
 register(PieChartPlugin())
 register(SunburstChartPlugin())
 register(GaugeChartPlugin())
+register(FunnelChartPlugin())
 register(TreemapChartPlugin())
 register(BubbleChartPlugin())
 register(PivotTableChartPlugin())
@@ -89,6 +91,7 @@ __all__ = [
     "InteractivePivotChartPlugin",
     "MixedTimeseriesChartPlugin",
     "PieChartPlugin",
+    "FunnelChartPlugin",
     "PivotTableChartPlugin",
     "SunburstChartPlugin",
     "TableChartPlugin",
