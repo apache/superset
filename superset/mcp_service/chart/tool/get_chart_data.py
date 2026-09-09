@@ -96,6 +96,7 @@ _VIZ_CATEGORY: dict[str, str] = {
     "sunburst_v2": "treemap",
     "heatmap_v2": "heatmap",
     "gauge_chart": "gauge",
+    "radar": "radar",
     "funnel": "funnel",
     "histogram": "histogram",
     "histogram_v2": "histogram",

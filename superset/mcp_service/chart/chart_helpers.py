@@ -575,8 +575,8 @@ def _build_single_query_dict(
         qd["row_limit"] = effective_row_limit
     if order_desc is not None:
         qd["order_desc"] = order_desc
-    # sort_by_metric charts (pie/funnel/treemap/sankey/gauge) order by the
-    # metric descending. buildQuery derives this on the frontend; the MCP path
+    # sort_by_metric charts (pie/funnel/treemap/sankey/gauge/radar) order by
+    # the metric descending. buildQuery derives this on the frontend; the MCP path
     # builds the query dict directly and never reads a top-level
     # form_data['orderby'], so translate the flag here or a row_limit truncates
     # an unordered result (dropping the heaviest rows rather than the top-N).
