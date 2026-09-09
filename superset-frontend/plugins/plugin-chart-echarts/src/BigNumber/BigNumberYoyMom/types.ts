@@ -42,11 +42,13 @@ export type BigNumberYoyMomFormData = QueryFormData & {
   bigNumberTop?: number;
   showComparison1?: boolean;
   comparison1Label?: string;
+  comparison1Mode?: 'time_shift' | 'metric';
   comparison1Offset?: string;
   comparison1Column?: QueryFormMetric;
   comparison1Left?: number;
   showComparison2?: boolean;
   comparison2Label?: string;
+  comparison2Mode?: 'time_shift' | 'metric';
   comparison2Offset?: string;
   comparison2Column?: QueryFormMetric;
   comparison2Left?: number;

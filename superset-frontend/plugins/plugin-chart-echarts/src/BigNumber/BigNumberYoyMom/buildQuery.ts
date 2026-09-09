@@ -35,21 +35,26 @@ export default function buildQuery(formData: QueryFormData) {
     const formDataYoyMom = formData as BigNumberYoyMomFormData;
     const timeRange = baseQueryObject.time_range;
     const hasTimeRange = !!timeRange && timeRange !== 'No filter';
+    // A slot either uses a time shift (backend time-offset columns) or an
+    // explicit comparison metric. An unset mode falls back to the metric when
+    // a comparison value column was configured (legacy form data).
+    const metricMode1 =
+      formDataYoyMom.comparison1_mode === 'metric' ||
+      (!formDataYoyMom.comparison1_mode && !!formDataYoyMom.comparison1_column);
+    const metricMode2 =
+      formDataYoyMom.comparison2_mode === 'metric' ||
+      (!formDataYoyMom.comparison2_mode && !!formDataYoyMom.comparison2_column);
     const timeOffsets = ensureIsArray([
-      hasTimeRange && !formDataYoyMom.comparison1_column
-        ? formDataYoyMom.comparison1_offset
-        : null,
-      hasTimeRange && !formDataYoyMom.comparison2_column
-        ? formDataYoyMom.comparison2_offset
-        : null,
+      hasTimeRange && !metricMode1 ? formDataYoyMom.comparison1_offset : null,
+      hasTimeRange && !metricMode2 ? formDataYoyMom.comparison2_offset : null,
     ]).filter(Boolean);
 
     // Comparison value metrics are requested alongside the main metric so the
     // query result carries their columns (useful for custom SQL datasets that
     // pre-aggregate the comparison values).
     const comparisonMetrics = ensureIsArray([
-      formDataYoyMom.comparison1_column,
-      formDataYoyMom.comparison2_column,
+      metricMode1 ? formDataYoyMom.comparison1_column : null,
+      metricMode2 ? formDataYoyMom.comparison2_column : null,
     ]).filter(Boolean);
 
     // A time comparison requires an enclosed (start and end) time range on
