@@ -1610,3 +1610,51 @@ def test_ag_grid_no_rows_overlay_is_a_terminal_empty_state() -> None:
         CHART_CONTAINER_READY_JS,
     ):
         assert ".ag-overlay-no-rows-wrapper:not(.ag-hidden)" in predicate
+
+
+def test_expand_scrollable_content_js_unrolls_ag_grid_and_css_scroll() -> None:
+    """The pre-capture DOM-expansion script must reach both flavors of
+    clipped table content: ag-Grid's row virtualization (needs its own API
+    to force a full render) and plain CSS overflow/height clipping (the
+    content already exists in the DOM and just needs the constraint lifted).
+    It must also lift the fixed heights on the shared `.chart-container` /
+    `.slice_container` / ag-Grid-wrapper ancestor chain, not just the
+    scrollable descendant itself -- a bounding-box capture
+    (`element.screenshot()`, used for single-chart exports) clips to the
+    ancestor's own box, which does not grow just because a descendant's
+    content does (#38090, reviewed by @aminghadersohi on #43979)."""
+    from superset.utils.screenshot_utils import (
+        AG_GRID_HOST_SELECTOR,
+        CHART_CONTAINER_SELECTOR,
+        EXPAND_SCROLLABLE_CONTENT_JS,
+        GENERIC_SCROLLABLE_DESCENDANT_SELECTOR,
+        SLICE_CONTAINER_SELECTOR_FOR_EXPANSION,
+    )
+
+    assert AG_GRID_HOST_SELECTOR in EXPAND_SCROLLABLE_CONTENT_JS
+    assert "setGridOption('domLayout', 'print')" in EXPAND_SCROLLABLE_CONTENT_JS
+    assert "grid._agGridApi" in EXPAND_SCROLLABLE_CONTENT_JS
+    # The grid's own host and its immediate parent (the ag-Grid table
+    # plugin's fixed-pixel-height wrapper) both get their height lifted --
+    # not just the descendant content inside the grid.
+    assert "grid.style.height = 'auto'" in EXPAND_SCROLLABLE_CONTENT_JS
+    assert "grid.parentElement.style.height = 'auto'" in EXPAND_SCROLLABLE_CONTENT_JS
+
+    assert SLICE_CONTAINER_SELECTOR_FOR_EXPANSION == ".slice_container"
+    assert SLICE_CONTAINER_SELECTOR_FOR_EXPANSION in EXPAND_SCROLLABLE_CONTENT_JS
+
+    assert CHART_CONTAINER_SELECTOR == ".chart-container"
+    assert GENERIC_SCROLLABLE_DESCENDANT_SELECTOR == (
+        '.chart-container [style*="overflow"], .chart-container .ant-table-body'
+    )
+    assert GENERIC_SCROLLABLE_DESCENDANT_SELECTOR in EXPAND_SCROLLABLE_CONTENT_JS
+    # Gated on actually clipping, so a non-scrollable match (e.g. a sticky
+    # table header with no overflow of its own) is left untouched.
+    assert "el.scrollHeight > el.clientHeight" in EXPAND_SCROLLABLE_CONTENT_JS
+    assert "overflow = 'visible'" in EXPAND_SCROLLABLE_CONTENT_JS
+    assert "maxHeight = 'none'" in EXPAND_SCROLLABLE_CONTENT_JS
+
+    # Takes an explicit wait budget rather than hardcoding one, so it can be
+    # bounded by a report's remaining deadline (see webdriver_test.py).
+    assert "async (maxWaitMs) =>" in EXPAND_SCROLLABLE_CONTENT_JS
+    assert "Date.now() + maxWaitMs" in EXPAND_SCROLLABLE_CONTENT_JS

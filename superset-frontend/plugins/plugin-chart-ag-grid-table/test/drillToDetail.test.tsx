@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, waitFor } from '@superset-ui/core/spec';
-import { TimeGranularity } from '@superset-ui/core';
+import { DateWithFormatter, TimeGranularity } from '@superset-ui/core';
 import { ProviderWrapper } from '../../plugin-chart-table/test/testHelpers';
 import testData from '../../plugin-chart-table/test/testData';
 
@@ -57,8 +57,6 @@ jest.mock('@superset-ui/core/components/ThemedAgGridReact', () => ({
 import AgGridTableChart from '../src/AgGridTableChart';
 // eslint-disable-next-line import/first
 import transformProps from '../src/transformProps';
-// eslint-disable-next-line import/first
-import DateWithFormatter from '../src/utils/DateWithFormatter';
 
 function renderChart(
   onContextMenu: jest.Mock,

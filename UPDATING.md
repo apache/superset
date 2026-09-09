@@ -24,6 +24,34 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Tagging is on by default
+
+`TAGGING_SYSTEM` now ships **on**. The Tags menu entry, the tag columns and
+filters on the chart, dashboard and saved-query lists, and the Tags field in the
+chart and dashboard property modals are all visible without configuration, and
+tags are included in asset export and import.
+
+**What operators should expect:**
+
+- **Implicit tags accrue.** Saving a chart, dashboard, dataset or saved query,
+  and favoriting an asset, write rows to `tag` and `tagged_object` (`type:chart`,
+  `editor:<user id>`, `favorited_by:<user id>`). These have always been created
+  when the flag was on; they are simply no longer opt-in.
+- **Exports gain a `tags` key and a `tags.yaml` file.** Chart and dashboard
+  export bundles carry custom tags. Importers on 6.0 and later understand both;
+  older importers skip the unrecognized `tags.yaml` file but reject chart and
+  dashboard YAML that contains a `tags` key, so strip that key before importing
+  a bundle into Superset 5.x or earlier.
+- **The flag is honored at write time.** The tagging SQLA event listeners are
+  always attached at startup; the ones that create tags check `TAGGING_SYSTEM`
+  when they fire, so the flag, including a runtime override through
+  `GET_FEATURE_FLAGS_FUNC` or `IS_FEATURE_ENABLED_FUNC`, takes effect without a
+  restart. The cleanup listeners run regardless of the flag, so deleting an
+  asset never leaves orphaned `tagged_object` rows behind.
+
+Set `FEATURE_FLAGS = {"TAGGING_SYSTEM": False}` to restore the previous
+behavior. Existing tag rows are left untouched.
+
 ### Global Async Queries re-platformed onto the Global Task Framework (breaking)
 
 Global Async Queries (GAQ) no longer runs on its own bespoke async-events
@@ -202,6 +230,7 @@ before retrying. Preview or recheck failures fail closed rather than treating
 unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
 
 - The dashboard datasource-based visibility fallback now fails closed: a dashboard whose member charts’ datasources cannot be resolved (deleted datasource rows, missing `datasource_id`, or unsupported datasource types) is no longer accessible to users without explicit editor/viewer rights, and a dashboard composed of semantic-view charts now requires `datasource_access` on (at least one of) its semantic views or their parent semantic layer — previously any authenticated user could open such a dashboard’s shell. Because the fallback now considers every member chart rather than only table-backed ones, a user holding `datasource_access` on any single member datasource — including a semantic view or its parent layer — can open a mixed dashboard that previously denied them. Dashboards with no charts remain accessible, and dashboards with explicit viewers are unaffected. Conversely, holders of `all_datasource_access` now see every published no-viewer dashboard in the dashboard list — including chart-less ones previously hidden by the inner joins — matching what the object-level gate already allowed them to open.
+- Version restore (`POST /api/v1/{chart,dashboard,dataset}/<uuid>/versions/<version_uuid>/restore`) now refuses an **externally managed** entity (`is_managed_externally = True`) with HTTP 403, enforcing server-side what the docs already promised. Previously the refusal existed only in the browser, so an otherwise-authorized editor could restore such an entity by calling the endpoint directly and have the restore overwritten on the next external sync. Soft-delete recovery is deliberately unaffected — it changes visibility, not content.
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 - The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed should `pip uninstall cockroachdb && pip install sqlalchemy-cockroachdb` (or simply reinstall the extra) to restore CockroachDB connectivity.
 

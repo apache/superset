@@ -33,7 +33,7 @@ jobs:
           persist-credentials: false
       - name: Check for file changes
         id: check
-        uses: ./.github/actions/change-detector/
+        uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -80,9 +80,15 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
       - name: Setup Postgres
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: setup-postgres
       - name: Start Celery worker
@@ -141,13 +147,19 @@ jobs:
       - name: Start hadoop and hive
         run: docker compose -f scripts/databases/hive/docker-compose.yml up -d
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
       - name: Setup Postgres
         uses: ./.github/actions/cached-dependencies
         with:
           run: setup-postgres
       - name: Start Celery worker
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's link. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: celery-worker
       - name: Python unit tests (PostgreSQL)

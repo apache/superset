@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CurrencyFormatter } from '@superset-ui/core';
+import { CurrencyFormatter, DateWithFormatter } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { ValueFormatterParams } from '@superset-ui/core/components/ThemedAgGridReact';
 import {
@@ -24,7 +24,6 @@ import {
   valueFormatter,
   valueGetter,
 } from '../src/utils/formatValue';
-import DateWithFormatter from '../src/utils/DateWithFormatter';
 import { DataColumnMeta, InputColumn } from '../src/types';
 
 const baseCol: InputColumn = {

@@ -21,8 +21,10 @@ import {
   DataRecordValue,
   getSmallNumberFormatter,
   isDefined,
+  isEmptyDateInput,
   isProbablyHTML,
   sanitizeHtml,
+  DateWithFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -30,7 +32,6 @@ import {
   ValueGetterParams,
 } from '@superset-ui/core/components/ThemedAgGridReact';
 import { DataColumnMeta, InputColumn } from '../types';
-import DateWithFormatter, { isEmptyDateInput } from './DateWithFormatter';
 
 /**
  * Format text for cell value.

@@ -21,8 +21,10 @@ import {
   BinaryQueryObjectFilterClause,
   DataRecord,
   DataRecordValue,
+  DateWithFormatter,
   extractTextFromHTML,
   getTimeFormatterForGranularity,
+  isEmptyDateInput,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -56,7 +58,6 @@ import {
 } from './utils/getCrossFilterDataMask';
 import { StyledChartContainer } from './styles';
 import type { FilterState } from './utils/filterStateManager';
-import DateWithFormatter, { isEmptyDateInput } from './utils/DateWithFormatter';
 import { formatColumnValue } from './utils/formatValue';
 import getTimeRangeFromGranularity from './utils/getTimeRangeFromGranularity';
 import getScrollBarSize from './utils/getScrollBarSize';
