@@ -20,6 +20,7 @@ import type { EChartsCoreOption } from 'echarts/core';
 import {
   ChartDataResponseResult,
   Currency,
+  QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
 } from '@superset-ui/core';
@@ -29,6 +30,7 @@ export type RGBColor = { r: number; g: number; b: number };
 
 export type BigNumberYoyMomFormData = QueryFormData & {
   metric?: QueryFormMetric;
+  granularity_sqla?: QueryFormColumn;
   yAxisFormat?: string;
   currencyFormat?: Currency;
   headerText?: string;

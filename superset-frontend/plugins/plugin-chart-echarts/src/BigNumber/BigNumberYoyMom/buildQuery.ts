@@ -19,7 +19,9 @@
 import {
   buildQueryContext,
   ensureIsArray,
+  QueryFormColumn,
   QueryFormData,
+  QueryFormMetric,
 } from '@superset-ui/core';
 import { BigNumberYoyMomFormData } from './types';
 import { toEnclosedTimeRange } from './timeRange';
@@ -51,11 +53,26 @@ export default function buildQuery(formData: QueryFormData) {
 
     // Comparison value metrics are requested alongside the main metric so the
     // query result carries their columns (useful for custom SQL datasets that
-    // pre-aggregate the comparison values).
+    // pre-aggregate the comparison values). Metrics sharing the main metric's
+    // label are dropped: the backend rejects duplicate labels, and the render
+    // path falls back to the main value for such slots.
+    const mainMetrics = ensureIsArray(baseQueryObject.metrics);
+    const metricLabel = (metric: QueryFormMetric): string =>
+      typeof metric === 'string'
+        ? metric
+        : metric.label ?? (metric as { expressionType?: string }).expressionType ?? '';
+    const mainLabels = new Set(mainMetrics.map(metricLabel));
     const comparisonMetrics = ensureIsArray([
       metricMode1 ? formDataYoyMom.comparison1_column : null,
       metricMode2 ? formDataYoyMom.comparison2_column : null,
-    ]).filter(Boolean);
+    ]).filter(Boolean) as QueryFormMetric[];
+    const uniqueComparisonMetrics: QueryFormMetric[] = [];
+    comparisonMetrics.forEach(metric => {
+      const label = metricLabel(metric);
+      if (!mainLabels.has(label) && !uniqueComparisonMetrics.some(m => metricLabel(m) === label)) {
+        uniqueComparisonMetrics.push(metric);
+      }
+    });
 
     // A time comparison requires an enclosed (start and end) time range on
     // the backend. Expand open-ended ranges (e.g. "Previous week") into
@@ -65,10 +82,28 @@ export default function buildQuery(formData: QueryFormData) {
         ? toEnclosedTimeRange(timeRange)
         : timeRange;
 
+    // The time column may be an adhoc SQL expression (e.g. a custom DATETIME
+    // expression). The backend `granularity` field only accepts a plain column
+    // name, so an adhoc expression is downgraded to a regular query column:
+    // the value stays available in the result (like the x-axis of the
+    // BigNumber with Trendline chart) and no time filtering is applied.
+    const timeColumn = formDataYoyMom.granularity_sqla;
+    const isAdhocTimeColumn =
+      !!timeColumn && typeof timeColumn !== 'string';
+
     return [
       {
         ...baseQueryObject,
-        metrics: [...ensureIsArray(baseQueryObject.metrics), ...comparisonMetrics],
+        ...(isAdhocTimeColumn
+          ? {
+              granularity: undefined,
+              columns: [
+                ...ensureIsArray(baseQueryObject.columns),
+                timeColumn as QueryFormColumn,
+              ],
+            }
+          : {}),
+        metrics: [...mainMetrics, ...uniqueComparisonMetrics],
         time_range: resolvedTimeRange,
         time_offsets: timeOffsets,
       },
