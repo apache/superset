@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset, VizType } from '@superset-ui/core';
+import {
+  ChartLabel,
+  ChartMetadata,
+  ChartPlugin,
+  Preset,
+  VizType,
+} from '@superset-ui/core';
 import {
   render,
   cleanup,
@@ -47,12 +53,31 @@ jest.mock('scroll-into-view-if-needed', () => jest.fn());
 
 jest.useFakeTimers({ advanceTimers: true });
 
+// A minimal plugin carrying a "Featured" label, so tests can assert on the
+// badge that VizTypeGallery overlays on its thumbnail.
+class FeaturedTestChartPlugin extends ChartPlugin {
+  constructor() {
+    super({
+      metadata: new ChartMetadata({
+        name: 'Featured Test Chart',
+        thumbnail: '',
+        label: ChartLabel.Featured,
+        tags: ['Featured'],
+      }),
+      Chart: () => null,
+    });
+  }
+}
+
 class MainPreset extends Preset {
   constructor() {
     super({
       name: 'Legacy charts',
       plugins: [
         new TableChartPlugin().configure({ key: VizType.Table }),
+        new FeaturedTestChartPlugin().configure({
+          key: 'featured_test_chart',
+        }),
         new BigNumberTotalChartPlugin().configure({
           key: VizType.BigNumberTotal,
         }),
@@ -276,6 +301,25 @@ describe('VizTypeControl', () => {
     expect(
       within(visualizations).queryByText('Pie Chart'),
     ).not.toBeInTheDocument();
+  });
+
+  test('anchors the Featured badge to the bottom-right of the thumbnail image', async () => {
+    // The badge is positioned relative to the thumbnail image only (not the
+    // whole tile), so it must hang off the image's bottom-right corner
+    // rather than its top edge.
+    await waitForRenderWrapper();
+    userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
+
+    const visualizations = screen.getByTestId(getTestId('viz-row'));
+    const image = await within(visualizations).findByAltText(
+      'Featured Test Chart',
+    );
+    const badgeWrapper = image.nextElementSibling as HTMLElement;
+
+    expect(badgeWrapper).toHaveStyleRule('bottom', '4px');
+    expect(badgeWrapper).toHaveStyleRule('right', '4px');
+    expect(badgeWrapper).not.toHaveStyleRule('top', expect.anything());
+    expect(within(badgeWrapper).getByText('FEATURED')).toBeInTheDocument();
   });
 
   test('Thumbnail labels expose the full chart name via a title tooltip', async () => {
