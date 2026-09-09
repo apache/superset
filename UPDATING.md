@@ -24,6 +24,29 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Default Docker image is now batteries-included; the minimal image moves to `-lean`
+
+The default `apache/superset` Docker image (the plain tags: `latest`, `master`,
+`5.0.0`, per-SHA) is now a batteries-included, production-grade image. It bundles
+the common metadata/analytics drivers (`psycopg2-binary` for PostgreSQL,
+`mysqlclient` for MySQL), the MCP server dependencies (`fastmcp`), and a headless
+Chromium (via Playwright) for Alerts & Reports and thumbnail generation. It still
+runs as the non-root `superset` user and is byte-compiled like before.
+
+The previous minimal image — with **no** database drivers — is still published,
+but under `-lean` tags: `latest-lean`, `master-lean`, `5.0.0-lean`, `<sha>-lean`.
+
+**What operators should expect:**
+
+- **The default image is larger** (several hundred MB more) because it ships a
+  headless Chromium and extra drivers. If you were relying on the minimal default
+  and layering your own drivers, switch your base image to the corresponding
+  `-lean` tag (for example `FROM apache/superset:master` becomes
+  `FROM apache/superset:master-lean`) to keep the previous footprint.
+- **No config change is required** for most deployments; the metadata-database
+  drivers most installations need are now present out of the box.
+- The `-dev` images (`latest-dev`, `master-dev`, …) are unchanged.
+
 ### Tagging is on by default
 
 `TAGGING_SYSTEM` now ships **on**. The Tags menu entry, the tag columns and

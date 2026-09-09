@@ -47,7 +47,7 @@ jobs:
     steps:
       - id: set_matrix
         run: |
-          MATRIX_CONFIG=$(if [ "${{ github.event_name }}" == "pull_request" ]; then echo '["dev", "lean"]'; else echo '["dev", "lean", "websocket", "dockerize", "py311", "py312"]'; fi)
+          MATRIX_CONFIG=$(if [ "${{ github.event_name }}" == "pull_request" ]; then echo '["superset", "dev", "lean"]'; else echo '["superset", "dev", "lean", "websocket", "dockerize", "py311", "py312"]'; fi)
           echo "matrix_config=${MATRIX_CONFIG}" >> $GITHUB_OUTPUT
           echo $GITHUB_OUTPUT
 
@@ -91,7 +91,7 @@ jobs:
               exit 1
             fi
           }
-          for preset in dev lean websocket dockerize; do
+          for preset in superset dev lean websocket dockerize; do
             assert_effective_py_ver "$preset" "3.11.14-slim-trixie"
           done
           assert_effective_py_ver py311 "3.11-slim-bookworm"
@@ -214,15 +214,15 @@ jobs:
           docker history $IMAGE_TAG
 
       - name: WebSocket server smoke test
-        if: contains(fromJson('["lean", "dev"]'), matrix.build_preset)
+        if: contains(fromJson('["superset", "lean", "dev"]'), matrix.build_preset)
         shell: bash
         run: |
           # The realtime WebSocket server is bundled in the official image and
           # launched via an alternate entrypoint; verify the bundled Node runtime
           # starts it and it serves /health. (A JWT secret >= 32 bytes is required
           # or the server refuses to start; no Redis is needed for /health.)
-          # Both presets are checked because docker-compose-non-dev.yml runs the
-          # websocket service from the dev target.
+          # All app-image presets are checked because docker-compose-non-dev.yml
+          # runs the websocket service from the dev target.
           docker run -d --name superset-ws \
             -e JWT_SECRET="ci-smoke-test-secret-ci-smoke-test-secret" \
             -e PORT=8080 -p 8080:8080 \
