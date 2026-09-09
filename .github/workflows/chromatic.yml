@@ -97,6 +97,12 @@ jobs:
             --target superset-node-ci \
             .
 
+      # --webpack-stats-json writes preview-stats.json into storybook-static.
+      # TurboSnap (onlyChanged below) needs it to trace which stories a
+      # changed file affects; without it, chromaui/action fails with "Could
+      # not retrieve dependent story files" since storybookBuildDir points
+      # at an already-built Storybook it can't inject its own stats
+      # collection into.
       - name: Build Storybook
         if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
         run: |
@@ -104,7 +110,7 @@ jobs:
           docker run \
           -v ${{ github.workspace }}/superset-frontend/storybook-static:/app/superset-frontend/storybook-static \
           --rm $TAG \
-          bash -c "npm i && npm run build-storybook"
+          bash -c "npm i && npm run build-storybook -- --webpack-stats-json"
 
       - name: Publish to Chromatic
         if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
