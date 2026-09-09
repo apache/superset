@@ -143,7 +143,7 @@ describe('BigNumberYoyMom buildQuery', () => {
         expressionType: 'SQL',
         sqlExpression: "STR_TO_DATE(CONCAT(CAST(report_date AS CHAR),'01'),'%Y%m%d')",
         label: 'report_date_expr',
-      },
+      } as unknown as string,
       comparison1_offset: '1 month ago',
     });
     expect(queryContext.queries).toHaveLength(2);
@@ -195,7 +195,7 @@ describe('BigNumberYoyMom buildQuery', () => {
       expect.arrayContaining(['COUNT(*)', 'prev_year_sales']),
     );
     // COUNT(*) is requested only once despite being configured twice.
-    const countOccurrences = queryContext.queries[0].metrics.filter(
+    const countOccurrences = (queryContext.queries[0].metrics ?? []).filter(
       metric => metric === 'COUNT(*)',
     );
     expect(countOccurrences).toHaveLength(1);
@@ -222,7 +222,7 @@ describe('BigNumberYoyMom buildQuery', () => {
         expressionType: 'SQL',
         sqlExpression: "STR_TO_DATE(CONCAT(CAST(report_date AS CHAR),'01'),'%Y%m%d')",
         label: 'report_date_expr',
-      },
+      } as unknown as string,
     });
     expect(queryContext.queries[0].granularity).toBeUndefined();
     expect(queryContext.queries[0].columns).toEqual(
