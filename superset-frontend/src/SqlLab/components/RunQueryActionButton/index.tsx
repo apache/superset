@@ -149,11 +149,13 @@ const RunQueryActionButton = ({
         cta
         {...(overlayCreateAsMenu
           ? {
-              overlay: overlayCreateAsMenu,
+              popupRender: () => overlayCreateAsMenu,
               icon: (
                 <Icons.DownOutlined
                   iconColor={
-                    isDisabled ? theme.colorTextDisabled : theme.colorIcon
+                    isDisabled
+                      ? theme.colorTextDisabled
+                      : theme.colorTextLightSolid
                   }
                 />
               ),

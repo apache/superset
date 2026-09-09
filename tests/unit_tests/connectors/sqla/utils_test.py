@@ -26,7 +26,8 @@ from superset.connectors.sqla.utils import (
     get_columns_description,
     get_virtual_table_metadata,
 )
-from superset.exceptions import SupersetSecurityException
+from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+from superset.exceptions import OAuth2RedirectError, SupersetSecurityException
 from superset.models.core import Database
 
 
@@ -100,6 +101,51 @@ def test_returns_column_descriptions(mocker: MockerFixture) -> None:
             "is_dttm": False,
         },
     ]
+
+
+def test_get_columns_description_propagates_oauth2_redirect(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``get_columns_description`` wraps every exception raised while executing
+    the metadata query into ``SupersetGenericDBErrorException`` -- but an
+    ``OAuth2RedirectError`` raised by the driver (e.g. a database requiring
+    per-user OAuth2 tokens) must reach the caller unchanged so the frontend
+    can start the OAuth2 dance, instead of being flattened into an opaque
+    generic DB error.
+    """
+    database = mocker.MagicMock()
+    cursor = mocker.MagicMock()
+    oauth2_error = OAuth2RedirectError("https://example.org/oauth2", "tab-id", "uri")
+
+    database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
+    database.db_engine_spec.execute.side_effect = oauth2_error
+
+    with pytest.raises(OAuth2RedirectError):
+        get_columns_description(database, "catalog", "schema", "SELECT * FROM table")
+
+
+def test_get_columns_description_propagates_dbapi_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A connection failure normalized by ``db_engine_spec.execute`` into a
+    ``SupersetDBAPIConnectionError`` must also reach the caller unchanged --
+    not be re-flattened into an opaque ``SupersetGenericDBErrorException`` --
+    so callers like ``CreateDatasetCommand`` can let it propagate with its
+    own status instead of misreporting an infra failure as bad user input.
+    """
+    database = mocker.MagicMock()
+    cursor = mocker.MagicMock()
+    connection_error = SupersetDBAPIConnectionError(
+        "could not connect to server: Connection refused"
+    )
+
+    database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
+    database.db_engine_spec.execute.side_effect = connection_error
+
+    with pytest.raises(SupersetDBAPIConnectionError):
+        get_columns_description(database, "catalog", "schema", "SELECT * FROM table")
 
 
 def _create_zero_row_database(tmp_path: Path) -> tuple[Database, str]:

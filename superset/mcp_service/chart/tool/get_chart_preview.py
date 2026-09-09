@@ -1399,6 +1399,7 @@ async def _get_chart_preview_internal(  # noqa: C901
         title="Get chart preview",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_chart_preview(

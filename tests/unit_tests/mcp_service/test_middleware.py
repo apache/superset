@@ -2190,3 +2190,68 @@ class TestStructuredContentStripperErrorHook:
         assert "s3cret" not in text
         assert "db.internal" not in text
         assert "[REDACTED]" in text
+
+
+class TestStructuredContentStripperIsErrorFlag:
+    """Failures caught by StructuredContentStripperMiddleware must still be
+    reported as errors on the wire — a client that only inspects isError
+    would otherwise read a denial or a crash as a successful call."""
+
+    @pytest.mark.asyncio
+    async def test_tool_error_is_flagged_as_error(self) -> None:
+        """A permission denial surfaces as ToolError; it must not come back
+        looking like a successful tool call."""
+        middleware = StructuredContentStripperMiddleware()
+        context = MagicMock()
+        context.message.name = "save_sql_query"
+        call_next = AsyncMock(
+            side_effect=ToolError("Permission denied: can_write on SavedQuery")
+        )
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = None
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result.is_error is True
+        assert result.content[0].text.startswith("Error:")
+
+    @pytest.mark.asyncio
+    async def test_unexpected_exception_is_flagged_as_error(self) -> None:
+        """The same holds for exceptions that bypass
+        GlobalErrorHandlerMiddleware and reach the last-resort catch."""
+        middleware = StructuredContentStripperMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        call_next = AsyncMock(side_effect=RuntimeError("boom"))
+        mock_flask_app = MagicMock()
+        mock_flask_app.config.get.return_value = None
+
+        with patch(
+            "superset.mcp_service.flask_singleton.get_flask_app",
+            return_value=mock_flask_app,
+        ):
+            result = await middleware.on_call_tool(context, call_next)
+
+        assert result.is_error is True
+
+    @pytest.mark.asyncio
+    async def test_successful_result_is_not_flagged(self) -> None:
+        """The success path must stay untouched."""
+        from fastmcp.tools.tool import ToolResult
+        from mcp.types import TextContent
+
+        middleware = StructuredContentStripperMiddleware()
+        context = MagicMock()
+        context.message.name = "list_charts"
+        call_next = AsyncMock(
+            return_value=ToolResult(content=[TextContent(type="text", text="ok")])
+        )
+
+        result = await middleware.on_call_tool(context, call_next)
+
+        assert result.is_error is False
+        assert result.content[0].text == "ok"

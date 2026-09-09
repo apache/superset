@@ -43,6 +43,7 @@ from superset.mcp_service.chart.chart_helpers import (
     find_chart_by_identifier,
     get_cached_form_data,
     merge_extra_form_data_filters_into_query,
+    rejected_requested_filter_columns,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
@@ -61,6 +62,7 @@ from superset.mcp_service.utils.oauth2_utils import (
 from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
+
 
 _GENERIC_TYPE_MAP: dict[int, str] = {
     GenericDataType.NUMERIC: "numeric",
@@ -100,6 +102,7 @@ _VIZ_CATEGORY: dict[str, str] = {
     "box_plot": "box_plot",
     "world_map": "map",
     "pivot_table_v2": "table",
+    "ag-grid-pivot-table": "table",
     # Own category: cumulative-flow semantics differ from a plain bar, like
     # funnel/gauge carry distinct categories.
     "waterfall": "waterfall",
@@ -280,6 +283,7 @@ def _build_query_results(
         title="Get chart data",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_chart_data(  # noqa: C901
@@ -685,6 +689,19 @@ async def get_chart_data(  # noqa: C901
                 command.validate()
                 result = command.run()
 
+            if rejected := rejected_requested_filter_columns(
+                result, request.extra_form_data
+            ):
+                rejected_columns = ", ".join(rejected)
+                await ctx.warning(
+                    "Requested filters reference unknown dataset columns: %s"
+                    % rejected_columns
+                )
+                return ChartError(
+                    error=f"Unknown dataset column(s) in filters: {rejected_columns}",
+                    error_type="ValidationError",
+                )
+
             # Handle empty query results for certain chart types
             if not result or ("queries" not in result) or len(result["queries"]) == 0:
                 await ctx.warning(
@@ -979,7 +996,7 @@ async def get_chart_data(  # noqa: C901
         )
 
 
-async def _query_from_form_data(
+async def _query_from_form_data(  # noqa: C901
     form_data: Dict[str, Any],
     request: GetChartDataRequest,
     ctx: Context,
@@ -1033,6 +1050,19 @@ async def _query_from_form_data(
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
+
+        if rejected := rejected_requested_filter_columns(
+            result, request.extra_form_data
+        ):
+            rejected_columns = ", ".join(rejected)
+            await ctx.warning(
+                "Requested filters reference unknown dataset columns: %s"
+                % rejected_columns
+            )
+            return ChartError(
+                error=f"Unknown dataset column(s) in filters: {rejected_columns}",
+                error_type="ValidationError",
+            )
 
         if not result or "queries" not in result or len(result["queries"]) == 0:
             logger.warning(

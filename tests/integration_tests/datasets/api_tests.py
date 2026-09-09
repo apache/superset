@@ -20,6 +20,7 @@ import copy
 import unittest
 from datetime import timedelta
 from io import BytesIO
+from typing import Any
 from unittest.mock import ANY, patch
 from zipfile import is_zipfile, ZipFile
 
@@ -71,6 +72,27 @@ from tests.integration_tests.fixtures.importexport import (
     dataset_config,
     dataset_ui_export,
 )
+
+# Fields the dataset ``show`` payload exposes but the ``PUT`` schema doesn't
+# accept: audit timestamps plus attributes derived from the model (type
+# affinity and the certification/warning metadata stored in ``extra``).
+DATASET_READ_ONLY_ITEM_FIELDS = (
+    "changed_on",
+    "created_on",
+    "type_generic",
+    "certification_details",
+    "certified_by",
+    "is_certified",
+    "warning_markdown",
+)
+
+
+def strip_read_only_fields(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Drop read-only fields so a ``show`` payload can be fed back to ``PUT``."""
+    for item in items:
+        for field in DATASET_READ_ONLY_ITEM_FIELDS:
+            item.pop(field, None)
+    return items
 
 
 class TestDatasetApi(SupersetTestCase):
@@ -1316,17 +1338,10 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "get")
         data = json.loads(rv.data.decode("utf-8"))
 
-        for column in data["result"]["columns"]:
-            column.pop("changed_on", None)
-            column.pop("created_on", None)
-            column.pop("type_generic", None)
+        strip_read_only_fields(data["result"]["columns"])
         data["result"]["columns"].append(new_column_data)
 
-        for metric in data["result"]["metrics"]:
-            metric.pop("changed_on", None)
-            metric.pop("created_on", None)
-            metric.pop("type_generic", None)
-
+        strip_read_only_fields(data["result"]["metrics"])
         data["result"]["metrics"].append(new_metric_data)
 
         with freeze_time() as frozen:
@@ -1404,11 +1419,7 @@ class TestDatasetApi(SupersetTestCase):
         rv = self.get_assert_metric(uri, "get")
         data = json.loads(rv.data.decode("utf-8"))
 
-        for column in data["result"]["columns"]:
-            column.pop("changed_on", None)
-            column.pop("created_on", None)
-            column.pop("type_generic", None)
-
+        strip_read_only_fields(data["result"]["columns"])
         data["result"]["columns"].append(new_column_data)
         rv = self.client.put(uri, json={"columns": data["result"]["columns"]})
 
@@ -1443,10 +1454,7 @@ class TestDatasetApi(SupersetTestCase):
         # Get current cols and alter one
         rv = self.get_assert_metric(uri, "get")
         resp_columns = json.loads(rv.data.decode("utf-8"))["result"]["columns"]
-        for column in resp_columns:
-            column.pop("changed_on", None)
-            column.pop("created_on", None)
-            column.pop("type_generic", None)
+        strip_read_only_fields(resp_columns)
 
         resp_columns[0]["groupby"] = False
         resp_columns[0]["filterable"] = False
@@ -3394,6 +3402,25 @@ class TestDatasetApi(SupersetTestCase):
                     groupby=False,
                 ),
             ],
+            metrics=[
+                SqlMetric(
+                    metric_name="sum__value",
+                    expression="SUM(value)",
+                    verbose_name="Yearly Total",
+                ),
+                # Shares its name with the non-dimension "value" column above, so
+                # applying the column filter to metrics would drop this one. It is
+                # asserted as present below to pin the deliberate asymmetry.
+                SqlMetric(
+                    metric_name="value",
+                    expression="MAX(value)",
+                    verbose_name="Raw Value Metric",
+                ),
+                SqlMetric(
+                    metric_name="count",
+                    expression="COUNT(*)",
+                ),
+            ],
             fetch_metadata=False,
         )
 
@@ -3413,10 +3440,27 @@ class TestDatasetApi(SupersetTestCase):
         assert result["id"] == dataset.id
         assert result["table_name"] == "test_drill_dataset"
         assert result["editors"] == []
-        assert len(result["columns"]) == 2
+        # Every column is returned, including the non-dimension ones: this payload
+        # also resolves display labels for the dashboard "View as table" results
+        # grid, and a raw-records table can select any of them. `groupby` rides
+        # along so the drill-by picker can narrow to dimensions client-side.
         assert result["columns"] == [
-            {"column_name": "category", "verbose_name": "Category Column"},
-            {"column_name": "region", "verbose_name": None},
+            {
+                "column_name": "category",
+                "verbose_name": "Category Column",
+                "groupby": True,
+            },
+            {"column_name": "region", "verbose_name": None, "groupby": True},
+            {"column_name": "value", "verbose_name": None, "groupby": False},
+            {"column_name": "description", "verbose_name": None, "groupby": False},
+        ]
+        # Metrics carry their verbose_name for the same reason. "value" is asserted
+        # here precisely because it would be dropped if a dimension filter were ever
+        # applied to metrics -- no metric name is a member of the dimension set.
+        assert result["metrics"] == [
+            {"metric_name": "sum__value", "verbose_name": "Yearly Total"},
+            {"metric_name": "value", "verbose_name": "Raw Value Metric"},
+            {"metric_name": "count", "verbose_name": None},
         ]
 
         self.items_to_delete = [dataset]
@@ -3595,6 +3639,13 @@ class TestDatasetApi(SupersetTestCase):
                     groupby=True,
                 ),
             ],
+            metrics=[
+                SqlMetric(
+                    metric_name="sum__value",
+                    expression="SUM(value)",
+                    verbose_name="Yearly Total",
+                ),
+            ],
             fetch_metadata=False,
         )
         chart = self.insert_chart("Test Embedded Chart", dataset.id)
@@ -3618,8 +3669,15 @@ class TestDatasetApi(SupersetTestCase):
             assert result == {
                 "id": dataset.id,
                 "columns": [
-                    {"column_name": "category", "verbose_name": "Category Column"},
-                    {"column_name": "region", "verbose_name": None},
+                    {
+                        "column_name": "category",
+                        "verbose_name": "Category Column",
+                        "groupby": True,
+                    },
+                    {"column_name": "region", "verbose_name": None, "groupby": True},
+                ],
+                "metrics": [
+                    {"metric_name": "sum__value", "verbose_name": "Yearly Total"},
                 ],
             }
 

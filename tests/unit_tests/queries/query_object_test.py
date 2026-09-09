@@ -20,9 +20,11 @@ from unittest.mock import call, patch
 import pandas as pd
 import pytest
 from flask_appbuilder.security.sqla.models import User
+from pandas import DataFrame
 
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable
+from superset.exceptions import InvalidPostProcessingError
 from superset.models.core import Database
 from superset.superset_typing import Metric
 from superset.utils import pandas_postprocessing
@@ -489,8 +491,6 @@ def test_exec_post_processing_extra_ops(app_context: None) -> None:
 
 def test_exec_post_processing_unknown_op_raises(app_context: None) -> None:
     """An operation not in builtins or EXTRA_PANDAS_POSTPROCESSING_OPS raises."""
-    from superset.exceptions import InvalidPostProcessingError
-
     df = pd.DataFrame({"value": [1, 2, 3]})
     query_object = QueryObject(
         row_limit=10,
@@ -501,8 +501,12 @@ def test_exec_post_processing_unknown_op_raises(app_context: None) -> None:
         "superset.common.query_object.current_app.config",
         {"EXTRA_PANDAS_POSTPROCESSING_OPS": []},
     ):
-        with pytest.raises(InvalidPostProcessingError):
+        with pytest.raises(InvalidPostProcessingError) as excinfo:
             query_object.exec_post_processing(df)
+
+    # The message names the offending operation. Guards the `%(operation)s`
+    # placeholder against regressing to a keyword the format string ignores.
+    assert "nonexistent_op" in str(excinfo.value)
 
 
 @pytest.mark.parametrize(
@@ -566,6 +570,16 @@ def test_exec_post_processing_builtin_wins_over_extra_op(app_context: None) -> N
 
     # The built-in sort ran, not the raising custom op.
     assert list(result["value"]) == [1, 2, 3]
+
+
+def test_exec_post_processing_missing_operation():
+    """
+    A post processing entry without an `operation` key is a validation error.
+    """
+    query_object = QueryObject(row_limit=1, post_processing=[{"options": {}}])
+
+    with pytest.raises(InvalidPostProcessingError):
+        query_object.exec_post_processing(DataFrame({"y": [1, 2, 3]}))
 
 
 def test_post_processing_drops_unsupported_options():
@@ -704,3 +718,20 @@ def test_post_processing_keeps_an_entry_without_an_operation():
     query_object = QueryObject(row_limit=1, post_processing=post_processing)
 
     assert query_object.post_processing == post_processing
+
+
+@pytest.mark.parametrize("operation", ["escape_separator", "unescape_separator"])
+def test_exec_post_processing_rejects_string_helpers(
+    app_context: None, operation: str
+) -> None:
+    """`escape_separator`/`unescape_separator` are str -> str helpers used by
+    `flatten`, not DataFrame post-processing operations, and must not be
+    reachable as a `post_processing` operation name."""
+    df = pd.DataFrame({"value": [1, 2, 3]})
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": operation, "options": {}}],
+    )
+
+    with pytest.raises(InvalidPostProcessingError):
+        query_object.exec_post_processing(df)

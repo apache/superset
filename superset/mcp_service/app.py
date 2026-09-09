@@ -125,8 +125,8 @@ Available tools:
 
 Dashboard Management:
 - list_dashboards: List dashboards with advanced filters (1-based pagination; deleted_state='only'/'include' surfaces trashed dashboards the caller may restore)
-- get_dashboard_info: Get detailed dashboard information by ID
-- get_dashboard_layout: Get parsed tabs and chart positions for a dashboard (companion to get_dashboard_info when its omitted_fields hint flags position_json)
+- get_dashboard_info: Resolve a dashboard by ID/UUID/slug or shared /dashboard/p/<key>/ permalink, including its active-tab and filter state
+- get_dashboard_layout: Get parsed tabs and chart positions by dashboard identifier or shared permalink, including the permalink's active-tab and filter context
 - get_dashboard_datasets: List the datasets used by a dashboard's charts, with columns and metrics (context for configuring native filters)
 - generate_dashboard: Create a dashboard from chart IDs (requires write access)
 - update_dashboard: Update an existing dashboard's title/description/slug/published/layout/theme/CSS (requires write access; editorship-checked per-instance)
@@ -395,7 +395,11 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="table": Data table for detailed views
 - chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
 - chart_type="pie": Pie chart for proportional data (set donut=True for donut)
-- chart_type="pivot_table": Interactive pivot table for cross-tabulation
+- chart_type="pivot_table": OSS Pivot Table for cross-tabulation
+- chart_type="interactive_pivot": Extension-provided AG Grid Interactive Pivot Table.
+  This type is distinct from pivot_table/pivot_table_v2 and is available only
+  when get_chart_type_schema("interactive_pivot") returns a schema instead of
+  a disabled_chart_type error.
 - chart_type="mixed_timeseries": Dual-series chart combining two chart types
 - chart_type="handlebars": Custom HTML template chart (KPI cards, leaderboards, reports)
   Requires handlebars_template with Handlebars HTML template string.
@@ -416,9 +420,10 @@ Time grain for temporal x-axis (time_grain parameter):
 Chart Types in Existing Charts (viewable via list_charts/get_chart_info):
 Each chart returned by list_charts / get_chart_info includes a
 chart_type_display_name field with a human-readable name when available.
-This field is populated only for the 10 chart types supported by generate_chart
+This field is populated for chart types known to the MCP registry
 (xy, pie, table, pivot_table, big_number, mixed_timeseries, handlebars,
-histogram, box_plot, waterfall).
+histogram, box_plot, waterfall, and interactive_pivot). Availability gates
+creation and schema discovery, not display names for existing charts.
 For all other viz_types (Funnel, Gauge, Heatmap, etc.) it will be null —
 use the raw viz_type field instead when referring to those chart types.
 
@@ -426,7 +431,7 @@ Query Examples:
 - List all tables:
   list_charts(request={{"filters": [{{"col": "viz_type",
     "opr": "in",
-    "value": ["table", "pivot_table_v2"]}}]}})
+    "value": ["table", "pivot_table_v2", "ag-grid-pivot-table"]}}]}})
 - List time series charts:
   list_charts(request={{"filters": [{{"col": "viz_type",
     "opr": "sw", "value": "echarts_timeseries"}}]}})

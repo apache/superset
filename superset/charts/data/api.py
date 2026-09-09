@@ -25,11 +25,11 @@ from typing import Any, Callable, TYPE_CHECKING
 from flask import current_app as app, make_response, request, Response
 from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
+from flask_caching.backends import NullCache
 from marshmallow import ValidationError
 from werkzeug.utils import secure_filename
 
 from superset import is_feature_enabled, security_manager
-from superset.async_events.async_query_manager import AsyncQueryTokenException
 from superset.charts.api import ChartRestApi
 from superset.charts.client_processing import apply_client_processing
 from superset.charts.data.dashboard_filter_context import (
@@ -38,11 +38,7 @@ from superset.charts.data.dashboard_filter_context import (
     get_dashboard_filter_context,
 )
 from superset.charts.data.form_data import set_form_data
-from superset.charts.data.query_context_cache_loader import QueryContextCacheLoader
 from superset.charts.schemas import ChartDataQueryContextSchema
-from superset.commands.chart.data.create_async_job_command import (
-    CreateAsyncChartDataJobCommand,
-)
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.data.streaming_export_command import (
     StreamingCSVExportCommand,
@@ -57,8 +53,10 @@ from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
-from superset.extensions import event_logger
+from superset.extensions import cache_manager, event_logger
 from superset.models.sql_lab import Query
+from superset.tasks.async_queries import submit_chart_data_query_tasks
+from superset.tasks.guest import get_current_guest_subscriber_key
 from superset.utils import json
 from superset.utils.core import (
     create_zip,
@@ -72,12 +70,13 @@ from superset.views.base_api import statsd_metrics
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
+    from superset.models.slice import Slice
 
 logger = logging.getLogger(__name__)
 
 
 class ChartDataRestApi(ChartRestApi):
-    include_route_methods = {"get_data", "data", "data_from_cache"}
+    include_route_methods = {"get_data", "data"}
 
     @expose("/<int:pk>/data/", methods=("GET",))
     @protect()
@@ -235,16 +234,7 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         # TODO: support CSV, SQL query and other non-JSON types
-        # Don't use async queries when cache is disabled (cache_timeout=-1)
-        # as async queries depend on caching to retrieve results
-        cache_timeout = query_context.get_cache_timeout()
-        use_async = (
-            is_feature_enabled("GLOBAL_ASYNC_QUERIES")
-            and query_context.result_format == ChartDataResultFormat.JSON
-            and query_context.result_type == ChartDataResultType.FULL
-            and cache_timeout != CACHE_DISABLED_TIMEOUT
-        )
-        if use_async:
+        if self._should_run_async(json_body, query_context):
             return self._run_async(json_body, command, add_extra_log_payload)
 
         try:
@@ -258,6 +248,7 @@ class ChartDataRestApi(ChartRestApi):
             datasource=query_context.datasource,
             add_extra_log_payload=add_extra_log_payload,
             dashboard_filter_context=dashboard_filter_context,
+            slice_=chart,
         )
 
     @expose("/data", methods=("POST",))
@@ -339,16 +330,7 @@ class ChartDataRestApi(ChartRestApi):
             )
 
         # TODO: support CSV, SQL query and other non-JSON types
-        # Don't use async queries when cache is disabled (cache_timeout=-1)
-        # as async queries depend on caching to retrieve results
-        cache_timeout = query_context.get_cache_timeout()
-        use_async = (
-            is_feature_enabled("GLOBAL_ASYNC_QUERIES")
-            and query_context.result_format == ChartDataResultFormat.JSON
-            and query_context.result_type == ChartDataResultType.FULL
-            and cache_timeout != CACHE_DISABLED_TIMEOUT
-        )
-        if use_async:
+        if self._should_run_async(json_body, query_context):
             return self._run_async(json_body, command, add_extra_log_payload)
 
         form_data = json_body.get("form_data")
@@ -363,74 +345,63 @@ class ChartDataRestApi(ChartRestApi):
             expected_rows=expected_rows,
         )
 
-    @expose("/data/<cache_key>", methods=("GET",))
-    @protect()
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: (
-            f"{self.__class__.__name__}.data_from_cache"
-        ),
-        log_to_statsd=False,
-    )
-    def data_from_cache(self, cache_key: str) -> Response:
-        """
-        Take a query context cache key and return payload
-        data response for the given query.
-        ---
-        get:
-          summary: Return payload data response for the given query
-          description: >-
-            Takes a query context cache key and returns payload data
-            response for the given query.
-          parameters:
-          - in: path
-            schema:
-              type: string
-            name: cache_key
-          responses:
-            200:
-              description: Query result
-              content:
-                application/json:
-                  schema:
-                    $ref: "#/components/schemas/ChartDataResponseSchema"
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            403:
-              $ref: '#/components/responses/403'
-            404:
-              $ref: '#/components/responses/404'
-            422:
-              $ref: '#/components/responses/422'
-            500:
-              $ref: '#/components/responses/500'
-        """
-        try:
-            cached_data = self._load_query_context_form_from_cache(cache_key)
-            # Set form_data in Flask Global as it is used as a fallback
-            # for async queries with jinja context
-            set_form_data(cached_data)
-            query_context = self._create_query_context_from_form(cached_data)
-            # Mark as a cache replay so _sql_filters_modified skips the
-            # SQL-extras check.  The original request already passed the
-            # full security check, cache keys are opaque SHA-256 hashes
-            # (unguessable), and force_cached only serves pre-computed
-            # data — no new SQL is executed.
-            query_context._from_cache_replay = True
-            command = ChartDataCommand(query_context)
-            command.validate()
-        except ChartDataCacheLoadError:
-            return self.response_404()
-        except SupersetSecurityException:
-            return self.response_403()
-        except ValidationError as error:
-            return self.response_400(
-                message=_("Request is incorrect: %(error)s", error=error.messages)
-            )
+    @staticmethod
+    def _should_run_async(
+        json_body: dict[str, Any],
+        query_context: QueryContext,
+    ) -> bool:
+        """Whether this chart-data request should run asynchronously.
 
-        return self._get_data_response(command, True)
+        Async is opt-in per request: the client sets ``async_mode`` (an absent flag
+        is treated as synchronous, so programmatic API clients keep the synchronous
+        200 flow). It is only available when ``GLOBAL_ASYNC_QUERIES`` is enabled, the
+        result is a full JSON payload, and caching is on (async delivery reads the
+        result back from the DATA cache).
+
+        A ``NullCache`` DATA backend can never satisfy the read-back, so async is
+        refused for it and the request runs synchronously — otherwise every chart
+        would schedule tasks, succeed, and then loop on an uncacheable re-request.
+
+        Async also requires a subscribe-able identity — an authenticated user or
+        an embedded guest — because the task is observed/cancelled through a
+        per-principal subscription (see ``superset.tasks.subscription``). A fully
+        anonymous request (public dashboard viewed directly, no login and no guest
+        token) has no principal, so it would schedule a task it could never poll
+        or cancel; those requests run synchronously instead.
+
+        The principal must also be able to *observe* task state: chart completion is
+        read from ``GET /api/v1/task/status_changes``, which is gated by
+        ``can_read Task`` (the websocket transport is likewise gated by
+        ``can_read Realtime``). An authenticated Gamma user has ``Task`` by default;
+        an embedded guest on the default ``Public`` role does not, so guest async
+        works only when the operator grants the guest role ``can_read Task`` — and
+        otherwise falls back to sync rather than returning a 202 the guest can never
+        resolve. See ``UPDATING.md`` for the guest-role grants required to enable
+        embedded async.
+
+        The eligibility check reads :meth:`QueryContext.get_cache_timeout`, which
+        only resolves the explicitly configured chart/dataset/database TTL. That is
+        deliberately the un-floored value: only an explicit
+        ``CACHE_DISABLED_TIMEOUT`` should refuse async, whereas the floored
+        :meth:`QueryContextProcessor.get_cache_timeout` also folds in config
+        fallbacks and the async minimum TTL that the scheduled task later applies.
+        """
+        return (
+            bool(json_body.get("async_mode"))
+            and is_feature_enabled("GLOBAL_ASYNC_QUERIES")
+            and query_context.result_format == ChartDataResultFormat.JSON
+            and query_context.result_type == ChartDataResultType.FULL
+            and query_context.get_cache_timeout() != CACHE_DISABLED_TIMEOUT
+            and not isinstance(cache_manager.data_cache.cache, NullCache)
+            and (
+                get_user_id() is not None
+                or get_current_guest_subscriber_key() is not None
+            )
+            # The client must be able to read task status to observe completion;
+            # otherwise the 202 is unresolvable (e.g. a guest on the default Public
+            # role). Fall back to sync when it can't.
+            and security_manager.can_access("can_read", "Task")
+        )
 
     def _run_async(
         self,
@@ -454,18 +425,12 @@ class ChartDataRestApi(ChartRestApi):
                     return self._send_chart_response(result)
             except ChartDataCacheLoadError:
                 pass
-        # Otherwise, kick off a background job to run the chart query.
-        # Clients will either poll or be notified of query completion,
-        # at which point they will call the /data/<cache_key> endpoint
-        # to retrieve the results.
-        async_command = CreateAsyncChartDataJobCommand()
-        try:
-            async_command.validate(request)
-        except AsyncQueryTokenException:
-            return self.response_401()
-
-        async_result = async_command.run(form_data, get_user_id())
-        return self.response(202, **async_result)
+        # Otherwise, kick off background GTF tasks (one per QueryObject) to run the
+        # chart query. The client polls /api/v1/task/status_changes, aggregates the
+        # tasks' statuses, and on success re-issues this same request — now served
+        # synchronously from the per-query DATA cache the tasks populated.
+        job = submit_chart_data_query_tasks(command.query_context, get_user_id())
+        return self.response(202, **job)
 
     def _send_chart_response(  # noqa: C901
         self,
@@ -475,6 +440,7 @@ class ChartDataRestApi(ChartRestApi):
         filename: str | None = None,
         expected_rows: int | None = None,
         dashboard_filter_context: DashboardFilterContext | None = None,
+        slice_: Slice | None = None,
     ) -> Response:
         if isinstance(result, ChartDataExecutionResult):
             execution_result: ChartDataExecutionResult | None = result
@@ -512,6 +478,12 @@ class ChartDataRestApi(ChartRestApi):
 
             is_csv_format = result_format == ChartDataResultFormat.CSV
 
+            # A chart's saved query context rarely carries a slice_id in its
+            # form data, so the query context factory can't resolve the slice
+            # for it; routes that already hold the chart pass it explicitly
+            # and the factory-resolved slice covers the rest.
+            slice_ = slice_ or materialized_result["query_context"].slice_
+
             # Check if we should use streaming for large datasets
             if is_csv_format and self._should_use_streaming(
                 materialized_result,
@@ -522,9 +494,12 @@ class ChartDataRestApi(ChartRestApi):
                     form_data,
                     filename=filename,
                     expected_rows=expected_rows,
+                    slice_=slice_,
                 )
 
-            export_filename = filename or self._get_default_export_filename(form_data)
+            export_filename = filename or self._get_default_export_filename(
+                form_data, slice_
+            )
             # `generate_download_headers` always appends the format extension,
             # so strip a matching one here to avoid doubled extensions (e.g.
             # "chart.csv.csv") if the caller already included it.
@@ -573,8 +548,17 @@ class ChartDataRestApi(ChartRestApi):
                     query["timing"] = query_result.timing.as_public_dict()
 
             if security_manager.is_guest_user():
+                # Guests may see the generated SQL only when the role attached to
+                # their guest token has been granted "can view query on Dashboard",
+                # mirroring the permission the frontend uses to expose the
+                # "View query" action. Stacktraces and driver errors stay redacted
+                # regardless, as those leak details of the deployment itself.
+                can_view_query = security_manager.can_access(
+                    "can_view_query", "Dashboard"
+                )
                 for query in queries:
-                    query.pop("query", None)
+                    if not can_view_query:
+                        query.pop("query", None)
                     query.pop("stacktrace", None)
                     if query.get("error"):
                         query["error"] = sanitize_error_message(query["error"])
@@ -596,22 +580,45 @@ class ChartDataRestApi(ChartRestApi):
         return self.response_400(message=f"Unsupported result_format: {result_format}")
 
     @staticmethod
-    def _get_default_export_filename(form_data: dict[str, Any] | None) -> str:
+    def _get_default_export_filename(
+        form_data: dict[str, Any] | None,
+        slice_: Slice | None = None,
+    ) -> str:
         """
         Build a fallback export filename (without extension) from the chart's
         name so downloaded files are easy to identify, instead of the
         generic timestamp-only default used by ``generate_download_headers``.
 
+        The name comes from the first usable candidate: an explicit
+        ``slice_name`` in the form data, the name of the chart the export
+        was requested for, the ``viz_type``, and finally a generic "export".
+
         Used whenever the client hasn't supplied an explicit filename, by
         both the streaming and non-streaming chart data export responses.
         """
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        chart_name = "export"
+        candidates = (
+            form_data.get("slice_name") if form_data else None,
+            slice_.slice_name if slice_ is not None else None,
+            form_data.get("viz_type") if form_data else None,
+        )
 
-        if form_data and form_data.get("slice_name"):
-            chart_name = form_data["slice_name"]
-        elif form_data and form_data.get("viz_type"):
-            chart_name = form_data["viz_type"]
+        chart_name = "export"
+        for candidate in candidates:
+            if not isinstance(candidate, str):
+                continue
+            # secure_filename strips a name written entirely in a non-latin
+            # alphabet down to an empty string; skip such candidates so the
+            # filename keeps a meaningful segment.
+            if safe_candidate := secure_filename(candidate):
+                chart_name = safe_candidate
+                break
+
+        # Chart names can be up to 250 characters; cap the name segment so
+        # the whole filename (prefix, timestamp and extension included)
+        # stays within the 255-character single-component limit common to
+        # NTFS, ext4 and APFS.
+        chart_name = chart_name[:150]
 
         return secure_filename(f"superset_{chart_name}_{timestamp}")
 
@@ -645,6 +652,7 @@ class ChartDataRestApi(ChartRestApi):
         expected_rows: int | None = None,
         add_extra_log_payload: Callable[..., None] | None = None,
         dashboard_filter_context: DashboardFilterContext | None = None,
+        slice_: Slice | None = None,
     ) -> Response:
         """Get data response and optionally log is_cached information."""
         try:
@@ -669,6 +677,7 @@ class ChartDataRestApi(ChartRestApi):
             filename,
             expected_rows,
             dashboard_filter_context=dashboard_filter_context,
+            slice_=slice_,
         )
 
     def _extract_export_params_from_request(self) -> tuple[str | None, int | None]:
@@ -693,10 +702,6 @@ class ChartDataRestApi(ChartRestApi):
                 logger.warning("Invalid expected_rows value: %s", expected_rows_str)
 
         return filename, expected_rows
-
-    # pylint: disable=invalid-name
-    def _load_query_context_form_from_cache(self, cache_key: str) -> dict[str, Any]:
-        return QueryContextCacheLoader.load(cache_key)
 
     def _map_form_data_datasource_to_dataset_id(
         self, form_data: dict[str, Any]
@@ -776,13 +781,14 @@ class ChartDataRestApi(ChartRestApi):
         form_data: dict[str, Any] | None = None,
         filename: str | None = None,
         expected_rows: int | None = None,
+        slice_: Slice | None = None,
     ) -> Response:
         """Create a streaming CSV response for large datasets."""
         query_context = result["query_context"]
 
         # Use filename from frontend if provided, otherwise generate one
         if not filename:
-            filename = f"{self._get_default_export_filename(form_data)}.csv"
+            filename = f"{self._get_default_export_filename(form_data, slice_)}.csv"
         else:
             # Sanitize the client-provided filename before placing it in the
             # Content-Disposition header to avoid header/path injection.

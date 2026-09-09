@@ -386,7 +386,7 @@ describe('ChartPage', () => {
       window.history.pushState(
         {},
         '',
-        `/?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
+        `/explore/?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
       );
       const { getByTestId } = render(<ChartPage />, {
         useRouter: true,
@@ -424,13 +424,13 @@ describe('ChartPage', () => {
       window.history.pushState(
         {},
         '',
-        `/?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
+        `/explore/?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
       );
       const { getByTestId } = render(
         <>
           <Link
             to={{
-              pathname: '/',
+              pathname: '/explore/',
               search: `?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
               state: { saveAction: 'overwrite' },
             }}
@@ -487,7 +487,7 @@ describe('ChartPage', () => {
       });
       render(
         <>
-          <Link to="/?slice_id=99">Navigate away</Link>
+          <Link to="/explore/?slice_id=99">Navigate away</Link>
           <ChartPage />
         </>,
         {
@@ -545,7 +545,7 @@ describe('ChartPage', () => {
         <>
           <Link
             to={{
-              pathname: '/',
+              pathname: '/explore/',
               search: `?${URL_PARAMS.sliceId.name}=${formData.slice_id}`,
               state: toChartStateHistoryState({
                 ...formData,
@@ -555,7 +555,7 @@ describe('ChartPage', () => {
           >
             Change the chart
           </Link>
-          <Link to="/?slice_id=99">Navigate away</Link>
+          <Link to="/explore/?slice_id=99">Navigate away</Link>
           <ChartPage />
         </>,
         { useRouter: true, useRedux: true, useDnd: true },
@@ -596,14 +596,14 @@ describe('ChartPage', () => {
         <>
           <Link
             to={{
-              pathname: '/',
+              pathname: '/explore/',
               search: `?${URL_PARAMS.sliceId.name}=99`,
               state: toChartStateHistoryState({ ...formData, slice_id: 99 }),
             }}
           >
             Another chart
           </Link>
-          <Link to="/?slice_id=100">Navigate away</Link>
+          <Link to="/explore/?slice_id=100">Navigate away</Link>
           <ChartPage />
         </>,
         { useRouter: true, useRedux: true, useDnd: true },
@@ -640,14 +640,14 @@ describe('ChartPage', () => {
         <>
           <Link
             to={{
-              pathname: '/',
+              pathname: '/explore/',
               search: `?${URL_PARAMS.sliceId.name}=${formData.slice_id}`,
               state: toChartStateHistoryState(formData),
             }}
           >
             Change the chart
           </Link>
-          <Link to="/?slice_id=99">Navigate away</Link>
+          <Link to="/explore/?slice_id=99">Navigate away</Link>
           <ChartPage />
         </>,
         { useRouter: true, useRedux: true, useDnd: true, store },
@@ -669,6 +669,32 @@ describe('ChartPage', () => {
       });
       window.history.back();
       await waitFor(() => expect(loads()).toBe(1));
+    });
+
+    test('does not re-fetch explore data when navigating to a dashboard', async () => {
+      const exploreApiRoute = 'glob:*/api/v1/explore/*';
+      const exploreFormData = getExploreFormData({
+        viz_type: VizType.Table,
+        show_cell_bars: true,
+      });
+      fetchMock.get(exploreApiRoute, {
+        result: { dataset: { id: 1 }, form_data: exploreFormData },
+      });
+      render(
+        <>
+          <Link to="/dashboard/5/">Go to dashboard</Link>
+          <ChartPage />
+        </>,
+        { useRouter: true, useRedux: true, useDnd: true },
+      );
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
+      );
+
+      fireEvent.click(screen.getByText('Go to dashboard'));
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1);
     });
   });
 
@@ -722,7 +748,7 @@ describe('ChartPage', () => {
 
     render(
       <>
-        <Link to="/?slice_id=99">Navigate</Link>
+        <Link to="/explore/?slice_id=99">Navigate</Link>
         <ChartPage />
       </>,
       {

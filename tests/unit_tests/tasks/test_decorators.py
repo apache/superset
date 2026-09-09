@@ -146,6 +146,37 @@ class TestTaskDecorator:
             def bad_task(options, arg1: int) -> None:  # noqa: ARG001
                 pass
 
+    def test_decorator_registers_subscription_policy(self):
+        """A subscription policy passed to @task is carried on the wrapper and
+        resolvable from the registry by task type."""
+        from superset.tasks.subscription import TaskSubscriptionPolicy
+
+        class _Policy(TaskSubscriptionPolicy):
+            def on_subscribe(self, task, *, principal, client_ref):  # noqa: ARG002
+                pass
+
+            def on_unsubscribe(self, task, *, principal, client_ref):  # noqa: ARG002
+                return True
+
+        policy = _Policy()
+
+        @task(name="policy_task", scope=TaskScope.SHARED, subscription_policy=policy)
+        def my_task() -> None:
+            pass
+
+        assert my_task.subscription_policy is policy
+        assert TaskRegistry.get_subscription_policy("policy_task") is policy
+
+    def test_decorator_without_policy_defaults_to_none(self):
+        """A task without a subscription policy keeps principal-grain behavior."""
+
+        @task(name="no_policy_task")
+        def my_task() -> None:
+            pass
+
+        assert my_task.subscription_policy is None
+        assert TaskRegistry.get_subscription_policy("no_policy_task") is None
+
 
 class TestTaskWrapperMergeOptions:
     """Tests for TaskWrapper._merge_options()"""
@@ -170,6 +201,7 @@ class TestTaskWrapperMergeOptions:
         merged = merge_task_1._merge_options(None)
         assert merged.task_key == "default_key"
         assert merged.task_name == "Default Name"
+        assert merged.depends_on is None
 
     def test_merge_options_override_task_key(self):
         """Test overriding task_key at call time"""
@@ -215,10 +247,32 @@ class TestTaskWrapperMergeOptions:
         override = TaskOptions(
             task_key="override_key",
             task_name="Override Name",
+            depends_on=[TEST_UUID],
         )
         merged = merge_task_4._merge_options(override)
         assert merged.task_key == "override_key"
         assert merged.task_name == "Override Name"
+        assert merged.depends_on == [TEST_UUID]
+
+    def test_merge_options_depends_on_from_override(self):
+        """Test depends_on is carried through from call-time options"""
+
+        @task(name="test_merge_depends_on_unique")
+        def merge_task_deps() -> None:
+            pass
+
+        override = TaskOptions(depends_on=[TEST_UUID])
+        merged = merge_task_deps._merge_options(override)
+        assert merged.depends_on == [TEST_UUID]
+
+    def test_merge_options_depends_on_default_none(self):
+        """Test depends_on defaults to None when not provided"""
+
+        @task(name="test_merge_depends_on_default_unique")
+        def merge_task_no_deps() -> None:
+            pass
+
+        assert merge_task_no_deps._merge_options(None).depends_on is None
 
 
 class TestTaskWrapperSchedule:
@@ -256,10 +310,11 @@ class TestTaskWrapperSchedule:
 
         schedule_task_2.schedule(123)
 
-        # Verify PRIVATE scope was used (default)
+        # Verify PRIVATE scope was used (default) and no dependencies forwarded
         mock_submit.assert_called_once()
         call_args = mock_submit.call_args
         assert call_args[1]["scope"] == TaskScope.PRIVATE
+        assert call_args[1]["depends_on"] is None
 
     @patch("superset.tasks.decorators.TaskManager.submit_task")
     def test_schedule_with_custom_options(self, mock_submit):
@@ -270,18 +325,23 @@ class TestTaskWrapperSchedule:
         def schedule_task_3(arg1: int) -> None:
             pass
 
-        # Use custom task key and name
+        # Use custom task key, name, and a prerequisite dependency
         schedule_task_3.schedule(
             123,
-            options=TaskOptions(task_key="custom_key", task_name="Custom Task Name"),
+            options=TaskOptions(
+                task_key="custom_key",
+                task_name="Custom Task Name",
+                depends_on=[TEST_UUID],
+            ),
         )
 
-        # Verify scope from decorator and options from call time
+        # Verify scope from decorator and options from call time are forwarded
         mock_submit.assert_called_once()
         call_args = mock_submit.call_args
         assert call_args[1]["scope"] == TaskScope.SYSTEM
         assert call_args[1]["task_key"] == "custom_key"
         assert call_args[1]["task_name"] == "Custom Task Name"
+        assert call_args[1]["depends_on"] == [TEST_UUID]
 
     @patch("superset.tasks.decorators.TaskManager.submit_task")
     def test_schedule_with_no_decorator_options(self, mock_submit):
@@ -340,6 +400,33 @@ class TestTaskWrapperCall:
         """Clear task registry before each test"""
         TaskRegistry._tasks.clear()
 
+    @patch("superset.tasks.context.TaskContext.mark_execution_completed")
+    @patch("superset.commands.tasks.internal_update.InternalStatusTransitionCommand")
+    @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
+    @patch("superset.commands.tasks.submit.SubmitTaskCommand.run_with_info")
+    def test_call_marks_execution_completed_after_func(
+        self, mock_submit, mock_find, mock_transition, mock_mark
+    ):
+        """Sync inline execution marks completion after the body runs, so a late
+        cancel signal can't flip a finished task to ABORTED (mirrors async)."""
+        task_obj = MagicMock()
+        task_obj.uuid = TEST_UUID
+        task_obj.status = "pending"
+        mock_submit.return_value = (task_obj, True)  # new task → executes inline
+        mock_find.return_value = task_obj
+        mock_transition.return_value.run.return_value = True  # transitions succeed
+
+        ran = []
+
+        @task(name="test_mark_completed_unique")
+        def call_task(value: int) -> None:
+            ran.append(value)
+
+        call_task(7)
+
+        assert ran == [7]  # the body executed
+        mock_mark.assert_called_once()  # and completion was marked afterwards
+
     @patch("superset.commands.tasks.update.UpdateTaskCommand.run")
     @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
     @patch("superset.commands.tasks.submit.SubmitTaskCommand.run_with_info")
@@ -391,15 +478,15 @@ class TestTaskWrapperCall:
 
     @patch("superset.commands.tasks.update.UpdateTaskCommand.run")
     @patch("superset.daos.tasks.TaskDAO.find_one_or_none")
-    @patch("superset.commands.tasks.submit.SubmitTaskCommand.run_with_info")
+    @patch("superset.commands.tasks.submit.SubmitTaskCommand")
     def test_call_with_custom_options(
-        self, mock_submit_run_with_info, mock_find, mock_update_run
+        self, mock_submit_command, mock_find, mock_update_run
     ):
-        """Test direct call with custom task options"""
+        """Test direct call forwards custom task options to SubmitTaskCommand"""
         mock_task = MagicMock()
         mock_task.uuid = TEST_UUID
         mock_task.status = "in_progress"
-        mock_submit_run_with_info.return_value = (mock_task, True)  # (task, is_new)
+        mock_submit_command.return_value.run_with_info.return_value = (mock_task, True)
         mock_update_run.return_value = mock_task
         mock_find.return_value = mock_task  # Mock the subsequent find call
 
@@ -407,14 +494,29 @@ class TestTaskWrapperCall:
         def call_task_3(arg1: int) -> None:
             pass
 
-        # Use custom task key and name
+        # Use custom task key and name, plus a prerequisite dependency
         call_task_3(
             123,
-            options=TaskOptions(task_key="custom_key", task_name="Custom Task Name"),
+            options=TaskOptions(
+                task_key="custom_key",
+                task_name="Custom Task Name",
+                depends_on=[TEST_UUID],
+            ),
         )
 
-        # Verify SubmitTaskCommand.run_with_info was called
-        mock_submit_run_with_info.assert_called_once()
+        # The synchronous path must submit the same options the async path does,
+        # including depends_on (silently dropping it would run the task before its
+        # prerequisites).
+        mock_submit_command.assert_called_once_with(
+            {
+                "task_type": "test_call_custom_unique",
+                "task_key": "custom_key",
+                "task_name": "Custom Task Name",
+                "scope": TaskScope.SYSTEM.value,
+                "properties": {"execution_mode": "sync"},
+                "depends_on": [TEST_UUID],
+            }
+        )
 
     def test_call_shared_task_requires_task_key(self):
         """Test shared task direct call requires explicit task_key"""

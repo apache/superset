@@ -182,8 +182,10 @@ export default class AdhocFilter {
           // A non-empty array of values ('IN' or 'NOT IN' clauses)
           return this.comparator.length > 0;
         }
-        // A value has been selected or typed
-        return this.comparator !== null;
+        // A value has been selected or typed. An unset comparator is
+        // `undefined` rather than `null`: picking a new subject resets it, and
+        // the value Select's clear affordance emits `undefined` too.
+        return this.comparator != null;
       }
     }
 

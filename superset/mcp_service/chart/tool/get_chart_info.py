@@ -201,6 +201,7 @@ def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None
         title="Get chart info",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_chart_info(
