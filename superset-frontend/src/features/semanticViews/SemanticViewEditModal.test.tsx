@@ -17,7 +17,7 @@
  * under the License.
  */
 import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { act, render, screen, waitFor } from 'spec/helpers/testing-library';
 import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 
 import SemanticViewEditModal from './SemanticViewEditModal';
@@ -38,6 +38,10 @@ const mockedGetClientErrorObject = getClientErrorObject as jest.Mock;
 
 const MOCK_STRUCTURE = {
   result: {
+    // Matches createProps() so tests that are not about hydration keep
+    // asserting the same values whichever source the form reads from.
+    description: 'old description',
+    cache_timeout: 60,
     dimensions: [
       {
         name: 'order_date',
@@ -158,6 +162,137 @@ test('fetches structure on mount', async () => {
   });
 });
 
+// sc-107904: the caller passes its own copy of description/cache_timeout, and
+// that copy goes stale as soon as this modal saves — Explore feeds the
+// pre-edit datasource straight back into the store. The modal must therefore
+// hydrate the Details tab from /structure, not from the prop.
+test('hydrates Details from the server, not the stale caller prop', async () => {
+  mockedGet.mockResolvedValue({
+    json: {
+      result: {
+        ...MOCK_STRUCTURE.result,
+        description: 'saved on the server',
+        cache_timeout: 900,
+      },
+    },
+  });
+  const props = createProps();
+
+  render(<SemanticViewEditModal {...props} />);
+
+  await waitFor(() => {
+    expect(screen.getByDisplayValue('saved on the server')).toBeInTheDocument();
+  });
+  expect(screen.queryByDisplayValue('old description')).not.toBeInTheDocument();
+
+  mockedPut.mockResolvedValue({});
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+  await waitFor(() => {
+    expect(mockedPut).toHaveBeenCalledWith({
+      endpoint: '/api/v1/semantic_view/7',
+      jsonPayload: {
+        description: 'saved on the server',
+        cache_timeout: 900,
+      },
+    });
+  });
+});
+
+test('preserves unsaved edits when the parent recreates its props', async () => {
+  const props = createProps();
+  const { rerender } = render(<SemanticViewEditModal {...props} />);
+
+  const description = await screen.findByDisplayValue('old description');
+  await userEvent.clear(description);
+  await userEvent.type(description, 'unsaved edit');
+
+  rerender(
+    <SemanticViewEditModal
+      {...props}
+      semanticView={{
+        ...props.semanticView,
+        description: 'changed parent value',
+        cache_timeout: 120,
+      }}
+    />,
+  );
+
+  expect(screen.getByDisplayValue('unsaved edit')).toBeInTheDocument();
+});
+
+test('hydrates null description and cache timeout from the server', async () => {
+  mockedGet.mockResolvedValue({
+    json: {
+      result: {
+        ...MOCK_STRUCTURE.result,
+        description: null,
+        cache_timeout: null,
+      },
+    },
+  });
+  const props = createProps();
+
+  render(<SemanticViewEditModal {...props} />);
+
+  mockedPut.mockResolvedValue({});
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: /save/i })).toBeEnabled();
+  });
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+  await waitFor(() => {
+    expect(mockedPut).toHaveBeenCalledWith({
+      endpoint: '/api/v1/semantic_view/7',
+      jsonPayload: {
+        description: null,
+        cache_timeout: null,
+      },
+    });
+  });
+});
+
+test('keeps prop-seeded values when the server omits the editable fields', async () => {
+  // An older backend (deploy skew) returns structure without description /
+  // cache_timeout. Hydration must not blank the form — otherwise a save
+  // right after would silently null the user's persisted description.
+  const { dimensions, metrics } = MOCK_STRUCTURE.result;
+  mockedGet.mockResolvedValue({ json: { result: { dimensions, metrics } } });
+  const props = createProps();
+
+  render(<SemanticViewEditModal {...props} />);
+
+  mockedPut.mockResolvedValue({});
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: /save/i })).toBeEnabled();
+  });
+  expect(screen.getByDisplayValue('old description')).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+  await waitFor(() => {
+    expect(mockedPut).toHaveBeenCalledWith({
+      endpoint: '/api/v1/semantic_view/7',
+      jsonPayload: {
+        description: 'old description',
+        cache_timeout: 60,
+      },
+    });
+  });
+});
+
+test('falls back to the caller prop when the structure fetch fails', async () => {
+  mockedGet.mockRejectedValue(new Error('structure failed'));
+  mockedGetClientErrorObject.mockResolvedValue({ error: 'boom' });
+  const props = createProps();
+
+  render(<SemanticViewEditModal {...props} />);
+
+  await waitFor(() => {
+    expect(props.addDangerToast).toHaveBeenCalledWith('boom');
+  });
+  expect(screen.getByDisplayValue('old description')).toBeInTheDocument();
+});
+
 test('fetches and displays dimensions tab', async () => {
   const props = createProps();
 
@@ -238,6 +373,45 @@ test('handles structure fetch error', async () => {
   });
 });
 
+test('does not toast if the fetch is cancelled while formatting its error', async () => {
+  let resolveClientError: (value: { error: string }) => void = () => {};
+  mockedGet.mockRejectedValue(new Error('fetch failed'));
+  mockedGetClientErrorObject.mockImplementation(
+    () =>
+      new Promise(resolve => {
+        resolveClientError = resolve;
+      }),
+  );
+  const props = createProps();
+  const { rerender } = render(<SemanticViewEditModal {...props} />);
+
+  await waitFor(() => {
+    expect(mockedGetClientErrorObject).toHaveBeenCalled();
+  });
+  rerender(<SemanticViewEditModal {...props} show={false} />);
+  await act(async () => {
+    resolveClientError({ error: 'Failed to load structure' });
+  });
+
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+});
+
+test('clears structure loading when the semantic view is removed', async () => {
+  mockedGet.mockReturnValue(new Promise(() => {}));
+  const props = createProps();
+  const { rerender } = render(<SemanticViewEditModal {...props} />);
+
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: /save/i })).toBeDisabled();
+  });
+
+  rerender(<SemanticViewEditModal {...props} semanticView={null} />);
+
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: /save/i })).toBeEnabled();
+  });
+});
+
 test('details tab save still works after viewing structure tabs', async () => {
   mockedPut.mockResolvedValue({});
   const props = createProps();
@@ -272,6 +446,8 @@ test('details tab save still works after viewing structure tabs', async () => {
 
 const LARGE_STRUCTURE = {
   result: {
+    description: 'old description',
+    cache_timeout: 60,
     dimensions: Array.from({ length: 500 }, (_, i) => ({
       name: `dim_${String(i).padStart(3, '0')}`,
       type: 'string',

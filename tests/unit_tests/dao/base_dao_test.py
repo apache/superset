@@ -23,7 +23,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from sqlalchemy import Boolean, Column, Integer, String
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import OperationalError, SQLAlchemyError, StatementError
 from sqlalchemy.orm import declarative_base
 from superset_core.common.models import CoreModel
 
@@ -258,6 +258,129 @@ def test_find_by_ids_none_id_column():
         results = TestDAO.find_by_ids([1, 2, 3])
 
         assert results == []
+
+
+def _make_operational_error() -> OperationalError:
+    """Build an OperationalError resembling a transient connection drop."""
+    return OperationalError(
+        "SELECT 1",
+        {},
+        Exception("SSL connection has been closed unexpectedly"),
+    )
+
+
+def test_find_by_ids_operational_error_propagates():
+    """A transient OperationalError from query.all() must propagate as itself,
+    not be masked as a 400 DAOFindFailedError ("record doesn't exist")."""
+
+    with (
+        patch("superset.daos.base.db") as mock_db,
+        patch("superset.daos.base.getattr") as mock_getattr,
+    ):
+        mock_session = Mock()
+        mock_db.session = mock_session
+
+        mock_id_col = Mock()
+        mock_id_col.in_.return_value = Mock()
+        mock_getattr.return_value = mock_id_col
+
+        mock_query = Mock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.all.side_effect = _make_operational_error()
+
+        with pytest.raises(OperationalError):
+            TestDAO.find_by_ids([1, 2])
+
+
+def test_find_by_id_or_uuid_operational_error_propagates():
+    """find_by_id_or_uuid catches StatementError to absorb coercion errors;
+    an OperationalError (a StatementError subclass) must still propagate."""
+
+    with (
+        patch("superset.daos.base.db") as mock_db,
+        patch("superset.daos.base.getattr") as mock_getattr,
+    ):
+        mock_session = Mock()
+        mock_db.session = mock_session
+        mock_getattr.return_value = Mock()
+
+        mock_query = Mock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.one_or_none.side_effect = _make_operational_error()
+
+        with pytest.raises(OperationalError):
+            TestDAO.find_by_id_or_uuid("1")
+
+
+def test_find_by_id_or_uuid_statement_error_still_returns_none():
+    """A genuine coercion StatementError is still absorbed as None (unchanged)."""
+
+    with (
+        patch("superset.daos.base.db") as mock_db,
+        patch("superset.daos.base.getattr") as mock_getattr,
+    ):
+        mock_session = Mock()
+        mock_db.session = mock_session
+        mock_getattr.return_value = Mock()
+
+        mock_query = Mock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.one_or_none.side_effect = StatementError(
+            "invalid input", "SELECT 1", {}, Exception("coercion")
+        )
+
+        assert TestDAO.find_by_id_or_uuid("not-a-uuid") is None
+
+
+def test_find_by_column_operational_error_propagates():
+    """_find_by_column catches StatementError to absorb coercion errors;
+    an OperationalError (a StatementError subclass) must still propagate."""
+
+    with (
+        patch("superset.daos.base.db") as mock_db,
+        patch("superset.daos.base.getattr") as mock_getattr,
+        patch("superset.daos.base.hasattr", return_value=True),
+        patch.object(TestDAO, "_apply_base_filter", side_effect=lambda q, *a, **k: q),
+        patch.object(TestDAO, "_convert_value_for_column", return_value="value"),
+    ):
+        mock_session = Mock()
+        mock_db.session = mock_session
+        mock_getattr.return_value = Mock()
+
+        mock_query = Mock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.one_or_none.side_effect = _make_operational_error()
+
+        with pytest.raises(OperationalError):
+            TestDAO._find_by_column("name", "test")
+
+
+def test_find_by_column_statement_error_still_returns_none():
+    """A genuine coercion StatementError is still absorbed as None (unchanged)."""
+
+    with (
+        patch("superset.daos.base.db") as mock_db,
+        patch("superset.daos.base.getattr") as mock_getattr,
+        patch("superset.daos.base.hasattr", return_value=True),
+        patch.object(TestDAO, "_apply_base_filter", side_effect=lambda q, *a, **k: q),
+        patch.object(TestDAO, "_convert_value_for_column", return_value="value"),
+    ):
+        mock_session = Mock()
+        mock_db.session = mock_session
+        mock_getattr.return_value = Mock()
+
+        mock_query = Mock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.one_or_none.side_effect = StatementError(
+            "invalid input", "SELECT 1", {}, Exception("coercion")
+        )
+
+        assert TestDAO._find_by_column("name", "test") is None
 
 
 def _list_with_page_size(page_size: int) -> Mock:

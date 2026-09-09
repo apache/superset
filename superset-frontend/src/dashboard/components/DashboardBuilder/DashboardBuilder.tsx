@@ -38,7 +38,7 @@ import {
 } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
-import { EmptyState, Loading } from '@superset-ui/core/components';
+import { Drawer, EmptyState, Loading } from '@superset-ui/core/components';
 import { ErrorBoundary, BasicErrorAlert } from 'src/components';
 import BuilderComponentPane from 'src/dashboard/components/BuilderComponentPane';
 import DashboardHeader from 'src/dashboard/components/Header';
@@ -74,6 +74,7 @@ import {
 } from 'src/dashboard/util/constants';
 import FilterBar from 'src/dashboard/components/nativeFilters/FilterBar';
 import { useUiConfig } from 'src/components/UiConfigContext';
+import { isMobileConsumptionEnabled, useIsMobile } from 'src/hooks/useIsMobile';
 import ResizableSidebar from 'src/components/ResizableSidebar';
 import {
   BUILDER_SIDEPANEL_WIDTH,
@@ -127,6 +128,19 @@ const StyledHeader = styled.div<{ filterBarWidth: number }>`
     z-index: 99;
     max-width: calc(100vw - ${filterBarWidth}px);
 
+    /* Mobile consumption mode: let the dashboard title scroll away and keep
+       only the tab bar sticky. A pinned title would sit underneath the
+       higher-z sticky tabs, leaving its bottom edge (kebab button) peeking
+       out below the tab bar. */
+    ${
+      isMobileConsumptionEnabled() &&
+      css`
+        @media (max-width: ${theme.screenSMMax}px) {
+          position: relative;
+        }
+      `
+    }
+
     .empty-droptarget {
       min-height: ${theme.sizeUnit * 4}px;
     }
@@ -151,19 +165,48 @@ const StyledContent = styled.div<{
 }>`
   grid-column: 2;
   grid-row: 2;
-  /* @z-index-above-dashboard-header (100) + 1 = 101 */
-  ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 101;`}
+  /* @z-index-above-dashboard-header (100) + 2 = 102: a maximized chart
+     must also cover the version-history overlay (101) so the two stack the
+     same way on both sides of the overlay breakpoint. */
+  ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 102;`}
 `;
 
 // Sticks alongside the page scroll so the panel stays fully visible.
+// Below the XXL breakpoint the dashboard grid's min-content width plus the
+// panel exceed the viewport (the content column cannot shrink), which would
+// push the panel past the page's right edge and clip its own controls
+// (sc-119737). Mirror the Explore panel host in spirit — Explore anchors
+// absolutely inside its relatively-positioned container, but the dashboard
+// page owns the scroll, so this pins to the viewport instead. While open at
+// these widths the overlay covers the page's right edge (including the top
+// navbar while scrolled to the top) — accepted: it is a closable surface.
 const VersionHistoryColumn = styled.div`
-  grid-column: 3;
-  grid-row: 1 / span 2;
-  position: sticky;
-  top: 0;
-  align-self: start;
-  height: 100vh;
-  z-index: 99;
+  ${({ theme }) => css`
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    position: sticky;
+    top: 0;
+    align-self: start;
+    height: 100vh;
+    z-index: 99;
+    @media (max-width: ${theme.screenXLMax}px) {
+      /* @z-index-above-dashboard-header (100) + 1 = 101 */
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      height: auto;
+      z-index: 101;
+      box-shadow: ${theme.boxShadow};
+      /* Load-bearing contract with DashboardVersionHistory's closed state:
+         it must render nothing in place (its restore modal portals out of
+         the column), so the column stays :empty and this zero-width fixed
+         box paints no stray shadow at the viewport edge. Pinned by the
+         closed-state test in DashboardVersionHistory.test.tsx. */
+      &:empty {
+        box-shadow: none;
+      }
+    }
+  `}
 `;
 
 const DashboardContentWrapper = styled.div`
@@ -440,6 +483,25 @@ const DashboardBuilder = () => {
   const dispatch = useDispatch();
   const uiConfig = useUiConfig();
   const theme = useTheme();
+  // Standalone/embedded consumers (standalone=1/2/3) render their own chrome
+  // and may hide DashboardHeader entirely (see hideDashboardHeader below),
+  // which is the only place the mobile filter drawer's trigger lives. Rather
+  // than leave native filters unreachable in that case, standalone views
+  // always get the desktop layout -- matching the pre-existing behavior the
+  // docs already promise for embedded dashboards.
+  const standaloneMode = getUrlParam(URL_PARAMS.standalone);
+  const isNotMobile =
+    !useIsMobile() || standaloneMode !== DashboardStandaloneMode.None;
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  // Reset the drawer's open state when leaving mobile mode so it doesn't
+  // reopen unexpectedly if the viewport later shrinks back below the
+  // breakpoint (the drawer unmounts on desktop, but its state persists).
+  useEffect(() => {
+    if (isNotMobile) {
+      setMobileFiltersOpen(false);
+    }
+  }, [isNotMobile]);
 
   const dashboardId = useSelector<RootState, string>(
     ({ dashboardInfo }) => `${dashboardInfo.id}`,
@@ -506,7 +568,6 @@ const DashboardBuilder = () => {
     rootChildId !== DASHBOARD_GRID_ID
       ? dashboardLayout[rootChildId]
       : undefined;
-  const standaloneMode = getUrlParam(URL_PARAMS.standalone);
   const isReport = standaloneMode === DashboardStandaloneMode.Report;
   // Report mode (standalone=3) hides the filter bar by default, since it's used
   // for one-shot screenshot renders (email reports, thumbnails). Embedded SDK
@@ -551,13 +612,14 @@ const DashboardBuilder = () => {
     dashboardFiltersOpen,
     toggleDashboardFiltersOpen,
     nativeFiltersEnabled,
+    hasFilters,
   } = useNativeFilters();
 
   const [containerRef, isSticky] = useElementOnScreen<HTMLDivElement>(
     ELEMENT_ON_SCREEN_OPTIONS,
   );
 
-  const showFilterBar = !editMode && nativeFiltersEnabled;
+  const showFilterBar = isNotMobile && !editMode && nativeFiltersEnabled;
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
@@ -569,6 +631,7 @@ const DashboardBuilder = () => {
   const draggableStyle = useMemo(
     () => ({
       marginLeft:
+        !isNotMobile ||
         dashboardFiltersOpen ||
         editMode ||
         !nativeFiltersEnabled ||
@@ -577,6 +640,7 @@ const DashboardBuilder = () => {
           : -32,
     }),
     [
+      isNotMobile,
       dashboardFiltersOpen,
       editMode,
       filterBarOrientation,
@@ -608,7 +672,15 @@ const DashboardBuilder = () => {
   const headerContent = useMemo(
     () => (
       <>
-        {!hideDashboardHeader && <DashboardHeader />}
+        {!hideDashboardHeader && (
+          <DashboardHeader
+            onOpenMobileFilters={
+              !isNotMobile && nativeFiltersEnabled && hasFilters
+                ? () => setMobileFiltersOpen(true)
+                : undefined
+            }
+          />
+        )}
         {/* Report mode is a one-shot screenshot render (reports, thumbnails),
             so it must never start a refresh timer that could re-fetch charts
             mid-capture. */}
@@ -641,10 +713,14 @@ const DashboardBuilder = () => {
     ),
     [
       hideDashboardHeader,
+      isNotMobile,
+      nativeFiltersEnabled,
+      hasFilters,
       showFilterBar,
       filterBarOrientation,
       hideFilterBar,
       isVersionPreviewActive,
+      isReport,
     ],
   );
 
@@ -689,6 +765,8 @@ const DashboardBuilder = () => {
       topLevelTabs,
       uiConfig.hideTab,
       uiConfig.hideNav,
+      isNotMobile,
+      theme,
     ],
   );
 
@@ -922,6 +1000,36 @@ const DashboardBuilder = () => {
             }
           `}
         />
+      )}
+      {/* Mobile filters drawer */}
+      {!isNotMobile && nativeFiltersEnabled && hasFilters && (
+        <Drawer
+          title={t('Filters')}
+          placement="left"
+          onClose={() => setMobileFiltersOpen(false)}
+          open={mobileFiltersOpen}
+          width="85vw"
+          styles={{
+            body: {
+              padding: 0,
+              display: 'flex',
+              flexDirection: 'column',
+            },
+          }}
+        >
+          <FilterBar
+            orientation={FilterBarOrientation.Vertical}
+            verticalConfig={{
+              filtersOpen: true,
+              toggleFiltersBar: () => {},
+              width: 300,
+              height: '100%',
+              offset: 0,
+              mobileMode: true,
+            }}
+            hidden={false}
+          />
+        </Drawer>
       )}
     </DashboardWrapper>
   );

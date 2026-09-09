@@ -26,8 +26,9 @@ from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
-from sqlalchemy import types
+from sqlalchemy import func, types
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.expression import ColumnElement
 from urllib3.exceptions import NewConnectionError
 
 from superset.databases.utils import make_url_safe
@@ -55,6 +56,7 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
 
     time_groupby_inline = True
     supports_multivalues_insert = True
+    supports_multivalue_columns = True
 
     # ClickHouse doesn't support IS true/false syntax, use = true/false instead
     use_equality_for_boolean_filters = True
@@ -112,6 +114,7 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
+        "PT1S": "toStartOfSecond(toDateTime64({col}, 3))",
         "PT1M": "toStartOfMinute(toDateTime({col}))",
         "PT5M": "toDateTime(intDiv(toUInt32(toDateTime({col})), 300)*300)",
         "PT10M": "toDateTime(intDiv(toUInt32(toDateTime({col})), 600)*600)",
@@ -127,12 +130,18 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
 
     column_type_mappings = (
         (
-            re.compile(r".*Enum.*", re.IGNORECASE),
+            # Anchor to the start so only top-level arrays match. This must be
+            # ordered before the ``Enum`` entry below: ``Array(Enum8(...))`` is a
+            # real array and should classify as MULTI_VALUE, not STRING. The
+            # anchor also prevents over-matching nested arrays such as
+            # ``Map(String, Array(String))`` or ``Tuple(Array(String))``, which
+            # are not themselves array columns and must keep their own type.
+            re.compile(r"^Array\(", re.IGNORECASE),
             types.String(),
-            GenericDataType.STRING,
+            GenericDataType.MULTI_VALUE,
         ),
         (
-            re.compile(r".*Array.*", re.IGNORECASE),
+            re.compile(r".*Enum.*", re.IGNORECASE),
             types.String(),
             GenericDataType.STRING,
         ),
@@ -172,6 +181,56 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
             GenericDataType.TEMPORAL,
         ),
     )
+
+    @classmethod
+    def array_contains_any(cls, col: ColumnElement, values: list[Any]) -> ColumnElement:
+        # ClickHouse: hasAny(arr, [v1, v2]) -> 1 if arr shares any element.
+        # func.array(*values) renders as array(v1, v2) == [v1, v2].
+        return func.hasAny(col, func.array(*values))
+
+    @classmethod
+    def array_contains_all(cls, col: ColumnElement, values: list[Any]) -> ColumnElement:
+        # ClickHouse: hasAll(arr, [v1, v2]) -> 1 if arr contains all elements.
+        return func.hasAll(col, func.array(*values))
+
+    @classmethod
+    def array_length(cls, col: ColumnElement) -> ColumnElement:
+        # ClickHouse: length(arr) -> number of elements
+        return func.length(col)
+
+    @classmethod
+    def array_literal(cls, values: list[Any]) -> ColumnElement:
+        # ClickHouse: array(v1, v2) is equivalent to the literal [v1, v2].
+        return func.array(*values)
+
+    @classmethod
+    def array_explode(cls, col: ColumnElement) -> ColumnElement:
+        # ClickHouse: arrayJoin(arr) yields one row per element, so
+        # SELECT DISTINCT arrayJoin(arr) returns the distinct elements.
+        return func.arrayJoin(col)
+
+    # Matches the element type inside a top-level ``Array(...)`` column, e.g.
+    # ``Array(Int32)`` -> ``Int32``, ``Array(Nullable(String))`` -> ``String``.
+    _ARRAY_ELEMENT_RE = re.compile(r"^Array\((?P<inner>.+)\)$", re.IGNORECASE)
+    # Element-type wrappers that don't change the underlying generic type.
+    _ELEMENT_WRAPPER_RE = re.compile(
+        r"^(?:Nullable|LowCardinality)\((?P<inner>.+)\)$", re.IGNORECASE
+    )
+
+    @classmethod
+    def get_array_element_type(cls, native_type: str | None) -> GenericDataType | None:
+        if not native_type:
+            return None
+        match = cls._ARRAY_ELEMENT_RE.match(native_type.strip())
+        if not match:
+            return None
+        inner = match.group("inner").strip()
+        # Peel wrappers (Nullable/LowCardinality) that don't alter the generic
+        # type so the inner scalar type drives classification.
+        while wrapper := cls._ELEMENT_WRAPPER_RE.match(inner):
+            inner = wrapper.group("inner").strip()
+        spec = cls.get_column_spec(inner)
+        return spec.generic_type if spec else None
 
     @classmethod
     def epoch_to_dttm(cls) -> str:
@@ -487,17 +546,19 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         if not url_params.get("database"):
             url_params["database"] = "__default__"
 
-        return str(
-            URL.create(
-                f"{cls.engine}+{cls.default_driver}",
-                username=url_params.get("username"),
-                password=url_params.get("password"),
-                host=url_params.get("host"),
-                port=url_params.get("port"),
-                database=url_params.get("database"),
-                query=url_params.get("query"),
-            )
-        )
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return URL.create(
+            f"{cls.engine}+{cls.default_driver}",
+            username=url_params.get("username"),
+            password=url_params.get("password"),
+            host=url_params.get("host"),
+            port=url_params.get("port"),
+            database=url_params.get("database"),
+            query=url_params.get("query"),
+        ).render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(

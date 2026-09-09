@@ -20,10 +20,8 @@ attrs==25.3.0
     # via
     #   cattrs
     #   jsonschema
-    #   outcome
     #   referencing
     #   requests-cache
-    #   trio
 babel==2.17.0
     # via flask-babel
 backoff==2.2.1
@@ -42,27 +40,25 @@ brotli==1.2.0
     # via
     #   -r requirements/base.in
     #   flask-compress
-cachelib==0.13.0
+cachelib==0.17.0
     # via
     #   flask-caching
     #   flask-session
-cachetools==7.1.6
+cachetools==7.1.7
     # via apache-superset (pyproject.toml)
 cattrs==25.1.1
     # via requests-cache
 celery==5.6.3
     # via apache-superset (pyproject.toml)
 certifi==2026.5.20
-    # via
-    #   requests
-    #   selenium
+    # via requests
 cffi==2.0.0
     # via
     #   cryptography
     #   pynacl
 charset-normalizer==3.4.2
     # via requests
-click==8.4.2
+click==8.5.0
     # via
     #   apache-superset (pyproject.toml)
     #   celery
@@ -88,7 +84,7 @@ cron-descriptor==1.4.5
     # via apache-superset (pyproject.toml)
 croniter==6.2.4
     # via apache-superset (pyproject.toml)
-cryptography==50.0.0
+cryptography==50.0.1
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
@@ -109,7 +105,7 @@ et-xmlfile==2.0.0
     # via openpyxl
 filelock==3.20.3
     # via -r requirements/base.in
-flask==2.3.3
+flask==3.1.3
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
@@ -128,9 +124,9 @@ flask-appbuilder==5.2.2
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
-flask-babel==3.1.0
+flask-babel==4.0.0
     # via flask-appbuilder
-flask-caching==2.4.1
+flask-caching==2.5.0
     # via apache-superset (pyproject.toml)
 flask-compress==1.24
     # via apache-superset (pyproject.toml)
@@ -148,7 +144,7 @@ flask-migrate==4.1.0
     # via apache-superset (pyproject.toml)
 flask-session==0.8.0
     # via apache-superset (pyproject.toml)
-flask-sqlalchemy==2.5.1
+flask-sqlalchemy==3.1.1
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
@@ -167,18 +163,16 @@ google-auth==2.53.0
     # via
     #   -r requirements/base.in
     #   shillelagh
-greenlet==3.5.4
+greenlet==3.5.5
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
     #   sqlalchemy
-gunicorn==26.0.0
+gunicorn==26.2.0
     # via apache-superset (pyproject.toml)
-h11==0.16.0
-    # via wsproto
 hashids==1.3.1
     # via apache-superset (pyproject.toml)
-holidays==0.102
+holidays==0.103
     # via apache-superset (pyproject.toml)
 humanize==4.12.3
     # via apache-superset (pyproject.toml)
@@ -186,7 +180,6 @@ idna==3.15
     # via
     #   email-validator
     #   requests
-    #   trio
     #   url-normalize
 isodate==0.7.2
     # via
@@ -214,7 +207,7 @@ kombu==5.6.2
     # via celery
 limits==5.1.0
     # via flask-limiter
-mako==1.3.12
+mako==1.4.1
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
@@ -225,11 +218,12 @@ markdown-it-py==3.0.0
     # via rich
 markupsafe==3.0.2
     # via
+    #   flask
     #   jinja2
     #   mako
     #   werkzeug
     #   wtforms
-marshmallow==4.3.0
+marshmallow==4.3.1
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
@@ -243,11 +237,11 @@ marshmallow-union==0.1.15.post1
     # via apache-superset (pyproject.toml)
 mdurl==0.1.2
     # via markdown-it-py
-msgpack==1.2.1
+msgpack==1.2.2
     # via apache-superset (pyproject.toml)
 msgspec==0.19.0
     # via flask-session
-nh3==0.3.6
+nh3==0.3.7
     # via apache-superset (pyproject.toml)
 numexpr==2.10.2
     # via -r requirements/base.in
@@ -265,16 +259,11 @@ openpyxl==3.1.5
     # via pandas
 ordered-set==4.1.0
     # via flask-limiter
-outcome==1.3.0.post0
-    # via
-    #   trio
-    #   trio-websocket
 packaging==25.0
     # via
     #   apache-superset (pyproject.toml)
     #   apispec
     #   deprecation
-    #   gunicorn
     #   kombu
     #   limits
     #   shillelagh
@@ -296,7 +285,7 @@ prison==0.2.1
     # via flask-appbuilder
 prompt-toolkit==3.0.51
     # via click-repl
-pyarrow==25.0.0
+pyarrow==25.0.1
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
@@ -307,11 +296,11 @@ pyasn1-modules==0.4.2
     # via google-auth
 pycparser==2.22
     # via cffi
-pydantic==2.13.4
+pydantic==2.13.5
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
-pydantic-core==2.46.4
+pydantic-core==2.46.5
     # via pydantic
 pygeohash==3.2.2
     # via apache-superset (pyproject.toml)
@@ -330,8 +319,6 @@ pyopenssl==26.4.0
     #   shillelagh
 pyparsing==3.3.2
     # via apache-superset (pyproject.toml)
-pysocks==1.7.1
-    # via urllib3
 python-calamine==0.8.2
     # via pandas
 python-dateutil==2.9.0.post0
@@ -378,13 +365,11 @@ rpds-py==0.25.0
     # via
     #   jsonschema
     #   referencing
-selenium==4.46.0
-    # via apache-superset (pyproject.toml)
-setuptools==80.9.0
+setuptools==84.0.0
     # via -r requirements/base.in
 shillelagh==1.4.5
     # via apache-superset (pyproject.toml)
-simplejson==4.1.1
+simplejson==4.1.2
     # via apache-superset (pyproject.toml)
 six==1.17.0
     # via
@@ -392,13 +377,9 @@ six==1.17.0
     #   python-dateutil
     #   rfc3339-validator
     #   wtforms-json
-slack-sdk==3.43.0
+slack-sdk==3.44.1
     # via apache-superset (pyproject.toml)
-sniffio==1.3.1
-    # via trio
-sortedcontainers==2.4.0
-    # via trio
-sqlalchemy==1.4.54
+sqlalchemy==2.0.52
     # via
     #   apache-superset (pyproject.toml)
     #   alembic
@@ -416,7 +397,7 @@ sqlalchemy-utils==0.42.1
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==30.15.0
+sqlglot==30.17.0
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
@@ -424,12 +405,6 @@ sshtunnel==0.4.0
     # via apache-superset (pyproject.toml)
 tabulate==0.10.0
     # via apache-superset (pyproject.toml)
-trio==0.33.0
-    # via
-    #   selenium
-    #   trio-websocket
-trio-websocket==0.12.2
-    # via selenium
 typing-extensions==4.16.0
     # via
     #   apache-superset (pyproject.toml)
@@ -441,8 +416,8 @@ typing-extensions==4.16.0
     #   pydantic-core
     #   pyopenssl
     #   referencing
-    #   selenium
     #   shillelagh
+    #   sqlalchemy
     #   typing-inspection
 typing-inspection==0.4.2
     # via pydantic
@@ -459,7 +434,6 @@ urllib3==2.7.0
     #   -r requirements/base.in
     #   requests
     #   requests-cache
-    #   selenium
 vine==5.1.0
     # via
     #   amqp
@@ -469,8 +443,6 @@ watchdog==6.0.0
     # via apache-superset (pyproject.toml)
 wcwidth==0.2.13
     # via prompt-toolkit
-websocket-client==1.8.0
-    # via selenium
 werkzeug==3.1.6
     # via
     #   -r requirements/base.in
@@ -481,8 +453,6 @@ werkzeug==3.1.6
     #   flask-login
 wrapt==1.17.2
     # via deprecated
-wsproto==1.2.0
-    # via trio-websocket
 wtforms==3.2.2
     # via
     #   apache-superset (pyproject.toml)

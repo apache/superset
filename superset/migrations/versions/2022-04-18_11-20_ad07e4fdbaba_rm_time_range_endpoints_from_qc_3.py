@@ -63,7 +63,7 @@ def upgrade_slice(slc: Slice):
 
 def upgrade():
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
     slices_updated = 0
     for slc in (
         session.query(Slice)

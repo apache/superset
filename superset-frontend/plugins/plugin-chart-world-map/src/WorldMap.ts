@@ -80,6 +80,19 @@ interface DatamapSource {
   country?: string;
 }
 
+/**
+ * Escape HTML special characters to prevent XSS attacks. Popup templates are
+ * assigned to the hover element via innerHTML by the datamaps library, and
+ * formatter output can echo a creator-controlled format string verbatim
+ * (see createD3NumberFormatter's invalid-format fallback), so both the name
+ * and the formatted value must be treated as untrusted text.
+ */
+function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 const propTypes = {
   data: PropTypes.arrayOf(
     PropTypes.shape({
@@ -279,9 +292,9 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
       highlightBorderWidth: 1,
       popupTemplate: (geo, d) =>
         d &&
-        `<div class="hoverinfo"><strong>${d.name}</strong><br>${formatter(
-          d.m1,
-        )}</div>`,
+        `<div class="hoverinfo"><strong>${escapeHtml(
+          d.name,
+        )}</strong><br>${escapeHtml(String(formatter(d.m1)))}</div>`,
     },
     bubblesConfig: {
       borderWidth: 1,
@@ -290,9 +303,9 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
       popupOnHover: !inContextMenu,
       radius: null,
       popupTemplate: (geo, d) =>
-        `<div class="hoverinfo"><strong>${d.name}</strong><br>${formatter(
-          d.m2,
-        )}</div>`,
+        `<div class="hoverinfo"><strong>${escapeHtml(
+          d.name,
+        )}</strong><br>${escapeHtml(String(formatter(d.m2)))}</div>`,
       fillOpacity: 0.5,
       animate: true,
       highlightOnHover: !inContextMenu,

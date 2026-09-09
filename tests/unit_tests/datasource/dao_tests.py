@@ -16,6 +16,7 @@
 # under the License.
 
 from collections.abc import Iterator
+from typing import Any
 
 import pytest
 from sqlalchemy import literal, select
@@ -145,6 +146,48 @@ def test_escape_ilike_fragment() -> None:
     from superset.daos.datasource import _escape_ilike_fragment
 
     assert _escape_ilike_fragment("foo%bar_baz\\") == "foo\\%bar\\_baz\\\\"
+
+
+def test_paginate_combined_query_orders_equal_names_deterministically(
+    session: Session,
+) -> None:
+    """Rows that tie on the sort column must not shuffle between pages."""
+    from sqlalchemy import union_all
+    from sqlalchemy.sql.selectable import Select
+
+    from superset.daos.datasource import DatasourceDAO
+
+    def row(item_id: int, source_type: str, table_name: str) -> Select[Any]:
+        return select(
+            literal(item_id).label("item_id"),
+            literal(source_type).label("source_type"),
+            literal("2026-01-01").label("changed_on"),
+            literal(table_name).label("table_name"),
+        )
+
+    combined = union_all(
+        row(2, "semantic_layer", "orders"),
+        row(3, "database", "orders"),
+        row(1, "semantic_layer", "orders"),
+        row(1, "database", "orders"),
+    ).subquery()
+
+    def page(index: int) -> list[tuple[int, str]]:
+        _, rows = DatasourceDAO.paginate_combined_query(
+            combined=combined,
+            order_column="table_name",
+            order_direction="asc",
+            page=index,
+            page_size=2,
+        )
+        return [(r.item_id, r.source_type) for r in rows]
+
+    assert page(0) + page(1) == [
+        (1, "database"),
+        (3, "database"),
+        (1, "semantic_layer"),
+        (2, "semantic_layer"),
+    ]
 
 
 def test_paginate_combined_query_invalid_sort_column() -> None:

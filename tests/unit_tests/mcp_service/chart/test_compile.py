@@ -225,6 +225,46 @@ class TestValidateAndCompileChartTypeCoverage:
         assert not result.success
         assert result.error_obj is not None
 
+    def test_inert_stale_filter_column_is_ignored(self):
+        """A No filter placeholder produces no predicate and cannot block edits."""
+        ds = _orm_dataset()
+        config = TableChartConfig(columns=[ColumnRef(name="gender")])
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "dropped_column",
+                    "operator": "TEMPORAL_RANGE",
+                    "comparator": "No filter",
+                }
+            ]
+        }
+
+        result = validate_and_compile(config, form_data, ds, run_compile_check=False)
+
+        assert result.success
+
+    def test_no_filter_literal_with_non_temporal_operator_is_validated(self):
+        """A literal value of No filter is not generally an inert predicate."""
+        ds = _orm_dataset()
+        config = TableChartConfig(columns=[ColumnRef(name="gender")])
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "dropped_column",
+                    "operator": "==",
+                    "comparator": "No filter",
+                }
+            ]
+        }
+
+        result = validate_and_compile(config, form_data, ds, run_compile_check=False)
+
+        assert not result.success
+        assert result.error_obj is not None
+        assert result.error_obj.error_type == "invalid_column"
+
 
 class TestSavedMetricNotMarked:
     """A non-saved-metric ColumnRef whose name matches a saved metric is a

@@ -27,7 +27,7 @@ from markupsafe import Markup
 from superset.utils.core import DatasourceType
 
 if TYPE_CHECKING:
-    from superset.async_events.cache_backend import (
+    from superset.coordination.cache_backend import (
         RedisCacheBackend,
         RedisSentinelCacheBackend,
     )
@@ -147,16 +147,12 @@ class SupersetCache(Cache):
     def _memoize_make_cache_key(
         self,
         make_name: Callable[..., Any] | None = None,
-        timeout: Callable[..., Any] | None = None,
-        forced_update: bool = False,
         hash_method: Callable[..., Any] = configurable_hash_method,
         source_check: bool | None = False,
         args_to_ignore: Any | None = None,
     ) -> Callable[..., Any]:
         return super()._memoize_make_cache_key(
             make_name=make_name,
-            timeout=timeout,
-            forced_update=forced_update,
             hash_method=hash_method,
             source_check=source_check,
             args_to_ignore=args_to_ignore,
@@ -257,7 +253,7 @@ class CacheManager:
 
     def _init_distributed_coordination(self, app: Flask) -> None:
         """Initialize the distributed coordination backend (pub/sub, locks, streams)."""
-        from superset.async_events.cache_backend import (
+        from superset.coordination.cache_backend import (
             RedisCacheBackend,
             RedisSentinelCacheBackend,
         )

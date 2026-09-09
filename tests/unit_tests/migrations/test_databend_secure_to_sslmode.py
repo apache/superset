@@ -47,13 +47,13 @@ MASK = "X" * 10
 
 @pytest.fixture
 def engine():
-    engine = create_engine("sqlite:///:memory:", future=True)
+    engine = create_engine("sqlite:///:memory:")
     migration.Base.metadata.create_all(engine)
     return engine
 
 
 def _run(migrate, conn) -> None:
-    session = Session(bind=conn, future=True)
+    session = Session(bind=conn)
     with (
         patch.object(migration, "op") as mock_op,
         patch.object(migration, "db") as mock_db,
@@ -140,7 +140,7 @@ def test_rewrite_query_parameters_ignores_question_mark_in_credentials() -> None
 
 
 def test_upgrade_rewrites_only_databend_connections(engine) -> None:
-    with Session(engine, future=True) as seed:
+    with Session(engine) as seed:
         seed.add_all(
             [
                 Database(
@@ -166,7 +166,7 @@ def test_upgrade_rewrites_only_databend_connections(engine) -> None:
     with engine.begin() as conn:
         _run(migration.upgrade, conn)
 
-    with Session(engine, future=True) as verify:
+    with Session(engine) as verify:
         assert (
             verify.get(Database, 1).sqlalchemy_uri
             == f"databend://user:{MASK}@host:8000/db?sslmode=disable"
@@ -186,7 +186,7 @@ def test_upgrade_rewrites_only_databend_connections(engine) -> None:
 
 
 def test_upgrade_is_idempotent(engine) -> None:
-    with Session(engine, future=True) as seed:
+    with Session(engine) as seed:
         seed.add(
             Database(
                 id=1, sqlalchemy_uri=f"databend://user:{MASK}@host:8000/db?secure=false"
@@ -198,7 +198,7 @@ def test_upgrade_is_idempotent(engine) -> None:
         with engine.begin() as conn:
             _run(migration.upgrade, conn)
 
-    with Session(engine, future=True) as verify:
+    with Session(engine) as verify:
         assert (
             verify.get(Database, 1).sqlalchemy_uri
             == f"databend://user:{MASK}@host:8000/db?sslmode=disable"
@@ -240,7 +240,7 @@ def test_downgrade_does_not_add_a_parameter(engine) -> None:
 
 def test_round_trip_through_upgrade_and_downgrade(engine) -> None:
     original = f"databend://user:{MASK}@host:8000/db?secure=false"
-    with Session(engine, future=True) as seed:
+    with Session(engine) as seed:
         seed.add(Database(id=1, sqlalchemy_uri=original))
         seed.commit()
 
@@ -249,5 +249,5 @@ def test_round_trip_through_upgrade_and_downgrade(engine) -> None:
     with engine.begin() as conn:
         _run(migration.downgrade, conn)
 
-    with Session(engine, future=True) as verify:
+    with Session(engine) as verify:
         assert verify.get(Database, 1).sqlalchemy_uri == original

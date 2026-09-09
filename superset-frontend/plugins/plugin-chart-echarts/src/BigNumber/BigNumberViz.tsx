@@ -224,6 +224,7 @@ function BigNumberVis({
     const handleContextMenu = (e: MouseEvent<HTMLDivElement>) => {
       if (onContextMenu) {
         e.preventDefault();
+        e.stopPropagation();
         onContextMenu(e.nativeEvent.clientX, e.nativeEvent.clientY);
       }
     };

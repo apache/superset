@@ -716,6 +716,59 @@ def test_model_view_rls_add_name_unique(admin_client):
 
 
 @pytest.mark.usefixtures("create_dataset", "rls_filters")
+def test_model_view_rls_add_duplicate_name_error_is_descriptive(admin_client):
+    """Creating a rule with an existing name returns a descriptive message.
+
+    The duplicate is rejected before the DB write so the client receives the
+    reason instead of an empty/opaque ``IntegrityError`` string.
+    """
+    test_dataset = _get_test_dataset()
+    rv = admin_client.post(
+        "/api/v1/rowlevelsecurity/",
+        json={
+            "name": "rls_entry1",
+            "description": "Some description",
+            "filter_type": "Regular",
+            "tables": [test_dataset.id],
+            "subjects": [_subject_for_role(security_manager.find_role("Alpha")).id],
+            "group_key": "group_key_1",
+            "clause": "client_id=1",
+        },
+    )
+    assert rv.status_code == 422
+    data = json.loads(rv.data.decode("utf-8"))
+    assert data["message"] == {"name": ["A rule with this name already exists."]}
+
+
+@pytest.mark.usefixtures("create_dataset", "rls_filters")
+def test_model_view_rls_update_duplicate_name_error_is_descriptive(admin_client):
+    """Renaming a rule to another rule's name returns a descriptive message."""
+    rls_entry2 = (
+        db.session.query(RowLevelSecurityFilter).filter_by(name="rls_entry2")
+    ).one()
+    rv = admin_client.put(
+        f"/api/v1/rowlevelsecurity/{rls_entry2.id}",
+        json={"name": "rls_entry1"},
+    )
+    assert rv.status_code == 422
+    data = json.loads(rv.data.decode("utf-8"))
+    assert data["message"] == {"name": ["A rule with this name already exists."]}
+
+
+@pytest.mark.usefixtures("create_dataset", "rls_filters")
+def test_model_view_rls_update_same_name_succeeds(admin_client):
+    """Saving a rule without changing its name is not treated as a collision."""
+    rls_entry1 = (
+        db.session.query(RowLevelSecurityFilter).filter_by(name="rls_entry1")
+    ).one()
+    rv = admin_client.put(
+        f"/api/v1/rowlevelsecurity/{rls_entry1.id}",
+        json={"name": "rls_entry1"},
+    )
+    assert rv.status_code == 200
+
+
+@pytest.mark.usefixtures("create_dataset", "rls_filters")
 def test_model_view_rls_add_tables_required(admin_client):
     rv = admin_client.post(
         "/api/v1/rowlevelsecurity/",
