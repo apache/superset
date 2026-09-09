@@ -34,6 +34,7 @@ from superset.subjects.utils import (
     get_or_create_group_subject,
     get_or_create_role_subject,
     get_user_group_subjects,
+    get_user_subject_ids,
     get_user_subject_ids_subquery,
 )
 
@@ -615,8 +616,6 @@ def test_compute_subjects_all_variants(mock_compute):
 
 def test_get_user_subject_ids_memoises_within_a_request(app) -> None:
     """The subject lookup runs once per user per request, not once per check."""
-    from superset.subjects.utils import get_user_subject_ids
-
     with patch(
         "superset.subjects.utils._query_user_subject_ids", return_value=[7, 8]
     ) as query:
@@ -642,8 +641,6 @@ def test_get_user_subject_ids_memoises_within_a_request(app) -> None:
 
 def test_get_user_subject_ids_not_cached_outside_a_request(app_context) -> None:
     """Background tasks and CLI commands keep the uncached behaviour."""
-    from superset.subjects.utils import get_user_subject_ids
-
     with patch(
         "superset.subjects.utils._query_user_subject_ids", return_value=[7]
     ) as query:
@@ -654,8 +651,6 @@ def test_get_user_subject_ids_not_cached_outside_a_request(app_context) -> None:
 
 def test_get_user_subject_ids_returns_a_copy(app) -> None:
     """Callers hand this list on, so mutating it must not poison the cache."""
-    from superset.subjects.utils import get_user_subject_ids
-
     with patch("superset.subjects.utils._query_user_subject_ids", return_value=[7]):
         with app.test_request_context("/"):
             first = get_user_subject_ids(1)
