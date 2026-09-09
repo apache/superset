@@ -50,14 +50,19 @@ function formatValue(
     return [false, 'N/A'];
   }
   if (formatter) {
+    // Query results with integers beyond Number.MAX_SAFE_INTEGER are parsed as
+    // native BigInt by json-bigint (see parseResponse.ts). Normalize to Number
+    // before passing to any formatter so that no individual formatter factory
+    // needs to handle BigInt arithmetic. This matches the same normalization
+    // applied to echarts in #42594. Precision loss beyond MAX_SAFE_INTEGER is
+    // the accepted trade-off consistent with the rest of Superset's chart stack.
+    const numericValue =
+      typeof value === 'bigint' ? Number(value) : (value as number);
     // If formatter is a CurrencyFormatter, pass row context for AUTO mode
     if (formatter instanceof CurrencyFormatter) {
-      return [
-        false,
-        formatter(value as number | bigint, rowData, currencyColumn),
-      ];
+      return [false, formatter(numericValue, rowData, currencyColumn)];
     }
-    return [false, formatter(value as number | bigint)];
+    return [false, formatter(numericValue)];
   }
   if (typeof value === 'string') {
     return isProbablyHTML(value) ? [true, sanitizeHtml(value)] : [false, value];

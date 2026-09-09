@@ -36,8 +36,7 @@ export default function createSiAtMostNDigitFormatter(
   return new NumberFormatter({
     description,
     formatFunc: value => {
-      const numValue = typeof value === 'bigint' ? Number(value) : value;
-      const si = siFormatter(numValue);
+      const si = siFormatter(value);
 
       /* Removing trailing `.00` if any */
       return si.slice(-1) < 'A' ? parseFloat(si).toString() : si;

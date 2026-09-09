@@ -27,27 +27,26 @@ const siFormatter = locale.format(`.3~s`);
 const float2PointFormatter = locale.format(`.2~f`);
 const float4PointFormatter = locale.format(`.4~f`);
 
-function formatValue(value: number | bigint) {
-  const numValue = typeof value === 'bigint' ? Number(value) : value;
-  if (numValue === 0) {
+function formatValue(value: number) {
+  if (value === 0) {
     return '0';
   }
-  const absoluteValue = Math.abs(numValue);
+  const absoluteValue = Math.abs(value);
   if (absoluteValue >= 1000) {
     // Normal human being are more familiar
     // with billion (B) that giga (G)
-    return siFormatter(numValue).replace('G', 'B');
+    return siFormatter(value).replace('G', 'B');
   }
   if (absoluteValue >= 1) {
-    return float2PointFormatter(numValue);
+    return float2PointFormatter(value);
   }
   if (absoluteValue >= 0.001) {
-    return float4PointFormatter(numValue);
+    return float4PointFormatter(value);
   }
   if (absoluteValue > 0.000001) {
-    return `${siFormatter(numValue * 1000000)}µ`;
+    return `${siFormatter(value * 1000000)}µ`;
   }
-  return siFormatter(numValue);
+  return siFormatter(value);
 }
 
 export default function createSmartNumberFormatter(
@@ -59,9 +58,7 @@ export default function createSmartNumberFormatter(
   } = {},
 ) {
   const { description, signed = false, id, label } = config;
-  const getSign = signed
-    ? (value: number | bigint) => (value > 0 ? '+' : '')
-    : () => '';
+  const getSign = signed ? (value: number) => (value > 0 ? '+' : '') : () => '';
 
   return new NumberFormatter({
     description,

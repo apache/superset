@@ -78,7 +78,7 @@ export default class NumberFormatterRegistry extends RegistryWithDefaultKey<
 
   format(
     formatterId: string | undefined,
-    value: number | bigint | null | undefined,
+    value: number | null | undefined,
   ): string {
     return this.get(formatterId)(value);
   }
