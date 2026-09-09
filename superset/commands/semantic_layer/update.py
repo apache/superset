@@ -63,6 +63,23 @@ def _unmask_configuration(
     write-only, since a client only ever sends the sentinel back for a value
     it previously received masked (including a value masked by the
     fail-closed fallback).
+
+    A masked field is only ever restored, though, when every OTHER
+    submitted key is unchanged from what's stored -- i.e. this is a pure
+    "reveal what I was shown masked" round-trip, not an edit that also
+    changes some other connector field. Without that check, an editor
+    (entitled to edit this connection, but not to see its real secret --
+    that's the entire reason GET/list mask it) could reveal a masked value
+    while simultaneously changing a destination-relevant field in the same
+    request, poisoning the stored configuration: the very next legitimate
+    call through this layer (``POST /<uuid>/schema/runtime`` always uses
+    the stored, now-poisoned configuration) would send the real secret to
+    wherever that field now points. Semantic layer connector schemas are
+    pluggable and defined outside this repo (see
+    ``superset/core/api/core_api_injection.py``), so unlike the analogous
+    database-connection fix there's no fixed "destination fields" list to
+    narrow this to -- any other field changing at all is treated as unsafe
+    to combine with a secret reveal.
     """
     try:
         existing_configuration = (
@@ -70,6 +87,21 @@ def _unmask_configuration(
         )
     except (TypeError, ValueError):
         existing_configuration = {}
+
+    masked_keys = {
+        key
+        for key, value in new_configuration.items()
+        if value == PASSWORD_MASK and key in existing_configuration
+    }
+    if masked_keys and any(
+        key not in masked_keys and existing_configuration.get(key) != value
+        for key, value in new_configuration.items()
+    ):
+        raise SemanticLayerInvalidError(
+            "This update changes the configuration while reusing a stored "
+            "secret value (a masked field). Provide the real value for any "
+            "masked field to confirm a configuration change."
+        )
 
     return {
         key: (

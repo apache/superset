@@ -989,6 +989,10 @@ def test_get_oauth2_authorization_uri_derives_from_workspace_host(
     database = mocker.MagicMock()
     database.url_object.host = host
     mocker.patch("superset.db.session.get", return_value=database)
+    # is_safe_host does live DNS resolution; whether these fixture hosts
+    # happen to resolve depends on real-world DNS state outside test
+    # control, so pin it rather than relying on that.
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=True)
 
     url = spec.get_oauth2_authorization_uri(
         _unresolved_oauth2_config(), _oauth2_state()

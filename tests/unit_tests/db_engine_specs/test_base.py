@@ -39,7 +39,7 @@ from superset.db_engine_specs.base import (
     convert_inspector_columns,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import OAuth2RedirectError
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.sql.parse import Table
 from superset.superset_typing import (
     OAuth2ClientConfig,
@@ -953,6 +953,18 @@ def test_extract_errors_no_match_falls_back(mocker: MockerFixture) -> None:
     assert result == [expected]
 
 
+@pytest.fixture(autouse=True)
+def _mock_safe_oauth2_host(mocker: MockerFixture) -> None:
+    """
+    OAuth2 endpoint URIs are now validated via ``is_safe_host`` (real DNS
+    resolution) before use. The test fixtures below use non-resolving
+    example hostnames, so mock it the same way test_impala.py mocks it for
+    its own SSRF check; SSRF-rejection behavior itself is covered by
+    dedicated tests further down that override this per-test.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=True)
+
+
 def test_get_oauth2_authorization_uri_standard_params(mocker: MockerFixture) -> None:
     """
     Test that BaseEngineSpec.get_oauth2_authorization_uri uses standard OAuth 2.0
@@ -1315,6 +1327,117 @@ def test_get_oauth2_fresh_token_raises_on_server_error(mocker: MockerFixture) ->
         BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
 
 
+def _oauth2_config_targeting(uri: str) -> OAuth2ClientConfig:
+    return {
+        "id": "client-id",
+        "secret": "client-secret",
+        "scope": "read write",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": uri,
+        "token_request_uri": uri,
+        "request_content_type": "json",
+    }
+
+
+def test_get_oauth2_token_rejects_unsafe_host(mocker: MockerFixture) -> None:
+    """
+    ``token_request_uri`` can come from a database's own
+    ``encrypted_extra.oauth2_client_info`` (editable by anyone with
+    ``can_write`` on Database), and is POSTed to directly by this server
+    carrying the connection's client_secret. An internal/private target
+    must be refused rather than silently reaching it.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=False)
+    mock_requests = mocker.patch("superset.db_engine_specs.base.requests")
+
+    config = _oauth2_config_targeting("http://169.254.169.254/latest/meta-data/")
+
+    with pytest.raises(OAuth2Error):
+        BaseEngineSpec.get_oauth2_token(config, "code")
+
+    mock_requests.post.assert_not_called()
+
+
+def test_get_oauth2_fresh_token_rejects_unsafe_host(mocker: MockerFixture) -> None:
+    """
+    Same protection as ``get_oauth2_token``, for the refresh-token exchange.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=False)
+    mock_requests = mocker.patch("superset.db_engine_specs.base.requests")
+
+    config = _oauth2_config_targeting("http://10.0.0.5/token")
+
+    with pytest.raises(OAuth2Error):
+        BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
+
+    mock_requests.post.assert_not_called()
+
+
+def test_get_oauth2_authorization_uri_rejects_unsafe_host(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``authorization_request_uri`` is handed to the user's browser as a
+    redirect target; an internal host would turn Superset into an open
+    redirect into the internal network.
+    """
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=False)
+
+    config = _oauth2_config_targeting("http://192.168.1.1/authorize")
+    state: OAuth2State = {
+        "database_id": 1,
+        "user_id": 1,
+        "default_redirect_uri": "http://localhost:8088/api/v1/oauth2/",
+        "tab_id": "1234",
+    }
+
+    with pytest.raises(OAuth2Error):
+        BaseEngineSpec.get_oauth2_authorization_uri(config, state)
+
+
+def test_oauth2_endpoint_rejects_non_http_scheme(mocker: MockerFixture) -> None:
+    """
+    A non-http(s) scheme is refused outright, before any host resolution.
+    """
+    is_safe_host = mocker.patch("superset.db_engine_specs.base.is_safe_host")
+    mock_requests = mocker.patch("superset.db_engine_specs.base.requests")
+
+    config = _oauth2_config_targeting("file:///etc/passwd")
+
+    with pytest.raises(OAuth2Error):
+        BaseEngineSpec.get_oauth2_token(config, "code")
+
+    is_safe_host.assert_not_called()
+    mock_requests.post.assert_not_called()
+
+
+def test_oauth2_endpoint_allows_internal_host_when_configured(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Operators with a legitimately internal IdP can opt out via
+    DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS -- the host is not even checked
+    once that's set.
+    """
+    mocker.patch.dict(
+        "superset.db_engine_specs.base.app.config",
+        {"DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS": True},
+    )
+    is_safe_host = mocker.patch("superset.db_engine_specs.base.is_safe_host")
+    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post.return_value.json.return_value = {
+        "access_token": "access-token",
+        "expires_in": 3600,
+    }
+
+    config = _oauth2_config_targeting("http://10.0.0.5/token")
+
+    BaseEngineSpec.get_oauth2_token(config, "code")
+
+    is_safe_host.assert_not_called()
+    mock_post.assert_called_once()
+
+
 def test_start_oauth2_dance_uses_config_redirect_uri(mocker: MockerFixture) -> None:
     """
     Test that start_oauth2_dance uses DATABASE_OAUTH2_REDIRECT_URI config if set.
@@ -1327,6 +1450,7 @@ def test_start_oauth2_dance_uses_config_redirect_uri(mocker: MockerFixture) -> N
             "DATABASE_OAUTH2_REDIRECT_URI": custom_redirect_uri,
             "SECRET_KEY": "test-secret-key",
             "DATABASE_OAUTH2_JWT_ALGORITHM": "HS256",
+            "DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS": True,
         },
     )
     mocker.patch("superset.daos.key_value.KeyValueDAO")

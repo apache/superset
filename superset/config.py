@@ -2732,6 +2732,15 @@ DATABASE_OAUTH2_JWT_ALGORITHM = "HS256"
 # Timeout when fetching access and refresh tokens.
 DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
 
+# When True, the OAuth2 authorization/token endpoint URIs configured for a
+# database (either via DATABASE_OAUTH2_CLIENTS or, per-connection, via a
+# database's own encrypted_extra.oauth2_client_info) are permitted to target
+# hosts in private/internal IP ranges (RFC-1918, loopback, link-local).
+# Intended for deployments with a legitimately internal identity provider.
+# Leave False (the default) in any deployment where untrusted users can
+# create or edit database connections.
+DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS: bool = False
+
 # Enable/disable CSP warning
 CONTENT_SECURITY_POLICY_WARNING = True
 

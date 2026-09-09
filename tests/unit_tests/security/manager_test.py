@@ -3985,17 +3985,93 @@ def test_validate_guest_token_resources_rejects_non_embedded_int_id(
 def test_validate_guest_token_resources_accepts_embedded_int_id(
     app_context: None, mocker: MockerFixture
 ) -> None:
-    """A raw int id for an embedded dashboard is accepted."""
+    """A raw int id for an embedded dashboard is accepted when the caller
+    minting the token is entitled to it."""
     from superset.security.guest_token import GuestTokenResourceType
 
     sm = SupersetSecurityManager(appbuilder)
     embedded_dash = MagicMock()
     embedded_dash.embedded = [MagicMock()]  # embedded
     mocker.patch("superset.models.dashboard.Dashboard.get", return_value=embedded_dash)
+    raise_for_access = mocker.patch.object(sm, "raise_for_access")
 
     sm.validate_guest_token_resources(
         [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
     )
+
+    raise_for_access.assert_called_once_with(dashboard=embedded_dash)
+
+
+def test_validate_guest_token_resources_rejects_unauthorized_dashboard(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    Minting a guest token for a dashboard the calling principal is not
+    themselves entitled to must be refused. Without this, a non-Admin role
+    granted only the coarse `can_grant_guest_token` permission (a realistic
+    "embedding backend service" grant, since SECURITY.md treats an
+    operator-narrowed permission as shifting the boundary, not redefining
+    the model) could mint a valid guest token scoped to *any* embedded
+    dashboard in the instance, not just ones it can see.
+    """
+    from superset.commands.dashboard.embedded.exceptions import (
+        EmbeddedDashboardAccessDeniedError,
+    )
+    from superset.exceptions import SupersetSecurityException
+    from superset.security.guest_token import GuestTokenResourceType
+
+    sm = SupersetSecurityManager(appbuilder)
+    embedded_dash = MagicMock()
+    embedded_dash.embedded = [MagicMock()]  # embedded
+    mocker.patch("superset.models.dashboard.Dashboard.get", return_value=embedded_dash)
+    mocker.patch.object(
+        sm,
+        "raise_for_access",
+        side_effect=SupersetSecurityException(mocker.MagicMock()),
+    )
+
+    with pytest.raises(EmbeddedDashboardAccessDeniedError):
+        sm.validate_guest_token_resources(
+            [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
+        )
+
+
+def test_validate_guest_token_resources_checks_access_via_embedded_dao_fallback(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    The same access check applies on the EmbeddedDashboardDAO lookup path
+    (a resource id that isn't a plain dashboard id -- e.g. the embedded
+    config's own uuid), not just the `Dashboard.get` path.
+    """
+    from superset.exceptions import SupersetSecurityException
+    from superset.security.guest_token import GuestTokenResourceType
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch("superset.models.dashboard.Dashboard.get", return_value=None)
+    target_dashboard = MagicMock()
+    embedded = MagicMock()
+    embedded.dashboard = target_dashboard
+    mocker.patch(
+        "superset.daos.dashboard.EmbeddedDashboardDAO.find_by_id",
+        return_value=embedded,
+    )
+    raise_for_access = mocker.patch.object(
+        sm,
+        "raise_for_access",
+        side_effect=SupersetSecurityException(mocker.MagicMock()),
+    )
+
+    from superset.commands.dashboard.embedded.exceptions import (
+        EmbeddedDashboardAccessDeniedError,
+    )
+
+    with pytest.raises(EmbeddedDashboardAccessDeniedError):
+        sm.validate_guest_token_resources(
+            [{"type": GuestTokenResourceType.DASHBOARD, "id": "some-uuid"}]
+        )
+
+    raise_for_access.assert_called_once_with(dashboard=target_dashboard)
 
 
 def test_is_editor_query_owner(mocker: MockerFixture, app_context: None) -> None:

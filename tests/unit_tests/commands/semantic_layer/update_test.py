@@ -528,6 +528,49 @@ def test_unmask_configuration_missing_existing_key() -> None:
     assert result == {"account": "test", "password": PASSWORD_MASK}
 
 
+def test_unmask_configuration_rejects_secret_reveal_with_changed_field() -> None:
+    """
+    A masked field must not be revealed in the same update that also
+    changes some other configuration field. An editor is entitled to edit
+    this connection, but not to see its real secret (that's the entire
+    reason the read path masks it) -- revealing it while also changing a
+    potentially destination-relevant field would poison the stored
+    configuration with the real secret attached to attacker-controlled
+    config, silently leaking it on the next legitimate use of this layer.
+    """
+    with pytest.raises(SemanticLayerInvalidError):
+        _unmask_configuration(
+            '{"account": "prod-account", "password": "hunter2"}',
+            {"account": "attacker-account", "password": PASSWORD_MASK},
+        )
+
+
+def test_unmask_configuration_allows_fresh_secret_with_changed_field() -> None:
+    """
+    A deliberate configuration change is still possible when a genuinely
+    fresh (non-masked) secret is supplied alongside it.
+    """
+    result = _unmask_configuration(
+        '{"account": "prod-account", "password": "hunter2"}',
+        {"account": "new-account", "password": "fresh-secret"},
+    )
+
+    assert result == {"account": "new-account", "password": "fresh-secret"}
+
+
+def test_unmask_configuration_allows_unrelated_field_addition_with_no_mask() -> None:
+    """
+    Adding/changing fields with no masked value present at all is
+    unaffected -- there's no secret being reused, so nothing to protect.
+    """
+    result = _unmask_configuration(
+        '{"account": "prod-account"}',
+        {"account": "new-account", "extra_option": "value"},
+    )
+
+    assert result == {"account": "new-account", "extra_option": "value"}
+
+
 def test_update_semantic_layer_preserves_masked_secret_end_to_end(
     mocker: MockerFixture,
 ) -> None:

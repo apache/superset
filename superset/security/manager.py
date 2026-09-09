@@ -5332,10 +5332,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             audience = audience()
         return audience
 
-    @staticmethod
-    def validate_guest_token_resources(resources: GuestTokenResources) -> None:
+    def validate_guest_token_resources(self, resources: GuestTokenResources) -> None:
         # pylint: disable=import-outside-toplevel
         from superset.commands.dashboard.embedded.exceptions import (
+            EmbeddedDashboardAccessDeniedError,
             EmbeddedDashboardNotFoundError,
         )
         from superset.daos.dashboard import EmbeddedDashboardDAO
@@ -5349,10 +5349,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     embedded = EmbeddedDashboardDAO.find_by_id(str(resource["id"]))
                     if not embedded:
                         raise EmbeddedDashboardNotFoundError()
+                    dashboard = embedded.dashboard
                 elif not dashboard.embedded:
                     # A raw dashboard id must still reference an embedded dashboard;
                     # otherwise a guest token could be scoped to a non-embedded one.
                     raise EmbeddedDashboardNotFoundError()
+
+                # The caller minting the token must themselves be entitled to
+                # the dashboard being scoped. `grant_guest_token` is a
+                # coarse, instance-wide permission -- without this check, an
+                # operator who narrows it to a non-Admin role (a realistic
+                # "embedding backend service" grant) would let that
+                # principal mint a fully valid guest token for *any*
+                # embedded dashboard, not just ones they have access to.
+                try:
+                    self.raise_for_access(dashboard=dashboard)
+                except SupersetSecurityException as ex:
+                    raise EmbeddedDashboardAccessDeniedError() from ex
 
     def create_guest_access_token(
         self,
