@@ -96,12 +96,11 @@ def manage_dashboard_certification(
     # no-field inspect path above still returns current values): their
     # source of truth lives outside Superset, so a badge set here would be
     # overwritten (or drift from the certifying system) on the next
-    # external sync. The dashboard command layer does not yet enforce
-    # is_managed_externally (apache/superset#44025 proposes that gate for
-    # the ordinary update paths), and this tool writes by direct attribute
-    # assignment + commit in any case — so the refusal lives here, after
-    # the editorship check, where a caller with no edit rights keeps
-    # getting the plain editorship denial.
+    # external sync. This tool writes by direct attribute assignment +
+    # commit rather than through a command, so no command-layer check can
+    # protect it — the refusal must live in the tool itself, after the
+    # editorship check, where a caller with no edit rights keeps getting
+    # the plain editorship denial.
     if dashboard.is_managed_externally:
         return ManageDashboardCertificationResponse(
             permission_denied=True,

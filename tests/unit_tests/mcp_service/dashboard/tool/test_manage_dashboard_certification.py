@@ -22,6 +22,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.client.client import CallToolResult
 
 from superset.utils import json
 
@@ -50,37 +51,41 @@ def _mock_dashboard(
 
 
 class TestManageDashboardCertification:
+    @pytest.mark.parametrize("field", ["certified_by", "certification_details"])
+    @pytest.mark.parametrize("value", ["Data Platform Team", ""])
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
     @pytest.mark.asyncio
     async def test_refuses_externally_managed_dashboard(
-        self, mock_session: Mock, mock_get: Mock, mcp_server: object
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mcp_server: object,
+        field: str,
+        value: str,
     ) -> None:
-        """sc-120051: certification of a managed dashboard is refused.
+        """sc-120051: certification changes on a managed dashboard are refused.
 
-        The dashboard command layer does not yet enforce
-        is_managed_externally (apache/superset#44025 proposes that gate),
-        and this tool writes by direct attribute assignment + commit in
-        any case — so the refusal lives in the tool, and nothing may be
-        assigned or committed on the refused path."""
+        This tool writes by direct attribute assignment + commit rather
+        than through a command, so no command-layer check can protect it —
+        the refusal lives in the tool, and nothing may be assigned or
+        committed on the refused path. Parametrized across BOTH badge
+        fields and both set and clear, so gating one field but not the
+        other cannot pass."""
         dash: Mock = _mock_dashboard(is_managed_externally=True)
         mock_get.return_value = dash
 
         async with Client(mcp_server) as client:
-            result = await client.call_tool(
+            result: CallToolResult = await client.call_tool(
                 "manage_dashboard_certification",
-                {
-                    "request": {
-                        "identifier": 42,
-                        "certified_by": "Data Platform Team",
-                    }
-                },
+                {"request": {"identifier": 42, field: value}},
             )
 
         payload: dict[str, Any] = json.loads(result.content[0].text)
         assert payload["permission_denied"] is True
         assert "managed externally" in payload["error"]
         assert dash.certified_by is None
+        assert dash.certification_details is None
         mock_session.commit.assert_not_called()
 
     @patch(DAO_GET)
@@ -95,12 +100,14 @@ class TestManageDashboardCertification:
         dashboard returns current values (which the caller can read via
         get_dashboard_info anyway) instead of a misleading denial."""
         dash: Mock = _mock_dashboard(
-            certified_by="External Certifier", is_managed_externally=True
+            certified_by="External Certifier",
+            certification_details="Synced from the source of truth",
+            is_managed_externally=True,
         )
         mock_get.return_value = dash
 
         async with Client(mcp_server) as client:
-            result = await client.call_tool(
+            result: CallToolResult = await client.call_tool(
                 "manage_dashboard_certification",
                 {"request": {"identifier": 42}},
             )
@@ -108,6 +115,8 @@ class TestManageDashboardCertification:
         payload: dict[str, Any] = json.loads(result.content[0].text)
         assert payload.get("permission_denied") is not True
         assert payload["certified_by"] == "External Certifier"
+        assert payload["certification_details"] == "Synced from the source of truth"
+        assert payload["changed_fields"] == []
         mock_session.commit.assert_not_called()
 
     @patch(DAO_GET)
