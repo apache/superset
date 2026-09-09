@@ -3300,6 +3300,46 @@ def test_raise_for_access_mssql_odbc_connect_database_self_reference_allowed(
     sm.raise_for_access(query=query)  # must not raise
 
 
+def test_raise_for_access_mssql_malformed_connect_args_denies_cleanly(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Robustness regression guard: an explicit JSON `null` for
+    "connect_args" (a malformed but not-impossible admin "Extra" config)
+    must not crash raise_for_access with an AttributeError/TypeError -- it
+    should behave exactly as if connect_args were simply absent, i.e. fall
+    back to a clean permission denial.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(
+        mocker,
+        "mssql+pyodbc://user:pw@host",
+        extra={"engine_params": {"connect_args": None}},
+    )
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM abcm.dbo.temp",
+    )
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    # No statically-known database exists here (connect_args resolves to
+    # {}, no odbc_connect, no URL path) -- clean denial, not a crash.
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query)
+
+
 def test_raise_for_access_mssql_reporter_uri_still_denied(
     mocker: MockerFixture,
     app_context: None,

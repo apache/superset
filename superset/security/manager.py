@@ -4717,9 +4717,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # and denied, same as before this normalization existed.
             static_connection_catalog: str | None = None
             if not database.db_engine_spec.supports_catalog:
+                # KeyError: "engine_params"/"connect_args" absent. TypeError:
+                # an intermediate value (e.g. "engine_params") is present but
+                # not a dict, so subscripting it fails. json.JSONDecodeError:
+                # malformed "extra" JSON (get_extra() re-parses it on every
+                # call). None of these should turn into a 500 on an
+                # otherwise-ordinary permission check -- they just mean no
+                # connect_args-derived catalog is available, same as if the
+                # admin never set any.
                 try:
                     connect_args = database.get_extra()["engine_params"]["connect_args"]
-                except KeyError:
+                except (KeyError, TypeError, json.JSONDecodeError):
+                    connect_args = {}
+                if not isinstance(connect_args, dict):
+                    # Successfully extracted (no exception above) but the
+                    # stored value itself isn't a dict -- e.g. an explicit
+                    # JSON `null` for "connect_args". Same fallback.
                     connect_args = {}
                 static_connection_catalog = (
                     database.db_engine_spec.get_catalog_from_engine_params(

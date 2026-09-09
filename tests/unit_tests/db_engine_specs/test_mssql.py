@@ -536,3 +536,91 @@ def test_get_catalog_from_engine_params_reporter_uri_returns_none() -> None:
     assert url.host == "abcm"
     assert url.database is None
     assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) is None
+
+
+def test_get_catalog_from_engine_params_odbc_connect_braced_semicolon() -> None:
+    """
+    A brace-quoted Database value may itself contain a literal ';' -- the
+    parser must not split on it.
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url(
+        "mssql+pyodbc:///?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Server%3Dtcp%3Amyhost%2C1433%3B"
+        "Database%3D%7Bmy%3Bdb%7D%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw"
+    )
+    assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) == "my;db"
+
+
+def test_get_catalog_from_engine_params_odbc_connect_initial_catalog() -> None:
+    """
+    The OLEDB-style "Initial Catalog=" synonym must be recognized the same
+    as "Database=".
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url(
+        "mssql+pyodbc:///?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Server%3Dtcp%3Amyhost%2C1433%3B"
+        "Initial+Catalog%3Dabcm%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw"
+    )
+    assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) == "abcm"
+
+
+def test_get_catalog_from_engine_params_connect_args_wins_over_odbc_connect() -> None:
+    """
+    connect_args is always appended, as extra keyword arguments, to whatever
+    connection string SQLAlchemy's pyodbc dialect builds -- including when
+    that string came from odbc_connect -- so an explicit
+    connect_args["database"] must take precedence over odbc_connect's own
+    embedded Database= entry, matching MSDialect_pyodbc.create_connect_args's
+    real behavior.
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url(
+        "mssql+pyodbc:///?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Database%3Dodbc_connect_db%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw"
+    )
+    assert (
+        MssqlEngineSpec.get_catalog_from_engine_params(
+            url, {"database": "connect_args_db"}
+        )
+        == "connect_args_db"
+    )
+
+
+def test_get_catalog_from_engine_params_odbc_connect_wins_over_url_path() -> None:
+    """
+    When odbc_connect is present, SQLAlchemy's pyodbc dialect uses it as the
+    *entire* connection string and never looks at the URL's own host/database
+    segments at all -- so odbc_connect's Database= must take precedence over
+    a (structurally unusual, but possible) database also present in the
+    URL's path.
+    """
+    from sqlalchemy.engine import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    url = make_url(
+        "mssql+pyodbc://user:pw@host/path_db"
+        "?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Database%3Dodbc_connect_db%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw"
+    )
+    assert url.database == "path_db"
+    assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) == "odbc_connect_db"

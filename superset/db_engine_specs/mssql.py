@@ -203,12 +203,22 @@ class MssqlEngineSpec(BaseEngineSpec):
     ) -> str | None:
         """
         Resolve the database from genuine, statically-configured connection
-        settings only: the URL's own database segment, an explicit
-        ``connect_args["database"]``, or a ``Database=`` entry embedded in the
-        documented ``odbc_connect`` connection-string query parameter (the
-        non-default pyodbc driver bundles the whole ODBC connection string --
-        including the database -- into that single opaque parameter, which
-        SQLAlchemy's URL parser never decomposes on its own).
+        settings only: an explicit ``connect_args["database"]``, a
+        ``Database=``/``Initial Catalog=`` entry embedded in the documented
+        ``odbc_connect`` connection-string query parameter, or the URL's own
+        database segment.
+
+        The check order mirrors ``MSDialect_pyodbc.create_connect_args``'s
+        actual precedence, not just plausibility:
+
+        - ``connect_args`` is always appended, as extra keyword arguments, to
+          whatever connection string SQLAlchemy hands to ``pyodbc.connect()``
+          -- regardless of whether that string came from the URL or from
+          ``odbc_connect`` -- so a duplicate key there wins over both.
+        - When ``odbc_connect`` is present, SQLAlchemy uses it as the *entire*
+          connection string and never looks at the URL's host/database
+          segments at all, so it must be checked before falling back to
+          ``sqlalchemy_uri.database``.
 
         Returns None when none of these statically state a database -- e.g. a
         host/DSN-only URI that relies on the SQL login's server-side default
@@ -216,18 +226,48 @@ class MssqlEngineSpec(BaseEngineSpec):
         time; resolving it would require a live query, which this method
         deliberately does not perform.
         """
-        if sqlalchemy_uri.database:
-            return sqlalchemy_uri.database
-
         if isinstance(database := connect_args.get("database"), str) and database:
             return database
 
         odbc_connect = sqlalchemy_uri.query.get("odbc_connect", "")
-        if isinstance(odbc_connect, str):
-            for part in odbc_connect.split(";"):
-                key, _, value = part.partition("=")
-                if key.strip().lower() == "database" and value.strip():
-                    return value.strip()
+        if isinstance(odbc_connect, str) and odbc_connect:
+            return cls._parse_odbc_connect_database(odbc_connect)
+
+        return sqlalchemy_uri.database or None
+
+    @staticmethod
+    def _parse_odbc_connect_database(odbc_connect: str) -> str | None:
+        """
+        Parse a ``Database=`` or ``Initial Catalog=`` (the OLEDB-style
+        synonym some connection strings use instead) entry out of a raw ODBC
+        connection string, respecting brace-quoted (``{...}``) values that
+        may themselves contain a literal ``;`` (e.g. ``Database={my;db}``).
+        """
+        parts = []
+        current: list[str] = []
+        depth = 0
+        for char in odbc_connect:
+            if char == "{":
+                depth += 1
+                current.append(char)
+            elif char == "}":
+                depth = max(0, depth - 1)
+                current.append(char)
+            elif char == ";" and depth == 0:
+                parts.append("".join(current))
+                current = []
+            else:
+                current.append(char)
+        parts.append("".join(current))
+
+        for part in parts:
+            key, _, value = part.partition("=")
+            key = key.strip().lower()
+            value = value.strip()
+            if value.startswith("{") and value.endswith("}") and len(value) >= 2:
+                value = value[1:-1]
+            if key in ("database", "initial catalog") and value:
+                return value
 
         return None
 
