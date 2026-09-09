@@ -2118,9 +2118,25 @@ class EmbeddedChartConfigSchema(Schema):
     allowed_domains = fields.List(fields.String(), required=True)
 
 
+class EmbeddedResponseUserSchema(Schema):
+    """
+    ``changed_by`` shape for ``EmbeddedChartResponseSchema``.
+
+    Deliberately separate from the module-level ``UserSchema`` (which other
+    chart schemas dump ``email`` through): this mirrors
+    ``superset.dashboards.schemas.UserSchema``, the embedded-dashboard twin,
+    so the two embedded-resource response shapes stay identical.
+    """
+
+    id = fields.Int()
+    username = fields.String()
+    first_name = fields.String()
+    last_name = fields.String()
+
+
 class EmbeddedChartResponseSchema(Schema):
     uuid = fields.String()
     allowed_domains = fields.List(fields.String())
-    chart_id = fields.String()
+    chart_id = fields.String(attribute="slice_id")
     changed_on = fields.DateTime()
-    changed_by = fields.Nested(UserSchema)
+    changed_by = fields.Nested(EmbeddedResponseUserSchema)

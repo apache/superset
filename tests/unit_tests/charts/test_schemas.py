@@ -15,6 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from datetime import datetime
+from types import SimpleNamespace
+
 import pandas as pd
 import pytest
 from flask import current_app
@@ -37,6 +40,7 @@ from superset.charts.schemas import (
     ChartPostSchema,
     ChartPutSchema,
     DEFAULT_MAX_PROPHET_PERIODS,
+    EmbeddedChartResponseSchema,
     get_max_prophet_periods,
     get_prophet_time_grain_choices,
     get_time_grain_choices,
@@ -683,3 +687,61 @@ def test_prophet_accepts_every_mapped_grain(app_context: None, grain: str) -> No
         {"time_grain": grain, "periods": 7, "confidence_interval": 0.8}
     )
     assert result["time_grain"] == grain
+
+
+def test_embedded_chart_response_schema_dumps_chart_id(app_context: None) -> None:
+    """
+    The model backing an embedded chart response exposes ``slice_id``, not
+    ``chart_id``. The schema field must be bound to the model's actual
+    attribute so the identifier is present in the response instead of
+    silently dropping out.
+    """
+    fake_user = SimpleNamespace(
+        id=7,
+        username="alice",
+        first_name="Alice",
+        last_name="Doe",
+        email="alice@example.com",
+    )
+    fake_embedded = SimpleNamespace(
+        uuid="11111111-1111-1111-1111-111111111111",
+        allowed_domains=["https://example.org"],
+        slice_id=42,
+        changed_on=datetime(2024, 1, 1),
+        changed_by=fake_user,
+    )
+
+    result = EmbeddedChartResponseSchema().dump(fake_embedded)
+
+    assert result["chart_id"] == "42"
+
+
+def test_embedded_chart_response_schema_changed_by_mirrors_dashboard_twin(
+    app_context: None,
+) -> None:
+    """
+    ``EmbeddedDashboardResponseSchema.changed_by`` (the twin schema) dumps
+    ``username``, not ``email``. Keeping the two embedded-resource response
+    shapes identical means the chart side must do the same, through a nested
+    schema dedicated to this response rather than the shared, email-dumping
+    ``UserSchema`` other chart endpoints rely on.
+    """
+    fake_user = SimpleNamespace(
+        id=7,
+        username="alice",
+        first_name="Alice",
+        last_name="Doe",
+        email="alice@example.com",
+    )
+    fake_embedded = SimpleNamespace(
+        uuid="11111111-1111-1111-1111-111111111111",
+        allowed_domains=["https://example.org"],
+        slice_id=42,
+        changed_on=datetime(2024, 1, 1),
+        changed_by=fake_user,
+    )
+
+    result = EmbeddedChartResponseSchema().dump(fake_embedded)
+
+    assert result["changed_by"]["username"] == "alice"
+    assert "email" not in result["changed_by"]
