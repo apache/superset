@@ -31,6 +31,17 @@ import downloadAsPdf from 'src/utils/downloadAsPdf';
 import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 
 jest.mock('src/utils/cachedSupersetGet');
+jest.mock('src/explore/components/DataTablesPane', () => ({
+  ResultsPaneOnDashboard: ({
+    columnDisplayNames,
+  }: {
+    columnDisplayNames?: Record<string, string>;
+  }) => (
+    <div data-test="results-pane">
+      {JSON.stringify(columnDisplayNames ?? {})}
+    </div>
+  ),
+}));
 jest.mock('src/utils/downloadAsImage', () =>
   jest.fn(() => jest.fn().mockResolvedValue(undefined)),
 );
@@ -707,6 +718,109 @@ test('Dataset drill info API call is not made when user lacks drill permissions'
   await new Promise(resolve => setTimeout(resolve, 0));
 
   expect(mockCachedSupersetGet).not.toHaveBeenCalled();
+});
+
+test('Dataset drill info API call is made when user can only view chart as table', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: false,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  // "View as table" has its own permission, so label resolution must not be
+  // gated behind Drill to detail.
+  renderWrapper(props, {
+    Gamma: [
+      ['can_view_chart_as_table', 'Dashboard'],
+      ['can_get_drill_info', 'Dataset'],
+    ],
+  });
+
+  await waitFor(() =>
+    expect(mockCachedSupersetGet).toHaveBeenCalledWith({
+      endpoint: expect.stringContaining(
+        '/api/v1/dataset/58/drill_info/?q=(dashboard_id:26)',
+      ),
+    }),
+  );
+});
+
+test('Dataset drill info API call is made for an explore-only user', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: false,
+  };
+  // "View as table" is offered to `canExplore || canViewTable`, so the fetch that
+  // feeds its column headers has to cover the same set -- an explore user with
+  // neither `can_samples` nor `can_view_chart_as_table` opens the same modal.
+  renderWrapper(createProps(), {
+    Gamma: [['can_get_drill_info', 'Dataset']],
+  });
+
+  await waitFor(() =>
+    expect(mockCachedSupersetGet).toHaveBeenCalledWith({
+      endpoint: expect.stringContaining(
+        '/api/v1/dataset/58/drill_info/?q=(dashboard_id:26)',
+      ),
+    }),
+  );
+});
+
+test('Dataset drill info API call is not made without `can_get_drill_info`', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: false,
+  };
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  // The endpoint is guarded by `can_get_drill_info` on Dataset, so requesting
+  // it without that permission would only ever produce a 403.
+  renderWrapper(props, {
+    Gamma: [['can_view_chart_as_table', 'Dashboard']],
+  });
+
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  expect(mockCachedSupersetGet).not.toHaveBeenCalled();
+});
+
+test('Results grid receives verbose names for a view-as-table-only user', async () => {
+  (global as any).featureFlags = {
+    [FeatureFlag.DrillToDetail]: false,
+  };
+  mockCachedSupersetGet.mockResolvedValue({
+    response: {} as Response,
+    json: {
+      result: {
+        columns: [{ column_name: 'region', verbose_name: 'Region' }],
+        metrics: [{ metric_name: 'sum__num', verbose_name: 'Yearly Total' }],
+      },
+    },
+  } as any);
+  const props = {
+    ...createProps(),
+    supersetCanExplore: false,
+  };
+  renderWrapper(props, {
+    Gamma: [
+      ['can_view_chart_as_table', 'Dashboard'],
+      ['can_get_drill_info', 'Dataset'],
+    ],
+  });
+  // Let the drill_info request settle the way it would while the dashboard loads.
+  await waitFor(() => expect(mockCachedSupersetGet).toHaveBeenCalled());
+  openMenu();
+  userEvent.click(screen.getByTestId('view-query-menu-item'));
+
+  await waitFor(() =>
+    expect(
+      JSON.parse(screen.getByTestId('results-pane').textContent as string),
+    ).toEqual({
+      region: 'Region',
+      sum__num: 'Yearly Total',
+    }),
+  );
 });
 
 test('Should show "Embed code" in Share menu when feature flag is enabled and chart has data', async () => {
