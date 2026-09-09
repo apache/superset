@@ -149,6 +149,33 @@ Helper to safely read .Values.supersetNode.connections.<key> without erroring wh
 {{- coalesce .Values.database.password (index $conn "db_pass") "superset" -}}
 {{- end -}}
 
+{{/* Resolve the credential Secret only when a full database URI is not supplied. */}}
+{{- define "superset.db.existingSecret" -}}
+{{- if and .Values.database.existingSecret (not .Values.database.uri) -}}
+{{- tpl .Values.database.existingSecret . | required "database.existingSecret must render to a non-empty Secret name" -}}
+{{- end -}}
+{{- end -}}
+
+{{/* Reference existing credentials without copying their contents into the chart. */}}
+{{- define "superset.db.secretEnv" -}}
+{{- $secret := include "superset.db.existingSecret" . -}}
+{{- if $secret -}}
+{{- $keys := .Values.database.secretKeys | default dict -}}
+- name: DB_PASS
+  valueFrom:
+    secretKeyRef:
+      name: {{ $secret | quote }}
+      key: {{ required "database.secretKeys.password must be set when database.existingSecret is used" $keys.password | quote }}
+{{- if $keys.user }}
+- name: DB_USER
+  valueFrom:
+    secretKeyRef:
+      name: {{ $secret | quote }}
+      key: {{ $keys.user | quote }}
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
 {{- define "superset.db.name" -}}
 {{- $conn := include "_superset.legacyConn" . | fromJson -}}
 {{- coalesce .Values.database.name (index $conn "db_name") "superset" -}}

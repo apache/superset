@@ -96,6 +96,7 @@ spec:
           {{- end }}
           command: {{  tpl (toJson .Values.supersetCeleryBeat.command) . }}
           env:
+            {{- include "superset.db.secretEnv" . | nindent 12 }}
             - name: "SUPERSET_PORT"
               value: {{ .Values.service.port | quote}}
             {{- range $key, $value := .Values.extraEnv }}

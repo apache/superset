@@ -151,6 +151,33 @@ There are two independent telemetry channels:
   This is read at runtime, so it takes effect on the pre-built images without rebuilding the frontend.
   :::
 
+### Existing metadata database credentials
+
+To use database credentials managed outside the chart, reference a Secret in the
+Superset release's namespace:
+
+```yaml
+postgresql:
+  enabled: false
+database:
+  host: postgresql.database.svc.cluster.local
+  name: superset
+  existingSecret: metadata-db-credentials
+  secretKeys:
+    user: username
+    password: password
+```
+
+The Secret must contain the selected keys. The password key defaults to `password`;
+omit `secretKeys.user` to keep using `database.user`. Superset and its initialization
+job receive the credentials through Kubernetes Secret references, without copying
+them into the chart's generated Secret. Keep `secretEnv.create` enabled to supply
+the remaining connection settings.
+
+A full `database.uri` takes precedence over these settings. Avoid also overriding
+the selected `DB_USER` or `DB_PASS` environment variables. Restart the workloads
+after rotating credentials in the existing Secret.
+
 ### Dependencies
 
 Install additional packages and do any other bootstrap configuration in the bootstrap script.

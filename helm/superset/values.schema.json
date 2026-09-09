@@ -25,6 +25,21 @@
         "password": {
           "type": ["string", "null"]
         },
+        "existingSecret": {
+          "type": "string"
+        },
+        "secretKeys": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "password": {
+              "type": "string"
+            },
+            "user": {
+              "type": "string"
+            }
+          }
+        },
         "name": {
           "type": ["string", "null"]
         },

@@ -86,6 +86,7 @@ spec:
           command: {{  tpl (toJson .Values.supersetWebsockets.command) . }}
           # Passing all the envs is a bit blunt... we only need a few (see https://github.com/apache/superset/blob/master/superset-websocket/src/config.ts)...
           env:
+            {{- include "superset.db.secretEnv" . | nindent 12 }}
             {{- range $key, $value := .Values.extraEnv }}
             - name: {{ $key | quote}}
               value: {{ $value | quote }}

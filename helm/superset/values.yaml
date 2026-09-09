@@ -330,6 +330,13 @@ database:
   # -- Database password (default: superset, resolved via superset.db.password)
   # ⚠️ CHANGE THIS for production
   password: ~
+  # -- Existing Secret containing database credentials (supports templating). Ignored when database.uri is set.
+  existingSecret: ""
+  secretKeys:
+    # -- Password key in database.existingSecret. Overrides database.password and legacy db_pass.
+    password: password
+    # -- Optional username key in database.existingSecret. When empty, database.user and legacy db_user are used.
+    user: ""
   # -- Database name (default: superset, resolved via superset.db.name)
   name: ~
   # -- Database SSL configuration
