@@ -959,3 +959,35 @@ async def test_base_permalink_failures_do_not_create_or_publish(
     assert result["permalink_key"] is None
     create.assert_not_called()
     publish.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "operator", ["ilike_contains", "ilike_starts_with", "ilike_ends_with"]
+)
+@pytest.mark.asyncio
+async def test_non_exact_select_is_rejected_without_side_effects(
+    mcp_server: object, operator: str
+) -> None:
+    """Never reinterpret a configured pattern filter as exact matching."""
+    conf = {
+        **SELECT_FILTER,
+        "controlValues": {**SELECT_FILTER["controlValues"], "operatorType": operator},
+    }
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([conf])),
+        patch(CREATE_PERMALINK) as create,
+        patch(
+            "superset.mcp_service.dashboard.tool.apply_dashboard_filters."
+            "_publish_filters_applied"
+        ) as publish,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Region", "values": ["EM"]}],
+            },
+        )
+    assert "Only exact-match select filters are supported" in data["error"]
+    create.assert_not_called()
+    publish.assert_not_called()
