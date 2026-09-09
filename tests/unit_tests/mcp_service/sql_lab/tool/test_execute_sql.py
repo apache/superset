@@ -413,10 +413,9 @@ class TestExecuteSql:
             sql="SELECT * FROM secret_table",
             catalog=None,
             schema=None,
-            template_params=None,
+            template_params={},
             force_dataset_match=True,
         )
-        # the query must not run when access is denied
         mock_database.execute.assert_not_called()
 
     @patch("superset.security_manager", new_callable=MagicMock)
@@ -430,9 +429,10 @@ class TestExecuteSql:
         template_params, otherwise the authorized SQL is not the SQL that runs
         and Jinja expanding on only one side escapes the table-access check.
 
-        ``None`` is passed through rather than normalized to ``{}``: the check
-        renders either way, while the executor skips rendering for ``None``, so
-        the executor can only ever run a subset of what was authorized.
+        ``None`` is normalized to ``{}`` rather than passed through: the check
+        renders unconditionally, so leaving the executor unrendered would let a
+        template that hides a table from the renderer be authorized in its
+        rendered form and executed in its raw form.
         """
         mock_database = _mock_database()
         mock_database.execute.return_value = _create_select_result(
@@ -460,7 +460,7 @@ class TestExecuteSql:
         ]
         executed = mock_database.execute.call_args[0][1].template_params
         assert authorized == executed
-        assert executed == template_params
+        assert executed == (template_params or {})
 
     @patch("superset.security_manager", new_callable=MagicMock)
     @patch("superset.db")
@@ -1550,20 +1550,19 @@ class TestDestructiveDDLBlocking:
                 ddl_mocks.execute.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_no_template_params_skips_rendering_in_ddl_check(
-        self, ddl_mocks, mcp_server
-    ):
-        """Without template_params the guard must not render, just like the
-        executor (``SQLExecutor._render_sql_template`` returns early on
-        ``None``). Rendering anyway would make SQL containing a literal ``{{``
-        fail as unparseable even though it runs fine.
+    async def test_no_template_params_still_renders(self, ddl_mocks, mcp_server):
+        """Omitting template_params must not skip rendering. The access check
+        renders unconditionally, so the guard and the executor have to render
+        as well, otherwise they inspect and run a different string than the one
+        that was authorized.
         """
-        sql = "SELECT * FROM logs WHERE msg LIKE '%{{%'"
+        sql = "SELECT * FROM logs WHERE msg = 'x'"
         ddl_mocks.execute.return_value = _create_select_result(
-            rows=[{"msg": "a{{b"}], columns=["msg"], original_sql=sql
+            rows=[{"msg": "x"}], columns=["msg"], original_sql=sql
         )
 
         with patch("superset.jinja_context.get_template_processor") as mock_get_tp:
+            mock_get_tp.return_value.process_template.return_value = sql
             async with Client(mcp_server) as client:
                 result = await client.call_tool(
                     "execute_sql",
@@ -1572,9 +1571,9 @@ class TestDestructiveDDLBlocking:
 
         data = result.structured_content
         assert data["success"] is True
-        mock_get_tp.assert_not_called()
-        assert ddl_mocks.execute.call_args[0][0] == sql
-        assert ddl_mocks.execute.call_args[0][1].template_params is None
+        mock_get_tp.return_value.process_template.assert_called_once_with(sql)
+        # the executor renders the same way, so it is handed {} rather than None
+        assert ddl_mocks.execute.call_args[0][1].template_params == {}
 
     @pytest.mark.asyncio
     async def test_select_allowed(self, ddl_mocks, mcp_server):

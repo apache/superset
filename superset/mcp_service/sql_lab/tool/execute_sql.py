@@ -75,28 +75,26 @@ def _invalid_sql_response() -> ExecuteSqlResponse:
 
 
 async def _validate_non_destructive_sql(
-    sql: str,
+    request: ExecuteSqlRequest,
     ctx: Context,
     database: Any,
     sql_preview: str,
-    template_params: dict[str, Any] | None,
+    template_params: dict[str, Any],
 ) -> ExecuteSqlResponse | None:
     """Return an error response when SQL cannot safely be executed."""
     with event_logger.log_context(action="mcp.execute_sql.ddl_check"):
         try:
-            sql_to_check: str = sql
-            # Render exactly when, and how, the executor renders
-            # (``SQLExecutor._render_sql_template``: skip for ``None``,
-            # ``process_template`` otherwise), so this guard inspects the
-            # string that will actually run and destructive SQL that only
-            # appears after rendering cannot slip past it. Deliberately not
-            # ``process_jinja_sql``, which neutralizes partition macros for
-            # parsing and so yields a different string.
-            if template_params is not None:
-                from superset.jinja_context import get_template_processor
+            # Render the same way the executor does
+            # (``SQLExecutor._render_sql_template`` -> ``process_template``) so
+            # this guard inspects the string that will actually run and
+            # destructive SQL that only appears after rendering cannot slip
+            # past it. Deliberately not ``process_jinja_sql``, which
+            # neutralizes partition macros for parsing and so yields a
+            # different string.
+            from superset.jinja_context import get_template_processor
 
-                tp = get_template_processor(database=database)
-                sql_to_check = tp.process_template(sql, **template_params)
+            tp = get_template_processor(database=database)
+            sql_to_check = tp.process_template(request.sql, **template_params)
 
             script = SQLScript(sql_to_check, database.db_engine_spec.engine)
             if script.has_destructive():
@@ -156,6 +154,15 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         from superset import db, is_feature_enabled, security_manager
         from superset.models.core import Database
 
+        # The access check below renders unconditionally
+        # (``raise_for_access`` -> ``process_jinja_sql``), so execution has to
+        # render too, otherwise the authorized SQL is not the SQL that runs and
+        # a template that hides a table reference from the renderer (e.g. one
+        # wrapped in ``{% if 0 %}`` inside a comment) would be authorized in
+        # its rendered form and executed in its raw form. SQL Lab has no such
+        # gap because its ``template_params`` defaults to ``{}``; match that.
+        template_params = request.template_params or {}
+
         # 1. Get database and check access
         with event_logger.log_context(action="mcp.execute_sql.db_validation"):
             database = (
@@ -185,7 +192,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                     sql=request.sql,
                     catalog=request.catalog,
                     schema=request.schema_name,
-                    template_params=request.template_params,
+                    template_params=template_params,
                     force_dataset_match=True,
                 )
             except SupersetSecurityException as ex:
@@ -200,8 +207,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
             except (SupersetParseError, SupersetTemplateException, TemplateError):
                 # Authorising a query the user has no database-wide grant on
                 # means rendering and parsing it, so malformed Jinja or SQL can
-                # surface here rather than in the DDL pre-check below. Report it
-                # as invalid input, not a crash.
+                # surface here rather than in the DDL pre-check below.
                 await ctx.error("Query could not be parsed for access validation")
                 return _invalid_sql_response()
 
@@ -210,7 +216,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         # allowing potentially destructive SQL to bypass the check.
         # Render Jinja2 templates first so templated SQL can be parsed.
         if validation_error := await _validate_non_destructive_sql(
-            request.sql, ctx, database, sql_preview, request.template_params
+            request, ctx, database, sql_preview, template_params
         ):
             return validation_error
 
@@ -221,7 +227,7 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
             schema=request.schema_name,
             limit=request.limit,
             timeout_seconds=request.timeout,
-            template_params=request.template_params,
+            template_params=template_params,
             dry_run=request.dry_run,
             cache=cache_opts,
         )
