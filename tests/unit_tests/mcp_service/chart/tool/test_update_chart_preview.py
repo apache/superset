@@ -656,6 +656,25 @@ class TestUpdateChartPreview:
 
         assert new_form_data["adhoc_filters"] == [cached_temporal_filter]
 
+    def test_preserves_filters_with_distinct_comparators(self) -> None:
+        """Filters that differ only by value are not deduplicated."""
+        previous_filter = {
+            "clause": "WHERE",
+            "comparator": 2020,
+            "expressionType": "SIMPLE",
+            "operator": ">",
+            "subject": "year",
+        }
+        generated_filter = {**previous_filter, "comparator": 2021}
+        new_form_data = {"adhoc_filters": [generated_filter]}
+
+        update_chart_preview_module._preserve_previous_adhoc_filters(
+            new_form_data,
+            {"adhoc_filters": [previous_filter]},
+        )
+
+        assert new_form_data["adhoc_filters"] == [previous_filter, generated_filter]
+
     def test_replaces_cached_temporal_filter_when_column_changes(self) -> None:
         """A newly selected temporal column replaces the cached binding."""
         new_temporal_filter = {

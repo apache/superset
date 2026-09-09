@@ -312,22 +312,22 @@ def _inherited_filters_match_dataset(
     return True
 
 
-def _inherited_state_matches_dataset(
+def _inherited_state_invalid_keys(
     existing_form_data: dict[str, Any],
     new_form_data: dict[str, Any],
     parsed_config: ChartConfig,
     dataset_id: int,
-) -> bool:
-    """Return whether carried-over query fields are valid for a new dataset."""
+) -> set[str]:
+    """Return inherited query fields that are invalid for a new dataset."""
     fields_set = parsed_config.model_fields_set
-    inherited_sort = "sort_by" not in fields_set and existing_form_data.get(
-        "order_by_cols"
-    )
-    inherited_filters = "filters" not in fields_set and existing_form_data.get(
-        "adhoc_filters"
-    )
-    inherited_query_fields = any(
-        key not in new_form_data and existing_form_data.get(key)
+    explicit_fields = {
+        "groupby": "group_by",
+        "groupby_b": "group_by_secondary",
+        "order_by_cols": "sort_by",
+        "adhoc_filters": "filters",
+    }
+    inherited_keys = {
+        key
         for key in (
             "groupby",
             "groupby_b",
@@ -336,10 +336,15 @@ def _inherited_state_matches_dataset(
             "x_axis",
             "granularity_sqla",
             "metrics",
+            "order_by_cols",
+            "adhoc_filters",
         )
-    )
-    if not (inherited_query_fields or inherited_sort or inherited_filters):
-        return True
+        if key not in new_form_data
+        and explicit_fields.get(key) not in fields_set
+        and existing_form_data.get(key)
+    }
+    if not inherited_keys:
+        return set()
 
     from superset.daos.dataset import DatasetDAO
     from superset.mcp_service.chart.validation.dataset_validator import (
@@ -348,25 +353,49 @@ def _inherited_state_matches_dataset(
 
     context = build_dataset_context_from_orm(DatasetDAO.find_by_id(dataset_id))
     if context is None:
-        return False
+        return inherited_keys
     columns = {column["name"].casefold() for column in context.available_columns}
     metrics = {metric["name"].casefold() for metric in context.available_metrics}
 
-    return (
-        _inherited_columns_match_dataset(
-            existing_form_data, new_form_data, columns, metrics
-        )
-        and _inherited_metrics_match_dataset(
-            existing_form_data, new_form_data, columns, metrics
-        )
-        and (
-            not inherited_sort
-            or _inherited_sort_matches_dataset(inherited_sort, columns, metrics)
-        )
-        and (
-            not inherited_filters
-            or _inherited_filters_match_dataset(inherited_filters, columns, metrics)
-        )
+    invalid_keys: set[str] = set()
+    for key in inherited_keys & {
+        "groupby",
+        "groupby_b",
+        "all_columns",
+        "columns",
+    }:
+        values = existing_form_data.get(key)
+        if isinstance(values, list) and not all(
+            _valid_dataset_reference(value, columns, metrics) for value in values
+        ):
+            invalid_keys.add(key)
+    for key in inherited_keys & {"x_axis", "granularity_sqla"}:
+        if not _valid_dataset_reference(existing_form_data.get(key), columns, metrics):
+            invalid_keys.add(key)
+    if "metrics" in inherited_keys and not _inherited_metrics_match_dataset(
+        existing_form_data, new_form_data, columns, metrics
+    ):
+        invalid_keys.add("metrics")
+    if "order_by_cols" in inherited_keys and not _inherited_sort_matches_dataset(
+        existing_form_data.get("order_by_cols"), columns, metrics
+    ):
+        invalid_keys.add("order_by_cols")
+    if "adhoc_filters" in inherited_keys and not _inherited_filters_match_dataset(
+        existing_form_data.get("adhoc_filters"), columns, metrics
+    ):
+        invalid_keys.add("adhoc_filters")
+    return invalid_keys
+
+
+def _inherited_state_matches_dataset(
+    existing_form_data: dict[str, Any],
+    new_form_data: dict[str, Any],
+    parsed_config: ChartConfig,
+    dataset_id: int,
+) -> bool:
+    """Return whether carried-over query fields are valid for a new dataset."""
+    return not _inherited_state_invalid_keys(
+        existing_form_data, new_form_data, parsed_config, dataset_id
     )
 
 
@@ -381,13 +410,18 @@ def _build_replacement_form_data(
         parsed_config, dataset_id=effective_dataset_id
     )
     new_form_data.pop("_mcp_warnings", None)
-    if replacement_dataset_id is not None and not _inherited_state_matches_dataset(
-        existing_form_data,
-        new_form_data,
-        parsed_config,
-        replacement_dataset_id,
-    ):
-        existing_form_data = {}
+    if replacement_dataset_id is not None:
+        invalid_keys = _inherited_state_invalid_keys(
+            existing_form_data,
+            new_form_data,
+            parsed_config,
+            replacement_dataset_id,
+        )
+        existing_form_data = {
+            key: value
+            for key, value in existing_form_data.items()
+            if key not in invalid_keys
+        }
     if "filters" not in parsed_config.model_fields_set:
         preserve_previous_adhoc_filters(new_form_data, existing_form_data)
     merge_table_column_config(existing_form_data, new_form_data)

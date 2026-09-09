@@ -1867,6 +1867,11 @@ def preserve_previous_adhoc_filters(
             == generated_filter.get("expressionType")
             and previous_filter.get("subject") == generated_filter.get("subject")
             and previous_filter.get("operator") == generated_filter.get("operator")
+            and (
+                generated_filter.get("operator") == "TEMPORAL_RANGE"
+                or previous_filter.get("comparator")
+                == generated_filter.get("comparator")
+            )
             for previous_filter in merged_filters
         )
         if not is_same_filter:

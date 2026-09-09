@@ -876,9 +876,9 @@ class TestBuildUpdatePayload:
         assert "order_by_cols" not in json.loads(saved["params"])
         assert "order_by_cols" not in preview
 
-    @patch.object(update_chart_module, "_inherited_state_matches_dataset")
+    @patch.object(update_chart_module, "_inherited_state_invalid_keys")
     def test_dataset_rebind_only_preserves_compatible_state(
-        self, mock_state_matches
+        self, mock_invalid_keys
     ) -> None:
         config = TableChartConfig(columns=[ColumnRef(name="revenue")])
         request = UpdateChartRequest(identifier=1, config=config, dataset_id=9)
@@ -895,9 +895,9 @@ class TestBuildUpdatePayload:
             ),
         )
 
-        mock_state_matches.return_value = False
+        mock_invalid_keys.return_value = {"groupby"}
         incompatible = _build_update_payload(request, chart, parsed_config=config)
-        mock_state_matches.return_value = True
+        mock_invalid_keys.return_value = set()
         compatible = _build_update_payload(request, chart, parsed_config=config)
 
         assert isinstance(incompatible, dict)
@@ -905,11 +905,51 @@ class TestBuildUpdatePayload:
         incompatible_params = json.loads(incompatible["params"])
         compatible_params = json.loads(compatible["params"])
         assert "groupby" not in incompatible_params
-        assert "custom_flag" not in incompatible_params
+        assert incompatible_params["custom_flag"] is True
         assert compatible_params["groupby"] == ["removed_column"]
         assert compatible_params["custom_flag"] is True
         assert incompatible_params["datasource"] == "9__table"
         assert compatible_params["datasource"] == "9__table"
+
+    @patch(
+        "superset.mcp_service.chart.validation.dataset_validator."
+        "build_dataset_context_from_orm"
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_dataset_rebind_explicit_clear_preserves_other_state(
+        self, mock_find_dataset, mock_build_context
+    ) -> None:
+        mock_find_dataset.return_value = Mock()
+        mock_build_context.return_value = Mock(
+            available_columns=[{"name": "revenue"}],
+            available_metrics=[],
+        )
+        config = XYChartConfig.model_validate(
+            {
+                "x": {"name": "revenue"},
+                "y": [{"name": "revenue", "aggregate": "SUM"}],
+                "groupby": [],
+            }
+        )
+        request = UpdateChartRequest(identifier=1, config=config, dataset_id=9)
+        chart = Mock(
+            datasource_id=7,
+            slice_name="Revenue",
+            params=json.dumps(
+                {
+                    "viz_type": "echarts_timeseries_line",
+                    "groupby": ["removed_column"],
+                    "custom_flag": True,
+                }
+            ),
+        )
+
+        result = _build_update_payload(request, chart, parsed_config=config)
+
+        assert isinstance(result, dict)
+        params = json.loads(result["params"])
+        assert "groupby" not in params
+        assert params["custom_flag"] is True
 
     @patch(
         "superset.mcp_service.chart.validation.dataset_validator."
