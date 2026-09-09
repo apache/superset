@@ -833,9 +833,13 @@ def test_registering_sunburst_keeps_all_core_chart_plugins() -> None:
             y=[ColumnRef(name="sales", aggregate="SUM")],
             y_secondary=[ColumnRef(name="profit", aggregate="SUM")],
         ),
+        GaugeChartConfig(
+            chart_type="gauge",
+            metric={"name": "sales", "aggregate": "SUM"},
+        ),
         _config(),
     ],
-    ids=["table", "pie", "histogram", "xy", "mixed", "sunburst"],
+    ids=["table", "pie", "histogram", "xy", "mixed", "gauge", "sunburst"],
 )
 def test_registered_same_viz_updates_preserve_native_plugin_controls(config) -> None:
     """Same-viz merges retain valid native state not exposed by typed configs."""
@@ -862,6 +866,26 @@ def test_registered_same_viz_updates_preserve_native_plugin_controls(config) -> 
         config,
     )
     assert "native_plugin_control" not in cross_viz
+
+
+def test_partial_gauge_update_preserves_omitted_controls() -> None:
+    config = GaugeChartConfig(
+        chart_type="gauge",
+        metric={"name": "sales", "aggregate": "SUM"},
+    )
+    merged = merge_form_data_for_update(
+        {
+            "viz_type": "gauge_chart",
+            "metric": "old_metric",
+            "show_progress": False,
+            "split_number": 5,
+        },
+        map_config_to_form_data(config),
+        config,
+    )
+
+    assert merged["show_progress"] is False
+    assert merged["split_number"] == 5
 
 
 @pytest.mark.parametrize(
@@ -4024,6 +4048,23 @@ def test_orphan_grain_survives_same_and_cross_viz_merge_for_validation(
     assert result.success is False
     assert result.error_obj is not None
     assert result.error_obj.error_code == "INVALID_TEMPORAL_STATE"
+
+
+def test_explicit_range_survives_clearing_saved_grain() -> None:
+    config = _config(time_range="Last month", time_grain=None)
+    merged = merge_form_data_for_update(
+        {
+            "viz_type": "sunburst_v2",
+            "granularity_sqla": "OrderDate",
+            "time_grain_sqla": "P1M",
+            "time_range": "Last year",
+        },
+        map_config_to_form_data(config),
+        config,
+    )
+
+    assert merged["time_range"] == "Last month"
+    assert "time_grain_sqla" not in merged
 
 
 def test_setting_grain_while_clearing_subject_is_rejected_in_both_update_forms() -> (
