@@ -85,6 +85,7 @@ from superset.mcp_service.chart.schemas import (
     PieChartConfig,
     PivotTableChartConfig,
     RadarChartConfig,
+    SankeyChartConfig,
     SunburstChartConfig,
     SunburstNativeMetricColumn,
     TableChartConfig,
@@ -399,6 +400,11 @@ def _registered_query_role_matrix() -> list[ChartConfig]:
             entity=ColumnRef(name="region"), x=metric, y=metric, size=metric
         ),
         RadarChartConfig(metrics=[metric], groupby=[ColumnRef(name="region")]),
+        SankeyChartConfig(
+            source=ColumnRef(name="region"),
+            target=ColumnRef(name="segment"),
+            metric=metric,
+        ),
         *[
             XYChartConfig(
                 kind=kind,
