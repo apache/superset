@@ -83,6 +83,25 @@ def manage_dashboard_certification(
         return auth_error
     assert dashboard is not None  # narrows for mypy
 
+    # Externally managed dashboards refuse certification changes: their
+    # source of truth lives outside Superset, so a badge set here would be
+    # overwritten (or drift from the certifying system) on the next
+    # external sync. This tool writes by direct attribute assignment +
+    # commit, bypassing UpdateDashboardCommand's shared
+    # raise_if_managed_externally gate, so the refusal must live here.
+    # Placed after the editorship check, mirroring the command-layer
+    # ordering: a caller with no edit rights keeps getting the plain
+    # editorship denial.
+    if dashboard.is_managed_externally:
+        return ManageDashboardCertificationResponse(
+            permission_denied=True,
+            error=(
+                f"Dashboard '{dashboard.dashboard_title}' (ID: {dashboard.id}) "
+                "is managed externally; its certification is owned by the "
+                "external system and cannot be changed here."
+            ),
+        )
+
     if request.certified_by is None and request.certification_details is None:
         return ManageDashboardCertificationResponse(
             certified_by=dashboard.certified_by,

@@ -34,6 +34,7 @@ def _mock_dashboard(
     slug: str | None = "test-slug",
     certified_by: str | None = None,
     certification_details: str | None = None,
+    is_managed_externally: bool = False,
 ) -> Mock:
     dashboard: Mock = Mock()
     dashboard.id = id
@@ -41,10 +42,46 @@ def _mock_dashboard(
     dashboard.slug = slug
     dashboard.certified_by = certified_by
     dashboard.certification_details = certification_details
+    # Declared explicitly: a bare Mock attribute is truthy, which would
+    # trip the managed-externally refusal in every test (real dashboards
+    # default the flag to False).
+    dashboard.is_managed_externally = is_managed_externally
     return dashboard
 
 
 class TestManageDashboardCertification:
+    @patch(DAO_GET)
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_refuses_externally_managed_dashboard(
+        self, mock_session: Mock, mock_get: Mock, mcp_server: object
+    ) -> None:
+        """sc-120051: certification of a managed dashboard is refused.
+
+        This tool writes by direct attribute assignment + commit,
+        bypassing UpdateDashboardCommand's raise_if_managed_externally
+        gate — so the refusal lives in the tool, and nothing may be
+        assigned or committed on the refused path."""
+        dash: Mock = _mock_dashboard(is_managed_externally=True)
+        mock_get.return_value = dash
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "manage_dashboard_certification",
+                {
+                    "request": {
+                        "identifier": 42,
+                        "certified_by": "Data Platform Team",
+                    }
+                },
+            )
+
+        payload: dict[str, Any] = json.loads(result.content[0].text)
+        assert payload["permission_denied"] is True
+        assert "managed externally" in payload["error"]
+        assert dash.certified_by is None
+        mock_session.commit.assert_not_called()
+
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
     @pytest.mark.asyncio
