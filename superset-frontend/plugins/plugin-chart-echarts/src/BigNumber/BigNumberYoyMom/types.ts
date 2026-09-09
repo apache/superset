@@ -43,10 +43,12 @@ export type BigNumberYoyMomFormData = QueryFormData & {
   showComparison1?: boolean;
   comparison1Label?: string;
   comparison1Offset?: string;
+  comparison1Column?: QueryFormMetric;
   comparison1Left?: number;
   showComparison2?: boolean;
   comparison2Label?: string;
   comparison2Offset?: string;
+  comparison2Column?: QueryFormMetric;
   comparison2Left?: number;
   comparisonFontSize?: number;
   comparisonTop?: number;
