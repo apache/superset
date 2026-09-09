@@ -213,6 +213,29 @@ jobs:
           docker images $IMAGE_TAG
           docker history $IMAGE_TAG
 
+      - name: WebSocket server smoke test
+        if: contains(fromJson('["lean", "dev"]'), matrix.build_preset)
+        shell: bash
+        run: |
+          # The realtime WebSocket server is bundled in the official image and
+          # launched via an alternate entrypoint; verify the bundled Node runtime
+          # starts it and it serves /health. (A JWT secret >= 32 bytes is required
+          # or the server refuses to start; no Redis is needed for /health.)
+          # Both presets are checked because docker-compose-non-dev.yml runs the
+          # websocket service from the dev target.
+          docker run -d --name superset-ws \
+            -e JWT_SECRET="ci-smoke-test-secret-ci-smoke-test-secret" \
+            -e PORT=8080 -p 8080:8080 \
+            "$IMAGE_TAG" /app/docker/entrypoints/run-websocket.sh
+          ok=""
+          for _ in $(seq 1 20); do
+            if curl -sf http://localhost:8080/health; then echo "ws /health OK"; ok=1; break; fi
+            sleep 2
+          done
+          docker logs superset-ws || true
+          docker rm -f superset-ws || true
+          [ "$ok" = "1" ] || { echo "::error::websocket /health did not come up"; exit 1; }
+
       - name: docker-compose sanity check
         if: matrix.build_preset == 'dev'
         shell: bash
@@ -266,7 +289,7 @@ jobs:
   actions-timeline:
     needs: [docker-build, docker-compose-image-tag]
     if: always()
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     permissions:
       actions: read
     steps:
