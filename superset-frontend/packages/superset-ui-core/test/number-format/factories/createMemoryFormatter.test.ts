@@ -108,6 +108,11 @@ test('formats bytes in human readable format with additional binary option', () 
   expect(formatter(Math.pow(1024, 10))).toBe('1048576YiB');
 });
 
+test('formats bigint values decoded by json-bigint', () => {
+  const big = BigInt('1425300509404304697');
+  expect(createMemoryFormatter({ binary: true })(big)).toBe('1.24EiB');
+});
+
 test('formats bytes in human readable format with additional transfer option', () => {
   const formatter = createMemoryFormatter({ transfer: true });
   expect(formatter(0)).toBe('0B/s');

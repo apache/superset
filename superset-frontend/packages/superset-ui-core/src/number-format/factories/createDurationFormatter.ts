@@ -53,7 +53,8 @@ export default function createDurationFormatter(
   return new NumberFormatter({
     description,
     formatFunc: value => {
-      const durObject = parseMilliseconds(value * multiplier);
+      const numValue = typeof value === 'bigint' ? Number(value) : value;
+      const durObject = parseMilliseconds(numValue * multiplier);
 
       if (!formatSubMilliseconds) {
         durObject.milliseconds = 0;

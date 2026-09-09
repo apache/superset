@@ -35,7 +35,7 @@ export interface NumberFormatterConfig {
 // Use type augmentation to indicate that
 // an instance of NumberFormatter is also a function
 interface NumberFormatter {
-  (value: number | null | undefined): string;
+  (value: number | bigint | null | undefined): string;
 }
 
 class NumberFormatter extends ExtensibleFunction {
@@ -50,7 +50,7 @@ class NumberFormatter extends ExtensibleFunction {
   isInvalid: boolean;
 
   constructor(config: NumberFormatterConfig) {
-    super((value: number) => this.format(value));
+    super((value: number | bigint) => this.format(value));
 
     const {
       id = isRequired('config.id'),
@@ -66,10 +66,15 @@ class NumberFormatter extends ExtensibleFunction {
     this.isInvalid = isInvalid;
   }
 
-  format(value: number | null | undefined) {
-    if (value === null || value === undefined || Number.isNaN(value)) {
+  format(value: number | bigint | null | undefined) {
+    if (
+      value === null ||
+      value === undefined ||
+      (typeof value === 'number' && Number.isNaN(value))
+    ) {
       return `${value}`;
     }
+
     if (value === Number.POSITIVE_INFINITY) {
       return '∞';
     }
