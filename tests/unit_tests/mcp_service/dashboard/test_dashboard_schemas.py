@@ -1053,3 +1053,135 @@ class TestRequestSchemaAliasChoices:
     def test_add_chart_to_dashboard_chart_alias(self) -> None:
         req = AddChartToDashboardRequest.model_validate({"dashboard_id": 1, "chart": 2})
         assert req.chart_id == 2
+
+
+@pytest.mark.parametrize(
+    ("filter_type", "value"),
+    [
+        ("filter_select", ["EMEA", None, False, 0]),
+        ("filter_range", [0, 100]),
+        ("filter_time", "2026-01-01 : 2026-02-01"),
+        ("filter_timegrain", ["P1D"]),
+    ],
+)
+def test_native_filter_value_projection(filter_type: str, value: Any) -> None:
+    """Keep display values without copying arbitrary state or query metadata."""
+    from copy import deepcopy
+
+    from superset.mcp_service.dashboard.schemas import (
+        NativeFilterSummary,
+        redact_filter_state_data_model_metadata,
+    )
+
+    raw = {
+        "dataMask": {
+            "f1": {
+                "extraFormData": {"filters": [{"col": "secret_column"}]},
+                "filterState": {
+                    "value": value,
+                    "label": "Display selection",
+                    "excludeFilterValues": True,
+                    "column": "secret_column",
+                    "nested": {"column": "secret_column"},
+                },
+            },
+        },
+        "activeTabs": ["tab1"],
+        "chartStates": {"1": {"column": "secret_column"}},
+        "native_filter_values": [{"column": "spoofed"}],
+    }
+    original = deepcopy(raw)
+    result = redact_filter_state_data_model_metadata(
+        raw,
+        [NativeFilterSummary(id="f1", name="Region", filter_type=filter_type)],
+    )
+    assert result == {
+        "activeTabs": ["tab1"],
+        "native_filter_values": [
+            {
+                "id": "f1",
+                "name": "Region",
+                "filter_type": filter_type,
+                "value": value,
+                "label": "Display selection",
+                "excludeFilterValues": True,
+            }
+        ],
+        "native_filter_values_incomplete": True,
+    }
+    assert raw == original
+    assert "secret_column" not in str(result)
+    assert "spoofed" not in str(result)
+
+
+@pytest.mark.parametrize(
+    ("filter_type", "entry"),
+    [
+        ("filter_timecolumn", {"filterState": {"value": ["secret_column"]}}),
+        ("custom_filter", {"filterState": {"value": "secret_column"}}),
+        ("filter_select", {"filterState": {"value": {"column": "secret_column"}}}),
+        ("filter_select", {"filterState": {"value": [{"column": "secret_column"}]}}),
+        ("filter_select", {"filterState": None}),
+        ("filter_select", {}),
+        ("filter_select", None),
+    ],
+)
+def test_native_filter_value_projection_fails_closed(
+    filter_type: str,
+    entry: Any,
+) -> None:
+    """Unsupported or malformed values are omitted and incompleteness is explicit."""
+    from superset.mcp_service.dashboard.schemas import (
+        NativeFilterSummary,
+        redact_filter_state_data_model_metadata,
+    )
+
+    result = redact_filter_state_data_model_metadata(
+        {"dataMask": {"f1": entry, "unknown": {"filterState": {"value": "secret"}}}},
+        [NativeFilterSummary(id="f1", name="Filter", filter_type=filter_type)],
+    )
+    assert result["native_filter_values"] == []
+    assert result["native_filter_values_incomplete"] is True
+
+
+@pytest.mark.parametrize("mask", [None, [], "invalid", {}])
+def test_native_filter_value_projection_empty_or_malformed_mask(mask: Any) -> None:
+    """Distinguish an empty mask from malformed input without raising."""
+    from superset.mcp_service.dashboard.schemas import (
+        redact_filter_state_data_model_metadata,
+    )
+
+    result = redact_filter_state_data_model_metadata({"dataMask": mask}, [])
+    assert result["native_filter_values"] == []
+    assert result["native_filter_values_incomplete"] is (mask != {})
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {"adhoc_filters": [{"sqlExpression": "1 = 0"}]},
+        {"filters": [{"col": "secret", "op": "ILIKE", "val": "%EMEA%"}]},
+    ],
+)
+def test_native_filter_special_predicates_are_incomplete(extra: dict[str, Any]) -> None:
+    """Selections alone cannot express SQL or wildcard matching semantics."""
+    from superset.mcp_service.dashboard.schemas import (
+        NativeFilterSummary,
+        redact_filter_state_data_model_metadata,
+    )
+
+    result = redact_filter_state_data_model_metadata(
+        {
+            "dataMask": {
+                "f1": {
+                    "filterState": {"value": ["EMEA"]},
+                    "extraFormData": extra,
+                }
+            }
+        },
+        [NativeFilterSummary(id="f1", name="Region", filter_type="filter_select")],
+    )
+    assert result["native_filter_values"][0]["value"] == ["EMEA"]
+    assert result["native_filter_values_incomplete"] is True
+    assert "secret" not in str(result)
+    assert "sqlExpression" not in str(result)

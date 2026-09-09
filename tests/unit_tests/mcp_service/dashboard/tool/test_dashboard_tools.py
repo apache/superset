@@ -21,6 +21,7 @@ Unit tests for MCP dashboard tools (list_dashboards, get_dashboard_info)
 
 import logging
 from importlib import import_module
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -971,7 +972,11 @@ async def test_get_dashboard_info_restricted_user_redacts_permalink_filter_state
 
     assert result.data["permalink_key"] == "abc123"
     assert result.data["is_permalink_state"] is True
-    assert result.data["filter_state"] == {"activeTabs": [_wrapped("TAB-products")]}
+    assert result.data["filter_state"] == {
+        "activeTabs": [_wrapped("TAB-products")],
+        "native_filter_values": [],
+        "native_filter_values_incomplete": True,
+    }
 
 
 @patch("superset.daos.dashboard.DashboardDAO.list")
@@ -1752,3 +1757,87 @@ async def test_explicit_default_columns_excludes_filter_state(mock_info, mcp_ser
                 },
             )
     assert "filter_state" not in result.data
+
+
+@pytest.mark.parametrize("privileged", [True, False])
+@pytest.mark.parametrize("use_permalink", [True, False])
+@pytest.mark.asyncio
+async def test_dashboard_filter_values_for_both_access_branches(
+    mcp_server: Any,
+    privileged: bool,
+    use_permalink: bool,
+) -> None:
+    """Both input paths preserve display context without relaxing metadata access."""
+    dashboard = _minimal_dashboard()
+    dashboard.json_metadata = json.dumps(
+        {
+            "native_filter_configuration": [
+                {
+                    "id": "region",
+                    "name": "Region",
+                    "filterType": "filter_select",
+                    "targets": [{"datasetId": 3, "column": {"name": "secret_region"}}],
+                }
+            ],
+        }
+    )
+    state = {
+        "dataMask": {
+            "region": {
+                "filterState": {"value": ["EMEA"], "label": "EMEA"},
+                "extraFormData": {
+                    "filters": [{"col": "secret_region", "val": ["EMEA"]}]
+                },
+            }
+        },
+        "chartStates": {"42": {"column": "secret_region"}},
+    }
+    request: dict[str, Any] = {"identifier": 1}
+    if use_permalink:
+        request["permalink_key"] = "key"
+    else:
+        request["filter_state"] = state
+    with (
+        patch(
+            "superset.daos.dashboard.DashboardDAO.find_by_id", return_value=dashboard
+        ),
+        patch(
+            "superset.mcp_service.dashboard.schemas.user_can_view_data_model_metadata",
+            return_value=privileged,
+        ),
+        patch(
+            "superset.mcp_service.dashboard.permalink.user_can_view_data_model_metadata",
+            return_value=privileged,
+        ),
+        patch(
+            "superset.mcp_service.dashboard.tool.get_dashboard_info."
+            "user_can_view_data_model_metadata",
+            return_value=privileged,
+        ),
+        patch(
+            "superset.mcp_service.dashboard.permalink.get_dashboard_permalink",
+            return_value=("key", {"dashboardId": "1", "state": state}),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            response = await client.call_tool(
+                "get_dashboard_info", {"request": request}
+            )
+    returned_state = response.data["filter_state"]
+    if privileged:
+        assert returned_state == state
+    else:
+        assert returned_state == {
+            "native_filter_values": [
+                {
+                    "id": "region",
+                    "name": "Region",
+                    "filter_type": "filter_select",
+                    "value": ["EMEA"],
+                    "label": "EMEA",
+                }
+            ],
+            "native_filter_values_incomplete": True,
+        }
+        assert "secret_region" not in str(response.data)
+    assert response.data["is_permalink_state"] is use_permalink
