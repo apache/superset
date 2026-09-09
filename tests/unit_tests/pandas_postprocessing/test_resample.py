@@ -246,20 +246,55 @@ def test_resample_allows_legitimate_upsampling_within_limit():
     assert len(post_df) == 604801
 
 
-def test_resample_rejects_calendar_frequency_over_row_limit(monkeypatch):
+def test_estimate_projected_rows_calendar_month_start_is_cheap():
     """
-    Calendar frequencies (month/quarter/year) have no fixed Timedelta. Master's
-    Timedelta-only check skipped them; period arithmetic still enforces the cap.
+    Calendar freqs must be counted via Period arithmetic (or a day-span bound),
+    never by materializing ``pd.date_range`` for the whole span.
     """
     import importlib
 
-    # ``pandas_postprocessing.resample`` is rebound to the function in the
-    # package ``__init__``, so getattr/import and pytest dotted paths all resolve
-    # to that function. ``import_module`` loads the actual submodule.
     resample_mod = importlib.import_module(
         "superset.utils.pandas_postprocessing.resample"
     )
-    monkeypatch.setattr(resample_mod, "MAX_RESAMPLE_ROWS", 10)
+    estimated = resample_mod._estimate_projected_rows(
+        pd.Timestamp("2010-01-01"),
+        pd.Timestamp("2020-01-01"),
+        "MS",
+    )
+    assert estimated == 121
+
+
+def test_estimate_projected_rows_calendar_freqs_do_not_call_date_range(monkeypatch):
+    import importlib
+
+    resample_mod = importlib.import_module(
+        "superset.utils.pandas_postprocessing.resample"
+    )
+
+    def _boom(*_args, **_kwargs):
+        raise AssertionError("date_range must not be used to estimate calendar bins")
+
+    monkeypatch.setattr(resample_mod.pd, "date_range", _boom)
+    for rule in ("MS", "QE", "YE", "W-SUN"):
+        assert (
+            resample_mod._estimate_projected_rows(
+                pd.Timestamp("2010-01-01"),
+                pd.Timestamp("2020-01-01"),
+                rule,
+            )
+            > 0
+        )
+
+
+def test_resample_rejects_calendar_frequency_over_row_limit(monkeypatch):
+    """
+    Calendar frequencies (month/quarter/year) have no fixed Timedelta. Master's
+    Timedelta-only check skipped them; Period arithmetic still enforces the cap.
+    """
+    # Patch via the function globals: the package ``__init__`` rebinds
+    # ``pandas_postprocessing.resample`` to the function, so module attribute
+    # paths are unreliable under pytest monkeypatch.
+    monkeypatch.setitem(pp.resample.__globals__, "MAX_RESAMPLE_ROWS", 10)
     df = pd.DataFrame(
         index=to_datetime(["2010-01-01", "2020-01-01"]),
         data={"y": [1.0, 2.0]},

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime, tzinfo
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 import pandas as pd
 from flask_babel import gettext as _
@@ -100,6 +100,27 @@ def _pad_to_time_range(
     return pd.concat([df, padding]).sort_index(kind="stable")
 
 
+def _period_freq_for_offset(offset: Any) -> str:
+    """
+    Map a DatetimeIndex/resample offset to a Period frequency string.
+
+    Resample uses anchors like ``MS`` / ``QE`` / ``YE``, but ``Timestamp.to_period``
+    only accepts the Period forms ``M`` / ``Q`` / ``Y`` (and similarly for week).
+    """
+    # ``QS-JAN``, ``W-SUN``, ``YE-DEC`` → base token before the first hyphen
+    base = offset.freqstr.split("-", 1)[0]
+    return {
+        "MS": "M",
+        "ME": "M",
+        "QS": "Q",
+        "QE": "Q",
+        "YS": "Y",
+        "YE": "Y",
+        "AS": "Y",
+        "A": "Y",
+    }.get(base, offset.freqstr)
+
+
 def _estimate_projected_rows(start: pd.Timestamp, end: pd.Timestamp, rule: str) -> int:
     """
     Estimate how many bins ``resample(rule)`` would produce between two bounds.
@@ -107,7 +128,8 @@ def _estimate_projected_rows(start: pd.Timestamp, end: pd.Timestamp, rule: str) 
     Fixed-duration rules use Timedelta arithmetic plus a +2 alignment margin
     (pandas may snap bins outside the observed span). Calendar frequencies
     (month, quarter, year, …) have no fixed Timedelta; those are estimated via
-    period arithmetic so the DoS cap still applies to them.
+    Period arithmetic (or a day-span upper bound) so the DoS cap still applies
+    without materializing a DatetimeIndex.
     """
     if end < start:
         return 0
@@ -115,13 +137,18 @@ def _estimate_projected_rows(start: pd.Timestamp, end: pd.Timestamp, rule: str) 
     try:
         nanos = offset.nanos
     except ValueError:
-        # Non-fixed frequencies: convert bounds to periods of ``rule`` and
-        # subtract. This avoids materializing a multi-million-row DatetimeIndex
-        # just to decide whether to reject the request.
+        # Non-fixed frequencies: never build a ``date_range`` just to count bins.
         try:
-            return int(end.to_period(rule) - start.to_period(rule)) + 1
+            period_freq = _period_freq_for_offset(offset)
+            delta = end.to_period(period_freq) - start.to_period(period_freq)
+            # Modern pandas returns an offset (``MonthEnd(n=…)``); older versions
+            # returned a plain int. ``.n`` is the shared bin count either way.
+            count = getattr(delta, "n", delta)
+            return int(count) + 1
         except (TypeError, ValueError):
-            return len(pd.date_range(start=start, end=end, freq=rule))
+            # Remaining non-fixed freqs (e.g. some business calendars): a day
+            # count is a safe upper bound for day-or-coarser bins and stays O(1).
+            return max((end - start).days, 0) + 1
     if nanos <= 0:
         return 0
     # pandas snaps the first resample bin to the nearest frequency multiple at
