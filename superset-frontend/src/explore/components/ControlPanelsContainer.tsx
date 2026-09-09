@@ -333,7 +333,10 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
   const headerGroupsValue = props.controls.header_groups?.value;
   const exploreDatasource = props.exploreState.datasource;
   const exploreFormData = props.exploreState.form_data;
-  const timeCompareValue = props.exploreState.controls?.time_compare?.value;
+  const exploreControls = props.exploreState.controls;
+  const timeCompareValue = exploreControls?.time_compare?.value;
+  const queryModeValue = exploreControls?.query_mode?.value;
+  const comparisonTypeValue = exploreControls?.comparison_type?.value;
   const queryColnames = props.chart.queriesResponse?.[0]?.colnames;
 
   // HeaderGroupsControl is on the Customize tab and is not mounted until that
@@ -352,8 +355,16 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           percent_metrics: exploreFormData?.percent_metrics,
           groupby: exploreFormData?.groupby,
           all_columns: exploreFormData?.all_columns,
+          query_mode: queryModeValue ?? exploreFormData?.query_mode,
+          comparison_type:
+            comparisonTypeValue ?? exploreFormData?.comparison_type,
+          time_compare: timeCompareValue ?? exploreFormData?.time_compare,
         },
-        controls: { time_compare: { value: timeCompareValue } },
+        controls: {
+          time_compare: { value: timeCompareValue },
+          query_mode: { value: queryModeValue },
+          comparison_type: { value: comparisonTypeValue },
+        },
       },
       {
         queriesResponse: queryColnames ? [{ colnames: queryColnames }] : null,
@@ -367,13 +378,18 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     }
   }, [
     exploreDatasource,
+    comparisonTypeValue,
     exploreFormData?.all_columns,
+    exploreFormData?.comparison_type,
     exploreFormData?.groupby,
     exploreFormData?.metrics,
     exploreFormData?.percent_metrics,
+    exploreFormData?.query_mode,
+    exploreFormData?.time_compare,
     hasHeaderGroupsControl,
     headerGroupsValue,
     queryColnames,
+    queryModeValue,
     setControlValue,
     timeCompareValue,
   ]);

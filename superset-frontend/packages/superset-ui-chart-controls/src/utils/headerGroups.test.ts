@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { ComparisonType, QueryMode } from '@superset-ui/core';
 import {
   buildHeaderGroupRows,
   buildTimeComparisonHeaderGroups,
@@ -25,6 +26,7 @@ import {
   getHeaderGroupsMaxDepth,
   headerGroupsHaveSameColumns,
   hasRenderableHeaderGroups,
+  isHeaderGroupsTimeComparisonEnabled,
   nestColDefsInHeaderGroups,
   resolveHeaderGroups,
   syncTimeComparisonGroups,
@@ -37,6 +39,12 @@ const comparisonRevenueColumns = [
   '△ revenue',
   '% revenue',
 ];
+
+const timeComparisonFormData = {
+  metrics: ['revenue'],
+  query_mode: QueryMode.Aggregate,
+  comparison_type: ComparisonType.Values,
+};
 
 const chartGroups: HeaderGroupConfig[] = [
   {
@@ -574,7 +582,7 @@ test('getHeaderGroupsControlProps builds time comparison groups', () => {
   const result = getHeaderGroupsControlProps(
     {
       datasource: { verbose_map: { revenue: 'Revenue' } },
-      form_data: { metrics: ['revenue'], groupby: ['region'] },
+      form_data: { ...timeComparisonFormData, groupby: ['region'] },
       controls: { time_compare: { value: '1 year ago' } },
     },
     { queriesResponse: [{ colnames: ['region', 'revenue'] }] },
@@ -601,7 +609,7 @@ test('getHeaderGroupsControlProps builds time comparison groups', () => {
 test('getHeaderGroupsControlProps returns no auto groups without time comparison', () => {
   const result = getHeaderGroupsControlProps(
     {
-      form_data: { metrics: ['revenue'] },
+      form_data: timeComparisonFormData,
       controls: { time_compare: { value: [] } },
     },
     { queriesResponse: null },
@@ -614,7 +622,12 @@ test('getHeaderGroupsControlProps returns no auto groups without time comparison
 test('getHeaderGroupsControlProps skips unprefixed percent metrics', () => {
   const result = getHeaderGroupsControlProps(
     {
-      form_data: { metrics: [], percent_metrics: ['profit'] },
+      form_data: {
+        metrics: [],
+        percent_metrics: ['profit'],
+        query_mode: QueryMode.Aggregate,
+        comparison_type: ComparisonType.Values,
+      },
       controls: { time_compare: { value: '1 year ago' } },
     },
     { queriesResponse: [{ colnames: ['profit', '%profit'] }] },
@@ -637,6 +650,8 @@ test('getHeaderGroupsControlProps uses array verbose maps and skips offset colum
         metrics: ['revenue'],
         groupby: ['region'],
         all_columns: ['unused'],
+        query_mode: QueryMode.Aggregate,
+        comparison_type: ComparisonType.Values,
       },
       controls: { time_compare: { value: '1 year ago' } },
     },
@@ -661,7 +676,12 @@ test('getHeaderGroupsControlProps uses array verbose maps and skips offset colum
 test('getHeaderGroupsControlProps includes percent metrics in auto groups', () => {
   const result = getHeaderGroupsControlProps({
     datasource: { verbose_map: { revenue: 'Revenue', profit: 'Profit' } },
-    form_data: { metrics: ['revenue'], percent_metrics: ['profit'] },
+    form_data: {
+      metrics: ['revenue'],
+      percent_metrics: ['profit'],
+      query_mode: QueryMode.Aggregate,
+      comparison_type: ComparisonType.Values,
+    },
     controls: { time_compare: { value: '1 year ago' } },
   });
 
@@ -673,6 +693,79 @@ test('getHeaderGroupsControlProps includes percent metrics in auto groups', () =
     expect.objectContaining({
       id: 'time-compare-%profit',
       label: '%Profit',
+    }),
+  ]);
+});
+
+test('isHeaderGroupsTimeComparisonEnabled matches table chart transformProps', () => {
+  const timeCompare = { time_compare: { value: '1 year ago' } };
+
+  expect(
+    isHeaderGroupsTimeComparisonEnabled({
+      form_data: timeComparisonFormData,
+      controls: timeCompare,
+    }),
+  ).toBe(true);
+  expect(
+    isHeaderGroupsTimeComparisonEnabled({
+      form_data: {
+        ...timeComparisonFormData,
+        query_mode: QueryMode.Raw,
+      },
+      controls: timeCompare,
+    }),
+  ).toBe(false);
+  expect(
+    isHeaderGroupsTimeComparisonEnabled({
+      form_data: {
+        ...timeComparisonFormData,
+        comparison_type: ComparisonType.Difference,
+      },
+      controls: timeCompare,
+    }),
+  ).toBe(false);
+  expect(
+    isHeaderGroupsTimeComparisonEnabled({
+      form_data: { metrics: ['revenue'] },
+      controls: timeCompare,
+    }),
+  ).toBe(false);
+});
+
+test('getHeaderGroupsControlProps skips auto groups when time comparison is inactive', () => {
+  const timeCompare = { time_compare: { value: '1 year ago' } };
+
+  expect(
+    getHeaderGroupsControlProps({
+      form_data: { ...timeComparisonFormData, query_mode: QueryMode.Raw },
+      controls: timeCompare,
+    }).timeComparisonGroups,
+  ).toEqual([]);
+  expect(
+    getHeaderGroupsControlProps({
+      form_data: {
+        ...timeComparisonFormData,
+        comparison_type: ComparisonType.Percentage,
+      },
+      controls: timeCompare,
+    }).timeComparisonGroups,
+  ).toEqual([]);
+});
+
+test('getHeaderGroupsControlProps reads query_mode and comparison_type from controls', () => {
+  const result = getHeaderGroupsControlProps({
+    form_data: { metrics: ['revenue'] },
+    controls: {
+      time_compare: { value: '1 year ago' },
+      query_mode: { value: QueryMode.Aggregate },
+      comparison_type: { value: ComparisonType.Values },
+    },
+  });
+
+  expect(result.timeComparisonGroups).toEqual([
+    expect.objectContaining({
+      id: 'time-compare-revenue',
+      source: 'time_compare',
     }),
   ]);
 });

@@ -19,11 +19,13 @@
 
 import { t } from '@apache-superset/core/translation';
 import {
+  ComparisonType,
   ensureIsArray,
   getColumnLabel,
   getMetricLabel,
   QueryFormColumn,
   QueryFormMetric,
+  QueryMode,
   SqlaFormData,
 } from '@superset-ui/core';
 import { isEmpty, last } from 'lodash-es';
@@ -610,12 +612,40 @@ function getDatasourceVerboseMap(
   return {};
 }
 
+type HeaderGroupsExploreControls = {
+  time_compare?: { value?: unknown };
+  query_mode?: { value?: unknown };
+  comparison_type?: { value?: unknown };
+};
+
+export type HeaderGroupsExploreState = {
+  datasource?: unknown;
+  form_data?: unknown;
+  controls?: HeaderGroupsExploreControls;
+};
+
+/**
+ * Matches table chart transformProps: time-comparison columns are
+ * emitted only in aggregate mode with comparison_type Values.
+ */
+export function isHeaderGroupsTimeComparisonEnabled(
+  explore?: HeaderGroupsExploreState,
+): boolean {
+  const formData = (explore?.form_data ?? {}) as Partial<SqlaFormData>;
+  const timeCompareValue =
+    explore?.controls?.time_compare?.value ?? formData.time_compare;
+  const queryMode = explore?.controls?.query_mode?.value ?? formData.query_mode;
+  const comparisonType =
+    explore?.controls?.comparison_type?.value ?? formData.comparison_type;
+  return (
+    !isEmpty(timeCompareValue) &&
+    queryMode === QueryMode.Aggregate &&
+    comparisonType === ComparisonType.Values
+  );
+}
+
 export function getHeaderGroupsControlProps(
-  explore?: {
-    datasource?: unknown;
-    form_data?: unknown;
-    controls?: { time_compare?: { value?: unknown } };
-  },
+  explore?: HeaderGroupsExploreState,
   chart?: { queriesResponse?: Array<{ colnames?: string[] }> | null },
 ): {
   columnOptions: { value: string; label: string }[];
@@ -624,8 +654,9 @@ export function getHeaderGroupsControlProps(
   const verboseMap = getDatasourceVerboseMap(explore?.datasource);
   const { colnames: queryColnames } = chart?.queriesResponse?.[0] ?? {};
   const formData = (explore?.form_data ?? {}) as Partial<SqlaFormData>;
-  const timeCompareValue = explore?.controls?.time_compare?.value;
-  const hasTimeComparison = !isEmpty(timeCompareValue);
+  const timeCompareValue =
+    explore?.controls?.time_compare?.value ?? formData.time_compare;
+  const hasTimeComparison = isHeaderGroupsTimeComparisonEnabled(explore);
   const metricKeys = [
     ...ensureIsArray(formData.metrics).map(metric =>
       getMetricLabel(metric as QueryFormMetric),
