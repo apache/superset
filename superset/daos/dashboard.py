@@ -39,7 +39,12 @@ from superset.dashboards.filters import DashboardAccessFilter
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db
 from superset.models.core import FavStar, FavStarClassName
-from superset.models.dashboard import Dashboard, id_or_slug_filter, is_uuid
+from superset.models.dashboard import (
+    Dashboard,
+    dashboard_slices,
+    id_or_slug_filter,
+    is_uuid,
+)
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.helpers import skip_visibility_filter
 from superset.models.slice import Slice
@@ -211,14 +216,28 @@ class DashboardDAO(BaseDAO[Dashboard]):
         The per-chart access check reads both on every slice, so without this
         they are two lazy loads per chart rather than two queries in total.
         """
-        if slice_ids := [slc.id for slc in dashboard.slices]:
-            db.session.query(Slice).options(
-                # The rows are already in the session, we only want the two
-                # relationships, so don't re-fire the model's own eager loads.
-                lazyload("*"),
-                selectinload(Slice.editors),
-                selectinload(Slice.viewers),
-            ).filter(Slice.id.in_(slice_ids)).all()
+        if security_manager.is_admin():
+            # is_editor and is_viewer both answer True for an admin before they
+            # read either relationship, so there is nothing to prefetch and the
+            # access check stays at zero queries.
+            return
+
+        db.session.query(Slice).options(
+            # The rows are already in the session, we only want the two
+            # relationships, so don't re-fire the model's own eager loads.
+            lazyload("*"),
+            selectinload(Slice.editors),
+            selectinload(Slice.viewers),
+        ).filter(
+            # Select the ids through the association table instead of binding
+            # one parameter per chart -- a dashboard with enough charts would
+            # otherwise run past SQLite's 999-variable floor.
+            Slice.id.in_(
+                select(dashboard_slices.c.slice_id).where(
+                    dashboard_slices.c.dashboard_id == dashboard.id
+                )
+            )
+        ).all()
 
     @staticmethod
     def get_datasets_for_dashboard(id_or_slug: str) -> list[tuple[Any, dict[str, Any]]]:
