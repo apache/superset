@@ -47,7 +47,6 @@ import {
   getThemeController,
 } from './EmbeddedContextProviders';
 import { embeddedApi } from './api';
-import EmbeddedChart from './embeddedChart';
 import { getDataMaskChangeTrigger } from './utils';
 import { validateMessageEvent } from './originValidation';
 import {
@@ -109,6 +108,12 @@ const LazyDashboardPage = lazy(
     ),
 );
 
+// Keeps the dashboard chart stack out of the initial embedded bundle for
+// consumers who only ever embed dashboards, which never render this path.
+const LazyEmbeddedChart = lazy(
+  () => import(/* webpackChunkName: "EmbeddedChart" */ './embeddedChart'),
+);
+
 const EmbeddedLazyDashboardPage = () => {
   const uiConfig = useUiConfig();
   const emitDataMasks = uiConfig?.emitDataMasks;
@@ -142,7 +147,7 @@ const EmbeddedLazyDashboardPage = () => {
 // an explicit 'chart' keeps the original dashboard behaviour.
 const EmbeddedResource = () =>
   bootstrapData.embedded?.resource_type === 'chart' ? (
-    <EmbeddedChart chartId={bootstrapData.embedded.chart_id!} />
+    <LazyEmbeddedChart chartId={bootstrapData.embedded.chart_id!} />
   ) : (
     <EmbeddedLazyDashboardPage />
   );
