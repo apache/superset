@@ -26,13 +26,12 @@ function formatMemory(
   transfer?: boolean,
 ): NumberFormatFunction {
   return value => {
-    const numValue = typeof value === 'bigint' ? Number(value) : value;
     let formatted = '';
-    if (numValue === 0) {
+    if (value === 0) {
       formatted = '0B';
     } else {
-      const sign = numValue > 0 ? '' : '-';
-      const absValue = Math.abs(numValue);
+      const sign = value > 0 ? '' : '-';
+      const absValue = Math.abs(value);
 
       const suffixes = binary
         ? ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']

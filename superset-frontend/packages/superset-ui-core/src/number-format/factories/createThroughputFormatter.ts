@@ -41,13 +41,12 @@ function formatThroughput(
   fromBytes: boolean,
 ): NumberFormatFunction {
   return value => {
-    const numValue = typeof value === 'bigint' ? Number(value) : value;
-    if (numValue === 0) {
+    if (value === 0) {
       return `0${SUFFIXES[0]}`;
     }
 
-    const sign = numValue > 0 ? '' : '-';
-    const magnitude = Math.abs(numValue);
+    const sign = value > 0 ? '' : '-';
+    const magnitude = Math.abs(value);
     const bits = fromBytes ? magnitude * BITS_PER_BYTE : magnitude;
     let i = Math.max(
       0,

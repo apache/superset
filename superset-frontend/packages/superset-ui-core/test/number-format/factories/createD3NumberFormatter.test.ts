@@ -99,4 +99,23 @@ describe('createD3NumberFormatter(config)', () => {
       expect(formatter(-1234.5)).toEqual('-1,234.50');
     });
   });
+  describe('BigInt values (integers beyond Number.MAX_SAFE_INTEGER)', () => {
+    // BigInt values from json-bigint are normalized to Number in formatValue.ts
+    // before reaching any formatter factory (see #44007, #42594). These tests
+    // verify that formatters correctly handle Number(bigint) — the actual value
+    // they receive at runtime from the table chart formatter pipeline.
+    test('formats Number(bigint) with a float format string without throwing', () => {
+      const formatter = createD3NumberFormatter({ formatString: ',.2f' });
+      // Number(BigInt('9007199254740993')) is the value the formatter actually receives
+      expect(() =>
+        formatter(Number(BigInt('9007199254740993'))),
+      ).not.toThrow();
+    });
+    test('formats Number(bigint) with SI format (precision loss is acceptable)', () => {
+      // Number(BigInt('9007199254740993')) loses the last bit — consistent with
+      // how echarts normalizes BigInt values (PR #42594).
+      const formatter = createD3NumberFormatter({ formatString: '.3~s' });
+      expect(formatter(Number(BigInt('9007199254740993')))).toBe('9.01P');
+    });
+  });
 });

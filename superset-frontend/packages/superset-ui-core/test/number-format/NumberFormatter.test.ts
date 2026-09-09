@@ -74,20 +74,6 @@ describe('NumberFormatter', () => {
     test('otherwise returns formatted value', () => {
       expect(formatter.format(12345.67)).toEqual('12345.670');
     });
-    test('handles bigint values', () => {
-      // The fixed_3 formatter uses `.toFixed(3)`, which internally converts to Number.
-      // But we can test exact formatting natively.
-      const exactFormatter = new NumberFormatter({
-        id: 'exact',
-        formatFunc: value => value.toString(),
-      });
-      expect(exactFormatter.format(BigInt('1425300509404304697'))).toEqual(
-        '1425300509404304697',
-      );
-      expect(exactFormatter.format(BigInt('-1425300509404304697'))).toEqual(
-        '-1425300509404304697',
-      );
-    });
   });
   describe('.preview(value)', () => {
     const formatter = new NumberFormatter({

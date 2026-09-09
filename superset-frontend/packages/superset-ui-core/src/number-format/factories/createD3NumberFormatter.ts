@@ -16,11 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  formatLocale,
-  FormatLocaleDefinition,
-  formatSpecifier,
-} from 'd3-format';
+import { formatLocale, FormatLocaleDefinition } from 'd3-format';
 import { isRequired } from '../../utils';
 import NumberFormatter from '../NumberFormatter';
 import { NumberFormatFunction } from '../types';
@@ -43,34 +39,7 @@ export default function createD3NumberFormatter(config: {
   let isInvalid = false;
 
   try {
-    const d3Formatter = formatLocale(locale ?? DEFAULT_D3_FORMAT).format(
-      formatString,
-    );
-    const spec = formatSpecifier(formatString);
-    const isExactInteger =
-      (spec.type === 'd' || spec.type === '') && spec.precision === undefined;
-
-    formatFunc = value => {
-      if (typeof value === 'bigint') {
-        if (isExactInteger) {
-          let strValue = value.toString();
-          if (spec.comma) {
-            const sign = strValue.startsWith('-') ? '-' : '';
-            const absValue = strValue.replace('-', '');
-            const separator = locale?.thousands ?? ',';
-            strValue =
-              sign + absValue.replace(/\B(?=(\d{3})+(?!\d))/g, separator);
-          }
-          if (spec.symbol === '$') {
-            const currency = locale?.currency ?? ['$', ''];
-            strValue = `${currency[0]}${strValue}${currency[1]}`;
-          }
-          return strValue;
-        }
-        return d3Formatter(Number(value));
-      }
-      return d3Formatter(value);
-    };
+    formatFunc = formatLocale(locale ?? DEFAULT_D3_FORMAT).format(formatString);
   } catch (error) {
     formatFunc = value => `${value} (Invalid format: ${formatString})`;
     isInvalid = true;
