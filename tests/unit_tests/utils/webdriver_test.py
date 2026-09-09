@@ -16,6 +16,7 @@
 # under the License.
 
 import io
+from dataclasses import replace
 from unittest.mock import ANY, MagicMock, patch
 from uuid import UUID
 
@@ -516,18 +517,17 @@ class TestWebDriverPlaywrightErrorHandling:
         mock_page = MagicMock()
         report_execution_context = _report_context()
         # Only 2s left for this phase after other phases' reserves.
-        report_execution_context = report_execution_context.__class__(
-            **{
-                **report_execution_context.__dict__,
-                "deadline": report_execution_context.deadline.__class__(
-                    total_seconds=2
-                    + report_execution_context.capture_reserve_seconds
-                    + report_execution_context.delivery_reserve_seconds
-                    + report_execution_context.cleanup_reserve_seconds,
-                    started_at=0,
-                    _clock=lambda: 0,
-                ),
-            }
+        report_execution_context = replace(
+            report_execution_context,
+            deadline=replace(
+                report_execution_context.deadline,
+                total_seconds=2
+                + report_execution_context.capture_reserve_seconds
+                + report_execution_context.delivery_reserve_seconds
+                + report_execution_context.cleanup_reserve_seconds,
+                started_at=0,
+                _clock=lambda: 0,
+            ),
         )
 
         WebDriverPlaywright._expand_scrollable_content(

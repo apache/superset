@@ -29,6 +29,7 @@ from superset.utils.report_execution import (
 from superset.utils.screenshot_utils import (
     combine_screenshot_tiles,
     CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS,
+    get_screenshot_blankness_metrics,
     is_screenshot_nearly_uniform,
     resolve_screenshot_task_budget_seconds,
     SCREENSHOT_TASK_BUDGET_MAX_MARGIN_SECONDS,
@@ -125,6 +126,56 @@ class TestScreenshotBlankDetection:
         is_blank, _dominant_ratio = is_screenshot_nearly_uniform(output.getvalue())
 
         assert is_blank is False
+
+    def test_high_density_light_thin_line_chart_is_not_blank(self):
+        image = Image.new("RGB", (3000, 1200), "white")
+        draw = ImageDraw.Draw(image)
+        for y in (200, 500, 800, 1050):
+            draw.line((180, y, 2850, y), fill=(225, 225, 225), width=2)
+        draw.line((180, 100, 180, 1050), fill=(170, 170, 170), width=3)
+        draw.line((180, 1050, 2850, 1050), fill=(170, 170, 170), width=3)
+        points = [
+            (250, 900),
+            (700, 720),
+            (1200, 790),
+            (1750, 480),
+            (2250, 560),
+            (2800, 250),
+        ]
+        draw.line(points, fill=(145, 180, 210), width=3)
+        for x, y in points:
+            draw.ellipse((x - 5, y - 5, x + 5, y + 5), fill=(145, 180, 210))
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+
+        metrics = get_screenshot_blankness_metrics(output.getvalue())
+
+        assert metrics.is_blank is False
+        assert metrics.structural_edge_ratio >= 0.02
+
+    def test_high_density_sparse_light_table_is_not_blank(self):
+        image = Image.new("RGB", (3000, 1200), "white")
+        draw = ImageDraw.Draw(image)
+        columns = (150, 900, 1700, 2850)
+        rows = (150, 350, 550, 750)
+        for y in rows:
+            draw.line((columns[0], y, columns[-1], y), fill=(210, 210, 210), width=2)
+        for x in columns:
+            draw.line((x, rows[0], x, rows[-1]), fill=(210, 210, 210), width=2)
+        for row in range(3):
+            for column in range(3):
+                x = columns[column] + 35
+                y = rows[row] + 55
+                draw.rectangle(
+                    (x, y, x + 180 + column * 80, y + 9), fill=(155, 155, 155)
+                )
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+
+        metrics = get_screenshot_blankness_metrics(output.getvalue())
+
+        assert metrics.is_blank is False
+        assert metrics.structural_edge_ratio >= 0.02
 
     def test_sparse_png_with_dark_content_is_not_blank(self):
         image = Image.new("RGB", (100, 100), "white")
@@ -426,7 +477,7 @@ class TestTakeTiledScreenshot:
         assert mock_page.screenshot.call_count == 3
         mock_combine.assert_not_called()
 
-    def test_blank_combined_image_fails_when_contentful_tiles_were_captured(
+    def test_blank_combined_image_is_advisory_after_contentful_tiles_pass(
         self, mock_page
     ):
         element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
@@ -448,17 +499,21 @@ class TestTakeTiledScreenshot:
                 "superset.utils.screenshot_utils.combine_screenshot_tiles",
                 return_value=_two_tone_blank(800, 1000),
             ),
-            pytest.raises(
-                ScreenshotBlankCaptureError,
-                match="Combined report screenshot is perceptually blank",
-            ),
+            patch("superset.utils.screenshot_utils.logger") as mock_logger,
         ):
-            take_tiled_screenshot(
+            result = take_tiled_screenshot(
                 mock_page,
                 "dashboard",
                 tile_height=1000,
                 report_execution_context=_report_context(),
             )
+
+        assert result == _two_tone_blank(800, 1000)
+        assert any(
+            call.args[0].startswith("report_capture_blank_combined_retained")
+            and call.args[1] == 1
+            for call in mock_logger.warning.call_args_list
+        )
 
     def test_blank_combined_image_is_allowed_for_terminal_empty_states(self, mock_page):
         element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
@@ -713,6 +768,32 @@ class TestTakeTiledScreenshot:
             for call in mock_page.wait_for_function.call_args_list
         )
         assert mock_page.screenshot.call_count == 2
+
+    def test_repaint_preserves_celery_soft_timeout(self, mock_page):
+        from celery.exceptions import SoftTimeLimitExceeded
+
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = _png(800, 1000, "white")
+        mock_page.wait_for_function.side_effect = [None, None, SoftTimeLimitExceeded()]
+
+        with pytest.raises(SoftTimeLimitExceeded):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                report_execution_context=_report_context(),
+            )
 
     def test_repeated_capture_timeout_preserves_thumbnail_contract(self, mock_page):
         from superset.utils.screenshot_utils import PlaywrightTimeout

@@ -25,7 +25,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from celery import current_task
-from PIL import Image, ImageStat, UnidentifiedImageError
+from celery.exceptions import SoftTimeLimitExceeded
+from PIL import Image, ImageChops, ImageStat, UnidentifiedImageError
 
 from superset.utils.report_execution import (
     ReportExecutionBudgetExceededError,
@@ -51,6 +52,8 @@ SCREENSHOT_BLANK_MIN_LUMINANCE = 240
 SCREENSHOT_BLANK_MIN_MEAN_LUMINANCE = 250.0
 SCREENSHOT_BLANK_MAX_LUMINANCE_STDDEV = 8.0
 SCREENSHOT_BLANK_MAX_ENTROPY = 1.5
+SCREENSHOT_BLANK_MIN_EDGE_DIFFERENCE = 8
+SCREENSHOT_BLANK_MIN_STRUCTURAL_EDGE_RATIO = 0.02
 SCREENSHOT_BLANK_SAMPLE_SIZES = (256, 1024)
 
 # Runtime task-budget policy shared with the approach introduced in #42118.
@@ -151,6 +154,7 @@ class ScreenshotBlanknessMetrics:
     mean_luminance: float
     luminance_stddev: float
     entropy: float
+    structural_edge_ratio: float
 
 
 def get_screenshot_blankness_metrics(screenshot: bytes) -> ScreenshotBlanknessMetrics:
@@ -183,9 +187,24 @@ def get_screenshot_blankness_metrics(screenshot: bytes) -> ScreenshotBlanknessMe
                     for count in histogram
                     if count
                 )
+                horizontal_edges = ImageChops.difference(
+                    grayscale, ImageChops.offset(grayscale, 1, 0)
+                )
+                vertical_edges = ImageChops.difference(
+                    grayscale, ImageChops.offset(grayscale, 0, 1)
+                )
+                edge_histogram = ImageChops.lighter(
+                    horizontal_edges, vertical_edges
+                ).histogram()
+                structural_edge_ratio = (
+                    sum(edge_histogram[SCREENSHOT_BLANK_MIN_EDGE_DIFFERENCE:])
+                    / pixel_count
+                )
                 low_information = (
                     luminance_stddev <= SCREENSHOT_BLANK_MAX_LUMINANCE_STDDEV
                     and entropy <= SCREENSHOT_BLANK_MAX_ENTROPY
+                    and structural_edge_ratio
+                    <= SCREENSHOT_BLANK_MIN_STRUCTURAL_EDGE_RATIO
                 )
                 perceptually_blank = low_information and (
                     mean_luminance >= SCREENSHOT_BLANK_MIN_MEAN_LUMINANCE
@@ -199,6 +218,7 @@ def get_screenshot_blankness_metrics(screenshot: bytes) -> ScreenshotBlanknessMe
                         mean_luminance=mean_luminance,
                         luminance_stddev=luminance_stddev,
                         entropy=entropy,
+                        structural_edge_ratio=structural_edge_ratio,
                     )
                 )
 
@@ -210,11 +230,12 @@ def get_screenshot_blankness_metrics(screenshot: bytes) -> ScreenshotBlanknessMe
                 mean_luminance=metrics.mean_luminance,
                 luminance_stddev=metrics.luminance_stddev,
                 entropy=metrics.entropy,
+                structural_edge_ratio=metrics.structural_edge_ratio,
             )
     except (OSError, UnidentifiedImageError):
         # Combining the tiles remains responsible for rejecting corrupt image
         # bytes. This check only identifies valid images with blank pixels.
-        return ScreenshotBlanknessMetrics(False, 0.0, 0.0, 0.0, 0.0, 0.0)
+        return ScreenshotBlanknessMetrics(False, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
 
 
 def is_screenshot_nearly_uniform(screenshot: bytes) -> tuple[bool, float]:
@@ -225,9 +246,18 @@ def is_screenshot_nearly_uniform(screenshot: bytes) -> tuple[bool, float]:
 
 
 try:
-    from playwright.sync_api import TimeoutError as PlaywrightTimeout
+    from playwright.sync_api import (
+        Error as PlaywrightError,
+        TimeoutError as PlaywrightTimeout,
+    )
 except ImportError:
-    PlaywrightTimeout = Exception
+
+    class PlaywrightError(Exception):  # type: ignore[no-redef]
+        """Fallback Playwright error that excludes unrelated exceptions."""
+
+    class PlaywrightTimeout(PlaywrightError):  # type: ignore[no-redef]  # noqa: N818
+        """Fallback matching Playwright's timeout error hierarchy."""
+
 
 if TYPE_CHECKING:
     try:
@@ -725,14 +755,7 @@ def take_tiled_screenshot(  # noqa: C901
         log_context = report_execution_context.log_context
     context_suffix = f" [{log_context}]" if log_context else ""
     # Set right before re-raising the per-tile readiness timeout below, and
-    # checked in the except block at the bottom of this function. Deciding
-    # whether to propagate via `isinstance(e, PlaywrightTimeout)` would be
-    # unreliable: when the playwright package isn't installed,
-    # `PlaywrightTimeout` is aliased to the bare `Exception` class (see the
-    # try/except ImportError above this function), which would make *any*
-    # exception -- not just our own deliberate readiness-timeout raise --
-    # match `except PlaywrightTimeout` and incorrectly propagate instead of
-    # degrading to `None` like every other unexpected error in this function.
+    # checked in the except block at the bottom of this function.
     readiness_timeout = False
     if screenshot_started_at is None:
         screenshot_started_at = time.monotonic()
@@ -1181,7 +1204,8 @@ def take_tiled_screenshot(  # noqa: C901
                         "attempt=%s/%s capture_elapsed_seconds=%.2f "
                         "contentful_chart_holders=%s is_blank=%s "
                         "dominant_pixel_ratio=%.5f near_white_pixel_ratio=%.5f "
-                        "mean_luminance=%.2f luminance_stddev=%.2f entropy=%.3f%s",
+                        "mean_luminance=%.2f luminance_stddev=%.2f entropy=%.3f "
+                        "structural_edge_ratio=%.5f%s",
                         i + 1,
                         num_tiles,
                         capture_attempt,
@@ -1194,6 +1218,7 @@ def take_tiled_screenshot(  # noqa: C901
                         blankness.mean_luminance,
                         blankness.luminance_stddev,
                         blankness.entropy,
+                        blankness.structural_edge_ratio,
                         context_suffix,
                     )
                     if not is_blank:
@@ -1204,7 +1229,8 @@ def take_tiled_screenshot(  # noqa: C901
                         "report_capture_blank_tile tile=%s/%s attempt=%s/%s "
                         "capture_elapsed_seconds=%.2f contentful_chart_holders=%s "
                         "dominant_pixel_ratio=%.5f near_white_pixel_ratio=%.5f "
-                        "mean_luminance=%.2f luminance_stddev=%.2f entropy=%.3f%s",
+                        "mean_luminance=%.2f luminance_stddev=%.2f entropy=%.3f "
+                        "structural_edge_ratio=%.5f%s",
                         i + 1,
                         num_tiles,
                         capture_attempt,
@@ -1216,6 +1242,7 @@ def take_tiled_screenshot(  # noqa: C901
                         blankness.mean_luminance,
                         blankness.luminance_stddev,
                         blankness.entropy,
+                        blankness.structural_edge_ratio,
                         context_suffix,
                     )
                     if capture_attempt == TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS:
@@ -1232,7 +1259,8 @@ def take_tiled_screenshot(  # noqa: C901
                             "report_capture_blank_tile_retained tile=%s/%s "
                             "attempts=%s contentful_chart_holders=%s "
                             "dominant_pixel_ratio=%.5f near_white_pixel_ratio=%.5f "
-                            "mean_luminance=%.2f luminance_stddev=%.2f entropy=%.3f%s",
+                            "mean_luminance=%.2f luminance_stddev=%.2f entropy=%.3f "
+                            "structural_edge_ratio=%.5f%s",
                             i + 1,
                             num_tiles,
                             capture_attempt,
@@ -1242,6 +1270,7 @@ def take_tiled_screenshot(  # noqa: C901
                             blankness.mean_luminance,
                             blankness.luminance_stddev,
                             blankness.entropy,
+                            blankness.structural_edge_ratio,
                             context_suffix,
                         )
                         break
@@ -1272,7 +1301,7 @@ def take_tiled_screenshot(  # noqa: C901
                         "() => window.__supersetRepaintComplete === true",
                         timeout=repaint_timeout * 1000,
                     )
-                except PlaywrightTimeout:
+                except PlaywrightError:
                     logger.warning(
                         "report_capture_repaint_timeout tile=%s/%s attempt=%s/%s%s",
                         i + 1,
@@ -1348,7 +1377,8 @@ def take_tiled_screenshot(  # noqa: C901
                 "report_capture_validation capture=combined "
                 "contentful_tiles=%s is_blank=%s "
                 "dominant_pixel_ratio=%.5f near_white_pixel_ratio=%.5f "
-                "mean_luminance=%.2f luminance_stddev=%.2f entropy=%.3f%s",
+                "mean_luminance=%.2f luminance_stddev=%.2f entropy=%.3f "
+                "structural_edge_ratio=%.5f%s",
                 contentful_tiles_captured,
                 combined_blankness.is_blank,
                 combined_blankness.dominant_pixel_ratio,
@@ -1356,11 +1386,14 @@ def take_tiled_screenshot(  # noqa: C901
                 combined_blankness.mean_luminance,
                 combined_blankness.luminance_stddev,
                 combined_blankness.entropy,
+                combined_blankness.structural_edge_ratio,
                 context_suffix,
             )
             if combined_blankness.is_blank:
-                raise ScreenshotBlankCaptureError(
-                    "Combined report screenshot is perceptually blank"
+                logger.warning(
+                    "report_capture_blank_combined_retained contentful_tiles=%s%s",
+                    contentful_tiles_captured,
+                    context_suffix,
                 )
 
         return combined_screenshot
@@ -1388,6 +1421,8 @@ def take_tiled_screenshot(  # noqa: C901
         if report_execution_context:
             raise
         return None
+    except SoftTimeLimitExceeded:
+        raise
     except Exception as e:
         if readiness_timeout:
             # Let the per-tile readiness timeout propagate so the caller

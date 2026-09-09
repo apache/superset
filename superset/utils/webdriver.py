@@ -304,7 +304,8 @@ class WebDriverPlaywright(WebDriverProxy):
                 "report_capture_validation capture=standard attempt=%s/%s "
                 "capture_elapsed_seconds=%.2f has_rendered_content=%s is_blank=%s "
                 "dominant_pixel_ratio=%.5f near_white_pixel_ratio=%.5f "
-                "mean_luminance=%.2f luminance_stddev=%.2f entropy=%.3f%s",
+                "mean_luminance=%.2f luminance_stddev=%.2f entropy=%.3f "
+                "structural_edge_ratio=%.5f%s",
                 attempt,
                 TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
                 capture_elapsed,
@@ -315,6 +316,7 @@ class WebDriverPlaywright(WebDriverProxy):
                 blankness.mean_luminance,
                 blankness.luminance_stddev,
                 blankness.entropy,
+                blankness.structural_edge_ratio,
                 context_suffix,
             )
             if not is_blank:
@@ -324,7 +326,7 @@ class WebDriverPlaywright(WebDriverProxy):
                 "report_capture_blank_standard attempt=%s/%s "
                 "capture_elapsed_seconds=%.2f dominant_pixel_ratio=%.5f "
                 "near_white_pixel_ratio=%.5f mean_luminance=%.2f "
-                "luminance_stddev=%.2f entropy=%.3f%s",
+                "luminance_stddev=%.2f entropy=%.3f structural_edge_ratio=%.5f%s",
                 attempt,
                 TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
                 capture_elapsed,
@@ -333,6 +335,7 @@ class WebDriverPlaywright(WebDriverProxy):
                 blankness.mean_luminance,
                 blankness.luminance_stddev,
                 blankness.entropy,
+                blankness.structural_edge_ratio,
                 context_suffix,
             )
             if attempt == TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS:
