@@ -3542,7 +3542,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         reference_column = df.iloc[:, 0]
         reference_values = reference_column[
-            reference_column.apply(lambda value: hasattr(value, "strftime"))
+            reference_column.apply(
+                lambda value: hasattr(value, "strftime") and pd.notna(value)
+            )
         ]
         if reference_values.empty:
             return None
@@ -3561,7 +3563,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # e.g. an 83-hour ("< half a week") shift down to a full week instead
         # of zero; dividing by a one-day Timedelta keeps the exact fraction.
         exact_days = (calendar_shifted - reference) / Timedelta(days=1)
-        return DateOffset(days=round(exact_days / 7) * 7)
+        weeks = round(exact_days / 7)
+        if weeks == 0:
+            # A sub-week offset (e.g. "3 days ago") is not the weekday-drift
+            # case this resolution exists to fix -- it does not touch a
+            # calendar unit wider than a week, so per-row rounding cannot
+            # disagree between rows. Returning a zero-day DateOffset here
+            # would override the raw per-row calendar shift with a no-op,
+            # leaving every row on its own current week instead of shifting
+            # it back. Returning None restores that raw per-row behavior.
+            return None
+        return DateOffset(days=weeks * 7)
 
     def add_offset_join_column(
         self,

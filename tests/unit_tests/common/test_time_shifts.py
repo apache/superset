@@ -270,6 +270,45 @@ def test_join_offset_dfs_week_grain_variants_align_to_whole_weeks(
     assert result["B"].tolist() == [5, 6]
 
 
+def test_resolve_week_grain_offset_all_nat_returns_none() -> None:
+    """
+    An all-null temporal column must not crash: ``NaT`` satisfies
+    ``hasattr(value, "strftime")``, so without also filtering out
+    not-a-number values the reference reduces to ``NaT`` and
+    ``round(nan / 7)`` raises ``ValueError``. The resolution is not
+    applicable when there is no real reference date, so it must return
+    ``None`` instead.
+    """
+    df = DataFrame({"ds": Series([None], dtype="datetime64[ns]")})
+
+    resolved = query_context_processor._resolve_week_grain_offset(
+        df, TimeGrain.WEEK, "1 year ago"
+    )
+
+    assert resolved is None
+
+
+def test_join_offset_dfs_week_grain_sub_week_offset_still_aligns() -> None:
+    """
+    A sub-week offset (e.g. "3 days ago") rounds to zero whole weeks, which
+    is not the weekday-drift case the whole-week resolution exists to fix.
+    Applying a zero-day shift would leave the main series' join key on its
+    own current week instead of shifting it back, breaking the join
+    whenever the sub-week shift crosses a week boundary. The raw per-row
+    calendar offset must still be used for this case.
+    """
+    # Monday: shifting back 3 days crosses into the previous week.
+    df = DataFrame({"ds": [Timestamp("2026-06-15")], "D": [1]})
+    offset_df = DataFrame({"ds": [Timestamp("2026-06-12")], "B": [5]})  # Friday
+    offset_dfs = {"3 days ago": offset_df}
+
+    result = query_context_processor.join_offset_dfs(
+        df, offset_dfs, TimeGrain.WEEK, join_keys=["ds"]
+    )
+
+    assert result["B"].tolist() == [5]
+
+
 def test_join_offset_dfs_week_grain_multi_year_offset_is_injective() -> None:
     """
     Rounding each row's calendar-shift span independently is not injective:
