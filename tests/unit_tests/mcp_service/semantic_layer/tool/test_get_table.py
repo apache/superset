@@ -638,3 +638,38 @@ class TestGetTableTemporalRangeFilterValidation:
             }
         )
         assert req.filters[0].val == "banana"
+
+
+@pytest.mark.parametrize("is_builtin", [False, True])
+@pytest.mark.parametrize("empty", [False, True])
+def test_response_preserves_execution_time_bounds(
+    is_builtin: bool, empty: bool
+) -> None:
+    """Use execution metadata, including for empty results, rather than reparse."""
+    from datetime import datetime
+
+    from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+    request = GetTableRequest(
+        dataset_id=42 if is_builtin else None,
+        view_id=None if is_builtin else 1,
+        metrics=["count"],
+        time_range="Last month",
+    )
+    response = get_table_module._build_response(
+        request,
+        is_builtin,
+        "orders",
+        {
+            "data": [] if empty else [{"count": 3}],
+            "colnames": ["count"],
+            "from_dttm": datetime(2026, 6, 1),
+            "to_dttm": datetime(2026, 7, 1),
+            "is_cached": True,
+        },
+        10,
+        [],
+    )
+    data = response.model_dump(mode="json")
+    assert data["from_dttm"] == "2026-06-01T00:00:00"
+    assert data["to_dttm"] == "2026-07-01T00:00:00"

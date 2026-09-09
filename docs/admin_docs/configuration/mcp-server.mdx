@@ -1007,3 +1007,28 @@ The callable must be cheap and in-process (consult already-loaded feature flags 
 - **[MCP Integration](/developer-docs/extensions/mcp)** -- Build custom MCP tools and prompts via Superset extensions
 - **[Security](/developer-docs/extensions/security)** -- Security best practices for extensions
 - **[Deployment](/developer-docs/extensions/deployment)** -- Package and deploy Superset extensions
+
+### Reporting query dates
+
+`query_dataset` and `get_table` return `from_dttm` (inclusive) and `to_dttm`
+(exclusive): the primary time boundaries from the query engine's result payload,
+including cached and empty results. Callers should quote these ISO 8601 values
+when explaining the numbers, rather than calculate dates from the request again.
+For example, `previous calendar month` evaluated on July 17, 2026 resolves to
+`2026-06-01T00:00:00` through, but not including, `2026-07-01T00:00:00`.
+`Last month` is a rolling month, not the previous calendar month.
+
+Relative expressions use Superset's server clock and configured
+`DEFAULT_RELATIVE_START_TIME` / `DEFAULT_RELATIVE_END_TIME` (both default to
+`today`, meaning midnight). Valid explicit dates are used as supplied; the server
+cannot determine whether a model intended a different year.
+
+These fields describe the engine's **primary logical range**, not the observed
+minimum/maximum dates in the rows or every SQL predicate. A null boundary means
+no primary bound is available; it does not prove the absence of other filters.
+Additional column filters, virtual dataset SQL, and semantic-view one-sided
+ranges rewritten as comparison filters can further constrain the data. Naive
+boundaries are not labeled UTC: dataset timezone or legacy hour-offset settings
+can adjust the SQL comparisons. Use the applied filters and datasource settings
+as well when explaining such queries. `query_dataset.applied_filters` retains the
+original expressions so callers can compare the requested and resolved ranges.

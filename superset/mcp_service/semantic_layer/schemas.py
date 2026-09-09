@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
@@ -244,6 +245,23 @@ class GetTableResponse(BaseModel):
     data: list[dict[str, Any]]
     row_count: int
     total_rows: int | None = None
+    from_dttm: datetime | None = Field(
+        None,
+        description=(
+            "Resolved inclusive start of the query engine's primary time range. "
+            "Null means no primary lower bound is available. ISO 8601; naive "
+            "values are in Superset's logical time coordinates, not necessarily UTC."
+        ),
+    )
+    to_dttm: datetime | None = Field(
+        None,
+        description=(
+            "Resolved exclusive end of the query engine's primary time range. "
+            "Null means no primary upper bound is available. Report these bounds when "
+            "describing results; do not infer dates from relative expressions. "
+            "Additional filters and datasource timezone adjustments still apply."
+        ),
+    )
     summary: str
     source: Literal["builtin", "external"]
     dataset_id: int | None = None
