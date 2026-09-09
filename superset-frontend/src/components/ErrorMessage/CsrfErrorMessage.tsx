@@ -47,5 +47,3 @@ export function CsrfErrorMessage({
     />
   );
 }
-
-export default CsrfErrorMessage;
