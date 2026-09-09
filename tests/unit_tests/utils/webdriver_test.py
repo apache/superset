@@ -730,9 +730,7 @@ class TestWebDriverPlaywrightErrorHandling:
                         "http://example.com", "test-element", mock_user
                     )
 
-        # The exact injected instance must propagate — guards against the
-        # fallback alias (PlaywrightTimeout = Exception when playwright is
-        # not installed) accepting unrelated exceptions.
+        # The exact injected instance must propagate.
         assert exc_info.value is timeout
         mock_logger.exception.assert_any_call(
             "Timed out requesting url %s%s", "http://example.com", ""
@@ -1137,8 +1135,6 @@ class TestWebDriverPlaywrightErrorHandling:
                 mock_auth.return_value = mock_context
 
                 driver = WebDriverPlaywright("chrome")
-                # match= keeps this assertion meaningful even when playwright
-                # is not installed and PlaywrightTimeout aliases bare Exception.
                 with pytest.raises(
                     PlaywrightTimeout, match="Tiled screenshot failed for url"
                 ):
@@ -2023,8 +2019,6 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         mock_page.screenshot.return_value = b"fallback"
 
         with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
-            # match= keeps this assertion meaningful even when playwright
-            # is not installed and PlaywrightTimeout aliases bare Exception.
             with pytest.raises(
                 PlaywrightTimeout, match="Tiled screenshot failed for url"
             ):

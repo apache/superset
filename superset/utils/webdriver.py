@@ -80,8 +80,13 @@ except ImportError:
 
     # Define dummy classes when playwright is not available
     BrowserContext = Any
-    PlaywrightError = Exception
-    PlaywrightTimeout = Exception
+
+    class PlaywrightError(Exception):  # type: ignore[no-redef]
+        """Fallback Playwright error that does not swallow unrelated failures."""
+
+    class PlaywrightTimeout(PlaywrightError):  # type: ignore[no-redef]  # noqa: N818
+        """Fallback matching Playwright's timeout error hierarchy."""
+
     Locator = Any
     Page = Any
     sync_playwright = None
