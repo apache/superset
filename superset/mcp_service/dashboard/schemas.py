@@ -2243,6 +2243,7 @@ class ApplyFilterValueSpec(BaseModel):
     @field_validator("time_range")
     @classmethod
     def _validate_time_range(cls, v: str | None) -> str | None:
+        """Validate the time range with the shared dashboard parser."""
         return validate_time_range(v)
 
     @model_validator(mode="after")

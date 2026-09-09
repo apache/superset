@@ -39,9 +39,7 @@ jest.mock('./components/nativeFilters/FilterBar/keyValue');
 
 const resolvePermalink = jest.mocked(getPermalinkValue);
 const unsubscribe = jest.fn();
-const unsubscribeOpen = jest.fn();
 let handler: Parameters<typeof subscribeRealtime>[1];
-let onOpen: Parameters<typeof subscribeRealtimeOpen>[0];
 const prior = {
   id: 'region',
   extraFormData: {},
@@ -92,10 +90,6 @@ beforeEach(() => {
     handler = listener;
     return unsubscribe;
   });
-  jest.mocked(subscribeRealtimeOpen).mockImplementation(listener => {
-    onOpen = listener;
-    return unsubscribeOpen;
-  });
   resolvePermalink.mockResolvedValue(permalink);
 });
 
@@ -115,7 +109,6 @@ test('subscribes, resolves and dispatches each mask, and unsubscribes', async ()
   );
   unmount();
   expect(unsubscribe).toHaveBeenCalledTimes(1);
-  expect(unsubscribeOpen).toHaveBeenCalledTimes(1);
   expect(store.getState().messageToasts).toEqual([]);
 });
 
@@ -211,11 +204,7 @@ test('reconnect does not replay stale state or undo manual edits', async () => {
   await receive();
   act(() => store.getState().messageToasts[0].action?.onClick());
   const previous = store.getState().dataMask;
-  act(() => {
-    onOpen('initial');
-    onOpen('keepalive');
-    onOpen('reconnect');
-  });
+  expect(subscribeRealtimeOpen).not.toHaveBeenCalled();
   expect(resolvePermalink).toHaveBeenCalledTimes(1);
   expect(store.getState().dataMask).toBe(previous);
 });

@@ -33,7 +33,7 @@ Covers:
   through get_dashboard_layout's permalink read path
 """
 
-import logging
+from collections.abc import Callable
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -45,9 +45,6 @@ from superset.commands.dashboard.exceptions import (
     DashboardNotFoundError,
 )
 from superset.utils import json
-
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 DAO_GET = "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug"
 CREATE_PERMALINK = (
@@ -107,10 +104,13 @@ def _mock_dashboard(filters: list[dict[str, Any]] | None = None, id: int = 1) ->
     return dashboard
 
 
-def _mock_permalink_command(captured: dict[str, Any], key: str = "permakey123"):
+def _mock_permalink_command(
+    captured: dict[str, Any], key: str = "permakey123"
+) -> Callable[[str, dict[str, Any]], Mock]:
     """Build a mock CreateDashboardPermalinkCommand capturing its state."""
 
     def factory(dashboard_id: str, state: dict[str, Any]) -> Mock:
+        """Capture the supplied state and return a command stub."""
         captured["dashboard_id"] = dashboard_id
         captured["state"] = state
         command = Mock()
@@ -133,7 +133,8 @@ async def _call(mcp_server: object, request: dict[str, Any]) -> dict[str, Any]:
 
 
 @pytest.mark.asyncio
-async def test_apply_select_values_by_name(mcp_server):
+async def test_apply_select_values_by_name(mcp_server: object) -> None:
+    """Apply select values by name."""
     captured: dict[str, Any] = {}
 
     with (
@@ -177,7 +178,8 @@ async def test_apply_select_values_by_name(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_apply_time_range(mcp_server):
+async def test_apply_time_range(mcp_server: object) -> None:
+    """Apply time range."""
     captured: dict[str, Any] = {}
 
     with (
@@ -204,7 +206,8 @@ async def test_apply_time_range(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_no_filter_time_range_clears_the_filter(mcp_server):
+async def test_no_filter_time_range_clears_the_filter(mcp_server: object) -> None:
+    """No filter time range clears the filter."""
     captured: dict[str, Any] = {}
 
     with (
@@ -228,7 +231,8 @@ async def test_no_filter_time_range_clears_the_filter(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_empty_values_clear_an_optional_select(mcp_server):
+async def test_empty_values_clear_an_optional_select(mcp_server: object) -> None:
+    """Empty values clear an optional select."""
     captured: dict[str, Any] = {}
 
     with (
@@ -250,7 +254,9 @@ async def test_empty_values_clear_an_optional_select(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_empty_values_on_required_select_block_all_rows(mcp_server):
+async def test_empty_values_on_required_select_block_all_rows(
+    mcp_server: object,
+) -> None:
     """A required filter with nothing selected matches nothing, as in the UI."""
     captured: dict[str, Any] = {}
 
@@ -280,7 +286,8 @@ async def test_empty_values_on_required_select_block_all_rows(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_mixed_value_types_are_preserved(mcp_server):
+async def test_mixed_value_types_are_preserved(mcp_server: object) -> None:
+    """Mixed value types are preserved."""
     captured: dict[str, Any] = {}
 
     with (
@@ -312,7 +319,8 @@ async def test_mixed_value_types_are_preserved(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_filter_addressed_by_id(mcp_server):
+async def test_filter_addressed_by_id(mcp_server: object) -> None:
+    """Filter addressed by id."""
     captured: dict[str, Any] = {}
 
     with (
@@ -337,7 +345,8 @@ async def test_filter_addressed_by_id(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_filter_name_match_is_case_insensitive(mcp_server):
+async def test_filter_name_match_is_case_insensitive(mcp_server: object) -> None:
+    """Filter name match is case insensitive."""
     captured: dict[str, Any] = {}
 
     with (
@@ -357,7 +366,8 @@ async def test_filter_name_match_is_case_insensitive(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_multiple_filters_applied_in_one_call(mcp_server):
+async def test_multiple_filters_applied_in_one_call(mcp_server: object) -> None:
+    """Multiple filters applied in one call."""
     captured: dict[str, Any] = {}
 
     with (
@@ -392,7 +402,10 @@ async def test_multiple_filters_applied_in_one_call(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_unknown_filter_name_lists_the_available_filters(mcp_server):
+async def test_unknown_filter_name_lists_the_available_filters(
+    mcp_server: object,
+) -> None:
+    """Unknown filter name lists the available filters."""
     with patch(DAO_GET, return_value=_mock_dashboard([SELECT_FILTER, TIME_FILTER])):
         data = await _call(
             mcp_server,
@@ -410,7 +423,8 @@ async def test_unknown_filter_name_lists_the_available_filters(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_ambiguous_filter_name_asks_for_an_id(mcp_server):
+async def test_ambiguous_filter_name_asks_for_an_id(mcp_server: object) -> None:
+    """Ambiguous filter name asks for an id."""
     duplicate = {**SELECT_FILTER, "id": "NATIVE_FILTER-region2"}
 
     with patch(DAO_GET, return_value=_mock_dashboard([SELECT_FILTER, duplicate])):
@@ -428,7 +442,7 @@ async def test_ambiguous_filter_name_asks_for_an_id(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_exact_id_match_wins_over_a_name_collision(mcp_server):
+async def test_exact_id_match_wins_over_a_name_collision(mcp_server: object) -> None:
     """A filter named after another filter's ID cannot shadow that filter."""
     captured: dict[str, Any] = {}
     decoy = {
@@ -459,7 +473,8 @@ async def test_exact_id_match_wins_over_a_name_collision(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_values_on_a_time_filter_is_rejected(mcp_server):
+async def test_values_on_a_time_filter_is_rejected(mcp_server: object) -> None:
+    """Values on a time filter is rejected."""
     with patch(DAO_GET, return_value=_mock_dashboard([TIME_FILTER])):
         data = await _call(
             mcp_server,
@@ -474,7 +489,8 @@ async def test_values_on_a_time_filter_is_rejected(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_time_range_on_a_select_filter_is_rejected(mcp_server):
+async def test_time_range_on_a_select_filter_is_rejected(mcp_server: object) -> None:
+    """Time range on a select filter is rejected."""
     with patch(DAO_GET, return_value=_mock_dashboard([SELECT_FILTER])):
         data = await _call(
             mcp_server,
@@ -489,7 +505,8 @@ async def test_time_range_on_a_select_filter_is_rejected(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_unsupported_filter_type_is_rejected(mcp_server):
+async def test_unsupported_filter_type_is_rejected(mcp_server: object) -> None:
+    """Unsupported filter type is rejected."""
     with patch(DAO_GET, return_value=_mock_dashboard([RANGE_FILTER])):
         data = await _call(
             mcp_server,
@@ -504,7 +521,8 @@ async def test_unsupported_filter_type_is_rejected(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_duplicate_target_is_rejected(mcp_server):
+async def test_duplicate_target_is_rejected(mcp_server: object) -> None:
+    """Duplicate target is rejected."""
     with patch(DAO_GET, return_value=_mock_dashboard([SELECT_FILTER])):
         data = await _call(
             mcp_server,
@@ -521,7 +539,8 @@ async def test_duplicate_target_is_rejected(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_both_values_and_time_range_is_rejected(mcp_server):
+async def test_both_values_and_time_range_is_rejected(mcp_server: object) -> None:
+    """Both values and time range is rejected."""
     with patch(DAO_GET, return_value=_mock_dashboard([SELECT_FILTER])):
         with pytest.raises(Exception, match="exactly one of values"):
             await _call(
@@ -540,7 +559,8 @@ async def test_both_values_and_time_range_is_rejected(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_neither_values_nor_time_range_is_rejected(mcp_server):
+async def test_neither_values_nor_time_range_is_rejected(mcp_server: object) -> None:
+    """Neither values nor time range is rejected."""
     with patch(DAO_GET, return_value=_mock_dashboard([SELECT_FILTER])):
         with pytest.raises(Exception, match="exactly one of values"):
             await _call(
@@ -553,7 +573,8 @@ async def test_neither_values_nor_time_range_is_rejected(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_dashboard_without_filters_reports_so(mcp_server):
+async def test_dashboard_without_filters_reports_so(mcp_server: object) -> None:
+    """Dashboard without filters reports so."""
     with patch(DAO_GET, return_value=_mock_dashboard([])):
         data = await _call(
             mcp_server,
@@ -572,7 +593,8 @@ async def test_dashboard_without_filters_reports_so(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_dashboard_not_found(mcp_server):
+async def test_dashboard_not_found(mcp_server: object) -> None:
+    """Dashboard not found."""
     with patch(DAO_GET, side_effect=DashboardNotFoundError):
         data = await _call(
             mcp_server,
@@ -587,7 +609,8 @@ async def test_dashboard_not_found(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_permission_denied(mcp_server):
+async def test_permission_denied(mcp_server: object) -> None:
+    """Permission denied."""
     with patch(DAO_GET, side_effect=DashboardAccessDeniedError):
         data = await _call(
             mcp_server,
@@ -603,7 +626,9 @@ async def test_permission_denied(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_permission_is_checked_before_filter_names_are_read(mcp_server):
+async def test_permission_is_checked_before_filter_names_are_read(
+    mcp_server: object,
+) -> None:
     """A caller without access learns nothing about the dashboard's filters."""
     with patch(DAO_GET, side_effect=DashboardAccessDeniedError):
         data = await _call(
@@ -623,7 +648,9 @@ async def test_permission_is_checked_before_filter_names_are_read(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_data_mask_round_trips_through_get_dashboard_layout(mcp_server):
+async def test_data_mask_round_trips_through_get_dashboard_layout(
+    mcp_server: object,
+) -> None:
     """The permalink this tool writes is readable by get_dashboard_layout."""
     captured: dict[str, Any] = {}
     dashboard = _mock_dashboard([SELECT_FILTER, TIME_FILTER])
