@@ -397,6 +397,8 @@ def _build_replacement_form_data(
     )
     if replacement_dataset_id is not None:
         merged["datasource"] = f"{replacement_dataset_id}__table"
+    if getattr(parsed_config, "filters", None) == []:
+        merged.pop("adhoc_filters", None)
     return merged
 
 
