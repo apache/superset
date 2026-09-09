@@ -34,6 +34,7 @@ import {
   useTransitiveChildIds,
   useTransitiveParentIds,
 } from './state';
+
 const mockStore = configureStore([]);
 
 const buildWrapper = (filters: FilterConfigMap) => {
