@@ -115,7 +115,7 @@ def do_upgrade(session: Session) -> None:
 
 def upgrade() -> None:
     bind = op.get_bind()
-    session = Session(bind=bind, future=True)
+    session = Session(bind=bind)
     do_upgrade(session)
 
 

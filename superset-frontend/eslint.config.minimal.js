@@ -37,9 +37,9 @@
 require('tsx/cjs');
 
 const tsParser = require('@typescript-eslint/parser');
-const themeColorsPlugin = require('eslint-plugin-theme-colors');
-const iconsPlugin = require('eslint-plugin-icons');
-const i18nStringsPlugin = require('eslint-plugin-i18n-strings');
+const themeColorsPlugin = require('@superset-ui/eslint-plugin-theme-colors');
+const iconsPlugin = require('@superset-ui/eslint-plugin-icons');
+const i18nStringsPlugin = require('@superset-ui/eslint-plugin-i18n-strings');
 
 module.exports = [
   // Files this config applies to. Flat config has no `--ext`; globs live here.

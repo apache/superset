@@ -245,6 +245,11 @@ def test_database_connection(
                 "supports_oauth2": True,
                 "supports_offset": True,
                 "supports_schemas": True,
+                "identifier_quote": {
+                    "start": '"',
+                    "end": '"',
+                    "escape_by_doubling": True,
+                },
             },
             "expose_in_sqllab": True,
             "extra": '{\n    "metadata_params": {},\n    "engine_params": {},\n    "metadata_cache_timeout": {},\n    "schemas_allowed_for_file_upload": []\n}\n',  # noqa: E501
@@ -336,6 +341,11 @@ def test_database_connection(
                 "supports_oauth2": True,
                 "supports_offset": True,
                 "supports_schemas": True,
+                "identifier_quote": {
+                    "start": '"',
+                    "end": '"',
+                    "escape_by_doubling": True,
+                },
             },
             "expose_in_sqllab": True,
             "force_ctas_schema": None,
@@ -700,6 +710,10 @@ def test_oauth2_happy_path(
         return_value=None,
     )
 
+    mocker.patch(
+        "superset.commands.database.oauth2.get_user_id",
+        return_value=1,
+    )
     state: OAuth2State = {
         "user_id": 1,
         "database_id": 1,
@@ -776,6 +790,10 @@ def test_oauth2_permissions(
         return_value=None,
     )
 
+    mocker.patch(
+        "superset.commands.database.oauth2.get_user_id",
+        return_value=1,
+    )
     state: OAuth2State = {
         "user_id": 1,
         "database_id": 1,
@@ -857,6 +875,10 @@ def test_oauth2_multiple_tokens(
         return_value=None,
     )
 
+    mocker.patch(
+        "superset.commands.database.oauth2.get_user_id",
+        return_value=1,
+    )
     state: OAuth2State = {
         "user_id": 1,
         "database_id": 1,

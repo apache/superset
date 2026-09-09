@@ -33,7 +33,7 @@
     "d3-array": "^3.2.4",
     "lodash": "^4.18.1",
     "lodash-es": "^4.18.1",
-    "zod": "^4.4.3"
+    "zod": "^4.5.4"
   },
   "peerDependencies": {
     "@apache-superset/core": "*",

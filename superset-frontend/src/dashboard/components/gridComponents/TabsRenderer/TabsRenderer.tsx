@@ -22,10 +22,13 @@ import {
   ReactElement,
   RefObject,
   useCallback,
+  useContext,
+  useEffect,
   useRef,
   useState,
 } from 'react';
-import { styled } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
+import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 import {
   LineEditableTabs,
   TabsProps as AntdTabsProps,
@@ -45,10 +48,32 @@ import {
 import HoverMenu from '../../menu/HoverMenu';
 import DragHandle from '../../dnd/DragHandle';
 import DeleteComponentButton from '../../DeleteComponentButton';
+import { StickyTabsOffsetContext } from './StickyTabsOffsetContext';
 
-const StyledTabsContainer = styled.div<{ isDragging?: boolean }>`
+// @z-index-above-dashboard-charts: above chart content, below the sticky
+// dashboard header (99) and the filter bar (11)
+const STICKY_TAB_BAR_Z_INDEX = 10;
+
+const StyledTabsContainer = styled.div<{
+  isDragging?: boolean;
+  stickyTop?: number;
+}>`
   width: 100%;
   background-color: ${({ theme }) => theme.colorBgContainer};
+
+  /* Pin this component's own tab bar (direct child only, so nested tab
+     sets keep their own offsets) below the sticky dashboard header while
+     its content scrolls. */
+  ${({ theme, stickyTop }) =>
+    stickyTop !== undefined &&
+    css`
+      & > .ant-tabs > .ant-tabs-nav {
+        position: sticky;
+        top: ${stickyTop}px;
+        z-index: ${STICKY_TAB_BAR_Z_INDEX};
+        background-color: ${theme.colorBgContainer};
+      }
+    `}
 
   & .dashboard-component-tabs-content {
     height: 100%;
@@ -87,6 +112,58 @@ const StyledTabsContainer = styled.div<{ isDragging?: boolean }>`
       display: none !important;
     }
   `}
+
+  /* Sticky tabs on mobile (consumption mode) */
+  ${({ theme }) =>
+    isMobileConsumptionEnabled() &&
+    css`
+      @media (max-width: ${theme.screenSMMax}px) {
+        .ant-tabs-nav {
+          position: sticky;
+          top: 0;
+          z-index: 100;
+          background-color: ${theme.colorBgContainer};
+          /* breathing room between the tab bar and the first card; padding
+             (not margin) so the gap is part of the opaque sticky bar */
+          padding-bottom: ${theme.sizeUnit * 2}px;
+        }
+
+        /* Scrollability affordance: fade the clipped edge with a
+           theme-colored gradient. antd toggles the ping classes when tabs
+           overflow on that side; restyle its shadow elements as gradients,
+           which read much better than the default shadows on dark themes. */
+        .ant-tabs-nav-wrap:before,
+        .ant-tabs-nav-wrap:after {
+          width: ${theme.sizeUnit * 10}px;
+          box-shadow: none !important;
+          pointer-events: none;
+        }
+        .ant-tabs-nav-wrap-ping-right:after {
+          background: linear-gradient(
+            to right,
+            transparent,
+            ${theme.colorBgContainer}
+          );
+          opacity: 1;
+        }
+        .ant-tabs-nav-wrap-ping-left:before {
+          background: linear-gradient(
+            to left,
+            transparent,
+            ${theme.colorBgContainer}
+          );
+          opacity: 1;
+        }
+
+        /* Swipeable tab bar instead of the overflow dropdown: the "more"
+           menu is a poor touch target and duplicates half-clipped tabs.
+           antd's tab nav supports touch-drag scrolling natively and shows
+           edge shadows (ping classes) when tabs overflow. */
+        .ant-tabs-nav-operations {
+          display: none !important;
+        }
+      }
+    `}
 `;
 
 export interface TabItem {
@@ -178,6 +255,59 @@ const TabsRenderer = memo<TabsRendererProps>(
   }) => {
     const [activeId, setActiveId] = useState<string | null>(null);
 
+    // Sticky tab bars only apply in view mode: while editing, drag-and-drop
+    // targets and hover menus are positioned against the tab bar's place in
+    // document flow.
+    const parentStickyOffset = useContext(StickyTabsOffsetContext);
+    const stickyTop = editMode ? undefined : parentStickyOffset;
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [tabBarHeight, setTabBarHeight] = useState(0);
+
+    // Keyed on whether the bar is pinned rather than on the offset itself:
+    // the header re-measuring on every resize would otherwise tear down and
+    // recreate the observer in every tab set on the page.
+    const isPinned = stickyTop !== undefined;
+    useEffect(() => {
+      // Direct-child selector, so nested tab sets' bars are never matched.
+      const tabBar = isPinned
+        ? containerRef.current?.querySelector<HTMLElement>(
+            ':scope > .ant-tabs > .ant-tabs-nav',
+          )
+        : null;
+      if (!tabBar) {
+        return undefined;
+      }
+      const measure = () => setTabBarHeight(tabBar.offsetHeight);
+      measure();
+      // Matches the sticky header's own guard in DashboardBuilder, for
+      // environments without ResizeObserver: the bar still pins, it just
+      // keeps the height measured at mount.
+      if (!global.hasOwnProperty('ResizeObserver')) {
+        return undefined;
+      }
+      const observer = new ResizeObserver(measure);
+      observer.observe(tabBar);
+      return () => observer.disconnect();
+    }, [isPinned]);
+
+    // Tabs nested inside this one stack their bar beneath ours.
+    const childStickyOffset =
+      stickyTop === undefined ? undefined : stickyTop + tabBarHeight;
+
+    // Counterpart of the top-level tabs, which scroll the page to the top on
+    // every switch (DashboardBuilder.handleChangeTab). With this bar pinned,
+    // a switch would otherwise land the reader partway down the new tab's
+    // content; bring the tab set back to where its bar is pinned instead.
+    const scrollPinnedTabSetToTop = () => {
+      if (stickyTop === undefined || !containerRef.current) {
+        return;
+      }
+      const { top } = containerRef.current.getBoundingClientRect();
+      if (top < stickyTop) {
+        window.scrollTo(window.scrollX, window.scrollY + top - stickyTop);
+      }
+    };
+
     // Use ref to always have access to the current tabIds in callbacks
     const tabIdsRef = useRef(tabIds);
     tabIdsRef.current = tabIds;
@@ -214,9 +344,11 @@ const TabsRenderer = memo<TabsRendererProps>(
 
     return (
       <StyledTabsContainer
+        ref={containerRef}
         className="dashboard-component dashboard-component-tabs"
         data-test="dashboard-component-tabs"
         isDragging={isDragging}
+        stickyTop={stickyTop}
       >
         {editMode && renderHoverMenu && tabsDragSourceRef && (
           <HoverMenu innerRef={tabsDragSourceRef} position="left">
@@ -225,53 +357,59 @@ const TabsRenderer = memo<TabsRendererProps>(
           </HoverMenu>
         )}
 
-        <LineEditableTabs
-          id={tabsComponent.id}
-          activeKey={activeKey}
-          onChange={key => {
-            if (typeof key === 'string') {
-              const tabIndex = tabIds.indexOf(key);
-              if (tabIndex !== -1) handleClickTab(tabIndex);
-            }
-          }}
-          onEdit={handleEdit}
-          data-test="nav-list"
-          type={editMode ? 'editable-card' : 'card'}
-          items={tabItems}
-          tabBarStyle={{ paddingLeft: tabBarPaddingLeft }}
-          fullHeight
-          {...(editMode && {
-            renderTabBar: (tabBarProps, DefaultTabBar) => (
-              <DndContext
-                key={tabIds.join('-')}
-                sensors={[sensor]}
-                onDragStart={onDragStart}
-                onDragEnd={onDragEnd}
-                onDragCancel={onDragCancel}
-                collisionDetection={closestCenter}
-              >
-                <SortableContext
-                  items={tabIds}
-                  strategy={horizontalListSortingStrategy}
+        <StickyTabsOffsetContext.Provider value={childStickyOffset}>
+          <LineEditableTabs
+            id={tabsComponent.id}
+            activeKey={activeKey}
+            onChange={key => {
+              if (typeof key === 'string') {
+                const tabIndex = tabIds.indexOf(key);
+                if (tabIndex !== -1) {
+                  handleClickTab(tabIndex);
+                  scrollPinnedTabSetToTop();
+                }
+              }
+            }}
+            onEdit={handleEdit}
+            data-test="nav-list"
+            type={editMode ? 'editable-card' : 'card'}
+            items={tabItems}
+            tabBarStyle={{ paddingLeft: tabBarPaddingLeft }}
+            fullHeight
+            {...(editMode && {
+              renderTabBar: (tabBarProps, DefaultTabBar) => (
+                <DndContext
+                  key={tabIds.join('-')}
+                  sensors={[sensor]}
+                  onDragStart={onDragStart}
+                  onDragEnd={onDragEnd}
+                  onDragCancel={onDragCancel}
+                  collisionDetection={closestCenter}
                 >
-                  <DefaultTabBar {...tabBarProps}>
-                    {(node: React.ReactElement) => (
-                      <DraggableTabNode
-                        {...(node as React.ReactElement<DraggableTabNodeProps>)
-                          .props}
-                        key={node.key}
-                        data-node-key={node.key as string}
-                        disabled={isEditingTabTitle}
-                      >
-                        {node}
-                      </DraggableTabNode>
-                    )}
-                  </DefaultTabBar>
-                </SortableContext>
-              </DndContext>
-            ),
-          })}
-        />
+                  <SortableContext
+                    items={tabIds}
+                    strategy={horizontalListSortingStrategy}
+                  >
+                    <DefaultTabBar {...tabBarProps}>
+                      {(node: React.ReactElement) => (
+                        <DraggableTabNode
+                          {...(
+                            node as React.ReactElement<DraggableTabNodeProps>
+                          ).props}
+                          key={node.key}
+                          data-node-key={node.key as string}
+                          disabled={isEditingTabTitle}
+                        >
+                          {node}
+                        </DraggableTabNode>
+                      )}
+                    </DefaultTabBar>
+                  </SortableContext>
+                </DndContext>
+              ),
+            })}
+          />
+        </StickyTabsOffsetContext.Provider>
       </StyledTabsContainer>
     );
   },

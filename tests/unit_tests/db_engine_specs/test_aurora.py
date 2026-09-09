@@ -301,6 +301,43 @@ def test_aurora_mysql_update_params_from_encrypted_extra_with_iam() -> None:
     # SSL should be configured via the database's extra settings.
 
 
+def test_aurora_postgres_inherits_extended_aggregations() -> None:
+    """
+    Aurora PostgreSQL (and its Data API variant) is AWS's wire- and
+    SQL-compatible managed Postgres, not a forked query engine, so it
+    inherits `_extended_aggregations` from `PostgresBaseEngineSpec`
+    unmodified -- see the comment above that dict.
+    """
+    from superset.db_engine_specs.aurora import (
+        AuroraPostgresDataAPI,
+        AuroraPostgresEngineSpec,
+    )
+
+    for spec in (AuroraPostgresEngineSpec, AuroraPostgresDataAPI):
+        assert spec.get_extended_aggregation_func("MEDIAN") is not None
+        assert spec.get_extended_aggregation_func("STDDEV_SAMP") is not None
+        assert spec.get_extended_aggregation_func("VAR_SAMP") is not None
+
+
+def test_aurora_mysql_inherits_extended_aggregations() -> None:
+    """
+    Aurora MySQL (and its Data API variant) is AWS's wire- and
+    SQL-compatible managed MySQL, not a forked query engine, so it inherits
+    `_extended_aggregations` from `MySQLEngineSpec` unmodified -- see the
+    comment above that dict.
+    """
+    from superset.db_engine_specs.aurora import (
+        AuroraMySQLDataAPI,
+        AuroraMySQLEngineSpec,
+    )
+
+    for spec in (AuroraMySQLEngineSpec, AuroraMySQLDataAPI):
+        assert spec.get_extended_aggregation_func("STDDEV_SAMP") is not None
+        assert spec.get_extended_aggregation_func("VAR_SAMP") is not None
+        # Same as MySQL, MEDIAN is not supported.
+        assert spec.get_extended_aggregation_func("MEDIAN") is None
+
+
 def test_aurora_data_api_classes_unchanged() -> None:
     from superset.db_engine_specs.aurora import (
         AuroraMySQLDataAPI,

@@ -31,6 +31,13 @@
     </title>
 
     {% block head_meta %}
+      {% if is_feature_enabled is defined and is_feature_enabled('MOBILE_CONSUMPTION_MODE') %}
+        {# Without this, mobile browsers lay the page out at the ~980px legacy
+           viewport and the mobile consumption mode's breakpoints never match.
+           Only emitted when the flag is on so desktop-only deployments keep
+           the shrink-to-fit rendering on phones. #}
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+      {% endif %}
       {# Manifest is served dynamically by PwaManifestView so APPLICATION_ROOT
          and STATIC_ASSETS_PREFIX resolve at request time. Do NOT use
          `assets_prefix` here — that may point to a CDN host with no

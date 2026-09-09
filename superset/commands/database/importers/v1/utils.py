@@ -21,11 +21,18 @@ from typing import Any
 from flask import current_app as app
 
 from superset import db, security_manager
-from superset.commands.database.utils import add_permissions
+from superset.commands.database.exceptions import DatabaseInvalidError
+from superset.commands.database.utils import (
+    add_permissions,
+    engine_params_changed,
+    ssh_tunnel_rebind_unsafe,
+    uri_identity_changed,
+)
 from superset.commands.exceptions import ImportFailedError
+from superset.constants import PASSWORD_MASK
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+from superset.db_engine_specs.exceptions import SupersetDBAPIError
 from superset.exceptions import (
     OAuth2RedirectError,
     SupersetSecurityException,
@@ -35,6 +42,73 @@ from superset.security.analytics_db_safety import check_sqlalchemy_uri
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
+
+
+def _connection_identity_changed(existing: Database, config: dict[str, Any]) -> bool:
+    """Whether the import points the database at a different endpoint."""
+    if uri_identity_changed(existing.sqlalchemy_uri, config.get("sqlalchemy_uri")):
+        return True
+
+    # The URI's host/port aren't the whole story: `extra.engine_params`
+    # (e.g. `connect_args.host`/`port`) is merged into the actual DBAPI
+    # connect kwargs and can override them. An import that opens a live
+    # connection (`add_permissions` -> `get_all_catalog_names`) with a
+    # rehydrated stored password must not do so against a destination this
+    # field silently redirected.
+    submitted_extra = config.get("extra")
+    if isinstance(submitted_extra, dict):
+        submitted_extra = json.dumps(submitted_extra)
+    return engine_params_changed(existing.extra, submitted_extra)
+
+
+def _refuse_stored_secret_reuse(existing: Database, config: dict[str, Any]) -> None:
+    """
+    Refuse an overwrite that changes the connection endpoint without fresh
+    credentials.
+
+    Database UUIDs are not secrets -- they appear in every exported bundle --
+    so an import must not be able to repoint an existing connection at a new
+    host while the stored password (or SSH tunnel key) is silently kept: the
+    next connection would hand the real credential to the new endpoint.
+    """
+    if _connection_identity_changed(existing, config):
+        try:
+            uri_password = make_url_safe(config["sqlalchemy_uri"]).password
+        except DatabaseInvalidError:
+            uri_password = None
+        if config.get("password") in (None, PASSWORD_MASK) and uri_password in (
+            None,
+            PASSWORD_MASK,
+        ):
+            raise ImportFailedError(
+                f"Import would change the connection of database "
+                f"'{existing.database_name}' without providing new "
+                "credentials. Re-enter the database password for the new "
+                "connection to confirm the change."
+            )
+
+    if ssh_tunnel_rebind_unsafe(existing.ssh_tunnel, config.get("ssh_tunnel")):
+        raise ImportFailedError(
+            f"Import would change the SSH tunnel endpoint of database "
+            f"'{existing.database_name}' without providing new tunnel "
+            "credentials. Re-enter the SSH tunnel credentials to "
+            "confirm the change."
+        )
+
+
+def _sync_permissions_best_effort(database: Database) -> None:
+    """
+    Sync catalog/schema permissions for ``database``, tolerating a transient
+    or OAuth2 failure rather than letting it fail the import.
+    """
+    try:
+        add_permissions(database)
+    except (SupersetDBAPIError, OAuth2RedirectError) as ex:
+        # ``add_permissions()`` calls ``get_all_catalog_names()`` outside of
+        # its own per-catalog error handling, so any DBAPI error mapped from
+        # that initial catalog discovery -- not just a connection failure --
+        # must be tolerated here too, or it fails the whole import.
+        logger.warning(ex.message)
 
 
 def import_database(  # noqa: C901
@@ -49,8 +123,22 @@ def import_database(  # noqa: C901
     existing = db.session.query(Database).filter_by(uuid=config["uuid"]).first()
     if existing:
         if not overwrite or not can_write:
+            if can_write:
+                # Chart/dataset/saved-query/dashboard bundles that reference
+                # an already-imported database reach this branch; without
+                # this, a schema added to the live connection since the
+                # database was first imported would never get a first-time
+                # grant through this path either. ``add_permissions()`` does
+                # a live, uncached metadata scan, so this can be slow for
+                # cross-catalog-enabled engines -- see its own comment.
+                _sync_permissions_best_effort(existing)
             return existing
         config["id"] = existing.id
+        # Stored secrets must not be rebound to a different endpoint: without
+        # fresh credentials, an overwrite that changes where the database (or
+        # its SSH tunnel) connects would exfiltrate the stored secret to the
+        # new endpoint on the next connection.
+        _refuse_stored_secret_reuse(existing, config)
     elif not can_write:
         raise ImportFailedError(
             "Database doesn't exist and user doesn't have permission to create databases"  # noqa: E501
@@ -81,7 +169,13 @@ def import_database(  # noqa: C901
     # For existing DBs, reveal masked sensitive values from current encrypted_extra.
     # For new DBs, schema validation already ensured no fields are still masked.
     if masked_encrypted_extra := config.pop("masked_encrypted_extra", None):
-        if existing and existing.encrypted_extra:
+        # Never reveal stored encrypted_extra secrets into a config that
+        # repoints the connection at a different endpoint.
+        if (
+            existing
+            and existing.encrypted_extra
+            and not _connection_identity_changed(existing, config)
+        ):
             old_config = json.loads(existing.encrypted_extra)
             new_config = json.loads(masked_encrypted_extra)
             sensitive_fields = (
@@ -114,9 +208,6 @@ def import_database(  # noqa: C901
             recursive=False,
         )
 
-    try:
-        add_permissions(database)
-    except (SupersetDBAPIConnectionError, OAuth2RedirectError) as ex:
-        logger.warning(ex.message)
+    _sync_permissions_best_effort(database)
 
     return database

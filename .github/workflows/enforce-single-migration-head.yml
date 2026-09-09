@@ -1,0 +1,85 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+name: Enforce single Alembic migration head
+on:
+  push:
+    branches:
+      - "master"
+      - "[0-9].[0-9]*"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+
+# No `paths:` filter on purpose: this job is a required status check, and a
+# required check that never runs for a given PR blocks that PR from merging
+# forever. It has to fire on every PR so it always reports a status; whether
+# migrations changed is decided inside the job, not the trigger.
+
+# cancel previous workflow jobs for PRs
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  enforce-single-migration-head:
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check for migration file changes
+        id: check
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          github-token: ${{ github.token }}
+          script: |
+            if (context.eventName === 'push') {
+              core.setOutput('changed', 'true');
+              return;
+            }
+            const files = await github.paginate(github.rest.pulls.listFiles, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+            });
+            const changed = files.some((f) => f.filename.startsWith('superset/migrations/'));
+            core.setOutput('changed', String(changed));
+      - name: Setup Python
+        if: steps.check.outputs.changed == 'true'
+        uses: ./.github/actions/setup-backend/
+        with:
+          requirements-type: base
+      - name: Assert a single Alembic head
+        if: steps.check.outputs.changed == 'true'
+        env:
+          SUPERSET__SQLALCHEMY_DATABASE_URI: "sqlite:///:memory:"
+        run: |
+          heads="$(superset db heads)"
+          echo "$heads"
+          head_count=$(printf '%s\n' "$heads" | grep -c .)
+          if [ "$head_count" -ne 1 ]; then
+            echo "::error::superset/migrations resolves to $head_count Alembic heads (expected exactly 1)."
+            echo "Another migration already landed with the same down_revision this branch was cut from."
+            echo "Add a no-op merge revision joining the heads: https://superset.apache.org/docs/contributing/development#merging-db-migrations"
+            exit 1
+          fi

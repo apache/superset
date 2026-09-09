@@ -2403,6 +2403,54 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.status_code == 200
         assert rv.headers["Content-Type"] == "application/json; charset=utf-8"
 
+    @with_config({"PREVENT_UNSAFE_DB_CONNECTIONS": False})
+    def test_test_connection_oauth2(self):
+        """
+        Database API: Test test connection flow with a connection authenticated via
+        OAuth2.
+
+        The test would always raise ``OAuth2RedirectError``, and we can't start the
+        OAuth2 dance before the connection is saved, so it should return a 200 status.
+        """
+        self.login(ADMIN_USERNAME)
+        example_db = get_example_database()
+        masked_encrypted_extra = json.dumps(
+            {
+                "oauth2_client_info": {
+                    "id": "client_id",
+                    "secret": "client_secret",
+                    "scope": "some-scope",
+                    "authorization_request_uri": "https://example.org/authorize",
+                    "token_request_uri": "https://example.org/token",
+                }
+            }
+        )
+        data = {
+            "database_name": "examples",
+            "masked_encrypted_extra": masked_encrypted_extra,
+            "impersonate_user": True,
+            "sqlalchemy_uri": example_db.safe_sqlalchemy_uri(),
+            "server_cert": None,
+        }
+        url = "api/v1/database/test_connection/"
+
+        with (
+            mock.patch(
+                "superset.commands.database.test_connection.ping",
+                side_effect=Exception("Unauthorized"),
+            ),
+            mock.patch.object(
+                example_db.db_engine_spec,
+                "needs_oauth2",
+                return_value=True,
+            ),
+        ):
+            rv = self.post_assert_metric(url, data, "test_connection")
+
+        assert rv.status_code == 200
+        assert rv.headers["Content-Type"] == "application/json; charset=utf-8"
+        assert json.loads(rv.data.decode("utf-8")) == {"message": "OK"}
+
     def test_test_connection_failed(self):
         """
         Database API: Test test connection failed
@@ -2439,8 +2487,15 @@ class TestDatabaseApi(SupersetTestCase):
         }
         assert response == expected_response
 
+        # Uses a `dialect+driver://` URI (rather than the bare `broken://`
+        # above) to also cover engine-name extraction stripping the driver
+        # suffix. The dialect itself ("broken") must stay one that no
+        # installed extra ever registers a real SQLAlchemy plugin for --
+        # this PR's own testcontainers extras (mssql, oracle, db2, ...)
+        # install real drivers for those dialects, which would make this
+        # URI actually attempt a connection instead of failing to load.
         data = {
-            "sqlalchemy_uri": "mssql+pymssql://url",
+            "sqlalchemy_uri": "broken+driver://url",
             "database_name": "examples",
             "impersonate_user": False,
             "server_cert": None,
@@ -2452,7 +2507,7 @@ class TestDatabaseApi(SupersetTestCase):
         expected_response = {
             "errors": [
                 {
-                    "message": "Could not load database driver for: mssql",
+                    "message": "Could not load database driver for: broken",
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
@@ -3516,6 +3571,7 @@ class TestDatabaseApi(SupersetTestCase):
                                 "description": "Database port",
                                 "maximum": 65536,
                                 "minimum": 0,
+                                "nullable": True,
                                 "type": "integer",
                             },
                             "query": {
@@ -3533,7 +3589,10 @@ class TestDatabaseApi(SupersetTestCase):
                                 "type": "string",
                             },
                         },
-                        "required": ["database", "host", "port", "username"],
+                        # ``port`` is intentionally not required: a blank port falls
+                        # back to the default (5432) in
+                        # ``PostgresEngineSpec.build_sqlalchemy_uri``.
+                        "required": ["database", "host", "username"],
                         "type": "object",
                     },
                     "preferred": True,
@@ -3545,6 +3604,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": '"',
+                            "end": '"',
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -3575,6 +3639,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": "`",
+                            "end": "`",
+                            "escape_by_doubling": False,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -3635,6 +3704,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": '"',
+                            "end": '"',
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -3682,6 +3756,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": True,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": '"',
+                            "end": '"',
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": True,
                 },
@@ -3742,6 +3821,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": "`",
+                            "end": "`",
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -3758,6 +3842,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": '"',
+                            "end": '"',
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -3794,6 +3883,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": "`",
+                            "end": "`",
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -3810,6 +3904,11 @@ class TestDatabaseApi(SupersetTestCase):
                         "supports_oauth2": False,
                         "supports_offset": True,
                         "supports_schemas": True,
+                        "identifier_quote": {
+                            "start": '"',
+                            "end": '"',
+                            "escape_by_doubling": True,
+                        },
                     },
                     "supports_oauth2": False,
                 },
@@ -4608,8 +4707,9 @@ class TestDatabaseApi(SupersetTestCase):
         assert rv.status_code == 202
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {"message": "Async task created to sync permissions"}
+        admin_user = security_manager.find_user(username=ADMIN_USERNAME)
         mock_task.assert_called_once_with(
-            test_database.id, ADMIN_USERNAME, test_database.database_name
+            test_database.id, admin_user.id, test_database.database_name
         )
 
         # Cleanup

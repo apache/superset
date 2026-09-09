@@ -32,8 +32,10 @@ from sqlalchemy.sql.type_api import TypeEngine
 
 from superset import db
 from superset.constants import LRU_CACHE_MAX_SIZE
+from superset.db_engine_specs.exceptions import SupersetDBAPIError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    SupersetErrorException,
     SupersetGenericDBErrorException,
     SupersetParseError,
     SupersetSecurityException,
@@ -125,12 +127,14 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
         # rest (sandbox violations, malformed template syntax, encoding
         # errors) indicate a real problem with the template that must
         # surface. See #38012.
+        # str(ex) stringifies the raw SupersetError list (enum reprs and all).
+        error_message = "; ".join(err.message for err in ex.errors)
         if isinstance(ex.__cause__, UndefinedError):
             raise SupersetVirtualTableParseException(
-                message=_("Template processing error: %(error)s", error=str(ex)),
+                message=_("Template processing error: %(error)s", error=error_message),
             ) from ex
         raise SupersetGenericDBErrorException(
-            message=_("Template processing error: %(error)s", error=str(ex)),
+            message=_("Template processing error: %(error)s", error=error_message),
         ) from ex
     try:
         parsed_script = SQLScript(sql, engine=db_engine_spec.engine)
@@ -209,6 +213,13 @@ def get_columns_description(
                     result, cursor.description, db_engine_spec
                 )
             return result_set.columns
+    except (SupersetErrorException, SupersetDBAPIError):
+        # Preserve exceptions that already carry specific, actionable typing
+        # (e.g. OAuth2RedirectError, or a driver connection/timeout error
+        # normalized by ``db_engine_spec.execute`` via its ``custom_errors``
+        # mapping) so callers can act on them instead of seeing an opaque
+        # generic DB error.
+        raise
     except Exception as ex:
         raise SupersetGenericDBErrorException(message=str(ex)) from ex
 

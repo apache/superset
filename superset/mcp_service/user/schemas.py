@@ -36,10 +36,6 @@ from superset.mcp_service.common.pagination_schemas import (
     PaginatedListRequest,
     PaginatedResponse,
 )
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
 
 logger = __import__("logging").getLogger(__name__)
 
@@ -115,12 +111,12 @@ class UserInfo(BaseModel):
         result: list[str] = []
         for item in v:
             if isinstance(item, str):
-                result.append(escape_llm_context_delimiters(item))
+                result.append(item)
                 continue
             try:
                 name = item.name
                 if isinstance(name, str):
-                    result.append(escape_llm_context_delimiters(name))
+                    result.append(name)
             except (AttributeError, DetachedInstanceError):
                 logger.debug(
                     "Skipping role with detached instance in UserInfo.roles coercion"
@@ -167,12 +163,6 @@ class UserError(BaseModel):
     timestamp: str | datetime | None = Field(None, description="Error timestamp")
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
-    @field_validator("error")
-    @classmethod
-    def sanitize_error_for_llm_context(cls, value: str) -> str:
-        """Wrap error text before it is exposed to LLM context."""
-        return sanitize_for_llm_context(value, field_path=("error",))
-
     @classmethod
     def create(cls, error: str, error_type: str) -> "UserError":
         """Create a standardized UserError with timestamp."""
@@ -211,7 +201,7 @@ def serialize_user_object(
             for r in user_roles:
                 try:
                     if hasattr(r, "name") and isinstance(r.name, str):
-                        roles.append(escape_llm_context_delimiters(r.name))
+                        roles.append(r.name)
                 except (AttributeError, DetachedInstanceError):
                     logger.debug(
                         "Skipping role that raised exception in serialize_user_object"
@@ -220,17 +210,11 @@ def serialize_user_object(
 
     return UserInfo(
         id=getattr(user, "id", None),
-        username=escape_llm_context_delimiters(getattr(user, "username", None)),
-        first_name=sanitize_for_llm_context(
-            getattr(user, "first_name", None), field_path=("first_name",)
-        ),
-        last_name=sanitize_for_llm_context(
-            getattr(user, "last_name", None), field_path=("last_name",)
-        ),
+        username=getattr(user, "username", None),
+        first_name=getattr(user, "first_name", None),
+        last_name=getattr(user, "last_name", None),
         active=getattr(user, "active", None),
-        email=escape_llm_context_delimiters(getattr(user, "email", None))
-        if include_sensitive
-        else None,
+        email=getattr(user, "email", None) if include_sensitive else None,
         roles=roles,
         changed_on=getattr(user, "changed_on", None),
     )

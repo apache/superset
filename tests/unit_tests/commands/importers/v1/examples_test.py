@@ -39,7 +39,7 @@ def test_transpile_virtual_dataset_sql_empty_sql():
 @patch("superset.commands.importers.v1.examples.db")
 def test_transpile_virtual_dataset_sql_database_not_found(mock_db):
     """Test graceful handling when database is not found."""
-    mock_db.session.query.return_value.get.return_value = None
+    mock_db.session.get.return_value = None
 
     config = {"table_name": "my_table", "sql": "SELECT * FROM foo"}
     original_sql = config["sql"]
@@ -56,7 +56,7 @@ def test_transpile_virtual_dataset_sql_success(mock_transpile, mock_db):
     """Test successful SQL transpilation with source engine."""
     mock_database = MagicMock()
     mock_database.db_engine_spec.engine = "mysql"
-    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_db.session.get.return_value = mock_database
 
     mock_transpile.return_value = "SELECT * FROM `foo`"
 
@@ -77,7 +77,7 @@ def test_transpile_virtual_dataset_sql_no_source_engine(mock_transpile, mock_db)
     """Test transpilation when source_db_engine is not specified (legacy)."""
     mock_database = MagicMock()
     mock_database.db_engine_spec.engine = "mysql"
-    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_db.session.get.return_value = mock_database
 
     mock_transpile.return_value = "SELECT * FROM `foo`"
 
@@ -95,7 +95,7 @@ def test_transpile_virtual_dataset_sql_no_change(mock_transpile, mock_db):
     """Test when transpilation returns same SQL (no dialect differences)."""
     mock_database = MagicMock()
     mock_database.db_engine_spec.engine = "postgresql"
-    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_db.session.get.return_value = mock_database
 
     original_sql = "SELECT * FROM foo"
     mock_transpile.return_value = original_sql
@@ -118,7 +118,7 @@ def test_transpile_virtual_dataset_sql_error_fallback(mock_transpile, mock_db):
 
     mock_database = MagicMock()
     mock_database.db_engine_spec.engine = "mysql"
-    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_db.session.get.return_value = mock_database
 
     mock_transpile.side_effect = QueryClauseValidationException("Parse error")
 
@@ -140,7 +140,7 @@ def test_transpile_virtual_dataset_sql_postgres_to_duckdb(mock_transpile, mock_d
     """Test transpilation from PostgreSQL to DuckDB."""
     mock_database = MagicMock()
     mock_database.db_engine_spec.engine = "duckdb"
-    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_db.session.get.return_value = mock_database
 
     original_sql = """
         SELECT DATE_TRUNC('month', created_at) AS month, COUNT(*) AS cnt
@@ -173,7 +173,7 @@ def test_transpile_virtual_dataset_sql_postgres_to_clickhouse(mock_transpile, mo
     """
     mock_database = MagicMock()
     mock_database.db_engine_spec.engine = "clickhouse"
-    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_db.session.get.return_value = mock_database
 
     # PostgreSQL syntax
     original_sql = "SELECT DATE_TRUNC('month', created_at) AS month FROM orders"
@@ -201,7 +201,7 @@ def test_transpile_virtual_dataset_sql_postgres_to_mysql(mock_transpile, mock_db
     """
     mock_database = MagicMock()
     mock_database.db_engine_spec.engine = "mysql"
-    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_db.session.get.return_value = mock_database
 
     # PostgreSQL syntax with :: casting
     original_sql = "SELECT created_at::DATE AS date_only FROM orders"
@@ -226,7 +226,7 @@ def test_transpile_virtual_dataset_sql_postgres_to_sqlite(mock_transpile, mock_d
     """Test transpilation from PostgreSQL to SQLite."""
     mock_database = MagicMock()
     mock_database.db_engine_spec.engine = "sqlite"
-    mock_db.session.query.return_value.get.return_value = mock_database
+    mock_db.session.get.return_value = mock_database
 
     original_sql = "SELECT * FROM orders WHERE created_at > NOW() - INTERVAL '7 days'"
     transpiled_sql = (
@@ -346,6 +346,71 @@ def test_import_passes_ignore_permissions_to_all_importers(
 
     mock_import_dashboard.assert_called_once()
     assert mock_import_dashboard.call_args[1].get("ignore_permissions") is True
+
+
+@patch(
+    "superset.commands.importers.v1.examples.safe_insert_dashboard_chart_relationships"
+)
+@patch("superset.commands.importers.v1.examples.import_dataset")
+@patch("superset.commands.importers.v1.examples.import_database")
+def test_import_dedupes_datasets_with_same_uuid(
+    mock_import_db,
+    mock_import_dataset,
+    mock_safe_insert,
+):
+    """_import() must import a given dataset uuid at most once per run.
+
+    Two example folders can ship a dataset config for the same
+    underlying table with an identical uuid (e.g. "world_health" and
+    "misc_charts" both shipping a config for "wb_health_population").
+    Importing it twice repeats the same column/metric sync for no
+    benefit.
+    """
+    from superset.commands.importers.v1.examples import ImportExamplesCommand
+
+    db_uuid = "a2dc77af-e654-49bb-b321-40f6b559a1ee"
+    dataset_uuid = "69e9de42-fe7f-4948-946a-f7913227aee8"
+
+    mock_db_obj = MagicMock()
+    mock_db_obj.uuid = db_uuid
+    mock_db_obj.id = 1
+    mock_import_db.return_value = mock_db_obj
+
+    mock_dataset_obj = MagicMock()
+    mock_dataset_obj.uuid = dataset_uuid
+    mock_dataset_obj.id = 10
+    mock_dataset_obj.table_name = "wb_health_population"
+    mock_import_dataset.return_value = mock_dataset_obj
+
+    configs = {
+        "databases/examples.yaml": {
+            "uuid": db_uuid,
+            "database_name": "examples",
+            "sqlalchemy_uri": "sqlite:///test.db",
+        },
+        "datasets/examples/world_health.yaml": {
+            "uuid": dataset_uuid,
+            "table_name": "wb_health_population",
+            "database_uuid": db_uuid,
+            "schema": None,
+            "sql": None,
+        },
+        "datasets/examples/wb_health_population.yaml": {
+            "uuid": dataset_uuid,
+            "table_name": "wb_health_population",
+            "database_uuid": db_uuid,
+            "schema": None,
+            "sql": None,
+        },
+    }
+
+    with patch(
+        "superset.commands.importers.v1.examples.get_example_default_schema",
+        return_value=None,
+    ):
+        ImportExamplesCommand._import(configs)
+
+    mock_import_dataset.assert_called_once()
 
 
 def test_normalize_dataset_schema_converts_main_to_null():

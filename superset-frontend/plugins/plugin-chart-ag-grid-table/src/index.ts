@@ -31,8 +31,6 @@ import controlPanel from './controlPanel';
 import buildQuery from './buildQuery';
 import { TableChartFormData, TableChartProps } from './types';
 
-// must export something for the module to be exist in dev mode
-export { default as __hack__ } from './types';
 export * from './types';
 export {
   convertAgGridStateToOwnState,
@@ -46,6 +44,7 @@ const metadata = new ChartMetadata({
     Behavior.InteractiveChart,
     Behavior.DrillToDetail,
     Behavior.DrillBy,
+    'EXPORT_CURRENT_VIEW' as Behavior,
   ],
   category: t('Table'),
   canBeAnnotationTypes: ['EVENT', 'INTERVAL'],

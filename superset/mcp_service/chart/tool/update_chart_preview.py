@@ -38,6 +38,9 @@ from superset.mcp_service.chart.chart_utils import (
     generate_chart_name,
     generate_explore_link,
     map_config_to_form_data,
+    merge_chart_form_data,
+    merge_interactive_pivot_ui_config,
+    merge_table_column_config,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.preview_utils import (
@@ -110,6 +113,8 @@ def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
         title="Update chart preview",
         readOnlyHint=False,
         destructiveHint=False,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 def update_chart_preview(  # noqa: C901
@@ -166,6 +171,24 @@ def update_chart_preview(  # noqa: C901
                 }
 
         with event_logger.log_context(action="mcp.update_chart_preview.form_data"):
+            from superset.mcp_service.chart.validation.dataset_validator import (
+                build_dataset_context_from_orm,
+                DatasetValidator,
+                NORMALIZATION_EXCEPTIONS,
+            )
+
+            try:
+                config = DatasetValidator.normalize_column_names(
+                    config,
+                    request.dataset_id,
+                    dataset_context=build_dataset_context_from_orm(dataset),
+                )
+            except NORMALIZATION_EXCEPTIONS as ex:
+                logger.warning(
+                    "Column normalization failed for preview dataset %s: %s",
+                    request.dataset_id,
+                    ex,
+                )
             # Map the new config to form_data format
             # Pass dataset_id to enable column type checking
             new_form_data = map_config_to_form_data(
@@ -180,12 +203,23 @@ def update_chart_preview(  # noqa: C901
                 if previous_form_data is None:
                     warnings.append(INVALID_FORM_DATA_KEY_WARNING)
 
-            # Preserve adhoc filters from the previous cached form_data
-            # when the new config doesn't explicitly specify filters
-            if getattr(config, "filters", None) is None and previous_form_data:
-                old_adhoc_filters = previous_form_data.get("adhoc_filters")
-                if old_adhoc_filters:
-                    new_form_data["adhoc_filters"] = old_adhoc_filters
+            if previous_form_data:
+                merge_table_column_config(previous_form_data, new_form_data)
+                merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
+                previous_datasource = str(
+                    previous_form_data.get("datasource")
+                    or previous_form_data.get("datasource_id")
+                    or ""
+                ).split("__", 1)[0]
+                dataset_rebind = bool(
+                    previous_datasource
+                ) and previous_datasource != str(dataset.id)
+                new_form_data = merge_chart_form_data(
+                    previous_form_data,
+                    new_form_data,
+                    config,
+                    dataset_rebind=dataset_rebind,
+                )
 
             # Tier-1 schema validation against the dataset (no DB roundtrip).
             # Runs AFTER the filter merge so filter columns are also validated.
@@ -217,7 +251,10 @@ def update_chart_preview(  # noqa: C901
                 }
 
             compile_result = validate_and_compile(
-                config, new_form_data, dataset, run_compile_check=False
+                config,
+                new_form_data,
+                dataset,
+                run_compile_check=config.chart_type == "gauge",
             )
             if not compile_result.success:
                 logger.warning(
@@ -336,6 +373,7 @@ def update_chart_preview(  # noqa: C901
             "semantics": semantics.model_dump() if semantics else None,
             "explore_url": explore_url,
             "form_data_key": new_form_data_key,
+            "form_data": new_form_data,
             "previous_form_data_key": request.form_data_key,  # For reference
             "warnings": warnings,
             "api_endpoints": {},  # No API endpoints for unsaved charts
