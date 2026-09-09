@@ -23,6 +23,7 @@ import {
   getValueFormatter,
   Metric,
   NumberFormats,
+  QueryFormMetric,
 } from '@superset-ui/core';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { GraphicComponentOption } from 'echarts/components';
@@ -82,10 +83,23 @@ const computePercent = (
 type ComparisonSlot = {
   show: boolean;
   label: string;
-  offset: string;
+  offset?: string;
+  column?: QueryFormMetric;
   left: number;
   current: number | null;
   comparisonValue: number | string | null | undefined;
+};
+
+// A comparison slot reads its value either from a configured comparison
+// metric (dataset metric or custom SQL expression) or from the backend's
+// time-offset column `<metric label>__<offset>`.
+const comparisonSource = (
+  column: QueryFormMetric | undefined,
+  offset: string,
+  metricName: string,
+): string | undefined => {
+  if (column) return getMetricLabel(column);
+  return `${metricName}__${offset}`;
 };
 
 export default function transformProps(
@@ -118,10 +132,12 @@ export default function transformProps(
     showComparison1 = true,
     comparison1Label = t(DEFAULT_COMPARISON1_LABEL),
     comparison1Offset = DEFAULT_COMPARISON1_OFFSET,
+    comparison1Column,
     comparison1Left = DEFAULT_COMPARISON1_LEFT,
     showComparison2 = true,
     comparison2Label = t(DEFAULT_COMPARISON2_LABEL),
     comparison2Offset = DEFAULT_COMPARISON2_OFFSET,
+    comparison2Column,
     comparison2Left = DEFAULT_COMPARISON2_LEFT,
     comparisonFontSize = DEFAULT_COMPARISON_FONT_SIZE,
     comparisonTop = DEFAULT_COMPARISON_TOP,
@@ -207,11 +223,13 @@ export default function transformProps(
     show,
     label,
     offset,
+    column,
     left,
     current: slotCurrent,
     comparisonValue,
   }: ComparisonSlot): GraphicComponentOption | null => {
-    if (!show || !offset) return null;
+    if (!show) return null;
+    if (!offset && !column) return null;
     const comparison = toNumber(comparisonValue);
     const percent = computePercent(slotCurrent, comparison);
     const missing = comparison === null;
@@ -247,20 +265,22 @@ export default function transformProps(
     show: showComparison1,
     label: comparison1Label,
     offset: comparison1Offset,
+    column: comparison1Column,
     left: comparison1Left,
     current,
     comparisonValue: hasData
-      ? row[`${metricName}__${comparison1Offset}`]
+      ? row[comparisonSource(comparison1Column, comparison1Offset, metricName) || '']
       : null,
   });
   const comparison2 = buildComparison({
     show: showComparison2,
     label: comparison2Label,
     offset: comparison2Offset,
+    column: comparison2Column,
     left: comparison2Left,
     current,
     comparisonValue: hasData
-      ? row[`${metricName}__${comparison2Offset}`]
+      ? row[comparisonSource(comparison2Column, comparison2Offset, metricName) || '']
       : null,
   });
   if (comparison1) graphic.push(comparison1);

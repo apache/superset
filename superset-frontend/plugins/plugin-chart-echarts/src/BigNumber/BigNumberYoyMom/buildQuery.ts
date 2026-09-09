@@ -22,20 +22,49 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { BigNumberYoyMomFormData } from './types';
+import { toEnclosedTimeRange } from './timeRange';
 
 export default function buildQuery(formData: QueryFormData) {
   return buildQueryContext(formData, baseQueryObject => {
     // Server-side time shifts for the MoM/YoY comparison slots. The backend
     // computes each shifted range and returns the values as extra columns
-    // named `<metric label>__<offset>`.
+    // named `<metric label>__<offset>`. A slot that configures a comparison
+    // value column reads its value directly from the query result instead.
+    // Slots are only sent as time offsets when a time range is actually
+    // present ("No filter" would fail the backend's enclosed-range check).
+    const formDataYoyMom = formData as BigNumberYoyMomFormData;
+    const timeRange = baseQueryObject.time_range;
+    const hasTimeRange = !!timeRange && timeRange !== 'No filter';
     const timeOffsets = ensureIsArray([
-      (formData as BigNumberYoyMomFormData).comparison1_offset,
-      (formData as BigNumberYoyMomFormData).comparison2_offset,
+      hasTimeRange && !formDataYoyMom.comparison1_column
+        ? formDataYoyMom.comparison1_offset
+        : null,
+      hasTimeRange && !formDataYoyMom.comparison2_column
+        ? formDataYoyMom.comparison2_offset
+        : null,
     ]).filter(Boolean);
+
+    // Comparison value metrics are requested alongside the main metric so the
+    // query result carries their columns (useful for custom SQL datasets that
+    // pre-aggregate the comparison values).
+    const comparisonMetrics = ensureIsArray([
+      formDataYoyMom.comparison1_column,
+      formDataYoyMom.comparison2_column,
+    ]).filter(Boolean);
+
+    // A time comparison requires an enclosed (start and end) time range on
+    // the backend. Expand open-ended ranges (e.g. "Previous week") into
+    // explicit bounds; ranges the backend resolves on its own are untouched.
+    const resolvedTimeRange =
+      timeOffsets.length > 0
+        ? toEnclosedTimeRange(timeRange)
+        : timeRange;
 
     return [
       {
         ...baseQueryObject,
+        metrics: [...ensureIsArray(baseQueryObject.metrics), ...comparisonMetrics],
+        time_range: resolvedTimeRange,
         time_offsets: timeOffsets,
       },
     ];

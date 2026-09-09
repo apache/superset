@@ -94,6 +94,41 @@ describe('BigNumberYoyMom transformProps', () => {
     expect(graphic[3].left).toBe(120);
   });
 
+  test('reads comparison values from configured result columns', () => {
+    const result = transformProps(
+      buildChartProps(
+        [
+          {
+            'SUM(sales)': 100,
+            prev_month_sales: 80,
+            prev_year_sales: 120,
+          },
+        ],
+        {
+          comparison1Column: 'prev_month_sales',
+          comparison2Column: 'prev_year_sales',
+        },
+      ),
+    );
+    const graphic = result.echartOptions.graphic as Record<string, any>[];
+
+    expect(graphic[2].style.text).toBe('MoM ↑25.00%');
+    expect(graphic[2].style.fill).toBe('rgb(0, 180, 42)');
+    expect(graphic[3].style.text).toBe('YoY ↓16.67%');
+    expect(graphic[3].style.fill).toBe('rgb(245, 63, 63)');
+  });
+
+  test('shows "—" when the configured comparison column is missing', () => {
+    const result = transformProps(
+      buildChartProps([{ 'SUM(sales)': 100 }], {
+        comparison1Column: 'prev_month_sales',
+      }),
+    );
+    const graphic = result.echartOptions.graphic as Record<string, any>[];
+    expect(graphic[2].style.text).toBe('MoM —');
+    expect(graphic[2].style.fill).toBe('rgb(102, 102, 102)');
+  });
+
   test('applies configurable positions, font sizes and colors', () => {
     const result = transformProps(
       buildChartProps(

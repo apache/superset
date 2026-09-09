@@ -55,6 +55,70 @@ const config: ControlPanelConfig = {
       expanded: true,
       controlSetRows: [
         ['metric'],
+        [
+          {
+            name: 'comparison1_column',
+            config: {
+              ...sharedControls.metric,
+              label: t('MoM comparison value'),
+              clearable: true,
+              description: t(
+                'Metric (or custom SQL expression) holding the MoM comparison value. When set, the MoM time shift below is not used and no time range is required.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison1_offset',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('MoM time shift'),
+              renderTrigger: true,
+              default: DEFAULT_COMPARISON1_OFFSET,
+              choices: COMPARISON_OFFSET_CHOICES,
+              description: t(
+                'Relative time period to compare against, e.g. "1 month ago".',
+              ),
+              visibility: ({ controls }) =>
+                controls?.show_comparison1?.value === true &&
+                !controls?.comparison1_column?.value,
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison2_column',
+            config: {
+              ...sharedControls.metric,
+              label: t('YoY comparison value'),
+              clearable: true,
+              description: t(
+                'Metric (or custom SQL expression) holding the YoY comparison value. When set, the YoY time shift below is not used and no time range is required.',
+              ),
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison2_offset',
+            config: {
+              type: 'SelectControl',
+              freeForm: true,
+              label: t('YoY time shift'),
+              renderTrigger: true,
+              default: DEFAULT_COMPARISON2_OFFSET,
+              choices: COMPARISON_OFFSET_CHOICES,
+              description: t(
+                'Relative time period to compare against, e.g. "1 year ago".',
+              ),
+              visibility: ({ controls }) =>
+                controls?.show_comparison2?.value === true &&
+                !controls?.comparison2_column?.value,
+            },
+          },
+        ],
         ['adhoc_filters'],
         [
           {
@@ -218,24 +282,6 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'comparison1_offset',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              label: t('MoM time shift'),
-              renderTrigger: true,
-              default: DEFAULT_COMPARISON1_OFFSET,
-              choices: COMPARISON_OFFSET_CHOICES,
-              description: t(
-                'Relative time period to compare against, e.g. "1 month ago".',
-              ),
-              visibility: ({ controls }) =>
-                controls?.show_comparison1?.value === true,
-            },
-          },
-        ],
-        [
-          {
             name: 'comparison1_left',
             config: {
               type: 'TextControl',
@@ -273,24 +319,6 @@ const config: ControlPanelConfig = {
               label: t('YoY label'),
               renderTrigger: true,
               default: t(DEFAULT_COMPARISON2_LABEL),
-              visibility: ({ controls }) =>
-                controls?.show_comparison2?.value === true,
-            },
-          },
-        ],
-        [
-          {
-            name: 'comparison2_offset',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              label: t('YoY time shift'),
-              renderTrigger: true,
-              default: DEFAULT_COMPARISON2_OFFSET,
-              choices: COMPARISON_OFFSET_CHOICES,
-              description: t(
-                'Relative time period to compare against, e.g. "1 year ago".',
-              ),
               visibility: ({ controls }) =>
                 controls?.show_comparison2?.value === true,
             },
