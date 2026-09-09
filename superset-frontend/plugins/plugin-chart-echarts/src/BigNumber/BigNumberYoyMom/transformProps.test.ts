@@ -287,6 +287,17 @@ describe('BigNumberYoyMom transformProps', () => {
     expect(graphic[1].top).toBe(97);
   });
 
+  test('pushes the big number below a large title', () => {
+    const result = transformProps(
+      buildChartProps([{ 'SUM(sales)': 100 }], { titleFontSize: 40 }),
+    );
+    const graphic = result.echartOptions.graphic as Record<string, any>[];
+    // graphic[0]=title, graphic[1]=big number.
+    // title bottom = 20 + 40 * 1.2 = 68 → big number moves to 73
+    expect(graphic[0].top).toBe(20);
+    expect(graphic[1].top).toBe(73);
+  });
+
   test('keeps the configured comparison top as a lower bound with a title', () => {
     const result = transformProps(
       buildChartProps(

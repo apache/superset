@@ -225,15 +225,21 @@ export default function transformProps(
 
   const graphic: GraphicComponentOption[] = [];
 
-  // Without a title the big number moves up into the title's spot
-  // (titleTop) so dashboards do not show an empty strip at the top. The
-  // comparison line always sits below the big number's bottom edge (font
-  // size * 1.2 line height + gap), so a larger number pushes it down instead
-  // of overlapping. With a title the configured comparisonTop acts as a
-  // lower bound; without a title the line simply follows the number.
+  // Auto-positioning keeps the three text rows from overlapping:
+  // - Without a title the big number moves up into the title's spot
+  //   (titleTop) so dashboards do not show an empty strip at the top.
+  // - With a title, the big number stays below the title's bottom edge
+  //   (titleFontSize * 1.2 + gap), so a large title pushes it down.
+  // - The comparison line always sits below the big number's bottom edge
+  //   (bigNumberFontSize * 1.2 + gap), so a larger number pushes it down.
+  // The configured bigNumberTop / comparisonTop act as lower bounds when
+  // a title is present; without a title the rows simply follow each other.
   const hasTitle = !!headerText;
+  const titleRowHeight = titleFontSize * 1.2;
   const bigNumberRowHeight = bigNumberFontSize * 1.2;
-  const effectiveBigNumberTop = hasTitle ? bigNumberTop : titleTop;
+  const effectiveBigNumberTop = hasTitle
+    ? Math.max(bigNumberTop, titleTop + titleRowHeight + 5)
+    : titleTop;
   const effectiveComparisonTop = hasTitle
     ? Math.max(comparisonTop, effectiveBigNumberTop + bigNumberRowHeight + 5)
     : effectiveBigNumberTop + bigNumberRowHeight + 5;
