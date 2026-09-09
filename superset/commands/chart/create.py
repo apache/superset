@@ -32,11 +32,13 @@ from superset.commands.chart.exceptions import (
     DashboardsForbiddenError,
     DashboardsNotFoundValidationError,
 )
+from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.commands.utils import get_datasource_by_id, populate_subjects
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
 from superset.exceptions import SupersetSecurityException
 from superset.utils import json
+from superset.utils.core import DatasourceType
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -71,6 +73,16 @@ class CreateChartCommand(CreateMixin, BaseCommand):
 
         # Validate/Populate datasource
         try:
+            # Slice.datasource only ever resolves the ``table`` relationship
+            # (see Slice.datasource in superset/models/slice.py), so a chart
+            # pointed at any other datasource_type would "create"
+            # successfully but could never actually render. Reject those
+            # up front instead of failing later -- either at this lookup
+            # (SavedQuery/Query have no ``.name`` attribute, so accessing it
+            # below raises an unhandled AttributeError) or silently, by
+            # producing a permanently broken chart.
+            if datasource_type != DatasourceType.TABLE:
+                raise DatasourceTypeInvalidError()
             datasource = get_datasource_by_id(datasource_id, datasource_type)
             self._properties["datasource_name"] = datasource.name
             security_manager.raise_for_access(datasource=datasource)
@@ -84,7 +96,7 @@ class CreateChartCommand(CreateMixin, BaseCommand):
         if len(dashboards) != len(dashboard_ids):
             exceptions.append(DashboardsNotFoundValidationError())
         for dash in dashboards:
-            if not security_manager.is_editor(dash):
+            if dash.is_managed_externally or not security_manager.is_editor(dash):
                 raise DashboardsForbiddenError()
         self._properties["dashboards"] = dashboards
 

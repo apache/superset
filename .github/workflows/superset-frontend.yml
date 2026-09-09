@@ -97,6 +97,7 @@ jobs:
           mkdir -p ${{ github.workspace }}/superset-frontend/coverage
           docker run \
           -v ${{ github.workspace }}/superset-frontend/coverage:/app/superset-frontend/coverage \
+          -e CI=true \
           --rm $TAG \
           bash -c \
           "npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters=json"
@@ -110,7 +111,7 @@ jobs:
   report-coverage:
     needs: [sharded-jest-tests]
     if: needs.frontend-build.outputs.should-run == 'true'
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     timeout-minutes: 15
     permissions:
       id-token: write
@@ -205,7 +206,7 @@ jobs:
   actions-timeline:
     needs: [report-coverage, lint-frontend, validate-frontend, test-storybook]
     if: always()
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     permissions:
       actions: read
     steps:

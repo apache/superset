@@ -200,6 +200,10 @@ class BaseChartPlugin:
     # Subclasses must override this with their own class attribute.
     native_viz_types: ClassVar[Mapping[str, str]] = {}
 
+    def is_available(self) -> bool:
+        """Return whether the host deployment provides this visualization."""
+        return True
+
     def pre_validate(
         self,
         config: dict[str, Any],

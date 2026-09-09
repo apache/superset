@@ -1380,6 +1380,31 @@ def test_query_context_modified_tampered(
     assert query_context_modified(query_context)
 
 
+def test_query_context_modified_malformed_stored_query_context(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A stored ``query_context`` that is not valid JSON (which the query-context-only
+    chart update path can persist) must be treated as modified/tampered rather than
+    crashing with a raw ``JSONDecodeError``. Returning ``True`` lets
+    ``raise_for_access`` deny the guest with the intended 403.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = "not valid json"
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+    }
+    query_context.queries = [QueryObject(metrics=stored_metrics)]  # type: ignore
+    assert query_context_modified(query_context)
+
+
 def test_query_context_modified_singular_metric_param(
     mocker: MockerFixture,
 ) -> None:
@@ -1471,6 +1496,80 @@ def test_query_context_modified_novel_values_still_tampered(
         )
     ]
     assert query_context_modified(query_context)
+
+
+def test_query_context_modified_scalar_control_value_not_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Some viz types (e.g. heatmap_v2's ``groupby`` control) store a single
+    value as a bare string rather than a one-item list. A guest replaying
+    the chart's own stored value for such a control must not be treated as
+    tampering.
+
+    Regression test: the comparison iterated ``form_data.get(key)``/
+    ``getattr(query, key, [])`` directly without checking whether the value
+    was a list. Iterating a Python string yields its individual characters,
+    so the requested set never matched anything stored and every such chart
+    was permanently rejected for guest users with "Guest user cannot modify
+    chart payload", even when nothing was actually modified.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "groupby": "string_column_name",
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "groupby": "string_column_name",
+    }
+    query_context.queries = [QueryObject(columns=["string_column_name"])]
+    assert not query_context_modified(query_context)
+
+
+def test_query_context_modified_scalar_control_value_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The scalar-control leniency above only authorizes the chart's own
+    stored value: a different single value is still rejected.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {
+        "groupby": "string_column_name",
+    }
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "groupby": "some_other_column",
+    }
+    query_context.queries = [QueryObject(columns=["some_other_column"])]
+    assert query_context_modified(query_context)
+
+
+def test_query_context_modified_unset_scalar_control_not_tampered(
+    mocker: MockerFixture,
+) -> None:
+    """
+    An unset scalar control (empty string, or simply absent) must be
+    treated as "no value" on the requested side too — symmetric with how
+    _stored_param_values treats an unset control on the stored side.
+    """
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = None
+    query_context.slice_.params_dict = {}  # no groupby saved at all
+
+    query_context.form_data = {
+        "slice_id": 42,
+        "groupby": "",  # unset control, sent as empty string
+    }
+    query_context.queries = [QueryObject(columns=[])]
+    assert not query_context_modified(query_context)
 
 
 def _native_filter_ctx(
@@ -3021,6 +3120,112 @@ def test_get_catalogs_accessible_by_user_schema_access(
     assert sm.get_catalogs_accessible_by_user(database, catalogs) == {"catalog2"}
 
 
+def test_get_schemas_accessible_by_user_cached_list(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that `get_schemas_accessible_by_user` handles candidate names that a cache
+    serializer deserialized as a list instead of a set. Before normalization this
+    raised `TypeError: unsupported operand type(s) for &: 'list' and 'set'` for users
+    with only schema-level access.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(
+        sm,
+        "user_view_menu_names",
+        side_effect=[
+            {"[db1].[schema2]"},  # schema_access
+            set(),  # datasource_access
+        ],
+    )
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = None
+    database.get_default_schema.return_value = None
+
+    schemas = ["schema1", "schema2"]
+
+    assert sm.get_schemas_accessible_by_user(database, None, schemas) == {"schema2"}
+
+
+def test_get_schemas_accessible_by_user_hierarchical_cached_list(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that the hierarchical early return normalizes a list-typed candidate
+    collection to a set, so callers always receive a `set` regardless of the cache
+    serializer.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=True)
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = None
+    database.get_default_schema.return_value = None
+
+    schemas = ["schema1", "schema2"]
+
+    result = sm.get_schemas_accessible_by_user(database, None, schemas)
+    assert result == {"schema1", "schema2"}
+    assert isinstance(result, set)
+
+
+def test_get_catalogs_accessible_by_user_cached_list(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that `get_catalogs_accessible_by_user` handles candidate names that a cache
+    serializer deserialized as a list instead of a set.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(
+        sm,
+        "user_view_menu_names",
+        side_effect=[
+            set(),  # catalog_access
+            {"[db1].[catalog2].[schema1]"},  # schema_access
+            set(),  # datasource_access
+        ],
+    )
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = "catalog2"
+
+    catalogs = ["catalog1", "catalog2"]
+
+    assert sm.get_catalogs_accessible_by_user(database, catalogs) == {"catalog2"}
+
+
+def test_get_catalogs_accessible_by_user_hierarchical_cached_list(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that the hierarchical early return for catalogs normalizes a list-typed
+    candidate collection to a set.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=True)
+
+    database = mocker.MagicMock()
+    database.database_name = "db1"
+    database.get_default_catalog.return_value = "catalog2"
+
+    catalogs = ["catalog1", "catalog2"]
+
+    result = sm.get_catalogs_accessible_by_user(database, catalogs)
+    assert result == {"catalog1", "catalog2"}
+    assert isinstance(result, set)
+
+
 def test_get_rls_filters_uses_table_id_directly(
     mocker: MockerFixture,
     app_context: None,
@@ -3911,3 +4116,60 @@ def test_is_editor_other_model_with_user_id_not_editor(
 
     tab_state = TabState(user_id=100)
     assert sm.is_editor(tab_state) is False
+
+
+def _pvm(permission: str, view_menu: str) -> SimpleNamespace:
+    """A minimal PermissionView stand-in for the role classifiers."""
+    return SimpleNamespace(
+        permission=SimpleNamespace(name=permission),
+        view_menu=SimpleNamespace(name=view_menu),
+    )
+
+
+def _classifier() -> SupersetSecurityManager:
+    """An uninitialized manager: the classifiers read only class-level sets."""
+    return SupersetSecurityManager.__new__(SupersetSecurityManager)
+
+
+def test_semantic_layer_classified_like_database() -> None:
+    """A semantic layer is a credentialed connection: Database parity.
+
+    Writes are admin-only; reads are not admin-only (they reach Gamma with
+    the configuration masked). Membership is asserted alongside behaviour
+    so a set refactor cannot silently drop the classification.
+    """
+    sm = _classifier()
+    assert "SemanticLayer" in sm.READ_ONLY_MODEL_VIEWS
+    assert sm._is_admin_only(_pvm("can_write", "SemanticLayer"))
+    assert not sm._is_admin_only(_pvm("can_read", "SemanticLayer"))
+    assert not sm._is_alpha_only(_pvm("can_read", "SemanticLayer"))
+    # Same rule that governs Database:
+    assert sm._is_admin_only(_pvm("can_write", "Database"))
+
+
+def test_semantic_view_classified_like_dataset() -> None:
+    """A semantic view carries no credentials: Dataset parity.
+
+    Writes are Alpha-tier (alpha-only, not admin-only); reads reach Gamma.
+    """
+    sm = _classifier()
+    assert "SemanticView" in sm.GAMMA_READ_ONLY_MODEL_VIEWS
+    assert sm._is_alpha_only(_pvm("can_write", "SemanticView"))
+    assert not sm._is_admin_only(_pvm("can_write", "SemanticView"))
+    assert not sm._is_alpha_only(_pvm("can_read", "SemanticView"))
+    # Same rule that governs Dataset:
+    assert sm._is_alpha_only(_pvm("can_write", "Dataset"))
+
+
+def test_gamma_receives_no_semantic_write_pvm() -> None:
+    """Negative control for the Gamma role classifier.
+
+    ``sync_role_definitions`` builds Gamma from ``_is_gamma_pvm``; neither
+    write pvm may pass it, while both read pvms must (reads return masked
+    configurations for layers).
+    """
+    sm = _classifier()
+    assert not sm._is_gamma_pvm(_pvm("can_write", "SemanticLayer"))
+    assert not sm._is_gamma_pvm(_pvm("can_write", "SemanticView"))
+    assert sm._is_gamma_pvm(_pvm("can_read", "SemanticLayer"))
+    assert sm._is_gamma_pvm(_pvm("can_read", "SemanticView"))

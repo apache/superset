@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { type JsonObject } from '@superset-ui/core';
 import { type ReactNode } from 'react';
 
 export interface SortColumn {
@@ -108,6 +109,7 @@ export interface ListViewFetchDataConfig {
   pageSize: number;
   sortBy: SortColumn[];
   filters: ListViewFilterValue[];
+  extraQueryParams?: JsonObject;
 }
 
 export interface InternalFilter extends ListViewFilterValue {

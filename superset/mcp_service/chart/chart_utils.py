@@ -43,6 +43,7 @@ from superset.mcp_service.chart.schemas import (
     ColumnRef,
     CurrencyFormat,
     FilterConfig,
+    GaugeChartConfig,
     HandlebarsChartConfig,
     HistogramChartConfig,
     MixedTimeseriesChartConfig,
@@ -571,6 +572,33 @@ def merge_table_column_config(
     new_form_data["column_config"] = merged_column_config
 
 
+def merge_interactive_pivot_ui_config(
+    existing_form_data: Mapping[str, Any], new_form_data: Dict[str, Any]
+) -> None:
+    """Preserve UI-managed Interactive Pivot config during MCP replacement.
+
+    Rows, columns, and metric aggregation are declarative MCP fields, so their
+    three state sections come from ``new_form_data``. Other state sections
+    (column sizing/order, filters, sorting, and pagination) are managed by the
+    grid UI and survive an update. Formatting controls that MCP cannot express
+    also survive rather than being erased by an unrelated config change.
+    """
+    viz_type = "ag-grid-pivot-table"
+    if (
+        existing_form_data.get("viz_type") != viz_type
+        or new_form_data.get("viz_type") != viz_type
+    ):
+        return
+    for key in ("column_config", "conditional_formatting"):
+        if key in existing_form_data and key not in new_form_data:
+            new_form_data[key] = existing_form_data[key]
+
+    existing_state = existing_form_data.get("pivot_table_state")
+    new_state = new_form_data.get("pivot_table_state")
+    if isinstance(existing_state, dict) and isinstance(new_state, dict):
+        new_form_data["pivot_table_state"] = {**existing_state, **new_state}
+
+
 def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
     """Create a metric object for a column with enhanced validation.
 
@@ -1014,6 +1042,28 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
     add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
 
+    return form_data
+
+
+def map_gauge_config(config: GaugeChartConfig) -> Dict[str, Any]:
+    """Map gauge config to Superset form_data (viz_type ``gauge_chart``).
+
+    Matches the frontend Gauge buildQuery contract: a single ``metric`` and an
+    optional ``groupby`` list (one dial per row). ``min_val``/``max_val`` fix
+    the dial scale; both default to ``None`` (auto), mirroring the frontend
+    defaults.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "gauge_chart",
+        "groupby": [g.name for g in (config.groupby or [])],
+        "metric": create_metric_object(config.metric),
+        "sort_by_metric": config.sort_by_metric,
+        "row_limit": config.row_limit,
+        "min_val": config.min_val,
+        "max_val": config.max_val,
+        "color_scheme": config.color_scheme or "supersetColors",
+    }
+    _add_adhoc_filters(form_data, config.filters)
     return form_data
 
 
@@ -1527,6 +1577,18 @@ def _pie_chart_what(config: PieChartConfig) -> str:
     return f"{dim} by {metric_label}"
 
 
+def _gauge_chart_what(config: GaugeChartConfig) -> str:
+    """Build the 'what' portion for a gauge chart name."""
+    metric_label = (
+        config.metric.label or config.metric.name or config.metric.sql_expression
+    )
+    if config.groupby:
+        dims = ", ".join(g.name for g in config.groupby if g.name)
+        if dims:
+            return f"{metric_label} by {dims}"
+    return f"{metric_label}"
+
+
 def _pivot_table_what(config: PivotTableChartConfig) -> str:
     """Build the 'what' portion for a pivot table chart name."""
     # Pivot rows reject sql_expression at validation, so name is set.
@@ -1647,10 +1709,16 @@ def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabi
         "deck_scatter",
         "deck_hex",
         "ag-grid-table",  # AG Grid tables are interactive
+        "ag-grid-pivot-table",
     ]
 
     supports_interaction = viz_type in interactive_types
-    supports_drill_down = viz_type in ["table", "pivot_table_v2", "ag-grid-table"]
+    supports_drill_down = viz_type in [
+        "table",
+        "pivot_table_v2",
+        "ag-grid-table",
+        "ag-grid-pivot-table",
+    ]
     supports_real_time = viz_type in [
         "echarts_timeseries_line",
         "echarts_timeseries_bar",
@@ -1700,6 +1768,10 @@ def analyze_chart_semantics(viz_type: str | None, config: Any) -> ChartSemantics
         "pivot_table_v2": (
             "Cross-tabulates data with rows, columns, and aggregated metrics "
             "for multi-dimensional analysis"
+        ),
+        "ag-grid-pivot-table": (
+            "Interactively cross-tabulates data with AG Grid row groups, pivot "
+            "columns, value aggregation, and side-panel reconfiguration"
         ),
         "mixed_timeseries": (
             "Combines two different chart types on the same time axis "

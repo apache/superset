@@ -25,6 +25,7 @@ import sshtunnel
 from flask import Flask, Response
 from flask_babel import Babel
 from sqlalchemy.exc import IntegrityError, OperationalError, ProgrammingError
+from werkzeug.exceptions import GatewayTimeout
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import QueryObjectValidationError, SupersetException
@@ -328,3 +329,58 @@ class TestGuestErrorSanitization:
         )
 
         assert payload["error"] == str(GENERIC_ERROR_MESSAGE)
+
+
+class TestErrorHandlerNeverTurnsErrorsInto500s:
+    """
+    The guest-user check runs *inside* the HTTP error handler, which has no
+    handler of its own. If resolving the principal raises -- as some Flask-Login
+    user loaders do (e.g. a JWT request loader that raises when a request carries
+    no valid credential) -- Flask discards the intended status and returns a bare
+    500. The check must therefore swallow that failure and keep the real status.
+    """
+
+    def _build_app_with_handlers(self) -> Flask:
+        # A fresh, minimal Flask app per test: `set_app_error_handlers` can only
+        # register handlers before the app has served its first request.
+        test_app = Flask(__name__)
+        test_app.config["DEBUG"] = False
+        Babel(test_app)
+        set_app_error_handlers(test_app)
+
+        @test_app.route("/gateway-timeout")
+        def gateway_timeout_view() -> FlaskResponse:
+            raise GatewayTimeout("upstream took too long")
+
+        return test_app
+
+    def test_gateway_timeout_keeps_its_status_when_principal_cannot_be_resolved(
+        self,
+    ) -> None:
+        client = self._build_app_with_handlers().test_client()
+
+        with patch(
+            "superset.security.SupersetSecurityManager.is_guest_user",
+            side_effect=RuntimeError("no valid credential on request"),
+        ):
+            response = client.get("/gateway-timeout")
+
+        # Without the guard the raising loader propagates out of the handler and
+        # Flask rewrites this to a bare 500.
+        assert response.status_code == 504
+
+    def test_direct_json_error_response_keeps_its_status(self, app: Flask) -> None:
+        with (
+            app.test_request_context(),
+            patch(
+                "superset.security.SupersetSecurityManager.is_guest_user",
+                side_effect=RuntimeError("no valid credential on request"),
+            ),
+        ):
+            response = cast(
+                Response,
+                json_error_response("upstream took too long", status=504),
+            )
+
+        assert response.status_code == 504
+        assert json.loads(response.data)["error"] == "upstream took too long"

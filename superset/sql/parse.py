@@ -54,6 +54,7 @@ from superset.sql.dialects import (
     Hana,
     OpenSearch,
     Pinot,
+    StarRocks,
     Vertica,
 )
 
@@ -128,6 +129,7 @@ SQLGLOT_DIALECTS = {
     # "firebird": ???
     "firebolt": Firebolt,
     "gsheets": Dialects.SQLITE,
+    "greenplum": Dialects.POSTGRES,
     "hana": Hana,
     "hive": Dialects.HIVE,
     # "ibmi": ???
@@ -146,6 +148,7 @@ SQLGLOT_DIALECTS = {
     "parseable": Dialects.POSTGRES,
     "pinot": Pinot,
     "postgresql": Dialects.POSTGRES,
+    "postgres": Dialects.POSTGRES,
     "presto": Dialects.PRESTO,
     "pydoris": Dialects.DORIS,
     "redshift": Dialects.REDSHIFT,
@@ -156,7 +159,7 @@ SQLGLOT_DIALECTS = {
     # "solr": ???
     "spark": Dialects.SPARK,
     "sqlite": Dialects.SQLITE,
-    "starrocks": Dialects.STARROCKS,
+    "starrocks": StarRocks,
     "superset": Dialects.SQLITE,
     # "taosws": ???
     "teradatasql": Dialects.TERADATA,
@@ -785,6 +788,30 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             "REFRESH",  # REFRESH MATERIALIZED VIEW
             "REINDEX",
             "VACUUM",
+            # StarRocks/MySQL-family admin and job-control commands that
+            # sqlglot has no structured node for, so every form always falls
+            # back to an opaque exp.Command with one of these heads:
+            # ADMIN SET/REPAIR/CHECK/SKIP, BACKUP/RESTORE SNAPSHOT,
+            # CANCEL BACKUP/RESTORE/LOAD/EXPORT/ALTER TABLE/REFRESH/DECOMMISSION/REPAIR,
+            # EXPORT TABLE, SUBMIT TASK, PAUSE/RESUME/STOP ROUTINE LOAD, and
+            # RECOVER TABLE/PARTITION/DATABASE.
+            "ADMIN",
+            "BACKUP",
+            "RESTORE",
+            "CANCEL",
+            "EXPORT",
+            "SUBMIT",
+            "PAUSE",
+            "RESUME",
+            "STOP",
+            "RECOVER",
+            # StarRocks blacklist management (ADD/DELETE SQLBLACKLIST,
+            # ADD/DELETE BACKEND|COMPUTE NODE BLACKLIST) is the only case
+            # that reaches this opaque-Command path with an ADD/DELETE head;
+            # ordinary ALTER TABLE ADD ... and the DML DELETE statement
+            # always parse into their own structured node instead.
+            "ADD",
+            "DELETE",
             # DDL head-tokens that sqlglot falls back to exp.Command for
             # whenever the body uses syntax it does not model
             # (CREATE EXTENSION/FUNCTION...LANGUAGE C/PUBLICATION/etc.,
@@ -807,17 +834,26 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         }
     )
 
-    # PostgreSQL-only command-fallback heads. Only the command-fallback
-    # forms (e.g. SET ROLE / SET SESSION AUTHORIZATION, which change the
-    # effective user) reach here as an exp.Command; structured
-    # `SET search_path = ...` / `SET statement_timeout = ...` parse as
-    # exp.Set and are NOT matched by this path. On other dialects the `SET`
-    # fallback covers session variables (e.g. Hive `SET hivevar:x=1`),
-    # which do not mutate data, so these heads stay dialect-gated.
-    _POSTGRES_MUTATING_COMMAND_NAMES: frozenset[str] = frozenset(
+    # Command-fallback heads that are only mutating on dialects where the
+    # structured form (`exp.Set`) is reserved for benign session variables,
+    # so the opaque-Command fallback is reached exclusively by the dangerous
+    # forms. On PostgreSQL that's SET ROLE / SET SESSION AUTHORIZATION /
+    # RESET ROLE (`SET search_path = ...` parses as exp.Set and never reaches
+    # here). On StarRocks (and MySQL, which shares the same parser) it's SET
+    # PASSWORD FOR .../SET ROLE/SET DEFAULT ROLE/SET DEFAULT STORAGE VOLUME
+    # -- every ordinary `SET var = value` there also parses as exp.Set, so
+    # widening this dialect-by-dialect is safe: it only ever matches forms
+    # sqlglot couldn't model as a session variable in the first place.
+    _SET_RESET_COMMAND_NAMES: frozenset[str] = frozenset(
         {
             "SET",
             "RESET",  # RESET ROLE / RESET ALL reverts SET; same class as SET
+        }
+    )
+    _SET_RESET_MUTATING_DIALECTS: frozenset[Dialects] = frozenset(
+        {
+            Dialects.POSTGRES,
+            Dialects.STARROCKS,
         }
     )
 
@@ -984,6 +1020,21 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # rather than an opaque exp.Command, so treat it as mutating here
             # too.
             exp.Execute,
+            # ANALYZE (re)computes and persists CBO statistics server-side,
+            # including dropping/updating histograms -- structured on
+            # MySQL-family dialects, so the exp.Command fallback below never
+            # sees it there.
+            exp.Analyze,
+            # KILL terminates another session's connection or running query.
+            # Structured on MySQL-family dialects (never falls back to
+            # exp.Command), so without this it reads as a safe no-op.
+            exp.Kill,
+            # REFRESH MATERIALIZED VIEW / REFRESH EXTERNAL TABLE kick off a
+            # real data-rewrite job. Structured on MySQL-family dialects; the
+            # "REFRESH" entry in _MUTATING_COMMAND_NAMES below only ever
+            # fires for dialects where this instead falls back to
+            # exp.Command.
+            exp.Refresh,
         )
 
         if self._parsed.find(*mutating_nodes):
@@ -997,6 +1048,22 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             self._dialect in self._SELECT_INTO_CTAS_DIALECTS
             and isinstance(self._parsed, exp.Select)
             and self._parsed.args.get("into")
+        ):
+            return True
+
+        # `SET PASSWORD = ...` (changing the current session's own password)
+        # parses as an ordinary structured `exp.Set` on StarRocks/MySQL --
+        # the same node type as a benign `SET time_zone = 'UTC'` -- so it
+        # can't be distinguished by node type or command name the way
+        # `SET PASSWORD FOR other_user = ...` is (that form has no structured
+        # representation and falls back to exp.Command, caught above). This
+        # walks the assignment targets looking specifically for the
+        # `PASSWORD` pseudo-variable.
+        if isinstance(self._parsed, exp.Set) and any(
+            isinstance((assignment := set_item.this), exp.EQ)
+            and isinstance(assignment.this, exp.Column)
+            and assignment.this.name.upper() == "PASSWORD"
+            for set_item in self._parsed.expressions
         ):
             return True
 
@@ -1034,8 +1101,8 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 return True
 
             if (
-                self._dialect == Dialects.POSTGRES
-                and command_name in self._POSTGRES_MUTATING_COMMAND_NAMES
+                self._dialect in self._SET_RESET_MUTATING_DIALECTS
+                and command_name in self._SET_RESET_COMMAND_NAMES
             ):
                 return True
 
@@ -1386,10 +1453,33 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 found.add(entry)
         return found
 
+    def _has_limit_by(self) -> bool:
+        """
+        Check if the statement has a ClickHouse `LIMIT ... BY` clause.
+
+        `LIMIT n BY <cols>` keeps `n` rows *per group*, so it is a de-duplication
+        clause rather than a row cap. sqlglot models the `BY` columns as the
+        `expressions` of the root `Limit` node, or of the root `Offset` node for
+        the `LIMIT n OFFSET m BY x` and `LIMIT m, n BY x` spellings.
+
+        :return: True if the statement's limit or offset carries `BY` columns.
+        """
+        for arg in ("limit", "offset"):
+            node = self._parsed.args.get(arg)
+            if isinstance(node, exp.Expression) and node.expressions:
+                return True
+
+        return False
+
     def get_limit_value(self) -> int | None:
         """
         Parse a SQL query and return the `LIMIT` or `TOP` value, if present.
         """
+        # `LIMIT 2 BY id` bounds each group, not the result set, so reporting 2
+        # here would make `_set_query_limit()` clamp the whole query to 2 rows.
+        if self._has_limit_by():
+            return None
+
         if limit_node := self._parsed.args.get("limit"):
             literal = limit_node.args.get("expression") or getattr(
                 limit_node, "this", None
@@ -1427,18 +1517,40 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         if not isinstance(self._parsed, exp.Query):
             return
 
-        if method == LimitMethod.FORCE_LIMIT:
+        # A ClickHouse `LIMIT ... BY` occupies the very `limit`/`offset` slot that
+        # `FORCE_LIMIT` overwrites, so forcing a row cap in place would drop the
+        # `BY` grouping and silently change what the query returns. The cap can't
+        # be appended alongside it either -- sqlglot rejects ClickHouse's native
+        # `LIMIT n BY x LIMIT m` with "Found multiple 'LIMIT' clauses" -- so it
+        # goes on a wrapping query instead, exactly as `WRAP_SQL` does.
+        if method == LimitMethod.FORCE_LIMIT and not self._has_limit_by():
             self._parsed.args["limit"] = exp.Limit(
                 expression=exp.Literal(this=str(limit), is_string=False)
             )
-        elif method == LimitMethod.WRAP_SQL:
-            self._parsed = exp.Select(
+        elif method in {LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL}:
+            inner = self._parsed.copy()
+            wrapper = exp.Select(
                 expressions=[exp.Star()],
                 limit=exp.Limit(
                     expression=exp.Literal(this=str(limit), is_string=False)
                 ),
-                from_=exp.From(this=exp.Subquery(this=self._parsed.copy())),
+                from_=exp.From(this=exp.Subquery(this=inner)),
             )
+
+            # `FORMAT` and `SETTINGS` configure the query rather than produce
+            # rows, and only mean what they say at the top level: ClickHouse
+            # rejects `FORMAT` inside a subquery outright, and a nested
+            # `SETTINGS` binds to that subquery alone, so top-level-only settings
+            # such as `extremes` would quietly stop applying. Moving them onto
+            # the wrapper keeps their original whole-query scope. Row-producing
+            # modifiers stay in the subquery, where ClickHouse keeps honoring
+            # them: a wrapped `WITH TOTALS` query still emits its totals block,
+            # and `WITH ROLLUP`/`WITH CUBE` still emit their extra rows.
+            for modifier in ("format", "settings"):
+                if value := inner.args.pop(modifier, None):
+                    wrapper.set(modifier, value)
+
+            self._parsed = wrapper
         else:  # method == LimitMethod.FETCH_MANY
             pass
 
@@ -1539,7 +1651,25 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :return: The parsed predicate.
         """
         _check_script_length(predicate, self.engine)
-        return sqlglot.parse_one(predicate, dialect=self._dialect)
+        try:
+            return sqlglot.parse_one(predicate, dialect=self._dialect)
+        except sqlglot.errors.ParseError as ex:
+            kwargs = (
+                {
+                    "highlight": ex.errors[0]["highlight"],
+                    "line": ex.errors[0]["line"],
+                    "column": ex.errors[0]["col"],
+                }
+                if ex.errors
+                else {}
+            )
+            raise SupersetParseError(predicate, self.engine, **kwargs) from ex
+        except sqlglot.errors.SqlglotError as ex:
+            raise SupersetParseError(
+                predicate,
+                self.engine,
+                message="Unable to parse predicate",
+            ) from ex
 
     def apply_rls(
         self,
@@ -2174,13 +2304,28 @@ def _find_show_statement_tables(statement: exp.Show) -> set[Table]:
             source.catalog if source.catalog != "" else None,
         )
         for source in statement.find_all(exp.Table)
+        # A `db` arg scoping the statement to a schema (e.g. the catalog.schema
+        # target of `SHOW TABLES IN catalog.schema`) is itself an `exp.Table`
+        # with no table part, so it is picked up by `find_all` above without
+        # this guard -- as a phantom empty-name table, not a real reference.
+        if source.name
     }
     if target := statement.args.get("target"):
         db = statement.args.get("db")
+        if isinstance(db, exp.Table):
+            # Also an artifact of the catalog.schema `db` arg above: unlike a
+            # plain `Identifier`, its schema/catalog live in `.db`/`.catalog`,
+            # not `.name` (which is empty, since it has no table part).
+            db_name = db.db or None
+            db_catalog = db.catalog or None
+        else:
+            db_name = db.name if isinstance(db, exp.Expression) else db
+            db_catalog = None
         show_tables.add(
             Table(
                 target.name if isinstance(target, exp.Expression) else str(target),
-                db.name if isinstance(db, exp.Expression) else db,
+                db_name,
+                db_catalog,
             )
         )
     return show_tables

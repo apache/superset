@@ -1045,6 +1045,82 @@ class PieChartConfig(BaseChartConfig):
         return self
 
 
+class GaugeChartConfig(BaseChartConfig):
+    """Config for gauge charts (viz_type ``gauge_chart``).
+
+    Matches the frontend Gauge buildQuery contract: a single ``metric`` whose
+    value the dial displays, plus an optional multi ``groupby`` — with no
+    groupby the chart is one dial; with a groupby it renders one dial per row
+    (capped at the frontend's 10). ``min_val``/``max_val`` fix the dial scale
+    (both default to auto).
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["gauge_chart"] = "gauge_chart"
+    metric: ColumnRef = Field(
+        ...,
+        description="Value metric the dial displays (use aggregate e.g. AVG, "
+        "SUM for ad-hoc, or set saved_metric=True for a saved dataset metric)",
+    )
+    groupby: List[ColumnRef] | None = Field(
+        None,
+        description="Optional category columns; each row becomes one dial. "
+        "Omit for a single-value gauge.",
+    )
+    sort_by_metric: bool = Field(
+        True,
+        description="Order the dials by the metric descending, so a row_limit "
+        "keeps the top-N dials deterministically rather than an arbitrary set",
+    )
+    row_limit: int = Field(10, description="Max dials", ge=1, le=10)
+    min_val: float | None = Field(
+        None, description="Minimum value of the dial scale (default: auto)"
+    )
+    max_val: float | None = Field(
+        None, description="Maximum value of the dial scale (default: auto)"
+    )
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description="Structured filters (column/op/value). "
+        "Do NOT use adhoc_filters or raw SQL expressions.",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors', "
+            "'googleCategory10c', 'd3Category10'). Defaults to 'supersetColors'."
+        ),
+        max_length=100,
+    )
+
+    @model_validator(mode="after")
+    def reject_metric_style_groupby(self) -> "GaugeChartConfig":
+        """groupby entries are dimensions, not metrics."""
+        for i, col in enumerate(self.groupby or []):
+            _reject_sql_expression_on_dimension(col, f"groupby[{i}]")
+            if col.is_metric:
+                raise ValueError(
+                    f"groupby[{i}] must be a plain column, not a metric; drop "
+                    "'aggregate'/'saved_metric' (metrics belong in the 'metric' "
+                    "field)"
+                )
+        return self
+
+    @model_validator(mode="after")
+    def reject_inverted_bounds(self) -> "GaugeChartConfig":
+        """A min at or above max produces an inverted/degenerate dial scale."""
+        if (
+            self.min_val is not None
+            and self.max_val is not None
+            and self.min_val >= self.max_val
+        ):
+            raise ValueError(
+                f"min_val ({self.min_val}) must be less than max_val ({self.max_val})"
+            )
+        return self
+
+
 class PivotTableChartConfig(BaseChartConfig):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
 
@@ -1106,6 +1182,214 @@ class PivotTableChartConfig(BaseChartConfig):
         if self.columns:
             for i, col in enumerate(self.columns):
                 _reject_sql_expression_on_dimension(col, f"columns[{i}]")
+        return self
+
+
+class InteractivePivotChartConfig(BaseChartConfig):
+    """Config for an extension-provided AG Grid interactive pivot visualization.
+
+    This is intentionally separate from :class:`PivotTableChartConfig`, which
+    targets the OSS ``pivot_table_v2`` visualization.
+    """
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    chart_type: Literal["interactive_pivot"] = "interactive_pivot"
+    rows: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Dimensions placed in the AG Grid Rows side-panel bucket, in nesting order"
+        ),
+    )
+    columns: List[ColumnRef] = Field(
+        default_factory=list,
+        description=(
+            "Dimensions placed in the AG Grid Column Labels side-panel bucket"
+        ),
+    )
+    metrics: List[ColumnRef] = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Value columns. Each metric's aggregate controls the SQL aggregation "
+            "and its AG Grid group rollup (AVG/MIN/MAX map to avg/min/max; additive "
+            "aggregates roll up with sum)."
+        ),
+    )
+    time_grain: TimeGrain | None = Field(
+        None,
+        description=(
+            "PT1H, P1D, P1W, P1M, P3M, or P1Y for the grouped dimension named "
+            "by temporal_column"
+        ),
+        validation_alias=AliasChoices("time_grain", "time_grain_sqla"),
+    )
+    filters: List[FilterConfig] | None = Field(
+        None,
+        description=(
+            "Structured filters (column/op/value). Do NOT use adhoc_filters or "
+            "raw SQL expressions."
+        ),
+    )
+    series_limit: int | None = Field(
+        None,
+        description="Maximum number of pivot series",
+        ge=0,
+        le=50000,
+    )
+    series_limit_metric: ColumnRef | None = Field(
+        None,
+        description="Metric used to rank series when a series/cell limit applies",
+    )
+    sort_descending: bool = Field(
+        True,
+        description="Sort the series-limit metric descending",
+        validation_alias=AliasChoices("sort_descending", "order_desc"),
+    )
+    row_limit: int = Field(10000, description="Maximum returned cells", ge=1, le=50000)
+    show_row_group_counts: bool = Field(
+        True,
+        description="Show record counts beside row-group labels",
+        validation_alias=AliasChoices("show_row_group_counts", "rowGroupCounts"),
+    )
+    show_row_totals: bool = Field(
+        False,
+        description="Show grand-total rows",
+        validation_alias=AliasChoices("show_row_totals", "rowTotals"),
+    )
+    show_column_totals: bool = Field(
+        False,
+        description="Show grand-total columns",
+        validation_alias=AliasChoices("show_column_totals", "colTotals"),
+    )
+    show_column_subtotals: bool = Field(
+        False,
+        description="Show subtotal columns for nested pivot groups",
+        validation_alias=AliasChoices("show_column_subtotals", "colSubTotals"),
+    )
+    value_format: str = Field(
+        "SMART_NUMBER",
+        max_length=50,
+        validation_alias=AliasChoices("value_format", "valueFormat"),
+    )
+    date_format: str | None = Field(
+        None,
+        description="D3 format for temporal dimensions (for example, '%Y-%m-%d')",
+        max_length=50,
+    )
+    currency_format: CurrencyFormat | None = Field(
+        None,
+        description="Currency symbol applied to numeric metric values",
+    )
+    column_sort: Literal["key_a_to_z", "key_z_to_a"] | None = Field(
+        None,
+        description="Alphabetic ordering for generated pivot columns",
+        validation_alias=AliasChoices("column_sort", "colOrder"),
+    )
+    allow_render_html: bool = Field(
+        True,
+        description="Render applicable cell values as HTML",
+    )
+    expand_pivot_groups: bool = Field(
+        False,
+        description="Expand generated pivot column groups initially",
+    )
+    comparison_period: str | None = Field(
+        None,
+        min_length=1,
+        max_length=100,
+        description=(
+            "Relative time shift such as '1 year ago'. Must be paired with "
+            "comparison_type."
+        ),
+        validation_alias=AliasChoices("comparison_period", "time_compare"),
+    )
+    comparison_type: Literal["values", "difference", "percentage", "ratio"] | None = (
+        Field(
+            None,
+            description=(
+                "How to present the comparison period: raw values, difference, "
+                "percentage change, or ratio"
+            ),
+        )
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_comparison_period(cls, data: Any) -> Any:
+        """Accept native single-item ``time_compare`` arrays on round trips."""
+        if not isinstance(data, dict):
+            return data
+        if isinstance(data.get("comparison_period"), list):
+            raise ValueError("comparison_period must be a single string")
+        if isinstance(data.get("time_compare"), list):
+            periods = data["time_compare"]
+            if len(periods) > 1:
+                raise ValueError(
+                    "interactive_pivot supports one comparison period; pass a "
+                    "single value"
+                )
+            data["time_compare"] = periods[0] if periods else None
+        return data
+
+    @field_validator("comparison_period")
+    @classmethod
+    def sanitize_comparison_period(cls, value: str | None) -> str | None:
+        """Sanitize the relative time-shift label."""
+        if value is None:
+            return None
+        return sanitize_user_input(
+            value,
+            "Comparison period",
+            max_length=100,
+            allow_empty=False,
+        )
+
+    @model_validator(mode="after")
+    def validate_interactive_pivot(self) -> "InteractivePivotChartConfig":
+        """Validate dimension roles and paired comparison controls."""
+        for field_name, refs in (("rows", self.rows), ("columns", self.columns)):
+            for index, ref in enumerate(refs):
+                _reject_sql_expression_on_dimension(ref, f"{field_name}[{index}]")
+                if ref.saved_metric:
+                    raise ValueError(
+                        f"{field_name}[{index}] cannot use saved_metric=True; "
+                        "saved metrics belong in the 'metrics' field"
+                    )
+
+        dimension_names = [ref.name for ref in [*self.rows, *self.columns]]
+        if len(dimension_names) != len(set(dimension_names)):
+            raise ValueError(
+                "A dimension cannot appear in both rows and columns or more than "
+                "once in either bucket"
+            )
+
+        if self.time_grain:
+            if not self.temporal_column:
+                raise ValueError(
+                    "time_grain requires temporal_column to identify the grouped "
+                    "temporal dimension"
+                )
+            if self.temporal_column.lower() not in {
+                name.lower() for name in dimension_names if name
+            }:
+                raise ValueError(
+                    "temporal_column must appear in rows or columns when time_grain "
+                    "is set"
+                )
+
+        if self.series_limit_metric and not self.series_limit_metric.is_metric:
+            raise ValueError(
+                "series_limit_metric must define an aggregate, saved_metric=True, "
+                "or sql_expression"
+            )
+
+        if bool(self.comparison_period) != bool(self.comparison_type):
+            raise ValueError(
+                "comparison_period and comparison_type must be provided together"
+            )
+
         return self
 
 
@@ -2079,7 +2363,9 @@ ChartConfig = Annotated[
     XYChartConfig
     | TableChartConfig
     | PieChartConfig
+    | GaugeChartConfig
     | PivotTableChartConfig
+    | InteractivePivotChartConfig
     | MixedTimeseriesChartConfig
     | HandlebarsChartConfig
     | BigNumberChartConfig
@@ -2090,7 +2376,8 @@ ChartConfig = Annotated[
         discriminator="chart_type",
         description=(
             "Chart configuration - specify chart_type as 'xy', 'table', "
-            "'pie', 'pivot_table', 'mixed_timeseries', 'handlebars', "
+            "'pie', 'gauge_chart', 'pivot_table', 'interactive_pivot', "
+            "'mixed_timeseries', 'handlebars', "
             "'big_number', 'histogram', 'box_plot', or 'waterfall'"
         ),
     ),
@@ -2119,6 +2406,7 @@ _VIZ_TYPE_TO_CHART_TYPE: dict[str, tuple[str, str | None]] = {
     "ag-grid-table": ("table", None),
     "big_number_total": ("big_number", None),
     "pivot_table_v2": ("pivot_table", None),
+    "ag-grid-pivot-table": ("interactive_pivot", None),
     "histogram_v2": ("histogram", None),
 }
 

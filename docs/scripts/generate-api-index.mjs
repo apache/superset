@@ -93,7 +93,6 @@ const CATEGORY_GROUPS = {
     'User',
     'Menu',
     'Available Domains',
-    'AsyncEventsRestApi',
     'OpenApi',
   ],
 };

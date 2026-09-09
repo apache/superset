@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  act,
   createEvent,
   fireEvent,
   render,
@@ -26,6 +27,7 @@ import {
   within,
 } from '@superset-ui/core/spec';
 import { formatNumber } from '@superset-ui/core';
+import { Constants } from '@superset-ui/core/components';
 import { Select } from '.';
 
 type Option = {
@@ -68,6 +70,38 @@ const NULL_OPTION = { label: '<NULL>', value: null } as unknown as {
   label: string;
   value: number;
 };
+
+// A dedicated option set for the stableSelectAll tests, kept local so it is
+// isolated from tests that mutate the shared OPTIONS array (e.g. toggling
+// `disabled`). A search for "Ap" matches a strict subset (Apple, Apricot).
+const STABLE_OPTIONS = [
+  { label: 'Apple', value: 1 },
+  { label: 'Apricot', value: 2 },
+  { label: 'Banana', value: 3 },
+  { label: 'Blueberry', value: 4 },
+  { label: 'Cherry', value: 5 },
+  { label: 'Cranberry', value: 6 },
+];
+
+// A grouped option list for the stableSelectAll tests: bulk "Select all" must
+// target the five leaf options, not the two value-less group headers.
+const GROUPED_STABLE_OPTIONS = [
+  {
+    label: 'Citrus',
+    options: [
+      { label: 'Orange', value: 1 },
+      { label: 'Lemon', value: 2 },
+    ],
+  },
+  {
+    label: 'Berries',
+    options: [
+      { label: 'Strawberry', value: 3 },
+      { label: 'Blueberry', value: 4 },
+      { label: 'Raspberry', value: 5 },
+    ],
+  },
+];
 
 const defaultProps = {
   allowClear: true,
@@ -1150,6 +1184,342 @@ test('abbreviates large numbers in bulk action buttons', async () => {
   await open();
   // SMART_NUMBER format uses lowercase 'k' for thousands (d3-format)
   expect(await screen.findByText('Select all (1.5k)')).toBeInTheDocument();
+});
+
+// The stableSelectAll tests advance fake timers past the FAST_DEBOUNCE so the
+// component's own search filter narrows `visibleOptions` (and flips
+// `isSearching`) before asserting — the exact point at which the un-fixed code
+// drops the badge to the search-scoped count. Asserting before that debounce
+// fires (as an earlier revision did) would pass against the un-fixed code too.
+test('stableSelectAll pins the "Select all" count to the full option set while searching', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  try {
+    render(
+      <Select
+        {...defaultProps}
+        options={STABLE_OPTIONS}
+        mode="multiple"
+        stableSelectAll
+      />,
+    );
+    const select = getSelect();
+    userEvent.click(select);
+    // Baseline: the full-column count is shown before any search.
+    expect(
+      await screen.findByText(selectAllButtonText(STABLE_OPTIONS.length)),
+    ).toBeInTheDocument();
+
+    await userEvent.type(select, 'Ap');
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE + 50);
+    });
+    // The visible list narrows to the searched subset...
+    await waitFor(() => expect(getAllSelectOptions().length).toBe(2));
+
+    // ...but the badge must still report the full column count.
+    expect(
+      screen.getByText(selectAllButtonText(STABLE_OPTIONS.length)),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(selectAllButtonText(2))).not.toBeInTheDocument();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('without stableSelectAll the "Select all" count narrows to the searched subset', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  try {
+    render(
+      <Select {...defaultProps} options={STABLE_OPTIONS} mode="multiple" />,
+    );
+    const select = getSelect();
+    userEvent.click(select);
+    expect(
+      await screen.findByText(selectAllButtonText(STABLE_OPTIONS.length)),
+    ).toBeInTheDocument();
+
+    await userEvent.type(select, 'Ap');
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE + 50);
+    });
+    await waitFor(() => expect(getAllSelectOptions().length).toBe(2));
+
+    // Generic consumers keep the search-scoped count.
+    expect(screen.getByText(selectAllButtonText(2))).toBeInTheDocument();
+    expect(
+      screen.queryByText(selectAllButtonText(STABLE_OPTIONS.length)),
+    ).not.toBeInTheDocument();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('stableSelectAll selects the entire option set even while a search is active', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  try {
+    const onChange = jest.fn();
+    render(
+      <Select
+        {...defaultProps}
+        options={STABLE_OPTIONS}
+        mode="multiple"
+        stableSelectAll
+        onChange={onChange}
+      />,
+    );
+    const select = getSelect();
+    userEvent.click(select);
+    await screen.findByText(selectAllButtonText(STABLE_OPTIONS.length));
+
+    await userEvent.type(select, 'Ap');
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE + 50);
+    });
+    await waitFor(() => expect(getAllSelectOptions().length).toBe(2));
+
+    await userEvent.click(
+      screen.getByText(selectAllButtonText(STABLE_OPTIONS.length)),
+    );
+    await waitFor(() => expect(onChange).toHaveBeenCalled());
+    expect(onChange.mock.calls.at(-1)?.[0]).toHaveLength(STABLE_OPTIONS.length);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('stableSelectAll excludes disabled options from the full-set count while searching', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  try {
+    // Cherry is disabled → 5 of the 6 options are selectable.
+    const options = STABLE_OPTIONS.map(option =>
+      option.label === 'Cherry' ? { ...option, disabled: true } : option,
+    );
+    render(
+      <Select
+        {...defaultProps}
+        options={options}
+        mode="multiple"
+        stableSelectAll
+      />,
+    );
+    const select = getSelect();
+    userEvent.click(select);
+    expect(await screen.findByText(selectAllButtonText(5))).toBeInTheDocument();
+
+    await userEvent.type(select, 'Ap');
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE + 50);
+    });
+    await waitFor(() => expect(getAllSelectOptions().length).toBe(2));
+
+    // The count reflects the full selectable set (5), not the 2 visible.
+    expect(screen.getByText(selectAllButtonText(5))).toBeInTheDocument();
+    expect(screen.queryByText(selectAllButtonText(2))).not.toBeInTheDocument();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('stableSelectAll deduplicates already-selected values when selecting the full set', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  try {
+    const onChange = jest.fn();
+    // Apple (1) is already selected; the "Ap" search narrows the visible list
+    // to a subset while "Select all" still targets the whole set.
+    render(
+      <Select
+        {...defaultProps}
+        options={STABLE_OPTIONS}
+        mode="multiple"
+        stableSelectAll
+        value={[{ label: 'Apple', value: 1 }]}
+        onChange={onChange}
+      />,
+    );
+    const select = getSelect();
+    userEvent.click(select);
+    await screen.findByText(selectAllButtonText(STABLE_OPTIONS.length));
+
+    await userEvent.type(select, 'Ap');
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE + 50);
+    });
+    await waitFor(() => expect(getAllSelectOptions().length).toBe(2));
+
+    await userEvent.click(
+      screen.getByText(selectAllButtonText(STABLE_OPTIONS.length)),
+    );
+    await waitFor(() => expect(onChange).toHaveBeenCalled());
+    // Full set is 6; the already-selected Apple is not duplicated (a failed
+    // dedup would push it again and yield 7).
+    expect(onChange.mock.calls.at(-1)?.[0]).toHaveLength(STABLE_OPTIONS.length);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('stableSelectAll keeps "Clear" counting and clearing the full selection while searching', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  try {
+    const onChange = jest.fn();
+    // Pre-select Banana (3) and Cherry (5); neither matches the "Ap" search.
+    render(
+      <Select
+        {...defaultProps}
+        options={STABLE_OPTIONS}
+        mode="multiple"
+        stableSelectAll
+        value={[
+          { label: 'Banana', value: 3 },
+          { label: 'Cherry', value: 5 },
+        ]}
+        onChange={onChange}
+      />,
+    );
+    const select = getSelect();
+    userEvent.click(select);
+    expect(
+      await screen.findByText(deselectAllButtonText(2)),
+    ).toBeInTheDocument();
+
+    await userEvent.type(select, 'Ap');
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE + 50);
+    });
+    await waitFor(() => expect(getAllSelectOptions().length).toBe(2));
+
+    // "Clear" still reflects the full selection (2), not the visible subset (0).
+    expect(screen.getByText(deselectAllButtonText(2))).toBeInTheDocument();
+    expect(
+      screen.queryByText(deselectAllButtonText(0)),
+    ).not.toBeInTheDocument();
+
+    // Clicking it removes the whole selection even though those values are not
+    // in the search results.
+    await userEvent.click(screen.getByText(deselectAllButtonText(2)));
+    await waitFor(() => expect(onChange).toHaveBeenCalled());
+    expect(onChange.mock.calls.at(-1)?.[0]).toHaveLength(0);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('stableSelectAll "Clear" count matches the action for a selected <NULL> value while searching', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  try {
+    const onChange = jest.fn();
+    // The <NULL> option carries a falsy value, which "Select all" skips but
+    // "Clear" (like the un-gated path) still removes. Pre-select <NULL> and
+    // Banana (3); "Ap" hides both. The Clear count must equal what Clear
+    // removes — otherwise the label overstates the action.
+    render(
+      <Select
+        {...defaultProps}
+        options={[...STABLE_OPTIONS, NULL_OPTION]}
+        mode="multiple"
+        stableSelectAll
+        value={[NULL_OPTION, { label: 'Banana', value: 3 }]}
+        onChange={onChange}
+      />,
+    );
+    const select = getSelect();
+    userEvent.click(select);
+    expect(
+      await screen.findByText(deselectAllButtonText(2)),
+    ).toBeInTheDocument();
+
+    await userEvent.type(select, 'Ap');
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE + 50);
+    });
+    await waitFor(() => expect(getAllSelectOptions().length).toBe(2));
+
+    // Count still reflects the full selection (2)...
+    expect(screen.getByText(deselectAllButtonText(2))).toBeInTheDocument();
+    // ...and clicking removes all of it, including the <NULL> selection.
+    await userEvent.click(screen.getByText(deselectAllButtonText(2)));
+    await waitFor(() => expect(onChange).toHaveBeenCalled());
+    expect(onChange.mock.calls.at(-1)?.[0]).toHaveLength(0);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('stableSelectAll does not read a normal selection as the "Select all" sentinel while searching', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  try {
+    // Pre-select four values, then search so exactly three eligible options are
+    // visible: selectValue.length (4) === selectAllEligible.length (3) + 1 — the
+    // coincidence that used to flip selectAllMode true. stableSelectAll adds real
+    // values with no phantom "Select all" slot, so the collapsed-tag count must
+    // not subtract one for a sentinel that does not exist.
+    render(
+      <Select
+        {...defaultProps}
+        options={STABLE_OPTIONS}
+        mode="multiple"
+        stableSelectAll
+        maxTagCount={2}
+        value={[
+          { label: 'Apple', value: 1 },
+          { label: 'Apricot', value: 2 },
+          { label: 'Banana', value: 3 },
+          { label: 'Blueberry', value: 4 },
+        ]}
+      />,
+    );
+    const select = getSelect();
+    userEvent.click(select);
+
+    await userEvent.type(select, 'erry');
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE + 50);
+    });
+    // Blueberry, Cherry, Cranberry match "erry".
+    await waitFor(() => expect(getAllSelectOptions().length).toBe(3));
+
+    // Four selected, two shown → two hidden. The overflow badge must report
+    // "+ 2 ...", not the sentinel-undercounted "+ 1 ...".
+    expect(screen.getByText('+ 2 ...')).toBeInTheDocument();
+    expect(screen.queryByText('+ 1 ...')).not.toBeInTheDocument();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('stableSelectAll counts and selects grouped options by their leaf values', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      {...defaultProps}
+      options={GROUPED_STABLE_OPTIONS}
+      mode="multiple"
+      stableSelectAll
+      onChange={onChange}
+    />,
+  );
+  const select = getSelect();
+  userEvent.click(select);
+
+  // Five leaf options across two groups. The group headers carry no value, so
+  // without flattening the full set the count collapses to zero and the bulk
+  // actions disappear entirely.
+  const selectAll = await screen.findByText(selectAllButtonText(5));
+  expect(selectAll).toBeInTheDocument();
+
+  await userEvent.click(selectAll);
+  await waitFor(() => expect(onChange).toHaveBeenCalled());
+
+  const [selectedValues, selectedOptions] = onChange.mock.calls.at(-1) ?? [];
+  const valueOf = (item: number | { value: number }) =>
+    item && typeof item === 'object' ? item.value : item;
+  const sortNumeric = (values: number[]) => [...values].sort((a, b) => a - b);
+
+  // The five leaf values are selected — never the value-less group headers.
+  expect(sortNumeric(selectedValues.map(valueOf))).toEqual([1, 2, 3, 4, 5]);
+  // The option metadata alongside the values is also the flattened leaf set,
+  // not an empty array left over from filtering the group nodes.
+  expect(sortNumeric(selectedOptions.map(valueOf))).toEqual([1, 2, 3, 4, 5]);
 });
 
 test('dropdown takes full width of the select input for multi select', async () => {

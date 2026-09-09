@@ -17246,3 +17246,36 @@ msgstr ""
 
 msgid "№"
 msgstr ""
+
+msgid "(archived)"
+msgstr ""
+
+#, python-format
+msgid "%(count)s %(label)s"
+msgstr ""
+
+#, python-format
+msgid "%(count)s additional restricted %(label)s"
+msgstr ""
+
+msgid "Checking charts and dashboards that use this dataset…"
+msgstr ""
+
+msgid "Deleting this dataset is permanent. The affected charts and dashboards will remain, but they may no longer work."
+msgstr ""
+
+msgid "The affected charts or dashboards changed. Review the updated impact and type DELETE again to continue."
+msgstr ""
+
+msgid "The deletion impact could not be determined. This dataset cannot be permanently deleted until the check succeeds."
+msgstr ""
+
+#, python-format
+msgid "No affected %(label)s."
+msgstr ""
+
+msgid "Show fewer"
+msgstr ""
+
+msgid "Show all"
+msgstr ""

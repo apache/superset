@@ -384,7 +384,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                 )
                 exceptions.append(
                     ValidationError(
-                        message,
+                        [message],
                         field_name=f"{label}.{idx}.expression",
                     )
                 )
@@ -412,7 +412,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             )
             exceptions.append(
                 ValidationError(
-                    message,
+                    [message],
                     field_name="fetch_values_predicate",
                 )
             )

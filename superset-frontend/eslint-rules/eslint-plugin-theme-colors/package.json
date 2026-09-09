@@ -1,5 +1,5 @@
 {
-  "name": "eslint-plugin-theme-colors",
+  "name": "@superset-ui/eslint-plugin-theme-colors",
   "version": "1.0.0",
   "description": "Warns about rgb(a)/hex/literal colors",
   "keywords": [],

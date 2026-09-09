@@ -56,6 +56,43 @@ const dashboardInfoEndpoint = 'glob:*/api/v1/dashboard/_info*';
 const dashboardListEndpoint = 'glob:*/api/v1/dashboard/?*';
 const datasetInfoEndpoint = 'glob:*/api/v1/dataset/_info*';
 const datasetListEndpoint = 'glob:*/api/v1/dataset/?*';
+const datasetImpactEndpoint = 'glob:*/api/v1/dataset/*/purge-impact';
+const datasetPurgeEndpoint = 'glob:*/api/v1/dataset/*/purge';
+
+const buildImpact = (overrides: Record<string, unknown> = {}) => ({
+  impact_token: 'v1:reviewed-impact',
+  charts: { count: 0, restricted_count: 0, result: [] },
+  dashboards: { count: 0, restricted_count: 0, result: [] },
+  ...overrides,
+});
+
+const buildPositiveImpact = () =>
+  buildImpact({
+    charts: {
+      count: 2,
+      restricted_count: 1,
+      result: [
+        {
+          uuid: 'accessible-chart',
+          name: 'Revenue chart',
+          archived: true,
+          url: null,
+        },
+      ],
+    },
+    dashboards: {
+      count: 1,
+      restricted_count: 0,
+      result: [
+        {
+          uuid: 'accessible-dashboard',
+          name: 'Executive dashboard',
+          archived: false,
+          url: '/superset/dashboard/accessible-dashboard/',
+        },
+      ],
+    },
+  });
 
 const mockDashboards = [
   { id: 10, uuid: 'dash-uuid-1', dashboard_title: 'Deleted Dashboard One' },
@@ -100,6 +137,7 @@ jest.mock('@superset-ui/core', () => ({
 }));
 
 const mockAddDangerToast = jest.fn();
+const mockAddSuccessToast = jest.fn();
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
   default:
@@ -108,7 +146,7 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
       <Component
         {...props}
         addDangerToast={mockAddDangerToast}
-        addSuccessToast={jest.fn()}
+        addSuccessToast={mockAddSuccessToast}
         addInfoToast={jest.fn()}
         addWarningToast={jest.fn()}
       />
@@ -118,6 +156,7 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
 const mockRoutes = (
   restoreStatus = 200,
   purgeResponse: Parameters<typeof fetchMock.post>[1] = {},
+  impactResponse: Parameters<typeof fetchMock.get>[1] = buildPositiveImpact(),
 ) => {
   fetchMock.get(infoEndpoint, { permissions: ['can_read', 'can_write'] });
   fetchMock.get(listEndpoint, { result: mockCharts, count: mockCharts.length });
@@ -137,6 +176,8 @@ const mockRoutes = (
     result: mockDatasets,
     count: mockDatasets.length,
   });
+  fetchMock.get(datasetImpactEndpoint, impactResponse);
+  fetchMock.post(datasetPurgeEndpoint, purgeResponse);
 };
 
 const renderArchivedList = (withStore = store) =>
@@ -153,6 +194,7 @@ beforeEach(() => {
   fetchMock.removeRoutes();
   fetchMock.clearHistory();
   mockAddDangerToast.mockClear();
+  mockAddSuccessToast.mockClear();
 });
 
 afterEach(() => {
@@ -644,4 +686,160 @@ test('labels the dataset type "Dataset" when semantic layers is disabled', async
   expect(
     within(datasetRow as HTMLElement).getByText('Dataset'),
   ).toBeInTheDocument();
+});
+
+const openDatasetPurgeModal = async () => {
+  await selectOption('Dataset', 'Type');
+  await screen.findByText('deleted_table_one');
+  fireEvent.click((await screen.findAllByTestId('archived-row-purge'))[0]);
+};
+
+test('dataset purge shows positive, archived, and restricted impact', async () => {
+  mockRoutes();
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
+
+  await openDatasetPurgeModal();
+
+  expect(await screen.findByText('2 Charts')).toBeInTheDocument();
+  expect(screen.getByText('Revenue chart')).toBeInTheDocument();
+  expect(
+    within(screen.getByRole('dialog')).getByLabelText('Archived'),
+  ).toBeInTheDocument();
+  expect(screen.getByText('1 additional restricted Chart')).toBeInTheDocument();
+  expect(screen.getByText('Executive dashboard').closest('a')).not.toBeNull();
+});
+
+test('dataset purge renders an explicit zero only after impact loads', async () => {
+  mockRoutes(200, {}, buildImpact());
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
+
+  await openDatasetPurgeModal();
+
+  expect(await screen.findByText('No affected charts.')).toBeInTheDocument();
+  expect(screen.getByText('No affected dashboards.')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+  await userEvent.type(screen.getByTestId('delete-modal-input'), 'DELETE');
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled();
+});
+
+test('dataset purge fails closed when impact is unavailable', async () => {
+  mockRoutes(200, {}, 500);
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
+
+  await openDatasetPurgeModal();
+
+  expect(
+    await screen.findByText(/deletion impact could not be determined/i),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Retry' })).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+  expect(screen.queryByText('No affected charts.')).not.toBeInTheDocument();
+  expect(fetchMock.callHistory.calls(datasetPurgeEndpoint)).toHaveLength(0);
+});
+
+test('a purge that succeeds after the modal closes still toasts and refetches', async () => {
+  let resolvePurge: (value: {
+    status: number;
+    body: object;
+  }) => void = () => {};
+  const deferredPurge = new Promise<{ status: number; body: object }>(
+    resolve => {
+      resolvePurge = resolve;
+    },
+  );
+  mockRoutes(200, deferredPurge);
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
+  await openDatasetPurgeModal();
+  await screen.findByText('2 Charts');
+
+  await userEvent.type(screen.getByTestId('delete-modal-input'), 'DELETE');
+  await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+  const listCallsBefore =
+    fetchMock.callHistory.calls(datasetListEndpoint).length;
+
+  // The user closes the modal while the purge request is still in flight;
+  // the deletion still happens server-side.
+  await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+  resolvePurge({ status: 200, body: { message: 'OK' } });
+
+  await waitFor(() =>
+    expect(mockAddSuccessToast).toHaveBeenCalledWith(
+      expect.stringContaining('deleted successfully'),
+    ),
+  );
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(datasetListEndpoint).length,
+    ).toBeGreaterThan(listCallsBefore),
+  );
+});
+
+test('impact entries with non-application URLs render as text, not links', async () => {
+  mockRoutes(
+    200,
+    {},
+    buildImpact({
+      dashboards: {
+        count: 2,
+        restricted_count: 0,
+        result: [
+          {
+            uuid: 'external-dashboard',
+            name: 'External dashboard',
+            archived: false,
+            url: 'https://evil.example/dashboard',
+          },
+          {
+            uuid: 'schemeless-dashboard',
+            name: 'Schemeless dashboard',
+            archived: false,
+            url: '//evil.example/dashboard',
+          },
+        ],
+      },
+    }),
+  );
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
+
+  await openDatasetPurgeModal();
+
+  expect(await screen.findByText('External dashboard')).toBeInTheDocument();
+  expect(screen.getByText('External dashboard').closest('a')).toBeNull();
+  expect(screen.getByText('Schemeless dashboard').closest('a')).toBeNull();
+});
+
+test('a 409 replaces impact and re-arms DELETE confirmation', async () => {
+  const changedImpact = buildImpact({
+    impact_token: 'v1:changed-impact',
+    charts: { count: 1, restricted_count: 0, result: [] },
+  });
+  mockRoutes(200, {
+    status: 409,
+    body: {
+      message: 'Impact changed',
+      reason: 'purge_impact_changed',
+      impact: changedImpact,
+    },
+  });
+  renderArchivedList();
+  await screen.findByTestId('archived-list-view');
+  await openDatasetPurgeModal();
+  await screen.findByText('2 Charts');
+
+  await userEvent.type(screen.getByTestId('delete-modal-input'), 'DELETE');
+  await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    /affected charts or dashboards changed/i,
+  );
+  expect(screen.getByText('1 Chart')).toBeInTheDocument();
+  expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
 });

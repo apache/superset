@@ -57,6 +57,18 @@ class TagDeleteForbiddenValidationError(ValidationError):
         super().__init__(message, field_name="tags")
 
 
+class TagAccessValidationError(ValidationError):
+    """The access check for a tagged object could not be completed -- e.g. a
+    saved query whose Jinja-templated SQL is malformed (``TemplateError``) or
+    references a table that cannot be resolved statically (``SupersetParseError``).
+    A ``ValidationError`` so it composites into ``TagInvalidError`` and supports
+    ``CommandInvalidError.normalized_messages()`` rather than crashing it.
+    """
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message, field_name="tags")
+
+
 class TaggedObjectDeleteFailedError(DeleteFailedError):
     message = _("Tagged Object could not be deleted.")
 

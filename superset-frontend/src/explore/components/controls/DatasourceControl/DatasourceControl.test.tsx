@@ -297,6 +297,12 @@ test('Click on Edit dataset', async () => {
   const props = createProps();
   fetchMock.removeRoute(getDbWithQuery);
   fetchMock.get(getDbWithQuery, { result: [] }, { name: getDbWithQuery });
+  fetchMock.removeRoute(getDatasetWithAllMockRouteName);
+  fetchMock.get(
+    getDatasetWithAll,
+    { result: {} },
+    { name: getDatasetWithAllMockRouteName },
+  );
   render(<DatasourceControl {...props} />, {
     useRedux: true,
     useRouter: true,
@@ -307,7 +313,9 @@ test('Click on Edit dataset', async () => {
     await userEvent.click(screen.getByText('Edit dataset'));
   });
 
-  expect(screen.getByTestId('mock-datasource-editor')).toBeInTheDocument();
+  expect(
+    await screen.findByTestId('mock-datasource-editor'),
+  ).toBeInTheDocument();
 });
 
 test('Edit dataset should be disabled when user is not admin', async () => {
