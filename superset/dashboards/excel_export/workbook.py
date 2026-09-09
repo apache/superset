@@ -28,7 +28,7 @@ live filters) and embedded, while table-like charts stay tabular.
 It is deliberately free of any delivery concern. Both export paths share it:
 :mod:`superset.tasks.export_dashboard_excel` wraps it in a Celery task that
 uploads the result to object storage and emails a link, while the dashboard API
-calls it inline to stream the workbook back as the HTTP response when no export
+calls it inline to return the workbook as the HTTP response when no export
 storage is configured.
 """
 

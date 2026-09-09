@@ -1823,8 +1823,8 @@ class DashboardRestApi(
         except SupersetSecurityException:
             return self.response_403()
 
-        # Email delivery is the only result channel, so an account with an email
-        # address is required; embedded guest users are excluded in this version.
+        # Keep the existing account requirement across both delivery paths;
+        # embedded guest users remain excluded in this version.
         if isinstance(g.user, GuestUser) or not getattr(g.user, "email", None):
             return self.response_400(
                 message="Excel export requires an account with an email address."
@@ -1835,33 +1835,17 @@ class DashboardRestApi(
         active_data_mask = payload.get("active_data_mask", {})
         mode = payload.get("mode", "data")
 
-        # An export served as the response has to finish inside this request, so
-        # establish that it can before doing any of the work, rather than letting
-        # it run into a gateway timeout. Checked ahead of the lock, so a refusal
-        # never leaves a lock to be released.
-        plan: InlineExportPlan | None = None
-        if not queued:
-            if mode == EXPORT_MODE_IMAGES:
-                # Image charts are drawn by the headless webdriver, one browser
-                # session at a time. That is not work a request can wait on, and
-                # no row budget bounds it, so it stays queued-only.
-                return self.response_400(
-                    message=(
-                        "Exporting images to Excel runs in the background. "
-                        "Configure EXCEL_EXPORT_S3_BUCKET to use it, or export "
-                        "the dashboard's data instead."
-                    )
+        if not queued and mode == EXPORT_MODE_IMAGES:
+            # Image charts are drawn by the headless webdriver, one browser
+            # session at a time. That is not work a request can wait on, and no
+            # row budget bounds it, so it stays queued-only.
+            return self.response_400(
+                message=(
+                    "Exporting images to Excel runs in the background. "
+                    "Configure EXCEL_EXPORT_S3_BUCKET to use it, or export "
+                    "the dashboard's data instead."
                 )
-            plan = plan_inline_export(dashboard)
-            if not plan.fits_row_budget:
-                return self.response_400(
-                    message=(
-                        "This dashboard requests too many rows to export in a "
-                        "single request. Configure EXCEL_EXPORT_S3_BUCKET to "
-                        "export it in the background, or lower the row limits of "
-                        "its charts."
-                    )
-                )
+            )
 
         # Throttle: one concurrent export per user+dashboard. Acquire a shared,
         # atomic distributed lock (Redis when configured, the metadata DB
@@ -1883,13 +1867,45 @@ class DashboardRestApi(
             )
 
         job_id = str(uuid.uuid4())
-        if plan is None:
+        if queued:
             return self._export_xlsx_queued(
                 dashboard, active_data_mask, mode, job_id, lock_params
             )
-        return self._export_xlsx_inline(
-            dashboard, active_data_mask, job_id, lock_params, plan.query_contexts
-        )
+
+        # Resolving query contexts can call an external builder, so do it only
+        # after taking the lock: a duplicate request should be rejected before it
+        # pays that cost. Until the workbook builder takes responsibility for the
+        # lock, release it here on both a budget refusal and a planning failure.
+        lock_delegated = False
+        try:
+            plan: InlineExportPlan = plan_inline_export(dashboard)
+            if not plan.fits_row_budget:
+                return self.response_400(
+                    message=(
+                        "This dashboard requests too many rows to export in a "
+                        "single request. Configure EXCEL_EXPORT_S3_BUCKET to "
+                        "export it in the background, or lower the row limits of "
+                        "its charts."
+                    )
+                )
+            lock_delegated = True
+            return self._export_xlsx_inline(
+                dashboard,
+                active_data_mask,
+                job_id,
+                lock_params,
+                plan.query_contexts,
+            )
+        finally:
+            if not lock_delegated:
+                try:
+                    ReleaseDistributedLock(EXPORT_LOCK_NAMESPACE, lock_params).run()
+                except Exception:  # pylint: disable=broad-except
+                    # Best-effort: the lock's TTL is the backstop if this fails.
+                    logger.exception(
+                        "Failed to release in-flight export lock for dashboard %s",
+                        dashboard.id,
+                    )
 
     def _export_xlsx_queued(  # pylint: disable=too-many-arguments
         self,

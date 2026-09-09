@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import pytest
 
+from superset.app import SupersetApp
 from superset.dashboards.excel_export.storage import is_export_storage_configured
 
 
@@ -30,7 +31,7 @@ from superset.dashboards.excel_export.storage import is_export_storage_configure
     ],
 )
 def test_storage_is_configured_only_with_a_bucket(
-    app: pytest.FixtureRequest, bucket: str | None, configured: bool
+    app: SupersetApp, bucket: str | None, configured: bool
 ) -> None:
     from flask import current_app
 

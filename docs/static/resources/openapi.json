@@ -19521,7 +19521,7 @@
     },
     "/api/v1/dashboard/{pk}/export_xlsx/": {
       "post": {
-        "description": "Enqueues an async task that writes each chart's data to its own worksheet, uploads the .xlsx to S3, and emails the requesting user a pre-signed download link. Returns immediately with a job id.",
+        "description": "Writes each chart's data to its own worksheet of a single .xlsx. Where export storage is configured the work is queued: the response is a job id and the finished file is uploaded and emailed to the requesting user as a download link. Where it is not, the workbook is built during the request and returned as the response body, provided the export is small enough to serve that way.",
         "parameters": [
           {
             "description": "The dashboard id",
@@ -19543,6 +19543,17 @@
           }
         },
         "responses": {
+          "200": {
+            "content": {
+              "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": "The exported workbook, built during this request"
+          },
           "202": {
             "content": {
               "application/json": {
@@ -19567,9 +19578,6 @@
           },
           "500": {
             "$ref": "#/components/responses/500"
-          },
-          "501": {
-            "description": "Excel export is not configured on this server"
           }
         },
         "security": [

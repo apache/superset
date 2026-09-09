@@ -1539,10 +1539,11 @@ CSV_STREAMING_ROW_THRESHOLD = 100000
 EXCEL_EXPORT: dict[str, Any] = {}
 
 # ---------------------------------------------------
-# Dashboard "Export Data to Excel" (async, S3-backed)
+# Dashboard "Export Data to Excel"
 # ---------------------------------------------------
 # Destination S3 bucket for generated dashboard .xlsx exports. The feature is
-# disabled until this is set: the export endpoint returns 501 when it is None.
+# queued and delivered by email when this is set; otherwise eligible data exports
+# are built during the request and returned directly to the browser.
 EXCEL_EXPORT_S3_BUCKET: str | None = None
 # Key prefix for export objects: {prefix}{dashboard_id}/{job_id}.xlsx
 EXCEL_EXPORT_S3_KEY_PREFIX = "dashboard-exports/"

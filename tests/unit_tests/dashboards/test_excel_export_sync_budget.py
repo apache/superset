@@ -159,10 +159,12 @@ def test_plan_resolves_each_chart_exactly_once(charts: mock.MagicMock) -> None:
     # Resolution can be expensive and, through
     # EXCEL_EXPORT_QUERY_CONTEXT_BUILDER, need not be deterministic, so the plan
     # must not resolve a chart it has already resolved.
-    charts.return_value = [_chart(10, {"row_limit": 1}), _chart(20, {"row_limit": 2})]
+    first = _chart(10, {"row_limit": 1})
+    second = _chart(20, {"row_limit": 2})
+    charts.return_value = [first, second]
 
     with mock.patch(f"{MODULE}.resolve_query_context") as resolve:
         resolve.return_value = {"queries": [{"row_limit": 1}]}
         plan_inline_export(mock.MagicMock())
 
-    assert resolve.call_count == 2
+    assert resolve.call_args_list == [mock.call(first), mock.call(second)]

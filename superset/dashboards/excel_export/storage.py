@@ -21,7 +21,7 @@ This is the single place that answers "can this deployment run an asynchronous
 export?", and it is deliberately the only thing that knows *how* that is
 configured. The dashboard API branches on it to pick the export path: with
 storage the export is queued and delivered by link, without it the workbook is
-built inline and streamed back as the response.
+built inline and returned as the response.
 
 The answer is derived from configuration rather than exposed as a feature flag,
 so there is no second knob that can disagree with the storage settings.

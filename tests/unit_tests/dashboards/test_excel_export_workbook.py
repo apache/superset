@@ -73,7 +73,7 @@ def workbook_path() -> Iterator[str]:
         os.remove(path)
 
 
-def _build(path: str, charts: list[mock.MagicMock], **kwargs: Any) -> Any:
+def _build(path: str, **kwargs: Any) -> Any:
     dashboard = mock.MagicMock()
     dashboard.id = 1
     return build_workbook(
@@ -90,7 +90,7 @@ def test_provided_query_context_is_used_without_resolving_again(
     mocks["get_charts_in_layout_order"].return_value = [chart]
     provided = {"queries": [{"row_limit": 7, "metrics": ["count"]}]}
 
-    _build(workbook_path, [chart], query_contexts={10: provided})
+    _build(workbook_path, query_contexts={10: provided})
 
     mocks["resolve_query_context"].assert_not_called()
     loaded = mocks["ChartDataQueryContextSchema"].return_value.load.call_args.args[0]
@@ -105,7 +105,7 @@ def test_a_chart_resolved_to_none_is_skipped_without_resolving_again(
     chart = _chart(20, "Skipped")
     mocks["get_charts_in_layout_order"].return_value = [chart]
 
-    errored = _build(workbook_path, [chart], query_contexts={20: None})
+    errored = _build(workbook_path, query_contexts={20: None})
 
     mocks["resolve_query_context"].assert_not_called()
     mocks["ChartDataCommand"].return_value.run.assert_not_called()
@@ -123,6 +123,6 @@ def test_a_chart_missing_from_the_map_is_resolved_by_the_builder(
     mocks["get_charts_in_layout_order"].return_value = [chart]
     mocks["resolve_query_context"].return_value = {"queries": [{"row_limit": 5}]}
 
-    _build(workbook_path, [chart], query_contexts={})
+    _build(workbook_path, query_contexts={})
 
     mocks["resolve_query_context"].assert_called_once_with(chart)

@@ -3693,6 +3693,10 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @with_config({"EXCEL_EXPORT_S3_BUCKET": "exports"})
+    @with_feature_flags(
+        ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=False,
+        ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT=False,
+    )
     @patch("superset.dashboards.api.export_dashboard_excel")
     def test_export_xlsx_images_404_when_screenshot_flags_off(self, mock_task):
         """Dashboard API: ``mode=images`` is rejected with 404 when the webdriver
@@ -3810,11 +3814,12 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
+    @patch("superset.dashboards.api.ReleaseDistributedLock")
     @patch("superset.dashboards.api.AcquireDistributedLock")
     @patch("superset.dashboards.api.build_workbook")
     @patch("superset.dashboards.api.plan_inline_export")
     def test_export_xlsx_sync_refused_when_over_the_row_budget(
-        self, mock_plan, mock_build, mock_acquire
+        self, mock_plan, mock_build, mock_acquire, mock_release
     ):
         """Dashboard API: an export too large to serve inline is refused up front
         with a message naming the fix, rather than being started and timing out."""
@@ -3832,10 +3837,35 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 400
         message = rv.data.decode("utf-8")
         assert "EXCEL_EXPORT_S3_BUCKET" in message
-        # Refused before any work started, so no lock was taken and no rows read.
+        # The lock prevents a duplicate request from paying the planning cost;
+        # a refusal releases it immediately and never reads chart rows.
         mock_plan.assert_called_once()
         mock_build.assert_not_called()
-        mock_acquire.return_value.run.assert_not_called()
+        mock_acquire.return_value.run.assert_called_once()
+        mock_release.return_value.run.assert_called_once()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
+    @patch("superset.dashboards.api.ReleaseDistributedLock")
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.plan_inline_export")
+    def test_export_xlsx_sync_releases_the_lock_when_planning_fails(
+        self, mock_plan, mock_acquire, mock_release
+    ):
+        """Dashboard API: a context-builder failure while planning must not keep
+        the user locked out until the lock's TTL expires."""
+        mock_plan.side_effect = RuntimeError("builder failed")
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+
+        assert rv.status_code == 500
+        mock_acquire.return_value.run.assert_called_once()
+        mock_release.return_value.run.assert_called_once()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
@@ -3979,8 +4009,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
     @patch("superset.dashboards.api.AcquireDistributedLock")
     @patch("superset.dashboards.api.build_workbook")
+    @patch("superset.dashboards.api.plan_inline_export")
     def test_export_xlsx_sync_rejected_when_export_already_in_progress(
-        self, mock_build, mock_acquire
+        self, mock_plan, mock_build, mock_acquire
     ):
         """Dashboard API: the synchronous path honors the same per-user+dashboard
         lock as the queued one, so one user cannot run two exports at once."""
@@ -3995,6 +4026,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
         assert rv.status_code == 202
         assert "already in progress" in rv.data.decode("utf-8")
+        mock_plan.assert_not_called()
         mock_build.assert_not_called()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")

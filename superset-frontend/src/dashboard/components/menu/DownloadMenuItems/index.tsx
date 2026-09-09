@@ -27,13 +27,15 @@ import {
   SupersetClient,
 } from '@superset-ui/core';
 import { MenuItem } from '@superset-ui/core/components/Menu';
-import { parse as parseContentDisposition } from 'content-disposition';
 import { useDownloadScreenshot } from 'src/dashboard/hooks/useDownloadScreenshot';
 import { NATIVE_FILTER_PREFIX } from 'src/dashboard/components/nativeFilters/FiltersConfigModal/utils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import downloadAsImage from 'src/utils/downloadAsImage';
-import handleResourceExport from 'src/utils/export';
+import handleResourceExport, {
+  downloadBlob,
+  getFilenameFromResponse,
+} from 'src/utils/export';
 import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
@@ -126,39 +128,6 @@ export const useDownloadMenuItems = (
     }
   };
 
-  const fileNameFromResponse = (
-    response: Response,
-    fallback: string,
-  ): string => {
-    const disposition = response.headers.get('Content-Disposition');
-    if (!disposition) {
-      return fallback;
-    }
-    try {
-      return (
-        parseContentDisposition(disposition)?.parameters?.filename ?? fallback
-      );
-    } catch (error) {
-      logging.warn('Failed to parse Content-Disposition header:', error);
-      return fallback;
-    }
-  };
-
-  const downloadBlob = (blob: Blob, fileName: string) => {
-    const url = window.URL.createObjectURL(blob);
-    try {
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } finally {
-      window.URL.revokeObjectURL(url);
-    }
-  };
-
   const onExportAsExample = async () => {
     try {
       const response = await SupersetClient.get({
@@ -172,7 +141,10 @@ export const useDownloadMenuItems = (
       const blob = await response.blob();
       downloadBlob(
         blob,
-        fileNameFromResponse(response, `dashboard_${dashboardId}_example.zip`),
+        getFilenameFromResponse(
+          response,
+          `dashboard_${dashboardId}_example.zip`,
+        ),
       );
 
       addSuccessToast(t('Dashboard exported as example successfully'));
@@ -191,6 +163,10 @@ export const useDownloadMenuItems = (
         // The response is either JSON describing a queued export or the workbook
         // itself, so it is parsed here rather than by the client.
         parseMethod: 'raw',
+        // Retrying a non-idempotent export after a proxy timeout can lose the
+        // inline file response: the retry sees the first request's lock and gets
+        // an "already in progress" response, while no email delivers the file.
+        fetchRetryOptions: { retries: 0 },
       });
 
       // Where the deployment has export storage the work is queued and delivered
@@ -200,7 +176,7 @@ export const useDownloadMenuItems = (
         const blob = await response.blob();
         downloadBlob(
           blob,
-          fileNameFromResponse(response, `dashboard_${dashboardId}.xlsx`),
+          getFilenameFromResponse(response, `dashboard_${dashboardId}.xlsx`),
         );
         addSuccessToast(t('Dashboard data exported to Excel'));
         return;

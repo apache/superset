@@ -183,6 +183,7 @@ test('Export Data to Excel posts mode "data" and shows a pending toast', async (
   await waitFor(() => {
     expect(mockSupersetClient.post).toHaveBeenCalledWith({
       endpoint: '/api/v1/dashboard/123/export_xlsx/',
+      fetchRetryOptions: { retries: 0 },
       jsonPayload: { active_data_mask: {}, mode: 'data' },
       parseMethod: 'raw',
     });
@@ -203,6 +204,7 @@ test('Export Images to Excel posts mode "images" and shows a pending toast', asy
   await waitFor(() => {
     expect(mockSupersetClient.post).toHaveBeenCalledWith({
       endpoint: '/api/v1/dashboard/123/export_xlsx/',
+      fetchRetryOptions: { retries: 0 },
       jsonPayload: { active_data_mask: {}, mode: 'images' },
       parseMethod: 'raw',
     });
