@@ -745,8 +745,13 @@ def _ensure_static_assets_prefix(url_or_path: str) -> str:
 
 
 def _svg_to_data_uri(svg: str | None) -> str | None:
-    """Encode SVG markup as a base64 data URI, or ``None`` if no SVG is given."""
-    if not svg:
+    """Encode SVG markup as a base64 data URI, or ``None`` if no SVG is given.
+
+    A malformed theme (hand-edited config or a stale database row) could
+    supply a truthy non-string value here; treat that as absent rather than
+    raising, since raising would 500 every SPA render.
+    """
+    if not isinstance(svg, str) or not svg:
         return None
     return "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode(
         "ascii"
