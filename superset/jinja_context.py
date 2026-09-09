@@ -236,29 +236,43 @@ class ExtraCache:
             return user_id
         return None
 
-    def current_username(self, add_to_cache_keys: bool = True) -> str | None:
+    def current_username(
+        self, add_to_cache_keys: bool = True, escape_result: bool = True
+    ) -> str | None:
         """
         Return the username of the user who is currently logged in.
 
         :param add_to_cache_keys: Whether the value should be included in the cache key
+        :param escape_result: Should special characters in the result be escaped
         :returns: The username
         """
 
         if username := get_username():
+            # The documented templating pattern interpolates this value into a
+            # SQL literal, so apply the same dialect-specific escaping the other
+            # viewer-controlled macros (url_param, get_guest_user_attribute) use,
+            # keeping the identity macros consistent with their siblings.
+            if escape_result:
+                username = self._escape_value(username)
             if add_to_cache_keys:
                 self.cache_key_wrapper(username)
             return username
         return None
 
-    def current_user_email(self, add_to_cache_keys: bool = True) -> str | None:
+    def current_user_email(
+        self, add_to_cache_keys: bool = True, escape_result: bool = True
+    ) -> str | None:
         """
         Return the email address of the user who is currently logged in.
 
         :param add_to_cache_keys: Whether the value should be included in the cache key
+        :param escape_result: Should special characters in the result be escaped
         :returns: The user email address
         """
 
         if email_address := get_user_email():
+            if escape_result:
+                email_address = self._escape_value(email_address)
             if add_to_cache_keys:
                 self.cache_key_wrapper(email_address)
             return email_address

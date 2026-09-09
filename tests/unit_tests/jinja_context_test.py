@@ -782,6 +782,47 @@ def test_user_macros_without_user_info(mocker: MockerFixture):
     assert cache.current_user_rls_rules() is None
 
 
+def test_current_username_email_escaped(mocker: MockerFixture) -> None:
+    """
+    ``current_username`` / ``current_user_email`` apply the same dialect
+    escaping as the other viewer-controlled macros, so a quote in the value
+    cannot break out of a SQL literal it is interpolated into.
+    """
+    mock_g = mocker.patch("superset.utils.core.g")
+    mock_g.user.username = "O'Brien"
+    mock_g.user.email = "o'brien@test.com"
+    cache = ExtraCache(dialect=dialect(), table=mocker.MagicMock())
+    assert cache.current_username() == "O''Brien"
+    assert cache.current_user_email() == "o''brien@test.com"
+
+
+def test_current_username_email_unescaped_opt_out(mocker: MockerFixture) -> None:
+    """
+    ``escape_result=False`` opts out of escaping, mirroring ``url_param``.
+    """
+    mock_g = mocker.patch("superset.utils.core.g")
+    mock_g.user.username = "O'Brien"
+    mock_g.user.email = "o'brien@test.com"
+    cache = ExtraCache(dialect=dialect(), table=mocker.MagicMock())
+    assert cache.current_username(escape_result=False) == "O'Brien"
+    assert cache.current_user_email(escape_result=False) == "o'brien@test.com"
+
+
+def test_current_username_email_unchanged_without_dialect(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Without a configured dialect the value is returned unchanged, preserving
+    the prior behavior.
+    """
+    mock_g = mocker.patch("superset.utils.core.g")
+    mock_g.user.username = "O'Brien"
+    mock_g.user.email = "o'brien@test.com"
+    cache = ExtraCache(table=mocker.MagicMock())
+    assert cache.current_username() == "O'Brien"
+    assert cache.current_user_email() == "o'brien@test.com"
+
+
 def _user_metadata_cache_keys(
     mocker: MockerFixture,
     *,
