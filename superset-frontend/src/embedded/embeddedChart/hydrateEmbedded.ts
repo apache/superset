@@ -107,7 +107,11 @@ const hydrateEmbedded = (
             viz_type: slice.form_data.viz_type,
             datasource: slice.form_data.datasource,
             description: slice.description,
-            description_markeddown: slice.description_markeddown,
+            // The API field is spelled `description_markeddown`; the chart
+            // stack (see Chart.tsx) reads the correctly spelled
+            // `description_markdown` off the store slice, matching the same
+            // rename `hydrate.ts` and `sliceEntities.ts` already perform.
+            description_markdown: slice.description_markeddown,
             modified: slice.modified,
             changed_on: slice.changed_on
               ? new Date(slice.changed_on).getTime()

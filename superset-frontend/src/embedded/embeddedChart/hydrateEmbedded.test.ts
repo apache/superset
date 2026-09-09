@@ -98,3 +98,14 @@ test('carries a layout tree so the layout reducer has a root to hydrate', () => 
 test('carries an empty native filter map', () => {
   expect(build().data.nativeFilters.filters).toEqual({});
 });
+
+test('renames the misspelled API field to description_markdown for the chart stack', () => {
+  const withDescription = {
+    ...chartData,
+    slice: { ...chartData.slice, description_markeddown: '<p>hello</p>' },
+  } as unknown as EmbeddedChartData;
+  const { data } = hydrateEmbedded(withDescription, common);
+  expect(data.sliceEntities.slices[SLICE_ID].description_markdown).toEqual(
+    '<p>hello</p>',
+  );
+});
