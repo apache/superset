@@ -16,8 +16,10 @@
 # under the License.
 """DB-touching helpers for the activity-view read path.
 
-All Phase A relationship walks (``charts_attached_to_dashboard``,
-``datasets_used_by_chart``, ``batch_datasets_used_by_charts``),
+The Phase A relationship walks (``datasets_used_by_chart``,
+``batch_datasets_used_by_charts``; the dashboard-membership walk
+``charts_attached_to_dashboard`` lives in
+:mod:`superset.versioning.membership`),
 the Phase B change-record fetch (``fetch_change_records`` /
 ``_select_change_rows_for_kinds``), the name-denormalization helpers
 (``_resolve_names_for_kind`` / ``apply_entity_name_denormalization``), the
@@ -39,7 +41,6 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from heapq import heappush, heapreplace
-from itertools import groupby
 from typing import Any
 from uuid import UUID
 
@@ -117,94 +118,6 @@ def first_tracked_tx(
 
 
 # ---- Phase A: relationship-traversal queries ------------------------------
-
-
-# ``operation_type`` values on a Continuum association shadow row
-# (sqlalchemy_continuum.operation.Operation): INSERT attaches, DELETE detaches.
-# UPDATE never occurs for a pure M2M association (there is nothing to update on
-# a (dashboard, slice) pair); if it ever appeared it is ignored — neither
-# opening nor closing a window — so an open attachment simply continues.
-# These mirror the library enum's numeric values; ``test_m2m_op_constants_match_
-# continuum`` pins them so a Continuum renumber fails loudly rather than silently.
-_M2M_OP_INSERT = 0
-_M2M_OP_DELETE = 2
-
-
-def _attachment_windows(
-    rows: list[tuple[int, int, int]],
-) -> list[tuple[int, Window]]:
-    """Pair INSERT / DELETE association-version rows into ``[attach, detach)``
-    windows, one per attachment episode.
-
-    Each row is ``(slice_id, transaction_id, operation_type)``. Continuum
-    **never closes** an association shadow row's ``end_transaction_id`` — its
-    unit-of-work only *inserts* association versions
-    (``create_association_versions``); the validity backfill that sets
-    ``end_transaction_id`` runs for parent objects, not for M2M links. So the
-    detach boundary lives on the DELETE row's ``transaction_id``, not on the
-    attach row's ``end_transaction_id`` (which stays NULL for the association's
-    whole life). An INSERT opens a window; the next DELETE closes it at its
-    transaction id; an attachment with no following DELETE stays open (the
-    chart is still on the dashboard). A DELETE at the same transaction as its
-    open (add-and-remove in one save) yields no window — the chart was never
-    on a committed dashboard state.
-    """
-    result: list[tuple[int, Window]] = []
-    # operation_type is part of the sort key so that, within one transaction,
-    # INSERT (0) sorts before DELETE (2): an add-and-remove in a single save is
-    # then seen open-before-close and collapses to no window (the DELETE finds
-    # ``tx == open_tx``, not ``>``). Do not drop it from the key.
-    rows_sorted = sorted(rows, key=lambda r: (r[0], r[1], r[2]))
-    for slice_id, group in groupby(rows_sorted, key=lambda r: r[0]):
-        open_tx: int | None = None
-        for _slice_id, tx, operation_type in group:
-            if operation_type == _M2M_OP_DELETE:
-                if open_tx is not None and tx > open_tx:
-                    result.append((slice_id, Window(open_tx, tx)))
-                open_tx = None
-            elif operation_type == _M2M_OP_INSERT and open_tx is None:
-                open_tx = tx
-        if open_tx is not None:
-            result.append((slice_id, Window(open_tx, None)))
-    return result
-
-
-def charts_attached_to_dashboard(dashboard_id: int) -> list[tuple[int, Window]]:
-    """Return ``(slice_id, window)`` for every chart that has ever been on
-    *dashboard_id*, with each attachment episode's validity window in
-    transaction-id space.
-
-    Reads from ``dashboard_slices_version`` (Continuum's auto-generated M2M
-    shadow) and pairs its INSERT/DELETE rows via :func:`_attachment_windows`,
-    so a chart removed from the dashboard is bounded at the detach transaction
-    rather than open-ended — otherwise the chart's edits made *after* removal
-    would surface in the dashboard's related history.
-    """
-    # pylint: disable=import-outside-toplevel
-    from sqlalchemy_continuum import version_class
-
-    from superset.models.dashboard import Dashboard
-
-    metadata = version_class(Dashboard).__table__.metadata
-    m2m_tbl = metadata.tables.get("dashboard_slices_version")
-    if m2m_tbl is None:
-        return []
-
-    rows = (
-        db.session.connection()
-        .execute(
-            sa.select(
-                m2m_tbl.c.slice_id,
-                m2m_tbl.c.transaction_id,
-                m2m_tbl.c.operation_type,
-            ).where(
-                m2m_tbl.c.dashboard_id == dashboard_id,
-                m2m_tbl.c.slice_id.is_not(None),
-            )
-        )
-        .all()
-    )
-    return _attachment_windows([(row[0], row[1], row[2]) for row in rows])
 
 
 def datasets_used_by_chart(slice_id: int) -> list[tuple[int, Window]]:
