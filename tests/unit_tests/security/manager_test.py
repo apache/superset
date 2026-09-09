@@ -3056,7 +3056,7 @@ MSSQL_CONN_NAME = "my_mssql_conn"
 def _mssql_database(
     mocker: MockerFixture,
     sqlalchemy_uri: str,
-    extra: dict | None = None,
+    extra: dict[str, Any] | None = None,
 ) -> Database:
     """
     Build a *real* ``Database`` instance -- not a mock -- so URL parsing and
