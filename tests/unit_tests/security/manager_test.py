@@ -26,7 +26,6 @@ from unittest.mock import MagicMock
 import pytest
 from flask import current_app, Flask
 from flask_appbuilder.const import AUTH_DB, AUTH_REMOTE_USER
-from flask_appbuilder.security.manager import AuthOAuthView
 from flask_appbuilder.security.sqla.models import Role, User
 from pytest_mock import MockerFixture
 
@@ -137,7 +136,7 @@ def test_register_views_still_registers_superset_auth_view_for_db_auth(
     assert SupersetAuthView in registered
 
 
-def test_superset_oauth_view_oauth_oauth_single_provider(
+def test_superset_oauth_view_oauth_single_provider(
     mocker: MockerFixture, app: Flask, app_context: None
 ) -> None:
     """
@@ -186,43 +185,6 @@ def test_superset_oauth_view_oauth_multiple_providers(
     oauth_view.login()
 
     mock_super_login.assert_called_once_with(None)
-
-
-def test_security_manager_with_oauth_auth_type(
-    mocker: MockerFixture, app: Flask, app_context: None
-) -> None:
-    """
-    Test that SupersetSecurityManager login works correctly when
-    AUTH_TYPE is set to AUTH_OAUTH with a single provider.
-    """
-    from flask_appbuilder.security.manager import AUTH_OAUTH
-
-    app.config["AUTH_TYPE"] = AUTH_OAUTH
-    app.config["OAUTH_PROVIDERS"] = [
-        {
-            "name": "google",
-            "icon": "fa-google",
-            "token_key": "access_token",
-            "remote_app": {
-                "client_id": "test_client_id",
-                "client_secret": "test_client_secret",
-                "api_base_url": "https://accounts.google.com/o/oauth2/v2/auth",
-                "client_kwargs": {"scope": "email profile"},
-            },
-        }
-    ]
-
-    mock_provider = mocker.Mock()
-    mock_remotes = {"google": mock_provider}
-    mocker.patch.object(app.appbuilder.sm, "oauth_remotes", mock_remotes)
-    mock_super_login = mocker.patch.object(AuthOAuthView, "login")
-
-    oauth_view = SupersetOAuthView()
-    oauth_view.appbuilder = app.appbuilder
-
-    oauth_view.login()
-
-    mock_super_login.assert_called_once_with("google")
 
 
 @pytest.fixture
