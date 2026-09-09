@@ -146,3 +146,61 @@ test('Calling "onConfirm" only after typing "delete" in the input', async () => 
   // confirm input has been cleared
   expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
 });
+
+test('external disable keeps the destructive action unavailable after confirmation', async () => {
+  const onConfirm = jest.fn();
+  render(
+    <DeleteModal
+      title="Delete permanently?"
+      description="This cannot be undone."
+      onConfirm={onConfirm}
+      onHide={jest.fn()}
+      open
+      disablePrimaryButton
+    />,
+  );
+
+  await userEvent.type(screen.getByTestId('delete-modal-input'), 'DELETE');
+
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+  await userEvent.click(screen.getByRole('button', { name: 'Delete' }));
+  expect(onConfirm).not.toHaveBeenCalled();
+});
+
+test('loading disables the destructive action and exposes busy state', async () => {
+  render(
+    <DeleteModal
+      title="Delete permanently?"
+      description="Checking dependencies"
+      onConfirm={jest.fn()}
+      onHide={jest.fn()}
+      open
+      loading
+    />,
+  );
+
+  await userEvent.type(screen.getByTestId('delete-modal-input'), 'DELETE');
+
+  expect(screen.getByTestId('modal-confirm-button')).toBeDisabled();
+  expect(screen.getByTestId('antd-modal')).toHaveAttribute('aria-busy', 'true');
+});
+
+test('confirmation reset key clears and re-arms type-to-confirm', async () => {
+  const props = {
+    title: 'Delete permanently?',
+    description: 'This cannot be undone.',
+    onConfirm: jest.fn(),
+    onHide: jest.fn(),
+    open: true,
+  };
+  const { rerender } = render(
+    <DeleteModal {...props} confirmationResetKey="initial" />,
+  );
+  await userEvent.type(screen.getByTestId('delete-modal-input'), 'DELETE');
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeEnabled();
+
+  rerender(<DeleteModal {...props} confirmationResetKey="impact-changed" />);
+
+  expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
+  expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+});

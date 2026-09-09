@@ -61,12 +61,11 @@ import { QueryObjectColumns, SavedQueryObject } from 'src/views/CRUD/types';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
 import { Icons } from '@superset-ui/core/components/Icons';
-import copyTextToClipboard from 'src/utils/copy';
 import type User from 'src/types/User';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import SavedQueryPreviewModal from 'src/features/queries/SavedQueryPreviewModal';
 import { findPermission } from 'src/utils/findPermission';
-import { getShareableUrl, openInNewTab } from 'src/utils/navigationUtils';
+import { openInNewTab } from 'src/utils/navigationUtils';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -245,13 +244,6 @@ function SavedQueryList({
   // Action methods
   const openInSqlLab = (id: number, openInNewWindow: boolean) => {
     const path = `/sqllab?savedQueryId=${id}`;
-    copyTextToClipboard(() => Promise.resolve(getShareableUrl(path)))
-      .then(() => {
-        addSuccessToast(t('Link Copied!'));
-      })
-      .catch(() => {
-        addDangerToast(t('Sorry, your browser does not support copying.'));
-      });
     if (openInNewWindow) {
       openInNewTab(path);
     } else {
@@ -263,6 +255,7 @@ function SavedQueryList({
 
   const copyQueryLink = useCallback(
     async (savedQuery: SavedQueryObject) => {
+      let permalink: string;
       try {
         const payload = {
           dbId: savedQuery.db_id,
@@ -280,12 +273,19 @@ function SavedQueryList({
           body: JSON.stringify(payload),
         });
 
-        const { url: permalink } = response.json;
+        ({ url: permalink } = response.json);
+      } catch (error) {
+        addDangerToast(t('There was an error generating the permalink.'));
+        return;
+      }
 
+      try {
         await navigator.clipboard.writeText(permalink);
         addSuccessToast(t('Link Copied!'));
       } catch (error) {
-        addDangerToast(t('There was an error generating the permalink.'));
+        addDangerToast(
+          t('The link was generated but could not be copied: %s', permalink),
+        );
       }
     },
     [addDangerToast, addSuccessToast],

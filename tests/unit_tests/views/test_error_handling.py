@@ -24,6 +24,8 @@ import pytest
 import sshtunnel
 from flask import Flask, Response
 from flask_babel import Babel
+from sqlalchemy.exc import IntegrityError, OperationalError, ProgrammingError
+from werkzeug.exceptions import GatewayTimeout
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import QueryObjectValidationError, SupersetException
@@ -66,6 +68,81 @@ class TestHandleApiExceptionSSHTunnelError:
             and "BaseSSHTunnelForwarderError" in record.message
             for record in caplog.records
         )
+
+
+class TestHandleApiExceptionDatabaseErrors:
+    """
+    `OperationalError` is a `DatabaseError` subclass, so it must be matched by
+    its own clause ahead of the 422 handler for other `DatabaseError`s.
+    """
+
+    def _run(self, app, ex: Exception, *, guest: bool = False) -> Response:
+        @handle_api_exception
+        def view(self: object) -> FlaskResponse:
+            raise ex
+
+        with (
+            app.test_request_context(),
+            patch(
+                "superset.security.SupersetSecurityManager.is_guest_user",
+                return_value=guest,
+            ),
+        ):
+            return cast(Response, view(self=object()))
+
+    def test_operational_error_returns_500(self, app):
+        response = self._run(
+            app, OperationalError("SELECT 1", {}, Exception("connection closed"))
+        )
+
+        assert response.status_code == 500
+
+    def test_non_connection_database_error_still_returns_422(self, app):
+        response = self._run(
+            app,
+            ProgrammingError("SELECT 1", {}, Exception("relation does not exist")),
+        )
+
+        assert response.status_code == 422
+
+    def test_integrity_error_still_returns_422(self, app):
+        response = self._run(
+            app, IntegrityError("INSERT", {}, Exception("duplicate key"))
+        )
+
+        assert response.status_code == 422
+
+    def test_operational_error_message_is_redacted_for_guest_users(self, app):
+        """
+        The 500 clause hands the raw driver message to `json_error_response`,
+        which routes a bare string through `sanitize_error_message`. A driver
+        message quotes the host, port and user of the connection it failed on,
+        so an embedded viewer must receive the generic text instead.
+        """
+        leaky = (
+            "could not connect to server: Connection refused\n\tIs the server "
+            'running on host "analytics-prod.internal" (10.0.4.17) and accepting '
+            "TCP/IP connections on port 5432?"
+        )
+
+        response = self._run(
+            app, OperationalError("SELECT 1", {}, Exception(leaky)), guest=True
+        )
+
+        assert response.status_code == 500
+        payload = json.loads(response.data)
+        assert payload["error"] == str(GENERIC_ERROR_MESSAGE)
+        for secret in ("analytics-prod.internal", "10.0.4.17", "5432"):
+            assert secret not in response.get_data(as_text=True)
+
+    def test_operational_error_message_is_kept_for_regular_users(self, app):
+        """The redaction above is guest-only; an operator still needs the detail."""
+        response = self._run(
+            app, OperationalError("SELECT 1", {}, Exception("Connection refused"))
+        )
+
+        assert response.status_code == 500
+        assert "Connection refused" in json.loads(response.data)["error"]
 
 
 class TestShowUnexpectedException:
@@ -252,3 +329,58 @@ class TestGuestErrorSanitization:
         )
 
         assert payload["error"] == str(GENERIC_ERROR_MESSAGE)
+
+
+class TestErrorHandlerNeverTurnsErrorsInto500s:
+    """
+    The guest-user check runs *inside* the HTTP error handler, which has no
+    handler of its own. If resolving the principal raises -- as some Flask-Login
+    user loaders do (e.g. a JWT request loader that raises when a request carries
+    no valid credential) -- Flask discards the intended status and returns a bare
+    500. The check must therefore swallow that failure and keep the real status.
+    """
+
+    def _build_app_with_handlers(self) -> Flask:
+        # A fresh, minimal Flask app per test: `set_app_error_handlers` can only
+        # register handlers before the app has served its first request.
+        test_app = Flask(__name__)
+        test_app.config["DEBUG"] = False
+        Babel(test_app)
+        set_app_error_handlers(test_app)
+
+        @test_app.route("/gateway-timeout")
+        def gateway_timeout_view() -> FlaskResponse:
+            raise GatewayTimeout("upstream took too long")
+
+        return test_app
+
+    def test_gateway_timeout_keeps_its_status_when_principal_cannot_be_resolved(
+        self,
+    ) -> None:
+        client = self._build_app_with_handlers().test_client()
+
+        with patch(
+            "superset.security.SupersetSecurityManager.is_guest_user",
+            side_effect=RuntimeError("no valid credential on request"),
+        ):
+            response = client.get("/gateway-timeout")
+
+        # Without the guard the raising loader propagates out of the handler and
+        # Flask rewrites this to a bare 500.
+        assert response.status_code == 504
+
+    def test_direct_json_error_response_keeps_its_status(self, app: Flask) -> None:
+        with (
+            app.test_request_context(),
+            patch(
+                "superset.security.SupersetSecurityManager.is_guest_user",
+                side_effect=RuntimeError("no valid credential on request"),
+            ),
+        ):
+            response = cast(
+                Response,
+                json_error_response("upstream took too long", status=504),
+            )
+
+        assert response.status_code == 504
+        assert json.loads(response.data)["error"] == "upstream took too long"

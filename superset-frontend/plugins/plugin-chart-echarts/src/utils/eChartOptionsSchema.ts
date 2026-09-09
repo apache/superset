@@ -28,6 +28,7 @@
  */
 
 import { z } from 'zod';
+import { sanitizeHtml } from '@superset-ui/core';
 
 // =============================================================================
 // Common Schemas
@@ -57,6 +58,33 @@ const fontStyleSchema = z.enum(['normal', 'italic', 'oblique']);
 /** Symbol type */
 const symbolTypeSchema = z.string();
 
+/**
+ * With the ECharts default renderMode 'html', a string tooltip formatter is
+ * assigned to the tooltip DOM element via innerHTML. ECharts formatter
+ * strings commonly rely on inline markup (e.g. '{b}<br/>{c}') for layout, so
+ * rejecting every '<' would break that supported usage; instead the value is
+ * run through the same allowlist sanitizer used for other tooltip HTML,
+ * which keeps presentational tags and strips anything else.
+ */
+const sanitizedFormatterSchema = z
+  .string()
+  .transform(value => sanitizeHtml(value));
+
+/**
+ * ECharts navigates to title.link/sublink on click, so restrict them to
+ * http(s) and same-origin relative paths.
+ */
+const safeLinkSchema = z
+  .string()
+  .refine(
+    value =>
+      /^https?:\/\//i.test(value) ||
+      (value.startsWith('/') && !value.startsWith('//')),
+    {
+      message: 'Only http(s) or same-origin relative URLs are allowed',
+    },
+  );
+
 // =============================================================================
 // Text Style Schema
 // =============================================================================
@@ -85,6 +113,23 @@ export const textStyleSchema = z.object({
 // =============================================================================
 // Style Schemas
 // =============================================================================
+
+/** Repeating tile pattern painted over a fill, e.g. hatching */
+export const decalSchema = z.object({
+  symbol: z.union([symbolTypeSchema, z.array(symbolTypeSchema)]).optional(),
+  symbolSize: z.number().optional(),
+  symbolKeepAspect: z.boolean().optional(),
+  color: colorSchema.optional(),
+  backgroundColor: colorSchema.optional(),
+  dashArrayX: z
+    .union([z.number(), z.array(z.union([z.number(), z.array(z.number())]))])
+    .optional(),
+  dashArrayY: z.union([z.number(), z.array(z.number())]).optional(),
+  /** Radians, not degrees. */
+  rotation: z.number().optional(),
+  maxTileWidth: z.number().optional(),
+  maxTileHeight: z.number().optional(),
+});
 
 export const lineStyleSchema = z.object({
   color: colorSchema.optional(),
@@ -122,6 +167,7 @@ export const itemStyleSchema = z.object({
   shadowOffsetX: z.number().optional(),
   shadowOffsetY: z.number().optional(),
   opacity: z.number().min(0).max(1).optional(),
+  decal: decalSchema.optional(),
 });
 
 // =============================================================================
@@ -168,11 +214,11 @@ export const titleSchema = z.object({
   id: z.string().optional(),
   show: z.boolean().optional(),
   text: z.string().optional(),
-  link: z.string().optional(),
+  link: safeLinkSchema.optional(),
   target: z.enum(['self', 'blank']).optional(),
   textStyle: textStyleSchema.optional(),
   subtext: z.string().optional(),
-  sublink: z.string().optional(),
+  sublink: safeLinkSchema.optional(),
   subtarget: z.enum(['self', 'blank']).optional(),
   subtextStyle: textStyleSchema.optional(),
   textAlign: z.enum(['left', 'center', 'right']).optional(),
@@ -386,7 +432,9 @@ export const tooltipSchema = z.object({
       z.array(z.union([z.number(), z.string()])),
     ])
     .optional(),
-  formatter: z.string().optional(), // Only string formatters
+  // Only string formatters: a string tooltip formatter is rendered via
+  // innerHTML (default renderMode 'html'), so it is sanitized above.
+  formatter: sanitizedFormatterSchema.optional(),
   padding: z.union([z.number(), z.array(z.number())]).optional(),
   backgroundColor: colorSchema.optional(),
   borderColor: colorSchema.optional(),
@@ -397,7 +445,9 @@ export const tooltipSchema = z.object({
   shadowOffsetX: z.number().optional(),
   shadowOffsetY: z.number().optional(),
   textStyle: textStyleSchema.optional(),
-  extraCssText: z.string().optional(),
+  // `extraCssText` is intentionally not accepted; unknown keys are
+  // stripped by the schema, so configs that still carry it keep working
+  // minus the raw CSS.
   order: z
     .enum(['seriesAsc', 'seriesDesc', 'valueAsc', 'valueDesc'])
     .optional(),
@@ -575,6 +625,9 @@ export const seriesSchema = z.object({
   polarIndex: z.number().optional(),
   geoIndex: z.number().optional(),
   calendarIndex: z.number().optional(),
+  // Per-series `tooltip` is intentionally not admitted; the schema
+  // strips unknown keys. If per-series tooltips are ever admitted, reuse
+  // tooltipSchema so the formatter sanitization applies.
   label: labelSchema.optional(),
   labelLine: z
     .object({
@@ -783,6 +836,7 @@ export type TextStyleOption = z.infer<typeof textStyleSchema>;
 export type LineStyleOption = z.infer<typeof lineStyleSchema>;
 export type AreaStyleOption = z.infer<typeof areaStyleSchema>;
 export type ItemStyleOption = z.infer<typeof itemStyleSchema>;
+export type DecalOption = z.infer<typeof decalSchema>;
 export type LabelOption = z.infer<typeof labelSchema>;
 export type TitleOption = z.infer<typeof titleSchema>;
 export type LegendOption = z.infer<typeof legendSchema>;

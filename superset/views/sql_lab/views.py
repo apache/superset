@@ -184,6 +184,12 @@ class TabStateView(BaseSupersetView):
     @has_access_api
     @expose("<int:tab_state_id>/query/<client_id>", methods=("DELETE",))
     def delete_query(self, tab_state_id: int, client_id: str) -> FlaskResponse:
+        tab_user_id = _get_tab_user_id(tab_state_id)
+        if tab_user_id is None:
+            return Response(status=404)
+        if tab_user_id != get_user_id():
+            return Response(status=403)
+
         try:
             # Before deleting the query, ensure it's not tied to any
             # active tab as the last query. If so, replace the query

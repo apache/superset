@@ -258,6 +258,14 @@ class SqlLabRestApi(BaseSupersetApi):
                                 else template_params
                             )
                             if template_params:
+                                # Check access before rendering the Jinja
+                                # template (mirrors the SQL Lab execute path).
+                                security_manager.raise_for_access(
+                                    database=database,
+                                    sql=sql,
+                                    template_params=template_params,
+                                    force_dataset_match=True,
+                                )
                                 template_processor = get_template_processor(
                                     database=database
                                 )

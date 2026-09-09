@@ -95,6 +95,7 @@ def _redact_data_model_metadata(result: InstanceInfo) -> InstanceInfo:
         title="Get instance info",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 def get_instance_info(

@@ -462,6 +462,11 @@ class Superset(BaseSupersetView):
                     g.user.id if g.user else None
                 ),
             )
+            # SQLAlchemy 2.0 removes the legacy cascade_backrefs behavior, so
+            # appending `slc` (persistent) to this new, transient dash.slices
+            # below no longer implicitly adds `dash` to the session via the
+            # Slice.dashboards backref - it must be added explicitly.
+            db.session.add(dash)
 
         if dash and slc not in dash.slices:
             dash.slices.append(slc)
@@ -682,7 +687,6 @@ class Superset(BaseSupersetView):
         return json_success(json.dumps(sanitize_datasource_data(datasource.data)))
 
     @event_logger.log_this
-    @has_access
     @expose("/language_pack/<lang>/")
     def language_pack(self, lang: str) -> FlaskResponse:
         # Only allow expected language formats like "en", "pt_BR", etc.

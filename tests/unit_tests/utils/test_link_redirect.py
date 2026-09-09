@@ -170,3 +170,21 @@ def test_safe_path_with_tab_in_internal_segment(app: Flask) -> None:
     """A tab inside a regular path segment is still a relative URL after
     stripping; it must not flip the result to safe-then-unsafe."""
     assert is_safe_redirect_url("/dashboard/1?from=tab%09inside")
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "/\\evil.com",  # slash-backslash
+        "\\/evil.com",  # backslash-slash
+        "\\\\evil.com",  # double backslash
+        "/\\/evil.com",  # slash-backslash-slash
+        "/%09/\\evil.com",  # browser-stripped TAB then slash-backslash
+        "https:/\\evil.com",  # backslash inside an absolute URL
+    ],
+)
+def test_unsafe_backslash_protocol_relative(app: Flask, url: str) -> None:
+    """WHATWG URL parsers treat backslashes as forward slashes in special
+    schemes, so any leading mix of slash and backslash is navigated as a
+    protocol-relative URL and must be rejected."""
+    assert not is_safe_redirect_url(url)

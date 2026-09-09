@@ -20,7 +20,7 @@ import { Link, useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { css } from '@apache-superset/core/theme';
-import { CardStyles } from 'src/views/CRUD/utils';
+import { CardStyles, isNavigationHandledByLink } from 'src/views/CRUD/utils';
 import {
   FaveStar,
   Icons,
@@ -35,6 +35,7 @@ import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { KebabMenuButton } from 'src/components';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 import type { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { useIsMobile } from 'src/hooks/useIsMobile';
 
 const menuItemButtonCss = css`
   appearance: none;
@@ -76,12 +77,17 @@ function DashboardCard({
   onDelete,
 }: DashboardCardProps) {
   const userId = user?.userId;
+  const isMobile = useIsMobile();
 
   const history = useHistory();
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
-  const allowEdit = isUserEditorOrAdmin(user, dashboard.editors);
+  const allowEdit = isUserEditorOrAdmin(
+    user,
+    dashboard.editors,
+    dashboard.extra_editors,
+  );
   const digest = dashboard.changed_on_utc || dashboard.changed_on;
   const thumbnailUrl =
     isFeatureEnabled(FeatureFlag.Thumbnails) && dashboard.id && digest
@@ -167,8 +173,8 @@ function DashboardCard({
 
   return (
     <CardStyles
-      onClick={() => {
-        if (!bulkSelectEnabled) {
+      onClick={event => {
+        if (!bulkSelectEnabled && !isNavigationHandledByLink(event)) {
           history.push(dashboard.url);
         }
       }}
@@ -206,10 +212,12 @@ function DashboardCard({
                 isStarred={favoriteStatus}
               />
             )}
-            <KebabMenuButton
-              menuItems={menuItems}
-              dataTest="dashboard-card-menu"
-            />
+            {!isMobile && (
+              <KebabMenuButton
+                menuItems={menuItems}
+                dataTest="dashboard-card-menu"
+              />
+            )}
           </ListViewCard.Actions>
         }
       />

@@ -434,6 +434,7 @@ class TestMapBigNumberConfig:
 
         assert form_data["adhoc_filters"][0]["subject"] == "order_date"
         assert form_data["adhoc_filters"][0]["operator"] == "TEMPORAL_RANGE"
+        assert form_data["_mcp_dashboard_time_filter_subject"] == "order_date"
         mock_find_by_id_or_uuid.assert_called_once_with("42")
 
     @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")

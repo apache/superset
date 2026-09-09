@@ -31,6 +31,8 @@ under the License.
 [![Open PRs](https://img.shields.io/github/issues-pr/apache/superset)](https://github.com/apache/superset/pulls)
 [![Get on Slack](https://img.shields.io/badge/slack-join-orange.svg)](https://bit.ly/join-superset-slack)
 [![Documentation](https://img.shields.io/badge/docs-apache.org-blue.svg)](https://superset.apache.org)
+[![Storybook](https://img.shields.io/badge/storybook-live-ff4785.svg)](https://superset-storybook.netlify.app)
+[![Bundle Analyzer](https://img.shields.io/badge/bundle%20analyzer-nightly-8dd6f9.svg)](https://superset-bundle-analyzer.netlify.app)
 
 <picture width="500">
   <source

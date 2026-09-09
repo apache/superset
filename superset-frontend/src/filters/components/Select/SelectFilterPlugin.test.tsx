@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useCallback, useState } from 'react';
 import {
   AppSection,
   Behavior,
   ChartProps,
+  type DataMask,
   type FilterState,
 } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
@@ -877,10 +879,142 @@ describe('SelectFilterPlugin', () => {
     expect(await screen.findByTitle('brand-new')).toBeInTheDocument();
   });
 
-  test('does not show create option when searchAllOptions is true', () => {
+  test('says the list is capped when it hits the row limit', async () => {
+    // 3 rows of data against a limit of 3: the user is looking at a page, not
+    // at every value the column has.
+    getWrapper({ rowLimit: 3 });
+    userEvent.click(screen.getAllByRole('combobox')[0]);
+    expect(
+      await screen.findByText(/Only the first 3 values are listed/),
+    ).toBeInTheDocument();
+  });
+
+  test('offers the ways out that the filter actually supports', async () => {
+    getWrapper({ rowLimit: 3, creatable: true, searchAllOptions: true });
+    userEvent.click(screen.getAllByRole('combobox')[0]);
+    expect(
+      await screen.findByText(/Type to search all of them/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/You can enter a value that is not listed/),
+    ).toBeInTheDocument();
+  });
+
+  test('says nothing when the whole column fits under the limit', async () => {
+    getWrapper();
+    userEvent.click(screen.getAllByRole('combobox')[0]);
+    expect(await screen.findByRole('combobox')).toBeInTheDocument();
+    expect(screen.queryByText(/Only the first/)).not.toBeInTheDocument();
+  });
+
+  test('shows create option when searchAllOptions is true', async () => {
+    // Server-side search returns a bounded page, so a value that exists in the
+    // data can still be missing from the dropdown. Suppressing the create
+    // option there leaves the user with no way to apply it at all.
     getWrapper({ creatable: true, searchAllOptions: true });
     userEvent.type(screen.getByRole('combobox'), 'brand-new');
-    expect(screen.queryByTitle('brand-new')).not.toBeInTheDocument();
+    expect(await screen.findByTitle('brand-new')).toBeInTheDocument();
+  });
+
+  // The native Value filter's "Select all" targets the whole column, so its
+  // count must stay pinned to the full option set while the user searches — no
+  // transient scoped value. This integration
+  // test uses `creatable: false`, where the plugin does not churn its `options`
+  // reference on search, so `visibleOptions` stays narrowed and the un-fixed
+  // code would leave the badge stuck at the scoped count — making the fix
+  // observable at a settled point. (The default `creatable: true` path self-
+  // corrects once the options churn fires, so its flicker is transient; the
+  // count-stability mechanism itself is covered comprehensively by the
+  // superset-ui-core Select component tests.) The default fixture only has 3
+  // rows, so this uses a >=4-value column to enable the "Select all" badge.
+  const STABLE_DATA = [
+    { gender: 'apple' },
+    { gender: 'apricot' },
+    { gender: 'banana' },
+    { gender: 'blueberry' },
+    { gender: 'cherry' },
+  ];
+
+  const renderValueFilter = (
+    overrides: Partial<PluginFilterSelectQueryFormData> = {},
+  ) => {
+    const setDataMaskMock = jest.fn();
+    const testProps = {
+      ...selectMultipleProps,
+      formData: {
+        ...selectMultipleProps.formData,
+        multiSelect: true,
+        searchAllOptions: false,
+        ...overrides,
+      },
+      queriesData: [
+        {
+          rowcount: STABLE_DATA.length,
+          colnames: ['gender'],
+          coltypes: [1],
+          data: STABLE_DATA,
+          applied_filters: [{ column: 'gender' }],
+          rejected_filters: [],
+        },
+      ],
+      filterState: { value: [] },
+    };
+    render(
+      // @ts-expect-error
+      <SelectFilterPlugin
+        // @ts-expect-error
+        {...transformProps(testProps)}
+        setDataMask={setDataMaskMock}
+        showOverflow={false}
+      />,
+      {
+        useRedux: true,
+        initialState: {
+          nativeFilters: {
+            filters: { 'test-filter': { name: 'Test Filter' } },
+          },
+          dataMask: {
+            'test-filter': {
+              extraFormData: {},
+              filterState: { value: [] },
+            },
+          },
+        },
+      },
+    );
+    return setDataMaskMock;
+  };
+
+  test('keeps "Select all" pinned to the full column while searching (creatable false)', async () => {
+    const setDataMaskMock = renderValueFilter({ creatable: false });
+    const filterSelect = screen.getAllByRole('combobox')[0];
+    userEvent.click(filterSelect);
+    // Baseline: full-column count before searching.
+    expect(await screen.findByText('Select all (5)')).toBeInTheDocument();
+
+    await userEvent.type(filterSelect, 'ap');
+    act(() => {
+      // Advance past both the plugin's SLOW_DEBOUNCE and the Select's
+      // FAST_DEBOUNCE so the option list narrows.
+      jest.advanceTimersByTime(1000);
+    });
+    // The search narrows the list (banana drops out)...
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('option', { name: /banana/i }),
+      ).not.toBeInTheDocument(),
+    );
+    // ...but the badge still reports the FULL column count, never the scoped 2.
+    expect(screen.getByText('Select all (5)')).toBeInTheDocument();
+    expect(screen.queryByText('Select all (2)')).not.toBeInTheDocument();
+
+    // Clicking "Select all" selects the entire column, not the search subset.
+    userEvent.click(screen.getByText('Select all (5)'));
+    await waitFor(() => {
+      const lastValue =
+        setDataMaskMock.mock.calls.at(-1)?.[0]?.filterState?.value;
+      expect(lastValue).toHaveLength(STABLE_DATA.length);
+    });
   });
 });
 
@@ -1391,6 +1525,153 @@ test('preserves dependent filter value restored from URL when it exists in data'
       }),
     );
   });
+});
+
+test('keeps a dependent filter empty after the user clears it', async () => {
+  // Regression: a dependent filter with "Select first filter value by default"
+  // used to re-apply the first option as soon as the cleared value round-tripped
+  // through the filter bar, making it impossible to clear.
+  jest.useRealTimers();
+  const setDataMaskMock = jest.fn();
+  const testProps = {
+    ...selectMultipleProps,
+    formData: {
+      ...selectMultipleProps.formData,
+      multiSelect: false,
+      enableEmptyFilter: false,
+      defaultToFirstItem: true,
+      // Non-empty extraFormData is what marks this filter as dependent
+      extraFormData: {
+        filters: [{ col: 'region', op: 'IN', val: ['North America'] }],
+      },
+    },
+  };
+
+  // The filter bar feeds every dispatched dataMask back into the plugin as the
+  // controlled `filterState` prop; the harness reproduces that round-trip.
+  const ControlledSelectFilter = () => {
+    const [filterState, setFilterState] = useState<FilterState>({
+      value: ['boy'],
+    });
+    const handleDataMask = useCallback((dataMask: DataMask) => {
+      setDataMaskMock(dataMask);
+      setFilterState(prev => ({ ...prev, ...dataMask.filterState }));
+    }, []);
+    return (
+      // @ts-expect-error
+      <SelectFilterPlugin
+        // @ts-expect-error
+        {...transformProps({ ...testProps, filterState })}
+        setDataMask={handleDataMask}
+        showOverflow={false}
+      />
+    );
+  };
+
+  render(<ControlledSelectFilter />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: {
+          'test-filter': {
+            name: 'Test Filter',
+          },
+        },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {},
+          filterState: { value: ['boy'] },
+        },
+      },
+    },
+  });
+
+  userEvent.click(
+    screen.getByRole('img', {
+      name: /close-circle/i,
+      hidden: true,
+    }),
+  );
+
+  await waitFor(() =>
+    expect(setDataMaskMock).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        extraFormData: {},
+        filterState: expect.objectContaining({ value: null }),
+      }),
+    ),
+  );
+
+  // Let the re-validation effects settle: the value must not come back
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(setDataMaskMock).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      filterState: expect.objectContaining({ value: null }),
+    }),
+  );
+  expect(screen.queryByTitle('boy')).not.toBeInTheDocument();
+});
+
+test('keeps a dependent filter empty when it mounts with a cleared value', async () => {
+  // Regression: after a reload the cleared state comes back as `value: null` on
+  // a fresh component, so the in-memory "user cleared this" ref is gone. The
+  // first item must still not be re-applied.
+  const setDataMaskMock = jest.fn();
+  const testProps = {
+    ...selectMultipleProps,
+    formData: {
+      ...selectMultipleProps.formData,
+      multiSelect: false,
+      enableEmptyFilter: false,
+      defaultToFirstItem: true,
+      extraFormData: {
+        filters: [{ col: 'region', op: 'IN', val: ['North America'] }],
+      },
+    },
+    filterState: { value: null },
+  };
+
+  render(
+    // @ts-expect-error
+    <SelectFilterPlugin
+      // @ts-expect-error
+      {...transformProps(testProps)}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'test-filter': {
+              name: 'Test Filter',
+            },
+          },
+        },
+        dataMask: {
+          'test-filter': {
+            extraFormData: {},
+            filterState: { value: null },
+          },
+        },
+      },
+    },
+  );
+
+  // Let the re-validation effect run before asserting it did nothing
+  await act(async () => {
+    await Promise.resolve();
+  });
+  expect(setDataMaskMock).toHaveBeenCalled();
+  expect(setDataMaskMock).not.toHaveBeenCalledWith(
+    expect.objectContaining({
+      filterState: expect.objectContaining({ value: ['boy'] }),
+    }),
+  );
 });
 
 test('resets dependent filter to first item when value does not exist in data', async () => {

@@ -26,6 +26,9 @@ env:
   GITHUB_REPO: ${{ github.event.repository.name }}
   GITHUB_ACTOR: ${{ github.actor }}
 
+permissions:
+  contents: read
+
 jobs:
   sync:
     name: 🎪 Sync PR to desired state

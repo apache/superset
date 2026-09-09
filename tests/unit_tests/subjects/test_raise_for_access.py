@@ -31,6 +31,19 @@ def _make_sm():
     return SupersetSecurityManager.__new__(SupersetSecurityManager)
 
 
+def _make_slice(
+    *,
+    datasource_type: str = "table",
+    datasource_id: int = 1,
+    resolved_datasource=None,
+):
+    slc = MagicMock()
+    slc.datasource_type = datasource_type
+    slc.datasource_id = datasource_id
+    slc.resolved_datasource = resolved_datasource
+    return slc
+
+
 def _make_dashboard(
     *,
     published: bool = True,
@@ -44,9 +57,12 @@ def _make_dashboard(
     else:
         dashboard.viewers = []
     if has_datasources:
-        dashboard.datasources = [MagicMock()]
+        datasource = MagicMock()
+        dashboard.datasources = [datasource]
+        dashboard.slices = [_make_slice(resolved_datasource=datasource)]
     else:
         dashboard.datasources = []
+        dashboard.slices = []
     return dashboard
 
 
@@ -120,8 +136,8 @@ def test_raise_for_access_no_viewers_dataset_fallback(app_context):
         sm.raise_for_access(dashboard=dashboard)
 
 
-def test_raise_for_access_no_viewers_no_datasources_allows(app_context):
-    """Dashboard with no viewers and no datasources is allowed."""
+def test_raise_for_access_no_viewers_no_charts_allows(app_context):
+    """Dashboard with no viewers and no member charts is allowed."""
     sm = _make_sm()
     dashboard = _make_dashboard(
         published=True, has_viewers=False, has_datasources=False

@@ -328,6 +328,12 @@ Conditional formatting rules highlight cells based on their values. Rules can be
 
 Each rule has a **"Use gradient"** toggle: enabled applies a varying opacity (lighter = further from threshold), disabled applies a solid fill at full opacity regardless of value.
 
+For numeric rules, the optional **"Min bound"** / **"Max bound"** fields let you override the auto-detected color range with fixed values instead of relying on the minimum/maximum found in the data — useful when you want consistent coloring across dashboards or data refreshes.
+
+Set **"Bound unit"** to **"% of column"** to express the bounds as percentages of either the column maximum or **"Column sum"**, which adds the absolute values in the column so positive and negative values do not cancel into an unstable denominator. A non-positive maximum or zero sum falls back to the automatic data range. A percentage center based on **"Column sum"** must still resolve inside the color range to activate diverging colors. This option is unavailable with server pagination because the browser only receives one page of rows and cannot calculate a stable full-column denominator; existing percentage rules also use the automatic range while server pagination is enabled.
+
+For a diverging scale, set a **"Center value"** together with **"Low color"**, **"Mid color"**, and **"High color"**. Values below and above the center interpolate toward the corresponding endpoint color. Turning off **"Use gradient"** disables this interpolation and applies the base color as a solid fill.
+
 Each rule's color is set with a full color picker rather than a fixed dropdown of presets. Pick any custom color, or use the **Colors** preset swatches, which reference theme tokens (success, warning, error, and their background variants) so a rule's color updates automatically if the active theme changes, including switching between light and dark mode.
 
 When a rule targets a column with an active time comparison, a **Trend colors** preset also appears, letting you color cells green for an increase and red for a decrease (or the reverse).
@@ -373,6 +379,15 @@ AG Grid supports server-side column filters that query the full dataset — not 
 
 AG Grid Interactive Table supports **Time Shift** (time comparison), matching the behavior of the standard Table chart. In the **Advanced Analytics** → **Time Comparison** section of the chart configuration, enter a shift expression (e.g., `1 year ago`, `minus 7 days`) to add comparison columns showing values from the offset period. Dashboard-level time range overrides apply to both the base and comparison periods.
 
+#### Show Summary
+
+The **Show summary** checkbox lives at the top of the **Visual formatting** section in the **Customize** tab, for both **Aggregate** and **Raw Records** query modes. Enabling it pins a summary row to the bottom of the grid whenever there is something to summarize: at least one metric in **Aggregate** mode, or at least one eligible numeric column in **Raw Records** mode. Otherwise no summary row is added.
+
+- In **Aggregate** mode, the summary row applies each metric's own aggregation (or the **Summary aggregation** override, where available) across the full filtered dataset.
+- In **Raw Records** mode, the summary row defaults to a server-side `SUM` for each numeric column that's backed by a physical or calculated dataset column; the **Summary aggregation** control can override this to `AVG` as well. Non-numeric cells and columns built from free-form SQL expressions stay blank.
+
+In both modes, the summary is computed across the full result set, independent of the chart's row limit and pagination, and it reflects dashboard and chart-level filters. It does not reflect AG Grid's own server-side column filters (the per-column filter UI in the grid header), which are excluded from the summary query.
+
 ### Dynamic Currency Formatting
 
 Chart metric values can display currencies dynamically rather than using a fixed currency code. To enable:
@@ -405,6 +420,18 @@ ECharts option overrides bypass Superset's validation layer. Invalid option keys
 ### Table Chart: Exporting Filtered Data
 
 When the **Search Box** is visible in a Table chart, the **Download** action exports only the rows currently visible after the search filter is applied — not the full underlying dataset. This matches the visual output and is intentional. To export the full dataset regardless of search state, use the **Download as CSV** option from the chart's three-dot menu in the dashboard or from the Explore chart toolbar before applying a search filter.
+
+### Exporting a Chart as an Image or PDF
+
+Alongside the raw-data export options (CSV, JSON, Excel), a chart's three-dot menu — in a dashboard or from the Explore chart toolbar — offers a few ways to export a visual snapshot of the chart:
+
+- **Export screenshot (jpeg)** — a single-click JPEG screenshot of the chart.
+- **Export screenshot (png)** — opens a submenu with **Transparent background** and **Solid background** options. The solid option uses the current theme's background color. PNG produces a higher-quality image than the JPEG export.
+- **Export as PDF** — downloads the chart as a PDF file.
+
+The dropdown menu is briefly hidden while the screenshot or PDF is being captured so it doesn't appear in the exported file. In Explore, these image and PDF options are available from the **Export All Data** submenu, and also from the **Export current view** submenu when the chart type supports current-view export.
+
+These menu items respect your permissions: the dashboard export menu only appears if you can download, and the image/PDF options are disabled if you lack image-export permission.
 
 ### Sharing a Specific Tab
 

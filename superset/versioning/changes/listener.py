@@ -50,6 +50,7 @@ from sqlalchemy import event
 from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import Session, SessionTransaction
 
+from superset.versioning.changes.normalization import NORMALIZATION_CONTEXT_KEY
 from superset.versioning.changes.shadow_queries import (
     _dashboard_child_records_for_tx_from_shadows,
     _dataset_child_records_for_tx_from_shadows,
@@ -217,6 +218,7 @@ def _reset_transaction_state(session: Session) -> None:
     session.info.pop(ACTION_META_KEY, None)
     session.info.pop(_INITIAL_STATES_KEY, None)
     session.info.pop(_FINALIZING_KEY, None)
+    session.info.pop(NORMALIZATION_CONTEXT_KEY, None)
 
 
 def _reset_after_outer_transaction(

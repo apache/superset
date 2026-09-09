@@ -243,6 +243,47 @@ test('Theme.toggleDarkMode preserves other algorithms when toggling dark mode', 
   expect(serialized.algorithm).not.toContain(ThemeAlgorithm.DARK);
 });
 
+test('Theme.toggleDarkMode is a no-op when the requested mode is already active', () => {
+  // Pages with many live component demos (see docs/src/components/
+  // StorybookWrapper.jsx's ThemeSync) mount one dark-mode-sync bridge per
+  // demo, so a single toggle event can call toggleDarkMode once per demo
+  // with the same isDark value. Only the first of those calls should
+  // actually recompute the theme and fan out to providers.
+  const theme = Theme.fromConfig();
+  const setConfigSpy = jest.spyOn(theme, 'setConfig');
+
+  theme.toggleDarkMode(true);
+  expect(setConfigSpy).toHaveBeenCalledTimes(1);
+
+  // Repeating the same toggle should not recompute the theme again.
+  theme.toggleDarkMode(true);
+  theme.toggleDarkMode(true);
+  expect(setConfigSpy).toHaveBeenCalledTimes(1);
+
+  // Toggling to the other mode should still go through.
+  theme.toggleDarkMode(false);
+  expect(setConfigSpy).toHaveBeenCalledTimes(2);
+
+  setConfigSpy.mockRestore();
+});
+
+test('Theme.toggleDarkMode no-op check accounts for other algorithms in the array', () => {
+  // Start already in dark mode alongside a non-mode algorithm (compact).
+  const theme = Theme.fromConfig({
+    algorithm: [
+      antdThemeImport.compactAlgorithm,
+      antdThemeImport.darkAlgorithm,
+    ],
+  });
+  const setConfigSpy = jest.spyOn(theme, 'setConfig');
+
+  // Already dark, so this should be a no-op rather than reordering the array.
+  theme.toggleDarkMode(true);
+  expect(setConfigSpy).not.toHaveBeenCalled();
+
+  setConfigSpy.mockRestore();
+});
+
 test('Theme.toSerializedConfig serializes theme config correctly', () => {
   const theme = Theme.fromConfig({
     token: {

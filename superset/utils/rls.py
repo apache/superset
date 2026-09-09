@@ -17,16 +17,39 @@
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any, TYPE_CHECKING
 
 from sqlalchemy import and_, or_
 
-from superset import db
+from superset import db, security_manager
 from superset.sql.parse import Table
+from superset.utils import json
+from superset.utils.core import get_user_id
 
 if TYPE_CHECKING:
     from superset.models.core import Database
     from superset.sql.parse import BaseSQLStatement
+
+
+def _get_cache_identity() -> str:
+    """
+    Build a stable per-session identity to key the parse-failure sentinel on.
+
+    Logged-in users have a stable numeric id from ``get_user_id()``. Guest
+    users (embedded) don't -- ``get_user_id()`` always returns ``None`` for
+    them -- so different guest tokens with different RLS scopes would
+    otherwise all collapse onto the same "user-None" sentinel and share cache
+    entries. Key those on a hash of the guest token's own RLS rules instead,
+    so distinct guest scopes stay isolated from one another.
+    """
+    if guest_user := security_manager.get_current_guest_user_if_guest():
+        rls_rules = guest_user.guest_token.get("rls_rules", [])
+        digest = hashlib.sha256(
+            json.dumps(rls_rules, sort_keys=True).encode("utf-8")
+        ).hexdigest()
+        return f"guest-{digest}"
+    return str(get_user_id())
 
 
 def apply_rls(
@@ -204,6 +227,12 @@ def collect_rls_predicates_for_sql(
             }
         )
     except Exception:
-        # If we can't parse the SQL, return empty list
-        # This ensures RLS application failure doesn't break caching
-        return []
+        # If we can't parse the SQL, we can't tell which (if any) RLS
+        # predicates would apply, so we can't contribute a meaningful cache
+        # key component. Returning an empty list here would make every
+        # user's failure collapse onto the same (missing) contribution,
+        # which is unsafe when different users have different RLS scopes on
+        # the underlying tables. Fall back to a per-user marker instead, so
+        # the cache key still varies by user even though we don't know the
+        # actual predicates.
+        return [f"rls-predicate-parse-failed-for-user-{_get_cache_identity()}"]
