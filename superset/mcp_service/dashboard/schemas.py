@@ -2450,3 +2450,147 @@ class RestoreDashboardResponse(BaseModel):
             "not retry; ask the user)."
         ),
     )
+
+
+class GetDashboardDataRequest(BaseModel):
+    """Request schema for get_dashboard_data."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    identifier: int | str = Field(
+        ...,
+        description="Dashboard identifier - numeric ID, UUID string, or slug.",
+        validation_alias=AliasChoices("identifier", "id", "dashboard_id"),
+    )
+    applied_filters: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Active dashboard filters to apply, keyed by chart id. Each value is "
+            "extra_form_data merged into that chart's query, e.g. "
+            '{"56": {"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}}. '
+            "Charts without an entry are queried unfiltered."
+        ),
+    )
+    max_charts: int = Field(
+        default=15,
+        ge=1,
+        le=30,
+        description=(
+            "Maximum number of charts to fetch data for, selected in dashboard "
+            "layout (reading) order so the most prominent charts are covered "
+            "first. If the dashboard has more, the response is truncated and "
+            "charts_truncated is set."
+        ),
+    )
+    fetch_row_limit: int = Field(
+        default=100,
+        ge=1,
+        le=1000,
+        description=(
+            "Rows to query per chart. Only sample_rows of these are returned "
+            "per chart; total_rows reports the full count when the fetch was not "
+            "capped, and the per-chart truncated flag marks a capped fetch."
+        ),
+    )
+    sample_rows: int = Field(
+        default=10,
+        ge=0,
+        le=20,
+        description="Number of example data rows to include per chart.",
+    )
+    time_budget_seconds: float = Field(
+        default=25.0,
+        gt=0,
+        le=60,
+        description=(
+            "Soft wall-clock budget for fetching charts. When reached, returns "
+            "the charts gathered so far (in layout order) and sets "
+            "charts_truncated; at least one chart is always attempted."
+        ),
+    )
+
+    @field_validator("identifier", mode="before")
+    @classmethod
+    def reject_bool_identifier(cls, value: object) -> object:
+        """bool is a subclass of int, so identifier=true would coerce to
+        dashboard ID 1 and target the wrong object; reject it outright."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or UUID string")
+        return value
+
+
+class DashboardChartQueryData(BaseModel):
+    """One query layer's data for a multi-query chart (e.g. Mixed Timeseries)."""
+
+    query_index: int = Field(..., description="Zero-based query position")
+    columns: list[str] = Field(default_factory=list, description="Result column names")
+    sample_data: list[dict[str, Any]] = Field(
+        default_factory=list, description="A few example data rows"
+    )
+    row_count: int | None = Field(None, description="Rows returned by this query")
+    total_rows: int | None = Field(
+        None, description="Total rows available for this query when known"
+    )
+    truncated: bool = Field(
+        False, description="True when this query returned fewer than the total"
+    )
+
+
+class DashboardChartData(BaseModel):
+    """Compact per-chart data summary for a dashboard-wide insights payload."""
+
+    chart_id: int = Field(..., description="Chart id")
+    chart_name: str = Field(..., description="Chart name")
+    chart_type: str = Field(..., description="Chart viz type")
+    columns: list[str] = Field(default_factory=list, description="Result column names")
+    sample_data: list[dict[str, Any]] = Field(
+        default_factory=list, description="A few example data rows"
+    )
+    row_count: int | None = Field(None, description="Rows returned by the query")
+    total_rows: int | None = Field(
+        None,
+        description=(
+            "Total rows available when known; null when the fetch was capped with "
+            "no authoritative total (see truncated)"
+        ),
+    )
+    truncated: bool = Field(
+        False,
+        description="True when fewer rows were returned than the total available",
+    )
+    queries: list[DashboardChartQueryData] | None = Field(
+        None,
+        description="Per-query layers for multi-query charts; null for single-query",
+    )
+    filtered: bool = Field(
+        False, description="Whether active filters were applied to this chart"
+    )
+    error: str | None = Field(
+        None, description="Set when this chart's data could not be retrieved"
+    )
+
+
+class DashboardData(BaseModel):
+    """Bounded, filter-aware data across a dashboard's charts.
+
+    Assembles a compact view of each chart's underlying data (columns, a few
+    sample rows, and row counts), selected in dashboard layout order, so an
+    agent can answer analytical questions about the whole dashboard from a
+    single call, instead of fetching each chart separately.
+    """
+
+    dashboard_id: int = Field(..., description="Dashboard id")
+    dashboard_name: str = Field(..., description="Dashboard title")
+    chart_count: int = Field(..., description="Total number of charts on the dashboard")
+    charts_returned: int = Field(
+        ..., description="Number of charts included in this response"
+    )
+    charts_truncated: bool = Field(
+        False,
+        description="True when the dashboard has more charts than max_charts",
+    )
+    charts: list[DashboardChartData] = Field(
+        default_factory=list, description="Per-chart data summaries"
+    )
+    schema_version: str = Field("1.0", description="Response schema version")
+    api_version: str = Field("v1", description="MCP API version")
