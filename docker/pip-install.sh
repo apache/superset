@@ -19,6 +19,7 @@ set -euo pipefail
 
 # Default flag
 REQUIRES_BUILD_ESSENTIAL=false
+BUILD_ESSENTIAL_INSTALLED_BY_SCRIPT=false
 USE_CACHE=true
 
 # Filter arguments
@@ -39,9 +40,15 @@ done
 
 # Install build-essential if required
 if ${REQUIRES_BUILD_ESSENTIAL}; then
-  echo "Installing build-essential for package builds..."
-  apt-get update -qq \
-    && apt-get install -yqq --no-install-recommends build-essential
+  if dpkg-query -W -f='${Status}' build-essential 2>/dev/null \
+    | grep -q "ok installed"; then
+    echo "Using pre-installed build-essential for package builds..."
+  else
+    echo "Installing build-essential for package builds..."
+    apt-get update -qq \
+      && apt-get install -yqq --no-install-recommends build-essential
+    BUILD_ESSENTIAL_INSTALLED_BY_SCRIPT=true
+  fi
 fi
 
 # Choose whether to use pip cache
@@ -53,8 +60,8 @@ else
   uv pip install --no-cache-dir "${ARGS[@]}"
 fi
 
-# Remove build-essential if it was installed
-if ${REQUIRES_BUILD_ESSENTIAL}; then
+# Remove build-essential only when this script installed it.
+if ${BUILD_ESSENTIAL_INSTALLED_BY_SCRIPT}; then
   echo "Removing build-essential to keep the image lean..."
   apt-get autoremove -yqq --purge build-essential \
     && apt-get clean \

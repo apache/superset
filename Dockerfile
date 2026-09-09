@@ -267,6 +267,12 @@ EXPOSE ${SUPERSET_PORT}
 ######################################################################
 FROM python-common AS lean
 
+# Debian libs needed to build mysqlclient from local requirements.
+RUN /app/docker/apt-install.sh \
+    build-essential \
+    pkg-config \
+    default-libmysqlclient-dev
+
 # Install Python dependencies using docker/pip-install.sh
 COPY requirements/base.txt requirements/
 
@@ -289,6 +295,7 @@ FROM python-common AS dev
 
 # Debian libs needed for dev
 RUN /app/docker/apt-install.sh \
+    build-essential \
     git \
     pkg-config \
     default-libmysqlclient-dev

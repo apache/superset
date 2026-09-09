@@ -296,15 +296,31 @@ Superset uses Flask-Babel for internationalization.
 
 ### Enabling language selection
 
-Edit `superset_config.py`:
+Define the supported language packs in `superset_config.py`, then configure the
+enabled languages with the comma-separated `SUPERSET_LANGUAGES` environment
+variable. Unknown language codes are ignored; if no supported code remains,
+Superset falls back to English.
 
 ```python
-LANGUAGES = {
+import os
+
+SUPPORTED_LANGUAGES = {
     'en': {'flag': 'us', 'name': 'English'},
     'fr': {'flag': 'fr', 'name': 'French'},
     'zh': {'flag': 'cn', 'name': 'Chinese'},
 }
+
+language_codes = os.getenv('SUPERSET_LANGUAGES', 'en,zh').split(',')
+LANGUAGES = {
+    code.strip(): SUPPORTED_LANGUAGES[code.strip()]
+    for code in language_codes
+    if code.strip() in SUPPORTED_LANGUAGES
+} or {'en': SUPPORTED_LANGUAGES['en']}
 ```
+
+For example, set `SUPERSET_LANGUAGES=en,zh` to show English and Simplified
+Chinese in the language picker, or `SUPERSET_LANGUAGES=zh` to allow only
+Simplified Chinese.
 
 ### Creating a new language dictionary
 

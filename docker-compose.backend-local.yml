@@ -1,0 +1,46 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+services:
+  superset:
+    profiles:
+      - backend-in-docker
+
+  superset-init:
+    profiles:
+      - backend-in-docker
+
+  superset-node:
+    environment:
+      superset: "http://host.docker.internal:8088"
+    ports: !override
+      - "127.0.0.1:9000:9000"
+    volumes:
+      # Keep Linux dependencies outside the Windows source bind mount.
+      - superset_frontend_node_modules:/app/superset-frontend/node_modules
+
+  superset-worker:
+    profiles:
+      - backend-in-docker
+
+  superset-worker-beat:
+    profiles:
+      - backend-in-docker
+
+volumes:
+  superset_frontend_node_modules:
+    external: false

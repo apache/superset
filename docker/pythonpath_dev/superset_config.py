@@ -42,11 +42,15 @@ EXAMPLES_HOST = os.getenv("EXAMPLES_HOST")
 EXAMPLES_PORT = os.getenv("EXAMPLES_PORT")
 EXAMPLES_DB = os.getenv("EXAMPLES_DB")
 
-# The SQLAlchemy connection string.
-SQLALCHEMY_DATABASE_URI = (
-    f"{DATABASE_DIALECT}://"
-    f"{DATABASE_USER}:{DATABASE_PASSWORD}@"
-    f"{DATABASE_HOST}:{DATABASE_PORT}/{DATABASE_DB}"
+# The SQLAlchemy connection string. An explicit URI takes precedence so local
+# development can use SQLite without populating database component variables.
+SQLALCHEMY_DATABASE_URI = os.getenv(
+    "SQLALCHEMY_DATABASE_URI",
+    (
+        f"{DATABASE_DIALECT}://"
+        f"{DATABASE_USER}:{DATABASE_PASSWORD}@"
+        f"{DATABASE_HOST}:{DATABASE_PORT}/{DATABASE_DB}"
+    ),
 )
 
 # Use environment variable if set, otherwise construct from components
@@ -65,6 +69,30 @@ REDIS_HOST = os.getenv("REDIS_HOST", "redis")
 REDIS_PORT = os.getenv("REDIS_PORT", "6379")
 REDIS_CELERY_DB = os.getenv("REDIS_CELERY_DB", "0")
 REDIS_RESULTS_DB = os.getenv("REDIS_RESULTS_DB", "1")
+
+SUPPORTED_LANGUAGES = {
+    "en": {"flag": "us", "name": "English"},
+    "zh": {"flag": "cn", "name": "简体中文"},
+}
+
+
+def get_enabled_languages() -> dict[str, dict[str, str]]:
+    """Return the configured UI languages, falling back to English."""
+
+    language_codes = [
+        code.strip()
+        for code in os.getenv("SUPERSET_LANGUAGES", "en,zh").split(",")
+        if code.strip()
+    ]
+    languages = {
+        code: SUPPORTED_LANGUAGES[code]
+        for code in language_codes
+        if code in SUPPORTED_LANGUAGES
+    }
+    return languages or {"en": SUPPORTED_LANGUAGES["en"]}
+
+
+LANGUAGES = get_enabled_languages()
 
 RESULTS_BACKEND = FileSystemCache("/app/superset_home/sqllab")
 
