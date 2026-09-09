@@ -265,15 +265,13 @@ export default function transformProps(
       : Math.ceil(comparisonFontSizeValue);
   const titleRowHeight = titleFontSizePx * 1.2;
   const bigNumberRowHeight = bigNumberFontSizePx * 1.2;
-  const bigNumberTopConfigured = bigNumberTop !== DEFAULT_BIG_NUMBER_TOP;
+  // bigNumberTop and comparisonTop are gaps: from the title to the big
+  // number, and from the big number to the comparison rows respectively.
   const effectiveBigNumberTop = hasTitle
-    ? bigNumberTopConfigured
-      ? Math.max(bigNumberTop, titleTop + titleRowHeight + 6)
-      : titleTop + titleRowHeight + 6
+    ? titleTop + titleRowHeight + bigNumberTop
     : titleTop;
-  const effectiveComparisonTop = hasTitle
-    ? Math.max(comparisonTop, effectiveBigNumberTop + bigNumberRowHeight + 5)
-    : effectiveBigNumberTop + bigNumberRowHeight + 5;
+  const effectiveComparisonTop =
+    effectiveBigNumberTop + bigNumberRowHeight + comparisonTop;
 
   if (headerText) {
     graphic.push({

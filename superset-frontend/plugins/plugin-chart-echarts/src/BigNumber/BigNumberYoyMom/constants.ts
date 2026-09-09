@@ -35,7 +35,7 @@ export const DEFAULT_TITLE_TOP = 20;
 export const DEFAULT_BIG_NUMBER_FONT_SIZE = 0.4;
 export const DEFAULT_BIG_NUMBER_COLOR = { r: 51, g: 51, b: 51 }; // #333
 export const DEFAULT_BIG_NUMBER_LEFT = 20;
-export const DEFAULT_BIG_NUMBER_TOP = 50;
+export const DEFAULT_BIG_NUMBER_TOP = 6;
 
 export const DEFAULT_COMPARISON1_LABEL = 'MoM';
 export const DEFAULT_COMPARISON1_OFFSET = '1 month ago';
@@ -46,7 +46,7 @@ export const DEFAULT_COMPARISON2_OFFSET = '1 year ago';
 export const DEFAULT_COMPARISON2_LEFT = 120;
 
 export const DEFAULT_COMPARISON_FONT_SIZE = 0.15;
-export const DEFAULT_COMPARISON_TOP = 95;
+export const DEFAULT_COMPARISON_TOP = 5;
 
 export const DEFAULT_COMPARISON_POSITIVE_COLOR = { r: 0, g: 180, b: 42 }; // #00b42a
 export const DEFAULT_COMPARISON_NEGATIVE_COLOR = { r: 245, g: 63, b: 63 }; // #f53f3f

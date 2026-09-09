@@ -223,15 +223,16 @@ describe('BigNumberYoyMom transformProps', () => {
     expect(bigNumber.style.fontSize).toBe(44);
     expect(bigNumber.style.fill).toBe('rgb(10, 20, 30)');
     expect(bigNumber.left).toBe(50);
-    expect(bigNumber.top).toBe(80);
+    // bigNumberTop is the gap below the title: 40 + 18*1.2 + 80 = 141.6
+    expect(bigNumber.top).toBe(141.6);
 
     // zero percent change renders without an arrow, in the zero color
     expect(mom.style.text).toBe('MoM 0.00%');
     expect(mom.style.fill).toBe('rgb(200, 200, 200)');
     expect(mom.style.fontSize).toBe(16);
     expect(mom.left).toBe(60);
-    // comparison follows the number's bottom: 80 + 44 * 1.2 + 5 = 137.8
-    expect(mom.top).toBe(137.8);
+    // comparisonTop is the gap below the big number: 141.6 + 44*1.2 + 120 = 314.4
+    expect(mom.top).toBe(314.4);
   });
 
   test('hides title when header text is empty', () => {
@@ -317,7 +318,7 @@ describe('BigNumberYoyMom transformProps', () => {
     expect(graphic[1].top).toBe(74);
   });
 
-  test('keeps the configured comparison top as a lower bound with a title', () => {
+  test('uses the configured comparison gap below the big number', () => {
     const result = transformProps(
       buildChartProps(
         [
@@ -331,9 +332,9 @@ describe('BigNumberYoyMom transformProps', () => {
     );
     const graphic = result.echartOptions.graphic as Record<string, any>[];
     // graphic[0]=title, graphic[1]=big number (20+54+6=80), graphic[2]=MoM line.
-    // 80 + 80 * 1.2 + 5 = 181 > configured 120 → comparison follows the number
+    // comparison sits exactly 120px below the number: 80 + 80*1.2 + 120 = 296
     expect(graphic[1].top).toBe(80);
-    expect(graphic[2].top).toBe(181);
+    expect(graphic[2].top).toBe(296);
   });
 
   test('shows placeholders when there is no data', () => {
