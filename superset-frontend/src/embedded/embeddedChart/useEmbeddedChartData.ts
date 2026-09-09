@@ -40,7 +40,7 @@ interface State {
  * one fixed chart instead of assembling a payload from request-supplied form
  * data, which keeps the guest's reachable surface to what the embed needs.
  */
-export default function useExploreData(chartId: string | number): State {
+export default function useEmbeddedChartData(chartId: string | number): State {
   const [state, setState] = useState<State>({
     data: null,
     loading: true,

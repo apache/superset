@@ -25,7 +25,7 @@ import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import Chart from 'src/dashboard/components/gridComponents/Chart';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { setDatasources } from 'src/dashboard/actions/datasources';
-import useExploreData from './useExploreData';
+import useEmbeddedChartData from './useEmbeddedChartData';
 import hydrateEmbedded from './hydrateEmbedded';
 
 /**
@@ -98,7 +98,7 @@ const useContainerSize = (
 
 export default function EmbeddedChart({ chartId }: { chartId: string }) {
   const dispatch = useDispatch();
-  const { data, loading, error } = useExploreData(chartId);
+  const { data, loading, error } = useEmbeddedChartData(chartId);
   const [hydrated, setHydrated] = useState(false);
   const [isFullSize, setIsFullSize] = useState(false);
   const holderRef = useRef<HTMLDivElement>(null);
