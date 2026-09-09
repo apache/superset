@@ -158,9 +158,7 @@ def columns_from_form_data(form_data: dict[str, Any]) -> list[Any]:
     if form_data.get("query_mode") == "raw" and (
         form_data.get("all_columns") or form_data.get("columns")
     ):
-        return _as_column_list(
-            form_data.get("all_columns") or form_data.get("columns")
-        )
+        return _as_column_list(form_data.get("all_columns") or form_data.get("columns"))
 
     groupby_columns: list[Any] = _as_column_list(form_data.get("groupby"))
     raw_columns: list[Any] = _as_column_list(form_data.get("columns"))
