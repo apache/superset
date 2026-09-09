@@ -484,7 +484,12 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     function getValueRange(key: string, alignPositiveNegative: boolean) {
       const nums = data
         ?.map(row => row?.[key])
-        .filter(value => typeof value === 'number') as number[];
+        .filter(
+          value => typeof value === 'number' || typeof value === 'bigint',
+        )
+        .map(value =>
+          typeof value === 'bigint' ? Number(value) : value,
+        ) as number[];
       if (nums.length > 0) {
         return (
           alignPositiveNegative
@@ -1180,23 +1185,23 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             top: 0;
             ${
               valueRange &&
-              typeof value === 'number' &&
+              (typeof value === 'number' || typeof value === 'bigint') &&
               valueRangeFlag &&
               `
                 width: ${`${cellWidth({
-                  value: value as number,
+                  value: Number(value),
                   valueRange,
                   alignPositiveNegative,
                 })}%`};
                 left: ${`${cellOffset({
-                  value: value as number,
+                  value: Number(value),
                   valueRange,
                   alignPositiveNegative,
                 })}%`};
                 background-color: ${
                   backgroundColorCellBar ||
                   cellBackground({
-                    value: value as number,
+                    value: Number(value),
                     colorPositiveNegative,
                     theme,
                   })

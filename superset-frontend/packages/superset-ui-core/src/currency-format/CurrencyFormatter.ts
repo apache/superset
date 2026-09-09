@@ -42,7 +42,7 @@ interface CurrencyFormatterConfig {
 
 interface CurrencyFormatter {
   (
-    value: number | null | undefined,
+    value: number | bigint | null | undefined,
     rowData?: RowData,
     currencyColumn?: string,
   ): string;
@@ -90,8 +90,12 @@ class CurrencyFormatter extends ExtensibleFunction {
   currency: Currency;
 
   constructor(config: CurrencyFormatterConfig) {
-    super((value: number, rowData?: RowData, currencyColumn?: string) =>
-      this.format(value, rowData, currencyColumn),
+    super(
+      (
+        value: number | bigint | null | undefined,
+        rowData?: RowData,
+        currencyColumn?: string,
+      ) => this.format(value, rowData, currencyColumn),
     );
     this.d3Format = config.d3Format || NumberFormats.SMART_NUMBER;
     this.currency = config.currency;
@@ -110,7 +114,11 @@ class CurrencyFormatter extends ExtensibleFunction {
     return value.replace(/%/g, '');
   }
 
-  format(value: number, rowData?: RowData, currencyColumn?: string): string {
+  format(
+    value: number | bigint | null | undefined,
+    rowData?: RowData,
+    currencyColumn?: string,
+  ): string {
     const formattedValue = getNumberFormatter(this.getNormalizedD3Format())(
       value,
     );

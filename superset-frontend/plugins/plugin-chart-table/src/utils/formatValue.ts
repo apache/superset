@@ -52,9 +52,12 @@ function formatValue(
   if (formatter) {
     // If formatter is a CurrencyFormatter, pass row context for AUTO mode
     if (formatter instanceof CurrencyFormatter) {
-      return [false, formatter(value as number, rowData, currencyColumn)];
+      return [
+        false,
+        formatter(value as number | bigint, rowData, currencyColumn),
+      ];
     }
-    return [false, formatter(value as number)];
+    return [false, formatter(value as number | bigint)];
   }
   if (typeof value === 'string') {
     return isProbablyHTML(value) ? [true, sanitizeHtml(value)] : [false, value];

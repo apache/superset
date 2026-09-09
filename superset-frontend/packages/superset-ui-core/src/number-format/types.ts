@@ -17,4 +17,4 @@
  * under the License.
  */
 
-export type NumberFormatFunction = (value: number) => string;
+export type NumberFormatFunction = (value: number | bigint) => string;

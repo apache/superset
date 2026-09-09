@@ -34,7 +34,7 @@ export function setD3Format(d3Format: Partial<FormatLocaleDefinition>) {
 
 export function formatNumber(
   format: string | undefined,
-  value: number | null | undefined,
+  value: number | bigint | null | undefined,
 ) {
   return getInstance().format(format, value);
 }

@@ -243,3 +243,18 @@ test('formatColumnValue with small number format and currency', () => {
   expect(result).toContain('€');
   expect(result).toContain('0.5000');
 });
+
+test('formatColumnValue supports bigint values', () => {
+  const formatter = getNumberFormatter(',d');
+  const column: DataColumnMeta = {
+    key: 'big_val',
+    label: 'Big Value',
+    dataType: GenericDataType.Numeric,
+    formatter,
+    isNumeric: true,
+  };
+
+  const bigValue = BigInt('1425300509404304697');
+  const [, result] = formatColumnValue(column, bigValue as any);
+  expect(result).toBe('1,425,300,509,404,304,697');
+});
