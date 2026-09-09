@@ -228,6 +228,11 @@ jobs:
       - name: Scan built image for vulnerabilities
         if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.build_preset == 'lean'
         id: grype-scan
+        # This step's own failure (e.g. a transient issue pulling the Grype
+        # vulnerability DB) must not fail docker-build, matching the
+        # informational fail-build: false below -- one is findings, the
+        # other is the scan itself not completing.
+        continue-on-error: true
         uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
         with:
           image: ${{ env.IMAGE_TAG }}
@@ -239,7 +244,10 @@ jobs:
           fail-build: false
 
       - name: Upload vulnerability scan results to GitHub Security tab
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.build_preset == 'lean'
+        if: >-
+          github.event_name == 'push' && github.ref == 'refs/heads/master' &&
+          matrix.build_preset == 'lean' && steps.grype-scan.outputs.sarif != ''
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
         with:
           sarif_file: ${{ steps.grype-scan.outputs.sarif }}
