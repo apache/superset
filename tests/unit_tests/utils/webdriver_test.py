@@ -775,7 +775,7 @@ class TestWebDriverPlaywrightErrorHandling:
         mock_chart_container.wait_for.return_value = None
         mock_page.wait_for_timeout.return_value = None
 
-        def evaluate_side_effect(script):
+        def evaluate_side_effect(script, *_args):
             if script == 'document.querySelectorAll(".chart-container").length':
                 return 1
             if "const target = document.querySelector" in script:
@@ -867,7 +867,7 @@ class TestWebDriverPlaywrightErrorHandling:
         mock_page.wait_for_timeout.return_value = None
         mock_take_tiled.return_value = b"tiled_screenshot"
 
-        def evaluate_side_effect(script):
+        def evaluate_side_effect(script, *_args):
             if script == 'document.querySelectorAll(".chart-container").length':
                 return 25  # chart_count >= threshold
             if "const target = document.querySelector" in script:
@@ -950,7 +950,7 @@ class TestWebDriverPlaywrightErrorHandling:
         mock_page.locator.side_effect = locator_side_effect
         mock_take_tiled.return_value = b"tiled_screenshot"
 
-        def evaluate_side_effect(script):
+        def evaluate_side_effect(script, *_args):
             if script == 'document.querySelectorAll(".chart-container").length':
                 return 52  # mounted containers
             if "const target = document.querySelector" in script:
@@ -1104,7 +1104,7 @@ class TestWebDriverPlaywrightErrorHandling:
         # it must never be reached by the failure path under test.
         mock_page.screenshot.return_value = b"fallback_screenshot"
 
-        def evaluate_side_effect(script):
+        def evaluate_side_effect(script, *_args):
             if "querySelectorAll" in script:
                 return 25  # chart_count >= threshold
             if "const target" in script:
@@ -1880,8 +1880,16 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
 
         # Small dashboard: 3 charts, 1000px height — below both thresholds.
-        # First item is consumed by the pre-capture scrollable-content expansion.
-        mock_page.evaluate.side_effect = [None, 3, 1000, [], []]
+        def evaluate_side_effect(script, *_args):
+            if script == 'document.querySelectorAll(".chart-container").length':
+                return 3
+            if "const target = document.querySelector" in script:
+                return 1000
+            if "dashboard-component-chart-holder" in script:
+                return []
+            return None
+
+        mock_page.evaluate.side_effect = evaluate_side_effect
 
         call_order: list[str] = []
 
@@ -1923,8 +1931,17 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
             "SCREENSHOT_TILED_VIEWPORT_HEIGHT": 600,
         }
         mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
-        # First item is consumed by the pre-capture scrollable-content expansion.
-        mock_page.evaluate.side_effect = [None, 25, 500, [], []]
+
+        def evaluate_side_effect(script, *_args):
+            if script == 'document.querySelectorAll(".chart-container").length':
+                return 25
+            if "const target = document.querySelector" in script:
+                return 500
+            if "dashboard-component-chart-holder" in script:
+                return []
+            return None
+
+        mock_page.evaluate.side_effect = evaluate_side_effect
 
         with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
             result = WebDriverPlaywright("chrome").get_screenshot(
