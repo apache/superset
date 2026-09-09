@@ -1294,6 +1294,7 @@ def map_sankey_config(config: SankeyChartConfig) -> Dict[str, Any]:
     _add_adhoc_filters(form_data, config.filters)
     return form_data
 
+
 def map_histogram_config(config: "HistogramChartConfig") -> Dict[str, Any]:
     """Map histogram config to Superset form_data (viz_type histogram_v2).
 
@@ -1822,6 +1823,7 @@ def _sankey_chart_what(config: SankeyChartConfig) -> str:
         config.metric.label or config.metric.name or config.metric.sql_expression
     )
     return f"{config.source.name} to {config.target.name} by {metric_label}"
+
 
 def _pivot_table_what(config: PivotTableChartConfig) -> str:
     """Build the 'what' portion for a pivot table chart name."""
