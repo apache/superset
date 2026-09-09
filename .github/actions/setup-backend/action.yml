@@ -43,6 +43,8 @@ runs:
       if: inputs.install-superset == 'true'
       uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
       with:
+        # Avoid a network-dependent lookup of the latest uv version during setup.
+        version: "0.12.12"
         python-version: ${{ steps.set-python-version.outputs.python-version }}
         enable-cache: true
     - name: Update apt package lists
