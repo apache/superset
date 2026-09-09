@@ -136,12 +136,12 @@ objects (dashboards and slices) associated with the tables you just extended the
 
 When a viewer opens a chart or dashboard built on a dataset they don't have access to, Superset
 shows a plain-language error naming the dataset (or tables, for SQL Lab) and, when known, the
-chart owners to contact. You can also point users at your own access-request process by setting
+dataset owners to contact. You can also point users at your own access-request process by setting
 `PERMISSION_INSTRUCTIONS_LINK` in `superset_config.py`:
 
 ```python
 PERMISSION_INSTRUCTIONS_LINK = (
-    "https://access.example.com/request?dataset={datasource_name}&user={username}"
+    "https://access.example.com/request?dataset={datasource_name}&table={table_names}&user={username}"
 )
 ```
 
@@ -149,11 +149,13 @@ The URL may include any of the following placeholders, which are substituted wit
 values so the link can deep-link into an internal ticketing or access-request tool with the
 denied resource pre-filled:
 
-- `{datasource_id}` — id of the denied dataset (datasource errors)
-- `{datasource_name}` — name of the denied dataset (datasource errors)
-- `{table_names}` — comma-separated denied table names (table/SQL errors)
+- `{datasource_id}` — id of the denied dataset (chart/dashboard errors only)
+- `{datasource_name}` — name of the denied dataset (chart/dashboard errors only)
+- `{table_names}` — comma-separated denied table names (SQL Lab/table errors only)
 - `{username}` — the requesting user's username
 
+Only the placeholders that apply to the triggering error type are filled in; the rest are replaced
+with an empty string, so a single URL template can cover both chart/dashboard and SQL Lab denials.
 A URL with no placeholders is used as-is, and leaving `PERMISSION_INSTRUCTIONS_LINK` unset (the
 default) omits the "Request access" link, falling back to owner-contact guidance.
 
