@@ -225,6 +225,19 @@ export default function transformProps(
 
   const graphic: GraphicComponentOption[] = [];
 
+  // Without a title the big number moves up into the title's spot
+  // (titleTop) so dashboards do not show an empty strip at the top. The
+  // comparison line always sits below the big number's bottom edge (font
+  // size * 1.2 line height + gap), so a larger number pushes it down instead
+  // of overlapping. With a title the configured comparisonTop acts as a
+  // lower bound; without a title the line simply follows the number.
+  const hasTitle = !!headerText;
+  const bigNumberRowHeight = bigNumberFontSize * 1.2;
+  const effectiveBigNumberTop = hasTitle ? bigNumberTop : titleTop;
+  const effectiveComparisonTop = hasTitle
+    ? Math.max(comparisonTop, effectiveBigNumberTop + bigNumberRowHeight + 5)
+    : effectiveBigNumberTop + bigNumberRowHeight + 5;
+
   if (headerText) {
     graphic.push({
       type: 'text',
@@ -249,7 +262,7 @@ export default function transformProps(
   graphic.push({
     type: 'text',
     left: bigNumberLeft,
-    top: bigNumberTop,
+    top: effectiveBigNumberTop,
     style: {
       text: bigNumberText,
       fontSize: bigNumberFontSize,
@@ -301,7 +314,7 @@ export default function transformProps(
     return {
       type: 'text',
       left,
-      top: comparisonTop,
+      top: effectiveComparisonTop,
       style: {
         text,
         fontSize: comparisonFontSize,

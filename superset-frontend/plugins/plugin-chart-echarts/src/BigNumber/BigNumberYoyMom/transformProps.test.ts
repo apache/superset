@@ -228,7 +228,8 @@ describe('BigNumberYoyMom transformProps', () => {
     expect(mom.style.fill).toBe('rgb(200, 200, 200)');
     expect(mom.style.fontSize).toBe(16);
     expect(mom.left).toBe(60);
-    expect(mom.top).toBe(120);
+    // comparison follows the number's bottom: 80 + 44 * 1.2 + 5 = 137.8
+    expect(mom.top).toBe(137.8);
   });
 
   test('hides title when header text is empty', () => {
@@ -243,6 +244,66 @@ describe('BigNumberYoyMom transformProps', () => {
     // only the big number placeholder remains
     expect(graphic).toHaveLength(1);
     expect(graphic[0].style.text).toBe('No data');
+  });
+
+  test('moves the big number and comparisons up when the title is hidden', () => {
+    const result = transformProps(
+      buildChartProps(
+        [
+          {
+            'SUM(sales)': 100,
+            'SUM(sales)__1 month ago': 90,
+            'SUM(sales)__1 year ago': 80,
+          },
+        ],
+        { headerText: '' },
+      ),
+    );
+    const graphic = result.echartOptions.graphic as Record<string, any>[];
+    // no title element: big number takes the title spot, comparisons follow
+    // its bottom edge (20 + 32 * 1.2 + 5 = 63.4) instead of the default 50.
+    expect(graphic).toHaveLength(3);
+    expect(graphic[0].style.text).toBe('$100');
+    expect(graphic[0].top).toBe(20);
+    expect(graphic[1].top).toBe(63.4);
+    expect(graphic[2].top).toBe(63.4);
+  });
+
+  test('pushes comparisons below a large big number without overlapping', () => {
+    const result = transformProps(
+      buildChartProps(
+        [
+          {
+            'SUM(sales)': 100,
+            'SUM(sales)__1 month ago': 90,
+          },
+        ],
+        { headerText: '', bigNumberFontSize: 60 },
+      ),
+    );
+    const graphic = result.echartOptions.graphic as Record<string, any>[];
+    // 20 + 60 * 1.2 + 5 = 97
+    expect(graphic[0].top).toBe(20);
+    expect(graphic[1].top).toBe(97);
+  });
+
+  test('keeps the configured comparison top as a lower bound with a title', () => {
+    const result = transformProps(
+      buildChartProps(
+        [
+          {
+            'SUM(sales)': 100,
+            'SUM(sales)__1 month ago': 90,
+          },
+        ],
+        { bigNumberFontSize: 80, comparisonTop: 120 },
+      ),
+    );
+    const graphic = result.echartOptions.graphic as Record<string, any>[];
+    // graphic[0]=title, graphic[1]=big number (50), graphic[2]=MoM line.
+    // 50 + 80 * 1.2 + 5 = 151 > configured 120 → comparison follows the number
+    expect(graphic[1].top).toBe(50);
+    expect(graphic[2].top).toBe(151);
   });
 
   test('shows placeholders when there is no data', () => {
