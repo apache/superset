@@ -168,7 +168,10 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-26.04
-    timeout-minutes: 30
+    # Embedded Tests below adds its own gunicorn boot + spec run on top of
+    # Required and Soft-delete; 30m was tight even for the two-step shadow
+    # job this replaced.
+    timeout-minutes: 40
     permissions:
       contents: read
       pull-requests: read
@@ -176,7 +179,10 @@ jobs:
       fail-fast: false
       matrix:
         browser: ["chromium"]
-        app_root: ${{ github.event_name == 'push' && fromJSON('["", "/app/prefix"]') || fromJSON('[""]') }}
+        # Subdirectory deployment (APPLICATION_ROOT) is a required-to-pass
+        # dimension, not an optional one, so it runs on every event —
+        # unlike cypress-matrix above, which only widens on push.
+        app_root: ["", "/app/prefix"]
     env:
       SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -266,14 +272,25 @@ jobs:
           # Scoped to this step: each playwright-run boots its own gunicorn
           # with the step's env, so the Required Tests server above keeps
           # master's Flask configuration while this one runs with SOFT_DELETE
-          # on — the same isolation pattern as the Embedded step in
-          # superset-playwright.yml. Without a flag-on server the
-          # recently-archived specs skip themselves everywhere and ship zero
-          # executed E2E coverage; in the Required run above they are
-          # collected and skipped, which is expected.
+          # on — the same isolation pattern as the Embedded Tests step below.
+          # Without a flag-on server the recently-archived specs skip
+          # themselves everywhere and ship zero executed E2E coverage; in the
+          # Required run above they are collected and skipped, which is
+          # expected.
           SUPERSET_FEATURE_SOFT_DELETE: "true"
         with:
           run: playwright-run "${{ matrix.app_root }}" recently-archived/
+      - name: Run Playwright (Embedded Tests)
+        uses: ./.github/actions/cached-dependencies
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Scoped to this step for the same reason as Soft-delete above:
+          # embedding is a real, required feature, so its Playwright coverage
+          # now gates merges instead of running only in shadow mode.
+          SUPERSET_FEATURE_EMBEDDED_SUPERSET: "true"
+          INCLUDE_EMBEDDED: "true"
+        with:
+          run: playwright-run "${{ matrix.app_root }}" embedded
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root
@@ -354,7 +371,7 @@ jobs:
   actions-timeline:
     needs: [cypress-matrix, playwright-tests, cypress-matrix-required, playwright-tests-required]
     if: always()
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     permissions:
       actions: read
     steps:

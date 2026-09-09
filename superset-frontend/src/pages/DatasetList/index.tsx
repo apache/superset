@@ -43,7 +43,6 @@ import {
 } from 'src/views/CRUD/utils';
 import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelectLabel';
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
-import { ColumnObject } from 'src/features/datasets/types';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import {
   ActionButton,
@@ -62,6 +61,7 @@ import {
 } from '@superset-ui/core/components';
 import {
   DatasourceModal,
+  withCertificationFields,
   GenericLink,
   ImportModal as ImportModelsModal,
   ModifiedInfo,
@@ -496,6 +496,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
   const [datasetCurrentlyEditing, setDatasetCurrentlyEditing] =
     useState<Dataset | null>(null);
+  const [datasetCurrentlyEditingEtag, setDatasetCurrentlyEditingEtag] =
+    useState<string | undefined>();
 
   const [datasetCurrentlyDuplicating, setDatasetCurrentlyDuplicating] =
     useState<VirtualDataset | null>(null);
@@ -565,24 +567,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       SupersetClient.get({
         endpoint: `/api/v1/dataset/${id}`,
       })
-        .then(({ json = {} }) => {
-          const addCertificationFields = json.result.columns.map(
-            (column: ColumnObject) => {
-              const {
-                certification: {
-                  details = '',
-                  certified_by: certifiedBy = '',
-                } = {},
-              } = JSON.parse(column.extra || '{}') || {};
-              return {
-                ...column,
-                certification_details: details || '',
-                certified_by: certifiedBy || '',
-                is_certified: details || certifiedBy,
-              };
-            },
+        .then(({ json = {}, response }) => {
+          setDatasetCurrentlyEditingEtag(
+            response.headers.get('ETag') ?? undefined,
           );
-          json.result.columns = [...addCertificationFields];
+          json.result.columns = withCertificationFields(json.result.columns);
           setDatasetCurrentlyEditing(json.result);
         })
         .catch(() => {
@@ -1524,6 +1513,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       {datasetCurrentlyEditing && (
         <DatasourceModal
           datasource={datasetCurrentlyEditing}
+          etag={datasetCurrentlyEditingEtag}
           onDatasourceSave={refreshData}
           onHide={closeDatasetEditModal}
           show

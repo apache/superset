@@ -976,6 +976,17 @@ class TestRequestSchemaAliasChoices:
         )
         assert req.select_columns == ["id", "dashboard_title"]
 
+    def test_get_dashboard_info_accepts_filter_state(self) -> None:
+        applied = {"applied_filters": [{"col": "gender", "op": "IN", "val": ["F"]}]}
+        req = GetDashboardInfoRequest.model_validate(
+            {"identifier": 42, "filter_state": applied}
+        )
+        assert req.filter_state == applied
+
+    def test_get_dashboard_info_filter_state_defaults_none(self) -> None:
+        req = GetDashboardInfoRequest.model_validate({"identifier": 42})
+        assert req.filter_state is None
+
     @pytest.mark.parametrize(
         "payload",
         [

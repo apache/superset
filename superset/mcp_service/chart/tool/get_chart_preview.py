@@ -39,6 +39,14 @@ from superset.mcp_service.chart.chart_helpers import (
     find_chart_by_identifier,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.preview_utils import (
+    generate_gauge_ascii_preview,
+    generate_gauge_vega_lite_preview,
+)
+from superset.mcp_service.chart.query_result import (
+    normalize_gauge_query_result,
+    query_result_failure,
+)
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -173,6 +181,14 @@ def _no_query_fields_error(chart: ChartLike) -> ChartError:
     )
 
 
+def _preview_row_limit(form_data: dict[str, Any], fallback: int) -> int:
+    """Keep Gauge preview cardinality aligned with its frontend row limit."""
+    if form_data.get("viz_type") != "gauge_chart":
+        return fallback
+    value = form_data.get("row_limit", 10)
+    return value if isinstance(value, int) and 1 <= value <= 10 else 10
+
+
 def _build_chart_description(chart: ChartLike) -> str:
     """Build a human-readable chart description, with hints for special chart types."""
     base = (
@@ -245,10 +261,11 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                     error_type="InvalidChart",
                 )
 
+            form_data["viz_type"] = self.chart.viz_type or form_data.get("viz_type")
             query_context = build_query_context_from_form_data(
                 form_data,
                 chart=self.chart,
-                row_limit=50,
+                row_limit=_preview_row_limit(form_data, 50),
                 order_desc=True,
                 force=False,
             )
@@ -261,16 +278,29 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             command.validate()
             result = command.run()
 
+            if query_failure := query_result_failure(result):
+                return query_failure
+            result = normalize_gauge_query_result(result, form_data)
+            if isinstance(result, ChartError):
+                return result
+
             data: list[Any] = []
             if result and "queries" in result and len(result["queries"]) > 0:
                 data = result["queries"][0].get("data") or []
 
-            ascii_chart = generate_ascii_chart(
-                data,
-                self.chart.viz_type or "table",
-                self.request.ascii_width or 80,
-                self.request.ascii_height or 20,
-            )
+            if form_data.get("viz_type") == "gauge_chart":
+                ascii_chart = generate_gauge_ascii_preview(
+                    data, form_data, self.request.ascii_width or 80
+                )
+                if isinstance(ascii_chart, ChartError):
+                    return ascii_chart
+            else:
+                ascii_chart = generate_ascii_chart(
+                    data,
+                    self.chart.viz_type or "table",
+                    self.request.ascii_width or 80,
+                    self.request.ascii_height or 20,
+                )
 
             return ASCIIPreview(
                 ascii_content=ascii_chart,
@@ -310,10 +340,11 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                     error_type="InvalidChart",
                 )
 
+            form_data["viz_type"] = self.chart.viz_type or form_data.get("viz_type")
             query_context = build_query_context_from_form_data(
                 form_data,
                 chart=self.chart,
-                row_limit=20,
+                row_limit=_preview_row_limit(form_data, 20),
                 order_desc=True,
                 force=False,
             )
@@ -325,6 +356,12 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
+
+            if query_failure := query_result_failure(result):
+                return query_failure
+            result = normalize_gauge_query_result(result, form_data)
+            if isinstance(result, ChartError):
+                return result
 
             data: list[Any] = []
             if result and "queries" in result and len(result["queries"]) > 0:
@@ -366,7 +403,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
         except (ValueError, TypeError):
             return None
 
-    def generate(self) -> VegaLitePreview | ChartError:
+    def generate(self) -> VegaLitePreview | ChartError:  # noqa: C901
         """Generate Vega-Lite JSON specification from chart data."""
         try:
             # Get chart data directly using the same logic as get_chart_data tool
@@ -404,10 +441,11 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     utils_json.loads(self.chart.params) if self.chart.params else {}
                 )
 
+            form_data["viz_type"] = self.chart.viz_type or form_data.get("viz_type")
             query_context = build_query_context_from_form_data(
                 form_data,
                 chart=self.chart,
-                row_limit=1000,
+                row_limit=_preview_row_limit(form_data, 1000),
                 order_desc=True,
                 force=self.request.force_refresh,
             )
@@ -418,11 +456,19 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             command.validate()
             result = command.run()
 
+            if query_failure := query_result_failure(result):
+                return query_failure
+            result = normalize_gauge_query_result(result, form_data)
+            if isinstance(result, ChartError):
+                return result
+
             # Extract data from result
             chart_data = []
             if result and "queries" in result and len(result["queries"]) > 0:
                 chart_data = result["queries"][0].get("data", [])
 
+            if form_data.get("viz_type") == "gauge_chart":
+                return generate_gauge_vega_lite_preview(chart_data, form_data)
             if not chart_data or not isinstance(chart_data, list):
                 return ChartError(
                     error="No data available for Vega-Lite visualization",
@@ -514,7 +560,6 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             "box_plot": ["box_plot"],
             "heatmap": ["heatmap", "heatmap_v2", "cal_heatmap"],
             "funnel": ["funnel"],
-            "gauge": ["gauge_chart"],
             "mixed": ["mixed_timeseries"],
             "table": ["table"],
         }
@@ -918,34 +963,6 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     "scale": {"scheme": "viridis"},
                 },
                 "tooltip": [{"field": f, "type": "nominal"} for f in fields[:5]],
-            },
-        }
-
-    def _gauge_chart_spec(
-        self, fields: List[str], field_types: Dict[str, str] | None = None
-    ) -> Dict[str, Any]:
-        """Create gauge chart using arc marks."""
-        value_field = fields[0] if fields else "value"
-
-        return {
-            "mark": {
-                "type": "arc",
-                "innerRadius": 50,
-                "outerRadius": 80,
-                "tooltip": True,
-            },
-            "encoding": {
-                "theta": {
-                    "field": value_field,
-                    "type": "quantitative",
-                    "scale": {"range": [0, 6.28]},
-                },
-                "color": {
-                    "field": value_field,
-                    "type": "quantitative",
-                    "scale": {"scheme": "redyellowgreen"},
-                },
-                "tooltip": [{"field": f, "type": "nominal"} for f in fields[:3]],
             },
         }
 
@@ -1399,6 +1416,7 @@ async def _get_chart_preview_internal(  # noqa: C901
         title="Get chart preview",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_chart_preview(

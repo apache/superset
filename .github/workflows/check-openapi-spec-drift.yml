@@ -1,0 +1,99 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+name: Check OpenAPI spec drift
+on:
+  push:
+    branches:
+      - "master"
+      - "[0-9].[0-9]*"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+
+# Deliberately unfiltered by `paths`: a required check that does not run on a
+# PR blocks it from merging forever.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check-openapi-spec-drift:
+    runs-on: ubuntu-26.04
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Setup Python
+        uses: ./.github/actions/setup-backend/
+        with:
+          # The generated output depends on the pinned apispec version.
+          requirements-type: base
+      - name: Regenerate the spec
+        env:
+          # No config file: the spec documents what a default deployment
+          # registers, so feature flags must stay off.
+          SUPERSET__SQLALCHEMY_DATABASE_URI: "sqlite:///:memory:"
+          FLASK_APP: "superset.app:create_app()"
+        run: superset update-api-docs
+      - name: Assert the published spec is up to date
+        env:
+          SPEC: docs/static/resources/openapi.json
+        run: |
+          if git diff --quiet -- "$SPEC"; then
+            exit 0
+          fi
+
+          # Staged to a file, not piped: `head` closing the pipe would
+          # SIGPIPE-kill `git diff` under pipefail and abort this step.
+          diff_file="$RUNNER_TEMP/openapi.diff"
+          git diff -- "$SPEC" > "$diff_file"
+
+          regen="SUPERSET__SQLALCHEMY_DATABASE_URI='sqlite:///:memory:' FLASK_APP='superset.app:create_app()' superset update-api-docs"
+
+          echo "::error::$SPEC is stale. Regenerate it on the pinned requirements:"
+          echo "$regen"
+          git diff --stat -- "$SPEC"
+
+          # Summaries cap at 1 MiB, well under a full regeneration.
+          {
+            echo '### OpenAPI spec is stale'
+            echo
+            git diff --stat -- "$SPEC"
+            echo
+            echo 'Regenerate with:'
+            echo
+            echo '```bash'
+            echo "$regen"
+            echo '```'
+            echo
+            echo '```diff'
+            head -300 "$diff_file"
+            echo '```'
+            if [ "$(wc -l < "$diff_file")" -gt 300 ]; then
+              echo
+              echo '_Truncated at 300 lines; see the job log for the full diff._'
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          echo "::group::Full diff"
+          cat "$diff_file"
+          echo "::endgroup::"
+          exit 1

@@ -23,10 +23,15 @@ import importlib
 from contextlib import nullcontext
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
+from fastmcp import Client
 
+from superset.mcp_service.chart.chart_helpers import (
+    rejected_requested_filter_columns,
+    requested_filter_columns,
+)
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -41,15 +46,13 @@ from superset.mcp_service.chart.tool.get_chart_data import (
     _MAX_RECOMMENDATIONS,
     _query_from_form_data,
     _recommend_visualizations,
-    _rejected_requested_filter_columns,
-    _requested_filter_columns,
 )
 from superset.utils import json
-from superset.utils.core import GenericDataType
+from superset.utils.core import ExtraFiltersReasonType, GenericDataType
 
 
 def test_requested_filter_columns_supports_both_payload_shapes() -> None:
-    assert _requested_filter_columns(
+    assert requested_filter_columns(
         {
             "filters": [{"col": "country", "op": "==", "val": "USA"}],
             "adhoc_filters": [
@@ -65,6 +68,10 @@ def test_requested_filter_columns_supports_both_payload_shapes() -> None:
     ) == {"country", "city"}
 
 
+def test_requested_filter_columns_accepts_null_lists() -> None:
+    assert requested_filter_columns({"filters": None, "adhoc_filters": None}) == set()
+
+
 def test_rejected_requested_filter_columns_ignores_saved_chart_filters() -> None:
     result = {
         "queries": [
@@ -72,7 +79,7 @@ def test_rejected_requested_filter_columns_ignores_saved_chart_filters() -> None
         ]
     }
 
-    assert _rejected_requested_filter_columns(
+    assert rejected_requested_filter_columns(
         result,
         {
             "adhoc_filters": [
@@ -85,6 +92,77 @@ def test_rejected_requested_filter_columns_ignores_saved_chart_filters() -> None
             ]
         },
     ) == ["missing_request"]
+
+
+def test_rejected_requested_filter_columns_reads_materialized_payload() -> None:
+    """A chart-data payload reports rejections as ``rejected_filters`` entries.
+
+    ``_materialize_full_payload`` deletes the raw ``rejected_filter_columns``
+    key and emits ``rejected_filters`` instead, so this is the only shape the
+    tool ever sees in practice. Reading just the raw key made the check a
+    no-op and let unknown columns return unfiltered data as a success.
+    """
+    result = {
+        "queries": [
+            {
+                "data": [{"country": "USA"}],
+                "rejected_filters": [
+                    {
+                        "reason": "COL_NOT_IN_DATASOURCE",
+                        "column": "does_not_exist",
+                    }
+                ],
+            }
+        ]
+    }
+
+    assert rejected_requested_filter_columns(
+        result,
+        {"filters": [{"col": "does_not_exist", "op": "==", "val": "x"}]},
+    ) == ["does_not_exist"]
+
+
+def test_rejected_requested_filter_columns_ignores_rejected_time_filters() -> None:
+    """``rejected_filters`` also carries time-extra rejections, which are not
+    request filter columns and must not be attributed to the caller."""
+    result = {
+        "queries": [
+            {
+                "rejected_filters": [
+                    {"reason": "NO_TEMPORAL_COLUMN", "column": "__time_range"}
+                ]
+            }
+        ]
+    }
+
+    assert (
+        rejected_requested_filter_columns(
+            result,
+            {"filters": [{"col": "country", "op": "==", "val": "USA"}]},
+        )
+        == []
+    )
+
+
+def test_rejected_requested_filter_columns_prefers_datasource_rejections() -> None:
+    result = {
+        "queries": [
+            {
+                "rejected_filter_columns": [],
+                "rejected_filters": [
+                    {"reason": "not_in_datasource", "column": "__time_col"}
+                ],
+            }
+        ]
+    }
+
+    assert (
+        rejected_requested_filter_columns(
+            result,
+            {"filters": [{"col": "__time_col", "op": "==", "val": "value"}]},
+        )
+        == []
+    )
 
 
 def _collect_groupby_extras(
@@ -436,6 +514,86 @@ class _AsyncContext:
 
 
 class TestUnsavedChartDataQueryConstruction:
+    @pytest.mark.asyncio
+    async def test_gauge_preserves_sort_order_and_validates_saved_metric_output(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Unsaved Gauge get-data uses buildQuery ordering and numeric checks."""
+        chart_data_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+        captured: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured.append(kwargs)
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [
+                                {"team": "Empty", "saved_sla": None},
+                                {"team": "Blue", "saved_sla": 98.5},
+                                {"team": "NaN", "saved_sla": float("nan")},
+                            ],
+                            "colnames": ["team", "saved_sla"],
+                            "rowcount": 3,
+                        }
+                    ]
+                }
+
+        monkeypatch.setattr(
+            query_context_factory_module, "QueryContextFactory", QueryContextFactory
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+        monkeypatch.setattr(
+            chart_data_module,
+            "event_logger",
+            SimpleNamespace(log_context=lambda **kwargs: nullcontext()),
+        )
+        monkeypatch.setattr(
+            "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+            lambda datasource_id, datasource_type: "base",
+        )
+        result = await _query_from_form_data(
+            {
+                "datasource": "1__table",
+                "viz_type": "gauge_chart",
+                "metric": "saved_sla",
+                "groupby": ["team"],
+                "sort_by_metric": True,
+                "row_limit": 5,
+            },
+            GetChartDataRequest(form_data_key="cached-key"),
+            _AsyncContext(),
+        )
+
+        assert not isinstance(result, ChartError)
+        assert [row["team"] for row in result.data] == ["Empty", "Blue", "NaN"]
+        assert result.row_count == result.total_rows == 3
+        assert result.data_quality["completeness"] == pytest.approx(5 / 6)
+        query = captured[0]["queries"][0]
+        assert query["metrics"] == ["saved_sla"]
+        assert query["orderby"] == [("saved_sla", False)]
+        assert query["row_limit"] == 5
+
     @pytest.mark.asyncio
     async def test_form_data_key_adhoc_filters_become_query_filters(
         self,
@@ -1462,13 +1620,22 @@ class TestSavedChartExtraFormDataFilters:
             def __init__(self, query_context: Any) -> None: ...
             def validate(self) -> None: ...
             def run(self) -> dict[str, Any]:
+                # Mirror the payload ChartDataCommand actually returns:
+                # _materialize_full_payload has already converted
+                # rejected_filter_columns into rejected_filters entries.
                 return {
                     "queries": [
                         {
                             "data": [{"country": "USA"}],
                             "colnames": ["country"],
                             "rowcount": 1,
-                            "rejected_filter_columns": rejected_filter_columns or [],
+                            "rejected_filters": [
+                                {
+                                    "reason": ExtraFiltersReasonType.COL_NOT_IN_DATASOURCE,  # noqa: E501
+                                    "column": column,
+                                }
+                                for column in rejected_filter_columns or []
+                            ],
                         }
                     ]
                 }
@@ -1586,6 +1753,169 @@ class TestSavedChartExtraFormDataFilters:
         assert data["error_type"] == "ValidationError"
         assert "does_not_exist" in data["error"]
         assert "USA" not in result.content[0].text
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("data_path", ["saved", "saved_cache", "unsaved_cache"])
+    @pytest.mark.parametrize("export_format", ["json", "csv", "excel"])
+    @pytest.mark.parametrize("has_finite", [True, False])
+    async def test_gauge_fastmcp_preserves_raw_groups_and_exports(
+        self,
+        mcp_server: Any,
+        mock_auth: Any,
+        data_path: str,
+        export_format: str,
+        has_finite: bool,
+    ) -> None:
+        """Raw Gauge inspection and exports retain every source group, even all-null."""
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        chart = SimpleNamespace(
+            id=10,
+            slice_name="SLA",
+            viz_type="gauge_chart",
+            datasource_id=1,
+            datasource_type="table",
+            query_context=json.dumps(
+                {
+                    "datasource": {"id": 1, "type": "table"},
+                    "queries": [
+                        {
+                            "columns": ["team"],
+                            "metrics": ["saved_sla"],
+                            "row_limit": 10,
+                        }
+                    ],
+                }
+            ),
+            params=json.dumps(
+                {
+                    "viz_type": "gauge_chart",
+                    "metric": "saved_sla",
+                    "groupby": ["team"],
+                }
+            ),
+        )
+
+        def fake_load(self: Any, data: dict[str, Any]) -> Any:
+            return SimpleNamespace(
+                queries=[
+                    SimpleNamespace(
+                        filter=[],
+                        time_range=None,
+                        to_dict=lambda: dict(data["queries"][0]),
+                    )
+                ],
+                form_data={},
+            )
+
+        rows: list[dict[str, Any]] = [
+            {"team": "Empty", "saved_sla": None},
+            {"team": "NaN", "saved_sla": float("nan")},
+            {"team": "Infinity", "saved_sla": float("inf")},
+            {"team": "Negative infinity", "saved_sla": -float("inf")},
+        ]
+        if has_finite:
+            rows.append({"team": "Blue", "saved_sla": 42})
+        source_rowcount = len(rows) + 7
+        payload = {
+            "queries": [
+                {
+                    "data": rows,
+                    "rowcount": source_rowcount,
+                    "colnames": ["team", "saved_sla"],
+                }
+            ]
+        }
+
+        class Command:
+            def __init__(self, query_context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return payload
+
+        cached_form_data = {
+            "viz_type": "gauge_chart",
+            "datasource": "1__table",
+            "metric": "saved_sla",
+            "groupby": ["team"],
+            "slice_name": "SLA",
+        }
+        query = {"columns": ["team"], "metrics": ["saved_sla"]}
+        with (
+            patch.object(
+                module,
+                "get_cached_form_data",
+                return_value=json.dumps(cached_form_data),
+            ),
+            patch.object(
+                module, "build_query_dicts_from_form_data", return_value=[query]
+            ),
+            patch.object(
+                module,
+                "build_query_context_from_form_data",
+                return_value=fake_load(None, {"queries": [query]}),
+            ),
+            patch.object(module, "find_chart_by_identifier", return_value=chart),
+            patch.object(
+                module,
+                "validate_chart_dataset",
+                return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+            ),
+            patch(
+                "superset.charts.schemas.ChartDataQueryContextSchema.load", fake_load
+            ),
+            patch(
+                "superset.commands.chart.data.get_data_command.ChartDataCommand",
+                Command,
+            ),
+        ):
+            async with Client(mcp_server) as client:
+                request = {"format": export_format}
+                if data_path != "unsaved_cache":
+                    request["identifier"] = "10"
+                if data_path != "saved":
+                    request["form_data_key"] = "raw-gauge-cache"
+                result = await client.call_tool("get_chart_data", {"request": request})
+
+        data = json.loads(result.content[0].text)
+        assert "error_type" not in data, data
+        assert data["row_count"] == len(rows)
+        assert data["total_rows"] == (
+            source_rowcount if export_format == "json" else len(rows)
+        )
+        expected_groups = [row["team"] for row in rows]
+        if export_format == "json":
+            assert [row["team"] for row in data["data"]] == expected_groups
+            assert data["data_quality"]["completeness"] == pytest.approx(
+                1 - 1 / (len(rows) * 2)
+            )
+            assert data.get("query_results") is None
+        elif export_format == "csv":
+            import csv
+            from io import StringIO
+
+            exported = list(csv.DictReader(StringIO(data["csv_data"])))
+            assert [row["team"] for row in exported] == expected_groups
+        else:
+            import base64
+            from io import BytesIO
+
+            from openpyxl import load_workbook
+
+            workbook = load_workbook(BytesIO(base64.b64decode(data["excel_data"])))
+            assert list(workbook.active.values)[0] == ("team", "saved_sla")
+            assert [
+                row[0] for row in list(workbook.active.values)[1:]
+            ] == expected_groups
+            assert [row[1] for row in list(workbook.active.values)[1:]] == [
+                None,
+                "nan",
+                "inf",
+                "-inf",
+            ] + ([42] if has_finite else [])
+        assert payload["queries"][0]["data"] is rows
+        assert payload["queries"][0]["rowcount"] == source_rowcount
 
 
 class TestOAuthErrorRouting:
@@ -1855,6 +2185,14 @@ def test_recommend_multiple_numeric_suggests_scatter():
 def test_recommend_single_numeric_suggests_kpi():
     cols = [_col("total_revenue", "numeric")]
     result = _recommend_visualizations("table", cols, row_count=1)
+    assert "big number / KPI" in result
+    assert "gauge chart" in result
+
+
+def test_recommend_single_numeric_excludes_current_gauge():
+    cols = [_col("total_revenue", "numeric")]
+    result = _recommend_visualizations("gauge_chart", cols, row_count=1)
+    assert "gauge chart" not in result
     assert "big number / KPI" in result
 
 
@@ -2532,3 +2870,30 @@ async def test_query_from_form_data_refreshed_reflects_force_refresh_only(
     assert isinstance(result, ChartData)
     assert result.cache_status is not None
     assert result.cache_status.refreshed is expected_refreshed
+
+
+def test_xlsxwriter_preserves_nonfinite_group_rows() -> None:
+    """The optional XLSX fallback preserves groups with non-finite metrics."""
+    import base64
+    from io import BytesIO
+
+    from openpyxl import load_workbook
+
+    from superset.mcp_service.chart.tool.get_chart_data import (
+        _create_excel_with_xlsxwriter,
+    )
+
+    rows: list[dict[str, Any]] = [
+        {"team": "Empty", "score": None},
+        {"team": "NaN", "score": float("nan")},
+        {"team": "Infinity", "score": float("inf")},
+        {"team": "Negative infinity", "score": -float("inf")},
+        {"team": "Finite", "score": 42},
+    ]
+    chart = MagicMock(slice_name="Gauge")
+    content = _create_excel_with_xlsxwriter(chart, rows, ["team", "score"])
+    workbook = load_workbook(BytesIO(base64.b64decode(content)))
+    assert list(workbook.active.values)[0] == ("team", "score")
+    assert [row[0] for row in list(workbook.active.values)[1:]] == [
+        row["team"] for row in rows
+    ]

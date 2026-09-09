@@ -53,6 +53,7 @@ logger = logging.getLogger(__name__)
         title="Get dashboard layout",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_dashboard_layout(

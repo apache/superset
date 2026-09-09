@@ -24,6 +24,7 @@ import {
   apiPostDashboard,
   buildSingleRowDashboardLayout,
   type DashboardLayoutChart,
+  type DashboardPositionJson,
 } from '../../helpers/api/dashboard';
 import { getDatasetByName } from '../../helpers/api/dataset';
 import { extractIdFromResponse } from '../../helpers/api/assertions';
@@ -236,14 +237,17 @@ interface CreateDashboardWithChartsOptions {
   /** Dashboard title prefix: `${dashboardTitlePrefix}_${suffix}`. */
   dashboardTitlePrefix: string;
   chartSpecs: DashboardChartSpec[];
+  /** Custom dashboard layout; defaults to placing every chart in one row. */
+  buildLayout?: (
+    charts: readonly DashboardLayoutChart[],
+  ) => DashboardPositionJson;
 }
 
 /**
- * Builds a published dashboard via the API: creates each chart, lays them out in
- * a single row, and associates them so they render. Every created chart and the
- * dashboard are registered for fixture cleanup. Charts are returned in the same
- * order as `chartSpecs`, so callers can pair them back to per-spec metadata by
- * index.
+ * Builds a published dashboard via the API: creates each chart, lays them out,
+ * and associates them so they render. Every created chart and the dashboard are
+ * registered for fixture cleanup. Charts are returned in the same order as
+ * `chartSpecs`, so callers can pair them back to per-spec metadata by index.
  */
 export async function createDashboardWithCharts(
   page: Page,
@@ -282,8 +286,9 @@ export async function createDashboardWithCharts(
     charts.push({ id: chartId, sliceName });
   }
 
-  // Lay all charts out in a single row.
-  const positionJson = buildSingleRowDashboardLayout(charts);
+  const positionJson = options.buildLayout
+    ? options.buildLayout(charts)
+    : buildSingleRowDashboardLayout(charts);
   const dashResp = await apiPostDashboard(page, {
     dashboard_title: `${options.dashboardTitlePrefix}_${uniqueSuffix}`,
     published: true,

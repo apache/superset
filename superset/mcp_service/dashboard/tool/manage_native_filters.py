@@ -376,6 +376,8 @@ def _build_native_filters_payload(  # noqa: C901
         title="Manage dashboard native filters",
         readOnlyHint=False,
         destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 def manage_native_filters(

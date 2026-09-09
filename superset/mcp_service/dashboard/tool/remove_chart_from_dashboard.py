@@ -278,6 +278,8 @@ def _find_and_authorize_dashboard(
         title="Remove chart from dashboard",
         readOnlyHint=False,
         destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 def remove_chart_from_dashboard(  # noqa: C901 — complexity is structural (layout traversal + multi-step authorization), not accidental

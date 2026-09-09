@@ -384,6 +384,34 @@ test('If there is NOT a DB with allow_file_upload set as True the option should 
   );
 });
 
+test('renders the down-chevron caret icon on the "+" and Settings dropdowns, not the caret glyph (regression #43531)', async () => {
+  const mockedProps = createProps();
+  resetUseSelectorMock();
+  render(<RightMenu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  const newDropdownIcon = screen.getByTestId('new-dropdown-icon');
+  const newCaret = newDropdownIcon
+    .closest('li')
+    ?.querySelector('.ant-menu-item-icon');
+  expect(newCaret).toHaveClass('anticon-down');
+  expect(newCaret?.querySelector('svg')).toHaveAttribute('data-icon', 'down');
+
+  const settings = await screen.findByText(/Settings/i);
+  const settingsCaret = settings
+    .closest('li')
+    ?.querySelector('.ant-menu-item-icon');
+  expect(settingsCaret).toHaveClass('anticon-down');
+  expect(settingsCaret?.querySelector('svg')).toHaveAttribute(
+    'data-icon',
+    'down',
+  );
+});
+
 test('Logs out and clears local storage item redux', async () => {
   const mockedProps = createProps();
   resetUseSelectorMock();

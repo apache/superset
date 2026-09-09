@@ -1,0 +1,117 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""
+Tests db_engine_specs.mariadb against a real MariaDB instance, spun up on
+demand via testcontainers. Run via .github/workflows/testcontainers.yml.
+
+MariaDB is a MySQL fork implementing the same wire protocol: connects via
+the plain "mysql" dialect with mysqlclient, same as vanilla MySQL, just
+pointed at the mariadb image instead of mysql:latest.
+
+Could not be verified locally in this environment: mysqlclient (MySQLdb)
+has a pre-existing, unrelated native-library linking issue against this
+machine's Homebrew-installed libmysqlclient. CI installs it via apt on
+Linux, where this does not occur.
+"""
+
+from collections.abc import Iterator
+
+import pytest
+from sqlalchemy import (
+    Column,
+    create_engine,
+    inspect,
+    Integer,
+    MetaData,
+    Table as SATable,
+)
+from sqlalchemy.engine import Engine
+
+from superset.db_engine_specs.mariadb import MariaDBEngineSpec
+from superset.sql.parse import Table
+from superset.utils.core import GenericDataType
+
+pytestmark = pytest.mark.testcontainers
+
+from ._driver import require_driver  # noqa: E402
+
+require_driver("testcontainers.community.mysql")
+
+from testcontainers.community.mysql import MySqlContainer  # noqa: E402
+
+from ._pagination import (  # noqa: E402
+    assert_paginated_query_returns_correct_rows_in_order,
+)
+
+
+@pytest.fixture(scope="module")
+def engine() -> Iterator[Engine]:
+    with MySqlContainer("mariadb:11") as container:
+        # get_connection_url() has no host override and defaults to
+        # get_container_host_ip(), which is the literal string "localhost"
+        # on native Linux Docker (e.g. GitHub Actions runners). MySQLdb
+        # (mysqlclient) treats a "localhost" host specially and attempts a
+        # Unix socket connection instead of TCP, which fails since there's
+        # no local MySQL socket -- the container is reached over the
+        # network. Only rewrite that specific local case to 127.0.0.1; a
+        # remote Docker daemon reports its own real host/IP here, which
+        # must be preserved so the suite can still reach it.
+        host = container.get_container_host_ip()
+        if host == "localhost":
+            host = "127.0.0.1"
+        port = container.get_exposed_port(container.port)
+        yield create_engine(
+            f"mysql://{container.username}:{container.password}"
+            f"@{host}:{port}/{container.dbname}"
+        )
+
+
+def test_paginated_query_returns_correct_rows_in_order(engine: Engine) -> None:
+    """
+    A plain SQLAlchemy Core LIMIT/OFFSET query, compiled and executed against
+    a real instance. Mocked tests cannot catch a dialect compiling this
+    incorrectly (see apache/superset#42899, where Trino emitted OFFSET
+    before LIMIT) -- only real execution can.
+    """
+    assert_paginated_query_returns_correct_rows_in_order(engine)
+
+
+def test_get_columns_maps_native_types(engine: Engine) -> None:
+    """
+    MariaDBEngineSpec.get_columns wraps a real SQLAlchemy Inspector; this
+    exercises that against actual server-reported column metadata rather
+    than a mocked Inspector.
+    """
+    metadata = MetaData()
+    SATable(
+        "pilot_types",
+        metadata,
+        Column("id", Integer, primary_key=True),
+        Column("amount", Integer),
+    )
+    metadata.create_all(engine)
+
+    inspector = inspect(engine)
+    columns = MariaDBEngineSpec.get_columns(inspector, Table("pilot_types"))
+
+    by_name = {col["column_name"]: col for col in columns}
+    assert set(by_name) == {"id", "amount"}
+    for col in by_name.values():
+        spec = MariaDBEngineSpec.get_column_spec(str(col["type"]))
+        assert spec is not None
+        assert spec.generic_type == GenericDataType.NUMERIC
+        assert isinstance(spec.sqla_type, Integer)

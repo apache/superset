@@ -46,10 +46,18 @@ import { getShareableUrl } from 'src/utils/navigationUtils';
 import SupersetText from 'src/utils/textUtils';
 import { DatabaseObject } from 'src/features/databases/types';
 import {
+  subscribeRealtime,
+  subscribeRealtimeOpen,
+} from 'src/middleware/realtime';
+import {
   FavoriteStatus,
   FileEncryptedExtraFields,
   ImportResourceName,
 } from './types';
+
+// Realtime list views coalesce a burst of entity-change nudges into at most one
+// batched row fetch per this window, bounding backend load under heavy churn.
+export const REALTIME_REFETCH_DEBOUNCE_MS = 1000;
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -60,6 +68,15 @@ interface ListViewResourceState<D extends object = any> {
   bulkSelectEnabled: boolean;
   lastFetched?: string;
 }
+
+const reservedListQueryParams = new Set([
+  'filters',
+  'order_column',
+  'order_direction',
+  'page',
+  'page_size',
+  'select_columns',
+]);
 
 const parsedErrorMessage = (
   errorMessage: Record<string, string[] | string> | string,
@@ -86,6 +103,10 @@ export function useListViewResource<D extends object = any>(
   baseFilters?: FilterValue[], // must be memoized
   initialLoadingState = true,
   selectColumns?: string[],
+  // Realtime: when enabled, the list subscribes to the entity-change nudge
+  // channel and live-patches only its currently-displayed rows (see the
+  // realtime effect below).
+  enableRealtime = false,
 ) {
   const [state, setState] = useState<ListViewResourceState<D>>({
     count: 0,
@@ -156,6 +177,7 @@ export function useListViewResource<D extends object = any>(
       pageSize,
       sortBy,
       filters: filterValues,
+      extraQueryParams,
     }: FetchDataConfig) => {
       const requestId = latestRequestIdRef.current + 1;
       latestRequestIdRef.current = requestId;
@@ -165,6 +187,7 @@ export function useListViewResource<D extends object = any>(
         pageIndex,
         pageSize,
         sortBy,
+        extraQueryParams,
       };
       lastFetchDataConfigRef.current = config;
       // set loading state, cache the last config for refreshing data.
@@ -186,7 +209,13 @@ export function useListViewResource<D extends object = any>(
               : value,
         }));
 
+      const safeExtraQueryParams = Object.fromEntries(
+        Object.entries(extraQueryParams ?? {}).filter(
+          ([key]) => !reservedListQueryParams.has(key),
+        ),
+      );
       const queryParams = rison.encode_uri({
+        ...safeExtraQueryParams,
         order_column: sortBy[0].id,
         order_direction: sortBy[0].desc ? 'desc' : 'asc',
         page: pageIndex,
@@ -249,6 +278,106 @@ export function useListViewResource<D extends object = any>(
     },
     [fetchData],
   );
+
+  // Realtime list updates: on an entity-change nudge for a row currently on
+  // screen, debounce-collect the ids and batch-refetch just those rows through
+  // the normal authorized list endpoint (authz/RLS still apply), merging them in
+  // place. Update-only — no new-row insertion — and best-effort, so a downed
+  // socket just defers the update to the next normal fetch.
+  const collectionRef = useRef(state.collection);
+  collectionRef.current = state.collection;
+
+  useEffect(() => {
+    if (!enableRealtime) return undefined;
+
+    const pendingIds = new Set<string>();
+    let debounceId: ReturnType<typeof setTimeout> | undefined;
+
+    // Nudges carry the row's integer primary key (see superset/tasks/manager.py),
+    // which is also what the list endpoint filters on.
+    const rowId = (row: D): string =>
+      String((row as Record<string, unknown>).id);
+    const isDisplayed = (id: string): boolean =>
+      collectionRef.current.some(row => rowId(row) === id);
+
+    // Batch-fetch the given displayed rows and merge them in place (keep order,
+    // count, and untouched row references so React re-renders only changed rows).
+    const patchRows = (ids: string[]) => {
+      if (!ids.length) return;
+      // Snapshot the latest full-fetch request id; if a newer page/filter/refresh
+      // (fetchData) lands before this background patch resolves, discard the patch
+      // so a stale reconcile snapshot can't overwrite fresher rows by id.
+      const requestId = latestRequestIdRef.current;
+      const query = rison.encode_uri({
+        filters: [{ col: 'id', opr: 'in', value: ids }],
+        page: 0,
+        page_size: ids.length,
+      });
+      SupersetClient.get({ endpoint: `/api/v1/${resource}/?q=${query}` })
+        .then(({ json = {} }) => {
+          if (latestRequestIdRef.current !== requestId) return;
+          const fetched: D[] = json.result ?? [];
+          if (!fetched.length) return;
+          const byId = new Map(fetched.map(row => [rowId(row), row]));
+          setState(current => ({
+            ...current,
+            collection: current.collection.map(
+              row => byId.get(rowId(row)) ?? row,
+            ),
+          }));
+        })
+        .catch(() => {
+          // Best-effort: a failed patch just leaves the stale rows until the
+          // next normal fetch; never surface a toast for a background refresh.
+        });
+    };
+
+    const flush = () => {
+      debounceId = undefined;
+      // Re-check membership: the collection may have changed (paged/filtered)
+      // since the nudges arrived, so only fetch rows still on screen.
+      const ids = [...pendingIds].filter(isDisplayed);
+      pendingIds.clear();
+      patchRows(ids);
+    };
+
+    // `entity.changed` nudges are broadcast for every entity type; filter to this
+    // list's resource by the payload's entity_type before matching rows.
+    const unsubscribe = subscribeRealtime(
+      'entity.changed',
+      (payload: unknown) => {
+        if (!payload || typeof payload !== 'object') return;
+        const { entity_type: entityType, id } = payload as {
+          entity_type?: unknown;
+          id?: unknown;
+        };
+        if (entityType !== resource || id == null) return;
+        const idStr = String(id);
+        if (!isDisplayed(idStr)) return;
+        pendingIds.add(idStr);
+        if (debounceId === undefined) {
+          debounceId = setTimeout(flush, REALTIME_REFETCH_DEBOUNCE_MS);
+        }
+      },
+    );
+
+    // Nudges are lossy and not replayed, so after recovering from a dropped
+    // socket refetch the currently-displayed rows once to reconcile anything
+    // missed while disconnected. Only on a real `reconnect` — not the initial
+    // connect (rows were just fetched) or a seamless `keepalive` token refresh —
+    // so a healthy socket doesn't trigger a full re-fetch every keepalive cycle.
+    // In-place merge, no full-list redraw.
+    const unsubscribeOpen = subscribeRealtimeOpen(reason => {
+      if (reason !== 'reconnect') return;
+      patchRows(collectionRef.current.map(rowId));
+    });
+
+    return () => {
+      unsubscribe();
+      unsubscribeOpen();
+      if (debounceId !== undefined) clearTimeout(debounceId);
+    };
+  }, [enableRealtime, resource]);
 
   return {
     state: {
