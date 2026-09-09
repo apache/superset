@@ -118,6 +118,41 @@ describe('BigNumberYoyMom transformProps', () => {
     expect(graphic[3].style.fill).toBe('rgb(245, 63, 63)');
   });
 
+  test('time_shift mode wins over a leftover comparison column', () => {
+    const result = transformProps(
+      buildChartProps(
+        [
+          {
+            'SUM(sales)': 100,
+            'SUM(sales)__1 month ago': 90,
+            prev_month_sales: 80,
+          },
+        ],
+        {
+          comparison1Mode: 'time_shift',
+          comparison1Column: 'prev_month_sales',
+          comparison1Offset: '1 month ago',
+        },
+      ),
+    );
+    const graphic = result.echartOptions.graphic as Record<string, any>[];
+    expect(graphic[2].style.text).toBe('MoM ↑11.11%');
+  });
+
+  test('metric mode reads the comparison metric explicitly', () => {
+    const result = transformProps(
+      buildChartProps(
+        [{ 'SUM(sales)': 100, prev_month_sales: 80 }],
+        {
+          comparison1Mode: 'metric',
+          comparison1Column: 'prev_month_sales',
+        },
+      ),
+    );
+    const graphic = result.echartOptions.graphic as Record<string, any>[];
+    expect(graphic[2].style.text).toBe('MoM ↑25.00%');
+  });
+
   test('shows "—" when the configured comparison column is missing', () => {
     const result = transformProps(
       buildChartProps([{ 'SUM(sales)': 100 }], {

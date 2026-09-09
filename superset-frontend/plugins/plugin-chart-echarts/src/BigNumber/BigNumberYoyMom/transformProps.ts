@@ -92,13 +92,16 @@ type ComparisonSlot = {
 
 // A comparison slot reads its value either from a configured comparison
 // metric (dataset metric or custom SQL expression) or from the backend's
-// time-offset column `<metric label>__<offset>`.
+// time-offset column `<metric label>__<offset>`. The mode mirrors buildQuery:
+// an unset mode falls back to the metric when a comparison column exists.
 const comparisonSource = (
+  mode: 'time_shift' | 'metric' | undefined,
   column: QueryFormMetric | undefined,
   offset: string,
   metricName: string,
 ): string | undefined => {
-  if (column) return getMetricLabel(column);
+  const metricMode = mode === 'metric' || (!mode && !!column);
+  if (metricMode && column) return getMetricLabel(column);
   return `${metricName}__${offset}`;
 };
 
@@ -133,11 +136,13 @@ export default function transformProps(
     comparison1Label = t(DEFAULT_COMPARISON1_LABEL),
     comparison1Offset = DEFAULT_COMPARISON1_OFFSET,
     comparison1Column,
+    comparison1Mode,
     comparison1Left = DEFAULT_COMPARISON1_LEFT,
     showComparison2 = true,
     comparison2Label = t(DEFAULT_COMPARISON2_LABEL),
     comparison2Offset = DEFAULT_COMPARISON2_OFFSET,
     comparison2Column,
+    comparison2Mode,
     comparison2Left = DEFAULT_COMPARISON2_LEFT,
     comparisonFontSize = DEFAULT_COMPARISON_FONT_SIZE,
     comparisonTop = DEFAULT_COMPARISON_TOP,
@@ -269,7 +274,7 @@ export default function transformProps(
     left: comparison1Left,
     current,
     comparisonValue: hasData
-      ? row[comparisonSource(comparison1Column, comparison1Offset, metricName) || '']
+      ? row[comparisonSource(comparison1Mode, comparison1Column, comparison1Offset, metricName) || '']
       : null,
   });
   const comparison2 = buildComparison({
@@ -280,7 +285,7 @@ export default function transformProps(
     left: comparison2Left,
     current,
     comparisonValue: hasData
-      ? row[comparisonSource(comparison2Column, comparison2Offset, metricName) || '']
+      ? row[comparisonSource(comparison2Mode, comparison2Column, comparison2Offset, metricName) || '']
       : null,
   });
   if (comparison1) graphic.push(comparison1);

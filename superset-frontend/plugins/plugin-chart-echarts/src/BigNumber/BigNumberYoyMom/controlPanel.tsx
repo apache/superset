@@ -57,14 +57,33 @@ const config: ControlPanelConfig = {
         ['metric'],
         [
           {
+            name: 'comparison1_mode',
+            config: {
+              type: 'SelectControl',
+              label: t('MoM comparison source'),
+              default: 'time_shift',
+              choices: [
+                ['time_shift', t('Time comparison (shift)')],
+                ['metric', t('Comparison value metric')],
+              ],
+              visibility: ({ controls }) =>
+                controls?.show_comparison1?.value === true,
+            },
+          },
+        ],
+        [
+          {
             name: 'comparison1_column',
             config: {
               ...sharedControls.metric,
               label: t('MoM comparison value'),
               clearable: true,
               description: t(
-                'Metric (or custom SQL expression) holding the MoM comparison value. When set, the MoM time shift below is not used and no time range is required.',
+                'Metric (or custom SQL expression) holding the MoM comparison value. This mode does not require a time range.',
               ),
+              visibility: ({ controls }) =>
+                controls?.show_comparison1?.value === true &&
+                controls?.comparison1_mode?.value === 'metric',
             },
           },
         ],
@@ -83,7 +102,23 @@ const config: ControlPanelConfig = {
               ),
               visibility: ({ controls }) =>
                 controls?.show_comparison1?.value === true &&
-                !controls?.comparison1_column?.value,
+                controls?.comparison1_mode?.value !== 'metric',
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison2_mode',
+            config: {
+              type: 'SelectControl',
+              label: t('YoY comparison source'),
+              default: 'time_shift',
+              choices: [
+                ['time_shift', t('Time comparison (shift)')],
+                ['metric', t('Comparison value metric')],
+              ],
+              visibility: ({ controls }) =>
+                controls?.show_comparison2?.value === true,
             },
           },
         ],
@@ -95,8 +130,11 @@ const config: ControlPanelConfig = {
               label: t('YoY comparison value'),
               clearable: true,
               description: t(
-                'Metric (or custom SQL expression) holding the YoY comparison value. When set, the YoY time shift below is not used and no time range is required.',
+                'Metric (or custom SQL expression) holding the YoY comparison value. This mode does not require a time range.',
               ),
+              visibility: ({ controls }) =>
+                controls?.show_comparison2?.value === true &&
+                controls?.comparison2_mode?.value === 'metric',
             },
           },
         ],
@@ -115,7 +153,7 @@ const config: ControlPanelConfig = {
               ),
               visibility: ({ controls }) =>
                 controls?.show_comparison2?.value === true &&
-                !controls?.comparison2_column?.value,
+                controls?.comparison2_mode?.value !== 'metric',
             },
           },
         ],
