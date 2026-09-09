@@ -159,6 +159,13 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
 
     @staticmethod
     def find_by_extra_metadata(slug: str) -> list[ReportSchedule]:
+        """
+        Searches extra_json for a substring.
+
+        Matching is a plain substring scan that ignores which dashboard a
+        report belongs to, so callers acting on a single dashboard have to
+        narrow the results on ``dashboard_id`` themselves.
+        """
         return (
             db.session.query(ReportSchedule)
             .filter(ReportSchedule.extra_json.contains(slug, autoescape=True))
@@ -168,7 +175,10 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
     @staticmethod
     def find_by_native_filter_id(native_filter_id: str) -> list[ReportSchedule]:
         """
-        searches extra_json for a filter ID string
+        Searches extra_json for a filter ID string.
+
+        Carries the same caveat as :meth:`find_by_extra_metadata`: results span
+        every dashboard, not just the one owning the filter.
         """
         return (
             db.session.query(ReportSchedule)
