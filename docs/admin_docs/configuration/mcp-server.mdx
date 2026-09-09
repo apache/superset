@@ -1053,7 +1053,9 @@ names, types, and scalar or flat-list selections for select, numeric range, time
 range, and time-grain filters, plus display labels and exclusion flags when present.
 It does not expose filter targets, dataset IDs, columns from query metadata, or
 arbitrary nested filter state. Time-column filters, custom filters, unknown IDs,
-and chart cross-filter state are not projected.
+and chart cross-filter state are not projected. Historical masks containing
+time-column metadata are also omitted, even if the configured filter type has
+changed; malformed type-specific value shapes are omitted rather than interpreted.
 `native_filter_values_incomplete` flags omitted or malformed context, including SQL or wildcard predicates that
 cannot be represented by selected values alone.
 

@@ -1761,11 +1761,16 @@ async def test_explicit_default_columns_excludes_filter_state(mock_info, mcp_ser
 
 @pytest.mark.parametrize("privileged", [True, False])
 @pytest.mark.parametrize("use_permalink", [True, False])
+@pytest.mark.parametrize(
+    "historical_filter_type",
+    [None, "filter_select", "filter_range", "filter_time", "filter_timegrain"],
+)
 @pytest.mark.asyncio
 async def test_dashboard_filter_values_for_both_access_branches(
     mcp_server: Any,
     privileged: bool,
     use_permalink: bool,
+    historical_filter_type: str | None,
 ) -> None:
     """Both input paths preserve display context without relaxing metadata access."""
     dashboard = _minimal_dashboard()
@@ -1775,13 +1780,13 @@ async def test_dashboard_filter_values_for_both_access_branches(
                 {
                     "id": "region",
                     "name": "Region",
-                    "filterType": "filter_select",
+                    "filterType": historical_filter_type or "filter_select",
                     "targets": [{"datasetId": 3, "column": {"name": "secret_region"}}],
                 }
             ],
         }
     )
-    state = {
+    state: dict[str, Any] = {
         "dataMask": {
             "region": {
                 "filterState": {"value": ["EMEA"], "label": "EMEA"},
@@ -1792,6 +1797,12 @@ async def test_dashboard_filter_values_for_both_access_branches(
         },
         "chartStates": {"42": {"column": "secret_region"}},
     }
+    if historical_filter_type:
+        # A permalink saved before an editor changed the type retains the old mask.
+        state["dataMask"]["region"] = {
+            "filterState": {"value": ["secret_region"], "label": "secret_region"},
+            "extraFormData": {"granularity_sqla": "secret_region"},
+        }
     request: dict[str, Any] = {"identifier": 1}
     if use_permalink:
         request["permalink_key"] = "key"
@@ -1828,7 +1839,9 @@ async def test_dashboard_filter_values_for_both_access_branches(
         assert returned_state == state
     else:
         assert returned_state == {
-            "native_filter_values": [
+            "native_filter_values": []
+            if historical_filter_type
+            else [
                 {
                     "id": "region",
                     "name": "Region",

@@ -1185,3 +1185,69 @@ def test_native_filter_special_predicates_are_incomplete(extra: dict[str, Any]) 
     assert result["native_filter_values_incomplete"] is True
     assert "secret" not in str(result)
     assert "sqlExpression" not in str(result)
+
+
+@pytest.mark.parametrize(
+    ("filter_type", "value", "valid"),
+    [
+        ("filter_range", [None, 100], True),
+        ("filter_range", [0, None], True),
+        ("filter_range", None, True),
+        ("filter_range", [False, 100], False),
+        ("filter_range", ["private_event_ts"], False),
+        ("filter_range", ["0", "100"], False),
+        ("filter_range", [0, 1, 2], False),
+        ("filter_range", 100, False),
+        ("filter_time", "Last week", True),
+        ("filter_time", None, True),
+        ("filter_time", ["private_event_ts"], False),
+        ("filter_time", 123, False),
+        ("filter_timegrain", ["P1D"], True),
+        ("filter_timegrain", [], True),
+        ("filter_timegrain", None, True),
+        ("filter_timegrain", "P1D", False),
+        ("filter_timegrain", ["P1D", "P1M"], False),
+        ("filter_timegrain", [123], False),
+        ("filter_select", ["EMEA", None, False, 0], True),
+        ("filter_select", [], True),
+        ("filter_select", None, True),
+        ("filter_select", [["private_event_ts"]], False),
+    ],
+)
+def test_native_filter_type_specific_value_shapes(
+    filter_type: str, value: Any, valid: bool
+) -> None:
+    """Omit incompatible values rather than guessing their filter semantics."""
+    from superset.mcp_service.dashboard.schemas import (
+        NativeFilterSummary,
+        redact_filter_state_data_model_metadata,
+    )
+
+    result = redact_filter_state_data_model_metadata(
+        {"dataMask": {"f1": {"filterState": {"value": value}}}},
+        [NativeFilterSummary(id="f1", name="Filter", filter_type=filter_type)],
+    )
+    assert bool(result["native_filter_values"]) is valid
+    assert result["native_filter_values_incomplete"] is not valid
+    if valid:
+        assert result["native_filter_values"][0]["value"] == value
+
+
+@pytest.mark.parametrize("extra", [None, [], "invalid"])
+def test_native_filter_malformed_extra_form_data(extra: Any) -> None:
+    """Do not project values when the mask's query metadata is malformed."""
+    from superset.mcp_service.dashboard.schemas import (
+        NativeFilterSummary,
+        redact_filter_state_data_model_metadata,
+    )
+
+    result = redact_filter_state_data_model_metadata(
+        {
+            "dataMask": {
+                "f1": {"filterState": {"value": ["EMEA"]}, "extraFormData": extra}
+            }
+        },
+        [NativeFilterSummary(id="f1", name="Filter", filter_type="filter_select")],
+    )
+    assert result["native_filter_values"] == []
+    assert result["native_filter_values_incomplete"] is True

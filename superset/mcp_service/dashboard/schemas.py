@@ -1777,6 +1777,35 @@ def serialize_chart_summary(
     )
 
 
+def _native_filter_value_is_valid(filter_type: str, value: Any) -> bool:
+    """Validate display-value shapes without interpreting them as predicates."""
+    if value is None:
+        return True
+    if filter_type == "filter_time":
+        return isinstance(value, str)
+    if filter_type == "filter_range":
+        return (
+            isinstance(value, list)
+            and len(value) == 2
+            and all(
+                item is None
+                or (isinstance(item, (int, float)) and not isinstance(item, bool))
+                for item in value
+            )
+        )
+    if filter_type == "filter_timegrain":
+        return (
+            isinstance(value, list)
+            and len(value) <= 1
+            and all(isinstance(item, str) for item in value)
+        )
+    # Select values may be JSON scalars or flat scalar lists, never nested metadata.
+    values = value if isinstance(value, list) else [value]
+    return all(
+        item is None or isinstance(item, (str, int, float, bool)) for item in values
+    )
+
+
 def redact_filter_state_data_model_metadata(
     filter_state: Dict[str, Any],
     native_filters: list[NativeFilterSummary] | None = None,
@@ -1825,32 +1854,29 @@ def redact_filter_state_data_model_metadata(
             incomplete = True
             continue
         extra = entry.get("extraFormData", {})
-        if isinstance(extra, dict):
-            # A display value does not describe SQL predicates or wildcard
-            # matching. Signal that the summary cannot express these semantics.
-            predicates = extra.get("filters", [])
-            if extra.get("adhoc_filters") or (
-                native_filter.filter_type == "filter_select"
-                and (
-                    not isinstance(predicates, list)
-                    or any(
-                        not isinstance(predicate, dict)
-                        or predicate.get("op") not in ("IN", "NOT IN")
-                        for predicate in predicates
-                    )
+        # Filter IDs survive type changes. A saved time-column mask can contain
+        # column names even when the dashboard config describes a supported type.
+        if not isinstance(extra, dict) or "granularity_sqla" in extra:
+            incomplete = True
+            continue
+        # A display value does not describe SQL predicates or wildcard
+        # matching. Signal that the summary cannot express these semantics.
+        predicates = extra.get("filters", [])
+        if extra.get("adhoc_filters") or (
+            native_filter.filter_type == "filter_select"
+            and (
+                not isinstance(predicates, list)
+                or any(
+                    not isinstance(predicate, dict)
+                    or predicate.get("op") not in ("IN", "NOT IN")
+                    for predicate in predicates
                 )
-            ):
-                incomplete = True
-        else:
+            )
+        ):
             incomplete = True
         state = entry["filterState"]
         value = state.get("value")
-        # Accept JSON scalars or flat scalar lists, never nested metadata.
-        values = value if isinstance(value, list) else [value]
-        if any(
-            item is not None and not isinstance(item, (str, int, float, bool))
-            for item in values
-        ):
+        if not _native_filter_value_is_valid(native_filter.filter_type, value):
             incomplete = True
             continue
         summary = {
