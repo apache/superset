@@ -81,12 +81,12 @@ export const fetchTimeRange = async (
   try {
     const response = await SupersetClient.get({ endpoint });
     if (isEmpty(shifts)) {
-      const timeRangeString = buildTimeRangeString(
-        response?.json?.result[0]?.since || '',
-        response?.json?.result[0]?.until || '',
-      );
+      const { since, until } = response?.json?.result[0] ?? {};
+      const timeRangeString = buildTimeRangeString(since || '', until || '');
       return {
         value: formatTimeRange(timeRangeString, columnPlaceholder),
+        // Compare the API's ISO strings to preserve sub-millisecond precision.
+        isEmpty: Boolean(since && until && since === until),
       };
     }
     const timeRanges = response?.json?.result.map((result: any) =>

@@ -366,6 +366,11 @@ The **Custom** time range picker accepts natural language expressions alongside 
 
 These expressions are evaluated at query time, so saved charts always display data relative to the current date.
 
+Time ranges include the start timestamp and exclude the end timestamp. If both
+endpoints resolve to the same timestamp, the picker warns that the range is empty;
+you can still apply it. To include a full day, use midnight on that day as the
+start and midnight on the following day as the end.
+
 ### Downloading Drill to Detail and Drill By Results
 
 The **Drill to detail** and **Drill by** modals, available from a chart's context menu, show the row-level

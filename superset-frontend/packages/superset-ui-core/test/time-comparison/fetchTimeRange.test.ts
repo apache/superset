@@ -72,8 +72,63 @@ test('returns a formatted time range from response', async () => {
   const timeRange = await fetchTimeRange('Last day', 'temporal_col');
   expect(timeRange).toEqual({
     value: '2021-04-13 ≤ temporal_col < 2021-04-14',
+    isEmpty: false,
   });
 });
+
+test.each([
+  {
+    description: 'identical timestamps',
+    since: '2021-04-13T00:00:00',
+    until: '2021-04-13T00:00:00',
+    isEmpty: true,
+  },
+  {
+    description: 'identical timestamps with microseconds',
+    since: '2021-04-13T00:00:00.000001',
+    until: '2021-04-13T00:00:00.000001',
+    isEmpty: true,
+  },
+  {
+    description: 'timestamps differing only in microseconds',
+    since: '2021-04-13T00:00:00.000001',
+    until: '2021-04-13T00:00:00.000002',
+    isEmpty: false,
+  },
+  {
+    description: 'an open start',
+    since: null,
+    until: '2021-04-13T00:00:00',
+    isEmpty: false,
+  },
+  {
+    description: 'an open end',
+    since: '2021-04-13T00:00:00',
+    until: null,
+    isEmpty: false,
+  },
+  {
+    description: 'two null endpoints',
+    since: null,
+    until: null,
+    isEmpty: false,
+  },
+  {
+    description: 'two empty endpoints',
+    since: '',
+    until: '',
+    isEmpty: false,
+  },
+])(
+  'identifies an empty evaluated range with $description',
+  async ({ since, until, isEmpty }) => {
+    fetchMock.get('glob:*/api/v1/time_range/*', {
+      result: [{ since, until, timeRange: 'today : today' }],
+    });
+
+    expect(await fetchTimeRange('today : today')).toMatchObject({ isEmpty });
+  },
+);
 
 test('returns a formatted time range from empty response', async () => {
   fetchMock.get('glob:*/api/v1/time_range/?q=%27Last+day%27', {
@@ -83,6 +138,7 @@ test('returns a formatted time range from empty response', async () => {
   const timeRange = await fetchTimeRange('Last day');
   expect(timeRange).toEqual({
     value: '-∞ ≤ col < ∞',
+    isEmpty: false,
   });
 });
 

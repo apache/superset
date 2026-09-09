@@ -16,8 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useState, useEffect, useMemo } from 'react';
+import {
+  ReactNode,
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  useCallback,
+} from 'react';
 import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
 import {
   NO_TIME_RANGE,
   useCSSTextTruncation,
@@ -159,12 +167,19 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [frame, setFrame] = useState<FrameType>(guessedFrame);
   const [lastFetchedTimeRange, setLastFetchedTimeRange] = useState(value);
   const [timeRangeValue, setTimeRangeValue] = useState(value);
+  const currentTimeRange = useRef(value);
+  const [emptyTimeRange, setEmptyTimeRange] = useState<string | null>(null);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
   const [tooltipTitle, setTooltipTitle] = useState<ReactNode | null>(t(value));
   const [isDescriptionHovered, setIsDescriptionHovered] = useState(false);
   const theme = useTheme();
   const [labelRef, labelIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
+
+  const onChangeTimeRange = useCallback((nextTimeRange: string) => {
+    currentTimeRange.current = nextTimeRange;
+    setTimeRangeValue(nextTimeRange);
+  }, []);
 
   useEffect(() => {
     if (!isControlHovered) {
@@ -176,13 +191,14 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     if (value === NO_TIME_RANGE) {
       setActualTimeRange(NO_TIME_RANGE);
       setTooltipTitle(null);
-      setValidTimeRange(true);
+      if (currentTimeRange.current === value) {
+        setValidTimeRange(true);
+        setEmptyTimeRange(null);
+      }
       return;
     }
-    fetchTimeRange(value).then(({ value: actualRange, error }) => {
+    fetchTimeRange(value).then(({ value: actualRange, error, isEmpty }) => {
       if (error) {
-        setEvalResponse(error || '');
-        setValidTimeRange(false);
         setTooltipTitle(t(value) || null);
       } else {
         /*
@@ -212,10 +228,13 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
             getTooltipTitle(labelIsTruncated, actualRange, value),
           );
         }
-        setValidTimeRange(true);
       }
-      setLastFetchedTimeRange(value);
-      setEvalResponse(actualRange || value);
+      if (currentTimeRange.current === value) {
+        setValidTimeRange(!error);
+        setEmptyTimeRange(!error && isEmpty ? value : null);
+        setLastFetchedTimeRange(value);
+        setEvalResponse(error || actualRange || value);
+      }
     });
   }, [guessedFrame, labelIsTruncated, labelRef, value]);
 
@@ -225,19 +244,26 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         setEvalResponse(NO_TIME_RANGE);
         setLastFetchedTimeRange(NO_TIME_RANGE);
         setValidTimeRange(true);
+        setEmptyTimeRange(null);
         return;
       }
       if (lastFetchedTimeRange !== timeRangeValue) {
-        fetchTimeRange(timeRangeValue).then(({ value: actualRange, error }) => {
-          if (error) {
-            setEvalResponse(error || '');
-            setValidTimeRange(false);
-          } else {
-            setEvalResponse(actualRange || '');
-            setValidTimeRange(true);
-          }
-          setLastFetchedTimeRange(timeRangeValue);
-        });
+        fetchTimeRange(timeRangeValue).then(
+          ({ value: actualRange, error, isEmpty }) => {
+            if (currentTimeRange.current !== timeRangeValue) {
+              return;
+            }
+            if (error) {
+              setEvalResponse(error || '');
+              setValidTimeRange(false);
+            } else {
+              setEvalResponse(actualRange || '');
+              setValidTimeRange(true);
+            }
+            setEmptyTimeRange(!error && isEmpty ? timeRangeValue : null);
+            setLastFetchedTimeRange(timeRangeValue);
+          },
+        );
       }
     },
     Constants.SLOW_DEBOUNCE,
@@ -251,14 +277,14 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   }
 
   function onOpen() {
-    setTimeRangeValue(value);
+    onChangeTimeRange(value);
     setFrame(guessedFrame);
     setShow(true);
     onOpenPopover();
   }
 
   function onHide() {
-    setTimeRangeValue(value);
+    onChangeTimeRange(value);
     setFrame(guessedFrame);
     setShow(false);
     onClosePopover();
@@ -274,7 +300,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
 
   function onChangeFrame(value: FrameType) {
     if (value === NO_TIME_RANGE) {
-      setTimeRangeValue(NO_TIME_RANGE);
+      onChangeTimeRange(NO_TIME_RANGE);
     }
     setFrame(value);
   }
@@ -290,24 +316,24 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       />
       {frame !== 'No filter' && <Divider />}
       {frame === 'Common' && (
-        <CommonFrame value={timeRangeValue} onChange={setTimeRangeValue} />
+        <CommonFrame value={timeRangeValue} onChange={onChangeTimeRange} />
       )}
       {frame === 'Calendar' && (
-        <CalendarFrame value={timeRangeValue} onChange={setTimeRangeValue} />
+        <CalendarFrame value={timeRangeValue} onChange={onChangeTimeRange} />
       )}
       {frame === 'Current' && (
         <CurrentCalendarFrame
           value={timeRangeValue}
-          onChange={setTimeRangeValue}
+          onChange={onChangeTimeRange}
         />
       )}
       {frame === 'Advanced' && (
-        <AdvancedFrame value={timeRangeValue} onChange={setTimeRangeValue} />
+        <AdvancedFrame value={timeRangeValue} onChange={onChangeTimeRange} />
       )}
       {frame === 'Custom' && (
         <CustomFrame
           value={timeRangeValue}
-          onChange={setTimeRangeValue}
+          onChange={onChangeTimeRange}
           isOverflowingFilterBar={isOverflowingFilterBar}
         />
       )}
@@ -326,6 +352,13 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
             <span className="text error">{evalResponse}</span>
           </IconWrapper>
         )}
+        {validTimeRange && emptyTimeRange === timeRangeValue && (
+          <Alert type="warning" closable={false}>
+            {t(
+              'This time range is empty. Choose an end time later than the start time.',
+            )}
+          </Alert>
+        )}
       </div>
       <Divider />
       <div className="footer">
@@ -341,7 +374,11 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         <Button
           buttonStyle="primary"
           cta
-          disabled={!validTimeRange}
+          disabled={
+            !validTimeRange ||
+            (timeRangeValue !== NO_TIME_RANGE &&
+              lastFetchedTimeRange !== timeRangeValue)
+          }
           key="apply"
           onClick={onSave}
           data-test={DateFilterTestKey.ApplyButton}
