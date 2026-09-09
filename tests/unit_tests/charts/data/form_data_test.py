@@ -36,7 +36,7 @@ def _jinja_query_context(
 ) -> SimpleNamespace:
     """Build a QueryContext-shaped object from a real QueryObject."""
     query = QueryObject(
-        filters=filters or [{"col": "region", "op": "IN", "val": ["North"]}],
+        filters=cast(Any, filters or [{"col": "region", "op": "IN", "val": ["North"]}]),
         time_range=time_range,
     )
     return SimpleNamespace(
