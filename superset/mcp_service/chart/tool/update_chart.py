@@ -40,15 +40,16 @@ from superset.mcp_service.chart.chart_utils import (
     analyze_chart_semantics,
     generate_chart_name,
     map_config_to_form_data,
+    merge_chart_form_data,
     merge_interactive_pivot_ui_config,
     merge_table_column_config,
-    preserve_previous_adhoc_filters,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ChartConfig,
     ColumnRef,
+    GaugeChartConfig,
     GenerateChartResponse,
     PerformanceMetadata,
     TableChartConfig,
@@ -199,31 +200,16 @@ def _merge_replacement_config(
     existing_form_data: dict[str, Any],
     new_form_data: dict[str, Any],
     parsed_config: ChartConfig,
+    *,
+    dataset_rebind: bool = False,
 ) -> dict[str, Any]:
-    """Merge same-type config, honoring explicit filters and type changes."""
-    if existing_form_data.get("viz_type") != new_form_data.get("viz_type"):
-        return dict(new_form_data)
-    merged = {
-        **{
-            key: value
-            for key, value in existing_form_data.items()
-            if key != "column_config"
-        },
-        **new_form_data,
-    }
-    fields_set = parsed_config.model_fields_set
-    if "filters" in fields_set and getattr(parsed_config, "filters", None) == []:
-        merged.pop("adhoc_filters", None)
-    if "group_by" in fields_set and getattr(parsed_config, "group_by", None) == []:
-        merged.pop("groupby", None)
-    if (
-        "group_by_secondary" in fields_set
-        and getattr(parsed_config, "group_by_secondary", None) == []
-    ):
-        merged.pop("groupby_b", None)
-    if "sort_by" in fields_set and getattr(parsed_config, "sort_by", None) == []:
-        merged.pop("order_by_cols", None)
-    return merged
+    """Delegate update semantics to the shared form-data merge helper."""
+    return merge_chart_form_data(
+        existing_form_data,
+        new_form_data,
+        parsed_config,
+        dataset_rebind=dataset_rebind,
+    )
 
 
 def _valid_dataset_reference(
@@ -233,52 +219,29 @@ def _valid_dataset_reference(
     *,
     allow_metric: bool = False,
 ) -> bool:
+    """Return whether a form_data reference resolves against a dataset."""
     if not isinstance(value, str):
         return True
     normalized = value.casefold()
     return normalized in columns or (allow_metric and normalized in metrics)
 
 
-def _inherited_columns_match_dataset(
-    existing_form_data: dict[str, Any],
-    new_form_data: dict[str, Any],
-    columns: set[str],
-    metrics: set[str],
-) -> bool:
-    for key in ("groupby", "groupby_b", "all_columns", "columns"):
-        if key in new_form_data:
-            continue
-        values = existing_form_data.get(key)
-        if isinstance(values, list) and not all(
-            _valid_dataset_reference(value, columns, metrics) for value in values
-        ):
-            return False
-    for key in ("x_axis", "granularity_sqla"):
-        if key not in new_form_data and not _valid_dataset_reference(
-            existing_form_data.get(key), columns, metrics
-        ):
-            return False
-    return True
-
-
 def _inherited_metrics_match_dataset(
     existing_form_data: dict[str, Any],
-    new_form_data: dict[str, Any],
     columns: set[str],
     metrics: set[str],
 ) -> bool:
-    if "metrics" not in new_form_data:
-        for metric in existing_form_data.get("metrics") or []:
-            if isinstance(metric, str) and not _valid_dataset_reference(
-                metric, columns, metrics, allow_metric=True
+    for metric in existing_form_data.get("metrics") or []:
+        if isinstance(metric, str) and not _valid_dataset_reference(
+            metric, columns, metrics, allow_metric=True
+        ):
+            return False
+        if isinstance(metric, dict):
+            column = metric.get("column")
+            if isinstance(column, dict) and not _valid_dataset_reference(
+                column.get("column_name"), columns, metrics
             ):
                 return False
-            if isinstance(metric, dict):
-                column = metric.get("column")
-                if isinstance(column, dict) and not _valid_dataset_reference(
-                    column.get("column_name"), columns, metrics
-                ):
-                    return False
     return True
 
 
@@ -312,35 +275,45 @@ def _inherited_filters_match_dataset(
     return True
 
 
+#: form_data keys carrying query roles, mapped to the config field that
+#: sets them explicitly. An explicit field is the caller's stated intent,
+#: so it is never treated as inherited state.
+_INHERITED_QUERY_ROLE_FIELDS = {
+    "groupby": "group_by",
+    "groupby_b": "group_by_secondary",
+    "all_columns": None,
+    "columns": None,
+    "x_axis": None,
+    "granularity_sqla": None,
+    "metrics": None,
+    "order_by_cols": "sort_by",
+    "adhoc_filters": "filters",
+}
+
+_INHERITED_COLUMN_LIST_KEYS = frozenset(
+    {"groupby", "groupby_b", "all_columns", "columns"}
+)
+_INHERITED_COLUMN_SCALAR_KEYS = frozenset({"x_axis", "granularity_sqla"})
+
+
 def _inherited_state_invalid_keys(
     existing_form_data: dict[str, Any],
     new_form_data: dict[str, Any],
     parsed_config: ChartConfig,
     dataset_id: int,
 ) -> set[str]:
-    """Return inherited query fields that are invalid for a new dataset."""
+    """Return inherited query fields that are invalid for a new dataset.
+
+    A dataset rebind only has to discard the state that cannot resolve
+    against the replacement dataset; everything else stays valid and is
+    preserved so the update does not silently reset the chart.
+    """
     fields_set = parsed_config.model_fields_set
-    explicit_fields = {
-        "groupby": "group_by",
-        "groupby_b": "group_by_secondary",
-        "order_by_cols": "sort_by",
-        "adhoc_filters": "filters",
-    }
     inherited_keys = {
         key
-        for key in (
-            "groupby",
-            "groupby_b",
-            "all_columns",
-            "columns",
-            "x_axis",
-            "granularity_sqla",
-            "metrics",
-            "order_by_cols",
-            "adhoc_filters",
-        )
+        for key, config_field in _INHERITED_QUERY_ROLE_FIELDS.items()
         if key not in new_form_data
-        and explicit_fields.get(key) not in fields_set
+        and config_field not in fields_set
         and existing_form_data.get(key)
     }
     if not inherited_keys:
@@ -353,27 +326,24 @@ def _inherited_state_invalid_keys(
 
     context = build_dataset_context_from_orm(DatasetDAO.find_by_id(dataset_id))
     if context is None:
+        # The replacement dataset cannot be inspected, so no inherited
+        # reference can be shown to be safe.
         return inherited_keys
     columns = {column["name"].casefold() for column in context.available_columns}
     metrics = {metric["name"].casefold() for metric in context.available_metrics}
 
     invalid_keys: set[str] = set()
-    for key in inherited_keys & {
-        "groupby",
-        "groupby_b",
-        "all_columns",
-        "columns",
-    }:
+    for key in inherited_keys & _INHERITED_COLUMN_LIST_KEYS:
         values = existing_form_data.get(key)
         if isinstance(values, list) and not all(
             _valid_dataset_reference(value, columns, metrics) for value in values
         ):
             invalid_keys.add(key)
-    for key in inherited_keys & {"x_axis", "granularity_sqla"}:
+    for key in inherited_keys & _INHERITED_COLUMN_SCALAR_KEYS:
         if not _valid_dataset_reference(existing_form_data.get(key), columns, metrics):
             invalid_keys.add(key)
     if "metrics" in inherited_keys and not _inherited_metrics_match_dataset(
-        existing_form_data, new_form_data, columns, metrics
+        existing_form_data, columns, metrics
     ):
         invalid_keys.add("metrics")
     if "order_by_cols" in inherited_keys and not _inherited_sort_matches_dataset(
@@ -387,30 +357,24 @@ def _inherited_state_invalid_keys(
     return invalid_keys
 
 
-def _inherited_state_matches_dataset(
-    existing_form_data: dict[str, Any],
-    new_form_data: dict[str, Any],
-    parsed_config: ChartConfig,
-    dataset_id: int,
-) -> bool:
-    """Return whether carried-over query fields are valid for a new dataset."""
-    return not _inherited_state_invalid_keys(
-        existing_form_data, new_form_data, parsed_config, dataset_id
-    )
-
-
 def _build_replacement_form_data(
     existing_form_data: dict[str, Any],
     parsed_config: ChartConfig,
     effective_dataset_id: int | None,
     replacement_dataset_id: int | None = None,
 ) -> dict[str, Any]:
-    """Map and merge a replacement config for both preview and save paths."""
+    """Map and merge a replacement config for preview and save paths."""
     new_form_data = map_config_to_form_data(
         parsed_config, dataset_id=effective_dataset_id
     )
     new_form_data.pop("_mcp_warnings", None)
-    if replacement_dataset_id is not None:
+    dataset_rebind = replacement_dataset_id is not None
+    if replacement_dataset_id is not None and not isinstance(
+        parsed_config, GaugeChartConfig
+    ):
+        # Drop only the inherited state the replacement dataset cannot
+        # resolve, then merge as a same-dataset update. Gauge keeps the
+        # stricter presentation-only rebind handled downstream.
         invalid_keys = _inherited_state_invalid_keys(
             existing_form_data,
             new_form_data,
@@ -422,11 +386,15 @@ def _build_replacement_form_data(
             for key, value in existing_form_data.items()
             if key not in invalid_keys
         }
-    if "filters" not in parsed_config.model_fields_set:
-        preserve_previous_adhoc_filters(new_form_data, existing_form_data)
+        dataset_rebind = False
     merge_table_column_config(existing_form_data, new_form_data)
     merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
-    merged = _merge_replacement_config(existing_form_data, new_form_data, parsed_config)
+    merged = _merge_replacement_config(
+        existing_form_data,
+        new_form_data,
+        parsed_config,
+        dataset_rebind=dataset_rebind,
+    )
     if replacement_dataset_id is not None:
         merged["datasource"] = f"{replacement_dataset_id}__table"
     return merged
@@ -435,7 +403,7 @@ def _build_replacement_form_data(
 def _build_update_payload(
     request: UpdateChartRequest,
     chart: Any,
-    parsed_config: ChartConfig | None = None,
+    parsed_config: Any = None,
 ) -> dict[str, Any] | GenerateChartResponse:
     """Build the update payload for a chart update.
 
@@ -450,9 +418,8 @@ def _build_update_payload(
     )
 
     if parsed_config is not None:
-        existing_form_data = _get_existing_form_data(chart)
         new_form_data = _build_replacement_form_data(
-            existing_form_data,
+            _get_existing_form_data(chart),
             parsed_config,
             effective_dataset_id,
             replacement_dataset_id=(
@@ -519,7 +486,7 @@ def _build_update_payload(
 def _build_preview_form_data(
     request: UpdateChartRequest,
     chart: Any,
-    parsed_config: ChartConfig | None = None,
+    parsed_config: Any = None,
 ) -> dict[str, Any] | GenerateChartResponse:
     """Merge the existing chart's form_data with the requested changes.
 

@@ -689,9 +689,20 @@ def merge_chart_form_data(  # noqa: C901
     if not isinstance(config, GaugeChartConfig):
         if dataset_rebind:
             return dict(new_form_data)
+        fields_set = config.model_fields_set
+        if "filters" not in fields_set:
+            preserve_previous_adhoc_filters(new_form_data, existing_form_data)
         merged = {**existing_form_data, **new_form_data}
-        if getattr(config, "filters", None) == []:
-            merged.pop("adhoc_filters", None)
+        # An explicitly empty collection clears the control rather than
+        # falling through to the inherited value.
+        for config_field, form_data_field in (
+            ("filters", "adhoc_filters"),
+            ("group_by", "groupby"),
+            ("group_by_secondary", "groupby_b"),
+            ("sort_by", "order_by_cols"),
+        ):
+            if config_field in fields_set and getattr(config, config_field, None) == []:
+                merged.pop(form_data_field, None)
         return merged
 
     fields_set = config.model_fields_set
@@ -2016,7 +2027,13 @@ def analyze_chart_semantics(viz_type: str | None, config: Any) -> ChartSemantics
 def preserve_previous_adhoc_filters(
     new_form_data: dict[str, Any], previous_form_data: dict[str, Any]
 ) -> None:
-    """Preserve saved filters without dropping mapper-generated bindings."""
+    """Preserve saved filters without dropping mapper-generated bindings.
+
+    Saved predicates the caller did not mention survive the update, while the
+    bindings generated for the new config are appended when they are not
+    already represented. A stale temporal binding is dropped when the config
+    rebinds the time filter to a different subject.
+    """
     previous_filters = previous_form_data.get("adhoc_filters")
     if not isinstance(previous_filters, list) or not previous_filters:
         return
@@ -2031,7 +2048,7 @@ def preserve_previous_adhoc_filters(
             previous_binding
             and previous_binding != new_binding
             and isinstance(filter_, dict)
-            and filter_.get("operator") == "TEMPORAL_RANGE"
+            and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
             and filter_.get("subject") == previous_binding
             and filter_.get("comparator") == NO_TIME_RANGE
         )
@@ -2042,6 +2059,9 @@ def preserve_previous_adhoc_filters(
                 merged_filters.append(generated_filter)
             continue
 
+        # A saved temporal predicate on the same subject wins over the
+        # generated default, so only the comparator-insensitive match is
+        # treated as already represented for TEMPORAL_RANGE.
         is_same_filter = any(
             isinstance(previous_filter, dict)
             and previous_filter.get("clause") == generated_filter.get("clause")
@@ -2050,7 +2070,7 @@ def preserve_previous_adhoc_filters(
             and previous_filter.get("subject") == generated_filter.get("subject")
             and previous_filter.get("operator") == generated_filter.get("operator")
             and (
-                generated_filter.get("operator") == "TEMPORAL_RANGE"
+                generated_filter.get("operator") == FilterOperator.TEMPORAL_RANGE.value
                 or previous_filter.get("comparator")
                 == generated_filter.get("comparator")
             )

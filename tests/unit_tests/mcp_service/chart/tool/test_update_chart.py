@@ -45,7 +45,7 @@ from superset.mcp_service.chart.schemas import (
 from superset.mcp_service.chart.tool.update_chart import (
     _build_preview_form_data,
     _build_update_payload,
-    _inherited_state_matches_dataset,
+    _inherited_state_invalid_keys,
 )
 from superset.utils import json
 
@@ -968,7 +968,7 @@ class TestBuildUpdatePayload:
         config = TableChartConfig(columns=[ColumnRef(name="revenue")])
         new_form_data = {"viz_type": "table", "all_columns": ["revenue"]}
 
-        assert _inherited_state_matches_dataset(
+        assert not _inherited_state_invalid_keys(
             {
                 "viz_type": "table",
                 "groupby": ["region"],
@@ -985,7 +985,7 @@ class TestBuildUpdatePayload:
             config,
             9,
         )
-        assert not _inherited_state_matches_dataset(
+        assert _inherited_state_invalid_keys(
             {
                 "viz_type": "table",
                 "groupby": ["removed_column"],
@@ -993,7 +993,7 @@ class TestBuildUpdatePayload:
             new_form_data,
             config,
             9,
-        )
+        ) == {"groupby"}
 
     def test_config_update_does_not_merge_settings_from_another_viz_type(self):
         """Changing visualization types drops stale query-defining settings."""
@@ -1544,8 +1544,10 @@ class TestBuildPreviewFormData:
         result = _build_preview_form_data(request, chart, parsed_config=config)
 
         assert isinstance(result, dict)
-        # Cross-viz updates do not inherit stale controls from the prior plugin.
-        assert "custom_flag" not in result
+        # A same-viz update keeps controls the config does not mention.
+        # Cross-viz drops are covered by
+        # test_config_update_does_not_merge_settings_from_another_viz_type.
+        assert result["custom_flag"] is True
         # New config overrides existing keys
         assert result["viz_type"] == "table"
         # slice_id and datasource are always stamped onto the preview
