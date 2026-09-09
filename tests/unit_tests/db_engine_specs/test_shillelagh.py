@@ -16,22 +16,22 @@
 # under the License.
 
 import sqlite3
+from contextlib import closing
 
 import pytest
 from sqlalchemy import create_engine, text
 
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
+from superset.models.core import Database
 
 
 @pytest.fixture
 def local_sqlite_file(tmp_path):
     """A standalone SQLite file that ATTACH would otherwise be able to open."""
     path = tmp_path / "other.db"
-    conn = sqlite3.connect(str(path))
-    conn.execute("CREATE TABLE t (x TEXT)")
-    conn.execute("INSERT INTO t VALUES ('value')")
-    conn.commit()
-    conn.close()
+    with closing(sqlite3.connect(str(path))) as conn, conn:
+        conn.execute("CREATE TABLE t (x TEXT)")
+        conn.execute("INSERT INTO t VALUES ('value')")
     return path
 
 
@@ -40,31 +40,37 @@ def test_register_engine_events_disables_attach(local_sqlite_file) -> None:
     After ``register_engine_events``, ``ATTACH DATABASE`` is rejected on a
     shillelagh connection while ordinary queries keep working.
     """
-    pytest.importorskip("shillelagh")
-    pytest.importorskip("apsw")
-
     engine = create_engine("shillelagh://")
     ShillelaghEngineSpec.register_engine_events(engine)
 
     with engine.connect() as connection:
-        # a normal query is unaffected
         assert connection.execute(text("SELECT 1")).scalar() == 1
 
-        # ATTACH is refused: the attached-database limit is zero
         with pytest.raises(Exception, match="attached databases"):
             connection.execute(text(f"ATTACH DATABASE '{local_sqlite_file}' AS other"))
 
 
 def test_attach_enabled_without_registration(local_sqlite_file) -> None:
     """
-    Control: a plain shillelagh engine (no event registration) still permits
-    ATTACH, confirming the fixture exercises the real driver capability and the
-    protection comes from ``register_engine_events``.
+    Control: without ``register_engine_events`` the driver still permits ATTACH,
+    so the test above exercises a real capability.
     """
-    pytest.importorskip("shillelagh")
-    pytest.importorskip("apsw")
-
     engine = create_engine("shillelagh://")
     with engine.connect() as connection:
         connection.execute(text(f"ATTACH DATABASE '{local_sqlite_file}' AS other"))
         assert connection.execute(text("SELECT x FROM other.t")).scalar() == "value"
+
+
+def test_database_engine_disables_attach(app_context: None, local_sqlite_file) -> None:
+    """
+    A database built the normal way, on the reachable ``gsheets://`` dialect that
+    inherits the hook, has ATTACH disabled without any explicit registration.
+    """
+    engine = Database(
+        database_name="database",
+        sqlalchemy_uri="gsheets://",
+    )._get_sqla_engine(nullpool=False)
+
+    with engine.connect() as connection:
+        with pytest.raises(Exception, match="attached databases"):
+            connection.execute(text(f"ATTACH DATABASE '{local_sqlite_file}' AS other"))

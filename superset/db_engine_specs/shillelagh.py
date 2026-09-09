@@ -16,17 +16,21 @@
 # under the License.
 from __future__ import annotations
 
+import logging
 from typing import Any, TYPE_CHECKING
 
 import apsw
 from sqlalchemy import event
-from sqlalchemy.engine.base import Engine
 
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 
 if TYPE_CHECKING:
+    from sqlalchemy.engine.base import Engine
+
     from superset.models.core import Database
+
+logger = logging.getLogger(__name__)
 
 
 class ShillelaghEngineSpec(SqliteEngineSpec):
@@ -76,7 +80,7 @@ class ShillelaghEngineSpec(SqliteEngineSpec):
     @staticmethod
     def _scope_connection_to_adapters(
         dbapi_connection: Any,
-        connection_record: Any,  # pylint: disable=unused-argument
+        _connection_record: Any,
     ) -> None:
         """
         Keep a query scoped to the connection's configured data source.
@@ -85,11 +89,14 @@ class ShillelaghEngineSpec(SqliteEngineSpec):
         example a Google Sheet); ``ATTACH DATABASE`` is not part of that surface,
         and the underlying driver is a full APSW/SQLite engine that would
         otherwise let a query open unrelated local SQLite files. Setting the
-        attached-database limit to zero disables ``ATTACH`` on the connection,
-        matching the ``check_sqlalchemy_uri`` guard in
-        ``superset/security/analytics_db_safety.py`` that already excludes the
-        bare ``sqlite``/``shillelagh``/``duckdb`` schemes at registration.
+        attached-database limit to zero disables ``ATTACH`` on the connection.
         """
         apsw_connection = getattr(dbapi_connection, "_connection", None)
-        if isinstance(apsw_connection, apsw.Connection):
-            apsw_connection.limit(apsw.SQLITE_LIMIT_ATTACHED, 0)
+        if not isinstance(apsw_connection, apsw.Connection):
+            logger.warning(
+                "No APSW connection found on %s; leaving its limits untouched",
+                type(dbapi_connection).__name__,
+            )
+            return
+
+        apsw_connection.limit(apsw.SQLITE_LIMIT_ATTACHED, 0)

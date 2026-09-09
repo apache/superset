@@ -1936,10 +1936,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         Attach SQLAlchemy event listeners to a freshly created engine.
 
-        Called once per engine creation, after the engine is built and before it
-        is cached. The base implementation does nothing; engine specs override it
-        to add connection-time behavior (for example, applying per-connection
-        limits once the DBAPI connection is available).
+        Called once per engine creation, before the engine is cached, so
+        listeners must not be added or removed once it is shared. The base
+        implementation does nothing; engine specs override it to add
+        connection-time behavior such as per-connection limits.
         """
 
     @classmethod
