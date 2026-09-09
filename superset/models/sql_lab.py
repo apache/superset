@@ -371,6 +371,8 @@ class Query(
 
     @property
     def schema_perm(self) -> str:
+        if not self.database:
+            return ""
         return (
             security_manager.get_schema_perm(
                 self.database.database_name,
