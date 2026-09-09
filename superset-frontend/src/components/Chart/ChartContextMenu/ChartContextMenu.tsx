@@ -168,6 +168,7 @@ const ChartContextMenu = (
   const [showDrillByModal, setShowDrillByModal] = useState(false);
 
   const closeContextMenu = useCallback(() => {
+    visibleRef.current = false;
     setVisible(false);
     onClose();
   }, [onClose]);

@@ -224,6 +224,24 @@ def test_migration_strips_matrixify_keys() -> None:
     migrate_and_assert(MigrateTableChart, source, target)
 
 
+def test_migration_defaults_omitted_allow_rearrange_columns_to_false() -> None:
+    """v1's control (and TableChart) default allow_rearrange_columns to
+    False, and charts saved before that control existed may omit the key
+    entirely. v2's transformProps.ts instead defaults a missing key to
+    True (its own pre-existing behavior for v2-native charts), so the
+    migration must materialize v1's False default explicitly rather than
+    letting a migrated chart pick up v2's unrelated default."""
+    source: dict[str, Any] = {
+        k: v for k, v in SOURCE_FORM_DATA.items() if k != "allow_rearrange_columns"
+    }
+    target: dict[str, Any] = {
+        **{k: v for k, v in TARGET_FORM_DATA.items() if k != "form_data_bak"},
+        "allow_rearrange_columns": False,
+        "form_data_bak": source,
+    }
+    migrate_and_assert(MigrateTableChart, source, target)
+
+
 @pytest.mark.parametrize(
     "auto_currency_form_data",
     [
@@ -353,6 +371,40 @@ def test_build_query_stale_time_compare_without_comparison_type_is_ignored() -> 
     }
     main_query = MigrateTableChart(json.dumps(form_data))._build_query()["queries"][0]
     assert main_query["time_offsets"] == []
+
+
+def test_build_query_totals_query_applies_totals_aggregate() -> None:
+    """Both runtime buildQuery.ts implementations call
+    getTotalsMetrics(metrics, toTotalsAggregate(formData.totals_aggregate))
+    when building the totals query. A chart saved with show_totals=True,
+    totals_aggregate='AVG', and a SIMPLE SUM(...) metric must therefore get
+    a persisted totals query that computes AVG, not the main query's SUM."""
+    form_data: dict[str, Any] = {
+        "datasource": "1__table",
+        "viz_type": "table",
+        "query_mode": "aggregate",
+        "groupby": ["name"],
+        "metrics": [
+            {
+                "expressionType": "SIMPLE",
+                "column": {"column_name": "sales"},
+                "aggregate": "SUM",
+                "label": "sum__sales",
+            }
+        ],
+        "show_totals": True,
+        "totals_aggregate": "AVG",
+    }
+    queries = MigrateTableChart(json.dumps(form_data))._build_query()["queries"]
+    totals_query = next(q for q in queries if q["columns"] == [])
+    assert totals_query["metrics"] == [
+        {
+            "expressionType": "SIMPLE",
+            "column": {"column_name": "sales"},
+            "aggregate": "AVG",
+            "label": "sum__sales",
+        }
+    ]
 
 
 def test_build_query_raw_mode_stale_time_compare_is_ignored() -> None:

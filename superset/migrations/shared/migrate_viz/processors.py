@@ -26,6 +26,7 @@ from superset.migrations.shared.migrate_viz.query_functions import (
     get_metric_label,
     get_x_axis_column,
     histogram_operator,
+    is_adhoc_metric_simple,
     is_physical_column,
     is_time_comparison,
     is_x_axis_set,
@@ -733,11 +734,43 @@ def _reorder_table_chart_temporal_column(
     return [temporal_column] + filtered_columns if temporal_column else filtered_columns
 
 
+def _to_totals_aggregate(value: Any) -> str:
+    """
+    Narrow a raw totals_aggregate form-data value, mirroring
+    toTotalsAggregate() in @superset-ui/chart-controls. Anything other than
+    an explicit SUM/AVG -- including charts saved before the control
+    existed -- keeps each metric's own aggregation.
+    """
+    return value if value in ("SUM", "AVG") else "ORIGINAL"
+
+
+def _get_table_chart_totals_metrics(
+    metrics: list[Any], totals_aggregate: str
+) -> list[Any]:
+    """
+    Build the metrics for the totals query, mirroring getTotalsMetrics() in
+    @superset-ui/chart-controls: with SUM or AVG, each SIMPLE (adhoc) metric
+    is cloned with its aggregate replaced, since the totals query has no
+    GROUP BY. Custom-SQL and saved (string) metrics have no safe way to
+    rewrite an arbitrary aggregate, so they pass through unchanged.
+    """
+    if totals_aggregate == "ORIGINAL":
+        return metrics
+    return [
+        {**metric, "aggregate": totals_aggregate}
+        if is_adhoc_metric_simple(metric)
+        else metric
+        for metric in metrics
+    ]
+
+
 class MigrateTableChart(MigrateViz):
     source_viz_type = "table"
     target_viz_type = "ag-grid-table"
     # allow_rearrange_columns/allow_render_html are kept as-is: v2 reads them
     # under the same names (see rename_keys below), so nothing to remove.
+    # (allow_rearrange_columns still gets a value materialized in
+    # _pre_action below when the source chart omits the key.)
     remove_keys: set[str] = set()
     rename_keys: dict[str, str] = {}  # no renames needed; names match 1:1
 
@@ -754,6 +787,17 @@ class MigrateTableChart(MigrateViz):
         # rather than migrating them.
         for key in [k for k in self.data if k.startswith("matrixify_")]:
             self.data.pop(key)
+
+        # v1's control (and TableChart) default allow_rearrange_columns to
+        # False, and older saved charts may omit the key entirely. v2's
+        # transformProps.ts instead defaults a missing key to True, since
+        # for v2-native charts that predate the control it means "keep the
+        # always-on behavior v2 originally shipped with". Materialize v1's
+        # default explicitly here so a migrated chart keeps its original
+        # (non-draggable) behavior instead of picking up v2's unrelated
+        # default for its own pre-existing charts.
+        if "allow_rearrange_columns" not in self.data:
+            self.data["allow_rearrange_columns"] = False
 
     def _build_aggregate_mode_query(
         self, base_query_object: dict[str, Any], time_offsets: list[Any]
@@ -864,10 +908,14 @@ class MigrateTableChart(MigrateViz):
             )
 
         if metrics and self.data.get("show_totals"):
+            totals_aggregate = _to_totals_aggregate(self.data.get("totals_aggregate"))
             extra_queries.append(
                 {
                     **omit(query_object, ["order_desc", "orderby"]),
                     "columns": [],
+                    "metrics": _get_table_chart_totals_metrics(
+                        metrics, totals_aggregate
+                    ),
                     "row_limit": 0,
                     "row_offset": 0,
                     "post_processing": (
