@@ -493,7 +493,7 @@ export default function transformProps(
     stack === StackControlsValue.Stack &&
     stackDimension &&
     chartProps.rawFormData?.groupby
-      ? (formData.metrics.length > 1 ? 1 : 0) +
+      ? (formData.metrics && formData.metrics.length > 1 ? 1 : 0) +
         chartProps.rawFormData.groupby.indexOf(stackDimension)
       : -1;
 

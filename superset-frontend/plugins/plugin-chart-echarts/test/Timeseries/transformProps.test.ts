@@ -629,6 +629,7 @@ describe('Does transformProps transform series correctly', () => {
     label: { show: boolean; formatter: labelFormatterType };
     data: seriesDataType[];
     name: string;
+    stack?: string;
   };
 
   const formData: SqlaFormData = {
@@ -825,6 +826,107 @@ describe('Does transformProps transform series correctly', () => {
       'foo1, bar1': ['foo1', 'bar1'],
       'foo2, bar2': ['foo2', 'bar2'],
     });
+  });
+
+  test('should correctly assign stack and compute onlyTotal labels for multi-metric and multi-groupby charts with stackDimension', () => {
+    const multiMetricFormData: Partial<EchartsTimeseriesFormData> = {
+      viz_type: 'my_viz',
+      colorScheme: 'bnbColors',
+      datasource: '3__table',
+      granularity_sqla: 'ds',
+      metrics: ['sales', 'profit'],
+      groupby: ['dept', 'region'],
+      stackDimension: 'region',
+      stack: StackControlsValue.Stack,
+      onlyTotal: true,
+      showValue: true,
+    };
+
+    const multiMetricQueriesData: ChartDataResponseResult[] = [
+      createTestQueryData(
+        [
+          {
+            __timestamp: BASE_TIMESTAMP,
+            'sales, HR, East': 10,
+            'profit, Sales, East': 20,
+            'sales, HR, West': 100,
+            'profit, Sales, West': 200,
+          },
+        ],
+        {
+          colnames: [
+            '__timestamp',
+            'sales, HR, East',
+            'profit, Sales, East',
+            'sales, HR, West',
+            'profit, Sales, West',
+          ],
+          coltypes: [
+            GenericDataType.Temporal,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+            GenericDataType.Numeric,
+          ],
+          label_map: {
+            'sales, HR, East': ['sales', 'HR', 'East'],
+            'profit, Sales, East': ['profit', 'Sales', 'East'],
+            'sales, HR, West': ['sales', 'HR', 'West'],
+            'profit, Sales, West': ['profit', 'Sales', 'West'],
+          },
+        },
+      ),
+    ];
+
+    const chartProps = createTestChartProps({
+      formData: multiMetricFormData,
+      queriesData: multiMetricQueriesData,
+    });
+
+    const transformedSeries = transformProps(chartProps).echartOptions
+      .series as seriesType[];
+
+    // Assert that each series has its stack property assigned to the stackDimension ('region')
+    // and NOT to the first groupby dimension ('dept')
+    const eastSeries = transformedSeries.filter(s => s.name?.includes('East'));
+    const westSeries = transformedSeries.filter(s => s.name?.includes('West'));
+
+    expect(eastSeries).toHaveLength(2);
+    expect(westSeries).toHaveLength(2);
+
+    eastSeries.forEach(s => {
+      expect(s.stack).toBe('East');
+    });
+    westSeries.forEach(s => {
+      expect(s.stack).toBe('West');
+    });
+
+    // Assert that each stack group's topmost series displays that group's total:
+    // East group total: 10 + 20 = 30
+    // West group total: 100 + 200 = 300
+    // If the multi-metric offset were missing, groups would be split by 'dept',
+    // producing totals 110 ('HR') and 220 ('Sales') instead of 30 and 300.
+    const eastLabels = eastSeries.map(s => {
+      const sIndex = transformedSeries.indexOf(s);
+      return s.label.formatter({
+        value: s.data[0],
+        dataIndex: 0,
+        seriesIndex: sIndex,
+      });
+    });
+    expect(eastLabels).toContain('30');
+    expect(eastLabels).toContain('');
+
+    const westLabels = westSeries.map(s => {
+      const sIndex = transformedSeries.indexOf(s);
+      return s.label.formatter({
+        value: s.data[0],
+        dataIndex: 0,
+        seriesIndex: sIndex,
+      });
+    });
+    expect(westLabels).toContain('300');
+    expect(westLabels).toContain('');
   });
 });
 
