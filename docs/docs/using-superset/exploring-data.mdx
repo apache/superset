@@ -373,6 +373,12 @@ data behind a chart (or behind a specific data point, when one is selected). Use
 the modal's toolbar to export the underlying result set as CSV or Excel (XLSX) without leaving the modal —
 the export isn't limited to the page currently visible in the table.
 
+### Missing Values in Histograms
+
+When grouping a histogram, rows with a NULL group value appear in a separate
+`<NULL>` series. Rows with a missing value in the numeric column are excluded
+from the histogram counts.
+
 :::resources
 
 - [Chart Walkthroughs](https://docs.preset.io/docs/chart-walkthroughs) - Detailed guides for most chart types

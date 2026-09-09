@@ -101,7 +101,7 @@ def histogram(
     else:
         # with grouping
         histogram_df = (
-            df.groupby(groupby)[column]
+            df.groupby(groupby, dropna=False)[column]
             .apply(lambda x: Series(hist_values(x)))
             .unstack(fill_value=0)
         )
