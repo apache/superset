@@ -32,6 +32,7 @@ from superset.mcp_service.chart.plugins.box_plot import BoxPlotChartPlugin
 from superset.mcp_service.chart.plugins.gantt import GanttChartPlugin
 from superset.mcp_service.chart.plugins.gauge import GaugeChartPlugin
 from superset.mcp_service.chart.plugins.handlebars import HandlebarsChartPlugin
+from superset.mcp_service.chart.plugins.heatmap import HeatmapChartPlugin
 from superset.mcp_service.chart.plugins.histogram import HistogramChartPlugin
 from superset.mcp_service.chart.plugins.interactive_pivot import (
     InteractivePivotChartPlugin,
@@ -60,6 +61,7 @@ register(HandlebarsChartPlugin())
 register(BigNumberChartPlugin())
 register(HistogramChartPlugin())
 register(BoxPlotChartPlugin())
+register(HeatmapChartPlugin())
 register(WaterfallChartPlugin())
 register(GanttChartPlugin())
 
@@ -69,6 +71,7 @@ __all__ = [
     "GanttChartPlugin",
     "GaugeChartPlugin",
     "HandlebarsChartPlugin",
+    "HeatmapChartPlugin",
     "HistogramChartPlugin",
     "InteractivePivotChartPlugin",
     "MixedTimeseriesChartPlugin",
