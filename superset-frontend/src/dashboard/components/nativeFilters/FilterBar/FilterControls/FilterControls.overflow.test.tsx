@@ -64,7 +64,14 @@ const callbackRef: {
 // between DropdownContainer's synchronous useLayoutEffect and its
 // asynchronous useEffect, rather than asserting the duplicate by
 // construction.
-let mockOverflowingIndex = 0;
+//
+// Mirrors production's own sentinel exactly: -1 means "nothing overflows"
+// (DropdownContainer.tsx's `overflowingIndex` default), any other value is
+// the boundary index passed to `items.slice(0, n)` / `items.slice(n)`. A
+// bare `0` here means "everything overflows" (empty main row), so tests
+// that need that state set it explicitly rather than relying on the
+// default reading as "no overflow" by analogy with the real sentinel.
+let mockOverflowingIndex = -1;
 
 // Mock the DropdownContainer subpath rather than the barrel
 // `@superset-ui/core/components` — mocking the barrel triggers a
@@ -82,8 +89,14 @@ jest.mock('@superset-ui/core/components/DropdownContainer', () => {
         open: jest.fn(),
         close: jest.fn(),
       }));
-      const notOverflowed = props.items.slice(0, mockOverflowingIndex);
-      const overflowed = props.items.slice(mockOverflowingIndex);
+      const notOverflowed =
+        mockOverflowingIndex !== -1
+          ? props.items.slice(0, mockOverflowingIndex)
+          : props.items;
+      const overflowed =
+        mockOverflowingIndex !== -1
+          ? props.items.slice(mockOverflowingIndex)
+          : [];
       return (
         <div data-test="dropdown-container-mock">
           <div data-test="dropdown-items">
@@ -209,7 +222,7 @@ const fireOverflow = (overflowed: string[], notOverflowed: string[]) => {
 beforeEach(() => {
   dropdownContainerProps.length = 0;
   callbackRef.current = null;
-  mockOverflowingIndex = 0;
+  mockOverflowingIndex = -1;
 });
 
 test('horizontal FilterControls hands every filter to DropdownContainer as an item', async () => {
@@ -393,10 +406,12 @@ test('a cross-filter chip DropdownContainer has already stopped overflowing does
   );
 
   // Step 1 — settled baseline: DropdownContainer's own partition
-  // (mockOverflowingIndex = 0, from beforeEach) already excludes the cross
-  // filter from the main row, and its onOverflowingStateChange report agrees
-  // (fired via fireOverflow). Prove the two channels are consistent and
-  // there is exactly one copy of the chip before touching anything.
+  // (mockOverflowingIndex = 0 — the sole item overflows) already excludes
+  // the cross filter from the main row, and its onOverflowingStateChange
+  // report agrees (fired via fireOverflow). Prove the two channels are
+  // consistent and there is exactly one copy of the chip before touching
+  // anything.
+  mockOverflowingIndex = 0;
   fireOverflow([CROSS_FILTER_ITEM_ID], []);
   await waitFor(async () => expect(await countChipCopies()).toBe(1));
 
@@ -439,6 +454,9 @@ test('all 12 overflowed filters are reachable through dropdownContent', async ()
     createSelectNativeFilter(`NATIVE_FILTER-${i + 1}`, `filter_${i + 1}`),
   );
 
+  // All 12 filters overflow — DropdownContainer's own partition puts
+  // nothing in the main row (mirrors real production 0-boundary).
+  mockOverflowingIndex = 0;
   renderHorizontal(filters, buildDataMaskSelected(filters));
 
   await waitFor(() => expect(callbackRef.current).toBeTruthy());

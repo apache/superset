@@ -448,6 +448,14 @@ const FilterControls: FC<FilterControlsProps> = ({
     return [...activeOverflowedFilters, ...overflowedCrossFilters];
   }, [overflowedCrossFilters, overflowedFiltersInScope]);
 
+  const overflowedCustomizationsInScope = useMemo(
+    () =>
+      customizationsInScope.filter(({ id }) =>
+        overflowedIds?.includes(`chart-customization-${id}`),
+      ),
+    [customizationsInScope, overflowedIds],
+  );
+
   const rendererCrossFilter = useCallback(
     (
       crossFilter: CrossFilterIndicator,
@@ -611,6 +619,7 @@ const FilterControls: FC<FilterControlsProps> = ({
           dropdownContent={
             overflowedFiltersInScope.length ||
             overflowedCrossFilters.length ||
+            overflowedCustomizationsInScope.length ||
             (filtersOutOfScope.length && showCollapsePanel) ||
             (customizationsOutOfScope.length && showCustomizationCollapsePanel)
               ? (overflowedItems: DropdownItem[]) => {
@@ -631,14 +640,22 @@ const FilterControls: FC<FilterControlsProps> = ({
                     selectedCrossFilters.filter(({ emitterId, name }) =>
                       overflowedItemIds.has(`${name}${emitterId}`),
                     );
+                  const freshOverflowedCustomizationsInScope =
+                    customizationsInScope.filter(({ id }) =>
+                      overflowedItemIds.has(`chart-customization-${id}`),
+                    );
                   return (
                     <>
                       <FiltersDropdownContent
                         overflowedCrossFilters={freshOverflowedCrossFilters}
                         filtersInScope={freshOverflowedFiltersInScope}
                         filtersOutOfScope={filtersOutOfScope}
+                        overflowedCustomizationsInScope={
+                          freshOverflowedCustomizationsInScope
+                        }
                         renderer={renderer}
                         rendererCrossFilter={rendererCrossFilter}
+                        customizationRenderer={customizationRenderer}
                         showCollapsePanel={showCollapsePanel}
                         forceRenderOutOfScope={hasRequiredFirst}
                       />
@@ -675,8 +692,10 @@ const FilterControls: FC<FilterControlsProps> = ({
       activeOverflowedFiltersInScope,
       overflowedFiltersInScope,
       overflowedCrossFilters,
+      overflowedCustomizationsInScope,
       filtersInScope,
       selectedCrossFilters,
+      customizationsInScope,
       filtersOutOfScope,
       showCollapsePanel,
       customizationsOutOfScope,
