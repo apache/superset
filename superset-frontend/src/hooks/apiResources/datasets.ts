@@ -86,11 +86,28 @@ export const useDatasetDrillInfo = (
       });
       return;
     }
+    const numericDatasetId = getDatasetId(datasetId);
+    if (Number.isNaN(numericDatasetId)) {
+      // datasetId isn't resolved yet (e.g. the dashboard's slice entity hasn't
+      // hydrated after a client-side navigation back from Explore). Reset to
+      // Loading rather than firing a request for dataset "NaN" -- and rather
+      // than leaving a previous id's Complete/Error result in place, which
+      // would let the context menu expose drill metadata for the wrong
+      // dataset until this one resolves. The effect reruns once datasetId
+      // settles to a real value.
+      setResource({
+        status: ResourceStatus.Loading,
+        result: null,
+        error: null,
+      });
+      return;
+    }
+
     // `bestEffort` callers recover from a failure themselves, so it is not worth
     // logging: a deployment that registers the drill-by extension because this
     // endpoint is unreachable would otherwise log on every dashboard load.
     const fetchDrillInfo = async ({ bestEffort = false } = {}) => {
-      const endpoint = `/api/v1/dataset/${getDatasetId(datasetId)}/drill_info/?q=(dashboard_id:${dashboardId})`;
+      const endpoint = `/api/v1/dataset/${numericDatasetId}/drill_info/?q=(dashboard_id:${dashboardId})`;
       try {
         const { json } = await cachedSupersetGet({ endpoint });
         return json.result;
@@ -105,7 +122,6 @@ export const useDatasetDrillInfo = (
 
     const fetchDataset = async () => {
       try {
-        const numericDatasetId = getDatasetId(datasetId);
         const loadDrillByOptionsExtension = getExtensionsRegistry().get(
           'load.drillby.options',
         );

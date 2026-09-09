@@ -538,8 +538,6 @@ export type ResolvedColorFormatterResult = {
   color?: string;
 };
 
-export default {};
-
 export function isColumnMeta(column: AnyDict): column is ColumnMeta {
   return !!column && 'column_name' in column;
 }

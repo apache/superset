@@ -109,6 +109,39 @@ test('applies the increase/decrease background when the column has one', () => {
   expect(style.backgroundColor).toBe('#00ff00');
 });
 
+test('applies a cross-column formatter to its target column, keyed off the source column value', () => {
+  // Rule reads metric_a (source) and paints metric_b (target, via columnFormatting).
+  const crossColumnFormatter = {
+    column: 'metric_a',
+    columnFormatting: 'metric_b',
+    getColorFromValue: (v: number) => (v === 100 ? '#ff0000' : undefined),
+    objectFormatting: undefined,
+    toTextColor: false,
+  };
+
+  const targetStyle = getCellStyle(
+    buildParams({
+      colDef: { field: 'metric_b' },
+      value: 999,
+      hasColumnColorFormatters: true,
+      columnColorFormatters: [crossColumnFormatter],
+      node: { rowPinned: undefined, data: { metric_a: 100, metric_b: 999 } },
+    }),
+  );
+  expect(targetStyle.backgroundColor).toBe('#ff0000');
+
+  const sourceStyle = getCellStyle(
+    buildParams({
+      colDef: { field: 'metric_a' },
+      value: 100,
+      hasColumnColorFormatters: true,
+      columnColorFormatters: [crossColumnFormatter],
+      node: { rowPinned: undefined, data: { metric_a: 100, metric_b: 999 } },
+    }),
+  );
+  expect(sourceStyle.backgroundColor).toBe('');
+});
+
 test('does not apply basic formatting to the pinned summary row', () => {
   const style = getCellStyle(
     buildParams({
@@ -120,4 +153,38 @@ test('does not apply basic formatting to the pinned summary row', () => {
     }),
   );
   expect(style.backgroundColor).toBe('');
+});
+
+test('applies a legacy v1 toAllRow formatter to every cell in the row', () => {
+  // Migrated v1 charts carry `toAllRow: true` unchanged rather than being
+  // rewritten to `columnFormatting: ENTIRE_ROW`; both must color every cell.
+  const legacyEntireRowFormatter = {
+    column: 'metric_a',
+    toAllRow: true,
+    getColorFromValue: (v: number) => (v === 100 ? '#ff0000' : undefined),
+    objectFormatting: undefined,
+    toTextColor: false,
+  };
+
+  const otherColumnStyle = getCellStyle(
+    buildParams({
+      colDef: { field: 'metric_b' },
+      value: 999,
+      hasColumnColorFormatters: true,
+      columnColorFormatters: [legacyEntireRowFormatter],
+      node: { rowPinned: undefined, data: { metric_a: 100, metric_b: 999 } },
+    }),
+  );
+  expect(otherColumnStyle.backgroundColor).toBe('#ff0000');
+
+  const sourceColumnStyle = getCellStyle(
+    buildParams({
+      colDef: { field: 'metric_a' },
+      value: 100,
+      hasColumnColorFormatters: true,
+      columnColorFormatters: [legacyEntireRowFormatter],
+      node: { rowPinned: undefined, data: { metric_a: 100, metric_b: 999 } },
+    }),
+  );
+  expect(sourceColumnStyle.backgroundColor).toBe('#ff0000');
 });

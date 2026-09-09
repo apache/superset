@@ -40,6 +40,7 @@ import {
   JsonObject,
   Metric,
   AgGridChartState,
+  ContextMenuFilters,
 } from '@superset-ui/core';
 import {
   ColDef,
@@ -82,6 +83,7 @@ export type TableChartFormData = QueryFormData & {
   time_grain_sqla?: TimeGranularity;
   column_config?: Record<string, TableColumnConfig>;
   allow_rearrange_columns?: boolean;
+  allow_render_html?: boolean;
   show_numbered_column?: boolean;
   header_groups?: HeaderGroupConfig[];
 };
@@ -137,6 +139,11 @@ export interface AgGridTableChartTransformedProps<
   chartState?: AgGridChartState;
   showNumberedColumn: boolean;
   headerGroups?: HeaderGroupConfig[];
+  onContextMenu?: (
+    clientX: number,
+    clientY: number,
+    filters?: ContextMenuFilters,
+  ) => void;
 }
 
 export interface SortState {
@@ -199,6 +206,7 @@ export interface InputColumn {
   originalLabel?: string;
   metricName?: string;
   description?: string;
+  currencyCodeColumn?: string;
 }
 
 export type ValueRange = [number, number] | null;
@@ -237,5 +245,3 @@ export type Dataset = {
   metrics?: Metric[];
   verbose_map?: Record<string, string>;
 };
-
-export default {};
