@@ -286,6 +286,7 @@ curl -X POST http://localhost:5008/mcp \
 MCP_GUEST_ALLOWED_TOOLS = {
     "get_dashboard_info",
     "get_dashboard_layout",
+    "get_dashboard_data",
     "list_dashboards",
     "list_charts",
     "get_chart_info",
@@ -735,6 +736,7 @@ Each tool declares one or more required FAB permissions. The table below maps to
 | -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | `list_charts`, `get_chart_info`, `get_chart_data`, `get_chart_preview`, `generate_chart`, `update_chart` | `can_read` on `Chart` (read), `can_write` on `Chart` (mutate)         |
 | `list_dashboards`, `get_dashboard_info`, `generate_dashboard`, `add_chart_to_existing_dashboard`         | `can_read` on `Dashboard` (read), `can_write` on `Dashboard` (mutate) |
+| `get_dashboard_data`                                                                                     | `can_read` on `Dashboard` **and** `can_read` on `Chart` (it reads chart data across the dashboard) |
 | `list_datasets`, `get_dataset_info`, `create_virtual_dataset`                                            | `can_read` on `Dataset` (read), `can_write` on `Dataset` (mutate)     |
 | `list_databases`, `get_database_info`                                                                    | `can_read` on `Database`                                              |
 | `execute_sql`                                                                                            | `can_execute_sql_query` on `SQLLab`                                   |
