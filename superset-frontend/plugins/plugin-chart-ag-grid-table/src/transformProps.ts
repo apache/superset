@@ -590,6 +590,7 @@ const transformProps = (
     show_numbered_column: showNumberedColumn = false,
     allow_rearrange_columns: allowRearrangeColumns = true,
     allow_render_html: allowRenderHtml = true,
+    zebra_striping: zebraStriping = false,
   } = formData;
 
   // Calculate time comparison settings early since they're used in multiple places
@@ -950,6 +951,7 @@ const transformProps = (
     chartState,
     onChartStateChange,
     showNumberedColumn,
+    zebraStriping,
     onContextMenu,
   };
 };

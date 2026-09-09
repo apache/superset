@@ -44,6 +44,9 @@ SOURCE_FORM_DATA: dict[str, Any] = {
 }
 
 TARGET_FORM_DATA: dict[str, Any] = {
+    # zebra_striping is intentionally absent from SOURCE_FORM_DATA: v1 has
+    # no control for it (always striped), so the migration materializes it
+    # unconditionally rather than carrying over a source key.
     "datasource": "1__table",
     "any_other_key": "untouched",
     "viz_type": "ag-grid-table",
@@ -62,6 +65,7 @@ TARGET_FORM_DATA: dict[str, Any] = {
     "color_pn": True,
     "allow_rearrange_columns": True,
     "allow_render_html": True,
+    "zebra_striping": True,
     "form_data_bak": SOURCE_FORM_DATA,
 }
 
@@ -240,6 +244,20 @@ def test_migration_defaults_omitted_allow_rearrange_columns_to_false() -> None:
         "form_data_bak": source,
     }
     migrate_and_assert(MigrateTableChart, source, target)
+
+
+def test_migration_always_enables_zebra_striping() -> None:
+    """v1's TableChart always renders striped rows -- there's no control
+    for it, so no source key exists to carry over. v2's zebra_striping
+    control defaults new charts to False, so the migration must
+    unconditionally set it True for a migrated chart to keep its original
+    striped appearance."""
+    target: dict[str, Any] = {
+        **{k: v for k, v in TARGET_FORM_DATA.items() if k != "form_data_bak"},
+        "zebra_striping": True,
+        "form_data_bak": SOURCE_FORM_DATA,
+    }
+    migrate_and_assert(MigrateTableChart, SOURCE_FORM_DATA, target)
 
 
 @pytest.mark.parametrize(
