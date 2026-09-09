@@ -41,11 +41,17 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import CommandException
 from superset.errors import SupersetErrorType
-from superset.mcp_service.chart.query_result import safe_exception_message
+from superset.mcp_service.chart.query_result import (
+    normalize_gauge_query_result,
+    safe_exception_message,
+)
+from superset.mcp_service.chart.schemas import ChartError
 from superset.mcp_service.chart.validation.dataset_validator import (
+    AmbiguousDatasetReferenceError,
     build_dataset_context_from_orm,
     DatasetValidator,
     resolve_dataset_column,
+    resolve_dataset_reference,
 )
 from superset.mcp_service.common.error_schemas import (
     ChartGenerationError,
@@ -100,7 +106,7 @@ class CompileResult:
     row_count: int | None = None
 
 
-def _compile_chart(
+def _compile_chart(  # noqa: C901
     form_data: Dict[str, Any],
     dataset_id: int,
 ) -> CompileResult:
@@ -132,14 +138,15 @@ def _compile_chart(
     try:
         query_form_data = deepcopy(form_data)
         query_form_data["datasource"] = f"{dataset_id}__table"
+        query_form_data["datasource_id"] = dataset_id
+        query_form_data["datasource_type"] = "table"
         query_context = build_query_context_from_form_data(
             query_form_data,
-            row_limit=2,
+            row_limit=min(10, int(form_data.get("row_limit") or 10))
+            if form_data.get("viz_type") == "gauge_chart"
+            else 2,
             force=False,
         )
-
-        # Seed the no-request-context form data used by virtual-dataset Jinja
-        # macros, matching the chart-data and dataset-query MCP paths.
         set_query_context_form_data(query_context, dataset_id, "table")
 
         command = ChartDataCommand(query_context)
@@ -179,6 +186,26 @@ def _compile_chart(
                     tier="compile",
                     error_obj=_build_bullet_output_error(error_text),
                 )
+        result = normalize_gauge_query_result(result, form_data)
+        if isinstance(result, ChartError):
+            return CompileResult(
+                success=False,
+                error=result.error,
+                error_code="INVALID_GAUGE_RESULT",
+                tier="compile",
+                error_obj=ChartGenerationError(
+                    error_type=result.error_type,
+                    message="Gauge metric query returned invalid values",
+                    details=result.error,
+                    suggestions=[
+                        "Use a numeric-producing metric",
+                        "Check the metric alias and SQL expression",
+                    ],
+                    error_code="INVALID_GAUGE_RESULT",
+                ),
+            )
+        if form_data.get("viz_type") == "gauge_chart":
+            row_count = sum(len(query.get("data", [])) for query in result["queries"])
 
         return CompileResult(success=True, warnings=warnings, row_count=row_count)
     except (ChartDataQueryFailedError, ChartDataCacheLoadError) as exc:
@@ -256,6 +283,16 @@ def _adhoc_filter_column_valid(
         name for name in metric_names if name.casefold() == column.casefold()
     ]
     return len(metric_matches) == 1
+    if clause == "HAVING":
+        return DatasetValidator._column_exists(column, dataset_context)
+    return (
+        resolve_dataset_reference(
+            column,
+            (col["name"] for col in dataset_context.available_columns),
+            "physical column",
+        )
+        is not None
+    )
 
 
 def _validate_adhoc_filter_columns(
@@ -282,8 +319,11 @@ def _validate_adhoc_filter_columns(
         if not column or not isinstance(column, str):
             continue
         clause = f.get("clause", "WHERE").upper()
-        if not _adhoc_filter_column_valid(column, clause, dataset_context):
-            invalid.append(column)
+        try:
+            if not _adhoc_filter_column_valid(column, clause, dataset_context):
+                invalid.append(column)
+        except AmbiguousDatasetReferenceError as ex:
+            return DatasetValidator._build_ambiguous_reference_error(ex)
 
     if not invalid:
         return None

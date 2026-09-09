@@ -176,5 +176,3 @@ export interface SupersetClientInterface extends Pick<
 }
 
 export type SupersetClientResponse = Response | JsonResponse | TextResponse;
-
-export default {};

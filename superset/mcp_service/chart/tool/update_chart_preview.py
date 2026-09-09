@@ -40,6 +40,7 @@ from superset.mcp_service.chart.chart_utils import (
     generate_chart_name,
     generate_explore_link,
     map_config_to_form_data,
+    merge_chart_form_data,
     merge_interactive_pivot_ui_config,
     merge_same_viz_form_data,
     merge_table_column_config,
@@ -196,6 +197,7 @@ def update_chart_preview(  # noqa: C901
             )
 
             dataset_context = build_dataset_context_from_orm(dataset)
+
             try:
                 config = DatasetValidator.normalize_column_names(
                     config,
@@ -217,7 +219,6 @@ def update_chart_preview(  # noqa: C901
                     "schema_version": "2.0",
                     "api_version": "v1",
                 }
-
             # Map the new config to form_data format
             # Pass dataset_id to enable column type checking
             new_form_data = map_config_to_form_data(
@@ -233,6 +234,20 @@ def update_chart_preview(  # noqa: C901
                     warnings.append(INVALID_FORM_DATA_KEY_WARNING)
 
             if previous_form_data:
+                previous_datasource = str(
+                    previous_form_data.get("datasource")
+                    or previous_form_data.get("datasource_id")
+                    or ""
+                ).split("__", 1)[0]
+                dataset_rebind = bool(
+                    previous_datasource
+                ) and previous_datasource != str(dataset.id)
+                new_form_data = merge_chart_form_data(
+                    previous_form_data,
+                    new_form_data,
+                    config,
+                    dataset_rebind=dataset_rebind,
+                )
                 merge_update_form_data(previous_form_data, new_form_data, config)
                 merge_table_column_config(previous_form_data, new_form_data)
                 merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
@@ -262,7 +277,10 @@ def update_chart_preview(  # noqa: C901
                 }
 
             compile_result = validate_and_compile(
-                validation_config, new_form_data, dataset, run_compile_check=True
+                validation_config,
+                new_form_data,
+                dataset,
+                run_compile_check=True,
             )
             if not compile_result.success:
                 logger.warning(
@@ -381,6 +399,7 @@ def update_chart_preview(  # noqa: C901
             "semantics": semantics.model_dump() if semantics else None,
             "explore_url": explore_url,
             "form_data_key": new_form_data_key,
+            "form_data": new_form_data,
             "previous_form_data_key": request.form_data_key,  # For reference
             "warnings": warnings,
             "api_endpoints": {},  # No API endpoints for unsaved charts

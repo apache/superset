@@ -1822,3 +1822,142 @@ def query_result_failure(result: Any) -> ChartError | None:
     """Return an embedded failure or malformed-envelope error."""
     _data, failure = query_result_data(result)
     return failure
+
+
+def metric_result_label(metric: Any) -> str | None:
+    """Resolve the query-result key using frontend ``getMetricLabel`` rules."""
+    if isinstance(metric, str) and metric:
+        return metric
+    if not isinstance(metric, Mapping):
+        return None
+    label = metric.get("label")
+    if isinstance(label, str) and label:
+        return label
+    if label not in (None, ""):
+        return None
+    expression_type = metric.get("expressionType")
+    if expression_type == "SIMPLE":
+        aggregate = metric.get("aggregate")
+        column = metric.get("column")
+        if not isinstance(aggregate, str) or not isinstance(column, Mapping):
+            return None
+        column_name = column.get("columnName") or column.get("column_name")
+        if isinstance(column_name, str) and column_name:
+            return f"{aggregate}({column_name})"
+        return None
+    if expression_type == "SQL":
+        sql_expression = metric.get("sqlExpression")
+        if isinstance(sql_expression, str) and sql_expression:
+            return sql_expression
+    return None
+
+
+def normalize_gauge_query_result(  # noqa: C901
+    result: Any, form_data: Mapping[str, Any]
+) -> Any:
+    """Copy Gauge query envelopes with only finite dials; preserve empty results.
+
+    Malformed envelopes/aliases remain errors. Invalid dial values are skipped,
+    but a nonempty query with no finite dials returns an actionable error.
+    Non-Gauge results and the caller's query payloads are left untouched.
+    """
+    if form_data.get("viz_type") != "gauge_chart":
+        return result
+    if type(result) is dict:
+        if failure := _failure_for_query_payload(result, "Chart query"):
+            return failure
+        raw_queries = dict.get(result, "queries")
+        if type(raw_queries) is list:
+            for index, query in enumerate(raw_queries, start=1):
+                if type(query) is dict and (
+                    failure := _failure_for_query_payload(query, f"Chart query {index}")
+                ):
+                    return failure
+
+    metric_label = metric_result_label(form_data.get("metric"))
+    if metric_label is None:
+        return ChartError(
+            error="Gauge form_data has no resolvable metric result label.",
+            error_type="InvalidGaugeFormData",
+        )
+    if not isinstance(result, Mapping):
+        return ChartError(
+            error="Gauge query result is not an object.",
+            error_type="InvalidGaugeResult",
+        )
+    queries = result.get("queries")
+    if not isinstance(queries, list):
+        return ChartError(
+            error="Gauge query result has no queries array.",
+            error_type="InvalidGaugeResult",
+        )
+    normalized_queries = []
+    for query_index, query in enumerate(queries):
+        if not isinstance(query, Mapping):
+            return ChartError(
+                error=f"Gauge query {query_index} is not an object.",
+                error_type="InvalidGaugeResult",
+            )
+        data = query.get("data", [])
+        if not isinstance(data, list):
+            return ChartError(
+                error=f"Gauge query {query_index} data is not an array of rows.",
+                error_type="InvalidGaugeResult",
+            )
+        finite_rows = []
+        value_error = None
+        for row_index, row in enumerate(data):
+            if not isinstance(row, Mapping):
+                return ChartError(
+                    error=(
+                        f"Gauge query {query_index} row {row_index} is not an object."
+                    ),
+                    error_type="InvalidGaugeResult",
+                )
+            if metric_label not in row:
+                return ChartError(
+                    error=(
+                        f"Gauge query {query_index} row {row_index} is missing "
+                        f"metric output {metric_label!r}."
+                    ),
+                    error_type="InvalidGaugeResult",
+                )
+            value = row[metric_label]
+            if isinstance(value, bool) or not isinstance(value, (int, float)):
+                value_error = value_error or ChartError(
+                    error=(
+                        f"Gauge query {query_index} row {row_index} metric "
+                        f"{metric_label!r} is not numeric."
+                    ),
+                    error_type="NonNumericGaugeMetric",
+                )
+                continue
+            try:
+                finite = math.isfinite(float(value))
+            except (OverflowError, ValueError):
+                finite = False
+            if not finite:
+                value_error = value_error or ChartError(
+                    error=(
+                        f"Gauge query {query_index} row {row_index} metric "
+                        f"{metric_label!r} is not finite."
+                    ),
+                    error_type="NonFiniteGaugeMetric",
+                )
+                continue
+            finite_rows.append(row)
+        if data and not finite_rows:
+            return value_error
+        normalized_query = {**query, "data": finite_rows}
+        if len(finite_rows) != len(data) and "rowcount" in query:
+            normalized_query["rowcount"] = len(finite_rows)
+        normalized_queries.append(normalized_query)
+    return {**result, "queries": normalized_queries}
+
+
+def validate_gauge_query_result(
+    result: Any, form_data: Mapping[str, Any]
+) -> ChartError | None:
+    """Check Gauge results using the same finite-dial contract as rendering."""
+    normalized = normalize_gauge_query_result(result, form_data)
+    return normalized if isinstance(normalized, ChartError) else None

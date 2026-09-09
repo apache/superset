@@ -395,6 +395,8 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="table": Data table for detailed views
 - chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
 - chart_type="pie": Pie chart for proportional data (set donut=True for donut)
+- chart_type="gauge": Gauge/dial for one numeric metric, optionally grouped
+  into up to 10 dials (native viz_type is "gauge_chart")
 - chart_type="pivot_table": OSS Pivot Table for cross-tabulation
 - chart_type="interactive_pivot": Extension-provided AG Grid Interactive Pivot Table.
   This type is distinct from pivot_table/pivot_table_v2 and is available only

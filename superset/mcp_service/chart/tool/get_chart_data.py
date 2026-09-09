@@ -20,6 +20,7 @@ MCP tool: get_chart_data
 """
 
 import logging
+import math
 import time
 from typing import Any, Dict, List, TYPE_CHECKING
 from uuid import UUID
@@ -563,6 +564,23 @@ async def get_chart_data(  # noqa: C901
                 if type(parsed_form_data) is dict:
                     form_data = parsed_form_data
             effective_form_data = form_data
+            if using_unsaved_state and cached_form_data_dict is not None:
+                form_data = cached_form_data_dict
+            else:
+                try:
+                    parsed_saved_form_data = (
+                        utils_json.loads(chart.params) if chart.params else {}
+                    )
+                    form_data = (
+                        parsed_saved_form_data
+                        if isinstance(parsed_saved_form_data, dict)
+                        else {}
+                    )
+                except (TypeError, ValueError):
+                    form_data = {}
+
+            if not using_unsaved_state:
+                form_data["viz_type"] = chart.viz_type or form_data.get("viz_type")
 
             # If using cached form_data, we need to build query_context from it
             if using_unsaved_state and cached_form_data_dict is not None:
@@ -1118,6 +1136,23 @@ async def _query_from_form_data(  # noqa: C901
         )
 
         chart_name = form_data.get("slice_name", "Unsaved chart")
+        if request.format in {"csv", "excel"}:
+            from superset.models.slice import Slice
+
+            # A transient chart supplies export metadata without saving anything.
+            chart = Slice(id=0, slice_name=chart_name, viz_type=viz_type)
+            export = (
+                _export_data_as_csv
+                if request.format == "csv"
+                else _export_data_as_excel
+            )
+            return export(
+                chart,
+                data[: request.limit] if request.limit else data,
+                raw_columns,
+                cache_status,
+                PerformanceMetadata(query_duration_ms=0, cache_status="fresh_query"),
+            )
         summary = (
             f"Unsaved chart ({viz_type}). "
             f"Contains {len(data)} rows across {len(raw_columns)} columns."
@@ -1291,6 +1326,15 @@ def _write_excel_data(ws: Any, data: List[Dict[str, Any]], columns: List[str]) -
                 column=col_idx,
                 value=_excel_scalar(row.get(col, "")),
             )
+            value = row.get(col, "")
+            if value is None:
+                value = ""
+            elif isinstance(value, float) and not math.isfinite(value):
+                # XLSX has no non-finite numbers; preserve them as CSV-style text.
+                value = str(value)
+            elif isinstance(value, (list, dict)):
+                value = str(value)
+            ws.cell(row=row_idx, column=col_idx, value=value)
 
 
 def _try_xlsxwriter_fallback(
@@ -1330,7 +1374,9 @@ def _create_excel_with_xlsxwriter(
     import xlsxwriter
 
     output = io.BytesIO()
-    workbook = xlsxwriter.Workbook(output, {"in_memory": True})
+    workbook = xlsxwriter.Workbook(
+        output, {"in_memory": True, "nan_inf_to_errors": True}
+    )
     sheet_name = chart.slice_name[:31] if chart.slice_name else "Chart Data"
     worksheet = workbook.add_worksheet(sheet_name)
 

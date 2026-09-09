@@ -697,7 +697,13 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("create_tags")
     def test_add_tag_not_found(self):
         self.login(ADMIN_USERNAME)
-        uri = "api/v1/tag/123/favorites/"  # noqa: F541
+
+        # Pick an id that is genuinely free: the tagging system mints implicit
+        # tags as assets are saved, so no fixed id stays unused.
+        existing_ids = [tag_id for (tag_id,) in db.session.query(Tag.id).all()]
+        non_existent_id = max(existing_ids, default=0) + 1
+
+        uri = f"api/v1/tag/{non_existent_id}/favorites/"
         rv = self.client.post(uri, follow_redirects=True)
 
         assert rv.status_code == 404
