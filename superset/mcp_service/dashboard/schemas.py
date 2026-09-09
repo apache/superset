@@ -2274,12 +2274,24 @@ class ApplyDashboardFiltersRequest(BaseModel):
     """Request schema for the apply_dashboard_filters tool."""
 
     dashboard_id: int = Field(..., description="ID of the dashboard to filter")
+    base_permalink_key: str | None = Field(
+        None,
+        min_length=1,
+        description=(
+            "For follow-up turns, pass the previous response's permalink_key "
+            "to keep prior filter selections. New values replace the same "
+            "filter's prior entry; unmentioned filters persist. Omit to start "
+            "from dashboard defaults. Invalid, expired, inaccessible, or "
+            "wrong-dashboard keys fail rather than resetting filters."
+        ),
+    )
     filters: List[ApplyFilterValueSpec] = Field(
         ...,
         min_length=1,
         description=(
             "Values to apply, one entry per native filter. Filters that are "
-            "not listed keep the dashboard's default value."
+            "not listed keep their base permalink value when base_permalink_key "
+            "is supplied, otherwise the dashboard's default value."
         ),
     )
 
@@ -2314,7 +2326,9 @@ class ApplyDashboardFiltersResponse(BaseModel):
     permalink_key: str | None = Field(
         None,
         description=(
-            "Key of the created permalink. Pass it back to "
+            "Key of the created permalink. On the next turn, pass this as "
+            "base_permalink_key to apply_dashboard_filters to preserve these "
+            "selections while adding or replacing filters. Also pass it to "
             "get_dashboard_info or get_dashboard_layout as permalink_key to "
             "read the applied filter state."
         ),

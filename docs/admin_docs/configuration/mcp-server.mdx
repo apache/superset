@@ -43,6 +43,22 @@ flowchart LR
 
 ## Dashboard filter notifications
 
+To stack filters across chat turns, pass the previous
+`apply_dashboard_filters` response's `permalink_key` as `base_permalink_key`
+in the next request for the same dashboard. For example, apply Region = EMEA,
+then pass that key with a Time Range = `2024-01-01 : 2025-01-01` request to
+keep EMEA and add the year constraint. Each new value replaces that filter's
+entire prior entry; unmentioned filters persist. Omit the base key to start
+from dashboard defaults. `applied_filters` summarizes only the new request,
+not the inherited selections.
+
+Base state is resolved server-side under the calling user's dashboard access
+and merged without display redaction; the raw base mask is not returned.
+Missing or expired keys, resolution failures, access denial, and dashboard
+mismatches fail explicitly without creating a replacement link. Missing and
+expired keys share an error because the permalink store does not distinguish
+them.
+
 After creating a dashboard permalink, `apply_dashboard_filters` attempts a
 best-effort `dashboard.filters_applied` realtime notification scoped to the
 calling principal. Its payload contains only `dashboard_id` and `permalink_key`;

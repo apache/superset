@@ -17,16 +17,18 @@
 
 """Tests for MCP dashboard permalink helpers."""
 
-from unittest.mock import patch
+from unittest.mock import Mock, patch, PropertyMock
 
 import pytest
-from flask import g
+from flask import Flask, g
 
 from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
+from superset.dashboards.permalink.types import DashboardPermalinkValue
 from superset.mcp_service.dashboard.permalink import (
     DashboardLookupResult,
     extract_dashboard_permalink_key,
     get_dashboard_permalink,
+    get_dashboard_permalink_data_mask,
     get_matching_dashboard_permalink_state,
     lookup_dashboard_reference,
     refresh_request_user_for_permalink_access,
@@ -372,3 +374,81 @@ def test_lookup_dashboard_reference_unresolvable_reference(mock_get_permalink) -
     assert result.permalink_key == "nonexistent"
     assert result.permalink_value is None
     assert result.resolved_from_permalink is False
+
+
+@pytest.mark.parametrize("denied", [False, True])
+def test_stacking_resolves_with_calling_user(app: Flask, denied: bool) -> None:
+    """The real get command checks access using the refreshed calling user."""
+    user = Mock(username="viewer", is_anonymous=False)
+    refreshed_user = Mock(username="viewer")
+    value: DashboardPermalinkValue = {
+        "dashboardId": "42",
+        "state": {
+            "dataMask": {
+                "legacy-filter": {
+                    "extraFormData": {"filters": [{"col": "region", "val": ["EMEA"]}]},
+                    "ownState": {"arbitrary": "preserved"},
+                }
+            }
+        },
+    }
+
+    def check_access(reference: str) -> Mock:
+        """Observe the request principal at the command's authorization gate."""
+        assert reference == "42"
+        assert g.user is refreshed_user
+        if denied:
+            raise DashboardAccessDeniedError()
+        return Mock()
+
+    with (
+        app.test_request_context("/mcp"),
+        patch(
+            "superset.mcp_service.dashboard.permalink.load_user_with_relationships",
+            return_value=refreshed_user,
+        ) as load_user,
+        patch(
+            "superset.commands.dashboard.permalink.get."
+            "GetDashboardPermalinkCommand.salt",
+            new_callable=PropertyMock,
+            return_value="test-salt",
+        ),
+        patch(
+            "superset.commands.dashboard.permalink.get.decode_permalink_id",
+            return_value=1,
+        ),
+        patch(
+            "superset.commands.dashboard.permalink.get.KeyValueDAO.get_value",
+            return_value=value,
+        ),
+        patch(
+            "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug",
+            side_effect=check_access,
+        ) as access,
+    ):
+        g.user = user
+        if denied:
+            with pytest.raises(DashboardAccessDeniedError):
+                get_dashboard_permalink_data_mask("base-key", 42)
+        else:
+            mask = get_dashboard_permalink_data_mask("base-key", 42)
+            assert mask == value["state"]["dataMask"]
+            assert mask is not value["state"]["dataMask"]
+        load_user.assert_called_once_with(username="viewer")
+        access.assert_called_once_with("42")
+
+
+@pytest.mark.parametrize("state", [{}, {"dataMask": None}, {"dataMask": {}}])
+def test_stacking_base_without_selections(state: dict[str, object]) -> None:
+    """A valid permalink without explicit filter selections supplies an empty mask."""
+    with (
+        patch(
+            "superset.mcp_service.dashboard.permalink."
+            "refresh_request_user_for_permalink_access"
+        ),
+        patch(
+            "superset.mcp_service.dashboard.permalink.GetDashboardPermalinkCommand"
+        ) as command,
+    ):
+        command.return_value.run.return_value = {"dashboardId": "42", "state": state}
+        assert get_dashboard_permalink_data_mask("base-key", 42) == {}
