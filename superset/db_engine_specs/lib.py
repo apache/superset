@@ -83,6 +83,14 @@ ADVANCED_FEATURES = {
     "sql_validation": "Supports validating SQL before running query",
 }
 
+# Engines wired to a SQL validator by the ``SQL_VALIDATORS_BY_ENGINE`` default in
+# superset/config.py, which is the source of truth; restated rather than imported
+# because importing that module here would execute the operator's
+# ``superset_config.py`` on any import of this one. Keep the two in sync. The
+# SQLite-family validator ships too, but is opt-in as it needs the optional
+# ``syntaqlite`` package.
+SQL_VALIDATION_ENGINES = frozenset({"presto"})
+
 
 def has_custom_method(spec: type[BaseEngineSpec], method: str) -> bool:
     """
@@ -103,15 +111,6 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
     """
     Run basic diagnostics on a given DB engine spec.
     """
-    # pylint: disable=import-outside-toplevel
-    from superset.sql_validators.postgres import PostgreSQLValidator
-    from superset.sql_validators.presto_db import PrestoDBSQLValidator
-
-    sql_validators = {
-        "presto": PrestoDBSQLValidator,
-        "postgresql": PostgreSQLValidator,
-    }
-
     output: dict[str, Any] = {}
 
     output["time_grains"] = {}
@@ -169,7 +168,7 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
             "query_cost_estimation": has_custom_method(spec, "estimate_query_cost")
             or has_custom_method(spec, "estimate_statement_cost"),
             # SQL validation is implemented in external classes
-            "sql_validation": spec.engine in sql_validators,
+            "sql_validation": spec.engine in SQL_VALIDATION_ENGINES,
         },
     )
 

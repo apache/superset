@@ -87,7 +87,6 @@ from tests.integration_tests.fixtures.users import (
 
 SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
-    "postgresql": "PostgreSQLValidator",
 }
 
 PRESTO_SQL_VALIDATORS_BY_ENGINE = {
@@ -4255,8 +4254,8 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
         example_db = get_example_database()
-        if example_db.backend not in ("presto", "postgresql"):
-            pytest.skip("Only presto and PG are implemented")
+        if example_db.backend != "presto":
+            pytest.skip("Only presto is implemented")
 
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{example_db.id}/validate_sql/"
@@ -4264,39 +4263,6 @@ class TestDatabaseApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
         assert response["result"] == []
-
-    @mock.patch.dict(
-        "superset.config.SQL_VALIDATORS_BY_ENGINE",
-        SQL_VALIDATORS_BY_ENGINE,
-        clear=True,
-    )
-    def test_validate_sql_errors(self):
-        """
-        Database API: validate SQL with errors
-        """
-        request_payload = {
-            "sql": "SELECT col1 from_ table1",
-            "schema": None,
-            "template_params": None,
-        }
-
-        example_db = get_example_database()
-        if example_db.backend not in ("presto", "postgresql"):
-            pytest.skip("Only presto and PG are implemented")
-
-        self.login(ADMIN_USERNAME)
-        uri = f"api/v1/database/{example_db.id}/validate_sql/"
-        rv = self.client.post(uri, json=request_payload)
-        response = json.loads(rv.data.decode("utf-8"))
-        assert rv.status_code == 200
-        assert response["result"] == [
-            {
-                "end_column": None,
-                "line_number": 1,
-                "message": 'ERROR: syntax error at or near "table1"',
-                "start_column": None,
-            }
-        ]
 
     @mock.patch.dict(
         "superset.config.SQL_VALIDATORS_BY_ENGINE",
@@ -4441,8 +4407,8 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
         example_db = get_example_database()
-        if example_db.backend not in ("presto", "postgresql"):
-            pytest.skip("Only presto and PG are implemented")
+        if example_db.backend != "presto":
+            pytest.skip("Only presto is implemented")
 
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{example_db.id}/validate_sql/"
@@ -4476,8 +4442,8 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
         example_db = get_example_database()
-        if example_db.backend not in ("presto", "postgresql"):
-            pytest.skip("Only presto and PG are implemented")
+        if example_db.backend != "presto":
+            pytest.skip("Only presto is implemented")
 
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{example_db.id}/validate_sql/"
@@ -4515,8 +4481,8 @@ class TestDatabaseApi(SupersetTestCase):
         }
 
         example_db = get_example_database()
-        if example_db.backend not in ("presto", "postgresql"):
-            pytest.skip("Only presto and PG are implemented")
+        if example_db.backend != "presto":
+            pytest.skip("Only presto is implemented")
 
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/database/{example_db.id}/validate_sql/"
