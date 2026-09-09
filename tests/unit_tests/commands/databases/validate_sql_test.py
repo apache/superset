@@ -31,6 +31,7 @@ from superset.exceptions import (
     SupersetSyntaxErrorException,
     SupersetTemplateException,
 )
+from superset.sql_validators.base import SQLValidationAnnotation
 
 
 @pytest.fixture
@@ -165,6 +166,37 @@ def test_validate_sql_without_jinja_templates(
     mock_template_processor.process_template.assert_called_once()
     mock_validator.validate.assert_called_once()
     assert result == []
+
+
+def test_validate_sql_returns_serialized_annotations(
+    mock_database: MagicMock,
+    mock_validator: MagicMock,
+    mock_template_processor: MagicMock,
+    mock_config: dict[str, Any],
+) -> None:
+    """Test that validator annotations are serialized into the command result."""
+    invalid_sql = "SELECT col1 from_ table1"
+    mock_template_processor.process_template.return_value = invalid_sql
+    mock_validator.validate.return_value = [
+        SQLValidationAnnotation(
+            message='ERROR: syntax error at or near "table1"',
+            line_number=1,
+            start_column=None,
+            end_column=None,
+        )
+    ]
+
+    data = {"sql": invalid_sql, "schema": "public", "template_params": {}}
+    command = ValidateSQLCommand(model_id=1, data=data)
+
+    assert command.run() == [
+        {
+            "line_number": 1,
+            "start_column": None,
+            "end_column": None,
+            "message": 'ERROR: syntax error at or near "table1"',
+        }
+    ]
 
 
 def test_validate_sql_template_syntax_error(
