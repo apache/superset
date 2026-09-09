@@ -22,8 +22,10 @@ import pytest
 from sqlalchemy import String
 from sqlalchemy.engine import make_url
 from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine, AesGcmEngine
+from sqlalchemy_utils.types.encrypted.padding import PKCS5Padding
 
 from superset.utils.encrypt import (
+    BackwardCompatibleAesEngine,
     EncryptedType,
     ReEncryptStats,
     resolve_encryption_engine,
@@ -57,10 +59,81 @@ def _engine_migrator(target_engine: type) -> SecretsMigrator:
     return migrator
 
 
+class _Row:
+    """Minimal stand-in for a SQLAlchemy ``Row``.
+
+    ``_re_encrypt_row`` accesses columns via ``row._mapping[...]`` (the
+    SQLAlchemy 2.0-compatible idiom), so the fixtures wrap their column dicts
+    in an object exposing that attribute rather than passing a bare ``dict``.
+    """
+
+    def __init__(self, mapping: dict[str, object]) -> None:
+        self._mapping = mapping
+
+
 def test_default_engine_is_aes_cbc() -> None:
     """Without config, the adapter keeps the historical AES-CBC engine."""
     field = SQLAlchemyUtilsAdapter().create(SECRET, String(128))
     assert isinstance(field.engine, AesEngine)
+
+
+def test_trailing_asterisk_survives_round_trip() -> None:
+    """A secret ending in a literal '*' must not be truncated on decrypt.
+
+    Reported in apache/superset#32664: a Redshift/Postgres password ending in
+    '*' connects fine (Test Connection succeeds) but authentication fails
+    after the Database row is saved and reloaded. The default field used to
+    pad new writes with sqlalchemy_utils' "naive" scheme, which pads short
+    values with literal '*' bytes and unpads by unconditionally stripping
+    every trailing '*' on decrypt (see NaivePadding.unpad) -- stripping a
+    real trailing '*' in the secret right along with the padding.
+    BackwardCompatibleAesEngine pads new writes with PKCS5 instead, which
+    can't be confused with real data.
+    """
+    field = SQLAlchemyUtilsAdapter().create(SECRET, String(1024))
+
+    encrypted = field.process_bind_param("mypassword*", DIALECT)
+    decrypted = field.process_result_value(encrypted, DIALECT)
+
+    assert decrypted == "mypassword*", (
+        f"expected the trailing '*' to survive the round trip, got {decrypted!r}"
+    )
+
+
+def test_multiple_trailing_asterisks_survive_round_trip() -> None:
+    """Several real trailing '*' characters all survive, not just one."""
+    field = SQLAlchemyUtilsAdapter().create(SECRET, String(1024))
+
+    encrypted = field.process_bind_param("hunter2***", DIALECT)
+    decrypted = field.process_result_value(encrypted, DIALECT)
+
+    assert decrypted == "hunter2***"
+
+
+def test_legacy_naive_padded_secret_still_decrypts() -> None:
+    """A value stored under the old naive-padding scheme keeps decrypting
+    correctly under the new engine -- no re-encryption pass required.
+
+    Simulates a secret written before this fix (or by any caller using the
+    raw upstream ``AesEngine`` directly, naive padding included) and confirms
+    ``BackwardCompatibleAesEngine`` still reads it back byte-for-byte. This
+    is the property that makes the fix safe to ship without a data
+    migration: it only has to be backward-read-compatible, since existing
+    ciphertext is never rewritten in place.
+    """
+    legacy = _encrypted_type(AesEngine)
+    legacy_ciphertext = legacy.process_bind_param("legacy-secret", DIALECT)
+
+    current = _encrypted_type(BackwardCompatibleAesEngine)
+
+    assert current.process_result_value(legacy_ciphertext, DIALECT) == "legacy-secret"
+
+
+def test_new_writes_use_pkcs5_padding() -> None:
+    """New ciphertext is padded with PKCS5, not the legacy naive scheme."""
+    field = _encrypted_type(BackwardCompatibleAesEngine)
+
+    assert isinstance(field.engine.padding_engine, PKCS5Padding)
 
 
 def test_aes_gcm_engine_selected_by_config() -> None:
@@ -156,7 +229,7 @@ def test_engine_migration_cbc_to_gcm_re_encrypts() -> None:
 
     migrator = _engine_migrator(AesGcmEngine)
     conn = MagicMock()
-    row = {"id": 1, "password": ciphertext}
+    row = _Row({"id": 1, "password": ciphertext})
     stats = ReEncryptStats()
 
     migrator._re_encrypt_row(  # noqa: SLF001
@@ -165,7 +238,7 @@ def test_engine_migration_cbc_to_gcm_re_encrypts() -> None:
 
     assert stats == ReEncryptStats(re_encrypted=1)
     assert conn.execute.call_count == 1
-    new_value = conn.execute.call_args.kwargs["password"]
+    new_value = conn.execute.call_args.args[1]["password"]
     # The stored value changed and now decrypts as GCM back to the plaintext.
     assert new_value != ciphertext
     gcm = _encrypted_type(AesGcmEngine)
@@ -183,7 +256,7 @@ def test_engine_migration_idempotent_for_already_target() -> None:
 
     migrator = _engine_migrator(AesGcmEngine)
     conn = MagicMock()
-    row = {"id": 1, "password": gcm_value}
+    row = _Row({"id": 1, "password": gcm_value})
     stats = ReEncryptStats()
 
     migrator._re_encrypt_row(  # noqa: SLF001
@@ -206,7 +279,7 @@ def test_engine_migration_reads_cbc_after_config_already_flipped() -> None:
 
     migrator = _engine_migrator(AesGcmEngine)
     conn = MagicMock()
-    row = {"id": 1, "password": cbc_value}
+    row = _Row({"id": 1, "password": cbc_value})
     stats = ReEncryptStats()
 
     migrator._re_encrypt_row(  # noqa: SLF001
@@ -214,7 +287,7 @@ def test_engine_migration_reads_cbc_after_config_already_flipped() -> None:
     )
 
     assert stats == ReEncryptStats(re_encrypted=1)
-    new_value = conn.execute.call_args.kwargs["password"]
+    new_value = conn.execute.call_args.args[1]["password"]
     assert gcm_column.process_result_value(new_value, DIALECT) == "hunter2"
 
 
@@ -231,7 +304,7 @@ def test_engine_migration_gcm_to_cbc_rolls_back() -> None:
 
     migrator = _engine_migrator(AesEngine)
     conn = MagicMock()
-    row = {"id": 1, "password": gcm_value}
+    row = _Row({"id": 1, "password": gcm_value})
     stats = ReEncryptStats()
 
     migrator._re_encrypt_row(  # noqa: SLF001
@@ -239,7 +312,7 @@ def test_engine_migration_gcm_to_cbc_rolls_back() -> None:
     )
 
     assert stats == ReEncryptStats(re_encrypted=1)
-    new_value = conn.execute.call_args.kwargs["password"]
+    new_value = conn.execute.call_args.args[1]["password"]
     assert new_value != gcm_value
     # The rolled-back value now decrypts as AES-CBC back to the plaintext.
     assert _encrypted_type(AesEngine).process_result_value(new_value, DIALECT) == (
@@ -272,7 +345,7 @@ def test_rollback_authenticated_probe_wins_over_spurious_cbc_skip() -> None:
     spurious_target.process_bind_param.return_value = b"new-cbc-ciphertext"
 
     conn = MagicMock()
-    row = {"id": 1, "password": gcm_value}
+    row = _Row({"id": 1, "password": gcm_value})
     stats = ReEncryptStats()
 
     with mock.patch.object(migrator, "_target_type", return_value=spurious_target):
@@ -302,7 +375,7 @@ def test_combined_key_rotation_and_engine_migration() -> None:
     migrator._previous_secret_key = old_key  # noqa: SLF001  # rotate key too
 
     conn = MagicMock()
-    row = {"id": 1, "password": old_value}
+    row = _Row({"id": 1, "password": old_value})
     stats = ReEncryptStats()
 
     migrator._re_encrypt_row(  # noqa: SLF001
@@ -310,7 +383,7 @@ def test_combined_key_rotation_and_engine_migration() -> None:
     )
 
     assert stats == ReEncryptStats(re_encrypted=1)
-    new_value = conn.execute.call_args.kwargs["password"]
+    new_value = conn.execute.call_args.args[1]["password"]
     # The migrated value decrypts as GCM under the *current* key.
     assert _encrypted_type(AesGcmEngine).process_result_value(new_value, DIALECT) == (
         "hunter2"
@@ -346,7 +419,7 @@ def test_key_rotation_for_aes_gcm_column() -> None:
 
     migrator = _key_rotation_migrator(previous_secret_key=old_key)
     conn = MagicMock()
-    row = {"id": 1, "password": old_value}
+    row = _Row({"id": 1, "password": old_value})
     stats = ReEncryptStats()
 
     migrator._re_encrypt_row(  # noqa: SLF001
@@ -354,7 +427,7 @@ def test_key_rotation_for_aes_gcm_column() -> None:
     )
 
     assert stats == ReEncryptStats(re_encrypted=1)
-    new_value = conn.execute.call_args.kwargs["password"]
+    new_value = conn.execute.call_args.args[1]["password"]
     assert gcm_column.process_result_value(new_value, DIALECT) == "hunter2"
 
 
@@ -362,7 +435,7 @@ def test_engine_migration_unreadable_value_counts_as_failure() -> None:
     """A value no engine/key can read is a failure, not a silent pass-through."""
     migrator = _engine_migrator(AesGcmEngine)
     conn = MagicMock()
-    row = {"id": 1, "password": b"not-valid-ciphertext"}
+    row = _Row({"id": 1, "password": b"not-valid-ciphertext"})
     stats = ReEncryptStats()
 
     migrator._re_encrypt_row(  # noqa: SLF001

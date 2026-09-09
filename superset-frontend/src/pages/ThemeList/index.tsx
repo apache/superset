@@ -52,6 +52,7 @@ import {
 
 import ThemeModal from 'src/features/themes/ThemeModal';
 import { ThemeObject } from 'src/features/themes/types';
+import { hasConflictingAlgorithm } from 'src/features/themes/utils';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
@@ -112,8 +113,12 @@ function ThemesList({
     refreshData,
     toggleBulkSelect,
   } = useListViewResource<ThemeObject>('theme', t('Themes'), addDangerToast);
-  const { setTemporaryTheme, hasDevOverride, getAppliedThemeId } =
-    useThemeContext();
+  const {
+    setTemporaryTheme,
+    hasDevOverride,
+    getAppliedThemeId,
+    refreshSystemThemes,
+  } = useThemeContext();
   const [themeModalOpen, setThemeModalOpen] = useState<boolean>(false);
   const [currentTheme, setCurrentTheme] = useState<ThemeObject | null>(null);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
@@ -273,9 +278,22 @@ function ThemesList({
     (theme: ThemeObject) => {
       showConfirm({
         title: t('Set System Default Theme'),
-        body: t(
-          'Are you sure you want to set "%s" as the system default theme? This will apply to all users who haven\'t set a personal preference.',
-          theme.theme_name,
+        body: (
+          <Space direction="vertical">
+            {t(
+              'Are you sure you want to set "%s" as the system default theme? This will apply to all users who haven\'t set a personal preference.',
+              theme.theme_name,
+            )}
+            {hasConflictingAlgorithm(theme.json_data, false) && (
+              <Alert
+                type="warning"
+                showIcon
+                message={t(
+                  'This theme uses the dark algorithm. It will be rendered with the light algorithm instead, so its colors may not look as designed.',
+                )}
+              />
+            )}
+          </Space>
         ),
         onConfirm: async () => {
           try {
@@ -284,6 +302,10 @@ function ThemesList({
             addSuccessToast(
               t('"%s" is now the system default theme', theme.theme_name),
             );
+            // Re-apply the new system theme live in the background. Not awaited
+            // (and non-throwing) so a slow /system request never blocks the
+            // confirm modal from closing, the list refresh, or the toast.
+            refreshSystemThemes();
           } catch (err: any) {
             addDangerToast(
               t('Failed to set system default theme: %s', err.message),
@@ -292,16 +314,35 @@ function ThemesList({
         },
       });
     },
-    [showConfirm, refreshData, addSuccessToast, addDangerToast],
+    [
+      showConfirm,
+      refreshData,
+      refreshSystemThemes,
+      addSuccessToast,
+      addDangerToast,
+    ],
   );
 
   const handleSetSystemDark = useCallback(
     (theme: ThemeObject) => {
       showConfirm({
         title: t('Set System Dark Theme'),
-        body: t(
-          'Are you sure you want to set "%s" as the system dark theme? This will apply to all users who haven\'t set a personal preference.',
-          theme.theme_name,
+        body: (
+          <Space direction="vertical">
+            {t(
+              'Are you sure you want to set "%s" as the system dark theme? This will apply to all users who haven\'t set a personal preference.',
+              theme.theme_name,
+            )}
+            {hasConflictingAlgorithm(theme.json_data, true) && (
+              <Alert
+                type="warning"
+                showIcon
+                message={t(
+                  'This theme uses the light algorithm. It will be rendered with the dark algorithm instead, so its colors may not look as designed.',
+                )}
+              />
+            )}
+          </Space>
         ),
         onConfirm: async () => {
           try {
@@ -310,6 +351,10 @@ function ThemesList({
             addSuccessToast(
               t('"%s" is now the system dark theme', theme.theme_name),
             );
+            // Re-apply the new system theme live in the background. Not awaited
+            // (and non-throwing) so a slow /system request never blocks the
+            // confirm modal from closing, the list refresh, or the toast.
+            refreshSystemThemes();
           } catch (err: any) {
             addDangerToast(
               t('Failed to set system dark theme: %s', err.message),
@@ -318,7 +363,13 @@ function ThemesList({
         },
       });
     },
-    [showConfirm, refreshData, addSuccessToast, addDangerToast],
+    [
+      showConfirm,
+      refreshData,
+      refreshSystemThemes,
+      addSuccessToast,
+      addDangerToast,
+    ],
   );
 
   const handleUnsetSystemDefault = useCallback(() => {
@@ -332,6 +383,10 @@ function ThemesList({
           await unsetSystemDefaultTheme();
           refreshData();
           addSuccessToast(t('System default theme removed'));
+          // Revert to the fallback theme live in the background. Not awaited
+          // (and non-throwing) so a slow /system request never blocks the
+          // confirm modal from closing, the list refresh, or the toast.
+          refreshSystemThemes();
         } catch (err: any) {
           addDangerToast(
             t('Failed to remove system default theme: %s', err.message),
@@ -339,7 +394,13 @@ function ThemesList({
         }
       },
     });
-  }, [showConfirm, refreshData, addSuccessToast, addDangerToast]);
+  }, [
+    showConfirm,
+    refreshData,
+    refreshSystemThemes,
+    addSuccessToast,
+    addDangerToast,
+  ]);
 
   const handleUnsetSystemDark = useCallback(() => {
     showConfirm({
@@ -352,6 +413,10 @@ function ThemesList({
           await unsetSystemDarkTheme();
           refreshData();
           addSuccessToast(t('System dark theme removed'));
+          // Revert to the fallback theme live in the background. Not awaited
+          // (and non-throwing) so a slow /system request never blocks the
+          // confirm modal from closing, the list refresh, or the toast.
+          refreshSystemThemes();
         } catch (err: any) {
           addDangerToast(
             t('Failed to remove system dark theme: %s', err.message),
@@ -359,7 +424,13 @@ function ThemesList({
         }
       },
     });
-  }, [showConfirm, refreshData, addSuccessToast, addDangerToast]);
+  }, [
+    showConfirm,
+    refreshData,
+    refreshSystemThemes,
+    addSuccessToast,
+    addDangerToast,
+  ]);
 
   const initialSort = [{ id: 'theme_name', desc: true }];
   const columns = useMemo(
@@ -631,7 +702,16 @@ function ThemesList({
       <ThemeModal
         addDangerToast={addDangerToast}
         theme={currentTheme}
-        onThemeAdd={() => refreshData()}
+        onThemeAdd={async () => {
+          // Refresh the list row first so it is decoupled from the live
+          // re-apply below (a slow /system request must not block it).
+          refreshData();
+          // If the edited theme is the current system default/dark, re-apply it
+          // live so JSON edits take effect without a full page reload.
+          if (currentTheme?.is_system_default || currentTheme?.is_system_dark) {
+            await refreshSystemThemes();
+          }
+        }}
         onThemeApply={handleThemeModalApply}
         onHide={() => setThemeModalOpen(false)}
         show={themeModalOpen}

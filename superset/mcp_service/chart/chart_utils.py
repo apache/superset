@@ -24,30 +24,46 @@ generation that can be used by both generate_chart and generate_explore_link too
 
 import hashlib
 import logging
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Dict
+from typing import Any, Dict, TYPE_CHECKING
+
+from sqlalchemy.exc import SQLAlchemyError
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlaTable
 
 from superset.constants import NO_TIME_RANGE
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
+    BoxPlotChartConfig,
     ChartCapabilities,
+    ChartConfig,
     ChartSemantics,
     ColumnRef,
     CurrencyFormat,
     FilterConfig,
+    GaugeChartConfig,
     HandlebarsChartConfig,
+    HistogramChartConfig,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
     SortByConfig,
     TableChartConfig,
+    WaterfallChartConfig,
     XYChartConfig,
+)
+from superset.mcp_service.chart.validation.dataset_validator import (
+    is_dataset_column_temporal,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 from superset.utils.core import FilterOperator
 
 logger = logging.getLogger(__name__)
+
+MCP_DASHBOARD_TIME_FILTER_SUBJECT = "_mcp_dashboard_time_filter_subject"
 
 
 @dataclass
@@ -62,7 +78,7 @@ class DatasetValidationResult:
 
 
 def validate_chart_dataset(
-    chart: Any,
+    datasource_id: int | None,
     check_access: bool = True,
 ) -> DatasetValidationResult:
     """
@@ -71,20 +87,21 @@ def validate_chart_dataset(
     This shared utility should be called by MCP tools after creating or retrieving
     charts to detect issues like missing or deleted datasets early.
 
+    Takes the datasource id rather than the chart so that callers holding an ORM
+    instance read it while that instance is attached; reading it here can raise
+    ``DetachedInstanceError`` when a concurrent request has torn down the session.
+
     Args:
-        chart: A chart-like object with datasource_id, datasource_type attributes
+        datasource_id: The chart's ``datasource_id``, or None if it has none
         check_access: Whether to also check user permissions (default True)
 
     Returns:
         DatasetValidationResult with validation status and any warnings
     """
-    from sqlalchemy.exc import SQLAlchemyError
-
     from superset.daos.dataset import DatasetDAO
     from superset.mcp_service.auth import has_dataset_access
 
     warnings: list[str] = []
-    datasource_id = getattr(chart, "datasource_id", None)
 
     # Check if chart has a datasource reference
     if datasource_id is None:
@@ -96,9 +113,12 @@ def validate_chart_dataset(
             error="Chart has no dataset reference (datasource_id is None)",
         )
 
-    # Try to look up the dataset
+    # Skip the DatasourceFilter base filter when not checking access, so the
+    # lookup is a true existence check (it otherwise denies a guest outright).
     try:
-        dataset = DatasetDAO.find_by_id(datasource_id)
+        dataset = DatasetDAO.find_by_id(
+            datasource_id, skip_base_filter=not check_access
+        )
 
         if dataset is None:
             return DatasetValidationResult(
@@ -174,8 +194,6 @@ def generate_explore_link(
     this skips the permalink path and returns an ``/explore/?form_data_key=...``
     URL directly.
     """
-    from sqlalchemy.exc import SQLAlchemyError
-
     from superset.commands.exceptions import CommandException
     from superset.commands.explore.form_data.parameters import CommandParameters
     from superset.commands.explore.permalink.create import CreateExplorePermalinkCommand
@@ -266,70 +284,57 @@ def generate_explore_link(
         return f"{base_url}/explore/?datasource_type=table&datasource_id={dataset_id}"
 
 
-def is_column_truly_temporal(column_name: str, dataset_id: int | str | None) -> bool:
+def _find_dataset_by_id_or_uuid(dataset_id: int | str | None) -> "SqlaTable | None":
+    """Look up a dataset by numeric ID or UUID string.
+
+    Shared by callers that resolve a dataset from the ``dataset_id | str | None``
+    shape accepted throughout this module; each caller decides its own behavior
+    for a missing dataset_id or dataset (raise vs. default vs. None).
+
+    Delegates to ``DatasetDAO.find_by_id_or_uuid`` (also used by the dataset
+    API) instead of reimplementing the id/uuid dispatch here.
     """
-    Check if a column is truly temporal based on its SQL data type.
+    if not dataset_id:
+        return None
+    from superset.daos.dataset import DatasetDAO  # avoid circular import
 
-    This is important because Superset may mark columns as is_dttm=True based on
-    column name heuristics (e.g., "year", "month"), but if the actual SQL type is
-    BIGINT or INTEGER, DATE_TRUNC will fail.
+    return DatasetDAO.find_by_id_or_uuid(str(dataset_id))
 
-    Uses the database engine spec's column type mapping to determine the actual
-    GenericDataType, bypassing the is_dttm flag which may be set incorrectly.
+
+def is_column_truly_temporal(
+    column_name: str,
+    dataset_id: int | str | None,
+    dataset: "SqlaTable | None" = None,
+) -> bool:
+    """
+    Check if a column is truly temporal, mirroring TableColumn.is_temporal
+    using the shared dataset temporal predicate.
 
     Args:
         column_name: Name of the column to check
         dataset_id: Dataset ID to look up column metadata
+        dataset: Optional pre-fetched dataset, reused as-is to avoid a
+            redundant DAO lookup when the caller already resolved it.
 
     Returns:
-        True if the column has a real temporal SQL type, False otherwise
+        True if the column should be treated as temporal, False otherwise
     """
-    from superset.daos.dataset import DatasetDAO
-    from superset.utils.core import GenericDataType
 
-    if not dataset_id:
+    if not dataset_id and dataset is None:
         return True  # Default to temporal if we can't check (backward compatible)
 
     try:
-        # Find dataset
-        if isinstance(dataset_id, int) or (
-            isinstance(dataset_id, str) and dataset_id.isdigit()
-        ):
-            dataset = DatasetDAO.find_by_id(int(dataset_id))
-        else:
-            dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+        if dataset is None:
+            dataset = _find_dataset_by_id_or_uuid(dataset_id)
 
         if not dataset:
             return True  # Default to temporal if dataset not found
 
-        # Find the column and check its actual type using db_engine_spec
         column_lower = column_name.lower()
         for col in dataset.columns:
             if col.column_name.lower() == column_lower:
-                col_type = col.type
-                if not col_type:
-                    # No type info, trust is_dttm flag
-                    return getattr(col, "is_dttm", False)
-
-                # Use the db_engine_spec to get the actual GenericDataType
-                # This bypasses the is_dttm flag and checks the real SQL type
                 db_engine_spec = dataset.database.db_engine_spec
-                column_spec = db_engine_spec.get_column_spec(col_type)
-
-                if column_spec:
-                    is_temporal = column_spec.generic_type == GenericDataType.TEMPORAL
-                    if not is_temporal:
-                        logger.debug(
-                            "Column '%s' has type '%s' (generic: %s), "
-                            "treating as non-temporal",
-                            column_name,
-                            col_type,
-                            column_spec.generic_type,
-                        )
-                    return is_temporal
-
-                # If no column_spec, trust is_dttm flag
-                return getattr(col, "is_dttm", False)
+                return is_dataset_column_temporal(col, column_name, db_engine_spec)
 
         return True  # Default if column not found
 
@@ -344,38 +349,48 @@ def is_column_truly_temporal(column_name: str, dataset_id: int | str | None) -> 
 
 
 def map_config_to_form_data(
-    config: TableChartConfig
-    | XYChartConfig
-    | PieChartConfig
-    | PivotTableChartConfig
-    | MixedTimeseriesChartConfig
-    | HandlebarsChartConfig
-    | BigNumberChartConfig,
+    config: ChartConfig,
     dataset_id: int | str | None = None,
 ) -> Dict[str, Any]:
-    """Map chart config to Superset form_data."""
-    if isinstance(config, TableChartConfig):
-        return map_table_config(config)
-    elif isinstance(config, XYChartConfig):
-        return map_xy_config(config, dataset_id=dataset_id)
-    elif isinstance(config, PieChartConfig):
-        return map_pie_config(config)
-    elif isinstance(config, PivotTableChartConfig):
-        return map_pivot_table_config(config)
-    elif isinstance(config, MixedTimeseriesChartConfig):
-        return map_mixed_timeseries_config(config, dataset_id=dataset_id)
-    elif isinstance(config, HandlebarsChartConfig):
-        return map_handlebars_config(config)
-    elif isinstance(config, BigNumberChartConfig):
-        if config.show_trendline and config.temporal_column:
-            if not is_column_truly_temporal(config.temporal_column, dataset_id):
-                raise ValueError(
-                    f"Big Number trendline requires a temporal SQL column; "
-                    f"'{config.temporal_column}' is not temporal."
-                )
-        return map_big_number_config(config)
-    else:
-        raise ValueError(f"Unsupported config type: {type(config)}")
+    """Map chart config to Superset form_data via the plugin registry.
+
+    The previous per-chart-type if/elif chain has been replaced by a
+    single registry lookup. Cross-field constraints (e.g. BigNumber trendline
+    temporal check) are now owned by each plugin's post_map_validate() method
+    rather than being baked into this dispatcher.
+    """
+    # Local import: plugins call map_*_config from their to_form_data() methods,
+    # so chart_utils is loaded before plugins finish registering. A top-level
+    # import of registry here would trigger plugin loading mid-import = cycle.
+    from superset.mcp_service.chart.registry import get_registry
+
+    chart_type = getattr(config, "chart_type", None)
+    plugin = get_registry().get(chart_type) if chart_type else None
+
+    if plugin is None:
+        if chart_type is None:
+            raise ValueError(f"Unsupported config type: {type(config)}")
+        raise ValueError(
+            f"Unsupported config type: {type(config)} (chart_type={chart_type!r})"
+        )
+
+    form_data = plugin.to_form_data(config, dataset_id=dataset_id)
+
+    # Run post-map validation (e.g. BigNumber trendline temporal type check).
+    # Raise ValueError to preserve backward-compatible error handling in callers.
+    # Include details and suggestions so callers logging str(e) surface actionable
+    # context (e.g. BigNumber trendline guidance) rather than just the headline.
+    error = plugin.post_map_validate(config, form_data, dataset_id=dataset_id)
+    if error is not None:
+        parts = [error.message]
+        if error.details:
+            parts.append(error.details)
+        if error.suggestions:
+            parts.append("Suggestions: " + "; ".join(error.suggestions))
+        raise ValueError(" ".join(parts))
+
+    _bind_dashboard_time_range_filter(form_data, config, dataset_id)
+    return form_data
 
 
 def _add_adhoc_filters(
@@ -403,18 +418,14 @@ def adhoc_filters_to_query_filters(
 
     Adhoc filters use ``{subject, operator, comparator}`` keys while
     ``QueryContextFactory`` expects ``{col, op, val}`` (QueryObjectFilterClause).
+    Delegates to the shared builder so the MCP and dashboard-export paths stay in
+    sync (single source of truth).
     """
-    result: list[Dict[str, Any]] = []
-    for f in adhoc_filters:
-        if f.get("expressionType") == "SIMPLE":
-            result.append(
-                {
-                    "col": f.get("subject"),
-                    "op": f.get("operator"),
-                    "val": f.get("comparator"),
-                }
-            )
-    return result
+    from superset.common.form_data_query_context import (
+        adhoc_filters_to_query_filters as _shared,
+    )
+
+    return _shared(adhoc_filters)
 
 
 def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
@@ -512,8 +523,242 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
 
     form_data["row_limit"] = config.row_limit
     add_color_scheme(form_data, config.color_scheme)
+    if config.column_config is not None:
+        form_data["column_config"] = {
+            label: column.model_dump(by_alias=True, exclude_unset=True)
+            for label, column in config.column_config.items()
+        }
 
     return form_data
+
+
+def merge_table_column_config(
+    existing_form_data: Mapping[str, Any], new_form_data: Dict[str, Any]
+) -> None:
+    """Merge MCP table formatting without discarding UI-only settings.
+
+    An omitted ``column_config`` preserves the saved value, an explicit empty
+    mapping clears it, and a non-empty mapping updates only the supplied labels
+    and properties. The nested merge is important because the Superset UI stores
+    additional column settings that the MCP schema does not expose.
+    """
+    table_viz_types = {"table", "ag-grid-table"}
+    if (
+        existing_form_data.get("viz_type") not in table_viz_types
+        or new_form_data.get("viz_type") not in table_viz_types
+    ):
+        return
+
+    if "column_config" not in new_form_data:
+        if "column_config" in existing_form_data:
+            new_form_data["column_config"] = existing_form_data["column_config"]
+        return
+
+    new_column_config = new_form_data["column_config"]
+    if not isinstance(new_column_config, dict) or not new_column_config:
+        return
+
+    existing_column_config = existing_form_data.get("column_config")
+    if not isinstance(existing_column_config, dict):
+        return
+
+    merged_column_config = dict(existing_column_config)
+    for label, settings in new_column_config.items():
+        existing_settings = existing_column_config.get(label)
+        if isinstance(existing_settings, dict) and isinstance(settings, dict):
+            merged_column_config[label] = {**existing_settings, **settings}
+        else:
+            merged_column_config[label] = settings
+    new_form_data["column_config"] = merged_column_config
+
+
+def merge_interactive_pivot_ui_config(
+    existing_form_data: Mapping[str, Any], new_form_data: Dict[str, Any]
+) -> None:
+    """Preserve UI-managed Interactive Pivot config during MCP replacement.
+
+    Rows, columns, and metric aggregation are declarative MCP fields, so their
+    three state sections come from ``new_form_data``. Other state sections
+    (column sizing/order, filters, sorting, and pagination) are managed by the
+    grid UI and survive an update. Formatting controls that MCP cannot express
+    also survive rather than being erased by an unrelated config change.
+    """
+    viz_type = "ag-grid-pivot-table"
+    if (
+        existing_form_data.get("viz_type") != viz_type
+        or new_form_data.get("viz_type") != viz_type
+    ):
+        return
+    for key in ("column_config", "conditional_formatting"):
+        if key in existing_form_data and key not in new_form_data:
+            new_form_data[key] = existing_form_data[key]
+
+    existing_state = existing_form_data.get("pivot_table_state")
+    new_state = new_form_data.get("pivot_table_state")
+    if isinstance(existing_state, dict) and isinstance(new_state, dict):
+        new_form_data["pivot_table_state"] = {**existing_state, **new_state}
+
+
+_GAUGE_FORM_DATA_FIELD_MAP: dict[str, str] = {
+    "groupby": "groupby",
+    "sort_by_metric": "sort_by_metric",
+    "row_limit": "row_limit",
+    "min_val": "min_val",
+    "max_val": "max_val",
+    "color_scheme": "color_scheme",
+    "font_size": "font_size",
+    "number_format": "number_format",
+    "currency_format": "currency_format",
+    "value_formatter": "value_formatter",
+    "start_angle": "start_angle",
+    "end_angle": "end_angle",
+    "show_pointer": "show_pointer",
+    "animation": "animation",
+    "show_axis_tick": "show_axis_tick",
+    "show_split_line": "show_split_line",
+    "split_number": "split_number",
+    "show_progress": "show_progress",
+    "overlap": "overlap",
+    "round_cap": "round_cap",
+    "intervals": "intervals",
+    "interval_color_indices": "interval_color_indices",
+    "time_range": "time_range",
+    "granularity_sqla": "granularity_sqla",
+}
+
+_GAUGE_PRESENTATION_FORM_DATA_KEYS = frozenset(
+    {
+        "min_val",
+        "max_val",
+        "color_scheme",
+        "font_size",
+        "number_format",
+        "currency_format",
+        "value_formatter",
+        "start_angle",
+        "end_angle",
+        "show_pointer",
+        "animation",
+        "show_axis_tick",
+        "show_split_line",
+        "split_number",
+        "show_progress",
+        "overlap",
+        "round_cap",
+        "intervals",
+        "interval_color_indices",
+    }
+)
+
+
+def _without_generated_gauge_time_filter(
+    form_data: dict[str, Any],
+) -> list[Any]:
+    """Return cached filters without the mapper-owned temporal binding."""
+    generated_subject = form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+    return [
+        filter_
+        for filter_ in form_data.get("adhoc_filters", [])
+        if not (
+            generated_subject
+            and isinstance(filter_, dict)
+            and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+            and filter_.get("subject") == generated_subject
+            and filter_.get("comparator") == NO_TIME_RANGE
+            and filter_.get("clause") == "WHERE"
+            and filter_.get("expressionType") == "SIMPLE"
+        )
+    ]
+
+
+def merge_chart_form_data(  # noqa: C901
+    existing_form_data: dict[str, Any],
+    new_form_data: dict[str, Any],
+    config: ChartConfig,
+    *,
+    dataset_rebind: bool = False,
+) -> dict[str, Any]:
+    """Merge update form_data while preserving omitted same-viz controls.
+
+    A viz-type change never inherits old controls. Dataset rebinds similarly
+    drop query roles and filters; Gauge presentation controls remain safe to
+    preserve because they do not reference the old dataset.
+    """
+    if existing_form_data.get("viz_type") != new_form_data.get("viz_type"):
+        return dict(new_form_data)
+    if not isinstance(config, GaugeChartConfig):
+        if dataset_rebind:
+            return dict(new_form_data)
+        merged = {**existing_form_data, **new_form_data}
+        if getattr(config, "filters", None) == []:
+            merged.pop("adhoc_filters", None)
+        return merged
+
+    fields_set = config.model_fields_set
+    if dataset_rebind:
+        merged = {
+            key: value
+            for key, value in existing_form_data.items()
+            if key in _GAUGE_PRESENTATION_FORM_DATA_KEYS
+        }
+    else:
+        merged = dict(existing_form_data)
+
+    patch = dict(new_form_data)
+    for config_field, form_data_field in _GAUGE_FORM_DATA_FIELD_MAP.items():
+        if config_field not in fields_set:
+            patch.pop(form_data_field, None)
+
+    filters_explicit = "filters" in fields_set
+    temporal_explicit = "temporal_column" in fields_set
+    if not filters_explicit:
+        if temporal_explicit:
+            preserved_filters = (
+                []
+                if dataset_rebind
+                else _without_generated_gauge_time_filter(existing_form_data)
+            )
+            generated_filters = patch.get("adhoc_filters", [])
+            patch["adhoc_filters"] = [*preserved_filters, *generated_filters]
+            if config.temporal_column is None:
+                patch.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+        else:
+            patch.pop("adhoc_filters", None)
+            patch.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+
+    merged.update(patch)
+    if filters_explicit:
+        if config.filters == [] and not (temporal_explicit and config.temporal_column):
+            merged.pop("adhoc_filters", None)
+        if MCP_DASHBOARD_TIME_FILTER_SUBJECT not in patch:
+            merged.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    for nullable_field in (
+        "color_scheme",
+        "currency_format",
+        "time_range",
+        "granularity_sqla",
+    ):
+        if nullable_field in fields_set and getattr(config, nullable_field) is None:
+            merged.pop(_GAUGE_FORM_DATA_FIELD_MAP[nullable_field], None)
+    if temporal_explicit and config.temporal_column is None:
+        merged.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    if subject := merged.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT):
+        seen_binding = False
+        filters = []
+        for filter_ in merged.get("adhoc_filters", []):
+            is_binding = (
+                isinstance(filter_, dict)
+                and filter_.get("subject") == subject
+                and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+                and filter_.get("comparator") == NO_TIME_RANGE
+                and filter_.get("clause") == "WHERE"
+                and filter_.get("expressionType") == "SIMPLE"
+            )
+            if not is_binding or not seen_binding:
+                filters.append(filter_)
+            seen_binding = seen_binding or is_binding
+        merged["adhoc_filters"] = filters
+    return merged
 
 
 def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
@@ -552,12 +797,19 @@ def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
         "MIN",
         "MAX",
         "COUNT_DISTINCT",
-        "STDDEV",
-        "VAR",
+        "STDDEV_SAMP",
+        "VAR_SAMP",
         "MEDIAN",
         "PERCENTILE",
     }
-    aggregate = col.aggregate or "SUM"
+    # Accept the pre-SIP shorthand names too, mapped onto the real,
+    # unambiguous aggregate names Superset actually supports (bare
+    # "STDDEV"/"VAR" are ambiguous between sample and population statistics,
+    # and differ by engine -- see docs/sip/median-stddev-variance-aggregates.md).
+    aggregate_aliases = {"STDDEV": "STDDEV_SAMP", "VAR": "VAR_SAMP"}
+    aggregate = aggregate_aliases.get(
+        (col.aggregate or "SUM").upper(), col.aggregate or "SUM"
+    )
 
     # Validate aggregate function (final safety check)
     if aggregate.upper() not in valid_aggregates:
@@ -603,6 +855,8 @@ def add_legend_config(form_data: Dict[str, Any], config: XYChartConfig) -> None:
             # Canonical form_data key is camelCase; the echarts plugins read
             # `legendOrientation` directly off form_data.
             form_data["legendOrientation"] = config.legend.position
+    if config.legend_orientation:
+        form_data["legendOrientation"] = config.legend_orientation
 
 
 def add_color_scheme(form_data: Dict[str, Any], color_scheme: str | None) -> None:
@@ -669,7 +923,9 @@ def configure_temporal_handling(
             form_data.setdefault("_mcp_warnings", []).append(
                 f"time_grain='{time_grain}' was ignored because the x-axis "
                 f"column is not a temporal type. time_grain only applies to "
-                f"DATE/DATETIME/TIMESTAMP columns."
+                f"DATE/DATETIME/TIMESTAMP columns, or other column types "
+                f"explicitly marked as temporal (is_dttm) with a "
+                f"python_date_format on the dataset."
             )
 
 
@@ -700,23 +956,115 @@ def _ensure_temporal_adhoc_filter(form_data: Dict[str, Any], column: str) -> Non
     form_data["adhoc_filters"] = existing
 
 
+def _has_generated_temporal_filter(form_data: Dict[str, Any], column: str) -> bool:
+    """Return whether form data contains the neutral generated time binding."""
+    return any(
+        isinstance(filter_, dict)
+        and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+        and filter_.get("subject") == column
+        and filter_.get("comparator") == NO_TIME_RANGE
+        for filter_ in form_data.get("adhoc_filters", [])
+    )
+
+
+def _ensure_generated_temporal_binding(form_data: Dict[str, Any], column: str) -> None:
+    """Add a neutral time filter and record its generated provenance."""
+    _ensure_temporal_adhoc_filter(form_data, column)
+    if _has_generated_temporal_filter(form_data, column):
+        form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = column
+
+
+def _bind_dashboard_time_range_filter(
+    form_data: Dict[str, Any],
+    config: ChartConfig,
+    dataset_id: int | str | None,
+) -> None:
+    """Bind charts without time configuration to a temporal filter subject."""
+    if temporal_column := getattr(config, "temporal_column", None):
+        if _is_temporal_for_dashboard_binding(temporal_column, dataset_id):
+            granularity = form_data.get("granularity_sqla")
+            if isinstance(granularity, str) and granularity != temporal_column:
+                # QueryContextFactory gives granularity precedence over a temporal
+                # filter, so a different granularity would bind both columns.
+                form_data["granularity_sqla"] = None
+            _ensure_temporal_adhoc_filter(form_data, temporal_column)
+            form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = temporal_column
+        return
+
+    dataset = None
+    if dataset_id:
+        try:
+            dataset = _find_dataset_by_id_or_uuid(dataset_id)
+        except (AttributeError, RuntimeError, ValueError, SQLAlchemyError) as ex:
+            logger.debug(
+                "Could not resolve dataset %s for dashboard time binding: %s",
+                dataset_id,
+                ex,
+            )
+            return
+
+    granularity = form_data.get("granularity_sqla")
+    if isinstance(granularity, str) and _is_temporal_for_dashboard_binding(
+        granularity, dataset_id, dataset
+    ):
+        # Temporal XY mappers create the neutral filter before this binding pass.
+        # Record its provenance so preview updates can replace it if the subject
+        # changes, without treating user-authored temporal ranges as generated.
+        if _has_generated_temporal_filter(form_data, granularity):
+            form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = granularity
+        return
+
+    x_axis = form_data.get("x_axis")
+    if isinstance(x_axis, str) and _is_temporal_for_dashboard_binding(
+        x_axis, dataset_id, dataset
+    ):
+        _ensure_temporal_adhoc_filter(form_data, x_axis)
+        form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = x_axis
+        return
+
+    main_dttm_col = getattr(dataset, "main_dttm_col", None)
+    if isinstance(main_dttm_col, str) and _is_temporal_for_dashboard_binding(
+        main_dttm_col, dataset_id, dataset
+    ):
+        _ensure_temporal_adhoc_filter(form_data, main_dttm_col)
+        form_data[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = main_dttm_col
+
+
+def _is_temporal_for_dashboard_binding(
+    column: str,
+    dataset_id: int | str | None,
+    dataset: "SqlaTable | None" = None,
+) -> bool:
+    """Check temporal metadata without making chart mapping fail on lookup errors."""
+    try:
+        return is_column_truly_temporal(column, dataset_id, dataset=dataset)
+    except (AttributeError, RuntimeError, ValueError, SQLAlchemyError) as ex:
+        logger.debug(
+            "Could not validate temporal column %s for dataset %s: %s",
+            column,
+            dataset_id,
+            ex,
+        )
+        return False
+
+
 def _resolve_default_x_axis(
     config: XYChartConfig, dataset_id: int | str | None
-) -> XYChartConfig:
-    """Resolve x-axis to the dataset's main_dttm_col when x is omitted."""
+) -> tuple[XYChartConfig, "SqlaTable | None"]:
+    """Resolve x-axis to the dataset's main_dttm_col when x is omitted.
+
+    Returns the (possibly updated) config alongside the dataset fetched while
+    resolving the default, if any, so callers can reuse it (e.g. passing it
+    into is_column_truly_temporal) instead of re-querying DatasetDAO for the
+    same dataset_id.
+    """
     if config.x is not None:
-        return config
+        return config, None
 
     if not dataset_id:
         raise ValueError("x-axis column is required when dataset_id is not provided")
-    from superset.daos.dataset import DatasetDAO
 
-    if isinstance(dataset_id, int) or (
-        isinstance(dataset_id, str) and dataset_id.isdigit()
-    ):
-        dataset = DatasetDAO.find_by_id(int(dataset_id))
-    else:
-        dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+    dataset = _find_dataset_by_id_or_uuid(dataset_id)
 
     if not dataset or not dataset.main_dttm_col:
         raise ValueError(
@@ -726,7 +1074,10 @@ def _resolve_default_x_axis(
         )
     from superset.mcp_service.chart.schemas import ColumnRef
 
-    return config.model_copy(update={"x": ColumnRef(name=dataset.main_dttm_col)})
+    return (
+        config.model_copy(update={"x": ColumnRef(name=dataset.main_dttm_col)}),
+        dataset,
+    )
 
 
 def _add_xy_limits(form_data: Dict[str, Any], config: XYChartConfig) -> None:
@@ -744,14 +1095,17 @@ def map_xy_config(  # noqa: C901
         raise ValueError("XY chart must have at least one Y-axis metric")
 
     # Resolve x-axis default: use dataset's main_dttm_col when x is omitted.
-    config = _resolve_default_x_axis(config, dataset_id)
+    config, resolved_dataset = _resolve_default_x_axis(config, dataset_id)
 
     # ``_resolve_default_x_axis`` guarantees x is set.
     if config.x is None or config.x.name is None:
         raise ValueError("XY chart requires an x-axis with a resolvable column name")
 
-    # Check if x-axis column is truly temporal (based on actual SQL type)
-    x_is_temporal = is_column_truly_temporal(config.x.name, dataset_id)
+    # Check if x-axis column is truly temporal (based on actual SQL type).
+    # Reuse the dataset fetched above (if any) to avoid a second DAO lookup.
+    x_is_temporal = is_column_truly_temporal(
+        config.x.name, dataset_id, dataset=resolved_dataset
+    )
 
     # Map chart kind to viz_type - always use the same viz types
     # The temporal vs non-temporal handling is done via form_data configuration
@@ -800,7 +1154,10 @@ def map_xy_config(  # noqa: C901
 
     _add_adhoc_filters(form_data, config.filters)
 
-    if x_is_temporal:
+    # A shared explicit temporal_column is the dashboard binding source of truth.
+    # Defer to _bind_dashboard_time_range_filter instead of also binding the
+    # temporal x-axis, which would apply the dashboard range to both columns.
+    if x_is_temporal and not config.temporal_column:
         _ensure_temporal_adhoc_filter(form_data, config.x.name)
 
     _add_xy_limits(form_data, config)
@@ -850,7 +1207,144 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
     return form_data
 
 
-def map_big_number_config(config: BigNumberChartConfig) -> Dict[str, Any]:
+def map_gauge_config(config: GaugeChartConfig) -> Dict[str, Any]:
+    """Map gauge config to Superset form_data (viz_type ``gauge_chart``).
+
+    Matches the frontend Gauge buildQuery contract: a single ``metric`` and an
+    optional ``groupby`` list (one dial per row). ``min_val``/``max_val`` fix
+    the dial scale; both default to ``None`` (auto), mirroring the frontend
+    defaults.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "gauge_chart",
+        "groupby": [g.name for g in (config.groupby or [])],
+        "metric": create_metric_object(config.metric),
+        "sort_by_metric": config.sort_by_metric,
+        "row_limit": config.row_limit,
+        "min_val": config.min_val,
+        "max_val": config.max_val,
+        "color_scheme": config.color_scheme or "supersetColors",
+        "font_size": config.font_size,
+        "number_format": config.number_format,
+        "value_formatter": config.value_formatter,
+        "start_angle": config.start_angle,
+        "end_angle": config.end_angle,
+        "show_pointer": config.show_pointer,
+        "animation": config.animation,
+        "show_axis_tick": config.show_axis_tick,
+        "show_split_line": config.show_split_line,
+        "split_number": config.split_number,
+        "show_progress": config.show_progress,
+        "overlap": config.overlap,
+        "round_cap": config.round_cap,
+        "intervals": config.intervals,
+        "interval_color_indices": config.interval_color_indices,
+    }
+    if config.time_range is not None:
+        form_data["time_range"] = config.time_range
+    if config.granularity_sqla is not None:
+        form_data["granularity_sqla"] = config.granularity_sqla
+    add_currency_format(form_data, config.currency_format)
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
+def map_histogram_config(config: "HistogramChartConfig") -> Dict[str, Any]:
+    """Map histogram config to Superset form_data (viz_type histogram_v2).
+
+    Matches the frontend Histogram buildQuery contract: a single ``column``
+    string to bin, ``groupby`` name list for series, plus bins/normalize/
+    cumulative passed straight through to the histogram post-processing
+    operator.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "histogram_v2",
+        "column": config.column.name,
+        "groupby": [g.name for g in (config.groupby or [])],
+        "bins": config.bins,
+        "normalize": config.normalize,
+        "cumulative": config.cumulative,
+        "row_limit": config.row_limit,
+    }
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
+# The exact strings the frontend boxplotOperator understands; the percentile
+# variant must match its PERCENTILE_REGEX: "<low>/<high> percentiles".
+_WHISKER_TYPE_TO_OPTION = {
+    "tukey": "Tukey",
+    "min_max": "Min/max (no outliers)",
+}
+
+
+def map_box_plot_config(config: "BoxPlotChartConfig") -> Dict[str, Any]:
+    """Map box plot config to Superset form_data (viz_type box_plot).
+
+    Matches the frontend BoxPlot buildQuery contract: ``columns`` are the
+    distribute-across values (one box per value), ``groupby`` the series
+    dimensions, and ``whiskerOptions`` one of the strings the
+    boxplotOperator post-processor parses.
+    """
+    if config.whisker_type == "percentile":
+        whisker_options = (
+            f"{config.percentile_low}/{config.percentile_high} percentiles"
+        )
+    else:
+        whisker_options = _WHISKER_TYPE_TO_OPTION[config.whisker_type]
+
+    form_data: Dict[str, Any] = {
+        "viz_type": "box_plot",
+        "columns": [c.name for c in config.distribute_across],
+        "groupby": [d.name for d in (config.dimensions or [])],
+        "metrics": [create_metric_object(m) for m in config.metrics],
+        "whiskerOptions": whisker_options,
+        "row_limit": config.row_limit,
+        "number_format": config.number_format,
+        "date_format": config.date_format,
+    }
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
+def map_waterfall_config(config: WaterfallChartConfig) -> Dict[str, Any]:
+    """Map waterfall config to Superset form_data (viz_type waterfall).
+
+    Matches the frontend Waterfall buildQuery contract: a single ``x_axis``
+    column, an optional single-select ``groupby`` breakdown, and one
+    ``metric``; the query orders by the axis columns ascending, which the
+    frontend derives from these keys.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "waterfall",
+        "x_axis": config.x_axis.name,
+        "groupby": [config.breakdown.name] if config.breakdown else [],
+        "metric": create_metric_object(config.metric),
+        "show_total": config.show_total,
+        "show_legend": config.show_legend,
+        "increase_label": config.increase_label,
+        "decrease_label": config.decrease_label,
+        "total_label": config.total_label,
+        "x_axis_time_format": config.x_axis_time_format,
+        "y_axis_format": config.y_axis_format,
+        "row_limit": config.row_limit,
+    }
+    # Bucket a temporal x_axis: the grain (time_grain_sqla) needs the temporal
+    # column it applies to (granularity_sqla), mirroring the xy path's
+    # configure_temporal_handling and the frontend buildQuery's
+    # `x_axis || granularity_sqla`. Providing time_grain signals temporal
+    # intent; Superset ignores both for a non-temporal column.
+    if config.time_grain:
+        form_data["time_grain_sqla"] = config.time_grain
+        form_data["granularity_sqla"] = config.x_axis.name
+    add_currency_format(form_data, config.currency_format)
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
+def map_big_number_config(
+    config: BigNumberChartConfig, dataset_id: int | str | None = None
+) -> Dict[str, Any]:
     """Map big number chart config to Superset form_data."""
     # Determine viz_type: big_number (with trendline) or big_number_total
     if config.show_trendline and config.temporal_column:
@@ -896,14 +1390,65 @@ def map_big_number_config(config: BigNumberChartConfig) -> Dict[str, Any]:
 
     _add_adhoc_filters(form_data, config.filters)
 
+    # Bind a TEMPORAL_RANGE adhoc filter so dashboard time-range filters have
+    # a column to apply to — mirrors the Explore UI's `BigNumberTotal` control
+    # panel, which exposes an `adhoc_filters` control even though there's no
+    # dedicated time-column control for the total variant.
+    if temporal_column := _resolve_big_number_temporal_column(config, dataset_id):
+        _ensure_generated_temporal_binding(form_data, temporal_column)
+
     return form_data
+
+
+def _resolve_big_number_temporal_column(
+    config: BigNumberChartConfig, dataset_id: int | str | None
+) -> str | None:
+    """Resolve the column to bind a Big Number's TEMPORAL_RANGE filter to.
+
+    Matches the Explore UI default: use the dataset's main_dttm_col, or its
+    first temporal column when no main column is configured. Guards candidates
+    with is_column_truly_temporal (the same check map_xy_config applies to its
+    x-axis) so a non-temporal column never gets a TEMPORAL_RANGE filter. The
+    dataset is fetched at most once here and reused by the temporal checks
+    instead of letting them re-query by dataset_id.
+    """
+    if config.temporal_column:
+        if is_column_truly_temporal(config.temporal_column, dataset_id):
+            return config.temporal_column
+        return None
+
+    try:
+        dataset = _find_dataset_by_id_or_uuid(dataset_id)
+    except SQLAlchemyError:
+        logger.warning(
+            "Unable to resolve a temporal column for dataset %s",
+            dataset_id,
+            exc_info=True,
+        )
+        return None
+    if not dataset:
+        return None
+
+    candidates: list[str] = []
+    if dataset.main_dttm_col:
+        candidates.append(dataset.main_dttm_col)
+    candidates.extend(
+        column.column_name for column in dataset.columns if column.column_name
+    )
+    for temporal_column in dict.fromkeys(candidates):
+        if is_column_truly_temporal(temporal_column, dataset_id, dataset=dataset):
+            return temporal_column
+    return None
 
 
 def map_handlebars_config(config: HandlebarsChartConfig) -> Dict[str, Any]:
     """Map handlebars chart config to Superset form_data."""
     form_data: Dict[str, Any] = {
         "viz_type": "handlebars",
-        "handlebars_template": config.handlebars_template,
+        # Persist under the camelCase key the Handlebars renderer reads
+        # (`formData.handlebarsTemplate`); the snake_case `handlebars_template`
+        # is the tool's request-contract field, not the persisted form_data key.
+        "handlebarsTemplate": config.handlebars_template,
         "row_limit": config.row_limit,
         "order_desc": config.order_desc,
     }
@@ -1104,6 +1649,8 @@ def map_filter_operator(op: str) -> str:
         "NOT LIKE": "NOT LIKE",
         "IN": "IN",
         "NOT IN": "NOT IN",
+        "IS NULL": "IS NULL",
+        "IS NOT NULL": "IS NOT NULL",
     }
     return operator_map.get(op, op)
 
@@ -1212,6 +1759,18 @@ def _pie_chart_what(config: PieChartConfig) -> str:
     return f"{dim} by {metric_label}"
 
 
+def _gauge_chart_what(config: GaugeChartConfig) -> str:
+    """Build the 'what' portion for a gauge chart name."""
+    metric_label = (
+        config.metric.label or config.metric.name or config.metric.sql_expression
+    )
+    if config.groupby:
+        dims = ", ".join(g.name for g in config.groupby if g.name)
+        if dims:
+            return f"{metric_label} by {dims}"
+    return f"{metric_label}"
+
+
 def _pivot_table_what(config: PivotTableChartConfig) -> str:
     """Build the 'what' portion for a pivot table chart name."""
     # Pivot rows reject sql_expression at validation, so name is set.
@@ -1279,87 +1838,32 @@ def _big_number_chart_what(config: BigNumberChartConfig) -> str:
 
 
 def generate_chart_name(
-    config: TableChartConfig
-    | XYChartConfig
-    | PieChartConfig
-    | PivotTableChartConfig
-    | MixedTimeseriesChartConfig
-    | HandlebarsChartConfig
-    | BigNumberChartConfig,
+    config: Any,
     dataset_name: str | None = None,
 ) -> str:
     """Generate a descriptive chart name following a standard format.
 
-    Format conventions (by chart type):
-      Aggregated (bar/scatter with group_by): [Metric] by [Dimension]
-      Time-series (line/area, no group_by):   [Metric] Over Time
-      Table (no aggregates):                  [Dataset] Records
-      Table (with aggregates):                [Metric] Summary
-      Pie:                                    [Dimension] by [Metric]
-      Pivot Table:                            Pivot Table – [Row1, Row2]
-      Mixed Timeseries:                       [Primary] + [Secondary]
-    An en-dash followed by context (filters / time grain) is appended
+    Delegates to each plugin's ``generate_name()`` method.
+    See each plugin's ``generate_name`` for chart-type-specific format conventions.
+    An en-dash followed by context (filters / time grain) is appended by the plugin
     when such information is available.
     """
-    if isinstance(config, TableChartConfig):
-        what = _table_chart_what(config, dataset_name)
-        context = _summarize_filters(config.filters)
-    elif isinstance(config, XYChartConfig):
-        what = _xy_chart_what(config)
-        context = _xy_chart_context(config)
-    elif isinstance(config, PieChartConfig):
-        what = _pie_chart_what(config)
-        context = _summarize_filters(config.filters)
-    elif isinstance(config, PivotTableChartConfig):
-        what = _pivot_table_what(config)
-        context = _summarize_filters(config.filters)
-    elif isinstance(config, MixedTimeseriesChartConfig):
-        what = _mixed_timeseries_what(config)
-        context = _summarize_filters(config.filters)
-    elif isinstance(config, HandlebarsChartConfig):
-        what = _handlebars_chart_what(config)
-        context = _summarize_filters(getattr(config, "filters", None))
-    elif isinstance(config, BigNumberChartConfig):
-        what = _big_number_chart_what(config)
-        context = _summarize_filters(getattr(config, "filters", None))
-    else:
-        return "Chart"
+    from superset.mcp_service.chart.registry import get_registry
 
-    name = what
-    if context:
-        name = f"{what} \u2013 {context}"
-    return _truncate(name)
+    plugin = get_registry().get(getattr(config, "chart_type", ""))
+    if plugin is None:
+        return "Chart"
+    return _truncate(plugin.generate_name(config, dataset_name))
 
 
 def _resolve_viz_type(config: Any) -> str:
     """Resolve the Superset viz_type from a chart config object."""
-    chart_type = getattr(config, "chart_type", "unknown")
-    if chart_type == "xy":
-        kind = getattr(config, "kind", "line")
-        viz_type_map = {
-            "line": "echarts_timeseries_line",
-            "bar": "echarts_timeseries_bar",
-            "area": "echarts_area",
-            "scatter": "echarts_timeseries_scatter",
-        }
-        return viz_type_map.get(kind, "echarts_timeseries_line")
-    elif chart_type == "table":
-        return getattr(config, "viz_type", "table")
-    elif chart_type == "pie":
-        return "pie"
-    elif chart_type == "pivot_table":
-        return "pivot_table_v2"
-    elif chart_type == "mixed_timeseries":
-        return "mixed_timeseries"
-    elif chart_type == "handlebars":
-        return "handlebars"
-    elif chart_type == "big_number":
-        show_trendline = getattr(config, "show_trendline", False)
-        temporal_column = getattr(config, "temporal_column", None)
-        return (
-            "big_number" if show_trendline and temporal_column else "big_number_total"
-        )
-    return "unknown"
+    from superset.mcp_service.chart.registry import get_registry
+
+    plugin = get_registry().get(getattr(config, "chart_type", ""))
+    if plugin is None:
+        return "unknown"
+    return plugin.resolve_viz_type(config)
 
 
 TABLE_VIZ_TYPE_LABELS = {
@@ -1373,11 +1877,9 @@ def get_table_chart_type_label(viz_type: str | None) -> str | None:
     return TABLE_VIZ_TYPE_LABELS.get(viz_type) if viz_type is not None else None
 
 
-def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilities:
+def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabilities:
     """Analyze chart capabilities based on type and configuration."""
-    if chart:
-        viz_type = getattr(chart, "viz_type", "unknown")
-    else:
+    if not viz_type:
         viz_type = _resolve_viz_type(config)
 
     # Determine interaction capabilities based on chart type
@@ -1389,10 +1891,16 @@ def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilit
         "deck_scatter",
         "deck_hex",
         "ag-grid-table",  # AG Grid tables are interactive
+        "ag-grid-pivot-table",
     ]
 
     supports_interaction = viz_type in interactive_types
-    supports_drill_down = viz_type in ["table", "pivot_table_v2", "ag-grid-table"]
+    supports_drill_down = viz_type in [
+        "table",
+        "pivot_table_v2",
+        "ag-grid-table",
+        "ag-grid-pivot-table",
+    ]
     supports_real_time = viz_type in [
         "echarts_timeseries_line",
         "echarts_timeseries_bar",
@@ -1423,11 +1931,9 @@ def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilit
     )
 
 
-def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
+def analyze_chart_semantics(viz_type: str | None, config: Any) -> ChartSemantics:
     """Generate semantic understanding of the chart."""
-    if chart:
-        viz_type = getattr(chart, "viz_type", "unknown")
-    else:
+    if not viz_type:
         viz_type = _resolve_viz_type(config)
 
     # Generate primary insight based on chart type
@@ -1444,6 +1950,10 @@ def analyze_chart_semantics(chart: Any | None, config: Any) -> ChartSemantics:
         "pivot_table_v2": (
             "Cross-tabulates data with rows, columns, and aggregated metrics "
             "for multi-dimensional analysis"
+        ),
+        "ag-grid-pivot-table": (
+            "Interactively cross-tabulates data with AG Grid row groups, pivot "
+            "columns, value aggregation, and side-panel reconfiguration"
         ),
         "mixed_timeseries": (
             "Combines two different chart types on the same time axis "

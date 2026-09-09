@@ -33,6 +33,7 @@ export const TableCatalog = ({
   getValidation,
   validationErrors,
   db,
+  isValidating,
   isPublic = true,
 }: FieldPropTypes) => {
   const tableCatalog = db?.catalog || [];
@@ -53,6 +54,7 @@ export const TableCatalog = ({
               <ValidatedInput
                 className="catalog-name-input"
                 required={required}
+                isValidating={isValidating}
                 validationMethods={{ onBlur: getValidation }}
                 errorMessage={catalogError[idx]?.name}
                 placeholder={t('Enter a name for this sheet')}
@@ -69,6 +71,7 @@ export const TableCatalog = ({
               />
               {tableCatalog?.length > 1 && (
                 <Icons.CloseOutlined
+                  aria-label={t('Remove sheet')}
                   css={(theme: SupersetTheme) => css`
                     align-self: center;
                     background: ${theme.colorFillSecondary};
@@ -86,6 +89,7 @@ export const TableCatalog = ({
             <ValidatedInput
               className="catalog-name-url"
               required={required}
+              isValidating={isValidating}
               validationMethods={{ onBlur: getValidation }}
               errorMessage={catalogError[idx]?.url}
               placeholder={t('Paste the shareable Google Sheet URL here')}

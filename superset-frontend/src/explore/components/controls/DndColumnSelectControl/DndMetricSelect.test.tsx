@@ -24,11 +24,16 @@ import {
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
+import { Metric } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
-import { DndMetricSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
+import {
+  DndMetricSelect,
+  coerceMetrics,
+} from 'src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
 import { AGGREGATES } from 'src/explore/constants';
-import { EXPRESSION_TYPES } from '../MetricControl/AdhocMetric';
+import AdhocMetric, { EXPRESSION_TYPES } from '../MetricControl/AdhocMetric';
 import { DndItemType } from '../../DndItemType';
 import {
   CapturedDroppable,
@@ -36,6 +41,7 @@ import {
   captureDroppableData,
   captureSortableData,
   simulateDrop,
+  simulateFolderDrop,
   simulateReorder,
 } from './dndTestUtils';
 
@@ -98,6 +104,70 @@ const adhocMetricB = {
   aggregate: AGGREGATES.SUM,
   optionName: 'def',
 };
+
+test('coerceMetrics regenerates duplicate optionNames so each metric stays unique', () => {
+  // A saved chart can carry two adhoc metrics with the same optionName (e.g.
+  // born from a duplicated metric). Since edits are matched by optionName, the
+  // duplicates must be split apart on load or editing one overwrites the other.
+  const dup = 'shared_option';
+  const result = coerceMetrics(
+    [
+      {
+        expressionType: EXPRESSION_TYPES.SIMPLE,
+        column: defaultProps.columns[0],
+        aggregate: AGGREGATES.SUM,
+        optionName: dup,
+      },
+      {
+        expressionType: EXPRESSION_TYPES.SIMPLE,
+        column: defaultProps.columns[1],
+        aggregate: AGGREGATES.AVG,
+        optionName: dup,
+      },
+    ] as any,
+    defaultProps.savedMetrics as unknown as Metric[],
+    defaultProps.columns,
+  ) as AdhocMetric[];
+
+  expect(result).toHaveLength(2);
+  // First keeps the optionName, second is regenerated to avoid the collision.
+  expect(result[0].optionName).toBe(dup);
+  expect(result[1].optionName).not.toBe(dup);
+  // Each metric definition is otherwise preserved.
+  expect(result[0].aggregate).toBe(AGGREGATES.SUM);
+  expect(result[1].aggregate).toBe(AGGREGATES.AVG);
+});
+
+test('coerceMetrics regenerates duplicate optionNames for SQL adhoc metrics too', () => {
+  // The same collision can happen with custom SQL metrics, which take a
+  // different code path than column-backed metrics but must dedupe the same way.
+  const dup = 'shared_option';
+  const result = coerceMetrics(
+    [
+      {
+        expressionType: EXPRESSION_TYPES.SQL,
+        sqlExpression: 'COUNT(*)',
+        label: 'count',
+        optionName: dup,
+      },
+      {
+        expressionType: EXPRESSION_TYPES.SQL,
+        sqlExpression: 'SUM(value)',
+        label: 'total',
+        optionName: dup,
+      },
+    ] as any,
+    defaultProps.savedMetrics as unknown as Metric[],
+    defaultProps.columns,
+  ) as AdhocMetric[];
+
+  expect(result).toHaveLength(2);
+  expect(result[0].optionName).toBe(dup);
+  expect(result[1].optionName).not.toBe(dup);
+  // Each metric definition is otherwise preserved.
+  expect(result[0].sqlExpression).toBe('COUNT(*)');
+  expect(result[1].sqlExpression).toBe('SUM(value)');
+});
 
 test('renders with default props', () => {
   render(<DndMetricSelect {...defaultProps} />, {
@@ -358,15 +428,19 @@ test('can drag metrics (reorder dispatches through the reorder + drop path)', ()
     { useDndKit: true, useRedux: true },
   );
 
-  // DndMetricSelect reorders via moveLabel (internal state) finalized by
-  // onDropLabel. Verify both callbacks were registered on the sortable items
-  // and the drag-end path invokes them (which commits the change via onChange).
+  // DndMetricSelect reorders via moveLabel, which arrayMoves the metrics and
+  // commits the new order itself through onChange (onDropLabel no longer
+  // persists anything). Verify the reorder callback is registered and that a
+  // non-adjacent drag (0 -> 2) commits the fully moved order, not a swap.
   expect(sortables.items.length).toBeGreaterThanOrEqual(3);
   expect(typeof sortables.items[0].onMoveLabel).toBe('function');
-  expect(typeof sortables.items[0].onDropLabel).toBe('function');
 
   simulateReorder(sortables, 0, 2);
-  expect(onChange).toHaveBeenCalled();
+  expect(onChange).toHaveBeenCalledTimes(1);
+  const committed = onChange.mock.calls[0][0];
+  // arrayMove(['metric_a','metric_b',adhoc], 0, 2) => ['metric_b',adhoc,'metric_a']
+  expect(committed[0]).toBe('metric_b');
+  expect(committed[committed.length - 1]).toBe('metric_a');
 });
 
 test('cannot drop a duplicated item', () => {
@@ -512,4 +586,194 @@ test('title changes on custom SQL text change', async () => {
   expect(screen.getByTestId('AdhocMetricEditTitle#trigger')).toHaveTextContent(
     'New metric',
   );
+});
+
+// --- folder drops -----------------------------------------------------
+// Dragging a whole folder from the DatasourcePanel expands into its
+// columns/metrics, handled in bulk by onDropFolder: saved metrics are added
+// as-is, columns become adhoc metrics with a default aggregation (no
+// popover, since a folder can drop many at once). Driven through the
+// production `resolveDragEnd` dispatcher since jsdom cannot simulate real
+// @dnd-kit pointer drags.
+
+const numericColumn = {
+  column_name: 'numeric_col',
+  type_generic: GenericDataType.Numeric,
+};
+const stringColumn = {
+  column_name: 'string_col',
+  type_generic: GenericDataType.String,
+};
+const unknowTypeColumn = {
+  column_name: 'unknown_type_col',
+  type_generic: 'not_a_real_type',
+};
+const multiValueColumn = {
+  column_name: 'multi_value_col',
+  type_generic: GenericDataType.MultiValue,
+};
+
+test('folder drop appends a saved metric as-is and columns as adhoc metrics with default aggregation', () => {
+  const onChange = jest.fn();
+  render(
+    <DndMetricSelect
+      {...defaultProps}
+      columns={[numericColumn, stringColumn, unknowTypeColumn]}
+      value={['metric_b']}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Metric, value: { metric_name: 'metric_a' } as any },
+    { type: DndItemType.Column, value: numericColumn as any },
+    { type: DndItemType.Column, value: stringColumn as any },
+    { type: DndItemType.Column, value: unknowTypeColumn as any },
+  ]);
+
+  expect(onChange).toHaveBeenCalledTimes(1);
+  const committed = onChange.mock.calls[0][0];
+  expect(committed[0]).toBe('metric_b');
+  expect(committed[1]).toBe('metric_a');
+  // Numeric columns default to SUM.
+  expect(committed[2]).toBeInstanceOf(AdhocMetric);
+  expect(committed[2].column.column_name).toBe('numeric_col');
+  expect(committed[2].aggregate).toBe(AGGREGATES.SUM);
+  // Text columns default to COUNT_DISTINCT.
+  expect(committed[3]).toBeInstanceOf(AdhocMetric);
+  expect(committed[3].column.column_name).toBe('string_col');
+  expect(committed[3].aggregate).toBe(AGGREGATES.COUNT_DISTINCT);
+  // Untyped columns have no explicit supported aggregation and are skipped
+  // entirely rather than defaulting to an unsupported COUNT_DISTINCT.
+  expect(committed).toHaveLength(4);
+});
+
+test('folder drop skips MultiValue columns, which have no supported default aggregation', () => {
+  const onChange = jest.fn();
+  render(
+    <DndMetricSelect
+      {...defaultProps}
+      columns={[numericColumn, multiValueColumn]}
+      value={[]}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Column, value: multiValueColumn as any },
+    { type: DndItemType.Column, value: numericColumn as any },
+  ]);
+
+  expect(onChange).toHaveBeenCalledTimes(1);
+  const committed = onChange.mock.calls[0][0];
+  expect(committed).toHaveLength(1);
+  expect(committed[0]).toBeInstanceOf(AdhocMetric);
+  expect(committed[0].column.column_name).toBe('numeric_col');
+});
+
+test('folder drop is a no-op when only MultiValue/untyped columns are dropped', () => {
+  const onChange = jest.fn();
+  render(
+    <DndMetricSelect
+      {...defaultProps}
+      columns={[multiValueColumn, unknowTypeColumn]}
+      value={['metric_a']}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Column, value: multiValueColumn as any },
+    { type: DndItemType.Column, value: unknowTypeColumn as any },
+  ]);
+
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('folder drop replaces (not appends) the existing value for a single-value control', () => {
+  const onChange = jest.fn();
+  render(
+    <DndMetricSelect
+      {...defaultProps}
+      columns={[numericColumn]}
+      value={['metric_a']}
+      onChange={onChange}
+      multi={false}
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Column, value: numericColumn as any },
+  ]);
+
+  expect(onChange).toHaveBeenCalledTimes(1);
+  const committed = onChange.mock.calls[0][0];
+  expect(committed).toBeInstanceOf(AdhocMetric);
+  expect(committed.column.column_name).toBe('numeric_col');
+});
+
+test('folder drop skips columns already present as adhoc metrics, keeping new ones', () => {
+  const onChange = jest.fn();
+  const existingAdhocMetric = {
+    expressionType: EXPRESSION_TYPES.SIMPLE,
+    column: numericColumn,
+    aggregate: AGGREGATES.SUM,
+    optionName: 'existing_numeric',
+  };
+  render(
+    <DndMetricSelect
+      {...defaultProps}
+      columns={[numericColumn, stringColumn]}
+      value={[existingAdhocMetric]}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  // numeric_col is already an adhoc metric in value, so re-dropping it must
+  // not add a duplicate; string_col is new and should still be appended.
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Column, value: numericColumn as any },
+    { type: DndItemType.Column, value: stringColumn as any },
+  ]);
+
+  expect(onChange).toHaveBeenCalledTimes(1);
+  const committed = onChange.mock.calls[0][0];
+  expect(committed).toHaveLength(2);
+  expect(committed[0]).toBeInstanceOf(AdhocMetric);
+  expect(committed[0].column.column_name).toBe('numeric_col');
+  expect(committed[1]).toBeInstanceOf(AdhocMetric);
+  expect(committed[1].column.column_name).toBe('string_col');
+  expect(committed[1].aggregate).toBe(AGGREGATES.COUNT_DISTINCT);
+});
+
+test('folder drop is a no-op when no item is accepted', () => {
+  const onChange = jest.fn();
+  render(
+    <DndMetricSelect
+      {...defaultProps}
+      value={['metric_a']}
+      onChange={onChange}
+      multi
+      datasource={{ extra: '{ "disallow_adhoc_metrics": true }' } as any}
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  // Columns are rejected outright when adhoc metrics are disallowed, and
+  // metric_a is already selected.
+  simulateFolderDrop(captured, [
+    { type: DndItemType.Column, value: { column_name: 'column_a' } as any },
+    { type: DndItemType.Metric, value: { metric_name: 'metric_a' } as any },
+  ]);
+
+  expect(onChange).not.toHaveBeenCalled();
 });

@@ -126,8 +126,8 @@ export default function TaskStackTracePopover({
       content={content}
       trigger="hover"
       placement="leftTop"
-      visible={visible}
-      onVisibleChange={setVisible}
+      open={visible}
+      onOpenChange={setVisible}
     >
       <ErrorIconWrapper>
         <Icons.BugOutlined iconSize="l" />

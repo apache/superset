@@ -83,11 +83,17 @@ type BootstrapData = {
     conf?: {
       DEFAULT_MAP_RENDERER?: unknown;
       MAPBOX_API_KEY?: unknown;
+      DECK_MULTI_MAX_SLICES?: unknown;
     };
   };
 };
 
+export const DEFAULT_DECK_MULTI_MAX_SLICES = 50;
+
 export function getBootstrapDataFromDocument(): unknown {
+  /* istanbul ignore if -- a missing document only occurs in SSR/worker
+     contexts, which Jest cannot simulate: jsdom pins `document` as a
+     non-configurable global */
   if (typeof document === 'undefined') {
     return undefined;
   }
@@ -113,6 +119,16 @@ export function hasMapboxApiKey(
   bootstrapData: unknown = getBootstrapDataFromDocument(),
 ): boolean {
   return getMapboxApiKeyFromBootstrap(bootstrapData).trim().length > 0;
+}
+
+export function getDeckMultiMaxSlices(
+  bootstrapData: unknown = getBootstrapDataFromDocument(),
+): number {
+  const maxSlices = (bootstrapData as BootstrapData | undefined)?.common?.conf
+    ?.DECK_MULTI_MAX_SLICES;
+  return typeof maxSlices === 'number' && Number.isFinite(maxSlices)
+    ? maxSlices
+    : DEFAULT_DECK_MULTI_MAX_SLICES;
 }
 
 export function getDefaultMapRenderer(

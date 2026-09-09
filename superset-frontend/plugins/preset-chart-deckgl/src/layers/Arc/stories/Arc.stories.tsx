@@ -21,9 +21,8 @@
 /* eslint-disable no-magic-numbers */
 import { SuperChart } from '@superset-ui/core';
 import { ArcChartPlugin } from '@superset-ui/preset-chart-deckgl';
-import { withResizableChartDemo } from '@storybook-shared';
+import { withResizableChartDemo, dummyDatasource } from '@storybook-shared';
 import payload from './payload';
-import { dummyDatasource } from '@storybook-shared';
 
 new ArcChartPlugin().configure({ key: 'deck_arc' }).register();
 
@@ -126,10 +125,6 @@ export const ArcChartViz = ({
       stroke_width: strokeWidth,
       legend_position: 'tr',
       legend_format: null,
-      js_columns: [],
-      js_data_mutator: '',
-      js_tooltip: '',
-      js_onclick_href: '',
     }}
   />
 );

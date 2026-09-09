@@ -33,17 +33,17 @@ export const mockHandleResourceExport =
 export const mockCharts = [
   {
     id: 0,
-    url: '/superset/slice/0/',
+    url: '/explore/?slice_id=0',
     viz_type: 'table',
     slice_name: 'Test Chart 0',
 
-    // ✅ Basic case - has some data
-    owners: [{ first_name: 'Test', last_name: 'User', id: 1 }],
+    // Basic case - has some data
+    editors: [{ id: 1, label: 'Test User', type: 1 }],
     dashboards: [{ dashboard_title: 'Test Dashboard', id: 1 }],
     tags: [{ name: 'basic', type: 1, id: 1 }],
 
     datasource_name_text: 'public.test_dataset',
-    datasource_url: '/superset/explore/table/1/',
+    datasource_url: '/explore/?datasource_type=table&datasource_id=1',
     datasource_id: 1,
 
     changed_by_name: 'user',
@@ -72,14 +72,14 @@ export const mockCharts = [
   },
   {
     id: 1,
-    url: '/superset/slice/1/',
+    url: '/explore/?slice_id=1',
     viz_type: 'bar',
     slice_name: 'Test Chart 1',
 
-    // ✅ FULL DATA CASE - everything populated for comprehensive testing
-    owners: [
-      { first_name: 'Admin', last_name: 'User', id: 2 },
-      { first_name: 'Data', last_name: 'Analyst', id: 3 },
+    // FULL DATA CASE - everything populated for comprehensive testing
+    editors: [
+      { id: 2, label: 'Admin User', type: 1 },
+      { id: 3, label: 'Data Analyst', type: 1 },
     ],
     dashboards: [
       { dashboard_title: 'Sales Dashboard', id: 2 },
@@ -93,7 +93,7 @@ export const mockCharts = [
     ],
 
     datasource_name_text: 'sales_data',
-    datasource_url: '/superset/explore/table/2/',
+    datasource_url: '/explore/?datasource_type=table&datasource_id=2',
     datasource_id: 2,
 
     changed_by_name: 'admin',
@@ -119,12 +119,12 @@ export const mockCharts = [
   },
   {
     id: 2,
-    url: '/superset/slice/2/',
+    url: '/explore/?slice_id=2',
     viz_type: 'line',
     slice_name: 'Test Chart 2',
 
-    // ✅ EDGE CASE - no owners, no dataset, no dashboards, no tags
-    owners: [],
+    // EDGE CASE - no dataset, no dashboards, no tags
+    editors: [],
     dashboards: [],
     tags: [],
 
@@ -150,16 +150,16 @@ export const mockCharts = [
   },
   {
     id: 3,
-    url: '/superset/slice/3/',
+    url: '/explore/?slice_id=3',
     viz_type: 'area',
     slice_name: 'Test Chart 3',
 
-    // ✅ TRUNCATION TEST - Exactly at limits (4 owners, 20 dashboards)
-    owners: [
-      { first_name: 'Admin', last_name: 'User', id: 2 },
-      { first_name: 'Data', last_name: 'Analyst', id: 3 },
-      { first_name: 'Limit', last_name: 'User', id: 40 },
-      { first_name: 'Test', last_name: 'User', id: 43 },
+    // TRUNCATION TEST - Exactly at limits (4 editors, 20 dashboards)
+    editors: [
+      { id: 2, label: 'Admin User', type: 1 },
+      { id: 3, label: 'Data Analyst', type: 1 },
+      { id: 40, label: 'Limit User', type: 1 },
+      { id: 43, label: 'Test User', type: 1 },
     ],
     dashboards: Array.from({ length: 20 }, (_, i) => ({
       dashboard_title: `Dashboard ${i + 1}`,
@@ -168,7 +168,7 @@ export const mockCharts = [
     tags: [{ name: 'limit-test', type: 1, id: 10 }],
 
     datasource_name_text: 'public.limits_dataset',
-    datasource_url: '/superset/explore/table/4/',
+    datasource_url: '/explore/?datasource_type=table&datasource_id=4',
     datasource_id: 4,
 
     changed_by_name: 'limit_user',
@@ -189,17 +189,17 @@ export const mockCharts = [
   },
   {
     id: 4,
-    url: '/superset/slice/4/',
+    url: '/explore/?slice_id=4',
     viz_type: 'bubble',
     slice_name: 'Test Chart 4',
 
-    // ✅ TRUNCATION TEST - Just above limits (5 owners shows +1, 21 dashboards)
-    owners: [
-      { first_name: 'Admin', last_name: 'User', id: 2 },
-      { first_name: 'Data', last_name: 'Analyst', id: 3 },
-      { first_name: 'Limit', last_name: 'User', id: 40 },
-      { first_name: 'Test', last_name: 'User', id: 43 },
-      { first_name: 'Overflow', last_name: 'User', id: 50 },
+    // TRUNCATION TEST - Just above limits (5 editors shows +1, 21 dashboards)
+    editors: [
+      { id: 2, label: 'Admin User', type: 1 },
+      { id: 3, label: 'Data Analyst', type: 1 },
+      { id: 40, label: 'Limit User', type: 1 },
+      { id: 43, label: 'Test User', type: 1 },
+      { id: 50, label: 'Overflow User', type: 1 },
     ],
     dashboards: Array.from({ length: 21 }, (_, i) => ({
       dashboard_title: `Extra Dashboard ${i + 1}`,
@@ -208,7 +208,7 @@ export const mockCharts = [
     tags: [{ name: 'overflow', type: 1, id: 11 }],
 
     datasource_name_text: 'public.overflow_dataset',
-    datasource_url: '/superset/explore/table/5/',
+    datasource_url: '/explore/?datasource_type=table&datasource_id=5',
     datasource_id: 5,
 
     changed_by_name: 'overflow_user',
@@ -287,7 +287,6 @@ export const API_ENDPOINTS = {
   CHART_THUMBNAILS: 'glob:*/api/v1/chart/*/thumbnail/*',
   DATASETS: 'glob:*/api/v1/dataset/?q=*',
   DASHBOARDS: 'glob:*/api/v1/dashboard/?q=*',
-  CHART_RELATED_OWNERS: 'glob:*/api/v1/chart/related/owners*',
   CHART_RELATED_CHANGED_BY: 'glob:*/api/v1/chart/related/changed_by*',
   CATCH_ALL: 'glob:*',
 };
@@ -338,11 +337,6 @@ export const setupMocks = (
   });
 
   fetchMock.get(API_ENDPOINTS.DASHBOARDS, {
-    result: [],
-    count: 0,
-  });
-
-  fetchMock.get(API_ENDPOINTS.CHART_RELATED_OWNERS, {
     result: [],
     count: 0,
   });

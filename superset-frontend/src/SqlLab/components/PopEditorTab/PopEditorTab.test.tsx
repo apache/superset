@@ -17,7 +17,7 @@
  * under the License.
  */
 import { MemoryRouter } from 'react-router-dom';
-import { render, waitFor } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
 import { initialState } from 'src/SqlLab/fixtures';
 import { Store } from 'redux';
@@ -135,5 +135,26 @@ test('should handle custom url params', () => {
     expect.anything(),
     expect.anything(),
     '/sqllab?custom_value=str&extra_attr1=true',
+  );
+});
+test('should clear loading state when saved query fetch fails', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/database/*', {});
+  fetchMock.get('glob:*/api/v1/saved_query/999', 404);
+  render(
+    <MemoryRouter initialEntries={['/sqllab?savedQueryId=999']}>
+      <LocationProvider>
+        <PopEditorTab>
+          <div data-test="sql-editor">Editor content</div>
+        </PopEditorTab>
+      </LocationProvider>
+    </MemoryRouter>,
+    {
+      useRedux: true,
+      initialState,
+    },
+  );
+  await waitFor(() =>
+    expect(screen.getByText('Editor content')).toBeInTheDocument(),
   );
 });

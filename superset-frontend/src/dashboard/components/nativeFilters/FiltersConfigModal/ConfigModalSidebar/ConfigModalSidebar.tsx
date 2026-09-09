@@ -63,7 +63,7 @@ const BaseStyledCollapse = styled(Collapse)<{ isDragging: boolean }>`
   flex: 1;
   min-height: 0; /* required for flex item to shrink */
   overflow: auto;
-  .ant-collapse-content-box {
+  .ant-collapse-body {
     padding: 0;
     ${({ isDragging }) =>
       isDragging &&

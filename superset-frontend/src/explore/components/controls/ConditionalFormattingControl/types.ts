@@ -23,8 +23,11 @@ import {
   Comparator,
   ControlComponentProps,
   ObjectFormattingEnum,
+  BoundUnit,
+  PercentDenominator,
 } from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/common';
+import { type RGBColor } from '@superset-ui/core/components';
 
 export type ConditionalFormattingConfig = {
   operator?: Comparator;
@@ -32,12 +35,20 @@ export type ConditionalFormattingConfig = {
   targetValueLeft?: number;
   targetValueRight?: number;
   column?: string;
-  colorScheme?: string;
+  colorScheme?: RGBColor | string;
   toAllRow?: boolean;
   toTextColor?: boolean;
   useGradient?: boolean;
   columnFormatting?: string;
   objectFormatting?: ObjectFormattingEnum;
+  minBound?: number;
+  maxBound?: number;
+  centerValue?: number;
+  lowColor?: RGBColor | string;
+  midColor?: RGBColor | string;
+  highColor?: RGBColor | string;
+  boundUnit?: BoundUnit;
+  percentDenominator?: PercentDenominator;
 };
 
 export type ConditionalFormattingControlProps = ControlComponentProps<
@@ -48,8 +59,9 @@ export type ConditionalFormattingControlProps = ControlComponentProps<
   verboseMap: Record<string, string>;
   label: string;
   description: string;
-  extraColorChoices?: { label: string; value: string }[];
+  extraColorChoices?: { label: string; colors: string[] }[];
   allColumns?: ColumnOption[];
+  serverPagination?: boolean;
 };
 
 export type FormattingPopoverProps = PopoverProps & {
@@ -58,8 +70,9 @@ export type FormattingPopoverProps = PopoverProps & {
   config?: ConditionalFormattingConfig;
   title: string;
   children: ReactNode;
-  extraColorChoices?: { label: string; value: string }[];
+  extraColorChoices?: { label: string; colors: string[] }[];
   allColumns?: ColumnOption[];
+  serverPagination?: boolean;
 };
 
 export interface ColumnOption {

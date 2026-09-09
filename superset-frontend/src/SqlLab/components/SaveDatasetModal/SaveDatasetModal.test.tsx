@@ -19,12 +19,14 @@
 import { act, type ComponentProps } from 'react';
 import {
   cleanup,
+  createStore,
   fireEvent,
   render,
   screen,
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import fetchMock from 'fetch-mock';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
@@ -61,6 +63,12 @@ jest.useFakeTimers({ advanceTimers: true });
 
 beforeEach(() => {
   cleanup();
+});
+
+afterEach(() => {
+  // In-body restores are skipped when an assertion throws, leaking a
+  // configured spy into later tests.
+  jest.restoreAllMocks();
 });
 
 // Mock createDatasource to return a thunk that resolves with the dataset's
@@ -125,6 +133,28 @@ describe('SaveDatasetModal', () => {
 
     // "Save as new" is selected when the modal opens by default
     expect(screen.getByRole('button', { name: /save/i })).toBeInTheDocument();
+  });
+
+  test('disables the save button when the dataset name is empty or whitespace-only', async () => {
+    renderModal();
+
+    const nameInput = screen.getByRole('textbox');
+    const saveBtn = screen.getByRole('button', { name: /save/i });
+
+    // Default name is present, so save starts enabled
+    expect(saveBtn).toBeEnabled();
+
+    // Clearing the name disables save
+    await userEvent.clear(nameInput);
+    await waitFor(() => expect(saveBtn).toBeDisabled());
+
+    // Whitespace-only name keeps save disabled
+    await userEvent.type(nameInput, '   ');
+    await waitFor(() => expect(saveBtn).toBeDisabled());
+
+    // A non-empty name re-enables save
+    await userEvent.type(nameInput, 'My dataset');
+    await waitFor(() => expect(saveBtn).toBeEnabled());
   });
 
   test('renders an overwrite button when "Overwrite existing" is selected', () => {
@@ -243,6 +273,22 @@ describe('SaveDatasetModal', () => {
       sql: 'SELECT *',
       templateParams: undefined,
     });
+  });
+
+  test('trims surrounding whitespace from the dataset name on save', async () => {
+    renderModal();
+
+    const inputFieldText = screen.getByDisplayValue(/unimportant/i);
+    fireEvent.change(inputFieldText, { target: { value: '  my dataset  ' } });
+
+    const saveConfirmationBtn = screen.getByRole('button', {
+      name: /save/i,
+    });
+    userEvent.click(saveConfirmationBtn);
+
+    expect(createDatasource).toHaveBeenCalledWith(
+      expect.objectContaining({ datasourceName: 'my dataset' }),
+    );
   });
 
   test('sends the catalog when creating the dataset', async () => {
@@ -478,6 +524,39 @@ describe('SaveDatasetModal', () => {
     await waitFor(() => {
       expect(clearDatasetCache).toHaveBeenCalledWith(123);
     });
+  });
+
+  test('surfaces the error and keeps the modal open when saving fails', async () => {
+    // The chart-payload step's toast was built but never dispatched, so a
+    // failure there was silent.
+    const postFormData = jest.spyOn(
+      require('src/explore/exploreUtils/formData'),
+      'postFormData',
+    );
+    postFormData.mockRejectedValue(new Error('Boom'));
+    const onHide = jest.fn();
+    const store = createStore({ user }, reducerIndex);
+
+    render(<SaveDatasetModal {...mockedProps} onHide={onHide} />, { store });
+
+    fireEvent.change(screen.getByDisplayValue(/unimportant/i), {
+      target: { value: 'my dataset' },
+    });
+    userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+    // `createStore` builds its reducer map at runtime, so state isn't typed.
+    const toasts = () =>
+      (
+        store.getState() as unknown as {
+          messageToasts: { toastType: string }[];
+        }
+      ).messageToasts;
+
+    await waitFor(() => {
+      expect(toasts()).toHaveLength(1);
+    });
+    expect(toasts()[0].toastType).toBe('DANGER_TOAST');
+    expect(onHide).not.toHaveBeenCalled();
   });
 
   test('clearDatasetCache is imported and available', () => {

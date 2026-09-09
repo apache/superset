@@ -27,9 +27,7 @@ import { render } from '@testing-library/react';
 import { SqlaFormData } from '@superset-ui/core';
 import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import DeckGLGeoJson, {
-  computeGeoJsonTextOptionsFromJsOutput,
   computeGeoJsonTextOptionsFromFormData,
-  computeGeoJsonIconOptionsFromJsOutput,
   computeGeoJsonIconOptionsFromFormData,
   getPoints,
   getLayer,
@@ -61,26 +59,6 @@ jest.mock('react-map-gl/maplibre', () => ({
   useControl: () => null,
 }));
 
-test('computeGeoJsonTextOptionsFromJsOutput returns an empty object for non-object input', () => {
-  expect(computeGeoJsonTextOptionsFromJsOutput(null)).toEqual({});
-  expect(computeGeoJsonTextOptionsFromJsOutput(42)).toEqual({});
-  expect(computeGeoJsonTextOptionsFromJsOutput([1, 2, 3])).toEqual({});
-  expect(computeGeoJsonTextOptionsFromJsOutput('string')).toEqual({});
-});
-
-test('computeGeoJsonTextOptionsFromJsOutput extracts valid text options from the input object', () => {
-  const input = {
-    getText: 'name',
-    getTextColor: [1, 2, 3, 255],
-    invalidOption: true,
-  };
-  const expectedOutput = {
-    getText: 'name',
-    getTextColor: [1, 2, 3, 255],
-  };
-  expect(computeGeoJsonTextOptionsFromJsOutput(input)).toEqual(expectedOutput);
-});
-
 test('computeGeoJsonTextOptionsFromFormData computes text options based on form data', () => {
   const formData: SqlaFormData = {
     label_property_name: 'name',
@@ -103,28 +81,6 @@ test('computeGeoJsonTextOptionsFromFormData computes text options based on form 
 
   const sampleFeature = { properties: { name: 'Test' } };
   expect(actualOutput.getText(sampleFeature)).toBe('Test');
-});
-
-test('computeGeoJsonIconOptionsFromJsOutput returns an empty object for non-object input', () => {
-  expect(computeGeoJsonIconOptionsFromJsOutput(null)).toEqual({});
-  expect(computeGeoJsonIconOptionsFromJsOutput(42)).toEqual({});
-  expect(computeGeoJsonIconOptionsFromJsOutput([1, 2, 3])).toEqual({});
-  expect(computeGeoJsonIconOptionsFromJsOutput('string')).toEqual({});
-});
-
-test('computeGeoJsonIconOptionsFromJsOutput extracts valid icon options from the input object', () => {
-  const input = {
-    getIcon: 'icon_name',
-    getIconColor: [1, 2, 3, 255],
-    invalidOption: false,
-  };
-
-  const expectedOutput = {
-    getIcon: 'icon_name',
-    getIconColor: [1, 2, 3, 255],
-  };
-
-  expect(computeGeoJsonIconOptionsFromJsOutput(input)).toEqual(expectedOutput);
 });
 
 test('computeGeoJsonIconOptionsFromFormData computes icon options based on form data', () => {
@@ -392,6 +348,51 @@ test('getLayer coerces free-form string radius values to numbers', () => {
 
   expect(props.getPointRadius).toBe(3);
   expect(props.pointRadiusScale).toBe(0.25);
+});
+
+// Regression for https://github.com/apache/superset/issues/34748: pins the
+// consumer/render boundary (recurseGeoJson feeding GeoJsonLayer's `data`),
+// complementing the transformProps.test.ts coverage of the query->feature step.
+test('getLayer forwards every feature from transformProps output to GeoJsonLayer', () => {
+  const multiRowPayload = {
+    data: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [2.92, 47.38] },
+          properties: {},
+        },
+        {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [2.93, 47.39] },
+          properties: {},
+        },
+        {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [2.94, 47.4] },
+          properties: {},
+        },
+      ],
+    },
+  };
+
+  const layer = getLayer({
+    ...baseLayerArgs,
+    formData: baseFormData,
+    payload: multiRowPayload,
+  });
+
+  expect(layer.props.data).toHaveLength(3);
+  expect(
+    (layer.props.data as Array<{ geometry: { coordinates: number[] } }>).map(
+      f => f.geometry.coordinates,
+    ),
+  ).toEqual([
+    [2.92, 47.38],
+    [2.93, 47.39],
+    [2.94, 47.4],
+  ]);
 });
 
 type ControlConfig = {

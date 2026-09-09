@@ -37,6 +37,8 @@ import {
 import {
   legendSection,
   minorTicks,
+  axisTicks,
+  gridlines,
   richTooltipSection,
   seriesOrderSection,
   showValueSection,
@@ -108,6 +110,22 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            name: 'rebase_percent_change',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Percent change'),
+              renderTrigger: true,
+              default: false,
+              description: t(
+                'Rebase each series to its percent change from a baseline ' +
+                  'point, like the legacy Time-series Percent Change chart. ' +
+                  'Drag the vertical baseline on the chart to re-index.',
+              ),
+            },
+          },
+        ],
+        [
+          {
             name: 'markerEnabled',
             config: {
               type: 'CheckboxControl',
@@ -140,6 +158,8 @@ const config: ControlPanelConfig = {
         ],
         ['zoomable'],
         [minorTicks],
+        [axisTicks],
+        [gridlines],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],
         [

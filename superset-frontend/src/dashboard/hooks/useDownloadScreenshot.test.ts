@@ -18,6 +18,7 @@
  */
 import { renderHook, act } from '@testing-library/react';
 import { SupersetClient } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import { useDownloadScreenshot } from './useDownloadScreenshot';
 import { DownloadScreenshotFormat } from '../components/menu/DownloadMenuItems/types';
 
@@ -32,6 +33,12 @@ jest.mock('@superset-ui/core', () => ({
       super(message);
       this.status = status;
     }
+  },
+}));
+
+jest.mock('@apache-superset/core/utils', () => ({
+  logging: {
+    error: jest.fn(),
   },
 }));
 
@@ -170,4 +177,47 @@ test('triggers only one download when multiple successful responses race', async
   clickSpy.mockRestore();
   jest.clearAllTimers();
   jest.useRealTimers();
+});
+
+test('logs cacheKey, dashboardId, and format when retries are exhausted', async () => {
+  jest.useFakeTimers();
+  mockPostSuccess();
+  (SupersetClient.get as jest.Mock).mockRejectedValue(notReadyError());
+
+  await triggerDownload();
+
+  // Drive one retry interval at a time so each failed GET has a chance to
+  // resolve and increment the retry counter before the next interval fires.
+  for (let i = 0; i < 31; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    await act(async () => {
+      jest.advanceTimersByTime(RETRY_INTERVAL);
+      await flushPromises();
+    });
+  }
+
+  expect(logging.error).toHaveBeenCalledWith('Max retries reached', {
+    cacheKey: CACHE_KEY,
+    dashboardId: DASHBOARD_ID,
+    format: DownloadScreenshotFormat.PNG,
+  });
+
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
+
+test('logs dashboardId, format, and the error when the initial screenshot request fails', async () => {
+  const error = new Error('network down');
+  (SupersetClient.post as jest.Mock).mockRejectedValue(error);
+
+  const { result } = renderHook(() => useDownloadScreenshot(DASHBOARD_ID));
+  await act(async () => {
+    result.current(DownloadScreenshotFormat.PDF);
+    await flushPromises();
+  });
+
+  expect(logging.error).toHaveBeenCalledWith(
+    'Failed to trigger dashboard screenshot',
+    { dashboardId: DASHBOARD_ID, format: DownloadScreenshotFormat.PDF, error },
+  );
 });

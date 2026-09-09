@@ -106,9 +106,19 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
           shouldShowText={false}
           text={html}
           copyNode={
-            <span role="button" aria-label={t('Copy to clipboard')}>
+            <button
+              type="button"
+              css={css`
+                appearance: none;
+                border: none;
+                background: none;
+                padding: 0;
+                font: inherit;
+              `}
+              aria-label={t('Copy to clipboard')}
+            >
               <Icons.CopyOutlined />
-            </span>
+            </button>
           }
         />
         <Input.TextArea
@@ -135,18 +145,25 @@ const EmbedCodeContent: FC<EmbedCodeContentProps> = ({
         `}
       >
         <div>
-          <Typography.Text type="secondary">
-            {t('Chart height')}
-          </Typography.Text>
+          <label htmlFor="embed-height">
+            <Typography.Text type="secondary">
+              {t('Chart height')}
+            </Typography.Text>
+          </label>
           <Input
             type="number"
             defaultValue={height}
             name="height"
             onChange={handleInputChange}
+            id="embed-height"
           />
         </div>
         <div>
-          <Typography.Text type="secondary">{t('Chart width')}</Typography.Text>
+          <label htmlFor="embed-width">
+            <Typography.Text type="secondary">
+              {t('Chart width')}
+            </Typography.Text>
+          </label>
           <Input
             type="number"
             defaultValue={width}

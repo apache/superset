@@ -47,6 +47,12 @@ const CrossFiltersVerticalCollapse = (props: {
 
   const sectionHeaderStyle = useCallback(
     (theme: SupersetTheme) => css`
+      appearance: none;
+      border: none;
+      background: none;
+      font: inherit;
+      text-align: left;
+      width: 100%;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -119,21 +125,10 @@ const CrossFiltersVerticalCollapse = (props: {
   return (
     <div css={sectionContainerStyle}>
       {!hideHeader && (
-        <div
-          css={sectionHeaderStyle}
-          onClick={toggleSection}
-          onKeyDown={e => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              toggleSection();
-            }
-          }}
-          role="button"
-          tabIndex={0}
-        >
+        <button type="button" css={sectionHeaderStyle} onClick={toggleSection}>
           <h4 css={sectionTitleStyle}>{t('Cross-filters')}</h4>
           <Icons.UpOutlined iconSize="m" css={iconStyle(isOpen, theme)} />
-        </div>
+        </button>
       )}
       {isOpen && <div css={sectionContentStyle}>{crossFiltersIndicators}</div>}
       {isOpen && <div css={dividerStyle} data-test="cross-filters-divider" />}

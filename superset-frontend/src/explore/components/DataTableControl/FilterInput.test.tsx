@@ -19,10 +19,19 @@
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { FilterInput } from '.';
 
-jest.mock('lodash/debounce', () => ({
-  __esModule: true,
-  default: (fuc: Function) => fuc,
-}));
+jest.mock('lodash', () => {
+  const debounce = <T extends (...args: never[]) => unknown>(func: T) => {
+    const debounced = (...args: Parameters<T>) => func(...args);
+    debounced.flush = jest.fn();
+    return debounced;
+  };
+
+  return {
+    __esModule: true,
+    ...jest.requireActual('lodash'),
+    debounce,
+  };
+});
 
 test('Render a FilterInput', async () => {
   const onChangeHandler = jest.fn();
@@ -33,4 +42,54 @@ test('Render a FilterInput', async () => {
   userEvent.type(screen.getByRole('textbox'), 'test');
 
   expect(onChangeHandler).toHaveBeenCalledTimes(4);
+});
+
+test('FilterInput auto-focuses when a non-editable element (e.g. a tab) has focus', () => {
+  const onChangeHandler = jest.fn();
+  const button = document.createElement('button');
+  document.body.appendChild(button);
+  try {
+    button.focus();
+    expect(document.activeElement).toBe(button);
+
+    render(<FilterInput onChangeHandler={onChangeHandler} shouldFocus />);
+    const filterInput = screen.getByPlaceholderText('Search');
+
+    // Auto-focus should fire — a button is not an editable element
+    expect(document.activeElement).toBe(filterInput);
+  } finally {
+    document.body.removeChild(button);
+  }
+});
+
+test('FilterInput preserves value after unmount and remount', () => {
+  const onChangeHandler = jest.fn();
+  const { unmount } = render(
+    <FilterInput onChangeHandler={onChangeHandler} value="abc" />,
+  );
+  expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('abc');
+
+  unmount();
+
+  render(<FilterInput onChangeHandler={onChangeHandler} value="abc" />);
+  expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('abc');
+});
+
+test('FilterInput does not steal focus when another input already has focus', () => {
+  const onChangeHandler = jest.fn();
+  const otherInput = document.createElement('input');
+  document.body.appendChild(otherInput);
+  try {
+    otherInput.focus();
+    expect(document.activeElement).toBe(otherInput);
+
+    render(<FilterInput onChangeHandler={onChangeHandler} shouldFocus />);
+    const filterInput = screen.getByPlaceholderText('Search');
+
+    // FilterInput should not have stolen focus from the already-focused input
+    expect(document.activeElement).not.toBe(filterInput);
+    expect(document.activeElement).toBe(otherInput);
+  } finally {
+    document.body.removeChild(otherInput);
+  }
 });

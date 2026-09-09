@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { arrayMove } from '@dnd-kit/sortable';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -253,14 +254,14 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
 
   const onShiftOptions = useCallback(
     (dragIndex: number, hoverIndex: number) => {
-      const newValues = [...values];
-      [newValues[hoverIndex], newValues[dragIndex]] = [
-        newValues[dragIndex],
-        newValues[hoverIndex],
-      ];
+      // @dnd-kit fires the reorder once at drag-end with the final indices, so
+      // this must be a full arrayMove, not an adjacent swap. Commit through
+      // onChange so the new order persists to form_data.
+      const newValues = arrayMove(values, dragIndex, hoverIndex);
       setValues(newValues);
+      onChange(newValues);
     },
-    [values],
+    [onChange, values],
   );
 
   const getMetricExpression = useCallback(

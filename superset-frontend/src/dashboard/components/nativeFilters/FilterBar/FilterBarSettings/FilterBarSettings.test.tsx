@@ -52,7 +52,7 @@ const initialState: { dashboardInfo: DashboardInfo } = {
     crossFiltersEnabled: true,
     created_on_delta_humanized: '',
     changed_on_delta_humanized: '',
-    owners: [],
+    editors: [],
     last_modified_time: 0,
   },
 };

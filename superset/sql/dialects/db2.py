@@ -25,6 +25,7 @@ This syntax is non-standard and requires custom parser support.
 from __future__ import annotations
 
 from sqlglot import exp, tokens
+from sqlglot.dialects.dialect import rename_func
 from sqlglot.dialects.postgres import Postgres
 
 
@@ -142,6 +143,13 @@ class DB2(Postgres):
             # Custom Expression subclasses defined outside that module — like
             # DB2Interval below — must be wired up explicitly in TRANSFORMS.
             DB2Interval: lambda self, e: self.db2interval_sql(e),
+            # Postgres renders DAY()/MONTH()/YEAR() as EXTRACT(... FROM ...),
+            # but DB2 natively supports (and this dialect's docstring/tests
+            # rely on) the plain function-call form, e.g. DAY("DATE").
+            # Override the inherited Postgres transform to keep that syntax.
+            exp.Day: rename_func("DAY"),
+            exp.Month: rename_func("MONTH"),
+            exp.Year: rename_func("YEAR"),
         }
 
         def db2interval_sql(self, expression: DB2Interval) -> str:

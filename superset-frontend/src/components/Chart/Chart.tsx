@@ -31,7 +31,7 @@ import {
   type JsonObject,
   type AgGridChartState,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
 import type { ChartState, Datasource, ChartStatus } from 'src/explore/types';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import { EmptyState, Loading } from '@superset-ui/core/components';
@@ -40,6 +40,7 @@ import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { isCurrentUserBot } from 'src/utils/isBot';
+import type { AsyncModeOverride } from 'src/utils/asyncMode';
 import { ChartSource } from 'src/types/ChartSource';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { Dispatch } from 'redux';
@@ -92,6 +93,8 @@ export interface ChartProps {
   /** Whether to suppress the loading spinner (during auto-refresh) */
   suppressLoadingSpinner?: boolean;
   filterState?: FilterState;
+  /** Per-dashboard `async_mode` override, threaded to self-contained charts. */
+  asyncModeOverride?: AsyncModeOverride;
 }
 
 export type Actions = {
@@ -211,6 +214,7 @@ function Chart({
     onChartStateChange,
     suppressLoadingSpinner,
     filterState,
+    asyncModeOverride,
   } = restProps;
 
   const renderStartTimeRef = useRef<number>(Logger.getTimestamp());
@@ -383,6 +387,7 @@ function Chart({
             filterState={filterState}
             suppressLoadingSpinner={suppressLoadingSpinner}
             source={dashboardId ? ChartSource.Dashboard : ChartSource.Explore}
+            asyncModeOverride={asyncModeOverride}
           />
         ) : (
           <Loading size={dashboardId ? 's' : 'm'} muted={!!dashboardId} />
@@ -393,6 +398,7 @@ function Chart({
       actions,
       addFilter,
       annotationData,
+      asyncModeOverride,
       chartAlert,
       chartId,
       chartIsStale,
@@ -439,6 +445,37 @@ function Chart({
     );
   }
 
+  if (chartStatus === 'stopped') {
+    return (
+      <EmptyState
+        size="large"
+        title={chartAlert || t('Updating chart was stopped')}
+        description={
+          <span>
+            {t('Run a new query using the "Update chart" button or')}{' '}
+            <button
+              type="button"
+              onClick={onQuery}
+              css={css`
+                appearance: none;
+                border: none;
+                background: none;
+                padding: 0;
+                font: inherit;
+                cursor: pointer;
+                text-decoration: underline;
+              `}
+            >
+              {t('click here')}
+            </button>
+            .
+          </span>
+        }
+        image="chart.svg"
+      />
+    );
+  }
+
   if (errorMessage && ensureIsArray(queriesResponse).length === 0) {
     return (
       <EmptyState
@@ -465,9 +502,21 @@ function Chart({
             {t(
               'Click on "Create chart" button in the control panel on the left to preview a visualization or',
             )}{' '}
-            <span role="button" tabIndex={0} onClick={onQuery}>
+            <button
+              type="button"
+              onClick={onQuery}
+              css={css`
+                appearance: none;
+                border: none;
+                background: none;
+                padding: 0;
+                font: inherit;
+                cursor: pointer;
+                text-decoration: underline;
+              `}
+            >
               {t('click here')}
-            </span>
+            </button>
             .
           </span>
         }

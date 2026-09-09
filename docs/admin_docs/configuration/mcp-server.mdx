@@ -55,11 +55,11 @@ The MCP server runs as a separate process alongside Superset:
 superset mcp run --host 127.0.0.1 --port 5008
 ```
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--host` | `127.0.0.1` | Host to bind to |
-| `--port` | `5008` | Port to bind to |
-| `--debug` | off | Enable debug logging |
+| Flag      | Default     | Description          |
+| --------- | ----------- | -------------------- |
+| `--host`  | `127.0.0.1` | Host to bind to      |
+| `--port`  | `5008`      | Port to bind to      |
+| `--debug` | off         | Enable debug logging |
 
 The endpoint is available at `http://<host>:<port>/mcp`.
 
@@ -99,7 +99,7 @@ See [Connecting AI Clients](#connecting-ai-clients) for Claude Code, Claude Web,
 ## Prerequisites
 
 - Apache Superset 5.0+ running and accessible
-- Python 3.10+
+- Python 3.11+
 - The `fastmcp` package (`pip install fastmcp`)
 
 ---
@@ -193,22 +193,24 @@ MCP_JWT_AUDIENCE = "your-audience"
 
 :::warning
 Store `MCP_JWT_SECRET` securely. Never commit it to version control. Use environment variables:
+
 ```python
 import os
 MCP_JWT_SECRET = os.environ.get("MCP_JWT_SECRET")
 ```
+
 :::
 
 #### JWT claims
 
 The MCP server validates these standard claims:
 
-| Claim | Config Key | Description |
-|-------|-----------|-------------|
-| `exp` | -- | Expiration time (always validated) |
-| `iss` | `MCP_JWT_ISSUER` | Token issuer (optional but recommended) |
-| `aud` | `MCP_JWT_AUDIENCE` | Token audience (optional but recommended) |
-| `sub` | -- | Subject -- primary claim used to resolve the Superset user |
+| Claim | Config Key         | Description                                                |
+| ----- | ------------------ | ---------------------------------------------------------- |
+| `exp` | --                 | Expiration time (always validated)                         |
+| `iss` | `MCP_JWT_ISSUER`   | Token issuer (optional but recommended)                    |
+| `aud` | `MCP_JWT_AUDIENCE` | Token audience (optional but recommended)                  |
+| `sub` | --                 | Subject -- primary claim used to resolve the Superset user |
 
 #### User resolution
 
@@ -250,6 +252,58 @@ def my_custom_auth_factory(app):
 
 MCP_AUTH_FACTORY = my_custom_auth_factory
 ```
+
+### Embedded Guest Authentication
+
+Superset's [embedded dashboards](/user-docs/using-superset/embedding) feature mints short-lived **guest tokens** for anonymous/embedded viewers. The MCP server can accept these same guest tokens, so an embedded guest (e.g. an in-app chatbot next to an embedded dashboard) can call MCP tools scoped to the dashboards/resources named in its token.
+
+This is opt-in and reuses the existing core guest-token configuration -- there is no MCP-specific guest secret or audience.
+
+```python
+# superset_config.py
+FEATURE_FLAGS = {"EMBEDDED_SUPERSET": True}   # required -- guest tokens only exist when this is on
+MCP_EMBEDDED_GUEST_AUTH_ENABLED = True        # opt-in for the MCP transport (default False)
+```
+
+Present the guest token the same way as any other bearer token:
+
+```bash
+curl -X POST http://localhost:5008/mcp \
+  -H 'Content-Type: application/json' \
+  -H 'Authorization: Bearer YOUR_GUEST_TOKEN' \
+  -d '{"jsonrpc": "2.0", "method": "tools/list", "id": 1}'
+```
+
+**How it works**
+
+- A dedicated guest-token verifier validates the token against the same `GUEST_TOKEN_JWT_SECRET` / `GUEST_TOKEN_JWT_ALGO` / `GUEST_TOKEN_JWT_AUDIENCE` config used by embedded dashboards, replays the embedded structural checks, and enforces revocation (global version bumps and per-dashboard `guest_token_revoked_before` cutoffs). It runs *before* the JWT verifier described above, since guest tokens are signed with a different key/algorithm and would otherwise be rejected at the transport.
+- A verified guest resolves to a Superset guest user as the highest-priority identity, so it's never downgraded to API-key / `MCP_DEV_USERNAME` / dev-mode resolution. Data access is scoped by the same checks (dataset allowlist, dashboard access, row-level security) that apply to embedded dashboard views.
+- Guests are restricted to a default-deny allow-list, `MCP_GUEST_ALLOWED_TOOLS`, regardless of `MCP_RBAC_ENABLED`. Sensitive enumeration tools like `find_users` and `get_instance_info` are denied simply by being absent from the default list.
+- Setting `MCP_AUTH_FACTORY` bypasses this whole path: a configured factory is tried first, and the default factory that wires up the guest-token verifier is never reached. If you rely on a custom auth factory (e.g. your own OIDC provider) alongside guest auth, that factory must verify guest tokens itself -- otherwise they're rejected regardless of `MCP_EMBEDDED_GUEST_AUTH_ENABLED`.
+
+```python
+# superset_config.py
+MCP_GUEST_ALLOWED_TOOLS = {
+    "get_dashboard_info",
+    "get_dashboard_layout",
+    "list_dashboards",
+    "list_charts",
+    "get_chart_info",
+    "get_chart_data",
+    "get_chart_preview",
+}  # default
+```
+
+**Deployment requirements**
+
+- The MCP server and the service that mints guest tokens (the Superset web app) must share `GUEST_TOKEN_JWT_SECRET` and `GUEST_TOKEN_JWT_AUDIENCE`. Set `GUEST_TOKEN_JWT_AUDIENCE` explicitly -- if it's unset, audience validation falls back to the URL host, which can differ between the two services and cause every guest token to fail validation.
+- The `GUEST_ROLE_NAME` role (default `Public`) must exist -- a guest token is rejected if it does not.
+- Don't set `MCP_DEV_USERNAME` on a deployment that also serves embedded guests.
+- Restart the MCP process after toggling `EMBEDDED_SUPERSET` or `MCP_EMBEDDED_GUEST_AUTH_ENABLED` -- guest auth is wired up once at startup.
+
+:::warning
+`GUEST_TOKEN_JWT_SECRET` guards both the web embedding and MCP guest-auth surfaces. With `MCP_EMBEDDED_GUEST_AUTH_ENABLED` on, leaving it at its insecure default isn't just a forgery risk -- the MCP server refuses to start (`MCPAuthConfigError`) until you set a real secret shared with the guest-token minting service.
+:::
 
 ---
 
@@ -435,7 +489,7 @@ services:
   superset:
     image: apache/superset:latest
     ports:
-      - "8088:8088"
+      - '8088:8088'
     volumes:
       - ./superset_config.py:/app/superset_config.py
     environment:
@@ -443,9 +497,9 @@ services:
 
   mcp:
     image: apache/superset:latest
-    command: ["superset", "mcp", "run", "--host", "0.0.0.0", "--port", "5008"]
+    command: ['superset', 'mcp', 'run', '--host', '0.0.0.0', '--port', '5008']
     ports:
-      - "5008:5008"
+      - '5008:5008'
     volumes:
       - ./superset_config.py:/app/superset_config.py
     environment:
@@ -486,6 +540,8 @@ MCP_STORE_CONFIG = {
 
 When `CACHE_REDIS_URL` is set, the MCP server uses a Redis-backed EventStore for session management, allowing replicas to share state. Without Redis, each pod manages its own in-memory sessions and stateful MCP interactions may fail when requests hit different replicas.
 
+`MCP_STATELESS_HTTP` (default `True`) controls whether requests get a fresh, ephemeral transport per HTTP round trip or a transport that stays alive for the session's lifetime. The default suits multi-pod deployments because it doesn't require session affinity -- any pod can handle any request. Its tradeoff: a client disconnecting mid-tool-call can crash not just its own session but other concurrent sessions on the same worker. Setting it to `False` avoids that, but it requires session-affinity (sticky session) routing on `Mcp-Session-Id` at the mesh/ingress layer, since a session's follow-up requests must land on the same pod that created it. See [`MCP_STATELESS_HTTP`](#core) below.
+
 ---
 
 ## Configuration Reference
@@ -494,31 +550,36 @@ All MCP settings go in `superset_config.py`. Defaults are defined in `superset/m
 
 ### Core
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `MCP_SERVICE_HOST` | `"localhost"` | Host the MCP server binds to |
-| `MCP_SERVICE_PORT` | `5008` | Port the MCP server binds to |
-| `MCP_SERVICE_URL` | `None` | Public base URL for MCP-generated links (set this when behind a reverse proxy) |
-| `MCP_DEBUG` | `False` | Enable debug logging |
-| `MCP_DEV_USERNAME` | -- | Superset username for development mode (no auth) |
-| `MCP_RBAC_ENABLED` | `True` | Enforce Superset's role-based access control on MCP tool calls. When `True`, each tool checks that the authenticated user has the required FAB permission before executing. Disable only for testing or trusted-network deployments. |
-| `MCP_DISABLED_TOOLS` | `set()` | Set of tool names to remove from the MCP server at startup. Disabled tools are never advertised to AI clients during tool discovery. Useful when a custom extension tool should replace a built-in Superset tool. See [Disabling built-in tools](#disabling-built-in-tools). |
+| Setting              | Default       | Description                                                                                                                                                                                                                                                                  |
+| -------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MCP_SERVICE_HOST`   | `"localhost"` | Host the MCP server binds to                                                                                                                                                                                                                                                 |
+| `MCP_SERVICE_PORT`   | `5008`        | Port the MCP server binds to                                                                                                                                                                                                                                                 |
+| `MCP_SERVICE_URL`    | `None`        | Public base URL for MCP-generated links (set this when behind a reverse proxy)                                                                                                                                                                                               |
+| `MCP_DEBUG`          | `False`       | Enable debug logging                                                                                                                                                                                                                                                         |
+| `MCP_DEV_USERNAME`   | --            | Superset username for development mode (no auth)                                                                                                                                                                                                                             |
+| `MCP_STATELESS_HTTP` | `True`        | Streamable-HTTP session mode. `True` gives each request a fresh, ephemeral transport, torn down as soon as that request completes; a client disconnecting mid-tool-call can crash not just its own session but other concurrent sessions on the same worker. `False` keeps the transport alive for the session's lifetime, avoiding that crash, but requires session-affinity routing on `Mcp-Session-Id` for multi-pod deployments (see [Multi-Pod (Kubernetes)](#multi-pod-kubernetes)). |
+| `MCP_RBAC_ENABLED`   | `True`        | Enforce Superset's role-based access control on MCP tool calls. When `True`, each tool checks that the authenticated user has the required FAB permission before executing. Disable only for testing or trusted-network deployments.                                         |
+| `MCP_DISABLED_TOOLS` | `set()`       | Set of tool names to remove from the MCP server at startup. Disabled tools are never advertised to AI clients during tool discovery. Useful when a custom extension tool should replace a built-in Superset tool. See [Disabling built-in tools](#disabling-built-in-tools). |
+| `MCP_DISABLED_CHART_PLUGINS` | `frozenset()` | Set of chart type plugin names (e.g. `"handlebars"`) to hide from `generate_chart`. Does not affect `get_chart_type_schema`. See [Disabling chart type plugins](#disabling-chart-type-plugins). |
+| `MCP_CHART_PLUGIN_ENABLED_FUNC` | `None`        | Callable `(chart_type: str) -> bool` evaluated per registry lookup for dynamic enable/disable decisions. Takes precedence over `MCP_DISABLED_CHART_PLUGINS` when set. See [Disabling chart type plugins](#disabling-chart-type-plugins). |
 
 ### Authentication
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `MCP_AUTH_ENABLED` | `False` | Enable JWT authentication |
-| `MCP_JWT_ALGORITHM` | `"RS256"` | JWT signing algorithm (`RS256` or `HS256`) |
-| `MCP_JWKS_URI` | `None` | JWKS endpoint URL (RS256) |
-| `MCP_JWT_PUBLIC_KEY` | `None` | Static RSA public key string (RS256) |
-| `MCP_JWT_SECRET` | `None` | Shared secret string (HS256) |
-| `MCP_JWT_ISSUER` | `None` | Expected `iss` claim |
-| `MCP_JWT_AUDIENCE` | `None` | Expected `aud` claim |
-| `MCP_REQUIRED_SCOPES` | `[]` | Required JWT scopes |
-| `MCP_JWT_DEBUG_ERRORS` | `False` | Log detailed JWT errors server-side (never exposed in HTTP responses per RFC 6750) |
-| `MCP_AUTH_FACTORY` | `None` | Custom auth provider factory `(flask_app) -> auth_provider`. Takes precedence over built-in JWT |
-| `MCP_USER_RESOLVER` | `None` | Custom function `(app, access_token) -> username` to extract a Superset username from a validated JWT token. When `None`, the default resolver checks `preferred_username`, `username`, `email`, and `sub` claims in that order. |
+| Setting                | Default   | Description                                                                                                                                                                                                                      |
+| ---------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `MCP_AUTH_ENABLED`     | `False`   | Enable JWT authentication                                                                                                                                                                                                        |
+| `MCP_JWT_ALGORITHM`    | `"RS256"` | JWT signing algorithm (`RS256` or `HS256`)                                                                                                                                                                                       |
+| `MCP_JWKS_URI`         | `None`    | JWKS endpoint URL (RS256)                                                                                                                                                                                                        |
+| `MCP_JWT_PUBLIC_KEY`   | `None`    | Static RSA public key string (RS256)                                                                                                                                                                                             |
+| `MCP_JWT_SECRET`       | `None`    | Shared secret string (HS256)                                                                                                                                                                                                     |
+| `MCP_JWT_ISSUER`       | `None`    | Expected `iss` claim                                                                                                                                                                                                             |
+| `MCP_JWT_AUDIENCE`     | `None`    | Expected `aud` claim                                                                                                                                                                                                             |
+| `MCP_REQUIRED_SCOPES`  | `[]`      | Required JWT scopes                                                                                                                                                                                                              |
+| `MCP_JWT_DEBUG_ERRORS` | `False`   | Log detailed JWT errors server-side (never exposed in HTTP responses per RFC 6750)                                                                                                                                               |
+| `MCP_AUTH_FACTORY`     | `None`    | Custom auth provider factory `(flask_app) -> auth_provider`. Takes precedence over built-in JWT                                                                                                                                  |
+| `MCP_USER_RESOLVER`    | `None`    | Custom function `(app, access_token) -> username` to extract a Superset username from a validated JWT token. When `None`, the default resolver checks `preferred_username`, `username`, `email`, and `sub` claims in that order. |
+| `MCP_EMBEDDED_GUEST_AUTH_ENABLED` | `False` | Accept embedded [guest tokens](#embedded-guest-authentication) as Bearer auth. Also requires the `EMBEDDED_SUPERSET` feature flag. |
+| `MCP_GUEST_ALLOWED_TOOLS` | see [default list](#embedded-guest-authentication) | The only tool names callable by embedded guests (default-deny), regardless of `MCP_RBAC_ENABLED`. |
 
 ### Response Size Guard
 
@@ -529,6 +590,7 @@ MCP_RESPONSE_SIZE_CONFIG = {
     "enabled": True,
     "token_limit": 25000,
     "warn_threshold_pct": 80,
+    "max_list_items": 100,
     "excluded_tools": [
         "health_check",
         "get_chart_preview",
@@ -538,12 +600,13 @@ MCP_RESPONSE_SIZE_CONFIG = {
 }
 ```
 
-| Key | Default | Description |
-|-----|---------|-------------|
-| `enabled` | `True` | Enable response size checking |
-| `token_limit` | `25000` | Maximum estimated token count per response |
-| `warn_threshold_pct` | `80` | Warn when response exceeds this percentage of the limit |
-| `excluded_tools` | See above | Tools exempt from size checking (e.g., tools that return URLs, not data) |
+| Key                  | Default   | Description                                                                                                                                                                                                                                                                                                                                                                                                            |
+| -------------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `enabled`            | `True`    | Enable response size checking                                                                                                                                                                                                                                                                                                                                                                                          |
+| `token_limit`        | `25000`   | Maximum estimated token count per response                                                                                                                                                                                                                                                                                                                                                                             |
+| `warn_threshold_pct` | `80`      | Warn when response exceeds this percentage of the limit                                                                                                                                                                                                                                                                                                                                                                |
+| `max_list_items`     | `100`     | Cap on list-field length (e.g. `charts`, `native_filters`) applied to the `get_*_info` tools before falling back to more aggressive truncation. Raised from a hardcoded 30 in earlier versions; the higher default only keeps more data before the same token-budget fallback kicks in, so it's not a breaking change, but tenants that tuned workflows around the old 30-item cap should lower this value explicitly. |
+| `excluded_tools`     | See above | Tools exempt from size checking (e.g., tools that return URLs, not data)                                                                                                                                                                                                                                                                                                                                               |
 
 ### Caching
 
@@ -569,18 +632,18 @@ MCP_CACHE_CONFIG = {
 }
 ```
 
-| Key | Default | Description |
-|-----|---------|-------------|
-| `enabled` | `False` | Enable response caching |
-| `CACHE_KEY_PREFIX` | `None` | Optional prefix for cache keys (useful for shared Redis) |
-| `list_tools_ttl` | `300` | Cache TTL in seconds for `tools/list` |
-| `list_resources_ttl` | `300` | Cache TTL for `resources/list` |
-| `list_prompts_ttl` | `300` | Cache TTL for `prompts/list` |
-| `read_resource_ttl` | `3600` | Cache TTL for `resources/read` |
-| `get_prompt_ttl` | `3600` | Cache TTL for `prompts/get` |
-| `call_tool_ttl` | `3600` | Cache TTL for `tools/call` |
-| `max_item_size` | `1048576` | Maximum cached item size in bytes (1 MB) |
-| `excluded_tools` | See above | Tools that are never cached (mutating or non-deterministic) |
+| Key                  | Default   | Description                                                 |
+| -------------------- | --------- | ----------------------------------------------------------- |
+| `enabled`            | `False`   | Enable response caching                                     |
+| `CACHE_KEY_PREFIX`   | `None`    | Base prefix for shared Redis; Superset appends an internal response-contract namespace |
+| `list_tools_ttl`     | `300`     | Cache TTL in seconds for `tools/list`                       |
+| `list_resources_ttl` | `300`     | Cache TTL for `resources/list`                              |
+| `list_prompts_ttl`   | `300`     | Cache TTL for `prompts/list`                                |
+| `read_resource_ttl`  | `3600`    | Cache TTL for `resources/read`                              |
+| `get_prompt_ttl`     | `3600`    | Cache TTL for `prompts/get`                                 |
+| `call_tool_ttl`      | `3600`    | Cache TTL for `tools/call`                                  |
+| `max_item_size`      | `1048576` | Maximum cached item size in bytes (1 MB)                    |
+| `excluded_tools`     | See above | Tools that are never cached (mutating or non-deterministic) |
 
 ### Redis Store (Multi-Pod)
 
@@ -595,12 +658,12 @@ MCP_STORE_CONFIG = {
 }
 ```
 
-| Key | Default | Description |
-|-----|---------|-------------|
-| `enabled` | `False` | Enable Redis-backed store |
-| `CACHE_REDIS_URL` | `None` | Redis connection URL (e.g., `redis://redis-host:6379/0`) |
-| `event_store_max_events` | `100` | Maximum events retained per session |
-| `event_store_ttl` | `3600` | Event TTL in seconds |
+| Key                      | Default | Description                                              |
+| ------------------------ | ------- | -------------------------------------------------------- |
+| `enabled`                | `False` | Enable Redis-backed store                                |
+| `CACHE_REDIS_URL`        | `None`  | Redis connection URL (e.g., `redis://redis-host:6379/0`) |
+| `event_store_max_events` | `100`   | Maximum events retained per session                      |
+| `event_store_ttl`        | `3600`  | Event TTL in seconds                                     |
 
 ### Tool Search
 
@@ -623,15 +686,15 @@ MCP_TOOL_SEARCH_CONFIG = {
 }
 ```
 
-| Key | Default | Description |
-|-----|---------|-------------|
-| `enabled` | `True` | Enable tool search. When `False`, all tools are listed upfront |
-| `strategy` | `"bm25"` | Search ranking algorithm. `"bm25"` supports natural language; `"regex"` supports pattern matching |
-| `max_results` | `5` | Maximum tools returned per search query |
-| `always_visible` | See above | Tools that always appear in `list_tools`, regardless of search |
-| `include_schemas` | `False` | When `False` (default, "summary mode"), search results omit `inputSchema` entirely and include a lightweight `parameters_hint` listing top-level parameter names. Set to `True` to include the full `inputSchema` in search results. Full schemas are always used when a tool is actually invoked via `call_tool`. |
-| `compact_schemas` | `True` | Strip `$defs` / `$ref` and replace with `{"type": "object"}` in search results to reduce token cost. Only takes effect when `include_schemas=True` — ignored in summary mode. |
-| `max_description_length` | `300` | Truncate tool descriptions in search results (0 = no truncation). Applies in both summary and full-schema modes. |
+| Key                      | Default   | Description                                                                                                                                                                                                                                                                                                        |
+| ------------------------ | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `enabled`                | `True`    | Enable tool search. When `False`, all tools are listed upfront                                                                                                                                                                                                                                                     |
+| `strategy`               | `"bm25"`  | Search ranking algorithm. `"bm25"` supports natural language; `"regex"` supports pattern matching                                                                                                                                                                                                                  |
+| `max_results`            | `5`       | Maximum tools returned per search query                                                                                                                                                                                                                                                                            |
+| `always_visible`         | See above | Tools that always appear in `list_tools`, regardless of search                                                                                                                                                                                                                                                     |
+| `include_schemas`        | `False`   | When `False` (default, "summary mode"), search results omit `inputSchema` entirely and include a lightweight `parameters_hint` listing top-level parameter names. Set to `True` to include the full `inputSchema` in search results. Full schemas are always used when a tool is actually invoked via `call_tool`. |
+| `compact_schemas`        | `True`    | Strip `$defs` / `$ref` and replace with `{"type": "object"}` in search results to reduce token cost. Only takes effect when `include_schemas=True` — ignored in summary mode.                                                                                                                                      |
+| `max_description_length` | `300`     | Truncate tool descriptions in search results (0 = no truncation). Applies in both summary and full-schema modes.                                                                                                                                                                                                   |
 
 :::tip
 Set `enabled: False` to revert to the traditional "show all tools at once" behavior, which some clients or workflows may prefer.
@@ -668,16 +731,16 @@ The MCP server respects Superset's full role-based access control (RBAC). Every 
 
 Each tool declares one or more required FAB permissions. The table below maps tool groups to their permission requirements:
 
-| Tool group | Required FAB permission |
-|------------|------------------------|
-| `list_charts`, `get_chart_info`, `get_chart_data`, `get_chart_preview`, `generate_chart`, `update_chart` | `can_read` on `Chart` (read), `can_write` on `Chart` (mutate) |
-| `list_dashboards`, `get_dashboard_info`, `generate_dashboard`, `add_chart_to_existing_dashboard` | `can_read` on `Dashboard` (read), `can_write` on `Dashboard` (mutate) |
-| `list_datasets`, `get_dataset_info`, `create_virtual_dataset` | `can_read` on `Dataset` (read), `can_write` on `Dataset` (mutate) |
-| `list_databases`, `get_database_info` | `can_read` on `Database` |
-| `execute_sql` | `can_execute_sql_query` on `SQLLab` |
-| `open_sql_lab_with_context` | `can_read` on `SQLLab` |
-| `save_sql_query` | `can_write` on `SavedQuery` |
-| `health_check` | None (public) |
+| Tool group                                                                                               | Required FAB permission                                               |
+| -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `list_charts`, `get_chart_info`, `get_chart_data`, `get_chart_preview`, `generate_chart`, `update_chart` | `can_read` on `Chart` (read), `can_write` on `Chart` (mutate)         |
+| `list_dashboards`, `get_dashboard_info`, `generate_dashboard`, `add_chart_to_existing_dashboard`         | `can_read` on `Dashboard` (read), `can_write` on `Dashboard` (mutate) |
+| `list_datasets`, `get_dataset_info`, `create_virtual_dataset`                                            | `can_read` on `Dataset` (read), `can_write` on `Dataset` (mutate)     |
+| `list_databases`, `get_database_info`                                                                    | `can_read` on `Database`                                              |
+| `execute_sql`                                                                                            | `can_execute_sql_query` on `SQLLab`                                   |
+| `open_sql_lab_with_context`                                                                              | `can_read` on `SQLLab`                                                |
+| `save_sql_query`                                                                                         | `can_write` on `SavedQuery`                                           |
+| `health_check`                                                                                           | None (public)                                                         |
 
 To disable RBAC checking globally (for trusted-network deployments or testing), set:
 
@@ -704,15 +767,43 @@ This makes MCP activity fully auditable alongside regular Superset activity. The
 
 Every MCP request passes through a middleware stack before reaching the tool function. The default stack (assembled in `build_middleware_list()` in `server.py`) is:
 
-| Middleware | Purpose | Default |
-|------------|---------|---------|
-| `StructuredContentStripperMiddleware` | Strips `structuredContent` from responses for Claude.ai bridge compatibility | Enabled |
-| `LoggingMiddleware` | Logs each tool call with user, parameters, and duration | Enabled |
-| `GlobalErrorHandlerMiddleware` | Catches unhandled exceptions and sanitizes sensitive data before it reaches the client | Enabled |
-| `ResponseSizeGuardMiddleware` | Estimates token count, warns at 80% of limit, blocks at limit | Enabled (configurable via `MCP_RESPONSE_SIZE_CONFIG`) |
-| `ResponseCachingMiddleware` | Caches read-heavy tool responses (in-memory or Redis) | Disabled (enable via `MCP_CACHE_CONFIG`) |
+| Middleware                            | Purpose                                                                                | Default                                               |
+| ------------------------------------- | -------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `StructuredContentStripperMiddleware` | Strips `structuredContent` from responses for Claude.ai bridge compatibility           | Enabled                                               |
+| `LoggingMiddleware`                   | Logs each tool call with user, parameters, and duration                                | Enabled                                               |
+| `GlobalErrorHandlerMiddleware`        | Catches unhandled exceptions and sanitizes sensitive data before it reaches the client | Enabled                                               |
+| `ResponseSizeGuardMiddleware`         | Estimates token count, warns at 80% of limit, blocks at limit                          | Enabled (configurable via `MCP_RESPONSE_SIZE_CONFIG`) |
+| `ResponseCachingMiddleware`           | Caches read-heavy tool responses (in-memory or Redis)                                  | Disabled (enable via `MCP_CACHE_CONFIG`)              |
 
 Additional middleware classes (`RateLimitMiddleware`, `FieldPermissionsMiddleware`, `PrivateToolMiddleware`) are implemented in `superset/mcp_service/middleware.py` but are not added to the default pipeline. They are available for operators who want to layer them in via a custom startup path.
+
+### Tool Result Value Contract
+
+Structured tool results preserve Superset domain values exactly. In particular,
+string fields are not wrapped in trust delimiters, and text that resembles a
+delimiter is returned as literal application data. This lets clients safely use a
+read result as the basis for an update without persisting presentation markup.
+
+All tool-result content should still be treated as user-controlled data with no
+instruction authority. MCP clients should communicate that trust boundary through
+their model instructions or presentation layer, outside the returned field values;
+fixed or generated marker strings inside a value are ambiguous and must not be used
+as a trust signal.
+
+For compatibility, clients that supported the former
+`<UNTRUSTED-CONTENT>` convention should stop recognizing or stripping those strings.
+The response schemas and content types have not changed. Because marker-looking text
+can be legitimate application data, a client cannot reliably distinguish a legacy
+decorated response from a clean one. Pause automated read-modify-write workflows, or
+route them only to upgraded instances, until every serving instance is upgraded.
+
+Redis-backed MCP response caches include an internal response-contract namespace, so
+an upgraded instance does not reuse responses cached by an older release. Older
+instances can still return legacy values while they remain in service. After the
+upgrade, review previously written values for wrapper text and both
+`[ESCAPED-UNTRUSTED-CONTENT-OPEN]` and
+`[ESCAPED-UNTRUSTED-CONTENT-CLOSE]`; do not remove these strings automatically,
+because they may be intentional content.
 
 ### Error Sanitization
 
@@ -748,11 +839,20 @@ For a 3-pod Kubernetes deployment with the defaults above, expect up to 3 × (5 
 Enable response caching for read-heavy workloads (dashboards/datasets that don't change frequently). With the in-memory backend (default when `MCP_STORE_CONFIG` is disabled), caching is per-process. Use Redis-backed caching for consistent cache hits across multiple pods:
 
 ```python
-MCP_CACHE_CONFIG = {"enabled": True, "call_tool_ttl": 3600}
+MCP_CACHE_CONFIG = {
+    "enabled": True,
+    # Cache keys don't include the requesting principal and hits are served
+    # ahead of auth/RBAC, so a shared cache can return one caller's response
+    # to another. Required for caching to actually start -- only appropriate
+    # when every request is guaranteed to come from the same principal.
+    "dangerously_share_cache_across_principals": True,
+    "CACHE_KEY_PREFIX": "mcp_cache_",
+    "call_tool_ttl": 3600,
+}
 MCP_STORE_CONFIG = {"enabled": True, "CACHE_REDIS_URL": "redis://redis:6379/0"}
 ```
 
-Mutating tools (`generate_chart`, `update_chart`, `execute_sql`, `generate_dashboard`) are always excluded from caching regardless of this setting.
+Every tool with a side effect (create/update/delete/execute) is always excluded from caching regardless of this setting -- see the `excluded_tools` default in `superset/mcp_service/mcp_config.py` for the current list.
 
 ---
 
@@ -851,6 +951,43 @@ MCP_DISABLED_TOOLS = {"extensions.myorg.myextension.some_tool"}
 :::note
 Specifying a tool name that does not exist logs a warning at startup and is otherwise ignored — it will not prevent the server from starting.
 :::
+
+## Disabling chart type plugins
+
+The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `gauge`, `pivot_table`, `interactive_pivot`, `mixed_timeseries`, `handlebars`, `big_number`, `histogram`, `box_plot`, `waterfall`) to a registered chart type plugin. Gauge requests use the public MCP discriminator `chart_type: "gauge"`; Superset stores the corresponding native Explore visualization as `viz_type: "gauge_chart"`. Two settings let operators enable or disable individual chart type plugins at runtime, without a code deploy.
+
+Gauge data inspection and JSON/CSV/XLSX exports preserve source groups, including NULL and non-finite metric values, using the same row-count and completeness semantics as other chart types. The default XLSX exporter writes non-finite floats as `nan`, `inf`, or `-inf` text, matching CSV and distinguishing them from blank NULL cells. Only previews and compile checks skip NULL, NaN, non-finite, and other nonnumeric dial values while preserving finite groups. In preview/compile paths, a nonempty result containing no finite dial returns an error; genuinely empty results retain the no-data behavior. Compile checks inspect the configured dial limit (at most 10), rather than only two groups. Grouped Vega previews center each needle within its own facet and extend it to the midpoint of the dial band. Automatic all-zero ranges span 0–1. Empty or whitespace-only temporal ranges, like `No filter`, are neutral sentinels; missing or non-string native temporal comparators are invalid.
+
+Gauge previews retain data-derived automatic bounds even when configured interval thresholds extend beyond the visible range; Vega previews clip those thresholds into adjacent, non-overlapping bands. Explicit min/max bounds still constrain intervals. All-zero data with both bounds omitted uses a nondegenerate preview range of 0–1. On same-dataset Gauge updates, clearing or changing the dashboard temporal binding preserves user-authored temporal ranges; dataset rebinds discard old query roles and filters. The native `"No filter"` sentinel is a neutral dashboard temporal binding, not a conflicting restriction. Duplicate generated neutral bindings self-heal on updates without removing user-authored ranges. Restating the existing dataset ID without a config is allowed; changing the Gauge dataset still requires a complete config. Native restrictive temporal filters that conflict with the top-level range or another restrictive temporal filter are rejected rather than silently dropped. Unsupported native filter operators are rejected with an indexed error. Native `TEMPORAL_RANGE` adhoc filters require an explicit string comparator; `"No filter"`, empty strings, and whitespace represent an unrestricted range.
+
+### Static deny-list
+
+Set `MCP_DISABLED_CHART_PLUGINS` in your `superset_config.py` to a set of chart type names:
+
+```python
+# superset_config.py
+
+# Emergency kill switch: hide "handlebars" from all callers
+MCP_DISABLED_CHART_PLUGINS = {"handlebars"}
+```
+
+Disabled chart types stay registered but are filtered out at lookup time: they're never listed in `generate_chart`'s supported chart types, and `generate_chart` calls for them are rejected. `get_chart_type_schema` consults its own static schema/example map rather than the registry filter, so a disabled chart type's schema remains queryable through that tool even though `generate_chart` will reject it.
+
+### Dynamic predicate
+
+For per-request control (A/B tests, gradual rollout, entitlement checks), set `MCP_CHART_PLUGIN_ENABLED_FUNC` to a callable. It's evaluated as `enabled_func(chart_type: str) -> bool` on every registry lookup, and it takes precedence over `MCP_DISABLED_CHART_PLUGINS` when set:
+
+```python
+# superset_config.py
+from flask import g
+
+
+def MCP_CHART_PLUGIN_ENABLED_FUNC(chart_type: str) -> bool:
+    flags = getattr(g, "feature_flags", {})
+    return flags.get(f"mcp_chart_{chart_type}", True)
+```
+
+The callable must be cheap and in-process (consult already-loaded feature flags or request-local context) -- do not perform network I/O per call. If it raises, the registry fails closed (the plugin is hidden) and logs a warning.
 
 ## Security Best Practices
 

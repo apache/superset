@@ -45,6 +45,7 @@ export const IconTooltip = forwardRef<HTMLElement, IconTooltipProps>(
         }}
         buttonStyle="link"
         className={`IconTooltip ${className}`}
+        aria-label={tooltip ?? undefined}
       >
         {children}
       </Button>

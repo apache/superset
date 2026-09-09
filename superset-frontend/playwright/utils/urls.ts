@@ -35,5 +35,5 @@ export const URL = {
   LOGIN: 'login/',
   SAVED_QUERIES_LIST: 'savedqueryview/list/',
   SQLLAB: 'sqllab',
-  WELCOME: 'superset/welcome/',
+  WELCOME: 'welcome/',
 } as const;

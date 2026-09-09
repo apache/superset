@@ -18,28 +18,43 @@
 from __future__ import annotations
 
 import logging
+import uuid
 from datetime import datetime, timedelta, timezone
-from functools import partial
 from typing import Any
 
 import redis
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from superset.commands.distributed_lock.base import (
     BaseDistributedLockCommand,
     get_default_lock_ttl,
-    get_redis_client,
 )
+from superset.coordination.base import CoordinationService
 from superset.daos.key_value import KeyValueDAO
-from superset.exceptions import AcquireDistributedLockFailedException
+from superset.exceptions import (
+    AcquireDistributedLockFailedException,
+    LockAlreadyHeldException,
+)
 from superset.key_value.exceptions import (
     KeyValueCodecEncodeException,
     KeyValueUpsertFailedError,
 )
 from superset.key_value.types import KeyValueResource
-from superset.utils.decorators import on_error, transaction
+from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
+
+
+def _kv_lock_on_error(ex: Exception) -> None:
+    """Translate KV-backend exceptions into the appropriate lock exception type."""
+    if isinstance(ex, IntegrityError):
+        # Unique-constraint violation: lock is already held by another process.
+        raise LockAlreadyHeldException("KV lock already held") from ex
+    if isinstance(
+        ex, (KeyValueCodecEncodeException, KeyValueUpsertFailedError, SQLAlchemyError)
+    ):
+        raise AcquireDistributedLockFailedException(f"KV lock failed: {ex}") from ex
+    raise ex
 
 
 class AcquireDistributedLock(BaseDistributedLockCommand):
@@ -64,28 +79,34 @@ class AcquireDistributedLock(BaseDistributedLockCommand):
     ) -> None:
         super().__init__(namespace, params)
         self.ttl_seconds = ttl_seconds or get_default_lock_ttl()
+        # A per-acquisition token stored as the lock's value, so release can
+        # verify ownership (compare-and-delete) and never delete a lock a
+        # *different* holder acquired after this one's TTL expired. Exposed to
+        # the DistributedLock context manager, which threads it to release.
+        self.token = uuid.uuid4().hex
 
     def run(self) -> None:
-        if (redis_client := get_redis_client()) is not None:
-            self._acquire_redis(redis_client)
+        if CoordinationService.is_backend_defined():
+            self._acquire_redis()
         else:
             self._acquire_kv()
 
-    def _acquire_redis(self, redis_client: Any) -> None:
-        """Acquire lock using Redis SET NX EX (atomic)."""
+    def _acquire_redis(self) -> None:
+        """Acquire lock using the coordination backend's SET NX EX (atomic)."""
         try:
-            # SET NX EX: Set if not exists, with expiration
+            # SET NX EX: Set if not exists, with expiration. The value is this
+            # acquisition's ownership token (see release's compare-and-delete).
             # Returns True if lock acquired, None if already exists
-            acquired = redis_client.set(
+            acquired = CoordinationService.set_value(
                 self.redis_lock_key,
-                "1",
-                nx=True,
-                ex=self.ttl_seconds,
+                self.token,
+                ttl=self.ttl_seconds,
+                if_absent=True,
             )
 
             if not acquired:
                 logger.debug("Redis lock on %s already taken", self.redis_lock_key)
-                raise AcquireDistributedLockFailedException("Lock already taken")
+                raise LockAlreadyHeldException("Lock already taken")
 
             logger.debug(
                 "Acquired Redis lock: %s (TTL=%ds)",
@@ -99,26 +120,17 @@ class AcquireDistributedLock(BaseDistributedLockCommand):
                 f"Redis lock failed: {ex}"
             ) from ex
 
-    @transaction(
-        on_error=partial(
-            on_error,
-            catches=(
-                KeyValueCodecEncodeException,
-                KeyValueUpsertFailedError,
-                SQLAlchemyError,
-            ),
-            reraise=AcquireDistributedLockFailedException,
-        ),
-    )
+    @transaction(on_error=_kv_lock_on_error)
     def _acquire_kv(self) -> None:
         """Acquire lock using KeyValue table (database)."""
         # Delete expired entries first to prevent stale locks from blocking
         KeyValueDAO.delete_expired_entries(self.resource)
 
-        # Create entry - unique constraint will raise if lock already exists
+        # Create entry - unique constraint will raise if lock already exists.
+        # The value carries this acquisition's ownership token (see release).
         KeyValueDAO.create_entry(
             resource=KeyValueResource.LOCK,
-            value={"value": True},
+            value={"token": self.token},
             codec=self.codec,
             key=self.key,
             expires_on=datetime.now(timezone.utc) + timedelta(seconds=self.ttl_seconds),

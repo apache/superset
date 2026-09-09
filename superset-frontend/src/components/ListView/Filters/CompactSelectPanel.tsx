@@ -26,7 +26,7 @@ import {
   type CSSProperties,
   type RefObject,
 } from 'react';
-import { debounce } from 'lodash';
+import { debounce } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { useTheme, styled, css } from '@apache-superset/core/theme';
 import {
@@ -106,9 +106,9 @@ const OptionItem = styled.li<{ $active: boolean }>`
     transition: background 0.15s;
 
     &:hover {
-      background: ${$active
-        ? theme.colorPrimaryBgHover
-        : theme.colorFillTertiary};
+      background: ${
+        $active ? theme.colorPrimaryBgHover : theme.colorFillTertiary
+      };
       outline: 2px solid ${theme.colorPrimary};
       outline-offset: -2px;
     }
@@ -259,6 +259,11 @@ function CompactSelectPanel(
           />
         </SearchRow>
       )}
+      {/* Custom-rendered, searchable, keyboard-navigable option list with
+          rich per-option content (active state, icons); native <select>/
+          <option> can't render that, so the ARIA listbox pattern is used
+          instead of the tag the linter suggests. */}
+      {/* eslint-disable-next-line jsx-a11y/prefer-tag-over-role */}
       <OptionList role="listbox" aria-label={t('Filter options')}>
         {isLoading ? (
           <StatusText>{t('Loading...')}</StatusText>
@@ -275,6 +280,8 @@ function CompactSelectPanel(
               <OptionItem
                 key={opt.value}
                 $active={isActive}
+                // See the OptionList comment above: native <option> can't render this.
+                // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
                 role="option"
                 aria-selected={isActive}
                 tabIndex={0}

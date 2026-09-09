@@ -18,9 +18,15 @@ from typing import Any
 
 from flask import g, has_request_context, request
 from flask_babel import lazy_gettext as _
-from flask_sqlalchemy import BaseQuery
 from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
+
+try:
+    # Flask-SQLAlchemy 3.x (required by SQLAlchemy 2.0)
+    from flask_sqlalchemy.query import Query as BaseQuery
+except ImportError:  # pragma: no cover
+    # Flask-SQLAlchemy 2.x
+    from flask_sqlalchemy import BaseQuery
 
 from superset import security_manager
 from superset.models.sql_lab import SavedQuery

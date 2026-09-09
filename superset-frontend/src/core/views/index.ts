@@ -24,11 +24,12 @@
  * Extensions register views as side effects at import time.
  */
 
-import React, { ReactElement, useSyncExternalStore } from 'react';
+import React, { ComponentType, useSyncExternalStore } from 'react';
 import type { views as viewsApi } from '@apache-superset/core';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
 import { Disposable } from '../models';
+import { createEventEmitter } from '../utils';
 
 type View = viewsApi.View;
 type ViewRegisteredEvent = viewsApi.ViewRegisteredEvent;
@@ -36,7 +37,7 @@ type ViewUnregisteredEvent = viewsApi.ViewUnregisteredEvent;
 
 const viewRegistry: Map<
   string,
-  { view: View; location: string; provider: () => ReactElement }
+  { view: View; location: string; component: ComponentType }
 > = new Map();
 
 const locationIndex: Map<string, Set<string>> = new Map();
@@ -47,29 +48,29 @@ const subscribe = (listener: () => void) => {
   return () => syncListeners.delete(listener);
 };
 
-const registerListeners = new Set<(e: ViewRegisteredEvent) => void>();
-const unregisterListeners = new Set<(e: ViewUnregisteredEvent) => void>();
+const registerEmitter = createEventEmitter<ViewRegisteredEvent>();
+const unregisterEmitter = createEventEmitter<ViewUnregisteredEvent>();
 
 const viewsCache = new Map<string, View[] | undefined>();
 const notifyRegister = (event: ViewRegisteredEvent) => {
   viewsCache.clear();
   syncListeners.forEach(l => l());
-  registerListeners.forEach(l => l(event));
+  registerEmitter.fire(event);
 };
 const notifyUnregister = (event: ViewUnregisteredEvent) => {
   viewsCache.clear();
   syncListeners.forEach(l => l());
-  unregisterListeners.forEach(l => l(event));
+  unregisterEmitter.fire(event);
 };
 
 const registerView: typeof viewsApi.registerView = (
   view: View,
   location: string,
-  provider: () => ReactElement,
+  component: ComponentType,
 ): Disposable => {
   const { id } = view;
 
-  viewRegistry.set(id, { view, location, provider });
+  viewRegistry.set(id, { view, location, component });
 
   const ids = locationIndex.get(location) ?? new Set();
   ids.add(id);
@@ -83,12 +84,16 @@ const registerView: typeof viewsApi.registerView = (
   });
 };
 
-export const resolveView = (id: string): ReactElement => {
-  const provider = viewRegistry.get(id)?.provider;
-  if (!provider) {
+export const resolveView = (id: string): React.ReactElement => {
+  const entry = viewRegistry.get(id);
+  if (!entry) {
     return React.createElement(ExtensionPlaceholder, { id });
   }
-  return React.createElement(ErrorBoundary, null, provider());
+  return React.createElement(
+    ErrorBoundary,
+    null,
+    React.createElement(entry.component),
+  );
 };
 
 const getViews: typeof viewsApi.getViews = (
@@ -116,17 +121,11 @@ export const useViews = (location: string): View[] | undefined =>
 
 export const onDidRegisterView: typeof viewsApi.onDidRegisterView = (
   listener: (e: ViewRegisteredEvent) => void,
-): Disposable => {
-  registerListeners.add(listener);
-  return new Disposable(() => registerListeners.delete(listener));
-};
+): Disposable => registerEmitter.subscribe(listener);
 
 export const onDidUnregisterView: typeof viewsApi.onDidUnregisterView = (
   listener: (e: ViewUnregisteredEvent) => void,
-): Disposable => {
-  unregisterListeners.add(listener);
-  return new Disposable(() => unregisterListeners.delete(listener));
-};
+): Disposable => unregisterEmitter.subscribe(listener);
 
 export const views: typeof viewsApi = {
   registerView,

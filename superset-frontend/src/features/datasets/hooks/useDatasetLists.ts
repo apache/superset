@@ -25,15 +25,15 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
 import type { DatabaseObject } from 'src/components';
 
+type DatasetListDatabase = Partial<
+  Pick<DatabaseObject, 'id' | 'database_name' | 'supports_schemas'>
+>;
+
 /**
  * Retrieves all pages of dataset results
  */
 const useDatasetsList = (
-  db:
-    | (DatabaseObject & {
-        owners: [number];
-      })
-    | undefined,
+  db: DatasetListDatabase | undefined,
   schema: string | null | undefined,
 ) => {
   const [datasets, setDatasets] = useState<DatasetObject[]>([]);

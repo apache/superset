@@ -24,15 +24,11 @@ import {
   QueryObjectFilterClause,
   SqlaFormData,
 } from '@superset-ui/core';
-import {
-  addJsColumnsToColumns,
-  addTooltipColumnsToQuery,
-} from '../buildQueryUtils';
+import { addTooltipColumnsToQuery } from '../buildQueryUtils';
 
 export interface DeckGeoJsonFormData extends SqlaFormData {
   geojson?: string;
   filter_nulls?: boolean;
-  js_columns?: string[];
   cross_filter_column?: string | null;
   tooltip_contents?: unknown[];
 }
@@ -41,7 +37,6 @@ export default function buildQuery(formData: DeckGeoJsonFormData) {
   const {
     geojson,
     filter_nulls = true,
-    js_columns,
     cross_filter_column,
     tooltip_contents,
   } = formData;
@@ -55,13 +50,6 @@ export default function buildQuery(formData: DeckGeoJsonFormData) {
       ...ensureIsArray(baseQueryObject.columns || []),
       geojson,
     ];
-
-    // Add js_columns
-    const columnStrings = columns.map(col =>
-      typeof col === 'string' ? col : col.label || col.sqlExpression || '',
-    );
-    const withJsColumns = addJsColumnsToColumns(columnStrings, js_columns);
-    columns = withJsColumns as QueryFormColumn[];
 
     if (cross_filter_column && !columns.includes(cross_filter_column)) {
       columns.push(cross_filter_column);

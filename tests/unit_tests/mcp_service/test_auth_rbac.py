@@ -23,12 +23,14 @@ import pytest
 from flask import g
 
 from superset.mcp_service.auth import (
+    _required_resource_scope,
     check_tool_permission,
     CLASS_PERMISSION_ATTR,
     is_tool_visible_to_current_user,
     MCPPermissionDeniedError,
     METHOD_PERMISSION_ATTR,
     PERMISSION_PREFIX,
+    RESOURCE_SCOPE_NAME,
 )
 
 
@@ -108,6 +110,17 @@ def test_check_tool_permission_no_class_permission_allows(app_context) -> None:
     assert check_tool_permission(func) is True
 
 
+def test_scoped_token_constrains_permissionless_tool(app_context) -> None:
+    """Resource-only scopes do not grant permission-less tools."""
+    g.user = MagicMock(username="admin")
+    func = _make_tool_func()
+
+    with _patch_token_scopes(["superset:dashboard:read"]):
+        assert check_tool_permission(func) is False
+    with _patch_token_scopes(["superset:read"]):
+        assert check_tool_permission(func) is True
+
+
 def test_check_tool_permission_no_user_denies(app_context) -> None:
     """If no g.user, permission check should deny."""
     g.user = None
@@ -166,6 +179,19 @@ def test_check_tool_permission_disabled_via_config(app_context, app) -> None:
     app.config["MCP_RBAC_ENABLED"] = False
     try:
         assert check_tool_permission(func) is True
+    finally:
+        app.config["MCP_RBAC_ENABLED"] = True
+
+
+def test_disabled_rbac_still_enforces_token_scopes(app_context, app) -> None:
+    """Disabling user RBAC does not disable credential restrictions."""
+    func = _make_tool_func(class_perm="Chart", method_perm="write")
+    app.config["MCP_RBAC_ENABLED"] = False
+    try:
+        with _patch_token_scopes(["superset:dashboard:read"]):
+            assert check_tool_permission(func) is False
+        with _patch_token_scopes(["superset:chart:write"]):
+            assert check_tool_permission(func) is True
     finally:
         app.config["MCP_RBAC_ENABLED"] = True
 
@@ -287,6 +313,19 @@ def test_visibility_public_tool_no_class_permission(app_context) -> None:
     tool = MagicMock()
     tool.fn = func
     assert is_tool_visible_to_current_user(tool) is True
+
+
+def test_visibility_hides_permissionless_tool_from_resource_scoped_token(
+    app_context,
+) -> None:
+    """Permission-less tools require a flat scope in tools/list too."""
+    g.user = MagicMock(username="viewer")
+    tool = _make_mock_tool(fn=_make_tool_func())
+
+    with _patch_token_scopes(["superset:dashboard:read"]):
+        assert is_tool_visible_to_current_user(tool) is False
+    with _patch_token_scopes(["superset:read"]):
+        assert is_tool_visible_to_current_user(tool) is True
 
 
 def test_visibility_allowed_tool(app_context) -> None:
@@ -431,6 +470,23 @@ def test_scope_falls_back_to_rbac_when_no_jwt_context(app_context) -> None:
     assert result is True
 
 
+def test_scope_context_error_fails_closed(app_context) -> None:
+    """An unexpected token lookup failure cannot erase token restrictions."""
+    g.user = MagicMock(username="editor")
+    func = _make_tool_func(class_perm="Chart", method_perm="read")
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with (
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
+        patch(
+            "fastmcp.server.dependencies.get_access_token",
+            side_effect=TypeError("invalid token context"),
+        ),
+    ):
+        assert check_tool_permission(func) is False
+
+
 def test_scope_read_denied_when_token_lacks_read_scope(app_context) -> None:
     """A read tool is denied when the token only carries an unrelated scope."""
     g.user = MagicMock(username="viewer")
@@ -447,7 +503,9 @@ def test_scope_read_denied_when_token_lacks_read_scope(app_context) -> None:
     assert result is False
 
 
-def test_scope_denies_unmapped_method_for_scoped_token(app_context) -> None:
+def test_scope_denies_unmapped_method_for_scoped_token(
+    app_context, caplog: pytest.LogCaptureFixture
+) -> None:
     """A scoped token presented for a method permission that is NOT in the
     scope map fails closed (denied), even when RBAC grants, so an unmapped
     custom permission cannot silently bypass scope enforcement."""
@@ -463,6 +521,8 @@ def test_scope_denies_unmapped_method_for_scoped_token(app_context) -> None:
         result = check_tool_permission(func)
 
     assert result is False
+    assert "unmapped method permission 'some_custom_perm'" in caplog.text
+    assert "required scope 'None'" not in caplog.text
 
 
 def test_scope_execute_sql_query_requires_write_scope(app_context) -> None:
@@ -478,3 +538,166 @@ def test_scope_execute_sql_query_requires_write_scope(app_context) -> None:
             assert check_tool_permission(func) is False
         with _patch_token_scopes(["superset:write"]):
             assert check_tool_permission(func) is True
+
+
+# -- Per-resource scopes (superset:<resource>:<action>) --
+
+
+def test_required_resource_scope_special_names() -> None:
+    """The explicit resource map handles names a naive lower() would break:
+    'Row Level Security' (spaces) and 'ReportSchedule'/'SQLLab' (misnames)."""
+    assert _required_resource_scope("Row Level Security", "read") == "superset:rls:read"
+    assert _required_resource_scope("ReportSchedule", "write") == (
+        "superset:report:write"
+    )
+    assert _required_resource_scope("SQLLab", "execute_sql_query") == (
+        "superset:sqllab:write"
+    )
+    assert _required_resource_scope("Chart", "update") == "superset:chart:write"
+
+
+def test_required_resource_scope_unmapped_returns_none() -> None:
+    """An unmapped resource or method yields None (no per-resource scope),
+    which callers must NOT treat as a grant."""
+    assert _required_resource_scope("NotAResource", "read") is None
+    assert _required_resource_scope("Chart", "not_a_method") is None
+
+
+def test_resource_scope_name_covers_all_tool_resource_classes() -> None:
+    """RESOURCE_SCOPE_NAME must cover every class_permission_name declared by
+    MCP tools. If a new resource class is added, add it to the map."""
+    assert set(RESOURCE_SCOPE_NAME.keys()) == {
+        "Annotation",
+        "Chart",
+        "Dashboard",
+        "Database",
+        "Dataset",
+        "Explore",
+        "Query",
+        "ReportSchedule",
+        "Role",
+        "Row Level Security",
+        "SavedQuery",
+        "SQLLab",
+        "Tag",
+        "Task",
+        "Theme",
+        "User",
+    }
+
+
+def test_per_resource_scope_grants_matching_tool(app_context) -> None:
+    """A token scoped ONLY to superset:chart:write (no flat superset:write)
+    still grants a Chart/write tool via the per-resource grant path."""
+    g.user = MagicMock(username="editor")
+    func = _make_tool_func(class_perm="Chart", method_perm="write")
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with (
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
+        _patch_token_scopes(["superset:chart:write"]),
+    ):
+        result = check_tool_permission(func)
+
+    assert result is True
+
+
+def test_per_resource_scope_does_not_leak_across_resources(app_context) -> None:
+    """A token scoped to superset:chart:write does NOT grant a Dashboard/write
+    tool (resource isolation)."""
+    g.user = MagicMock(username="editor")
+    func = _make_tool_func(class_perm="Dashboard", method_perm="write")
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with (
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
+        _patch_token_scopes(["superset:chart:write"]),
+    ):
+        result = check_tool_permission(func)
+
+    assert result is False
+
+
+def test_per_resource_scope_enforces_action(app_context) -> None:
+    """A token scoped to superset:chart:read does NOT grant a Chart/write tool
+    (action still enforced within the resource)."""
+    g.user = MagicMock(username="editor")
+    func = _make_tool_func(class_perm="Chart", method_perm="write")
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with (
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
+        _patch_token_scopes(["superset:chart:read"]),
+    ):
+        result = check_tool_permission(func)
+
+    assert result is False
+
+
+# ---------------------------------------------------------------------------
+# User/Role tools must request a permission FAB actually registers.
+#
+# FAB's security API views (UserApi, RoleApi) register only
+# can_get/can_info/can_post/can_put/can_delete — never can_read. Superset's
+# own ModelRestApi subclasses remap methods onto read/write, which is why
+# "can_read on Chart" exists while "can_read on User" cannot. A tool that
+# demands can_read on User/Role is therefore dead for every principal,
+# including Admin (fails closed).
+# ---------------------------------------------------------------------------
+
+# The full set of permissions FAB registers on its security API views.
+_FAB_SECURITY_VIEW_PERMISSIONS = {
+    "can_get",
+    "can_info",
+    "can_post",
+    "can_put",
+    "can_delete",
+}
+
+
+def _fab_security_view_can_access(permission_str: str, view_name: str) -> bool:
+    """Simulate can_access for a user holding every permission FAB actually
+    registers on the User/Role security views (i.e. a stock Admin)."""
+    return permission_str in _FAB_SECURITY_VIEW_PERMISSIONS
+
+
+@pytest.mark.parametrize(
+    "module_path,func_name",
+    [
+        ("superset.mcp_service.user.tool.list_users", "list_users"),
+        ("superset.mcp_service.user.tool.get_user_info", "get_user_info"),
+        ("superset.mcp_service.role.tool.list_roles", "list_roles"),
+        ("superset.mcp_service.role.tool.get_role_info", "get_role_info"),
+    ],
+)
+def test_user_role_tools_usable_by_stock_admin(
+    app_context, module_path: str, func_name: str
+) -> None:
+    """A stock Admin (holding exactly the FAB-registered permissions on the
+    User/Role views) must be able to use the user/role tools."""
+    import importlib
+
+    func = getattr(importlib.import_module(module_path), func_name)
+    g.user = MagicMock(username="admin")
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(side_effect=_fab_security_view_can_access)
+    with patch("superset.mcp_service.auth.security_manager", mock_sm):
+        assert check_tool_permission(func) is True, (
+            f"{func_name} requests can_"
+            f"{getattr(func, METHOD_PERMISSION_ATTR, 'read')} on "
+            f"{getattr(func, CLASS_PERMISSION_ATTR, None)}, which FAB never "
+            "registers on its security views — the tool is dead even for Admin"
+        )
+
+
+def test_get_method_permission_is_scope_mapped(app_context) -> None:
+    """The 'get' method permission must be in _METHOD_TO_REQUIRED_SCOPE:
+    unmapped method permissions are denied for scoped tokens (fail closed),
+    which would leave the user/role tools dead for scoped-JWT deployments."""
+    from superset.mcp_service.auth import _METHOD_TO_REQUIRED_SCOPE
+
+    assert _METHOD_TO_REQUIRED_SCOPE.get("get") == "superset:read"

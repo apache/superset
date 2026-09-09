@@ -249,7 +249,7 @@ function TimeRangeFilter(
       <Divider />
       <div className="footer">
         <Button buttonStyle="secondary" cta key="cancel" onClick={onClose}>
-          {t('CANCEL')}
+          {t('Cancel')}
         </Button>
         <Button
           buttonStyle="primary"
@@ -281,7 +281,7 @@ function TimeRangeFilter(
             onClose();
           }}
         >
-          {t('APPLY')}
+          {t('Apply')}
         </Button>
       </div>
     </ContentWrapper>

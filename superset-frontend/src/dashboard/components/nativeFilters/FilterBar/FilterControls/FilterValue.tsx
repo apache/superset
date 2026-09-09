@@ -31,8 +31,7 @@ import {
   ChartDataResponseResult,
   Behavior,
   DataMask,
-  isFeatureEnabled,
-  FeatureFlag,
+  DatasourceType,
   getChartMetadataRegistry,
   JsonObject,
   QueryFormData,
@@ -43,12 +42,12 @@ import {
 } from '@superset-ui/core';
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
 import { useTheme } from '@emotion/react';
-import { useDispatch, useSelector } from 'react-redux';
-import { isEqual, isEqualWith } from 'lodash';
-import { getChartDataRequest } from 'src/components/Chart/chartAction';
+import { useDispatch, useSelector, shallowEqual } from 'react-redux';
+import { isEqual, isEqualWith } from 'lodash-es';
+import { requestChartDataResolved } from 'src/components/Chart/chartAction';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import { Loading, Constants, Flex } from '@superset-ui/core/components';
-import { waitForAsyncData } from 'src/middleware/asyncEvent';
+import { useAsyncModeOverride } from 'src/utils/asyncMode';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import {
   onFiltersRefreshSuccess,
@@ -85,35 +84,6 @@ const StyledDiv = styled.div<{
 
 const queriesDataPlaceholder = [{ data: [{}] }];
 
-type TimeGrainFilterConfig = {
-  time_grains?: string[];
-};
-
-export const applyTimeGrainAllowlist = (
-  filterType: string,
-  allowedTimeGrains: string[] | undefined,
-  results: ChartDataResponseResult[],
-): ChartDataResponseResult[] => {
-  if (filterType !== 'filter_timegrain' || !allowedTimeGrains?.length) {
-    return results;
-  }
-
-  return results.map(result => {
-    if (!Array.isArray(result.data)) {
-      return result;
-    }
-
-    return {
-      ...result,
-      data: result.data.filter(row =>
-        allowedTimeGrains.includes(
-          (row as { duration?: string }).duration ?? '',
-        ),
-      ),
-    };
-  });
-};
-
 const useShouldFilterRefresh = () => {
   const isDashboardRefreshing = useSelector<RootState, boolean>(
     state => state.dashboardState.isRefreshing,
@@ -145,9 +115,6 @@ const FilterValue: FC<FilterValueProps> = ({
   const theme = useTheme() as SupersetTheme;
   const { id, targets, filterType } = filter;
   const isCustomization = isChartCustomization(filter);
-  const allowedTimeGrains = isCustomization
-    ? undefined
-    : (filter as TimeGrainFilterConfig).time_grains;
   const adhocFilters = isCustomization ? undefined : filter.adhoc_filters;
   const timeRange = isCustomization ? undefined : filter.time_range;
   const granularitySqla = isCustomization ? undefined : filter.granularity_sqla;
@@ -155,6 +122,19 @@ const FilterValue: FC<FilterValueProps> = ({
   const dependencies = useFilterDependencies(id, dataMaskSelected);
   const transitiveParentIds = useTransitiveParentIds(id);
   const shouldRefresh = useShouldFilterRefresh();
+
+  // Derive only the defaultToFirstItem flag per filter to avoid re-renders
+  // when unrelated filter config fields change.
+  const parentDefaultToFirstItem = useSelector(
+    (state: RootState) =>
+      Object.fromEntries(
+        Object.entries(state.nativeFilters?.filters ?? {}).map(([fId, f]) => [
+          fId,
+          Boolean(f.controlValues?.defaultToFirstItem),
+        ]),
+      ),
+    shallowEqual,
+  );
 
   const behaviors = useMemo(
     () => [
@@ -168,6 +148,9 @@ const FilterValue: FC<FilterValueProps> = ({
   const dashboardId = useSelector<RootState, number>(
     state => state.dashboardInfo.id,
   );
+  // Per-dashboard async override so filter requests honor the same policy
+  // (force on/off) as the dashboard's charts.
+  const asyncModeOverride = useAsyncModeOverride();
 
   const [error, setError] = useState<ClientErrorObject>();
   const [formData, setFormData] = useState<Partial<QueryFormData>>({
@@ -179,8 +162,13 @@ const FilterValue: FC<FilterValueProps> = ({
   const [target] = targets || [];
   const {
     datasetId,
+    datasourceType,
     column = {},
-  }: Partial<{ datasetId: number; column: { name?: string } }> = target || {};
+  }: Partial<{
+    datasetId: number;
+    datasourceType: DatasourceType;
+    column: { name?: string };
+  }> = target || {};
   const groupby = column?.name;
   const hasDataSource = !!datasetId;
   const [isLoading, setIsLoading] = useState<boolean>(hasDataSource);
@@ -214,6 +202,7 @@ const FilterValue: FC<FilterValueProps> = ({
     const newFormData = getFormData({
       ...filter,
       datasetId,
+      datasourceType,
       dependencies,
       groupby,
       adhoc_filters: adhocFilters,
@@ -227,6 +216,21 @@ const FilterValue: FC<FilterValueProps> = ({
       // selections first. We walk the full transitive ancestor chain (not just
       // direct parents) so the counts line up with `dependencies`, which is
       // itself built from the transitive chain by `useFilterDependencies`.
+
+      // Block if any parent with defaultToFirstItem hasn't auto-selected yet.
+      // Without this, the child fetches unfiltered options before the parent
+      // auto-selects, leading to a stale first-value dispatch that never
+      // gets corrected because subsequent re-selections are not first-initialization.
+      const hasDefaultFirstParentPending = transitiveParentIds.some(pId => {
+        const parentMask = dataMaskSelected?.[pId];
+        return (
+          parentDefaultToFirstItem[pId] &&
+          parentMask?.filterState?.value === undefined
+        );
+      });
+      if (hasDefaultFirstParentPending) {
+        return;
+      }
 
       let selectedParentFilterValueCounts = 0;
       let isTimeRangeSelected = false;
@@ -275,58 +279,16 @@ const FilterValue: FC<FilterValueProps> = ({
         return;
       }
       setIsRefreshing(true);
-      getChartDataRequest({
+      requestChartDataResolved({
         formData: newFormData,
         force: shouldRefresh,
         ownState: filterOwnState,
+        requestParams: { async_mode_override: asyncModeOverride },
       })
-        .then(({ response, json }) => {
-          if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
-            // deal with getChartDataRequest transforming the response data
-            const result = 'result' in json ? json.result[0] : json;
-            if (response.status === 200) {
-              setState(
-                applyTimeGrainAllowlist(filterType, allowedTimeGrains, [
-                  result as ChartDataResponseResult,
-                ]),
-              );
-              setError(undefined);
-              handleFilterLoadFinish();
-            } else if (response.status === 202) {
-              waitForAsyncData(result as Parameters<typeof waitForAsyncData>[0])
-                .then((asyncResult: ChartDataResponseResult[]) => {
-                  setState(
-                    applyTimeGrainAllowlist(
-                      filterType,
-                      allowedTimeGrains,
-                      asyncResult,
-                    ),
-                  );
-                  setError(undefined);
-                  handleFilterLoadFinish();
-                })
-                .catch((error: Response) => {
-                  getClientErrorObject(error).then(clientErrorObject => {
-                    setError(clientErrorObject);
-                    handleFilterLoadFinish();
-                  });
-                });
-            } else {
-              throw new Error(
-                `Received unexpected response status (${response.status}) while fetching chart data`,
-              );
-            }
-          } else {
-            setState(
-              applyTimeGrainAllowlist(
-                filterType,
-                allowedTimeGrains,
-                json.result as ChartDataResponseResult[],
-              ),
-            );
-            setError(undefined);
-            handleFilterLoadFinish();
-          }
+        .then(queriesResponse => {
+          setState(queriesResponse as ChartDataResponseResult[]);
+          setError(undefined);
+          handleFilterLoadFinish();
         })
         .catch((error: Response) => {
           getClientErrorObject(error).then(clientErrorObject => {
@@ -342,13 +304,14 @@ const FilterValue: FC<FilterValueProps> = ({
     groupby,
     handleFilterLoadFinish,
     filter,
-    allowedTimeGrains,
     hasDataSource,
     isRefreshing,
     shouldRefresh,
     dataMaskSelected,
     setHasDepsFilterValue,
     transitiveParentIds,
+    parentDefaultToFirstItem,
+    asyncModeOverride,
   ]);
 
   useEffect(() => {

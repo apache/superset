@@ -1,0 +1,41 @@
+{
+  "name": "@superset-ui/plugin-chart-calendar",
+  "version": "0.20.3",
+  "description": "Superset Chart - Calendar Heatmap",
+  "keywords": [
+    "superset"
+  ],
+  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-calendar#readme",
+  "bugs": {
+    "url": "https://github.com/apache/superset/issues"
+  },
+  "license": "Apache-2.0",
+  "author": "Superset",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-frontend/plugins/plugin-chart-calendar"
+  },
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "d3-array": "^3.2.4",
+    "d3-selection": "^3.0.0",
+    "d3-tip": "^0.9.1",
+    "prop-types": "^15.8.1"
+  },
+  "peerDependencies": {
+    "@apache-superset/core": "*",
+    "@emotion/react": "^11.4.1",
+    "@superset-ui/chart-controls": "*",
+    "@superset-ui/core": "*",
+    "react": "^18.3.0"
+  }
+}

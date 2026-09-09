@@ -195,6 +195,7 @@ def dumps(  # pylint: disable=too-many-arguments
     separators: Union[tuple[str, str], None] = None,
     cls: Union[type[simplejson.JSONEncoder], None] = None,
     encoding: Optional[str] = "utf-8",
+    ensure_ascii: bool = True,
 ) -> str:
     """
     Dumps object to compatible JSON format
@@ -207,6 +208,9 @@ def dumps(  # pylint: disable=too-many-arguments
     :param indent: when set elements and object members will be pretty-printed
     :param separators: when specified dumps will use (item_separator, key_separator)
     :param cls: custom `JSONEncoder` subclass
+    :param ensure_ascii: when set to False non-ASCII characters are kept verbatim
+        instead of being escaped to ``\\uXXXX`` sequences. Defaults to True so the
+        escaped output stays safe for narrow charset columns (e.g. MySQL ``utf8``).
     :returns: String object in the JSON compatible form
     """
 
@@ -220,6 +224,7 @@ def dumps(  # pylint: disable=too-many-arguments
         "separators": separators,
         "cls": cls,
         "encoding": encoding,
+        "ensure_ascii": ensure_ascii,
     }
     try:
         results_string = simplejson.dumps(obj, **dumps_kwargs)
@@ -299,8 +304,12 @@ def reveal_sensitive(
         jsonpath_expr = parse(json_path)
         for match in jsonpath_expr.find(revealed_payload):
             if match.value == PASSWORD_MASK:
-                old_value = match.full_path.find(old_payload)
-                match.context.value[match.path.fields[0]] = old_value[0].value
+                # a masked value can arrive for a path the stored payload never
+                # had, e.g. a payload copied from another connection. There is
+                # nothing to reveal, so the mask is passed through, which is
+                # what engine specs that do not list the path already do.
+                if old_value := match.full_path.find(old_payload):
+                    match.context.value[match.path.fields[0]] = old_value[0].value
 
     return revealed_payload
 

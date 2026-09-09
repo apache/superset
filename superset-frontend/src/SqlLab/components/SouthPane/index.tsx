@@ -65,7 +65,7 @@ const StyledPane = styled.div`
   width: 100%;
   height: 100%;
 
-  .ant-tabs .ant-tabs-content-holder {
+  .ant-tabs .ant-tabs-body-holder {
     overflow: visible;
   }
   .SouthPaneTabs {
@@ -80,7 +80,7 @@ const StyledPane = styled.div`
     margin: 0 ${({ theme }) => theme.sizeUnit * 4}px
       ${({ theme }) => theme.sizeUnit * 2}px;
   }
-  .ant-tabs-tabpane {
+  .ant-tabs-content {
     padding-top: ${({ theme }) => theme.sizeUnit * 3}px;
     .scrollable {
       overflow-y: auto;

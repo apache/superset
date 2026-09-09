@@ -18,11 +18,10 @@
  */
 import { useCallback, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import { AdhocColumn, QueryFormColumn, isAdhocColumn } from '@superset-ui/core';
-import { tn } from '@apache-superset/core/translation';
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';
 import { OptionSelector } from 'src/explore/components/controls/DndColumnSelectControl/utils';
@@ -98,6 +97,33 @@ function DndColumnSelect(props: DndColumnSelectProps) {
     [optionSelector],
   );
 
+  const onDropFolder = useCallback(
+    (items: DatasourcePanelDndItem[]) => {
+      // Items already passed `canDrop` (in options, not already selected).
+      const columnNames = items
+        .filter(item => item.type === DndItemType.Column)
+        .map(item => (item.value as ColumnMeta).column_name);
+      if (columnNames.length === 0) {
+        return;
+      }
+      if (!optionSelector.multi) {
+        if (!isEmpty(optionSelector.values)) {
+          optionSelector.replace(0, columnNames[0]);
+        } else {
+          optionSelector.add(columnNames[0]);
+        }
+      } else {
+        columnNames.forEach(columnName => {
+          if (!optionSelector.has(columnName)) {
+            optionSelector.add(columnName);
+          }
+        });
+      }
+      onChange(optionSelector.getValues());
+    },
+    [onChange, optionSelector],
+  );
+
   const onClickClose = useCallback(
     (index: number) => {
       optionSelector.del(index);
@@ -108,7 +134,7 @@ function DndColumnSelect(props: DndColumnSelectProps) {
 
   const onShiftOptions = useCallback(
     (dragIndex: number, hoverIndex: number) => {
-      optionSelector.swap(dragIndex, hoverIndex);
+      optionSelector.move(dragIndex, hoverIndex);
       onChange(optionSelector.getValues());
     },
     [onChange, optionSelector],
@@ -212,8 +238,9 @@ function DndColumnSelect(props: DndColumnSelectProps) {
       <DndSelectLabel
         onDrop={onDrop}
         canDrop={canDrop}
+        onDropFolder={onDropFolder}
         valuesRenderer={valuesRenderer}
-        accept={DndItemType.Column}
+        accept={[DndItemType.Column, DndItemType.Folder]}
         displayGhostButton={multi || optionSelector.values.length === 0}
         ghostButtonText={labelGhostButtonText}
         onClickGhostButton={openPopover}

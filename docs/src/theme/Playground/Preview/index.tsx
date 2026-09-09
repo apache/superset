@@ -75,7 +75,7 @@ function PlaygroundLivePreview(): ReactNode {
       {() => (
         <>
           <ErrorBoundary
-            fallback={(params) => (
+            fallback={params => (
               <ErrorBoundaryErrorMessageFallback {...params} />
             )}
           >

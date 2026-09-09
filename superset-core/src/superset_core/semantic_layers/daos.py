@@ -164,6 +164,3 @@ class AbstractSemanticViewDAO(BaseDAO[SemanticViewModel]):
         :return: SemanticViewModel instance or None
         """
         ...
-
-
-__all__ = ["AbstractSemanticLayerDAO", "AbstractSemanticViewDAO"]

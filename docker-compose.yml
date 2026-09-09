@@ -34,11 +34,12 @@ x-superset-volumes: &superset-volumes
   - superset_home:/app/superset_home
   - ./tests:/app/tests
   - superset_data:/app/data
+  - ./local_extensions:/app/local_extensions
 x-common-build: &common-build
   context: .
   target: ${SUPERSET_BUILD_TARGET:-dev} # can use `dev` (default) or `lean`
   cache_from:
-    - apache/superset-cache:3.10-slim-trixie
+    - apache/superset-cache:3.11-slim-trixie
   args:
     DEV_MODE: "true"
     INCLUDE_CHROMIUM: ${INCLUDE_CHROMIUM:-false}
@@ -182,6 +183,8 @@ services:
         condition: service_started
     user: *superset-user
     volumes: *superset-volumes
+    environment:
+      SUPERSET_FORCE_LOAD_EXAMPLES: "${SUPERSET_FORCE_LOAD_EXAMPLES:-}"
     healthcheck:
       disable: true
 
@@ -201,6 +204,7 @@ services:
       BUILD_SUPERSET_FRONTEND_IN_DOCKER: true
       NPM_RUN_PRUNE: false
       SCARF_ANALYTICS: "${SCARF_ANALYTICS:-}"
+      DISABLE_TS_CHECKER: "${DISABLE_TS_CHECKER:-true}"
       # configuring the dev-server to use the host.docker.internal to connect to the backend
       superset: "http://superset:8088"
       # Webpack dev server must bind to 0.0.0.0 to be accessible from outside the container

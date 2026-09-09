@@ -36,12 +36,13 @@ describe('SupersetClient', () => {
     getUrl: (...args: unknown[]) => string;
   };
 
-  test('exposes configure, init, get, post, postForm, delete, put, request, reset, getGuestToken, getCSRFToken, getUrl, isAuthenticated, and reAuthenticate methods', () => {
+  test('exposes configure, init, get, post, postForm, postBlob, delete, put, request, reset, getGuestToken, getCSRFToken, getUrl, isAuthenticated, and reAuthenticate methods', () => {
     expect(typeof SupersetClient.configure).toBe('function');
     expect(typeof SupersetClient.init).toBe('function');
     expect(typeof SupersetClient.get).toBe('function');
     expect(typeof SupersetClient.post).toBe('function');
     expect(typeof SupersetClient.postForm).toBe('function');
+    expect(typeof SupersetClient.postBlob).toBe('function');
     expect(typeof SupersetClient.delete).toBe('function');
     expect(typeof SupersetClient.put).toBe('function');
     expect(typeof SupersetClient.request).toBe('function');
@@ -53,11 +54,12 @@ describe('SupersetClient', () => {
     expect(typeof SupersetClient.reAuthenticate).toBe('function');
   });
 
-  test('throws if you call init, get, post, postForm, delete, put, request, getGuestToken, getCSRFToken, getUrl, isAuthenticated, or reAuthenticate before configure', () => {
+  test('throws if you call init, get, post, postForm, postBlob, delete, put, request, getGuestToken, getCSRFToken, getUrl, isAuthenticated, or reAuthenticate before configure', () => {
     expect(SupersetClient.init).toThrow();
     expect(SupersetClient.get).toThrow();
     expect(SupersetClient.post).toThrow();
     expect(SupersetClient.postForm).toThrow();
+    expect(SupersetClient.postBlob).toThrow();
     expect(SupersetClient.delete).toThrow();
     expect(SupersetClient.put).toThrow();
     expect(SupersetClient.request).toThrow();

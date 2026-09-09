@@ -17,26 +17,38 @@
 # pylint: disable=too-many-lines
 from __future__ import annotations
 
-import inspect
 from typing import Any, TYPE_CHECKING
 
 from flask import current_app
+from flask_appbuilder.api.schemas import get_list_schema
 from flask_babel import gettext as _
-from marshmallow import EXCLUDE, fields, post_load, Schema, validate
-from marshmallow.validate import Length, Range
+from marshmallow import (
+    EXCLUDE,
+    fields,
+    post_load,
+    Schema,
+    validate,
+    validates,
+    ValidationError,
+)
+from marshmallow.validate import Length, NoneOf, Range
 from marshmallow_union import Union
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data_timing import CHART_DATA_TIMING_VERSION
 from superset.db_engine_specs.base import builtin_time_grains
+from superset.subjects.schemas import SubjectResponseSchema
 from superset.tags.models import TagType
 from superset.utils import pandas_postprocessing, schema as utils
 from superset.utils.core import (
     AnnotationType,
     DatasourceType,
+    EXTENDED_METRIC_AGGREGATES,
     FilterOperator,
     PostProcessingBoxplotWhiskerType,
     PostProcessingContributionOrientation,
 )
+from superset.utils.pandas_postprocessing.utils import PROPHET_TIME_GRAIN_MAP
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -60,6 +72,27 @@ def get_time_grain_choices() -> Any:
         }.keys()
         if i
     ]
+
+
+def validate_time_grain_sqla(value: Any) -> None:
+    """Ensure the time grain is supported by the configured engine specs."""
+    choices = get_time_grain_choices()
+    validate.OneOf(
+        choices=choices,
+        error=_("Must be one of: {choices}."),
+    )(value)
+
+
+def get_prophet_time_grain_choices() -> list[str]:
+    """Get the time grains Prophet forecasting can actually resolve.
+
+    Deliberately narrower than :func:`get_time_grain_choices`: ``prophet()``
+    resolves a grain through the static ``PROPHET_TIME_GRAIN_MAP``, so an
+    operator-configured ``TIME_GRAIN_ADDONS`` key has no pandas frequency to
+    resolve to. Advertising one here would document a forecast the API
+    cannot serve.
+    """
+    return list(PROPHET_TIME_GRAIN_MAP)
 
 
 # Fallback upper bound for the number of Prophet forecast periods when the
@@ -103,7 +136,31 @@ def validate_prophet_periods(value: int) -> None:
 #
 # RISON/JSON schemas for query parameters
 #
-get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
+MAX_VIZ_TYPE_ORDER_LENGTH = 256
+MAX_VIZ_TYPE_LENGTH = 250
+
+chart_get_list_schema = {
+    **get_list_schema,
+    "properties": {
+        **get_list_schema["properties"],
+        "viz_type_order": {
+            "type": "array",
+            "items": {"type": "string", "maxLength": MAX_VIZ_TYPE_LENGTH},
+            "maxItems": MAX_VIZ_TYPE_ORDER_LENGTH,
+            "uniqueItems": True,
+            "description": (
+                "Visualization type slugs in display-name order. Used only when "
+                "order_column is viz_type."
+            ),
+        },
+    },
+}
+
+get_delete_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 
 width_height_schema = {
     "type": "array",
@@ -121,9 +178,17 @@ screenshot_query_schema = {
         "thumb_size": width_height_schema,
     },
 }
-get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_export_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 
-get_fav_star_ids_schema = {"type": "array", "items": {"type": "integer"}}
+get_fav_star_ids_schema = {
+    "type": "array",
+    "items": {"type": "integer"},
+    "example": [1, 2, 3],
+}
 
 #
 # Column schema descriptions
@@ -132,9 +197,11 @@ id_description = "The id of the chart."
 slice_name_description = "The name of the chart."
 description_description = "A description of the chart propose."
 viz_type_description = "The type of chart visualization used."
-owners_description = (
-    "Owner are users ids allowed to delete or change this chart. "
-    "If left empty you will be one of the owners of the chart."
+editors_description = (
+    "A list of subject IDs (users, roles, or groups) that can alter the chart."
+)
+viewers_description = (
+    "A list of subject IDs (users, roles, or groups) that can view the chart."
 )
 params_description = (
     "Parameters are generated dynamically when clicking the save "
@@ -176,7 +243,6 @@ form_data_description = (
     "Form data from the Explore controls used to form the chart's data query."
 )
 description_markeddown_description = "Sanitized HTML version of the chart description."
-owners_name_description = "Name of an owner of the chart."
 certified_by_description = "Person or group that has certified this chart"
 certification_details_description = "Details of the certification"
 tags_description = "Tags to be associated with the chart"
@@ -194,8 +260,8 @@ openapi_spec_methods_override = {
     "info": {"get": {"summary": "Get metadata information about this API resource"}},
     "related": {
         "get": {
-            "description": "Get a list of all possible owners for a chart. "
-            "Use `owners` has the `column_name` parameter"
+            "description": "Get a list of all possible related entities for a chart. "
+            "Use `editors` as the `column_name` parameter"
         }
     },
 }
@@ -242,7 +308,8 @@ class ChartPostSchema(Schema):
         },
         validate=Length(0, 250),
     )
-    owners = fields.List(fields.Integer(metadata={"description": owners_description}))
+    editors = fields.List(fields.Integer(metadata={"description": editors_description}))
+    viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
     params = fields.String(
         metadata={"description": params_description},
         allow_none=True,
@@ -305,7 +372,8 @@ class ChartPutSchema(Schema):
         allow_none=True,
         validate=Length(0, 250),
     )
-    owners = fields.List(fields.Integer(metadata={"description": owners_description}))
+    editors = fields.List(fields.Integer(metadata={"description": editors_description}))
+    viewers = fields.List(fields.Integer(metadata={"description": viewers_description}))
     params = fields.String(
         metadata={"description": params_description},
         allow_none=True,
@@ -343,6 +411,30 @@ class ChartPutSchema(Schema):
     external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
     tags = fields.List(fields.Integer(metadata={"description": tags_description}))
     uuid = fields.UUID(allow_none=True)
+    normalization_changes: fields.Raw = fields.Raw(
+        load_only=True,
+        allow_none=True,
+        metadata={
+            "description": (
+                "Optional advisory Explore hydration transitions used only to "
+                "remove exact automatic normalization changes from human-readable "
+                "version history. Invalid metadata is ignored."
+            ),
+            "type": "array",
+            "maxItems": 256,
+            "items": {
+                "type": "object",
+                "required": ["control", "from_present", "to_present"],
+                "properties": {
+                    "control": {"type": "string", "maxLength": 256},
+                    "from_present": {"type": "boolean"},
+                    "from_value": {},
+                    "to_present": {"type": "boolean"},
+                    "to_value": {},
+                },
+            },
+        },
+    )
 
 
 class ChartGetDatasourceObjectDataResponseSchema(Schema):
@@ -410,7 +502,15 @@ class ChartDataAdhocMetricSchema(Schema):
             "Only required for simple expression types."
         },
         validate=validate.OneOf(
-            choices=("AVG", "COUNT", "COUNT_DISTINCT", "MAX", "MIN", "SUM")
+            choices=(
+                "AVG",
+                "COUNT",
+                "COUNT_DISTINCT",
+                "MAX",
+                "MIN",
+                "SUM",
+                *sorted(EXTENDED_METRIC_AGGREGATES),
+            )
         ),
     )
     column = fields.Nested(ChartDataColumnSchema)
@@ -700,7 +800,7 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        validate=validate.OneOf(choices=get_time_grain_choices()),
+        validate=validate.OneOf(choices=get_prophet_time_grain_choices()),
         required=True,
     )
     periods = fields.Integer(
@@ -955,21 +1055,45 @@ class ChartDataGeodeticParseOptionsSchema(
 
 
 class ChartDataPostProcessingOperationSchema(Schema):
+    # OPERATIONS excludes escape_separator/unescape_separator: those are
+    # internal str -> str helpers used by flatten, not DataFrame
+    # post-processing operations, so dispatching one against a DataFrame
+    # raises a confusing TypeError instead of the intended clean validation
+    # error. No field-level `validate=` here: it would run before, and thus
+    # reject, any EXTRA_PANDAS_POSTPROCESSING_OPS-registered custom
+    # operation, which `validate_operation` below is responsible for
+    # allowing.
+    _builtin_ops = pandas_postprocessing.OPERATIONS
+
     operation = fields.String(
         metadata={
             "description": "Post processing operation type",
             "example": "aggregate",
         },
         required=True,
-        validate=validate.OneOf(
-            choices=[
-                name
-                for name, value in inspect.getmembers(
-                    pandas_postprocessing, inspect.isfunction
-                )
-            ]
-        ),
     )
+
+    @validates("operation")
+    def validate_operation(self, value: str, **kwargs: object) -> None:
+        # Built-in operations validate without reading the config, so schemas can
+        # still be loaded outside of an app context.
+        if value in self._builtin_ops:
+            return
+
+        try:
+            extra = current_app.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
+        except RuntimeError:
+            # Outside app context, only built-in operations are known
+            extra = []
+
+        allowed = set(self._builtin_ops) | set(
+            pandas_postprocessing.build_extra_ops_map(extra)
+        )
+        if value not in allowed:
+            raise ValidationError(
+                f"Must be one of: {sorted(allowed)!r}.",
+            )
+
     options = fields.Dict(
         metadata={
             "description": "Options specifying how to perform the operation. Please "
@@ -1065,7 +1189,7 @@ class ChartDataExtrasSchema(Schema):
             "[ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
         },
-        validate=validate.OneOf(choices=get_time_grain_choices()),
+        validate=validate_time_grain_sqla,
         allow_none=True,
     )
     instant_time_comparison_range = fields.String(
@@ -1354,6 +1478,17 @@ class ChartDataQueryObjectSchema(Schema):
         load_default=False,
         allow_none=True,
     )
+    grouping_sets = fields.List(
+        fields.List(fields.String()),
+        metadata={
+            "description": "Rollup levels for non-additive totals: each entry is "
+            "the list of groupby columns to group at that level (e.g. the empty "
+            "list is the grand total). When set and the engine supports it, the "
+            "levels are computed in a single GROUPING SETS query.",
+        },
+        load_default=None,
+        allow_none=True,
+    )
     timeseries_limit = fields.Integer(
         metadata={
             "description": "Maximum row count for timeseries queries. "
@@ -1455,6 +1590,18 @@ class ChartDataQueryObjectSchema(Schema):
         fields.String(),
         allow_none=True,
     )
+    time_compare_full_range = fields.Boolean(
+        required=False,
+        allow_none=True,
+        metadata={
+            "description": (
+                "When using a time comparison (time_offsets), plot each shifted "
+                "series across its full time range instead of truncating it to the "
+                "main series' range. Useful for comparing a partial current period "
+                "against complete prior periods."
+            )
+        },
+    )
 
     @post_load
     def rename_deprecated_fields(
@@ -1467,9 +1614,23 @@ class ChartDataQueryObjectSchema(Schema):
             ("timeseries_limit_metric", "series_limit_metric"),
         )
         for old, new in _renames:
-            if value := data.pop(old, None):
+            value = data.pop(old, None)
+            if value or value == 0:
                 data[new] = value
         return data
+
+    force_nonce = fields.String(
+        metadata={
+            "description": "Per-query forced-refresh idempotency token: the async "
+            "task's UUID (as returned in the 202 `task_ids`, in query order). Sent "
+            "on the synchronous read-back of a forced refresh so it reads the "
+            "result the task warmed instead of recomputing. Because the token is "
+            "the task's identity, concurrent refreshes joining the same shared task "
+            "read back under the same token. Ignored when `force` is false."
+        },
+        required=False,
+        allow_none=True,
+    )
 
 
 class ChartDataQueryContextSchema(Schema):
@@ -1490,14 +1651,71 @@ class ChartDataQueryContextSchema(Schema):
         allow_none=True,
     )
 
+    force_nonce = fields.String(
+        metadata={
+            "description": "Forced-refresh idempotency token for a single-query "
+            "request: the async task's UUID (as returned in the 202 `task_ids`). "
+            "Sent on the synchronous read-back of a forced refresh so it reads the "
+            "result the task warmed instead of recomputing; concurrent refreshes "
+            "joining the same shared task read back under the same token. Multi-query "
+            "requests set the per-query `force_nonce` on each query instead. Ignored "
+            "when `force` is false."
+        },
+        required=False,
+        allow_none=True,
+    )
+
     result_type = fields.Enum(ChartDataResultType, by_value=True)
-    result_format = fields.Enum(ChartDataResultFormat, by_value=True)
+    result_format = fields.Enum(
+        ChartDataResultFormat,
+        by_value=True,
+        # Arrow is served only by the datasource query endpoint;
+        # ``_send_chart_response`` has no Arrow branch. Rejecting it here fails
+        # fast, rather than executing the query and only then returning
+        # "Unsupported result_format".
+        validate=NoneOf(
+            [ChartDataResultFormat.ARROW],
+            error=(
+                "result_format 'arrow' is not supported by this endpoint; use "
+                "POST /api/v1/datasource/<type>/<id>/query."
+            ),
+        ),
+    )
 
     form_data = fields.Raw(allow_none=True, required=False)
+
+    async_mode = fields.Boolean(
+        metadata={
+            "description": "Opt this request into asynchronous execution on the "
+            "Global Task Framework (requires the GLOBAL_ASYNC_QUERIES feature "
+            "flag). When true the response is HTTP 202 with the query task ids to "
+            "poll; when absent or false the query runs synchronously (HTTP 200). "
+            "Default: `false`."
+        },
+        required=False,
+        allow_none=True,
+    )
+
+    tab_id = fields.String(
+        metadata={
+            "description": "Opaque per-browser-tab id (see the frontend `getTabId`). "
+            "On an async request it ref-counts this tab as a consumer of the shared "
+            "chart-data task so a cancel/navigate-away from one tab doesn't abort a "
+            "task another tab still awaits. Read by the API as a request-level "
+            "routing hint; not part of the query context."
+        },
+        required=False,
+        allow_none=True,
+    )
 
     # pylint: disable=unused-argument
     @post_load
     def make_query_context(self, data: dict[str, Any], **kwargs: Any) -> QueryContext:
+        # ``async_mode`` and ``tab_id`` are request-level hints (read by the API to
+        # decide sync vs async and to route the per-tab subscription), not part of
+        # the QueryContext, so drop them before building one.
+        data.pop("async_mode", None)
+        data.pop("tab_id", None)
         query_context = self.get_query_context_factory().create(**data)
         return query_context
 
@@ -1523,6 +1741,26 @@ class AnnotationDataSchema(Schema):
         metadata={"description": "records mapping the column name to it's value"},
         required=True,
     )
+
+
+class ChartDataQueryTimingSchema(Schema):
+    """Schema for the versioned per-query timing phases."""
+
+    query_planning_ms = fields.Float(required=True, allow_none=True)
+    cache_resolution_ms = fields.Float(required=True, allow_none=True)
+    data_acquisition_ms = fields.Float(required=True, allow_none=True)
+    payload_assembly_ms = fields.Float(required=True, allow_none=True)
+    total_ms = fields.Float(required=True)
+
+
+class ChartDataTimingSchema(Schema):
+    """Schema for the versioned query lifecycle timing breakdown."""
+
+    version = fields.Integer(
+        required=True,
+        validate=validate.Equal(CHART_DATA_TIMING_VERSION),
+    )
+    query = fields.Nested(ChartDataQueryTimingSchema, required=True)
 
 
 class ChartDataResponseResult(Schema):
@@ -1636,6 +1874,17 @@ class ChartDataResponseResult(Schema):
         metadata={"description": "Warning message when results were truncated"},
         allow_none=True,
     )
+    timing = fields.Nested(
+        ChartDataTimingSchema,
+        metadata={
+            "description": (
+                "Optional versioned query lifecycle timing breakdown in milliseconds. "
+                "Present only when CHART_DATA_INCLUDE_TIMING is enabled; disabled by "
+                "default."
+            )
+        },
+        required=False,
+    )
 
 
 class DashboardFilterInfoSchema(Schema):
@@ -1693,25 +1942,32 @@ class ChartDataResponseSchema(Schema):
 
 
 class ChartDataAsyncResponseSchema(Schema):
-    channel_id = fields.String(
-        metadata={"description": "Unique session async channel ID"},
+    task_ids = fields.List(
+        fields.String(),
+        metadata={
+            "description": "UUIDs of the scheduled GTF tasks (one per QueryObject "
+            "that missed the cache), in query order. The client polls "
+            "`/api/v1/task/status_changes`, aggregates these tasks' statuses, and "
+            "re-issues this request once they all succeed."
+        },
         allow_none=False,
     )
-    job_id = fields.String(
-        metadata={"description": "Unique async job ID"},
+    cursor = fields.String(
+        metadata={
+            "description": "Status-changes recovery cursor captured before any task "
+            "was created. The client polls `/api/v1/task/status_changes` from it and "
+            "is guaranteed to observe each task's completion."
+        },
         allow_none=False,
     )
-    user_id = fields.String(
-        metadata={"description": "Requesting user ID"},
+    tab_id = fields.String(
+        metadata={
+            "description": "The per-client (e.g. browser-tab) id echoed back when the "
+            "caller advertised one, so a later cancel detaches exactly that client. "
+            "Absent when the caller supplied none."
+        },
+        required=False,
         allow_none=True,
-    )
-    status = fields.String(
-        metadata={"description": "Status value for async job"},
-        allow_none=False,
-    )
-    result_url = fields.String(
-        metadata={"description": "Unique result URL for fetching async query data"},
-        allow_none=False,
     )
 
 
@@ -1744,6 +2000,7 @@ class ImportV1ChartSchema(Schema):
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
     external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
     tags = fields.List(fields.String(), allow_none=True)
+    extra = fields.Dict(allow_none=True, load_only=True)
 
 
 class ChartCacheWarmUpRequestSchema(Schema):
@@ -1816,7 +2073,8 @@ class ChartGetResponseSchema(Schema):
     query_context = fields.String()
     is_managed_externally = fields.Boolean()
     tags = fields.Nested(TagSchema, many=True)
-    owners = fields.List(fields.Nested(UserSchema))
+    editors = fields.List(fields.Nested(SubjectResponseSchema))
+    viewers = fields.List(fields.Nested(SubjectResponseSchema))
     dashboards = fields.List(fields.Nested(DashboardSchema))
     uuid = fields.UUID()
     datasource_id = fields.Int()

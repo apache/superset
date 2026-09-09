@@ -32,8 +32,9 @@ import {
 } from '@apache-superset/core/theme';
 import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
+import initPreamble from 'src/preamble';
+import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import setupClient from 'src/setup/setupClient';
-import setupPlugins from 'src/setup/setupPlugins';
 import { useUiConfig } from 'src/components/UiConfigContext';
 import { store, USER_LOADED } from 'src/views/store';
 import { Loading } from '@superset-ui/core/components';
@@ -41,7 +42,6 @@ import { ErrorBoundary } from 'src/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import {
   EmbeddedContextProviders,
   getThemeController,
@@ -49,9 +49,50 @@ import {
 import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
 import { validateMessageEvent } from './originValidation';
+import {
+  measureGuestToken,
+  guestAuthenticationMessage,
+  GuestTokenSize,
+} from './guestTokenDiagnostics';
 
-setupPlugins();
-setupCodeOverrides({ embedded: true });
+// Defer plugin setup until after the language pack loads to prevent t() calls in
+// plugin control panel configs from being cached in English before translations are ready.
+// Dynamic imports (webpackMode: "eager") keep modules in the same bundle chunk but defer
+// their evaluation until after initPreamble() resolves, so module-level t() calls in plugin
+// control panels and setup code run only after translations are available.
+function loadPlugins() {
+  return initPreamble()
+    .catch(err => {
+      logging.warn(
+        'Preamble initialization failed, loading plugins without translations.',
+        err,
+      );
+    })
+    .then(async () => {
+      const [{ default: setupPlugins }, { default: setupCodeOverrides }] =
+        await Promise.all([
+          import(/* webpackMode: "eager" */ 'src/setup/setupPlugins'),
+          import(/* webpackMode: "eager" */ 'src/setup/setupCodeOverrides'),
+        ]);
+      setupPlugins();
+      setupCodeOverrides({ embedded: true });
+      setupAGGridModules();
+    });
+}
+
+// Kick off plugin setup and attach a no-op rejection handler. If the promise
+// settles before start() attaches its own handler, this keeps it from surfacing
+// as an unhandled-rejection warning; start() still handles the rejection itself.
+function schedulePlugins() {
+  const promise = loadPlugins();
+  promise.catch(() => {});
+  return promise;
+}
+
+// Kick off plugin setup eagerly at module load so it overlaps the handshake.
+// If it rejects, start() recreates the promise so a retry can re-run setup
+// instead of chaining off a permanently rejected promise.
+let pluginsReady = schedulePlugins();
 
 const debugMode = process.env.WEBPACK_MODE === 'development';
 const bootstrapData = getBootstrapData();
@@ -141,6 +182,7 @@ if (!window.parent || window.parent === window) {
 let displayedUnauthorizedToast = false;
 let root: Root | null = null;
 let started = false;
+let guestTokenSize: GuestTokenSize | undefined;
 
 /**
  * If there is a problem with the guest token, we will start getting
@@ -172,30 +214,49 @@ function start() {
     method: 'GET',
     endpoint: '/api/v1/me/roles/',
   });
-  return getMeWithRole().then(
-    ({ result }) => {
-      // fill in some missing bootstrap data
-      // (because at pageload, we don't have any auth yet)
-      // this allows the frontend's permissions checks to work.
-      bootstrapData.user = result;
-      store.dispatch({
-        type: USER_LOADED,
-        user: result,
-      });
-      if (!root) {
-        root = createRoot(appMountPoint);
-      }
-      root.render(<EmbeddedApp />);
+  return pluginsReady.then(
+    () => {
+      // Snapshot at dispatch, not at handshake: plugin loading can overlap refresh.
+      const requestTokenSize = guestTokenSize;
+      return getMeWithRole().then(
+        ({ result }) => {
+          // fill in some missing bootstrap data
+          // (because at pageload, we don't have any auth yet)
+          // this allows the frontend's permissions checks to work.
+          bootstrapData.user = result;
+          store.dispatch({
+            type: USER_LOADED,
+            user: result,
+          });
+          if (!root) {
+            root = createRoot(appMountPoint);
+          }
+          root.render(<EmbeddedApp />);
+        },
+        (error: unknown) => {
+          // something is most likely wrong with the guest token; reset the guard
+          // so a rehandshake with a valid token can retry.
+          // A refresh while the request is in flight makes attribution ambiguous.
+          const size =
+            requestTokenSize === guestTokenSize ? requestTokenSize : undefined;
+          logging.error('Embedded authentication failed', size);
+          showFailureMessage(guestAuthenticationMessage(size, error));
+          started = false;
+        },
+      );
     },
     err => {
-      // something is most likely wrong with the guest token; reset the guard
-      // so a rehandshake with a valid token can retry.
+      // setupPlugins() or setupCodeOverrides() threw while preparing plugins;
+      // reset the guard and recreate pluginsReady so a retry actually re-runs
+      // plugin setup instead of chaining off this rejected promise and leaving
+      // the dashboard stuck in a failed state.
       logging.error(err);
       showFailureMessage(
         t(
-          'Something went wrong with embedded authentication. Check the dev console for details.',
+          'Something went wrong loading the dashboard. Check the dev console for details.',
         ),
       );
+      pluginsReady = schedulePlugins();
       started = false;
     },
   );
@@ -205,6 +266,17 @@ function start() {
  * Configures SupersetClient with the correct settings for the embedded dashboard page.
  */
 function setupGuestClient(guestToken: string) {
+  guestTokenSize = measureGuestToken(
+    guestToken,
+    bootstrapData.config?.GUEST_TOKEN_HEADER_NAME,
+    bootstrapData.config?.GUEST_TOKEN_HEADER_MAX_BYTES,
+  );
+  if (guestTokenSize.headerBudgetExceeded) {
+    logging.warn(
+      'Guest token exceeds configured request-header budget',
+      guestTokenSize,
+    );
+  }
   setupClient({
     appRoot: applicationRoot(),
     guestToken,
@@ -215,18 +287,19 @@ function setupGuestClient(guestToken: string) {
 
 window.addEventListener('message', function embeddedPageInitializer(event) {
   if (!validateMessageEvent(event, bootstrapData.embedded?.allowed_domains)) {
-    log('ignoring message unrelated to embedded comms', event);
+    log('ignoring message unrelated to embedded comms');
     return;
   }
 
   const port = event.ports?.[0];
   if (event.data.handshake === 'port transfer' && port) {
-    log('message port received', event);
+    log('message port received');
 
     Switchboard.init({
       port,
       name: 'superset',
-      debug: debugMode,
+      // Switchboard debug logs message bodies, including guest-token credentials.
+      debug: false,
     });
 
     Switchboard.defineMethod(
@@ -245,6 +318,7 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
     Switchboard.defineMethod('getActiveTabs', embeddedApi.getActiveTabs);
     Switchboard.defineMethod('getDataMask', embeddedApi.getDataMask);
     Switchboard.defineMethod('getChartStates', embeddedApi.getChartStates);
+    Switchboard.defineMethod('setDataMask', embeddedApi.setDataMask);
     Switchboard.defineMethod(
       'getChartDataPayloads',
       embeddedApi.getChartDataPayloads,

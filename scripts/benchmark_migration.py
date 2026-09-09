@@ -153,10 +153,11 @@ def main(  # noqa: C901
         )
 
     print(f"Migration goes from {down_revision} to {revision}")
-    current_revision = db.engine.execute(
-        text("SELECT version_num FROM alembic_version")
-    ).scalar()
-    print(f"Current version of the DB is {current_revision}")
+    with db.engine.connect() as conn:
+        current_revision = conn.execute(
+            text("SELECT version_num FROM alembic_version")
+        ).scalar()
+        print(f"Current version of the DB is {current_revision}")
 
     if current_revision != down_revision:
         if not force:

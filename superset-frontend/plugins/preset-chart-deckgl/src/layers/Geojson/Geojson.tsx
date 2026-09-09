@@ -38,7 +38,6 @@ import {
   DeckGLContainerStyledWrapper,
 } from '../../DeckGLContainer';
 import { hexToRGB } from '../../utils/colors';
-import sandboxedEval from '../../utils/sandbox';
 import { commonLayerProps } from '../common';
 import TooltipRow from '../../TooltipRow';
 import fitViewport, { Viewport } from '../../utils/fitViewport';
@@ -146,52 +145,6 @@ const getFillColor = (feature: JsonObject, filterStateValue: unknown[]) => {
 };
 const getLineColor = (feature: JsonObject) => feature?.properties?.strokeColor;
 
-const isObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-export const computeGeoJsonTextOptionsFromJsOutput = (
-  output: unknown,
-): Partial<GeoJsonLayerProps> => {
-  if (!isObject(output)) return {};
-
-  // Properties sourced from:
-  // https://deck.gl/docs/api-reference/layers/geojson-layer#pointtype-options-2
-  const options: (keyof GeoJsonLayerProps)[] = [
-    'getText',
-    'getTextColor',
-    'getTextAngle',
-    'getTextSize',
-    'getTextAnchor',
-    'getTextAlignmentBaseline',
-    'getTextPixelOffset',
-    'getTextBackgroundColor',
-    'getTextBorderColor',
-    'getTextBorderWidth',
-    'textSizeUnits',
-    'textSizeScale',
-    'textSizeMinPixels',
-    'textSizeMaxPixels',
-    'textCharacterSet',
-    'textFontFamily',
-    'textFontWeight',
-    'textLineHeight',
-    'textMaxWidth',
-    'textWordBreak',
-    'textBackground',
-    'textBackgroundPadding',
-    'textOutlineColor',
-    'textOutlineWidth',
-    'textBillboard',
-    'textFontSettings',
-  ];
-
-  const allEntries = Object.entries(output);
-  const validEntries = allEntries.filter(([k]) =>
-    options.includes(k as keyof GeoJsonLayerProps),
-  );
-  return Object.fromEntries(validEntries);
-};
-
 export const computeGeoJsonTextOptionsFromFormData = (
   fd: SqlaFormData,
 ): Partial<GeoJsonLayerProps> => {
@@ -203,36 +156,6 @@ export const computeGeoJsonTextOptionsFromFormData = (
     getTextSize: parseInt(fd.label_size, 10),
     textSizeUnits: fd.label_size_unit,
   };
-};
-
-export const computeGeoJsonIconOptionsFromJsOutput = (
-  output: unknown,
-): Partial<GeoJsonLayerProps> => {
-  if (!isObject(output)) return {};
-
-  // Properties sourced from:
-  // https://deck.gl/docs/api-reference/layers/geojson-layer#pointtype-options-1
-  const options: (keyof GeoJsonLayerProps)[] = [
-    'getIcon',
-    'getIconSize',
-    'getIconColor',
-    'getIconAngle',
-    'getIconPixelOffset',
-    'iconSizeUnits',
-    'iconSizeScale',
-    'iconSizeMinPixels',
-    'iconSizeMaxPixels',
-    'iconAtlas',
-    'iconMapping',
-    'iconBillboard',
-    'iconAlphaCutoff',
-  ];
-
-  const allEntries = Object.entries(output);
-  const validEntries = allEntries.filter(([k]) =>
-    options.includes(k as keyof GeoJsonLayerProps),
-  );
-  return Object.fromEntries(validEntries);
 };
 
 export const computeGeoJsonIconOptionsFromFormData = (
@@ -288,13 +211,6 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
   features = [];
   recurseGeoJson(payload.data, propOverrides);
 
-  let processedFeatures = features;
-  if (fd.js_data_mutator) {
-    // Applying user defined data mutator if defined
-    const jsFnMutator = sandboxedEval(fd.js_data_mutator);
-    processedFeatures = jsFnMutator(features) as ProcessedFeature[];
-  }
-
   let pointType = 'circle';
   if (fd.enable_labels) {
     pointType = `${pointType}+text`;
@@ -303,33 +219,17 @@ export const getLayer: GetLayerType<GeoJsonLayer> = function ({
     pointType = `${pointType}+icon`;
   }
 
-  let labelOpts: Partial<GeoJsonLayerProps> = {};
-  if (fd.enable_labels) {
-    if (fd.enable_label_javascript_mode) {
-      const generator = sandboxedEval(fd.label_javascript_config_generator);
-      if (typeof generator === 'function') {
-        labelOpts = computeGeoJsonTextOptionsFromJsOutput(generator());
-      }
-    } else {
-      labelOpts = computeGeoJsonTextOptionsFromFormData(fd);
-    }
-  }
+  const labelOpts: Partial<GeoJsonLayerProps> = fd.enable_labels
+    ? computeGeoJsonTextOptionsFromFormData(fd)
+    : {};
 
-  let iconOpts: Partial<GeoJsonLayerProps> = {};
-  if (fd.enable_icons) {
-    if (fd.enable_icon_javascript_mode) {
-      const generator = sandboxedEval(fd.icon_javascript_config_generator);
-      if (typeof generator === 'function') {
-        iconOpts = computeGeoJsonIconOptionsFromJsOutput(generator());
-      }
-    } else {
-      iconOpts = computeGeoJsonIconOptionsFromFormData(fd);
-    }
-  }
+  const iconOpts: Partial<GeoJsonLayerProps> = fd.enable_icons
+    ? computeGeoJsonIconOptionsFromFormData(fd)
+    : {};
 
   return new GeoJsonLayer({
     id: `geojson-layer-${fd.slice_id}` as const,
-    data: processedFeatures,
+    data: features,
     extruded: fd.extruded,
     filled: fd.filled,
     stroked: fd.stroked,

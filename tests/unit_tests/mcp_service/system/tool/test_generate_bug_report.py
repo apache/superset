@@ -233,7 +233,7 @@ class TestGenerateBugReportViaMCP:
                             "error_message": (
                                 "Failed talking to 10.0.0.7, "
                                 "token was Bearer abc.def-ghi, "
-                                "owner alice@example.com"
+                                "editor alice@example.com"
                             ),
                             "llm_used": "Claude Sonnet 4.6",
                             "steps_to_reproduce": "Ran generate_chart on dataset 5",

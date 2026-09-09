@@ -231,6 +231,56 @@ describe('BigNumberTotal transformProps', () => {
     expect(result.headerFormatter(500)).toBe('$500');
   });
 
+  test('should pass through non-numeric raw string when parseMetricValue returns null (e.g. VARCHAR MAX)', () => {
+    const { parseMetricValue } = jest.requireMock('../utils');
+    parseMetricValue.mockReturnValueOnce(null);
+
+    const chartProps = {
+      width: 400,
+      height: 300,
+      queriesData: [
+        {
+          data: [{ value: 'some-varchar-result' }],
+          coltypes: [GenericDataType.String],
+        },
+      ],
+      formData: baseFormData,
+      rawFormData: baseRawFormData,
+      hooks: baseHooks,
+      datasource: baseDatasource,
+    };
+
+    const result = transformProps(
+      chartProps as unknown as BigNumberTotalChartProps,
+    );
+    expect(result.bigNumber).toBe('some-varchar-result');
+  });
+
+  test('should pass through numeric-looking VARCHAR string literally (e.g. "123")', () => {
+    const { parseMetricValue } = jest.requireMock('../utils');
+    parseMetricValue.mockReturnValueOnce(null);
+
+    const chartProps = {
+      width: 400,
+      height: 300,
+      queriesData: [
+        {
+          data: [{ value: '123' }],
+          coltypes: [GenericDataType.String],
+        },
+      ],
+      formData: baseFormData,
+      rawFormData: baseRawFormData,
+      hooks: baseHooks,
+      datasource: baseDatasource,
+    };
+
+    const result = transformProps(
+      chartProps as unknown as BigNumberTotalChartProps,
+    );
+    expect(result.bigNumber).toBe('123');
+  });
+
   test('should propagate colorThresholdFormatters from getColorFormatters', () => {
     // Override the getColorFormatters mock to return specific value
     const mockFormatters = [{ formatter: 'red' }];

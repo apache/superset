@@ -18,7 +18,14 @@
 import pandas as pd
 from flask_babel import gettext as __
 
+from superset.reports.models import ReportRecipients
 from superset.reports.notifications.base import NotificationContent
+from superset.reports.notifications.exceptions import NotificationParamException
+from superset.utils import json
+from superset.utils.slack import (
+    NO_SLACK_RECIPIENTS_MESSAGE,
+    parse_slack_recipient_targets,
+)
 
 # Slack only allows Markdown messages up to 4k chars
 MAXIMUM_MESSAGE_SIZE = 4000
@@ -26,13 +33,28 @@ MAXIMUM_MESSAGE_SIZE = 4000
 
 # pylint: disable=too-few-public-methods
 class SlackMixin:
+    _recipient: ReportRecipients
+
+    def _get_channels(self) -> list[str]:
+        """Return normalized Slack targets without duplicates."""
+        try:
+            recipient_str = json.loads(self._recipient.recipient_config_json)["target"]
+        except (KeyError, TypeError, ValueError) as ex:
+            raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE) from ex
+
+        if not isinstance(recipient_str, str):
+            raise NotificationParamException(NO_SLACK_RECIPIENTS_MESSAGE)
+
+        return parse_slack_recipient_targets(recipient_str)
+
     def _message_template(
         self,
         content: NotificationContent,
         table: str = "",
     ) -> str:
-        return __(
-            """*%(name)s*
+        if content.include_cta:
+            return __(
+                """*%(name)s*
 
 %(description)s
 
@@ -40,14 +62,64 @@ class SlackMixin:
 
 %(table)s
 """,
+                name=content.name,
+                description=content.description or "",
+                url=content.url,
+                table=table,
+            )
+        return __(
+            """*%(name)s*
+
+%(description)s
+
+%(table)s
+""",
             name=content.name,
             description=content.description or "",
-            url=content.url,
             table=table,
         )
 
     @staticmethod
-    def _error_template(name: str, description: str, text: str) -> str:
+    def _error_template(
+        name: str,
+        description: str,
+        text: str,
+        retry_attempt: int | None = None,
+        retry_max_attempts: int | None = None,
+    ) -> str:
+        if retry_attempt is not None:
+            retries_remaining = (retry_max_attempts or 0) - retry_attempt
+            return __(
+                """*Report Retry [%(attempt)s of %(max)s]: %(name)s*
+
+%(description)s
+
+Retry attempt: %(attempt)s of %(max)s  |  Retries remaining: %(remaining)s
+
+Error: %(text)s
+""",
+                name=name,
+                description=description,
+                attempt=retry_attempt,
+                max=retry_max_attempts,
+                remaining=retries_remaining,
+                text=text,
+            )
+        if retry_max_attempts is not None:
+            return __(
+                """*Report Failed - All Retries Exhausted: %(name)s*
+
+%(description)s
+
+The report failed after %(max)s retry attempts.
+
+Error: %(text)s
+""",
+                name=name,
+                description=description,
+                max=retry_max_attempts,
+                text=text,
+            )
         return __(
             """*%(name)s*
 
@@ -63,7 +135,11 @@ class SlackMixin:
     def _get_body(self, content: NotificationContent) -> str:
         if content.text:
             return self._error_template(
-                content.name, content.description or "", content.text
+                content.name,
+                content.description or "",
+                content.text,
+                retry_attempt=content.retry_attempt,
+                retry_max_attempts=content.retry_max_attempts,
             )
 
         if content.embedded_data is None:

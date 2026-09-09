@@ -33,7 +33,7 @@ import {
   validateNonEmpty,
   QueryFormColumn,
 } from '@superset-ui/core';
-import { MetricsLayoutEnum } from '../types';
+import { MetricsLayoutEnum, ShowValuesAsEnum } from '../types';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -128,7 +128,12 @@ const config: ControlPanelConfig = {
             config: {
               ...sharedControls.row_limit,
               label: t('Cell limit'),
-              description: t('Limits the number of cells that get retrieved.'),
+              description: t(
+                'Limits the number of cells that get retrieved. Not applied when ' +
+                  'non-additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) ' +
+                  'are present, since totals and subtotals are then computed via a ' +
+                  'database rollup query that must see every row to stay correct.',
+              ),
             },
           },
         ],
@@ -163,44 +168,6 @@ const config: ControlPanelConfig = {
       expanded: true,
       tabOverride: 'data',
       controlSetRows: [
-        [
-          {
-            name: 'aggregateFunction',
-            config: {
-              type: 'SelectControl',
-              label: t('Aggregation function'),
-              clearable: false,
-              choices: [
-                ['Count', t('Count')],
-                ['Count Unique Values', t('Count Unique Values')],
-                ['List Unique Values', t('List Unique Values')],
-                ['Sum', t('Sum')],
-                ['Average', t('Average')],
-                ['Median', t('Median')],
-                ['Sample Variance', t('Sample Variance')],
-                ['Sample Standard Deviation', t('Sample Standard Deviation')],
-                ['Minimum', t('Minimum')],
-                ['Maximum', t('Maximum')],
-                ['First', t('First')],
-                ['Last', t('Last')],
-                ['Sum as Fraction of Total', t('Sum as Fraction of Total')],
-                ['Sum as Fraction of Rows', t('Sum as Fraction of Rows')],
-                ['Sum as Fraction of Columns', t('Sum as Fraction of Columns')],
-                ['Count as Fraction of Total', t('Count as Fraction of Total')],
-                ['Count as Fraction of Rows', t('Count as Fraction of Rows')],
-                [
-                  'Count as Fraction of Columns',
-                  t('Count as Fraction of Columns'),
-                ],
-              ],
-              default: 'Sum',
-              description: t(
-                'Aggregate function to apply when pivoting and computing the total rows and columns',
-              ),
-              renderTrigger: true,
-            },
-          },
-        ],
         [
           {
             name: 'rowTotals',
@@ -273,6 +240,32 @@ const config: ControlPanelConfig = {
                   'opposed to each column being displayed side by side for each metric.',
               ),
               renderTrigger: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'showValuesAs',
+            config: {
+              type: 'SelectControl',
+              label: t('Show values as'),
+              default: ShowValuesAsEnum.ACTUAL,
+              // Not a renderTrigger: for non-additive metrics, a percent choice
+              // here can require a rollup level (see `buildGroupbyCombinations`)
+              // that a prior query never fetched, so switching it needs a real
+              // requery rather than a client-side-only re-render.
+              choices: [
+                [ShowValuesAsEnum.ACTUAL, t('Actual values')],
+                [ShowValuesAsEnum.PERCENT_OF_ROW, t('% of row total')],
+                [ShowValuesAsEnum.PERCENT_OF_COLUMN, t('% of column total')],
+                [ShowValuesAsEnum.PERCENT_OF_TOTAL, t('% of grand total')],
+              ],
+              description: t(
+                'Display each cell as a percentage of its row, column, or ' +
+                  'grand total, instead of its actual value. Totals and ' +
+                  'subtotals are still computed correctly first; this only ' +
+                  'changes how they are displayed.',
+              ),
             },
           },
         ],

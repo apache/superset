@@ -53,6 +53,11 @@ class DruidEngineSpec(BaseEngineSpec):
     type_probe_needs_row = True
     requires_column_value_normalization = True
 
+    encrypted_extra_sensitive_fields = {
+        "$.connect_args.jwt": "JWT Token",
+        "$.connect_args.password": "Password",
+    }
+
     metadata = {
         "description": (
             "Apache Druid is a high performance real-time analytics database."

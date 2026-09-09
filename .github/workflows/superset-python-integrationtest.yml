@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   changes:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -29,19 +29,19 @@ jobs:
       python: ${{ steps.check.outputs.python }}
     steps:
       - name: Checkout
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Check for file changes
         id: check
-        uses: ./.github/actions/change-detector/
+        uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
   test-mysql:
     needs: changes
     if: needs.changes.outputs.python == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
       id-token: write
@@ -53,9 +53,7 @@ jobs:
         mysql+mysqldb://superset:superset@127.0.0.1:13306/superset?charset=utf8mb4&binary_prefix=true
     services:
       mysql:
-        image: mysql:8.0
-        # Authenticated pulls use our higher Docker Hub rate limit. Empty on
-        # fork PRs (secrets unavailable) -> runner falls back to anonymous.
+        image: ghcr.io/apache/superset/ci/mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
         ports:
@@ -66,20 +64,26 @@ jobs:
           --health-timeout=5s
           --health-retries=5
       redis:
-        image: redis:7-alpine
+        image: ghcr.io/apache/superset/ci/redis:7-alpine
         options: --entrypoint redis-server
         ports:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           submodules: recursive
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
       - name: Setup MySQL
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a git submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's gitlink. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: setup-mysql
       - name: Start Celery worker
@@ -127,7 +131,7 @@ jobs:
   test-postgres:
     needs: changes
     if: needs.changes.outputs.python == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
       id-token: write
@@ -135,7 +139,7 @@ jobs:
       matrix:
         # Full version spread on push (master/release) + nightly; current only
         # on PRs to cut runner cost (cross-version breaks are caught at merge).
-        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["current", "previous", "next"]') }}
+        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["current", "next"]') }}
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -143,7 +147,7 @@ jobs:
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
     services:
       postgres:
-        image: postgres:17-alpine
+        image: ghcr.io/apache/superset/ci/postgres:17-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -152,12 +156,12 @@ jobs:
           # GitHub action runner's default installations
           - 15432:5432
       redis:
-        image: redis:7-alpine
+        image: ghcr.io/apache/superset/ci/redis:7-alpine
         ports:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           submodules: recursive
@@ -188,7 +192,7 @@ jobs:
   test-sqlite:
     needs: changes
     if: needs.changes.outputs.python == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
       id-token: write
@@ -202,19 +206,25 @@ jobs:
         sqlite:///${{ github.workspace }}/.temp/examples.db?check_same_thread=true
     services:
       redis:
-        image: redis:7-alpine
+        image: ghcr.io/apache/superset/ci/redis:7-alpine
         ports:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           submodules: recursive
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
       - name: Install dependencies
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a git submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's gitlink. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: |
             # sqlite needs this working directory
@@ -243,7 +253,7 @@ jobs:
   test-postgres-required:
     needs: [changes, test-postgres]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - name: Check test-postgres result
@@ -255,3 +265,14 @@ jobs:
             exit 1
           fi
           echo "test-postgres result: $RESULT"
+
+  actions-timeline:
+    needs: [test-mysql, test-postgres, test-sqlite, test-postgres-required]
+    if: always()
+    runs-on: ubuntu-slim
+    permissions:
+      actions: read
+    steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
+        with:
+          expand-composite-actions: true

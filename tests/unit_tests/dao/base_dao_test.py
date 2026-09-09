@@ -23,8 +23,8 @@ from unittest.mock import Mock, patch
 
 import pytest
 from sqlalchemy import Boolean, Column, Integer, String
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.exc import OperationalError, SQLAlchemyError, StatementError
+from sqlalchemy.orm import declarative_base
 from superset_core.common.models import CoreModel
 
 from superset.daos.base import BaseDAO, ColumnOperatorEnum
@@ -260,6 +260,129 @@ def test_find_by_ids_none_id_column():
         assert results == []
 
 
+def _make_operational_error() -> OperationalError:
+    """Build an OperationalError resembling a transient connection drop."""
+    return OperationalError(
+        "SELECT 1",
+        {},
+        Exception("SSL connection has been closed unexpectedly"),
+    )
+
+
+def test_find_by_ids_operational_error_propagates():
+    """A transient OperationalError from query.all() must propagate as itself,
+    not be masked as a 400 DAOFindFailedError ("record doesn't exist")."""
+
+    with (
+        patch("superset.daos.base.db") as mock_db,
+        patch("superset.daos.base.getattr") as mock_getattr,
+    ):
+        mock_session = Mock()
+        mock_db.session = mock_session
+
+        mock_id_col = Mock()
+        mock_id_col.in_.return_value = Mock()
+        mock_getattr.return_value = mock_id_col
+
+        mock_query = Mock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.all.side_effect = _make_operational_error()
+
+        with pytest.raises(OperationalError):
+            TestDAO.find_by_ids([1, 2])
+
+
+def test_find_by_id_or_uuid_operational_error_propagates():
+    """find_by_id_or_uuid catches StatementError to absorb coercion errors;
+    an OperationalError (a StatementError subclass) must still propagate."""
+
+    with (
+        patch("superset.daos.base.db") as mock_db,
+        patch("superset.daos.base.getattr") as mock_getattr,
+    ):
+        mock_session = Mock()
+        mock_db.session = mock_session
+        mock_getattr.return_value = Mock()
+
+        mock_query = Mock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.one_or_none.side_effect = _make_operational_error()
+
+        with pytest.raises(OperationalError):
+            TestDAO.find_by_id_or_uuid("1")
+
+
+def test_find_by_id_or_uuid_statement_error_still_returns_none():
+    """A genuine coercion StatementError is still absorbed as None (unchanged)."""
+
+    with (
+        patch("superset.daos.base.db") as mock_db,
+        patch("superset.daos.base.getattr") as mock_getattr,
+    ):
+        mock_session = Mock()
+        mock_db.session = mock_session
+        mock_getattr.return_value = Mock()
+
+        mock_query = Mock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.one_or_none.side_effect = StatementError(
+            "invalid input", "SELECT 1", {}, Exception("coercion")
+        )
+
+        assert TestDAO.find_by_id_or_uuid("not-a-uuid") is None
+
+
+def test_find_by_column_operational_error_propagates():
+    """_find_by_column catches StatementError to absorb coercion errors;
+    an OperationalError (a StatementError subclass) must still propagate."""
+
+    with (
+        patch("superset.daos.base.db") as mock_db,
+        patch("superset.daos.base.getattr") as mock_getattr,
+        patch("superset.daos.base.hasattr", return_value=True),
+        patch.object(TestDAO, "_apply_base_filter", side_effect=lambda q, *a, **k: q),
+        patch.object(TestDAO, "_convert_value_for_column", return_value="value"),
+    ):
+        mock_session = Mock()
+        mock_db.session = mock_session
+        mock_getattr.return_value = Mock()
+
+        mock_query = Mock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.one_or_none.side_effect = _make_operational_error()
+
+        with pytest.raises(OperationalError):
+            TestDAO._find_by_column("name", "test")
+
+
+def test_find_by_column_statement_error_still_returns_none():
+    """A genuine coercion StatementError is still absorbed as None (unchanged)."""
+
+    with (
+        patch("superset.daos.base.db") as mock_db,
+        patch("superset.daos.base.getattr") as mock_getattr,
+        patch("superset.daos.base.hasattr", return_value=True),
+        patch.object(TestDAO, "_apply_base_filter", side_effect=lambda q, *a, **k: q),
+        patch.object(TestDAO, "_convert_value_for_column", return_value="value"),
+    ):
+        mock_session = Mock()
+        mock_db.session = mock_session
+        mock_getattr.return_value = Mock()
+
+        mock_query = Mock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.one_or_none.side_effect = StatementError(
+            "invalid input", "SELECT 1", {}, Exception("coercion")
+        )
+
+        assert TestDAO._find_by_column("name", "test") is None
+
+
 def _list_with_page_size(page_size: int) -> Mock:
     """
     Run ``BaseDAO.list`` with a mocked query chain and return the mock query so
@@ -309,3 +432,67 @@ def test_list_page_size_below_one_is_floored():
     mock_query = _list_with_page_size(0)
 
     mock_query.limit.assert_called_once_with(1)
+
+
+def test_like_operators_none_value_matches_no_rows() -> None:
+    """A ``None`` value on a LIKE-family operator must match no rows.
+
+    Mirrors SQL three-valued logic (``x LIKE NULL`` is NULL). The failure
+    modes this pins against: raising ``AttributeError`` (``None`` has no
+    ``.replace``) and, worse, coercing ``None`` to ``""`` — which builds a
+    wildcard-only pattern (``%%``/``%``) that silently matches every row.
+    """
+    Base_test = declarative_base()  # noqa: N806
+
+    class NoneValueModel(Base_test):  # type: ignore
+        __tablename__ = "none_value_model"
+        id = Column(Integer, primary_key=True)
+        name = Column(String(50))
+
+    like_family = [
+        ColumnOperatorEnum.sw,
+        ColumnOperatorEnum.ew,
+        ColumnOperatorEnum.ct,
+        ColumnOperatorEnum.like,
+        ColumnOperatorEnum.ilike,
+    ]
+    for operator in like_family:
+        clause = operator.apply(NoneValueModel.name, None)
+        sql = str(clause.compile(compile_kwargs={"literal_binds": True}))
+        assert sql.strip().lower() == "false", (
+            f"{operator.name} with None should compile to a no-match clause, "
+            f"got: {sql!r}"
+        )
+        assert "%" not in sql, (
+            f"{operator.name} with None must not build a wildcard pattern "
+            f"(would match every row): {sql!r}"
+        )
+
+
+def test_like_operators_non_string_value_matches_literally() -> None:
+    """Non-string scalars (e.g. numeric JSON payloads) degrade to a literal
+    match instead of raising ``AttributeError``."""
+    Base_test = declarative_base()  # noqa: N806
+
+    class NumericValueModel(Base_test):  # type: ignore
+        __tablename__ = "numeric_value_model"
+        id = Column(Integer, primary_key=True)
+        name = Column(String(50))
+
+    clause = ColumnOperatorEnum.ct.apply(NumericValueModel.name, 123)
+    sql = str(clause.compile(compile_kwargs={"literal_binds": True}))
+    assert "'%123%'" in sql
+
+
+def test_like_operators_escape_wildcards_in_value() -> None:
+    """User-supplied ``%``/``_`` are escaped, not treated as wildcards."""
+    Base_test = declarative_base()  # noqa: N806
+
+    class WildcardValueModel(Base_test):  # type: ignore
+        __tablename__ = "wildcard_value_model"
+        id = Column(Integer, primary_key=True)
+        name = Column(String(50))
+
+    clause = ColumnOperatorEnum.ct.apply(WildcardValueModel.name, "100%_done")
+    sql = str(clause.compile(compile_kwargs={"literal_binds": True}))
+    assert "100\\%\\_done" in sql

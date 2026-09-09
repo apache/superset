@@ -124,6 +124,53 @@ test('accepts an edited metric from an AdhocMetricEditPopover', async () => {
   ]);
 });
 
+test('only edits the targeted metric when two metrics share an optionName', async () => {
+  // A saved chart can carry two adhoc metrics with the same optionName (e.g.
+  // born from a duplicated metric). Editing one must not overwrite the other.
+  // Saved charts store metrics as plain dictionaries in form_data, so mirror
+  // that shape (not AdhocMetric instances) to exercise the real load path.
+  const sharedOptionName = 'metric_shared_option';
+  const { onChange } = setup({
+    value: [
+      {
+        expressionType: EXPRESSION_TYPES.SIMPLE,
+        column: valueColumn,
+        aggregate: AGGREGATES.SUM,
+        label: 'SUM(value)',
+        optionName: sharedOptionName,
+      },
+      {
+        expressionType: EXPRESSION_TYPES.SIMPLE,
+        column: valueColumn,
+        aggregate: AGGREGATES.AVG,
+        label: 'AVG(value)',
+        optionName: sharedOptionName,
+      },
+    ],
+  });
+
+  userEvent.click(screen.getByText('SUM(value)'));
+  await screen.findByText('aggregate');
+  await selectOption('MAX', 'Select aggregate options');
+  await screen.findByText('MAX(value)');
+  userEvent.click(screen.getByRole('button', { name: /save/i }));
+
+  // The edit must propagate to the targeted metric (SUM → MAX) while the
+  // untouched AVG(value) metric stays present and unchanged.
+  expect(onChange).toHaveBeenCalledWith(
+    expect.arrayContaining([
+      expect.objectContaining({
+        aggregate: AGGREGATES.MAX,
+        label: 'MAX(value)',
+      }),
+      expect.objectContaining({
+        aggregate: AGGREGATES.AVG,
+        label: 'AVG(value)',
+      }),
+    ]),
+  );
+});
+
 test('removes metrics if savedMetrics changes', async () => {
   setup({
     value: [sumValueAdhocMetric],

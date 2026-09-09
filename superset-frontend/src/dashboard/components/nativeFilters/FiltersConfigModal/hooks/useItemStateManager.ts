@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useCallback, useEffect } from 'react';
-import { uniq, isEmpty } from 'lodash';
+import { uniq, isEmpty } from 'lodash-es';
 import { FilterChangesType, FilterRemoval } from '../types';
 
 const DEFAULT_EMPTY_ARRAY: string[] = [];

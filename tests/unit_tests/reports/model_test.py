@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from superset.reports.models import ReportSchedule
+from superset.reports.models import ReportDataFormat, ReportSchedule
 
 
 def test_get_native_filters_params():
@@ -748,3 +748,10 @@ def test_generate_native_filter_time_empty_id():
     assert "" in result
     assert result[""]["id"] == ""
     assert warning is None
+
+
+def test_tabular_returns_csv_and_xlsx():
+    """
+    Test the ``tabular`` method.
+    """
+    assert ReportDataFormat.tabular() == {ReportDataFormat.CSV, ReportDataFormat.XLSX}

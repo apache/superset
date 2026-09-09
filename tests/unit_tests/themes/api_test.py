@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
-
 from superset.themes.api import ThemeRestApi
+from superset.themes.schemas import ThemePostSchema, ThemePutSchema
+from superset.utils import json
 
 
 class TestThemeRestApi:
@@ -104,8 +105,6 @@ class TestThemeRestApi:
 
     def test_custom_schemas_configured(self):
         """Test that custom schemas are properly configured"""
-        from superset.themes.schemas import ThemePostSchema, ThemePutSchema
-
         api = ThemeRestApi()
         assert isinstance(api.add_model_schema, ThemePostSchema)
         assert isinstance(api.edit_model_schema, ThemePutSchema)
@@ -121,3 +120,43 @@ class TestThemeRestApi:
         expected_new_fields = ["is_system", "uuid"]
         for field in expected_new_fields:
             assert field in ThemeRestApi.list_columns
+
+    def test_theme_post_schema_uses_sanitized_json_data(self):
+        """Test that sanitized theme JSON is written back during load."""
+        schema = ThemePostSchema()
+
+        result = schema.load(
+            {
+                "theme_name": "test_theme",
+                "json_data": json.dumps(
+                    {
+                        "token": {
+                            "brandSpinnerUrl": "javascript:alert('xss')",
+                            "colorPrimary": "#ff0000",
+                        }
+                    }
+                ),
+            }
+        )
+
+        assert json.loads(result["json_data"])["token"]["brandSpinnerUrl"] == ""
+
+    def test_theme_put_schema_uses_sanitized_json_data(self):
+        """Test that update schema also writes back sanitized theme JSON."""
+        schema = ThemePutSchema()
+
+        result = schema.load(
+            {
+                "theme_name": "test_theme",
+                "json_data": json.dumps(
+                    {
+                        "token": {
+                            "brandSpinnerUrl": "javascript:alert('xss')",
+                            "colorPrimary": "#ff0000",
+                        }
+                    }
+                ),
+            }
+        )
+
+        assert json.loads(result["json_data"])["token"]["brandSpinnerUrl"] == ""

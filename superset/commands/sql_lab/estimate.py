@@ -21,9 +21,11 @@ from typing import Any, TypedDict
 
 from flask import current_app as app
 from flask_babel import gettext as __
+from jinja2.exceptions import TemplateError
 
-from superset import db, is_feature_enabled, security_manager
+from superset import is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand
+from superset.daos.database import DatabaseDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     SupersetDisallowedSQLFunctionException,
@@ -34,9 +36,8 @@ from superset.exceptions import (
 )
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database
-from superset.models.sql_lab import Query
 from superset.sql.parse import SQLScript
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 from superset.utils.rls import apply_rls
 
 logger = logging.getLogger(__name__)
@@ -66,8 +67,10 @@ class QueryEstimationCommand(BaseCommand):
         self._catalog = params.get("catalog")
 
     def validate(self) -> None:
-        self._database = db.session.query(Database).get(self._database_id)
-        if not self._database:
+        # Load the database through the DAO so ``DatabaseFilter`` scopes
+        # visibility the same way it does on the SQL Lab execution path.
+        database = DatabaseDAO.find_by_id(self._database_id)
+        if not database:
             raise SupersetErrorException(
                 SupersetError(
                     message=__("The database could not be found"),
@@ -76,7 +79,17 @@ class QueryEstimationCommand(BaseCommand):
                 ),
                 status=404,
             )
-        security_manager.raise_for_access(database=self._database)
+        self._database = database
+        # Pass the SQL so table-level authorization runs, mirroring the SQL
+        # Lab execution path. Runs before Jinja templating in ``run()``.
+        security_manager.raise_for_access(
+            database=self._database,
+            sql=self._sql,
+            catalog=self._catalog,
+            schema=self._schema or None,
+            template_params=self._template_params,
+            force_dataset_match=True,
+        )
 
     def _apply_sql_security(self, sql: str) -> str:
         """Run the disallowed-function/table, DML and RLS controls against the
@@ -102,57 +115,43 @@ class QueryEstimationCommand(BaseCommand):
             db_engine_spec.engine,
             set(),
         )
-        if disallowed_tables and parsed_script.check_tables_present(disallowed_tables):
-            found_tables = set()
-            for statement in parsed_script.statements:
-                present = {table.table.lower() for table in statement.tables}
-                for table in disallowed_tables:
-                    if table.lower() in present:
-                        found_tables.add(table)
-            raise SupersetDisallowedSQLTableException(found_tables or disallowed_tables)
+        rls_enabled = is_feature_enabled("RLS_IN_SQLLAB")
+
+        # Resolve the effective per-query schema once, the same way the execution
+        # path does (``sql_lab.execute_sql_statements``), but only when a control
+        # below actually needs it. Going through ``get_default_schema_for_query``
+        # rather than the static ``get_default_schema`` runs engine-specific
+        # per-query security gates too — e.g. ``PostgresEngineSpec`` rejects a
+        # query that sets ``search_path`` — and resolves unqualified references to
+        # the schema the engine uses at runtime, so both the denylist check and
+        # RLS injection match the execution path exactly.
+        catalog: str | None = None
+        effective_schema = ""
+        if disallowed_tables or rls_enabled:
+            catalog = self._catalog or self._database.get_default_catalog()
+            resolved_schema = self._database.resolve_query_default_schema(
+                self._sql, self._schema, catalog, self._template_params
+            )
+            # An explicit schema still wins for matching/RLS targeting; otherwise
+            # fall back to the runtime-resolved default.
+            effective_schema = self._schema or resolved_schema or ""
+
+        if disallowed_tables:
+            # Honors schema-qualified denylist entries (e.g.
+            # ``information_schema.tables``) and reports only the tables
+            # actually referenced by the query.
+            found_tables = parsed_script.get_disallowed_tables(
+                disallowed_tables, effective_schema
+            )
+            if found_tables:
+                raise SupersetDisallowedSQLTableException(found_tables)
 
         if parsed_script.has_mutation() and not self._database.allow_dml:
             raise SupersetDMLNotAllowedException()
 
-        if is_feature_enabled("RLS_IN_SQLLAB"):
-            # Resolve the default catalog/schema the same way the execution path
-            # does (``sql_lab.execute_sql_statements``) before injecting RLS.
-            # Crucially this goes through ``get_default_schema_for_query`` rather
-            # than the plain ``get_default_schema``, so engine-specific per-query
-            # security gates run too — e.g. ``PostgresEngineSpec`` rejects a query
-            # that sets ``search_path``. Resolving against the static default
-            # schema instead would both skip that gate and let unqualified tables
-            # dodge the RLS predicates the real query enforces, defeating the
-            # security parity this command exists to provide.
-            catalog = self._catalog or self._database.get_default_catalog()
-            # Build a transient (unsaved) Query so the engine spec can resolve the
-            # effective per-query schema exactly as the executor does. Mirror the
-            # probe built in ``SupersetSecurityManager.raise_for_access``: set a
-            # ``client_id`` (the column is ``nullable=False``) and expunge it, so
-            # the ``database`` backref's ``cascade="all, delete-orphan"`` cannot
-            # autoflush this incomplete row into the session when ``apply_rls``
-            # issues its own ``db.session`` query below.
-            probe_query = Query(
-                database=self._database,
-                sql=self._sql,
-                schema=self._schema or None,
-                catalog=catalog,
-                client_id=utils.shortid()[:10],
-                user_id=utils.get_user_id(),
-            )
-            db.session.expunge(probe_query)
-            # Always resolve through ``get_default_schema_for_query`` — even when
-            # the caller pinned a schema — so the engine's per-query security gate
-            # runs (e.g. ``PostgresEngineSpec`` rejects a query that sets
-            # ``search_path``), exactly as the executor does unconditionally. Only
-            # the resulting value falls back to the resolved default; an explicit
-            # schema still wins for the RLS predicate target.
-            resolved_schema = self._database.get_default_schema_for_query(
-                probe_query, self._template_params
-            )
-            schema = self._schema or resolved_schema or ""
+        if rls_enabled:
             for statement in parsed_script.statements:
-                apply_rls(self._database, catalog, schema, statement)
+                apply_rls(self._database, catalog, effective_schema, statement)
             return parsed_script.format()
 
         return sql
@@ -164,8 +163,19 @@ class QueryEstimationCommand(BaseCommand):
 
         sql = self._sql
         if self._template_params:
+            # Access is already checked in validate() before any rendering.
             template_processor = get_template_processor(self._database)
-            sql = template_processor.process_template(sql, **self._template_params)
+            try:
+                sql = template_processor.process_template(sql, **self._template_params)
+            except TemplateError as ex:
+                raise SupersetErrorException(
+                    SupersetError(
+                        message=str(ex),
+                        error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                        level=ErrorLevel.ERROR,
+                    ),
+                    status=400,
+                ) from ex
 
         # Apply the same SQL security controls used by the execution path
         # (sql_lab.execute_sql_statements) so cost estimation cannot be used to
@@ -195,6 +205,18 @@ class QueryEstimationCommand(BaseCommand):
                         sqllab_timeout=app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"],
                     ),
                     error_type=SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                status=500,
+            ) from ex
+        except json.JSONDecodeError as ex:
+            logger.exception(ex)
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "Unable to parse the cost estimate returned by the database."
+                    ),
+                    error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
                     level=ErrorLevel.ERROR,
                 ),
                 status=500,

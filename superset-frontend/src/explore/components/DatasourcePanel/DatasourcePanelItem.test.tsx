@@ -16,18 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useDraggable } from '@dnd-kit/core';
 import {
   columns,
   metrics,
 } from 'src/explore/components/DatasourcePanel/fixtures';
 import { screen, userEvent, render } from 'spec/helpers/testing-library';
 import DatasourcePanelItem, {
-  DatasourcePanelItemProps,
+  DatasourcePanelItemRowProps,
 } from './DatasourcePanelItem';
 import { FoldersEditorItemType } from 'src/components/Datasource/types';
+import { DndItemType } from '../DndItemType';
 import { MetricItem, ColumnItem } from './types';
 
-const mockData: DatasourcePanelItemProps['data'] = {
+jest.mock('@dnd-kit/core', () => ({
+  ...jest.requireActual('@dnd-kit/core'),
+  useDraggable: jest.fn(),
+}));
+
+const mockUseDraggable = useDraggable as jest.Mock;
+const actualUseDraggable = jest.requireActual('@dnd-kit/core').useDraggable;
+
+const mockData: DatasourcePanelItemRowProps = {
   flattenedItems: [
     { type: 'header', depth: 0, folderId: '1', height: 50 },
     ...metrics.map((m, idx) => ({
@@ -82,14 +92,33 @@ const mockData: DatasourcePanelItemProps['data'] = {
   collapsedFolderIds: new Set(),
 };
 
-const setup = (data: DatasourcePanelItemProps['data'] = mockData) =>
+beforeEach(() => {
+  mockUseDraggable.mockReset();
+  mockUseDraggable.mockImplementation(actualUseDraggable);
+});
+
+const setup = (
+  data: DatasourcePanelItemRowProps = mockData,
+  initialState: Record<string, unknown> = { explore: {} },
+) =>
   render(
     <>
       {data.flattenedItems.map((_, index) => (
-        <DatasourcePanelItem index={index} data={data} style={{}} />
+        <DatasourcePanelItem
+          // eslint-disable-next-line react/no-array-index-key -- test fixture has no stable id
+          key={index}
+          index={index}
+          style={{}}
+          ariaAttributes={{
+            role: 'listitem',
+            'aria-posinset': index + 1,
+            'aria-setsize': data.flattenedItems.length,
+          }}
+          {...data}
+        />
       ))}
     </>,
-    { useDnd: true, useRedux: true, initialState: { explore: {} } },
+    { useDnd: true, useRedux: true, initialState },
   );
 
 test('renders each item accordingly', () => {
@@ -111,4 +140,60 @@ test('can collapse metrics and columns', () => {
   setup();
   userEvent.click(screen.getAllByRole('button')[0]);
   expect(mockData.onToggleCollapse).toHaveBeenCalled();
+});
+
+test('folder drag handle is a separate element from the collapse toggle', () => {
+  setup();
+
+  const toggleButtons = screen
+    .getAllByRole('button', { name: /Metrics/ })
+    .filter(el => el.tagName === 'BUTTON');
+  expect(toggleButtons).toHaveLength(1);
+  const [toggleButton] = toggleButtons;
+  const dragHandle = screen.getByRole('button', {
+    name: 'Drag Metrics folder',
+  });
+
+  expect(toggleButton).not.toBe(dragHandle);
+  expect(toggleButton.tagName).toBe('BUTTON');
+
+  userEvent.click(toggleButton);
+  expect(mockData.onToggleCollapse).toHaveBeenCalledWith('1');
+});
+
+test('folder drag payload excludes columns filtered out by compatibleDimensions', () => {
+  setup(mockData, {
+    explore: { compatibleDimensions: [columns[0].column_name] },
+  });
+
+  const folderHeaderCalls = mockUseDraggable.mock.calls.filter(
+    ([opts]) => opts.data.type === DndItemType.Folder,
+  );
+  const columnsFolderCall = folderHeaderCalls.find(
+    ([opts]) => opts.data.name === 'Columns',
+  );
+
+  expect(columnsFolderCall![0].data.items).toEqual([
+    expect.objectContaining({
+      type: DndItemType.Column,
+      value: expect.objectContaining({ column_name: columns[0].column_name }),
+    }),
+  ]);
+  expect(columnsFolderCall![0].disabled).toBe(false);
+});
+
+test('folder header is not draggable when every item is filtered out', () => {
+  setup(mockData, {
+    explore: { compatibleDimensions: ['non-existent-column'] },
+  });
+
+  const folderHeaderCalls = mockUseDraggable.mock.calls.filter(
+    ([opts]) => opts.data.type === DndItemType.Folder,
+  );
+  const columnsFolderCall = folderHeaderCalls.find(
+    ([opts]) => opts.data.name === 'Columns',
+  );
+
+  expect(columnsFolderCall![0].data.items).toEqual([]);
+  expect(columnsFolderCall![0].disabled).toBe(true);
 });

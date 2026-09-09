@@ -31,7 +31,6 @@ from flask import (
     render_template,
     request,
     Response,
-    send_file,
 )
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -131,7 +130,7 @@ from superset.utils.core import (
     error_msg_from_exception,
     get_username,
     parse_js_uri_path_item,
-    sanitize_cookie_token,
+    send_export_zip,
 )
 from superset.utils.decorators import transaction
 from superset.utils.oauth2 import decode_oauth2_state
@@ -144,7 +143,7 @@ from superset.views.base_api import (
     statsd_metrics,
 )
 from superset.views.error_handling import handle_api_exception, json_error_response
-from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
+from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
 
@@ -314,7 +313,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     """ Overrides GET methods OpenApi descriptions """
 
     related_field_filters = {
-        "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
+        "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
     }
     base_related_field_filters = {
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
@@ -358,7 +357,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         }
         try:
             if database and database.ssh_tunnel:
-                response["result"]["ssh_tunnel"] = database.ssh_tunnel.data
+                # Mask credential fields explicitly at the API boundary so read
+                # responses apply the same masking contract as the write paths
+                # (POST/PUT), rather than relying solely on SSHTunnel.data.
+                response["result"]["ssh_tunnel"] = mask_password_info(
+                    database.ssh_tunnel.data
+                )
             return self.response(200, **response)
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
@@ -398,7 +402,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             database = DatabaseDAO.find_by_id(pk)
             if database and database.ssh_tunnel:
                 payload = data.json
-                payload["result"]["ssh_tunnel"] = database.ssh_tunnel.data
+                # Mask credential fields explicitly at the API boundary so read
+                # responses apply the same masking contract as the write paths
+                # (POST/PUT), rather than relying solely on SSHTunnel.data.
+                payload["result"]["ssh_tunnel"] = mask_password_info(
+                    database.ssh_tunnel.data
+                )
                 return payload
             return data
         except SupersetException as ex:
@@ -640,8 +649,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".sync-permissions",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.sync-permissions"
+        ),
         log_to_statsd=False,
     )
     def sync_permissions(self, pk: int, **kwargs: Any) -> FlaskResponse:
@@ -899,8 +909,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".table_metadata_deprecated",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.table_metadata_deprecated"
+        ),
         log_to_statsd=False,
     )
     def table_metadata_deprecated(
@@ -963,8 +974,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @statsd_metrics
     @deprecated(deprecated_in="4.0")
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".table_extra_metadata_deprecated",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.table_extra_metadata_deprecated"
+        ),
         log_to_statsd=False,
     )
     def table_extra_metadata_deprecated(
@@ -1026,8 +1038,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".table_metadata",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.table_metadata"
+        ),
         log_to_statsd=False,
     )
     def table_metadata(self, pk: int) -> FlaskResponse:
@@ -1115,8 +1128,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".table_extra_metadata",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.table_extra_metadata"
+        ),
         log_to_statsd=False,
     )
     def table_extra_metadata(self, pk: int) -> FlaskResponse:
@@ -1258,8 +1272,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".test_connection",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.test_connection"
+        ),
         log_to_statsd=False,
     )
     @requires_json
@@ -1300,6 +1315,10 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         try:
             TestConnectionDatabaseCommand(item).run()
             return self.response(200, message="OK")
+        except OAuth2RedirectError:
+            # OAuth2 connections pass, so they can be saved. A user later
+            # can then store an OAuth2 token.
+            return self.response(200, message="OK")
         except (
             SSHTunnelingNotEnabledError,
             SSHTunnelDatabasePortError,
@@ -1312,8 +1331,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".related_objects",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.related_objects"
+        ),
         log_to_statsd=False,
     )
     def related_objects(self, pk: int) -> Response:
@@ -1437,11 +1457,14 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_404()
 
     @expose("/oauth2/", methods=["GET"])
-    @transaction()
+    @statsd_metrics(best_effort=True)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.oauth2",
-        log_to_statsd=True,
+        log_to_statsd=False,
+        include_request_data=False,
+        best_effort=True,
     )
+    @transaction()
     def oauth2(self) -> FlaskResponse:
         """
         ---
@@ -1548,15 +1571,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 return self.response_404()
         buf.seek(0)
 
-        response = send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=filename,
-        )
-        if token := sanitize_cookie_token(request.args.get("token")):
-            response.set_cookie(token, "done", max_age=600)
-        return response
+        return send_export_zip(buf, filename)
 
     @expose("/import/", methods=("POST",))
     @protect()
@@ -1843,8 +1858,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".function_names",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.function_names"
+        ),
         log_to_statsd=False,
     )
     def function_names(self, pk: int) -> Response:
@@ -1998,8 +2014,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".validate_parameters",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.validate_parameters"
+        ),
         log_to_statsd=False,
     )
     @requires_json
@@ -2055,8 +2072,9 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".schemas_access_for_file_upload",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.schemas_access_for_file_upload"
+        ),
         log_to_statsd=False,
     )
     def schemas_access_for_file_upload(self, pk: int) -> Response:
