@@ -92,15 +92,16 @@ describe('BigNumberYoyMom transformProps', () => {
     expect(graphic[0].top).toBe(20);
 
     expect(graphic[1].style.text).toBe('$1,234,567');
-    expect(graphic[1].style.fontSize).toBe(32);
+    expect(graphic[1].style.fontSize).toBe(120);
     expect(graphic[1].style.fontWeight).toBe('bold');
     expect(graphic[1].style.fill).toBe('rgb(51, 51, 51)');
 
     expect(graphic[2].style.text).toBe('MoM ↑23.46%');
     expect(graphic[2].style.fill).toBe('rgb(0, 180, 42)');
     expect(graphic[2].left).toBe(20);
-    // title 0.15*300=45px -> number hugs bottom: 20+54+6=80 -> comparison 80+32*1.2+5=123.4
-    expect(graphic[2].top).toBe(123.4);
+    // title 0.15*300=45px -> number hugs bottom: 20+54+6=80 ->
+    // comparison 80 + 120*1.2 + 5 = 229 (big number default 0.4*300=120px)
+    expect(graphic[2].top).toBe(229);
 
     expect(graphic[3].style.text).toBe('YoY ↓17.70%');
     expect(graphic[3].style.fill).toBe('rgb(245, 63, 63)');
@@ -262,12 +263,12 @@ describe('BigNumberYoyMom transformProps', () => {
     );
     const graphic = result.echartOptions.graphic as Record<string, any>[];
     // no title element: big number takes the title spot, comparisons follow
-    // its bottom edge (20 + 32 * 1.2 + 5 = 63.4) instead of the default 50.
+    // its bottom edge (20 + 120 * 1.2 + 5 = 169).
     expect(graphic).toHaveLength(3);
     expect(graphic[0].style.text).toBe('$100');
     expect(graphic[0].top).toBe(20);
-    expect(graphic[1].top).toBe(63.4);
-    expect(graphic[2].top).toBe(63.4);
+    expect(graphic[1].top).toBe(169);
+    expect(graphic[2].top).toBe(169);
   });
 
   test('pushes comparisons below a large big number without overlapping', () => {
