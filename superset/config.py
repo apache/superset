@@ -1559,8 +1559,8 @@ EXCEL_EXPORT_S3_CLIENT_KWARGS: dict[str, Any] = {}
 # a rendered image. Set to None to fall back to the built-in default.
 EXCEL_EXPORT_TABLE_VIZ_TYPES: set[str] | None = None
 
-# Maximum combined query ``row_limit`` for a direct download. Direct downloads
-# require every query to have a finite limit. Keep this within the request timeout.
+# Maximum combined query ``row_limit`` for a direct download. Queries without a
+# limit use ``ROW_LIMIT``. Keep this within the request timeout.
 EXCEL_EXPORT_SYNC_MAX_ROWS = 100_000
 
 # Optional query-context builder for charts without a saved ``query_context``.

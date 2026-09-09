@@ -28,7 +28,7 @@ import pytest
 import rison
 import yaml
 
-from flask import current_app
+from flask import current_app, g
 from freezegun import freeze_time
 from sqlalchemy import and_
 from superset import db, security_manager  # noqa: F401
@@ -36,7 +36,7 @@ from superset.commands.dashboard.permalink.create import CreateDashboardPermalin
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.dashboards.excel_export.sync_budget import InlineExportPlan
 from superset.exceptions import LockAlreadyHeldException
-from superset.security.guest_token import GuestTokenResourceType
+from superset.security.guest_token import GuestTokenResourceType, GuestUser
 from superset.models.dashboard import Dashboard
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
@@ -4030,6 +4030,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
     @patch("superset.dashboards.api.build_workbook")
     def test_export_xlsx_sync_still_blocks_guest_sessions(self, mock_build):
         """Dashboard API: the synchronous path does not become a way for an
@@ -4045,15 +4046,17 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             [],
         )
 
-        rv = self.client.post(
-            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
-            json={"active_data_mask": {}},
-            headers={
-                current_app.config["GUEST_TOKEN_HEADER_NAME"]: token.decode("utf-8")
-                if isinstance(token, bytes)
-                else token
-            },
-        )
+        with self.client as client:
+            rv = client.post(
+                f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+                json={"active_data_mask": {}},
+                headers={
+                    current_app.config["GUEST_TOKEN_HEADER_NAME"]: token.decode("utf-8")
+                    if isinstance(token, bytes)
+                    else token
+                },
+            )
+            assert isinstance(g.user, GuestUser)
 
         assert rv.status_code == 400
         assert "email address" in rv.data.decode("utf-8")

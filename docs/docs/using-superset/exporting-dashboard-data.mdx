@@ -58,8 +58,8 @@ Notes on the generated workbook:
 Dashboard data exports need no configuration. By default, Superset builds the
 workbook during the request and returns it to the browser. The combined
 `row_limit` of its queries must not exceed `EXCEL_EXPORT_SYNC_MAX_ROWS` (100,000
-by default), and every query must have a finite limit. Keep this setting within
-your web server's request timeout.
+by default). Queries without a `row_limit` use `ROW_LIMIT`. Keep this setting
+within your web server's request timeout.
 
 For larger data exports and all image exports, configure the background path:
 

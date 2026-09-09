@@ -548,9 +548,9 @@ download link. This queued path also needs a worker and SMTP transport.
 
 Direct downloads are limited by `EXCEL_EXPORT_SYNC_MAX_ROWS` (default
 `100_000`), based on the combined `row_limit` of the planned queries. Superset
-returns `400` before querying if the total exceeds the limit or any query has no
-finite limit. Image exports also return `400` without an export bucket because
-they require background webdriver rendering.
+uses `ROW_LIMIT` when a query omits its limit and returns `400` before querying
+if the total exceeds the limit. Image exports also return `400` without an export
+bucket because they require background webdriver rendering.
 
 `POST /api/v1/dashboard/<id>/export_xlsx/` returns either `202` with a queued job
 id or `200` with the workbook. It no longer returns `501` when no bucket is set.

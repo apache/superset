@@ -57,9 +57,11 @@ def charts() -> Iterator[mock.MagicMock]:
 @pytest.fixture(autouse=True)
 def restore_config() -> Iterator[None]:
     """Undo config edits: the app fixture is shared by every test in the module."""
-    original = current_app.config["EXCEL_EXPORT_SYNC_MAX_ROWS"]
+    original_sync_max_rows = current_app.config["EXCEL_EXPORT_SYNC_MAX_ROWS"]
+    original_row_limit = current_app.config["ROW_LIMIT"]
     yield
-    current_app.config["EXCEL_EXPORT_SYNC_MAX_ROWS"] = original
+    current_app.config["EXCEL_EXPORT_SYNC_MAX_ROWS"] = original_sync_max_rows
+    current_app.config["ROW_LIMIT"] = original_row_limit
 
 
 def test_plan_sums_the_row_limit_of_every_chart(charts: mock.MagicMock) -> None:
@@ -83,9 +85,6 @@ def test_plan_counts_every_query_of_a_multi_query_chart(
 @pytest.mark.parametrize(
     "query",
     [
-        {},  # no row_limit at all
-        {"row_limit": 0},  # 0 means "fall back to the configured limits"
-        {"row_limit": None},
         {"row_limit": "1000"},  # not an integer
         {"row_limit": -5},
     ],
@@ -100,6 +99,16 @@ def test_plan_row_total_is_indeterminate_without_a_finite_row_limit(
 
     assert plan.requested_rows is None
     assert plan.fits_row_budget is False
+
+
+@pytest.mark.parametrize("query", [{}, {"row_limit": 0}, {"row_limit": None}])
+def test_plan_uses_default_when_row_limit_is_omitted(
+    charts: mock.MagicMock, query: dict[str, Any]
+) -> None:
+    current_app.config["ROW_LIMIT"] = 250
+    charts.return_value = [_chart(10, {"row_limit": 100}), _chart(20, query)]
+
+    assert plan_inline_export(mock.MagicMock()).requested_rows == 350
 
 
 def test_plan_ignores_charts_that_cannot_be_exported(charts: mock.MagicMock) -> None:

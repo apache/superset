@@ -48,10 +48,10 @@ class InlineExportPlan:
 
 
 def _finite_row_limit(query: Any) -> int | None:
-    """Return a positive integer ``row_limit``, or ``None``."""
+    """Return the query's row limit, using ``ROW_LIMIT`` when omitted."""
     if not isinstance(query, dict):
         return None
-    row_limit = query.get("row_limit")
+    row_limit = query.get("row_limit") or current_app.config["ROW_LIMIT"]
     if isinstance(row_limit, bool) or not isinstance(row_limit, int):
         return None
     return row_limit if row_limit > 0 else None
