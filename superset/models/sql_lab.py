@@ -376,7 +376,7 @@ class Query(
         return (
             security_manager.get_schema_perm(
                 self.database.database_name,
-                getattr(self, "catalog", None),
+                self.catalog or self.database.get_default_catalog(),
                 self.schema,
             )
             or ""

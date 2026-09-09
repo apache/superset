@@ -160,23 +160,40 @@ def _compile(column_element) -> str:
 
 
 @pytest.mark.parametrize(
-    ("catalog", "schema", "database_name", "expected"),
+    (
+        "catalog",
+        "schema",
+        "database_name",
+        "default_catalog",
+        "expected",
+    ),
     [
-        (None, "s1", "db", "[db].[s1]"),
-        ("cat", "s1", "db", "[db].[cat].[s1]"),
-        (None, None, "db", ""),
+        (None, "s1", "db", None, "[db].[s1]"),
+        ("cat", "s1", "db", None, "[db].[cat].[s1]"),
+        (None, "s1", "db", "defcat", "[db].[defcat].[s1]"),
+        (None, None, "db", None, ""),
     ],
 )
-def test_query_schema_perm(catalog, schema, database_name, expected) -> None:
+def test_query_schema_perm(
+    catalog,
+    schema,
+    database_name,
+    default_catalog,
+    expected,
+) -> None:
     """Query.schema_perm yields the canonical bracketed permission string.
 
     Regression test for the schema_access explore fix: the property must
     delegate to security_manager.get_schema_perm (which produces the format
     created by sync_permissions) so that can_access_schema can match granted
-    schema_access, and must not raise when the schema is unset.
+    schema_access, and must not raise when the schema is unset. When the
+    query's catalog is unset, the database default catalog is used so the
+    produced perm agrees with the catalog-qualified form granted by
+    sync_permissions.
     """
     database = MagicMock()
     database.database_name = database_name
+    database.get_default_catalog.return_value = default_catalog
     query = Query(sql="SELECT * FROM t1", schema=schema, catalog=catalog)
     query.database = database
     with patch.object(
@@ -186,10 +203,10 @@ def test_query_schema_perm(catalog, schema, database_name, expected) -> None:
     ) as mock_get_schema_perm:
         result = query.schema_perm
         assert result == expected
-        if expected:
-            mock_get_schema_perm.assert_called_once_with(database_name, catalog, schema)
-        else:
-            mock_get_schema_perm.assert_called_once_with(database_name, catalog, schema)
+        effective_catalog = catalog if catalog is not None else default_catalog
+        mock_get_schema_perm.assert_called_once_with(
+            database_name, effective_catalog, schema
+        )
 
 
 def test_query_schema_perm_guards_unset_database() -> None:

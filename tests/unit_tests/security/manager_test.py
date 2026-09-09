@@ -1157,6 +1157,61 @@ def test_raise_for_access_jinja_sql(mocker: MockerFixture, app_context: None) ->
     get_table_access_error_object.assert_called_with({Table("ab_user", "public", None)})
 
 
+def test_can_access_schema_query_schema_access(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """A schema_access holder can access a Query's schema via can_access_schema.
+
+    Regression test for the widened isinstance gate: Query is not a
+    BaseDatasource but exposes ``database`` and ``schema_perm``, so the
+    catalog/schema hierarchy checks must still run for it. Previously the
+    6.1.0 Explorable refactor's ``isinstance(datasource, BaseDatasource)``
+    gate caused ``can_access_schema(Query)`` to always return False.
+    """
+    from superset.models.sql_lab import Query
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_all_datasources", return_value=False)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, view: (
+            perm == "schema_access" and view == "[examples].[main]"
+        ),
+    )
+
+    database = mocker.MagicMock()
+    database.database_name = "examples"
+    database.get_default_catalog.return_value = None
+    query = Query(sql="SELECT * FROM t1", schema="main", catalog=None)
+    query.database = database
+
+    assert sm.can_access_schema(query) is True
+
+
+def test_can_access_schema_query_denied_ungranted_schema(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """can_access_schema(Query) is False when the schema is not granted."""
+    from superset.models.sql_lab import Query
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_all_datasources", return_value=False)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=False)
+
+    database = mocker.MagicMock()
+    database.database_name = "examples"
+    database.get_default_catalog.return_value = None
+    query = Query(sql="SELECT * FROM t1", schema="other", catalog=None)
+    query.database = database
+
+    assert sm.can_access_schema(query) is False
+
+
 def test_raise_for_access_chart_for_datasource_permission(
     mocker: MockerFixture,
     app_context: None,
