@@ -86,7 +86,7 @@ describe('BigNumberYoyMom transformProps', () => {
     const graphic = result.echartOptions.graphic as Record<string, any>[];
 
     expect(graphic[0].style.text).toBe('本月销售额');
-    expect(graphic[0].style.fontSize).toBe(14);
+    expect(graphic[0].style.fontSize).toBe(45);
     expect(graphic[0].style.fill).toBe('rgb(102, 102, 102)');
     expect(graphic[0].left).toBe(20);
     expect(graphic[0].top).toBe(20);
@@ -99,7 +99,8 @@ describe('BigNumberYoyMom transformProps', () => {
     expect(graphic[2].style.text).toBe('MoM ↑23.46%');
     expect(graphic[2].style.fill).toBe('rgb(0, 180, 42)');
     expect(graphic[2].left).toBe(20);
-    expect(graphic[2].top).toBe(95);
+    // title 0.15*300=45px -> number hugs bottom: 20+54+6=80 -> comparison 80+32*1.2+5=123.4
+    expect(graphic[2].top).toBe(123.4);
 
     expect(graphic[3].style.text).toBe('YoY ↓17.70%');
     expect(graphic[3].style.fill).toBe('rgb(245, 63, 63)');
@@ -287,15 +288,32 @@ describe('BigNumberYoyMom transformProps', () => {
     expect(graphic[1].top).toBe(97);
   });
 
+  test('maps title font size ratios to pixels', () => {
+    const tiny = transformProps(
+      buildChartProps([{ 'SUM(sales)': 100 }], { titleFontSize: 0.125 }),
+    );
+    const huge = transformProps(
+      buildChartProps([{ 'SUM(sales)': 100 }], { titleFontSize: 0.4 }),
+    );
+    const graphicTiny = tiny.echartOptions.graphic as Record<string, any>[];
+    const graphicHuge = huge.echartOptions.graphic as Record<string, any>[];
+    // Tiny: ceil(0.125*300)=38 -> title bottom 20+45.6=65.6 -> number 71.6
+    // Huge: ceil(0.4*300)=120 -> title bottom 20+144=164 -> number 170
+    expect(graphicTiny[0].style.fontSize).toBe(38);
+    expect(graphicTiny[1].top).toBe(71.6);
+    expect(graphicHuge[0].style.fontSize).toBe(120);
+    expect(graphicHuge[1].top).toBe(170);
+  });
+
   test('pushes the big number below a large title', () => {
     const result = transformProps(
       buildChartProps([{ 'SUM(sales)': 100 }], { titleFontSize: 40 }),
     );
     const graphic = result.echartOptions.graphic as Record<string, any>[];
     // graphic[0]=title, graphic[1]=big number.
-    // title bottom = 20 + 40 * 1.2 = 68 → big number moves to 73
+    // title bottom = 20 + 40 * 1.2 = 68 → big number moves to 74
     expect(graphic[0].top).toBe(20);
-    expect(graphic[1].top).toBe(73);
+    expect(graphic[1].top).toBe(74);
   });
 
   test('keeps the configured comparison top as a lower bound with a title', () => {
@@ -311,10 +329,10 @@ describe('BigNumberYoyMom transformProps', () => {
       ),
     );
     const graphic = result.echartOptions.graphic as Record<string, any>[];
-    // graphic[0]=title, graphic[1]=big number (50), graphic[2]=MoM line.
-    // 50 + 80 * 1.2 + 5 = 151 > configured 120 → comparison follows the number
-    expect(graphic[1].top).toBe(50);
-    expect(graphic[2].top).toBe(151);
+    // graphic[0]=title, graphic[1]=big number (20+54+6=80), graphic[2]=MoM line.
+    // 80 + 80 * 1.2 + 5 = 181 > configured 120 → comparison follows the number
+    expect(graphic[1].top).toBe(80);
+    expect(graphic[2].top).toBe(181);
   });
 
   test('shows placeholders when there is no data', () => {

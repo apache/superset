@@ -225,20 +225,35 @@ export default function transformProps(
 
   const graphic: GraphicComponentOption[] = [];
 
-  // Auto-positioning keeps the three text rows from overlapping:
+  // Auto-positioning keeps the three text rows from overlapping and tight:
   // - Without a title the big number moves up into the title's spot
   //   (titleTop) so dashboards do not show an empty strip at the top.
-  // - With a title, the big number stays below the title's bottom edge
-  //   (titleFontSize * 1.2 + gap), so a large title pushes it down.
+  // - With a title, the big number hugs the title's bottom edge
+  //   (titleFontSize * 1.2 + 6px gap); a manually configured bigNumberTop
+  //   only applies when it is larger, so a small title never leaves a big
+  //   gap above the number.
   // - The comparison line always sits below the big number's bottom edge
-  //   (bigNumberFontSize * 1.2 + gap), so a larger number pushes it down.
-  // The configured bigNumberTop / comparisonTop act as lower bounds when
-  // a title is present; without a title the rows simply follow each other.
+  //   (bigNumberFontSize * 1.2 + 5px gap), so a larger number pushes it
+  //   down instead of overlapping.
+  // The title font size follows the shared Subtitle Font Size control:
+  // ratios (<= 1, Tiny 0.125 .. Huge 0.4) are multiplied by the chart
+  // height; legacy numeric values > 1 are absolute pixels.
   const hasTitle = !!headerText;
-  const titleRowHeight = titleFontSize * 1.2;
+  const titleFontSizeValue =
+    typeof titleFontSize === 'number'
+      ? titleFontSize
+      : Number(titleFontSize) || DEFAULT_TITLE_FONT_SIZE;
+  const titleFontSizePx =
+    titleFontSizeValue <= 1
+      ? Math.ceil(titleFontSizeValue * height)
+      : Math.ceil(titleFontSizeValue);
+  const titleRowHeight = titleFontSizePx * 1.2;
   const bigNumberRowHeight = bigNumberFontSize * 1.2;
+  const bigNumberTopConfigured = bigNumberTop !== DEFAULT_BIG_NUMBER_TOP;
   const effectiveBigNumberTop = hasTitle
-    ? Math.max(bigNumberTop, titleTop + titleRowHeight + 5)
+    ? bigNumberTopConfigured
+      ? Math.max(bigNumberTop, titleTop + titleRowHeight + 6)
+      : titleTop + titleRowHeight + 6
     : titleTop;
   const effectiveComparisonTop = hasTitle
     ? Math.max(comparisonTop, effectiveBigNumberTop + bigNumberRowHeight + 5)
@@ -251,7 +266,7 @@ export default function transformProps(
       top: titleTop,
       style: {
         text: headerText,
-        fontSize: titleFontSize,
+        fontSize: titleFontSizePx,
         fill: toCssColor(titleColor, '#666'),
       },
     });

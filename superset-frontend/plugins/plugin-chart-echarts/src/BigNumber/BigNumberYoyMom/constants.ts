@@ -20,7 +20,11 @@
 // Defaults mirror the reference ECharts option (title, big number, MoM and
 // YoY comparison) so the chart renders out of the box and every fixed value
 // can be overridden through the control panel.
-export const DEFAULT_TITLE_FONT_SIZE = 14;
+// The title font size control is the shared Subtitle Font Size select
+// (Tiny / Small / Normal / Large / Huge ratios, default 0.15), reused from
+// the Big Number with Trendline plugin. Ratios are multiplied by the chart
+// height; legacy numeric values > 1 are treated as absolute pixels.
+export const DEFAULT_TITLE_FONT_SIZE = 0.15;
 export const DEFAULT_TITLE_COLOR = { r: 102, g: 102, b: 102 }; // #666
 export const DEFAULT_TITLE_LEFT = 20;
 export const DEFAULT_TITLE_TOP = 20;
