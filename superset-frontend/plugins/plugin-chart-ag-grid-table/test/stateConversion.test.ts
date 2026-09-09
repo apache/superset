@@ -16,7 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { convertFilterModel } from '../src/stateConversion';
+import {
+  convertFilterModel,
+  convertAgGridStateToOwnState,
+} from '../src/stateConversion';
+
+const baseAgGridState = {
+  columnState: [],
+  sortModel: [{ colId: 'name', sort: 'asc' as const, sortIndex: 0 }],
+  filterModel: {},
+};
 
 describe('convertFilterModel', () => {
   test('emits a clause for a valid numeric comparison filter', () => {
@@ -69,5 +78,40 @@ describe('convertFilterModel', () => {
     // The map has no prototype, so a column id like "constructor" is just data.
     expect(Object.getPrototypeOf(result?.sqlClauses)).toBeNull();
     expect(result?.sqlClauses?.constructor).toBe('constructor = 5');
+  });
+});
+
+describe('convertAgGridStateToOwnState', () => {
+  test('suppresses client-mode state for the live query (serverPagination: false)', () => {
+    const result = convertAgGridStateToOwnState({
+      ...baseAgGridState,
+      serverPagination: false,
+    });
+
+    expect(result).toEqual({});
+  });
+
+  test('converts client-mode state anyway when forExport is set, so a download reproduces the displayed sort/filter', () => {
+    const result = convertAgGridStateToOwnState(
+      { ...baseAgGridState, serverPagination: false },
+      { forExport: true },
+    );
+
+    expect(result.sortBy).toEqual([{ id: 'name', key: 'name', desc: false }]);
+  });
+
+  test('converts state when serverPagination is undefined, preserving legacy persisted table_state/permalinks saved before this field existed', () => {
+    const result = convertAgGridStateToOwnState(baseAgGridState);
+
+    expect(result.sortBy).toEqual([{ id: 'name', key: 'name', desc: false }]);
+  });
+
+  test('converts state for the live query when serverPagination is true', () => {
+    const result = convertAgGridStateToOwnState({
+      ...baseAgGridState,
+      serverPagination: true,
+    });
+
+    expect(result.sortBy).toEqual([{ id: 'name', key: 'name', desc: false }]);
   });
 });
