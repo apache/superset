@@ -328,13 +328,15 @@ const FilterBar: FC<FiltersBarProps> = ({
         if (parentValueChanged) {
           const childIds = resolveTransitiveChildIds(filter.id, filters);
           childIds.forEach(childId => {
-            if (!draft[childId]) return;
-            draft[childId].extraFormData = {};
-            if (draft[childId].filterState) {
+            const childMask = draft[childId];
+            if (!childMask) return;
+            childMask.extraFormData = {};
+            const { filterState } = childMask;
+            if (filterState) {
               const childIsRequired =
                 !!filters[childId]?.controlValues?.enableEmptyFilter;
-              draft[childId].filterState.value = null;
-              draft[childId].filterState.validateStatus = childIsRequired
+              filterState.value = null;
+              filterState.validateStatus = childIsRequired
                 ? 'error'
                 : undefined;
             }

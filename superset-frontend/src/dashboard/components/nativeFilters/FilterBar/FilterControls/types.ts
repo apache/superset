@@ -56,4 +56,5 @@ export interface FilterControlProps extends BaseFilterProps {
   clearAllTrigger?: boolean;
   cascadeClearTrigger?: boolean;
   onClearAllComplete?: () => void;
+  onCascadeClearComplete?: () => void;
 }
