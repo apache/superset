@@ -207,6 +207,10 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
     """
     Child classes can register base filtering to be applied to all filter methods
     """
+    force_fetch: ClassVar[bool] = False
+    """
+    Child classes can force ORM fetch helpers to refresh already-loaded rows.
+    """
     id_column_name: ClassVar[str] = "id"
     uuid_column_name: ClassVar[str] = "uuid"
 
@@ -226,17 +230,29 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         )[0]
 
     @classmethod
+    def _query(cls, force_fetch: bool | None = None) -> Query:
+        """
+        Return a model query, optionally refreshing identity-map instances.
+        """
+        query = db.session.query(cls.model_cls)
+        should_force_fetch = cls.force_fetch if force_fetch is None else force_fetch
+        if should_force_fetch:
+            query = query.populate_existing()
+        return query
+
+    @classmethod
     def find_by_id_or_uuid(
         cls,
         model_id_or_uuid: str,
         skip_base_filter: bool = False,
         *,
         skip_visibility_filter: bool = False,
+        force_fetch: bool | None = None,
     ) -> T | None:
         """
         Find a model by id or uuid, if defined applies `base_filter`
         """
-        query = db.session.query(cls.model_cls)
+        query = cls._query(force_fetch)
         if skip_visibility_filter:
             query = query.execution_options(
                 **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}
@@ -311,6 +327,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         query_options: list[Any] | None = None,
         *,
         skip_visibility_filter: bool = False,
+        force_fetch: bool | None = None,
     ) -> T | None:
         """
         Private method to find a model by any column value.
@@ -322,11 +339,12 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             skip_visibility_filter: Whether to skip the soft-delete visibility filter
             query_options: SQLAlchemy query options (e.g., joinedload,
                 subqueryload) to apply to the query for eager loading
+            force_fetch: Whether to refresh already-loaded identity-map instances
 
         Returns:
             Model instance or None if not found
         """
-        query = db.session.query(cls.model_cls)
+        query = cls._query(force_fetch)
         if skip_visibility_filter:
             query = query.execution_options(
                 **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}
@@ -364,6 +382,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         query_options: list[Any] | None = None,
         *,
         skip_visibility_filter: bool = False,
+        force_fetch: bool | None = None,
     ) -> T | None:
         """
         Find a model by ID using specified or default ID column.
@@ -376,6 +395,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
                 subqueryload) to apply to the query for eager loading
             skip_visibility_filter: Keyword-only. Whether to skip the
                 soft-delete visibility filter
+            force_fetch: Whether to refresh already-loaded identity-map instances
 
         Returns:
             Model instance or None if not found
@@ -387,6 +407,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             skip_base_filter,
             query_options,
             skip_visibility_filter=skip_visibility_filter,
+            force_fetch=force_fetch,
         )
 
     @classmethod
@@ -397,6 +418,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         id_column: str | None = None,
         *,
         skip_visibility_filter: bool = False,
+        force_fetch: bool | None = None,
     ) -> list[T]:
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
@@ -407,6 +429,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
                          (defaults to id_column_name)
         :param skip_visibility_filter: Keyword-only. If true, skip the
             soft-delete visibility filter so soft-deleted rows are returned
+        :param force_fetch: Whether to refresh already-loaded identity-map instances
         """
         column = id_column or cls.id_column_name
         id_col = getattr(cls.model_cls, column, None)
@@ -433,7 +456,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         if not converted_ids:
             return []
 
-        query = db.session.query(cls.model_cls)
+        query = cls._query(force_fetch)
         if skip_visibility_filter:
             query = query.execution_options(
                 **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}
@@ -457,22 +480,28 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         return results
 
     @classmethod
-    def find_all(cls, skip_base_filter: bool = False) -> list[T]:
+    def find_all(
+        cls, skip_base_filter: bool = False, *, force_fetch: bool | None = None
+    ) -> list[T]:
         """
         Get all that fit the `base_filter`
         """
-        query = db.session.query(cls.model_cls)
+        query = cls._query(force_fetch)
         query = cls._apply_base_filter(query, skip_base_filter)
         return query.all()
 
     @classmethod
     def find_one_or_none(
-        cls, skip_base_filter: bool = False, **filter_by: Any
+        cls,
+        skip_base_filter: bool = False,
+        *,
+        force_fetch: bool | None = None,
+        **filter_by: Any,
     ) -> T | None:
         """
         Get the first that fit the `base_filter`
         """
-        query = db.session.query(cls.model_cls)
+        query = cls._query(force_fetch)
         query = cls._apply_base_filter(query, skip_base_filter)
         return query.filter_by(**filter_by).one_or_none()
 

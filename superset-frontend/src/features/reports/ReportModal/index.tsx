@@ -170,12 +170,13 @@ function ReportModal({
   const dispatch = useDispatch();
   // Report fetch logic
   const report = useSelector<any, ReportObject>(state => {
-    const resourceType = dashboardId
-      ? CreationMethod.Dashboards
-      : CreationMethod.Charts;
+    const isChartReport = creationMethod === CreationMethod.Charts;
     return (
-      reportSelector(state, resourceType, dashboardId || chart?.id) ||
-      EMPTY_OBJECT
+      reportSelector(
+        state,
+        isChartReport ? CreationMethod.Charts : CreationMethod.Dashboards,
+        isChartReport ? chart?.id : dashboardId,
+      ) || EMPTY_OBJECT
     );
   });
   const isEditMode = report && Object.keys(report).length;
@@ -194,8 +195,9 @@ function ReportModal({
       active: true,
       force_screenshot: false,
       custom_width: currentReport.custom_width,
-      dashboard: dashboardId,
-      chart: chart?.id,
+      ...(creationMethod === CreationMethod.Charts
+        ? { chart: chart?.id }
+        : { dashboard: dashboardId }),
       name: currentReport.name,
       description: currentReport.description,
       crontab: currentReport.crontab,

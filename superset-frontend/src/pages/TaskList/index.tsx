@@ -22,8 +22,8 @@ import {
   isFeatureEnabled,
   SupersetClient,
 } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/theme';
-import { t } from '@apache-superset/core/translation';
+import { useTheme, css } from '@apache-superset/core/theme';
+import { t, tn } from '@apache-superset/core/translation';
 import { useMemo, useCallback, useState } from 'react';
 import { useSelector } from 'react-redux';
 import {
@@ -32,6 +32,7 @@ import {
   Label,
   Modal,
   Checkbox,
+  Flex,
 } from '@superset-ui/core/components';
 import {
   CreatedInfo,
@@ -44,11 +45,16 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu from 'src/features/home/SubMenu';
 import { useListViewResource } from 'src/views/CRUD/hooks';
-import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
+import {
+  createErrorHandler,
+  createFetchDistinct,
+  createFetchRelated,
+} from 'src/views/CRUD/utils';
 import TaskStatusIcon from 'src/features/tasks/TaskStatusIcon';
 import TaskPayloadPopover from 'src/features/tasks/TaskPayloadPopover';
 import TaskStackTracePopover from 'src/features/tasks/TaskStackTracePopover';
-import { formatDuration } from 'src/features/tasks/timeUtils';
+import TaskDependenciesPopover from 'src/features/tasks/TaskDependenciesPopover';
+import LiveDuration from 'src/features/tasks/LiveDuration';
 import {
   Task,
   TaskStatus,
@@ -92,15 +98,14 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
     return (
       <>
         <SubMenu name={t('Tasks')} />
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            height: '50vh',
-            color: theme.colorTextSecondary,
-          }}
+        <Flex
+          vertical
+          align="center"
+          justify="center"
+          css={css`
+            height: 50vh;
+            color: ${theme.colorTextSecondary};
+          `}
         >
           <h3>{t('Feature Not Enabled')}</h3>
           <p>
@@ -108,7 +113,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
               'The Global Task Framework is not enabled. Please contact your administrator to enable the GLOBAL_TASK_FRAMEWORK feature flag.',
             )}
           </p>
-        </div>
+        </Flex>
       </>
     );
   }
@@ -117,16 +122,38 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
     state: { loading, resourceCount: tasksCount, resourceCollection: tasks },
     fetchData,
     refreshData,
-  } = useListViewResource<Task>('task', t('task'), addDangerToast);
+  } = useListViewResource<Task>(
+    'task',
+    t('task'),
+    addDangerToast,
+    true, // infoEnable
+    [], // defaultCollectionValue
+    undefined, // baseFilters
+    true, // initialLoadingState
+    undefined, // selectColumns
+    true, // enableRealtime
+  );
 
   // Get full user with roles to check admin status
   const bootstrapData = getBootstrapData();
   const fullUser = bootstrapData?.user;
   const isAdmin = useMemo(() => isUserAdmin(fullUser), [fullUser]);
+  // Realtime push is active only when the websocket transport is enabled (this
+  // flag is already permission-masked server-side). Used to tick a running
+  // task's duration live; otherwise the duration refreshes on each poll.
+  const realtimeEnabled = Boolean(
+    bootstrapData?.common?.conf?.WEBSOCKET_ENABLE,
+  );
 
   // State for cancel confirmation modal
   const [cancelModalTask, setCancelModalTask] = useState<Task | null>(null);
   const [forceCancel, setForceCancel] = useState(false);
+
+  // UUIDs of the prerequisite tasks to highlight while a "Depends on" popover is
+  // open, so the user can spot which visible rows this task waits on.
+  const [highlightedDeps, setHighlightedDeps] = useState<Set<string>>(
+    () => new Set(),
+  );
 
   // Determine dialog message based on task context
   const getCancelDialogMessage = useCallback((task: Task) => {
@@ -281,7 +308,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         accessor: 'task_name',
         Header: t('Task'),
         size: 'xl',
-        id: 'task',
+        id: 'task_name',
       },
       {
         Cell: ({
@@ -296,7 +323,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             progressTotal={properties?.progress_total}
             durationSeconds={duration_seconds}
             errorMessage={properties?.error_message}
-            exceptionType={properties?.exception_type}
+            exceptionType={properties?.private?.framework?.exception_type}
           />
         ),
         accessor: 'status',
@@ -347,12 +374,25 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             return '-';
           }
 
-          // Convert subscribers to SubjectPile format
-          const subjects = subscribers.map((sub: TaskSubscriber) => ({
-            id: sub.user_id,
-            label: `${sub.first_name} ${sub.last_name}`.trim(),
-            type: 1,
-          }));
+          // Convert subscribers to SubjectPile format. Authenticated users show
+          // their name initials; embedded guests (no profile) show their
+          // anonymized G1/G2 label under a synthetic negative id (there is no
+          // user_id to key on, and negatives can't collide with real user ids).
+          const subjects = subscribers.map(
+            (sub: TaskSubscriber, index: number) =>
+              sub.is_guest
+                ? {
+                    id: -(index + 1),
+                    label: sub.label ?? t('Guest'),
+                    type: 1,
+                  }
+                : {
+                    id: sub.user_id as number,
+                    label:
+                      `${sub.first_name ?? ''} ${sub.last_name ?? ''}`.trim(),
+                    type: 1,
+                  },
+          );
 
           return <SubjectPile subjects={subjects} maxCount={3} />;
         },
@@ -387,9 +427,19 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
       {
         Cell: ({
           row: {
-            original: { duration_seconds },
+            original: { duration_seconds, status },
           },
-        }: TaskCellProps) => formatDuration(duration_seconds, locale) ?? '-',
+        }: TaskCellProps) => (
+          <LiveDuration
+            durationSeconds={duration_seconds}
+            locale={locale}
+            live={
+              realtimeEnabled &&
+              (status === TaskStatus.InProgress ||
+                status === TaskStatus.Aborting)
+            }
+          />
+        ),
         accessor: 'duration_seconds',
         Header: t('Duration'),
         size: 'sm',
@@ -399,11 +449,21 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
       {
         Cell: ({
           row: {
-            original: { payload, properties, status },
+            original: { payload, properties, status, depends_on, required_by },
           },
         }: TaskCellProps) => {
           const hasPayload = payload && Object.keys(payload).length > 0;
-          const hasStackTrace = !!properties?.stack_trace;
+          // Internal (debug-only) state; the API includes `private` only in debug
+          // mode, and seeds empty framework/task namespaces, so check for content.
+          const taskPrivate = properties?.private;
+          const hasPrivate =
+            !!taskPrivate &&
+            (Object.keys(taskPrivate.framework ?? {}).length > 0 ||
+              Object.keys(taskPrivate.task ?? {}).length > 0);
+          const hasStackTrace = !!taskPrivate?.framework?.stack_trace;
+          const hasDependsOn = !!depends_on && depends_on.length > 0;
+          const hasRequiredBy = !!required_by && required_by.length > 0;
+          const dedupeCount = properties?.dedupe_count ?? 0;
 
           // Show warning if timeout is set but no abort handler during execution
           // Only show for IN_PROGRESS (abort handler registers at runtime, not during PENDING)
@@ -412,12 +472,29 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
             properties?.timeout &&
             !properties?.is_abortable;
 
-          if (!hasPayload && !hasStackTrace && !hasTimeoutWithoutHandler) {
+          if (
+            !hasPayload &&
+            !hasPrivate &&
+            !hasStackTrace &&
+            !hasTimeoutWithoutHandler &&
+            !hasDependsOn &&
+            !hasRequiredBy &&
+            !dedupeCount
+          ) {
             return null;
           }
 
+          // "Waiting on N" surfaces the block-and-wait gate: a PENDING task
+          // parked until its unmet (non-SUCCESS) prerequisites finish. Folded
+          // into the dependency icon (warning color + popover title).
+          const unmet = hasDependsOn
+            ? depends_on.filter(dep => dep.status !== TaskStatus.Success).length
+            : 0;
+          const waitingOn =
+            status === TaskStatus.Pending && unmet > 0 ? unmet : 0;
+
           return (
-            <div style={{ display: 'flex', gap: theme.sizeUnit * 2 }}>
+            <Flex gap={theme.sizeUnit * 2}>
               {hasTimeoutWithoutHandler && (
                 <Tooltip
                   title={t(
@@ -435,16 +512,62 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                   </span>
                 </Tooltip>
               )}
-              {hasPayload && <TaskPayloadPopover payload={payload} />}
-              {hasStackTrace && properties.stack_trace && (
-                <TaskStackTracePopover stackTrace={properties.stack_trace} />
+              {(hasPayload || hasPrivate) && (
+                <TaskPayloadPopover
+                  payload={payload}
+                  taskPrivate={taskPrivate}
+                />
               )}
-            </div>
+              {hasStackTrace && taskPrivate?.framework?.stack_trace && (
+                <TaskStackTracePopover
+                  stackTrace={taskPrivate.framework.stack_trace}
+                />
+              )}
+              {(hasDependsOn || hasRequiredBy) && (
+                <TaskDependenciesPopover
+                  dependsOn={depends_on ?? []}
+                  requiredBy={required_by ?? []}
+                  waitingOn={waitingOn}
+                  onHoverChange={hovering =>
+                    setHighlightedDeps(
+                      hovering
+                        ? new Set(
+                            [...(depends_on ?? []), ...(required_by ?? [])].map(
+                              dep => dep.uuid,
+                            ),
+                          )
+                        : new Set(),
+                    )
+                  }
+                />
+              )}
+              {dedupeCount > 0 && (
+                <Tooltip
+                  title={tn(
+                    'Reused by 1 other submission',
+                    'Reused by %s other submissions',
+                    dedupeCount,
+                    dedupeCount,
+                  )}
+                  placement="top"
+                >
+                  {/* Wrap in a span: Tooltip needs a ref-able DOM node, and the
+                      Flex wrapper is a function component that does not forward
+                      refs (mirrors the warning Tooltip above). */}
+                  <span>
+                    <Flex component="span" align="center" gap={theme.sizeUnit}>
+                      <Icons.PlusOutlined iconSize="l" />
+                      {dedupeCount}
+                    </Flex>
+                  </span>
+                </Tooltip>
+              )}
+            </Flex>
           );
         },
         accessor: 'payload',
         Header: t('Details'),
-        size: 'xs',
+        size: 'sm',
         id: 'payload',
         disableSortBy: true,
       },
@@ -461,7 +584,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
 
           const isSharedTask = original.scope === TaskScope.Shared;
           const userIsSubscribed = original.subscribers?.some(
-            (sub: any) => sub.user_id === user.userId,
+            (sub: TaskSubscriber) => sub.user_id === user.userId,
           );
 
           // Check if task is in a non-active state (completed or aborting)
@@ -494,7 +617,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
           }
 
           return (
-            <div style={{ display: 'flex', gap: theme.sizeUnit * 2 }}>
+            <Flex gap={theme.sizeUnit * 2}>
               {showDisabledCancel && (
                 <Tooltip
                   id="cancel-disabled-tooltip"
@@ -523,7 +646,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
                   onClick={() => openCancelModal(original)}
                 />
               )}
-            </div>
+            </Flex>
           );
         },
         Header: t('Actions'),
@@ -532,7 +655,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         disableSortBy: true,
       },
     ],
-    [user.userId, theme, locale, openCancelModal],
+    [user.userId, theme, locale, openCancelModal, realtimeEnabled],
   );
 
   const filters: ListViewFilters = useMemo(
@@ -558,6 +681,23 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         Header: t('Type'),
         key: 'task_type',
         id: 'task_type',
+        input: 'select',
+        operator: FilterOperator.Equals,
+        unfilteredLabel: t('Any'),
+        fetchSelects: createFetchDistinct(
+          'task',
+          'task_type',
+          createErrorHandler(errMsg =>
+            addDangerToast(
+              t('An error occurred while fetching task types: %s', errMsg),
+            ),
+          ),
+        ),
+      },
+      {
+        Header: t('Name'),
+        key: 'task_name',
+        id: 'task_name',
         input: 'search',
         operator: FilterOperator.Contains,
       },
@@ -621,6 +761,7 @@ function TaskList({ addDangerToast, addSuccessToast, user }: TaskListProps) {
         filters={filters}
         initialSort={initialSort}
         loading={loading}
+        isRowHighlighted={record => highlightedDeps.has(record.uuid as string)}
         pageSize={PAGE_SIZE}
         refreshData={refreshData}
         addDangerToast={addDangerToast}
