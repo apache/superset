@@ -88,6 +88,13 @@ def json_error_response(
         ]
     elif isinstance(error_details, str):
         payload["error"] = sanitize_error_message(error_details, status)
+    elif error_details is not None:
+        # A flask-babel LazyString (or any other string-like proxy) fails the
+        # isinstance(str) check above, and the body used to silently degrade
+        # to ``{}`` — an error response whose status said "denied" but whose
+        # payload said nothing. Coerce so the message always survives; call
+        # sites should still prefer the eager gettext alias for error bodies.
+        payload["error"] = sanitize_error_message(str(error_details), status)
 
     return Response(
         json.dumps(payload, default=json.json_iso_dttm_ser, ignore_nan=True),
