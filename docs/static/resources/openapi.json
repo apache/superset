@@ -19521,7 +19521,7 @@
     },
     "/api/v1/dashboard/{pk}/export_xlsx/": {
       "post": {
-        "description": "Writes each chart's data to its own worksheet of a single .xlsx. Where export storage is configured the work is queued: the response is a job id and the finished file is uploaded and emailed to the requesting user as a download link. Where it is not, the workbook is built during the request and returned as the response body, provided the export is small enough to serve that way.",
+        "description": "Writes each chart to a worksheet. With export storage, the work is queued and the user receives a download link by email. Without it, eligible workbooks are returned in the response.",
         "parameters": [
           {
             "description": "The dashboard id",

@@ -3735,7 +3735,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         _, kwargs = mock_task.apply_async.call_args
         assert kwargs["kwargs"]["mode"] == "images"
 
-    # --- Synchronous fallback (no export storage configured) ------------------
+    # Direct download without export storage
 
     @staticmethod
     def _write_stub_workbook(path, *args, **kwargs):
@@ -3780,10 +3780,10 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         )
         assert "attachment" in rv.headers["Content-Disposition"]
         assert ".xlsx" in rv.headers["Content-Disposition"]
-        # A real workbook (xlsx files are zip archives) reached the client.
+        # XLSX files are ZIP archives.
         assert rv.data.startswith(b"PK")
         assert is_zipfile(BytesIO(rv.data))
-        # Nothing was queued: no worker, no bucket, no email.
+        # Direct downloads do not queue a task.
         mock_task.apply_async.assert_not_called()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -3837,8 +3837,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 400
         message = rv.data.decode("utf-8")
         assert "EXCEL_EXPORT_S3_BUCKET" in message
-        # The lock prevents a duplicate request from paying the planning cost;
-        # a refusal releases it immediately and never reads chart rows.
+        # A budget refusal releases the lock without querying charts.
         mock_plan.assert_called_once()
         mock_build.assert_not_called()
         mock_acquire.return_value.run.assert_called_once()

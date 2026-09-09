@@ -1746,12 +1746,9 @@ class DashboardRestApi(
         post:
           summary: Export dashboard chart data to Excel
           description: >-
-            Writes each chart's data to its own worksheet of a single .xlsx.
-            Where export storage is configured the work is queued: the response
-            is a job id and the finished file is uploaded and emailed to the
-            requesting user as a download link. Where it is not, the workbook is
-            built during the request and returned as the response body, provided
-            the export is small enough to serve that way.
+            Writes each chart to a worksheet. With export storage, the work is
+            queued and the user receives a download link by email. Without it,
+            eligible workbooks are returned in the response.
           parameters:
           - in: path
             schema:
@@ -1788,13 +1785,8 @@ class DashboardRestApi(
             500:
               $ref: '#/components/responses/500'
         """
-        # C901 above: a linear chain of request guards, each returning its own
-        # status, ahead of the two export paths. Splitting it would only move the
-        # guards somewhere less obvious.
-        #
-        # With storage the export is queued and delivered by link; without it the
-        # workbook is built here and returned as the response. Resolved once, so a
-        # single request cannot take one path's checks and the other's delivery.
+        # Keep the request guards and two delivery paths together.
+        # Resolve the path once so its checks and delivery cannot diverge.
         queued = is_export_storage_configured()
         try:
             # Tolerate an empty/non-JSON body (e.g. a POST with no Content-Type);
@@ -1805,10 +1797,7 @@ class DashboardRestApi(
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
-        # Image export drives the headless webdriver, so it is only available
-        # when the same screenshot flags the UI checks are enabled. The decorator
-        # form (``@validate_feature_flags``) can't be used here because it would
-        # also block ``mode="data"``; mirror its 404 behavior inline instead.
+        # Image exports require the screenshot feature flags; data exports do not.
         if payload.get("mode") == "images" and not (
             is_feature_enabled("ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS")
             and is_feature_enabled("ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT")
@@ -1823,8 +1812,7 @@ class DashboardRestApi(
         except SupersetSecurityException:
             return self.response_403()
 
-        # Keep the existing account requirement across both delivery paths;
-        # embedded guest users remain excluded in this version.
+        # Both delivery paths require a non-guest account with an email address.
         if isinstance(g.user, GuestUser) or not getattr(g.user, "email", None):
             return self.response_400(
                 message="Excel export requires an account with an email address."
@@ -1836,9 +1824,7 @@ class DashboardRestApi(
         mode = payload.get("mode", "data")
 
         if not queued and mode == EXPORT_MODE_IMAGES:
-            # Image charts are drawn by the headless webdriver, one browser
-            # session at a time. That is not work a request can wait on, and no
-            # row budget bounds it, so it stays queued-only.
+            # Webdriver rendering is too slow and unbounded for a web request.
             return self.response_400(
                 message=(
                     "Exporting images to Excel runs in the background. "
@@ -1847,12 +1833,8 @@ class DashboardRestApi(
                 )
             )
 
-        # Throttle: one concurrent export per user+dashboard. Acquire a shared,
-        # atomic distributed lock (Redis when configured, the metadata DB
-        # otherwise) so the guard works across the web server and workers and is
-        # not a no-op under the default cache. The queued path's task releases it
-        # when it settles and the inline path releases it before responding; the
-        # TTL is the backstop if either release is ever lost.
+        # Allow one export per user and dashboard across web and worker processes.
+        # The TTL releases the lock if normal cleanup fails.
         lock_params = export_lock_params(g.user.id, dashboard.id)
         try:
             AcquireDistributedLock(
@@ -1872,10 +1854,8 @@ class DashboardRestApi(
                 dashboard, active_data_mask, mode, job_id, lock_params
             )
 
-        # Resolving query contexts can call an external builder, so do it only
-        # after taking the lock: a duplicate request should be rejected before it
-        # pays that cost. Until the workbook builder takes responsibility for the
-        # lock, release it here on both a budget refusal and a planning failure.
+        # Plan after locking because query-context resolution can be expensive.
+        # Release here unless the inline exporter takes over cleanup.
         lock_delegated = False
         try:
             plan: InlineExportPlan = plan_inline_export(dashboard)
@@ -1901,7 +1881,7 @@ class DashboardRestApi(
                 try:
                     ReleaseDistributedLock(EXPORT_LOCK_NAMESPACE, lock_params).run()
                 except Exception:  # pylint: disable=broad-except
-                    # Best-effort: the lock's TTL is the backstop if this fails.
+                    # The TTL is the fallback if release fails.
                     logger.exception(
                         "Failed to release in-flight export lock for dashboard %s",
                         dashboard.id,
@@ -1915,12 +1895,7 @@ class DashboardRestApi(
         job_id: str,
         lock_params: dict[str, int],
     ) -> WerkzeugResponse:
-        """
-        Hand the export to a worker, which uploads it and emails a download link.
-
-        Used where export storage is configured. Returns as soon as the job is
-        queued, so an export of any size is free to take as long as it needs.
-        """
+        """Queue an export for upload and email delivery."""
         try:
             export_dashboard_excel.apply_async(
                 kwargs={
@@ -1933,9 +1908,7 @@ class DashboardRestApi(
                 task_id=job_id,
             )
         except Exception:
-            # If enqueuing fails (e.g. broker down) the task will never run to
-            # release the lock, so free it now rather than block exports until
-            # the TTL expires.
+            # No task will release the lock if enqueueing fails.
             ReleaseDistributedLock(EXPORT_LOCK_NAMESPACE, lock_params).run()
             raise
         return self.response(202, job_id=job_id)
@@ -1948,21 +1921,7 @@ class DashboardRestApi(
         lock_params: dict[str, int],
         query_contexts: ResolvedQueryContexts,
     ) -> WerkzeugResponse:
-        """
-        Build the export during this request and return it as the response.
-
-        Used where no export storage is configured, so there is nowhere to upload
-        a finished file and nothing to link to in an email. The workbook is the
-        same one the Celery task builds, from the same builder — including the
-        summary sheet naming any charts it had to skip, which is how this path
-        reports them without an email. It is written to a temp file (the writer
-        streams to disk in constant memory) and read back once, so the response
-        carries a complete file and the temp file never outlives the request.
-
-        ``query_contexts`` are the ones the row budget was measured against, so
-        the queries that run here are exactly the ones that were vouched for.
-        Always a data export: an image export is refused before this point.
-        """
+        """Build a planned data export and return it in the response."""
         tmp_path: str | None = None
         try:
             file_descriptor, tmp_path = tempfile.mkstemp(
@@ -1982,13 +1941,11 @@ class DashboardRestApi(
             with open(tmp_path, "rb") as workbook:
                 content = workbook.read()
         finally:
-            # Both of these have to happen however the export ends: a held lock
-            # would keep the user from retrying until its TTL expires, and an
-            # abandoned temp file would sit on the web server's disk.
+            # Always release the lock and remove the temporary workbook.
             try:
                 ReleaseDistributedLock(EXPORT_LOCK_NAMESPACE, lock_params).run()
             except Exception:  # pylint: disable=broad-except
-                # Best-effort: the lock's TTL is the backstop if this fails.
+                # The TTL is the fallback if release fails.
                 logger.exception(
                     "Failed to release in-flight export lock for dashboard %s",
                     dashboard.id,

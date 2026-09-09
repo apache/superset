@@ -14,17 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""
-Celery task that exports every chart on a dashboard to a single multi-sheet
-``.xlsx`` file, uploads it to S3, and emails the requesting user a pre-signed
-download link.
-
-The workbook itself is built by
-:func:`superset.dashboards.excel_export.workbook.build_workbook`, which the
-dashboard API also calls inline when no export storage is configured. This module
-owns only the asynchronous concerns: the Celery task, the storage upload, email
-delivery, and releasing the in-flight lock the API acquired before enqueueing.
-"""
+"""Build dashboard Excel exports in Celery and deliver them by email."""
 
 from __future__ import annotations
 
@@ -50,15 +40,8 @@ logger = logging.getLogger(__name__)
 EXPORT_SOFT_TIME_LIMIT = 600
 EXPORT_HARD_TIME_LIMIT = 660
 
-# Namespace + TTL for the per-user+dashboard in-flight lock the API acquires
-# before either export path runs, released by this task when it settles (the
-# synchronous path releases it in its own ``finally``). The lock uses the
-# shared, atomic DistributedLock backend (Redis when configured, the metadata
-# DB otherwise) so it actually synchronizes across the web server and workers —
-# unlike a plain cache, which is a no-op under the default ``NullCache``.
-# The TTL outlives the hard time limit so a worker killed at that limit (which
-# skips the ``finally`` release) cannot hold the lock forever; the release in
-# ``finally`` is the fast path that frees it as soon as the task settles.
+# The API acquires this cross-process lock before either export path runs. The
+# task releases it, while the TTL covers hard worker shutdowns.
 EXPORT_LOCK_NAMESPACE = "excel_export"
 EXPORT_LOCK_TTL_SECONDS = EXPORT_HARD_TIME_LIMIT + 60
 
@@ -178,7 +161,7 @@ def export_dashboard_excel(
                 export_lock_params(user_id, dashboard_id),
             ).run()
         except Exception:  # pylint: disable=broad-except
-            # Best-effort: the lock's TTL is the backstop if this fails.
+            # The TTL is the fallback if release fails.
             logger.exception(
                 "Failed to release in-flight export lock for user %s dashboard %s",
                 user_id,

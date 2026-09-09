@@ -84,8 +84,7 @@ def _build(path: str, **kwargs: Any) -> Any:
 def test_provided_query_context_is_used_without_resolving_again(
     mocks: dict[str, Any], workbook_path: str
 ) -> None:
-    # The context the caller measured its row budget against is the one that runs:
-    # resolving a second time could yield a different query than was vouched for.
+    # Use the context measured by the row budget.
     chart = _chart(10, "First")
     mocks["get_charts_in_layout_order"].return_value = [chart]
     provided = {"queries": [{"row_limit": 7, "metrics": ["count"]}]}
@@ -100,8 +99,7 @@ def test_provided_query_context_is_used_without_resolving_again(
 def test_a_chart_resolved_to_none_is_skipped_without_resolving_again(
     mocks: dict[str, Any], workbook_path: str
 ) -> None:
-    # ``None`` in the map is an answer, not a gap: the caller already found this
-    # chart unexportable, so the builder must not try to resolve it itself.
+    # ``None`` marks a chart already resolved as unexportable.
     chart = _chart(20, "Skipped")
     mocks["get_charts_in_layout_order"].return_value = [chart]
 
@@ -117,8 +115,7 @@ def test_a_chart_resolved_to_none_is_skipped_without_resolving_again(
 def test_a_chart_missing_from_the_map_is_resolved_by_the_builder(
     mocks: dict[str, Any], workbook_path: str
 ) -> None:
-    # The Celery path passes no map at all, and a partial map must not silently
-    # drop the charts it does not mention.
+    # Resolve charts missing from a partial context map.
     chart = _chart(30, "Unmapped")
     mocks["get_charts_in_layout_order"].return_value = [chart]
     mocks["resolve_query_context"].return_value = {"queries": [{"row_limit": 5}]}

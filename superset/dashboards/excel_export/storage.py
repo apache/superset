@@ -14,18 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""
-Availability of the object storage the asynchronous dashboard Excel export needs.
-
-This is the single place that answers "can this deployment run an asynchronous
-export?", and it is deliberately the only thing that knows *how* that is
-configured. The dashboard API branches on it to pick the export path: with
-storage the export is queued and delivered by link, without it the workbook is
-built inline and returned as the response.
-
-The answer is derived from configuration rather than exposed as a feature flag,
-so there is no second knob that can disagree with the storage settings.
-"""
+"""Check whether dashboard Excel export storage is configured."""
 
 from __future__ import annotations
 
@@ -33,5 +22,5 @@ from flask import current_app
 
 
 def is_export_storage_configured() -> bool:
-    """Whether generated exports can be uploaded somewhere and served by link."""
+    """Return whether exports can be uploaded and shared by link."""
     return bool(current_app.config["EXCEL_EXPORT_S3_BUCKET"])

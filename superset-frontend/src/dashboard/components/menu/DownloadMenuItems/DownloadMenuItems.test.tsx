@@ -215,9 +215,7 @@ test('Export Images to Excel posts mode "images" and shows a pending toast', asy
 });
 
 test('Export Data to Excel downloads the workbook when it arrives inline', async () => {
-  // Without export storage the server builds the workbook during the request and
-  // returns the file itself, so the browser downloads it instead of waiting on
-  // an email that is never sent.
+  // Without storage, the response contains the workbook.
   const { blob } = mockWorkbookResponse();
   const { createObjectURL } = stubObjectUrls();
 
@@ -232,7 +230,7 @@ test('Export Data to Excel downloads the workbook when it arrives inline', async
       'Dashboard data exported to Excel',
     );
   });
-  // The email copy belongs to the queued path only; nothing was queued here.
+  // Direct downloads do not show the queued-export message.
   expect(mockAddSuccessToast).not.toHaveBeenCalledWith(
     "Your export is being prepared. You'll receive an email when it's ready.",
   );
@@ -241,8 +239,7 @@ test('Export Data to Excel downloads the workbook when it arrives inline', async
 test('Export Data to Excel names the downloaded file from the response', async () => {
   mockWorkbookResponse('Sales_Overview_7.xlsx');
   stubObjectUrls();
-  // Record the name each download is offered under, and keep jsdom from trying
-  // to follow the link.
+  // Capture download names without navigating in jsdom.
   const downloaded: string[] = [];
   const click = jest
     .spyOn(HTMLAnchorElement.prototype, 'click')
@@ -258,7 +255,7 @@ test('Export Data to Excel names the downloaded file from the response', async (
   click.mockRestore();
 });
 
-/** A request that stays in flight until the returned resolve is called. */
+/** Mock a request that the test can settle later. */
 const mockPendingResponse = (): { settle: (response: unknown) => void } => {
   let settle: (response: unknown) => void = () => {};
   mockSupersetClient.post.mockReturnValue(
@@ -273,8 +270,7 @@ const menuItemFor = (label: string) =>
   screen.getByText(label).closest('[role="menuitem"]');
 
 test('Export Data to Excel reports progress while the export is running', async () => {
-  // The request can take a while when the workbook is built inline, and a lock
-  // stops duplicate work without telling the user anything.
+  // Keep the menu responsive while the request runs.
   const { settle } = mockPendingResponse();
 
   render(<MenuWrapper />, { useRedux: true });
@@ -291,7 +287,7 @@ test('Export Data to Excel reports progress while the export is running', async 
 
   settle({ status: 202, json: jest.fn().mockResolvedValue({ job_id: 'abc' }) });
 
-  // Once the queued message arrives the action is offered again.
+  // Re-enable the action when the request finishes.
   await waitFor(() => {
     expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
   });
@@ -336,8 +332,7 @@ test('Export Data to Excel is offered again after a failure', async () => {
     expect(screen.getByText('Preparing export…')).toBeInTheDocument();
   });
 
-  // A rejected request must clear the pending state too, or the action would
-  // stay stuck until the dashboard is reloaded.
+  // Re-enable the action after an error.
   settle(Promise.reject(new Error('boom')));
 
   await waitFor(() => {
@@ -349,8 +344,7 @@ test('Export Data to Excel is offered again after a failure', async () => {
 });
 
 test('Export Images to Excel is blocked while a data export is running', async () => {
-  // One export at a time per dashboard: the server holds a lock, so offering a
-  // second export would only earn an "already in progress" refusal.
+  // The server allows one export per dashboard and user.
   enableWebDriverScreenshot();
   mockPendingResponse();
 
@@ -385,8 +379,7 @@ test('Export Data to Excel shows an "already in progress" toast when throttled',
 });
 
 test('Export Data to Excel surfaces the reason an export was refused', async () => {
-  // An export too large to build during the request is refused with a message
-  // naming the fix, which is worth more to the user than a generic failure.
+  // Show the server's actionable refusal.
   const message =
     'This dashboard requests too many rows to export in a single request.';
   mockSupersetClient.post.mockRejectedValue(new Error('too big'));

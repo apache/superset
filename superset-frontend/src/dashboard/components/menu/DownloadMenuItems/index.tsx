@@ -74,9 +74,7 @@ export const useDownloadMenuItems = (
 
   const { addDangerToast, addSuccessToast } = useToasts();
   const dataMask = useSelector((state: RootState) => state.dataMask);
-  // The mode whose export is in flight, if any. The server allows one export
-  // per user and dashboard at a time, so while one runs both actions are
-  // disabled and the one that was clicked reports its progress.
+  // Disable both Excel actions while either export is running.
   const [exportingXlsx, setExportingXlsx] = useState<'data' | 'images' | null>(
     null,
   );
@@ -160,18 +158,13 @@ export const useDownloadMenuItems = (
       const response = await SupersetClient.post({
         endpoint: `/api/v1/dashboard/${dashboardId}/export_xlsx/`,
         jsonPayload: { active_data_mask: buildActiveDataMask(), mode },
-        // The response is either JSON describing a queued export or the workbook
-        // itself, so it is parsed here rather than by the client.
+        // Parse the queued response or workbook after checking its status.
         parseMethod: 'raw',
-        // Retrying a non-idempotent export after a proxy timeout can lose the
-        // inline file response: the retry sees the first request's lock and gets
-        // an "already in progress" response, while no email delivers the file.
+        // A retry may hit the first request's lock and lose its file response.
         fetchRetryOptions: { retries: 0 },
       });
 
-      // Where the deployment has export storage the work is queued and delivered
-      // by email (202). Where it has none the server builds the workbook during
-      // the request and returns the file, which the browser downloads directly.
+      // A 202 is queued; any successful non-202 response is the workbook.
       if (response.status !== 202) {
         const blob = await response.blob();
         downloadBlob(
@@ -182,8 +175,7 @@ export const useDownloadMenuItems = (
         return;
       }
 
-      // The throttle response (an export is already running) returns 202 with a
-      // message but no job_id; only a freshly enqueued job carries a job_id.
+      // Only a newly queued export has a job id.
       const json = (await response.json()) as { job_id?: string };
       if (json?.job_id) {
         addSuccessToast(
@@ -197,24 +189,19 @@ export const useDownloadMenuItems = (
         );
       }
     } catch (error) {
-      // status/message come from the response (Partial<SupersetClientResponse>),
-      // which the union type does not expose uniformly; read them via a narrow
-      // cast.
+      // The client error union does not expose response fields uniformly.
       const { status, message } = (await getClientErrorObject(error)) as {
         status?: number;
         message?: string;
       };
-      // A refusal explains itself — the export is too large to build in one
-      // request, and says what to configure — so pass it on rather than
-      // replacing it with a generic failure. Server-side faults stay generic.
+      // Show actionable client errors; keep server errors generic.
       if (message && status && status >= 400 && status < 500) {
         addDangerToast(message);
       } else {
         addDangerToast(t('Sorry, something went wrong. Try again later.'));
       }
     } finally {
-      // However the request ends, the action has to come back: otherwise a
-      // failure would leave it stuck until the dashboard is reloaded.
+      // Re-enable the actions after success or failure.
       setExportingXlsx(null);
     }
   };
@@ -275,10 +262,7 @@ export const useDownloadMenuItems = (
             disabled: exportingXlsx !== null,
             onClick: () => onExportXlsx('data'),
           },
-          // Image export renders charts through the headless webdriver, so only
-          // offer it where that infrastructure is available (same signal as the
-          // PDF/PNG image downloads above); otherwise non-table charts would
-          // silently come back empty.
+          // Image exports require the same webdriver flags as PDF and PNG.
           ...(isWebDriverScreenshotEnabled
             ? [
                 {

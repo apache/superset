@@ -30,8 +30,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 from superset.utils import json
 
 MODULE = "superset.tasks.export_dashboard_excel"
-# Workbook building lives in a module shared with the synchronous export path;
-# the task only orchestrates storage upload and email delivery around it.
+# Workbook building is shared by queued and direct exports.
 WORKBOOK_MODULE = "superset.dashboards.excel_export.workbook"
 
 
@@ -88,9 +87,7 @@ def mocks() -> Iterator[dict[str, Any]]:
                 (WORKBOOK_MODULE, "render_chart_image"),
             )
         }
-        # ``email`` is imported by both modules — the task sends through it, the
-        # workbook reads its ERROR_* reason keys — so both must see the same mock
-        # for the reason keys in an assertion to match the ones in the workbook.
+        # Both modules must use the same mocked error keys.
         shared_email = mock.MagicMock()
         for module in (MODULE, WORKBOOK_MODULE):
             stack.enter_context(mock.patch(f"{module}.email", new=shared_email))
@@ -307,8 +304,7 @@ def _builder_hook(builder: Any) -> Iterator[None]:
         "EXCEL_EXPORT_S3_KEY_PREFIX": "dashboard-exports/",
         "EXCEL_EXPORT_LINK_TTL_SECONDS": 3600,
     }.__getitem__
-    # Both modules read config: the workbook resolves the builder hook and the
-    # table-viz overrides, the task reads the storage keys.
+    # Both the task and workbook read configuration.
     with ExitStack() as stack:
         for module in (MODULE, WORKBOOK_MODULE):
             stack.enter_context(mock.patch(f"{module}.current_app", fake_app))
@@ -734,7 +730,7 @@ def test_partial_failure_appends_summary_sheet(mocks: dict[str, Any]) -> None:
     assert "Export Summary" in uploaded["sheets"]
     flat = [str(cell) for row in uploaded["sheets"]["Export Summary"] for cell in row]
     assert any("20 - Bad" in cell for cell in flat)
-    # The chart that did export is still there; the summary is additional.
+    # Keep successful sheets alongside the summary.
     assert "10 - Good" in uploaded["sheets"]
 
 

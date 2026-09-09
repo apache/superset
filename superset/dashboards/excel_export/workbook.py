@@ -14,23 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""
-Build the multi-sheet ``.xlsx`` workbook for a dashboard export.
-
-This module owns everything that turns a dashboard into a workbook on disk:
-resolving each chart's query context, applying the live dashboard filter state,
-running the chart queries under the requesting user's permissions, and streaming
-the results row-by-row into a constant-memory workbook so large dashboards never
-load all data at once. In ``"images"`` mode non-table charts are instead rendered
-to images (through the same headless path as scheduled reports, reflecting the
-live filters) and embedded, while table-like charts stay tabular.
-
-It is deliberately free of any delivery concern. Both export paths share it:
-:mod:`superset.tasks.export_dashboard_excel` wraps it in a Celery task that
-uploads the result to object storage and emails a link, while the dashboard API
-calls it inline to return the workbook as the HTTP response when no export
-storage is configured.
-"""
+"""Build dashboard Excel workbooks for direct and queued exports."""
 
 from __future__ import annotations
 
@@ -60,63 +44,38 @@ from superset.utils.excel_streaming import StreamingXlsxWriter
 
 logger = logging.getLogger(__name__)
 
-# Export modes: "data" streams every chart's tabular result (the default,
-# unchanged behavior); "images" embeds non-table charts as rendered images and
-# keeps only table-like charts tabular.
+# Data mode writes chart results; image mode renders non-table charts.
 EXPORT_MODE_DATA = "data"
 EXPORT_MODE_IMAGES = "images"
 
-# Viz types kept as tabular data in image mode; everything else is rendered as an
-# image. Operators can override the set via ``EXCEL_EXPORT_TABLE_VIZ_TYPES``.
+# Viz types that remain tabular in image mode.
 TABLE_VIZ_TYPES = {"table", "pivot_table_v2", "pivot_table"}
 
-# Viz types whose missing query context may be rebuilt from saved form data.
-# Conservative: only charts whose data maps faithfully to a single plain query
-# (no post-processing, no multi-query fan-out). Every other viz type without a
-# saved query context is skipped and listed for the user to re-save in Explore.
+# Viz types that can be rebuilt as a single query without post-processing.
 REBUILD_VIZ_TYPES = {"table", "big_number_total", "big_number", "pie"}
 
-#: Query contexts already resolved for a set of charts, keyed by chart id, as
-#: :func:`resolve_query_context` returns them. A ``None`` value is an answer, not
-#: a gap: that chart has no usable context and is skipped. A chart absent from
-#: the mapping has not been resolved yet.
+#: Resolved query contexts by chart id. ``None`` marks a skipped chart.
 ResolvedQueryContexts = dict[int, dict[str, Any] | None]
 
 
 class ChartSkippedError(Exception):
-    """Signals a chart that could not be exported and should be listed as skipped."""
+    """Raised when a chart should be listed as skipped."""
 
 
 def chart_label(chart: Any) -> str:
-    """Human-readable label for a chart in the skipped-charts list."""
+    """Return the chart label used in the export summary."""
     return f"{chart.id} - {chart.slice_name or ''}".strip()
 
 
 def _usable_query_context(value: Any) -> dict[str, Any] | None:
-    """
-    ``value`` when it is a usable query-context payload, else ``None``.
-
-    A payload is usable only if it is a dict with a non-empty ``queries`` list; a
-    blank, query-less, mistyped, or non-object value (e.g. ``{}``,
-    ``{"queries": []}``, ``{"queries": "oops"}``, ``None``) is treated the same as
-    a missing context. Shared by the saved-context path and the builder hook so
-    both apply the same validity rule — and so a malformed builder return falls
-    through to the built-in rebuild instead of failing later in the general
-    error bucket.
-    """
+    """Return a query context with a non-empty ``queries`` list."""
     if not isinstance(value, dict) or not isinstance(value.get("queries"), list):
         return None
     return value if value["queries"] else None
 
 
 def _saved_query_context(raw: Any) -> dict[str, Any] | None:
-    """
-    The chart's saved query context parsed to a dict, or ``None`` when it is
-    missing or unusable.
-
-    Returns ``None`` for a blank value, a string that does not parse as JSON, and
-    any value that is not a dict with a non-empty ``queries`` list.
-    """
+    """Parse a saved query context, returning ``None`` if it is unusable."""
     if not raw:
         return None
     try:
@@ -126,68 +85,37 @@ def _saved_query_context(raw: Any) -> dict[str, Any] | None:
     return _usable_query_context(parsed)
 
 
-# Form-data keys whose behavior needs plugin post-processing or extra queries
-# (contribution/time comparison, rolling window, resampling, raw big-number
-# aggregation) that the single-query rebuild cannot reproduce. A chart using any
-# of these is skipped rather than exported with values that differ from the chart.
+# Form-data features the single-query rebuild cannot reproduce.
 _UNSUPPORTED_PROCESSING_KEYS = ("time_compare", "rolling_type", "resample_rule")
 
 
 def _needs_unsupported_processing(form_data: dict[str, Any]) -> bool:
-    """Whether the form data relies on processing the rebuild can't reproduce."""
-    # ``percent_metrics`` are "% of total" columns produced by contribution
-    # post-processing the rebuild can't apply; skip so the export doesn't silently
-    # omit columns the user sees.
+    """Return whether the chart needs unsupported post-processing."""
+    # ``percent_metrics`` are produced by contribution post-processing.
     if form_data.get("percent_metrics"):
         return True
-    # ``show_totals`` adds a totals row via a *second* query
-    # (``plugin-chart-table/src/buildQuery.ts``, gated on aggregate mode); the
-    # single-query rebuild would silently drop that row. The mode check mirrors
-    # the frontend so a raw-mode table carrying a stale value still exports.
+    # Aggregate table totals require a second query.
     if form_data.get("show_totals") and not is_raw_query_mode(form_data):
         return True
     for key in _UNSUPPORTED_PROCESSING_KEYS:
         value = form_data.get(key)
-        # ``rolling_type`` is often the literal string ``"None"`` when unset.
+        # ``rolling_type`` may contain the string ``"None"`` when unset.
         if value and value != "None":
             return True
     return form_data.get("aggregation") == "raw"
 
 
 def resolve_query_context(chart: Any) -> dict[str, Any] | None:
-    """
-    The query-context payload to run for a chart's data export, or ``None`` when
-    none can be obtained.
-
-    Resolution order:
-
-    1. the chart's saved ``query_context``;
-    2. an optional ``EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`` hook, letting a deployment
-       supply a faithful context (e.g. from a service running the chart's real
-       frontend ``buildQuery``) for viz types the built-in rebuild can't handle;
-    3. the built-in form-data rebuild, restricted to viz types whose data maps
-       faithfully to a single plain query (``REBUILD_VIZ_TYPES``) without
-       post-processing or extra queries.
-
-    Returns ``None`` when none apply, so the caller lists the chart for re-saving
-    rather than exporting inaccurate data.
-    """
+    """Resolve a saved, custom-built, or built-in query context for a chart."""
     if saved := _saved_query_context(chart.query_context):
         return saved
 
-    # The hook receives the chart's form data and must return ``None`` — not a
-    # partial/stub context — whenever it can't build the chart faithfully, so we
-    # fall through to the built-in rebuild (which handles the allowlisted viz types
-    # well). A hook failure falls through too, preserving "builder problem →
-    # rebuild, don't fail the export" — the one exception being a task-level
-    # timeout, which has to abort the whole export rather than this chart.
+    # Builder failures fall back to the built-in query-context rebuild.
     if builder := current_app.config.get("EXCEL_EXPORT_QUERY_CONTEXT_BUILDER"):
         try:
             built = builder(chart.form_data)
         except SoftTimeLimitExceeded:
-            # A soft timeout is a task-level signal, not a builder failure: let it
-            # propagate to build_workbook so the export aborts cleanly instead of
-            # continuing on to rebuild this chart and start the next one.
+            # A task timeout must stop the whole export.
             raise
         except Exception:  # pylint: disable=broad-except
             logger.warning(
@@ -198,15 +126,10 @@ def resolve_query_context(chart: Any) -> dict[str, Any] | None:
             )
             built = None
         if (from_builder := _usable_query_context(built)) is not None:
-            # Copy: the payload's ``queries`` are mutated in place downstream (by
-            # ``apply_dashboard_filter_context``), and a builder is free to
-            # memoize or otherwise share its return value — which would then
-            # accumulate filters across charts and across exports.
+            # Filters mutate nested queries, so do not modify a shared payload.
             return copy.deepcopy(from_builder)
 
-    # The allowlist and ``_needs_unsupported_processing`` bound only the built-in
-    # rebuild below; the builder hook above is intentionally not gated by them (a
-    # faithful builder includes the post-processing the built-in rebuild lacks).
+    # Only the built-in rebuild is limited to simple chart types.
     if chart.viz_type not in REBUILD_VIZ_TYPES or chart.datasource_id is None:
         return None
     try:
@@ -235,7 +158,7 @@ def _table_viz_types() -> set[str]:
 
 
 def renders_as_image(chart: Any, mode: str) -> bool:
-    """Whether this chart is embedded as an image rather than streamed as data."""
+    """Return whether the chart is exported as an image."""
     return mode == EXPORT_MODE_IMAGES and chart.viz_type not in _table_viz_types()
 
 
@@ -246,10 +169,9 @@ def _write_chart_image_sheet(
     active_data_mask: dict[str, Any],
     user: Any,
 ) -> None:
-    """
-    Render a single chart to an image and embed it as its own sheet.
+    """Render a chart into a worksheet.
 
-    :raises ChartSkippedError: if the chart could not be rendered
+    :raises ChartSkippedError: if rendering fails
     """
     image = render_chart_image(chart, dashboard_id, active_data_mask, user)
     if image is None:
@@ -264,22 +186,10 @@ def _write_chart_sheets(
     dashboard_id: int,
     active_data_mask: dict[str, Any],
 ) -> None:
-    """
-    Run a single chart's query and stream its result(s) into the workbook.
-
-    ``json_body`` is the resolved query-context payload (the chart's saved
-    context or one synthesized from its form data). Charts may yield more than
-    one query (e.g. mixed-series charts); each becomes its own sheet. Raises if
-    the chart cannot be exported, so the caller can skip it and note it in the
-    email.
-    """
-    # Shallow-copy before setting our own top-level keys so the caller's payload
-    # keeps its original result_format/result_type. (The nested ``queries`` are
-    # mutated in place by apply_dashboard_filter_context below, which is safe
-    # because every payload ``resolve_query_context`` returns is this chart's
-    # alone: freshly parsed, freshly built, or deep-copied from the builder hook.)
+    """Run a chart's queries and write each result to a worksheet."""
+    # Preserve the caller's top-level query-context values.
     json_body = dict(json_body)
-    # Override any stale saved values: we always want full JSON results.
+    # Export full JSON results, regardless of saved values.
     json_body["result_format"] = ChartDataResultFormat.JSON
     json_body["result_type"] = ChartDataResultType.FULL
     json_body.pop("force", None)
@@ -292,7 +202,7 @@ def _write_chart_sheets(
     if filter_context.extra_form_data:
         apply_dashboard_filter_context(json_body, filter_context.extra_form_data)
 
-    # Jinja macros resolve form data from g.form_data; expose the saved context.
+    # Jinja macros read the query context from ``g.form_data``.
     g.form_data = json_body
 
     query_context = ChartDataQueryContextSchema().load(json_body)
@@ -325,9 +235,7 @@ def build_workbook(  # pylint: disable=too-many-arguments
 ) -> dict[str, list[str]]:
     """Build the workbook on disk.
 
-    Return the charts that could not be exported, grouped by the reason they
-    were omitted (see the ``email.ERROR_*`` reason keys), so the notification
-    can explain each group separately.
+    Return skipped charts grouped by ``email.ERROR_*`` reason.
 
     :param path: Destination path for the ``.xlsx`` file
     :param dashboard: The dashboard whose charts to export
@@ -335,10 +243,7 @@ def build_workbook(  # pylint: disable=too-many-arguments
     :param job_id: Correlation id used in log lines
     :param mode: ``"data"`` or ``"images"``
     :param user: The requesting user (used to render images)
-    :param query_contexts: Contexts a caller has already resolved, used as-is
-        instead of resolving them again — so an export whose size was measured
-        up front runs the very queries that were measured. Charts absent from
-        the mapping are resolved here; pass nothing to resolve them all.
+    :param query_contexts: Pre-resolved contexts. Missing charts are resolved here.
     """
     errored: dict[str, list[str]] = {}
     resolved = query_contexts or {}
@@ -348,16 +253,12 @@ def build_workbook(  # pylint: disable=too-many-arguments
             label = chart_label(chart)
             try:
                 if renders_as_image(chart, mode):
-                    # Image charts render from their saved params via the
-                    # webdriver and don't need a query context.
+                    # Image charts do not need a query context.
                     _write_chart_image_sheet(
                         writer, chart, dashboard.id, active_data_mask, user
                     )
                 else:
-                    # Data charts need a query context: use the one the caller
-                    # already resolved, else the saved one or a rebuild from form
-                    # data for eligible viz types. Skip cleanly when none is
-                    # available rather than failing.
+                    # Reuse a planned context or resolve one here.
                     json_body = (
                         resolved[chart.id]
                         if chart.id in resolved
@@ -372,13 +273,7 @@ def build_workbook(  # pylint: disable=too-many-arguments
                         writer, chart, json_body, dashboard.id, active_data_mask
                     )
             except SoftTimeLimitExceeded:
-                # A soft timeout is a task-level signal, not a per-chart failure:
-                # let it propagate so the outer handler emails a failure and runs
-                # cleanup, rather than continuing until the hard limit kills the
-                # worker (which would skip cleanup, leak temp files, and hold the
-                # in-flight lock until its TTL). ``except Exception`` below would
-                # otherwise swallow it, since it subclasses ``Exception``. Only the
-                # Celery path can raise it; the synchronous path never does.
+                # Let the task handler report the timeout and clean up.
                 raise
             except ChartSkippedError:
                 logger.warning(
@@ -393,9 +288,7 @@ def build_workbook(  # pylint: disable=too-many-arguments
                 )
                 errored.setdefault(email.ERROR_GENERAL, []).append(label)
 
-        # The workbook itself carries the skipped-charts list, so it travels with
-        # the file however the file is delivered: an export returned as the
-        # response to the request has no email to list them in.
+        # Include skipped charts in the workbook for both delivery paths.
         if writer.sheet_count == 0 or errored:
             flat = [label for labels in errored.values() for label in labels]
             header = (
