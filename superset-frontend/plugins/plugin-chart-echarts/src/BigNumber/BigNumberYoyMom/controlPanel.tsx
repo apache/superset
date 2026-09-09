@@ -90,6 +90,11 @@ const config: ControlPanelConfig = {
               ...sharedControls.metric,
               label: t('MoM comparison value'),
               clearable: true,
+              // The comparison value is optional: do not inherit the
+              // required validator from the metric control. Hidden
+              // controls are still validated by Explore, so a required
+              // validator here blocks chart creation in time-shift mode.
+              validators: [],
               description: t(
                 'Metric (or custom SQL expression) holding the MoM comparison value. This mode does not require a time range.',
               ),
@@ -141,6 +146,8 @@ const config: ControlPanelConfig = {
               ...sharedControls.metric,
               label: t('YoY comparison value'),
               clearable: true,
+              // See the MoM comparison value: the metric is optional.
+              validators: [],
               description: t(
                 'Metric (or custom SQL expression) holding the YoY comparison value. This mode does not require a time range.',
               ),
