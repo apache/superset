@@ -156,7 +156,10 @@ export const DashboardEmbedControls = ({
         setEmbedded(result);
         setAllowedDomains(result ? result.allowed_domains.join(', ') : '');
       });
-  }, [dashboardId]);
+    // `endpoint` already incorporates both `dashboardId` and `resourceType`;
+    // depending on it (rather than `dashboardId` alone) keeps this in sync if
+    // a resource type ever changes without a `dashboardId` change.
+  }, [endpoint]);
 
   if (!ready) {
     return <Loading />;
