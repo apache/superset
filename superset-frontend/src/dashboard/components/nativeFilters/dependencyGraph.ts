@@ -73,3 +73,50 @@ export function resolveTransitiveParentIds(
   visit(id);
   return ordered;
 }
+
+/**
+ * Resolve the set of transitive *descendant* filter ids for the given filter.
+ *
+ * This is the inverse of `resolveTransitiveParentIds`: instead of walking the
+ * `cascadeParentIds` edges upward to find ancestors, it builds a reverse
+ * adjacency map (parent -> children) and walks that downward to collect every
+ * filter that transitively depends on `id`.
+ *
+ * It is used to know which dependent filters must be cleared/reset when a
+ * parent filter's value changes (a cascading native-filter behavior). The
+ * returned array is ordered breadth-first so direct children come before
+ * grandchildren, which is the natural order in which they should be cleared.
+ *
+ * Cycles are silently skipped to defend against malformed saved configs,
+ * mirroring the `resolveTransitiveParentIds` behavior.
+ */
+export function resolveTransitiveChildIds(
+  id: string,
+  filterConfig: FilterConfigMap,
+): string[] {
+  const childrenByParent = new Map<string, string[]>();
+  Object.entries(filterConfig).forEach(([childId, filter]) => {
+    ensureIsArray(filter?.cascadeParentIds).forEach((parentId: string) => {
+      const siblings = childrenByParent.get(parentId) ?? [];
+      siblings.push(childId);
+      childrenByParent.set(parentId, siblings);
+    });
+  });
+
+  const ordered: string[] = [];
+  const visited = new Set<string>([id]);
+  const queue = [id];
+
+  while (queue.length > 0) {
+    const currentId = queue.shift()!;
+    const children = childrenByParent.get(currentId) ?? [];
+    children.forEach(childId => {
+      if (visited.has(childId)) return;
+      visited.add(childId);
+      ordered.push(childId);
+      queue.push(childId);
+    });
+  }
+
+  return ordered;
+}

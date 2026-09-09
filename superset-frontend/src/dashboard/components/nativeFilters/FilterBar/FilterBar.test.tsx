@@ -24,6 +24,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import { testWithId } from 'src/utils/testUtils';
@@ -1241,4 +1242,124 @@ test('FilterBar with orientation=Vertical renders Vertical layout (sanity counte
   expect(
     screen.queryByRole('img', { name: 'setting' }),
   ).not.toBeInTheDocument();
+});
+
+describe('cascading native filter clear', () => {
+  const parentId = 'NATIVE_FILTER-cascade-country';
+  const childId = 'NATIVE_FILTER-cascade-city';
+
+  function createCascadeState() {
+    const parentFilter = createFilter({
+      id: parentId,
+      name: 'Country',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 7, column: { name: 'country' } }],
+      chartsInScope: [18],
+    });
+    const childFilter = createFilter({
+      id: childId,
+      name: 'City',
+      filterType: 'filter_select',
+      targets: [{ datasetId: 7, column: { name: 'city' } }],
+      cascadeParentIds: [parentId],
+      chartsInScope: [18],
+    });
+    return {
+      ...stateWithoutNativeFilters,
+      dashboardInfo: {
+        id: 1,
+        dash_edit_perm: true,
+        filterBarOrientation: FilterBarOrientation.Vertical,
+        metadata: {
+          native_filter_configuration: [parentFilter, childFilter],
+          chart_configuration: {},
+        },
+      },
+      dashboardState: {
+        ...stateWithoutNativeFilters.dashboardState,
+        activeTabs: ['ROOT_ID'],
+      },
+      dataMask: {
+        [parentId]: createDataMask(parentId, ['USA'], {
+          filters: [{ col: 'country', op: 'IN', val: ['USA'] }],
+        }),
+        [childId]: createDataMask(childId, ['New York'], {
+          filters: [{ col: 'city', op: 'IN', val: ['New York'] }],
+        }),
+      },
+      nativeFilters: {
+        filters: {
+          [parentId]: parentFilter,
+          [childId]: childFilter,
+        },
+        filtersState: {},
+      },
+    };
+  }
+
+  beforeEach(() => {
+    // Drop any chart/data routes registered by earlier tests in this file so
+    // this suite's static response always wins for the filter queries.
+    fetchMock.removeRoutes();
+    fetchMock.post(
+      'glob:*/api/v1/chart/data',
+      {
+        result: [
+          {
+            data: [{ country: 'USA' }, { country: 'UK' }],
+            colnames: ['country'],
+            coltypes: [1],
+            applied_filters: [],
+          },
+        ],
+      },
+      { name: 'cascade-chart-data' },
+    );
+  });
+
+  test('changing a parent filter value clears the child selection', async () => {
+    // Spy must be created inside the test: earlier tests in this file restore
+    // a shared spy on the same action, which would silently detach this one.
+    const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
+    const state = createCascadeState();
+    const props = createOpenedBarProps();
+    renderFilterBar(props, state);
+
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    // Locate the parent (Country) select control via its labeled form item,
+    // then change its value from USA to UK.
+    const parentLabel = await screen.findByText('Country');
+    const parentFormItem = parentLabel.closest('.ant-form-item') as HTMLElement;
+    const parentSelect = within(parentFormItem).getByRole('combobox');
+    await act(async () => {
+      await userEvent.click(parentSelect);
+    });
+    const ukOption = await screen.findByText('UK');
+    await act(async () => {
+      await userEvent.click(ukOption);
+    });
+
+    // Let the parent change propagate through the filter tree.
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+
+    // Apply the staged changes. The child (City) must be dispatched with a
+    // cleared value — New York is not a valid city under UK.
+    const applyBtn = screen.getByTestId(getTestId('apply-button'));
+    await act(async () => {
+      await userEvent.click(applyBtn);
+    });
+
+    const childCall = updateDataMaskSpy.mock.calls.find(
+      call => call[0] === childId,
+    );
+    expect(childCall).toBeDefined();
+    expect(childCall![1]?.filterState?.value).toEqual(null);
+    expect(childCall![1]?.extraFormData).toEqual({});
+  });
 });

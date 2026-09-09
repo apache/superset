@@ -138,6 +138,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
     filterBarOrientation,
     clearAllTrigger,
     onClearAllComplete,
+    cascadeClearTrigger,
+    onCascadeClearComplete,
   } = props;
   const {
     enableEmptyFilter,
@@ -512,6 +514,27 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
       onClearAllComplete?.(formData.nativeFilterId);
     }
   }, [clearAllTrigger, onClearAllComplete, updateDataMask]);
+
+  useEffect(() => {
+    // When a parent filter's value changes, a cascading clear signals this
+    // dependent filter to reset its visual selection. Same behavior as a
+    // global clear-all but scoped to one descendant.
+    if (cascadeClearTrigger) {
+      dispatchDataMask({
+        type: 'filterState',
+        extraFormData: {},
+        filterState: {
+          value: undefined,
+          label: undefined,
+        },
+      });
+
+      updateDataMask(null);
+      setSearch('');
+      setLikeInputValue('');
+      onCascadeClearComplete?.(formData.nativeFilterId);
+    }
+  }, [cascadeClearTrigger, onCascadeClearComplete, updateDataMask]);
 
   useEffect(() => {
     if (prevExcludeFilterValues.current !== excludeFilterValues) {

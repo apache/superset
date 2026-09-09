@@ -66,6 +66,7 @@ import { isChartCustomization } from '../FiltersConfigModal/utils';
 import { checkIsApplyDisabled, getFiltersToApply } from './utils';
 import { extractLabel } from '../selectors';
 import { FiltersBarProps } from './types';
+import { resolveTransitiveChildIds } from '../dependencyGraph';
 import {
   useAllAppliedDataMask,
   useFilters,
@@ -229,6 +230,9 @@ const FilterBar: FC<FiltersBarProps> = ({
   const [clearAllTriggers, setClearAllTriggers] = useState<
     Record<string, boolean>
   >({});
+  const [cascadeClearTriggers, setCascadeClearTriggers] = useState<
+    Record<string, boolean>
+  >({});
   const [initializedFilters, setInitializedFilters] = useState<Set<string>>(
     new Set(),
   );
@@ -311,6 +315,38 @@ const FilterBar: FC<FiltersBarProps> = ({
 
         const hasRequiredValue = isRequired && isEmptyValue;
 
+        // Cascade clearing: when a parent filter's value changes, every
+        // transitive descendant (child) dependent filter must have its
+        // selection reset. Otherwise the child keeps a stale value that no
+        // longer belongs to the parent's option set (e.g. Country=UK with a
+        // City value only valid under USA), producing impossible filter
+        // combinations that blank charts.
+        const prevValue = draft[filter.id]?.filterState?.value;
+        const nextValue = baseDataMask.filterState?.value;
+        const parentValueChanged =
+          prevValue !== undefined && !isEqual(prevValue, nextValue);
+        if (parentValueChanged) {
+          const childIds = resolveTransitiveChildIds(filter.id, filters);
+          childIds.forEach(childId => {
+            if (!draft[childId]) return;
+            draft[childId].extraFormData = {};
+            if (draft[childId].filterState) {
+              const childIsRequired =
+                !!filters[childId]?.controlValues?.enableEmptyFilter;
+              draft[childId].filterState.value = null;
+              draft[childId].filterState.validateStatus = childIsRequired
+                ? 'error'
+                : undefined;
+            }
+            // Signal the child's filter plugin to clear its visual selection
+            // and avoid re-applying defaults.
+            setCascadeClearTriggers(prev => ({
+              ...prev,
+              [childId]: true,
+            }));
+          });
+        }
+
         draft[filter.id] = {
           ...baseDataMask,
           filterState: {
@@ -326,6 +362,7 @@ const FilterBar: FC<FiltersBarProps> = ({
       initializedFilters,
       setInitializedFilters,
       dataMaskApplied,
+      filters,
     ],
   );
 
@@ -586,6 +623,14 @@ const FilterBar: FC<FiltersBarProps> = ({
     });
   }, []);
 
+  const handleCascadeClearComplete = useCallback((filterId: string) => {
+    setCascadeClearTriggers(prev => {
+      const newTriggers = { ...prev };
+      delete newTriggers[filterId];
+      return newTriggers;
+    });
+  }, []);
+
   useFilterUpdates(dataMaskSelected, setDataMaskSelected);
 
   const hasPendingChartCustomizations =
@@ -662,6 +707,8 @@ const FilterBar: FC<FiltersBarProps> = ({
         }
         clearAllTriggers={clearAllTriggers}
         onClearAllComplete={handleClearAllComplete}
+        cascadeClearTriggers={cascadeClearTriggers}
+        onCascadeClearComplete={handleCascadeClearComplete}
       />
     ) : verticalConfig ? (
       <Vertical
@@ -683,6 +730,8 @@ const FilterBar: FC<FiltersBarProps> = ({
         mobileMode={verticalConfig.mobileMode}
         clearAllTriggers={clearAllTriggers}
         onClearAllComplete={handleClearAllComplete}
+        cascadeClearTriggers={cascadeClearTriggers}
+        onCascadeClearComplete={handleCascadeClearComplete}
       />
     ) : null;
 
