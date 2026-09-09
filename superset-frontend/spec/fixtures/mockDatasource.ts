@@ -181,9 +181,7 @@ export default {
     granularity_sqla: [['ds', 'ds']],
     main_dttm_col: 'ds',
     name: 'birth_names',
-    owners: [
-      { first_name: 'joe', last_name: 'man', id: 1, username: 'joeman' },
-    ],
+    editors: [{ id: 1, label: 'joe man', type: 1, value: 1 }],
     database: {
       name: 'main',
       backend: 'sqlite',

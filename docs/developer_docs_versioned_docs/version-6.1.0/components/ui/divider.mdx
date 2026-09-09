@@ -33,65 +33,54 @@ The Divider component from Superset's UI library.
 <StoryWithControls
   component="Divider"
   props={{
-  dashed: false,
-  variant: "solid",
-  orientation: "center",
-  orientationMargin: "",
-  plain: true,
-  type: "horizontal"
-}}
+    dashed: false,
+    variant: 'solid',
+    orientation: 'center',
+    orientationMargin: '',
+    plain: true,
+    type: 'horizontal',
+  }}
   controls={[
-  {
-    name: "dashed",
-    label: "Dashed",
-    type: "boolean",
-    description: "Whether line is dashed (deprecated, use variant)."
-  },
-  {
-    name: "variant",
-    label: "Variant",
-    type: "select",
-    options: [
-      "dashed",
-      "dotted",
-      "solid"
-    ],
-    description: "Line style of the divider."
-  },
-  {
-    name: "orientation",
-    label: "Orientation",
-    type: "select",
-    options: [
-      "left",
-      "right",
-      "center"
-    ],
-    description: "Position of title inside divider."
-  },
-  {
-    name: "orientationMargin",
-    label: "Orientation Margin",
-    type: "text",
-    description: "Margin from divider edge to title."
-  },
-  {
-    name: "plain",
-    label: "Plain",
-    type: "boolean",
-    description: "Use plain style without bold title."
-  },
-  {
-    name: "type",
-    label: "Type",
-    type: "select",
-    options: [
-      "horizontal",
-      "vertical"
-    ],
-    description: "Direction of the divider."
-  }
-]}
+    {
+      name: 'dashed',
+      label: 'Dashed',
+      type: 'boolean',
+      description: 'Whether line is dashed (deprecated, use variant).',
+    },
+    {
+      name: 'variant',
+      label: 'Variant',
+      type: 'select',
+      options: ['dashed', 'dotted', 'solid'],
+      description: 'Line style of the divider.',
+    },
+    {
+      name: 'orientation',
+      label: 'Orientation',
+      type: 'select',
+      options: ['left', 'right', 'center'],
+      description: 'Position of title inside divider.',
+    },
+    {
+      name: 'orientationMargin',
+      label: 'Orientation Margin',
+      type: 'text',
+      description: 'Margin from divider edge to title.',
+    },
+    {
+      name: 'plain',
+      label: 'Plain',
+      type: 'boolean',
+      description: 'Use plain style without bold title.',
+    },
+    {
+      name: 'type',
+      label: 'Type',
+      type: 'select',
+      options: ['horizontal', 'vertical'],
+      description: 'Direction of the divider.',
+    },
+  ]}
 />
 
 ## Try It
@@ -103,8 +92,12 @@ function Demo() {
   return (
     <>
       <p>Horizontal divider with title (orientationMargin applies here):</p>
-      <Divider orientation="left" orientationMargin={0}>Left Title</Divider>
-      <Divider orientation="right" orientationMargin={50}>Right Title</Divider>
+      <Divider orientation="left" orientationMargin={0}>
+        Left Title
+      </Divider>
+      <Divider orientation="right" orientationMargin={50}>
+        Right Title
+      </Divider>
       <Divider>Center Title</Divider>
       <p>Vertical divider (use container gap for spacing):</p>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -121,14 +114,14 @@ function Demo() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `dashed` | `boolean` | `false` | Whether line is dashed (deprecated, use variant). |
-| `variant` | `string` | `"solid"` | Line style of the divider. |
-| `orientation` | `string` | `"center"` | Position of title inside divider. |
-| `orientationMargin` | `string` | `""` | Margin from divider edge to title. |
-| `plain` | `boolean` | `true` | Use plain style without bold title. |
-| `type` | `string` | `"horizontal"` | Direction of the divider. |
+| Prop                | Type      | Default        | Description                                       |
+| ------------------- | --------- | -------------- | ------------------------------------------------- |
+| `dashed`            | `boolean` | `false`        | Whether line is dashed (deprecated, use variant). |
+| `variant`           | `string`  | `"solid"`      | Line style of the divider.                        |
+| `orientation`       | `string`  | `"center"`     | Position of title inside divider.                 |
+| `orientationMargin` | `string`  | `""`           | Margin from divider edge to title.                |
+| `plain`             | `boolean` | `true`         | Use plain style without bold title.               |
+| `type`              | `string`  | `"horizontal"` | Direction of the divider.                         |
 
 ## Import
 

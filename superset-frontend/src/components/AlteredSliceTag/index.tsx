@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useMemo, useState, FC } from 'react';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import getControlsForVizType from 'src/utils/getControlsForVizType';
 import {

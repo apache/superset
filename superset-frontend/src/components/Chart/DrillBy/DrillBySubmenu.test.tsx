@@ -37,11 +37,14 @@ import { DrillBySubmenu, DrillBySubmenuProps } from './DrillBySubmenu';
 
 const { form_data: defaultFormData } = chartQueries[sliceId];
 
-jest.mock('lodash/debounce', () => (fn: Function & { debounce: Function }) => {
-  // eslint-disable-next-line no-param-reassign
-  fn.debounce = jest.fn();
-  return fn;
-});
+jest.mock('lodash', () => ({
+  ...jest.requireActual('lodash'),
+  debounce: (fn: Function & { debounce: Function }) => {
+    // eslint-disable-next-line no-param-reassign
+    fn.debounce = jest.fn();
+    return fn;
+  },
+}));
 
 const defaultColumns = [
   { column_name: 'col1', groupby: true },
@@ -65,7 +68,7 @@ const mockDataset = {
   changed_on_humanized: '1 day ago',
   created_on_humanized: '2 days ago',
   description: 'Test dataset',
-  owners: [],
+  editors: [{ id: 1, label: 'Test User', type: 1 }],
   changed_by: { first_name: 'Test', last_name: 'User' },
   created_by: { first_name: 'Test', last_name: 'User' },
 };
@@ -126,7 +129,6 @@ getChartMetadataRegistry().registerValue(
   new ChartMetadata({
     name: 'fake pie',
     thumbnail: '.png',
-    useLegacyApi: false,
     behaviors: [Behavior.DrillBy],
   }),
 );
@@ -269,6 +271,140 @@ test('When menu item is clicked, call onSelection with clicked column and drill 
       groupby: true,
     },
     { filters: defaultFilters, groupbyFieldName: 'groupby' },
+  );
+});
+
+const xAxisFilters = [
+  {
+    col: 'ds',
+    op: 'TEMPORAL_RANGE' as const,
+    val: '2021-01-01T00:00:00 : 2021-02-01T00:00:00',
+    formattedVal: 'Jan 2021',
+  },
+];
+
+test('do not display scope selector without x-axis filters', async () => {
+  renderSubmenu({});
+  await expectDrillByEnabled();
+  await screen.findByText('col1');
+  expect(
+    screen.queryByTestId('drill-by-scope-selector'),
+  ).not.toBeInTheDocument();
+});
+
+test('do not display scope selector with only x-axis filters', async () => {
+  renderSubmenu({
+    drillByConfig: { filters: [], xAxisFilters, groupbyFieldName: 'groupby' },
+  });
+  await expectDrillByEnabled();
+  await screen.findByText('col1');
+  expect(
+    screen.queryByTestId('drill-by-scope-selector'),
+  ).not.toBeInTheDocument();
+});
+
+test('display scope selector when x-axis and series filters are present', async () => {
+  renderSubmenu({
+    drillByConfig: {
+      filters: defaultFilters,
+      xAxisFilters,
+      groupbyFieldName: 'groupby',
+    },
+  });
+  await expectDrillByEnabled();
+  await screen.findByText('col1');
+
+  const scopeSelector = screen.getByTestId('drill-by-scope-selector');
+  expect(scopeSelector).toBeInTheDocument();
+  expect(within(scopeSelector).getByText('Jan 2021')).toBeInTheDocument();
+  expect(within(scopeSelector).getByText('val')).toBeInTheDocument();
+  expect(within(scopeSelector).getByText('Both')).toBeInTheDocument();
+});
+
+test('apply both x-axis and series filters by default', async () => {
+  const onSelectionMock = jest.fn();
+  renderSubmenu({
+    drillByConfig: {
+      filters: defaultFilters,
+      xAxisFilters,
+      groupbyFieldName: 'groupby',
+    },
+    onSelection: onSelectionMock,
+  });
+  await expectDrillByEnabled();
+
+  const col1Element = await screen.findByText('col1');
+  userEvent.click(col1Element);
+
+  expect(onSelectionMock).toHaveBeenCalledWith(
+    { column_name: 'col1', groupby: true },
+    {
+      filters: [...xAxisFilters, ...defaultFilters],
+      groupbyFieldName: 'groupby',
+    },
+  );
+});
+
+test('apply only x-axis filters when x-axis scope is selected', async () => {
+  const onSelectionMock = jest.fn();
+  renderSubmenu({
+    drillByConfig: {
+      filters: defaultFilters,
+      xAxisFilters,
+      groupbyFieldName: 'groupby',
+    },
+    onSelection: onSelectionMock,
+  });
+  await expectDrillByEnabled();
+  await screen.findByText('col1');
+
+  const scopeSelector = screen.getByTestId('drill-by-scope-selector');
+  userEvent.click(within(scopeSelector).getByText('Jan 2021'));
+  userEvent.click(screen.getByText('col1'));
+
+  expect(onSelectionMock).toHaveBeenCalledWith(
+    { column_name: 'col1', groupby: true },
+    { filters: xAxisFilters, groupbyFieldName: 'groupby' },
+  );
+});
+
+test('apply only series filters when series scope is selected', async () => {
+  const onSelectionMock = jest.fn();
+  renderSubmenu({
+    drillByConfig: {
+      filters: defaultFilters,
+      xAxisFilters,
+      groupbyFieldName: 'groupby',
+    },
+    onSelection: onSelectionMock,
+  });
+  await expectDrillByEnabled();
+  await screen.findByText('col1');
+
+  const scopeSelector = screen.getByTestId('drill-by-scope-selector');
+  userEvent.click(within(scopeSelector).getByText('val'));
+  userEvent.click(screen.getByText('col1'));
+
+  expect(onSelectionMock).toHaveBeenCalledWith(
+    { column_name: 'col1', groupby: true },
+    { filters: defaultFilters, groupbyFieldName: 'groupby' },
+  );
+});
+
+test('apply x-axis filters when only x-axis filters are present', async () => {
+  const onSelectionMock = jest.fn();
+  renderSubmenu({
+    drillByConfig: { filters: [], xAxisFilters, groupbyFieldName: 'groupby' },
+    onSelection: onSelectionMock,
+  });
+  await expectDrillByEnabled();
+
+  const col1Element = await screen.findByText('col1');
+  userEvent.click(col1Element);
+
+  expect(onSelectionMock).toHaveBeenCalledWith(
+    { column_name: 'col1', groupby: true },
+    { filters: xAxisFilters, groupbyFieldName: 'groupby' },
   );
 });
 

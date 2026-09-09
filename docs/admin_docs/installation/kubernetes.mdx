@@ -1,16 +1,17 @@
 ---
-title:  Kubernetes
+title: Kubernetes
 hide_title: true
 sidebar_position: 3
 version: 1
 ---
 
-import useBaseUrl from "@docusaurus/useBaseUrl";
+import useBaseUrl from '@docusaurus/useBaseUrl';
 
 # Installing on Kubernetes
 
-<img src={useBaseUrl("/img/k8s.png" )} width="150" />
-<br /><br />
+<img src={useBaseUrl('/img/k8s.png')} width="150" />
+<br />
+<br />
 
 Running Superset on Kubernetes is supported with the provided [Helm](https://helm.sh/) chart
 found in the official [Superset helm repository](https://apache.github.io/superset/index.yaml).
@@ -86,6 +87,7 @@ The chart will publish appropriate services to expose the Superset UI internally
 
 - Configure the Service as a `LoadBalancer` or `NodePort`
 - Set up an `Ingress` for it - the chart includes a definition, but will need to be tuned to your needs (hostname, tls, annotations etc...)
+- Set up a Gateway API `HTTPRoute` for it - see [Exposing Superset via Gateway API (HTTPRoute)](#exposing-superset-via-gateway-api-httproute) below
 - Run `kubectl port-forward superset-xxxx-yyyy :8088` to directly tunnel one pod's port into your localhost
 
 Depending how you configured external access, the URL will vary. Once you've identified the appropriate URL you can log in with:
@@ -134,10 +136,20 @@ init:
 ```
 
 :::note
-Superset uses [Scarf Gateway](https://about.scarf.sh/scarf-gateway) to collect telemetry data.  Knowing the installation counts for different Superset versions informs the  project's decisions about patching and long-term support. Scarf purges personally identifiable information (PII) and provides only aggregated statistics.
+Superset uses [Scarf Gateway](https://about.scarf.sh/) to collect telemetry data. Knowing the installation counts for different Superset versions informs the project's decisions about patching and long-term support. Scarf purges personally identifiable information (PII) and provides only aggregated statistics.
 
-To opt-out of this data collection in your Helm-based installation, edit the `repository:` line in your `helm/superset/values.yaml` file, replacing `apachesuperset.docker.scarf.sh/apache/superset` with `apache/superset` to pull the image directly from Docker Hub.
-:::
+There are two independent telemetry channels:
+
+- **Image pulls** (Scarf Gateway): to opt out, edit the `repository:` line in your `helm/superset/values.yaml` file, replacing `apachesuperset.docker.scarf.sh/apache/superset` with `apache/superset` to pull the image directly from Docker Hub.
+- **The analytics pixel** rendered in the UI: to opt out, set the `SCARF_ANALYTICS` environment variable to `false` on the Superset containers via `extraEnv` in your `values.yaml`:
+
+  ```yaml
+  extraEnv:
+    SCARF_ANALYTICS: 'false'
+  ```
+
+  This is read at runtime, so it takes effect on the pre-built images without rebuilding the frontend.
+  :::
 
 ### Dependencies
 
@@ -195,7 +207,7 @@ Those can be passed as key/values either with `extraEnv` or `extraSecretEnv` if 
 extraEnv:
   SMTP_HOST: smtp.gmail.com
   SMTP_USER: user@gmail.com
-  SMTP_PORT: "587"
+  SMTP_PORT: '587'
   SMTP_MAIL_FROM: user@gmail.com
 
 extraSecretEnv:
@@ -308,6 +320,53 @@ configOverrides:
     AUTH_USER_REGISTRATION_ROLE = "Admin"
 ```
 
+### Exposing Superset via Gateway API (HTTPRoute)
+
+As an alternative to `Ingress`, the chart can create a [Gateway API](https://gateway-api.sigs.k8s.io/)
+`HTTPRoute` that attaches to a Gateway already running in your cluster. This requires the Gateway
+API CRDs serving the configured `httproute.apiVersion` (`gateway.networking.k8s.io/v1` by default)
+to be installed, along with a Gateway resource for the route to attach to. If the Gateway lives in
+a different namespace than the `HTTPRoute` (as in the
+example below), its listener's `allowedRoutes` must explicitly permit routes from this release's
+namespace, or the `HTTPRoute` will install successfully but never attach.
+
+```yaml
+httproute:
+  enabled: true
+  parentRefs:
+    - name: my-gateway
+      namespace: gateway-system
+  hostnames:
+    - superset.example.com
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+```
+
+- `httproute.parentRefs` lists the Gateway(s) the route attaches to.
+- `httproute.hostnames` matches against the HTTP `Host` header; it's templated, so values like
+  `{{ .Release.Name }}` can be used.
+- `httproute.rules` are routing rules backed by the Superset service; each rule accepts standard
+  `matches`, `filters`, and `timeouts` fields, and an optional `weight` (defaults to `1`) applied to
+  its single backend reference. Since each rule maps to one backend, `weight` has no traffic-splitting
+  effect here; it only matters if you fork the template to add multiple `backendRefs` to a rule.
+  `timeouts` only joined the Gateway API Standard channel in v1.2, so it requires both v1.2+ CRDs
+  and a supporting controller; drop it if either predates that.
+- If `supersetWebsockets.enabled` is set, an extra rule routing `supersetWebsockets.ingress.path`
+  (default `/ws`) to the `-ws` service is appended automatically, mirroring the `Ingress` behavior.
+  WebSocket upgrade support is controller-dependent under Gateway API; check your Gateway
+  implementation's docs in case it needs an explicit protocol opt-in for global async queries to
+  keep working behind a Gateway.
+- If `supersetMcp.enabled` and `supersetMcp.httproute.enabled` are both set, an extra rule routing
+  `supersetMcp.httproute.path` to the `-mcp` service is appended as well. Don't expose this route
+  without first enabling MCP authentication — see the
+  [MCP Server Deployment & Authentication](/admin-docs/configuration/mcp-server#authentication) doc;
+  by default the MCP server runs in dev mode with auth disabled.
+- Set `httproute.apiVersion` to `gateway.networking.k8s.io/v1beta1` if your cluster's Gateway API
+  installation hasn't promoted `HTTPRoute` to `v1` yet.
+
 ### Enable Alerts and Reports
 
 For this, as per the [Alerts and Reports doc](/admin-docs/configuration/alerts-reports), you will need to:
@@ -356,7 +415,7 @@ supersetCeleryBeat:
 extraEnv:
   SMTP_HOST: smtp.gmail.com
   SMTP_USER: user@gmail.com
-  SMTP_PORT: "587"
+  SMTP_PORT: '587'
   SMTP_MAIL_FROM: user@gmail.com
 
 extraSecretEnv:
@@ -446,6 +505,7 @@ init:
 ```
 
 :::resources
+
 - [Tutorial: Mastering Data Visualization — Installing Superset on Kubernetes with Helm Chart](https://mahira-technology.medium.com/mastering-data-visualization-installing-superset-on-kubernetes-cluster-using-helm-chart-e4ec99199e1e)
 - [Tutorial: Installing Apache Superset in Kubernetes](https://aws.plainenglish.io/installing-apache-superset-in-kubernetes-1aec192ac495)
-:::
+  :::

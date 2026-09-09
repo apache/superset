@@ -18,25 +18,41 @@
  */
 import { Jed as BaseJed, JedOptions, DomainData, Translations } from './jed';
 
-export * from './jed';
-export { default as __hack_reexport_jed } from './jed';
+export { Translations, DomainConfig, DomainData, JedOptions } from './jed';
 
 /**
  * Superset supported languages.
  */
 export type Locale =
+  | 'ar'
+  | 'ca'
+  | 'cs'
   | 'de'
   | 'en'
   | 'es'
+  | 'fa'
+  | 'fi'
   | 'fr'
   | 'it'
   | 'ja'
   | 'ko'
+  | 'lv'
+  | 'mi'
+  | 'nl'
+  | 'pl'
   | 'pt'
   | 'pt_BR'
+  | 'ro'
   | 'ru'
+  | 'sk'
+  | 'sl'
+  | 'sr'
+  | 'sr_Latn'
+  | 'th'
+  | 'tr'
+  | 'uk'
   | 'zh'
-  | 'zh_TW'; // supported locales in Superset
+  | 'zh_TW'; // every locale with a catalog in superset/translations
 
 /**
  * Language pack provided to `jed`.

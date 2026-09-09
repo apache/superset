@@ -130,6 +130,7 @@ export interface AgGridTableChartTransformedProps<
   basicColorColumnFormatters?: { [Key: string]: BasicColorFormatterType }[];
   formData: TableChartFormData;
   metricSqlExpressions: Record<string, string>;
+  rawSummaryColumns: string[];
   onChartStateChange?: (chartState: JsonObject) => void;
   chartState?: AgGridChartState;
   showNumberedColumn: boolean;
@@ -194,6 +195,7 @@ export interface InputColumn {
     | CurrencyFormatter;
   originalLabel?: string;
   metricName?: string;
+  description?: string;
 }
 
 export type ValueRange = [number, number] | null;
@@ -224,7 +226,7 @@ export type Dataset = {
   created_on_humanized: string;
   description: string;
   table_name: string;
-  owners: {
+  editors: {
     first_name: string;
     last_name: string;
   }[];

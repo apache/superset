@@ -26,7 +26,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, ClassVar
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask, g
@@ -101,14 +101,22 @@ def test_filter_value_absent_is_noop(
     assert not getattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, False)
 
 
+@patch("superset.views.filters.security_manager.is_admin", return_value=True)
 def test_filter_value_include_sets_session_bypass_and_flag(
+    mock_is_admin: MagicMock,  # noqa: ARG001 -- injected by @patch
     flask_request_ctx: None,
     concrete_filter: _ConcreteFilter,
     query_with_session: MagicMock,
 ) -> None:
     """``include`` adds the filter's model to ``session.info`` (bypass
     set) and signals augmentation. Returns the query unchanged
-    (no additional WHERE clause — listener does the filtering)."""
+    (no additional WHERE clause — listener does the filtering).
+
+    Pinned to the admin path: these four tests exercise the opt-in
+    mechanics, and the stub model has no editors relationship, which for
+    non-admins now fails closed (see the integration test) rather than
+    passing through.
+    """
     result = concrete_filter.apply(query_with_session, "include")
     assert (
         _SoftDeletable
@@ -121,7 +129,9 @@ def test_filter_value_include_sets_session_bypass_and_flag(
     assert result is query_with_session
 
 
+@patch("superset.views.filters.security_manager.is_admin", return_value=True)
 def test_filter_value_only_adds_deleted_at_predicate(
+    mock_is_admin: MagicMock,  # noqa: ARG001 -- injected by @patch
     flask_request_ctx: None,
     concrete_filter: _ConcreteFilter,
     query_with_session: MagicMock,
@@ -138,7 +148,9 @@ def test_filter_value_only_adds_deleted_at_predicate(
     query_with_session.filter.assert_called_once()
 
 
+@patch("superset.views.filters.security_manager.is_admin", return_value=True)
 def test_filter_value_case_insensitive(
+    mock_is_admin: MagicMock,  # noqa: ARG001 -- injected by @patch
     flask_request_ctx: None,
     concrete_filter: _ConcreteFilter,
     query_with_session: MagicMock,
@@ -194,10 +206,14 @@ class _ConcreteApi(SoftDeleteApiMixin, _StubBaseApi):
 
     datamodel = _StubDatamodel()
 
-    def __init__(self, deleted_at_map: dict[Any, str | None]) -> None:
+    def __init__(
+        self, deleted_at_map: dict[Any, tuple[str | None, str | None]]
+    ) -> None:
         self._deleted_at_map = deleted_at_map
 
-    def _get_deleted_at_map(self, _ids: list[Any]) -> dict[Any, str | None]:
+    def _get_deleted_at_map(
+        self, _ids: list[Any]
+    ) -> dict[Any, tuple[str | None, str | None]]:
         # Tests provide the map directly so they don't need the DB.
         return self._deleted_at_map
 
@@ -219,11 +235,20 @@ def test_mixin_pre_get_list_injects_deleted_at_when_flag_set(
     """With the flag set, each result row gains a ``deleted_at`` field
     (None for live rows, ISO timestamp for soft-deleted)."""
     setattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, True)
-    api = _ConcreteApi(deleted_at_map={1: None, 2: "2026-05-14T12:00:00"})
+    api = _ConcreteApi(
+        deleted_at_map={
+            1: (None, None),
+            2: ("2026-05-14T12:00:00", "3 days ago"),
+        }
+    )
     data: dict[str, Any] = {"ids": [1, 2], "result": [{"id": 1}, {"id": 2}]}
     api.pre_get_list(data)
     assert data["result"][0]["deleted_at"] is None
     assert data["result"][1]["deleted_at"] == "2026-05-14T12:00:00"
+    # The display value rides along, humanized on the server's clock so no
+    # client ever has to guess the timezone of the naive timestamp.
+    assert data["result"][0]["deleted_at_delta_humanized"] is None
+    assert data["result"][1]["deleted_at_delta_humanized"] == "3 days ago"
 
 
 def test_mixin_pre_get_list_consumes_flag(flask_request_ctx: None) -> None:
@@ -249,7 +274,9 @@ def test_serialize_deleted_at_handles_none() -> None:
 # --- F-002: session bypass cleanup ----------------------------------------
 
 
+@patch("superset.views.filters.security_manager.is_admin", return_value=True)
 def test_filter_records_added_classes_on_g(
+    mock_is_admin: MagicMock,  # noqa: ARG001 -- injected by @patch
     flask_request_ctx: None,
     concrete_filter: _ConcreteFilter,
     query_with_session: MagicMock,

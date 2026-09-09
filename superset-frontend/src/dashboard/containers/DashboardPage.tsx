@@ -24,7 +24,7 @@ import { useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { Loading } from '@superset-ui/core/components';
+import { EmptyState, Loading } from '@superset-ui/core/components';
 import {
   useDashboard,
   useDashboardCharts,
@@ -42,6 +42,7 @@ import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
 import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
 import {
@@ -66,7 +67,8 @@ import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
 import { AutoRefreshProvider } from '../contexts/AutoRefreshContext';
-import { Filter, PartialFilters } from '@superset-ui/core';
+import { Filter, PartialFilters, SupersetApiError } from '@superset-ui/core';
+import { RoutePaths } from 'src/views/routePaths';
 import {
   parseRisonFilters,
   risonFiltersToExtraFormDataFilters,
@@ -150,6 +152,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const isDashboardHydrated = useRef(false);
 
   const error = dashboardApiError || chartsApiError;
+  // Only 404 gets a graceful not-found state; a 403 (access denied) still
+  // surfaces through the error boundary.
+  const isNotFoundError = (error as SupersetApiError | null)?.status === 404;
   const readyToRender = Boolean(dashboard && charts);
   const { dashboard_title, id = 0 } = dashboard || {};
 
@@ -223,7 +228,22 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
       }
       if (isOldRison) {
-        dataMask = isOldRison;
+        // Normalize legacy `currentState` → `filterState`. Pre-2021 URLs stored
+        // per-filter selections under `currentState`; modern dataMask uses
+        // `filterState`. Without this copy the filter panel shows no active
+        // selections even though extraFormData still applies the query filter.
+        if (typeof isOldRison === 'object' && isOldRison !== null) {
+          dataMask = Object.fromEntries(
+            Object.entries(
+              isOldRison as Record<string, Record<string, unknown>>,
+            ).map(([filterId, entry]) => [
+              filterId,
+              entry?.currentState && !entry?.filterState
+                ? { ...entry, filterState: entry.currentState }
+                : entry,
+            ]),
+          );
+        }
       }
 
       // Parse Rison URL filters with intelligent native filter injection
@@ -322,7 +342,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   // Update document title when dashboard title changes
   useEffect(() => {
     if (pageTitle) {
-      document.title = pageTitle;
+      document.title = sanitizeDocumentTitle(pageTitle);
     }
   }, [pageTitle]);
 
@@ -349,18 +369,21 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   useEffect(() => {
     if (datasetsApiError) {
-      addDangerToast(
-        t('Error loading chart datasources. Filters may not work correctly.'),
-      );
+      // A missing dashboard also 404s its datasets; the not-found state covers it.
+      if (!isNotFoundError) {
+        addDangerToast(
+          t('Error loading chart datasources. Filters may not work correctly.'),
+        );
+      }
     } else {
       dispatch(setDatasources(datasets));
     }
-  }, [addDangerToast, datasets, datasetsApiError, dispatch]);
+  }, [addDangerToast, datasets, datasetsApiError, dispatch, isNotFoundError]);
 
   const relevantDataMask = useSelector(selectRelevantDatamask);
   const activeFilters = useSelector(selectActiveFilters);
 
-  if (error) throw error; // caught in error boundary
+  if (error && !isNotFoundError) throw error; // caught in error boundary
 
   const globalStyles = useMemo(
     () => [
@@ -373,9 +396,25 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     [theme],
   );
 
-  if (error) throw error; // caught in error boundary
+  if (error && !isNotFoundError) throw error; // caught in error boundary
 
   const DashboardBuilderComponent = useMemo(() => <DashboardBuilder />, []);
+
+  if (isNotFoundError) {
+    return (
+      <EmptyState
+        size="large"
+        image="empty-dashboard.svg"
+        title={t('This dashboard does not exist')}
+        description={t(
+          'The dashboard you are looking for may have been deleted or moved.',
+        )}
+        buttonText={t('See all dashboards')}
+        buttonAction={() => history.push(RoutePaths.DASHBOARD_LIST)}
+      />
+    );
+  }
+
   return (
     <>
       <Global styles={globalStyles} />

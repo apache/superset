@@ -33,6 +33,7 @@ import {
   sharedControls,
   ControlFormItemSpec,
   getStandardizedControls,
+  DEFAULT_TIME_FORMAT,
 } from '@superset-ui/chart-controls';
 import { DEFAULT_FORM_DATA } from './types';
 import { LabelPositionEnum } from '../types';
@@ -181,7 +182,7 @@ const config: ControlPanelConfig = {
               label: t('Date format'),
               renderTrigger: true,
               choices: D3_TIME_FORMAT_OPTIONS,
-              default: 'smart_date',
+              default: DEFAULT_TIME_FORMAT,
               description: D3_FORMAT_DOCS,
             },
           },

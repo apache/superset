@@ -29,6 +29,19 @@ export interface DataRecord {
   [key: string]: DataRecordValue;
 }
 
+export interface ChartDataQueryTiming {
+  query_planning_ms: number | null;
+  cache_resolution_ms: number | null;
+  data_acquisition_ms: number | null;
+  payload_assembly_ms: number | null;
+  total_ms: number;
+}
+
+export interface ChartDataTiming {
+  version: 1;
+  query: ChartDataQueryTiming;
+}
+
 /**
  * Queried data for charts. The `queries` field from `POST /chart/data`.
  * See superset/charts/schemas.py for the class of the same name.
@@ -84,6 +97,10 @@ export interface ChartDataResponseResult {
    * or null if multiple currencies are present.
    */
   detected_currency?: string | null;
+  /**
+   * Versioned query lifecycle timing in milliseconds.
+   */
+  timing?: ChartDataTiming;
 }
 
 export interface TimeseriesChartDataResponseResult extends ChartDataResponseResult {

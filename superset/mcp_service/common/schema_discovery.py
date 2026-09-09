@@ -257,6 +257,7 @@ CHART_SORTABLE_COLUMNS = [
     "viz_type",
     "description",
     "changed_on",
+    "changed_on_delta_humanized",
     "created_on",
 ]
 CHART_SEARCH_COLUMNS = ["slice_name", "description"]
@@ -333,8 +334,8 @@ CHART_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "tags": ColumnMetadata(
         name="tags", description="Chart tags", type="list", is_default=False
     ),
-    "owners": ColumnMetadata(
-        name="owners", description="Chart owners", type="list", is_default=False
+    "editors": ColumnMetadata(
+        name="editors", description="Chart editors", type="list", is_default=False
     ),
 }
 
@@ -354,6 +355,7 @@ DATASET_SORTABLE_COLUMNS = [
     "table_name",
     "schema",
     "changed_on",
+    "changed_on_delta_humanized",
     "created_on",
 ]
 DATASET_SEARCH_COLUMNS = ["table_name", "description"]
@@ -427,8 +429,8 @@ DATASET_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "tags": ColumnMetadata(
         name="tags", description="Dataset tags", type="list", is_default=False
     ),
-    "owners": ColumnMetadata(
-        name="owners", description="Dataset owners", type="list", is_default=False
+    "editors": ColumnMetadata(
+        name="editors", description="Dataset editors", type="list", is_default=False
     ),
 }
 
@@ -450,6 +452,7 @@ DASHBOARD_SORTABLE_COLUMNS = [
     "slug",
     "published",
     "changed_on",
+    "changed_on_delta_humanized",
     "created_on",
 ]
 DASHBOARD_SEARCH_COLUMNS = ["dashboard_title", "slug"]
@@ -496,8 +499,8 @@ DASHBOARD_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "tags": ColumnMetadata(
         name="tags", description="Dashboard tags", type="list", is_default=False
     ),
-    "owners": ColumnMetadata(
-        name="owners", description="Dashboard owners", type="list", is_default=False
+    "editors": ColumnMetadata(
+        name="editors", description="Dashboard editors", type="list", is_default=False
     ),
     "charts": ColumnMetadata(
         name="charts", description="Charts in dashboard", type="list", is_default=False

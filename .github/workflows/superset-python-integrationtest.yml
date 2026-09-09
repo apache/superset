@@ -1,6 +1,11 @@
 # Python integration tests
 name: Python-Integration
 
+# Least-privilege default for GITHUB_TOKEN. Jobs that need more (e.g. OIDC for
+# codecov uploads) opt in via their own job-level `permissions:` block.
+permissions:
+  contents: read
+
 on:
   push:
     branches:
@@ -15,7 +20,7 @@ concurrency:
 
 jobs:
   changes:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 10
     permissions:
       contents: read
@@ -24,7 +29,7 @@ jobs:
       python: ${{ steps.check.outputs.python }}
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
       - name: Check for file changes
@@ -36,7 +41,7 @@ jobs:
   test-mysql:
     needs: changes
     if: needs.changes.outputs.python == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
       id-token: write
@@ -48,9 +53,7 @@ jobs:
         mysql+mysqldb://superset:superset@127.0.0.1:13306/superset?charset=utf8mb4&binary_prefix=true
     services:
       mysql:
-        image: mysql:8.0
-        # Authenticated pulls use our higher Docker Hub rate limit. Empty on
-        # fork PRs (secrets unavailable) -> runner falls back to anonymous.
+        image: ghcr.io/apache/superset/ci/mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: root
         ports:
@@ -61,13 +64,13 @@ jobs:
           --health-timeout=5s
           --health-retries=5
       redis:
-        image: redis:7-alpine
+        image: ghcr.io/apache/superset/ci/redis:7-alpine
         options: --entrypoint redis-server
         ports:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           submodules: recursive
@@ -85,7 +88,7 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           flags: python,mysql
           verbose: true
@@ -122,7 +125,7 @@ jobs:
   test-postgres:
     needs: changes
     if: needs.changes.outputs.python == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
       id-token: write
@@ -130,7 +133,7 @@ jobs:
       matrix:
         # Full version spread on push (master/release) + nightly; current only
         # on PRs to cut runner cost (cross-version breaks are caught at merge).
-        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["current", "previous", "next"]') }}
+        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["current", "next"]') }}
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -138,7 +141,7 @@ jobs:
       SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
     services:
       postgres:
-        image: postgres:17-alpine
+        image: ghcr.io/apache/superset/ci/postgres:17-alpine
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -147,12 +150,12 @@ jobs:
           # GitHub action runner's default installations
           - 15432:5432
       redis:
-        image: redis:7-alpine
+        image: ghcr.io/apache/superset/ci/redis:7-alpine
         ports:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           submodules: recursive
@@ -173,7 +176,7 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           flags: python,postgres
           verbose: true
@@ -183,7 +186,7 @@ jobs:
   test-sqlite:
     needs: changes
     if: needs.changes.outputs.python == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 45
     permissions:
       id-token: write
@@ -197,17 +200,17 @@ jobs:
         sqlite:///${{ github.workspace }}/.temp/examples.db?check_same_thread=true
     services:
       redis:
-        image: redis:7-alpine
+        image: ghcr.io/apache/superset/ci/redis:7-alpine
         ports:
           - 16379:6379
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           submodules: recursive
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
       - name: Install dependencies
         uses: ./.github/actions/cached-dependencies
         with:
@@ -222,7 +225,7 @@ jobs:
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
-        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
         with:
           flags: python,sqlite
           verbose: true
@@ -238,7 +241,7 @@ jobs:
   test-postgres-required:
     needs: [changes, test-postgres]
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     timeout-minutes: 5
     steps:
       - name: Check test-postgres result
@@ -250,3 +253,14 @@ jobs:
             exit 1
           fi
           echo "test-postgres result: $RESULT"
+
+  actions-timeline:
+    needs: [test-mysql, test-postgres, test-sqlite, test-postgres-required]
+    if: always()
+    runs-on: ubuntu-slim
+    permissions:
+      actions: read
+    steps:
+      - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
+        with:
+          expand-composite-actions: true

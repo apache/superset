@@ -1,1 +1,10 @@
-{"parameters":[{"in":"path","name":"version","required":true,"schema":{"type":"string"}}]}
+{
+  "parameters": [
+    {
+      "in": "path",
+      "name": "version",
+      "required": true,
+      "schema": { "type": "string" }
+    }
+  ]
+}

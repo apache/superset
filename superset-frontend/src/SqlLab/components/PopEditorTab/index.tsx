@@ -20,7 +20,7 @@ import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import URI from 'urijs';
-import { pick } from 'lodash';
+import { pick } from 'lodash-es';
 import { useComponentDidUpdate } from '@superset-ui/core';
 import { Skeleton } from '@superset-ui/core/components';
 import useEffectEvent from 'src/hooks/useEffectEvent';
@@ -58,7 +58,7 @@ const PopEditorTab: React.FC<{ children?: React.ReactNode }> = ({
     }
   }, [activeQueryEditorId]);
 
-  const popSqlEditor = useEffectEvent(() => {
+  const popSqlEditor = useEffectEvent(async () => {
     const bootstrapData = getBootstrapData();
     const {
       id = undefined,
@@ -84,26 +84,30 @@ const PopEditorTab: React.FC<{ children?: React.ReactNode }> = ({
       setIsLoading(true);
       const targetUrl = `${URI(SQL_LAB_URL).query(pick(requestedQuery, Object.keys(restUrlParams)))}`;
       setUpdatedUrl(targetUrl);
-      if (permalink) {
-        dispatch(popPermalink(permalink));
-      } else if (id) {
-        dispatch(popStoredQuery(id));
-      } else if (savedQueryId) {
-        dispatch(popSavedQuery(savedQueryId));
-      } else if (queryId) {
-        dispatch(popQuery(queryId));
-      } else if (datasourceKey) {
-        dispatch(popDatasourceQuery(datasourceKey, sql));
-      } else if (sql) {
-        const newQueryEditor = {
-          name,
-          dbId: Number(dbid),
-          catalog,
-          schema,
-          autorun,
-          sql,
-        };
-        dispatch(addQueryEditor(newQueryEditor));
+      try {
+        if (permalink) {
+          await dispatch(popPermalink(permalink));
+        } else if (id) {
+          await dispatch(popStoredQuery(id));
+        } else if (savedQueryId) {
+          await dispatch(popSavedQuery(savedQueryId));
+        } else if (queryId) {
+          await dispatch(popQuery(queryId));
+        } else if (datasourceKey) {
+          await dispatch(popDatasourceQuery(datasourceKey, sql));
+        } else if (sql) {
+          const newQueryEditor = {
+            name,
+            dbId: Number(dbid),
+            catalog,
+            schema,
+            autorun,
+            sql,
+          };
+          dispatch(addQueryEditor(newQueryEditor));
+        }
+      } finally {
+        setIsLoading(false);
       }
     } else if (isNewQuery) {
       setIsLoading(true);

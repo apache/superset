@@ -32,7 +32,7 @@ const StyledAlert = styled(Alert)`
   text-align: left;
   flex: 1;
 
-  & .ant-alert-action {
+  & .ant-alert-actions {
     align-self: center;
   }
 `;

@@ -48,7 +48,9 @@ export default function remarkTechArticleSchema() {
 
     const title = frontmatter.title;
     const description = frontmatter.description;
-    const keywords = Array.isArray(frontmatter.keywords) ? frontmatter.keywords : [];
+    const keywords = Array.isArray(frontmatter.keywords)
+      ? frontmatter.keywords
+      : [];
     const proficiencyLevel = frontmatter.seo_proficiency || 'Beginner';
 
     // Create the import statement
@@ -110,7 +112,7 @@ export default function remarkTechArticleSchema() {
                           type: 'ExpressionStatement',
                           expression: {
                             type: 'ArrayExpression',
-                            elements: keywords.map((k) => ({
+                            elements: keywords.map(k => ({
                               type: 'Literal',
                               value: k,
                             })),

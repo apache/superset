@@ -13,11 +13,7 @@
     "averageScore": 54,
     "maxScore": 201,
     "byCategory": {
-      "Cloud - AWS": [
-        "Amazon Athena",
-        "Amazon DynamoDB",
-        "Amazon Redshift"
-      ],
+      "Cloud - AWS": ["Amazon Athena", "Amazon DynamoDB", "Amazon Redshift"],
       "Query Engines": [
         "Amazon Athena",
         "Apache Drill",
@@ -213,14 +209,8 @@
         "YDB",
         "YugabyteDB"
       ],
-      "Cloud - Azure": [
-        "Azure Data Explorer"
-      ],
-      "Cloud - Google": [
-        "Google BigQuery",
-        "Google Datastore",
-        "Google Sheets"
-      ]
+      "Cloud - Azure": ["Azure Data Explorer"],
+      "Cloud - Google": ["Google BigQuery", "Google Datastore", "Google Sheets"]
     }
   },
   "databases": {
@@ -287,14 +277,8 @@
         "description": "Amazon Athena is an interactive query service for analyzing data in S3 using SQL.",
         "logo": "amazon-athena.jpg",
         "homepage_url": "https://aws.amazon.com/athena/",
-        "categories": [
-          "Cloud - AWS",
-          "Query Engines",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "pyathena[pandas]"
-        ],
+        "categories": ["Cloud - AWS", "Query Engines", "Proprietary"],
+        "pypi_packages": ["pyathena[pandas]"],
         "connection_string": "awsathena+rest://{aws_access_key_id}:{aws_secret_access_key}@athena.{region_name}.amazonaws.com/{schema_name}?s3_staging_dir={s3_staging_dir}",
         "drivers": [
           {
@@ -332,9 +316,7 @@
             "error_type": "SYNTAX_ERROR",
             "category": "Query",
             "description": "SQL syntax error",
-            "issue_codes": [
-              1030
-            ]
+            "issue_codes": [1030]
           }
         ]
       },
@@ -410,14 +392,8 @@
         "description": "Amazon DynamoDB is a serverless NoSQL database with SQL via PartiQL.",
         "logo": "aws.png",
         "homepage_url": "https://aws.amazon.com/dynamodb/",
-        "categories": [
-          "Cloud - AWS",
-          "Search & NoSQL",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "pydynamodb"
-        ],
+        "categories": ["Cloud - AWS", "Search & NoSQL", "Proprietary"],
+        "pypi_packages": ["pydynamodb"],
         "connection_string": "dynamodb://{aws_access_key_id}:{aws_secret_access_key}@dynamodb.{region}.amazonaws.com:443?connector=superset",
         "parameters": {
           "aws_access_key_id": "AWS access key ID",
@@ -500,14 +476,8 @@
         "description": "Amazon Redshift is a fully managed data warehouse service.",
         "logo": "redshift.png",
         "homepage_url": "https://aws.amazon.com/redshift/",
-        "categories": [
-          "Cloud - AWS",
-          "Analytical Databases",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "sqlalchemy-redshift"
-        ],
+        "categories": ["Cloud - AWS", "Analytical Databases", "Proprietary"],
+        "pypi_packages": ["sqlalchemy-redshift"],
         "connection_string": "redshift+psycopg2://{username}:{password}@{host}:5439/{database}",
         "default_port": 5439,
         "parameters": {
@@ -592,14 +562,8 @@
             "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
             "category": "Authentication",
             "description": "Access denied",
-            "issue_codes": [
-              1014,
-              1015
-            ],
-            "invalid_fields": [
-              "username",
-              "password"
-            ]
+            "issue_codes": [1014, 1015],
+            "invalid_fields": ["username", "password"]
           },
           {
             "regex_name": "CONNECTION_INVALID_HOSTNAME_REGEX",
@@ -607,12 +571,8 @@
             "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
             "category": "Connection",
             "description": "Invalid hostname",
-            "issue_codes": [
-              1007
-            ],
-            "invalid_fields": [
-              "host"
-            ]
+            "issue_codes": [1007],
+            "invalid_fields": ["host"]
           },
           {
             "regex_name": "CONNECTION_PORT_CLOSED_REGEX",
@@ -620,13 +580,8 @@
             "error_type": "CONNECTION_PORT_CLOSED_ERROR",
             "category": "Connection",
             "description": "Port closed or refused",
-            "issue_codes": [
-              1008
-            ],
-            "invalid_fields": [
-              "host",
-              "port"
-            ]
+            "issue_codes": [1008],
+            "invalid_fields": ["host", "port"]
           },
           {
             "regex_name": "CONNECTION_HOST_DOWN_REGEX",
@@ -634,13 +589,8 @@
             "error_type": "CONNECTION_HOST_DOWN_ERROR",
             "category": "Connection",
             "description": "Host unreachable",
-            "issue_codes": [
-              1009
-            ],
-            "invalid_fields": [
-              "host",
-              "port"
-            ]
+            "issue_codes": [1009],
+            "invalid_fields": ["host", "port"]
           },
           {
             "regex_name": "CONNECTION_UNKNOWN_DATABASE_REGEX",
@@ -648,12 +598,8 @@
             "error_type": "CONNECTION_UNKNOWN_DATABASE_ERROR",
             "category": "Connection",
             "description": "Unknown database",
-            "issue_codes": [
-              1015
-            ],
-            "invalid_fields": [
-              "database"
-            ]
+            "issue_codes": [1015],
+            "invalid_fields": ["database"]
           }
         ]
       },
@@ -734,9 +680,7 @@
           "Analytical Databases",
           "Open Source"
         ],
-        "pypi_packages": [
-          "pydoris"
-        ],
+        "pypi_packages": ["pydoris"],
         "connection_string": "doris://{username}:{password}@{host}:{port}/{catalog}.{database}",
         "default_port": 9030,
         "parameters": {
@@ -755,14 +699,8 @@
             "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
             "category": "Authentication",
             "description": "Access denied",
-            "issue_codes": [
-              1014,
-              1015
-            ],
-            "invalid_fields": [
-              "username",
-              "password"
-            ]
+            "issue_codes": [1014, 1015],
+            "invalid_fields": ["username", "password"]
           },
           {
             "regex_name": "CONNECTION_INVALID_HOSTNAME_REGEX",
@@ -770,12 +708,8 @@
             "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
             "category": "Connection",
             "description": "Invalid hostname",
-            "issue_codes": [
-              1007
-            ],
-            "invalid_fields": [
-              "host"
-            ]
+            "issue_codes": [1007],
+            "invalid_fields": ["host"]
           },
           {
             "regex_name": "CONNECTION_HOST_DOWN_REGEX",
@@ -783,13 +717,8 @@
             "error_type": "CONNECTION_HOST_DOWN_ERROR",
             "category": "Connection",
             "description": "Host unreachable",
-            "issue_codes": [
-              1009
-            ],
-            "invalid_fields": [
-              "host",
-              "port"
-            ]
+            "issue_codes": [1009],
+            "invalid_fields": ["host", "port"]
           },
           {
             "regex_name": "CONNECTION_UNKNOWN_DATABASE_REGEX",
@@ -797,12 +726,8 @@
             "error_type": "CONNECTION_UNKNOWN_DATABASE_ERROR",
             "category": "Connection",
             "description": "Unknown database",
-            "issue_codes": [
-              1015
-            ],
-            "invalid_fields": [
-              "database"
-            ]
+            "issue_codes": [1015],
+            "invalid_fields": ["database"]
           },
           {
             "regex_name": "SYNTAX_ERROR_REGEX",
@@ -810,17 +735,13 @@
             "error_type": "SYNTAX_ERROR",
             "category": "Query",
             "description": "SQL syntax error",
-            "issue_codes": [
-              1030
-            ]
+            "issue_codes": [1030]
           }
         ]
       },
       "engine": "pydoris",
       "engine_name": "Apache Doris",
-      "engine_aliases": [
-        "doris"
-      ],
+      "engine_aliases": ["doris"],
       "default_driver": "pydoris",
       "supports_file_upload": true,
       "supports_dynamic_schema": true,
@@ -890,14 +811,8 @@
         "description": "Apache Drill is a schema-free SQL query engine for Hadoop and NoSQL.",
         "logo": "apache-drill.png",
         "homepage_url": "https://drill.apache.org/",
-        "categories": [
-          "Apache Projects",
-          "Query Engines",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "sqlalchemy-drill"
-        ],
+        "categories": ["Apache Projects", "Query Engines", "Open Source"],
+        "pypi_packages": ["sqlalchemy-drill"],
         "connection_string": "drill+sadrill://{username}:{password}@{host}:{port}/{storage_plugin}?use_ssl=True",
         "default_port": 8047,
         "drivers": [
@@ -1008,9 +923,7 @@
           "Time Series Databases",
           "Open Source"
         ],
-        "pypi_packages": [
-          "pydruid"
-        ],
+        "pypi_packages": ["pydruid"],
         "connection_string": "druid://{username}:{password}@{host}:{port}/druid/v2/sql",
         "default_port": 9088,
         "parameters": {
@@ -1046,9 +959,7 @@
               "Cloud Data Warehouses",
               "Hosted Open Source"
             ],
-            "pypi_packages": [
-              "pydruid"
-            ],
+            "pypi_packages": ["pydruid"],
             "connection_string": "druid://{username}:{password}@{host}/druid/v2/sql",
             "docs_url": "https://docs.imply.io/"
           }
@@ -1127,14 +1038,8 @@
         "description": "Apache Hive is a data warehouse infrastructure built on Hadoop.",
         "logo": "apache-hive.svg",
         "homepage_url": "https://hive.apache.org/",
-        "categories": [
-          "Apache Projects",
-          "Query Engines",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "pyhive"
-        ],
+        "categories": ["Apache Projects", "Query Engines", "Open Source"],
+        "pypi_packages": ["pyhive"],
         "connection_string": "hive://hive@{hostname}:{port}/{database}",
         "default_port": 10000,
         "category": "Apache Projects"
@@ -1211,14 +1116,8 @@
         "description": "Apache Impala is an open-source massively parallel processing SQL query engine.",
         "logo": "apache-impala.png",
         "homepage_url": "https://impala.apache.org/",
-        "categories": [
-          "Apache Projects",
-          "Query Engines",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "impyla"
-        ],
+        "categories": ["Apache Projects", "Query Engines", "Open Source"],
+        "pypi_packages": ["impyla"],
         "connection_string": "impala://{hostname}:{port}/{database}",
         "default_port": 21050,
         "category": "Apache Projects"
@@ -1300,9 +1199,7 @@
           "Time Series Databases",
           "Open Source"
         ],
-        "pypi_packages": [
-          "apache-iotdb"
-        ],
+        "pypi_packages": ["apache-iotdb"],
         "connection_string": "iotdb://{username}:{password}@{hostname}:{port}",
         "default_port": 6667,
         "parameters": {
@@ -1391,9 +1288,7 @@
           "Analytical Databases",
           "Open Source"
         ],
-        "pypi_packages": [
-          "kylinpy"
-        ],
+        "pypi_packages": ["kylinpy"],
         "connection_string": "kylin://{username}:{password}@{hostname}:{port}/{project}?{param1}={value1}&{param2}={value2}",
         "default_port": 7070,
         "category": "Apache Projects"
@@ -1475,9 +1370,7 @@
           "Analytical Databases",
           "Open Source"
         ],
-        "pypi_packages": [
-          "phoenixdb"
-        ],
+        "pypi_packages": ["phoenixdb"],
         "connection_string": "phoenix://{hostname}:{port}/",
         "default_port": 8765,
         "notes": "Phoenix provides a SQL interface to Apache HBase. The phoenixdb driver connects via the Phoenix Query Server and supports a subset of SQLAlchemy.",
@@ -1560,9 +1453,7 @@
           "Time Series Databases",
           "Open Source"
         ],
-        "pypi_packages": [
-          "pinotdb"
-        ],
+        "pypi_packages": ["pinotdb"],
         "connection_string": "pinot+http://{broker_host}:{broker_port}/query?controller=http://{controller_host}:{controller_port}/",
         "default_port": 8099,
         "connection_examples": [
@@ -1657,14 +1548,8 @@
         "description": "Apache Solr is an open-source enterprise search platform.",
         "logo": "apache-solr.png",
         "homepage_url": "https://solr.apache.org/",
-        "categories": [
-          "Apache Projects",
-          "Search & NoSQL",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "sqlalchemy-solr"
-        ],
+        "categories": ["Apache Projects", "Search & NoSQL", "Open Source"],
+        "pypi_packages": ["sqlalchemy-solr"],
         "connection_string": "solr://{username}:{password}@{host}:{port}/{server_path}/{collection}[/?use_ssl=true|false]",
         "default_port": 8983,
         "category": "Apache Projects"
@@ -1741,14 +1626,8 @@
         "description": "Apache Spark SQL is a module for structured data processing.",
         "logo": "apache-spark.png",
         "homepage_url": "https://spark.apache.org/sql/",
-        "categories": [
-          "Apache Projects",
-          "Query Engines",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "pyhive"
-        ],
+        "categories": ["Apache Projects", "Query Engines", "Open Source"],
+        "pypi_packages": ["pyhive"],
         "connection_string": "hive://hive@{hostname}:{port}/{database}",
         "default_port": 10000,
         "category": "Apache Projects"
@@ -1823,13 +1702,8 @@
       "max_score": 201,
       "documentation": {
         "description": "Arc is a data platform with multiple connection options.",
-        "categories": [
-          "Other Databases",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "arc-superset-arrow"
-        ],
+        "categories": ["Other Databases", "Proprietary"],
+        "pypi_packages": ["arc-superset-arrow"],
         "connection_string": "arc+arrow://{api_key}@{hostname}:{port}/{database}",
         "parameters": {
           "api_key": "Arc API key",
@@ -1932,9 +1806,7 @@
           "Analytical Databases",
           "Hosted Open Source"
         ],
-        "pypi_packages": [
-          "impyla"
-        ],
+        "pypi_packages": ["impyla"],
         "connection_string": "ascend://{username}:{password}@{hostname}:{port}/{database}?auth_mechanism=PLAIN;use_ssl=true",
         "category": "Other Databases"
       },
@@ -2010,13 +1882,8 @@
         "description": "MySQL is a popular open-source relational database.",
         "logo": "mysql.png",
         "homepage_url": "https://www.mysql.com/",
-        "categories": [
-          "Traditional RDBMS",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "mysqlclient"
-        ],
+        "categories": ["Traditional RDBMS", "Open Source"],
+        "pypi_packages": ["mysqlclient"],
         "connection_string": "mysql://{username}:{password}@{host}/{database}",
         "default_port": 3306,
         "parameters": {
@@ -2065,22 +1932,16 @@
             "description": "MariaDB is a community-developed fork of MySQL, fully compatible with MySQL.",
             "logo": "mariadb.png",
             "homepage_url": "https://mariadb.org/",
-            "pypi_packages": [
-              "mysqlclient"
-            ],
+            "pypi_packages": ["mysqlclient"],
             "connection_string": "mysql://{username}:{password}@{host}:{port}/{database}",
-            "categories": [
-              "Open Source"
-            ]
+            "categories": ["Open Source"]
           },
           {
             "name": "Amazon Aurora MySQL",
             "description": "Amazon Aurora MySQL is a fully managed, MySQL-compatible relational database with up to 5x the throughput of standard MySQL.",
             "logo": "aws-aurora.jpg",
             "homepage_url": "https://aws.amazon.com/rds/aurora/",
-            "pypi_packages": [
-              "sqlalchemy-aurora-data-api"
-            ],
+            "pypi_packages": ["sqlalchemy-aurora-data-api"],
             "connection_string": "mysql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/{database_name}?aurora_cluster_arn={aurora_cluster_arn}&secret_arn={secret_arn}&region_name={region_name}",
             "parameters": {
               "aws_access_id": "AWS Access Key ID",
@@ -2091,10 +1952,7 @@
               "region_name": "AWS region (e.g., us-east-1)"
             },
             "notes": "Uses the Data API for serverless access. Standard MySQL connections also work with mysqlclient.",
-            "categories": [
-              "Cloud - AWS",
-              "Hosted Open Source"
-            ]
+            "categories": ["Cloud - AWS", "Hosted Open Source"]
           }
         ],
         "category": "Traditional RDBMS"
@@ -2171,13 +2029,8 @@
         "description": "MySQL is a popular open-source relational database.",
         "logo": "mysql.png",
         "homepage_url": "https://www.mysql.com/",
-        "categories": [
-          "Traditional RDBMS",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "mysqlclient"
-        ],
+        "categories": ["Traditional RDBMS", "Open Source"],
+        "pypi_packages": ["mysqlclient"],
         "connection_string": "mysql://{username}:{password}@{host}/{database}",
         "default_port": 3306,
         "parameters": {
@@ -2226,22 +2079,16 @@
             "description": "MariaDB is a community-developed fork of MySQL, fully compatible with MySQL.",
             "logo": "mariadb.png",
             "homepage_url": "https://mariadb.org/",
-            "pypi_packages": [
-              "mysqlclient"
-            ],
+            "pypi_packages": ["mysqlclient"],
             "connection_string": "mysql://{username}:{password}@{host}:{port}/{database}",
-            "categories": [
-              "Open Source"
-            ]
+            "categories": ["Open Source"]
           },
           {
             "name": "Amazon Aurora MySQL",
             "description": "Amazon Aurora MySQL is a fully managed, MySQL-compatible relational database with up to 5x the throughput of standard MySQL.",
             "logo": "aws-aurora.jpg",
             "homepage_url": "https://aws.amazon.com/rds/aurora/",
-            "pypi_packages": [
-              "sqlalchemy-aurora-data-api"
-            ],
+            "pypi_packages": ["sqlalchemy-aurora-data-api"],
             "connection_string": "mysql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/{database_name}?aurora_cluster_arn={aurora_cluster_arn}&secret_arn={secret_arn}&region_name={region_name}",
             "parameters": {
               "aws_access_id": "AWS Access Key ID",
@@ -2252,10 +2099,7 @@
               "region_name": "AWS region (e.g., us-east-1)"
             },
             "notes": "Uses the Data API for serverless access. Standard MySQL connections also work with mysqlclient.",
-            "categories": [
-              "Cloud - AWS",
-              "Hosted Open Source"
-            ]
+            "categories": ["Cloud - AWS", "Hosted Open Source"]
           }
         ],
         "category": "Traditional RDBMS"
@@ -2332,13 +2176,8 @@
         "description": "PostgreSQL is an advanced open-source relational database.",
         "logo": "postgresql.svg",
         "homepage_url": "https://www.postgresql.org/",
-        "categories": [
-          "Traditional RDBMS",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "psycopg2"
-        ],
+        "categories": ["Traditional RDBMS", "Open Source"],
+        "pypi_packages": ["psycopg2"],
         "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
         "default_port": 5432,
         "parameters": {
@@ -2367,9 +2206,7 @@
             "description": "Alibaba Cloud real-time interactive analytics service, fully compatible with PostgreSQL 11.",
             "logo": "hologres.png",
             "homepage_url": "https://www.alibabacloud.com/product/hologres",
-            "pypi_packages": [
-              "psycopg2"
-            ],
+            "pypi_packages": ["psycopg2"],
             "connection_string": "postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}",
             "parameters": {
               "username": "AccessKey ID of your Alibaba Cloud account",
@@ -2378,18 +2215,14 @@
               "port": "Port number of the Hologres instance",
               "database": "Name of the Hologres database"
             },
-            "categories": [
-              "Proprietary"
-            ]
+            "categories": ["Proprietary"]
           },
           {
             "name": "TimescaleDB",
             "description": "Open-source relational database for time-series and analytics, built on PostgreSQL.",
             "logo": "timescale.png",
             "homepage_url": "https://www.timescale.com/",
-            "pypi_packages": [
-              "psycopg2"
-            ],
+            "pypi_packages": ["psycopg2"],
             "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
             "connection_examples": [
               {
@@ -2399,33 +2232,25 @@
             ],
             "notes": "psycopg2 comes bundled with Superset Docker images.",
             "docs_url": "https://docs.timescale.com/",
-            "categories": [
-              "Open Source"
-            ]
+            "categories": ["Open Source"]
           },
           {
             "name": "YugabyteDB",
             "description": "Distributed SQL database built on top of PostgreSQL.",
             "logo": "yugabyte.png",
             "homepage_url": "https://www.yugabyte.com/",
-            "pypi_packages": [
-              "psycopg2"
-            ],
+            "pypi_packages": ["psycopg2"],
             "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
             "notes": "psycopg2 comes bundled with Superset Docker images.",
             "docs_url": "https://www.yugabyte.com/",
-            "categories": [
-              "Open Source"
-            ]
+            "categories": ["Open Source"]
           },
           {
             "name": "Supabase",
             "description": "Open-source Firebase alternative built on top of PostgreSQL, providing a full backend-as-a-service with a hosted Postgres database.",
             "logo": "supabase.svg",
             "homepage_url": "https://supabase.com/",
-            "pypi_packages": [
-              "psycopg2"
-            ],
+            "pypi_packages": ["psycopg2"],
             "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
             "connection_examples": [
               {
@@ -2444,18 +2269,14 @@
             },
             "notes": "Find connection details in your Supabase project dashboard under Settings > Database. Use the connection pooler (port 6543) for better connection management.",
             "docs_url": "https://supabase.com/docs/guides/database/connecting-to-postgres",
-            "categories": [
-              "Hosted Open Source"
-            ]
+            "categories": ["Hosted Open Source"]
           },
           {
             "name": "Google AlloyDB",
             "description": "Google Cloud's PostgreSQL-compatible database service for demanding transactional and analytical workloads.",
             "logo": "alloydb.png",
             "homepage_url": "https://cloud.google.com/alloydb",
-            "pypi_packages": [
-              "psycopg2"
-            ],
+            "pypi_packages": ["psycopg2"],
             "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
             "parameters": {
               "username": "Database user (default: postgres)",
@@ -2466,19 +2287,14 @@
             },
             "notes": "For public IP connections, use the AlloyDB Auth Proxy for secure access. Private IP connections can connect directly.",
             "docs_url": "https://cloud.google.com/alloydb/docs",
-            "categories": [
-              "Cloud - Google",
-              "Hosted Open Source"
-            ]
+            "categories": ["Cloud - Google", "Hosted Open Source"]
           },
           {
             "name": "Neon",
             "description": "Serverless PostgreSQL with branching, scale-to-zero, and bottomless storage.",
             "logo": "neon.png",
             "homepage_url": "https://neon.tech/",
-            "pypi_packages": [
-              "psycopg2"
-            ],
+            "pypi_packages": ["psycopg2"],
             "connection_string": "postgresql://{username}:{password}@{host}/{database}?sslmode=require",
             "parameters": {
               "username": "Neon role name",
@@ -2488,18 +2304,14 @@
             },
             "notes": "SSL is required for all connections. Find connection details in the Neon console under Connection Details.",
             "docs_url": "https://neon.tech/docs/connect/connect-from-any-app",
-            "categories": [
-              "Hosted Open Source"
-            ]
+            "categories": ["Hosted Open Source"]
           },
           {
             "name": "Amazon Aurora PostgreSQL",
             "description": "Amazon Aurora PostgreSQL is a fully managed, PostgreSQL-compatible relational database with up to 5x the throughput of standard PostgreSQL.",
             "logo": "aws-aurora.jpg",
             "homepage_url": "https://aws.amazon.com/rds/aurora/",
-            "pypi_packages": [
-              "sqlalchemy-aurora-data-api"
-            ],
+            "pypi_packages": ["sqlalchemy-aurora-data-api"],
             "connection_string": "postgresql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/{database_name}?aurora_cluster_arn={aurora_cluster_arn}&secret_arn={secret_arn}&region_name={region_name}",
             "parameters": {
               "aws_access_id": "AWS Access Key ID",
@@ -2510,19 +2322,14 @@
               "region_name": "AWS region (e.g., us-east-1)"
             },
             "notes": "Uses the Data API for serverless access. Standard PostgreSQL connections also work with psycopg2.",
-            "categories": [
-              "Cloud - AWS",
-              "Hosted Open Source"
-            ]
+            "categories": ["Cloud - AWS", "Hosted Open Source"]
           }
         ],
         "category": "Traditional RDBMS"
       },
       "engine": "postgresql",
       "engine_name": "Aurora PostgreSQL",
-      "engine_aliases": [
-        "postgres"
-      ],
+      "engine_aliases": ["postgres"],
       "default_driver": "psycopg2",
       "supports_file_upload": true,
       "supports_dynamic_schema": true,
@@ -2592,13 +2399,8 @@
         "description": "PostgreSQL is an advanced open-source relational database.",
         "logo": "postgresql.svg",
         "homepage_url": "https://www.postgresql.org/",
-        "categories": [
-          "Traditional RDBMS",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "psycopg2"
-        ],
+        "categories": ["Traditional RDBMS", "Open Source"],
+        "pypi_packages": ["psycopg2"],
         "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
         "default_port": 5432,
         "parameters": {
@@ -2627,9 +2429,7 @@
             "description": "Alibaba Cloud real-time interactive analytics service, fully compatible with PostgreSQL 11.",
             "logo": "hologres.png",
             "homepage_url": "https://www.alibabacloud.com/product/hologres",
-            "pypi_packages": [
-              "psycopg2"
-            ],
+            "pypi_packages": ["psycopg2"],
             "connection_string": "postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}",
             "parameters": {
               "username": "AccessKey ID of your Alibaba Cloud account",
@@ -2638,18 +2438,14 @@
               "port": "Port number of the Hologres instance",
               "database": "Name of the Hologres database"
             },
-            "categories": [
-              "Proprietary"
-            ]
+            "categories": ["Proprietary"]
           },
           {
             "name": "TimescaleDB",
             "description": "Open-source relational database for time-series and analytics, built on PostgreSQL.",
             "logo": "timescale.png",
             "homepage_url": "https://www.timescale.com/",
-            "pypi_packages": [
-              "psycopg2"
-            ],
+            "pypi_packages": ["psycopg2"],
             "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
             "connection_examples": [
               {
@@ -2659,33 +2455,25 @@
             ],
             "notes": "psycopg2 comes bundled with Superset Docker images.",
             "docs_url": "https://docs.timescale.com/",
-            "categories": [
-              "Open Source"
-            ]
+            "categories": ["Open Source"]
           },
           {
             "name": "YugabyteDB",
             "description": "Distributed SQL database built on top of PostgreSQL.",
             "logo": "yugabyte.png",
             "homepage_url": "https://www.yugabyte.com/",
-            "pypi_packages": [
-              "psycopg2"
-            ],
+            "pypi_packages": ["psycopg2"],
             "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
             "notes": "psycopg2 comes bundled with Superset Docker images.",
             "docs_url": "https://www.yugabyte.com/",
-            "categories": [
-              "Open Source"
-            ]
+            "categories": ["Open Source"]
           },
           {
             "name": "Supabase",
             "description": "Open-source Firebase alternative built on top of PostgreSQL, providing a full backend-as-a-service with a hosted Postgres database.",
             "logo": "supabase.svg",
             "homepage_url": "https://supabase.com/",
-            "pypi_packages": [
-              "psycopg2"
-            ],
+            "pypi_packages": ["psycopg2"],
             "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
             "connection_examples": [
               {
@@ -2704,18 +2492,14 @@
             },
             "notes": "Find connection details in your Supabase project dashboard under Settings > Database. Use the connection pooler (port 6543) for better connection management.",
             "docs_url": "https://supabase.com/docs/guides/database/connecting-to-postgres",
-            "categories": [
-              "Hosted Open Source"
-            ]
+            "categories": ["Hosted Open Source"]
           },
           {
             "name": "Google AlloyDB",
             "description": "Google Cloud's PostgreSQL-compatible database service for demanding transactional and analytical workloads.",
             "logo": "alloydb.png",
             "homepage_url": "https://cloud.google.com/alloydb",
-            "pypi_packages": [
-              "psycopg2"
-            ],
+            "pypi_packages": ["psycopg2"],
             "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
             "parameters": {
               "username": "Database user (default: postgres)",
@@ -2726,19 +2510,14 @@
             },
             "notes": "For public IP connections, use the AlloyDB Auth Proxy for secure access. Private IP connections can connect directly.",
             "docs_url": "https://cloud.google.com/alloydb/docs",
-            "categories": [
-              "Cloud - Google",
-              "Hosted Open Source"
-            ]
+            "categories": ["Cloud - Google", "Hosted Open Source"]
           },
           {
             "name": "Neon",
             "description": "Serverless PostgreSQL with branching, scale-to-zero, and bottomless storage.",
             "logo": "neon.png",
             "homepage_url": "https://neon.tech/",
-            "pypi_packages": [
-              "psycopg2"
-            ],
+            "pypi_packages": ["psycopg2"],
             "connection_string": "postgresql://{username}:{password}@{host}/{database}?sslmode=require",
             "parameters": {
               "username": "Neon role name",
@@ -2748,18 +2527,14 @@
             },
             "notes": "SSL is required for all connections. Find connection details in the Neon console under Connection Details.",
             "docs_url": "https://neon.tech/docs/connect/connect-from-any-app",
-            "categories": [
-              "Hosted Open Source"
-            ]
+            "categories": ["Hosted Open Source"]
           },
           {
             "name": "Amazon Aurora PostgreSQL",
             "description": "Amazon Aurora PostgreSQL is a fully managed, PostgreSQL-compatible relational database with up to 5x the throughput of standard PostgreSQL.",
             "logo": "aws-aurora.jpg",
             "homepage_url": "https://aws.amazon.com/rds/aurora/",
-            "pypi_packages": [
-              "sqlalchemy-aurora-data-api"
-            ],
+            "pypi_packages": ["sqlalchemy-aurora-data-api"],
             "connection_string": "postgresql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/{database_name}?aurora_cluster_arn={aurora_cluster_arn}&secret_arn={secret_arn}&region_name={region_name}",
             "parameters": {
               "aws_access_id": "AWS Access Key ID",
@@ -2770,19 +2545,14 @@
               "region_name": "AWS region (e.g., us-east-1)"
             },
             "notes": "Uses the Data API for serverless access. Standard PostgreSQL connections also work with psycopg2.",
-            "categories": [
-              "Cloud - AWS",
-              "Hosted Open Source"
-            ]
+            "categories": ["Cloud - AWS", "Hosted Open Source"]
           }
         ],
         "category": "Traditional RDBMS"
       },
       "engine": "postgresql",
       "engine_name": "Aurora PostgreSQL (Data API)",
-      "engine_aliases": [
-        "postgres"
-      ],
+      "engine_aliases": ["postgres"],
       "default_driver": "auroradataapi",
       "supports_file_upload": true,
       "supports_dynamic_schema": true,
@@ -2852,14 +2622,8 @@
         "description": "Azure Data Explorer (Kusto) is a fast, fully managed data analytics service from Microsoft Azure. Query data using SQL or native KQL syntax.",
         "logo": "kusto.png",
         "homepage_url": "https://azure.microsoft.com/en-us/products/data-explorer/",
-        "categories": [
-          "Cloud - Azure",
-          "Analytical Databases",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "sqlalchemy-kusto"
-        ],
+        "categories": ["Cloud - Azure", "Analytical Databases", "Proprietary"],
+        "pypi_packages": ["sqlalchemy-kusto"],
         "connection_string": "kustosql+https://{cluster}.kusto.windows.net/{database}?msi=False&azure_ad_client_id={client_id}&azure_ad_client_secret={client_secret}&azure_ad_tenant_id={tenant_id}",
         "parameters": {
           "cluster": "Azure Data Explorer cluster name",
@@ -3036,9 +2800,7 @@
           "Analytical Databases",
           "Proprietary"
         ],
-        "pypi_packages": [
-          "pymssql"
-        ],
+        "pypi_packages": ["pymssql"],
         "connection_string": "mssql+pymssql://{username}@{server}:{password}@{server}.database.windows.net:1433/{database}",
         "category": "Cloud - Azure",
         "custom_errors": [
@@ -3048,10 +2810,7 @@
             "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
             "category": "Authentication",
             "description": "Access denied",
-            "issue_codes": [
-              1014,
-              1015
-            ]
+            "issue_codes": [1014, 1015]
           },
           {
             "regex_name": "CONNECTION_INVALID_HOSTNAME_REGEX",
@@ -3059,9 +2818,7 @@
             "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
             "category": "Connection",
             "description": "Invalid hostname",
-            "issue_codes": [
-              1007
-            ]
+            "issue_codes": [1007]
           },
           {
             "regex_name": "CONNECTION_PORT_CLOSED_REGEX",
@@ -3069,9 +2826,7 @@
             "error_type": "CONNECTION_PORT_CLOSED_ERROR",
             "category": "Connection",
             "description": "Port closed or refused",
-            "issue_codes": [
-              1008
-            ]
+            "issue_codes": [1008]
           },
           {
             "regex_name": "CONNECTION_HOST_DOWN_REGEX",
@@ -3079,9 +2834,7 @@
             "error_type": "CONNECTION_HOST_DOWN_ERROR",
             "category": "Connection",
             "description": "Host unreachable",
-            "issue_codes": [
-              1009
-            ]
+            "issue_codes": [1009]
           }
         ]
       },
@@ -3157,13 +2910,8 @@
         "description": "ClickHouse is an open-source column-oriented database for real-time analytics using SQL. It's known for extremely fast query performance on large datasets.",
         "logo": "clickhouse.png",
         "homepage_url": "https://clickhouse.com/",
-        "categories": [
-          "Analytical Databases",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "clickhouse-connect>=0.13.0"
-        ],
+        "categories": ["Analytical Databases", "Open Source"],
+        "pypi_packages": ["clickhouse-connect>=0.13.0"],
         "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
         "default_port": 8123,
         "drivers": [
@@ -3204,9 +2952,7 @@
               "Cloud Data Warehouses",
               "Hosted Open Source"
             ],
-            "pypi_packages": [
-              "clickhouse-connect>=0.13.0"
-            ],
+            "pypi_packages": ["clickhouse-connect>=0.13.0"],
             "connection_string": "clickhousedb://{username}:{password}@{host}:8443/{database}?secure=true",
             "parameters": {
               "username": "ClickHouse Cloud username",
@@ -3226,9 +2972,7 @@
               "Cloud Data Warehouses",
               "Hosted Open Source"
             ],
-            "pypi_packages": [
-              "clickhouse-connect>=0.13.0"
-            ],
+            "pypi_packages": ["clickhouse-connect>=0.13.0"],
             "connection_string": "clickhousedb://{username}:{password}@{host}/{database}?secure=true",
             "docs_url": "https://docs.altinity.com/"
           }
@@ -3385,9 +3129,7 @@
           "Traditional RDBMS",
           "Hosted Open Source"
         ],
-        "pypi_packages": [
-          "superset-engine-d1"
-        ],
+        "pypi_packages": ["superset-engine-d1"],
         "connection_string": "d1://{cloudflare_account_id}:{cloudflare_api_token}@{cloudflare_d1_database_id}",
         "parameters": {
           "cloudflare_account_id": "Cloudflare account ID",
@@ -3469,13 +3211,8 @@
         "description": "CockroachDB is a distributed SQL database built for cloud applications.",
         "logo": "cockroachdb.png",
         "homepage_url": "https://www.cockroachlabs.com/",
-        "categories": [
-          "Traditional RDBMS",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "cockroachdb"
-        ],
+        "categories": ["Traditional RDBMS", "Open Source"],
+        "pypi_packages": ["cockroachdb"],
         "connection_string": "cockroachdb://root@{hostname}:{port}/{database}?sslmode=disable",
         "default_port": 26257,
         "docs_url": "https://github.com/cockroachdb/sqlalchemy-cockroachdb",
@@ -3483,9 +3220,7 @@
       },
       "engine": "cockroachdb",
       "engine_name": "CockroachDB",
-      "engine_aliases": [
-        "postgres"
-      ],
+      "engine_aliases": ["postgres"],
       "default_driver": "psycopg2",
       "supports_file_upload": true,
       "supports_dynamic_schema": true,
@@ -3555,13 +3290,8 @@
         "description": "Couchbase is a distributed NoSQL document database with SQL++ support.",
         "logo": "couchbase.svg",
         "homepage_url": "https://www.couchbase.com/",
-        "categories": [
-          "Search & NoSQL",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "couchbase-sqlalchemy"
-        ],
+        "categories": ["Search & NoSQL", "Open Source"],
+        "pypi_packages": ["couchbase-sqlalchemy"],
         "connection_string": "couchbase://{username}:{password}@{host}:{port}?ssl=true",
         "default_port": 8091,
         "parameters": {
@@ -3583,9 +3313,7 @@
       },
       "engine": "couchbase",
       "engine_name": "Couchbase",
-      "engine_aliases": [
-        "couchbasedb"
-      ],
+      "engine_aliases": ["couchbasedb"],
       "default_driver": "couchbase",
       "supports_file_upload": true,
       "supports_dynamic_schema": false,
@@ -3655,14 +3383,8 @@
         "description": "CrateDB is a distributed SQL database for machine data and IoT workloads.",
         "logo": "cratedb.svg",
         "homepage_url": "https://cratedb.com",
-        "categories": [
-          "Time Series Databases",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "crate",
-          "sqlalchemy-cratedb"
-        ],
+        "categories": ["Time Series Databases", "Open Source"],
+        "pypi_packages": ["crate", "sqlalchemy-cratedb"],
         "connection_string": "crate://{host}:{port}",
         "default_port": 4200,
         "parameters": {
@@ -3756,9 +3478,7 @@
           "Analytical Databases",
           "Proprietary"
         ],
-        "pypi_packages": [
-          "databend-sqlalchemy"
-        ],
+        "pypi_packages": ["databend-sqlalchemy"],
         "connection_string": "databend://{username}:{password}@{host}:{port}/{database}?secure=true",
         "default_port": 443,
         "parameters": {
@@ -3920,9 +3640,7 @@
           "Analytical Databases",
           "Hosted Open Source"
         ],
-        "pypi_packages": [
-          "apache-superset[databricks]"
-        ],
+        "pypi_packages": ["apache-superset[databricks]"],
         "install_instructions": "pip install apache-superset[databricks]",
         "connection_string": "databricks://token:{access_token}@{host}:{port}?http_path={http_path}&catalog={catalog}&schema={schema}",
         "parameters": {
@@ -4108,14 +3826,8 @@
         "description": "Apache Hive is a data warehouse infrastructure built on Hadoop.",
         "logo": "apache-hive.svg",
         "homepage_url": "https://hive.apache.org/",
-        "categories": [
-          "Apache Projects",
-          "Query Engines",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "pyhive"
-        ],
+        "categories": ["Apache Projects", "Query Engines", "Open Source"],
+        "pypi_packages": ["pyhive"],
         "connection_string": "hive://hive@{hostname}:{port}/{database}",
         "default_port": 10000,
         "category": "Cloud Data Warehouses"
@@ -4265,13 +3977,8 @@
         "description": "Denodo is a data virtualization platform for logical data management.",
         "logo": "denodo.png",
         "homepage_url": "https://www.denodo.com/",
-        "categories": [
-          "Query Engines",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "psycopg2"
-        ],
+        "categories": ["Query Engines", "Proprietary"],
+        "pypi_packages": ["psycopg2"],
         "connection_string": "denodo://{username}:{password}@{host}:{port}/{database}",
         "default_port": 9996,
         "parameters": {
@@ -4297,112 +4004,76 @@
             "error_type": "CONNECTION_INVALID_USERNAME_ERROR",
             "category": "Authentication",
             "description": "Invalid username",
-            "issue_codes": [
-              1012
-            ],
-            "invalid_fields": [
-              "username",
-              "password"
-            ]
+            "issue_codes": [1012],
+            "invalid_fields": ["username", "password"]
           },
           {
             "message_template": "Please enter a password.",
             "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
             "category": "Authentication",
             "description": "Access denied",
-            "issue_codes": [
-              1014,
-              1015
-            ],
-            "invalid_fields": [
-              "password"
-            ]
+            "issue_codes": [1014, 1015],
+            "invalid_fields": ["password"]
           },
           {
             "message_template": "Hostname \"%(hostname)s\" cannot be resolved.",
             "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
             "category": "Connection",
             "description": "Invalid hostname",
-            "issue_codes": [
-              1007
-            ],
-            "invalid_fields": [
-              "host"
-            ]
+            "issue_codes": [1007],
+            "invalid_fields": ["host"]
           },
           {
             "message_template": "Server refused the connection: check hostname and port.",
             "error_type": "CONNECTION_PORT_CLOSED_ERROR",
             "category": "Connection",
             "description": "Port closed or refused",
-            "issue_codes": [
-              1008
-            ],
-            "invalid_fields": [
-              "host",
-              "port"
-            ]
+            "issue_codes": [1008],
+            "invalid_fields": ["host", "port"]
           },
           {
             "message_template": "Unable to connect to database \"%(database)s\"",
             "error_type": "CONNECTION_UNKNOWN_DATABASE_ERROR",
             "category": "Connection",
             "description": "Unknown database",
-            "issue_codes": [
-              1015
-            ],
-            "invalid_fields": [
-              "database"
-            ]
+            "issue_codes": [1015],
+            "invalid_fields": ["database"]
           },
           {
             "message_template": "Unable to connect to database \"%(database)s\": database does not exist or insufficient permissions",
             "error_type": "CONNECTION_DATABASE_PERMISSIONS_ERROR",
             "category": "Permissions",
             "description": "Insufficient permissions",
-            "issue_codes": [
-              1017
-            ],
-            "invalid_fields": [
-              "database"
-            ]
+            "issue_codes": [1017],
+            "invalid_fields": ["database"]
           },
           {
             "message_template": "Please check your query for syntax errors at or near \"%(err)s\". Then, try running your query again.",
             "error_type": "SYNTAX_ERROR",
             "category": "Query",
             "description": "SQL syntax error",
-            "issue_codes": [
-              1030
-            ]
+            "issue_codes": [1030]
           },
           {
             "message_template": "Column \"%(column)s\" not found in \"%(view)s\".",
             "error_type": "COLUMN_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Column not found",
-            "issue_codes": [
-              1003,
-              1004
-            ]
+            "issue_codes": [1003, 1004]
           },
           {
             "message_template": "Invalid aggregation expression.",
             "error_type": "SYNTAX_ERROR",
             "category": "Query",
             "description": "SQL syntax error",
-            "issue_codes": [
-              1030
-            ]
+            "issue_codes": [1030]
           },
           {
             "message_template": "\"%(exp)s\" is neither an aggregation function nor appears in the GROUP BY clause.",
             "error_type": "SYNTAX_ERROR",
             "category": "Query",
             "description": "SQL syntax error",
-            "issue_codes": [
-              1030
-            ]
+            "issue_codes": [1030]
           }
         ]
       },
@@ -4478,13 +4149,8 @@
         "description": "Dremio is a data lakehouse platform for fast, self-service analytics.",
         "logo": "dremio.png",
         "homepage_url": "https://www.dremio.com/",
-        "categories": [
-          "Query Engines",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "sqlalchemy_dremio"
-        ],
+        "categories": ["Query Engines", "Proprietary"],
+        "pypi_packages": ["sqlalchemy_dremio"],
         "connection_string": "dremio+flight://data.dremio.cloud:443/?Token={token}&UseEncryption=true",
         "parameters": {
           "token": "Personal Access Token (PAT) or API token"
@@ -4508,9 +4174,7 @@
       },
       "engine": "dremio",
       "engine_name": "Dremio",
-      "engine_aliases": [
-        "dremio+flight"
-      ],
+      "engine_aliases": ["dremio+flight"],
       "default_driver": "flight",
       "supports_file_upload": true,
       "supports_dynamic_schema": false,
@@ -4580,13 +4244,8 @@
         "description": "DuckDB is an in-process OLAP database designed for fast analytical queries on local data. Supports CSV, Parquet, JSON, and many other file formats.",
         "logo": "duckdb.png",
         "homepage_url": "https://duckdb.org/",
-        "categories": [
-          "Analytical Databases",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "duckdb-engine"
-        ],
+        "categories": ["Analytical Databases", "Open Source"],
+        "pypi_packages": ["duckdb-engine"],
         "connection_string": "duckdb:////path/to/duck.db",
         "drivers": [
           {
@@ -4603,19 +4262,14 @@
             "description": "MotherDuck is a serverless cloud analytics platform built on DuckDB, offering collaborative data sharing and cloud-native scalability.",
             "logo": "motherduck.png",
             "homepage_url": "https://motherduck.com/",
-            "pypi_packages": [
-              "duckdb",
-              "duckdb-engine"
-            ],
+            "pypi_packages": ["duckdb", "duckdb-engine"],
             "connection_string": "duckdb:///md:{database}?motherduck_token={token}",
             "parameters": {
               "database": "MotherDuck database name",
               "motherduck_token": "Service token from MotherDuck dashboard"
             },
             "notes": "Cloud-hosted DuckDB with collaboration features.",
-            "categories": [
-              "Hosted Open Source"
-            ]
+            "categories": ["Hosted Open Source"]
           }
         ],
         "category": "Other Databases",
@@ -4626,10 +4280,7 @@
             "error_type": "COLUMN_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Column not found",
-            "issue_codes": [
-              1003,
-              1004
-            ]
+            "issue_codes": [1003, 1004]
           }
         ]
       },
@@ -4705,13 +4356,8 @@
         "description": "Elasticsearch is a distributed search and analytics engine. Query data using Elasticsearch SQL or OpenSearch SQL syntax.",
         "logo": "elasticsearch.png",
         "homepage_url": "https://www.elastic.co/elasticsearch/",
-        "categories": [
-          "Search & NoSQL",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "elasticsearch-dbapi"
-        ],
+        "categories": ["Search & NoSQL", "Open Source"],
+        "pypi_packages": ["elasticsearch-dbapi"],
         "connection_string": "elasticsearch+https://{user}:{password}@{host}:9243/",
         "default_port": 9243,
         "parameters": {
@@ -4741,13 +4387,8 @@
             "description": "Elastic Cloud is the official managed Elasticsearch service from Elastic. It includes Elasticsearch, Kibana, and enterprise features with automatic scaling.",
             "logo": "elasticsearch.png",
             "homepage_url": "https://www.elastic.co/cloud/",
-            "categories": [
-              "Search & NoSQL",
-              "Hosted Open Source"
-            ],
-            "pypi_packages": [
-              "elasticsearch-dbapi"
-            ],
+            "categories": ["Search & NoSQL", "Hosted Open Source"],
+            "pypi_packages": ["elasticsearch-dbapi"],
             "connection_string": "elasticsearch+https://{user}:{password}@{deployment}.{region}.cloud.es.io:9243/",
             "docs_url": "https://www.elastic.co/guide/en/cloud/current/"
           },
@@ -4761,9 +4402,7 @@
               "Cloud - AWS",
               "Hosted Open Source"
             ],
-            "pypi_packages": [
-              "elasticsearch-dbapi"
-            ],
+            "pypi_packages": ["elasticsearch-dbapi"],
             "connection_string": "odelasticsearch+https://{user}:{password}@{host}:443/",
             "docs_url": "https://docs.aws.amazon.com/opensearch-service/latest/developerguide/"
           }
@@ -4842,13 +4481,8 @@
         "description": "Exasol is a high-performance, in-memory, MPP analytical database.",
         "logo": "exasol.png",
         "homepage_url": "https://www.exasol.com/",
-        "categories": [
-          "Analytical Databases",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "sqlalchemy-exasol"
-        ],
+        "categories": ["Analytical Databases", "Proprietary"],
+        "pypi_packages": ["sqlalchemy-exasol"],
         "connection_string": "exa+pyodbc://{username}:{password}@{dsn}",
         "default_port": 8563,
         "parameters": {
@@ -4953,13 +4587,8 @@
         "description": "Firebird is an open-source relational database.",
         "logo": "firebird.png",
         "homepage_url": "https://firebirdsql.org/",
-        "categories": [
-          "Traditional RDBMS",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "sqlalchemy-firebird"
-        ],
+        "categories": ["Traditional RDBMS", "Open Source"],
+        "pypi_packages": ["sqlalchemy-firebird"],
         "version_requirements": "sqlalchemy-firebird>=0.7.0,<0.8",
         "connection_string": "firebird+fdb://{username}:{password}@{host}:{port}//{path_to_db_file}",
         "default_port": 3050,
@@ -5048,9 +4677,7 @@
           "Analytical Databases",
           "Proprietary"
         ],
-        "pypi_packages": [
-          "firebolt-sqlalchemy"
-        ],
+        "pypi_packages": ["firebolt-sqlalchemy"],
         "connection_string": "firebolt://{client_id}:{client_secret}@{database}/{engine_name}?account_name={account_name}",
         "parameters": {
           "client_id": "Service account client ID",
@@ -5141,14 +4768,8 @@
         "description": "Google BigQuery is a serverless, highly scalable data warehouse.",
         "logo": "google-big-query.svg",
         "homepage_url": "https://cloud.google.com/bigquery/",
-        "categories": [
-          "Cloud - Google",
-          "Analytical Databases",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "sqlalchemy-bigquery"
-        ],
+        "categories": ["Cloud - Google", "Analytical Databases", "Proprietary"],
+        "pypi_packages": ["sqlalchemy-bigquery"],
         "connection_string": "bigquery://{project_id}",
         "install_instructions": "echo \"sqlalchemy-bigquery\" >> ./docker/requirements-local.txt",
         "authentication_methods": [
@@ -5182,9 +4803,7 @@
             "error_type": "CONNECTION_DATABASE_PERMISSIONS_ERROR",
             "category": "Permissions",
             "description": "Insufficient permissions",
-            "issue_codes": [
-              1017
-            ]
+            "issue_codes": [1017]
           },
           {
             "regex_name": "TABLE_DOES_NOT_EXIST_REGEX",
@@ -5192,10 +4811,7 @@
             "error_type": "TABLE_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Table not found",
-            "issue_codes": [
-              1003,
-              1005
-            ]
+            "issue_codes": [1003, 1005]
           },
           {
             "regex_name": "COLUMN_DOES_NOT_EXIST_REGEX",
@@ -5203,10 +4819,7 @@
             "error_type": "COLUMN_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Column not found",
-            "issue_codes": [
-              1003,
-              1004
-            ]
+            "issue_codes": [1003, 1004]
           },
           {
             "regex_name": "SCHEMA_DOES_NOT_EXIST_REGEX",
@@ -5214,10 +4827,7 @@
             "error_type": "SCHEMA_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Schema not found",
-            "issue_codes": [
-              1003,
-              1016
-            ]
+            "issue_codes": [1003, 1016]
           },
           {
             "regex_name": "SYNTAX_ERROR_REGEX",
@@ -5225,9 +4835,7 @@
             "error_type": "SYNTAX_ERROR",
             "category": "Query",
             "description": "SQL syntax error",
-            "issue_codes": [
-              1030
-            ]
+            "issue_codes": [1030]
           }
         ]
       },
@@ -5303,14 +4911,8 @@
         "description": "Google Cloud Datastore is a highly scalable NoSQL database for your applications.",
         "logo": "datastore.png",
         "homepage_url": "https://cloud.google.com/datastore/",
-        "categories": [
-          "Cloud - Google",
-          "Search & NoSQL",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "python-datastore-sqlalchemy"
-        ],
+        "categories": ["Cloud - Google", "Search & NoSQL", "Proprietary"],
+        "pypi_packages": ["python-datastore-sqlalchemy"],
         "connection_string": "datastore://{project_id}/?database={database_id}",
         "authentication_methods": [
           {
@@ -5340,9 +4942,7 @@
             "error_type": "CONNECTION_DATABASE_PERMISSIONS_ERROR",
             "category": "Permissions",
             "description": "Insufficient permissions",
-            "issue_codes": [
-              1017
-            ]
+            "issue_codes": [1017]
           },
           {
             "regex_name": "TABLE_DOES_NOT_EXIST_REGEX",
@@ -5350,10 +4950,7 @@
             "error_type": "TABLE_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Table not found",
-            "issue_codes": [
-              1003,
-              1005
-            ]
+            "issue_codes": [1003, 1005]
           },
           {
             "regex_name": "COLUMN_DOES_NOT_EXIST_REGEX",
@@ -5361,10 +4958,7 @@
             "error_type": "COLUMN_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Column not found",
-            "issue_codes": [
-              1003,
-              1004
-            ]
+            "issue_codes": [1003, 1004]
           },
           {
             "regex_name": "SCHEMA_DOES_NOT_EXIST_REGEX",
@@ -5372,10 +4966,7 @@
             "error_type": "SCHEMA_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Schema not found",
-            "issue_codes": [
-              1003,
-              1016
-            ]
+            "issue_codes": [1003, 1016]
           },
           {
             "regex_name": "SYNTAX_ERROR_REGEX",
@@ -5383,9 +4974,7 @@
             "error_type": "SYNTAX_ERROR",
             "category": "Query",
             "description": "SQL syntax error",
-            "issue_codes": [
-              1030
-            ]
+            "issue_codes": [1030]
           }
         ]
       },
@@ -5461,13 +5050,8 @@
         "description": "Google Sheets allows querying spreadsheets as SQL tables via shillelagh.",
         "logo": "google-sheets.svg",
         "homepage_url": "https://www.google.com/sheets/about/",
-        "categories": [
-          "Cloud - Google",
-          "Hosted Open Source"
-        ],
-        "pypi_packages": [
-          "shillelagh[gsheetsapi]"
-        ],
+        "categories": ["Cloud - Google", "Hosted Open Source"],
+        "pypi_packages": ["shillelagh[gsheetsapi]"],
         "install_instructions": "pip install \"apache-superset[gsheets]\"",
         "connection_string": "gsheets://",
         "notes": "Requires Google service account credentials or OAuth2 authentication. See docs for setup instructions.",
@@ -5479,9 +5063,7 @@
             "error_type": "SYNTAX_ERROR",
             "category": "Query",
             "description": "SQL syntax error",
-            "issue_codes": [
-              1030
-            ]
+            "issue_codes": [1030]
           }
         ]
       },
@@ -5557,14 +5139,8 @@
         "description": "VMware Greenplum is a massively parallel processing (MPP) database built on PostgreSQL.",
         "logo": "greenplum.png",
         "homepage_url": "https://greenplum.org/",
-        "categories": [
-          "Traditional RDBMS",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "sqlalchemy-greenplum",
-          "psycopg2"
-        ],
+        "categories": ["Traditional RDBMS", "Open Source"],
+        "pypi_packages": ["sqlalchemy-greenplum", "psycopg2"],
         "connection_string": "greenplum://{username}:{password}@{host}:{port}/{database}",
         "default_port": 5432,
         "parameters": {
@@ -5579,9 +5155,7 @@
       },
       "engine": "greenplum",
       "engine_name": "Greenplum",
-      "engine_aliases": [
-        "postgres"
-      ],
+      "engine_aliases": ["postgres"],
       "default_driver": "psycopg2",
       "supports_file_upload": true,
       "supports_dynamic_schema": true,
@@ -5656,9 +5230,7 @@
           "Analytical Databases",
           "Proprietary"
         ],
-        "pypi_packages": [
-          "psycopg2"
-        ],
+        "pypi_packages": ["psycopg2"],
         "connection_string": "postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}",
         "parameters": {
           "username": "AccessKey ID of your Alibaba Cloud account",
@@ -5743,13 +5315,8 @@
         "description": "IBM Db2 is a family of data management products for enterprise workloads, available on-premises, in containers, and across cloud platforms.",
         "logo": "ibm-db2.svg",
         "homepage_url": "https://www.ibm.com/db2",
-        "categories": [
-          "Traditional RDBMS",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "ibm_db_sa"
-        ],
+        "categories": ["Traditional RDBMS", "Proprietary"],
+        "pypi_packages": ["ibm_db_sa"],
         "connection_string": "db2+ibm_db://{username}:{password}@{hostname}:{port}/{database}",
         "default_port": 50000,
         "drivers": [
@@ -5771,9 +5338,7 @@
             "description": "Db2 for i is a fully integrated database engine on IBM i (AS/400) systems. Uses a different SQLAlchemy driver optimized for IBM i.",
             "logo": "ibm-db2.svg",
             "homepage_url": "https://www.ibm.com/products/db2-for-i",
-            "pypi_packages": [
-              "sqlalchemy-ibmi"
-            ],
+            "pypi_packages": ["sqlalchemy-ibmi"],
             "connection_string": "ibmi://{username}:{password}@{host}/{database}",
             "parameters": {
               "username": "IBM i username",
@@ -5782,9 +5347,7 @@
               "database": "Library/schema name"
             },
             "docs_url": "https://github.com/IBM/sqlalchemy-ibmi",
-            "categories": [
-              "Proprietary"
-            ]
+            "categories": ["Proprietary"]
           }
         ],
         "docs_url": "https://github.com/ibmdb/python-ibmdbsa",
@@ -5792,9 +5355,7 @@
       },
       "engine": "db2",
       "engine_name": "IBM Db2",
-      "engine_aliases": [
-        "ibm_db_sa"
-      ],
+      "engine_aliases": ["ibm_db_sa"],
       "default_driver": null,
       "supports_file_upload": true,
       "supports_dynamic_schema": true,
@@ -5864,13 +5425,8 @@
         "description": "IBM Db2 is a family of data management products for enterprise workloads, available on-premises, in containers, and across cloud platforms.",
         "logo": "ibm-db2.svg",
         "homepage_url": "https://www.ibm.com/db2",
-        "categories": [
-          "Traditional RDBMS",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "ibm_db_sa"
-        ],
+        "categories": ["Traditional RDBMS", "Proprietary"],
+        "pypi_packages": ["ibm_db_sa"],
         "connection_string": "db2+ibm_db://{username}:{password}@{hostname}:{port}/{database}",
         "default_port": 50000,
         "drivers": [
@@ -5892,9 +5448,7 @@
             "description": "Db2 for i is a fully integrated database engine on IBM i (AS/400) systems. Uses a different SQLAlchemy driver optimized for IBM i.",
             "logo": "ibm-db2.svg",
             "homepage_url": "https://www.ibm.com/products/db2-for-i",
-            "pypi_packages": [
-              "sqlalchemy-ibmi"
-            ],
+            "pypi_packages": ["sqlalchemy-ibmi"],
             "connection_string": "ibmi://{username}:{password}@{host}/{database}",
             "parameters": {
               "username": "IBM i username",
@@ -5903,9 +5457,7 @@
               "database": "Library/schema name"
             },
             "docs_url": "https://github.com/IBM/sqlalchemy-ibmi",
-            "categories": [
-              "Proprietary"
-            ]
+            "categories": ["Proprietary"]
           }
         ],
         "docs_url": "https://github.com/ibmdb/python-ibmdbsa",
@@ -5913,9 +5465,7 @@
       },
       "engine": "ibmi",
       "engine_name": "IBM Db2 for i",
-      "engine_aliases": [
-        "ibm_db_sa"
-      ],
+      "engine_aliases": ["ibm_db_sa"],
       "default_driver": null,
       "supports_file_upload": true,
       "supports_dynamic_schema": true,
@@ -5985,13 +5535,8 @@
         "description": "IBM Netezza Performance Server is a data warehouse appliance.",
         "logo": "netezza.png",
         "homepage_url": "https://www.ibm.com/products/netezza",
-        "categories": [
-          "Traditional RDBMS",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "nzalchemy"
-        ],
+        "categories": ["Traditional RDBMS", "Proprietary"],
+        "pypi_packages": ["nzalchemy"],
         "connection_string": "netezza+nzpy://{username}:{password}@{hostname}:{port}/{database}",
         "default_port": 5480,
         "category": "Other Databases"
@@ -6068,13 +5613,8 @@
         "description": "MariaDB is a community-developed fork of MySQL.",
         "logo": "mariadb.png",
         "homepage_url": "https://mariadb.org/",
-        "categories": [
-          "Traditional RDBMS",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "mysqlclient"
-        ],
+        "categories": ["Traditional RDBMS", "Open Source"],
+        "pypi_packages": ["mysqlclient"],
         "connection_string": "mysql://{username}:{password}@{host}/{database}",
         "default_port": 3306,
         "notes": "Uses the MySQL driver. Fully compatible with MySQL connector.",
@@ -6152,13 +5692,8 @@
         "description": "Microsoft SQL Server is a relational database management system.",
         "logo": "msql.png",
         "homepage_url": "https://www.microsoft.com/en-us/sql-server",
-        "categories": [
-          "Traditional RDBMS",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "pymssql"
-        ],
+        "categories": ["Traditional RDBMS", "Proprietary"],
+        "pypi_packages": ["pymssql"],
         "connection_string": "mssql+pymssql://{username}:{password}@{host}:{port}/{database}",
         "default_port": 1433,
         "drivers": [
@@ -6185,10 +5720,7 @@
             "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
             "category": "Authentication",
             "description": "Access denied",
-            "issue_codes": [
-              1014,
-              1015
-            ]
+            "issue_codes": [1014, 1015]
           },
           {
             "regex_name": "CONNECTION_INVALID_HOSTNAME_REGEX",
@@ -6196,9 +5728,7 @@
             "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
             "category": "Connection",
             "description": "Invalid hostname",
-            "issue_codes": [
-              1007
-            ]
+            "issue_codes": [1007]
           },
           {
             "regex_name": "CONNECTION_PORT_CLOSED_REGEX",
@@ -6206,9 +5736,7 @@
             "error_type": "CONNECTION_PORT_CLOSED_ERROR",
             "category": "Connection",
             "description": "Port closed or refused",
-            "issue_codes": [
-              1008
-            ]
+            "issue_codes": [1008]
           },
           {
             "regex_name": "CONNECTION_HOST_DOWN_REGEX",
@@ -6216,9 +5744,7 @@
             "error_type": "CONNECTION_HOST_DOWN_ERROR",
             "category": "Connection",
             "description": "Host unreachable",
-            "issue_codes": [
-              1009
-            ]
+            "issue_codes": [1009]
           }
         ]
       },
@@ -6294,14 +5820,8 @@
         "description": "MonetDB is an open-source column-oriented relational database for high-performance analytics.",
         "logo": "monet-db.png",
         "homepage_url": "https://www.monetdb.org/",
-        "categories": [
-          "Traditional RDBMS",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "sqlalchemy-monetdb",
-          "pymonetdb"
-        ],
+        "categories": ["Traditional RDBMS", "Open Source"],
+        "pypi_packages": ["sqlalchemy-monetdb", "pymonetdb"],
         "connection_string": "monetdb://{username}:{password}@{host}:{port}/{database}",
         "default_port": 50000,
         "parameters": {
@@ -6386,13 +5906,8 @@
         "description": "MongoDB is a document-oriented, operational NoSQL database.",
         "logo": "mongodb.png",
         "homepage_url": "https://www.mongodb.com/",
-        "categories": [
-          "Search & NoSQL",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "pymongosql"
-        ],
+        "categories": ["Search & NoSQL", "Proprietary"],
+        "pypi_packages": ["pymongosql"],
         "connection_string": "mongodb://{username}:{password}@{host}:{port}/{database}?mode=superset",
         "parameters": {
           "username": "Username for MongoDB",
@@ -6498,10 +6013,7 @@
           "Cloud Data Warehouses",
           "Hosted Open Source"
         ],
-        "pypi_packages": [
-          "duckdb",
-          "duckdb-engine"
-        ],
+        "pypi_packages": ["duckdb", "duckdb-engine"],
         "connection_string": "duckdb:///md:{database}?motherduck_token={token}",
         "parameters": {
           "database": "MotherDuck database name",
@@ -6524,18 +6036,13 @@
             "error_type": "COLUMN_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Column not found",
-            "issue_codes": [
-              1003,
-              1004
-            ]
+            "issue_codes": [1003, 1004]
           }
         ]
       },
       "engine": "motherduck",
       "engine_name": "MotherDuck",
-      "engine_aliases": [
-        "duckdb"
-      ],
+      "engine_aliases": ["duckdb"],
       "default_driver": "duckdb_engine",
       "supports_file_upload": true,
       "supports_dynamic_schema": false,
@@ -6605,13 +6112,8 @@
         "description": "MySQL is a popular open-source relational database.",
         "logo": "mysql.png",
         "homepage_url": "https://www.mysql.com/",
-        "categories": [
-          "Traditional RDBMS",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "mysqlclient"
-        ],
+        "categories": ["Traditional RDBMS", "Open Source"],
+        "pypi_packages": ["mysqlclient"],
         "connection_string": "mysql://{username}:{password}@{host}/{database}",
         "default_port": 3306,
         "parameters": {
@@ -6660,22 +6162,16 @@
             "description": "MariaDB is a community-developed fork of MySQL, fully compatible with MySQL.",
             "logo": "mariadb.png",
             "homepage_url": "https://mariadb.org/",
-            "pypi_packages": [
-              "mysqlclient"
-            ],
+            "pypi_packages": ["mysqlclient"],
             "connection_string": "mysql://{username}:{password}@{host}:{port}/{database}",
-            "categories": [
-              "Open Source"
-            ]
+            "categories": ["Open Source"]
           },
           {
             "name": "Amazon Aurora MySQL",
             "description": "Amazon Aurora MySQL is a fully managed, MySQL-compatible relational database with up to 5x the throughput of standard MySQL.",
             "logo": "aws-aurora.jpg",
             "homepage_url": "https://aws.amazon.com/rds/aurora/",
-            "pypi_packages": [
-              "sqlalchemy-aurora-data-api"
-            ],
+            "pypi_packages": ["sqlalchemy-aurora-data-api"],
             "connection_string": "mysql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/{database_name}?aurora_cluster_arn={aurora_cluster_arn}&secret_arn={secret_arn}&region_name={region_name}",
             "parameters": {
               "aws_access_id": "AWS Access Key ID",
@@ -6686,10 +6182,7 @@
               "region_name": "AWS region (e.g., us-east-1)"
             },
             "notes": "Uses the Data API for serverless access. Standard MySQL connections also work with mysqlclient.",
-            "categories": [
-              "Cloud - AWS",
-              "Hosted Open Source"
-            ]
+            "categories": ["Cloud - AWS", "Hosted Open Source"]
           }
         ],
         "category": "Traditional RDBMS",
@@ -6700,14 +6193,8 @@
             "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
             "category": "Authentication",
             "description": "Access denied",
-            "issue_codes": [
-              1014,
-              1015
-            ],
-            "invalid_fields": [
-              "username",
-              "password"
-            ]
+            "issue_codes": [1014, 1015],
+            "invalid_fields": ["username", "password"]
           },
           {
             "regex_name": "CONNECTION_INVALID_HOSTNAME_REGEX",
@@ -6715,12 +6202,8 @@
             "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
             "category": "Connection",
             "description": "Invalid hostname",
-            "issue_codes": [
-              1007
-            ],
-            "invalid_fields": [
-              "host"
-            ]
+            "issue_codes": [1007],
+            "invalid_fields": ["host"]
           },
           {
             "regex_name": "CONNECTION_HOST_DOWN_REGEX",
@@ -6728,13 +6211,8 @@
             "error_type": "CONNECTION_HOST_DOWN_ERROR",
             "category": "Connection",
             "description": "Host unreachable",
-            "issue_codes": [
-              1009
-            ],
-            "invalid_fields": [
-              "host",
-              "port"
-            ]
+            "issue_codes": [1009],
+            "invalid_fields": ["host", "port"]
           },
           {
             "regex_name": "CONNECTION_UNKNOWN_DATABASE_REGEX",
@@ -6742,12 +6220,8 @@
             "error_type": "CONNECTION_UNKNOWN_DATABASE_ERROR",
             "category": "Connection",
             "description": "Unknown database",
-            "issue_codes": [
-              1015
-            ],
-            "invalid_fields": [
-              "database"
-            ]
+            "issue_codes": [1015],
+            "invalid_fields": ["database"]
           },
           {
             "regex_name": "SYNTAX_ERROR_REGEX",
@@ -6755,9 +6229,7 @@
             "error_type": "SYNTAX_ERROR",
             "category": "Query",
             "description": "SQL syntax error",
-            "issue_codes": [
-              1030
-            ]
+            "issue_codes": [1030]
           }
         ]
       },
@@ -6833,13 +6305,8 @@
         "description": "OceanBase is a distributed relational database.",
         "logo": "oceanbase.svg",
         "homepage_url": "https://www.oceanbase.com/",
-        "categories": [
-          "Traditional RDBMS",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "oceanbase_py"
-        ],
+        "categories": ["Traditional RDBMS", "Open Source"],
+        "pypi_packages": ["oceanbase_py"],
         "connection_string": "oceanbase://{username}:{password}@{host}:{port}/{database}",
         "category": "Other Databases",
         "custom_errors": [
@@ -6849,14 +6316,8 @@
             "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
             "category": "Authentication",
             "description": "Access denied",
-            "issue_codes": [
-              1014,
-              1015
-            ],
-            "invalid_fields": [
-              "username",
-              "password"
-            ]
+            "issue_codes": [1014, 1015],
+            "invalid_fields": ["username", "password"]
           },
           {
             "regex_name": "CONNECTION_INVALID_HOSTNAME_REGEX",
@@ -6864,12 +6325,8 @@
             "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
             "category": "Connection",
             "description": "Invalid hostname",
-            "issue_codes": [
-              1007
-            ],
-            "invalid_fields": [
-              "host"
-            ]
+            "issue_codes": [1007],
+            "invalid_fields": ["host"]
           },
           {
             "regex_name": "CONNECTION_HOST_DOWN_REGEX",
@@ -6877,13 +6334,8 @@
             "error_type": "CONNECTION_HOST_DOWN_ERROR",
             "category": "Connection",
             "description": "Host unreachable",
-            "issue_codes": [
-              1009
-            ],
-            "invalid_fields": [
-              "host",
-              "port"
-            ]
+            "issue_codes": [1009],
+            "invalid_fields": ["host", "port"]
           },
           {
             "regex_name": "CONNECTION_UNKNOWN_DATABASE_REGEX",
@@ -6891,12 +6343,8 @@
             "error_type": "CONNECTION_UNKNOWN_DATABASE_ERROR",
             "category": "Connection",
             "description": "Unknown database",
-            "issue_codes": [
-              1015
-            ],
-            "invalid_fields": [
-              "database"
-            ]
+            "issue_codes": [1015],
+            "invalid_fields": ["database"]
           },
           {
             "regex_name": "SYNTAX_ERROR_REGEX",
@@ -6904,18 +6352,13 @@
             "error_type": "SYNTAX_ERROR",
             "category": "Query",
             "description": "SQL syntax error",
-            "issue_codes": [
-              1030
-            ]
+            "issue_codes": [1030]
           }
         ]
       },
       "engine": "oceanbase",
       "engine_name": "OceanBase",
-      "engine_aliases": [
-        "oceanbase",
-        "oceanbase_py"
-      ],
+      "engine_aliases": ["oceanbase", "oceanbase_py"],
       "default_driver": "oceanbase",
       "supports_file_upload": true,
       "supports_dynamic_schema": true,
@@ -6983,13 +6426,8 @@
       "max_score": 201,
       "documentation": {
         "description": "Ocient is a hyperscale data analytics database.",
-        "categories": [
-          "Analytical Databases",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "sqlalchemy-ocient"
-        ],
+        "categories": ["Analytical Databases", "Proprietary"],
+        "pypi_packages": ["sqlalchemy-ocient"],
         "connection_string": "ocient://{username}:{password}@{host}:{port}/{database}",
         "install_instructions": "pip install sqlalchemy-ocient",
         "category": "Other Databases",
@@ -7000,9 +6438,7 @@
             "error_type": "CONNECTION_INVALID_USERNAME_ERROR",
             "category": "Authentication",
             "description": "Invalid username",
-            "issue_codes": [
-              1012
-            ]
+            "issue_codes": [1012]
           },
           {
             "regex_name": "CONNECTION_INVALID_PASSWORD_REGEX",
@@ -7010,9 +6446,7 @@
             "error_type": "CONNECTION_INVALID_PASSWORD_ERROR",
             "category": "Authentication",
             "description": "Invalid password",
-            "issue_codes": [
-              1013
-            ]
+            "issue_codes": [1013]
           },
           {
             "regex_name": "CONNECTION_UNKNOWN_DATABASE_REGEX",
@@ -7020,9 +6454,7 @@
             "error_type": "CONNECTION_UNKNOWN_DATABASE_ERROR",
             "category": "Connection",
             "description": "Unknown database",
-            "issue_codes": [
-              1015
-            ]
+            "issue_codes": [1015]
           },
           {
             "regex_name": "CONNECTION_INVALID_HOSTNAME_REGEX",
@@ -7030,9 +6462,7 @@
             "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
             "category": "Connection",
             "description": "Invalid hostname",
-            "issue_codes": [
-              1007
-            ]
+            "issue_codes": [1007]
           },
           {
             "regex_name": "CONNECTION_INVALID_PORT_ERROR",
@@ -7045,9 +6475,7 @@
             "error_type": "GENERIC_DB_ENGINE_ERROR",
             "category": "General",
             "description": "Database engine error",
-            "issue_codes": [
-              1002
-            ]
+            "issue_codes": [1002]
           },
           {
             "regex_name": "SYNTAX_ERROR_REGEX",
@@ -7055,9 +6483,7 @@
             "error_type": "SYNTAX_ERROR",
             "category": "Query",
             "description": "SQL syntax error",
-            "issue_codes": [
-              1030
-            ]
+            "issue_codes": [1030]
           },
           {
             "regex_name": "TABLE_DOES_NOT_EXIST_REGEX",
@@ -7065,10 +6491,7 @@
             "error_type": "TABLE_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Table not found",
-            "issue_codes": [
-              1003,
-              1005
-            ]
+            "issue_codes": [1003, 1005]
           },
           {
             "regex_name": "COLUMN_DOES_NOT_EXIST_REGEX",
@@ -7076,10 +6499,7 @@
             "error_type": "COLUMN_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Column not found",
-            "issue_codes": [
-              1003,
-              1004
-            ]
+            "issue_codes": [1003, 1004]
           }
         ]
       },
@@ -7228,13 +6648,8 @@
         "description": "Oracle Database is a multi-model database management system.",
         "logo": "oraclelogo.png",
         "homepage_url": "https://www.oracle.com/database/",
-        "categories": [
-          "Traditional RDBMS",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "oracledb"
-        ],
+        "categories": ["Traditional RDBMS", "Proprietary"],
+        "pypi_packages": ["oracledb"],
         "connection_string": "oracle://{username}:{password}@{hostname}:{port}",
         "default_port": 1521,
         "notes": "Previously used cx_Oracle, now uses oracledb.",
@@ -7311,13 +6726,8 @@
       "max_score": 201,
       "documentation": {
         "description": "Parseable is a distributed log analytics database with SQL-like query interface.",
-        "categories": [
-          "Search & NoSQL",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "sqlalchemy-parseable"
-        ],
+        "categories": ["Search & NoSQL", "Open Source"],
+        "pypi_packages": ["sqlalchemy-parseable"],
         "connection_string": "parseable://{username}:{password}@{hostname}:{port}/{stream_name}",
         "connection_examples": [
           {
@@ -7401,13 +6811,8 @@
         "description": "PostgreSQL is an advanced open-source relational database.",
         "logo": "postgresql.svg",
         "homepage_url": "https://www.postgresql.org/",
-        "categories": [
-          "Traditional RDBMS",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "psycopg2"
-        ],
+        "categories": ["Traditional RDBMS", "Open Source"],
+        "pypi_packages": ["psycopg2"],
         "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
         "default_port": 5432,
         "parameters": {
@@ -7436,9 +6841,7 @@
             "description": "Alibaba Cloud real-time interactive analytics service, fully compatible with PostgreSQL 11.",
             "logo": "hologres.png",
             "homepage_url": "https://www.alibabacloud.com/product/hologres",
-            "pypi_packages": [
-              "psycopg2"
-            ],
+            "pypi_packages": ["psycopg2"],
             "connection_string": "postgresql+psycopg2://{username}:{password}@{host}:{port}/{database}",
             "parameters": {
               "username": "AccessKey ID of your Alibaba Cloud account",
@@ -7447,18 +6850,14 @@
               "port": "Port number of the Hologres instance",
               "database": "Name of the Hologres database"
             },
-            "categories": [
-              "Proprietary"
-            ]
+            "categories": ["Proprietary"]
           },
           {
             "name": "TimescaleDB",
             "description": "Open-source relational database for time-series and analytics, built on PostgreSQL.",
             "logo": "timescale.png",
             "homepage_url": "https://www.timescale.com/",
-            "pypi_packages": [
-              "psycopg2"
-            ],
+            "pypi_packages": ["psycopg2"],
             "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
             "connection_examples": [
               {
@@ -7468,33 +6867,25 @@
             ],
             "notes": "psycopg2 comes bundled with Superset Docker images.",
             "docs_url": "https://docs.timescale.com/",
-            "categories": [
-              "Open Source"
-            ]
+            "categories": ["Open Source"]
           },
           {
             "name": "YugabyteDB",
             "description": "Distributed SQL database built on top of PostgreSQL.",
             "logo": "yugabyte.png",
             "homepage_url": "https://www.yugabyte.com/",
-            "pypi_packages": [
-              "psycopg2"
-            ],
+            "pypi_packages": ["psycopg2"],
             "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
             "notes": "psycopg2 comes bundled with Superset Docker images.",
             "docs_url": "https://www.yugabyte.com/",
-            "categories": [
-              "Open Source"
-            ]
+            "categories": ["Open Source"]
           },
           {
             "name": "Supabase",
             "description": "Open-source Firebase alternative built on top of PostgreSQL, providing a full backend-as-a-service with a hosted Postgres database.",
             "logo": "supabase.svg",
             "homepage_url": "https://supabase.com/",
-            "pypi_packages": [
-              "psycopg2"
-            ],
+            "pypi_packages": ["psycopg2"],
             "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
             "connection_examples": [
               {
@@ -7513,18 +6904,14 @@
             },
             "notes": "Find connection details in your Supabase project dashboard under Settings > Database. Use the connection pooler (port 6543) for better connection management.",
             "docs_url": "https://supabase.com/docs/guides/database/connecting-to-postgres",
-            "categories": [
-              "Hosted Open Source"
-            ]
+            "categories": ["Hosted Open Source"]
           },
           {
             "name": "Google AlloyDB",
             "description": "Google Cloud's PostgreSQL-compatible database service for demanding transactional and analytical workloads.",
             "logo": "alloydb.png",
             "homepage_url": "https://cloud.google.com/alloydb",
-            "pypi_packages": [
-              "psycopg2"
-            ],
+            "pypi_packages": ["psycopg2"],
             "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
             "parameters": {
               "username": "Database user (default: postgres)",
@@ -7535,19 +6922,14 @@
             },
             "notes": "For public IP connections, use the AlloyDB Auth Proxy for secure access. Private IP connections can connect directly.",
             "docs_url": "https://cloud.google.com/alloydb/docs",
-            "categories": [
-              "Cloud - Google",
-              "Hosted Open Source"
-            ]
+            "categories": ["Cloud - Google", "Hosted Open Source"]
           },
           {
             "name": "Neon",
             "description": "Serverless PostgreSQL with branching, scale-to-zero, and bottomless storage.",
             "logo": "neon.png",
             "homepage_url": "https://neon.tech/",
-            "pypi_packages": [
-              "psycopg2"
-            ],
+            "pypi_packages": ["psycopg2"],
             "connection_string": "postgresql://{username}:{password}@{host}/{database}?sslmode=require",
             "parameters": {
               "username": "Neon role name",
@@ -7557,18 +6939,14 @@
             },
             "notes": "SSL is required for all connections. Find connection details in the Neon console under Connection Details.",
             "docs_url": "https://neon.tech/docs/connect/connect-from-any-app",
-            "categories": [
-              "Hosted Open Source"
-            ]
+            "categories": ["Hosted Open Source"]
           },
           {
             "name": "Amazon Aurora PostgreSQL",
             "description": "Amazon Aurora PostgreSQL is a fully managed, PostgreSQL-compatible relational database with up to 5x the throughput of standard PostgreSQL.",
             "logo": "aws-aurora.jpg",
             "homepage_url": "https://aws.amazon.com/rds/aurora/",
-            "pypi_packages": [
-              "sqlalchemy-aurora-data-api"
-            ],
+            "pypi_packages": ["sqlalchemy-aurora-data-api"],
             "connection_string": "postgresql+auroradataapi://{aws_access_id}:{aws_secret_access_key}@/{database_name}?aurora_cluster_arn={aurora_cluster_arn}&secret_arn={secret_arn}&region_name={region_name}",
             "parameters": {
               "aws_access_id": "AWS Access Key ID",
@@ -7579,10 +6957,7 @@
               "region_name": "AWS region (e.g., us-east-1)"
             },
             "notes": "Uses the Data API for serverless access. Standard PostgreSQL connections also work with psycopg2.",
-            "categories": [
-              "Cloud - AWS",
-              "Hosted Open Source"
-            ]
+            "categories": ["Cloud - AWS", "Hosted Open Source"]
           }
         ],
         "category": "Traditional RDBMS",
@@ -7593,12 +6968,8 @@
             "error_type": "CONNECTION_INVALID_USERNAME_ERROR",
             "category": "Authentication",
             "description": "Invalid username",
-            "issue_codes": [
-              1012
-            ],
-            "invalid_fields": [
-              "username"
-            ]
+            "issue_codes": [1012],
+            "invalid_fields": ["username"]
           },
           {
             "regex_name": "CONNECTION_INVALID_PASSWORD_REGEX",
@@ -7606,13 +6977,8 @@
             "error_type": "CONNECTION_INVALID_PASSWORD_ERROR",
             "category": "Authentication",
             "description": "Invalid password",
-            "issue_codes": [
-              1013
-            ],
-            "invalid_fields": [
-              "username",
-              "password"
-            ]
+            "issue_codes": [1013],
+            "invalid_fields": ["username", "password"]
           },
           {
             "regex_name": "CONNECTION_INVALID_PASSWORD_NEEDED_REGEX",
@@ -7620,13 +6986,8 @@
             "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
             "category": "Authentication",
             "description": "Access denied",
-            "issue_codes": [
-              1014,
-              1015
-            ],
-            "invalid_fields": [
-              "password"
-            ]
+            "issue_codes": [1014, 1015],
+            "invalid_fields": ["password"]
           },
           {
             "regex_name": "CONNECTION_INVALID_HOSTNAME_REGEX",
@@ -7634,12 +6995,8 @@
             "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
             "category": "Connection",
             "description": "Invalid hostname",
-            "issue_codes": [
-              1007
-            ],
-            "invalid_fields": [
-              "host"
-            ]
+            "issue_codes": [1007],
+            "invalid_fields": ["host"]
           },
           {
             "regex_name": "CONNECTION_PORT_CLOSED_REGEX",
@@ -7647,13 +7004,8 @@
             "error_type": "CONNECTION_PORT_CLOSED_ERROR",
             "category": "Connection",
             "description": "Port closed or refused",
-            "issue_codes": [
-              1008
-            ],
-            "invalid_fields": [
-              "host",
-              "port"
-            ]
+            "issue_codes": [1008],
+            "invalid_fields": ["host", "port"]
           },
           {
             "regex_name": "CONNECTION_HOST_DOWN_REGEX",
@@ -7661,13 +7013,8 @@
             "error_type": "CONNECTION_HOST_DOWN_ERROR",
             "category": "Connection",
             "description": "Host unreachable",
-            "issue_codes": [
-              1009
-            ],
-            "invalid_fields": [
-              "host",
-              "port"
-            ]
+            "issue_codes": [1009],
+            "invalid_fields": ["host", "port"]
           },
           {
             "regex_name": "CONNECTION_UNKNOWN_DATABASE_REGEX",
@@ -7675,12 +7022,8 @@
             "error_type": "CONNECTION_UNKNOWN_DATABASE_ERROR",
             "category": "Connection",
             "description": "Unknown database",
-            "issue_codes": [
-              1015
-            ],
-            "invalid_fields": [
-              "database"
-            ]
+            "issue_codes": [1015],
+            "invalid_fields": ["database"]
           },
           {
             "regex_name": "COLUMN_DOES_NOT_EXIST_REGEX",
@@ -7688,10 +7031,7 @@
             "error_type": "COLUMN_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Column not found",
-            "issue_codes": [
-              1003,
-              1004
-            ]
+            "issue_codes": [1003, 1004]
           },
           {
             "regex_name": "SYNTAX_ERROR_REGEX",
@@ -7699,17 +7039,13 @@
             "error_type": "SYNTAX_ERROR",
             "category": "Query",
             "description": "SQL syntax error",
-            "issue_codes": [
-              1030
-            ]
+            "issue_codes": [1030]
           }
         ]
       },
       "engine": "postgresql",
       "engine_name": "PostgreSQL",
-      "engine_aliases": [
-        "postgres"
-      ],
+      "engine_aliases": ["postgres"],
       "default_driver": "psycopg2",
       "supports_file_upload": true,
       "supports_dynamic_schema": true,
@@ -7779,13 +7115,8 @@
         "description": "Presto is a distributed SQL query engine for big data.",
         "logo": "presto-og.png",
         "homepage_url": "https://prestodb.io/",
-        "categories": [
-          "Query Engines",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "pyhive"
-        ],
+        "categories": ["Query Engines", "Open Source"],
+        "pypi_packages": ["pyhive"],
         "install_instructions": "pip install \"apache-superset[presto]\"",
         "connection_string": "presto://{hostname}:{port}/{database}",
         "default_port": 8080,
@@ -7810,10 +7141,7 @@
             "error_type": "COLUMN_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Column not found",
-            "issue_codes": [
-              1003,
-              1004
-            ]
+            "issue_codes": [1003, 1004]
           },
           {
             "regex_name": "TABLE_DOES_NOT_EXIST_REGEX",
@@ -7821,10 +7149,7 @@
             "error_type": "TABLE_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Table not found",
-            "issue_codes": [
-              1003,
-              1005
-            ]
+            "issue_codes": [1003, 1005]
           },
           {
             "regex_name": "SCHEMA_DOES_NOT_EXIST_REGEX",
@@ -7832,10 +7157,7 @@
             "error_type": "SCHEMA_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Schema not found",
-            "issue_codes": [
-              1003,
-              1016
-            ]
+            "issue_codes": [1003, 1016]
           },
           {
             "regex_name": "CONNECTION_ACCESS_DENIED_REGEX",
@@ -7843,10 +7165,7 @@
             "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
             "category": "Authentication",
             "description": "Access denied",
-            "issue_codes": [
-              1014,
-              1015
-            ]
+            "issue_codes": [1014, 1015]
           },
           {
             "regex_name": "CONNECTION_INVALID_HOSTNAME_REGEX",
@@ -7854,9 +7173,7 @@
             "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
             "category": "Connection",
             "description": "Invalid hostname",
-            "issue_codes": [
-              1007
-            ]
+            "issue_codes": [1007]
           },
           {
             "regex_name": "CONNECTION_HOST_DOWN_REGEX",
@@ -7864,9 +7181,7 @@
             "error_type": "CONNECTION_HOST_DOWN_ERROR",
             "category": "Connection",
             "description": "Host unreachable",
-            "issue_codes": [
-              1009
-            ]
+            "issue_codes": [1009]
           },
           {
             "regex_name": "CONNECTION_PORT_CLOSED_REGEX",
@@ -7874,9 +7189,7 @@
             "error_type": "CONNECTION_PORT_CLOSED_ERROR",
             "category": "Connection",
             "description": "Port closed or refused",
-            "issue_codes": [
-              1008
-            ]
+            "issue_codes": [1008]
           },
           {
             "regex_name": "CONNECTION_UNKNOWN_DATABASE_ERROR",
@@ -7884,9 +7197,7 @@
             "error_type": "CONNECTION_UNKNOWN_DATABASE_ERROR",
             "category": "Connection",
             "description": "Unknown database",
-            "issue_codes": [
-              1015
-            ]
+            "issue_codes": [1015]
           }
         ]
       },
@@ -7962,13 +7273,8 @@
         "description": "RisingWave is a distributed streaming database.",
         "logo": "risingwave.svg",
         "homepage_url": "https://risingwave.com/",
-        "categories": [
-          "Analytical Databases",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "sqlalchemy-risingwave"
-        ],
+        "categories": ["Analytical Databases", "Open Source"],
+        "pypi_packages": ["sqlalchemy-risingwave"],
         "connection_string": "risingwave://root@{hostname}:{port}/{database}?sslmode=disable",
         "default_port": 4566,
         "docs_url": "https://github.com/risingwavelabs/sqlalchemy-risingwave",
@@ -7976,9 +7282,7 @@
       },
       "engine": "risingwave",
       "engine_name": "RisingWave",
-      "engine_aliases": [
-        "postgres"
-      ],
+      "engine_aliases": ["postgres"],
       "default_driver": "",
       "supports_file_upload": true,
       "supports_dynamic_schema": true,
@@ -8048,14 +7352,8 @@
         "description": "SAP HANA is an in-memory relational database and application platform.",
         "logo": "sap-hana.png",
         "homepage_url": "https://www.sap.com/products/technology-platform/hana.html",
-        "categories": [
-          "Traditional RDBMS",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "hdbcli",
-          "sqlalchemy-hana"
-        ],
+        "categories": ["Traditional RDBMS", "Proprietary"],
+        "pypi_packages": ["hdbcli", "sqlalchemy-hana"],
         "install_instructions": "pip install apache_superset[hana]",
         "connection_string": "hana://{username}:{password}@{host}:{port}",
         "default_port": 30015,
@@ -8134,14 +7432,8 @@
         "description": "SAP ASE (formerly Sybase) is an enterprise relational database.",
         "logo": "sybase.png",
         "homepage_url": "https://www.sap.com/products/technology-platform/sybase-ase.html",
-        "categories": [
-          "Traditional RDBMS",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "sqlalchemy-sybase",
-          "pyodbc"
-        ],
+        "categories": ["Traditional RDBMS", "Proprietary"],
+        "pypi_packages": ["sqlalchemy-sybase", "pyodbc"],
         "connection_string": "sybase+pyodbc://{username}:{password}@{dsn}",
         "parameters": {
           "username": "Database username",
@@ -8154,9 +7446,7 @@
       },
       "engine": "sybase",
       "engine_name": "SAP Sybase",
-      "engine_aliases": [
-        "sybase_sqlany"
-      ],
+      "engine_aliases": ["sybase_sqlany"],
       "default_driver": "pyodbc",
       "supports_file_upload": true,
       "supports_dynamic_schema": false,
@@ -8226,10 +7516,7 @@
         "description": "SQLite is a self-contained, serverless SQL database engine.",
         "logo": "sqlite.png",
         "homepage_url": "https://www.sqlite.org/",
-        "categories": [
-          "Traditional RDBMS",
-          "Open Source"
-        ],
+        "categories": ["Traditional RDBMS", "Open Source"],
         "pypi_packages": [],
         "connection_string": "sqlite:///path/to/file.db?check_same_thread=false",
         "notes": "No additional library needed. SQLite is bundled with Python.",
@@ -8241,10 +7528,7 @@
             "error_type": "COLUMN_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Column not found",
-            "issue_codes": [
-              1003,
-              1004
-            ]
+            "issue_codes": [1003, 1004]
           }
         ]
       },
@@ -8320,13 +7604,8 @@
         "description": "Shillelagh is a Python library that allows querying many data sources using SQL, including Google Sheets, CSV files, and APIs.",
         "logo": "shillelagh.png",
         "homepage_url": "https://shillelagh.readthedocs.io/",
-        "categories": [
-          "Other Databases",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "shillelagh[gsheetsapi]"
-        ],
+        "categories": ["Other Databases", "Open Source"],
+        "pypi_packages": ["shillelagh[gsheetsapi]"],
         "connection_string": "shillelagh://",
         "notes": "Shillelagh uses virtual tables to query external data sources. Google Sheets requires OAuth credentials configured.",
         "category": "Other Databases"
@@ -8403,13 +7682,8 @@
         "description": "SingleStore is a distributed SQL database for real-time analytics and transactions.",
         "logo": "singlestore.png",
         "homepage_url": "https://www.singlestore.com/",
-        "categories": [
-          "Analytical Databases",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "singlestoredb"
-        ],
+        "categories": ["Analytical Databases", "Proprietary"],
+        "pypi_packages": ["singlestoredb"],
         "connection_string": "singlestoredb://{username}:{password}@{host}:{port}/{database}",
         "default_port": 3306,
         "parameters": {
@@ -8506,9 +7780,7 @@
           "Analytical Databases",
           "Proprietary"
         ],
-        "pypi_packages": [
-          "snowflake-sqlalchemy"
-        ],
+        "pypi_packages": ["snowflake-sqlalchemy"],
         "connection_string": "snowflake://{user}:{password}@{account}.{region}/{database}?role={role}&warehouse={warehouse}",
         "install_instructions": "echo \"snowflake-sqlalchemy\" >> ./docker/requirements-local.txt",
         "connection_examples": [
@@ -8539,9 +7811,7 @@
             "error_type": "OBJECT_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Object not found",
-            "issue_codes": [
-              1029
-            ]
+            "issue_codes": [1029]
           },
           {
             "regex_name": "SYNTAX_ERROR_REGEX",
@@ -8549,9 +7819,7 @@
             "error_type": "SYNTAX_ERROR",
             "category": "Query",
             "description": "SQL syntax error",
-            "issue_codes": [
-              1030
-            ]
+            "issue_codes": [1030]
           }
         ]
       },
@@ -8627,13 +7895,8 @@
         "description": "StarRocks is a high-performance analytical database for real-time analytics.",
         "logo": "starrocks.png",
         "homepage_url": "https://www.starrocks.io/",
-        "categories": [
-          "Analytical Databases",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "starrocks"
-        ],
+        "categories": ["Analytical Databases", "Open Source"],
+        "pypi_packages": ["starrocks"],
         "connection_string": "starrocks://{username}:{password}@{host}:{port}/{catalog}.{database}",
         "default_port": 9030,
         "parameters": {
@@ -8677,9 +7940,7 @@
               "Cloud Data Warehouses",
               "Hosted Open Source"
             ],
-            "pypi_packages": [
-              "starrocks"
-            ],
+            "pypi_packages": ["starrocks"],
             "connection_string": "starrocks://{username}:{password}@{host}:{port}/{catalog}.{database}",
             "parameters": {
               "username": "CelerData username",
@@ -8700,14 +7961,8 @@
             "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
             "category": "Authentication",
             "description": "Access denied",
-            "issue_codes": [
-              1014,
-              1015
-            ],
-            "invalid_fields": [
-              "username",
-              "password"
-            ]
+            "issue_codes": [1014, 1015],
+            "invalid_fields": ["username", "password"]
           },
           {
             "regex_name": "CONNECTION_UNKNOWN_DATABASE_REGEX",
@@ -8715,12 +7970,8 @@
             "error_type": "CONNECTION_UNKNOWN_DATABASE_ERROR",
             "category": "Connection",
             "description": "Unknown database",
-            "issue_codes": [
-              1015
-            ],
-            "invalid_fields": [
-              "database"
-            ]
+            "issue_codes": [1015],
+            "invalid_fields": ["database"]
           }
         ]
       },
@@ -8796,9 +8047,7 @@
         "description": "Superset meta database is an experimental feature that enables querying across multiple configured databases using a single connection.",
         "logo": "superset.svg",
         "homepage_url": "https://superset.apache.org/",
-        "categories": [
-          "Other Databases"
-        ],
+        "categories": ["Other Databases"],
         "pypi_packages": [],
         "connection_string": "superset://",
         "notes": "This is an internal Superset feature. Enable with ENABLE_SUPERSET_META_DB feature flag. Allows cross-database queries using virtual tables.",
@@ -8876,14 +8125,8 @@
         "description": "TDengine is a high-performance time-series database for IoT.",
         "logo": "tdengine.png",
         "homepage_url": "https://tdengine.com/",
-        "categories": [
-          "Time Series Databases",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "taospy",
-          "taos-ws-py"
-        ],
+        "categories": ["Time Series Databases", "Open Source"],
+        "pypi_packages": ["taospy", "taos-ws-py"],
         "connection_string": "taosws://{user}:{password}@{host}:{port}",
         "default_port": 6041,
         "connection_examples": [
@@ -8967,13 +8210,8 @@
         "description": "Teradata is an enterprise data warehouse platform.",
         "logo": "teradata.png",
         "homepage_url": "https://www.teradata.com/",
-        "categories": [
-          "Traditional RDBMS",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "teradatasqlalchemy"
-        ],
+        "categories": ["Traditional RDBMS", "Proprietary"],
+        "pypi_packages": ["teradatasqlalchemy"],
         "connection_string": "teradatasql://{user}:{password}@{host}",
         "default_port": 1025,
         "drivers": [
@@ -9066,13 +8304,8 @@
         "description": "TimescaleDB is an open-source relational database for time-series and analytics, built on PostgreSQL.",
         "logo": "timescale.png",
         "homepage_url": "https://www.timescale.com/",
-        "categories": [
-          "Analytical Databases",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "psycopg2"
-        ],
+        "categories": ["Analytical Databases", "Open Source"],
+        "pypi_packages": ["psycopg2"],
         "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
         "default_port": 5432,
         "connection_examples": [
@@ -9157,13 +8390,8 @@
         "description": "Trino is a distributed SQL query engine for big data analytics.",
         "logo": "trino.png",
         "homepage_url": "https://trino.io/",
-        "categories": [
-          "Query Engines",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "trino"
-        ],
+        "categories": ["Query Engines", "Open Source"],
+        "pypi_packages": ["trino"],
         "install_instructions": "pip install \"apache-superset[trino]\"",
         "connection_string": "trino://{username}:{password}@{hostname}:{port}/{catalog}",
         "default_port": 8080,
@@ -9193,9 +8421,7 @@
               "Cloud Data Warehouses",
               "Hosted Open Source"
             ],
-            "pypi_packages": [
-              "trino"
-            ],
+            "pypi_packages": ["trino"],
             "connection_string": "trino://{username}:{password}@{host}:{port}/{catalog}",
             "parameters": {
               "username": "Starburst Galaxy username (email/role)",
@@ -9211,13 +8437,8 @@
             "description": "Starburst Enterprise is a self-managed Trino distribution with enterprise features, security, and support.",
             "logo": "starburst.png",
             "homepage_url": "https://www.starburst.io/platform/starburst-enterprise/",
-            "categories": [
-              "Query Engines",
-              "Hosted Open Source"
-            ],
-            "pypi_packages": [
-              "trino"
-            ],
+            "categories": ["Query Engines", "Hosted Open Source"],
+            "pypi_packages": ["trino"],
             "connection_string": "trino://{username}:{password}@{hostname}:{port}/{catalog}",
             "docs_url": "https://docs.starburst.io/"
           }
@@ -9296,13 +8517,8 @@
         "description": "Vertica is a column-oriented analytics database.",
         "logo": "vertica.png",
         "homepage_url": "https://www.vertica.com/",
-        "categories": [
-          "Analytical Databases",
-          "Proprietary"
-        ],
-        "pypi_packages": [
-          "sqlalchemy-vertica-python"
-        ],
+        "categories": ["Analytical Databases", "Proprietary"],
+        "pypi_packages": ["sqlalchemy-vertica-python"],
         "connection_string": "vertica+vertica_python://{username}:{password}@{host}/{database}",
         "default_port": 5433,
         "parameters": {
@@ -9388,13 +8604,8 @@
         "description": "YDB is a distributed SQL database by Yandex.",
         "logo": "ydb.svg",
         "homepage_url": "https://ydb.tech/",
-        "categories": [
-          "Traditional RDBMS",
-          "Open Source"
-        ],
-        "pypi_packages": [
-          "ydb-sqlalchemy"
-        ],
+        "categories": ["Traditional RDBMS", "Open Source"],
+        "pypi_packages": ["ydb-sqlalchemy"],
         "connection_string": "ydb://{host}:{port}/{database_name}",
         "default_port": 2135,
         "engine_parameters": [
@@ -9444,10 +8655,7 @@
       },
       "engine": "yql",
       "engine_name": "YDB",
-      "engine_aliases": [
-        "yql+ydb",
-        "ydb"
-      ],
+      "engine_aliases": ["yql+ydb", "ydb"],
       "default_driver": "ydb",
       "supports_file_upload": false,
       "supports_dynamic_schema": false,
@@ -9522,9 +8730,7 @@
           "Traditional RDBMS",
           "Open Source"
         ],
-        "pypi_packages": [
-          "psycopg2"
-        ],
+        "pypi_packages": ["psycopg2"],
         "connection_string": "postgresql://{username}:{password}@{host}:{port}/{database}",
         "default_port": 5433,
         "notes": "Uses the PostgreSQL driver. psycopg2 comes bundled with Superset.",
@@ -9610,10 +8816,7 @@
             "error_type": "COLUMN_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Column not found",
-            "issue_codes": [
-              1003,
-              1004
-            ]
+            "issue_codes": [1003, 1004]
           },
           {
             "regex_name": "TABLE_DOES_NOT_EXIST_REGEX",
@@ -9621,10 +8824,7 @@
             "error_type": "TABLE_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Table not found",
-            "issue_codes": [
-              1003,
-              1005
-            ]
+            "issue_codes": [1003, 1005]
           },
           {
             "regex_name": "SCHEMA_DOES_NOT_EXIST_REGEX",
@@ -9632,10 +8832,7 @@
             "error_type": "SCHEMA_DOES_NOT_EXIST_ERROR",
             "category": "Query",
             "description": "Schema not found",
-            "issue_codes": [
-              1003,
-              1016
-            ]
+            "issue_codes": [1003, 1016]
           },
           {
             "regex_name": "CONNECTION_ACCESS_DENIED_REGEX",
@@ -9643,10 +8840,7 @@
             "error_type": "CONNECTION_ACCESS_DENIED_ERROR",
             "category": "Authentication",
             "description": "Access denied",
-            "issue_codes": [
-              1014,
-              1015
-            ]
+            "issue_codes": [1014, 1015]
           },
           {
             "regex_name": "CONNECTION_INVALID_HOSTNAME_REGEX",
@@ -9654,9 +8848,7 @@
             "error_type": "CONNECTION_INVALID_HOSTNAME_ERROR",
             "category": "Connection",
             "description": "Invalid hostname",
-            "issue_codes": [
-              1007
-            ]
+            "issue_codes": [1007]
           },
           {
             "regex_name": "CONNECTION_HOST_DOWN_REGEX",
@@ -9664,9 +8856,7 @@
             "error_type": "CONNECTION_HOST_DOWN_ERROR",
             "category": "Connection",
             "description": "Host unreachable",
-            "issue_codes": [
-              1009
-            ]
+            "issue_codes": [1009]
           },
           {
             "regex_name": "CONNECTION_PORT_CLOSED_REGEX",
@@ -9674,9 +8864,7 @@
             "error_type": "CONNECTION_PORT_CLOSED_ERROR",
             "category": "Connection",
             "description": "Port closed or refused",
-            "issue_codes": [
-              1008
-            ]
+            "issue_codes": [1008]
           },
           {
             "regex_name": "CONNECTION_UNKNOWN_DATABASE_ERROR",
@@ -9684,9 +8872,7 @@
             "error_type": "CONNECTION_UNKNOWN_DATABASE_ERROR",
             "category": "Connection",
             "description": "Unknown database",
-            "issue_codes": [
-              1015
-            ]
+            "issue_codes": [1015]
           }
         ]
       },

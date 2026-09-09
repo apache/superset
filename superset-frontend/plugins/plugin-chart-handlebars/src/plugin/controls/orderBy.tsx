@@ -18,7 +18,7 @@
  */
 import { ControlSetItem, Dataset } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import { isAggMode, isRawMode } from './shared';
 
 export const orderByControlSetItem: ControlSetItem = {

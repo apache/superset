@@ -22,11 +22,12 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy.orm import Query
 
 from superset.connectors.sqla.models import SqlaTable
-from superset.extensions import db
+from superset.extensions import db, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.sql_lab import Query as SqllabQuery
-from superset.tags.models import Tag, TagType
+from superset.tags.models import Tag, TagType, user_favorite_tag_table
+from superset.utils.core import get_user_id
 from superset.views.base import BaseFilter
 
 
@@ -46,6 +47,31 @@ class UserCreatedTagTypeFilter(BaseFilter):  # pylint: disable=too-few-public-me
         if value is False:
             return query.filter(Tag.type != TagType.custom)
         return query
+
+
+class TagFavoriteFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    Custom filter for the GET list that filters tags the current user has
+    favorited or not.
+
+    Tag favorites are stored in the dedicated ``user_favorite_tag_table`` M2M
+    table rather than in ``FavStar``, so this filter cannot reuse
+    ``BaseFavoriteFilter`` (which queries ``FavStar``).
+    """
+
+    name = _("Is favorite")
+    arg_name = "tag_is_favorite"
+
+    def apply(self, query: Query, value: Any) -> Query:
+        # If anonymous user filter nothing
+        if security_manager.current_user is None:
+            return query
+        users_favorite_query = db.session.query(
+            user_favorite_tag_table.c.tag_id
+        ).filter(user_favorite_tag_table.c.user_id == get_user_id())
+        if value:
+            return query.filter(Tag.id.in_(users_favorite_query))
+        return query.filter(~Tag.id.in_(users_favorite_query))
 
 
 class BaseTagNameFilter(BaseFilter):  # pylint: disable=too-few-public-methods

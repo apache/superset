@@ -1,0 +1,92 @@
+---
+title: Number Formatting
+sidebar_position: 11
+description: Reference for the built-in D3-based number format presets available on chart metrics and axes
+keywords: [number format, d3 format, formatting, duration, memory, length, distance]
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements. See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership. The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License. You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied. See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+# Number Formatting
+
+Most chart types expose a **Number format** control (labeled **D3 Format**, **Y Axis Format**, or similar depending on the chart) wherever a metric or numeric axis can be formatted. This is available from the **Customize** tab, or from the metric's popover editor, depending on the chart type. Selecting one of the built-in presets below applies that formatting to the values Superset renders in the chart.
+
+When an axis format control's chart has **Comparison display** set to **Percentage** (e.g. period-over-period comparisons), that control's choices are narrowed to percentage-only presets, hiding `SMART_NUMBER`, `~g`, and the duration/memory/length presets.
+
+You can also type a custom [D3 format string](https://github.com/d3/d3-format) directly into the control if none of the presets fit your needs.
+
+## Built-in presets
+
+### General
+
+| Key | Description |
+| --- | --- |
+| `SMART_NUMBER` | Adaptive formatting — automatically picks a reasonable precision based on the value |
+| `~g` | Original value, using D3's general-format specifier (trims trailing zeros; may switch to exponential notation for very large or small values) |
+
+### D3 format strings
+
+These are raw [D3 format specifiers](https://github.com/d3/d3-format#locale_format). The dropdown shows a live preview of each one against a sample value.
+
+| Format spec | What it does |
+| --- | --- |
+| `,d` | Integer, comma-grouped thousands |
+| `.1s` | SI-prefix notation, 1 significant digit |
+| `.3s` | SI-prefix notation, 3 significant digits |
+| `,.1%` | Percentage, 1 decimal place, comma-grouped |
+| `.2%` | Percentage, 2 decimal places |
+| `.3%` | Percentage, 3 decimal places |
+| `.4r` | Rounded to 4 significant digits |
+| `,.1f` | Fixed-point, 1 decimal place, comma-grouped |
+| `,.2f` | Fixed-point, 2 decimal places, comma-grouped |
+| `,.3f` | Fixed-point, 3 decimal places, comma-grouped |
+| `+,` | Comma-grouped, always shows the sign |
+| `$,.2f` | Currency, 2 decimal places, comma-grouped |
+
+### Duration
+
+| Key | Description |
+| --- | --- |
+| `DURATION` | Duration in ms (`66000` => `1m 6s`) |
+| `DURATION_SUB` | Duration in ms, with sub-second precision (`1.40008` => `1ms 400µs 80ns`) |
+| `DURATION_COL` | Duration in ms, colon-separated (`10500` => `0:00:10.5`) |
+
+### Memory
+
+| Key | Description |
+| --- | --- |
+| `MEMORY_DECIMAL` | Memory in bytes, decimal (`1024B` => `1.024kB`) |
+| `MEMORY_BINARY` | Memory in bytes, binary (`1024B` => `1KiB`) |
+| `MEMORY_TRANSFER_RATE_DECIMAL` | Memory transfer rate in bytes, decimal (`1024B` => `1.024kB/s`) |
+| `MEMORY_TRANSFER_RATE_BINARY` | Memory transfer rate in bytes, binary (`1024B` => `1KiB/s`) |
+
+### Distance / length
+
+| Key | Description |
+| --- | --- |
+| `LENGTH` | Length in meters, converted to kilometers (`12345m` => `12.35km`) |
+| `LENGTH_CM_KM` | Length in centimeters, converted to kilometers (`12345678cm` => `123.46km`) |
+| `LENGTH_CM_M` | Length in centimeters, converted to meters (`12345cm` => `123.45m`) |
+
+Use these when a metric's underlying values are stored in meters or centimeters but are easier to read at a coarser unit — for example, distances traveled, cable/pipe lengths, or elevation changes.
+
+## Currency
+
+Some chart types also expose currency-specific formatting, including a dynamic mode that reads the currency from a column value. See [Dynamic Currency Formatting](./creating-your-first-dashboard#dynamic-currency-formatting) for details.

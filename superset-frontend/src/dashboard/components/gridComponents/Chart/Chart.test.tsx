@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { fireEvent, render } from 'spec/helpers/testing-library';
+import { act, fireEvent, render } from 'spec/helpers/testing-library';
 import { FeatureFlag, VizType } from '@superset-ui/core';
 import * as redux from 'redux';
 
@@ -78,7 +78,6 @@ const defaultState = {
       [queryId]: {
         ...sliceEntities.slices[queryId],
         description_markdown: 'markdown',
-        owners: [],
         viz_type: VizType.Table,
       },
     },
@@ -89,7 +88,7 @@ const defaultState = {
     id: props.dashboardId,
     superset_can_explore: false,
     superset_can_share: false,
-    superset_can_csv: false,
+    superset_can_download: false,
     common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 0, SQL_MAX_ROW: 666 } },
   },
   dashboardLayout: {
@@ -146,18 +145,79 @@ test('should render a ChartContainer', () => {
   expect(getByTestId('chart-container')).toBeInTheDocument();
 });
 
-test('should render a description if it has one and isExpanded=true', () => {
-  const { container } = setup(
-    {},
-    {
-      dashboardState: {
-        ...defaultState.dashboardState,
-        expandedSlices: { [props.id]: true },
+const noDescriptionRenderInputs = ([undefined, false, true] as const).flatMap(
+  sliceExpanded =>
+    ([undefined, false, true] as const).map(allExpanded => ({
+      sliceExpanded,
+      allExpanded,
+    })),
+);
+
+test.each(noDescriptionRenderInputs)(
+  'should not render a description when it has none, expandedSlices=$sliceExpanded and expandAllSlices=$allExpanded',
+  ({ sliceExpanded, allExpanded }) => {
+    const { container } = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [props.id]: sliceExpanded },
+          expandAllSlices: allExpanded,
+        },
+        sliceEntities: {
+          ...sliceEntities,
+          slices: {
+            [queryId]: {
+              ...sliceEntities.slices[queryId],
+              description_markdown: undefined,
+              owners: [],
+              viz_type: VizType.Table,
+            },
+          },
+        },
       },
-    },
-  );
-  expect(container.querySelector('.slice_description')).toBeInTheDocument();
-});
+    );
+    expect(
+      container.querySelector('.slice_description'),
+    ).not.toBeInTheDocument();
+  },
+);
+
+const chartDescriptionRenderInputs = [
+  { expandSlice: undefined, expandAllSlices: undefined, result: false },
+  { expandSlice: undefined, expandAllSlices: false, result: false },
+  { expandSlice: undefined, expandAllSlices: true, result: true },
+  { expandSlice: false, expandAllSlices: undefined, result: false },
+  { expandSlice: false, expandAllSlices: false, result: false },
+  { expandSlice: false, expandAllSlices: true, result: false },
+  { expandSlice: true, expandAllSlices: undefined, result: true },
+  { expandSlice: true, expandAllSlices: false, result: true },
+  { expandSlice: true, expandAllSlices: true, result: true },
+];
+
+test.each(chartDescriptionRenderInputs)(
+  'should $result render a description if it has one, expandedSlices=$expandSlice and expandAllSlices=$expandAllSlices',
+  ({ expandSlice, expandAllSlices, result }) => {
+    const { container } = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [props.id]: expandSlice },
+          expandAllSlices,
+        },
+      },
+    );
+
+    if (result) {
+      expect(container.querySelector('.slice_description')).toBeInTheDocument();
+    } else {
+      expect(
+        container.querySelector('.slice_description'),
+      ).not.toBeInTheDocument();
+    }
+  },
+);
 
 test('should call refreshChart when SliceHeader calls forceRefresh', () => {
   const { getByText, getByRole } = setup({});
@@ -181,7 +241,10 @@ test('should call exportChart when exportCSV is clicked', async () => {
   const { findByText, getByRole } = setup(
     {},
     {
-      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
     },
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
@@ -211,7 +274,10 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
   const { findByText, getByRole } = setup(
     {},
     {
-      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
     },
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
@@ -239,7 +305,10 @@ test('should call exportChart when exportXLSX is clicked', async () => {
   const { findByText, getByRole } = setup(
     {},
     {
-      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
     },
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
@@ -266,7 +335,10 @@ test('should call exportChart with row_limit props.maxRows when exportFullXLSX i
   const { findByText, getByRole } = setup(
     {},
     {
-      dashboardInfo: { ...defaultState.dashboardInfo, superset_can_csv: true },
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
     },
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
@@ -379,6 +451,79 @@ test('should fallback to formData state when runtime state not available', () =>
   expect(getByTestId('chart-container')).toBeInTheDocument();
 });
 
+test('chart height is reduced on first render in expanded state (guards against useEffect regression)', () => {
+  const DESCRIPTION_HEIGHT = 60;
+  const CHART_HEIGHT = 300;
+  // Matches the DEFAULT_HEADER_HEIGHT constant in Chart.tsx.
+  const DEFAULT_HEADER_HEIGHT = 22;
+
+  // Stabilise getHeaderHeight(): emotion injects margin-bottom CSS during
+  // React's commit phase, so getComputedStyle returns different values in
+  // initial renders vs re-renders. Mock it to always return empty so
+  // getHeaderHeight() consistently falls back to DEFAULT_HEADER_HEIGHT.
+  const getComputedStyleSpy = jest
+    .spyOn(window, 'getComputedStyle')
+    .mockReturnValue({
+      getPropertyValue: () => '',
+    } as unknown as CSSStyleDeclaration);
+
+  // JSDOM doesn't compute layout, so mock offsetHeight to simulate a real
+  // description element with height.
+  const offsetHeightSpy = jest
+    .spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
+    .mockImplementation(function (this: HTMLElement) {
+      return this.classList.contains('slice_description')
+        ? DESCRIPTION_HEIGHT
+        : 0;
+    });
+
+  // Suppress all passive effects to simulate the first-paint moment — the
+  // point at which the original useEffect bug caused clipping. useLayoutEffect
+  // (the fix) runs synchronously before paint and is intentionally NOT mocked
+  // here. If the implementation were reverted to useEffect, this spy would
+  // prevent the height measurement and the assertion below would fail.
+  const useEffectSpy = jest
+    .spyOn(global.React, 'useEffect')
+    .mockImplementation(() => {});
+
+  const { container } = setup(
+    { height: CHART_HEIGHT },
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          // ChartOverlay renders with an inline height style when loading —
+          // this is the observable proxy for getChartHeight() without real layout.
+          chartStatus: 'loading',
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        expandedSlices: { [queryId]: true },
+      },
+    },
+  );
+
+  const chartHeight = parseInt(
+    container.querySelector<HTMLDivElement>('.dashboard-chart > div[style]')!
+      .style.height,
+    10,
+  );
+
+  // useLayoutEffect must have measured and applied descriptionHeight
+  // synchronously. If useEffect were used instead, descriptionHeight would
+  // still be 0 here (suppressed by useEffectSpy) and chartHeight would equal
+  // CHART_HEIGHT - DEFAULT_HEADER_HEIGHT rather than the value below.
+  expect(chartHeight).toBe(
+    CHART_HEIGHT - DEFAULT_HEADER_HEIGHT - DESCRIPTION_HEIGHT,
+  );
+
+  useEffectSpy.mockRestore();
+  getComputedStyleSpy.mockRestore();
+  offsetHeightSpy.mockRestore();
+});
+
 test('should not show a close button on chart error banners', () => {
   const { queryByRole } = setup(
     {},
@@ -481,4 +626,210 @@ test('should pass filterState from dataMask to ChartContainer', () => {
     'filterState',
     mockFilterState,
   );
+});
+
+test('should pass chartStackTrace to ChartContainer so dashboard chart errors stay expandable', () => {
+  // Regression guard for #31858: the dashboard chart wrapper stopped forwarding
+  // the stack trace, so failed charts rendered a flat error with no "See more"
+  // affordance while the same error in Explore stayed expandable.
+  const stackTrace = 'Traceback (most recent call last): ValueError: boom';
+
+  setup(
+    {},
+    {
+      ...defaultState,
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          chartStatus: 'failed',
+          chartAlert: 'Something went wrong',
+          chartStackTrace: stackTrace,
+        },
+      },
+    },
+  );
+
+  expect(capturedChartContainerProps).toHaveProperty(
+    'chartStackTrace',
+    stackTrace,
+  );
+});
+
+function installResizeObserverMock() {
+  const observeMock = jest.fn();
+  const disconnectMock = jest.fn();
+  let observerCallback: ResizeObserverCallback | undefined;
+  const mockResizeObserver = jest.fn().mockImplementation(callback => {
+    observerCallback = callback;
+    return { observe: observeMock, disconnect: disconnectMock };
+  });
+  global.ResizeObserver = mockResizeObserver as any;
+
+  const getComputedStyleSpy = jest
+    .spyOn(window, 'getComputedStyle')
+    .mockReturnValue({
+      getPropertyValue: () => '',
+    } as unknown as CSSStyleDeclaration);
+
+  return {
+    observeMock,
+    getObserverCallback: () => observerCallback,
+    restore: () => {
+      delete (global as any).ResizeObserver;
+      getComputedStyleSpy.mockRestore();
+    },
+  };
+}
+
+test('A chart description configured to start expanded is visible after initial render', () => {
+  const { observeMock, restore } = installResizeObserverMock();
+  try {
+    const { container } = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+    expect(container.querySelector('.slice_description')).toBeInTheDocument();
+    expect(observeMock).toHaveBeenCalled();
+  } finally {
+    restore();
+  }
+});
+
+test('The description height is correctly updated after asynchronous markdown rendering completes', () => {
+  const { getObserverCallback, restore } = installResizeObserverMock();
+  try {
+    const { container } = setup(
+      { height: 300 },
+      {
+        charts: {
+          ...defaultState.charts,
+          [queryId]: {
+            ...defaultState.charts[queryId],
+            chartStatus: 'loading',
+          },
+        },
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+
+    const descriptionEl = container.querySelector(
+      '.slice_description',
+    ) as HTMLElement;
+    expect(descriptionEl).toBeInTheDocument();
+
+    const observerCallback = getObserverCallback();
+    if (observerCallback) {
+      Object.defineProperty(descriptionEl, 'offsetHeight', {
+        value: 100,
+        configurable: true,
+      });
+      act(() => {
+        observerCallback(
+          [{ target: descriptionEl } as unknown as ResizeObserverEntry],
+          {} as ResizeObserver,
+        );
+      });
+    }
+
+    const chartHeight = parseInt(
+      container.querySelector<HTMLDivElement>('.dashboard-chart > div[style]')!
+        .style.height,
+      10,
+    );
+    expect(chartHeight).toBe(300 - 22 - 100);
+  } finally {
+    restore();
+  }
+});
+
+test('The ResizeObserver callback updates the measured height', () => {
+  const { getObserverCallback, restore } = installResizeObserverMock();
+  try {
+    const { container } = setup(
+      { height: 400 },
+      {
+        charts: {
+          ...defaultState.charts,
+          [queryId]: {
+            ...defaultState.charts[queryId],
+            chartStatus: 'loading',
+          },
+        },
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+
+    const descriptionEl = container.querySelector(
+      '.slice_description',
+    ) as HTMLElement;
+    expect(descriptionEl).toBeInTheDocument();
+
+    const observerCallback = getObserverCallback();
+    if (observerCallback) {
+      Object.defineProperty(descriptionEl, 'offsetHeight', {
+        value: 200,
+        configurable: true,
+      });
+      act(() => {
+        observerCallback(
+          [{ target: descriptionEl } as unknown as ResizeObserverEntry],
+          {} as ResizeObserver,
+        );
+      });
+    }
+
+    const chartHeight = parseInt(
+      container.querySelector<HTMLDivElement>('.dashboard-chart > div[style]')!
+        .style.height,
+      10,
+    );
+    expect(chartHeight).toBe(400 - 22 - 200);
+  } finally {
+    restore();
+  }
+});
+
+test('Existing expand/collapse behavior continues to work', () => {
+  const { restore } = installResizeObserverMock();
+  try {
+    const collapsedSetup = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: false },
+        },
+      },
+    );
+    expect(
+      collapsedSetup.container.querySelector('.slice_description'),
+    ).not.toBeInTheDocument();
+
+    const expandedSetup = setup(
+      {},
+      {
+        dashboardState: {
+          ...defaultState.dashboardState,
+          expandedSlices: { [queryId]: true },
+        },
+      },
+    );
+    expect(
+      expandedSetup.container.querySelector('.slice_description'),
+    ).toBeInTheDocument();
+  } finally {
+    restore();
+  }
 });

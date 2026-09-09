@@ -39,7 +39,14 @@ export function DeleteModal({
   open,
   title,
   name,
+  recoverable = false,
+  disablePrimaryButton = false,
+  loading = false,
+  confirmationResetKey,
 }: DeleteModalProps) {
+  // Recoverable (archive) deletes drop the "type DELETE to confirm" step;
+  // a permanent delete keeps it.
+  const showConfirmationInput = !recoverable;
   const [disableChange, setDisableChange] = useState(true);
   const [confirmation, setConfirmation] = useState<string>('');
   const inputRef = useRef<InputRef>(null);
@@ -50,13 +57,23 @@ export function DeleteModal({
     }
   }, [open]);
 
+  useEffect(() => {
+    setConfirmation('');
+    setDisableChange(true);
+  }, [confirmationResetKey]);
+
+  // Re-arm the gate alongside clearing the text: resetting only the string
+  // leaves disableChange=false behind, so a user who typed DELETE, cancelled,
+  // and reopened would face an enabled Delete button over an empty input.
   const hide = () => {
     setConfirmation('');
+    setDisableChange(true);
     onHide();
   };
 
   const confirm = () => {
     setConfirmation('');
+    setDisableChange(true);
     onConfirm();
   };
 
@@ -67,39 +84,50 @@ export function DeleteModal({
   };
 
   const onPressEnter = () => {
-    if (!disableChange) {
+    if (!disableChange && !disablePrimaryButton && !loading) {
       confirm();
     }
   };
 
   return (
     <Modal
-      disablePrimaryButton={disableChange}
+      disablePrimaryButton={
+        disablePrimaryButton ||
+        loading ||
+        (showConfirmationInput ? disableChange : false)
+      }
+      primaryButtonLoading={loading}
       onHide={hide}
       onHandledPrimaryAction={confirm}
-      primaryButtonName={t('Delete')}
-      primaryButtonStyle="danger"
+      primaryButtonName={recoverable ? t('Archive') : t('Delete')}
+      primaryButtonStyle={recoverable ? 'primary' : 'danger'}
       show={open}
       name={name}
       title={title}
+      wrapProps={{ 'aria-busy': loading }}
+      // Remove the modal from the DOM on close so a confirmed delete tears it
+      // down deterministically even inside memoized list-view table cells.
+      destroyOnHidden
       centered
     >
       {description}
-      <StyledDiv>
-        <FormLabel htmlFor="delete">
-          {t('Type "%s" to confirm', t('DELETE'))}
-        </FormLabel>
-        <Input
-          data-test="delete-modal-input"
-          type="text"
-          id="delete"
-          autoComplete="off"
-          value={confirmation}
-          onChange={onChange}
-          onPressEnter={onPressEnter}
-          ref={inputRef}
-        />
-      </StyledDiv>
+      {showConfirmationInput && (
+        <StyledDiv>
+          <FormLabel htmlFor="delete">
+            {t('Type "%s" to confirm', t('DELETE'))}
+          </FormLabel>
+          <Input
+            data-test="delete-modal-input"
+            type="text"
+            id="delete"
+            autoComplete="off"
+            value={confirmation}
+            onChange={onChange}
+            onPressEnter={onPressEnter}
+            ref={inputRef}
+          />
+        </StyledDiv>
+      )}
     </Modal>
   );
 }

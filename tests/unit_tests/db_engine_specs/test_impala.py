@@ -60,11 +60,13 @@ def test_get_cancel_query_id() -> None:
     )
 
 
+@patch("superset.db_engine_specs.impala.is_safe_host", return_value=True)
 @patch("requests.post")
-def test_cancel_query(post_mock: Mock) -> None:
+def test_cancel_query(post_mock: Mock, _safe_host: Mock) -> None:  # noqa: PT019
     query = Query()
     database = Database(
-        database_name="test_impala", sqlalchemy_uri="impala://localhost:21050/default"
+        database_name="test_impala",
+        sqlalchemy_uri="impala://impala.example.com:21050/default",
     )
     query.database = database
 
@@ -75,17 +77,20 @@ def test_cancel_query(post_mock: Mock) -> None:
     result = spec.cancel_query(None, query, "6940643a2731718b:9fbdba2000000000")
 
     post_mock.assert_called_once_with(
-        "http://localhost:25000/cancel_query?query_id=6940643a2731718b:9fbdba2000000000",
+        "http://impala.example.com:25000/cancel_query?query_id=6940643a2731718b:9fbdba2000000000",
         timeout=3,
+        allow_redirects=False,
     )
     assert result is True
 
 
+@patch("superset.db_engine_specs.impala.is_safe_host", return_value=True)
 @patch("requests.post")
-def test_cancel_query_failed(post_mock: Mock) -> None:
+def test_cancel_query_failed(post_mock: Mock, _safe_host: Mock) -> None:  # noqa: PT019
     query = Query()
     database = Database(
-        database_name="test_impala", sqlalchemy_uri="impala://localhost:21050/default"
+        database_name="test_impala",
+        sqlalchemy_uri="impala://impala.example.com:21050/default",
     )
     query.database = database
 
@@ -96,17 +101,20 @@ def test_cancel_query_failed(post_mock: Mock) -> None:
     result = spec.cancel_query(None, query, "6940643a2731718b:9fbdba2000000000")
 
     post_mock.assert_called_once_with(
-        "http://localhost:25000/cancel_query?query_id=6940643a2731718b:9fbdba2000000000",
+        "http://impala.example.com:25000/cancel_query?query_id=6940643a2731718b:9fbdba2000000000",
         timeout=3,
+        allow_redirects=False,
     )
     assert result is False
 
 
+@patch("superset.db_engine_specs.impala.is_safe_host", return_value=True)
 @patch("requests.post")
-def test_cancel_query_exception(post_mock: Mock) -> None:
+def test_cancel_query_exception(post_mock: Mock, _safe_host: Mock) -> None:  # noqa: PT019
     query = Query()
     database = Database(
-        database_name="test_impala", sqlalchemy_uri="impala://localhost:21050/default"
+        database_name="test_impala",
+        sqlalchemy_uri="impala://impala.example.com:21050/default",
     )
     query.database = database
 
@@ -115,3 +123,52 @@ def test_cancel_query_exception(post_mock: Mock) -> None:
     result = spec.cancel_query(None, query, "6940643a2731718b:9fbdba2000000000")
 
     assert result is False
+
+
+@patch("requests.post")
+def test_cancel_query_blocks_internal_host(post_mock: Mock, app_context: None) -> None:
+    """A private/internal Impala host is refused by default (no HTTP call)."""
+    query = Query()
+    database = Database(
+        database_name="test_impala",
+        sqlalchemy_uri="impala://169.254.169.254:21050/default",
+    )
+    query.database = database
+
+    result = spec.cancel_query(None, query, "6940643a2731718b:9fbdba2000000000")
+
+    assert result is False
+    post_mock.assert_not_called()
+
+
+@patch("requests.post")
+def test_cancel_query_allows_internal_host_with_opt_out(
+    post_mock: Mock, app_context: None
+) -> None:
+    """IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS=True permits internal targets."""
+    from flask import current_app
+
+    query = Query()
+    database = Database(
+        database_name="test_impala",
+        sqlalchemy_uri="impala://10.0.0.5:21050/default",
+    )
+    query.database = database
+
+    response_mock = Mock()
+    response_mock.status_code = 200
+    post_mock.return_value = response_mock
+
+    original = current_app.config.get("IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS")
+    current_app.config["IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS"] = True
+    try:
+        result = spec.cancel_query(None, query, "6940643a2731718b:9fbdba2000000000")
+    finally:
+        current_app.config["IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS"] = original
+
+    post_mock.assert_called_once_with(
+        "http://10.0.0.5:25000/cancel_query?query_id=6940643a2731718b:9fbdba2000000000",
+        timeout=3,
+        allow_redirects=False,
+    )
+    assert result is True

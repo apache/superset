@@ -124,3 +124,36 @@ def test_contribution_with_time_shift_columns():
     assert_array_equal(processed_df["a__1 week ago"].tolist(), [0.5, 0.5])
     assert_array_equal(processed_df["b__1 week ago"].tolist(), [0.25, 0.25])
     assert_array_equal(processed_df["c__1 week ago"].tolist(), [0.25, 0.25])
+
+
+def test_contribution_with_numeric_prefix_time_shifts():
+    """Time shifts like '2 weeks ago' and '22 weeks ago' share a numeric suffix;
+    columns must be grouped by their exact offset, not by suffix matching."""
+    df = DataFrame(
+        {
+            DTTM_ALIAS: [
+                datetime(2020, 7, 16, 14, 49),
+                datetime(2020, 7, 16, 14, 50),
+            ],
+            "a": [3, 6],
+            "b": [6, 3],
+            "a__2 weeks ago": [1, 1],
+            "b__2 weeks ago": [1, 1],
+            "a__22 weeks ago": [2, 4],
+            "b__22 weeks ago": [4, 2],
+        }
+    )
+    processed_df = contribution(
+        df,
+        orientation=PostProcessingContributionOrientation.ROW,
+        time_shifts=["2 weeks ago", "22 weeks ago"],
+    )
+    # Non-time-shift columns: a=3,b=6 -> a=1/3, b=2/3; a=6,b=3 -> a=2/3, b=1/3
+    assert_array_equal(processed_df["a"].tolist(), [1 / 3, 2 / 3])
+    assert_array_equal(processed_df["b"].tolist(), [2 / 3, 1 / 3])
+    # "2 weeks ago" group: a=1,b=1 -> 0.5,0.5 each row
+    assert_array_equal(processed_df["a__2 weeks ago"].tolist(), [0.5, 0.5])
+    assert_array_equal(processed_df["b__2 weeks ago"].tolist(), [0.5, 0.5])
+    # "22 weeks ago" group: a=2,b=4 -> 1/3,2/3; a=4,b=2 -> 2/3,1/3
+    assert_array_equal(processed_df["a__22 weeks ago"].tolist(), [1 / 3, 2 / 3])
+    assert_array_equal(processed_df["b__22 weeks ago"].tolist(), [2 / 3, 1 / 3])

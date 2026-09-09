@@ -22,13 +22,14 @@ Unit tests for get_chart_preview MCP tool
 import importlib
 from types import SimpleNamespace
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
+    ChartError,
     ChartPreview,
     GetChartPreviewRequest,
     InteractivePreview,
@@ -41,11 +42,12 @@ from superset.mcp_service.chart.tool.get_chart_preview import (
     _build_chart_description,
     _build_query_columns,
     _build_query_metrics,
-    _sanitize_chart_preview_for_llm_context,
+    _first_query_has_fields,
+    _no_query_fields_error,
     ASCIIPreviewStrategy,
+    PreviewFormatStrategy,
     TablePreviewStrategy,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.utils import json as utils_json
 
 
@@ -505,6 +507,127 @@ class TestGetChartPreview:
         assert query["metrics"] == [metric]
         assert query["row_limit"] == 50
 
+    def test_ascii_preview_ignores_populated_query_after_empty_first_query(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """Preview validation must match the first query result it renders."""
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                queries = [
+                    SimpleNamespace(metrics=q.get("metrics"), columns=q.get("columns"))
+                    for q in kwargs["queries"]
+                ]
+                queries.append(SimpleNamespace(metrics=["secondary"], columns=[]))
+                return SimpleNamespace(queries=queries)
+
+        command_calls: list[str] = []
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                command_calls.append("validate")
+
+            def run(self) -> dict[str, Any]:
+                command_calls.append("run")
+                raise AssertionError("ChartDataCommand.run() should not be called")
+
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+
+        chart = SimpleNamespace(
+            id=96,
+            slice_name="Big Number Preview",
+            viz_type="big_number",
+            datasource_id=1,
+            datasource_type="table",
+            params=utils_json.dumps({"viz_type": "big_number"}),
+        )
+
+        preview = ASCIIPreviewStrategy(
+            chart,
+            GetChartPreviewRequest(identifier=96, format="ascii"),
+        ).generate()
+
+        assert isinstance(preview, ChartError)
+        assert preview.error_type == "NoQueryFields"
+        assert "no metrics or columns" in preview.error
+        assert command_calls == []
+
+    def test_ascii_preview_handles_none_data_gracefully(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        """A query result with an explicit ``"data": None`` (as opposed to a
+        missing key) must not crash ASCII rendering."""
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {"queries": [{"data": None, "colnames": [], "rowcount": 0}]}
+
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module, "ChartDataCommand", ChartDataCommand
+        )
+
+        chart = SimpleNamespace(
+            id=103,
+            slice_name="Line Chart Preview",
+            viz_type="echarts_timeseries_line",
+            datasource_id=1,
+            datasource_type="table",
+            params=utils_json.dumps(
+                {
+                    "viz_type": "echarts_timeseries_line",
+                    "metrics": ["count"],
+                    "x_axis": "date",
+                }
+            ),
+        )
+
+        preview = ASCIIPreviewStrategy(
+            chart,
+            GetChartPreviewRequest(identifier=103, format="ascii"),
+        ).generate()
+
+        assert isinstance(preview, ASCIIPreview)
+        assert "No data" in preview.ascii_content
+
     @pytest.mark.asyncio
     async def test_form_data_key_overrides_saved_params_for_table_preview(
         self,
@@ -733,11 +856,11 @@ class TestGetChartPreview:
         assert len(metadata.optimization_suggestions) == 1
 
 
-class TestChartPreviewSanitization:
-    """Tests for chart preview read-path sanitization."""
+class TestChartPreviewValuePreservation:
+    """Tests for chart preview read-path value preservation."""
 
-    def test_sanitize_chart_preview_wraps_ascii_and_alt_text(self) -> None:
-        """ASCII previews should be wrapped while operational URLs stay raw."""
+    def test_chart_preview_preserves_ascii_and_alt_text(self) -> None:
+        """ASCII preview values and operational URLs remain exact."""
         preview = ChartPreview(
             chart_id=3,
             chart_name="Regional Trend",
@@ -753,20 +876,16 @@ class TestChartPreviewSanitization:
             performance=PerformanceMetadata(query_duration_ms=8, cache_status="miss"),
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
 
-        assert result.chart_name == sanitize_for_llm_context("Regional Trend")
+        assert result.chart_name == ("Regional Trend")
         assert result.explore_url == "http://localhost:8088/explore/?slice_id=3"
-        assert result.chart_description == sanitize_for_llm_context(
-            "Preview of line: Regional Trend"
-        )
-        assert result.content.ascii_content == sanitize_for_llm_context("North > South")
-        assert result.accessibility.alt_text == sanitize_for_llm_context(
-            "Preview of Regional Trend"
-        )
+        assert result.chart_description == ("Preview of line: Regional Trend")
+        assert result.content.ascii_content == ("North > South")
+        assert result.accessibility.alt_text == ("Preview of Regional Trend")
 
-    def test_sanitize_chart_preview_wraps_vega_lite_data_values(self):
-        """Vega-Lite previews should wrap description and row string values."""
+    def test_chart_preview_preserves_vega_lite_data_values(self):
+        """Vega-Lite descriptions and row string values remain exact."""
         preview = ChartPreview(
             chart_id=4,
             chart_name="Category Share",
@@ -798,24 +917,20 @@ class TestChartPreviewSanitization:
             format="vega_lite",
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
         specification = result.content.specification
 
         assert specification["$schema"] == (
             "https://vega.github.io/schema/vega-lite/v5.json"
         )
-        assert specification["description"] == sanitize_for_llm_context(
-            "Pie chart for category share"
-        )
-        assert specification["data"]["values"][0][
-            "category"
-        ] == sanitize_for_llm_context("Retail")
-        assert specification["data"]["values"][0]["url"] == sanitize_for_llm_context(
+        assert specification["description"] == ("Pie chart for category share")
+        assert specification["data"]["values"][0]["category"] == ("Retail")
+        assert specification["data"]["values"][0]["url"] == (
             "https://example.com/retail"
         )
         assert specification["data"]["values"][0]["value"] == 10
 
-    def test_sanitize_chart_preview_leaves_non_mapping_vega_lite_data_unchanged(
+    def test_chart_preview_leaves_non_mapping_vega_lite_data_unchanged(
         self,
     ) -> None:
         """Non-mapping Vega-Lite data should not be treated as inline values."""
@@ -840,15 +955,13 @@ class TestChartPreviewSanitization:
             format="vega_lite",
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
         specification = result.content.specification
 
-        assert specification["description"] == sanitize_for_llm_context(
-            "Pie chart for category share"
-        )
+        assert specification["description"] == ("Pie chart for category share")
         assert specification["data"] == "named_dataset"
 
-    def test_sanitize_chart_preview_wraps_table_content(self):
+    def test_chart_preview_preserves_table_content(self):
         preview = ChartPreview(
             chart_id=5,
             chart_name="Top Customers",
@@ -868,15 +981,13 @@ class TestChartPreviewSanitization:
             performance=PerformanceMetadata(query_duration_ms=9, cache_status="miss"),
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
 
-        assert result.content.table_data == sanitize_for_llm_context(
-            "Customer | Revenue\nAcme | 100"
-        )
+        assert result.content.table_data == ("Customer | Revenue\nAcme | 100")
         assert result.content.row_count == 1
         assert result.content.supports_sorting is True
 
-    def test_sanitize_chart_preview_wraps_interactive_html_but_keeps_urls(self):
+    def test_chart_preview_preserves_interactive_html_and_urls(self):
         preview = ChartPreview(
             chart_id=6,
             chart_name="Interactive Trend",
@@ -900,11 +1011,9 @@ class TestChartPreviewSanitization:
             height=600,
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
 
-        assert result.content.html_content == sanitize_for_llm_context(
-            "<div>Revenue by region</div>"
-        )
+        assert result.content.html_content == ("<div>Revenue by region</div>")
         assert (
             result.content.preview_url == "/superset/explore/?slice_id=6&standalone=1"
         )
@@ -1038,6 +1147,51 @@ def test_build_query_metrics_mixed_timeseries():
 
 def test_build_query_metrics_empty():
     assert _build_query_metrics({}) == []
+
+
+def test_first_query_has_fields_true_with_metrics():
+    query_context = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["count"], columns=[])]
+    )
+    assert _first_query_has_fields(query_context) is True
+
+
+def test_first_query_has_fields_true_with_columns():
+    query_context = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=[], columns=["region"])]
+    )
+    assert _first_query_has_fields(query_context) is True
+
+
+def test_first_query_has_fields_false_when_both_empty():
+    query_context = SimpleNamespace(queries=[SimpleNamespace(metrics=[], columns=[])])
+    assert _first_query_has_fields(query_context) is False
+
+
+def test_first_query_has_fields_ignores_later_populated_query():
+    # Preview strategies render only the first query result, so a populated
+    # secondary mixed-timeseries query must not make an empty preview valid.
+    query_context = SimpleNamespace(
+        queries=[
+            SimpleNamespace(metrics=[], columns=[]),
+            SimpleNamespace(metrics=["count"], columns=[]),
+        ]
+    )
+    assert _first_query_has_fields(query_context) is False
+
+
+def test_first_query_has_fields_defers_when_queries_attr_missing():
+    # Test doubles / unexpected objects without a `.queries` attribute
+    # should not be treated as "no fields" — defer to normal execution.
+    assert _first_query_has_fields(object()) is True
+
+
+def test_no_query_fields_error_mentions_chart_and_viz_type():
+    chart = SimpleNamespace(id=96, slice_name="Total Sales", viz_type="big_number")
+    error = _no_query_fields_error(chart)
+    assert error.error_type == "NoQueryFields"
+    assert "Total Sales" in error.error
+    assert "big_number" in error.error
 
 
 def test_build_query_columns_pivot_overlapping_rows_and_columns():
@@ -1252,3 +1406,36 @@ class TestDetachedInstanceError:
         data = json.loads(response.content[0].text)
         assert data["error_type"] == "InternalError"
         assert "session" in data["error"].lower() or "retry" in data["error"].lower()
+
+
+def _guest_strategy() -> PreviewFormatStrategy:
+    chart = MagicMock()
+    return PreviewFormatStrategy(chart, GetChartPreviewRequest(identifier=1))
+
+
+def test_authorize_guest_query_attaches_dashboard_context() -> None:
+    """For a guest, the preview query is pinned to the token's dashboard so
+    raise_for_access can authorize it."""
+    strategy = _guest_strategy()
+    query_context = MagicMock()
+
+    with (
+        patch("superset.mcp_service.guest_scope.guest_dashboard_id", return_value=6),
+        patch("superset.mcp_service.guest_scope.authorize_query") as mock_authorize,
+    ):
+        strategy._authorize_guest_query(query_context)
+
+    mock_authorize.assert_called_once_with(query_context, 6, strategy.chart)
+
+
+def test_authorize_guest_query_noop_for_non_guest() -> None:
+    """A non-guest has no dashboard id, so nothing is attached."""
+    strategy = _guest_strategy()
+
+    with (
+        patch("superset.mcp_service.guest_scope.guest_dashboard_id", return_value=None),
+        patch("superset.mcp_service.guest_scope.authorize_query") as mock_authorize,
+    ):
+        strategy._authorize_guest_query(MagicMock())
+
+    mock_authorize.assert_not_called()

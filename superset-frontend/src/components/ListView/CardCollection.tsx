@@ -19,6 +19,7 @@
 import { ReactNode, MouseEvent as ReactMouseEvent } from 'react';
 import { TableInstance, Row, UseRowSelectRowProps } from 'react-table';
 import { styled } from '@apache-superset/core/theme';
+import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 import cx from 'classnames';
 
 interface CardCollectionProps {
@@ -35,13 +36,25 @@ const CardContainer = styled.div<{ showThumbnails?: boolean }>`
     display: grid;
     justify-content: start;
     grid-gap: ${theme.sizeUnit * 12}px ${theme.sizeUnit * 4}px;
-    grid-template-columns: repeat(auto-fit, 300px);
+    grid-template-columns: repeat(auto-fit, ${theme.sizeUnit * 75}px);
     margin-top: ${theme.sizeUnit * -6}px;
     padding: ${
       showThumbnails
         ? `${theme.sizeUnit * 8 + 3}px ${theme.sizeUnit * 20}px`
         : `${theme.sizeUnit * 8 + 1}px ${theme.sizeUnit * 20}px`
     };
+
+    /* Full-width cards on mobile (consumption mode) */
+    ${
+      isMobileConsumptionEnabled()
+        ? `@media (max-width: ${theme.screenSMMax}px) {
+      grid-template-columns: 1fr;
+      grid-gap: ${theme.sizeUnit * 4}px;
+      padding-left: ${theme.sizeUnit * 4}px;
+      padding-right: ${theme.sizeUnit * 4}px;
+    }`
+        : ''
+    }
   `}
 `;
 

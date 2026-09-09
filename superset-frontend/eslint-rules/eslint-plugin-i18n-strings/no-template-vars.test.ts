@@ -31,12 +31,13 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = require('.');
 // Tests
 //------------------------------------------------------------------------------
 
-const ruleTester = new RuleTester({ parserOptions: { ecmaVersion: 6 } });
+const ruleTester = new RuleTester({ languageOptions: { ecmaVersion: 6 } });
 const rule: Rule.RuleModule = plugin.rules['no-template-vars'];
 
-const errors: Array<{ type: string }> = [
+const errors: Array<{ message: string }> = [
   {
-    type: 'CallExpression',
+    message:
+      "Don't use variables in translation string templates. Flask-babel is a static translation service, so it can't handle strings that include variables",
   },
 ];
 

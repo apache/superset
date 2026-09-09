@@ -91,21 +91,28 @@ _ASF_LICENSE_HEADER = """\
 LANGUAGE_NAMES: dict[str, str] = {
     "ar": "Arabic",
     "ca": "Catalan",
+    "cs": "Czech",
     "de": "German",
     "es": "Spanish",
     "fa": "Persian (Farsi)",
+    "fi": "Finnish",
     "fr": "French",
     "it": "Italian",
     "ja": "Japanese",
     "ko": "Korean",
+    "lv": "Latvian",
     "mi": "Māori",
     "nl": "Dutch",
     "pl": "Polish",
     "pt": "Portuguese",
     "pt_BR": "Brazilian Portuguese",
+    "ro": "Romanian",
     "ru": "Russian",
     "sk": "Slovak",
     "sl": "Slovenian",
+    "sr": "Serbian",
+    "sr_Latn": "Serbian (Latin script)",
+    "th": "Thai",
     "tr": "Turkish",
     "uk": "Ukrainian",
     "zh": "Chinese (Simplified)",
@@ -131,6 +138,22 @@ def _lang_name(code: str) -> str:
     return LANGUAGE_NAMES.get(code, code)
 
 
+# An ISO 639-1/639-2 code, optionally followed by an ISO 3166 region
+# (``_BR``, two uppercase) or an ISO 15924 script (``_Latn``, titlecase). The
+# script subtag matters for catalogs like ``sr_Latn`` (Serbian in Latin script);
+# without it the code was rejected and the catalog silently skipped.
+_LANG_CODE_RE: re.Pattern[str] = re.compile(r"[a-z]{2,3}(_([A-Z]{2}|[A-Z][a-z]{3}))?")
+
+
+def _is_valid_lang_code(lang: str) -> bool:
+    """Validate a language code before it lands, unsanitized, in a filesystem path.
+
+    Guards against path traversal while allowing the region and script subtags
+    Superset actually ships (e.g. ``pt_BR``, ``sr_Latn``).
+    """
+    return bool(_LANG_CODE_RE.fullmatch(lang))
+
+
 def _plural_key(msgid: str, msgid_plural: str) -> str:
     """Build the translation index key used for pluralized entries."""
     return f"{msgid}\x00{msgid_plural}"
@@ -143,6 +166,60 @@ def _is_missing(entry: polib.POEntry) -> bool:
     if entry.msgid_plural:
         return not any(v for v in entry.msgstr_plural.values())
     return not entry.msgstr
+
+
+# Canonical registry of msgids that must never be machine-translated: literal
+# tokens compared against source (SQL keywords, confirmation words), enum values
+# (d3 interpolation modes), icon names (e.g. "bolt" -> the ⚡ Explore control
+# icon), API field names, code constants, and example placeholders. Translating
+# them can break icon lookups, enum matching, or API contracts, or is simply
+# meaningless (proper nouns, example values). apply_do_not_translate.py stamps
+# these msgids in messages.pot with a `#. do-not-translate`
+# extracted comment that propagates to every catalog on `pybabel update`.
+DO_NOT_TRANSLATE_REGISTRY: Path = TRANSLATIONS_DIR / "do-not-translate.txt"
+
+
+def _load_do_not_translate(path: Path = DO_NOT_TRANSLATE_REGISTRY) -> frozenset[str]:
+    """Load the do-not-translate msgids (skips comment/blank lines).
+
+    Lines are stripped before the blank/comment checks, matching the parsing in
+    apply_do_not_translate.py, so trailing whitespace or an indented comment
+    never yields a msgid that fails to match a catalog entry.
+    """
+    if not path.exists():
+        return frozenset()
+    return frozenset(
+        stripped
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if (stripped := line.strip()) and not stripped.startswith("#")
+    )
+
+
+DO_NOT_TRANSLATE: frozenset[str] = _load_do_not_translate()
+
+# An explicit do-not-translate marker on an entry, matched in either the
+# extracted comment (`#. do-not-translate`, the standard propagated
+# from the .pot) or a translator comment (e.g. the ru catalog's legacy
+# "# Не переводить"). Honored so a human's deliberate decision is never
+# overridden even if a msgid is missing from the registry.
+_DO_NOT_TRANSLATE_COMMENT: re.Pattern[str] = re.compile(
+    r"не\s+переводить|do[\s-]?not[\s-]?translate|don'?t\s+translate",
+    re.IGNORECASE,
+)
+
+
+def _is_do_not_translate(entry: polib.POEntry) -> bool:
+    """Return True if an entry must be left for a human (never machine-filled).
+
+    Either its msgid is in the do-not-translate registry, or the entry carries
+    an explicit do-not-translate marker in its extracted or translator comment.
+    """
+    if entry.msgid in DO_NOT_TRANSLATE:
+        return True
+    return any(
+        comment and _DO_NOT_TRANSLATE_COMMENT.search(comment)
+        for comment in (entry.comment, entry.tcomment)
+    )
 
 
 def _context_langs(
@@ -345,6 +422,97 @@ def translate_batch(
     return parse_response(result.stdout.strip(), len(batch))
 
 
+def _translate_single_plaintext(
+    model: str,
+    target_lang: str,
+    item: dict[str, Any],
+    index: dict[str, Any],
+) -> str | None:
+    """Translate a single entry with a plain-text prompt (no JSON envelope).
+
+    Fallback for an entry whose JSON batch response cannot be parsed — typically
+    because the source string contains literal double-quotes that the model
+    echoes back unescaped, corrupting the surrounding JSON. Asking for a bare
+    string sidesteps the JSON contract entirely. Returns the translation text,
+    or None if the CLI call fails.
+    """
+    claude_bin = shutil.which("claude")
+    if not claude_bin:
+        raise RuntimeError(
+            "claude CLI not found. Install Claude Code or add it to PATH."
+        )
+    lines = [
+        "You are a professional translator specializing in software UI strings.",
+        f"Translate the following English string into {_lang_name(target_lang)} "
+        f"({target_lang}).",
+        "Return ONLY the translation as plain text — no surrounding quotes, no "
+        "JSON, no markdown fences, no explanation.",
+        "Preserve all format placeholders exactly (%(name)s, {name}, %s, %d), any "
+        "HTML tags, and any inner quotation marks.",
+        "",
+        f"English: {item['msgid']}",
+    ]
+    if item.get("msgid_plural"):
+        lines.append(f"English plural: {item['msgid_plural']}")
+    refs = index.get(item["index_key"], {})
+    ref_lines = [
+        f"{_lang_name(lang)}: {val}"
+        for lang, val in sorted(refs.items())
+        if lang != target_lang and isinstance(val, str) and val
+    ]
+    if ref_lines:
+        lines.append("")
+        lines.append("Reference translations in other languages:")
+        lines.extend(ref_lines)
+    prompt = "\n".join(lines)
+    # claude_bin is resolved via shutil.which — not user-controlled input
+    result = subprocess.run(  # noqa: S603
+        [claude_bin, "--model", model, "-p"],
+        input=prompt,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        return None
+    text = result.stdout.strip()
+    # Strip accidental markdown fences or wrapping quotes the model may add.
+    text = re.sub(r"^```[^\n]*\n?", "", text)
+    text = re.sub(r"\n?```$", "", text).strip()
+    if len(text) >= 2 and text[0] == '"' and text[-1] == '"':
+        text = text[1:-1]
+    return text or None
+
+
+def _resilient_translate(
+    model: str,
+    target_lang: str,
+    batch: list[dict[str, Any]],
+    index: dict[str, Any],
+) -> dict[int, str]:
+    """Translate a batch, isolating entries that break the JSON response contract.
+
+    ``translate_batch`` sends the whole batch in one request and parses a single
+    JSON object back. A source string containing literal double-quotes can make
+    the model emit unescaped quotes, so ``json.loads`` fails and the ENTIRE batch
+    would be lost. To salvage the rest, on a parse failure (ValueError) we bisect
+    the batch and recurse; a lone entry that still fails falls back to a
+    plain-text prompt via ``_translate_single_plaintext``. Returned keys are
+    positions within ``batch``. RuntimeError (CLI failure) is left to propagate
+    to the caller, preserving the existing per-batch failure handling.
+    """
+    try:
+        return translate_batch(model, target_lang, batch, index)
+    except ValueError:
+        if len(batch) == 1:
+            text = _translate_single_plaintext(model, target_lang, batch[0], index)
+            return {0: text} if text else {}
+        mid = len(batch) // 2
+        left = _resilient_translate(model, target_lang, batch[:mid], index)
+        right = _resilient_translate(model, target_lang, batch[mid:], index)
+        return {**left, **{k + mid: v for k, v in right.items()}}
+
+
 def _apply_plural_translation(entry: polib.POEntry, translation: str) -> None:
     """Distribute a model response across the entry's plural forms.
 
@@ -461,7 +629,7 @@ def _process_batches(
             file=sys.stderr,
         )
         try:
-            translations = translate_batch(model, lang, batch_items, index)
+            translations = _resilient_translate(model, lang, batch_items, index)
         except (ValueError, RuntimeError) as exc:
             print(f"  ERROR in batch starting at {batch_start}: {exc}", file=sys.stderr)
             failed_count += len(batch_entries)
@@ -515,13 +683,11 @@ def backfill(
     mark_fuzzy: bool = True,
 ) -> None:
     """Backfill missing translations in the target language's .po file."""
-    # Defense against path traversal: ``lang`` lands in a filesystem path
-    # without further sanitization, so reject anything that isn't an
-    # ISO 639-1/639-2 code with an optional ISO 3166 region (e.g. ``pt_BR``).
-    if not re.fullmatch(r"[a-z]{2,3}(_[A-Z]{2})?", lang):
+    if not _is_valid_lang_code(lang):
         print(
             f"Invalid language code: {lang!r} "
-            "(expected ISO 639 code, optionally with _<REGION>, e.g. 'fr' or 'pt_BR')",
+            "(expected ISO 639 code, optionally with a _<REGION> or _<Script> "
+            "subtag, e.g. 'fr', 'pt_BR', or 'sr_Latn')",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -548,6 +714,15 @@ def backfill(
 
     missing: list[polib.POEntry] = [e for e in cat if e.msgid and _is_missing(e)]
     print(f"Found {len(missing)} untranslated entries for '{lang}'.", file=sys.stderr)
+
+    skipped_dnt: list[polib.POEntry] = [e for e in missing if _is_do_not_translate(e)]
+    if skipped_dnt:
+        missing = [e for e in missing if not _is_do_not_translate(e)]
+        print(
+            f"Skipping {len(skipped_dnt)} do-not-translate entries (literal "
+            f"tokens / translator-marked); they are left untranslated.",
+            file=sys.stderr,
+        )
 
     if min_context > 0:
         before = len(missing)

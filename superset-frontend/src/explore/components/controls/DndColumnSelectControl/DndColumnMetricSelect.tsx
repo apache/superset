@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useMemo, useState } from 'react';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import {
   AdhocColumn,
   isAdhocColumn,
@@ -27,9 +27,9 @@ import {
   QueryFormMetric,
   QueryFormData,
 } from '@superset-ui/core';
-import { tn } from '@apache-superset/core/translation';
 import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
-import { isString } from 'lodash';
+import { arrayMove } from '@dnd-kit/sortable';
+import { isString } from 'lodash-es';
 import DndSelectLabel from 'src/explore/components/controls/DndColumnSelectControl/DndSelectLabel';
 import OptionWrapper from 'src/explore/components/controls/DndColumnSelectControl/OptionWrapper';
 import { DatasourcePanelDndItem } from 'src/explore/components/DatasourcePanel/types';
@@ -268,11 +268,9 @@ function DndColumnMetricSelect(props: DndColumnMetricSelectProps) {
 
   const onShiftOptions = useCallback(
     (dragIndex: number, hoverIndex: number) => {
-      const newValues = [...coercedValue];
-      [newValues[hoverIndex], newValues[dragIndex]] = [
-        newValues[dragIndex],
-        newValues[hoverIndex],
-      ];
+      // @dnd-kit fires the reorder once at drag-end with the final indices, so
+      // this must be a full arrayMove, not an adjacent swap.
+      const newValues = arrayMove(coercedValue, dragIndex, hoverIndex);
       onChange(multi ? newValues : newValues[0]);
     },
     [onChange, coercedValue, multi],

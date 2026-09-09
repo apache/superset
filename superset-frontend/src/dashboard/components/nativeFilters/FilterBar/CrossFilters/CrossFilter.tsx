@@ -63,14 +63,16 @@ const CrossFilter = (props: {
     <div
       key={`${filter.name}${filter.emitterId}`}
       css={css`
-        ${orientation === FilterBarOrientation.Vertical
-          ? `
+        ${
+          orientation === FilterBarOrientation.Vertical
+            ? `
             display: block;
             margin-bottom: ${theme.sizeUnit * 4}px;
           `
-          : `
+            : `
             display: flex;
-          `}
+          `
+        }
       `}
     >
       <CrossFilterTitle
@@ -89,21 +91,23 @@ const CrossFilter = (props: {
         <div
           data-test="cross-filters-divider"
           css={css`
-            ${orientation === FilterBarOrientation.Horizontal
-              ? `
+            ${
+              orientation === FilterBarOrientation.Horizontal
+                ? `
                 width: 1px;
                 height: 22px;
                 margin-left: ${theme.sizeUnit * 4}px;
                 margin-right: ${theme.sizeUnit}px;
                 flex-shrink: 0;
               `
-              : `
+                : `
                 width: 100%;
                 height: 1px;
                 display: block;
                 margin-bottom: ${theme.sizeUnit * 4}px;
                 margin-top: ${theme.sizeUnit * 4}px;
-            `}
+            `
+            }
             background: ${theme.colorSplit};
           `}
         />

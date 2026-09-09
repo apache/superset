@@ -47,8 +47,10 @@ def _get_prefixed_id_with_context(base_id: str) -> tuple[str, str]:
     """
     if context := get_current_extension_context():
         # Extension context: prefix ID to prevent collisions
-        manifest = context.manifest
-        prefixed_id = f"extensions.{manifest.publisher}.{manifest.name}.{base_id}"
+        prefixed_id = (
+            f"extensions.{context.extension.publisher}."
+            f"{context.extension.name}.{base_id}"
+        )
         context_type = "extension"
     else:
         # Host context: use original ID
@@ -151,9 +153,11 @@ def create_tool_decorator(
             return wrapped_func
 
         except Exception as e:
+            # Fail-fast: don't silently serve unprotected tools. Returning the
+            # unwrapped function here would bypass mcp_auth_hook, leaving the
+            # tool exposed without auth or context isolation (see #39395).
             logger.error("Failed to register MCP tool %s: %s", name or func.__name__, e)
-            # Return the original function so extension doesn't break
-            return func
+            raise
 
     # If called as @tool (without parentheses)
     if callable(func_or_name):
@@ -247,11 +251,14 @@ def create_prompt_decorator(
             return wrapped_func
 
         except Exception as e:
+            # Fail-fast: don't silently serve unprotected prompts. Returning
+            # the unwrapped function here would bypass mcp_auth_hook, leaving
+            # the prompt exposed without auth or context isolation (see
+            # #39395 — same invariant as create_tool_decorator).
             logger.error(
                 "Failed to register MCP prompt %s: %s", name or func.__name__, e
             )
-            # Return the original function so extension doesn't break
-            return func
+            raise
 
     # If called as @prompt (without parentheses)
     if callable(func_or_name):

@@ -16,8 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import {
+  ChartCustomizationType,
+  type ChartCustomization,
+} from '@superset-ui/core';
 import { LabeledValue } from '@superset-ui/core/components';
-import { createLabelSortComparator } from './GroupByFilterCard';
+import { render, screen } from 'spec/helpers/testing-library';
+import GroupByFilterCard, {
+  createLabelSortComparator,
+} from './GroupByFilterCard';
+
+jest.mock('src/utils/cachedSupersetGet', () => ({
+  // Never resolves, pinning the card in its column-loading state.
+  cachedSupersetGet: jest.fn(() => new Promise(() => {})),
+}));
 
 const apple: LabeledValue = { value: 'a', label: 'Apple' };
 const banana: LabeledValue = { value: 'b', label: 'Banana' };
@@ -38,4 +50,28 @@ test('preserves source order when sortAscending is unset', () => {
   const compare = createLabelSortComparator(undefined);
   expect(compare(apple, banana)).toBe(0);
   expect(compare(banana, apple)).toBe(0);
+});
+
+const groupByCustomization: ChartCustomization = {
+  id: 'groupby-1',
+  name: 'Group By',
+  filterType: 'filter_groupby',
+  type: ChartCustomizationType.ChartCustomization,
+  targets: [{ datasetId: 1 }],
+  scope: { rootPath: [], excluded: [] },
+  controlValues: {},
+  defaultDataMask: {},
+};
+
+test('renders the column-loading spinner small and muted', async () => {
+  render(<GroupByFilterCard customizationItem={groupByCustomization} />, {
+    useRedux: true,
+    initialState: {
+      dataMask: {},
+      nativeFilters: { filters: {} },
+    },
+  });
+  const spinner = await screen.findByTestId('loading-indicator');
+  expect(spinner).toHaveClass('inline');
+  expect(spinner).toHaveStyle({ opacity: 0.25, width: '40px' });
 });

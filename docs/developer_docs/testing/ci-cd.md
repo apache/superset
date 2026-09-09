@@ -59,6 +59,7 @@ pre-commit run --all-files
 ## GitHub Actions
 
 Key workflows:
+
 - `test-frontend.yml` - Frontend tests
 - `test-backend.yml` - Backend tests
 - `docker.yml` - Docker image builds
@@ -67,4 +68,4 @@ Key workflows:
 
 ---
 
-*This documentation is under active development. Check back soon for updates!*
+_This documentation is under active development. Check back soon for updates!_

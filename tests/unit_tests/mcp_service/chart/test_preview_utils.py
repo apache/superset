@@ -197,3 +197,15 @@ class TestPreviewUtilsColumnBuilding:
                 columns.insert(0, x_axis_config)
 
         assert columns == ["territory", "year"]
+
+
+def test_build_query_columns_empty_columns_key_keeps_groupby():
+    """MCP path: an explicitly empty ``columns`` list no longer shadows ``groupby``.
+
+    ``_build_query_columns`` delegates to the shared
+    ``superset.common.form_data_query_context.columns_from_form_data``; this pins
+    the (intentional) behavior change so the export and MCP paths stay in sync.
+    """
+    assert preview_utils._build_query_columns(
+        {"groupby": ["country"], "columns": []}
+    ) == ["country"]

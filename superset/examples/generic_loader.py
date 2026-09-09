@@ -173,6 +173,13 @@ def load_parquet_table(  # noqa: C901
 
     if not tbl:
         tbl = SqlaTable(table_name=table_name, database_id=database.id)
+        # Explicitly add the new table to the session. Assigning `tbl.database`
+        # below no longer implicitly adds `tbl` to the session (SQLAlchemy 2.0
+        # behavior, cascade_backrefs=False), so without this, the two
+        # `db.session.merge()` calls below (one inside `fetch_metadata()`, one
+        # at the end of this function) would each create a separate transient
+        # copy of `tbl`, resulting in two pending inserts for the same uuid.
+        db.session.add(tbl)
         # Set the database reference
         tbl.database = database
 
@@ -187,7 +194,7 @@ def load_parquet_table(  # noqa: C901
         tbl.fetch_metadata()
 
     db.session.merge(tbl)
-    db.session.commit()
+    db.session.commit()  # pylint: disable=consider-using-transaction
 
     return tbl
 
@@ -242,7 +249,7 @@ def create_generic_loader(
         if description and tbl:
             tbl.description = description
             db.session.merge(tbl)
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
     # Set function name and docstring
     loader.__name__ = f"load_{parquet_file}"

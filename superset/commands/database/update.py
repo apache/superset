@@ -30,10 +30,18 @@ from superset.commands.database.exceptions import (
     DatabaseInvalidError,
     DatabaseNotFoundError,
     DatabaseUpdateFailedError,
+    DatabaseUpdateUnsafeRebindError,
     MissingOAuth2TokenError,
 )
 from superset.commands.database.sync_permissions import SyncPermissionsCommand
+from superset.commands.database.utils import (
+    engine_params_changed,
+    ssh_tunnel_rebind_unsafe,
+    uri_identity_changed,
+)
+from superset.constants import PASSWORD_MASK
 from superset.daos.database import DatabaseDAO
+from superset.databases.utils import make_url_safe
 from superset.exceptions import OAuth2RedirectError
 from superset.models.core import Database
 from superset.utils import json
@@ -180,3 +188,82 @@ class UpdateDatabaseCommand(BaseCommand):
                 database_name,
             ):
                 raise DatabaseInvalidError(exceptions=[DatabaseExistsValidationError()])
+
+        if self._model:
+            self._check_no_unsafe_secret_rebind()
+
+    def _check_no_unsafe_secret_rebind(self) -> None:
+        """
+        Refuse an update that changes the connection's effective destination
+        (URI host/port, `extra.engine_params`, or the SSH tunnel endpoint)
+        while leaving the corresponding stored secret masked.
+
+        Without this, an editor could silently redirect the real stored
+        password/encrypted_extra/SSH tunnel credential to a different
+        destination -- and since an update persists, every subsequent use of
+        the database (by any user) would send the real secret there, not
+        just the editor's own request.
+        """
+        model = self._model
+        assert model is not None
+
+        connection_identity_changed = False
+        submitted_password: str | None = None
+
+        if "sqlalchemy_uri" in self._properties:
+            submitted_uri = self._properties["sqlalchemy_uri"] or ""
+            connection_identity_changed = uri_identity_changed(
+                model.sqlalchemy_uri, submitted_uri
+            )
+            try:
+                submitted_password = make_url_safe(submitted_uri).password
+            except DatabaseInvalidError:
+                submitted_password = None
+
+        if "extra" in self._properties and engine_params_changed(
+            model.extra, self._properties["extra"]
+        ):
+            connection_identity_changed = True
+
+        if connection_identity_changed:
+            # The URI password is only one of the secrets that can silently
+            # carry over onto a changed destination. `encrypted_extra` (e.g.
+            # a service-account key or OAuth2 client secret) is reattached
+            # unconditionally in `run()` via `unmask_encrypted_extra` unless
+            # we catch it here -- gating on the URI password alone would
+            # both miss that reuse when a fresh URI password is supplied,
+            # and wrongly block engines that keep credentials entirely in
+            # `encrypted_extra` and carry no URI password at all (BigQuery,
+            # GSheets), since those never have a "fresh" URI password to
+            # give.
+            uri_password_reused = model.password is not None and submitted_password in (
+                None,
+                PASSWORD_MASK,
+            )
+            # encrypted_extra is a blob with per-field masks, so "reused"
+            # means unmasking the submission against the stored value
+            # changes nothing -- including not submitting it at all, which
+            # leaves the old (real) value attached unchanged.
+            encrypted_extra_reused = model.encrypted_extra not in (
+                None,
+                "",
+                "{}",
+            ) and (
+                "masked_encrypted_extra" not in self._properties
+                or model.db_engine_spec.unmask_encrypted_extra(
+                    model.encrypted_extra,
+                    self._properties["masked_encrypted_extra"],
+                )
+                == model.encrypted_extra
+            )
+            if uri_password_reused or encrypted_extra_reused:
+                raise DatabaseInvalidError(
+                    exceptions=[DatabaseUpdateUnsafeRebindError()]
+                )
+
+        if "ssh_tunnel" in self._properties and ssh_tunnel_rebind_unsafe(
+            model.ssh_tunnel, self._properties["ssh_tunnel"]
+        ):
+            raise DatabaseInvalidError(
+                exceptions=[DatabaseUpdateUnsafeRebindError(field_name="ssh_tunnel")]
+            )

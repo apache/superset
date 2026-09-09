@@ -79,8 +79,12 @@ const IconButton: React.FC<IconButtonProps> = ({
   };
 
   return (
+    // antd's Card renders a fixed <div> (no polymorphic tag support) with
+    // its own rich internal layout (cover/title/tooltip); that doesn't map
+    // onto a native <button>, so role="button" is used instead.
     <Card
       hoverable
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
       role="button"
       tabIndex={0}
       aria-label={buttonText}

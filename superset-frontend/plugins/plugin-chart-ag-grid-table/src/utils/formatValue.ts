@@ -17,12 +17,12 @@
  * under the License.
  */
 import {
-  CurrencyFormatter,
   DataRecordValue,
-  getNumberFormatter,
+  getSmallNumberFormatter,
   isDefined,
   isProbablyHTML,
   sanitizeHtml,
+  DateWithFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
@@ -30,7 +30,6 @@ import {
   ValueGetterParams,
 } from '@superset-ui/core/components/ThemedAgGridReact';
 import { DataColumnMeta, InputColumn } from '../types';
-import DateWithFormatter from './DateWithFormatter';
 
 /**
  * Format text for cell value.
@@ -67,15 +66,11 @@ export function formatColumnValue(
 ) {
   const { dataType, formatter, config = {} } = column;
   const isNumber = dataType === GenericDataType.Numeric;
-  const smallNumberFormatter =
-    config.d3SmallNumberFormat === undefined
-      ? formatter
-      : config.currencyFormat
-        ? new CurrencyFormatter({
-            d3Format: config.d3SmallNumberFormat,
-            currency: config.currencyFormat,
-          })
-        : getNumberFormatter(config.d3SmallNumberFormat);
+  const smallNumberFormatter = getSmallNumberFormatter(
+    formatter,
+    config.d3SmallNumberFormat,
+    config.currencyFormat,
+  );
   return formatValue(
     isNumber && typeof value === 'number' && Math.abs(value) < 1
       ? smallNumberFormatter

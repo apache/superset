@@ -33,69 +33,65 @@ The Tooltip component from Superset's UI library.
 <StoryWithControls
   component="Tooltip"
   props={{
-  title: "Simple tooltip text",
-  mouseEnterDelay: 0.1,
-  mouseLeaveDelay: 0.1
-}}
+    title: 'Simple tooltip text',
+    mouseEnterDelay: 0.1,
+    mouseLeaveDelay: 0.1,
+  }}
   controls={[
-  {
-    name: "title",
-    label: "Title",
-    type: "text",
-    description: "Text or content shown in the tooltip."
-  },
-  {
-    name: "mouseEnterDelay",
-    label: "Mouse Enter Delay",
-    type: "number",
-    description: "Delay in seconds before showing the tooltip on hover."
-  },
-  {
-    name: "mouseLeaveDelay",
-    label: "Mouse Leave Delay",
-    type: "number",
-    description: "Delay in seconds before hiding the tooltip after mouse leave."
-  },
-  {
-    name: "placement",
-    label: "Placement",
-    type: "select",
-    options: [
-      "bottom",
-      "bottomLeft",
-      "bottomRight",
-      "left",
-      "leftBottom",
-      "leftTop",
-      "right",
-      "rightBottom",
-      "rightTop",
-      "top",
-      "topLeft",
-      "topRight"
-    ],
-    description: "Position of the tooltip relative to the trigger element."
-  },
-  {
-    name: "trigger",
-    label: "Trigger",
-    type: "select",
-    options: [
-      "hover",
-      "focus",
-      "click",
-      "contextMenu"
-    ],
-    description: "How the tooltip is triggered."
-  },
-  {
-    name: "color",
-    label: "Color",
-    type: "color",
-    description: "Custom background color for the tooltip."
-  }
-]}
-  sampleChildren={[{"component":"Button","props":{"children":"Hover me"}}]}
+    {
+      name: 'title',
+      label: 'Title',
+      type: 'text',
+      description: 'Text or content shown in the tooltip.',
+    },
+    {
+      name: 'mouseEnterDelay',
+      label: 'Mouse Enter Delay',
+      type: 'number',
+      description: 'Delay in seconds before showing the tooltip on hover.',
+    },
+    {
+      name: 'mouseLeaveDelay',
+      label: 'Mouse Leave Delay',
+      type: 'number',
+      description:
+        'Delay in seconds before hiding the tooltip after mouse leave.',
+    },
+    {
+      name: 'placement',
+      label: 'Placement',
+      type: 'select',
+      options: [
+        'bottom',
+        'bottomLeft',
+        'bottomRight',
+        'left',
+        'leftBottom',
+        'leftTop',
+        'right',
+        'rightBottom',
+        'rightTop',
+        'top',
+        'topLeft',
+        'topRight',
+      ],
+      description: 'Position of the tooltip relative to the trigger element.',
+    },
+    {
+      name: 'trigger',
+      label: 'Trigger',
+      type: 'select',
+      options: ['hover', 'focus', 'click', 'contextMenu'],
+      description: 'How the tooltip is triggered.',
+    },
+    {
+      name: 'color',
+      label: 'Color',
+      type: 'color',
+      description: 'Custom background color for the tooltip.',
+    },
+  ]}
+  sampleChildren={[{ component: 'Button', props: { children: 'Hover me' } }]}
 />
 
 ## Try It
@@ -116,7 +112,16 @@ function Demo() {
 
 ```tsx live
 function Placements() {
-  const placements = ['top', 'bottom', 'left', 'right', 'topLeft', 'topRight', 'bottomLeft', 'bottomRight'];
+  const placements = [
+    'top',
+    'bottom',
+    'left',
+    'right',
+    'topLeft',
+    'topRight',
+    'bottomLeft',
+    'bottomRight',
+  ];
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
       {placements.map(placement => (
@@ -151,11 +156,11 @@ function Triggers() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `title` | `string` | `"Simple tooltip text"` | Text or content shown in the tooltip. |
-| `mouseEnterDelay` | `number` | `0.1` | Delay in seconds before showing the tooltip on hover. |
-| `mouseLeaveDelay` | `number` | `0.1` | Delay in seconds before hiding the tooltip after mouse leave. |
+| Prop              | Type     | Default                 | Description                                                   |
+| ----------------- | -------- | ----------------------- | ------------------------------------------------------------- |
+| `title`           | `string` | `"Simple tooltip text"` | Text or content shown in the tooltip.                         |
+| `mouseEnterDelay` | `number` | `0.1`                   | Delay in seconds before showing the tooltip on hover.         |
+| `mouseLeaveDelay` | `number` | `0.1`                   | Delay in seconds before hiding the tooltip after mouse leave. |
 
 ## Import
 

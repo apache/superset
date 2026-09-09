@@ -25,13 +25,14 @@ from typing import Any, Optional, TYPE_CHECKING
 
 import requests
 from flask import current_app as app
-from sqlalchemy import types
+from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 
 from superset import db
 from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.models.sql_lab import Query
+from superset.utils.network import is_safe_host
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -95,11 +96,12 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     @classmethod
     def get_schema_names(cls, inspector: Inspector) -> set[str]:
-        return {
-            row[0]
-            for row in inspector.engine.execute("SHOW SCHEMAS")
-            if not row[0].startswith("_")
-        }
+        with inspector.engine.connect() as conn:
+            return {
+                row[0]
+                for row in conn.execute(text("SHOW SCHEMAS"))
+                if not row[0].startswith("_")
+            }
 
     @classmethod
     def has_implicit_cancel(cls) -> bool:
@@ -204,13 +206,37 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
         :param cursor: New cursor instance to the db of the query
         :param query: Query instance
-        :param cancel_query_id: impala db not need
+        :param cancel_query_id: Impala query ID in format "hex:hex"
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent URL injection
+        # Impala query IDs are in "hex:hex" form (16 hex chars per side)
+        if not cls.validate_cancel_query_id(
+            cancel_query_id, r"^[A-Fa-f0-9]{16}:[A-Fa-f0-9]{16}$"
+        ):
+            return False
+
         try:
             impala_host = query.database.url_object.host
+            # The cancel call issues an outbound HTTP request from the
+            # Superset backend to whatever host the DB connection was
+            # configured with; validate it before the call to keep this
+            # path consistent with the dataset-import and webhook URL
+            # checks. Operators with internal Impala targets can opt out
+            # via IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS.
+            if not impala_host:
+                return False
+            if not app.config[
+                "IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS"
+            ] and not is_safe_host(impala_host):
+                logger.warning(
+                    "Impala cancel_query refused: target host is not allowed"
+                )
+                return False
             url = f"http://{impala_host}:25000/cancel_query?query_id={cancel_query_id}"
-            response = requests.post(url, timeout=3)
+            # Do not follow redirects: a validated host could otherwise 30x the
+            # request to an internal target, bypassing the is_safe_host check.
+            response = requests.post(url, timeout=3, allow_redirects=False)
         except Exception:  # pylint: disable=broad-except
             return False
 

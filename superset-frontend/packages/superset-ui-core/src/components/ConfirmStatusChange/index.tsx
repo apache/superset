@@ -26,6 +26,7 @@ export function ConfirmStatusChange({
   description,
   onConfirm,
   children,
+  recoverable,
 }: ConfirmStatusChangeProps) {
   const [open, setOpen] = useState(false);
   const [currentCallbackArgs, setCurrentCallbackArgs] = useState<any[]>([]);
@@ -67,6 +68,7 @@ export function ConfirmStatusChange({
         open={open}
         name="please confirm"
         title={title}
+        recoverable={recoverable}
       />
     </>
   );

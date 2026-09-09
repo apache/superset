@@ -16,8 +16,9 @@
 # under the License.
 import logging
 from functools import partial
-from typing import Any, Optional
+from typing import Any
 
+from flask import current_app
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
@@ -27,7 +28,7 @@ from superset.commands.dashboard.exceptions import (
     DashboardInvalidError,
     DashboardSlugExistsValidationError,
 )
-from superset.commands.utils import populate_roles
+from superset.commands.utils import populate_subjects
 from superset.daos.dashboard import DashboardDAO
 from superset.utils import json
 from superset.utils.decorators import on_error, transaction
@@ -52,30 +53,24 @@ class CreateDashboardCommand(CreateMixin, BaseCommand):
                 dashboard,
                 data=json.loads(json_metadata),
             )
+        if after_create := current_app.config.get("AFTER_ASSET_CREATE"):
+            after_create(dashboard, "dashboard")
         return dashboard
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
-        role_ids: Optional[list[int]] = self._properties.get("roles")
-        slug: str = self._properties.get("slug", "")
+        # An absent slug must stay ``None`` (not default to ``""``):
+        # ``validate_slug_uniqueness`` deliberately checks empty strings, so
+        # coercing absent → "" would run the check as ``slug == ""`` and 422
+        # every slugless create once any empty-string-slug row exists. This
+        # mirrors the update path, which also passes ``None`` through.
+        slug: str | None = self._properties.get("slug")
 
         # Validate slug uniqueness
         if not DashboardDAO.validate_slug_uniqueness(slug):
             exceptions.append(DashboardSlugExistsValidationError())
 
-        try:
-            owners = self.populate_owners(owner_ids)
-            self._properties["owners"] = owners
-        except ValidationError as ex:
-            exceptions.append(ex)
-        if exceptions:
-            raise DashboardInvalidError(exceptions=exceptions)
+        populate_subjects(self._properties, exceptions)
 
-        try:
-            roles = populate_roles(role_ids)
-            self._properties["roles"] = roles
-        except ValidationError as ex:
-            exceptions.append(ex)
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)

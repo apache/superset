@@ -23,6 +23,7 @@ Create Date: 2022-07-19 15:16:06.091961
 """
 
 from alembic import op
+from sqlalchemy import text
 from sqlalchemy.dialects.mysql.base import MySQLDialect
 
 # revision identifiers, used by Alembic.
@@ -33,8 +34,8 @@ down_revision = "06e1e70058c7"
 def upgrade():
     if isinstance(op.get_bind().dialect, MySQLDialect):
         # If the columns are already MEDIUMTEXT, this is a no-op
-        op.execute("ALTER TABLE slices MODIFY params MEDIUMTEXT")
-        op.execute("ALTER TABLE slices MODIFY query_context MEDIUMTEXT")
+        op.execute(text("ALTER TABLE slices MODIFY params MEDIUMTEXT"))
+        op.execute(text("ALTER TABLE slices MODIFY query_context MEDIUMTEXT"))
 
 
 def downgrade():

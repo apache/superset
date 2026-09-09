@@ -40,6 +40,8 @@ import {
 import {
   legendSection,
   minorTicks,
+  axisTicks,
+  gridlines,
   richTooltipSection,
   seriesOrderSection,
   showValueSectionWithoutStream,
@@ -174,7 +176,6 @@ function createAxisControl(axis: 'x' | 'y'): ControlSetRow[] {
         name: 'x_axis_time_format',
         config: {
           ...sharedControls.x_axis_time_format,
-          default: 'smart_date',
           description: `${D3_TIME_FORMAT_DOCS}. ${TIME_SERIES_DESCRIPTION_TEXT}`,
           visibility: ({ controls }: ControlPanelsContainerProps) =>
             (isXAxis ? isVertical(controls) : isHorizontal(controls)) &&
@@ -372,13 +373,8 @@ const config: ControlPanelConfig = {
               description: t(
                 'Stack in groups, where each group corresponds to a dimension',
               ),
-              shouldMapStateToProps: (
-                prevState,
-                state,
-                controlState,
-                chartState,
-              ) => true,
-              mapStateToProps: (state, controlState, chartState) => {
+              shouldMapStateToProps: () => true,
+              mapStateToProps: state => {
                 const value: JsonArray = ensureIsArray(
                   state.controls.groupby?.value,
                 ) as JsonArray;
@@ -394,6 +390,8 @@ const config: ControlPanelConfig = {
           },
         ],
         [minorTicks],
+        [axisTicks],
+        [gridlines],
         ['zoomable'],
         ...legendSection,
         [<ControlSubSectionHeader>{t('X Axis')}</ControlSubSectionHeader>],

@@ -215,7 +215,6 @@ test('handles datasets with missing fields and renders gracefully', async () => 
       id: '1',
       database_name: 'PostgreSQL',
     },
-    owners: [],
     changed_by_name: 'Unknown',
     changed_by: null,
     changed_on_delta_humanized: 'Unknown',
@@ -235,7 +234,7 @@ test('handles datasets with missing fields and renders gracefully', async () => 
     expect(screen.getByText('Incomplete Dataset')).toBeInTheDocument();
   });
 
-  // Verify empty owners renders without crashing (no FacePile)
+  // Verify empty editors renders without crashing
   const table = screen.getByRole('table');
   expect(table).toBeInTheDocument();
 
@@ -506,23 +505,23 @@ test('displays datasets with warning_markdown', async () => {
   expect(datasetRow).toBeInTheDocument();
 });
 
-test('displays dataset with multiple owners', async () => {
-  const datasetWithOwners = mockDatasets[1]; // Has 2 owners: Jane Smith, Bob Jones
+test('displays dataset with multiple editors', async () => {
+  const datasetWithEditors = mockDatasets[1];
 
   mockDatasetListEndpoints({
-    result: [datasetWithOwners],
+    result: [datasetWithEditors],
     count: 1,
   });
 
   renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
-    expect(screen.getByText(datasetWithOwners.table_name)).toBeInTheDocument();
+    expect(screen.getByText(datasetWithEditors.table_name)).toBeInTheDocument();
   });
 
   // Verify row exists with the dataset
   const datasetRow = screen
-    .getByText(datasetWithOwners.table_name)
+    .getByText(datasetWithEditors.table_name)
     .closest('tr');
   expect(datasetRow).toBeInTheDocument();
 });
@@ -564,4 +563,38 @@ test('dataset name links to Explore with correct explore_url', async () => {
   const exploreLink = screen.getByRole('link', { name: dataset.table_name });
   expect(exploreLink).toBeInTheDocument();
   expect(exploreLink).toHaveAttribute('href', dataset.explore_url);
+});
+
+test('shows RLS badge when dataset has rls_filters', async () => {
+  // mockDatasets[5] is 'Restricted Sales' with one rls_filter
+  const dataset = mockDatasets[5];
+
+  mockDatasetListEndpoints({ result: [dataset], count: 1 });
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
+  });
+
+  // RlsBadge renders a lock icon with accessible name when filters are present
+  expect(
+    screen.getByRole('img', { name: /row-level security/i }),
+  ).toBeInTheDocument();
+});
+
+test('does not show RLS badge when dataset has no rls_filters', async () => {
+  // mockDatasets[0] has no rls_filters field
+  const dataset = mockDatasets[0];
+
+  mockDatasetListEndpoints({ result: [dataset], count: 1 });
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(screen.getByText(dataset.table_name)).toBeInTheDocument();
+  });
+
+  // No RLS badge when rls_filters is absent
+  expect(
+    screen.queryByRole('img', { name: /row-level security/i }),
+  ).not.toBeInTheDocument();
 });

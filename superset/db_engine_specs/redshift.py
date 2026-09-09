@@ -18,11 +18,14 @@ from __future__ import annotations
 
 import logging
 import re
+import warnings
 from re import Pattern
-from typing import Any
+from typing import Any, Callable
 
 import pandas as pd
+import sqlalchemy as sa
 from flask_babel import gettext as __
+from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.types import NVARCHAR
 
 from superset.db_engine_specs.base import BasicParametersMixin, DatabaseCategory
@@ -32,6 +35,39 @@ from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.sql.parse import Table
 from superset.utils import json
+
+# sqlalchemy-redshift's own __init__ still imports pkg_resources (#36082);
+# the pinned range (see pyproject.toml) can't move to the pkg_resources-free
+# 1.0.0 release without SQLAlchemy 2.0 (apache/superset#39750 was closed for
+# this reason). Database._get_sqla_engine() (superset/models/core.py) always
+# reads self.db_engine_spec -- which imports every db_engine_specs module,
+# including this one, via load_engine_specs() -- before it calls
+# create_engine(), which is what triggers SQLAlchemy's lazy "redshift://"
+# dialect entry-point loading that actually imports sqlalchemy_redshift. So
+# by the time that import happens, this filter is already registered.
+# Setuptools 80.x (pinned in requirements/base.txt) raises this as a plain
+# UserWarning, not DeprecationWarning -- don't add category=DeprecationWarning
+# here, it would silently stop matching.
+#
+# Scoped to the sqlalchemy_redshift module (via stacklevel=2 in setuptools'
+# own warn() call, the warning is attributed to whatever imports
+# pkg_resources, i.e. sqlalchemy_redshift/__init__.py) so this doesn't also
+# swallow the same deprecation warning from unrelated dependencies.
+#
+# The same filter is also registered unconditionally in
+# SupersetAppInitializer.configure_logging() (superset/initialization/
+# __init__.py), before it dispatches to the (deployment-replaceable)
+# LOGGING_CONFIGURATOR. That's now the primary suppression point for the
+# web app and celery workers; this one remains as a fallback for standalone
+# scripts that import this module without going through create_app()
+# (filterwarnings() calls are idempotent, so registering it twice is
+# harmless).
+warnings.filterwarnings(
+    "ignore",
+    message=r"pkg_resources is deprecated as an API",
+    category=UserWarning,
+    module=r"sqlalchemy_redshift(?:\..*)?",
+)
 
 logger = logging.getLogger()
 
@@ -243,6 +279,24 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         "$.aws_iam.role_arn": "AWS IAM Role ARN",
     }
 
+    # Redshift inherits `PostgresBaseEngineSpec._extended_aggregations` for
+    # STDDEV_SAMP/VAR_SAMP (plain, non-sort-based aggregate calls), but
+    # overrides MEDIAN here instead of inheriting Postgres's spelling.
+    # Postgres has no native MEDIAN function and compiles it to
+    # `percentile_cont(0.5) WITHIN GROUP (ORDER BY col)`; Redshift, unlike
+    # Postgres, documents a native `MEDIAN(x)` aggregate function. Using
+    # that native spelling -- rather than the inherited WITHIN-GROUP form --
+    # also sidesteps a documented Redshift restriction rejecting more than
+    # one sort-based aggregate (MEDIAN, PERCENTILE_CONT, LISTAGG WITHIN
+    # GROUP, ...) with a different ORDER BY in the same query, e.g.
+    # `MEDIAN(sales)` alongside `MEDIAN(margin)`: a plain function call has
+    # no explicit ORDER BY clause to conflict.
+    _extended_aggregations: dict[str, Callable[[ColumnElement], ColumnElement]] = {
+        "MEDIAN": sa.func.median,
+        "STDDEV_SAMP": PostgresBaseEngineSpec._extended_aggregations["STDDEV_SAMP"],
+        "VAR_SAMP": PostgresBaseEngineSpec._extended_aggregations["VAR_SAMP"],
+    }
+
     @staticmethod
     def update_params_from_encrypted_extra(
         database: Database,
@@ -346,6 +400,11 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         :param cancel_query_id: Redshift PID
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # Redshift pg_backend_pid() returns an integer
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^\d+$"):
+            return False
+
         try:
             logger.info("Killing Redshift PID:%s", str(cancel_query_id))
             cursor.execute(

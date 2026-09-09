@@ -33,9 +33,11 @@ Model Context Protocol (MCP) integration allows extensions to register custom AI
 MCP enables extensions to extend Superset's AI capabilities in two ways:
 
 ### MCP Tools
+
 Tools are Python functions that AI agents can call to perform specific tasks. They provide executable functionality that extends Superset's capabilities.
 
 **Examples of MCP tools:**
+
 - Data processing and transformation functions
 - Custom analytics calculations
 - Integration with external APIs
@@ -43,9 +45,11 @@ Tools are Python functions that AI agents can call to perform specific tasks. Th
 - Business-specific operations
 
 ### MCP Prompts
+
 Prompts provide interactive guidance and context to AI agents. They help agents understand how to better assist users with specific workflows or domain knowledge.
 
 **Examples of MCP prompts:**
+
 - Step-by-step workflow guidance
 - Domain-specific context and knowledge
 - Interactive troubleshooting assistance
@@ -76,6 +80,7 @@ This creates a tool that AI agents can call by name. The tool name defaults to t
 The `@tool` decorator accepts several optional parameters:
 
 **Parameter details:**
+
 - **`name`**: Tool identifier (AI agents use this to call your tool)
 - **`description`**: Explains what the tool does (helps AI agents decide when to use it)
 - **`tags`**: Categories for organization and discovery
@@ -213,6 +218,7 @@ Agent: I generated the number 42 for you.
 ```
 
 The AI agent sees your tool's:
+
 - **Name**: How to call it
 - **Description**: What it does and when to use it
 - **Parameters**: What inputs it expects (from Pydantic schema)
@@ -377,18 +383,21 @@ async def troubleshoot_charts(ctx: Context) -> str:
 ### Prompt Best Practices
 
 #### Content Structure
+
 - **Use clear headings** and sections for easy navigation
 - **Provide actionable steps** rather than just theory
 - **Include examples** relevant to the user's domain
 - **Offer next steps** to continue the workflow
 
 #### Interactive Design
+
 - **Ask questions** to engage the user
 - **Provide options** for different scenarios
 - **Reference specific Superset features** by name
 - **Link to related tools** when appropriate
 
 #### Context Awareness
+
 ```python
 @prompt("analytics_extension.context_aware_guide")
 async def context_aware_guide(ctx: Context) -> str:

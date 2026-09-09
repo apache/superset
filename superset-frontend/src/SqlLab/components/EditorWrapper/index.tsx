@@ -344,14 +344,9 @@ const EditorWrapper = ({
         }
 
         .ace_autocomplete {
-          // Use !important because Ace Editor applies extra CSS at the last second
-          // when opening the autocomplete.
+          /* Use !important because Ace Editor applies extra CSS at the last second */
+          /* when opening the autocomplete. */
           width: ${theme.sizeUnit * 130}px !important;
-        }
-
-        .ace_completion-highlight {
-          color: ${theme.colorPrimaryText} !important;
-          background-color: ${theme.colorPrimaryBgHover};
         }
 
         .ace_tooltip {

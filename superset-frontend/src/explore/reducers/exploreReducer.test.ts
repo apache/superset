@@ -17,9 +17,11 @@
  * under the License.
  */
 
-import exploreReducer, { ExploreState } from './exploreReducer';
-import { setStashFormData } from '../actions/exploreActions';
 import { QueryFormData } from '@superset-ui/core';
+import { sections, CustomControlItem } from '@superset-ui/chart-controls';
+import { getControlStateFromControlConfig } from 'src/explore/controlUtils';
+import exploreReducer, { ExploreState } from './exploreReducer';
+import { setControlValue, setStashFormData } from '../actions/exploreActions';
 
 test('reset hiddenFormData on SET_STASH_FORM_DATA', () => {
   const initialState: ExploreState = {
@@ -51,4 +53,73 @@ test('skips updates when the field is already updated on SET_STASH_FORM_DATA', (
   >[1];
   const newState = exploreReducer(initialState, restoreAction);
   expect(newState).toBe(initialState);
+});
+
+// Regression guard for the shared Time Comparison section (used by the Table
+// chart, among others): selecting "Custom date" for Time shift and then
+// clearing "Shift start date" raises a required-date validation error. When the
+// user then switches Time shift to a non-custom preset the error must clear.
+// Because `start_date_offset` did not declare `validationDependencies` on
+// `time_compare`, SET_FIELD_VALUE never re-ran its mapStateToProps and the stale
+// error survived in Redux, blocking further chart updates until a page refresh.
+test('SET_FIELD_VALUE clears the custom-shift date error when time_compare leaves "custom"', () => {
+  const REQUIRED_DATE_ERROR = 'A date is required when using custom date shift';
+  const timeComparisonSection = sections.timeComparisonControls({
+    multi: false,
+    showCalculationType: false,
+    showFullChoices: false,
+  });
+  const timeCompareConfig = (
+    timeComparisonSection.controlSetRows[0][0] as CustomControlItem
+  ).config;
+  const startDateOffsetConfig = (
+    timeComparisonSection.controlSetRows[1][0] as CustomControlItem
+  ).config;
+
+  const form_data = {
+    time_compare: 'custom',
+    start_date_offset: '2021-01-01',
+  } as unknown as QueryFormData;
+
+  // Build the control states the way the explore store does so they carry the
+  // real mapStateToProps / validationDependencies from the control config.
+  const controlPanelState = { controls: {}, form_data };
+  const initialState: ExploreState = {
+    form_data,
+    controls: {
+      time_compare: getControlStateFromControlConfig(
+        timeCompareConfig,
+        controlPanelState,
+        'custom',
+      )!,
+      start_date_offset: getControlStateFromControlConfig(
+        startDateOffsetConfig,
+        controlPanelState,
+        '2021-01-01',
+      )!,
+    },
+  };
+
+  // A valid custom date starts without a validation error.
+  expect(initialState.controls.start_date_offset.validationErrors).toEqual([]);
+
+  // 1) Clearing "Shift start date" raises the required-date error (expected).
+  const afterClear = exploreReducer(
+    initialState,
+    setControlValue('start_date_offset', '') as Parameters<
+      typeof exploreReducer
+    >[1],
+  );
+  expect(afterClear.controls.start_date_offset.validationErrors).toEqual([
+    REQUIRED_DATE_ERROR,
+  ]);
+
+  // 2) Switching Time shift to a non-custom preset must clear the stale error.
+  const afterSwitch = exploreReducer(
+    afterClear,
+    setControlValue('time_compare', '1 week ago') as Parameters<
+      typeof exploreReducer
+    >[1],
+  );
+  expect(afterSwitch.controls.start_date_offset.validationErrors).toEqual([]);
 });

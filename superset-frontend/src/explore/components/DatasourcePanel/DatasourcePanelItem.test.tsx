@@ -22,12 +22,12 @@ import {
 } from 'src/explore/components/DatasourcePanel/fixtures';
 import { screen, userEvent, render } from 'spec/helpers/testing-library';
 import DatasourcePanelItem, {
-  DatasourcePanelItemProps,
+  DatasourcePanelItemRowProps,
 } from './DatasourcePanelItem';
 import { FoldersEditorItemType } from 'src/components/Datasource/types';
 import { MetricItem, ColumnItem } from './types';
 
-const mockData: DatasourcePanelItemProps['data'] = {
+const mockData: DatasourcePanelItemRowProps = {
   flattenedItems: [
     { type: 'header', depth: 0, folderId: '1', height: 50 },
     ...metrics.map((m, idx) => ({
@@ -82,11 +82,22 @@ const mockData: DatasourcePanelItemProps['data'] = {
   collapsedFolderIds: new Set(),
 };
 
-const setup = (data: DatasourcePanelItemProps['data'] = mockData) =>
+const setup = (data: DatasourcePanelItemRowProps = mockData) =>
   render(
     <>
       {data.flattenedItems.map((_, index) => (
-        <DatasourcePanelItem index={index} data={data} style={{}} />
+        <DatasourcePanelItem
+          // eslint-disable-next-line react/no-array-index-key -- test fixture has no stable id
+          key={index}
+          index={index}
+          style={{}}
+          ariaAttributes={{
+            role: 'listitem',
+            'aria-posinset': index + 1,
+            'aria-setsize': data.flattenedItems.length,
+          }}
+          {...data}
+        />
       ))}
     </>,
     { useDnd: true, useRedux: true, initialState: { explore: {} } },

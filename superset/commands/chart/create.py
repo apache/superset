@@ -17,9 +17,9 @@
 import logging
 from datetime import datetime
 from functools import partial
-from typing import Any, Optional
+from typing import Any
 
-from flask import g
+from flask import current_app, g
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
@@ -32,11 +32,13 @@ from superset.commands.chart.exceptions import (
     DashboardsForbiddenError,
     DashboardsNotFoundValidationError,
 )
-from superset.commands.utils import get_datasource_by_id
+from superset.commands.exceptions import DatasourceTypeInvalidError
+from superset.commands.utils import get_datasource_by_id, populate_subjects
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
 from superset.exceptions import SupersetSecurityException
 from superset.utils import json
+from superset.utils.core import DatasourceType
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -58,17 +60,29 @@ class CreateChartCommand(CreateMixin, BaseCommand):
         self.validate()
         self._properties["last_saved_at"] = datetime.now()
         self._properties["last_saved_by"] = g.user
-        return ChartDAO.create(attributes=self._properties)
+        chart = ChartDAO.create(attributes=self._properties)
+        if after_create := current_app.config.get("AFTER_ASSET_CREATE"):
+            after_create(chart, "chart")
+        return chart
 
     def validate(self) -> None:
         exceptions = []
         datasource_type = self._properties["datasource_type"]
         datasource_id = self._properties["datasource_id"]
         dashboard_ids = self._properties.get("dashboards", [])
-        owner_ids: Optional[list[int]] = self._properties.get("owners")
 
         # Validate/Populate datasource
         try:
+            # Slice.datasource only ever resolves the ``table`` relationship
+            # (see Slice.datasource in superset/models/slice.py), so a chart
+            # pointed at any other datasource_type would "create"
+            # successfully but could never actually render. Reject those
+            # up front instead of failing later -- either at this lookup
+            # (SavedQuery/Query have no ``.name`` attribute, so accessing it
+            # below raises an unhandled AttributeError) or silently, by
+            # producing a permanently broken chart.
+            if datasource_type != DatasourceType.TABLE:
+                raise DatasourceTypeInvalidError()
             datasource = get_datasource_by_id(datasource_id, datasource_type)
             self._properties["datasource_name"] = datasource.name
             security_manager.raise_for_access(datasource=datasource)
@@ -82,14 +96,11 @@ class CreateChartCommand(CreateMixin, BaseCommand):
         if len(dashboards) != len(dashboard_ids):
             exceptions.append(DashboardsNotFoundValidationError())
         for dash in dashboards:
-            if not security_manager.is_owner(dash):
+            if dash.is_managed_externally or not security_manager.is_editor(dash):
                 raise DashboardsForbiddenError()
         self._properties["dashboards"] = dashboards
 
-        try:
-            owners = self.populate_owners(owner_ids)
-            self._properties["owners"] = owners
-        except ValidationError as ex:
-            exceptions.append(ex)
+        populate_subjects(self._properties, exceptions)
+
         if exceptions:
             raise ChartInvalidError(exceptions=exceptions)

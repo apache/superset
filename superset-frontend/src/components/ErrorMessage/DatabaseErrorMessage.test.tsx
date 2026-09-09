@@ -24,9 +24,11 @@ import { DatabaseErrorMessage } from './DatabaseErrorMessage';
 jest.mock(
   '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
-    ({ fileName }: { fileName: string }) => (
-      <span role="img" aria-label={fileName.replace('_', '-')} />
-    ),
+    ({ fileName }: { fileName: string }) =>
+      (
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- mirrors AsyncIcon's real span+role="img" shape
+        <span role="img" aria-label={fileName.replace('_', '-')} />
+      ),
 );
 
 const mockedProps = {
@@ -44,7 +46,7 @@ const mockedProps = {
           message: 'Issue code message B',
         },
       ],
-      owners: ['Owner A', 'Owner B'],
+      editors: ['Owner A', 'Owner B'],
     },
     level: 'error' as ErrorLevel,
     message: 'Error message',
@@ -118,19 +120,19 @@ test('should render the engine name', () => {
   expect(screen.getByText(/Engine name/)).toBeInTheDocument();
 });
 
-test('should render the owners', () => {
+test('should render the editors', () => {
   render(<DatabaseErrorMessage {...mockedProps} />, { useRedux: true });
   const button = screen.getByText('See more');
   userEvent.click(button);
   expect(
-    screen.getByText('Please reach out to the Chart Owners for assistance.'),
+    screen.getByText('Please reach out to the Chart Editors for assistance.'),
   ).toBeInTheDocument();
   expect(
-    screen.getByText('Chart Owners: Owner A, Owner B'),
+    screen.getByText('Chart Editors: Owner A, Owner B'),
   ).toBeInTheDocument();
 });
 
-test('should NOT render the owners', () => {
+test('should NOT render the editors', () => {
   const noVisualizationProps = {
     ...mockedProps,
     source: 'sqllab' as ErrorSource,
@@ -141,7 +143,7 @@ test('should NOT render the owners', () => {
   const button = screen.getByText('See more');
   userEvent.click(button);
   expect(
-    screen.queryByText('Chart Owners: Owner A, Owner B'),
+    screen.queryByText('Chart Editors: Owner A, Owner B'),
   ).not.toBeInTheDocument();
 });
 

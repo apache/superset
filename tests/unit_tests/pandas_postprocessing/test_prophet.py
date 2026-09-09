@@ -15,15 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
+from importlib import import_module
 from importlib.util import find_spec
+from unittest.mock import patch
 
 import pandas as pd
 import pytest
 
+from superset.charts.schemas import get_max_prophet_periods
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import DTTM_ALIAS
 from superset.utils.pandas_postprocessing import prophet
 from tests.unit_tests.fixtures.dataframes import prophet_df
+
+prophet_module = import_module("superset.utils.pandas_postprocessing.prophet")
 
 
 def test_prophet_valid():
@@ -176,6 +181,23 @@ def test_prophet_incorrect_periods():
         )
 
 
+def test_prophet_periods_exceeding_max_raises():
+    """
+    ``periods`` comes from the unvalidated post-processing options dict; the
+    schema-declared upper bound (``MAX_PROPHET_PERIODS``, configurable, default
+    10000) is documentation-only unless enforced at the point ``periods`` is
+    consumed, since every forecast period adds a future row per series.
+    """
+    assert get_max_prophet_periods() == 10000
+    with pytest.raises(InvalidPostProcessingError, match="must not exceed"):
+        prophet(
+            df=prophet_df,
+            time_grain="P1M",
+            periods=10001,
+            confidence_interval=0.8,
+        )
+
+
 def test_prophet_incorrect_time_grain():
     with pytest.raises(InvalidPostProcessingError):
         prophet(
@@ -184,6 +206,75 @@ def test_prophet_incorrect_time_grain():
             periods=10,
             confidence_interval=0.8,
         )
+
+
+def test_prophet_missing_time_grain_raises_readable_error():
+    """
+    Regression for SC-113749: when the ``prophet`` post-processing operation is
+    dispatched with an options dict that lacks ``time_grain`` (e.g. a saved or
+    dashboard chart whose Time Grain was cleared, so the frontend drops the
+    ``undefined`` key during ``JSON.stringify``), the call must raise a readable
+    ``InvalidPostProcessingError`` rather than a raw ``TypeError`` about a
+    missing positional argument. This mirrors the real dispatch in
+    ``QueryObject.exec_post_processing`` which invokes the operation with
+    ``**options`` and no ``time_grain`` key.
+    """
+    options = {
+        "periods": 3,
+        "confidence_interval": 0.9,
+        "index": DTTM_ALIAS,
+    }
+    with pytest.raises(InvalidPostProcessingError, match="Time grain missing"):
+        prophet(prophet_df, **options)
+
+
+def test_prophet_explicit_none_time_grain_raises_readable_error():
+    """
+    Passing ``time_grain=None`` explicitly (the resolved value when no grain is
+    determinable) must also surface the graceful "Time grain missing" error.
+    """
+    with pytest.raises(InvalidPostProcessingError, match="Time grain missing"):
+        prophet(
+            df=prophet_df,
+            time_grain=None,
+            periods=3,
+            confidence_interval=0.9,
+        )
+
+
+def test_prophet_insufficient_data():
+    single_row_df = pd.DataFrame(
+        {
+            DTTM_ALIAS: [datetime(2022, 1, 1)],
+            "sales": [100.0],
+        }
+    )
+    with pytest.raises(InvalidPostProcessingError, match="at least 2 data points"):
+        prophet(
+            df=single_row_df,
+            time_grain="P1D",
+            periods=3,
+            confidence_interval=0.9,
+        )
+
+
+def test_prophet_fit_error():
+    if find_spec("prophet") is None:
+        pytest.skip("prophet not installed")
+
+    with patch.object(prophet_module, "_prophet_fit_and_predict") as mock_fit:
+        mock_fit.side_effect = InvalidPostProcessingError(
+            "Unable to generate forecast: Dataframe has fewer than 2 non-NaN rows."
+        )
+        with pytest.raises(
+            InvalidPostProcessingError, match="Unable to generate forecast"
+        ):
+            prophet(
+                df=prophet_df,
+                time_grain="P1D",
+                periods=3,
+                confidence_interval=0.9,
+            )
 
 
 def test_prophet_uncertainty_lower_bound_can_be_negative_for_negative_series():
@@ -301,3 +392,49 @@ def test_prophet_does_not_clamp_yhat_below_zero_for_negative_actuals():
     forecast_periods = 2
     forecast_yhat = result["balance__yhat"].iloc[-forecast_periods:]
     assert (forecast_yhat < 0).any()
+
+
+def test_prophet_every_time_grain_is_mapped():
+    """No `TimeGrain` may be missing from `PROPHET_TIME_GRAIN_MAP`.
+
+    Engine specs offer these grains in the Time Grain control, and the
+    `ChartDataProphetOptionsSchema.time_grain` field advertises them in the
+    OpenAPI spec, so an unmapped grain surfaces as "Unsupported time grain"
+    on a value the UI and the API both present as valid.
+    """
+    from superset.constants import TimeGrain
+    from superset.utils.pandas_postprocessing.utils import PROPHET_TIME_GRAIN_MAP
+
+    unmapped = [
+        grain.name for grain in TimeGrain if grain not in PROPHET_TIME_GRAIN_MAP
+    ]
+    assert not unmapped, f"TimeGrain values missing a pandas frequency: {unmapped}"
+
+
+@pytest.mark.parametrize(
+    "time_grain",
+    ["PT5S", "PT30S", "PT0.5H", "PT6H", "P0.25Y"],
+)
+def test_prophet_previously_unmapped_time_grains(time_grain):
+    """These five grains raised "Unsupported time grain" despite being offered
+    by engine specs such as Postgres, SQLite, Presto and Druid."""
+    df = prophet(
+        df=prophet_df, time_grain=time_grain, periods=3, confidence_interval=0.9
+    )
+    assert {"a__yhat", "a__yhat_upper", "a__yhat_lower"} <= set(df.columns)
+
+
+def test_prophet_alias_time_grains_match_their_canonical_form():
+    """`HALF_HOUR`/`QUARTER_YEAR` are alternate ISO-8601 spellings of
+    `THIRTY_MINUTES`/`QUARTER` and must resolve to the same frequency."""
+    from superset.constants import TimeGrain
+    from superset.utils.pandas_postprocessing.utils import PROPHET_TIME_GRAIN_MAP
+
+    assert (
+        PROPHET_TIME_GRAIN_MAP[TimeGrain.HALF_HOUR]
+        == PROPHET_TIME_GRAIN_MAP[TimeGrain.THIRTY_MINUTES]
+    )
+    assert (
+        PROPHET_TIME_GRAIN_MAP[TimeGrain.QUARTER_YEAR]
+        == PROPHET_TIME_GRAIN_MAP[TimeGrain.QUARTER]
+    )

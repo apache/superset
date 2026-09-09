@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DataMaskStateWithId } from '@superset-ui/core';
-import { cloneDeep } from 'lodash';
+import { cloneDeep } from 'lodash-es';
 import { getDataMaskChangeTrigger, getChartDataPayloads } from './utils';
 import { RootState } from 'src/views/store';
 import * as chartStateConverter from 'src/dashboard/util/chartStateConverter';

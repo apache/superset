@@ -17,8 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { t } from '@apache-superset/core/translation';
-import { tn } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 
 import type { ErrorMessageComponentProps } from './types';
 import { IssueCode } from './IssueCode';
@@ -29,7 +28,7 @@ interface TimeoutErrorExtra {
     code: number;
     message: string;
   }[];
-  owners?: string[];
+  editors?: string[];
   timeout: number;
 }
 
@@ -67,22 +66,22 @@ export function TimeoutErrorMessage({
           .map<ReactNode>(issueCode => <IssueCode {...issueCode} />)
           .reduce((prev, curr) => [prev, <br />, curr])}
       </p>
-      {isVisualization && extra.owners && (
+      {isVisualization && extra.editors && (
         <>
           <br />
           <p>
             {tn(
-              'Please reach out to the Chart Owner for assistance.',
-              'Please reach out to the Chart Owners for assistance.',
-              extra.owners.length,
+              'Please reach out to the Chart Editor for assistance.',
+              'Please reach out to the Chart Editors for assistance.',
+              extra.editors.length,
             )}
           </p>
           <p>
             {tn(
-              'Chart Owner: %s',
-              'Chart Owners: %s',
-              extra.owners.length,
-              extra.owners.join(', '),
+              'Chart Editor: %s',
+              'Chart Editors: %s',
+              extra.editors.length,
+              extra.editors.join(', '),
             )}
           </p>
         </>

@@ -33,39 +33,39 @@ The Collapse component from Superset's UI library.
 <StoryWithControls
   component="Collapse"
   props={{
-  ghost: false,
-  bordered: true,
-  accordion: false,
-  animateArrows: false,
-  modalMode: false
-}}
+    ghost: false,
+    bordered: true,
+    accordion: false,
+    animateArrows: false,
+    modalMode: false,
+  }}
   controls={[
-  {
-    name: "ghost",
-    label: "Ghost",
-    type: "boolean"
-  },
-  {
-    name: "bordered",
-    label: "Bordered",
-    type: "boolean"
-  },
-  {
-    name: "accordion",
-    label: "Accordion",
-    type: "boolean"
-  },
-  {
-    name: "animateArrows",
-    label: "Animate Arrows",
-    type: "boolean"
-  },
-  {
-    name: "modalMode",
-    label: "Modal Mode",
-    type: "boolean"
-  }
-]}
+    {
+      name: 'ghost',
+      label: 'Ghost',
+      type: 'boolean',
+    },
+    {
+      name: 'bordered',
+      label: 'Bordered',
+      type: 'boolean',
+    },
+    {
+      name: 'accordion',
+      label: 'Accordion',
+      type: 'boolean',
+    },
+    {
+      name: 'animateArrows',
+      label: 'Animate Arrows',
+      type: 'boolean',
+    },
+    {
+      name: 'modalMode',
+      label: 'Modal Mode',
+      type: 'boolean',
+    },
+  ]}
 />
 
 ## Try It
@@ -74,23 +74,19 @@ Edit the code below to experiment with the component:
 
 ```tsx live
 function Demo() {
-  return (
-    <Collapse
-      bordered
-    />
-  );
+  return <Collapse bordered />;
 }
 ```
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `ghost` | `boolean` | `false` | - |
-| `bordered` | `boolean` | `true` | - |
-| `accordion` | `boolean` | `false` | - |
-| `animateArrows` | `boolean` | `false` | - |
-| `modalMode` | `boolean` | `false` | - |
+| Prop            | Type      | Default | Description |
+| --------------- | --------- | ------- | ----------- |
+| `ghost`         | `boolean` | `false` | -           |
+| `bordered`      | `boolean` | `true`  | -           |
+| `accordion`     | `boolean` | `false` | -           |
+| `animateArrows` | `boolean` | `false` | -           |
+| `modalMode`     | `boolean` | `false` | -           |
 
 ## Import
 

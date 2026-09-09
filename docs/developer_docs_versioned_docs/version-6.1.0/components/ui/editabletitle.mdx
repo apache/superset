@@ -33,93 +33,93 @@ The EditableTitle component from Superset's UI library.
 <StoryWithControls
   component="EditableTitle"
   props={{
-  canEdit: true,
-  editing: false,
-  emptyText: "Empty text",
-  noPermitTooltip: "Not permitted",
-  showTooltip: true,
-  title: "Title",
-  defaultTitle: "Default title",
-  placeholder: "Placeholder",
-  certifiedBy: "",
-  certificationDetails: "",
-  maxWidth: 100,
-  autoSize: true
-}}
+    canEdit: true,
+    editing: false,
+    emptyText: 'Empty text',
+    noPermitTooltip: 'Not permitted',
+    showTooltip: true,
+    title: 'Title',
+    defaultTitle: 'Default title',
+    placeholder: 'Placeholder',
+    certifiedBy: '',
+    certificationDetails: '',
+    maxWidth: 100,
+    autoSize: true,
+  }}
   controls={[
-  {
-    name: "canEdit",
-    label: "Can Edit",
-    type: "boolean",
-    description: "Whether the title can be edited."
-  },
-  {
-    name: "editing",
-    label: "Editing",
-    type: "boolean",
-    description: "Whether the title is currently in edit mode."
-  },
-  {
-    name: "emptyText",
-    label: "Empty Text",
-    type: "text",
-    description: "Text to display when title is empty."
-  },
-  {
-    name: "noPermitTooltip",
-    label: "No Permit Tooltip",
-    type: "text",
-    description: "Tooltip shown when user lacks edit permission."
-  },
-  {
-    name: "showTooltip",
-    label: "Show Tooltip",
-    type: "boolean",
-    description: "Whether to show tooltip on hover."
-  },
-  {
-    name: "title",
-    label: "Title",
-    type: "text",
-    description: "The title text to display."
-  },
-  {
-    name: "defaultTitle",
-    label: "Default Title",
-    type: "text",
-    description: "Default title when none is provided."
-  },
-  {
-    name: "placeholder",
-    label: "Placeholder",
-    type: "text",
-    description: "Placeholder text when editing."
-  },
-  {
-    name: "certifiedBy",
-    label: "Certified By",
-    type: "text",
-    description: "Name of person/team who certified this item."
-  },
-  {
-    name: "certificationDetails",
-    label: "Certification Details",
-    type: "text",
-    description: "Additional certification details or description."
-  },
-  {
-    name: "maxWidth",
-    label: "Max Width",
-    type: "number",
-    description: "Maximum width of the title in pixels."
-  },
-  {
-    name: "autoSize",
-    label: "Auto Size",
-    type: "boolean",
-    description: "Whether to auto-size based on content."
-  }
-]}
+    {
+      name: 'canEdit',
+      label: 'Can Edit',
+      type: 'boolean',
+      description: 'Whether the title can be edited.',
+    },
+    {
+      name: 'editing',
+      label: 'Editing',
+      type: 'boolean',
+      description: 'Whether the title is currently in edit mode.',
+    },
+    {
+      name: 'emptyText',
+      label: 'Empty Text',
+      type: 'text',
+      description: 'Text to display when title is empty.',
+    },
+    {
+      name: 'noPermitTooltip',
+      label: 'No Permit Tooltip',
+      type: 'text',
+      description: 'Tooltip shown when user lacks edit permission.',
+    },
+    {
+      name: 'showTooltip',
+      label: 'Show Tooltip',
+      type: 'boolean',
+      description: 'Whether to show tooltip on hover.',
+    },
+    {
+      name: 'title',
+      label: 'Title',
+      type: 'text',
+      description: 'The title text to display.',
+    },
+    {
+      name: 'defaultTitle',
+      label: 'Default Title',
+      type: 'text',
+      description: 'Default title when none is provided.',
+    },
+    {
+      name: 'placeholder',
+      label: 'Placeholder',
+      type: 'text',
+      description: 'Placeholder text when editing.',
+    },
+    {
+      name: 'certifiedBy',
+      label: 'Certified By',
+      type: 'text',
+      description: 'Name of person/team who certified this item.',
+    },
+    {
+      name: 'certificationDetails',
+      label: 'Certification Details',
+      type: 'text',
+      description: 'Additional certification details or description.',
+    },
+    {
+      name: 'maxWidth',
+      label: 'Max Width',
+      type: 'number',
+      description: 'Maximum width of the title in pixels.',
+    },
+    {
+      name: 'autoSize',
+      label: 'Auto Size',
+      type: 'boolean',
+      description: 'Whether to auto-size based on content.',
+    },
+  ]}
 />
 
 ## Try It
@@ -135,7 +135,7 @@ function Demo() {
       showTooltip
       certifiedBy="Data Team"
       certificationDetails="Verified Q1 2024"
-      onSaveTitle={(newTitle) => console.log('Saved:', newTitle)}
+      onSaveTitle={newTitle => console.log('Saved:', newTitle)}
     />
   );
 }
@@ -143,20 +143,20 @@ function Demo() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `canEdit` | `boolean` | `true` | Whether the title can be edited. |
-| `editing` | `boolean` | `false` | Whether the title is currently in edit mode. |
-| `emptyText` | `string` | `"Empty text"` | Text to display when title is empty. |
-| `noPermitTooltip` | `string` | `"Not permitted"` | Tooltip shown when user lacks edit permission. |
-| `showTooltip` | `boolean` | `true` | Whether to show tooltip on hover. |
-| `title` | `string` | `"Title"` | The title text to display. |
-| `defaultTitle` | `string` | `"Default title"` | Default title when none is provided. |
-| `placeholder` | `string` | `"Placeholder"` | Placeholder text when editing. |
-| `certifiedBy` | `string` | `""` | Name of person/team who certified this item. |
-| `certificationDetails` | `string` | `""` | Additional certification details or description. |
-| `maxWidth` | `number` | `100` | Maximum width of the title in pixels. |
-| `autoSize` | `boolean` | `true` | Whether to auto-size based on content. |
+| Prop                   | Type      | Default           | Description                                      |
+| ---------------------- | --------- | ----------------- | ------------------------------------------------ |
+| `canEdit`              | `boolean` | `true`            | Whether the title can be edited.                 |
+| `editing`              | `boolean` | `false`           | Whether the title is currently in edit mode.     |
+| `emptyText`            | `string`  | `"Empty text"`    | Text to display when title is empty.             |
+| `noPermitTooltip`      | `string`  | `"Not permitted"` | Tooltip shown when user lacks edit permission.   |
+| `showTooltip`          | `boolean` | `true`            | Whether to show tooltip on hover.                |
+| `title`                | `string`  | `"Title"`         | The title text to display.                       |
+| `defaultTitle`         | `string`  | `"Default title"` | Default title when none is provided.             |
+| `placeholder`          | `string`  | `"Placeholder"`   | Placeholder text when editing.                   |
+| `certifiedBy`          | `string`  | `""`              | Name of person/team who certified this item.     |
+| `certificationDetails` | `string`  | `""`              | Additional certification details or description. |
+| `maxWidth`             | `number`  | `100`             | Maximum width of the title in pixels.            |
+| `autoSize`             | `boolean` | `true`            | Whether to auto-size based on content.           |
 
 ## Import
 

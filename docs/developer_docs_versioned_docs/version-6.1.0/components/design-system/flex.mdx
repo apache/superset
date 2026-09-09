@@ -33,70 +33,62 @@ The Flex component from Superset's UI library.
 <StoryWithControls
   component="Flex"
   props={{
-  vertical: false,
-  wrap: "nowrap",
-  justify: "normal",
-  align: "normal",
-  flex: "normal",
-  gap: "small"
-}}
+    vertical: false,
+    wrap: 'nowrap',
+    justify: 'normal',
+    align: 'normal',
+    flex: 'normal',
+    gap: 'small',
+  }}
   controls={[
-  {
-    name: "vertical",
-    label: "Vertical",
-    type: "boolean"
-  },
-  {
-    name: "wrap",
-    label: "Wrap",
-    type: "select",
-    options: [
-      "nowrap",
-      "wrap",
-      "wrap-reverse"
-    ]
-  },
-  {
-    name: "justify",
-    label: "Justify",
-    type: "select",
-    options: [
-      "start",
-      "center",
-      "space-between",
-      "space-around",
-      "space-evenly"
-    ]
-  },
-  {
-    name: "align",
-    label: "Align",
-    type: "select",
-    options: [
-      "start",
-      "center",
-      "end",
-      "stretch"
-    ]
-  },
-  {
-    name: "flex",
-    label: "Flex",
-    type: "string"
-  },
-  {
-    name: "gap",
-    label: "Gap",
-    type: "select",
-    options: [
-      "small",
-      "medium",
-      "large"
-    ]
-  }
-]}
-  sampleChildren={["Item 1","Item 2","Item 3","Item 4","Item 5"]}
-  sampleChildrenStyle={{padding:"8px 16px",background:"#e6f4ff",border:"1px solid #91caff",borderRadius:"4px"}}
+    {
+      name: 'vertical',
+      label: 'Vertical',
+      type: 'boolean',
+    },
+    {
+      name: 'wrap',
+      label: 'Wrap',
+      type: 'select',
+      options: ['nowrap', 'wrap', 'wrap-reverse'],
+    },
+    {
+      name: 'justify',
+      label: 'Justify',
+      type: 'select',
+      options: [
+        'start',
+        'center',
+        'space-between',
+        'space-around',
+        'space-evenly',
+      ],
+    },
+    {
+      name: 'align',
+      label: 'Align',
+      type: 'select',
+      options: ['start', 'center', 'end', 'stretch'],
+    },
+    {
+      name: 'flex',
+      label: 'Flex',
+      type: 'string',
+    },
+    {
+      name: 'gap',
+      label: 'Gap',
+      type: 'select',
+      options: ['small', 'medium', 'large'],
+    },
+  ]}
+  sampleChildren={['Item 1', 'Item 2', 'Item 3', 'Item 4', 'Item 5']}
+  sampleChildrenStyle={{
+    padding: '8px 16px',
+    background: '#e6f4ff',
+    border: '1px solid #91caff',
+    borderRadius: '4px',
+  }}
 />
 
 ## Try It
@@ -157,9 +149,17 @@ function JustifyAlign() {
   };
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {['flex-start', 'center', 'flex-end', 'space-between', 'space-around'].map(justify => (
+      {[
+        'flex-start',
+        'center',
+        'flex-end',
+        'space-between',
+        'space-around',
+      ].map(justify => (
         <div key={justify}>
-          <span style={{ marginBottom: 4, display: 'block', color: '#666' }}>{justify}</span>
+          <span style={{ marginBottom: 4, display: 'block', color: '#666' }}>
+            {justify}
+          </span>
           <Flex style={boxStyle} justify={justify} align="center">
             <div style={itemStyle} />
             <div style={itemStyle} />
@@ -174,14 +174,14 @@ function JustifyAlign() {
 
 ## Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `vertical` | `boolean` | `false` | - |
-| `wrap` | `string` | `"nowrap"` | - |
-| `justify` | `string` | `"normal"` | - |
-| `align` | `string` | `"normal"` | - |
-| `flex` | `string` | `"normal"` | - |
-| `gap` | `string` | `"small"` | - |
+| Prop       | Type      | Default    | Description |
+| ---------- | --------- | ---------- | ----------- |
+| `vertical` | `boolean` | `false`    | -           |
+| `wrap`     | `string`  | `"nowrap"` | -           |
+| `justify`  | `string`  | `"normal"` | -           |
+| `align`    | `string`  | `"normal"` | -           |
+| `flex`     | `string`  | `"normal"` | -           |
+| `gap`      | `string`  | `"small"`  | -           |
 
 ## Import
 

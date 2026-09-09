@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, forwardRef, ComponentType } from 'react';
+import React, {
+  useEffect,
+  useState,
+  forwardRef,
+  ComponentType,
+  ForwardedRef,
+} from 'react';
 
 import { Loading } from '../Loading';
 import type { PlaceholderProps } from './types';
@@ -93,7 +99,7 @@ export function AsyncEsmComponent<
   // @ts-expect-error -- generic forwardRef has PropsWithoutRef incompatibility with FullProps
   const AsyncComponent: AsyncComponent = forwardRef(function AsyncComponent(
     props: FullProps,
-    ref,
+    ref: ForwardedRef<ComponentType<FullProps>>,
   ) {
     const [loaded, setLoaded] = useState(component !== undefined);
     useEffect(() => {

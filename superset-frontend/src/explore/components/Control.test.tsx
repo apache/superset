@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  waitFor,
+  userEvent,
+  fireEvent,
+} from 'spec/helpers/testing-library';
 import Control, { ControlProps } from 'src/explore/components/Control';
 
 const defaultProps: ControlProps = {
@@ -76,4 +82,73 @@ test('call setControlValue if isVisible is false', async () => {
   await waitFor(() =>
     expect(defaultProps.actions.setControlValue).toHaveBeenCalled(),
   );
+});
+
+test('shows the description icon while the control is hovered', async () => {
+  render(
+    setup({
+      label: 'My checkbox',
+      description: 'Help text',
+    }),
+  );
+
+  expect(
+    screen.queryByRole('button', { name: 'Show info tooltip' }),
+  ).not.toBeInTheDocument();
+
+  await userEvent.hover(screen.getByTestId('checkbox'));
+  expect(
+    screen.getByRole('button', { name: 'Show info tooltip' }),
+  ).toBeInTheDocument();
+
+  await userEvent.unhover(screen.getByTestId('checkbox'));
+  expect(
+    screen.queryByRole('button', { name: 'Show info tooltip' }),
+  ).not.toBeInTheDocument();
+});
+
+test('shows the description icon while the control has keyboard focus', () => {
+  render(
+    setup({
+      label: 'My checkbox',
+      description: 'Help text',
+    }),
+  );
+
+  expect(
+    screen.queryByRole('button', { name: 'Show info tooltip' }),
+  ).not.toBeInTheDocument();
+
+  fireEvent.focus(screen.getByRole('checkbox'));
+  const infoIcon = screen.getByRole('button', { name: 'Show info tooltip' });
+  expect(infoIcon).toBeInTheDocument();
+
+  fireEvent.blur(screen.getByRole('checkbox'), { relatedTarget: infoIcon });
+  expect(
+    screen.getByRole('button', { name: 'Show info tooltip' }),
+  ).toBeInTheDocument();
+
+  fireEvent.blur(infoIcon, { relatedTarget: document.body });
+  expect(
+    screen.queryByRole('button', { name: 'Show info tooltip' }),
+  ).not.toBeInTheDocument();
+});
+
+test('keeps the description icon visible when the pointer leaves a focused control', () => {
+  render(
+    setup({
+      label: 'My checkbox',
+      description: 'Help text',
+    }),
+  );
+
+  fireEvent.focus(screen.getByRole('checkbox'));
+  expect(
+    screen.getByRole('button', { name: 'Show info tooltip' }),
+  ).toBeInTheDocument();
+
+  fireEvent.mouseLeave(screen.getByTestId('checkbox'));
+  expect(
+    screen.getByRole('button', { name: 'Show info tooltip' }),
+  ).toBeInTheDocument();
 });

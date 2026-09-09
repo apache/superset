@@ -27,6 +27,10 @@ export const Container = styled.div`
     width: 100%;
 
     .three-dots-menu {
+      appearance: none;
+      border: none;
+      background: none;
+      font: inherit;
       align-self: center;
       margin-left: ${theme.sizeUnit}px;
       cursor: pointer;
@@ -74,7 +78,6 @@ export const FilterIconWrapper = styled.div<{ isFilterActive?: boolean }>`
 
   padding: 3px 4px;
   overflow: hidden;
-  cursor: pointer;
   border-radius: 4px;
 
   ${({ isFilterActive }) =>
@@ -123,6 +126,12 @@ export const MenuContainer = styled.div`
     padding: ${theme.sizeUnit}px 0;
 
     .menu-item {
+      appearance: none;
+      border: none;
+      background: none;
+      font: inherit;
+      width: 100%;
+      text-align: left;
       padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
       cursor: pointer;
       display: flex;
@@ -362,6 +371,18 @@ export const StyledChartContainer = styled.div<{
       font-size: ${theme.fontSizeSM}px;
     }
 
+    /*
+     * AG Grid 34+ adds the row-entrance-animation class 'ag-opacity-zero'
+     * (opacity: 0) to a newly inserted row and removes it on the next frame to
+     * fade the row in. Under AG Grid 36 that class is never removed from the
+     * pinned bottom row, so the "Show summary" totals row renders fully (correct
+     * values in the DOM) but stays permanently transparent. Force pinned rows
+     * opaque so the summary row is visible.
+     */
+    .ag-row-pinned {
+      opacity: 1 !important;
+    }
+
     .ag-spanned-row {
       font-size: ${theme.fontSizeSM}px;
       font-weight: ${theme.fontWeightStrong};
@@ -379,7 +400,7 @@ export const StyledChartContainer = styled.div<{
       margin-right: ${theme.sizeUnit * 2}px;
     }
 
-    .ant-popover-inner {
+    .ant-popover-container {
       padding: 0px;
     }
 

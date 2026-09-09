@@ -19,7 +19,7 @@
 import Supercluster, {
   type Options as SuperclusterOptions,
 } from 'supercluster';
-import { ChartProps } from '@superset-ui/core';
+import { ChartProps, getMapProviderMapStyle } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { DEFAULT_POINT_RADIUS, DEFAULT_MAX_ZOOM } from './MapLibre';
 import roundDecimal from './utils/roundDecimal';
@@ -152,6 +152,7 @@ export default function transformProps(chartProps: ChartProps) {
     map_renderer: mapProvider,
     maplibre_style: maplibreStyle,
     mapbox_style: mapboxStyle = '',
+    map_style: legacyMapStyle,
     pandas_aggfunc: pandasAggfunc,
     point_radius: pointRadius,
     point_radius_unit: pointRadiusUnit,
@@ -242,6 +243,12 @@ export default function transformProps(chartProps: ChartProps) {
   const clusterer = new Supercluster<PointProperties, ClusterProperties>(opts);
   // Disable strict typecheck on load since Supercluster typings have namespace issues with esModuleInterop
   clusterer.load(geoJSON.features as any);
+  const selectedMap = getMapProviderMapStyle({
+    mapProvider,
+    maplibreStyle,
+    mapboxStyle,
+    legacyMapStyle,
+  });
 
   return {
     width,
@@ -251,11 +258,8 @@ export default function transformProps(chartProps: ChartProps) {
     clusterer,
     globalOpacity: Math.min(1, Math.max(0, toFiniteNumber(globalOpacity) ?? 1)),
     hasCustomMetric,
-    mapProvider,
-    mapStyle:
-      mapProvider === 'mapbox'
-        ? (mapboxStyle as string)
-        : (maplibreStyle as string),
+    mapProvider: selectedMap.mapProvider,
+    mapStyle: selectedMap.mapStyle,
     onViewportChange({
       latitude,
       longitude,

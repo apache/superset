@@ -16,6 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// Imported first: loading this before 'spec/helpers/testing-library' or
+// '@superset-ui/core' ensures mockAntdWithDesktopBreakpoint is defined
+// before anything transitively requires (and thus mocks) 'antd'.
+import { mockAntdWithDesktopBreakpoint } from 'spec/helpers/mobileTestUtils';
 import * as redux from 'redux';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { screen, userEvent, within, waitFor } from '@superset-ui/core/spec';
@@ -23,7 +27,7 @@ import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import fetchMock from 'fetch-mock';
 import { getExtensionsRegistry, JsonObject } from '@superset-ui/core';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
-import getOwnerName from 'src/utils/getOwnerName';
+import getUserName from 'src/utils/getUserName';
 import { render, createStore } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import Header from '.';
@@ -73,7 +77,7 @@ const initialState = {
       first_name: 'Kay',
       last_name: 'Mon',
     },
-    owners: [{ first_name: 'John', last_name: 'Doe', id: 1 }],
+    editors: [{ id: 1, label: 'John Doe', type: 1 }],
   },
   user: {
     createdOn: '2021-04-27T18:12:38.952304',
@@ -185,6 +189,9 @@ const recordSuccess = jest.fn();
 const recordError = jest.fn();
 const setPaused = jest.fn();
 const setPausedByTab = jest.fn();
+
+// Mock useBreakpoint to return desktop breakpoints (prevents mobile rendering)
+jest.mock('antd', () => mockAntdWithDesktopBreakpoint());
 
 jest.mock('src/hooks/useUnsavedChangesPrompt', () => ({
   useUnsavedChangesPrompt: jest.fn(),
@@ -340,7 +347,7 @@ test('should publish', () => {
 test('should render metadata', () => {
   setup();
   expect(
-    screen.getByText(getOwnerName(initialState.dashboardInfo.created_by)),
+    screen.getByText(getUserName(initialState.dashboardInfo.created_by)),
   ).toBeInTheDocument();
   expect(
     screen.getByText(initialState.dashboardInfo.changed_on_delta_humanized),
@@ -522,9 +529,27 @@ test('should disable both buttons when no actions available', () => {
   expect(onRedo).not.toHaveBeenCalled();
 });
 
-test('should render the "Discard changes" button', () => {
+test('should render an enabled "Exit edit mode" button when there are no unsaved changes', () => {
   setup(editableState);
-  expect(screen.getByText('Discard')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /exit edit mode/i })).toBeEnabled();
+  expect(
+    screen.queryByRole('button', { name: /discard/i }),
+  ).not.toBeInTheDocument();
+});
+
+test('should render an enabled "Discard" button when there are unsaved changes', () => {
+  const unsavedState = {
+    ...editableState,
+    dashboardState: {
+      ...editableState.dashboardState,
+      hasUnsavedChanges: true,
+    },
+  };
+  setup(unsavedState);
+  expect(screen.getByRole('button', { name: /discard/i })).toBeEnabled();
+  expect(
+    screen.queryByRole('button', { name: /exit edit mode/i }),
+  ).not.toBeInTheDocument();
 });
 
 test('should render the "Save" button as disabled', () => {
@@ -545,6 +570,34 @@ test('should save', () => {
   expect(onSave).not.toHaveBeenCalled();
   userEvent.click(save);
   expect(onSave).toHaveBeenCalledTimes(1);
+});
+
+test('should block saving and surface the size, limit, and config key when the layout exceeds the limit', () => {
+  const oversizedState = {
+    ...editableState,
+    dashboardState: {
+      ...editableState.dashboardState,
+      hasUnsavedChanges: true,
+    },
+    dashboardInfo: {
+      ...editableState.dashboardInfo,
+      common: {
+        conf: {
+          ...editableState.dashboardInfo.common.conf,
+          // any non-empty layout serializes to more than 1 character
+          SUPERSET_DASHBOARD_POSITION_DATA_LIMIT: 1,
+        },
+      },
+    },
+  };
+  setup(oversizedState);
+  userEvent.click(screen.getByText('Save'));
+  expect(onSave).not.toHaveBeenCalled();
+  expect(addDangerToast).toHaveBeenCalledTimes(1);
+  const message = addDangerToast.mock.calls[0][0];
+  expect(message).toContain('too large to save');
+  expect(message).toContain('the limit is 1');
+  expect(message).toContain('SUPERSET_DASHBOARD_POSITION_DATA_LIMIT');
 });
 
 test('should NOT render the "Draft" status', () => {

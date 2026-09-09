@@ -52,7 +52,7 @@ import {
 } from 'src/dashboard/actions/chartCustomizationActions';
 
 import { useImmer } from 'use-immer';
-import { isEmpty, isEqual, debounce } from 'lodash';
+import { isEmpty, isEqual, debounce } from 'lodash-es';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
 import { applicationRoot } from 'src/utils/getBootstrapData';
@@ -142,9 +142,11 @@ const publishDataMask = debounce(
 
     // pathname could be updated somewhere else through window.history
     // keep react router history in sync with window history
-    // replace params only when current page is /superset/dashboard
+    // replace params only when current page is a dashboard route under the
+    // configured applicationRoot (e.g. `/dashboard/...` for root deploy,
+    // `/superset/dashboard/...` for the legacy subdir deploy).
     // this prevents a race condition between updating filters and navigating to Explore
-    if (window.location.pathname.includes('/superset/dashboard')) {
+    if (window.location.pathname.startsWith(`${applicationRoot()}/dashboard`)) {
       // The history API is part of React router and understands that a basename may exist.
       // Internally it treats all paths as if they are relative to the root and appends
       // it when necessary. We strip any prefix so that history.replace adds it back and doesn't
@@ -460,9 +462,17 @@ const FilterBar: FC<FiltersBarProps> = ({
       pendingChartCustomizations &&
       Object.keys(pendingChartCustomizations).length > 0
     ) {
-      const pendingItems = Object.values(pendingChartCustomizations).filter(
-        Boolean,
-      ) as (ChartCustomization | ChartCustomizationDivider)[];
+      // Skip pending items no longer in the config; re-saving a deleted one
+      // makes the backend append it back, resurrecting the control.
+      const existingCustomizationIds = new Set(
+        chartCustomizationValues.map(item => item.id),
+      );
+      const pendingItems = (
+        Object.values(pendingChartCustomizations).filter(Boolean) as (
+          | ChartCustomization
+          | ChartCustomizationDivider
+        )[]
+      ).filter(item => existingCustomizationIds.has(item.id));
 
       if (pendingItems.length > 0) {
         dispatch(saveChartCustomization(pendingItems, []));
@@ -508,22 +518,21 @@ const FilterBar: FC<FiltersBarProps> = ({
       // Only clear in-scope filters
       if (!inScopeFilterIds.has(id)) return;
 
-      // Range filters use [null, null] as the cleared value; others use undefined
-      const clearedValue =
-        filterType === 'filter_range' ? [null, null] : undefined;
+      // Cleared values stage as explicit null ([null, null] for ranges), never
+      // undefined: the select plugin's init effect treats undefined as
+      // "uninitialized" and would re-apply default values once the clear-all
+      // trigger completes.
+      const clearedValue = filterType === 'filter_range' ? [null, null] : null;
       const isRequired = !!filter.controlValues?.enableEmptyFilter;
       if (dataMaskSelected[id]) {
         // Stage the cleared value locally; do NOT dispatch to Redux here.
         // Persistence happens when the user clicks Apply.
         setDataMaskSelected(draft => {
-          if (draft[id].filterState?.value !== undefined) {
-            draft[id].filterState!.value = clearedValue;
-          }
           draft[id].extraFormData = {};
-          if (draft[id].filterState) {
-            draft[id].filterState!.validateStatus = isRequired
-              ? 'error'
-              : undefined;
+          const { filterState } = draft[id];
+          if (filterState) {
+            filterState.value = clearedValue;
+            filterState.validateStatus = isRequired ? 'error' : undefined;
           }
         });
         newClearAllTriggers[id] = true;
@@ -671,6 +680,7 @@ const FilterBar: FC<FiltersBarProps> = ({
         }
         toggleFiltersBar={verticalConfig.toggleFiltersBar}
         width={verticalConfig.width}
+        mobileMode={verticalConfig.mobileMode}
         clearAllTriggers={clearAllTriggers}
         onClearAllComplete={handleClearAllComplete}
       />

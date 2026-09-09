@@ -36,13 +36,11 @@ from superset.mcp_service.chart.chart_helpers import (
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
-    CHART_FORM_DATA_EXCLUDED_FIELD_NAMES,
     ChartError,
     ChartFiltersInfo,
     ChartInfo,
     extract_filters_from_form_data,
     GetChartInfoRequest,
-    sanitize_chart_info_for_llm_context,
     serialize_chart_object,
 )
 from superset.mcp_service.mcp_core import ModelGetInfoCore
@@ -50,7 +48,6 @@ from superset.mcp_service.privacy import (
     redact_chart_data_model_fields,
     user_can_view_data_model_metadata,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
 
 logger = logging.getLogger(__name__)
 
@@ -78,23 +75,15 @@ def _build_unsaved_chart_info(form_data_key: str) -> ChartInfo | ChartError:
             error="Cached form_data is not a valid JSON object.",
             error_type="ParseError",
         )
-    return sanitize_chart_info_for_llm_context(
-        ChartInfo(
-            viz_type=form_data.get("viz_type"),
-            datasource_name=form_data.get("datasource_name"),
-            datasource_type=form_data.get("datasource_type"),
-            filters=extract_filters_from_form_data(form_data),
-            form_data=form_data,
-            form_data_key=form_data_key,
-            is_unsaved_state=True,
-        )
+    return ChartInfo(
+        viz_type=form_data.get("viz_type"),
+        datasource_name=form_data.get("datasource_name"),
+        datasource_type=form_data.get("datasource_type"),
+        filters=extract_filters_from_form_data(form_data),
+        form_data=form_data,
+        form_data_key=form_data_key,
+        is_unsaved_state=True,
     )
-
-
-FORM_DATA_OVERRIDE_EXCLUDED_FIELD_NAMES = (
-    CHART_FORM_DATA_EXCLUDED_FIELD_NAMES
-    | frozenset({"cache_key", "database", "database_name", "schema"})
-)
 
 
 async def _validate_chart_dataset_access(
@@ -106,13 +95,17 @@ async def _validate_chart_dataset_access(
     Logs any non-fatal warnings (e.g., virtual dataset warnings) via ctx.
     """
     from superset.daos.chart import ChartDAO
+    from superset.mcp_service import guest_scope
 
     if not result.id:
+        return None
+    # Guests read via the dashboard context, not dataset RBAC; skip the perm-check.
+    if guest_scope.is_guest_read():
         return None
     chart = ChartDAO.find_by_id(result.id)
     if not chart:
         return None
-    validation_result = validate_chart_dataset(chart, check_access=True)
+    validation_result = validate_chart_dataset(chart.datasource_id, check_access=True)
     if not validation_result.is_valid:
         await ctx.warning(
             "Chart found but dataset is not accessible: %s" % (validation_result.error,)
@@ -170,6 +163,21 @@ def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None
             # Update viz_type from cached form_data if present
             if result.form_data and "viz_type" in result.form_data:
                 result.viz_type = result.form_data["viz_type"]
+                if result.viz_type:
+                    try:
+                        from superset.mcp_service.chart.registry import (
+                            display_name_for_viz_type,
+                        )
+
+                        result.chart_type_display_name = display_name_for_viz_type(
+                            result.viz_type
+                        )
+                    except Exception as exc:  # noqa: BLE001
+                        logger.debug(
+                            "Failed to resolve display name for viz_type=%r: %s",
+                            result.viz_type,
+                            exc,
+                        )
 
             # Update filters from cached form_data
             result.filters = extract_filters_from_form_data(result.form_data)
@@ -185,23 +193,6 @@ def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None
             "The cache may have expired. Using saved chart configuration."
         )
 
-    payload = result.model_dump(mode="python")
-    if payload.get("filters") is not None:
-        payload["filters"] = sanitize_for_llm_context(
-            payload["filters"],
-            field_path=("filters",),
-            excluded_field_names=frozenset(),
-        )
-    if payload.get("form_data") is not None:
-        payload["form_data"] = sanitize_for_llm_context(
-            payload["form_data"],
-            field_path=("form_data",),
-            excluded_field_names=FORM_DATA_OVERRIDE_EXCLUDED_FIELD_NAMES,
-        )
-    sanitized = ChartInfo.model_validate(payload)
-    result.filters = sanitized.filters
-    result.form_data = sanitized.form_data
-
 
 @tool(
     tags=["discovery"],
@@ -210,6 +201,7 @@ def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None
         title="Get chart info",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_chart_info(
@@ -292,12 +284,15 @@ async def get_chart_info(
     # branch returned above).
     assert request.identifier is not None
 
-    # Eager load tags to avoid N+1 queries during serialization.
+    # Eager load editors and tags to avoid N+1 queries during serialization
     eager_options = [
+        subqueryload(Slice.editors),
         subqueryload(Slice.tags),
     ]
 
     with event_logger.log_context(action="mcp.get_chart_info.lookup"):
+        # Resolution is guest-scoped by ChartFilter; the dataset perm-check below
+        # skips guests internally.
         tool = ModelGetInfoCore(
             dao_class=ChartDAO,
             output_schema=ChartInfo,
@@ -307,7 +302,6 @@ async def get_chart_info(
             logger=logger,
             query_options=eager_options,
         )
-
         result = tool.run_tool(request.identifier)
 
     if isinstance(result, ChartInfo):
@@ -330,7 +324,7 @@ async def get_chart_info(
             "is_unsaved_state=%s" % (result.slice_name, result.is_unsaved_state)
         )
 
-        # Validate the chart's dataset is accessible
+        # Validate the chart's dataset is accessible (skips guests internally).
         dataset_error = await _validate_chart_dataset_access(result, ctx)
         if dataset_error is not None:
             return dataset_error
