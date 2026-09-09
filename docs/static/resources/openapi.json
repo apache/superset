@@ -19974,6 +19974,10 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "names": {
+                      "description": "A map of native filter id to that filter's human-readable label, for the filter ids present in `value`. Cross-referenced from the dashboard's native filter configuration, since the cached `value` itself has no notion of a filter's label.",
+                      "type": "object"
+                    },
                     "value": {
                       "description": "The stored value",
                       "type": "string"
