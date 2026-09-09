@@ -87,7 +87,11 @@ class ImportChartsCommand(ImportModelsCommand):
             ):
                 config["database_id"] = database_ids[config["database_uuid"]]
                 dataset = import_dataset(config, overwrite=False)
-                datasets[str(dataset.uuid)] = dataset
+                # Key on the bundle's own uuid, which is what the bundle's
+                # charts reference. An import that resolves onto an existing
+                # dataset by physical identity returns a row whose uuid
+                # differs, and keying on that would strand those charts.
+                datasets[str(config["uuid"])] = dataset
 
         # Resolve the creator's default viewers once for the whole bundle
         # rather than once per chart (a membership query each).
