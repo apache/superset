@@ -532,10 +532,6 @@ export default typedMemo(function DataTable<D extends object>({
   let resultOnPageChange: (page: number) => void = gotoPage;
   if (serverPagination) {
     const serverPageSize = serverPaginationData?.pageSize ?? initialPageSize;
-    resultPageCount = Math.ceil(rowCount / serverPageSize);
-    if (!Number.isFinite(resultPageCount)) {
-      resultPageCount = 0;
-    }
     resultCurrentPageSize = serverPageSize;
     const exactMatch = pageSizeOptions.some(
       ([option]) => option === resultCurrentPageSize,
@@ -552,9 +548,16 @@ export default typedMemo(function DataTable<D extends object>({
         resultCurrentPageSize = 0;
       }
     }
+    // Use the fallback-adjusted page size (not the raw, possibly invalid
+    // serverPageSize) so the page count and the server callback stay in
+    // sync with what the selector actually displays.
+    resultPageCount = Math.ceil(rowCount / resultCurrentPageSize);
+    if (!Number.isFinite(resultPageCount)) {
+      resultPageCount = 0;
+    }
     resultCurrentPage = serverPaginationData?.currentPage ?? 0;
     resultOnPageChange = (pageNumber: number) =>
-      onServerPaginationChange(pageNumber, serverPageSize);
+      onServerPaginationChange(pageNumber, resultCurrentPageSize);
   }
 
   return (
