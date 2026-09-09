@@ -699,10 +699,16 @@ async def get_chart_data(  # noqa: C901
                 guest_scope.authorize_query(query_context, guest_dashboard_id, chart)
 
             datasource = getattr(query_context, "datasource", None)
+            datasource_id = getattr(datasource, "id", None)
+            datasource_type = getattr(datasource, "type", None)
+            if not isinstance(datasource_id, (int, str)):
+                datasource_id = chart.datasource_id
+            if not isinstance(datasource_type, str):
+                datasource_type = chart.datasource_type
             set_query_context_form_data(
                 query_context,
-                getattr(datasource, "id", None) or chart.datasource_id,
-                str(getattr(datasource, "type", None) or chart.datasource_type),
+                datasource_id,
+                str(datasource_type),
             )
 
             # Execute the query
