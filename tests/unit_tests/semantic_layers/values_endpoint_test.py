@@ -106,6 +106,7 @@ def test_semantic_view_values_endpoint_passes_search_to_the_provider(
 
     assert response.status_code == 200
     implementation = semantic_view_datasource.implementation
+    assert isinstance(implementation, MagicMock)
     _, filters = implementation.get_values.call_args.args
     (narrowing,) = filters
     assert narrowing.value == "%oo%"
