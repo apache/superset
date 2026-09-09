@@ -639,10 +639,10 @@ def _deck_query_adapter(  # noqa: C901
         if not isinstance(line_column, str) or not line_column:
             raise ValueError("Line column is required for Path charts")
         columns = list(base_columns)
-        metrics = list(base_metrics)
+        metrics = [metric for metric in base_metrics if _is_deck_metric_value(metric)]
         groupby = list(query.get("groupby") or [])
         metric = form_data.get("metric")
-        if base_metrics or metric:
+        if metrics or metric:
             if metric and metric not in metrics:
                 metrics.append(metric)
             if line_column and line_column not in groupby:

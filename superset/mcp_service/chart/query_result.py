@@ -1180,7 +1180,9 @@ def _metadata_shape_error(  # noqa: C901
             parsed = datetime.fromisoformat(normalized)
         except ValueError:
             return _invalid_metadata(label)
-        if parsed.tzinfo is None or parsed.utcoffset() != timedelta(0):
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        if parsed.utcoffset() != timedelta(0):
             return _invalid_metadata(label)
         canonical_timestamp = parsed.astimezone(timezone.utc).isoformat()
         original_size = _json_string_size(timestamp, MAX_RESULT_STRING_LENGTH)
