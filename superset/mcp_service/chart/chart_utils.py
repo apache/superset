@@ -49,6 +49,7 @@ from superset.mcp_service.chart.schemas import (
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    RadarChartConfig,
     SortByConfig,
     TableChartConfig,
     WaterfallChartConfig,
@@ -1067,6 +1068,27 @@ def map_gauge_config(config: GaugeChartConfig) -> Dict[str, Any]:
     return form_data
 
 
+def map_radar_config(config: RadarChartConfig) -> Dict[str, Any]:
+    """Map radar config to Superset form_data (viz_type ``radar``).
+
+    Matches the frontend Radar buildQuery contract: multiple ``metrics`` form
+    the axes and an optional ``groupby`` list splits the data into one polygon
+    per category. ``sort_by_metric`` makes the shared query builder order by
+    the first metric descending (as ``Radar/buildQuery.ts`` does), so a
+    row_limit keeps the top-N polygons deterministically.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "radar",
+        "metrics": [create_metric_object(m) for m in config.metrics],
+        "groupby": [g.name for g in (config.groupby or [])],
+        "sort_by_metric": True,
+        "row_limit": config.row_limit,
+        "color_scheme": config.color_scheme or "supersetColors",
+    }
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
 def map_histogram_config(config: "HistogramChartConfig") -> Dict[str, Any]:
     """Map histogram config to Superset form_data (viz_type histogram_v2).
 
@@ -1587,6 +1609,18 @@ def _gauge_chart_what(config: GaugeChartConfig) -> str:
         if dims:
             return f"{metric_label} by {dims}"
     return f"{metric_label}"
+
+
+def _radar_chart_what(config: RadarChartConfig) -> str:
+    """Build the 'what' portion for a radar chart name."""
+    metric_labels = ", ".join(
+        (m.label or m.name or m.sql_expression or "") for m in config.metrics
+    )
+    if config.groupby:
+        dims = ", ".join(g.name for g in config.groupby if g.name)
+        if dims:
+            return f"{metric_labels} by {dims}"
+    return f"{metric_labels}"
 
 
 def _pivot_table_what(config: PivotTableChartConfig) -> str:
