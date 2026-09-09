@@ -504,9 +504,10 @@ class DashboardInfo(BaseModel):
     filter_state: Dict[str, Any] | None = Field(
         default=None,
         description=(
-            "Filter state from permalink. Contains dataMask (native filter values), "
-            "activeTabs, anchor, and urlParams. When present, represents the actual "
-            "filters the user has applied to the dashboard. For users without "
+            "Filter state from a permalink snapshot or caller-supplied context. "
+            "Contains dataMask (native filter values), activeTabs, anchor, and "
+            "urlParams. A shared snapshot does not prove the requesting user "
+            "selected these values. For users without "
             "data-model metadata access, dataMask and chartStates are omitted. "
             "native_filter_values provides configured filter names, types and selected "
             "values without targets. native_filter_values_incomplete signals omitted "
