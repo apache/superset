@@ -395,6 +395,7 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
 - chart_type="table": Data table for detailed views
 - chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
 - chart_type="pie": Pie chart for proportional data (set donut=True for donut)
+- chart_type="gauge": Dial display for a metric (optional grouping creates multiple dials)
 - chart_type="sunburst": Hierarchical part-to-whole chart (hierarchy + metric
   required; optional secondary_metric colors arcs by its ratio to the primary)
 - chart_type="pivot_table": OSS Pivot Table for cross-tabulation

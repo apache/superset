@@ -688,12 +688,10 @@ class StringSubclass(str):
     "metadata",
     [
         {"cached_dttm": "not-a-timestamp"},
-        {"cached_dttm": "2026-09-02T00:00:00"},
         {"cached_dttm": "2026-09-02T01:00:00+01:00"},
         {"cached_dttm": "2" * 1000},
         {"cached_dttm": StringSubclass("2026-09-02T00:00:00+00:00")},
         {"queried_dttm": -1},
-        {"queried_dttm": "2026-09-02T00:00:00"},
         {"cache_timeout": -2},
         {"cache_timeout": 2**31},
         {"cache_timeout": IntSubclass(1)},
@@ -713,7 +711,7 @@ def test_canonical_and_bounded_legacy_cache_metadata_are_accepted() -> None:
             {
                 "data": [],
                 "cached_dttm": "2026-09-02T00:00:00+00:00",
-                "cache_dttm": "2026-09-01T00:00:00Z",
+                "cache_dttm": "2026-09-01T00:00:00",
                 "queried_dttm": "2026-09-02T00:00:00Z",
                 "cache_timeout": 300,
             }

@@ -21,7 +21,8 @@ MCP tool: get_chart_data
 
 import logging
 import time
-from typing import Any, Dict, List, TYPE_CHECKING
+from types import SimpleNamespace
+from typing import Any, cast, Dict, List, TYPE_CHECKING
 from uuid import UUID
 
 from fastmcp import Context
@@ -1238,13 +1239,31 @@ async def _query_from_form_data(  # noqa: C901
             f"Contains {len(data)} rows across {len(raw_columns)} columns."
         )
 
+        limited_data = data[: request.limit] if request.limit else data
+        performance = PerformanceMetadata(
+            query_duration_ms=0,
+            cache_status="fresh_query",
+        )
+        unsaved_chart = cast(
+            "Slice",
+            SimpleNamespace(id=0, slice_name=chart_name, viz_type=viz_type),
+        )
+        if request.format == "csv":
+            return _export_data_as_csv(
+                unsaved_chart, limited_data, raw_columns, cache_status, performance
+            )
+        if request.format == "excel":
+            return _export_data_as_excel(
+                unsaved_chart, limited_data, raw_columns, cache_status, performance
+            )
+
         await ctx.report_progress(4, 4, "Building response")
         response = ChartData(
             chart_id=0,
             chart_name=chart_name,
             chart_type=viz_type,
             columns=columns,
-            data=data[: request.limit] if request.limit else data,
+            data=limited_data,
             query_results=_build_query_results(result["queries"], request.limit),
             row_count=len(data),
             total_rows=query_result.get("rowcount"),
@@ -1253,10 +1272,7 @@ async def _query_from_form_data(  # noqa: C901
             data_quality=format_data_quality(columns, len(data)),
             recommended_visualizations=[],
             data_freshness=None,
-            performance=PerformanceMetadata(
-                query_duration_ms=0,
-                cache_status="fresh_query",
-            ),
+            performance=performance,
             cache_status=cache_status,
         )
         return response

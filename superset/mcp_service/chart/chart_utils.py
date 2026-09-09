@@ -1444,6 +1444,34 @@ _SUNBURST_UPDATE_FIELD_KEYS: dict[str, str] = {
 # Paths below also cover nested axis/legend models so an omitted nested property
 # is not mistaken for an explicit clear of the whole control.
 _MODELED_UPDATE_CONTROL_PATHS: dict[str, dict[str, tuple[tuple[str, ...], ...]]] = {
+    "GaugeChartConfig": {
+        key: ((key,),)
+        for key in (
+            "sort_by_metric",
+            "row_limit",
+            "min_val",
+            "max_val",
+            "color_scheme",
+            "font_size",
+            "number_format",
+            "currency_format",
+            "value_formatter",
+            "start_angle",
+            "end_angle",
+            "show_pointer",
+            "animation",
+            "show_axis_tick",
+            "show_split_line",
+            "split_number",
+            "show_progress",
+            "overlap",
+            "round_cap",
+            "intervals",
+            "interval_color_indices",
+            "time_range",
+            "granularity_sqla",
+        )
+    },
     "PieChartConfig": {
         "color_scheme": (("color_scheme",),),
         "show_labels": (("show_labels",),),
@@ -1912,6 +1940,9 @@ def merge_form_data_for_update(  # noqa: C901
 
     if grain_set and config.time_grain is not None:
         merged["time_grain_sqla"] = config.time_grain
+
+    if "time_range" in fields_set and config.time_range is not None:
+        merged["time_range"] = config.time_range
 
     for key in ("extra_form_data", "standardizedFormData", "url_params"):
         if merged.get(key) is None:

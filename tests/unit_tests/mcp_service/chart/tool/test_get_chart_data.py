@@ -613,8 +613,13 @@ class _AsyncContext:
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("path", "response_format"),
-    [("unsaved", "json"), ("saved", "json"), ("cached-update", "csv")],
-    ids=["unsaved-json", "saved-json", "cached-update-csv"],
+    [
+        ("unsaved", "json"),
+        ("unsaved", "csv"),
+        ("saved", "json"),
+        ("cached-update", "csv"),
+    ],
+    ids=["unsaved-json", "unsaved-csv", "saved-json", "cached-update-csv"],
 )
 @pytest.mark.parametrize("missing_metrics", [False, True])
 @pytest.mark.parametrize("cache_timeout", [-1, 0, 300])

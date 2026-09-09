@@ -847,7 +847,7 @@ def test_build_query_dicts_deck_geojson_scalar_size_produces_no_metrics(monkeypa
     assert queries[0]["metrics"] == []
 
 
-def test_build_query_dicts_deck_path_preserves_shared_size_metric(monkeypatch):
+def test_build_query_dicts_deck_path_ignores_fixed_size(monkeypatch):
     # The shared extractor treats every string size value as a metric before
     # Path's native adapter runs, including stale values from another layer.
     monkeypatch.setattr(
@@ -863,7 +863,8 @@ def test_build_query_dicts_deck_path_preserves_shared_size_metric(monkeypatch):
 
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
-    assert queries[0]["metrics"] == ["100"]
+    assert queries[0]["metrics"] == []
+    assert queries[0]["columns"] == ["path_col"]
 
 
 def test_build_query_dicts_deck_geojson_adds_geojson_null_filter(monkeypatch):

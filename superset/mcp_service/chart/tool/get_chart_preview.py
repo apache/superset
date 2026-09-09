@@ -240,8 +240,8 @@ class PreviewFormatStrategy:
             datasource_type=self.chart.datasource_type,
             chart_id=self.chart.id,
         )
-        if self.chart.viz_type == "gauge_chart":
-            canonical["viz_type"] = "gauge_chart"
+        if self.chart.viz_type:
+            canonical["viz_type"] = self.chart.viz_type
         return canonical
 
     def _seed_query_context_form_data(self, query_context: Any) -> None:
