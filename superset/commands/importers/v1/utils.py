@@ -22,6 +22,7 @@ import yaml
 from flask import current_app
 from marshmallow import fields, Schema, validate
 from marshmallow.exceptions import ValidationError
+from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -585,6 +586,59 @@ def find_existing_for_import(model_cls: type[Any], uuid: str) -> Any | None:
         db.session.query(model_cls)
         .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {model_cls}})
         .filter_by(uuid=uuid)
+        .first()
+    )
+
+
+def find_existing_by_import_identity(
+    model_cls: type[Any], config: dict[str, Any]
+) -> Any | None:
+    """Look up an active row by the identity an import would bind it to.
+
+    ``ImportExportMixin.import_from_dict`` does not match on ``uuid`` alone: it
+    matches on a disjunction of *every* unique constraint the model declares,
+    dropping the keys the incoming config leaves null. A config carrying a
+    fresh ``uuid`` can therefore still be matched-and-updated onto an existing
+    row through one of those other constraints.
+
+    A caller that gates an overwrite on a ``uuid`` hit alone (see
+    :func:`find_existing_for_import`) would miss that row and let the import
+    update it ungated, so this resolves the same identity the import will,
+    using the model's own constraint metadata rather than a copy of it that can
+    drift. Returns ``None`` for models whose only unique key is ``uuid``.
+
+    Soft-deleted rows are excluded: they are invisible to
+    ``import_from_dict`` too, so they cannot be reached this way. Callers that
+    need them use :meth:`DatasetDAO.find_soft_deleted_logical_duplicate` and
+    friends, which apply the *semantic* identity rules (default-catalog
+    normalization) rather than mirroring the import lookup.
+
+    Results are ordered by primary key: not every logical unique constraint is
+    enforced physically (see ``SqlaTable.__table_args__``), so duplicates can
+    exist and the gate must pick the same row every time.
+    """
+    # pylint: disable=protected-access
+    predicates = []
+    for columns in model_cls._unique_constraints():
+        if "uuid" in columns:
+            continue
+        # Mirror ``import_from_dict``: a key the config leaves null drops out of
+        # the predicate instead of being matched as ``IS NULL``.
+        terms = [
+            getattr(model_cls, column) == config[column]
+            for column in sorted(columns)
+            if config.get(column) is not None
+        ]
+        if terms:
+            predicates.append(and_(*terms))
+
+    if not predicates:
+        return None
+
+    return (
+        db.session.query(model_cls)
+        .filter(or_(*predicates))
+        .order_by(model_cls.id)
         .first()
     )
 

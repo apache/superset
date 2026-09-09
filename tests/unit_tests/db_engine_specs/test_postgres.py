@@ -43,6 +43,72 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
 @pytest.mark.parametrize(
+    "unit",
+    [
+        "SECOND",
+        "MINUTE",
+        "HOUR",
+        "DAY",
+        "WEEK",
+        "MONTH",
+        "QUARTER",
+        "YEAR",
+        "quarter",
+        "QuArTeR",
+    ],
+)
+def test_normalize_custom_sql_metric_date_trunc_unit(unit: str) -> None:
+    """DATE_TRUNC unit casing matches PostgreSQL time-grain templates."""
+    expression: str = (
+        f"CASE WHEN DATE_TRUNC('{unit}', created_at) = '2024-01-01' "
+        "THEN COUNT(*) / 1000 END"
+    )
+
+    assert spec.normalize_custom_sql_metric(expression) == (
+        f"CASE WHEN DATE_TRUNC('{unit.lower()}', created_at) = '2024-01-01' "
+        "THEN COUNT(*) / 1000 END"
+    )
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "'QUARTER'",
+        "OTHER_DATE_TRUNC('QUARTER', created_at)",
+        "custom.DATE_TRUNC('QUARTER', created_at)",
+        "DATE_TRUNC(grain, created_at)",
+        "DATE_TRUNC('FISCAL_QUARTER', created_at)",
+        'DATE_TRUNC("QUARTER", created_at)',
+        "'DATE_TRUNC(''QUARTER'', created_at)'",
+    ],
+)
+def test_normalize_custom_sql_metric_does_not_rewrite_unrelated_sql(
+    expression: str,
+) -> None:
+    assert spec.normalize_custom_sql_metric(expression) == expression
+
+
+def test_normalize_custom_sql_metric_preserves_source_around_multiple_calls() -> None:
+    expression: str = (
+        "/* lead */ CASE WHEN DATE_TRUNC('QUARTER', created_at) = start_date\n"
+        "THEN DATE_TRUNC('MONTH', created_at) END /* tail */"
+    )
+
+    assert spec.normalize_custom_sql_metric(expression) == (
+        "/* lead */ CASE WHEN DATE_TRUNC('quarter', created_at) = start_date\n"
+        "THEN DATE_TRUNC('month', created_at) END /* tail */"
+    )
+
+
+def test_normalize_custom_sql_metric_normalizes_pg_catalog_date_trunc() -> None:
+    expression: str = "pg_catalog.DATE_TRUNC('QUARTER', created_at)"
+
+    assert spec.normalize_custom_sql_metric(expression) == (
+        "pg_catalog.DATE_TRUNC('quarter', created_at)"
+    )
+
+
+@pytest.mark.parametrize(
     "target_type,expected_result",
     [
         ("Date", "TO_DATE('2019-01-02', 'YYYY-MM-DD')"),
@@ -417,6 +483,40 @@ def test_get_timestamp_expr_datetime_column_not_cast() -> None:
     col = column("event_ts", type_=types.DateTime())
     expr = spec.get_timestamp_expr(col, None, "P1D")
     assert _compile(expr) == "DATE_TRUNC('day', event_ts)"
+
+
+def test_get_timestamp_expr_string_column_casts_to_timestamp() -> None:
+    """DB Eng Specs (postgres): temporal string columns are cast before truncation."""
+    col = column("event_timestamp", type_=types.String())
+    expr = spec.get_timestamp_expr(col, None, "P1D")
+    assert _compile(expr) == "DATE_TRUNC('day', CAST(event_timestamp AS TIMESTAMP))"
+
+
+def test_get_timestamp_expr_string_column_without_grain_not_cast() -> None:
+    """DB Eng Specs (postgres): strings without a time grain remain unchanged."""
+    col = column("event_timestamp", type_=types.String())
+    expr = spec.get_timestamp_expr(col, None, None)
+    assert _compile(expr) == "event_timestamp"
+
+
+def test_get_timestamp_expr_epoch_string_column_not_cast() -> None:
+    """DB Eng Specs (postgres): timestamp casts are not added to epoch expressions."""
+    col = column("event_timestamp", type_=types.String())
+    expr = spec.get_timestamp_expr(col, "epoch_s", "P1D")
+    assert _compile(expr) == (
+        "DATE_TRUNC('day', (timestamp 'epoch' + event_timestamp * interval '1 second'))"
+    )
+
+
+def test_get_timestamp_expr_string_column_casts_every_grain_reference() -> None:
+    """DB Eng Specs (postgres): compound grains cast every string reference."""
+    col = column("event_timestamp", type_=types.String())
+    expr = spec.get_timestamp_expr(col, None, "PT5S")
+    assert _compile(expr) == (
+        "DATE_TRUNC('minute', CAST(event_timestamp AS TIMESTAMP)) "
+        "+ INTERVAL '5 seconds' * "
+        "FLOOR(EXTRACT(SECOND FROM CAST(event_timestamp AS TIMESTAMP)) / 5)"
+    )
 
 
 def test_get_timestamp_expr_date_column_without_grain_not_cast() -> None:
