@@ -2383,6 +2383,171 @@ def test_import_restore_blocked_by_active_twin_at_incoming_identity(
     assert existing.deleted_at is not None
 
 
+@pytest.mark.parametrize("config_catalog", ["public", None])
+def test_import_dataset_identity_collision_requires_overwrite_permission(
+    mocker: MockerFixture, session: Session, config_catalog: str | None
+) -> None:
+    """
+    A config with a fresh UUID but the physical identity of an existing ACTIVE
+    dataset must go through the same overwrite permission gate as a UUID match.
+
+    The ``None`` case matters on its own: ``import_from_dict`` drops null keys
+    from its uniqueness predicate, so a catalog-less config still reaches a
+    dataset stored under a catalog.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=False)
+    mocker.patch.object(security_manager, "is_admin", return_value=False)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    victim = SqlaTable(
+        table_name="salaries",
+        schema="finance",
+        catalog="public",
+        database_id=database.id,
+        uuid="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        sql="SELECT * FROM finance.salaries",
+    )
+    db.session.add(victim)
+    db.session.flush()
+
+    importer_user = User(
+        username="importer",
+        first_name="at",
+        last_name="tacker",
+        email="importer@example.com",
+    )
+
+    # Fresh UUID, but the same physical identity as ``victim``.
+    config = {
+        "table_name": "salaries",
+        "schema": "finance",
+        "catalog": config_catalog,
+        "sql": "SELECT * FROM finance.salaries -- clobbered",
+        "uuid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    with override_user(importer_user):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_dataset(copy.deepcopy(config), overwrite=True)
+    assert "overwrite" in str(excinfo.value).lower()
+
+    # The victim dataset must not have been clobbered.
+    assert victim.sql == "SELECT * FROM finance.salaries"
+
+
+def test_import_dataset_identity_collision_overwrites_in_place_for_editor(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Once the gate passes, an identity collision updates the existing dataset in
+    place rather than creating a twin, and the caller's config is left alone so
+    a bundle importer that re-reads or retries it still sees its own UUID.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    existing = SqlaTable(
+        table_name="salaries",
+        schema="finance",
+        catalog="public",
+        database_id=database.id,
+        uuid="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        sql="SELECT * FROM finance.salaries",
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    config = {
+        "table_name": "salaries",
+        "schema": "finance",
+        "catalog": "public",
+        "sql": "SELECT * FROM finance.salaries -- updated",
+        "uuid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    imported = import_dataset(config, overwrite=True)
+
+    assert imported.id == existing.id
+    assert imported.sql == "SELECT * FROM finance.salaries -- updated"
+    assert db.session.query(SqlaTable).count() == 1
+    assert config["uuid"] == "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+
+
+def test_import_dataset_identity_collision_with_duplicate_rows_returns_existing(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A config that omits the catalog matches every row sharing its (database,
+    schema, table), so it can be ambiguous. ``import_from_dict`` then raises
+    ``MultipleResultsFound`` and the legacy fallback returns the existing row
+    unmodified. It must not look the incoming UUID up again: on an identity
+    match that UUID belongs to no row, and the lookup would raise.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    for dataset_uuid, catalog in (
+        ("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "public"),
+        ("cccccccc-cccc-cccc-cccc-cccccccccccc", "private"),
+    ):
+        db.session.add(
+            SqlaTable(
+                table_name="salaries",
+                schema="finance",
+                catalog=catalog,
+                database_id=database.id,
+                uuid=dataset_uuid,
+                sql="SELECT * FROM finance.salaries",
+            )
+        )
+    db.session.flush()
+
+    config = {
+        "table_name": "salaries",
+        "schema": "finance",
+        "sql": "SELECT * FROM finance.salaries -- updated",
+        "uuid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    dataset = import_dataset(copy.deepcopy(config), overwrite=True)
+
+    assert str(dataset.uuid) == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    assert dataset.sql == "SELECT * FROM finance.salaries"
+
+
 def test_peer_validating_connection_blocks_rebound_peer() -> None:
     """
     The import fetch validates the connected peer address, so a hostname that
