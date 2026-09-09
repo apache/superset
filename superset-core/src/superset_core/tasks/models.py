@@ -120,11 +120,29 @@ class Task(CoreModel):
         """
         raise NotImplementedError("Property will be replaced during initialization")
 
+    @property
+    def properties_dict(self) -> "TaskProperties":
+        """
+        Get the parsed properties as a sparse ``TaskProperties`` dict.
+
+        The canonical read accessor for runtime state and execution config
+        (progress, error info, the internal ``private`` bucket). Always use
+        ``.get()`` since only explicitly-set keys are present.
+
+        Host implementations will replace this property during initialization.
+
+        :returns: Parsed ``TaskProperties`` dict
+        """
+        raise NotImplementedError("Property will be replaced during initialization")
+
     def update_properties(self, updates: "TaskProperties") -> None:
         """
         Update specific properties fields (merge semantics).
 
-        Only updates fields present in the updates dict.
+        Only updates fields present in the updates dict. The ``private`` subtree
+        is merged recursively (its ``framework``, ``task`` and ``subscription``
+        namespaces merge independently), so a write to one namespace never
+        clobbers the others.
 
         Host implementations will replace this method during initialization.
 
@@ -132,6 +150,23 @@ class Task(CoreModel):
 
         Example:
             task.update_properties({"is_abortable": True})
+        """
+        raise NotImplementedError("Method will be replaced during initialization")
+
+    def update_task_private(self, updates: dict[str, Any]) -> None:
+        """
+        Merge keys into the task-owned ``private["task"]`` namespace.
+
+        The freeform, task-type-specific internal namespace (isolated from the
+        framework-owned ``private["framework"]`` keys) for handles a task type
+        needs to persist but that are not task output — e.g. an engine query
+        cancel handle. A subscription policy's per-client bookkeeping belongs in
+        the separate ``private["subscription"]`` namespace instead. Never
+        surfaced to user-facing API payloads except in debug mode.
+
+        Host implementations will replace this method during initialization.
+
+        :param updates: Keys to merge into ``private["task"]``
         """
         raise NotImplementedError("Method will be replaced during initialization")
 
@@ -145,7 +180,9 @@ class TaskSubscriber(CoreModel):
 
     This model tracks task subscriptions for multi-user shared tasks. When a user
     schedules a shared task with the same parameters as an existing task,
-    they are subscribed to that task instead of creating a duplicate.
+    they are subscribed to that task instead of creating a duplicate. A subscriber
+    is identified by exactly one of ``user_id`` (authenticated) or ``guest_key``
+    (an embedded guest, which has no ``ab_user`` row).
     """
 
     __abstract__ = True
@@ -153,8 +190,36 @@ class TaskSubscriber(CoreModel):
     # Type hints for expected attributes (no actual field definitions)
     id: int
     task_id: int
-    user_id: int
+    user_id: int | None
+    guest_key: str | None
     subscribed_at: datetime
+
+    # Audit fields from AuditMixinNullable
+    created_on: datetime | None
+    changed_on: datetime | None
+    created_by_fk: int | None
+    changed_by_fk: int | None
+
+
+class TaskDependency(CoreModel):
+    """
+    Abstract TaskDependency model interface.
+
+    Host implementations will replace this class during initialization
+    with concrete implementation providing actual functionality.
+
+    This model represents a directed edge in the task dependency graph (DAG):
+    the task identified by ``task_id`` depends on the prerequisite task
+    identified by ``depends_on_task_id``. A task only runs once all of its
+    prerequisites have reached a terminal SUCCESS.
+    """
+
+    __abstract__ = True
+
+    # Type hints for expected attributes (no actual field definitions)
+    id: int
+    task_id: int  # The dependent task
+    depends_on_task_id: int  # The prerequisite task
 
     # Audit fields from AuditMixinNullable
     created_on: datetime | None
