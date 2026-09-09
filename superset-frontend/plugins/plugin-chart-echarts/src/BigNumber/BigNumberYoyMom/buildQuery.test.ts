@@ -120,4 +120,63 @@ describe('BigNumberYoyMom buildQuery', () => {
       expect.arrayContaining(['prev_month_sales']),
     );
   });
+
+  test('deduplicates a comparison metric sharing the main metric label', () => {
+    const queryContext = buildQuery({
+      ...baseFormData,
+      metric: 'COUNT(*)',
+      time_range: 'No filter',
+      comparison1_column: 'COUNT(*)',
+      comparison1_mode: 'metric',
+      comparison2_column: 'prev_year_sales',
+      comparison2_mode: 'metric',
+    });
+    expect(queryContext.queries[0].metrics).toEqual(
+      expect.arrayContaining(['COUNT(*)', 'prev_year_sales']),
+    );
+    // COUNT(*) is requested only once despite being configured twice.
+    const countOccurrences = queryContext.queries[0].metrics.filter(
+      metric => metric === 'COUNT(*)',
+    );
+    expect(countOccurrences).toHaveLength(1);
+  });
+
+  test('deduplicates two comparison metrics sharing a label', () => {
+    const queryContext = buildQuery({
+      ...baseFormData,
+      metric: 'value',
+      time_range: 'No filter',
+      comparison1_column: 'moom_value',
+      comparison1_mode: 'metric',
+      comparison2_column: { expressionType: 'SQL', sqlExpression: 'SUM(x)', label: 'moom_value' },
+      comparison2_mode: 'metric',
+    });
+    const metrics = queryContext.queries[0].metrics as unknown[];
+    expect(metrics.filter(m => String(m).includes('moom_value'))).toHaveLength(1);
+  });
+
+  test('downgrades an adhoc time column to a query column', () => {
+    const queryContext = buildQuery({
+      ...baseFormData,
+      granularity_sqla: {
+        expressionType: 'SQL',
+        sqlExpression: "STR_TO_DATE(CONCAT(CAST(report_date AS CHAR),'01'),'%Y%m%d')",
+        label: 'report_date_expr',
+      },
+    });
+    expect(queryContext.queries[0].granularity).toBeUndefined();
+    expect(queryContext.queries[0].columns).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ sqlExpression: expect.stringContaining('STR_TO_DATE') }),
+      ]),
+    );
+  });
+
+  test('keeps a physical time column as granularity', () => {
+    const queryContext = buildQuery({
+      ...baseFormData,
+      granularity_sqla: 'created_at',
+    });
+    expect(queryContext.queries[0].granularity).toBe('created_at');
+  });
 });
