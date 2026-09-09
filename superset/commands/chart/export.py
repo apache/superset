@@ -25,7 +25,10 @@ import yaml
 from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.daos.chart import ChartDAO
 from superset.commands.dataset.export import ExportDatasetsCommand
-from superset.commands.export.models import ExportModelsCommand
+from superset.commands.export.models import (
+    ExportModelsCommand,
+    get_extra_export_fields,
+)
 from superset.commands.tag.export import ExportTagsCommand
 from superset.models.slice import Slice
 from superset.tags.models import TagType
@@ -78,6 +81,9 @@ class ExportChartsCommand(ExportModelsCommand):
         if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
             tags = getattr(model, "tags", [])
             payload["tags"] = [tag.name for tag in tags if tag.type == TagType.custom]
+        if extra_fields := get_extra_export_fields(model, "chart"):
+            payload["extra"] = extra_fields
+
         file_content = yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
         return file_content
 

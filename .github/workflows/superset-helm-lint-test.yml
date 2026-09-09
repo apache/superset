@@ -49,7 +49,7 @@ jobs:
       # allowlist (only v8.1.0+ are, at apache/infrastructure-actions'
       # actions.yml). Needs an INFRA request before this can de-vendor too.
       - name: Set up chart-testing
-        uses: ./.github/actions/chart-testing-action
+        uses: $/.github/actions/chart-testing-action
 
       - name: Run chart-testing (list-changed)
         id: list-changed

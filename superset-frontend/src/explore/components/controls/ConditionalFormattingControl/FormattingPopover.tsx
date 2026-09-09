@@ -30,6 +30,7 @@ export const FormattingPopover = ({
   extraColorChoices,
   allColumns,
   metricOnly,
+  serverPagination,
   ...props
 }: FormattingPopoverProps) => {
   const [visible, setVisible] = useState(false);
@@ -53,6 +54,7 @@ export const FormattingPopover = ({
           extraColorChoices={extraColorChoices}
           allColumns={allColumns}
           metricOnly={metricOnly}
+          serverPagination={serverPagination}
         />
       }
       open={visible}

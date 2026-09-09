@@ -56,7 +56,7 @@ from superset.commands.semantic_layer.update import (
     UpdateSemanticLayerCommand,
     UpdateSemanticViewCommand,
 )
-from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
+from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, PASSWORD_MASK
 from superset.daos.semantic_layer import SemanticLayerDAO
 from superset.datasets.schemas import get_delete_ids_schema
 from superset.exceptions import SupersetSecurityException
@@ -81,10 +81,53 @@ from superset.views.base_api import (
 logger = logging.getLogger(__name__)
 
 
+def _mask_configuration(layer: SemanticLayer, config: dict[str, Any]) -> dict[str, Any]:
+    """
+    Redact configuration values the connector's schema marks as write-only.
+
+    A connector publishes its configuration shape via ``get_configuration_schema``;
+    a property with ``"writeOnly": true`` (the standard JSON Schema way of
+    marking a field that's set but never echoed back, e.g. a password or API
+    key) is replaced with ``PASSWORD_MASK`` here rather than returned in the
+    clear.
+    """
+    schema: dict[str, Any] | None = None
+    if cls := registry.get(layer.type):
+        try:
+            schema = cls.get_configuration_schema()
+        except Exception:  # pylint: disable=broad-except
+            schema = None
+
+    if schema is None:
+        # Either the type isn't registered or its schema couldn't load, so we
+        # can't tell which fields are secret. Fail closed: mask every truthy
+        # value rather than risk echoing a credential back in the clear.
+        logger.warning(
+            "Could not determine the configuration schema for semantic layer "
+            "type %s; masking all configuration values.",
+            layer.type,
+        )
+        return {key: PASSWORD_MASK if value else value for key, value in config.items()}
+
+    secret_keys = {
+        key
+        for key, prop in schema.get("properties", {}).items()
+        if isinstance(prop, dict) and prop.get("writeOnly")
+    }
+    if not secret_keys:
+        return config
+
+    return {
+        key: PASSWORD_MASK if key in secret_keys and value else value
+        for key, value in config.items()
+    }
+
+
 def _serialize_layer(layer: SemanticLayer) -> dict[str, Any]:
     config = layer.configuration
     if isinstance(config, str):
         config = json.loads(config)
+    config = _mask_configuration(layer, config or {})
     return {
         "uuid": str(layer.uuid),
         "name": layer.name,
@@ -558,6 +601,13 @@ class SemanticLayerRestApi(BaseSupersetApi):
         "types": "read",
         "configuration_schema": "read",
         "runtime_schema": "read",
+        # ``read`` (not the default ``can_views`` / ``can_connections``) so
+        # these stay broadly accessible: ``SemanticLayer`` is in
+        # ``READ_ONLY_MODEL_VIEWS``, where every permission outside
+        # ``READ_ONLY_PERMISSION`` is admin-only. Both are read operations
+        # (view discovery and the combined connection picker).
+        "views": "read",
+        "connections": "read",
     }
     openapi_spec_tag = "Semantic Layers"
     add_model_schema = SemanticLayerPostSchema()
@@ -683,6 +733,9 @@ class SemanticLayerRestApi(BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
+        if not is_feature_enabled("SEMANTIC_LAYERS"):
+            return self.response_404()
+
         layer = SemanticLayerDAO.find_by_uuid(uuid)
         if not layer:
             return self.response_404()
@@ -1164,6 +1217,9 @@ class SemanticLayerRestApi(BaseSupersetApi):
             401:
               $ref: '#/components/responses/401'
         """
+        if not is_feature_enabled("SEMANTIC_LAYERS"):
+            return self.response_404()
+
         layers = SemanticLayerDAO.find_all()
         result = [_serialize_layer(layer) for layer in layers]
         return self.response(200, result=result)
@@ -1192,6 +1248,9 @@ class SemanticLayerRestApi(BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
+        if not is_feature_enabled("SEMANTIC_LAYERS"):
+            return self.response_404()
+
         layer = SemanticLayerDAO.find_by_uuid(uuid)
         if not layer:
             return self.response_404()

@@ -19,8 +19,10 @@ from typing import Any, Callable, Dict, Optional, Type
 from zipfile import ZipFile
 
 import yaml
+from flask import current_app
 from marshmallow import fields, Schema, validate
 from marshmallow.exceptions import ValidationError
+from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -324,6 +326,20 @@ def load_configs(
                     )
                 exc.messages = {file_name: exc.messages}
                 exceptions.append(exc)
+            except json.JSONDecodeError as exc:
+                # masked_encrypted_extra comes straight from the imported YAML
+                # (before schema validation) and may not be valid JSON. Convert
+                # the raw decode error into a ValidationError so it flows into
+                # the aggregated CommandInvalidError like every other per-file
+                # validation failure, instead of escaping as an opaque 500.
+                logger.error(
+                    "Invalid JSON in masked_encrypted_extra for %s: %s",
+                    file_name,
+                    exc,
+                )
+                exceptions.append(
+                    ValidationError({file_name: {"masked_encrypted_extra": [str(exc)]}})
+                )
 
     return configs
 
@@ -574,6 +590,59 @@ def find_existing_for_import(model_cls: type[Any], uuid: str) -> Any | None:
     )
 
 
+def find_existing_by_import_identity(
+    model_cls: type[Any], config: dict[str, Any]
+) -> Any | None:
+    """Look up an active row by the identity an import would bind it to.
+
+    ``ImportExportMixin.import_from_dict`` does not match on ``uuid`` alone: it
+    matches on a disjunction of *every* unique constraint the model declares,
+    dropping the keys the incoming config leaves null. A config carrying a
+    fresh ``uuid`` can therefore still be matched-and-updated onto an existing
+    row through one of those other constraints.
+
+    A caller that gates an overwrite on a ``uuid`` hit alone (see
+    :func:`find_existing_for_import`) would miss that row and let the import
+    update it ungated, so this resolves the same identity the import will,
+    using the model's own constraint metadata rather than a copy of it that can
+    drift. Returns ``None`` for models whose only unique key is ``uuid``.
+
+    Soft-deleted rows are excluded: they are invisible to
+    ``import_from_dict`` too, so they cannot be reached this way. Callers that
+    need them use :meth:`DatasetDAO.find_soft_deleted_logical_duplicate` and
+    friends, which apply the *semantic* identity rules (default-catalog
+    normalization) rather than mirroring the import lookup.
+
+    Results are ordered by primary key: not every logical unique constraint is
+    enforced physically (see ``SqlaTable.__table_args__``), so duplicates can
+    exist and the gate must pick the same row every time.
+    """
+    # pylint: disable=protected-access
+    predicates = []
+    for columns in model_cls._unique_constraints():
+        if "uuid" in columns:
+            continue
+        # Mirror ``import_from_dict``: a key the config leaves null drops out of
+        # the predicate instead of being matched as ``IS NULL``.
+        terms = [
+            getattr(model_cls, column) == config[column]
+            for column in sorted(columns)
+            if config.get(column) is not None
+        ]
+        if terms:
+            predicates.append(and_(*terms))
+
+    if not predicates:
+        return None
+
+    return (
+        db.session.query(model_cls)
+        .filter(or_(*predicates))
+        .order_by(model_cls.id)
+        .first()
+    )
+
+
 def clear_soft_deleted_for_import(existing: Any) -> None:
     """Hard-delete a soft-deleted row to free its UUID for re-import.
 
@@ -594,3 +663,17 @@ def clear_soft_deleted_for_import(existing: Any) -> None:
     """
     db.session.delete(existing)
     db.session.flush()
+
+
+def apply_extra_import_fields(
+    model: Any, asset_type: str, extra: dict[str, Any] | None
+) -> None:
+    """Hand the exported ``extra`` mapping to the deployment's import handler.
+
+    No-op unless ``EXTRA_ASSET_IMPORT_HANDLER`` is configured, so imports are
+    unchanged by default. Called once the asset exists and has an id.
+    """
+    if not extra:
+        return
+    if handler := current_app.config.get("EXTRA_ASSET_IMPORT_HANDLER"):
+        handler(model, asset_type, extra)

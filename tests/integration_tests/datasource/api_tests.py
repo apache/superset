@@ -15,19 +15,128 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime
 from unittest.mock import ANY, patch
 
 import pytest
+from flask_appbuilder.security.sqla.models import PermissionView
 from sqlalchemy.sql.elements import TextClause
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.exceptions import DatasourceTypeNotSupportedError
 from superset.extensions import cache_manager
+from superset.models.core import Database
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
+
+
+@contextmanager
+def _semantic_views(*layer_names: str) -> Iterator[list[SemanticView]]:
+    """Persist one semantic view per named layer and remove them on exit.
+
+    Names are suffixed to stay unique across runs. The layer and view insert
+    hooks create the matching ``datasource_access`` permissions; the delete
+    hooks remove them again together with any role associations.
+    """
+    suffix = uuid.uuid4().hex
+    layers = [
+        SemanticLayer(
+            uuid=uuid.uuid4(),
+            name=f"{name}_{suffix}",
+            type="test",
+            configuration="{}",
+        )
+        for name in layer_names
+    ]
+    views = [
+        SemanticView(
+            uuid=uuid.uuid4(),
+            name=f"{layer.name}_view",
+            semantic_layer_uuid=layer.uuid,
+            configuration="{}",
+        )
+        for layer in layers
+    ]
+    db.session.add_all([*layers, *views])
+    db.session.commit()
+    try:
+        for obj in [*layers, *views]:
+            db.session.refresh(obj)
+        yield views
+    finally:
+        db.session.rollback()
+        for obj in [*views, *layers]:
+            db.session.delete(obj)
+        db.session.commit()
+
+
+@contextmanager
+def _gamma_granted(*pvms: tuple[str, str]) -> Iterator[None]:
+    """Grant ``(permission, view_menu)`` pairs to Gamma for the block's duration.
+
+    A permission-view that does not exist yet (``can_read SemanticView`` is only
+    registered when the semantic view API is mounted) is created and removed
+    again afterwards; one that already exists is left in place.
+    """
+    gamma = security_manager.find_role("Gamma")
+    assert gamma is not None
+    created: list[PermissionView] = []
+    granted: list[PermissionView] = []
+    for permission, view_menu in pvms:
+        pvm = security_manager.find_permission_view_menu(permission, view_menu)
+        if pvm is None:
+            pvm = security_manager.add_permission_view_menu(permission, view_menu)
+            created.append(pvm)
+        if pvm not in gamma.permissions:
+            security_manager.add_permission_role(gamma, pvm)
+            granted.append(pvm)
+    db.session.commit()
+    try:
+        yield
+    finally:
+        db.session.rollback()
+        for pvm in granted:
+            security_manager.del_permission_role(gamma, pvm)
+        for pvm in created:
+            security_manager.del_permission_view_menu(
+                pvm.permission.name, pvm.view_menu.name
+            )
+        db.session.commit()
+
+
+@contextmanager
+def _datasets_with_schemas() -> Iterator[str]:
+    """Persist two datasets under distinct, unique schemas; clean up on exit.
+
+    Yields a unique suffix so the caller can build the exact table and schema
+    names (``main_ds_<suffix>`` in schema ``main_<suffix>`` and
+    ``other_ds_<suffix>`` in schema ``other_<suffix>``). The unique schema name
+    guarantees the filter value cannot collide with pre-existing datasets.
+    """
+    suffix = uuid.uuid4().hex
+    database = Database(database_name=f"schema_db_{suffix}", sqlalchemy_uri="sqlite://")
+    main_ds = SqlaTable(
+        table_name=f"main_ds_{suffix}", schema=f"main_{suffix}", database=database
+    )
+    other_ds = SqlaTable(
+        table_name=f"other_ds_{suffix}", schema=f"other_{suffix}", database=database
+    )
+    db.session.add_all([database, main_ds, other_ds])
+    db.session.commit()
+    try:
+        yield suffix
+    finally:
+        db.session.rollback()
+        for obj in (main_ds, other_ds, database):
+            db.session.delete(obj)
+        db.session.commit()
 
 
 class TestDatasourceApi(SupersetTestCase):
@@ -477,3 +586,107 @@ class TestDatasourceApi(SupersetTestCase):
         response = json.loads(rv.data.decode("utf-8"))
         assert response == {"count": 0, "result": []}
         run_mock.assert_called_once()
+
+    def _list_semantic_views_as_gamma(self) -> tuple[int, set[str]]:
+        """Fetch the semantic-view slice of the combined list as Gamma."""
+        self.login(GAMMA_USERNAME)
+        rv = self.client.get(
+            "api/v1/datasource/?q="
+            "(filters:!((col:source_type,opr:eq,value:semantic_layer)),"
+            "order_column:table_name,order_direction:asc,page:0,page_size:25)"
+        )
+        payload = json.loads(rv.data.decode("utf-8"))
+        names = {item["table_name"] for item in payload.get("result", [])}
+        return rv.status_code, names
+
+    @with_feature_flags(SEMANTIC_LAYERS=True)
+    def test_combined_list_gamma_sees_views_of_granted_layers(self):
+        """A layer-level grant exposes that layer's views and no others."""
+        with _semantic_views("permitted", "denied") as (permitted, denied):
+            layer_perm = permitted.semantic_layer.perm
+            assert layer_perm is not None
+            # The layer insert hook creates this permission; a regression
+            # there must fail here rather than be papered over by the grant.
+            assert (
+                security_manager.find_permission_view_menu(
+                    "datasource_access", layer_perm
+                )
+                is not None
+            )
+            with _gamma_granted(
+                ("can_read", "SemanticView"), ("datasource_access", layer_perm)
+            ):
+                status, names = self._list_semantic_views_as_gamma()
+            assert status == 200
+            assert permitted.name in names
+            assert denied.name not in names
+
+    @with_feature_flags(SEMANTIC_LAYERS=True)
+    def test_combined_list_gamma_sees_individually_granted_views(self):
+        """A view-level grant exposes that view without touching other layers."""
+        with _semantic_views("granted", "other") as (granted, other):
+            view_perm = granted.perm
+            assert view_perm is not None
+            assert (
+                security_manager.find_permission_view_menu(
+                    "datasource_access", view_perm
+                )
+                is not None
+            )
+            with _gamma_granted(
+                ("can_read", "SemanticView"), ("datasource_access", view_perm)
+            ):
+                status, names = self._list_semantic_views_as_gamma()
+            assert status == 200
+            assert granted.name in names
+            assert other.name not in names
+
+    @with_feature_flags(SEMANTIC_LAYERS=True)
+    def test_combined_list_gamma_without_semantic_view_read_gets_none(self):
+        """Without can_read on SemanticView the semantic-layer slice is empty."""
+        gamma = security_manager.find_role("Gamma")
+        assert gamma is not None
+        read_pvm = security_manager.find_permission_view_menu(
+            "can_read", "SemanticView"
+        )
+        assert read_pvm is None or read_pvm not in gamma.permissions
+        with _semantic_views("layer") as (view,):
+            layer_perm = view.semantic_layer.perm
+            assert layer_perm is not None
+            with _gamma_granted(("datasource_access", layer_perm)):
+                status, names = self._list_semantic_views_as_gamma()
+            assert status == 200
+            assert names == set()
+
+    @with_feature_flags(SEMANTIC_LAYERS=True)
+    def test_combined_list_filters_by_schema(self):
+        """The schema filter narrows the combined list to matching datasets.
+
+        The per-run schema name is unique, so exactly one dataset can match:
+        the result set must equal ``{main_ds_<suffix>}``. That single exact-set
+        assertion proves both halves independently of pagination and of whatever
+        other datasets exist in the test database:
+
+        * ``other_ds`` (a different schema) is excluded by the WHERE clause —
+          were it dropped, the result would include the full dataset list.
+        * the semantic view (which has no schema) is excluded by the source-type
+          narrowing a schema filter triggers — with SEMANTIC_LAYERS on it would
+          otherwise appear in the combined ``all`` list, so its absence is
+          load-bearing, not incidental.
+        """
+        self.login(ADMIN_USERNAME)
+        with (
+            _datasets_with_schemas() as suffix,
+            _semantic_views("schema_filter"),
+        ):
+            rv = self.client.get(
+                "api/v1/datasource/?q="
+                f"(filters:!((col:schema,opr:eq,value:main_{suffix})),"
+                "order_column:table_name,order_direction:asc,page:0,page_size:100)"
+            )
+
+            assert rv.status_code == 200
+            payload = json.loads(rv.data.decode("utf-8"))
+            names = {item["table_name"] for item in payload["result"]}
+
+            assert names == {f"main_ds_{suffix}"}

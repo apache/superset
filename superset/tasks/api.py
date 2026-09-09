@@ -17,9 +17,10 @@
 """Task REST API"""
 
 import logging
+from datetime import datetime
 from uuid import UUID
 
-from flask import Response
+from flask import request, Response
 from flask_appbuilder.api import expose, protect, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
@@ -40,6 +41,7 @@ from superset.tasks.schemas import (
     TaskCancelRequestSchema,
     TaskCancelResponseSchema,
     TaskResponseSchema,
+    TaskStatusChangesResponseSchema,
     TaskStatusResponseSchema,
 )
 from superset.views.base_api import (
@@ -66,6 +68,7 @@ class TaskRestApi(BaseSupersetModelRestApi):
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "cancel": "write",
         "status": "read",
+        "status_changes": "read",
     }
 
     # Only allow read operations - no create/update/delete through REST API
@@ -76,9 +79,14 @@ class TaskRestApi(BaseSupersetModelRestApi):
         RouteMethod.INFO,
         "cancel",
         "status",
+        "status_changes",
         "related_subscribers",
         "related",
+        "distinct",
     }
+
+    # Powers the Task List "Type" filter dropdown; scoped per-user by base_filters.
+    allowed_distinct_fields = {"task_type"}
 
     list_columns = [
         "id",
@@ -128,6 +136,7 @@ class TaskRestApi(BaseSupersetModelRestApi):
         "status",
         "created_by",
         "created_on",
+        "id",
     ]
 
     base_order = ("created_on", "desc")
@@ -151,6 +160,7 @@ class TaskRestApi(BaseSupersetModelRestApi):
         TaskResponseSchema,
         TaskCancelRequestSchema,
         TaskCancelResponseSchema,
+        TaskStatusChangesResponseSchema,
         TaskStatusResponseSchema,
     )
     openapi_spec_methods = openapi_spec_methods_override
@@ -257,6 +267,75 @@ class TaskRestApi(BaseSupersetModelRestApi):
         except (ValueError, TypeError):
             return self.response_404()
 
+    @expose("/status_changes", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        ".status_changes",
+        log_to_statsd=False,
+    )
+    def status_changes(self) -> Response:
+        """Poll status of accessible tasks changed since a cursor.
+        ---
+        get:
+          summary: Poll changed task statuses
+          description: >
+            Minimal-IO polling primitive for clients awaiting async work (e.g.
+            chart-data query tasks) or rendering a live task list. Returns a
+            ``{uuid: {status, progress}}`` map for tasks the caller can access
+            (subscribed tasks for regular users, all tasks for admins) that changed
+            since the ``cursor``, plus the next cursor to poll with. Omit ``cursor``
+            on the first call to establish a baseline. Pass ``task_type`` to track
+            only one kind of task.
+          parameters:
+          - in: query
+            name: cursor
+            schema:
+              type: string
+            required: false
+            description: >
+              Opaque watermark returned by a previous call. Omit to establish a
+              baseline (returns the current watermark and no statuses).
+          - in: query
+            name: task_type
+            schema:
+              type: string
+            required: false
+            description: >
+              Restrict results to a single task type (e.g. the chart-data query
+              task type), so a client tracks only the work it cares about.
+          responses:
+            200:
+              description: Changed task statuses since the cursor
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/TaskStatusChangesResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+        """
+        from superset.daos.tasks import TaskDAO
+
+        cursor: datetime | None = None
+        if cursor_arg := request.args.get("cursor"):
+            try:
+                cursor = datetime.fromisoformat(cursor_arg)
+            except ValueError:
+                return self.response_400(message="Invalid cursor")
+
+        statuses, next_cursor = TaskDAO.get_statuses_changed_since(
+            cursor, task_type=request.args.get("task_type")
+        )
+        return self.response(
+            200,
+            statuses=statuses,
+            cursor=next_cursor.isoformat() if next_cursor else None,
+        )
+
     @expose("/<task_uuid>/cancel", methods=("POST",))
     @protect()
     @safe
@@ -284,6 +363,8 @@ class TaskRestApi(BaseSupersetModelRestApi):
             The `action` field in the response indicates what happened:
             - `aborted`: Task was terminated
             - `unsubscribed`: User was removed from task (task continues)
+            - `detached`: One client of the user detached (e.g. a browser tab); the
+              task continues for the user's other clients
           parameters:
           - in: path
             schema:
@@ -347,14 +428,19 @@ class TaskRestApi(BaseSupersetModelRestApi):
         """Parse request and run the cancel command."""
         from flask import request
 
+        from superset.tasks.subscription import get_request_tab_id
+
         force = False
         # Use get_json with silent=True to handle missing Content-Type gracefully
         json_data = request.get_json(silent=True)
         if json_data:
             parsed = self.cancel_request_schema.load(json_data)
             force = parsed.get("force", False)
+        # Read the tab id through the shared validator (same rule as submit), so a
+        # malformed/oversized value is dropped rather than flowing into routing.
+        tab_id = get_request_tab_id()
 
-        command = CancelTaskCommand(task_uuid, force=force)
+        command = CancelTaskCommand(task_uuid, force=force, tab_id=tab_id)
         updated_task = command.run()
         return command, updated_task
 
@@ -363,13 +449,13 @@ class TaskRestApi(BaseSupersetModelRestApi):
     ) -> Response:
         """Build the response for a successful cancel operation."""
         action = command.action_taken
-        message = (
-            "Task cancelled"
-            if action == "aborted"
-            else "You have been removed from this task"
-        )
+        messages = {
+            "aborted": "Task cancelled",
+            "unsubscribed": "You have been removed from this task",
+            "detached": "You have stopped watching this task",
+        }
         result = {
-            "message": message,
+            "message": messages.get(action, "You have been removed from this task"),
             "action": action,
             "task": self.show_model_schema.dump(updated_task),
         }
@@ -427,17 +513,19 @@ class TaskRestApi(BaseSupersetModelRestApi):
         from flask import request
 
         from superset import db, security_manager
+        from superset.daos.tasks import TaskDAO
         from superset.models.task_subscribers import TaskSubscriber
-
-        # Get search query
 
         # Get user model
         user_model = security_manager.user_model
 
-        # Query distinct users who are task subscribers
+        # Query distinct users who subscribe to tasks the caller can see. Scoping
+        # through the base-filtered task set keeps the dropdown from enumerating
+        # subscribers of tasks outside the caller's visibility.
         query = (
             db.session.query(user_model.id, user_model.first_name, user_model.last_name)
             .join(TaskSubscriber, user_model.id == TaskSubscriber.user_id)
+            .filter(TaskSubscriber.task_id.in_(TaskDAO.visible_task_ids_query()))
             .distinct()
         )
 

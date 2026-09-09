@@ -34,3 +34,20 @@ test('should render', async () => {
   ).toBeInTheDocument();
   expect(screen.getByText('test')).toBeInTheDocument();
 });
+
+test('is faded and not draggable when excluded by compatibleMetrics', async () => {
+  render(
+    <DatasourcePanelDragOption
+      value={{ metric_name: 'test', uuid: '1' }}
+      type={DndItemType.Metric}
+    />,
+    {
+      useDndKit: true,
+      useRedux: true,
+      initialState: { explore: { compatibleMetrics: ['other_metric'] } },
+    },
+  );
+
+  const option = await screen.findByTestId('DatasourcePanelDragOption');
+  expect(option).toHaveStyle({ cursor: 'not-allowed' });
+});

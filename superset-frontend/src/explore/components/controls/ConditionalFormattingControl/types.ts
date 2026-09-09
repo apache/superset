@@ -23,6 +23,8 @@ import {
   Comparator,
   ControlComponentProps,
   ObjectFormattingEnum,
+  BoundUnit,
+  PercentDenominator,
 } from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/common';
 import { type RGBColor } from '@superset-ui/core/components';
@@ -39,6 +41,14 @@ export type ConditionalFormattingConfig = {
   useGradient?: boolean;
   columnFormatting?: string;
   objectFormatting?: ObjectFormattingEnum;
+  minBound?: number;
+  maxBound?: number;
+  centerValue?: number;
+  lowColor?: RGBColor | string;
+  midColor?: RGBColor | string;
+  highColor?: RGBColor | string;
+  boundUnit?: BoundUnit;
+  percentDenominator?: PercentDenominator;
 };
 
 export type ConditionalFormattingControlProps = ControlComponentProps<
@@ -56,6 +66,7 @@ export type ConditionalFormattingControlProps = ControlComponentProps<
    * so the control applies only to the selected metric.
    */
   metricOnly?: boolean;
+  serverPagination?: boolean;
 };
 
 export type FormattingPopoverProps = PopoverProps & {
@@ -71,6 +82,7 @@ export type FormattingPopoverProps = PopoverProps & {
    * so the control applies only to the selected metric.
    */
   metricOnly?: boolean;
+  serverPagination?: boolean;
 };
 
 export interface ColumnOption {

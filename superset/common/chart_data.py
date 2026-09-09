@@ -25,6 +25,7 @@ class ChartDataResultFormat(StrEnum):
     CSV = "csv"
     JSON = "json"
     XLSX = "xlsx"
+    ARROW = "arrow"
 
     @classmethod
     def table_like(cls) -> set["ChartDataResultFormat"]:

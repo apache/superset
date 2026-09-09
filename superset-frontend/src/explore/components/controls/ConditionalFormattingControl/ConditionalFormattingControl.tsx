@@ -76,6 +76,7 @@ const ConditionalFormattingControl = ({
   extraColorChoices,
   allColumns,
   metricOnly,
+  serverPagination,
   ...props
 }: ConditionalFormattingControlProps) => {
   const [conditionalFormattingConfigs, setConditionalFormattingConfigs] =
@@ -167,6 +168,7 @@ const ConditionalFormattingControl = ({
               extraColorChoices={extraColorChoices}
               allColumns={allColumns}
               metricOnly={metricOnly}
+              serverPagination={serverPagination}
             >
               <OptionControlContainer withCaret>
                 <Label>{createLabel(config)}</Label>
@@ -185,6 +187,7 @@ const ConditionalFormattingControl = ({
           extraColorChoices={extraColorChoices}
           allColumns={allColumns}
           metricOnly={metricOnly}
+          serverPagination={serverPagination}
         >
           <AddControlLabel>
             <Icons.PlusOutlined
