@@ -767,36 +767,35 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         }
     )
 
-    # Constructs that sqlglot represents as an opaque ``exp.Command`` (no
-    # structured AST). Each can mutate server state or wrap a DML body that
-    # would otherwise be detected by node-type matching. The head keywords
-    # are not engine-specific (MySQL ``CALL`` / ``LOAD DATA INFILE`` and
-    # MSSQL ``EXEC`` reach the same ``exp.Command`` fallback as their
-    # PostgreSQL counterparts), so ``is_mutating()`` applies this list for
-    # every dialect: an opaque command with one of these heads is treated as
-    # mutating.
-    # The subset of opaque ``exp.Command`` heads whose body is another
-    # statement kept as unparsed text (rather than server state the head
-    # keyword fully describes, as in ``VACUUM`` or ``REFRESH``). Anything the
-    # nested body does is invisible to node-type matching, so checks that
-    # inspect the tree have to fall back to the raw text for these.
+    # Opaque ``exp.Command`` heads whose body is another statement kept as
+    # unparsed text, rather than server state the head keyword fully
+    # describes (as in ``VACUUM`` or ``REFRESH``). Anything the nested body
+    # does is invisible to node-type matching, so checks that inspect the
+    # tree have to fall back to the raw text for these. Procedural bodies
+    # are not SQL and cannot be re-parsed, unlike an ``EXPLAIN`` tail, which
+    # is handled by ``_explain_analyze_body`` instead.
     _NESTED_BODY_COMMAND_NAMES: frozenset[str] = frozenset(
         {
             "DO",  # PL/pgSQL anonymous block
-            "PREPARE",  # body is the prepared statement
+            "PREPARE",  # PREPARE u AS UPDATE ... ; EXECUTE u
             "EXECUTE",  # body is the prepared statement
             "EXEC",  # MSSQL spelling of EXECUTE
             "CALL",  # procedure body
         }
     )
 
-    _MUTATING_COMMAND_NAMES: frozenset[str] = frozenset(
+    # Constructs that sqlglot represents as an opaque ``exp.Command`` (no
+    # structured AST). Each can mutate server state or wrap a DML body that
+    # would otherwise be detected by node-type matching, so every
+    # nested-body head is included: an arbitrary statement carried as text
+    # is conservatively assumed to mutate. The head keywords are not
+    # engine-specific (MySQL ``CALL`` / ``LOAD DATA INFILE`` and MSSQL
+    # ``EXEC`` reach the same ``exp.Command`` fallback as their PostgreSQL
+    # counterparts), so ``is_mutating()`` applies this list for every
+    # dialect: an opaque command with one of these heads is treated as
+    # mutating.
+    _MUTATING_COMMAND_NAMES: frozenset[str] = _NESTED_BODY_COMMAND_NAMES | frozenset(
         {
-            "DO",  # PL/pgSQL anonymous block
-            "PREPARE",  # PREPARE u AS UPDATE ... ; EXECUTE u
-            "EXECUTE",  # body is the prepared DML
-            "EXEC",  # MSSQL spelling of EXECUTE; the procedure body may mutate
-            "CALL",  # procedure body may mutate
             "COPY",  # server-side file ingest into a table
             "GRANT",
             "REVOKE",
@@ -1004,6 +1003,62 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         return isinstance(self._parsed, exp.Select)
 
+    def _explain_analyze_body(self) -> str | None:
+        """
+        Return the inner statement of an ``EXPLAIN ANALYZE``, if this is one.
+
+        ``EXPLAIN ANALYZE <statement>`` executes the statement for real
+        (PostgreSQL and MySQL both run the body), see
+        https://www.postgresql.org/docs/current/sql-explain.html, so a check
+        that classifies a statement has to look through the wrapper. sqlglot
+        keeps the whole tail as opaque text on an ``exp.Command``, and the
+        flag may be spelled ``ANALYSE``, be separated by any whitespace, or
+        appear in a parenthesized option list such as
+        ``EXPLAIN (ANALYZE, BUFFERS) ...``, so the tail is normalized here.
+
+        :return: The inner statement text for an ``EXPLAIN`` carrying
+            ``ANALYZE`` (empty when the tail holds nothing but options), or
+            ``None`` when the statement is not one
+        """
+        if (
+            not isinstance(self._parsed, exp.Command)
+            or self._parsed.name.upper() != "EXPLAIN"
+        ):
+            return None
+
+        tail = self._parsed.expression.name.strip() if self._parsed.expression else ""
+
+        # sqlglot preserves the raw tail text, comments included; strip
+        # leading comments so an option list hidden behind `/* ... */` or
+        # `-- ...` is still recognized.
+        while True:
+            if tail.startswith("/*") and "*/" in tail:
+                tail = tail.split("*/", 1)[1].lstrip()
+            elif tail.startswith("--"):
+                parts = tail.split("\n", 1)
+                tail = parts[1].lstrip() if len(parts) > 1 else ""
+            else:
+                break
+
+        has_analyze = False
+        if tail.startswith("("):
+            options, _, tail = tail[1:].partition(")")
+            has_analyze = bool(
+                re.search(r"\b(ANALYZE|ANALYSE)\b", options, re.IGNORECASE)
+            )
+        else:
+            # A keyword need not be followed by whitespace: PostgreSQL
+            # accepts `EXPLAIN ANALYZE(SELECT ...)`, so match on the word
+            # boundary and let the separator be empty.
+            while match := re.match(
+                r"(ANALYZE|ANALYSE|VERBOSE)\b\s*", tail, re.IGNORECASE
+            ):
+                if match.group(1).upper() != "VERBOSE":
+                    has_analyze = True
+                tail = tail[match.end() :]
+
+        return tail.strip() if has_analyze else None
+
     def is_mutating(self) -> bool:  # noqa: C901
         """
         Check if the statement mutates data (DDL/DML).
@@ -1121,58 +1176,19 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             ):
                 return True
 
-            # `EXPLAIN ANALYZE <statement>` executes the statement for real
-            # (PostgreSQL and MySQL both run the body), see
-            # https://www.postgresql.org/docs/current/sql-explain.html
-            # The flag may be spelled `ANALYSE`, be separated by any
-            # whitespace, or appear in a parenthesized option list such as
-            # `EXPLAIN (ANALYZE, BUFFERS) ...`, so the raw tail is
-            # normalized before the inner statement is classified. Anything
-            # that carries the flag but cannot be classified is treated as
-            # mutating.
-            if command_name == "EXPLAIN":
-                tail = (
-                    self._parsed.expression.name.strip()
-                    if self._parsed.expression
-                    else ""
-                )
-
-                # sqlglot preserves the raw tail text, comments included;
-                # strip leading comments so an option list hidden behind
-                # `/* ... */` or `-- ...` is still recognized.
-                while True:
-                    if tail.startswith("/*") and "*/" in tail:
-                        tail = tail.split("*/", 1)[1].lstrip()
-                    elif tail.startswith("--"):
-                        parts = tail.split("\n", 1)
-                        tail = parts[1].lstrip() if len(parts) > 1 else ""
-                    else:
-                        break
-
-                has_analyze = False
-                if tail.startswith("("):
-                    options, _, tail = tail[1:].partition(")")
-                    has_analyze = bool(
-                        re.search(r"\b(ANALYZE|ANALYSE)\b", options, re.IGNORECASE)
-                    )
-                else:
-                    while match := re.match(
-                        r"(ANALYZE|ANALYSE|VERBOSE)\s+", tail, re.IGNORECASE
-                    ):
-                        if match.group(1).upper() != "VERBOSE":
-                            has_analyze = True
-                        tail = tail[match.end() :]
-
-                if has_analyze:
-                    if not (inner_sql := tail.strip()):
-                        return True
-                    try:
-                        return SQLStatement(
-                            statement=inner_sql,
-                            engine=self.engine,
-                        ).is_mutating()
-                    except SupersetParseError:
-                        return True
+            # Anything wrapped in `EXPLAIN ANALYZE` runs for real, so the
+            # inner statement decides. A body carrying the flag that cannot
+            # be classified is treated as mutating.
+            if (inner_sql := self._explain_analyze_body()) is not None:
+                if not inner_sql:
+                    return True
+                try:
+                    return SQLStatement(
+                        statement=inner_sql,
+                        engine=self.engine,
+                    ).is_mutating()
+                except SupersetParseError:
+                    return True
 
         return False
 
@@ -1306,6 +1322,29 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         return bool(self.get_disallowed_tables(tables, default_schema))
 
+    def _calls_set_config_on_search_path(self) -> bool:
+        """
+        Return True if the statement may rebind ``search_path`` via a call.
+
+        ``set_config('search_path', ...)`` rebinds the search path through a
+        function call rather than a ``SET`` statement, so it never reaches
+        ``get_settings()`` and has to be detected on the parsed tree.
+        PostgreSQL evaluates the setting name as an expression, so a
+        non-literal name (e.g. ``set_config('search_' || 'path', ...)``)
+        rebinds the path just like the literal form but cannot be resolved
+        statically, and is reported as a rebind.
+        """
+        for func in self._parsed.find_all(exp.Anonymous):
+            if func.name.lower() != "set_config":
+                continue
+            setting = func.expressions[0] if func.expressions else None
+            if (
+                not isinstance(setting, exp.Literal)
+                or setting.name.lower() == "search_path"
+            ):
+                return True
+        return False
+
     def changes_search_path(self) -> bool:
         """
         Return True if the statement changes the session ``search_path``.
@@ -1322,44 +1361,50 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # unquoted form in Postgres) is still recognized.
         if any(key.strip('"').lower() == "search_path" for key in self.get_settings()):
             return True
-        # `set_config('search_path', ...)` rebinds the search path through a
-        # function call rather than a SET statement, so it never reaches
-        # get_settings() and must be detected on the parsed tree. Postgres
-        # evaluates the setting name as an expression, so a non-literal name
-        # (e.g. `set_config('search_' || 'path', ...)`) rebinds the path just
-        # like the literal form but can't be resolved statically.
-        for func in self._parsed.find_all(exp.Anonymous):
-            if func.name.lower() != "set_config":
-                continue
-            setting = func.expressions[0] if func.expressions else None
-            if (
-                not isinstance(setting, exp.Literal)
-                or setting.name.lower() == "search_path"
-            ):
+        if self._calls_set_config_on_search_path():
+            return True
+        # `EXPLAIN ANALYZE <statement>` runs the body, so a rebind inside it
+        # takes effect even though the wrapper hides it from the scan above.
+        # The tail is SQL, so classify it by recursion; a body carrying the
+        # flag that cannot be parsed is treated as a rebind.
+        if (inner_sql := self._explain_analyze_body()) is not None:
+            if not inner_sql:
+                return True
+            try:
+                return SQLStatement(
+                    statement=inner_sql,
+                    engine=self.engine,
+                ).changes_search_path()
+            except SupersetParseError:
                 return True
         parsed = self._parsed
         if not isinstance(parsed, exp.Command):
             return False
-        body = str(parsed.expression)
+        head = parsed.name.upper()
         # Exotic forms (e.g. `SET search_path TO "$user", public`) fall back to
         # an opaque exp.Command. Match the leading setting name rather than
         # scanning the whole expression, so `SET ROLE my_search_path_role`
         # (whose value merely contains the substring) is not misclassified.
-        if parsed.name.upper() == "SET":
-            tokens = body.replace("=", " ").split()
+        if head == "SET":
+            tokens = str(parsed.expression).replace("=", " ").split()
             while tokens and tokens[0].upper() in {"SESSION", "LOCAL"}:
                 tokens.pop(0)
             return bool(tokens) and tokens[0].strip('"').lower() == "search_path"
-        # A command whose body is another statement (e.g. a PL/pgSQL `DO`
-        # block) keeps that body as opaque text, so a rebind inside it is
-        # invisible to the tree scan above, whether spelled as `set_config` or
-        # as a nested `SET search_path`. Match the setting name in the raw text
-        # rather than letting it through. Opaque commands that cannot carry a
-        # nested statement (`VACUUM`, `EXPLAIN ANALYZE`, `SHOW search_path`)
-        # are left alone, so merely naming the setting does not block them.
-        if parsed.name.upper() in self._NESTED_BODY_COMMAND_NAMES:
-            lowered = body.lower()
-            return "search_path" in lowered or "set_config" in lowered
+        # A procedural body (e.g. a PL/pgSQL `DO` block) is not SQL and cannot
+        # be re-parsed, so a rebind inside it stays invisible to the scan
+        # above. Fall back to matching the raw text, erring towards a match:
+        # `set_config` is matched alongside `search_path` because a computed
+        # setting name never spells the latter contiguously. Whole-word
+        # matching keeps an unrelated identifier that merely embeds one of
+        # them (`reset_config`, `my_search_path_helper`) from being flagged.
+        if head in self._NESTED_BODY_COMMAND_NAMES:
+            return bool(
+                re.search(
+                    r"\b(search_path|set_config)\b",
+                    str(parsed.expression),
+                    re.IGNORECASE,
+                )
+            )
         return False
 
     def changes_default_schema(self) -> bool:

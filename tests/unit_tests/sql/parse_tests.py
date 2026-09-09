@@ -1979,6 +1979,8 @@ def test_is_mutating(sql: str, engine: str, expected: bool) -> None:
         ("EXPLAIN ANALYZE VERBOSE UPDATE t SET x = 1", "postgresql"),
         ("EXPLAIN (ANALYZE)", "postgresql"),
         ("EXPLAIN ANALYZE )))", "postgresql"),
+        # The flag need not be followed by whitespace.
+        ("EXPLAIN ANALYZE(DELETE FROM t)", "postgresql"),
     ],
 )
 def test_is_mutating_fails_closed_on_gate_blind_spots(sql: str, engine: str) -> None:
@@ -5663,12 +5665,55 @@ def test_get_disallowed_tables_search_path_change(
         ("DO $$ BEGIN SET search_path TO information_schema; END $$", True),
         ("DO $$ BEGIN EXECUTE 'SET search_path = information_schema'; END $$", True),
         ("CALL rebind_the_path()", False),
+        # A computed setting name never spells `search_path` contiguously, so
+        # the raw-text fallback matches on `set_config` as well.
+        (
+            "DO $$ BEGIN PERFORM set_config('search_' || 'path', "
+            "'information_schema', false); END $$",
+            True,
+        ),
         # An opaque statement body with no rebind in it is not a change.
         ("DO $$ BEGIN PERFORM pg_sleep(0); END $$", False),
         # Opaque statements that can't carry a nested statement are not
         # text-matched, so naming the setting doesn't make them a change.
         ("SHOW search_path", False),
         ("EXPLAIN ANALYZE SELECT * FROM some_table", False),
+        # `EXPLAIN ANALYZE` runs its body for real, so a rebind inside it
+        # takes effect. The tail is SQL, so it is classified by re-parsing
+        # rather than text-matched, in every spelling of the flag.
+        (
+            "EXPLAIN ANALYZE SELECT set_config('search_path', "
+            "'information_schema', false)",
+            True,
+        ),
+        (
+            "EXPLAIN (ANALYZE, BUFFERS) SELECT set_config('search_path', "
+            "'information_schema', false)",
+            True,
+        ),
+        (
+            "EXPLAIN ANALYSE SELECT set_config('search_path', "
+            "'information_schema', false)",
+            True,
+        ),
+        # A plain `EXPLAIN` only plans the body, so nothing is rebound.
+        (
+            "EXPLAIN SELECT set_config('search_path', 'information_schema', false)",
+            False,
+        ),
+        # Re-parsing keeps the `EXPLAIN` tail precise: a table whose name
+        # merely contains the setting is not a change.
+        ("EXPLAIN ANALYZE SELECT * FROM search_path_audit", False),
+        # PostgreSQL does not require whitespace after the flag.
+        (
+            "EXPLAIN ANALYZE(SELECT set_config('search_path', "
+            "'information_schema', false))",
+            True,
+        ),
+        # The raw-text fallback matches whole words, so an unrelated routine
+        # whose name merely embeds one of them is not a change.
+        ("CALL reset_config()", False),
+        ("CALL my_search_path_helper()", False),
         # A different setting changed through `set_config` is not a search-path
         # change.
         ("SELECT set_config('statement_timeout', '0', true)", False),
