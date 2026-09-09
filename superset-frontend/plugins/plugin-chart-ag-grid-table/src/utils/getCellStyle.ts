@@ -59,28 +59,24 @@ const getCellStyle = (params: CellStyleParams) => {
   let backgroundColor;
   let color;
   if (hasColumnColorFormatters) {
-    columnColorFormatters!
-      .filter(formatter => {
-        const column = formatter?.column;
-        const colTitle = isMainComparisonKey(column)
-          ? stripMainComparisonPrefix(column)
-          : column;
-        return colTitle === colDef.field;
-      })
-      .forEach(formatter => {
-        const formatterResult =
-          value || value === 0 ? formatter.getColorFromValue(value) : false;
-        if (formatterResult) {
-          if (
-            formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR ||
-            formatter.toTextColor
-          ) {
-            color = formatterResult;
-          } else if (
-            formatter.objectFormatting !== ObjectFormattingEnum.CELL_BAR
-          ) {
-            backgroundColor = formatterResult;
-          }
+    const applyFormatter = (
+      formatter: ColorFormatters[number],
+      valueToFormat: typeof value,
+    ) => {
+      const formatterResult =
+        valueToFormat || valueToFormat === 0
+          ? formatter.getColorFromValue(valueToFormat)
+          : false;
+      if (formatterResult) {
+        if (
+          formatter.objectFormatting === ObjectFormattingEnum.TEXT_COLOR ||
+          formatter.toTextColor
+        ) {
+          color = formatterResult;
+        } else if (
+          formatter.objectFormatting !== ObjectFormattingEnum.CELL_BAR
+        ) {
+          backgroundColor = formatterResult;
         }
       }
     };
@@ -89,8 +85,8 @@ const getCellStyle = (params: CellStyleParams) => {
     // time-comparison columns rather than the row's actual data key, so
     // resolve it to the real field id before using it to read row values.
     const resolveColumnKey = (columnKey: string) =>
-      columnKey.startsWith('Main ')
-        ? columnKey.slice('Main '.length)
+      isMainComparisonKey(columnKey)
+        ? stripMainComparisonPrefix(columnKey)
         : columnKey;
 
     // Formatters with no formatting target color their own source column,

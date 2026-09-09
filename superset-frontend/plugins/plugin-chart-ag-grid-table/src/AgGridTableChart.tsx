@@ -61,6 +61,7 @@ import type { FilterState } from './utils/filterStateManager';
 import { formatColumnValue } from './utils/formatValue';
 import getTimeRangeFromGranularity from './utils/getTimeRangeFromGranularity';
 import getScrollBarSize from './utils/getScrollBarSize';
+import { isMainComparisonLabel } from './utils/mainComparison';
 
 export default function TableChart<D extends DataRecord = DataRecord>(
   props: AgGridTableChartTransformedProps<D> & {},
