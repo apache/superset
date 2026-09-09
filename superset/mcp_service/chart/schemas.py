@@ -3016,6 +3016,7 @@ class UpdateChartPreviewResponse(TypedDict, total=False):
     semantics: dict[str, Any] | None
     explore_url: str
     form_data_key: str
+    form_data: dict[str, Any]
     previous_form_data_key: str | None
     warnings: list[str]
     api_endpoints: dict[str, str]
