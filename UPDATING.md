@@ -509,19 +509,34 @@ Note that a retried query returns partial data with no truncation indicator
 (e.g. a filter dropdown may list only a subset of values on tables above the
 row cap).
 
-### Dashboard "Export Data to Excel" requires a Celery worker and S3 bucket
+### Dashboard "Export Data to Excel" scales with a Celery worker and S3 bucket
 
 A new dashboard action exports every chart's data to a single multi-sheet
-`.xlsx` asynchronously. It is disabled by default and turns on only when
-`EXCEL_EXPORT_S3_BUCKET` is set (the endpoint returns `501` otherwise). It also
-requires a running Celery worker and a configured SMTP transport, since the task
-emails the requesting user a pre-signed download link. New config keys:
-`EXCEL_EXPORT_S3_BUCKET`, `EXCEL_EXPORT_S3_KEY_PREFIX`,
-`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_S3_CLIENT_KWARGS`,
-`EXCEL_EXPORT_TABLE_VIZ_TYPES`, and `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
+`.xlsx`. Setting `EXCEL_EXPORT_S3_BUCKET` selects how it runs: with a bucket the
+export is queued to a Celery worker, uploaded, and emailed to the requesting
+user as a pre-signed download link (so it also needs a running worker and a
+configured SMTP transport); without one the workbook is built during the request
+and returned as the response for the browser to download, needing no
+configuration at all.
 
-The feature depends on `boto3`, which is **not** installed by default; install it
-with `pip install apache-superset[excel-export]`.
+Because it has to finish inside a single request, the direct-download path is
+bounded by `EXCEL_EXPORT_SYNC_MAX_ROWS` (default `100_000`): the export sums the
+`row_limit` of every query it would run and refuses, before running any of them,
+when the total is higher or when any query has no finite limit. The refusal is a
+`400` naming `EXCEL_EXPORT_S3_BUCKET` as the fix.
+
+API clients should note that `POST /api/v1/dashboard/<id>/export_xlsx/` now
+answers either `202` with a job id (queued) or `200` with the `.xlsx` itself
+(direct download), depending on this configuration. It no longer returns `501`.
+
+New config keys: `EXCEL_EXPORT_S3_BUCKET`, `EXCEL_EXPORT_S3_KEY_PREFIX`,
+`EXCEL_EXPORT_LINK_TTL_SECONDS`, `EXCEL_EXPORT_S3_CLIENT_KWARGS`,
+`EXCEL_EXPORT_SYNC_MAX_ROWS`, `EXCEL_EXPORT_TABLE_VIZ_TYPES`, and
+`EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
+
+The queued path depends on `boto3`, which is **not** installed by default; install
+it with `pip install apache-superset[excel-export]`. The direct-download path
+does not use it.
 
 Charts store their `query_context` only once they have been (re-)saved in
 Explore, so older charts may have none. For a fixed, conservative set of viz
@@ -529,7 +544,8 @@ types (`table`, `big_number_total`, `big_number`, `pie`) the export rebuilds a
 query context from the chart's saved form data so those charts still export.
 The rebuild is a single-query mapping and does **not** reproduce plugin
 post-processing (pivot, rolling, forecast) or multi-query charts, so any chart of
-another type without a saved query context is skipped and listed in the email for
+another type without a saved query context is skipped — listed in the email on
+the queued path, and simply absent from the workbook on a direct download — for
 the user to re-save. To cover those types, set `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`
 to a callable that receives the chart's form data and returns a query-context
 payload (or `None` to fall back to the built-in rebuild) — for example one backed

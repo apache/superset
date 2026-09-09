@@ -17,6 +17,8 @@
 # pylint: disable=too-many-lines
 import functools
 import logging
+import os
+import tempfile
 import uuid
 from datetime import datetime
 from io import BytesIO
@@ -92,6 +94,9 @@ from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
+from superset.dashboards.excel_export.storage import is_export_storage_configured
+from superset.dashboards.excel_export.sync_budget import is_within_sync_row_budget
+from superset.dashboards.excel_export.workbook import build_workbook
 from superset.dashboards.filter_scope import derive_json_metadata
 from superset.dashboards.filters import (
     DashboardAccessFilter,
@@ -180,6 +185,7 @@ from superset.versioning.api_helpers import (
 )
 from superset.versioning.etag import set_version_etag
 from superset.versioning.schemas import VersionListItemSchema
+from superset.views.base import generate_download_headers, XlsxResponse
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -1727,14 +1733,17 @@ class DashboardRestApi(
         log_to_statsd=False,
     )
     def export_xlsx(self, pk: int) -> WerkzeugResponse:
-        """Export all of a dashboard's chart data to an Excel workbook (async).
+        """Export all of a dashboard's chart data to an Excel workbook.
         ---
         post:
           summary: Export dashboard chart data to Excel
           description: >-
-            Enqueues an async task that writes each chart's data to its own
-            worksheet, uploads the .xlsx to S3, and emails the requesting user a
-            pre-signed download link. Returns immediately with a job id.
+            Writes each chart's data to its own worksheet of a single .xlsx.
+            Where export storage is configured the work is queued: the response
+            is a job id and the finished file is uploaded and emailed to the
+            requesting user as a download link. Where it is not, the workbook is
+            built during the request and returned as the response body, provided
+            the export is small enough to serve that way.
           parameters:
           - in: path
             schema:
@@ -1747,6 +1756,13 @@ class DashboardRestApi(
                 schema:
                   $ref: '#/components/schemas/DashboardExportXlsxPostSchema'
           responses:
+            200:
+              description: The exported workbook, built during this request
+              content:
+                application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+                  schema:
+                    type: string
+                    format: binary
             202:
               description: Export task accepted
               content:
@@ -1763,13 +1779,11 @@ class DashboardRestApi(
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
-            501:
-              description: Excel export is not configured on this server
         """
-        if not current_app.config["EXCEL_EXPORT_S3_BUCKET"]:
-            return self.response(
-                501, message="Excel export is not configured on this server."
-            )
+        # With storage the export is queued and delivered by link; without it the
+        # workbook is built here and returned as the response. Resolved once, so a
+        # single request cannot take one path's checks and the other's delivery.
+        queued = is_export_storage_configured()
         try:
             # Tolerate an empty/non-JSON body (e.g. a POST with no Content-Type);
             # request.json would otherwise raise 415.
@@ -1806,11 +1820,28 @@ class DashboardRestApi(
         if not dashboard.slices:
             return self.response_400(message="Dashboard has no charts to export.")
 
+        active_data_mask = payload.get("active_data_mask", {})
+        mode = payload.get("mode", "data")
+
+        # An export served as the response has to finish inside this request, so
+        # refuse an oversized one before doing any of the work rather than letting
+        # it run into a gateway timeout. Checked ahead of the lock so a refusal
+        # never leaves a lock to be released.
+        if not queued and not is_within_sync_row_budget(dashboard, mode):
+            return self.response_400(
+                message=(
+                    "This dashboard requests too many rows to export in a single "
+                    "request. Configure EXCEL_EXPORT_S3_BUCKET to export it in the "
+                    "background, or lower the row limits of its charts."
+                )
+            )
+
         # Throttle: one concurrent export per user+dashboard. Acquire a shared,
         # atomic distributed lock (Redis when configured, the metadata DB
         # otherwise) so the guard works across the web server and workers and is
-        # not a no-op under the default cache. The task releases it when it
-        # settles; the TTL is the backstop if that release is ever lost.
+        # not a no-op under the default cache. The queued path's task releases it
+        # when it settles and the inline path releases it before responding; the
+        # TTL is the backstop if either release is ever lost.
         lock_params = export_lock_params(g.user.id, dashboard.id)
         try:
             AcquireDistributedLock(
@@ -1825,14 +1856,31 @@ class DashboardRestApi(
             )
 
         job_id = str(uuid.uuid4())
+        run_export = self._export_xlsx_queued if queued else self._export_xlsx_inline
+        return run_export(dashboard, active_data_mask, mode, job_id, lock_params)
+
+    def _export_xlsx_queued(  # pylint: disable=too-many-arguments
+        self,
+        dashboard: Dashboard,
+        active_data_mask: dict[str, Any],
+        mode: str,
+        job_id: str,
+        lock_params: dict[str, int],
+    ) -> WerkzeugResponse:
+        """
+        Hand the export to a worker, which uploads it and emails a download link.
+
+        Used where export storage is configured. Returns as soon as the job is
+        queued, so an export of any size is free to take as long as it needs.
+        """
         try:
             export_dashboard_excel.apply_async(
                 kwargs={
                     "dashboard_id": dashboard.id,
                     "user_id": g.user.id,
-                    "active_data_mask": payload.get("active_data_mask", {}),
+                    "active_data_mask": active_data_mask,
                     "job_id": job_id,
-                    "mode": payload.get("mode", "data"),
+                    "mode": mode,
                 },
                 task_id=job_id,
             )
@@ -1843,6 +1891,58 @@ class DashboardRestApi(
             ReleaseDistributedLock(EXPORT_LOCK_NAMESPACE, lock_params).run()
             raise
         return self.response(202, job_id=job_id)
+
+    @staticmethod
+    def _export_xlsx_inline(  # pylint: disable=too-many-arguments
+        dashboard: Dashboard,
+        active_data_mask: dict[str, Any],
+        mode: str,
+        job_id: str,
+        lock_params: dict[str, int],
+    ) -> WerkzeugResponse:
+        """
+        Build the export during this request and return it as the response.
+
+        Used where no export storage is configured, so there is nowhere to upload
+        a finished file and nothing to link to in an email. The workbook is the
+        same one the Celery task builds, from the same builder: only the delivery
+        differs. It is written to a temp file (the writer streams to disk in
+        constant memory) and read back once, so the response carries a complete
+        file and the temp file never outlives the request.
+
+        The charts the export had to skip are not reported here. The queued path
+        lists them in its email, which this path has no equivalent of; the
+        workbook itself is identical either way.
+        """
+        tmp_path: str | None = None
+        try:
+            file_descriptor, tmp_path = tempfile.mkstemp(
+                suffix=".xlsx", prefix=f"dash-export-{job_id}-"
+            )
+            os.close(file_descriptor)
+
+            build_workbook(tmp_path, dashboard, active_data_mask, job_id, mode, g.user)
+            with open(tmp_path, "rb") as workbook:
+                content = workbook.read()
+        finally:
+            # Both of these have to happen however the export ends: a held lock
+            # would keep the user from retrying until its TTL expires, and an
+            # abandoned temp file would sit on the web server's disk.
+            try:
+                ReleaseDistributedLock(EXPORT_LOCK_NAMESPACE, lock_params).run()
+            except Exception:  # pylint: disable=broad-except
+                # Best-effort: the lock's TTL is the backstop if this fails.
+                logger.exception(
+                    "Failed to release in-flight export lock for dashboard %s",
+                    dashboard.id,
+                )
+            if tmp_path and os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+        filename = get_filename(dashboard.dashboard_title, dashboard.id, skip_id=False)
+        return XlsxResponse(
+            content, headers=generate_download_headers("xlsx", filename)
+        )
 
     def _validate_permalink_for_dashboard(
         self, permalink_key: str, dashboard: Dashboard

@@ -120,6 +120,39 @@ export const useDownloadMenuItems = (
     }
   };
 
+  const fileNameFromResponse = (
+    response: Response,
+    fallback: string,
+  ): string => {
+    const disposition = response.headers.get('Content-Disposition');
+    if (!disposition) {
+      return fallback;
+    }
+    try {
+      return (
+        parseContentDisposition(disposition)?.parameters?.filename ?? fallback
+      );
+    } catch (error) {
+      logging.warn('Failed to parse Content-Disposition header:', error);
+      return fallback;
+    }
+  };
+
+  const downloadBlob = (blob: Blob, fileName: string) => {
+    const url = window.URL.createObjectURL(blob);
+    try {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } finally {
+      window.URL.revokeObjectURL(url);
+    }
+  };
+
   const onExportAsExample = async () => {
     try {
       const response = await SupersetClient.get({
@@ -130,35 +163,11 @@ export const useDownloadMenuItems = (
         parseMethod: 'raw',
       });
 
-      // Parse filename from Content-Disposition header
-      const disposition = response.headers.get('Content-Disposition');
-      let fileName = `dashboard_${dashboardId}_example.zip`;
-
-      if (disposition) {
-        try {
-          const parsed = parseContentDisposition(disposition);
-          if (parsed?.parameters?.filename) {
-            fileName = parsed.parameters.filename;
-          }
-        } catch (error) {
-          logging.warn('Failed to parse Content-Disposition header:', error);
-        }
-      }
-
-      // Convert response to blob and trigger download
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      try {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        a.style.display = 'none';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } finally {
-        window.URL.revokeObjectURL(url);
-      }
+      downloadBlob(
+        blob,
+        fileNameFromResponse(response, `dashboard_${dashboardId}_example.zip`),
+      );
 
       addSuccessToast(t('Dashboard exported as example successfully'));
     } catch (error) {
@@ -169,13 +178,31 @@ export const useDownloadMenuItems = (
 
   const onExportXlsx = async (mode: 'data' | 'images') => {
     try {
-      const { json } = await SupersetClient.post({
+      const response = await SupersetClient.post({
         endpoint: `/api/v1/dashboard/${dashboardId}/export_xlsx/`,
         jsonPayload: { active_data_mask: buildActiveDataMask(), mode },
+        // The response is either JSON describing a queued export or the workbook
+        // itself, so it is parsed here rather than by the client.
+        parseMethod: 'raw',
       });
+
+      // Where the deployment has export storage the work is queued and delivered
+      // by email (202). Where it has none the server builds the workbook during
+      // the request and returns the file, which the browser downloads directly.
+      if (response.status !== 202) {
+        const blob = await response.blob();
+        downloadBlob(
+          blob,
+          fileNameFromResponse(response, `dashboard_${dashboardId}.xlsx`),
+        );
+        addSuccessToast(t('Dashboard data exported to Excel'));
+        return;
+      }
+
       // The throttle response (an export is already running) returns 202 with a
       // message but no job_id; only a freshly enqueued job carries a job_id.
-      if ((json as { job_id?: string })?.job_id) {
+      const json = (await response.json()) as { job_id?: string };
+      if (json?.job_id) {
         addSuccessToast(
           t(
             "Your export is being prepared. You'll receive an email when it's ready.",
@@ -187,13 +214,18 @@ export const useDownloadMenuItems = (
         );
       }
     } catch (error) {
-      // status comes from the response (Partial<SupersetClientResponse>), which
-      // the union type does not expose uniformly; read it via a narrow cast.
-      const { status } = (await getClientErrorObject(error)) as {
+      // status/message come from the response (Partial<SupersetClientResponse>),
+      // which the union type does not expose uniformly; read them via a narrow
+      // cast.
+      const { status, message } = (await getClientErrorObject(error)) as {
         status?: number;
+        message?: string;
       };
-      if (status === 501) {
-        addDangerToast(t('Excel export is not configured on this server.'));
+      // A refusal explains itself — the export is too large to build in one
+      // request, and says what to configure — so pass it on rather than
+      // replacing it with a generic failure. Server-side faults stay generic.
+      if (message && status && status >= 400 && status < 500) {
+        addDangerToast(message);
       } else {
         addDangerToast(t('Sorry, something went wrong. Try again later.'));
       }

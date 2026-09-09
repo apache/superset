@@ -1559,6 +1559,15 @@ EXCEL_EXPORT_S3_CLIENT_KWARGS: dict[str, Any] = {}
 # a rendered image. Set to None to fall back to the built-in default.
 EXCEL_EXPORT_TABLE_VIZ_TYPES: set[str] | None = None
 
+# Ceiling for an export served inline, as the response to the request that asked
+# for it — the path taken when no bucket is configured above. The export adds up
+# the ``row_limit`` of every query it would run and refuses, before running any
+# of them, when the total exceeds this (or when any query has no finite limit),
+# pointing the user at the asynchronous path instead of risking a request that
+# outlives its timeout. Raise it only as far as the deployment's own request
+# timeout allows.
+EXCEL_EXPORT_SYNC_MAX_ROWS = 100_000
+
 # Optional hook to build a query context for a chart that has no saved
 # ``query_context``, called before the built-in form-data rebuild. Receives the
 # chart's form data (its ``params`` with ``viz_type`` and the
