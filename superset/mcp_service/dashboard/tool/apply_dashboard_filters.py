@@ -163,6 +163,11 @@ def _select_data_mask(
         )
 
     control_values = conf.get("controlValues") or {}
+    if control_values.get("inverseSelection"):
+        raise _FilterApplyError(
+            f"Filter '{conf.get('name') or conf.get('id')}' enables inverse "
+            "selection, which this tool does not support."
+        )
     if (operator := control_values.get("operatorType", "exact")) != "exact":
         raise _FilterApplyError(
             f"Filter '{conf.get('name') or conf.get('id')}' uses matching "
@@ -311,8 +316,8 @@ async def apply_dashboard_filters(
 
     Target each filter by its display name (matched case-insensitively) or
     its filter ID; call get_dashboard_info first to see which filters a
-    dashboard has. Only exact-match select filters are supported.
-    Supply ``values`` for a filter_select filter (an empty
+    dashboard has. Only exact-match select filters without inverse selection
+    are supported. Supply ``values`` for a filter_select filter (an empty
     list clears it) and ``time_range`` for a filter_time filter. Filters
     left out of the request keep the dashboard's default value unless
     base_permalink_key is supplied. For follow-up turns (e.g. "also filter

@@ -43,7 +43,8 @@ flowchart LR
 
 ## Dashboard filter notifications
 
-`apply_dashboard_filters` supports exact-match select filters and time filters.
+`apply_dashboard_filters` supports exact-match select filters without inverse
+selection, and time filters. Inverse-selection configurations are rejected.
 Select filters configured for contains, starts-with, or ends-with matching are
 rejected rather than silently applying exact matching. Clearing a required select
 filter with `values: []` matches no rows, including when opening the returned

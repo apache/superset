@@ -991,3 +991,38 @@ async def test_non_exact_select_is_rejected_without_side_effects(
     assert "Only exact-match select filters are supported" in data["error"]
     create.assert_not_called()
     publish.assert_not_called()
+
+
+@pytest.mark.parametrize("values", [["EMEA"], []])
+@pytest.mark.parametrize("required", [False, True])
+@pytest.mark.asyncio
+async def test_inverse_select_is_rejected_without_side_effects(
+    mcp_server: object, values: list[str], required: bool
+) -> None:
+    """Do not create masks that change meaning when inverse filters initialize."""
+    conf = {
+        **SELECT_FILTER,
+        "controlValues": {
+            **SELECT_FILTER["controlValues"],
+            "inverseSelection": True,
+            "enableEmptyFilter": required,
+        },
+    }
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([conf])),
+        patch(CREATE_PERMALINK) as create,
+        patch(
+            "superset.mcp_service.dashboard.tool.apply_dashboard_filters."
+            "_publish_filters_applied"
+        ) as publish,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Region", "values": values}],
+            },
+        )
+    assert "inverse selection, which this tool does not support" in data["error"]
+    create.assert_not_called()
+    publish.assert_not_called()
