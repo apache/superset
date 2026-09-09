@@ -24,12 +24,15 @@ import {
   getStandardizedControls,
   sharedControls,
 } from '@superset-ui/chart-controls';
-import { subtitleFontSize } from '../sharedControls';
+import {
+  headerFontSize,
+  subheaderFontSize,
+  subtitleFontSize,
+} from '../sharedControls';
 import {
   COMPARISON_OFFSET_CHOICES,
   DEFAULT_BACKGROUND_COLOR,
   DEFAULT_BIG_NUMBER_COLOR,
-  DEFAULT_BIG_NUMBER_FONT_SIZE,
   DEFAULT_BIG_NUMBER_LEFT,
   DEFAULT_BIG_NUMBER_TOP,
   DEFAULT_COMPARISON1_LABEL,
@@ -38,12 +41,12 @@ import {
   DEFAULT_COMPARISON2_LABEL,
   DEFAULT_COMPARISON2_LEFT,
   DEFAULT_COMPARISON2_OFFSET,
-  DEFAULT_COMPARISON_FONT_SIZE,
   DEFAULT_COMPARISON_NEGATIVE_COLOR,
   DEFAULT_COMPARISON_POSITIVE_COLOR,
   DEFAULT_COMPARISON_TOP,
   DEFAULT_COMPARISON_ZERO_COLOR,
   DEFAULT_TITLE_COLOR,
+  DEFAULT_TITLE_FONT_SIZE,
   DEFAULT_TITLE_LEFT,
   DEFAULT_TITLE_TOP,
 } from './constants';
@@ -211,6 +214,7 @@ const config: ControlPanelConfig = {
             config: {
               ...subtitleFontSize.config,
               label: t('Title font size'),
+              default: DEFAULT_TITLE_FONT_SIZE,
             },
           },
         ],
@@ -260,11 +264,8 @@ const config: ControlPanelConfig = {
           {
             name: 'big_number_font_size',
             config: {
-              type: 'TextControl',
+              ...headerFontSize.config,
               label: t('Big number font size'),
-              isInt: true,
-              renderTrigger: true,
-              default: DEFAULT_BIG_NUMBER_FONT_SIZE,
             },
           },
         ],
@@ -402,11 +403,8 @@ const config: ControlPanelConfig = {
           {
             name: 'comparison_font_size',
             config: {
-              type: 'TextControl',
+              ...subheaderFontSize.config,
               label: t('Comparison font size'),
-              isInt: true,
-              renderTrigger: true,
-              default: DEFAULT_COMPARISON_FONT_SIZE,
             },
           },
         ],

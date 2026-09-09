@@ -247,8 +247,24 @@ export default function transformProps(
     titleFontSizeValue <= 1
       ? Math.ceil(titleFontSizeValue * height)
       : Math.ceil(titleFontSizeValue);
+  const bigNumberFontSizeValue =
+    typeof bigNumberFontSize === 'number'
+      ? bigNumberFontSize
+      : Number(bigNumberFontSize) || DEFAULT_BIG_NUMBER_FONT_SIZE;
+  const bigNumberFontSizePx =
+    bigNumberFontSizeValue <= 1
+      ? Math.ceil(bigNumberFontSizeValue * height)
+      : Math.ceil(bigNumberFontSizeValue);
+  const comparisonFontSizeValue =
+    typeof comparisonFontSize === 'number'
+      ? comparisonFontSize
+      : Number(comparisonFontSize) || DEFAULT_COMPARISON_FONT_SIZE;
+  const comparisonFontSizePx =
+    comparisonFontSizeValue <= 1
+      ? Math.ceil(comparisonFontSizeValue * height)
+      : Math.ceil(comparisonFontSizeValue);
   const titleRowHeight = titleFontSizePx * 1.2;
-  const bigNumberRowHeight = bigNumberFontSize * 1.2;
+  const bigNumberRowHeight = bigNumberFontSizePx * 1.2;
   const bigNumberTopConfigured = bigNumberTop !== DEFAULT_BIG_NUMBER_TOP;
   const effectiveBigNumberTop = hasTitle
     ? bigNumberTopConfigured
@@ -286,7 +302,7 @@ export default function transformProps(
     top: effectiveBigNumberTop,
     style: {
       text: bigNumberText,
-      fontSize: bigNumberFontSize,
+      fontSize: bigNumberFontSizePx,
       fontWeight: 'bold',
       fill: toCssColor(bigNumberColor, '#333'),
     },
@@ -338,7 +354,7 @@ export default function transformProps(
       top: effectiveComparisonTop,
       style: {
         text,
-        fontSize: comparisonFontSize,
+        fontSize: comparisonFontSizePx,
         fill,
       },
     };
