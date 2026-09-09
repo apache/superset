@@ -224,27 +224,46 @@ def current_version_number(
     return version_number
 
 
-def current_live_transaction_id_for_share(
+def current_live_transaction_id_locked(
     model_cls: type[Model], entity_id: int, entity_uuid: UUID
 ) -> int | None:
-    """Return the live row's ``transaction_id`` via a locking read.
+    """Return the live row's ``transaction_id`` via an exclusive locking read.
 
     The conditional-write (``If-Match``) guard must compare the client's
     token against *committed* state. A plain consistent read is served
     from the transaction's REPEATABLE READ snapshot on MySQL/InnoDB
     (pinned by the request's earlier auth queries), so a version row
     committed by a concurrent writer between this request's first read
-    and its row lock stays invisible — the stale token then matches and
-    the 412 the guard exists to raise is missed. ``FOR SHARE``
-    (``with_for_update(read=True)``) makes this a locking read, which is
-    exempt from the snapshot and returns current committed data, without
-    blocking other readers of the same version row.
+    and its row lock stays invisible -- the stale token then matches and
+    the 412 the guard exists to raise is missed. A locking read is exempt
+    from the snapshot and returns current committed data.
+
+    The lock is exclusive (``with_for_update()``), not shared: this
+    transaction later closes the very row it reads here (Continuum's
+    validity strategy sets ``end_transaction_id`` at commit), and holding
+    a shared lock first invites InnoDB's shared-to-exclusive upgrade
+    deadlock whenever anything else queues for the row in between. Plain
+    MVCC readers are not blocked by either lock strength, and writers to
+    the same entity are already serialised by the entity row lock taken
+    first, so exclusivity here costs nothing.
+
+    Residual, documented rather than removed: on MySQL a locking read
+    over an empty range (an entity with no live version row yet) takes a
+    gap lock, and two concurrent conditional writers whose version rows
+    share a primary-key gap can deadlock at Continuum's insert. The PUT
+    path maps lock-contention errors on this read to the same 412 retry
+    semantics a stale token gets -- a deadlock loser *is* a concurrent
+    interleave. The lock also briefly blocks retention pruning of this
+    entity's version rows for the duration of the request transaction.
 
     Deliberately a plain row query, not the aggregate
-    :func:`current_version_info` — locking clauses do not combine with
-    aggregates reliably across dialects, and the guard only needs the
-    live ``transaction_id``. Renders no ``FOR SHARE`` on SQLite, which
-    serialises writers anyway.
+    :func:`current_version_info` -- locking clauses do not combine with
+    aggregates (Postgres rejects the combination outright), and the guard
+    only needs the live ``transaction_id``. Ordered-and-limited so a
+    defensively tolerated multi-open-row state (which the aggregate's
+    ``max`` absorbs) degrades the same way instead of raising
+    ``MultipleResultsFound``. Renders the dialect's locking clause
+    (``FOR UPDATE`` / none on SQLite, which serialises writers anyway).
     """
     ver_cls = version_class(model_cls)
     return (
@@ -254,7 +273,9 @@ def current_live_transaction_id_for_share(
             ver_cls.end_transaction_id.is_(None),
             ver_cls.operation_type != OPERATION_DELETE,
         )
-        .with_for_update(read=True)
+        .order_by(ver_cls.transaction_id.desc())
+        .limit(1)
+        .with_for_update()
         .scalar()
     )
 

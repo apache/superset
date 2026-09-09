@@ -32,9 +32,10 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext as _, ngettext
 from jinja2.exceptions import TemplateError
 from marshmallow import ValidationError
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm.exc import MultipleResultsFound
 
-from superset import event_logger, is_feature_enabled, security_manager
+from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.commands.dataset.create import CreateDatasetCommand
 from superset.commands.dataset.delete import DeleteDatasetCommand
 from superset.commands.dataset.duplicate import DuplicateDatasetCommand
@@ -112,6 +113,7 @@ from superset.versioning.api_helpers import (
     current_entity_version_info,
     entity_concurrency_token,
     get_version_endpoint,
+    is_lock_contention_error,
     list_versions_endpoint,
     lock_entity_for_update,
     restore_version_endpoint,
@@ -576,7 +578,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     @requires_json
-    def put(self, pk: int) -> Response:
+    def put(self, pk: int) -> Response:  # noqa: C901
         """Update a dataset.
         ---
         put:
@@ -703,19 +705,38 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
         # Serialise conditional saves on this dataset: the guard below reads
         # the live version, the command writes, and the two must not interleave
-        # with another request's. Only a conditional save pays for the lock; an
+        # with another request's. Only a conditional save pays for the locks; an
         # unconditional PUT behaves exactly as it did before the guard existed.
-        if is_conditional_write():
+        conditional = is_conditional_write()
+        if conditional:
             lock_entity_for_update(SqlaTable, pk)
 
         # Live version identifiers before the update (empty + query-free when
         # ``ENABLE_VERSIONING_CAPTURE`` is off). On the conditional path the
-        # live transaction id is read under FOR SHARE: a plain read is served
-        # from the request's REPEATABLE READ snapshot on MySQL and can miss a
-        # concurrent commit, letting a stale If-Match token pass the guard.
-        old_info = current_entity_version_info(
-            SqlaTable, pk, lock_for_stale_check=is_conditional_write()
-        )
+        # live transaction id is read under an exclusive row lock: a plain
+        # read is served from the request's REPEATABLE READ snapshot on MySQL
+        # and can miss a concurrent commit, letting a stale If-Match token
+        # pass the guard. A lock race lost on that read (deadlock / lock
+        # wait) IS a concurrent interleave, so it maps to the same 412 retry
+        # semantics as a stale token.
+        try:
+            old_info = current_entity_version_info(
+                SqlaTable, pk, lock_for_stale_check=conditional
+            )
+        except OperationalError as ex:
+            if not (conditional and is_lock_contention_error(ex)):
+                raise
+            # Not a unit of work: the transaction is already dead (deadlock
+            # rollback); this clears the aborted session before responding.
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            return self.response(
+                412,
+                message=_(
+                    "The dataset was changed by another user or browser tab "
+                    "after you opened it. Reopen it to pick up the latest "
+                    "version, then reapply your changes."
+                ),
+            )
 
         try:
             raise_for_stale_write(concurrency_token_from(old_info))

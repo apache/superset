@@ -93,6 +93,7 @@ def current_entity_version_info(
     model_cls: type[Model],
     entity_id: int | None,
     entity_uuid: UUID | None = None,
+    *,
     lock_for_stale_check: bool = False,
 ) -> EntityVersionInfo:
     """Resolve the live version number, transaction id, and version uuid.
@@ -102,14 +103,16 @@ def current_entity_version_info(
     with a single ``SELECT uuid`` rather than loading the whole entity row.
 
     With ``lock_for_stale_check`` the live ``transaction_id`` — the input
-    to the ``If-Match`` token — is read under ``FOR SHARE`` so it reflects
-    committed state even on MySQL REPEATABLE READ, where a plain read is
-    served from the request's pre-lock snapshot (see
-    :func:`~superset.versioning.queries.current_live_transaction_id_for_share`).
-    Only conditional writes should pay for the lock. The displayed version
+    to the ``If-Match`` token — is read under an exclusive row lock so it
+    reflects committed state even on MySQL REPEATABLE READ, where a plain
+    read is served from the request's pre-lock snapshot (see
+    :func:`~superset.versioning.queries.current_live_transaction_id_locked`
+    for the mechanism, lock-strength rationale, and residuals). Only
+    conditional writes should pay for the lock. The displayed version
     *number* still comes from a plain aggregate read: a concurrently
     committed row can leave it one behind in response metadata, but the
-    guard itself never consults it.
+    guard itself never consults it. The entity-uuid resolution also stays
+    a plain read: the uuid is immutable for the life of the row.
     """
     if entity_id is None or not _capture_enabled():
         return EntityVersionInfo()
@@ -131,7 +134,7 @@ def current_entity_version_info(
         model_cls, entity_id, entity_uuid
     )
     if lock_for_stale_check:
-        transaction_id = VersionDAO.current_live_transaction_id_for_share(
+        transaction_id = VersionDAO.current_live_transaction_id_locked(
             model_cls, entity_id, entity_uuid
         )
     version_uuid = (
@@ -200,6 +203,27 @@ def entity_concurrency_token(
     return current_entity_etag_uuid(
         model_cls, entity_id, entity_uuid
     ) or unversioned_entity_token(entity_uuid)
+
+
+def is_lock_contention_error(ex: Exception) -> bool:
+    """Whether *ex* is a database deadlock / lock-wait failure.
+
+    A conditional write that loses a lock race (e.g. MySQL's gap-lock
+    deadlock on the version table, error 1213, or a lock wait timeout,
+    1205; Postgres serialization/deadlock SQLSTATEs 40001/40P01) has, by
+    definition, interleaved with a concurrent writer -- exactly the
+    situation ``If-Match`` exists to surface. Callers map it to the same
+    retry response as a stale token rather than a 500.
+    """
+    orig = getattr(ex, "orig", None)
+    code = getattr(orig, "args", [None])[0] if orig is not None else None
+    if code in (1213, 1205):
+        return True
+    sqlstate = getattr(orig, "pgcode", None)
+    if sqlstate in ("40001", "40P01"):
+        return True
+    text = str(ex).lower()
+    return "deadlock" in text or "lock wait timeout" in text
 
 
 def lock_entity_for_update(model_cls: type[Model], entity_id: int | None) -> None:

@@ -468,7 +468,7 @@ def test_put_dataset_rejects_stale_if_match(
             version_uuid="new",
             entity_uuid=dataset.uuid,
         ),
-    ):
+    ) as version_info:
         response = client.put(
             f"/api/v1/dataset/{dataset.id}",
             json={"description": "from a stale tab"},
@@ -476,6 +476,10 @@ def test_put_dataset_rejects_stale_if_match(
         )
 
     assert response.status_code == 412
+    # Pins the endpoint wiring: a conditional write must ask for the
+    # locking validator read (sc-120050) -- without this, dropping the
+    # lock_for_stale_check kwarg at the call site survives every test.
+    assert version_info.call_args.kwargs["lock_for_stale_check"] is True
     assert response.headers["ETag"] == '"new"'
     db.session.expire(dataset)
     assert dataset.description is None

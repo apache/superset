@@ -20,12 +20,15 @@ The statement-shape pins live in
 tests/unit_tests/versioning/test_version_info_locking.py; the MySQL
 REPEATABLE READ staleness itself cannot flip on Postgres (READ COMMITTED
 takes a fresh snapshot per statement) and needs an interleaved read view
-to reproduce on MySQL, so -- mirroring the honest-scope precedent of the
-entity-lock fix -- these tests prove the locking read executes correctly
-against a real backend and agrees with the plain read on the quiet path.
+to reproduce on MySQL. So -- the same honest-scope approach the sibling
+entity-lock PRs take -- these tests prove the locking read executes
+correctly against a real backend, agrees with the plain read on the
+quiet path, and resolves the no-live-row case the way the unversioned
+token path expects.
 """
 
 import pytest
+import sqlalchemy as sa
 
 from superset import db
 from superset.daos.version import VersionDAO
@@ -40,21 +43,29 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (  # noqa: F4
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
 class TestConditionalTokenLockingRead(SupersetTestCase):
-    def _versioned_chart(self) -> Slice:
+    def _versioned_chart(self) -> tuple[Slice, str | None]:
         """A chart with at least one version row (a real committed save)."""
         chart = db.session.query(Slice).filter(Slice.slice_name == "Boys").one()
+        original = chart.description
         chart.description = "sc-120050 probe"
         db.session.commit()
-        return chart
+        return chart, original
 
-    def test_for_share_read_agrees_with_plain_read_on_quiet_path(self) -> None:
+    def _restore(self, chart_id: int, original: str | None) -> None:
+        db.session.rollback()
+        chart = db.session.get(Slice, chart_id)
+        assert chart is not None
+        chart.description = original
+        db.session.commit()
+
+    def test_locked_read_agrees_with_plain_read_on_quiet_path(self) -> None:
         """Without concurrent writers both reads name the same live row,
-        and the FOR SHARE clause executes on the real backend (the
+        and the locking clause executes on the real backend (the
         dialect-syntax half of the guard the unit pins cannot cover)."""
-        chart = self._versioned_chart()
+        chart, original = self._versioned_chart()
         try:
             plain = VersionDAO.current_live_transaction_id(Slice, chart.id, chart.uuid)
-            locked = VersionDAO.current_live_transaction_id_for_share(
+            locked = VersionDAO.current_live_transaction_id_locked(
                 Slice, chart.id, chart.uuid
             )
             assert plain is not None
@@ -65,7 +76,35 @@ class TestConditionalTokenLockingRead(SupersetTestCase):
             )
             assert info.transaction_id == plain
         finally:
-            db.session.rollback()
-            chart = db.session.query(Slice).get(chart.id)
-            chart.description = None
+            self._restore(chart.id, original)
+
+    def test_no_live_row_resolves_to_none_under_lock(self) -> None:
+        """The zero-live-row branch (lazy baselines) stays well-behaved.
+
+        An entity whose version rows are gone (or never existed --
+        baselines are written lazily) must yield None from the locked
+        read, so current_entity_version_info reports no version_uuid and
+        the guard falls back to the unversioned token, exactly as the
+        plain path does. This is also the branch where MySQL takes a gap
+        lock (see current_live_transaction_id_locked's residual note).
+        """
+        chart, original = self._versioned_chart()
+        try:
+            db.session.execute(
+                sa.text("DELETE FROM slices_version WHERE id = :id"),
+                {"id": chart.id},
+            )
             db.session.commit()
+
+            locked = VersionDAO.current_live_transaction_id_locked(
+                Slice, chart.id, chart.uuid
+            )
+            assert locked is None
+
+            info = current_entity_version_info(
+                Slice, chart.id, chart.uuid, lock_for_stale_check=True
+            )
+            assert info.version_uuid is None
+            assert info.entity_uuid == chart.uuid
+        finally:
+            self._restore(chart.id, original)
