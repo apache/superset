@@ -42,10 +42,13 @@ from superset.utils.screenshot_utils import (
     FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS,
     get_screenshot_blankness_metrics,
     REPORT_ALL_CHART_HOLDERS_READY_JS,
+    REPORT_CAPTURE_READINESS_STABILITY_MS,
     REPORT_HAS_RENDERED_CHART_HOLDERS_JS,
     resolve_screenshot_task_budget_seconds,
     ScreenshotBlankCaptureError,
     ScreenshotTaskBudgetExceededError,
+    STABLE_CHART_CONTAINER_READY_JS,
+    STABLE_REPORT_ALL_CHART_HOLDERS_READY_JS,
     take_tiled_screenshot,
     TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
 )
@@ -262,6 +265,45 @@ class WebDriverPlaywright(WebDriverProxy):
 
         context_suffix = f" [{log_context}]" if log_context else ""
         for attempt in range(1, TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS + 1):
+            if report_execution_context:
+                stable_timeout = report_execution_context.deadline.timeout_seconds(
+                    "capture_readiness_stability",
+                    reserve_seconds=(
+                        report_execution_context.readiness_reserve_seconds
+                    ),
+                )
+                stable_predicate = (
+                    STABLE_CHART_CONTAINER_READY_JS
+                    if element_name == "chart-container"
+                    else STABLE_REPORT_ALL_CHART_HOLDERS_READY_JS
+                )
+                try:
+                    page.wait_for_function(
+                        stable_predicate,
+                        {
+                            "token": str(time.monotonic_ns()),
+                            "stabilityMs": REPORT_CAPTURE_READINESS_STABILITY_MS,
+                        },
+                        timeout=stable_timeout * 1000,
+                    )
+                    logger.info(
+                        "report_capture_readiness_stable capture=standard "
+                        "attempt=%s/%s stability_ms=%s%s",
+                        attempt,
+                        TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+                        REPORT_CAPTURE_READINESS_STABILITY_MS,
+                        context_suffix,
+                    )
+                except PlaywrightTimeout:
+                    logger.warning(
+                        "report_capture_readiness_changed capture=standard "
+                        "attempt=%s/%s%s; aborting before capture or delivery",
+                        attempt,
+                        TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+                        context_suffix,
+                        exc_info=True,
+                    )
+                    raise
             capture_timeout = (
                 report_execution_context.deadline.timeout_seconds(
                     "screenshot_capture",

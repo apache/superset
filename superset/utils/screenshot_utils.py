@@ -55,6 +55,7 @@ SCREENSHOT_BLANK_MAX_ENTROPY = 1.5
 SCREENSHOT_BLANK_MIN_EDGE_DIFFERENCE = 8
 SCREENSHOT_BLANK_MIN_STRUCTURAL_EDGE_RATIO = 0.02
 SCREENSHOT_BLANK_SAMPLE_SIZES = (256, 1024)
+REPORT_CAPTURE_READINESS_STABILITY_MS = 500
 
 # Runtime task-budget policy shared with the approach introduced in #42118.
 # Celery exposes the effective per-task hard/soft limits only on the running
@@ -487,6 +488,35 @@ REPORT_ALL_CHART_HOLDERS_READY_JS = (
     f"() => {{ {UNREADY_ALL_CHART_HOLDERS_JS_BODY} "
     "return holders.length > 0 && unready.length === 0; }"
 )
+
+
+def _stable_readiness_js(readiness_predicate: str) -> str:
+    """Require a readiness predicate to remain true for a capture dwell."""
+
+    return f"""
+    args => {{
+        const ready = ({readiness_predicate})();
+        const now = performance.now();
+        const previous = window.__supersetCaptureReadiness;
+        if (!ready) {{
+            window.__supersetCaptureReadiness = {{token: args.token, since: null}};
+            return false;
+        }}
+        if (!previous || previous.token !== args.token || previous.since === null) {{
+            window.__supersetCaptureReadiness = {{token: args.token, since: now}};
+            return false;
+        }}
+        return now - previous.since >= args.stabilityMs;
+    }}
+    """
+
+
+STABLE_REPORT_CHART_HOLDERS_READY_JS = _stable_readiness_js(
+    REPORT_CHART_HOLDERS_READY_JS
+)
+STABLE_REPORT_ALL_CHART_HOLDERS_READY_JS = _stable_readiness_js(
+    REPORT_ALL_CHART_HOLDERS_READY_JS
+)
 CHART_HOLDERS_MOUNTED_JS = (
     f"() => document.querySelectorAll('{CHART_HOLDER_SELECTOR}').length > 0"
 )
@@ -516,6 +546,7 @@ CHART_CONTAINER_READY_JS = f"""
         );
 }}
 """
+STABLE_CHART_CONTAINER_READY_JS = _stable_readiness_js(CHART_CONTAINER_READY_JS)
 
 # Diagnostic companion to CHART_CONTAINER_READY_JS: reports why a chart
 # capture is (or is not) ready. Chart pages have no dashboard grid holders,
@@ -1152,6 +1183,45 @@ def take_tiled_screenshot(  # noqa: C901
             # Take screenshot with clipping to capture only this tile's content
             tile_screenshot: bytes | None = None
             for capture_attempt in range(1, TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS + 1):
+                if report_execution_context:
+                    stable_wait = _timeout_seconds(
+                        "capture_readiness_stability",
+                        reserve_seconds=(
+                            report_execution_context.readiness_reserve_seconds
+                        ),
+                    )
+                    try:
+                        page.wait_for_function(
+                            STABLE_REPORT_CHART_HOLDERS_READY_JS,
+                            {
+                                "token": str(time.monotonic_ns()),
+                                "stabilityMs": REPORT_CAPTURE_READINESS_STABILITY_MS,
+                            },
+                            timeout=stable_wait * 1000,
+                        )
+                        logger.info(
+                            "report_capture_readiness_stable tile=%s/%s "
+                            "attempt=%s/%s stability_ms=%s%s",
+                            i + 1,
+                            num_tiles,
+                            capture_attempt,
+                            TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+                            REPORT_CAPTURE_READINESS_STABILITY_MS,
+                            context_suffix,
+                        )
+                    except PlaywrightTimeout:
+                        logger.warning(
+                            "report_capture_readiness_changed tile=%s/%s "
+                            "attempt=%s/%s%s; aborting before capture or delivery",
+                            i + 1,
+                            num_tiles,
+                            capture_attempt,
+                            TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+                            context_suffix,
+                            exc_info=True,
+                        )
+                        readiness_timeout = True
+                        raise
                 capture_timeout = (
                     _timeout_seconds(
                         "screenshot_capture",

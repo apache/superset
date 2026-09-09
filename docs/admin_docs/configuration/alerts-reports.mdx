@@ -486,6 +486,12 @@ applies to alerts that attach reports. Check worker logs for
 `ScreenshotBlankCaptureError` and `report_capture_validation` when investigating
 these failures.
 
+Immediately before each scheduled report screenshot, chart readiness must remain
+stable for 500 milliseconds. This final check runs after scrolling, content
+expansion, and animation waits so a chart that returns to a loading state is not
+captured. Successful checks emit `report_capture_readiness_stable`; a timeout
+emits `report_capture_readiness_changed` and stops capture and delivery.
+
 ### Confirm feature flag is enabled and you have sufficient permissions
 
 If you don't see "Alerts & Reports" under the _Manage_ section of the Settings dropdown in the Superset UI, you need to enable the `ALERT_REPORTS` feature flag (see above). Enable another feature flag and check to see that it took effect, to verify that your config file is getting loaded.

@@ -127,10 +127,35 @@ class TestStandardScreenshotValidation:
         assert result == output.getvalue()
         assert page.screenshot.call_count == 2
         page.bring_to_front.assert_called_once_with()
-        page.wait_for_function.assert_called_once_with(
-            "() => window.__supersetRepaintComplete === true",
-            timeout=5000,
+        assert any(
+            call.args == ("() => window.__supersetRepaintComplete === true",)
+            and call.kwargs == {"timeout": 5000}
+            for call in page.wait_for_function.call_args_list
         )
+        stable_calls = [
+            call
+            for call in page.wait_for_function.call_args_list
+            if "__supersetCaptureReadiness" in call.args[0]
+        ]
+        assert len(stable_calls) == 2
+
+    def test_readiness_change_aborts_before_standard_capture(self):
+        from superset.utils.webdriver import PlaywrightTimeout
+
+        page = MagicMock()
+        element = MagicMock()
+        page.wait_for_function.side_effect = PlaywrightTimeout("spinner returned")
+
+        with pytest.raises(PlaywrightTimeout, match="spinner returned"):
+            WebDriverPlaywright._get_validated_screenshot(
+                page,
+                element,
+                "standalone",
+                "execution_id=test",
+                _report_context(),
+            )
+
+        page.screenshot.assert_not_called()
 
     def test_repeated_blank_capture_fails_closed(self):
         page = MagicMock()
@@ -180,7 +205,13 @@ class TestStandardScreenshotValidation:
         valid.save(output, format="PNG")
         page.screenshot.side_effect = [_png("white"), output.getvalue()]
         page.evaluate.return_value = True
-        page.wait_for_function.side_effect = PlaywrightTimeout("stalled repaint")
+
+        def wait_for_function(script, *_args, **_kwargs):
+            if "__supersetRepaintComplete" in script:
+                raise PlaywrightTimeout("stalled repaint")
+            return None
+
+        page.wait_for_function.side_effect = wait_for_function
 
         result = WebDriverPlaywright._get_validated_screenshot(
             page,
@@ -191,9 +222,10 @@ class TestStandardScreenshotValidation:
         )
 
         assert result == output.getvalue()
-        page.wait_for_function.assert_called_once_with(
-            "() => window.__supersetRepaintComplete === true",
-            timeout=5000,
+        assert any(
+            call.args == ("() => window.__supersetRepaintComplete === true",)
+            and call.kwargs == {"timeout": 5000}
+            for call in page.wait_for_function.call_args_list
         )
 
     def test_repaint_preserves_celery_soft_timeout(self):
@@ -1494,6 +1526,26 @@ class TestWebDriverPlaywrightChartReadiness:
 
         assert page.wait_for_function.call_args.kwargs["timeout"] == 590_000
 
+    def test_capture_readiness_requires_a_stable_dwell(self):
+        page = MagicMock()
+        element = MagicMock()
+        page.screenshot.return_value = _png("white")
+        page.evaluate.return_value = False
+
+        result = WebDriverPlaywright._get_validated_screenshot(
+            page,
+            element,
+            "standalone",
+            "execution_id=test",
+            report_execution_context=_report_context(),
+        )
+
+        assert result == _png("white")
+        readiness_call = page.wait_for_function.call_args
+        assert "__supersetCaptureReadiness" in readiness_call.args[0]
+        assert readiness_call.args[1]["stabilityMs"] == 500
+        assert readiness_call.kwargs["timeout"] == 690_000
+
     def test_report_readiness_budget_exhaustion_skips_poll_and_capture(self):
         from uuid import UUID
 
@@ -1856,9 +1908,9 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         assert "animation_wait" in call_order
         spinner_idx = call_order.index("spinner_wait")
         anim_idx = call_order.index("animation_wait")
-        assert spinner_idx < anim_idx, (
-            "spinner wait must precede animation wait in non-tiled path"
-        )
+        assert (
+            spinner_idx < anim_idx
+        ), "spinner wait must precede animation wait in non-tiled path"
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -2001,9 +2053,9 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
             for call in mock_page.wait_for_timeout.call_args_list
             if call[0][0] == 2 * 1000
         ]
-        assert animation_waits == [], (
-            "No global 2s animation wait_for_timeout should fire on the tiled path"
-        )
+        assert (
+            animation_waits == []
+        ), "No global 2s animation wait_for_timeout should fire on the tiled path"
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -2072,6 +2124,6 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         timeout_values = [
             call[0][0] for call in mock_page.wait_for_timeout.call_args_list
         ]
-        assert timeout_values == [0], (
-            f"Expected only [0] (headstart), got {timeout_values}"
-        )
+        assert timeout_values == [
+            0
+        ], f"Expected only [0] (headstart), got {timeout_values}"

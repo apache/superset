@@ -743,7 +743,7 @@ class TestTakeTiledScreenshot:
             self._create_chart_like_tile(),
         ]
 
-        def wait_for_function(script, **_kwargs):
+        def wait_for_function(script, *_args, **_kwargs):
             if "__supersetRepaintComplete" in script:
                 raise PlaywrightTimeout("no repaint")
             return None
@@ -838,7 +838,12 @@ class TestTakeTiledScreenshot:
 
         def wait_for_function(*args, **kwargs):
             nonlocal wait_calls
-            events.append("mount" if wait_calls == 0 else "ready")
+            if wait_calls == 0:
+                events.append("mount")
+            elif "__supersetCaptureReadiness" in args[0]:
+                events.append("stable_ready")
+            else:
+                events.append("ready")
             wait_calls += 1
 
         def evaluate(script, _arg=None):
@@ -870,7 +875,13 @@ class TestTakeTiledScreenshot:
             )
 
         assert result == b"combined"
-        assert events == ["mount", "dimensions", "ready", "capture"]
+        assert events == [
+            "mount",
+            "dimensions",
+            "ready",
+            "stable_ready",
+            "capture",
+        ]
 
     def test_zero_holders_timeout_before_dimensions_or_capture(self, mock_page):
         """An empty DOM cannot vacuously pass the tiled readiness gate."""
@@ -1098,8 +1109,14 @@ class TestTakeTiledScreenshot:
                 report_execution_context=_report_context(),
             )
 
-        # One initial holder-mount gate, then one readiness poll per tile.
-        assert mock_page.wait_for_function.call_count == 4
+        # One initial holder-mount gate, then readiness and stable-readiness
+        # polls per tile.
+        assert mock_page.wait_for_function.call_count == 7
+        stable_calls = mock_page.wait_for_function.call_args_list[2::2]
+        assert len(stable_calls) == 3
+        for stable_call in stable_calls:
+            assert "__supersetCaptureReadiness" in stable_call.args[0]
+            assert stable_call.args[1]["stabilityMs"] == 500
 
         # Each call uses viewport-scoped JS and the load_wait timeout
         mount_call, *tile_calls = mock_page.wait_for_function.call_args_list
@@ -1169,6 +1186,25 @@ class TestTakeTiledScreenshot:
         # (spinner mounted vs nothing mounted vs waiting-on-database) so a
         # slow query can be told apart from the virtualization race.
         assert warning_args[14] == [{"chartId": "42", "state": "waiting_on_database"}]
+
+    def test_readiness_change_aborts_before_tile_capture(self, mock_page):
+        from superset.utils.screenshot_utils import PlaywrightTimeout
+
+        mock_page.wait_for_function.side_effect = [
+            None,
+            None,
+            PlaywrightTimeout("spinner returned"),
+        ]
+
+        with pytest.raises(PlaywrightTimeout, match="spinner returned"):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                report_execution_context=_report_context(),
+            )
+
+        mock_page.screenshot.assert_not_called()
 
     def test_timeout_warning_includes_log_context(self, mock_page):
         """The log context (e.g. report execution id) is threaded through for
