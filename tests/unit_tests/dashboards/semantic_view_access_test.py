@@ -468,16 +468,16 @@ def test_gate_denies_unpublished_empty_dashboard(
         sm.raise_for_access(dashboard=unpublished_empty)
 
 
-def test_gate_denies_unpublished_dashboard_via_datasource_fallback(
+def test_gate_denies_unpublished_dashboard_despite_datasource_grant(
     access_fixtures: SimpleNamespace, app_context: None
 ) -> None:
-    """sc-120031: the fallback is published-gated, killing the inversion.
+    """sc-120031: an unpublished no-viewers dashboard denies datasource holders.
 
     With viewers empty, a datasource-entitled non-editor used to be
     admitted to an UNPUBLISHED dashboard through the fallback — so
     removing the last viewer subject silently WIDENED access (the viewer
-    branch above is published-gated). The fallback now requires published,
-    matching the list filter's fallback branch."""
+    branch is published-gated but the fallback was not). The fallback now
+    requires published, matching the list filter's fallback branch."""
     # pylint: disable=import-outside-toplevel
     from superset.exceptions import SupersetSecurityException
     from superset.models.dashboard import Dashboard

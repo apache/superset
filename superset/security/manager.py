@@ -4945,10 +4945,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # (superset/dashboards/filters.py), so a dashboard invisible
                 # in every list is not readable by direct URL, and emptying
                 # the viewers list can no longer WIDEN access (the viewer
-                # branch above is published-gated; an unpublished-gated
-                # fallback would otherwise take over). Editors, owners, and
-                # resolver-granted editors are admitted above regardless of
-                # published, so no authoring flow changes.
+                # branch above is published-gated; a fallback with no
+                # published gate would otherwise take over). Editors —
+                # owners are folded into editors by the subjects model —
+                # and resolver-granted editors are admitted above
+                # regardless of published, so no authoring flow changes.
                 #
                 # Member chart datasources are resolved across datasource
                 # types via ``Slice.resolved_datasource`` —
@@ -4959,9 +4960,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # A PUBLISHED dashboard with no charts remains accessible
                 # (chart-less dashboards can still carry markdown content);
                 # a chart whose datasource cannot be resolved counts as
-                # inaccessible, never as absent. Resolution is lazy and
-                # deduplicated per (type, id) so the first accessible
-                # datasource short-circuits the remaining lookups.
+                # inaccessible, never as absent.
                 member_slices = dashboard.slices
 
                 def member_datasource_accessible() -> bool:
