@@ -179,11 +179,20 @@ class DatabaseDAO(BaseDAO[Database]):
 
     @staticmethod
     def get_database_by_name(database_name: str) -> Database | None:
-        return (
-            db.session.query(Database)
-            .filter(Database.database_name == database_name)
-            .one_or_none()
+        """
+        Look up a database by name, scoped to the requesting user's object-level
+        visibility (the same ``DatabaseFilter`` boundary ``find_by_id``/
+        ``get_connection`` already apply). An unfiltered lookup would let any
+        principal with class-level ``can_write`` reference an arbitrary
+        existing database by name -- including one they have no catalog,
+        schema, datasource, or database access to -- and ride along with
+        whatever secret-rehydration behavior callers apply to the result.
+        """
+        query = db.session.query(Database).filter(
+            Database.database_name == database_name
         )
+        query = DatabaseDAO._apply_base_filter(query)
+        return query.one_or_none()
 
     @staticmethod
     def build_db_for_connection_test(

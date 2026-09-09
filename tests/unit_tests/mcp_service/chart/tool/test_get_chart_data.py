@@ -27,6 +27,10 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from superset.mcp_service.chart.chart_helpers import (
+    rejected_requested_filter_columns,
+    requested_filter_columns,
+)
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -41,15 +45,13 @@ from superset.mcp_service.chart.tool.get_chart_data import (
     _MAX_RECOMMENDATIONS,
     _query_from_form_data,
     _recommend_visualizations,
-    _rejected_requested_filter_columns,
-    _requested_filter_columns,
 )
 from superset.utils import json
 from superset.utils.core import ExtraFiltersReasonType, GenericDataType
 
 
 def test_requested_filter_columns_supports_both_payload_shapes() -> None:
-    assert _requested_filter_columns(
+    assert requested_filter_columns(
         {
             "filters": [{"col": "country", "op": "==", "val": "USA"}],
             "adhoc_filters": [
@@ -65,6 +67,10 @@ def test_requested_filter_columns_supports_both_payload_shapes() -> None:
     ) == {"country", "city"}
 
 
+def test_requested_filter_columns_accepts_null_lists() -> None:
+    assert requested_filter_columns({"filters": None, "adhoc_filters": None}) == set()
+
+
 def test_rejected_requested_filter_columns_ignores_saved_chart_filters() -> None:
     result = {
         "queries": [
@@ -72,7 +78,7 @@ def test_rejected_requested_filter_columns_ignores_saved_chart_filters() -> None
         ]
     }
 
-    assert _rejected_requested_filter_columns(
+    assert rejected_requested_filter_columns(
         result,
         {
             "adhoc_filters": [
@@ -109,7 +115,7 @@ def test_rejected_requested_filter_columns_reads_materialized_payload() -> None:
         ]
     }
 
-    assert _rejected_requested_filter_columns(
+    assert rejected_requested_filter_columns(
         result,
         {"filters": [{"col": "does_not_exist", "op": "==", "val": "x"}]},
     ) == ["does_not_exist"]
@@ -129,9 +135,30 @@ def test_rejected_requested_filter_columns_ignores_rejected_time_filters() -> No
     }
 
     assert (
-        _rejected_requested_filter_columns(
+        rejected_requested_filter_columns(
             result,
             {"filters": [{"col": "country", "op": "==", "val": "USA"}]},
+        )
+        == []
+    )
+
+
+def test_rejected_requested_filter_columns_prefers_datasource_rejections() -> None:
+    result = {
+        "queries": [
+            {
+                "rejected_filter_columns": [],
+                "rejected_filters": [
+                    {"reason": "not_in_datasource", "column": "__time_col"}
+                ],
+            }
+        ]
+    }
+
+    assert (
+        rejected_requested_filter_columns(
+            result,
+            {"filters": [{"col": "__time_col", "op": "==", "val": "value"}]},
         )
         == []
     )
