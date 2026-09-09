@@ -26,9 +26,9 @@ import {
   useCallback,
   useRef,
   useMemo,
-} from 'react';
+} from "react";
 
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector } from "react-redux";
 import {
   DataMaskStateWithId,
   DataMaskWithId,
@@ -40,47 +40,47 @@ import {
   NativeFilterTarget,
   ChartCustomization,
   ChartCustomizationDivider,
-} from '@superset-ui/core';
-import { styled } from '@apache-superset/core/theme';
-import { Constants } from '@superset-ui/core/components';
-import { useHistory } from 'react-router-dom';
-import { updateDataMask, removeDataMask } from 'src/dataMask/actions';
+} from "@superset-ui/core";
+import { styled } from "@apache-superset/core/theme";
+import { Constants } from "@superset-ui/core/components";
+import { useHistory } from "react-router-dom";
+import { updateDataMask, removeDataMask } from "src/dataMask/actions";
 import {
   saveChartCustomization,
   clearAllPendingChartCustomizations,
   clearAllChartCustomizationsFromMetadata,
-} from 'src/dashboard/actions/chartCustomizationActions';
+} from "src/dashboard/actions/chartCustomizationActions";
 
-import { useImmer } from 'use-immer';
-import { isEmpty, isEqual, debounce } from 'lodash-es';
-import { getInitialDataMask } from 'src/dataMask/reducer';
-import { URL_PARAMS } from 'src/constants';
-import { applicationRoot } from 'src/utils/getBootstrapData';
-import { getUrlParam } from 'src/utils/urlUtils';
-import { useTabId } from 'src/hooks/useTabId';
-import { logEvent } from 'src/logger/actions';
-import { LOG_ACTIONS_CHANGE_DASHBOARD_FILTER } from 'src/logger/LogUtils';
-import { FilterBarOrientation, RootState } from 'src/dashboard/types';
-import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
-import { isChartCustomization } from '../FiltersConfigModal/utils';
-import { checkIsApplyDisabled, getFiltersToApply } from './utils';
-import { extractLabel } from '../selectors';
-import { FiltersBarProps } from './types';
-import { resolveTransitiveChildIds } from '../dependencyGraph';
+import { useImmer } from "use-immer";
+import { isEmpty, isEqual, debounce } from "lodash-es";
+import { getInitialDataMask } from "src/dataMask/reducer";
+import { URL_PARAMS } from "src/constants";
+import { applicationRoot } from "src/utils/getBootstrapData";
+import { getUrlParam } from "src/utils/urlUtils";
+import { useTabId } from "src/hooks/useTabId";
+import { logEvent } from "src/logger/actions";
+import { LOG_ACTIONS_CHANGE_DASHBOARD_FILTER } from "src/logger/LogUtils";
+import { FilterBarOrientation, RootState } from "src/dashboard/types";
+import { UserWithPermissionsAndRoles } from "src/types/bootstrapTypes";
+import { isChartCustomization } from "../FiltersConfigModal/utils";
+import { checkIsApplyDisabled, getFiltersToApply } from "./utils";
+import { extractLabel } from "../selectors";
+import { FiltersBarProps } from "./types";
+import { resolveTransitiveChildIds } from "../dependencyGraph";
 import {
   useAllAppliedDataMask,
   useFilters,
   useFilterUpdates,
   useInitialization,
-} from './state';
-import { createFilterKey, updateFilterKey } from './keyValue';
-import ActionButtons from './ActionButtons';
-import Horizontal from './Horizontal';
-import Vertical from './Vertical';
+} from "./state";
+import { createFilterKey, updateFilterKey } from "./keyValue";
+import ActionButtons from "./ActionButtons";
+import Horizontal from "./Horizontal";
+import Vertical from "./Vertical";
 import {
   useSelectFiltersInScope,
   useChartCustomizationConfiguration,
-} from '../state';
+} from "../state";
 
 // FilterBar is just being hidden as it must still
 // render fully due to encapsulated logics
@@ -115,7 +115,7 @@ const publishDataMask = debounce(
     const rawRisonFilterValue = rawRisonMatch ? rawRisonMatch[1] : null;
 
     previousParams.forEach((value, key) => {
-      if (!EXCLUDED_URL_PARAMS.includes(key) && key !== 'f') {
+      if (!EXCLUDED_URL_PARAMS.includes(key) && key !== "f") {
         newParams.append(key, value);
       }
     });
@@ -154,13 +154,13 @@ const publishDataMask = debounce(
       // double it up.
       const appRoot = applicationRoot();
       let replacementPathname = window.location.pathname;
-      if (appRoot !== '/' && replacementPathname.startsWith(appRoot)) {
+      if (appRoot !== "/" && replacementPathname.startsWith(appRoot)) {
         replacementPathname = replacementPathname.substring(appRoot.length);
       }
       // Manually reconstruct the search string to preserve Rison filter encoding
       let searchString = newParams.toString();
       if (rawRisonFilterValue) {
-        const separator = searchString ? '&' : '';
+        const separator = searchString ? "&" : "";
         searchString = `${searchString}${separator}f=${rawRisonFilterValue}`;
       }
 
@@ -209,18 +209,18 @@ const FilterBar: FC<FiltersBarProps> = ({
   const user: UserWithPermissionsAndRoles = useSelector<
     RootState,
     UserWithPermissionsAndRoles
-  >(state => state.user);
+  >((state) => state.user);
 
   const [filtersInScope] = useSelectFiltersInScope(nativeFilterValues);
   const inScopeFilterIds = useMemo(
-    () => new Set(filtersInScope.map(f => f.id)),
+    () => new Set(filtersInScope.map((f) => f.id)),
     [filtersInScope],
   );
 
   const hasOutOfScopeRequiredFilters = useMemo(
     () =>
       nativeFilterValues.some(
-        filter =>
+        (filter) =>
           !inScopeFilterIds.has(filter.id) &&
           !!filter.controlValues?.enableEmptyFilter,
       ),
@@ -243,10 +243,10 @@ const FilterBar: FC<FiltersBarProps> = ({
   dataMaskSelectedRef.current = dataMaskSelected;
   const handleFilterSelectionChange = useCallback(
     (
-      filter: Pick<Filter, 'id'> & Partial<Filter>,
+      filter: Pick<Filter, "id"> & Partial<Filter>,
       dataMask: Partial<DataMask>,
     ) => {
-      setDataMaskSelected(draft => {
+      setDataMaskSelected((draft) => {
         const appliedDataMask = dataMaskApplied[filter.id];
         const isFirstTimeInitialization = !initializedFilters.has(filter.id);
 
@@ -296,7 +296,7 @@ const FilterBar: FC<FiltersBarProps> = ({
           Object.keys(dataMask.extraFormData).length > 0 &&
           !initializedFilters.has(filter.id)
         ) {
-          setInitializedFilters(prev => new Set(prev).add(filter.id));
+          setInitializedFilters((prev) => new Set(prev).add(filter.id));
         }
 
         const baseDataMask = {
@@ -311,7 +311,7 @@ const FilterBar: FC<FiltersBarProps> = ({
         const isEmptyValue =
           value == null ||
           (Array.isArray(value) && value.length === 0) ||
-          (typeof value === 'string' && value.trim() === '');
+          (typeof value === "string" && value.trim() === "");
 
         const hasRequiredValue = isRequired && isEmptyValue;
 
@@ -327,7 +327,7 @@ const FilterBar: FC<FiltersBarProps> = ({
           prevValue !== undefined && !isEqual(prevValue, nextValue);
         if (parentValueChanged) {
           const childIds = resolveTransitiveChildIds(filter.id, filters);
-          childIds.forEach(childId => {
+          childIds.forEach((childId) => {
             const childMask = draft[childId];
             if (!childMask) return;
             childMask.extraFormData = {};
@@ -335,14 +335,20 @@ const FilterBar: FC<FiltersBarProps> = ({
             if (filterState) {
               const childIsRequired =
                 !!filters[childId]?.controlValues?.enableEmptyFilter;
-              filterState.value = null;
+              // Mirror handleClearAll: range filters use [null, null] as the
+              // canonical cleared value.  Bare null would be ignored by
+              // RangeFilterPlugin's sync effect, leaving stale UI.
+              filterState.value =
+                filters[childId]?.filterType === "filter_range"
+                  ? [null, null]
+                  : null;
               filterState.validateStatus = childIsRequired
-                ? 'error'
+                ? "error"
                 : undefined;
             }
             // Signal the child's filter plugin to clear its visual selection
             // and avoid re-applying defaults.
-            setCascadeClearTriggers(prev => ({
+            setCascadeClearTriggers((prev) => ({
               ...prev,
               [childId]: true,
             }));
@@ -353,7 +359,7 @@ const FilterBar: FC<FiltersBarProps> = ({
           ...baseDataMask,
           filterState: {
             ...baseDataMask.filterState,
-            validateStatus: hasRequiredValue ? 'error' : undefined,
+            validateStatus: hasRequiredValue ? "error" : undefined,
           },
         };
       });
@@ -371,7 +377,7 @@ const FilterBar: FC<FiltersBarProps> = ({
   useEffect(() => {
     if (previousFilters && dashboardId === previousDashboardId) {
       const updates: Record<string, DataMaskWithId> = {};
-      Object.values(filters).forEach(currentFilter => {
+      Object.values(filters).forEach((currentFilter) => {
         const previousFilter = previousFilters?.[currentFilter.id];
         if (!previousFilter) {
           return;
@@ -394,7 +400,7 @@ const FilterBar: FC<FiltersBarProps> = ({
       });
 
       if (!isEmpty(updates)) {
-        setDataMaskSelected(draft => ({ ...draft, ...updates }));
+        setDataMaskSelected((draft) => ({ ...draft, ...updates }));
       }
     }
   }, [dashboardId, filters, previousDashboardId, setDataMaskSelected]);
@@ -411,7 +417,7 @@ const FilterBar: FC<FiltersBarProps> = ({
       const prevApplied = prevDataMaskAppliedRef.current;
 
       // Only sync filters whose applied state actually changed
-      setDataMaskSelected(prev => {
+      setDataMaskSelected((prev) => {
         let hasChanges = false;
         const updated = { ...prev };
 
@@ -427,7 +433,7 @@ const FilterBar: FC<FiltersBarProps> = ({
         });
 
         // Remove stale entries that no longer exist in dataMaskApplied
-        Object.keys(updated).forEach(filterId => {
+        Object.keys(updated).forEach((filterId) => {
           if (
             !isChartCustomization(filterId) &&
             !(filterId in dataMaskApplied)
@@ -455,11 +461,11 @@ const FilterBar: FC<FiltersBarProps> = ({
   const pendingChartCustomizations = useSelector<
     RootState,
     Record<string, ChartCustomization> | undefined
-  >(state => state.dashboardInfo.pendingChartCustomizations);
+  >((state) => state.dashboardInfo.pendingChartCustomizations);
 
   const handlePendingCustomizationDataMaskChange = useCallback(
     (customizationId: string, dataMask: DataMask) => {
-      setPendingCustomizationDataMasks(prev => ({
+      setPendingCustomizationDataMasks((prev) => ({
         ...prev,
         [customizationId]: dataMask,
       }));
@@ -476,7 +482,7 @@ const FilterBar: FC<FiltersBarProps> = ({
       inScopeFilterIds,
     );
 
-    filtersToApply.forEach(filterId => {
+    filtersToApply.forEach((filterId) => {
       const dataMask = dataMaskSelected[filterId];
       if (dataMask) {
         dispatch(updateDataMask(filterId, dataMask));
@@ -504,14 +510,13 @@ const FilterBar: FC<FiltersBarProps> = ({
       // Skip pending items no longer in the config; re-saving a deleted one
       // makes the backend append it back, resurrecting the control.
       const existingCustomizationIds = new Set(
-        chartCustomizationValues.map(item => item.id),
+        chartCustomizationValues.map((item) => item.id),
       );
       const pendingItems = (
         Object.values(pendingChartCustomizations).filter(Boolean) as (
-          | ChartCustomization
-          | ChartCustomizationDivider
+          ChartCustomization | ChartCustomizationDivider
         )[]
-      ).filter(item => existingCustomizationIds.has(item.id));
+      ).filter((item) => existingCustomizationIds.has(item.id));
 
       if (pendingItems.length > 0) {
         dispatch(saveChartCustomization(pendingItems, []));
@@ -519,16 +524,18 @@ const FilterBar: FC<FiltersBarProps> = ({
       dispatch(clearAllPendingChartCustomizations());
       setPendingCustomizationDataMasks({});
     } else if (hasClearedChartCustomizations) {
-      const clearedChartCustomizations = chartCustomizationValues.map(item => ({
-        ...item,
-        targets: [
-          {
-            datasetId: item.targets?.[0]?.datasetId,
-          },
-        ] as [Partial<NativeFilterTarget>],
-      }));
+      const clearedChartCustomizations = chartCustomizationValues.map(
+        (item) => ({
+          ...item,
+          targets: [
+            {
+              datasetId: item.targets?.[0]?.datasetId,
+            },
+          ] as [Partial<NativeFilterTarget>],
+        }),
+      );
 
-      chartCustomizationValues.forEach(item => {
+      chartCustomizationValues.forEach((item) => {
         dispatch(removeDataMask(item.id));
       });
 
@@ -551,7 +558,7 @@ const FilterBar: FC<FiltersBarProps> = ({
   const handleClearAll = useCallback(() => {
     const newClearAllTriggers = { ...clearAllTriggers };
 
-    nativeFilterValues.forEach(filter => {
+    nativeFilterValues.forEach((filter) => {
       const { id, filterType } = filter;
 
       // Only clear in-scope filters
@@ -561,17 +568,17 @@ const FilterBar: FC<FiltersBarProps> = ({
       // undefined: the select plugin's init effect treats undefined as
       // "uninitialized" and would re-apply default values once the clear-all
       // trigger completes.
-      const clearedValue = filterType === 'filter_range' ? [null, null] : null;
+      const clearedValue = filterType === "filter_range" ? [null, null] : null;
       const isRequired = !!filter.controlValues?.enableEmptyFilter;
       if (dataMaskSelected[id]) {
         // Stage the cleared value locally; do NOT dispatch to Redux here.
         // Persistence happens when the user clicks Apply.
-        setDataMaskSelected(draft => {
+        setDataMaskSelected((draft) => {
           draft[id].extraFormData = {};
           const { filterState } = draft[id];
           if (filterState) {
             filterState.value = clearedValue;
-            filterState.validateStatus = isRequired ? 'error' : undefined;
+            filterState.validateStatus = isRequired ? "error" : undefined;
           }
         });
         newClearAllTriggers[id] = true;
@@ -579,18 +586,18 @@ const FilterBar: FC<FiltersBarProps> = ({
     });
 
     const allDataMasks = { ...dataMaskSelected, ...dataMaskApplied };
-    const hasCustomizationDataMasks = Object.keys(allDataMasks).some(key =>
+    const hasCustomizationDataMasks = Object.keys(allDataMasks).some((key) =>
       isChartCustomization(key),
     );
-    const hasSavedCustomizations = chartCustomizationValues.some(item => {
+    const hasSavedCustomizations = chartCustomizationValues.some((item) => {
       if (item.removed) return false;
       const mask = dataMaskApplied[item.id] || dataMaskSelected[item.id];
       return extractLabel(mask?.filterState) !== null;
     });
 
     if (hasCustomizationDataMasks || hasSavedCustomizations) {
-      chartCustomizationValues.forEach(item => {
-        setDataMaskSelected(draft => {
+      chartCustomizationValues.forEach((item) => {
+        setDataMaskSelected((draft) => {
           draft[item.id] = {
             id: item.id,
             filterState: { value: null },
@@ -618,7 +625,7 @@ const FilterBar: FC<FiltersBarProps> = ({
   ]);
 
   const handleClearAllComplete = useCallback((filterId: string) => {
-    setClearAllTriggers(prev => {
+    setClearAllTriggers((prev) => {
       const newTriggers = { ...prev };
       delete newTriggers[filterId];
       return newTriggers;
@@ -626,7 +633,7 @@ const FilterBar: FC<FiltersBarProps> = ({
   }, []);
 
   const handleCascadeClearComplete = useCallback((filterId: string) => {
-    setCascadeClearTriggers(prev => {
+    setCascadeClearTriggers((prev) => {
       const newTriggers = { ...prev };
       delete newTriggers[filterId];
       return newTriggers;
@@ -640,7 +647,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     Object.keys(pendingChartCustomizations).length > 0;
 
   const hasMissingRequiredChartCustomization =
-    chartCustomizationValues?.some(item => {
+    chartCustomizationValues?.some((item) => {
       if (item.removed) return false;
 
       const required = !!item.controlValues?.enableEmptyFilter;
