@@ -75,8 +75,9 @@ spec:
       containers:
       - name: {{ template "superset.name" . }}-init-db
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
-        {{- if or .Values.extraEnv .Values.extraEnvRaw }}
+        {{- if or .Values.extraEnv .Values.extraEnvRaw (include "superset.db.existingSecret" .) }}
         env:
+          {{- include "superset.db.secretEnv" . | nindent 10 }}
           {{- range $key, $value := .Values.extraEnv }}
           - name: {{ $key | quote }}
             value: {{ $value | quote }}
