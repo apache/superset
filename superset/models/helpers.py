@@ -80,7 +80,6 @@ from superset import db, is_feature_enabled
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.common.grouping_sets import (
-    grouping_id_column,
     grouping_marker_label,
     grouping_sets_clause,
 )
@@ -4867,10 +4866,31 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             and groupby_all_columns
             and db_engine_spec.supports_grouping_sets
         )
+        # Both the GROUPING() marker labels and the `grouping_sets` level
+        # definitions sent by the frontend (see buildQuery.ts) are expressed in
+        # terms of the column's logical/requested label (``.key``), not the
+        # engine-mutated SQL alias (``.name``). BigQuery, for example, mangles
+        # labels containing spaces (e.g. a Custom SQL column named "Test Row")
+        # into something like "Test_Row_a1b2c3" for `.name`, while `.key` keeps
+        # the original "Test Row". Keying by `.name` here would silently drop
+        # such columns from every rollup level (the `col in ...` guard below),
+        # producing an invalid ``GROUP BY GROUPING SETS`` clause that omits a
+        # selected, non-aggregated column.
+        groupby_columns_by_label = {
+            gby_expr.key: gby_expr for gby_expr in groupby_all_columns.values()
+        }
         if use_grouping_sets:
+            # Route the marker through `make_sqla_column_compatible` like every
+            # other selected column: the SQL-level alias is engine-mutated if
+            # required (e.g. BigQuery rejects aliases with spaces), while
+            # `.key` keeps the unmutated marker label so it lines up with the
+            # `groupby_columns_by_label` keys above and with what the frontend
+            # looks for when splitting the combined result back per level.
             select_exprs = select_exprs + [
-                grouping_id_column(gby_expr, grouping_marker_label(name))
-                for name, gby_expr in groupby_all_columns.items()
+                self.make_sqla_column_compatible(
+                    sa.func.grouping(gby_expr), grouping_marker_label(label)
+                )
+                for label, gby_expr in groupby_columns_by_label.items()
             ]
 
         # Expected output columns
@@ -4887,9 +4907,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if use_grouping_sets:
                 gs_levels = [
                     [
-                        groupby_all_columns[col]
+                        groupby_columns_by_label[col]
                         for col in level
-                        if col in groupby_all_columns
+                        if col in groupby_columns_by_label
                     ]
                     for level in grouping_sets or []
                 ]
