@@ -256,15 +256,20 @@ def test_prefetch_chart_access_loads_editors_and_viewers(
         assert [s.label for s in slc.viewers] == ["viewer"]
 
 
-def test_prefetch_chart_access_is_constant_in_chart_count(
+def test_prefetch_chart_access_does_no_per_chart_work(
     session: Session,
 ) -> None:
-    """The prefetch must stay flat as a dashboard grows.
+    """Adding charts must not add statements.
 
     Asserting only that the relationships end up loaded would also pass for an
     implementation that walks the slices and touches each one, which is the 2N
     behaviour this is meant to remove. So count the statements at two sizes and
     require the same number.
+
+    Not literally constant forever: selectinload batches its own IN lists at 500,
+    so each relationship adds one statement per 500 charts (1200 charts is 7
+    statements, against 2400 before). Both sizes here sit inside the first batch,
+    which is what makes the equality check meaningful.
     """
     Dashboard.metadata.create_all(session.get_bind())
 
