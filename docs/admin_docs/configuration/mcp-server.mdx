@@ -43,6 +43,12 @@ flowchart LR
 
 ## Dashboard filter notifications
 
+`apply_dashboard_filters` supports exact-match select filters and time filters.
+Select filters configured for contains, starts-with, or ends-with matching are
+rejected rather than silently applying exact matching. Clearing a required select
+filter with `values: []` matches no rows, including when opening the returned
+permalink; an explicit clear does not restore its saved default.
+
 To stack filters across chat turns, pass the previous
 `apply_dashboard_filters` response's `permalink_key` as `base_permalink_key`
 in the next request for the same dashboard. For example, apply Region = EMEA,

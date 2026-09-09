@@ -138,8 +138,20 @@ function fillNativeFilters(
     //  (2) loaded has a value but no extraFormData and the default does — the
     //      "value present in UI but not applied to charts" gap-window case where
     //      a permalink was captured before FilterValue produced extraFormData.
+    // A select filter's explicit match-nothing predicate is a complete clear,
+    // not an incomplete permalink captured while the filter was initializing.
+    const isExplicitSelectClear =
+      filter.filterType === 'filter_select' &&
+      !loadedHasValue &&
+      loaded?.extraFormData?.adhoc_filters?.some(
+        predicate =>
+          predicate.expressionType === 'SQL' &&
+          predicate.clause === 'WHERE' &&
+          predicate.sqlExpression === '1 = 0',
+      );
     const shouldRestoreDefault =
       isRequired &&
+      !isExplicitSelectClear &&
       !!filter.defaultDataMask &&
       (!loadedHasValue || (!loadedHasExtraFormData && defaultHasExtraFormData));
 
