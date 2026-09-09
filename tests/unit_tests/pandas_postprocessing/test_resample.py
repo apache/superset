@@ -264,6 +264,19 @@ def test_estimate_projected_rows_calendar_month_start_is_cheap():
     assert estimated == 121
 
 
+def test_estimate_projected_rows_handles_multiplied_calendar_freqs():
+    """``2MS`` / ``2W`` must use offset.n, not fall through to a day-span bound."""
+    import importlib
+
+    resample_mod = importlib.import_module(
+        "superset.utils.pandas_postprocessing.resample"
+    )
+    start = pd.Timestamp("2010-01-01")
+    end = pd.Timestamp("2020-01-01")
+    assert resample_mod._estimate_projected_rows(start, end, "2MS") == 61
+    assert resample_mod._estimate_projected_rows(start, end, "2W-SUN") == 262
+
+
 def test_estimate_projected_rows_calendar_freqs_do_not_call_date_range(monkeypatch):
     import importlib
 

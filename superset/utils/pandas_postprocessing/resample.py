@@ -106,10 +106,13 @@ def _period_freq_for_offset(offset: Any) -> str:
 
     Resample uses anchors like ``MS`` / ``QE`` / ``YE``, but ``Timestamp.to_period``
     only accepts the Period forms ``M`` / ``Q`` / ``Y`` (and similarly for week).
+    Leading multipliers (``2MS``, ``3QE``) are stripped here; ``offset.n`` is applied
+    when converting the Period delta into a bin count.
     """
-    # ``QS-JAN``, ``W-SUN``, ``YE-DEC`` → base token before the first hyphen
-    base = offset.freqstr.split("-", 1)[0]
-    return {
+    # ``2QE-DEC``, ``2W-SUN``, ``QS-JAN`` → optional digits + unit [+ anchor]
+    head, _, tail = offset.freqstr.partition("-")
+    unit = head.lstrip("0123456789") or head
+    alias = {
         "MS": "M",
         "ME": "M",
         "QS": "Q",
@@ -118,7 +121,10 @@ def _period_freq_for_offset(offset: Any) -> str:
         "YE": "Y",
         "AS": "Y",
         "A": "Y",
-    }.get(base, offset.freqstr)
+    }.get(unit)
+    if alias is not None:
+        return alias
+    return f"{unit}-{tail}" if tail else unit
 
 
 def _estimate_projected_rows(start: pd.Timestamp, end: pd.Timestamp, rule: str) -> int:
@@ -143,8 +149,9 @@ def _estimate_projected_rows(start: pd.Timestamp, end: pd.Timestamp, rule: str) 
             delta = end.to_period(period_freq) - start.to_period(period_freq)
             # Modern pandas returns an offset (``MonthEnd(n=…)``); older versions
             # returned a plain int. ``.n`` is the shared bin count either way.
-            count = getattr(delta, "n", delta)
-            return int(count) + 1
+            count = int(getattr(delta, "n", delta))
+            step = max(int(getattr(offset, "n", 1) or 1), 1)
+            return count // step + 1
         except (TypeError, ValueError):
             # Remaining non-fixed freqs (e.g. some business calendars): a day
             # count is a safe upper bound for day-or-coarser bins and stays O(1).
