@@ -16,15 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
+import createError from 'http-errors';
+import express from 'express';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import cookieParser from 'cookie-parser';
+import logger from 'morgan';
+import indexRouter from './routes/index.js';
 
-var indexRouter = require('./routes/index');
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-var app = express();
+const app = express();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -54,4 +56,4 @@ app.use(function (err, req, res) {
   res.render('error');
 });
 
-module.exports = app;
+export default app;
