@@ -773,6 +773,148 @@ def test_import_dataset_no_folder(mocker: MockerFixture, session: Session) -> No
     assert sqla_table.folders is None
 
 
+def test_import_dataset_skips_has_table_check_without_data_uri(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Importing a dataset with no ``data`` URI should never call
+    ``Database.has_table`` - its result only ever gates ``load_data``, which
+    is already a no-op when there's no data URI to load. Skipping the call
+    avoids an unnecessary round trip to the target database on every
+    imported dataset, which is what made bulk imports of many datasets slow
+    enough to hit the gunicorn worker timeout.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    has_table = mocker.patch.object(Database, "has_table")
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = {
+        "table_name": "no_data_table",
+        "main_dttm_col": None,
+        "description": None,
+        "default_endpoint": None,
+        "offset": 0,
+        "cache_timeout": None,
+        "schema": None,
+        "sql": None,
+        "params": None,
+        "template_params": None,
+        "filter_select_enabled": False,
+        "fetch_values_predicate": None,
+        "extra": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    import_dataset(config)
+
+    has_table.assert_not_called()
+
+
+def test_import_dataset_checks_has_table_with_data_uri(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    When a ``data`` URI is present, ``Database.has_table`` should still be
+    consulted to decide whether the data needs to be (re-)loaded. A table that
+    already exists means the data is there, so it must not be re-loaded.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    has_table = mocker.patch.object(Database, "has_table", return_value=True)
+    load_data = mocker.patch("superset.commands.dataset.importers.v1.utils.load_data")
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = {
+        "table_name": "has_data_table",
+        "main_dttm_col": None,
+        "description": None,
+        "default_endpoint": None,
+        "offset": 0,
+        "cache_timeout": None,
+        "schema": None,
+        "sql": None,
+        "params": None,
+        "template_params": None,
+        "filter_select_enabled": False,
+        "fetch_values_predicate": None,
+        "extra": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+        "data": "https://example.com/data.csv",
+    }
+
+    import_dataset(config)
+
+    has_table.assert_called_once()
+    load_data.assert_not_called()
+
+
+def test_import_dataset_loads_data_when_table_is_missing(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    When a ``data`` URI is present and the target table doesn't exist yet, the
+    data must actually be loaded. This is the case ``has_table`` exists to
+    detect, and the one an inverted or misindented condition would silently
+    skip while still satisfying the checks above.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    has_table = mocker.patch.object(Database, "has_table", return_value=False)
+    load_data = mocker.patch("superset.commands.dataset.importers.v1.utils.load_data")
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = {
+        "table_name": "missing_data_table",
+        "main_dttm_col": None,
+        "description": None,
+        "default_endpoint": None,
+        "offset": 0,
+        "cache_timeout": None,
+        "schema": None,
+        "sql": None,
+        "params": None,
+        "template_params": None,
+        "filter_select_enabled": False,
+        "fetch_values_predicate": None,
+        "extra": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+        "data": "https://example.com/data.csv",
+    }
+
+    import_dataset(config)
+
+    has_table.assert_called_once()
+    load_data.assert_called_once()
+
+
 def test_import_dataset_rejects_non_default_catalog_when_multi_catalog_disabled(
     mocker: MockerFixture, session: Session
 ) -> None:
@@ -2239,6 +2381,171 @@ def test_import_restore_blocked_by_active_twin_at_incoming_identity(
     assert "another active dataset" in str(excinfo.value)
     # Check-before-mutate: the failed import leaves the row soft-deleted.
     assert existing.deleted_at is not None
+
+
+@pytest.mark.parametrize("config_catalog", ["public", None])
+def test_import_dataset_identity_collision_requires_overwrite_permission(
+    mocker: MockerFixture, session: Session, config_catalog: str | None
+) -> None:
+    """
+    A config with a fresh UUID but the physical identity of an existing ACTIVE
+    dataset must go through the same overwrite permission gate as a UUID match.
+
+    The ``None`` case matters on its own: ``import_from_dict`` drops null keys
+    from its uniqueness predicate, so a catalog-less config still reaches a
+    dataset stored under a catalog.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=False)
+    mocker.patch.object(security_manager, "is_admin", return_value=False)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    victim = SqlaTable(
+        table_name="salaries",
+        schema="finance",
+        catalog="public",
+        database_id=database.id,
+        uuid="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        sql="SELECT * FROM finance.salaries",
+    )
+    db.session.add(victim)
+    db.session.flush()
+
+    importer_user = User(
+        username="importer",
+        first_name="at",
+        last_name="tacker",
+        email="importer@example.com",
+    )
+
+    # Fresh UUID, but the same physical identity as ``victim``.
+    config = {
+        "table_name": "salaries",
+        "schema": "finance",
+        "catalog": config_catalog,
+        "sql": "SELECT * FROM finance.salaries -- clobbered",
+        "uuid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    with override_user(importer_user):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_dataset(copy.deepcopy(config), overwrite=True)
+    assert "overwrite" in str(excinfo.value).lower()
+
+    # The victim dataset must not have been clobbered.
+    assert victim.sql == "SELECT * FROM finance.salaries"
+
+
+def test_import_dataset_identity_collision_overwrites_in_place_for_editor(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Once the gate passes, an identity collision updates the existing dataset in
+    place rather than creating a twin, and the caller's config is left alone so
+    a bundle importer that re-reads or retries it still sees its own UUID.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    existing = SqlaTable(
+        table_name="salaries",
+        schema="finance",
+        catalog="public",
+        database_id=database.id,
+        uuid="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        sql="SELECT * FROM finance.salaries",
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    config = {
+        "table_name": "salaries",
+        "schema": "finance",
+        "catalog": "public",
+        "sql": "SELECT * FROM finance.salaries -- updated",
+        "uuid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    imported = import_dataset(config, overwrite=True)
+
+    assert imported.id == existing.id
+    assert imported.sql == "SELECT * FROM finance.salaries -- updated"
+    assert db.session.query(SqlaTable).count() == 1
+    assert config["uuid"] == "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+
+
+def test_import_dataset_identity_collision_with_duplicate_rows_returns_existing(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A config that omits the catalog matches every row sharing its (database,
+    schema, table), so it can be ambiguous. ``import_from_dict`` then raises
+    ``MultipleResultsFound`` and the legacy fallback returns the existing row
+    unmodified. It must not look the incoming UUID up again: on an identity
+    match that UUID belongs to no row, and the lookup would raise.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    for dataset_uuid, catalog in (
+        ("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "public"),
+        ("cccccccc-cccc-cccc-cccc-cccccccccccc", "private"),
+    ):
+        db.session.add(
+            SqlaTable(
+                table_name="salaries",
+                schema="finance",
+                catalog=catalog,
+                database_id=database.id,
+                uuid=dataset_uuid,
+                sql="SELECT * FROM finance.salaries",
+            )
+        )
+    db.session.flush()
+
+    config = {
+        "table_name": "salaries",
+        "schema": "finance",
+        "sql": "SELECT * FROM finance.salaries -- updated",
+        "uuid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    dataset = import_dataset(copy.deepcopy(config), overwrite=True)
+
+    assert str(dataset.uuid) == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    assert dataset.sql == "SELECT * FROM finance.salaries"
 
 
 def test_peer_validating_connection_blocks_rebound_peer() -> None:

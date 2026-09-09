@@ -78,20 +78,17 @@ class TestSupersetApp:
             "Pending database migrations: run 'superset db upgrade'"
         )
 
-    @patch("superset.extensions.feature_flag_manager")
     @patch("superset.app.logger")
     @patch("superset.commands.theme.seed.SeedSystemThemesCommand")
     def test_sync_config_to_db_initializes_when_tables_exist(
         self,
         mock_seed_themes_command,
         mock_logger,
-        mock_feature_flag_manager,
     ):
         """Test that features are initialized when database is up-to-date."""
         # Setup
         app = SupersetApp(__name__)
         app.config = {"SQLALCHEMY_DATABASE_URI": "postgresql://user:pass@host:5432/db"}
-        mock_feature_flag_manager.is_feature_enabled.return_value = True
         mock_seed_themes = MagicMock()
         mock_seed_themes_command.return_value = mock_seed_themes
 
@@ -105,10 +102,8 @@ class TestSupersetApp:
             # Execute
             app.sync_config_to_db()
 
-        # Assert
-        mock_feature_flag_manager.is_feature_enabled.assert_called_with(
-            "TAGGING_SYSTEM"
-        )
+        # Assert: tagging listeners are registered regardless of the flag; the
+        # write listeners check TAGGING_SYSTEM themselves when they fire
         mock_register_listeners.assert_called_once()
         # Should seed themes
         mock_seed_themes_command.assert_called_once()
