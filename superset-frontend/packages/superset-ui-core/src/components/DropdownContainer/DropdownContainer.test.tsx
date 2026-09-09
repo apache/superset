@@ -18,7 +18,6 @@
  */
 import type { CSSProperties } from 'react';
 import { screen, render } from '@superset-ui/core/spec';
-import * as resizeDetector from 'react-resize-detector';
 import { Button, DropdownContainer, Icons } from '..';
 
 const generateItems = (n: number) =>
@@ -181,31 +180,28 @@ test('component renders and functions without throwing errors', () => {
   expect(screen.getByText('Element 1')).toBeInTheDocument();
 });
 
-const WRAPPER_WIDTH = 300;
 const ITEM_WIDTH = 100;
 /* Width the flex layout leaves the row once the trigger button is laid out. */
 const ROW_WIDTH = 250;
+/* Item count of the transient row that holds every item while remeasuring. */
+const ALL_ITEMS = 4;
 
 /**
- * Lays items out at ITEM_WIDTH each and reports the item row as bounded only
- * by its own content, which is the frame Edge can paint before the flex layout
- * bounds the row. An inline `max-width` in pixels is the only bound left, so
- * the mock honors it and `onRowMeasure` receives the row, and the right edge
- * the overflow calculation sees, while the row holds every item.
+ * Lays items out at ITEM_WIDTH each. In the steady state the row is reported at
+ * the flex-bounded ROW_WIDTH, so a three-item row overflows and the trigger
+ * shows. In the all-items frame the row is reported at its own content width
+ * instead, which is the frame Edge can paint before the flex layout bounds the
+ * row and its children spill out. `onRowMeasure` receives the row during that
+ * frame so a test can assert how it is styled.
  */
-const mockBoundingRects = (
-  onRowMeasure: (row: HTMLElement, right: number) => void,
-) => {
+const mockBoundingRects = (onRowMeasure: (row: HTMLElement) => void) => {
   const getBoundingClientRect: (this: HTMLElement) => DOMRect = function () {
     let right: number;
     if (this.dataset.test === 'container') {
-      const clamp = /^(\d+(?:\.\d+)?)px$/.exec(this.style.maxWidth);
-      right = Math.min(
-        this.children.length * ITEM_WIDTH,
-        clamp ? Number(clamp[1]) : ROW_WIDTH,
-      );
-      if (this.children.length === 4) {
-        onRowMeasure(this, right);
+      const allItemsFrame = this.children.length === ALL_ITEMS;
+      right = allItemsFrame ? this.children.length * ITEM_WIDTH : ROW_WIDTH;
+      if (allItemsFrame) {
+        onRowMeasure(this);
       }
     } else {
       const itemNumber = Number(this.textContent?.match(/Element (\d+)/)?.[1]);
@@ -228,50 +224,28 @@ const mockBoundingRects = (
     .mockImplementation(getBoundingClientRect);
 };
 
-const mockWrapperWidth = (width: number) =>
-  jest.spyOn(resizeDetector, 'useResizeDetector').mockReturnValue({
-    ref: { current: null as HTMLDivElement | null },
-    width,
-  });
-
 /* Grows an overflowing row by one item, which mounts every item for a frame
  * while the new overflow index is calculated. */
 const remeasureWithExtraItem = (style?: CSSProperties) => {
   const { rerender } = render(<DropdownContainer items={generateItems(3)} />);
   rerender(<DropdownContainer items={generateItems(3)} />);
   expect(screen.getByTestId('dropdown-container-btn')).toBeInTheDocument();
-  rerender(<DropdownContainer items={generateItems(4)} style={style} />);
+  rerender(
+    <DropdownContainer items={generateItems(ALL_ITEMS)} style={style} />,
+  );
 };
 
-test('clamps the item row to the wrapper width while remeasuring', () => {
-  mockWrapperWidth(WRAPPER_WIDTH);
-  let clampedRowRight: number | undefined;
-  mockBoundingRects((row, right) => {
-    expect(row).toHaveStyle({
-      maxWidth: `${WRAPPER_WIDTH}px`,
-      overflow: 'hidden',
-    });
-    clampedRowRight = right;
-  });
-
-  remeasureWithExtraItem({ maxWidth: 'none', overflow: 'visible' });
-
-  /* The all-items row holds 400px of items, so the overflow index is computed
-   * against the 300px clamp and not against the row's own content edge. The
-   * clamp holds even though the consumer asked for `max-width: none`. */
-  expect(clampedRowRight).toBe(WRAPPER_WIDTH);
-});
-
-test('does not clamp the item row before the wrapper is measured', () => {
-  mockWrapperWidth(0);
-  let clampedMaxWidth: string | undefined;
+test('clips the item row while remeasuring, then restores it', () => {
+  const measured: string[] = [];
   mockBoundingRects(row => {
-    clampedMaxWidth = row.style.maxWidth;
+    measured.push(row.style.overflow);
   });
 
-  remeasureWithExtraItem({ maxWidth: 'none' });
+  remeasureWithExtraItem({ overflow: 'visible' });
 
-  /* A zero width means the resize callback hasn't fired yet. Clamping to it
-   * would hide every item instead of only the overflowing ones. */
-  expect(clampedMaxWidth).toBe('none');
+  /* While the row holds every item its children can spill past its own box, so
+   * clipping wins over the consumer's `overflow: visible` for that frame. Once
+   * the new overflow index is applied the consumer's value comes back. */
+  expect(measured[0]).toBe('hidden');
+  expect(measured.at(-1)).toBe('visible');
 });

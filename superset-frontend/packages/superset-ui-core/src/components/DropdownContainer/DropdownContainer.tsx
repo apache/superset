@@ -334,10 +334,10 @@ export const DropdownContainer = forwardRef(
             recalculating
               ? {
                   ...style,
-                  /* Clamp the transient all-items row to the wrapper width.
-                   * `width` is 0 until the first resize callback, so fall back
-                   * to the consumer's value rather than clamping to nothing. */
-                  maxWidth: width || style?.maxWidth,
+                  /* The flex layout already bounds the row's own box, but its
+                   * children can spill past that box in the frame Edge paints
+                   * before the new overflow index is applied. Clipping keeps
+                   * them inside the filter bar. */
                   overflow: 'hidden',
                 }
               : style
