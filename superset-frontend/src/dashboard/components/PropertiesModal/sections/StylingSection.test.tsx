@@ -112,7 +112,9 @@ test('does not render theme selection when no themes available', () => {
 test('renders color scheme selection', () => {
   render(<StylingSection {...defaultProps} />);
   expect(screen.getByTestId('dashboard-colorscheme-field')).toBeInTheDocument();
-  expect(screen.getByTestId('dashboard-colorscheme-select')).toBeInTheDocument();
+  expect(
+    screen.getByTestId('dashboard-colorscheme-select'),
+  ).toBeInTheDocument();
 });
 
 test('renders custom CSS editor', () => {
@@ -128,7 +130,12 @@ test('calls onThemeChange when theme is selected', async () => {
 
 test('calls onColorSchemeChange when color scheme changes', async () => {
   const onColorSchemeChange = jest.fn();
-  render(<StylingSection {...defaultProps} onColorSchemeChange={onColorSchemeChange} />);
+  render(
+    <StylingSection
+      {...defaultProps}
+      onColorSchemeChange={onColorSchemeChange}
+    />,
+  );
   const colorSchemeInput = screen.getByLabelText('Select color scheme');
   await userEvent.type(colorSchemeInput, 'newScheme');
   expect(onColorSchemeChange).toHaveBeenCalled();
@@ -152,12 +159,18 @@ test('displays current color scheme value', () => {
 
 test('renders chart timestamps field', () => {
   render(<StylingSection {...defaultProps} />);
-  expect(screen.getByTestId('dashboard-show-timestamps-field')).toBeInTheDocument();
-  expect(screen.getByTestId('dashboard-show-timestamps-switch')).toBeInTheDocument();
+  expect(
+    screen.getByTestId('dashboard-show-timestamps-field'),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByTestId('dashboard-show-timestamps-switch'),
+  ).toBeInTheDocument();
 });
 
 test('chart timestamps switch reflects showChartTimestamps prop', () => {
-  const { rerender } = render(<StylingSection {...defaultProps} showChartTimestamps={false} />);
+  const { rerender } = render(
+    <StylingSection {...defaultProps} showChartTimestamps={false} />,
+  );
   let timestampSwitch = screen.getByTestId('dashboard-show-timestamps-switch');
   expect(timestampSwitch).not.toBeChecked();
 
@@ -168,8 +181,15 @@ test('chart timestamps switch reflects showChartTimestamps prop', () => {
 
 test('calls onShowChartTimestampsChange when switch is toggled', async () => {
   const onShowChartTimestampsChange = jest.fn();
-  render(<StylingSection {...defaultProps} onShowChartTimestampsChange={onShowChartTimestampsChange} />);
-  const timestampSwitch = screen.getByTestId('dashboard-show-timestamps-switch');
+  render(
+    <StylingSection
+      {...defaultProps}
+      onShowChartTimestampsChange={onShowChartTimestampsChange}
+    />,
+  );
+  const timestampSwitch = screen.getByTestId(
+    'dashboard-show-timestamps-switch',
+  );
   await userEvent.click(timestampSwitch);
   expect(onShowChartTimestampsChange).toHaveBeenCalled();
   expect(onShowChartTimestampsChange.mock.calls[0][0]).toBe(true);
@@ -178,7 +198,9 @@ test('calls onShowChartTimestampsChange when switch is toggled', async () => {
 test('does not show CSS template select when feature flag is disabled', () => {
   mockIsFeatureEnabled.mockReturnValue(false);
   render(<StylingSection {...defaultProps} />);
-  expect(screen.queryByTestId('dashboard-css-template-field')).not.toBeInTheDocument();
+  expect(
+    screen.queryByTestId('dashboard-css-template-field'),
+  ).not.toBeInTheDocument();
 });
 
 test('fetches CSS templates on mount when feature enabled', async () => {
@@ -195,9 +217,13 @@ test('shows CSS template select when feature flag is enabled and templates exist
   mockIsFeatureEnabled.mockImplementation(flag => flag === 'CSS_TEMPLATES');
   render(<StylingSection {...defaultProps} />);
   await waitFor(() => {
-    expect(screen.getByText('Load CSS template (optional)')).toBeInTheDocument();
+    expect(
+      screen.getByText('Load CSS template (optional)'),
+    ).toBeInTheDocument();
   });
-  expect(screen.getByTestId('dashboard-css-template-select')).toBeInTheDocument();
+  expect(
+    screen.getByTestId('dashboard-css-template-select'),
+  ).toBeInTheDocument();
 });
 
 test('shows error toast when template fetch fails', async () => {
@@ -206,7 +232,9 @@ test('shows error toast when template fetch fails', async () => {
   mockSupersetClient.get.mockRejectedValueOnce(new Error('API Error'));
   render(<StylingSection {...defaultProps} addDangerToast={addDangerToast} />);
   await waitFor(() => {
-    expect(addDangerToast).toHaveBeenCalledWith('An error occurred while fetching available CSS templates');
+    expect(addDangerToast).toHaveBeenCalledWith(
+      'An error occurred while fetching available CSS templates',
+    );
   });
 });
 
@@ -220,16 +248,25 @@ test('does not show CSS template select when no templates available', async () =
   await waitFor(() => {
     expect(mockSupersetClient.get).toHaveBeenCalled();
   });
-  expect(screen.queryByTestId('dashboard-css-template-field')).not.toBeInTheDocument();
+  expect(
+    screen.queryByTestId('dashboard-css-template-field'),
+  ).not.toBeInTheDocument();
 });
 
 test('does not show the @import warning for ordinary CSS', () => {
-  render(<StylingSection {...defaultProps} customCss=".header { color: red; }" />);
+  render(
+    <StylingSection {...defaultProps} customCss=".header { color: red; }" />,
+  );
   expect(screen.queryByTestId('css-import-warning')).not.toBeInTheDocument();
 });
 
 test('shows a convert button when the CSS contains @import', () => {
-  render(<StylingSection {...defaultProps} customCss="@import url('https://fonts.googleapis.com/css2?family=Inter');" />);
+  render(
+    <StylingSection
+      {...defaultProps}
+      customCss="@import url('https://fonts.googleapis.com/css2?family=Inter');"
+    />,
+  );
   expect(screen.getByTestId('css-import-warning')).toBeInTheDocument();
   expect(screen.getByTestId('convert-css-import-button')).toBeInTheDocument();
 });
@@ -241,12 +278,22 @@ test('converting replaces the CSS and reports success', async () => {
     resolvedCount: 1,
     unresolvedUrls: [],
   });
-  render(<StylingSection {...defaultProps} customCss="@import url('https://fonts.googleapis.com/css2?family=Inter');" onCustomCssChange={onCustomCssChange} />);
+  render(
+    <StylingSection
+      {...defaultProps}
+      customCss="@import url('https://fonts.googleapis.com/css2?family=Inter');"
+      onCustomCssChange={onCustomCssChange}
+    />,
+  );
   await userEvent.click(screen.getByTestId('convert-css-import-button'));
   await waitFor(() => {
-    expect(onCustomCssChange).toHaveBeenCalledWith("@font-face { font-family: 'Inter'; src: url('x.woff2'); }");
+    expect(onCustomCssChange).toHaveBeenCalledWith(
+      "@font-face { font-family: 'Inter'; src: url('x.woff2'); }",
+    );
   });
-  expect(screen.getByTestId('css-import-conversion-result')).toHaveTextContent('Converted 1 @import');
+  expect(screen.getByTestId('css-import-conversion-result')).toHaveTextContent(
+    'Converted 1 @import',
+  );
 });
 
 test('converting reports an unresolved import instead of silently dropping it', async () => {
@@ -256,10 +303,18 @@ test('converting reports an unresolved import instead of silently dropping it', 
     resolvedCount: 0,
     unresolvedUrls: ['https://no-cors.example.com/x.css'],
   });
-  render(<StylingSection {...defaultProps} customCss="@import url('https://no-cors.example.com/x.css');" onCustomCssChange={onCustomCssChange} />);
+  render(
+    <StylingSection
+      {...defaultProps}
+      customCss="@import url('https://no-cors.example.com/x.css');"
+      onCustomCssChange={onCustomCssChange}
+    />,
+  );
   await userEvent.click(screen.getByTestId('convert-css-import-button'));
   await waitFor(() => {
-    expect(screen.getByTestId('css-import-conversion-result')).toHaveTextContent('no-cors.example.com');
+    expect(
+      screen.getByTestId('css-import-conversion-result'),
+    ).toHaveTextContent('no-cors.example.com');
   });
   expect(onCustomCssChange).not.toHaveBeenCalled();
 });
@@ -267,10 +322,18 @@ test('converting reports an unresolved import instead of silently dropping it', 
 test('converting surfaces a warning instead of an unhandled rejection on parse failure', async () => {
   const onCustomCssChange = jest.fn();
   mockResolveCssImports.mockRejectedValue(new Error('CssSyntaxError'));
-  render(<StylingSection {...defaultProps} customCss="@import url('https://fonts.googleapis.com/css2?family=Inter');" onCustomCssChange={onCustomCssChange} />);
+  render(
+    <StylingSection
+      {...defaultProps}
+      customCss="@import url('https://fonts.googleapis.com/css2?family=Inter');"
+      onCustomCssChange={onCustomCssChange}
+    />,
+  );
   await userEvent.click(screen.getByTestId('convert-css-import-button'));
   await waitFor(() => {
-    expect(screen.getByTestId('css-import-conversion-result')).toHaveTextContent('Could not parse the CSS');
+    expect(
+      screen.getByTestId('css-import-conversion-result'),
+    ).toHaveTextContent('Could not parse the CSS');
   });
   expect(onCustomCssChange).not.toHaveBeenCalled();
 });
