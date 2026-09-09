@@ -31,6 +31,7 @@ from superset.utils.report_execution import (
     ReportExecutionContext,
 )
 from superset.utils.screenshot_utils import (
+    CHART_CONTAINER_HAS_RENDERED_CONTENT_JS,
     CHART_CONTAINER_READY_JS,
     CHART_CONTAINER_STATE_JS,
     CHART_HOLDERS_READY_JS,
@@ -41,6 +42,7 @@ from superset.utils.screenshot_utils import (
     FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS,
     get_screenshot_blankness_metrics,
     REPORT_ALL_CHART_HOLDERS_READY_JS,
+    REPORT_HAS_RENDERED_CHART_HOLDERS_JS,
     resolve_screenshot_task_budget_seconds,
     ScreenshotBlankCaptureError,
     ScreenshotTaskBudgetExceededError,
@@ -254,9 +256,6 @@ class WebDriverPlaywright(WebDriverProxy):
         """Capture a standard screenshot and reject blank report output."""
 
         context_suffix = f" [{log_context}]" if log_context else ""
-        content_expected = element_name == "chart-container" or bool(
-            report_execution_context and report_execution_context.expected_chart_count
-        )
         for attempt in range(1, TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS + 1):
             capture_timeout = (
                 report_execution_context.deadline.timeout_seconds(
@@ -280,15 +279,31 @@ class WebDriverPlaywright(WebDriverProxy):
                 return image
 
             blankness = get_screenshot_blankness_metrics(image)
-            is_blank = content_expected and blankness.is_blank
+            try:
+                has_rendered_content = bool(
+                    page.evaluate(
+                        CHART_CONTAINER_HAS_RENDERED_CONTENT_JS
+                        if element_name == "chart-container"
+                        else REPORT_HAS_RENDERED_CHART_HOLDERS_JS
+                    )
+                )
+            except PlaywrightError:
+                has_rendered_content = False
+                logger.warning(
+                    "report_capture_content_state_failed capture=standard%s",
+                    context_suffix,
+                    exc_info=True,
+                )
+            is_blank = has_rendered_content and blankness.is_blank
             logger.info(
                 "report_capture_validation capture=standard attempt=%s/%s "
-                "capture_elapsed_seconds=%.2f is_blank=%s "
+                "capture_elapsed_seconds=%.2f has_rendered_content=%s is_blank=%s "
                 "dominant_pixel_ratio=%.5f near_white_pixel_ratio=%.5f "
                 "mean_luminance=%.2f luminance_stddev=%.2f entropy=%.3f%s",
                 attempt,
                 TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
                 capture_elapsed,
+                has_rendered_content,
                 is_blank,
                 blankness.dominant_pixel_ratio,
                 blankness.near_white_pixel_ratio,
@@ -320,20 +335,30 @@ class WebDriverPlaywright(WebDriverProxy):
                     "Chromium returned a blank standard screenshot "
                     f"after {attempt} attempts"
                 )
+            repaint_timeout = report_execution_context.deadline.timeout_seconds(
+                "screenshot_repaint",
+                requested_seconds=5.0,
+                reserve_seconds=report_execution_context.post_capture_reserve_seconds,
+            )
             try:
                 page.bring_to_front()
                 page.evaluate(
                     """() => {
                         window.scrollBy(0, 1);
                         window.scrollBy(0, -1);
-                        return new Promise(resolve => requestAnimationFrame(
-                            () => requestAnimationFrame(resolve)
-                        ));
+                        window.__supersetRepaintComplete = false;
+                        requestAnimationFrame(() => requestAnimationFrame(() => {
+                            window.__supersetRepaintComplete = true;
+                        }));
                     }"""
                 )
-            except Exception:  # noqa: BLE001
+                page.wait_for_function(
+                    "() => window.__supersetRepaintComplete === true",
+                    timeout=repaint_timeout * 1000,
+                )
+            except PlaywrightError:
                 logger.warning(
-                    "report_capture_repaint_failed capture=standard attempt=%s/%s%s",
+                    "report_capture_repaint_timeout capture=standard attempt=%s/%s%s",
                     attempt,
                     TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
                     context_suffix,

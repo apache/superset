@@ -20,7 +20,7 @@ from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 
 from superset.utils.report_execution import (
     ReportExecutionContext,
@@ -84,6 +84,47 @@ class TestScreenshotBlankDetection:
 
         assert is_blank is True
         assert dominant_ratio == 0.85
+
+    def test_two_tone_gray_below_near_white_cutoff_is_blank(self):
+        image = Image.new("RGB", (100, 100), "white")
+        for y in range(85, 100):
+            for x in range(100):
+                image.putpixel((x, y), (239, 239, 239))
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+
+        is_blank, dominant_ratio = is_screenshot_nearly_uniform(output.getvalue())
+
+        assert is_blank is True
+        assert dominant_ratio == 0.85
+
+    def test_sparse_readable_text_is_not_blank(self):
+        image = Image.new("RGB", (800, 1000), "white")
+        label = Image.new("RGB", (60, 14), "white")
+        ImageDraw.Draw(label).text(
+            (0, 0), "No data", fill="black", font=ImageFont.load_default()
+        )
+        label = label.resize((240, 56), Image.Resampling.NEAREST)
+        image.paste(label, (20, 20))
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+
+        is_blank, _dominant_ratio = is_screenshot_nearly_uniform(output.getvalue())
+
+        assert is_blank is False
+
+    def test_tall_sparse_report_with_content_is_not_blank(self):
+        image = Image.new("RGB", (800, 4000), "white")
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((20, 20, 780, 220), outline="black", width=3)
+        for y in range(60, 220, 40):
+            draw.line((20, y, 780, y), fill="black", width=2)
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+
+        is_blank, _dominant_ratio = is_screenshot_nearly_uniform(output.getvalue())
+
+        assert is_blank is False
 
     def test_sparse_png_with_dark_content_is_not_blank(self):
         image = Image.new("RGB", (100, 100), "white")
@@ -384,6 +425,70 @@ class TestTakeTiledScreenshot:
 
         assert mock_page.screenshot.call_count == 3
         mock_combine.assert_not_called()
+
+    def test_blank_combined_image_fails_when_contentful_tiles_were_captured(
+        self, mock_page
+    ):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = self._create_chart_like_tile()
+
+        with (
+            patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles",
+                return_value=_two_tone_blank(800, 1000),
+            ),
+            pytest.raises(
+                ScreenshotBlankCaptureError,
+                match="Combined report screenshot is perceptually blank",
+            ),
+        ):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=1000,
+                report_execution_context=_report_context(),
+            )
+
+    def test_blank_combined_image_is_allowed_for_terminal_empty_states(self, mock_page):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+        blank = _two_tone_blank(800, 1000)
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 0}
+            if "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "empty"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = blank
+
+        with patch(
+            "superset.utils.screenshot_utils.combine_screenshot_tiles",
+            return_value=blank,
+        ):
+            result = take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=1000,
+                report_execution_context=_report_context(),
+            )
+
+        assert result == blank
+        assert mock_page.screenshot.call_count == 1
 
     def test_single_uniform_content_tile_fails_closed_for_reports(self, mock_page):
         element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}

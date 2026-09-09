@@ -20,7 +20,8 @@ from unittest.mock import ANY, MagicMock, patch
 from uuid import UUID
 
 import pytest
-from PIL import Image
+from celery.exceptions import SoftTimeLimitExceeded
+from PIL import Image, ImageDraw
 
 from superset.utils.report_execution import (
     ReportExecutionContext,
@@ -125,6 +126,10 @@ class TestStandardScreenshotValidation:
         assert result == output.getvalue()
         assert page.screenshot.call_count == 2
         page.bring_to_front.assert_called_once_with()
+        page.wait_for_function.assert_called_once_with(
+            "() => window.__supersetRepaintComplete === true",
+            timeout=5000,
+        )
 
     def test_repeated_blank_capture_fails_closed(self):
         page = MagicMock()
@@ -144,6 +149,67 @@ class TestStandardScreenshotValidation:
             )
 
         assert page.screenshot.call_count == 3
+
+    def test_blank_empty_state_capture_is_allowed(self):
+        page = MagicMock()
+        element = MagicMock()
+        page.screenshot.return_value = _png("white")
+        page.evaluate.return_value = False
+
+        result = WebDriverPlaywright._get_validated_screenshot(
+            page,
+            element,
+            "standalone",
+            "execution_id=test",
+            _report_context(),
+        )
+
+        assert result == _png("white")
+        page.screenshot.assert_called_once()
+        page.bring_to_front.assert_not_called()
+
+    def test_repaint_timeout_is_bounded_and_retry_continues(self):
+        from superset.utils.webdriver import PlaywrightTimeout
+
+        page = MagicMock()
+        element = MagicMock()
+        valid = Image.new("RGB", (100, 100), "white")
+        ImageDraw.Draw(valid).rectangle((20, 20, 80, 80), fill="black")
+        output = io.BytesIO()
+        valid.save(output, format="PNG")
+        page.screenshot.side_effect = [_png("white"), output.getvalue()]
+        page.evaluate.return_value = True
+        page.wait_for_function.side_effect = PlaywrightTimeout("stalled repaint")
+
+        result = WebDriverPlaywright._get_validated_screenshot(
+            page,
+            element,
+            "standalone",
+            "execution_id=test",
+            _report_context(),
+        )
+
+        assert result == output.getvalue()
+        page.wait_for_function.assert_called_once_with(
+            "() => window.__supersetRepaintComplete === true",
+            timeout=5000,
+        )
+
+    def test_repaint_preserves_celery_soft_timeout(self):
+        page = MagicMock()
+        element = MagicMock()
+        page.screenshot.return_value = _png("white")
+        page.evaluate.return_value = True
+        page.wait_for_function.side_effect = SoftTimeLimitExceeded()
+
+        with pytest.raises(SoftTimeLimitExceeded):
+            WebDriverPlaywright._get_validated_screenshot(
+                page,
+                element,
+                "standalone",
+                "execution_id=test",
+                _report_context(),
+            )
 
     def test_non_report_capture_preserves_existing_behavior(self):
         page = MagicMock()

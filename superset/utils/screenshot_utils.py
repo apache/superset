@@ -47,10 +47,11 @@ EXPAND_SCROLLABLE_CONTENT_MAX_WAIT_SECONDS = 5.0
 TILED_SCREENSHOT_CAPTURE_TIMEOUT_SECONDS = 120
 TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS = 3
 TILED_SCREENSHOT_BLANK_DOMINANT_PIXEL_RATIO = 0.995
-SCREENSHOT_BLANK_NEAR_WHITE_PIXEL_RATIO = 0.995
 SCREENSHOT_BLANK_MIN_LUMINANCE = 240
+SCREENSHOT_BLANK_MIN_MEAN_LUMINANCE = 250.0
 SCREENSHOT_BLANK_MAX_LUMINANCE_STDDEV = 8.0
 SCREENSHOT_BLANK_MAX_ENTROPY = 1.5
+SCREENSHOT_BLANK_SAMPLE_SIZES = (256, 1024)
 
 # Runtime task-budget policy shared with the approach introduced in #42118.
 # Celery exposes the effective per-task hard/soft limits only on the running
@@ -157,44 +158,58 @@ def get_screenshot_blankness_metrics(screenshot: bytes) -> ScreenshotBlanknessMe
 
     try:
         with Image.open(io.BytesIO(screenshot)) as image:
-            sample = image.convert("RGB")
-            sample.thumbnail((256, 256))
-            pixel_count = sample.width * sample.height
-            colors = sample.getcolors(maxcolors=pixel_count) or []
-            dominant_pixels = max(
-                (count for count, _color in colors),
-                default=0,
-            )
-            dominant_ratio = dominant_pixels / pixel_count
+            sample_metrics: list[ScreenshotBlanknessMetrics] = []
+            for sample_size in SCREENSHOT_BLANK_SAMPLE_SIZES:
+                sample = image.convert("RGB")
+                sample.thumbnail((sample_size, sample_size))
+                pixel_count = sample.width * sample.height
+                colors = sample.getcolors(maxcolors=pixel_count) or []
+                dominant_pixels = max(
+                    (count for count, _color in colors),
+                    default=0,
+                )
+                dominant_ratio = dominant_pixels / pixel_count
 
-            grayscale = sample.convert("L")
-            histogram = grayscale.histogram()
-            near_white_ratio = (
-                sum(histogram[SCREENSHOT_BLANK_MIN_LUMINANCE:]) / pixel_count
-            )
-            statistics = ImageStat.Stat(grayscale)
-            mean_luminance = float(statistics.mean[0])
-            luminance_stddev = float(statistics.stddev[0])
-            entropy = -sum(
-                (count / pixel_count) * math.log2(count / pixel_count)
-                for count in histogram
-                if count
-            )
-            exact_uniform = (
-                dominant_ratio >= TILED_SCREENSHOT_BLANK_DOMINANT_PIXEL_RATIO
-            )
-            perceptually_blank = (
-                near_white_ratio >= SCREENSHOT_BLANK_NEAR_WHITE_PIXEL_RATIO
-                and luminance_stddev <= SCREENSHOT_BLANK_MAX_LUMINANCE_STDDEV
-                and entropy <= SCREENSHOT_BLANK_MAX_ENTROPY
-            )
+                grayscale = sample.convert("L")
+                histogram = grayscale.histogram()
+                near_white_ratio = (
+                    sum(histogram[SCREENSHOT_BLANK_MIN_LUMINANCE:]) / pixel_count
+                )
+                statistics = ImageStat.Stat(grayscale)
+                mean_luminance = float(statistics.mean[0])
+                luminance_stddev = float(statistics.stddev[0])
+                entropy = -sum(
+                    (count / pixel_count) * math.log2(count / pixel_count)
+                    for count in histogram
+                    if count
+                )
+                low_information = (
+                    luminance_stddev <= SCREENSHOT_BLANK_MAX_LUMINANCE_STDDEV
+                    and entropy <= SCREENSHOT_BLANK_MAX_ENTROPY
+                )
+                perceptually_blank = low_information and (
+                    mean_luminance >= SCREENSHOT_BLANK_MIN_MEAN_LUMINANCE
+                    or dominant_ratio >= TILED_SCREENSHOT_BLANK_DOMINANT_PIXEL_RATIO
+                )
+                sample_metrics.append(
+                    ScreenshotBlanknessMetrics(
+                        is_blank=perceptually_blank,
+                        dominant_pixel_ratio=dominant_ratio,
+                        near_white_pixel_ratio=near_white_ratio,
+                        mean_luminance=mean_luminance,
+                        luminance_stddev=luminance_stddev,
+                        entropy=entropy,
+                    )
+                )
+
+            metrics = sample_metrics[-1]
             return ScreenshotBlanknessMetrics(
-                is_blank=exact_uniform or perceptually_blank,
-                dominant_pixel_ratio=dominant_ratio,
-                near_white_pixel_ratio=near_white_ratio,
-                mean_luminance=mean_luminance,
-                luminance_stddev=luminance_stddev,
-                entropy=entropy,
+                is_blank=all(sample.is_blank for sample in sample_metrics),
+                dominant_pixel_ratio=metrics.dominant_pixel_ratio,
+                near_white_pixel_ratio=metrics.near_white_pixel_ratio,
+                mean_luminance=metrics.mean_luminance,
+                luminance_stddev=metrics.luminance_stddev,
+                entropy=metrics.entropy,
             )
     except (OSError, UnidentifiedImageError):
         # Combining the tiles remains responsible for rejecting corrupt image
@@ -496,6 +511,23 @@ CHART_CONTAINER_STATE_JS = f"""
     }}
     return 'mounted_pre_terminal';
 }}
+"""
+
+CHART_CONTAINER_HAS_RENDERED_CONTENT_JS = f"""
+() => {{
+    const chart = document.querySelector('.chart-container');
+    return chart !== null
+        && chart.querySelector('{CHART_ERROR_OR_EMPTY_SELECTOR}') === null
+        && chart.querySelector('{SLICE_CONTAINER_SELECTOR}') !== null;
+}}
+"""
+
+REPORT_HAS_RENDERED_CHART_HOLDERS_JS = f"""
+() => Array.from(document.querySelectorAll('{CHART_HOLDER_SELECTOR}')).some(
+    holder => holder.querySelector(
+        '{CHART_ERROR_OR_EMPTY_SELECTOR}'
+    ) === null && holder.querySelector('{SLICE_CONTAINER_SELECTOR}') !== null
+)
 """
 
 CHART_CONTAINER_SELECTOR = ".chart-container"
@@ -828,6 +860,7 @@ def take_tiled_screenshot(  # noqa: C901
 
         screenshot_tiles: list[bytes] = []
         blank_tile_retries = 0
+        contentful_tiles_captured = 0
 
         def _raise_if_budget_exhausted() -> None:
             elapsed, remaining = _deadline_values()
@@ -1214,6 +1247,15 @@ def take_tiled_screenshot(  # noqa: C901
                         break
 
                 _raise_if_budget_exhausted()
+                repaint_timeout = _timeout_seconds(
+                    "screenshot_repaint",
+                    requested_seconds=5.0,
+                    reserve_seconds=(
+                        report_execution_context.post_capture_reserve_seconds
+                        if report_execution_context
+                        else 0.0
+                    ),
+                )
                 try:
                     page.bring_to_front()
                     page.evaluate(
@@ -1226,20 +1268,11 @@ def take_tiled_screenshot(  # noqa: C901
                             }));
                         }"""
                     )
-                    repaint_timeout = _timeout_seconds(
-                        "screenshot_repaint",
-                        requested_seconds=5.0,
-                        reserve_seconds=(
-                            report_execution_context.post_capture_reserve_seconds
-                            if report_execution_context
-                            else 0.0
-                        ),
-                    )
                     page.wait_for_function(
                         "() => window.__supersetRepaintComplete === true",
                         timeout=repaint_timeout * 1000,
                     )
-                except Exception:  # noqa: BLE001
+                except PlaywrightTimeout:
                     logger.warning(
                         "report_capture_repaint_timeout tile=%s/%s attempt=%s/%s%s",
                         i + 1,
@@ -1252,6 +1285,8 @@ def take_tiled_screenshot(  # noqa: C901
 
             assert tile_screenshot is not None
             screenshot_tiles.append(tile_screenshot)
+            if contentful_chart_holders > 0:
+                contentful_tiles_captured += 1
 
             logger.debug(
                 "Captured tile %s/%s with clip %s%s",
@@ -1307,12 +1342,14 @@ def take_tiled_screenshot(  # noqa: C901
             log_context=log_context,
         )
 
-        if report_execution_context and report_execution_context.expected_chart_count:
+        if report_execution_context and contentful_tiles_captured:
             combined_blankness = get_screenshot_blankness_metrics(combined_screenshot)
             logger.info(
-                "report_capture_validation capture=combined is_blank=%s "
+                "report_capture_validation capture=combined "
+                "contentful_tiles=%s is_blank=%s "
                 "dominant_pixel_ratio=%.5f near_white_pixel_ratio=%.5f "
                 "mean_luminance=%.2f luminance_stddev=%.2f entropy=%.3f%s",
+                contentful_tiles_captured,
                 combined_blankness.is_blank,
                 combined_blankness.dominant_pixel_ratio,
                 combined_blankness.near_white_pixel_ratio,
