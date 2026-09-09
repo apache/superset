@@ -75,7 +75,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
       - name: Setup MySQL
         uses: ./.github/actions/cached-dependencies
         with:
