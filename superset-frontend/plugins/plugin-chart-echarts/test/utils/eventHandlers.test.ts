@@ -248,7 +248,7 @@ test('cross-filter emits aggregated rows when pie Other slice is clicked with is
       Clothing: ['Clothing'],
       // The aggregated "Other" slice is stored under the __other__ prefix
       // to avoid colliding with any real data row named "Other".
-      '__other__Other': [['SmallA'], ['SmallB']],
+      __other__Other: [['SmallA'], ['SmallB']],
     } as any,
     selectedValues: {},
     setDataMask,
@@ -283,7 +283,7 @@ test('cross-filter emits correct filter for real data row named "Other" (no isOt
       // A real data row whose category value is literally "Other"
       Other: ['Other'],
       // The aggregated slice is stored separately under the __other__ prefix
-      '__other__Other': [['SmallA'], ['SmallB']],
+      __other__Other: [['SmallA'], ['SmallB']],
     } as any,
     selectedValues: {},
     setDataMask,
