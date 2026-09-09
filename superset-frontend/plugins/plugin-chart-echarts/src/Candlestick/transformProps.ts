@@ -70,6 +70,10 @@ import {
 } from './utils';
 
 type CandlestickDatum = NonNullable<CandlestickSeriesOption['data']>[number];
+type AxisTooltipParams = CallbackDataParams & {
+  axisValue?: string | number;
+  axisValueLabel?: string;
+};
 const NULL_LOOKUP_KEY = Symbol('candlestick-null');
 
 function toNumber(value: unknown): number | null {
@@ -136,42 +140,72 @@ function extractOhlc(value: unknown): OhlcValue | null {
   return [open, close, low, high];
 }
 
+function extractLineValue(item: CallbackDataParams): number | null {
+  const raw = item.value ?? item.data;
+  if (Array.isArray(raw)) {
+    const y = Number(raw[raw.length - 1]);
+    return Number.isFinite(y) ? y : null;
+  }
+  const numeric = Number(raw);
+  return Number.isFinite(numeric) ? numeric : null;
+}
+
+function appendOhlcRows(
+  rows: string[][],
+  ohlc: OhlcValue,
+  numberFormatter: NumberFormatter | CurrencyFormatter,
+) {
+  const [open, close, low, high] = ohlc;
+  rows.push(
+    [OHLC_LABELS.OPEN, numberFormatter(open)],
+    [OHLC_LABELS.CLOSE, numberFormatter(close)],
+    [OHLC_LABELS.LOW, numberFormatter(low)],
+    [OHLC_LABELS.HIGH, numberFormatter(high)],
+  );
+}
+
 function formatTooltip({
   params,
   numberFormatter,
   title,
   increaseLabel,
   decreaseLabel,
+  showSeriesName,
 }: {
   params: CallbackDataParams[];
   numberFormatter: NumberFormatter | CurrencyFormatter;
   title: string;
   increaseLabel: string;
   decreaseLabel: string;
+  showSeriesName: boolean;
 }) {
   const rows: string[][] = [];
   let heading = title;
-  const candle = params.find(item => extractOhlc(item.value ?? item.data));
-  if (candle) {
-    const ohlc = extractOhlc(candle.value ?? candle.data);
-    if (ohlc) {
-      const [open, close, low, high] = ohlc;
-      const direction = close >= open ? increaseLabel : decreaseLabel;
+  const candles = params.flatMap(item => {
+    const ohlc = extractOhlc(item.value ?? item.data);
+    return ohlc ? [{ item, ohlc }] : [];
+  });
+
+  candles.forEach(({ item, ohlc }) => {
+    const [open, close] = ohlc;
+    const direction = close >= open ? increaseLabel : decreaseLabel;
+    if (showSeriesName) {
+      const seriesLabel = String(item.seriesName ?? '');
+      if (seriesLabel) {
+        rows.push([`${seriesLabel} (${direction})`]);
+      }
+    } else {
       heading = title ? `${title} (${direction})` : direction;
-      rows.push(
-        [OHLC_LABELS.OPEN, numberFormatter(open)],
-        [OHLC_LABELS.CLOSE, numberFormatter(close)],
-        [OHLC_LABELS.LOW, numberFormatter(low)],
-        [OHLC_LABELS.HIGH, numberFormatter(high)],
-      );
     }
-  }
+    appendOhlcRows(rows, ohlc, numberFormatter);
+  });
+
   params.forEach(item => {
     if (item.seriesType !== 'line') {
       return;
     }
-    const value = Number(item.value);
-    if (!Number.isFinite(value)) {
+    const value = extractLineValue(item);
+    if (value === null) {
       return;
     }
     rows.push([String(item.seriesName ?? ''), numberFormatter(value)]);
@@ -477,11 +511,12 @@ export default function transformProps(
     },
     tooltip: {
       ...getDefaultTooltip(refs),
-      trigger: 'item',
-      axisPointer: { type: 'shadow' },
+      trigger: 'axis',
+      axisPointer: { type: 'cross' },
       show: !inContextMenu,
       formatter: (params: CallbackDataParams | CallbackDataParams[]) => {
-        const [item] = ensureIsArray(params);
+        const items = ensureIsArray(params) as AxisTooltipParams[];
+        const [item] = items;
         if (!item) {
           return '';
         }
@@ -503,13 +538,20 @@ export default function transformProps(
                 coltypeMapping,
                 timeFormatter,
               })
-            : String(item.name ?? categoryLabel ?? '');
+            : String(
+                item.axisValueLabel ??
+                  item.axisValue ??
+                  item.name ??
+                  categoryLabel ??
+                  '',
+              );
         return formatTooltip({
-          params: ensureIsArray(params) as CallbackDataParams[],
+          params: items,
           numberFormatter,
           title,
           increaseLabel: upLabel,
           decreaseLabel: downLabel,
+          showSeriesName: seriesNames.length > 1,
         });
       },
     },

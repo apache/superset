@@ -507,12 +507,23 @@ test('formats tooltip dates from the category, not the raw row index', () => {
       dataIndex: 1,
       name: '2017-10-25',
       seriesType: 'candlestick',
+      seriesName: 'AAPL',
       value: [31, 38, 33, 44],
       data: [31, 38, 33, 44],
+    },
+    {
+      dataIndex: 1,
+      name: '2017-10-25',
+      seriesType: 'candlestick',
+      seriesName: 'GOOG',
+      value: [38, 15, 5, 42],
+      data: [38, 15, 5, 42],
     },
   ]);
   expect(tooltipHtml).toContain('2017-10-25');
   expect(tooltipHtml).not.toContain('2017-10-24');
+  expect(tooltipHtml).toContain('AAPL');
+  expect(tooltipHtml).toContain('GOOG');
 });
 
 test('drops incomplete OHLC rows', () => {
@@ -549,6 +560,16 @@ test('hides the tooltip while a context menu is open', () => {
     inContextMenu: true,
   } as unknown as EchartsCandlestickChartProps);
   expect((props.echartOptions.tooltip as { show: boolean }).show).toBe(false);
+});
+
+test('uses an axis-triggered tooltip', () => {
+  const { echartOptions } = buildProps();
+  expect(echartOptions.tooltip).toEqual(
+    expect.objectContaining({
+      trigger: 'axis',
+      axisPointer: { type: 'cross' },
+    }),
+  );
 });
 
 test('tooltip heading uses increase or decrease based on open vs close', () => {
@@ -598,6 +619,128 @@ test('tooltip includes moving-average line values', () => {
   ]);
   expect(tooltipHtml).toContain('MA2');
   expect(tooltipHtml).toContain('34.5');
+});
+
+test('tooltip lists every candlestick and moving average on the hovered date', () => {
+  const seriesData = [
+    {
+      date: '2017-10-24',
+      symbol: 'AAPL',
+      open: 20,
+      close: 34,
+      low: 10,
+      high: 38,
+    },
+    {
+      date: '2017-10-24',
+      symbol: 'GOOG',
+      open: 40,
+      close: 35,
+      low: 30,
+      high: 50,
+    },
+    {
+      date: '2017-10-25',
+      symbol: 'AAPL',
+      open: 31,
+      close: 38,
+      low: 33,
+      high: 44,
+    },
+    {
+      date: '2017-10-25',
+      symbol: 'GOOG',
+      open: 38,
+      close: 15,
+      low: 5,
+      high: 42,
+    },
+  ];
+  const tooltipHtml = getTooltipHtml(
+    transform(seriesData, { series: 'symbol', moving_averages: [2] }),
+    [
+      {
+        dataIndex: 1,
+        name: '2017-10-25',
+        seriesType: 'candlestick',
+        seriesName: 'AAPL',
+        value: [31, 38, 33, 44],
+        data: [31, 38, 33, 44],
+      },
+      {
+        dataIndex: 1,
+        name: '2017-10-25',
+        seriesType: 'candlestick',
+        seriesName: 'GOOG',
+        value: [38, 15, 5, 42],
+        data: [38, 15, 5, 42],
+      },
+      {
+        dataIndex: 1,
+        seriesType: 'line',
+        seriesName: 'AAPL MA2',
+        value: 36,
+      },
+      {
+        dataIndex: 1,
+        seriesType: 'line',
+        seriesName: 'GOOG MA2',
+        value: 25,
+      },
+    ],
+  );
+  expect(tooltipHtml).toContain('AAPL (Increase)');
+  expect(tooltipHtml).toContain('GOOG (Decrease)');
+  expect(tooltipHtml).toContain('AAPL MA2');
+  expect(tooltipHtml).toContain('GOOG MA2');
+  expect(tooltipHtml).toContain('36');
+  expect(tooltipHtml).toContain('25');
+});
+
+test('tooltip skips missing candles on the hovered date', () => {
+  const tooltipHtml = getTooltipHtml(
+    transform(
+      [
+        {
+          date: '2017-10-24',
+          symbol: 'AAPL',
+          open: 20,
+          close: 34,
+          low: 10,
+          high: 38,
+        },
+        {
+          date: '2017-10-25',
+          symbol: 'GOOG',
+          open: 40,
+          close: 35,
+          low: 30,
+          high: 50,
+        },
+      ],
+      { series: 'symbol' },
+    ),
+    [
+      {
+        dataIndex: 1,
+        name: '2017-10-25',
+        seriesType: 'candlestick',
+        seriesName: 'AAPL',
+        value: [],
+        data: [],
+      },
+      {
+        dataIndex: 1,
+        name: '2017-10-25',
+        seriesType: 'candlestick',
+        seriesName: 'GOOG',
+        value: [40, 35, 30, 50],
+        data: [40, 35, 30, 50],
+      },
+    ],
+  );
+  expect(tooltipHtml).toContain('GOOG');
+  expect(tooltipHtml).not.toContain('AAPL');
 });
 
 test('tooltip returns an empty string when there is nothing to show', () => {
