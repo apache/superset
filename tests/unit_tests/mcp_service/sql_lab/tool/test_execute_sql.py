@@ -413,7 +413,7 @@ class TestExecuteSql:
             sql="SELECT * FROM secret_table",
             catalog=None,
             schema=None,
-            template_params={},
+            template_params=None,
             force_dataset_match=True,
         )
         # the query must not run when access is denied
@@ -429,6 +429,10 @@ class TestExecuteSql:
         """The access check and the executor must be handed the same
         template_params, otherwise the authorized SQL is not the SQL that runs
         and Jinja expanding on only one side escapes the table-access check.
+
+        ``None`` is passed through rather than normalized to ``{}``: the check
+        renders either way, while the executor skips rendering for ``None``, so
+        the executor can only ever run a subset of what was authorized.
         """
         mock_database = _mock_database()
         mock_database.execute.return_value = _create_select_result(
@@ -456,8 +460,7 @@ class TestExecuteSql:
         ]
         executed = mock_database.execute.call_args[0][1].template_params
         assert authorized == executed
-        # never None, so the executor cannot skip a render the check performed
-        assert executed == (template_params or {})
+        assert executed == template_params
 
     @patch("superset.security_manager", new_callable=MagicMock)
     @patch("superset.db")
@@ -1545,6 +1548,33 @@ class TestDestructiveDDLBlocking:
                 assert "Destructive DDL" in data["error"]
                 mock_tp.process_template.assert_called_once()
                 ddl_mocks.execute.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_no_template_params_skips_rendering_in_ddl_check(
+        self, ddl_mocks, mcp_server
+    ):
+        """Without template_params the guard must not render, just like the
+        executor (``SQLExecutor._render_sql_template`` returns early on
+        ``None``). Rendering anyway would make SQL containing a literal ``{{``
+        fail as unparseable even though it runs fine.
+        """
+        sql = "SELECT * FROM logs WHERE msg LIKE '%{{%'"
+        ddl_mocks.execute.return_value = _create_select_result(
+            rows=[{"msg": "a{{b"}], columns=["msg"], original_sql=sql
+        )
+
+        with patch("superset.jinja_context.get_template_processor") as mock_get_tp:
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "execute_sql",
+                    {"request": {"database_id": 1, "sql": sql}},
+                )
+
+        data = result.structured_content
+        assert data["success"] is True
+        mock_get_tp.assert_not_called()
+        assert ddl_mocks.execute.call_args[0][0] == sql
+        assert ddl_mocks.execute.call_args[0][1].template_params is None
 
     @pytest.mark.asyncio
     async def test_select_allowed(self, ddl_mocks, mcp_server):
