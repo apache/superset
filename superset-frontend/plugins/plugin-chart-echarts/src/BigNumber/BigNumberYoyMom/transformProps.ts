@@ -54,12 +54,18 @@ import {
   BigNumberYoyMomProps,
   RGBColor,
 } from './types';
+import {
+  alignToTimeGrain,
+  parseTimePointValue,
+  shiftPointToOffset,
+} from './timeRange';
 
 const toCssColor = (color?: RGBColor, fallback?: string) =>
   color ? `rgb(${color.r}, ${color.g}, ${color.b})` : fallback;
 
-const toNumber = (value: number | string | null | undefined): number | null => {
+const toNumber = (value: unknown): number | null => {
   if (value === null || value === undefined) return null;
+  if (typeof value === 'bigint') return Number(value);
   const parsed = Number(value);
   return Number.isNaN(parsed) ? null : parsed;
 };
@@ -94,16 +100,10 @@ type ComparisonSlot = {
 // metric (dataset metric or custom SQL expression) or from the backend's
 // time-offset column `<metric label>__<offset>`. The mode mirrors buildQuery:
 // an unset mode falls back to the metric when a comparison column exists.
-const comparisonSource = (
+const isMetricMode = (
   mode: 'time_shift' | 'metric' | undefined,
   column: QueryFormMetric | undefined,
-  offset: string,
-  metricName: string,
-): string | undefined => {
-  const metricMode = mode === 'metric' || (!mode && !!column);
-  if (metricMode && column) return getMetricLabel(column);
-  return `${metricName}__${offset}`;
-};
+): boolean => mode === 'metric' || (!mode && !!column);
 
 export default function transformProps(
   chartProps: BigNumberYoyMomChartProps,
@@ -151,12 +151,56 @@ export default function transformProps(
     comparisonZeroColor = DEFAULT_COMPARISON_ZERO_COLOR,
     percentDifferenceFormat = NumberFormats.PERCENT_2_POINT,
     backgroundColor = DEFAULT_BACKGROUND_COLOR,
+    timeGrainSqla,
   } = formData;
 
   const { data = [], detected_currency: detectedCurrency } =
     queriesData[0] || {};
   const hasData = data.length > 0;
   const metricName = getMetricLabel(metric);
+
+  // Point-to-point comparison: buildQuery returns a second query with the
+  // metric grouped by the time column (newest first) when a time shift is
+  // configured without an enclosed time range ("No filter"). The comparison
+  // value for an offset is the series point that matches the newest point
+  // shifted by that offset; points that do not exist render as "—".
+  const seriesQuery = queriesData[1];
+  const seriesData = seriesQuery?.data ?? [];
+  const seriesTimeColumn = seriesQuery?.colnames?.[0];
+  const pointSeries = hasData && seriesData.length > 0 ? seriesData : null;
+  const seriesPoints = pointSeries
+    ? (pointSeries
+        .map(row => {
+          const time = seriesTimeColumn
+            ? parseTimePointValue(row[seriesTimeColumn])
+            : null;
+          return time ? { time, value: toNumber(row[metricName]) } : null;
+        })
+        .filter(
+          (point): point is { time: Date; value: number | null } =>
+            point !== null,
+        ) ?? [])
+    : [];
+  const latestPoint = seriesPoints.reduce(
+    (latest, point) =>
+      latest === null || point.time.getTime() > latest.time.getTime()
+        ? point
+        : latest,
+    null as { time: Date; value: number | null } | null,
+  );
+  const matchPointOffset = (offset: string | undefined): number | null => {
+    if (!offset || !latestPoint) return null;
+    const target = alignToTimeGrain(
+      shiftPointToOffset(latestPoint.time, offset),
+      timeGrainSqla,
+    );
+    const hit = seriesPoints.find(
+      point =>
+        alignToTimeGrain(point.time, timeGrainSqla).getTime() ===
+        target.getTime(),
+    );
+    return hit ? hit.value : null;
+  };
 
   const metricEntry: Metric | undefined = chartProps.datasource?.metrics?.find(
     metricItem => metricItem.metric_name === metric,
@@ -266,16 +310,44 @@ export default function transformProps(
     };
   };
 
+  const slotComparisonValue = (
+    mode: 'time_shift' | 'metric' | undefined,
+    column: QueryFormMetric | undefined,
+    offset: string | undefined,
+  ): number | string | null | undefined => {
+    if (!hasData) return null;
+    if (isMetricMode(mode, column)) {
+      return column ? row[getMetricLabel(column)] : null;
+    }
+    if (pointSeries && offset) return matchPointOffset(offset);
+    return offset ? row[`${metricName}__${offset}`] : null;
+  };
+
+  // For point-to-point time shifts the percentage compares the newest series
+  // point against the shifted point (e.g. latest month vs previous month),
+  // not the overall main value. Other slots compare against the main value.
+  const slotCurrent = (
+    mode: 'time_shift' | 'metric' | undefined,
+    column: QueryFormMetric | undefined,
+  ): number | null => {
+    if (pointSeries && !isMetricMode(mode, column)) {
+      return latestPoint ? latestPoint.value : null;
+    }
+    return current;
+  };
+
   const comparison1 = buildComparison({
     show: showComparison1,
     label: comparison1Label,
     offset: comparison1Offset,
     column: comparison1Column,
     left: comparison1Left,
-    current,
-    comparisonValue: hasData
-      ? row[comparisonSource(comparison1Mode, comparison1Column, comparison1Offset, metricName) || '']
-      : null,
+    current: slotCurrent(comparison1Mode, comparison1Column),
+    comparisonValue: slotComparisonValue(
+      comparison1Mode,
+      comparison1Column,
+      comparison1Offset,
+    ),
   });
   const comparison2 = buildComparison({
     show: showComparison2,
@@ -283,10 +355,12 @@ export default function transformProps(
     offset: comparison2Offset,
     column: comparison2Column,
     left: comparison2Left,
-    current,
-    comparisonValue: hasData
-      ? row[comparisonSource(comparison2Mode, comparison2Column, comparison2Offset, metricName) || '']
-      : null,
+    current: slotCurrent(comparison2Mode, comparison2Column),
+    comparisonValue: slotComparisonValue(
+      comparison2Mode,
+      comparison2Column,
+      comparison2Offset,
+    ),
   });
   if (comparison1) graphic.push(comparison1);
   if (comparison2) graphic.push(comparison2);

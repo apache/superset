@@ -24,7 +24,7 @@ import {
   QueryFormMetric,
 } from '@superset-ui/core';
 import { BigNumberYoyMomFormData } from './types';
-import { toEnclosedTimeRange } from './timeRange';
+import { offsetMaxRows, toEnclosedTimeRange } from './timeRange';
 
 export default function buildQuery(formData: QueryFormData) {
   return buildQueryContext(formData, baseQueryObject => {
@@ -47,9 +47,9 @@ export default function buildQuery(formData: QueryFormData) {
       formDataYoyMom.comparison2_mode === 'metric' ||
       (!formDataYoyMom.comparison2_mode && !!formDataYoyMom.comparison2_column);
     const timeOffsets = ensureIsArray([
-      hasTimeRange && !metricMode1 ? formDataYoyMom.comparison1_offset : null,
-      hasTimeRange && !metricMode2 ? formDataYoyMom.comparison2_offset : null,
-    ]).filter(Boolean);
+      !metricMode1 ? formDataYoyMom.comparison1_offset : null,
+      !metricMode2 ? formDataYoyMom.comparison2_offset : null,
+    ]).filter(Boolean) as string[];
 
     // Comparison value metrics are requested alongside the main metric so the
     // query result carries their columns (useful for custom SQL datasets that
@@ -74,14 +74,6 @@ export default function buildQuery(formData: QueryFormData) {
       }
     });
 
-    // A time comparison requires an enclosed (start and end) time range on
-    // the backend. Expand open-ended ranges (e.g. "Previous week") into
-    // explicit bounds; ranges the backend resolves on its own are untouched.
-    const resolvedTimeRange =
-      timeOffsets.length > 0
-        ? toEnclosedTimeRange(timeRange)
-        : timeRange;
-
     // The time column may be an adhoc SQL expression (e.g. a custom DATETIME
     // expression). The backend `granularity` field only accepts a plain column
     // name, so an adhoc expression is downgraded to a regular query column:
@@ -91,21 +83,55 @@ export default function buildQuery(formData: QueryFormData) {
     const isAdhocTimeColumn =
       !!timeColumn && typeof timeColumn !== 'string';
 
+    // Open-ended ranges ("No filter") have no current period to shift, so the
+    // backend time offsets are unavailable. With a time column present, split
+    // the query into a main value query plus a point series query (the metric
+    // grouped by the time column, newest first); the render path matches each
+    // comparison slot by shifting the newest point by its offset.
+    const pointSeries =
+      timeOffsets.length > 0 && !hasTimeRange && !!timeColumn;
+
+    // A time comparison requires an enclosed (start and end) time range on
+    // the backend. Expand open-ended ranges (e.g. "Previous week") into
+    // explicit bounds; ranges the backend resolves on its own are untouched.
+    // The point-series path keeps the original range (e.g. "No filter").
+    const resolvedTimeRange =
+      timeOffsets.length > 0 && !pointSeries
+        ? toEnclosedTimeRange(timeRange)
+        : timeRange;
+
+    const mainQuery = {
+      ...baseQueryObject,
+      ...(isAdhocTimeColumn
+        ? {
+            granularity: undefined,
+            columns: [
+              ...ensureIsArray(baseQueryObject.columns),
+              timeColumn as QueryFormColumn,
+            ],
+          }
+        : {}),
+      metrics: [...mainMetrics, ...uniqueComparisonMetrics],
+      time_range: resolvedTimeRange,
+      // Time offsets require an enclosed range on the backend; without one
+      // they are only sent on the point-series path (which sends none).
+      time_offsets: hasTimeRange && !pointSeries ? timeOffsets : [],
+    };
+    if (!pointSeries) {
+      return [mainQuery];
+    }
     return [
+      mainQuery,
       {
         ...baseQueryObject,
-        ...(isAdhocTimeColumn
-          ? {
-              granularity: undefined,
-              columns: [
-                ...ensureIsArray(baseQueryObject.columns),
-                timeColumn as QueryFormColumn,
-              ],
-            }
-          : {}),
-        metrics: [...mainMetrics, ...uniqueComparisonMetrics],
-        time_range: resolvedTimeRange,
-        time_offsets: timeOffsets,
+        metrics: mainMetrics,
+        columns: [],
+        granularity: undefined,
+        time_range: timeRange,
+        time_offsets: [],
+        groupby: [timeColumn as QueryFormColumn],
+        orderby: [[timeColumn as QueryFormColumn, false]],
+        row_limit: offsetMaxRows(timeOffsets),
       },
     ];
   });

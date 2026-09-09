@@ -90,6 +90,121 @@ const shiftUnits = (d: Date, amount: number, unit: string): Date => {
   }
 };
 
+/**
+ * Point-to-point comparison helpers for open-ended time ranges ("No filter").
+ *
+ * When a comparison offset is configured without an enclosed time range there
+ * is no "current period" the backend can shift, so the query instead returns
+ * the metric grouped by the time column (newest first). The comparison value
+ * is then matched in the render path by shifting the newest point by the
+ * offset (e.g. "1 month ago") and finding the exact point in the series.
+ * Points that do not exist in the series render as "—".
+ */
+
+const HOUR_MS = 3_600_000;
+
+export type TimeOffset = { amount: number; unit: string };
+
+const OFFSET_RE = /^(\d+)\s+(second|minute|hour|day|week|month|quarter|year)s?\s+ago$/i;
+
+const UNIT_DAYS: Record<string, number> = {
+  second: 1 / 86_400,
+  minute: 1 / 1_440,
+  hour: 1 / 24,
+  day: 1,
+  week: 7,
+  month: 31,
+  quarter: 93,
+  year: 366,
+};
+
+export const parseTimeOffset = (offset: string | undefined): TimeOffset | null => {
+  if (!offset) return null;
+  const match = OFFSET_RE.exec(offset.trim());
+  if (!match) return null;
+  return { amount: parseInt(match[1], 10), unit: match[2].toLowerCase() };
+};
+
+/**
+ * Maximum number of series rows needed to cover all configured offsets.
+ * A 1-year day-granularity offset needs ~366 rows; month granularity far less.
+ */
+export const offsetMaxRows = (offsets: (string | undefined)[]): number => {
+  let maxDays = 1;
+  offsets.forEach(offset => {
+    const parsed = parseTimeOffset(offset);
+    if (parsed) {
+      maxDays = Math.max(maxDays, Math.ceil(parsed.amount * (UNIT_DAYS[parsed.unit] ?? 1)));
+    }
+  });
+  return Math.max(30, Math.min(2_000, maxDays + 1));
+};
+
+/**
+ * Parses a series time value into a UTC Date. Supports ISO-like date strings
+ * ("2026-09-01 00:00:00"), bare year-month values ("202609"), year-month-day
+ * numbers (20260901) and epoch milliseconds (1788220800000).
+ */
+export const parseTimePointValue = (value: unknown): Date | null => {
+  if (value === null || value === undefined || value === '') return null;
+  const numeric = typeof value === 'number' ? value : Number(String(value).trim());
+  // Epoch milliseconds (>= 1e11 ≈ year 1973).
+  if (Number.isFinite(numeric) && Math.abs(numeric) > 1e11) {
+    const date = new Date(numeric);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  const text = String(value).trim();
+  const match = text.match(/^(\d{4})\s*[-/年.]?\s*(\d{1,2})?\s*[-/月.]?\s*(\d{1,2})?\s*[日]?/);
+  if (!match) return null;
+  const year = parseInt(match[1], 10);
+  const month = match[2] ? parseInt(match[2], 10) : 1;
+  const day = match[3] ? parseInt(match[3], 10) : 1;
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+/**
+ * Aligns a date to the configured time grain so points from a full timestamp
+ * column ("2026-09-01 10:30:00") can be matched against shifted points.
+ */
+export const alignToTimeGrain = (date: Date, grain: string | undefined): Date => {
+  if (grain === 'year') return new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+  if (grain === 'month') return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+  if (grain === 'week') {
+    const isoOffset = (date.getUTCDay() + 6) % 7; // Monday = 0
+    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate() - isoOffset));
+  }
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+};
+
+/**
+ * Shifts a point backwards by a time offset. Month/quarter/year shifts clamp
+ * to the end of the target month (Jan 31 - 1 month => Jan 31 -> Dec 31).
+ */
+export const shiftPointToOffset = (date: Date, offset: string): Date => {
+  const parsed = parseTimeOffset(offset);
+  if (!parsed) return date;
+  const { amount, unit } = parsed;
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+  const day = date.getUTCDate();
+  if (unit === 'second') return new Date(date.getTime() - amount * 1000);
+  if (unit === 'minute') return new Date(date.getTime() - amount * 60_000);
+  if (unit === 'hour') return new Date(date.getTime() - amount * HOUR_MS);
+  if (unit === 'week') return new Date(Date.UTC(year, month, day - amount * 7));
+  if (unit === 'day') return new Date(Date.UTC(year, month, day - amount));
+
+  let targetMonth = month;
+  if (unit === 'year') targetMonth -= amount * 12;
+  else if (unit === 'quarter') targetMonth -= amount * 3;
+  else if (unit === 'month') targetMonth -= amount;
+  const targetYear = year + Math.floor(targetMonth / 12);
+  const normalizedMonth = ((targetMonth % 12) + 12) % 12;
+  const lastDay = new Date(Date.UTC(targetYear, normalizedMonth + 1, 0)).getUTCDate();
+  return new Date(Date.UTC(targetYear, normalizedMonth, Math.min(day, lastDay)));
+};
+
 export const toEnclosedTimeRange = (
   timeRange: string | undefined,
   now: Date = new Date(),

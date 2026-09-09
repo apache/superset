@@ -107,6 +107,66 @@ describe('BigNumberYoyMom buildQuery', () => {
     expect(queryContext.queries[0].time_range).toBe('No filter');
   });
 
+  test('splits into a point series query for "No filter" time shifts', () => {
+    const queryContext = buildQuery({
+      ...baseFormData,
+      time_range: 'No filter',
+      granularity_sqla: 'report_date',
+      comparison1_offset: '1 month ago',
+      comparison2_offset: '1 year ago',
+    });
+    expect(queryContext.queries).toHaveLength(2);
+    expect(queryContext.queries[0].time_offsets).toEqual([]);
+    expect(queryContext.queries[0].time_range).toBe('No filter');
+    expect(queryContext.queries[1].metrics).toEqual(expect.arrayContaining(['value']));
+    expect(queryContext.queries[1].groupby).toEqual(['report_date']);
+    expect(queryContext.queries[1].orderby).toEqual([['report_date', false]]);
+    expect(queryContext.queries[1].time_offsets).toEqual([]);
+    expect(queryContext.queries[1].row_limit).toBeGreaterThanOrEqual(30);
+  });
+
+  test('keeps a single query when no time column is set for a point comparison', () => {
+    const queryContext = buildQuery({
+      ...baseFormData,
+      time_range: 'No filter',
+      comparison1_offset: '1 month ago',
+    });
+    expect(queryContext.queries).toHaveLength(1);
+    expect(queryContext.queries[0].time_offsets).toEqual([]);
+  });
+
+  test('groups the point series by an adhoc time column expression', () => {
+    const queryContext = buildQuery({
+      ...baseFormData,
+      time_range: 'No filter',
+      granularity_sqla: {
+        expressionType: 'SQL',
+        sqlExpression: "STR_TO_DATE(CONCAT(CAST(report_date AS CHAR),'01'),'%Y%m%d')",
+        label: 'report_date_expr',
+      },
+      comparison1_offset: '1 month ago',
+    });
+    expect(queryContext.queries).toHaveLength(2);
+    expect(queryContext.queries[1].groupby).toEqual([
+      expect.objectContaining({
+        sqlExpression: expect.stringContaining('STR_TO_DATE'),
+      }),
+    ]);
+    expect(queryContext.queries[1].granularity).toBeUndefined();
+  });
+
+  test('keeps time offsets and enclosed range for a closed time range', () => {
+    const queryContext = buildQuery({
+      ...baseFormData,
+      time_range: 'Last week',
+      granularity_sqla: 'report_date',
+      comparison1_offset: '1 month ago',
+    });
+    expect(queryContext.queries).toHaveLength(1);
+    expect(queryContext.queries[0].time_offsets).toEqual(['1 month ago']);
+    expect(queryContext.queries[0].time_range).toBe('Last week');
+  });
+
   test('drops a slot that configures a value column from time offsets', () => {
     const queryContext = buildQuery({
       ...baseFormData,
