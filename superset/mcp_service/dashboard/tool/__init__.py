@@ -16,6 +16,7 @@
 # under the License.
 
 from .add_chart_to_existing_dashboard import add_chart_to_existing_dashboard
+from .apply_dashboard_filters import apply_dashboard_filters
 from .delete_dashboard import delete_dashboard
 from .duplicate_dashboard import duplicate_dashboard
 from .generate_dashboard import generate_dashboard
@@ -39,6 +40,7 @@ __all__ = [
     "generate_dashboard",
     "duplicate_dashboard",
     "add_chart_to_existing_dashboard",
+    "apply_dashboard_filters",
     "manage_dashboard_certification",
     "manage_dashboard_owners",
     "manage_dashboard_roles",

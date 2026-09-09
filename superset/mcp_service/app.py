@@ -134,6 +134,7 @@ Dashboard Management:
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
 - delete_dashboard: Delete a dashboard by ID/UUID/slug (requires editor rights — owner or Admin; destructive; does not delete its charts; soft-deletes to trash when the SOFT_DELETE feature flag is on, permanent otherwise)
 - manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select and filter_time)
+- apply_dashboard_filters: Apply values to a dashboard's existing native filters for the calling user and return a shareable permalink (read access; does NOT change the saved dashboard)
 - remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
 - restore_dashboard: Restore a soft-deleted dashboard from trash by ID/UUID (requires editor rights — owner or Admin; only applies to dashboards trashed under the SOFT_DELETE feature flag)
 - manage_dashboard_owners: Add/remove dashboard owners by explicit operation (requires write access; rejects changes that would leave zero owners)
@@ -798,6 +799,7 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
+    apply_dashboard_filters,
     delete_dashboard,
     duplicate_dashboard,
     generate_dashboard,
