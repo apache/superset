@@ -151,7 +151,12 @@ jobs:
         with:
           run: build-instrumented-assets
       - name: Install Playwright
-        uses: ./.github/actions/cached-dependencies
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's gitlink. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: playwright-install
       - name: Run Playwright (Experimental Tests)
