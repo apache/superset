@@ -239,6 +239,34 @@ class TestThemeEditors(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert "result" in data
 
+    def test_related_editors_endpoint_response_shape(self):
+        """The related/editors payload exposes labels and metadata, matching
+        the dashboard/chart editors response shape, instead of falling back
+        to the raw ``Subject<...>`` ``str()`` representation."""
+        admin_subject = _user_subject(ADMIN_USERNAME)
+
+        self.login(ADMIN_USERNAME)
+        argument = {"filter": admin_subject.label}
+        uri = f"/api/v1/theme/related/editors?q={rison.dumps(argument)}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+
+        matches = [
+            result for result in data["result"] if result["value"] == admin_subject.id
+        ]
+        assert len(matches) == 1
+        result = matches[0]
+
+        assert result["text"] == admin_subject.label
+        assert not result["text"].startswith("Subject<")
+        assert result["extra"] == {
+            "type": admin_subject.type,
+            "active": admin_subject.active,
+            "secondary_label": admin_subject.secondary_label,
+            "img": admin_subject.img,
+        }
+
     @pytest.mark.usefixtures("theme_writer")
     def test_system_theme_update_forbidden(self):
         """System themes remain protected regardless of editorship."""

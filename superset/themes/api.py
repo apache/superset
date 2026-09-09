@@ -162,6 +162,16 @@ class ThemeRestApi(BaseSupersetModelRestApi):
     openapi_spec_tag = "Themes"
     openapi_spec_methods = openapi_spec_methods_override
 
+    order_rel_fields = {
+        "editors": ("label", "asc"),
+    }
+    text_field_rel_fields = {
+        "editors": "label",
+    }
+    extra_fields_rel_fields = {
+        "editors": ["type", "active", "secondary_label", "img"],
+    }
+
     related_field_filters = {
         "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
         "editors": RelatedFieldFilter("label", FilterRelatedSubjects),
