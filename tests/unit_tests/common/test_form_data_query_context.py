@@ -71,6 +71,21 @@ def test_columns_empty_columns_key_does_not_shadow_groupby() -> None:
     assert columns_from_form_data(form_data) == ["country"]
 
 
+def test_columns_scalar_groupby_is_coerced_to_list() -> None:
+    # A single-select ``groupby`` control (e.g. heatmap_v2's Y axis, or a
+    # heatmap chart migrated via ``MigrateHeatmapChart``) stores the dimension
+    # as a bare string. It must be coerced to a one-element list, mirroring
+    # ``chart_helpers.resolve_groupby``, rather than crashing on ``str.copy()``.
+    form_data = {"x_axis": "day", "groupby": "hour"}
+    assert columns_from_form_data(form_data) == ["day", "hour"]
+
+
+def test_columns_scalar_columns_is_coerced_to_list() -> None:
+    # The raw-columns branch must likewise tolerate a scalar ``columns`` value.
+    form_data = {"columns": "region"}
+    assert columns_from_form_data(form_data) == ["region"]
+
+
 def test_build_context_maps_groupby_metrics_and_filters() -> None:
     form_data = {
         "groupby": ["country"],

@@ -424,10 +424,10 @@ Each chart returned by list_charts / get_chart_info includes a
 chart_type_display_name field with a human-readable name when available.
 This field is populated for chart types known to the MCP registry
 (xy, pie, table, pivot_table, big_number, mixed_timeseries, handlebars,
-histogram, box_plot, waterfall, and interactive_pivot). Availability gates
-creation and schema discovery, not display names for existing charts.
-For all other viz_types (Funnel, Gauge, Heatmap, etc.) it will be null —
-use the raw viz_type field instead when referring to those chart types.
+histogram, box_plot, waterfall, heatmap_v2, and interactive_pivot).
+Availability gates creation and schema discovery, not display names for
+existing charts. For all other viz_types it will be null — use the raw
+viz_type field instead when referring to those chart types.
 
 Query Examples:
 - List all tables:

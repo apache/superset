@@ -1388,7 +1388,13 @@ class HeatmapChartConfig(BaseChartConfig):
         "heatmap",
         description="Range the cell colour is normalized against: the whole "
         "'heatmap', each 'x' column, or each 'y' row (frontend default: "
-        "'heatmap')",
+        "'heatmap'). Only takes effect when normalized=true.",
+    )
+    normalized: bool = Field(
+        False,
+        description="Colour cells by rank within 'normalize_across' rather than "
+        "the raw metric value. When false (the default) 'normalize_across' has "
+        "no visual effect.",
     )
     row_limit: int = Field(
         10000, description="Max rows queried (cells = X × Y)", ge=1, le=100000

@@ -1264,6 +1264,7 @@ def map_heatmap_config(config: HeatmapChartConfig) -> Dict[str, Any]:
         "groupby": config.y_axis.name,
         "metric": create_metric_object(config.metric),
         "normalize_across": config.normalize_across,
+        "normalized": config.normalized,
         "row_limit": config.row_limit,
     }
     _add_adhoc_filters(form_data, config.filters)

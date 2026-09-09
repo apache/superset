@@ -169,6 +169,28 @@ class TestMapHeatmapConfig:
         assert form_data["normalize_across"] == "x"
         assert form_data["adhoc_filters"], "filters must map to adhoc_filters"
 
+    def test_normalized_defaults_false(self) -> None:
+        # normalize_across has no visual effect on the frontend unless the
+        # 'normalized' flag is also set, so it must be threaded through.
+        config = HeatmapChartConfig(
+            chart_type="heatmap_v2",
+            x_axis={"name": "day_of_week"},
+            y_axis={"name": "hour"},
+            metric={"name": "trips", "aggregate": "COUNT"},
+        )
+        assert map_heatmap_config(config)["normalized"] is False
+
+    def test_normalized_true_maps_through(self) -> None:
+        config = HeatmapChartConfig(
+            chart_type="heatmap_v2",
+            x_axis={"name": "day_of_week"},
+            y_axis={"name": "hour"},
+            metric={"name": "trips", "aggregate": "COUNT"},
+            normalize_across="x",
+            normalized=True,
+        )
+        assert map_heatmap_config(config)["normalized"] is True
+
     def test_heatmap_saved_metric_maps_to_name_string(self) -> None:
         config = HeatmapChartConfig(
             chart_type="heatmap_v2",
@@ -206,6 +228,22 @@ class TestHeatmapQueryContext:
         columns = queries[0]["columns"]
         assert "day_of_week" in columns, "x_axis must reach GROUP BY"
         assert "hour" in columns, "y_axis must reach GROUP BY"
+
+    def test_x_axis_reaches_columns_from_form_data(self) -> None:
+        # The generate_chart compile check derives columns through a different
+        # builder (columns_from_form_data, used by the dashboard export path
+        # too), which must tolerate the scalar 'groupby' this mapper emits and
+        # carry both axes rather than crashing on str.copy().
+        from superset.common.form_data_query_context import columns_from_form_data
+
+        config = HeatmapChartConfig(
+            chart_type="heatmap_v2",
+            x_axis={"name": "day_of_week"},
+            y_axis={"name": "hour"},
+            metric={"name": "trips", "aggregate": "COUNT"},
+        )
+        columns = columns_from_form_data(map_heatmap_config(config))
+        assert columns == ["day_of_week", "hour"]
 
 
 class TestHeatmapPluginRegistry:
