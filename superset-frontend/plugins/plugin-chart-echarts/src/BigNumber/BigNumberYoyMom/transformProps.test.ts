@@ -52,11 +52,23 @@ describe('BigNumberYoyMom transformProps', () => {
   const buildChartProps = (
     data: Record<string, number | string | null>[],
     formData: Record<string, unknown> = {},
+    seriesData?: Record<string, number | string | null>[],
   ) =>
     ({
       width: 400,
       height: 300,
-      queriesData: [{ data, detected_currency: null }],
+      queriesData: [
+        { data, detected_currency: null },
+        ...(seriesData
+          ? [
+              {
+                data: seriesData,
+                colnames: ['报表时间', 'SUM(sales)'],
+                detected_currency: null,
+              },
+            ]
+          : []),
+      ],
       formData: { ...baseFormData, ...formData },
       datasource: baseDatasource,
     }) as unknown as BigNumberYoyMomChartProps;
@@ -267,5 +279,57 @@ describe('BigNumberYoyMom transformProps', () => {
     const graphic = result.echartOptions.graphic as Record<string, any>[];
     expect(graphic[2].style.text).toBe('MoM —');
     expect(graphic[2].style.fill).toBe('rgb(102, 102, 102)');
+  });
+
+  test('matches point series for "No filter" time shifts', () => {
+    const result = transformProps(
+      buildChartProps(
+        [{ 'SUM(sales)': 27656 }],
+        {
+          comparison1Offset: '1 month ago',
+          comparison2Offset: '1 year ago',
+          timeGrainSqla: 'month',
+        },
+        [
+          { '报表时间': '2026-09-01', 'SUM(sales)': 3260 },
+          { '报表时间': '2026-08-01', 'SUM(sales)': 3243 },
+          { '报表时间': '2026-07-01', 'SUM(sales)': 3068 },
+          { '报表时间': '2026-01-01', 'SUM(sales)': 3169 },
+        ],
+      ),
+    );
+    const graphic = result.echartOptions.graphic as Record<string, any>[];
+
+    // (3260 - 3243) / 3243 ≈ 0.52%
+    expect(graphic[2].style.text).toBe('MoM ↑0.52%');
+    expect(graphic[2].style.fill).toBe('rgb(0, 180, 42)');
+    // 2025-09 is not in the series → "—"
+    expect(graphic[3].style.text).toBe('YoY —');
+  });
+
+  test('matches epoch-millisecond time points from expression columns', () => {
+    const result = transformProps(
+      buildChartProps(
+        [{ 'SUM(sales)': 100 }],
+        { comparison1Offset: '1 month ago', timeGrainSqla: 'month' },
+        [
+          { '报表时间': 1788220800000, 'SUM(sales)': 60 }, // 2026-09-01
+          { '报表时间': 1785542400000, 'SUM(sales)': 50 }, // 2026-08-01
+        ],
+      ),
+    );
+    const graphic = result.echartOptions.graphic as Record<string, any>[];
+    expect(graphic[2].style.text).toBe('MoM ↑20.00%');
+  });
+
+  test('falls back to the offset column when no point series is present', () => {
+    const result = transformProps(
+      buildChartProps(
+        [{ 'SUM(sales)': 100, 'SUM(sales)__1 month ago': 90 }],
+        { comparison1Offset: '1 month ago' },
+      ),
+    );
+    const graphic = result.echartOptions.graphic as Record<string, any>[];
+    expect(graphic[2].style.text).toBe('MoM ↑11.11%');
   });
 });

@@ -31,6 +31,7 @@ export type RGBColor = { r: number; g: number; b: number };
 export type BigNumberYoyMomFormData = QueryFormData & {
   metric?: QueryFormMetric;
   granularity_sqla?: QueryFormColumn;
+  timeGrainSqla?: string;
   yAxisFormat?: string;
   currencyFormat?: Currency;
   headerText?: string;
