@@ -19,7 +19,7 @@
 
 import logging
 from dataclasses import dataclass
-from typing import Callable, Generic, TypeVar
+from typing import Any, Callable, Generic, TypeVar
 from urllib.parse import urlparse
 
 from flask import g, has_request_context
@@ -200,13 +200,9 @@ def get_matching_dashboard_permalink_state(
     if not lookup_result.resolved_from_permalink:
         # The identifier selected the dashboard, so the permalink only
         # contributes state when it points at that same dashboard.
-        reference = value.get("dashboardId")
-        known_identifiers = {
-            str(candidate)
-            for candidate in (dashboard_id, dashboard_uuid, dashboard_slug)
-            if candidate is not None
-        }
-        if reference is None or str(reference) not in known_identifiers:
+        if not dashboard_permalink_matches(
+            value, dashboard_id, dashboard_uuid, dashboard_slug
+        ):
             return None
 
     raw_state = value.get("state")
@@ -214,3 +210,49 @@ def get_matching_dashboard_permalink_state(
     if not user_can_view_data_model_metadata():
         state = redact_filter_state_data_model_metadata(state)
     return DashboardPermalinkState(key=key, state=state)
+
+
+def dashboard_permalink_matches(
+    value: DashboardPermalinkValue,
+    dashboard_id: int | None,
+    dashboard_uuid: str | None = None,
+    dashboard_slug: str | None = None,
+) -> bool:
+    """Compare a permalink reference with all supported dashboard identifiers."""
+    reference = value.get("dashboardId")
+    known_identifiers = {
+        str(candidate)
+        for candidate in (dashboard_id, dashboard_uuid, dashboard_slug)
+        if candidate is not None
+    }
+    return reference is not None and str(reference) in known_identifiers
+
+
+def get_dashboard_permalink_data_mask(
+    key: str,
+    dashboard_id: int,
+    dashboard_uuid: str | None = None,
+    dashboard_slug: str | None = None,
+) -> dict[str, Any]:
+    """Resolve raw filter state for server-side stacking under the caller's access.
+
+    Unlike display reads, this path neither redacts state nor suppresses failures.
+    The returned mask must only be used server-side, not included in tool output.
+    """
+    refresh_request_user_for_permalink_access()
+    value = GetDashboardPermalinkCommand(key).run()
+    if value is None:
+        raise ValueError("Base permalink was not found or has expired.")
+    if not dashboard_permalink_matches(
+        value, dashboard_id, dashboard_uuid, dashboard_slug
+    ):
+        raise ValueError(f"Base permalink does not belong to dashboard {dashboard_id}.")
+    state = value.get("state")
+    if not isinstance(state, dict):
+        raise ValueError("Base permalink contains invalid dashboard state.")
+    mask = state.get("dataMask")
+    if mask is None:
+        return {}
+    if not isinstance(mask, dict):
+        raise ValueError("Base permalink contains an invalid dataMask.")
+    return dict(mask)

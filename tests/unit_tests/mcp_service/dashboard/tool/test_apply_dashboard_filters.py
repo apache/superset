@@ -792,3 +792,143 @@ def test_realtime_guest_or_missing_principal(channel: str | None) -> None:
             payload={"dashboard_id": 1, "permalink_key": "key"},
             routes=[channel],
         )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("reference", ["1", "uuid", "slug"])
+async def test_stack_filters_across_turns(mcp_server: object, reference: str) -> None:
+    """Stack, replace, and clear without losing unmentioned raw filter entries."""
+    from copy import deepcopy
+
+    dashboard = _mock_dashboard([SELECT_FILTER, TIME_FILTER])
+    dashboard.slug = "regional-sales"
+    references = {"1": "1", "uuid": dashboard.uuid, "slug": dashboard.slug}
+    captured: dict[str, Any] = {}
+    with (
+        patch(DAO_GET, return_value=dashboard),
+        patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
+        patch(GET_PERMALINK) as get_command,
+        patch(CAN_VIEW_DATA_MODEL, return_value=False),
+        patch(
+            "superset.mcp_service.dashboard.permalink."
+            "redact_filter_state_data_model_metadata"
+        ) as redact,
+    ):
+        first = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Region", "values": ["EMEA"]}],
+            },
+        )
+        get_command.assert_not_called()
+        first_state = deepcopy(captured["state"])
+        assert set(first_state["dataMask"]) == {"NATIVE_FILTER-region"}
+        get_command.return_value.run.return_value = {
+            "dashboardId": references[reference],
+            "state": first_state,
+        }
+        second = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "base_permalink_key": first["permalink_key"],
+                "filters": [
+                    {
+                        "filter_name_or_id": "Time Range",
+                        "time_range": "2024-01-01 : 2025-01-01",
+                    }
+                ],
+            },
+        )
+        assert second["error"] is None
+        get_command.assert_called_once_with(first["permalink_key"])
+        second_state = deepcopy(captured["state"])
+        region = second_state["dataMask"]["NATIVE_FILTER-region"]
+        assert region == first_state["dataMask"]["NATIVE_FILTER-region"]
+        assert region["extraFormData"]["filters"][0]["col"] == "region"
+        assert set(second_state["dataMask"]) == {
+            "NATIVE_FILTER-region",
+            "NATIVE_FILTER-time",
+        }
+        assert [f["id"] for f in second["applied_filters"]] == ["NATIVE_FILTER-time"]
+        assert "EMEA" not in json.dumps(second)
+        assert "dataMask" not in second
+        for values in (["APAC"], []):
+            get_command.return_value.run.return_value = {
+                "dashboardId": references[reference],
+                "state": second_state,
+            }
+            result = await _call(
+                mcp_server,
+                {
+                    "dashboard_id": 1,
+                    "base_permalink_key": second["permalink_key"],
+                    "filters": [{"filter_name_or_id": "Region", "values": values}],
+                },
+            )
+            assert result["error"] is None
+            mask = captured["state"]["dataMask"]
+            assert mask["NATIVE_FILTER-region"]["filterState"]["value"] == (
+                values or None
+            )
+            assert (
+                mask["NATIVE_FILTER-time"]
+                == second_state["dataMask"]["NATIVE_FILTER-time"]
+            )
+            assert second_state["dataMask"]["NATIVE_FILTER-region"] == region
+        redact.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("failure", "message", "denied"),
+    [
+        ("missing", "Base permalink was not found or has expired.", False),
+        ("expired", "Base permalink was not found or has expired.", False),
+        ("access", "permission to access the base permalink's dashboard", True),
+        ("resolve", "Failed to resolve the base permalink", False),
+        ("mismatch", "Base permalink does not belong to dashboard 1.", False),
+        ("state", "Base permalink contains invalid dashboard state.", False),
+        ("mask", "Base permalink contains an invalid dataMask.", False),
+    ],
+)
+async def test_base_permalink_failures_do_not_create_or_publish(
+    mcp_server: object, failure: str, message: str, denied: bool
+) -> None:
+    """Every base resolution failure is explicit and never falls back."""
+    from superset.dashboards.permalink.exceptions import (
+        DashboardPermalinkGetFailedError,
+    )
+
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([SELECT_FILTER])),
+        patch(GET_PERMALINK) as get_command,
+        patch(CREATE_PERMALINK) as create,
+        patch("superset.realtime.publish.publish_realtime") as publish,
+    ):
+        command = get_command.return_value
+        if failure in {"missing", "expired"}:
+            command.run.return_value = None
+        elif failure == "access":
+            command.run.side_effect = DashboardAccessDeniedError()
+        elif failure == "resolve":
+            command.run.side_effect = DashboardPermalinkGetFailedError()
+        else:
+            command.run.return_value = {
+                "dashboardId": "2" if failure == "mismatch" else "1",
+                "state": None if failure == "state" else {"dataMask": []},
+            }
+        result = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "base_permalink_key": "base-key",
+                "filters": [{"filter_name_or_id": "Region", "values": ["EMEA"]}],
+            },
+        )
+    assert message in result["error"]
+    assert result["permission_denied"] is denied
+    assert result["permalink_key"] is None
+    create.assert_not_called()
+    publish.assert_not_called()

@@ -36,6 +36,7 @@ from superset.extensions import event_logger
 from superset.mcp_service.dashboard.permalink import (
     build_dashboard_permalink_url,
     create_dashboard_permalink,
+    get_dashboard_permalink_data_mask,
 )
 from superset.mcp_service.dashboard.schemas import (
     AppliedFilterSummary,
@@ -305,7 +306,12 @@ async def apply_dashboard_filters(
     its filter ID; call get_dashboard_info first to see which filters a
     dashboard has. Supply ``values`` for a filter_select filter (an empty
     list clears it) and ``time_range`` for a filter_time filter. Filters
-    left out of the request keep the dashboard's default value.
+    left out of the request keep the dashboard's default value unless
+    base_permalink_key is supplied. For follow-up turns (e.g. "also filter
+    to 2024"), pass the previous response's permalink_key as
+    base_permalink_key to preserve prior selections. New values replace
+    the entire entry for that filter; unmentioned filters persist. Omit the
+    base key to start over. An unresolved base key fails without creating a link.
 
     Example usage:
     ```json
@@ -325,6 +331,7 @@ async def apply_dashboard_filters(
     from superset.daos.dashboard import DashboardDAO
     from superset.dashboards.permalink.exceptions import (
         DashboardPermalinkCreateFailedError,
+        DashboardPermalinkGetFailedError,
     )
 
     await ctx.info(
@@ -348,6 +355,37 @@ async def apply_dashboard_filters(
                 dashboard_id=request.dashboard_id,
                 error=str(exc),
             )
+
+        if request.base_permalink_key is not None:
+            try:
+                base_mask = get_dashboard_permalink_data_mask(
+                    request.base_permalink_key,
+                    dashboard.id,
+                    str(dashboard.uuid) if dashboard.uuid else None,
+                    dashboard.slug,
+                )
+            except DashboardAccessDeniedError:
+                return ApplyDashboardFiltersResponse(
+                    dashboard_id=request.dashboard_id,
+                    permission_denied=True,
+                    error=(
+                        "You don't have permission to access the base "
+                        "permalink's dashboard."
+                    ),
+                )
+            except DashboardPermalinkGetFailedError:
+                return ApplyDashboardFiltersResponse(
+                    dashboard_id=request.dashboard_id,
+                    error=(
+                        "Failed to resolve the base permalink: the key is "
+                        "invalid or its stored state could not be read."
+                    ),
+                )
+            except ValueError as exc:
+                return ApplyDashboardFiltersResponse(
+                    dashboard_id=request.dashboard_id, error=str(exc)
+                )
+            data_mask = {**base_mask, **data_mask}
 
         with event_logger.log_context(action="mcp.apply_dashboard_filters.permalink"):
             key = create_dashboard_permalink(
