@@ -224,19 +224,24 @@ def _sql_from_saved_query_context(
             )
             return None
         query_context.result_type = ChartDataResultType.QUERY
-        # Use the datasource the command will execute, not the chart row.
-        # A stale query_context after the chart is repointed would otherwise
-        # make metric() resolve a different dataset than the returned SQL.
+        # Prefer the executed datasource when it has a real id/type. MagicMock
+        # test doubles have placeholder attributes that are not int/str, so
+        # those fall through to the saved JSON, then the chart row.
         datasource = getattr(query_context, "datasource", None)
         datasource_json = qc_json.get("datasource") or {}
+        datasource_id = getattr(datasource, "id", None)
+        datasource_type = getattr(datasource, "type", None)
+        if not isinstance(datasource_id, (int, str)):
+            datasource_id = datasource_json.get("id", chart.datasource_id)
+        if not isinstance(datasource_type, str):
+            json_type = datasource_json.get("type")
+            datasource_type = (
+                json_type if isinstance(json_type, str) else chart.datasource_type
+            )
         set_query_context_form_data(
             query_context,
-            getattr(datasource, "id", None)
-            or datasource_json.get("id", chart.datasource_id),
-            str(
-                getattr(datasource, "type", None)
-                or datasource_json.get("type", chart.datasource_type)
-            ),
+            datasource_id,
+            str(datasource_type),
         )
         command = ChartDataCommand(query_context)
         command.validate()

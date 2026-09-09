@@ -2480,7 +2480,7 @@ async def test_unsaved_mixed_timeseries_returns_nonempty_secondary_query(
     monkeypatch.setattr(
         chart_data_module,
         "build_query_context_from_form_data",
-        lambda *_args, **_kwargs: object(),
+        lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
     )
     monkeypatch.setattr(
         get_data_command_module, "ChartDataCommand", MultiQueryChartDataCommand
@@ -2865,7 +2865,7 @@ async def test_query_from_form_data_use_cache_false_bypasses_cache(
     def fake_build(form_data: Any, **kwargs: Any) -> Any:
         captured["force"] = kwargs.get("force")
         captured["custom_cache_timeout"] = kwargs.get("custom_cache_timeout")
-        return object()
+        return SimpleNamespace(queries=[], form_data={})
 
     class _Command:
         def __init__(self, query_context: Any) -> None: ...
@@ -2922,7 +2922,7 @@ async def test_query_from_form_data_refreshed_reflects_force_refresh_only(
     module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
 
     def fake_build(form_data: Any, **kwargs: Any) -> Any:
-        return object()
+        return SimpleNamespace(queries=[], form_data={})
 
     class _Command:
         def __init__(self, query_context: Any) -> None: ...
