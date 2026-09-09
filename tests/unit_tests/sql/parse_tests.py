@@ -5759,6 +5759,10 @@ def test_get_disallowed_tables_search_path_change(
             "'information_schema', false))",
             True,
         ),
+        # A body carrying the flag that can't be classified fails closed,
+        # whether it holds nothing but options or doesn't parse at all.
+        ("EXPLAIN (ANALYZE)", True),
+        ("EXPLAIN ANALYZE )))", True),
         # The raw-text fallback matches whole words, so an unrelated routine
         # whose name merely embeds one of them is not a change.
         ("CALL reset_config()", False),
