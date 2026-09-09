@@ -39,7 +39,7 @@ jobs:
           version: v3.21.3
 
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
         with:
           install-superset: "false"
 
