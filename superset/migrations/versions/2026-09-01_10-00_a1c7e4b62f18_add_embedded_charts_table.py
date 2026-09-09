@@ -17,7 +17,7 @@
 """add embedded_charts table
 
 Revision ID: a1c7e4b62f18
-Revises: 39097d124752
+Revises: 7e2c9a4f1b83
 Create Date: 2026-09-01 10:00:00.000000
 
 """
@@ -29,7 +29,7 @@ from superset.migrations.shared.utils import create_table, drop_table
 
 # revision identifiers, used by Alembic.
 revision = "a1c7e4b62f18"
-down_revision = "8f31c5d726ab"
+down_revision = "7e2c9a4f1b83"
 
 
 def upgrade() -> None:
