@@ -113,7 +113,7 @@ EXPECTED_TOP_LEVEL_OUTPUT_FIELDS = {
     "get_dashboard_info": {"dashboard_title", "charts", "filter_state"},
     "get_dataset_info": {"table_name", "schema", "columns", "metrics"},
     "open_sql_lab_with_context": {"url", "title", "database_id"},
-    "update_chart_preview": {"chart", "error", "success"},
+    "update_chart_preview": {"chart", "error", "form_data", "success"},
 }
 
 MUTATING_TOOLS = {
