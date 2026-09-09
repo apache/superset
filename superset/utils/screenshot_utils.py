@@ -1090,6 +1090,9 @@ def take_tiled_screenshot(  # noqa: C901
                     )
                     if capture_attempt == TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS:
                         if report_execution_context:
+                            # Exhausted retries must never turn a rejected report
+                            # tile into accepted content. Only thumbnails may
+                            # retain a blank capture below.
                             raise ScreenshotBlankCaptureError(
                                 "Chromium returned a blank tile "
                                 f"{i + 1}/{num_tiles} after {capture_attempt} attempts"
@@ -1245,7 +1248,7 @@ def take_tiled_screenshot(  # noqa: C901
         )
         raise
     except (ScreenshotBlankCaptureError, ScreenshotCaptureTimeoutError):
-        # Preserve the explicit capture-timeout reason for report execution
+        # Preserve the explicit blank-capture or timeout reason for report execution
         # history instead of degrading it to an anonymous None screenshot.
         logger.exception("Tiled screenshot capture rejected%s", context_suffix)
         if report_execution_context:

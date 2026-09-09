@@ -331,7 +331,7 @@ class WebDriverPlaywright(WebDriverProxy):
                 )
             except Exception:  # noqa: BLE001
                 logger.warning(
-                    "report_capture_repaint_failed capture=standard " "attempt=%s/%s%s",
+                    "report_capture_repaint_failed capture=standard attempt=%s/%s%s",
                     attempt,
                     TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
                     context_suffix,

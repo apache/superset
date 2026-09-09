@@ -1223,6 +1223,8 @@ class TestWebDriverPlaywrightChartReadiness:
         self, mock_app, mock_logger, mock_browser_manager
     ):
         """Elapsed setup time is removed from the task-derived safe budget."""
+        from itertools import chain, repeat
+
         mock_user = MagicMock()
         mock_user.username = "test_user"
         mock_app.config = {
@@ -1239,7 +1241,7 @@ class TestWebDriverPlaywrightChartReadiness:
             ),
             patch(
                 "superset.utils.webdriver.time.monotonic",
-                side_effect=[100.0, 110.0],
+                side_effect=chain([100.0], repeat(110.0)),
             ),
         ):
             WebDriverPlaywright("chrome").get_screenshot(
@@ -1646,9 +1648,9 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         assert "animation_wait" in call_order
         spinner_idx = call_order.index("spinner_wait")
         anim_idx = call_order.index("animation_wait")
-        assert (
-            spinner_idx < anim_idx
-        ), "spinner wait must precede animation wait in non-tiled path"
+        assert spinner_idx < anim_idx, (
+            "spinner wait must precede animation wait in non-tiled path"
+        )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -1771,9 +1773,9 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
             for call in mock_page.wait_for_timeout.call_args_list
             if call[0][0] == 2 * 1000
         ]
-        assert (
-            animation_waits == []
-        ), "No global 2s animation wait_for_timeout should fire on the tiled path"
+        assert animation_waits == [], (
+            "No global 2s animation wait_for_timeout should fire on the tiled path"
+        )
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -1843,6 +1845,6 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
         timeout_values = [
             call[0][0] for call in mock_page.wait_for_timeout.call_args_list
         ]
-        assert timeout_values == [
-            0
-        ], f"Expected only [0] (headstart), got {timeout_values}"
+        assert timeout_values == [0], (
+            f"Expected only [0] (headstart), got {timeout_values}"
+        )
