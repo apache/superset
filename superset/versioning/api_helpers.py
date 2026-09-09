@@ -93,12 +93,23 @@ def current_entity_version_info(
     model_cls: type[Model],
     entity_id: int | None,
     entity_uuid: UUID | None = None,
+    lock_for_stale_check: bool = False,
 ) -> EntityVersionInfo:
     """Resolve the live version number, transaction id, and version uuid.
 
     Returns an empty (all-``None``) record and issues *no* queries when
     capture is disabled. When *entity_uuid* is not supplied it is resolved
     with a single ``SELECT uuid`` rather than loading the whole entity row.
+
+    With ``lock_for_stale_check`` the live ``transaction_id`` — the input
+    to the ``If-Match`` token — is read under ``FOR SHARE`` so it reflects
+    committed state even on MySQL REPEATABLE READ, where a plain read is
+    served from the request's pre-lock snapshot (see
+    :func:`~superset.versioning.queries.current_live_transaction_id_for_share`).
+    Only conditional writes should pay for the lock. The displayed version
+    *number* still comes from a plain aggregate read: a concurrently
+    committed row can leave it one behind in response metadata, but the
+    guard itself never consults it.
     """
     if entity_id is None or not _capture_enabled():
         return EntityVersionInfo()
@@ -119,6 +130,10 @@ def current_entity_version_info(
     version, transaction_id = VersionDAO.current_version_info(
         model_cls, entity_id, entity_uuid
     )
+    if lock_for_stale_check:
+        transaction_id = VersionDAO.current_live_transaction_id_for_share(
+            model_cls, entity_id, entity_uuid
+        )
     version_uuid = (
         VersionDAO.derive_version_uuid(entity_uuid, transaction_id)
         if transaction_id is not None

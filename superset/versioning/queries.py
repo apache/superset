@@ -224,6 +224,41 @@ def current_version_number(
     return version_number
 
 
+def current_live_transaction_id_for_share(
+    model_cls: type[Model], entity_id: int, entity_uuid: UUID
+) -> int | None:
+    """Return the live row's ``transaction_id`` via a locking read.
+
+    The conditional-write (``If-Match``) guard must compare the client's
+    token against *committed* state. A plain consistent read is served
+    from the transaction's REPEATABLE READ snapshot on MySQL/InnoDB
+    (pinned by the request's earlier auth queries), so a version row
+    committed by a concurrent writer between this request's first read
+    and its row lock stays invisible — the stale token then matches and
+    the 412 the guard exists to raise is missed. ``FOR SHARE``
+    (``with_for_update(read=True)``) makes this a locking read, which is
+    exempt from the snapshot and returns current committed data, without
+    blocking other readers of the same version row.
+
+    Deliberately a plain row query, not the aggregate
+    :func:`current_version_info` — locking clauses do not combine with
+    aggregates reliably across dialects, and the guard only needs the
+    live ``transaction_id``. Renders no ``FOR SHARE`` on SQLite, which
+    serialises writers anyway.
+    """
+    ver_cls = version_class(model_cls)
+    return (
+        db.session.query(ver_cls.transaction_id)
+        .filter(identity_filter(ver_cls, entity_id, entity_uuid))
+        .filter(
+            ver_cls.end_transaction_id.is_(None),
+            ver_cls.operation_type != OPERATION_DELETE,
+        )
+        .with_for_update(read=True)
+        .scalar()
+    )
+
+
 def current_live_transaction_id(
     model_cls: type[Model], entity_id: int, entity_uuid: UUID
 ) -> int | None:
