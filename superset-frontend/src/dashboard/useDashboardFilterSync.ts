@@ -24,10 +24,7 @@ import {
   removeToast,
 } from 'src/components/MessageToasts/actions';
 import { removeDataMask, updateDataMask } from 'src/dataMask/actions';
-import {
-  subscribeRealtime,
-  subscribeRealtimeOpen,
-} from 'src/middleware/realtime';
+import { subscribeRealtime } from 'src/middleware/realtime';
 import { RootState } from './types';
 import { getPermalinkValue } from './components/nativeFilters/FilterBar/keyValue';
 
@@ -102,16 +99,11 @@ export default function useDashboardFilterSync(dashboardId?: number) {
         }
       },
     );
-    const unsubscribeOpen = subscribeRealtimeOpen(reason => {
-      if (reason !== 'reconnect') return;
-      // Deliberately no fetch: there is no latest-per-principal permalink API.
-      // Replaying a remembered key could overwrite manual edits or undo, and
-      // cannot recover a missed key. The permalink in chat is the backstop.
-    });
+    // Do not replay state on reconnect: a remembered key could overwrite
+    // manual edits or undo, and cannot recover missed notifications.
     return () => {
       active = false;
       unsubscribe();
-      unsubscribeOpen();
       dismissToast();
     };
   }, [dashboardId, dispatch, store]);

@@ -65,7 +65,11 @@ calling principal. Its payload contains only `dashboard_id` and `permalink_key`;
 filter values and resolved state are not included. Consumers must resolve the
 key through the dashboard's authorized permalink load path.
 
-Publishing requires a configured `DISTRIBUTED_COORDINATION_CONFIG` backend.
+Live browser updates require `WEBSOCKET_ENABLE = True`, a configured
+`DISTRIBUTED_COORDINATION_CONFIG` backend, a running `superset-websocket`
+server, and a non-default `WEBSOCKET_JWT_SECRET`. The browser user also needs
+`can_read` on `Realtime`. With the default configuration the realtime half
+is inert, but the tool still creates and returns a permalink URL.
 The MCP process and websocket transport must use the same
 `REALTIME_CHANNEL_PREFIX`. This publisher does not require the Global Task
 Framework feature flag.
