@@ -455,7 +455,11 @@ def _build_update_payload(
             existing_form_data,
             parsed_config,
             effective_dataset_id,
-            replacement_dataset_id=request.dataset_id,
+            replacement_dataset_id=(
+                request.dataset_id
+                if request.dataset_id != getattr(chart, "datasource_id", None)
+                else None
+            ),
         )
 
         chart_name = (
@@ -537,7 +541,11 @@ def _build_preview_form_data(
             existing_form_data,
             parsed_config,
             effective_dataset_id,
-            replacement_dataset_id=request.dataset_id,
+            replacement_dataset_id=(
+                request.dataset_id
+                if request.dataset_id != getattr(chart, "datasource_id", None)
+                else None
+            ),
         )
     elif request.add_columns is not None:
         patched = _append_table_columns(existing_form_data, request.add_columns)
@@ -817,6 +825,21 @@ async def update_chart(  # noqa: C901
                 }
             )
 
+        if (
+            request.dataset_id is not None
+            and request.dataset_id != getattr(chart, "datasource_id", None)
+            and request.config is None
+            and getattr(chart, "viz_type", None) == "gauge_chart"
+        ):
+            return _validation_error_response(
+                message="Gauge dataset rebind requires a complete Gauge config.",
+                details=(
+                    "Provide chart_type='gauge' and a metric valid on the target "
+                    "dataset. This prevents stale metric, groupby, and filter roles "
+                    "from the previous dataset from being retained."
+                ),
+            )
+
         # Validate dataset access before allowing update.
         # check_chart_data_access is the centralized data-level
         # permission check that complements the class-level RBAC
@@ -935,6 +958,7 @@ async def update_chart(  # noqa: C901
             preview_or_error = _build_preview_form_data(request, chart, parsed_config)
             if isinstance(preview_or_error, GenerateChartResponse):
                 return preview_or_error
+            new_form_data = preview_or_error
 
             # Validate before caching the form_data — same rationale as above.
             if validation_config is not None:
