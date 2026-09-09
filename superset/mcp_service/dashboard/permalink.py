@@ -25,14 +25,21 @@ from urllib.parse import urlparse
 from flask import g, has_request_context
 
 from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
+from superset.commands.dashboard.permalink.create import (
+    CreateDashboardPermalinkCommand,
+)
 from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
 from superset.dashboards.permalink.exceptions import DashboardPermalinkGetFailedError
-from superset.dashboards.permalink.types import DashboardPermalinkValue
+from superset.dashboards.permalink.types import (
+    DashboardPermalinkState as DashboardPermalinkStateValue,
+    DashboardPermalinkValue,
+)
 from superset.mcp_service.auth import load_user_with_relationships
 from superset.mcp_service.dashboard.schemas import (
     redact_filter_state_data_model_metadata,
 )
 from superset.mcp_service.privacy import user_can_view_data_model_metadata
+from superset.mcp_service.utils.url_utils import get_superset_base_url
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +105,31 @@ def get_dashboard_permalink(
         logger.info("Dashboard permalink could not be resolved: %s", ex)
         return None
     return (key, value) if value else None
+
+
+def build_dashboard_permalink_url(key: str) -> str:
+    """Return the absolute shared URL for a dashboard permalink key.
+
+    ``/dashboard/p/<key>/`` is the canonical route (``Superset.dashboard_
+    permalink``, mounted at the application root); the ``/superset``-prefixed
+    form is a legacy path that only redirects here.
+    """
+    return f"{get_superset_base_url()}/dashboard/p/{key}/"
+
+
+def create_dashboard_permalink(
+    dashboard_id: int | str,
+    state: DashboardPermalinkStateValue,
+) -> str:
+    """Store per-user dashboard state and return its permalink key.
+
+    The state is scoped to the calling user and the dashboard's saved
+    configuration is untouched, so this is how a caller applies filter
+    values (``dataMask``) without changing what other viewers see. The
+    underlying command is deterministic: the same user, dashboard, and
+    state resolve to the same key rather than creating a duplicate entry.
+    """
+    return CreateDashboardPermalinkCommand(str(dashboard_id), state).run()
 
 
 def lookup_dashboard_reference(
