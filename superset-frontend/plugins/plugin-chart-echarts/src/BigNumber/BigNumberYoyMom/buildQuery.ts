@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,8 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import {
+  buildQueryContext,
+  ensureIsArray,
+  QueryFormData,
+} from '@superset-ui/core';
+import { BigNumberYoyMomFormData } from './types';
 
-export { default as BigNumberChartPlugin } from './BigNumberWithTrendline';
-export { default as BigNumberTotalChartPlugin } from './BigNumberTotal';
-export { default as BigNumberPeriodOverPeriodChartPlugin } from './BigNumberPeriodOverPeriod';
-export { default as BigNumberYoyMomChartPlugin } from './BigNumberYoyMom';
+export default function buildQuery(formData: QueryFormData) {
+  return buildQueryContext(formData, baseQueryObject => {
+    // Server-side time shifts for the MoM/YoY comparison slots. The backend
+    // computes each shifted range and returns the values as extra columns
+    // named `<metric label>__<offset>`.
+    const timeOffsets = ensureIsArray([
+      (formData as BigNumberYoyMomFormData).comparison1_offset,
+      (formData as BigNumberYoyMomFormData).comparison2_offset,
+    ]).filter(Boolean);
+
+    return [
+      {
+        ...baseQueryObject,
+        time_offsets: timeOffsets,
+      },
+    ];
+  });
+}
