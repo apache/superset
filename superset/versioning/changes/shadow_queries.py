@@ -32,10 +32,13 @@ mapper-resolution side effects.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
+
+if TYPE_CHECKING:
+    from superset.versioning.activity.kinds import Window
 
 from superset.versioning.baseline import (
     CONTINUUM_BOOKKEEPING_COLUMNS,
@@ -233,54 +236,73 @@ def _affected_dashboard_ids_at_tx(session: Session, tx: int) -> set[int]:
 
 
 def _dashboard_slice_uuids_at_tx(
-    session: Session, dashboard_id: int, tx: int
+    session: Session, attached: list[tuple[int, Window]], tx: int
 ) -> list[str]:
-    """Slice UUIDs attached to *dashboard_id* as of *tx*, read by joining
-    ``dashboard_slices_version`` (M2M membership) against
-    ``slices_version`` (slice content).
+    """Return the uuids of charts attached to a dashboard at *tx*.
 
-    Joining through both is necessary — and matches the same query
-    Continuum's M2M ``Reverter`` uses — because a slice that's
-    referenced by the M2M but has no slice-version row at this tx is
-    treated as "not yet versioned" and excluded.
+    *attached* is :func:`~superset.versioning.membership.charts_attached_to_dashboard`'s
+    output — ``(slice_id, window)`` pairs where each window is the chart's
+    INSERT/DELETE-paired ``[attach, detach)`` interval — so membership at *tx*
+    is simply the charts whose window contains *tx*. The raw association-shadow
+    validity predicate (``end_transaction_id IS NULL OR > tx`` +
+    ``operation_type != DELETE``) must NOT be used: Continuum never closes
+    ``end_transaction_id`` on the M2M association shadow, so a chart attached at
+    tx 1 and removed at tx 5 would still read as a member at tx 10 —
+    over-reporting membership in the change-record diff (sc-120007, the third
+    consumer of this pattern; restore and impact were fixed the same way in
+    #44010 / #43837).
+
+    The ``slices_version`` (content) shadow, by contrast, *does* close
+    ``end_transaction_id`` correctly, so its validity predicate is trustworthy
+    and is kept: a chart attached at *tx* but with no slice-version row at *tx*
+    is "not yet versioned" and excluded, matching Continuum's M2M ``Reverter``.
+    The read runs on the passed *session* — the committing connection whose
+    flushed-but-uncommitted current-tx rows are visible only there.
 
     Returns UUIDs (strings) so the result can be diffed by the existing
     :func:`diff_dashboard_slices` helper, which keys on uuid.
     """
+    attached_ids = {slice_id for slice_id, window in attached if window.contains(tx)}
+    if not attached_ids:
+        return []
+
     # pylint: disable=import-outside-toplevel
+    # Deferred imports: ``version_class`` / ``Slice`` because this module loads
+    # from ``init_versioning()`` before all mappers are configured (see the
+    # module docstring); ``activity.kinds`` because it imports
+    # ``ENTITY_KIND_BY_CLASS_NAME`` from ``superset.versioning.changes``, so a
+    # module-top import would cycle back into this package during the
+    # changes-listener bootstrap (activity.kinds → changes → listener →
+    # shadow_queries).
     from sqlalchemy_continuum import version_class
 
     from superset.models.slice import Slice
+    from superset.versioning.activity.kinds import chunked_ids, ENTITY_ID_CHUNK_SIZE
 
-    metadata = version_class(Slice).__table__.metadata
-    m2m_tbl = metadata.tables.get("dashboard_slices_version")
+    # Resolve each attached chart's uuid from the content shadow at tx. The id
+    # set is a dashboard's simultaneous membership at one tx (realistically
+    # dozens), but chunk the IN anyway to stay under SQLite's bind-variable
+    # floor, mirroring the sibling impact rollup (#44010).
     slices_tbl = version_class(Slice).__table__
-    if m2m_tbl is None:
-        return []
-
-    rows = (
-        session.connection()
-        .execute(
-            sa.select(slices_tbl.c.uuid).where(
-                slices_tbl.c.id == m2m_tbl.c.slice_id,
-                m2m_tbl.c.dashboard_id == dashboard_id,
-                m2m_tbl.c.transaction_id <= tx,
-                sa.or_(
-                    m2m_tbl.c.end_transaction_id.is_(None),
-                    m2m_tbl.c.end_transaction_id > tx,
-                ),
-                m2m_tbl.c.operation_type != OPERATION_DELETE,
-                slices_tbl.c.transaction_id <= tx,
-                sa.or_(
-                    slices_tbl.c.end_transaction_id.is_(None),
-                    slices_tbl.c.end_transaction_id > tx,
-                ),
-                slices_tbl.c.operation_type != OPERATION_DELETE,
+    uuids: list[str] = []
+    for chunk in chunked_ids(attached_ids, ENTITY_ID_CHUNK_SIZE):
+        rows = (
+            session.connection()
+            .execute(
+                sa.select(slices_tbl.c.uuid).where(
+                    slices_tbl.c.id.in_(chunk),
+                    slices_tbl.c.transaction_id <= tx,
+                    sa.or_(
+                        slices_tbl.c.end_transaction_id.is_(None),
+                        slices_tbl.c.end_transaction_id > tx,
+                    ),
+                    slices_tbl.c.operation_type != OPERATION_DELETE,
+                )
             )
+            .all()
         )
-        .all()
-    )
-    return [str(r[0]) for r in rows if r[0] is not None]
+        uuids.extend(str(r[0]) for r in rows if r[0] is not None)
+    return uuids
 
 
 def _dashboard_child_records_for_tx_from_shadows(
@@ -296,6 +318,7 @@ def _dashboard_child_records_for_tx_from_shadows(
     from sqlalchemy_continuum import version_class
 
     from superset.models.dashboard import Dashboard
+    from superset.versioning.membership import charts_attached_to_dashboard
 
     metadata = version_class(Dashboard).__table__.metadata
     m2m_tbl = metadata.tables.get("dashboard_slices_version")
@@ -317,8 +340,14 @@ def _dashboard_child_records_for_tx_from_shadows(
         if prior_tx is None:
             continue
 
-        post_uuids = _dashboard_slice_uuids_at_tx(session, dashboard_id, transaction_id)
-        pre_uuids = _dashboard_slice_uuids_at_tx(session, dashboard_id, prior_tx)
+        # Resolve the attachment windows once (threading the committing
+        # *session* so the flushed-but-uncommitted current-tx association rows
+        # are visible), then take the pre/post membership by which windows
+        # contain each tx — the windows are tx-independent, so no need to
+        # re-scan the association history for both reads.
+        attached = charts_attached_to_dashboard(dashboard_id, session=session)
+        post_uuids = _dashboard_slice_uuids_at_tx(session, attached, transaction_id)
+        pre_uuids = _dashboard_slice_uuids_at_tx(session, attached, prior_tx)
 
         records = diff_dashboard_slices(pre_uuids, post_uuids)
         if records:
