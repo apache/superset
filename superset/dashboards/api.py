@@ -95,8 +95,16 @@ from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
 from superset.dashboards.excel_export.storage import is_export_storage_configured
-from superset.dashboards.excel_export.sync_budget import is_within_sync_row_budget
-from superset.dashboards.excel_export.workbook import build_workbook
+from superset.dashboards.excel_export.sync_budget import (
+    InlineExportPlan,
+    plan_inline_export,
+)
+from superset.dashboards.excel_export.workbook import (
+    build_workbook,
+    EXPORT_MODE_DATA,
+    EXPORT_MODE_IMAGES,
+    ResolvedQueryContexts,
+)
 from superset.dashboards.filter_scope import derive_json_metadata
 from superset.dashboards.filters import (
     DashboardAccessFilter,
@@ -1732,7 +1740,7 @@ class DashboardRestApi(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export_xlsx",
         log_to_statsd=False,
     )
-    def export_xlsx(self, pk: int) -> WerkzeugResponse:
+    def export_xlsx(self, pk: int) -> WerkzeugResponse:  # noqa: C901
         """Export all of a dashboard's chart data to an Excel workbook.
         ---
         post:
@@ -1780,6 +1788,10 @@ class DashboardRestApi(
             500:
               $ref: '#/components/responses/500'
         """
+        # C901 above: a linear chain of request guards, each returning its own
+        # status, ahead of the two export paths. Splitting it would only move the
+        # guards somewhere less obvious.
+        #
         # With storage the export is queued and delivered by link; without it the
         # workbook is built here and returned as the response. Resolved once, so a
         # single request cannot take one path's checks and the other's delivery.
@@ -1824,17 +1836,32 @@ class DashboardRestApi(
         mode = payload.get("mode", "data")
 
         # An export served as the response has to finish inside this request, so
-        # refuse an oversized one before doing any of the work rather than letting
-        # it run into a gateway timeout. Checked ahead of the lock so a refusal
+        # establish that it can before doing any of the work, rather than letting
+        # it run into a gateway timeout. Checked ahead of the lock, so a refusal
         # never leaves a lock to be released.
-        if not queued and not is_within_sync_row_budget(dashboard, mode):
-            return self.response_400(
-                message=(
-                    "This dashboard requests too many rows to export in a single "
-                    "request. Configure EXCEL_EXPORT_S3_BUCKET to export it in the "
-                    "background, or lower the row limits of its charts."
+        plan: InlineExportPlan | None = None
+        if not queued:
+            if mode == EXPORT_MODE_IMAGES:
+                # Image charts are drawn by the headless webdriver, one browser
+                # session at a time. That is not work a request can wait on, and
+                # no row budget bounds it, so it stays queued-only.
+                return self.response_400(
+                    message=(
+                        "Exporting images to Excel runs in the background. "
+                        "Configure EXCEL_EXPORT_S3_BUCKET to use it, or export "
+                        "the dashboard's data instead."
+                    )
                 )
-            )
+            plan = plan_inline_export(dashboard)
+            if not plan.fits_row_budget:
+                return self.response_400(
+                    message=(
+                        "This dashboard requests too many rows to export in a "
+                        "single request. Configure EXCEL_EXPORT_S3_BUCKET to "
+                        "export it in the background, or lower the row limits of "
+                        "its charts."
+                    )
+                )
 
         # Throttle: one concurrent export per user+dashboard. Acquire a shared,
         # atomic distributed lock (Redis when configured, the metadata DB
@@ -1856,8 +1883,13 @@ class DashboardRestApi(
             )
 
         job_id = str(uuid.uuid4())
-        run_export = self._export_xlsx_queued if queued else self._export_xlsx_inline
-        return run_export(dashboard, active_data_mask, mode, job_id, lock_params)
+        if plan is None:
+            return self._export_xlsx_queued(
+                dashboard, active_data_mask, mode, job_id, lock_params
+            )
+        return self._export_xlsx_inline(
+            dashboard, active_data_mask, job_id, lock_params, plan.query_contexts
+        )
 
     def _export_xlsx_queued(  # pylint: disable=too-many-arguments
         self,
@@ -1896,23 +1928,24 @@ class DashboardRestApi(
     def _export_xlsx_inline(  # pylint: disable=too-many-arguments
         dashboard: Dashboard,
         active_data_mask: dict[str, Any],
-        mode: str,
         job_id: str,
         lock_params: dict[str, int],
+        query_contexts: ResolvedQueryContexts,
     ) -> WerkzeugResponse:
         """
         Build the export during this request and return it as the response.
 
         Used where no export storage is configured, so there is nowhere to upload
         a finished file and nothing to link to in an email. The workbook is the
-        same one the Celery task builds, from the same builder: only the delivery
-        differs. It is written to a temp file (the writer streams to disk in
-        constant memory) and read back once, so the response carries a complete
-        file and the temp file never outlives the request.
+        same one the Celery task builds, from the same builder — including the
+        summary sheet naming any charts it had to skip, which is how this path
+        reports them without an email. It is written to a temp file (the writer
+        streams to disk in constant memory) and read back once, so the response
+        carries a complete file and the temp file never outlives the request.
 
-        The charts the export had to skip are not reported here. The queued path
-        lists them in its email, which this path has no equivalent of; the
-        workbook itself is identical either way.
+        ``query_contexts`` are the ones the row budget was measured against, so
+        the queries that run here are exactly the ones that were vouched for.
+        Always a data export: an image export is refused before this point.
         """
         tmp_path: str | None = None
         try:
@@ -1921,7 +1954,15 @@ class DashboardRestApi(
             )
             os.close(file_descriptor)
 
-            build_workbook(tmp_path, dashboard, active_data_mask, job_id, mode, g.user)
+            build_workbook(
+                tmp_path,
+                dashboard,
+                active_data_mask,
+                job_id,
+                EXPORT_MODE_DATA,
+                g.user,
+                query_contexts=query_contexts,
+            )
             with open(tmp_path, "rb") as workbook:
                 content = workbook.read()
         finally:

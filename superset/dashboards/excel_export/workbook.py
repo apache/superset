@@ -76,6 +76,12 @@ TABLE_VIZ_TYPES = {"table", "pivot_table_v2", "pivot_table"}
 # saved query context is skipped and listed for the user to re-save in Explore.
 REBUILD_VIZ_TYPES = {"table", "big_number_total", "big_number", "pie"}
 
+#: Query contexts already resolved for a set of charts, keyed by chart id, as
+#: :func:`resolve_query_context` returns them. A ``None`` value is an answer, not
+#: a gap: that chart has no usable context and is skipped. A chart absent from
+#: the mapping has not been resolved yet.
+ResolvedQueryContexts = dict[int, dict[str, Any] | None]
+
 
 class ChartSkippedError(Exception):
     """Signals a chart that could not be exported and should be listed as skipped."""
@@ -308,13 +314,14 @@ def _write_chart_sheets(
         )
 
 
-def build_workbook(
+def build_workbook(  # pylint: disable=too-many-arguments
     path: str,
     dashboard: Any,
     active_data_mask: dict[str, Any],
     job_id: str,
     mode: str,
     user: Any,
+    query_contexts: ResolvedQueryContexts | None = None,
 ) -> dict[str, list[str]]:
     """Build the workbook on disk.
 
@@ -328,8 +335,13 @@ def build_workbook(
     :param job_id: Correlation id used in log lines
     :param mode: ``"data"`` or ``"images"``
     :param user: The requesting user (used to render images)
+    :param query_contexts: Contexts a caller has already resolved, used as-is
+        instead of resolving them again — so an export whose size was measured
+        up front runs the very queries that were measured. Charts absent from
+        the mapping are resolved here; pass nothing to resolve them all.
     """
     errored: dict[str, list[str]] = {}
+    resolved = query_contexts or {}
     writer = StreamingXlsxWriter(path)
     try:
         for chart in get_charts_in_layout_order(dashboard):
@@ -342,10 +354,15 @@ def build_workbook(
                         writer, chart, dashboard.id, active_data_mask, user
                     )
                 else:
-                    # Data charts need a query context: use the saved one, or
-                    # rebuild it from form data for eligible viz types. Skip
-                    # cleanly when none is available rather than failing.
-                    json_body = resolve_query_context(chart)
+                    # Data charts need a query context: use the one the caller
+                    # already resolved, else the saved one or a rebuild from form
+                    # data for eligible viz types. Skip cleanly when none is
+                    # available rather than failing.
+                    json_body = (
+                        resolved[chart.id]
+                        if chart.id in resolved
+                        else resolve_query_context(chart)
+                    )
                     if json_body is None:
                         errored.setdefault(email.ERROR_NO_QUERY_CONTEXT, []).append(
                             label
@@ -376,12 +393,17 @@ def build_workbook(
                 )
                 errored.setdefault(email.ERROR_GENERAL, []).append(label)
 
-        if writer.sheet_count == 0:
+        # The workbook itself carries the skipped-charts list, so it travels with
+        # the file however the file is delivered: an export returned as the
+        # response to the request has no email to list them in.
+        if writer.sheet_count == 0 or errored:
             flat = [label for labels in errored.values() for label in labels]
-            writer.add_summary_sheet(
-                "Export Summary",
-                ["No chart data could be exported.", *flat],
+            header = (
+                "No chart data could be exported."
+                if writer.sheet_count == 0
+                else "Charts that could not be exported:"
             )
+            writer.add_summary_sheet("Export Summary", [header, *flat])
     finally:
         writer.close()
     return errored

@@ -23,10 +23,7 @@ from unittest import mock
 import pytest
 from flask import current_app
 
-from superset.dashboards.excel_export.sync_budget import (
-    is_within_sync_row_budget,
-    requested_row_total,
-)
+from superset.dashboards.excel_export.sync_budget import plan_inline_export
 from superset.utils import json
 
 MODULE = "superset.dashboards.excel_export.sync_budget"
@@ -39,6 +36,14 @@ def _chart(chart_id: int, *queries: dict[str, Any]) -> mock.MagicMock:
     chart.slice_name = f"Chart {chart_id}"
     chart.viz_type = "table"
     chart.query_context = json.dumps({"queries": list(queries)})
+    return chart
+
+
+def _unexportable_chart(chart_id: int) -> mock.MagicMock:
+    """A chart the export has to skip: no context, and no rebuilding it."""
+    chart = _chart(chart_id)
+    chart.query_context = None
+    chart.viz_type = "mixed_timeseries"  # outside the rebuild allowlist
     return chart
 
 
@@ -57,23 +62,23 @@ def restore_config() -> Iterator[None]:
     current_app.config["EXCEL_EXPORT_SYNC_MAX_ROWS"] = original
 
 
-def test_row_total_sums_the_row_limit_of_every_chart(charts: mock.MagicMock) -> None:
+def test_plan_sums_the_row_limit_of_every_chart(charts: mock.MagicMock) -> None:
     charts.return_value = [
         _chart(10, {"row_limit": 1000}),
         _chart(20, {"row_limit": 250}),
     ]
 
-    assert requested_row_total(mock.MagicMock(), "data") == 1250
+    assert plan_inline_export(mock.MagicMock()).requested_rows == 1250
 
 
-def test_row_total_counts_every_query_of_a_multi_query_chart(
+def test_plan_counts_every_query_of_a_multi_query_chart(
     charts: mock.MagicMock,
 ) -> None:
     # A mixed-series chart fans out to several queries, each of which becomes its
     # own sheet and runs its own row_limit worth of rows.
     charts.return_value = [_chart(10, {"row_limit": 100}, {"row_limit": 400})]
 
-    assert requested_row_total(mock.MagicMock(), "data") == 500
+    assert plan_inline_export(mock.MagicMock()).requested_rows == 500
 
 
 @pytest.mark.parametrize(
@@ -86,67 +91,78 @@ def test_row_total_counts_every_query_of_a_multi_query_chart(
         {"row_limit": -5},
     ],
 )
-def test_row_total_is_indeterminate_without_a_finite_row_limit(
+def test_plan_row_total_is_indeterminate_without_a_finite_row_limit(
     charts: mock.MagicMock, query: dict[str, Any]
 ) -> None:
     # Without a finite limit on every query the export's size is unknown, so the
-    # budget cannot vouch for it and the caller must not run it inline.
+    # plan cannot vouch for it and the caller must not run it inline.
     charts.return_value = [_chart(10, {"row_limit": 100}), _chart(20, query)]
 
-    assert requested_row_total(mock.MagicMock(), "data") is None
+    plan = plan_inline_export(mock.MagicMock())
+
+    assert plan.requested_rows is None
+    assert plan.fits_row_budget is False
 
 
-def test_row_total_ignores_charts_that_cannot_be_exported(
-    charts: mock.MagicMock,
-) -> None:
+def test_plan_ignores_charts_that_cannot_be_exported(charts: mock.MagicMock) -> None:
     # A chart with no usable query context is skipped by the export itself, so it
     # runs no query and cannot contribute rows.
-    skipped = _chart(20)
-    skipped.query_context = None
-    skipped.viz_type = "mixed_timeseries"  # outside the rebuild allowlist
-    charts.return_value = [_chart(10, {"row_limit": 100}), skipped]
+    charts.return_value = [_chart(10, {"row_limit": 100}), _unexportable_chart(20)]
 
-    assert requested_row_total(mock.MagicMock(), "data") == 100
-
-
-def test_row_total_ignores_charts_rendered_as_images(charts: mock.MagicMock) -> None:
-    # In image mode a non-table chart is rendered through the webdriver instead of
-    # queried, so its row_limit is not part of the row budget.
-    rendered = _chart(20, {"row_limit": 999_999})
-    rendered.viz_type = "pie"  # not a table viz type, so it renders as an image
-    charts.return_value = [_chart(10, {"row_limit": 100}), rendered]
-
-    assert requested_row_total(mock.MagicMock(), "images") == 100
+    assert plan_inline_export(mock.MagicMock()).requested_rows == 100
 
 
 @pytest.mark.parametrize(
-    ("row_limit", "within"),
+    ("row_limit", "fits"),
     [
         (99_999, True),  # below the limit
         (100_000, True),  # exactly at the limit
         (100_001, False),  # above the limit
     ],
 )
-def test_budget_allows_totals_up_to_and_including_the_limit(
-    charts: mock.MagicMock, row_limit: int, within: bool
+def test_plan_fits_totals_up_to_and_including_the_limit(
+    charts: mock.MagicMock, row_limit: int, fits: bool
 ) -> None:
     charts.return_value = [_chart(10, {"row_limit": row_limit})]
 
-    assert is_within_sync_row_budget(mock.MagicMock(), "data") is within
+    assert plan_inline_export(mock.MagicMock()).fits_row_budget is fits
 
 
-def test_budget_refuses_an_indeterminate_total(charts: mock.MagicMock) -> None:
-    charts.return_value = [_chart(10, {})]
-
-    assert is_within_sync_row_budget(mock.MagicMock(), "data") is False
-
-
-def test_budget_honors_the_configured_limit(charts: mock.MagicMock) -> None:
+def test_plan_honors_the_configured_limit(charts: mock.MagicMock) -> None:
     charts.return_value = [_chart(10, {"row_limit": 5_000})]
     current_app.config["EXCEL_EXPORT_SYNC_MAX_ROWS"] = 1_000
 
-    assert is_within_sync_row_budget(mock.MagicMock(), "data") is False
+    assert plan_inline_export(mock.MagicMock()).fits_row_budget is False
 
     current_app.config["EXCEL_EXPORT_SYNC_MAX_ROWS"] = 10_000
 
-    assert is_within_sync_row_budget(mock.MagicMock(), "data") is True
+    assert plan_inline_export(mock.MagicMock()).fits_row_budget is True
+
+
+def test_plan_carries_the_resolved_context_of_every_chart(
+    charts: mock.MagicMock,
+) -> None:
+    # The plan hands back what it resolved so the export runs exactly the queries
+    # the budget was measured against, rather than resolving a second time.
+    exportable = _chart(10, {"row_limit": 100})
+    charts.return_value = [exportable, _unexportable_chart(20)]
+
+    plan = plan_inline_export(mock.MagicMock())
+
+    assert plan.query_contexts[10] == {"queries": [{"row_limit": 100}]}
+    # Present but None: resolved, and resolved to "this chart cannot be exported".
+    assert 20 in plan.query_contexts
+    assert plan.query_contexts[20] is None
+
+
+def test_plan_resolves_each_chart_exactly_once(charts: mock.MagicMock) -> None:
+    # Resolution can be expensive and, through
+    # EXCEL_EXPORT_QUERY_CONTEXT_BUILDER, need not be deterministic, so the plan
+    # must not resolve a chart it has already resolved.
+    charts.return_value = [_chart(10, {"row_limit": 1}), _chart(20, {"row_limit": 2})]
+
+    with mock.patch(f"{MODULE}.resolve_query_context") as resolve:
+        resolve.return_value = {"queries": [{"row_limit": 1}]}
+        plan_inline_export(mock.MagicMock())
+
+    assert resolve.call_count == 2

@@ -15,31 +15,54 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Decide whether a dashboard is small enough to export inline.
+Plan an export that has to be served as the response to one request.
 
-An export served as the HTTP response has to finish inside one request, so the
-size of the workbook is settled *before* any query runs, by adding up the rows
-the export is allowed to ask for: the ``row_limit`` of every query it would run.
-A request/server timeout is the last-resort backstop, not the criterion — a
-timed-out export wastes the work already done and tells the user nothing
-actionable, whereas an up-front refusal can name the fix.
+An inline export has to finish inside its request, so its size is settled
+*before* any query runs, by adding up the rows it is allowed to ask for: the
+``row_limit`` of every query it would run. A request/server timeout is the
+last-resort backstop, not the criterion — a timed-out export wastes the work
+already done and tells the user nothing actionable, whereas an up-front refusal
+can name the fix.
 
-The total is deliberately the *requested* row count rather than the delivered
-one. It is knowable without touching a database, and it is an upper bound: an
-export that clears the budget cannot exceed it once the queries run.
+Working that total out means resolving each chart's query context, which is what
+the export itself runs. The plan therefore hands those contexts back and the
+export reuses them, so the queries that run are exactly the ones the budget was
+measured against — resolution can be expensive and, through
+``EXCEL_EXPORT_QUERY_CONTEXT_BUILDER``, is not guaranteed to be deterministic.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import Any
 
 from flask import current_app
 
 from superset.dashboards.excel_export.layout import get_charts_in_layout_order
 from superset.dashboards.excel_export.workbook import (
-    renders_as_image,
     resolve_query_context,
+    ResolvedQueryContexts,
 )
+
+
+@dataclass(frozen=True)
+class InlineExportPlan:
+    """What an inline export would run, and whether it is small enough to."""
+
+    #: Every chart's resolved query context, keyed by chart id. A ``None`` value
+    #: is an answer, not a gap: that chart cannot be exported and will be listed
+    #: as skipped.
+    query_contexts: ResolvedQueryContexts
+    #: Rows every query is allowed to return, or ``None`` when any query has no
+    #: finite limit and the size of the export is therefore unknowable.
+    requested_rows: int | None
+    #: The configured ceiling this plan was measured against.
+    max_rows: int
+
+    @property
+    def fits_row_budget(self) -> bool:
+        """Whether this export may run inline, as the response to one request."""
+        return self.requested_rows is not None and self.requested_rows <= self.max_rows
 
 
 def _finite_row_limit(query: Any) -> int | None:
@@ -59,28 +82,12 @@ def _finite_row_limit(query: Any) -> int | None:
     return row_limit if row_limit > 0 else None
 
 
-def requested_row_total(dashboard: Any, mode: str) -> int | None:
-    """
-    Total rows every query in this export is allowed to return.
-
-    Returns ``None`` when any query the export would run has no finite row limit,
-    which makes the total — and so the size of the export — indeterminate.
-
-    Charts the export cannot run contribute nothing: one with no usable query
-    context is skipped by the export itself, and in image mode a non-table chart
-    is rendered rather than queried.
-
-    Note that this resolves each chart's query context, which the export then
-    resolves again when it builds the workbook. For a saved context that is a
-    JSON parse; a deployment using ``EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`` pays
-    for its hook twice on this path.
-    """
+def _row_total(query_contexts: ResolvedQueryContexts) -> int | None:
+    """Rows every resolved query may return, or ``None`` if any is unbounded."""
     total = 0
-    for chart in get_charts_in_layout_order(dashboard):
-        if renders_as_image(chart, mode):
-            continue
-        query_context = resolve_query_context(chart)
+    for query_context in query_contexts.values():
         if query_context is None:
+            # Nothing to run: the export skips this chart and lists it instead.
             continue
         for query in query_context["queries"]:
             row_limit = _finite_row_limit(query)
@@ -90,9 +97,20 @@ def requested_row_total(dashboard: Any, mode: str) -> int | None:
     return total
 
 
-def is_within_sync_row_budget(dashboard: Any, mode: str) -> bool:
-    """Whether this export may run inline, as the response to one request."""
-    total = requested_row_total(dashboard, mode)
-    return (
-        total is not None and total <= current_app.config["EXCEL_EXPORT_SYNC_MAX_ROWS"]
+def plan_inline_export(dashboard: Any) -> InlineExportPlan:
+    """
+    Resolve what an inline export of ``dashboard`` would run, and size it.
+
+    Only ever called for a data export: an image export renders charts through
+    the headless webdriver, which is not work a request can wait on, so it is
+    refused before it gets here.
+    """
+    query_contexts: ResolvedQueryContexts = {
+        chart.id: resolve_query_context(chart)
+        for chart in get_charts_in_layout_order(dashboard)
+    }
+    return InlineExportPlan(
+        query_contexts=query_contexts,
+        requested_rows=_row_total(query_contexts),
+        max_rows=current_app.config["EXCEL_EXPORT_SYNC_MAX_ROWS"],
     )

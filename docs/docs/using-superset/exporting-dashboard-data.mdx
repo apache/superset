@@ -19,8 +19,9 @@ export storage configured:
   email with a time-limited download link.
 - **Without one** the workbook is built while the request is open and downloads
   straight to the browser — no worker, bucket or email needed. Because it has to
-  finish inside a single request, this path only accepts exports below
-  `EXCEL_EXPORT_SYNC_MAX_ROWS` (see [Prerequisites](#prerequisites)).
+  finish inside a single request, this path only accepts data exports below
+  `EXCEL_EXPORT_SYNC_MAX_ROWS`, and never image exports (see
+  [Prerequisites](#prerequisites)).
 
 ## Using the export
 
@@ -35,6 +36,9 @@ rendered image (tables stay tabular) instead of exporting raw data. Because it
 renders charts through the headless webdriver, this option only appears when the
 webdriver screenshot feature flags are enabled (see the prerequisites below);
 which viz types stay tabular is controlled by `EXCEL_EXPORT_TABLE_VIZ_TYPES`.
+Rendering is far too slow to hold a request open, so image exports always run in
+the background: without an export bucket the action is refused with a message
+saying so.
 
 Notes on the generated workbook:
 
@@ -47,9 +51,10 @@ Notes on the generated workbook:
   `big_number_total` or `pie`, by rebuilding the query from the chart's saved
   form data. Charts of other types — and charts relying on post-processing the
   rebuild can't reproduce — are skipped; open the chart in Explore and re-save it
-  to include it next time, or configure `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`. A
-  queued export lists the skipped charts in its email; a direct download has no
-  email to list them in, so they are simply absent from the workbook.
+  to include it next time, or configure `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`.
+  Skipped charts are named on an **Export Summary** worksheet in the workbook
+  itself, so the list travels with the file however it was delivered; a queued
+  export also lists them in its email.
 - Row counts per sheet are capped the same way as the chart-level CSV/Excel
   export (`ROW_LIMIT`, bounded by `SQL_MAX_ROW`), and never exceed Excel's
   per-sheet maximum.
@@ -64,7 +69,8 @@ total — or one where any chart has no finite row limit — is refused up front
 a message pointing here, rather than being started and left to hit the web
 server's request timeout. Raise the limit only as far as that timeout allows.
 
-To lift the size ceiling, configure the background path. It requires:
+To lift the size ceiling — and to enable **Export Images to Excel** at all —
+configure the background path. It requires:
 
 1. **The `boto3` dependency.** It is not installed by default; install it with
    `pip install apache-superset[excel-export]`. Without it, exports fail and the
@@ -78,7 +84,8 @@ To lift the size ceiling, configure the background path. It requires:
    using the same settings as alerts & reports (`SMTP_*`,
    `EMAIL_REPORTS_SUBJECT_PREFIX`).
 
-**Export Images to Excel** additionally requires a working headless webdriver —
+**Export Images to Excel** requires the background path above (it is refused
+without an export bucket) plus a working headless webdriver —
 the same infrastructure scheduled reports and thumbnails use (`WEBDRIVER_*`,
 plus the `ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS` and
 `ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT` feature flags). The menu option
@@ -94,7 +101,7 @@ will not register.
 | Key                             | Default                | Description                                                                                                                                                                       |
 | ------------------------------- | ---------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `EXCEL_EXPORT_S3_BUCKET`        | `None`                 | Destination bucket. When unset, exports are built during the request and downloaded directly instead of being queued.                                                             |
-| `EXCEL_EXPORT_SYNC_MAX_ROWS`    | `100000`               | Largest export served during the request, as the combined `row_limit` of every query it would run. Over this (or with any query lacking a finite limit) the export is refused and asks for a bucket. Ignored once one is configured. |
+| `EXCEL_EXPORT_SYNC_MAX_ROWS`    | `100000`               | Largest data export served during the request, as the combined `row_limit` of every query it would run. Over this (or with any query lacking a finite limit) the export is refused and asks for a bucket. Ignored once one is configured. |
 | `EXCEL_EXPORT_S3_KEY_PREFIX`    | `"dashboard-exports/"` | Key prefix: `{prefix}{dashboard_id}/{job_id}.xlsx`.                                                                                                                               |
 | `EXCEL_EXPORT_LINK_TTL_SECONDS` | `86400`                | Lifetime of the pre-signed download URL (24h).                                                                                                                                    |
 | `EXCEL_EXPORT_S3_CLIENT_KWARGS` | `{}`                   | Extra kwargs for `boto3.client("s3", ...)` — e.g. `region_name`, or `endpoint_url` for MinIO/LocalStack.                                                                          |
@@ -125,5 +132,6 @@ variables, shared config, or instance role) unless overridden via
   embedded dashboard can still use the export.
 - The default **Export Data to Excel** mode exports data only (no visual
   styling). Use **Export Images to Excel** to embed rendered chart images, which
-  requires the webdriver infrastructure described in the prerequisites.
+  requires both an export bucket and the webdriver infrastructure described in
+  the prerequisites — it is never built during the request.
 - Scheduled/automated exports are not part of this feature.

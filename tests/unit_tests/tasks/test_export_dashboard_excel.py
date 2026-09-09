@@ -710,6 +710,34 @@ def test_all_charts_skipped_writes_summary(mocks: dict[str, Any]) -> None:
     mocks["email"].build_success_email.assert_called_once()
 
 
+def test_partial_failure_appends_summary_sheet(mocks: dict[str, Any]) -> None:
+    """When some charts export and others are skipped, the workbook itself lists
+    the skipped charts: a download served as the response to the request has no
+    email to list them in."""
+    mocks["get_charts_in_layout_order"].return_value = [
+        _chart(10, "Good"),
+        _chart(20, "Bad", has_context=False, viz_type="sunburst"),
+    ]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    uploaded: dict[str, Any] = {}
+
+    def _capture(path: str, bucket: str, key: str) -> None:
+        uploaded["sheets"] = _read_sheets(path)
+
+    mocks["s3"].upload_file_to_s3.side_effect = _capture
+
+    _run()
+
+    assert "Export Summary" in uploaded["sheets"]
+    flat = [str(cell) for row in uploaded["sheets"]["Export Summary"] for cell in row]
+    assert any("20 - Bad" in cell for cell in flat)
+    # The chart that did export is still there; the summary is additional.
+    assert "10 - Good" in uploaded["sheets"]
+
+
 def test_upload_failure_sends_failure_email_and_cleans_up(
     mocks: dict[str, Any],
 ) -> None:

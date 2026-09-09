@@ -522,8 +522,9 @@ configuration at all.
 Because it has to finish inside a single request, the direct-download path is
 bounded by `EXCEL_EXPORT_SYNC_MAX_ROWS` (default `100_000`): the export sums the
 `row_limit` of every query it would run and refuses, before running any of them,
-when the total is higher or when any query has no finite limit. The refusal is a
-`400` naming `EXCEL_EXPORT_S3_BUCKET` as the fix.
+when the total is higher or when any query has no finite limit. `mode=images` is
+refused there outright, since webdriver rendering is not work a request can wait
+on. Both refusals are a `400` naming `EXCEL_EXPORT_S3_BUCKET` as the fix.
 
 API clients should note that `POST /api/v1/dashboard/<id>/export_xlsx/` now
 answers either `202` with a job id (queued) or `200` with the `.xlsx` itself
@@ -544,9 +545,11 @@ types (`table`, `big_number_total`, `big_number`, `pie`) the export rebuilds a
 query context from the chart's saved form data so those charts still export.
 The rebuild is a single-query mapping and does **not** reproduce plugin
 post-processing (pivot, rolling, forecast) or multi-query charts, so any chart of
-another type without a saved query context is skipped — listed in the email on
-the queued path, and simply absent from the workbook on a direct download — for
-the user to re-save. To cover those types, set `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`
+another type without a saved query context is skipped and named on an "Export
+Summary" worksheet in the workbook, for the user to re-save. That sheet is new:
+previously it appeared only when *every* chart was skipped, and it now also
+lists partial failures, so the list travels with the file rather than only in
+the email. To cover those types, set `EXCEL_EXPORT_QUERY_CONTEXT_BUILDER`
 to a callable that receives the chart's form data and returns a query-context
 payload (or `None` to fall back to the built-in rebuild) — for example one backed
 by a service that runs the chart's real frontend `buildQuery`.

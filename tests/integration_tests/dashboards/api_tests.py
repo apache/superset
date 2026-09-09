@@ -34,6 +34,7 @@ from sqlalchemy import and_
 from superset import db, security_manager  # noqa: F401
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.daos.dashboard import EmbeddedDashboardDAO
+from superset.dashboards.excel_export.sync_budget import InlineExportPlan
 from superset.exceptions import LockAlreadyHeldException
 from superset.security.guest_token import GuestTokenResourceType
 from superset.models.dashboard import Dashboard
@@ -3811,12 +3812,15 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
     @patch("superset.dashboards.api.AcquireDistributedLock")
     @patch("superset.dashboards.api.build_workbook")
-    @patch("superset.dashboards.api.is_within_sync_row_budget", return_value=False)
+    @patch("superset.dashboards.api.plan_inline_export")
     def test_export_xlsx_sync_refused_when_over_the_row_budget(
-        self, mock_budget, mock_build, mock_acquire
+        self, mock_plan, mock_build, mock_acquire
     ):
         """Dashboard API: an export too large to serve inline is refused up front
         with a message naming the fix, rather than being started and timing out."""
+        mock_plan.return_value = InlineExportPlan(
+            query_contexts={}, requested_rows=250_000, max_rows=100_000
+        )
         self.login(ADMIN_USERNAME)
         dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
 
@@ -3828,10 +3832,60 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 400
         message = rv.data.decode("utf-8")
         assert "EXCEL_EXPORT_S3_BUCKET" in message
-        # The budget is consulted for the dashboard and mode being exported.
-        mock_budget.assert_called_once()
-        assert mock_budget.call_args.args[1] == "data"
         # Refused before any work started, so no lock was taken and no rows read.
+        mock_plan.assert_called_once()
+        mock_build.assert_not_called()
+        mock_acquire.return_value.run.assert_not_called()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
+    @patch("superset.dashboards.api.build_workbook")
+    @patch("superset.dashboards.api.plan_inline_export")
+    def test_export_xlsx_sync_runs_the_contexts_the_budget_measured(
+        self, mock_plan, mock_build
+    ):
+        """Dashboard API: the export runs the query contexts the row budget was
+        measured against. Resolving them a second time would risk vouching for one
+        set of queries and running another, since a deployment's context builder
+        need not be deterministic."""
+        measured = {10: {"queries": [{"row_limit": 5}]}, 20: None}
+        mock_plan.return_value = InlineExportPlan(
+            query_contexts=measured, requested_rows=5, max_rows=100_000
+        )
+        mock_build.side_effect = self._write_stub_workbook
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}},
+        )
+
+        assert rv.status_code == 200
+        assert mock_build.call_args.kwargs["query_contexts"] is measured
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
+    @with_feature_flags(
+        ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True,
+        ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT=True,
+    )
+    @patch("superset.dashboards.api.AcquireDistributedLock")
+    @patch("superset.dashboards.api.build_workbook")
+    def test_export_xlsx_images_refused_without_storage(self, mock_build, mock_acquire):
+        """Dashboard API: image export renders every chart through the headless
+        webdriver, which no row budget bounds and no request should wait on, so it
+        is refused rather than served inline -- even with the webdriver enabled."""
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+
+        rv = self.client.post(
+            f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+            json={"active_data_mask": {}, "mode": "images"},
+        )
+
+        assert rv.status_code == 400
+        assert "EXCEL_EXPORT_S3_BUCKET" in rv.data.decode("utf-8")
         mock_build.assert_not_called()
         mock_acquire.return_value.run.assert_not_called()
 

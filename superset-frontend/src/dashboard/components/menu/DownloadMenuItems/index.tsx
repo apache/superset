@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SyntheticEvent } from 'react';
+import { SyntheticEvent, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
@@ -72,6 +72,12 @@ export const useDownloadMenuItems = (
 
   const { addDangerToast, addSuccessToast } = useToasts();
   const dataMask = useSelector((state: RootState) => state.dataMask);
+  // The mode whose export is in flight, if any. The server allows one export
+  // per user and dashboard at a time, so while one runs both actions are
+  // disabled and the one that was clicked reports its progress.
+  const [exportingXlsx, setExportingXlsx] = useState<'data' | 'images' | null>(
+    null,
+  );
   const SCREENSHOT_NODE_SELECTOR = '.dashboard';
 
   const buildActiveDataMask = (): Record<string, { extraFormData: object }> =>
@@ -177,6 +183,7 @@ export const useDownloadMenuItems = (
   };
 
   const onExportXlsx = async (mode: 'data' | 'images') => {
+    setExportingXlsx(mode);
     try {
       const response = await SupersetClient.post({
         endpoint: `/api/v1/dashboard/${dashboardId}/export_xlsx/`,
@@ -229,6 +236,10 @@ export const useDownloadMenuItems = (
       } else {
         addDangerToast(t('Sorry, something went wrong. Try again later.'));
       }
+    } finally {
+      // However the request ends, the action has to come back: otherwise a
+      // failure would leave it stuck until the dashboard is reloaded.
+      setExportingXlsx(null);
     }
   };
 
@@ -276,12 +287,16 @@ export const useDownloadMenuItems = (
         },
       ];
 
+  const xlsxExportLabel = (mode: 'data' | 'images', text: string) =>
+    exportingXlsx === mode ? t('Preparing export…') : text;
+
   const exportMenuItems: MenuItem[] = [
     ...(userCanExport
       ? [
           {
             key: 'export-xlsx',
-            label: t('Export Data to Excel'),
+            label: xlsxExportLabel('data', t('Export Data to Excel')),
+            disabled: exportingXlsx !== null,
             onClick: () => onExportXlsx('data'),
           },
           // Image export renders charts through the headless webdriver, so only
@@ -292,7 +307,8 @@ export const useDownloadMenuItems = (
             ? [
                 {
                   key: 'export-xlsx-images',
-                  label: t('Export Images to Excel'),
+                  label: xlsxExportLabel('images', t('Export Images to Excel')),
+                  disabled: exportingXlsx !== null,
                   onClick: () => onExportXlsx('images'),
                 },
               ]

@@ -256,6 +256,115 @@ test('Export Data to Excel names the downloaded file from the response', async (
   click.mockRestore();
 });
 
+/** A request that stays in flight until the returned resolve is called. */
+const mockPendingResponse = (): { settle: (response: unknown) => void } => {
+  let settle: (response: unknown) => void = () => {};
+  mockSupersetClient.post.mockReturnValue(
+    new Promise(resolve => {
+      settle = resolve;
+    }) as never,
+  );
+  return { settle: response => settle(response) };
+};
+
+const menuItemFor = (label: string) =>
+  screen.getByText(label).closest('[role="menuitem"]');
+
+test('Export Data to Excel reports progress while the export is running', async () => {
+  // The request can take a while when the workbook is built inline, and a lock
+  // stops duplicate work without telling the user anything.
+  const { settle } = mockPendingResponse();
+
+  render(<MenuWrapper />, { useRedux: true });
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+
+  await waitFor(() => {
+    expect(screen.getByText('Preparing export…')).toBeInTheDocument();
+  });
+  expect(screen.queryByText('Export Data to Excel')).not.toBeInTheDocument();
+  expect(menuItemFor('Preparing export…')).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+
+  settle({ status: 202, json: jest.fn().mockResolvedValue({ job_id: 'abc' }) });
+
+  // Once the queued message arrives the action is offered again.
+  await waitFor(() => {
+    expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
+  });
+  expect(mockAddSuccessToast).toHaveBeenCalledWith(
+    "Your export is being prepared. You'll receive an email when it's ready.",
+  );
+});
+
+test('Export Data to Excel is offered again once the download starts', async () => {
+  const { settle } = mockPendingResponse();
+  stubObjectUrls();
+
+  render(<MenuWrapper />, { useRedux: true });
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+  await waitFor(() => {
+    expect(screen.getByText('Preparing export…')).toBeInTheDocument();
+  });
+
+  settle({
+    status: 200,
+    blob: jest.fn().mockResolvedValue(new Blob(['xlsx'])),
+    headers: new Headers({
+      'Content-Disposition': 'attachment; filename=dash.xlsx',
+    }),
+  });
+
+  await waitFor(() => {
+    expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
+  });
+  expect(mockAddSuccessToast).toHaveBeenCalledWith(
+    'Dashboard data exported to Excel',
+  );
+});
+
+test('Export Data to Excel is offered again after a failure', async () => {
+  const { settle } = mockPendingResponse();
+  mockGetClientErrorObject.mockResolvedValue({ status: 500 });
+
+  render(<MenuWrapper />, { useRedux: true });
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+  await waitFor(() => {
+    expect(screen.getByText('Preparing export…')).toBeInTheDocument();
+  });
+
+  // A rejected request must clear the pending state too, or the action would
+  // stay stuck until the dashboard is reloaded.
+  settle(Promise.reject(new Error('boom')));
+
+  await waitFor(() => {
+    expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
+  });
+  expect(mockAddDangerToast).toHaveBeenCalledWith(
+    'Sorry, something went wrong. Try again later.',
+  );
+});
+
+test('Export Images to Excel is blocked while a data export is running', async () => {
+  // One export at a time per dashboard: the server holds a lock, so offering a
+  // second export would only earn an "already in progress" refusal.
+  enableWebDriverScreenshot();
+  mockPendingResponse();
+
+  render(<MenuWrapper />, { useRedux: true });
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+
+  await waitFor(() => {
+    expect(menuItemFor('Export Images to Excel')).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
+  });
+  await userEvent.click(screen.getByText('Export Images to Excel'));
+  expect(mockSupersetClient.post).toHaveBeenCalledTimes(1);
+});
+
 test('Export Data to Excel shows an "already in progress" toast when throttled', async () => {
   // The throttle response is 202 with a message but no job_id.
   mockQueuedResponse({
