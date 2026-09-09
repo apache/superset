@@ -46,6 +46,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleXlsxFailedError,
 )
 from superset.commands.report.execute import (
+    _should_build_execution_context,
     BaseReportState,
     log_report_delivery_phase,
     persist_owned_report_execution_terminal_error,
@@ -1771,6 +1772,43 @@ def test_screenshot_soft_timeout_distinguishes_reports_from_alert_attachments(
 
     with pytest.raises(expected_exception):
         state._get_screenshots()
+
+
+@pytest.mark.parametrize("has_chart", [True, False])
+def test_blank_capture_prevents_pdf_generation_and_delivery(
+    app: SupersetApp, mocker: MockerFixture, has_chart: bool
+) -> None:
+    """A rejected capture must abort the PDF before any recipient delivery."""
+    from superset.utils.screenshot_utils import ScreenshotBlankCaptureError
+
+    state = _make_notification_state(
+        mocker, report_format=ReportDataFormat.PDF, has_chart=has_chart
+    )
+    state._report_schedule.custom_width = None
+    state._report_schedule.custom_height = None
+    mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user",
+        return_value=(mocker.Mock(), "executor"),
+    )
+    mocker.patch.object(state, "get_dashboard_urls", return_value=["/dashboard/1"])
+    screenshot_class = "ChartScreenshot" if has_chart else "DashboardScreenshot"
+    screenshot = mocker.patch(
+        f"superset.commands.report.execute.{screenshot_class}"
+    ).return_value
+    capture_error = ScreenshotBlankCaptureError("blank capture after 3 attempts")
+    screenshot.get_screenshot.side_effect = capture_error
+    build_pdf = mocker.patch(
+        "superset.commands.report.execute.build_pdf_from_screenshots"
+    )
+    deliver = mocker.patch.object(state, "_send")
+
+    with pytest.raises(ReportScheduleScreenshotFailedError) as exc:
+        state.send()
+
+    assert exc.value.__cause__ is capture_error
+    screenshot.get_screenshot.assert_called_once()
+    build_pdf.assert_not_called()
+    deliver.assert_not_called()
 
 
 def test_executor_not_found_error_message_without_username() -> None:
@@ -3747,6 +3785,9 @@ def test_success_state_send_error_logs_and_reraises(
         mocker, ReportSuccessState, schedule_type=ReportScheduleType.REPORT
     )
     mocker.patch.object(state, "send", side_effect=RuntimeError("send boom"))
+    mocker.patch.object(state, "is_in_error_grace_period", return_value=False)
+    mocker.patch.object(state, "create_log")
+    mocker.patch.object(state, "send_error")
     mocker.patch.object(state, "update_report_schedule_and_log")
 
     with pytest.raises(RuntimeError, match="send boom"):
@@ -3806,6 +3847,46 @@ def test_get_notification_content_alert_no_flag_skips_attachment(
     mock_screenshots.assert_not_called()
     assert content.screenshots == []
     assert content.text is None
+
+
+@pytest.mark.parametrize(
+    ("schedule_type", "report_format", "attach_flag", "expected"),
+    [
+        # Reports always run under an execution context, regardless of format.
+        (ReportScheduleType.REPORT, ReportDataFormat.PNG, False, True),
+        (ReportScheduleType.REPORT, ReportDataFormat.PDF, False, True),
+        (ReportScheduleType.REPORT, ReportDataFormat.CSV, False, True),
+        (ReportScheduleType.REPORT, ReportDataFormat.TEXT, False, True),
+        # Alerts that deliver a rendered screenshot fail closed only when the
+        # ALERTS_ATTACH_REPORTS flag is on (otherwise no artifact is attached).
+        (ReportScheduleType.ALERT, ReportDataFormat.PNG, True, True),
+        (ReportScheduleType.ALERT, ReportDataFormat.PDF, True, True),
+        (ReportScheduleType.ALERT, ReportDataFormat.PNG, False, False),
+        (ReportScheduleType.ALERT, ReportDataFormat.PDF, False, False),
+        # CSV/text/xlsx alerts never deliver a rendered screenshot; they stay
+        # lenient even with the attach flag on.
+        (ReportScheduleType.ALERT, ReportDataFormat.CSV, True, False),
+        (ReportScheduleType.ALERT, ReportDataFormat.TEXT, True, False),
+        (ReportScheduleType.ALERT, ReportDataFormat.XLSX, True, False),
+    ],
+)
+@patch("superset.commands.report.execute.feature_flag_manager")
+def test_should_build_execution_context(
+    mock_ff: MagicMock,
+    mocker: MockerFixture,
+    schedule_type: ReportScheduleType,
+    report_format: ReportDataFormat,
+    attach_flag: bool,
+    expected: bool,
+) -> None:
+    """Only reports and rendered-screenshot alerts run fail closed under a
+    ReportExecutionContext; CSV/text alerts and flag-off alerts stay lenient."""
+    mock_ff.is_feature_enabled.return_value = attach_flag
+    model = mocker.Mock(spec=ReportSchedule)
+    model.type = schedule_type
+    model.report_format = report_format
+
+    assert _should_build_execution_context(model) is expected
 
 
 def test_create_log_success_commits(mocker: MockerFixture) -> None:
@@ -4217,6 +4298,136 @@ def test_success_state_error_logged_when_send_error_raises(
     assert ReportState.ERROR in states
 
 
+@pytest.mark.parametrize(
+    "schedule_type",
+    [ReportScheduleType.REPORT, ReportScheduleType.ALERT],
+)
+def test_success_state_send_failure_notifies_owner(
+    mocker: MockerFixture,
+    schedule_type: ReportScheduleType,
+) -> None:
+    """A delivery failure from the Success/Grace path must notify the owner,
+    mirroring the first-run (ReportNotTriggeredErrorState) path — otherwise a
+    previously-successful schedule fails silently (e.g. once a screenshot
+    capture starts failing closed)."""
+    state = _make_state_instance(
+        mocker, ReportSuccessState, schedule_type=schedule_type
+    )
+    # No retries configured (the default), so _handle_retry_or_error returns
+    # False immediately without sending anything.
+    mocker.patch.object(state, "is_in_grace_period", return_value=False)
+    mocker.patch.object(state, "is_in_error_grace_period", return_value=False)
+    mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
+    mocker.patch.object(state, "create_log")
+    mock_send_error = mocker.patch.object(state, "send_error")
+    if schedule_type == ReportScheduleType.ALERT:
+        mocker.patch(
+            "superset.commands.report.execute.AlertCommand"
+        ).return_value.run.return_value = (True, "triggered")
+    mocker.patch.object(
+        state,
+        "send",
+        side_effect=ReportScheduleScreenshotFailedError("blank screenshot"),
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError, match="blank screenshot"):
+        state.next()
+
+    mock_send_error.assert_called_once()
+    # The owner-notification path must also persist a terminal ERROR state,
+    # not leave the schedule stuck in WORKING (mirrors how the grace-period
+    # sibling test asserts the recorded terminal state).
+    assert mock_update.call_args_list[-1].args[0] == ReportState.ERROR
+
+
+def test_success_state_send_failure_skips_notification_in_error_grace(
+    mocker: MockerFixture,
+) -> None:
+    """When inside the error grace period, the Success/Grace path logs ERROR
+    but suppresses the (throttled) error notification."""
+    state = _make_state_instance(
+        mocker, ReportSuccessState, schedule_type=ReportScheduleType.REPORT
+    )
+    mocker.patch.object(state, "is_in_error_grace_period", return_value=True)
+    mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
+    mock_send_error = mocker.patch.object(state, "send_error")
+    mocker.patch.object(
+        state,
+        "send",
+        side_effect=ReportScheduleScreenshotFailedError("blank screenshot"),
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError):
+        state.next()
+
+    mock_send_error.assert_not_called()
+    states = [call.args[0] for call in mock_update.call_args_list]
+    assert ReportState.ERROR in states
+
+
+@pytest.mark.parametrize(
+    ("failure_kind", "expected_message"),
+    [
+        ("superset_errors", "smtp down;retry failed"),
+        ("generic", "smtp down"),
+    ],
+)
+def test_success_state_send_error_failure_overwrites_marker(
+    mocker: MockerFixture,
+    failure_kind: str,
+    expected_message: str,
+) -> None:
+    """When the Success/Grace path's own error notification fails, the
+    notification audit entry records the real failure message instead of the
+    success marker, without replacing the terminal execution outcome. This mirrors
+    the first-run (ReportNotTriggeredErrorState) path. A SupersetErrorsException
+    contributes its joined error messages; any other exception contributes its
+    ``str()``."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetErrorsException
+
+    if failure_kind == "superset_errors":
+        send_error_exc: Exception = SupersetErrorsException(
+            [
+                SupersetError(
+                    message="smtp down",
+                    error_type=SupersetErrorType.REPORT_NOTIFICATION_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                SupersetError(
+                    message="retry failed",
+                    error_type=SupersetErrorType.REPORT_NOTIFICATION_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+            ]
+        )
+    else:
+        send_error_exc = RuntimeError("smtp down")
+
+    state = _make_state_instance(
+        mocker, ReportSuccessState, schedule_type=ReportScheduleType.REPORT
+    )
+    mocker.patch.object(state, "is_in_error_grace_period", return_value=False)
+    mock_update = mocker.patch.object(state, "update_report_schedule_and_log")
+    mock_log = mocker.patch.object(state, "create_log")
+    mock_send_error = mocker.patch.object(
+        state, "send_error", side_effect=send_error_exc
+    )
+    mocker.patch.object(
+        state,
+        "send",
+        side_effect=ReportScheduleScreenshotFailedError("blank screenshot"),
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError, match="blank screenshot"):
+        state.next()
+
+    mock_send_error.assert_called_once()
+    # Notification bookkeeping preserves the original execution failure.
+    assert mock_update.call_args_list[-1].kwargs["error_message"] == "blank screenshot"
+    mock_log.assert_called_once_with(expected_message, include_execution_warnings=False)
+
+
 def test_get_url_for_csv_uses_post_processed_type(
     app: SupersetApp,
     mocker: MockerFixture,
@@ -4386,3 +4597,127 @@ def test_get_url_raises_unexpected_error_when_target_is_missing(
     assert "orphan_report" in message
     assert "chart_id=None" in message
     assert "dashboard_id=None" in message
+
+
+@pytest.mark.parametrize(
+    "state_class", [ReportNotTriggeredErrorState, ReportSuccessState]
+)
+@pytest.mark.parametrize("notification_fails", [False, True])
+def test_report_failure_has_one_terminal_outcome(
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    state_class: type[BaseReportState],
+    notification_fails: bool,
+) -> None:
+    """Keep notification bookkeeping separate from the execution's terminal log."""
+    state = _make_state_instance(
+        mocker, state_class, schedule_type=ReportScheduleType.REPORT
+    )
+    mocker.patch.object(
+        state, "send", side_effect=ReportScheduleCsvFailedError("export failed")
+    )
+    mocker.patch.object(state, "is_in_error_grace_period", return_value=False)
+    mock_log = mocker.patch.object(state, "create_log")
+    send_error = mocker.patch.object(
+        state,
+        "send_error",
+        side_effect=RuntimeError("notification failed") if notification_fails else None,
+    )
+    caplog.set_level("INFO", logger="superset.commands.report.execute")
+    with pytest.raises(ReportScheduleCsvFailedError, match="export failed"):
+        state.next()
+    terminals = [
+        record.message
+        for record in caplog.records
+        if "report_execution_terminal" in record.message
+    ]
+    assert len(terminals) == 1
+    assert "export failed" in terminals[0]
+    assert state._report_schedule.last_state == ReportState.ERROR
+    send_error.assert_called_once()
+    assert mock_log.call_args.args[0] == (
+        "notification failed"
+        if notification_fails
+        else REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
+    )
+    assert mock_log.call_args.kwargs == {"include_execution_warnings": False}
+
+
+@pytest.mark.parametrize("post", [False, True])
+@pytest.mark.parametrize("wrapped", [False, True])
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.CSV, ChartDataResultFormat.XLSX]
+)
+def test_chart_data_normalizes_transport_timeouts(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    post: bool,
+    wrapped: bool,
+    result_format: ChartDataResultFormat,
+) -> None:
+    """Both export paths normalize direct and urllib-wrapped socket timeouts."""
+    from superset.commands.report.exceptions import (
+        ReportScheduleCsvTimeout,
+        ReportScheduleXlsxTimeout,
+    )
+
+    state = BaseReportState(create_report_schedule(mocker), datetime.utcnow(), uuid4())
+    _mock_xlsx_chart_data_dependencies(mocker, state)
+    if post:
+        state._report_schedule.chart.query_context = "{}"
+    error = TimeoutError("SECRET timeout reason")
+    fetch = mocker.patch(
+        "superset.commands.report.execute.BaseReportState._post_chart_data"
+        if post
+        else "superset.commands.report.execute.get_chart_csv_data",
+        side_effect=URLError(error) if wrapped else error,
+    )
+    expected = (
+        ReportScheduleCsvTimeout
+        if result_format == ChartDataResultFormat.CSV
+        else ReportScheduleXlsxTimeout
+    )
+    with pytest.raises(expected) as exc:
+        state._get_data(result_format)
+    fetch.assert_called_once()
+    assert "SECRET" not in caplog.text + str(exc.value)
+
+
+@pytest.mark.parametrize("post", [False, True])
+def test_chart_data_http_failure_does_not_expose_request(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    post: bool,
+) -> None:
+    """Transport failure diagnostics never include cookies or export payloads."""
+    import traceback
+    from email.message import Message
+    from io import BytesIO
+    from urllib.error import HTTPError
+
+    state = BaseReportState(create_report_schedule(mocker), datetime.utcnow(), uuid4())
+    get_url, cookies = _mock_xlsx_chart_data_dependencies(mocker, state)
+    cookies["session"] = "COOKIE_SECRET"
+    get_url.return_value = (
+        "https://localhost/api/v1/chart/1/data?form_data=QUERY_SECRET"
+    )
+    if post:
+        state._report_schedule.chart.query_context = (
+            '{"queries":[{"sql":"PAYLOAD_SECRET"}]}'
+        )
+    mocker.patch.dict(app.config, {"ALERT_REPORTS_CSV_REQUEST_RETRY": True})
+    opener = mocker.patch("urllib.request.build_opener").return_value
+    opener.open.side_effect = HTTPError(
+        "https://localhost/chart?form_data=QUERY_SECRET",
+        400,
+        "REASON_SECRET",
+        Message(),
+        BytesIO(b'{"message":"BODY_SECRET"}'),
+    )
+    with pytest.raises(ReportScheduleCsvFailedError, match="status=400") as exc:
+        state._get_data(ChartDataResultFormat.CSV)
+    opener.open.assert_called_once()
+    assert "SECRET" not in caplog.text + str(exc.value)
+    assert "SECRET" not in "".join(traceback.format_exception(exc.value))

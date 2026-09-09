@@ -19,7 +19,6 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Mapping
 from typing import Any, ClassVar
 
@@ -29,7 +28,10 @@ from superset.mcp_service.chart.chart_utils import (
 )
 from superset.mcp_service.chart.plugin import BaseChartPlugin
 from superset.mcp_service.chart.schemas import ColumnRef, HistogramChartConfig
-from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+from superset.mcp_service.chart.validation.dataset_validator import (
+    DatasetValidator,
+    is_numeric_column,
+)
 from superset.mcp_service.common.error_schemas import ChartGenerationError
 
 
@@ -116,27 +118,13 @@ class HistogramChartPlugin(BaseChartPlugin):
             # Column existence is validated separately; don't double-report.
             return None
 
-        def _is_numeric(col: dict[str, Any]) -> bool:
-            if col.get("is_numeric", False):
-                return True
-            # Backends report many spellings (BIGINT, SMALLINT, REAL, NUMBER,
-            # DOUBLE PRECISION); match numeric tokens at word boundaries so
-            # INTERVAL/POINT (which merely contain "INT") stay non-numeric.
-            type_upper = str(col.get("type", "")).upper()
-            return bool(
-                re.search(
-                    r"\b(?:TINY|SMALL|MEDIUM|BIG)?INT(?:EGER)?\b"
-                    r"|\bFLOAT\b|\bDOUBLE\b|\bDECIMAL\b"
-                    r"|\bNUMERIC\b|\bREAL\b|\bNUMBER\b",
-                    type_upper,
-                )
-            )
-
-        if _is_numeric(col_info):
+        if is_numeric_column(col_info):
             return None
 
         numeric_columns = sorted(
-            col["name"] for col in dataset_context.available_columns if _is_numeric(col)
+            col["name"]
+            for col in dataset_context.available_columns
+            if is_numeric_column(col)
         )
         return ChartGenerationError(
             error_type="non_numeric_histogram_column",

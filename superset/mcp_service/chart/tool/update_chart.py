@@ -40,19 +40,20 @@ from superset.mcp_service.chart.chart_utils import (
     analyze_chart_semantics,
     generate_chart_name,
     map_config_to_form_data,
+    merge_chart_form_data,
+    merge_interactive_pivot_ui_config,
     merge_table_column_config,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
+    ChartConfig,
     ColumnRef,
     GenerateChartResponse,
     PerformanceMetadata,
     TableChartConfig,
     UpdateChartRequest,
-    wrap_sql_adhoc_metrics,
 )
-from superset.mcp_service.utils import escape_llm_context_delimiters
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
@@ -110,9 +111,8 @@ def _missing_config_or_name_error() -> GenerateChartResponse:
 def _wrapped_form_data_for_response(
     new_form_data: dict[str, Any] | None,
 ) -> dict[str, Any]:
-    """Wrap SQL-metric strings in form_data before LLM-facing return."""
+    """Return form data without changing SQL metric strings."""
     payload = dict(new_form_data) if new_form_data is not None else {}
-    wrap_sql_adhoc_metrics(payload)
     return payload
 
 
@@ -198,19 +198,40 @@ def _append_table_columns(
 def _merge_replacement_config(
     existing_form_data: dict[str, Any],
     new_form_data: dict[str, Any],
-    parsed_config: Any,
+    parsed_config: ChartConfig,
+    *,
+    dataset_rebind: bool = False,
 ) -> dict[str, Any]:
-    """Merge a replacement config, honoring an explicit empty filter list."""
-    merged = {
-        **{
-            key: value
-            for key, value in existing_form_data.items()
-            if key != "column_config"
-        },
-        **new_form_data,
-    }
-    if getattr(parsed_config, "filters", None) == []:
-        merged.pop("adhoc_filters", None)
+    """Delegate update semantics to the shared form-data merge helper."""
+    return merge_chart_form_data(
+        existing_form_data,
+        new_form_data,
+        parsed_config,
+        dataset_rebind=dataset_rebind,
+    )
+
+
+def _build_replacement_form_data(
+    existing_form_data: dict[str, Any],
+    parsed_config: ChartConfig,
+    effective_dataset_id: int | None,
+    replacement_dataset_id: int | None = None,
+) -> dict[str, Any]:
+    """Map and merge a replacement config for preview and save paths."""
+    new_form_data = map_config_to_form_data(
+        parsed_config, dataset_id=effective_dataset_id
+    )
+    new_form_data.pop("_mcp_warnings", None)
+    merge_table_column_config(existing_form_data, new_form_data)
+    merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
+    merged = _merge_replacement_config(
+        existing_form_data,
+        new_form_data,
+        parsed_config,
+        dataset_rebind=replacement_dataset_id is not None,
+    )
+    if replacement_dataset_id is not None:
+        merged["datasource"] = f"{replacement_dataset_id}__table"
     return merged
 
 
@@ -232,11 +253,16 @@ def _build_update_payload(
     )
 
     if parsed_config is not None:
-        new_form_data = map_config_to_form_data(
-            parsed_config, dataset_id=effective_dataset_id
+        new_form_data = _build_replacement_form_data(
+            _get_existing_form_data(chart),
+            parsed_config,
+            effective_dataset_id,
+            replacement_dataset_id=(
+                request.dataset_id
+                if request.dataset_id != getattr(chart, "datasource_id", None)
+                else None
+            ),
         )
-        new_form_data.pop("_mcp_warnings", None)
-        merge_table_column_config(_get_existing_form_data(chart), new_form_data)
 
         chart_name = (
             request.chart_name
@@ -313,15 +339,15 @@ def _build_preview_form_data(
     )
 
     if parsed_config is not None:
-        new_form_data = map_config_to_form_data(
-            parsed_config, dataset_id=effective_dataset_id
-        )
-        new_form_data.pop("_mcp_warnings", None)
-        merge_table_column_config(existing_form_data, new_form_data)
-        # In the preview, an explicit filters list, including [], replaces saved
-        # filters. An omitted filters field preserves them through the shallow merge.
-        merged = _merge_replacement_config(
-            existing_form_data, new_form_data, parsed_config
+        merged = _build_replacement_form_data(
+            existing_form_data,
+            parsed_config,
+            effective_dataset_id,
+            replacement_dataset_id=(
+                request.dataset_id
+                if request.dataset_id != getattr(chart, "datasource_id", None)
+                else None
+            ),
         )
     elif request.add_columns is not None:
         patched = _append_table_columns(existing_form_data, request.add_columns)
@@ -479,6 +505,8 @@ def _create_preview_url(
         title="Update chart",
         readOnlyHint=False,
         destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 async def update_chart(  # noqa: C901
@@ -580,9 +608,9 @@ async def update_chart(  # noqa: C901
             chart = find_chart_by_identifier(request.identifier)
 
         if not chart:
-            safe_id = escape_llm_context_delimiters(str(request.identifier)[:200])
+            display_id = str(request.identifier)[:200]
             not_found_msg = (
-                f"No chart found with identifier: {safe_id}."
+                f"No chart found with identifier: {display_id}."
                 " Use list_charts to get valid chart IDs."
             )
             return GenerateChartResponse.model_validate(
@@ -597,6 +625,21 @@ async def update_chart(  # noqa: C901
                     "schema_version": "2.0",
                     "api_version": "v1",
                 }
+            )
+
+        if (
+            request.dataset_id is not None
+            and request.dataset_id != getattr(chart, "datasource_id", None)
+            and request.config is None
+            and getattr(chart, "viz_type", None) == "gauge_chart"
+        ):
+            return _validation_error_response(
+                message="Gauge dataset rebind requires a complete Gauge config.",
+                details=(
+                    "Provide chart_type='gauge' and a metric valid on the target "
+                    "dataset. This prevents stale metric, groupby, and filter roles "
+                    "from the previous dataset from being retained."
+                ),
             )
 
         # Validate dataset access before allowing update.
@@ -717,6 +760,7 @@ async def update_chart(  # noqa: C901
             preview_or_error = _build_preview_form_data(request, chart, parsed_config)
             if isinstance(preview_or_error, GenerateChartResponse):
                 return preview_or_error
+            new_form_data = preview_or_error
 
             # Validate before caching the form_data — same rationale as above.
             if validation_config is not None:

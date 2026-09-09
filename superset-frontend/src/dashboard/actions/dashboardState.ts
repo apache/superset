@@ -646,6 +646,7 @@ export function saveDashboardRequest(
     };
 
     const onError = async (response: Response): Promise<void> => {
+      logging.error(response);
       const { error, message } = await getClientErrorObject(response);
       let errorText = t('Sorry, an unknown error occurred');
 
@@ -689,64 +690,64 @@ export function saveDashboardRequest(
               }),
             };
 
-      const updateDashboard = (): Promise<JsonObject | void> =>
-        SupersetClient.put({
-          endpoint: `/api/v1/dashboard/${id}`,
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedDashboard),
-        })
-          .then(response => onUpdateSuccess(response))
-          .catch(response => onError(response));
-      return new Promise<void>((resolve, reject) => {
-        if (
-          !isFeatureEnabled(FeatureFlag.ConfirmDashboardDiff) ||
-          saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
-        ) {
-          // skip overwrite precheck
-          resolve();
-          return;
+      const updateDashboard = async (): Promise<JsonObject | void> => {
+        try {
+          const response = await SupersetClient.put({
+            endpoint: `/api/v1/dashboard/${id}`,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updatedDashboard),
+          });
+          return await onUpdateSuccess(response);
+        } catch (error) {
+          return onError(error as Response);
         }
+      };
 
-        // precheck for overwrite items
-        SupersetClient.get({
-          endpoint: `/api/v1/dashboard/${id}`,
-        }).then((response: JsonObject) => {
+      if (
+        !isFeatureEnabled(FeatureFlag.ConfirmDashboardDiff) ||
+        saveType === SAVE_TYPE_OVERWRITE_CONFIRMED
+      ) {
+        // skip overwrite precheck
+        return updateDashboard();
+      }
+
+      // precheck for overwrite items
+      return SupersetClient.get({
+        endpoint: `/api/v1/dashboard/${id}`,
+      })
+        .then((response: JsonObject) => {
           const dashboard = (response.json as JsonObject).result as JsonObject;
           const overwriteConfirmItems = getOverwriteItems(
             dashboard,
             updatedDashboard,
           );
-          if (overwriteConfirmItems.length > 0) {
-            dispatch(
-              setOverrideConfirm({
-                updatedAt: dashboard.changed_on as string,
-                updatedBy: dashboard.changed_by_name as string,
-                overwriteConfirmItems:
-                  overwriteConfirmItems as DashboardState['overwriteConfirmMetadata'] extends
-                    | { overwriteConfirmItems: infer I }
-                    | undefined
-                    ? I
-                    : never,
-                dashboardId: id,
-                data: updatedDashboard,
-              }),
-            );
-            return reject(overwriteConfirmItems);
+          if (overwriteConfirmItems.length === 0) {
+            return updateDashboard();
           }
-          return resolve();
-        });
-      })
-        .then(updateDashboard)
-        .catch((overwriteConfirmItems: JsonObject[]) => {
-          const errorText = t('Please confirm the overwrite values.');
+          dispatch(
+            setOverrideConfirm({
+              updatedAt: dashboard.changed_on as string,
+              updatedBy: dashboard.changed_by_name as string,
+              overwriteConfirmItems:
+                overwriteConfirmItems as DashboardState['overwriteConfirmMetadata'] extends
+                  | { overwriteConfirmItems: infer I }
+                  | undefined
+                  ? I
+                  : never,
+              dashboardId: id,
+              data: updatedDashboard,
+            }),
+          );
           dispatch(
             logEvent(LOG_ACTIONS_CONFIRM_OVERWRITE_DASHBOARD_METADATA, {
               dashboard_id: id,
               items: overwriteConfirmItems,
             }),
           );
-          dispatch(addDangerToast(errorText));
-        });
+          dispatch(addDangerToast(t('Please confirm the overwrite values.')));
+          return undefined;
+        })
+        .catch(onError);
     }
     // changing the data as the endpoint requires
     if (

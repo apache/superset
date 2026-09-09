@@ -33,7 +33,11 @@ from superset.commands.tasks.exceptions import (
 )
 from superset.extensions import security_manager
 from superset.stats_logger import BaseStatsLogger
+from superset.tasks.constants import TERMINAL_STATES
+from superset.tasks.guest import get_guest_subscriber_key_for
 from superset.tasks.locks import task_lock
+from superset.tasks.registry import TaskRegistry
+from superset.tasks.subscription import principal_channel
 from superset.tasks.utils import get_active_dedup_key
 from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
@@ -62,19 +66,29 @@ class CancelTaskCommand(BaseCommand):
     we only fetch the task once, then validate permissions on the fetched data.
     """
 
-    def __init__(self, task_uuid: UUID, force: bool = False):
+    def __init__(self, task_uuid: UUID, force: bool = False, tab_id: str | None = None):
         """
         Initialize the cancel command.
 
         :param task_uuid: UUID of the task to cancel
         :param force: If True, force abort even with multiple subscribers (admin only)
+        :param tab_id: Opaque per-client (e.g. browser-tab) id, when the caller
+            advertised one. Passed to the task type's subscription policy so a
+            cancel from one client of a principal detaches only that client rather
+            than aborting a SHARED task the principal's other clients still await
+            (see ``superset.tasks.subscription``). ``None`` keeps principal-grain
+            behavior.
         """
         self._task_uuid = task_uuid
         self._force = force
+        self._tab_id = tab_id
         self._action_taken: str = (
-            "cancelled"  # Will be set to 'aborted' or 'unsubscribed'
+            "cancelled"  # Will be set to 'aborted', 'unsubscribed', or 'detached'
         )
         self._should_publish_abort: bool = False
+        # Terminal status when this cancel aborted the task straight to terminal
+        # (see run(), which publishes it as completion); None otherwise.
+        self._completed_status: str | None = None
 
     def run(self) -> "Task":
         """
@@ -110,12 +124,29 @@ class CancelTaskCommand(BaseCommand):
         with task_lock(dedup_key):
             result = self._execute_with_transaction()
 
+        from superset.tasks.manager import TaskManager
+
         # Publish abort notification AFTER transaction commits
         # This prevents race conditions where listeners check DB before commit
         if self._should_publish_abort:
-            from superset.tasks.manager import TaskManager
-
             TaskManager.publish_abort(self._task_uuid)
+
+        # A cancel that drove the task straight to a terminal state (queued
+        # PENDING → ABORTED) has no worker to finalize it, so it must publish
+        # completion itself — otherwise a websocket-mode waiter (which does not
+        # poll) only learns of the cancellation at the stale-timeout give-up.
+        # The ABORTING case is handled by the worker's own completion publish
+        # once its abort handlers finish.
+        if self._completed_status is not None:
+            TaskManager.publish_completion(self._task_uuid, self._completed_status)
+
+        # Nudge realtime list views of the abort/cancel state change (post-commit).
+        # Abort transitions (→ABORTING/ABORTED) don't go through
+        # InternalStatusTransitionCommand, so they are emitted here instead.
+        TaskManager.publish_entity_change(self._task_uuid)
+        # A cancelled prerequisite fails its dependents' all-success gate, and its
+        # status shows on their rows, so refresh those too.
+        TaskManager.publish_required_by_changed(self._task_uuid)
 
         return result
 
@@ -146,10 +177,8 @@ class CancelTaskCommand(BaseCommand):
         if not task:
             raise TaskNotFoundError()
 
-        # Validate permissions on the fetched task
         self._validate_permissions(task, is_admin)
 
-        # Execute cancel and return updated task
         return self._do_cancel(task, is_admin)
 
     def _validate_permissions(self, task: "Task", is_admin: bool) -> None:
@@ -188,8 +217,14 @@ class CancelTaskCommand(BaseCommand):
             )
 
         if task.is_shared:
-            # Shared tasks: must be a subscriber
-            if not user_id or not task.has_subscriber(user_id):
+            # Shared tasks: must be a subscriber. Embedded guests have no user_id
+            # and subscribe by a token-derived guest_key instead (see
+            # superset.tasks.guest), so honor either identity.
+            guest_key = get_guest_subscriber_key_for(user_id)
+            subscribed = (user_id and task.has_subscriber(user_id)) or (
+                guest_key and task.has_guest_subscriber(guest_key)
+            )
+            if not subscribed:
                 raise TaskPermissionDeniedError(
                     "You must be subscribed to cancel this shared task"
                 )
@@ -206,11 +241,39 @@ class CancelTaskCommand(BaseCommand):
         :returns: The updated task model
         """
         user_id = get_user_id()
+        force_abort = is_admin and self._force
 
-        # Determine action based on task scope and force flag
+        # Per-client subscription policy pre-gate. A task type may track a finer
+        # grain than the principal (e.g. one browser tab per client); consult it
+        # first so a cancel from one client of a principal detaches only that
+        # client, keeping the (SHARED) task running for the principal's other
+        # clients. Skipped for an admin force-abort, which must terminate the task
+        # regardless of how many clients are watching.
+        if not force_abort and (
+            policy := TaskRegistry.get_subscription_policy(task.task_type)
+        ):
+            guest_key = get_guest_subscriber_key_for(user_id)
+            principal = principal_channel(user_id, guest_key)
+            if principal is not None and not policy.on_unsubscribe(
+                task, principal=principal, client_ref=self._tab_id
+            ):
+                # One client detached but the principal still has other clients on
+                # this task: keep it subscribed and running.
+                self._action_taken = "detached"
+                stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+                stats_logger.incr("gtf.task.detach")
+                logger.info("Client detached from shared task: %s", task.uuid)
+                return task
+
+        # Principal-grain decision (unchanged): abort for an admin force, a
+        # private/system task, or the last remaining subscriber; otherwise
+        # unsubscribe the calling principal. When a policy is active we only reach
+        # here once the principal's last client is gone (or for an admin force),
+        # so ``subscriber_count <= 1`` still correctly covers private/single-tab
+        # tasks.
         should_abort = (
             # Admin with force flag always aborts
-            (is_admin and self._force)
+            force_abort
             # Private tasks always abort (only one user)
             or task.is_private
             # System tasks always abort (admin only anyway)
@@ -251,8 +314,11 @@ class CancelTaskCommand(BaseCommand):
         # Track if we need to publish abort after commit
         if TaskStatus(result.status) == TaskStatus.ABORTING:
             self._should_publish_abort = True
+        elif result.status in TERMINAL_STATES:
+            # Aborted straight to terminal (queued PENDING task): no worker will
+            # publish completion, so run() must after commit.
+            self._completed_status = result.status
 
-        # Emit stats metric
         stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
         stats_logger.incr("gtf.task.abort")
 
@@ -267,35 +333,42 @@ class CancelTaskCommand(BaseCommand):
 
     def _do_unsubscribe(self, task: "Task", user_id: int | None) -> "Task":
         """
-        Execute unsubscribe operation.
+        Execute unsubscribe operation (user or embedded guest).
 
         :param task: The task to unsubscribe from
-        :param user_id: ID of user to unsubscribe
+        :param user_id: ID of user to unsubscribe, or None for an embedded guest
         :returns: The updated task model
         """
         from superset.daos.tasks import TaskDAO
 
         self._action_taken = "unsubscribed"
 
-        if not user_id or not task.has_subscriber(user_id):
-            # User not subscribed - they shouldn't be able to cancel
+        # Embedded guests subscribe by a token-derived key, not a user_id.
+        guest_key = get_guest_subscriber_key_for(user_id)
+
+        if user_id and task.has_subscriber(user_id):
+            result = TaskDAO.remove_subscriber(task.id, user_id)
+            subscriber = f"user {user_id}"
+        elif guest_key and task.has_guest_subscriber(guest_key):
+            result = TaskDAO.remove_guest_subscriber(task.id, guest_key)
+            subscriber = "guest"
+        else:
+            # Not subscribed - they shouldn't be able to cancel
             raise TaskPermissionDeniedError(
                 "You are not subscribed to this shared task"
             )
 
-        result = TaskDAO.remove_subscriber(task.id, user_id)
         if result is None:
             raise TaskPermissionDeniedError(
                 "You are not subscribed to this shared task"
             )
 
-        # Emit stats metric
         stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
         stats_logger.incr("gtf.task.unsubscribe")
 
         logger.info(
-            "User %s unsubscribed from shared task: %s",
-            user_id,
+            "%s unsubscribed from shared task: %s",
+            subscriber,
             task.uuid,
         )
 
@@ -309,6 +382,8 @@ class CancelTaskCommand(BaseCommand):
         """
         Get the action that was taken.
 
-        :returns: 'aborted' or 'unsubscribed'
+        :returns: 'aborted' (task terminated), 'unsubscribed' (principal removed
+            from a shared task that keeps running), or 'detached' (one client of the
+            principal detached while the principal's other clients keep it running)
         """
         return self._action_taken

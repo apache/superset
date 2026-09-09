@@ -647,49 +647,57 @@ class SQLExecutor:
 
         results_list = []
 
-        # Use consistent execution path for all queries
-        with self.database.get_raw_connection(catalog=catalog, schema=schema) as conn:
-            with contextlib.closing(conn.cursor()) as cursor:
-                execution_results = execute_sql_with_cursor(
-                    database=self.database,
-                    cursor=cursor,
-                    statements=[
-                        stmt.format() for stmt in transformed_script.statements
-                    ],
-                    query=query,
-                    log_query_fn=self._log_query,
+        def execute() -> list[tuple[str, SupersetResultSet | None, float, int]]:
+            with self.database.get_raw_connection(
+                catalog=catalog, schema=schema
+            ) as conn:
+                with contextlib.closing(conn.cursor()) as cursor:
+                    return execute_sql_with_cursor(
+                        database=self.database,
+                        cursor=cursor,
+                        statements=[
+                            stmt.format() for stmt in transformed_script.statements
+                        ],
+                        query=query,
+                        log_query_fn=self._log_query,
+                    )
+
+        from superset.utils.oauth2 import execute_with_oauth2_retry
+
+        execution_results = execute_with_oauth2_retry(
+            self.database, execute, can_retry=lambda: not query.progress
+        )
+
+        # If execution was stopped or returned no results, return early
+        if not execution_results:
+            return []
+
+        # Build StatementResult for each executed statement
+        # with both original and executed SQL
+        for orig_sql, (exec_sql, result_set, exec_time, rowcount) in zip(
+            original_sqls, execution_results, strict=True
+        ):
+            if result_set is not None:
+                # SELECT statement
+                df = result_set.to_pandas_df()
+                stmt_result = StatementResult(
+                    original_sql=orig_sql,
+                    executed_sql=exec_sql,
+                    data=df,
+                    row_count=len(df),
+                    execution_time_ms=exec_time,
+                )
+            else:
+                # DML statement - no data, just row count
+                stmt_result = StatementResult(
+                    original_sql=orig_sql,
+                    executed_sql=exec_sql,
+                    data=None,
+                    row_count=rowcount,
+                    execution_time_ms=exec_time,
                 )
 
-                # If execution was stopped or returned no results, return early
-                if not execution_results:
-                    return []
-
-                # Build StatementResult for each executed statement
-                # with both original and executed SQL
-                for orig_sql, (exec_sql, result_set, exec_time, rowcount) in zip(
-                    original_sqls, execution_results, strict=True
-                ):
-                    if result_set is not None:
-                        # SELECT statement
-                        df = result_set.to_pandas_df()
-                        stmt_result = StatementResult(
-                            original_sql=orig_sql,
-                            executed_sql=exec_sql,
-                            data=df,
-                            row_count=len(df),
-                            execution_time_ms=exec_time,
-                        )
-                    else:
-                        # DML statement - no data, just row count
-                        stmt_result = StatementResult(
-                            original_sql=orig_sql,
-                            executed_sql=exec_sql,
-                            data=None,
-                            row_count=rowcount,
-                            execution_time_ms=exec_time,
-                        )
-
-                    results_list.append(stmt_result)
+            results_list.append(stmt_result)
 
         return results_list
 
@@ -943,6 +951,8 @@ class SQLExecutor:
         )
 
         cache_key = self._generate_cache_key(sql, opts)
+        if cache_key is None:
+            return None
 
         if (cached := cache_manager.data_cache.get(cache_key)) is not None:
             # Reconstruct statement results from cached data
@@ -982,6 +992,9 @@ class SQLExecutor:
             return
 
         cache_key = self._generate_cache_key(sql, opts)
+        if cache_key is None:
+            return
+
         timeout = (
             (opts.cache.timeout if opts.cache else None)
             or self.database.cache_timeout
@@ -1018,14 +1031,29 @@ class SQLExecutor:
             timeout=timeout,
         )
 
-    def _generate_cache_key(self, sql: str, opts: QueryOptions) -> str:
+    def _connection_carries_user_identity(self) -> bool:
+        """
+        Whether the raw connection this executor's database hands out is
+        bound to the calling user's identity (user impersonation or
+        per-user OAuth2 tokens), such that two different users running the
+        identical SQL text can see materially different data because the
+        database itself, not just Superset, distinguishes them.
+        """
+        return bool(self.database.impersonate_user) or self.database.is_oauth2_enabled()
+
+    def _generate_cache_key(self, sql: str, opts: QueryOptions) -> str | None:
         """
         Generate cache key for query result.
 
         :param sql: SQL query
         :param opts: Query options
-        :returns: Cache key string
+        :returns: Cache key string, or ``None`` if the query must not be
+            cached because the connection carries per-user identity but
+            the effective user could not be determined -- caching in that
+            case would risk serving one user's results to another.
         """
+        from superset.utils.cache_keys import add_impersonation_cache_key_if_needed
+
         # Include relevant options in the cache key
         key_parts = [
             str(self.database.id),
@@ -1034,6 +1062,24 @@ class SQLExecutor:
             opts.schema or "",
             str(opts.limit) if opts.limit is not None else "",
         ]
+
+        if self._connection_carries_user_identity():
+            user_id = utils.get_user_id()
+            if user_id is None:
+                # Effective identity is unknown (e.g. no request context) --
+                # fail safe by refusing to cache rather than risk sharing
+                # results across users.
+                return None
+            key_parts.append(f"user:{user_id}")
+
+        # Mirror the chart-data cache-key path so CACHE_IMPERSONATION /
+        # CACHE_QUERY_BY_USER / per_user_caching semantics also scope the
+        # SQL executor's result cache.
+        impersonation_cache_dict: dict[str, Any] = {}
+        add_impersonation_cache_key_if_needed(self.database, impersonation_cache_dict)
+        if impersonation_key := impersonation_cache_dict.get("impersonation_key"):
+            key_parts.append(f"impersonation:{impersonation_key}")
+
         key_string = "|".join(key_parts)
         return hashlib.sha256(key_string.encode()).hexdigest()
 

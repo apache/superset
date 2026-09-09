@@ -340,7 +340,7 @@ describe('plugin-chart-table', () => {
         label: 'sum_sales',
       };
 
-      test('defaults the totals query metric aggregate to SUM', () => {
+      test("defaults to each metric's own aggregate", () => {
         const { queries } = buildQueryCached({
           ...basicFormData,
           query_mode: QueryMode.Aggregate,
@@ -350,9 +350,28 @@ describe('plugin-chart-table', () => {
         });
 
         expect(queries).toHaveLength(2);
-        expect(queries[1].metrics).toEqual([
-          { ...simpleMetric, aggregate: 'SUM' },
-        ]);
+        expect(queries[1].metrics).toEqual([simpleMetric]);
+      });
+
+      test('keeps COUNT_DISTINCT in the summary row by default', () => {
+        // Overriding this to SUM sums the counted column instead of counting
+        // it, which is meaningless on a numeric id and is rejected outright by
+        // the database on a non-numeric one (e.g. a uuid).
+        const countDistinctMetric = {
+          expressionType: 'SIMPLE' as const,
+          column: { column_name: 'contract_id' },
+          aggregate: 'COUNT_DISTINCT' as const,
+          label: 'contracts',
+        };
+        const { queries } = buildQueryCached({
+          ...basicFormData,
+          query_mode: QueryMode.Aggregate,
+          metrics: [countDistinctMetric],
+          groupby: ['category'],
+          show_totals: true,
+        });
+
+        expect(queries[1].metrics).toEqual([countDistinctMetric]);
       });
 
       test('overrides simple metric aggregate with totals_aggregate for the summary query only', () => {

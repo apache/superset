@@ -1303,7 +1303,7 @@ function AnnotationLayer({
             disabled={!isValid}
             onClick={submitAnnotation}
           >
-            {t('OK')}
+            {t('Confirm')}
           </Button>
         </div>
       </div>

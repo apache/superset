@@ -16,17 +16,35 @@
 # under the License.
 # pylint: disable=too-many-lines
 import logging
+from contextvars import ContextVar
 from datetime import datetime
 from io import BytesIO
 from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
-from flask import current_app, redirect, request, Response, send_file, url_for
-from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
+from flask import current_app, redirect, request, Response, url_for
+from flask_appbuilder import permission_name
+from flask_appbuilder.api import (
+    expose,
+    merge_response_func,
+    protect,
+    rison as parse_rison,
+    safe,
+)
+from flask_appbuilder.const import (
+    API_DESCRIPTION_COLUMNS_RIS_KEY,
+    API_LABEL_COLUMNS_RIS_KEY,
+    API_LIST_COLUMNS_RIS_KEY,
+    API_LIST_TITLE_RIS_KEY,
+    API_ORDER_COLUMNS_RIS_KEY,
+)
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
+from sqlalchemy import asc, case, desc
+from sqlalchemy.orm import Query
+from sqlalchemy.orm.util import AliasedClass
 from werkzeug.wrappers import Response as WerkzeugResponse
 from werkzeug.wsgi import FileWrapper
 
@@ -46,6 +64,7 @@ from superset.charts.filters import (
     ChartTagNameFilter,
 )
 from superset.charts.schemas import (
+    chart_get_list_schema,
     CHART_SCHEMAS,
     ChartCacheWarmUpRequestSchema,
     ChartGetResponseSchema,
@@ -92,7 +111,10 @@ from superset.exceptions import (
 )
 from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
-from superset.security.manager import get_extra_editor_subject_ids
+from superset.security.manager import (
+    get_extra_editor_subject_ids,
+    get_extra_editors_by_pk,
+)
 from superset.subjects.filters import (
     FilterRelatedSubjects,
     subject_type_filter,
@@ -100,7 +122,7 @@ from superset.subjects.filters import (
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.utils import json
-from superset.utils.core import sanitize_cookie_token
+from superset.utils.core import send_export_zip
 from superset.utils.screenshots import (
     ChartScreenshot,
     DEFAULT_CHART_WINDOW_SIZE,
@@ -139,9 +161,49 @@ _CHART_PURGE_BINDING = SoftDeleteBinding(
     delete_failed=ChartDeleteFailedError,
 )
 
+_viz_type_order: ContextVar[dict[str, int] | None] = ContextVar(
+    "chart_viz_type_order", default=None
+)
+
+
+class ChartSQLAInterface(SQLAInterface):
+    """Chart model interface with request-scoped display viz type ordering."""
+
+    def apply_order_by(
+        self,
+        query: Query,
+        order_column: str,
+        order_direction: str,
+        aliases_mapping: dict[str, AliasedClass] | None = None,
+        bypass_many_to_many: bool = False,
+        add_pk: bool = False,
+    ) -> Query:
+        viz_type_order = _viz_type_order.get()
+        if order_column != "viz_type" or not viz_type_order:
+            return super().apply_order_by(
+                query,
+                order_column,
+                order_direction,
+                aliases_mapping=aliases_mapping,
+                bypass_many_to_many=bypass_many_to_many,
+                add_pk=add_pk,
+            )
+
+        order_expression = case(
+            viz_type_order,
+            value=Slice.viz_type,
+            else_=len(viz_type_order),
+        )
+        direction = asc if order_direction == "asc" else desc
+        order_by_columns = [direction(order_expression), direction(Slice.viz_type)]
+        primary_key = self.get_pk()
+        if add_pk and primary_key is not None:
+            order_by_columns.append(direction(primary_key))
+        return query.order_by(*order_by_columns)
+
 
 class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
-    datamodel = SQLAInterface(Slice)
+    datamodel = ChartSQLAInterface(Slice)
 
     resource_name = "chart"
     allow_browser_login = True
@@ -309,6 +371,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     openapi_spec_component_schemas = CHART_SCHEMAS + (VersionListItemSchema,)
 
     apispec_parameter_schemas = {
+        "chart_get_list_schema": chart_get_list_schema,
         "screenshot_query_schema": screenshot_query_schema,
         "get_delete_ids_schema": get_delete_ids_schema,
         "get_export_ids_schema": get_export_ids_schema,
@@ -410,12 +473,103 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         except ChartNotFoundError:
             return self.response_404()
 
+    def pre_get_list(self, data: dict[str, Any]) -> None:
+        """Attach ``extra_editors`` to each row, matching the single-object GET."""
+        super().pre_get_list(data)
+        ids = data.get("ids", [])
+        extra_editors_by_id = get_extra_editors_by_pk(Slice, ids)
+        for row, row_id in zip(data.get("result", []), ids, strict=False):
+            if row_id in extra_editors_by_id:
+                row["extra_editors"] = extra_editors_by_id[row_id]
+
+    @expose("/", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("get")
+    @parse_rison(chart_get_list_schema)
+    @merge_response_func(
+        BaseSupersetModelRestApi.merge_order_columns, API_ORDER_COLUMNS_RIS_KEY
+    )
+    @merge_response_func(
+        BaseSupersetModelRestApi.merge_list_label_columns, API_LABEL_COLUMNS_RIS_KEY
+    )
+    @merge_response_func(
+        BaseSupersetModelRestApi.merge_description_columns,
+        API_DESCRIPTION_COLUMNS_RIS_KEY,
+    )
+    @merge_response_func(
+        BaseSupersetModelRestApi.merge_list_columns, API_LIST_COLUMNS_RIS_KEY
+    )
+    @merge_response_func(
+        BaseSupersetModelRestApi.merge_list_title, API_LIST_TITLE_RIS_KEY
+    )
+    def get_list(self, **kwargs: Any) -> Response:
+        """Get a list of charts.
+        ---
+        get:
+          summary: Get a list of charts
+          parameters:
+          - in: query
+            name: q
+            description: >-
+              Rison-encoded list query. viz_type_order may contain up to 256
+              unique visualization type slugs, each at most 250 characters,
+              in the display-name order to use when sorting by viz_type.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/chart_get_list_schema'
+          responses:
+            200:
+              description: Charts
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      ids:
+                        type: array
+                        items:
+                          type: integer
+                      count:
+                        type: integer
+                      result:
+                        type: array
+                        items:
+                          $ref: >-
+                            #/components/schemas/{{self.__class__.__name__}}.get_list
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            422:
+              $ref: '#/components/responses/422'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        return self.get_list_headless(**kwargs)
+
+    def get_list_headless(self, **kwargs: Any) -> Response:
+        """Apply client display ordering before list pagination."""
+        args = kwargs.get("rison", {})
+        viz_types = args.get("viz_type_order")
+        if args.get("order_column") != "viz_type" or not viz_types:
+            return super().get_list_headless(**kwargs)
+
+        token = _viz_type_order.set(
+            {viz_type: index for index, viz_type in enumerate(viz_types)}
+        )
+        try:
+            return super().get_list_headless(**kwargs)
+        finally:
+            _viz_type_order.reset(token)
+
     @expose("/<pk>/deck_layers/", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: (f"{self.__class__.__name__}.deck_layers"),
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.deck_layers",
         log_to_statsd=False,
     )
     def deck_layers(self, pk: int) -> Response:
@@ -679,13 +833,17 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
+        normalization_changes: object = item.pop("normalization_changes", None)
+
         # Live version identifiers before the update (empty + query-free when
         # ``ENABLE_VERSIONING_CAPTURE`` is off, so this stays inert under the
         # kill-switch).
         old_info = current_entity_version_info(Slice, pk)
 
         try:
-            changed_model = UpdateChartCommand(pk, item).run()
+            changed_model = UpdateChartCommand(
+                pk, item, normalization_changes=normalization_changes
+            ).run()
             new_info = current_entity_version_info(
                 Slice, changed_model.id, changed_model.uuid
             )
@@ -1050,7 +1208,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 task_status=cache_payload.get_status(),
             )
 
-        if cache_payload.should_trigger_task(force):
+        if cache_payload.should_trigger_task(force, expected_scope=f"chart:{chart.id}"):
             logger.info("Triggering screenshot ASYNC")
             screenshot_obj.cache.set(cache_key, ScreenshotCachePayload().to_dict())
             cache_chart_thumbnail.delay(
@@ -1112,6 +1270,12 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             return self.response_404()
 
         if cache_payload := ChartScreenshot.get_from_cache_key(digest):
+            # The digest is caller-supplied and cache entries are shared
+            # across every chart (and, via the same backend, dashboards) --
+            # without this check any cache_key learned for one chart would
+            # serve its image under a different, merely-accessible `pk`.
+            if cache_payload.get_scope() != f"chart:{chart.id}":
+                return self.response_404()
             if cache_payload.status == StatusValues.UPDATED:
                 try:
                     image = cache_payload.get_image()
@@ -1271,15 +1435,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 return self.response_404()
         buf.seek(0)
 
-        response = send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=filename,
-        )
-        if token := sanitize_cookie_token(request.args.get("token")):
-            response.set_cookie(token, "done", max_age=600)
-        return response
+        return send_export_zip(buf, filename)
 
     @expose("/favorite_status/", methods=("GET",))
     @protect()

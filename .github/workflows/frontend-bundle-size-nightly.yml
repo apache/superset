@@ -105,6 +105,7 @@ jobs:
           tool: customSmallerIsBetter
           output-file-path: bundle-size-summary.json
           external-data-json-path: bundle-size-history.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           fail-on-alert: false
           summary-always: true
 
