@@ -54,6 +54,18 @@ const config: ControlPanelConfig = {
       label: t('Query'),
       expanded: true,
       controlSetRows: [
+        [
+          {
+            name: 'granularity_sqla',
+            config: sharedControls.granularity_sqla,
+          },
+        ],
+        [
+          {
+            name: 'time_grain_sqla',
+            config: sharedControls.time_grain_sqla,
+          },
+        ],
         ['metric'],
         [
           {
