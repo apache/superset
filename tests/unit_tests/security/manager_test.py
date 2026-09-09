@@ -3050,35 +3050,53 @@ def test_raise_for_access_catalog(
     )
 
 
-def _mssql_like_database(mocker: MockerFixture, database_name: str, uri_database: str):
+MSSQL_CONN_NAME = "my_mssql_conn"
+
+
+def _mssql_database(
+    mocker: MockerFixture,
+    sqlalchemy_uri: str,
+    extra: dict | None = None,
+) -> Database:
     """
-    Build a mock database resembling an MSSQL connection: it does not support
-    catalogs (``supports_catalog`` is False, matching ``MssqlEngineSpec``, which
-    has no catalog implementation), but its SQLAlchemy URI still targets a single,
-    fixed on-server database (``uri_database``) that T-SQL lets you re-state as a
-    redundant qualifier, e.g. ``<uri_database>.dbo.temp``.
+    Build a *real* ``Database`` instance -- not a mock -- so URL parsing and
+    ``db_engine_spec`` resolution (including the real MSSQL dialect used to
+    parse T-SQL) go through the genuine code path this fix relies on, per
+    review feedback that a mock with a hardcoded ``url_object.database``
+    doesn't actually exercise ``make_url``.
+
+    ``database_name`` (``MSSQL_CONN_NAME``) is deliberately *not* any of the
+    database names used in test SQL (``abcm``, ``another_db``, ...) -- the
+    normalization this fix implements must not depend on it at all (see the
+    rename-hazard finding: ``database_name`` is a user-renameable Superset
+    label with no guaranteed relationship to the actual connected database).
     """
-    database = mocker.MagicMock()
-    database.database_name = database_name
-    database.db_engine_spec.supports_catalog = False
-    database.get_default_catalog.return_value = None
-    database.get_default_schema_for_query.return_value = None
-    database.url_object.database = uri_database
+    database = Database(
+        sqlalchemy_uri=sqlalchemy_uri,
+        database_name=MSSQL_CONN_NAME,
+        extra=json.dumps(extra) if extra else None,
+    )
+    # Schema resolution (which schema an unqualified table falls back to) is
+    # orthogonal to what these tests verify, and MSSQL's default -- probing a
+    # live connection -- has nothing to connect to here. Every test query
+    # below fully qualifies its schema, so this is never actually consulted
+    # for its return value; it's stubbed purely to avoid the live-connection
+    # attempt.
+    mocker.patch.object(database, "get_default_schema_for_query", return_value=None)
     return database
 
 
-def test_raise_for_access_catalog_qualified_self_reference_allowed(
+def test_raise_for_access_mssql_path_database_self_reference_allowed(
     mocker: MockerFixture,
     app_context: None,
 ) -> None:
     """
-    Regression test for GH #31406: a catalog-qualified query against an engine
-    that doesn't support catalogs (e.g. MSSQL) should be authorized by a plain
-    ``[db].[schema]`` schema permission when the qualifier is just a redundant
-    restatement of the connection's own database -- not denied because
-    ``get_schema_perm`` was asked to check a spurious ``[db].[db].[schema]``
-    permission that was never granted (and never created, since ``mssql``
-    doesn't support catalogs).
+    Regression test for GH #31406: a catalog-qualified query against MSSQL,
+    connected via its own recommended connection-string form (database in
+    the URL path), is authorized by a plain ``[conn].[schema]`` permission
+    when the qualifier merely restates the connection's own database -- not
+    denied because ``get_schema_perm`` was asked to check a spurious
+    ``[conn].[db].[schema]`` permission that was never granted.
     """
     sm = SupersetSecurityManager(appbuilder)
     mocker.patch.object(sm, "can_access_database", return_value=False)
@@ -3086,7 +3104,7 @@ def test_raise_for_access_catalog_qualified_self_reference_allowed(
     SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
     SqlaTable.query_datasources_by_name.return_value = []
 
-    database = _mssql_like_database(mocker, "abcm", "abcm")
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
     query = mocker.MagicMock(
         database=database,
         schema=None,
@@ -3097,21 +3115,239 @@ def test_raise_for_access_catalog_qualified_self_reference_allowed(
     # The user only has the historical 2-part schema permission -- no
     # catalog_access, no 3-part schema_access, no database_access.
     mocker.patch.object(
-        sm, "can_access", side_effect=lambda perm, vm: vm == "[abcm].[dbo]"
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
     )
 
     sm.raise_for_access(query=query)  # must not raise
 
 
-def test_raise_for_access_catalog_self_reference_matches_registered_dataset(
+def test_raise_for_access_mssql_self_reference_still_requires_own_schema_perm(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Security regression guard: normalizing a self-referential catalog only
+    removes the catalog component -- it must not widen the schema check.
+    A query against the connection's own database but a *different* schema
+    than the one granted must still be denied.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM abcm.other_schema.temp",
+    )
+
+    # Only the "dbo" schema is granted -- "other_schema" must stay denied
+    # even though "abcm" is correctly recognized as the connection's own
+    # database.
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query)
+
+
+def test_raise_for_access_mssql_self_reference_case_mismatch_still_denied(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Security regression guard for the deliberate exact-match decision: a
+    differently-cased restatement of the connection's own, statically
+    configured database (``ABCM`` vs. the configured ``abcm``) must remain
+    denied. The comparison is intentionally not case-folded -- see the
+    comment in raise_for_access for why a false negative here is preferred
+    over a false positive.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM ABCM.dbo.temp",
+    )
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query)
+
+
+def test_raise_for_access_mssql_bracketed_tsql_dialect_authorized(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The bracketed T-SQL form must parse under the real MSSQL/TSQL sqlglot
+    dialect (the generic dialect raises ParseError on bracketed identifiers)
+    and be authorized the same as the unbracketed form.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    assert database.db_engine_spec.engine == "mssql"
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM [abcm].[dbo].[temp]",
+    )
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    sm.raise_for_access(query=query)  # must not raise
+
+
+def test_raise_for_access_mssql_connect_args_database_self_reference_allowed(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    A database configured via ``connect_args`` (the "Extra" field in the UI)
+    rather than the URL path is resolved and normalized the same way.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(
+        mocker,
+        "mssql+pyodbc://user:pw@host",
+        extra={"engine_params": {"connect_args": {"database": "abcm"}}},
+    )
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM abcm.dbo.temp",
+    )
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    sm.raise_for_access(query=query)  # must not raise
+
+
+def test_raise_for_access_mssql_odbc_connect_database_self_reference_allowed(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The documented, non-default pyodbc driver bundles the database inside a
+    single opaque ``odbc_connect`` query parameter. This must be parsed out
+    and normalized the same way as a path- or connect_args-configured one.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(
+        mocker,
+        "mssql+pyodbc:///?odbc_connect="
+        "Driver%3D%7BODBC+Driver+17+for+SQL+Server%7D%3B"
+        "Server%3Dtcp%3Amyhost%2C1433%3B"
+        "Database%3Dabcm%3B"
+        "Uid%3DSuperSet%3BPwd%3Dpw%3BEncrypt%3Dyes",
+    )
+    assert database.url_object.database == ""  # not None -- must be handled
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM abcm.dbo.temp",
+    )
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    sm.raise_for_access(query=query)  # must not raise
+
+
+def test_raise_for_access_mssql_reporter_uri_still_denied(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The literal GH #31406 reporter URI (a bare host/DSN, no path, no
+    connect_args, no odbc_connect) has no statically-determinable database
+    anywhere in it -- the actual database is only known to SQL Server itself,
+    via the login's server-side default, at connect time. This PR
+    deliberately does not add a live query to resolve it, so this specific
+    connection shape remains denied even with the correct schema permission
+    granted. This documents the known, disclosed limitation -- it is not a
+    bug in the surrounding test coverage.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(mocker, "mssql+pyodbc://SuperSet:pw@abcm")
+    assert database.url_object.host == "abcm"
+    assert database.url_object.database is None
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM abcm.dbo.temp",
+    )
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query)
+
+
+def test_raise_for_access_mssql_self_reference_matches_registered_dataset(
     mocker: MockerFixture,
     app_context: None,
 ) -> None:
     """
     Regression test for the dataset-lookup half of GH #31406: under SQL Lab's
     strict ``force_dataset_match=True`` scoping, a catalog-qualified query
-    against an engine without catalog support must find a registered dataset
-    stored with ``catalog=None`` (the only form dataset creation ever
+    against a statically-resolvable MSSQL connection must find a registered
+    dataset stored with ``catalog=None`` (the only form dataset creation ever
     produces for such engines) -- not miss it because
     ``query_datasources_by_name`` was filtered by the redundant,
     self-referential catalog parsed from the SQL text.
@@ -3121,7 +3357,7 @@ def test_raise_for_access_catalog_self_reference_matches_registered_dataset(
     mocker.patch.object(sm, "is_editor", return_value=False)
     mocker.patch.object(sm, "is_guest_user", return_value=False)
 
-    database = _mssql_like_database(mocker, "abcm", "abcm")
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
     query = mocker.MagicMock(
         database=database,
         schema=None,
@@ -3137,7 +3373,7 @@ def test_raise_for_access_catalog_self_reference_matches_registered_dataset(
 
     # Registered MSSQL dataset, stored with catalog=None -- the only shape
     # dataset creation ever produces for an engine without catalog support.
-    registered_dataset = mocker.Mock(perm="[abcm].[temp](id:1)")
+    registered_dataset = mocker.Mock(perm=f"[{MSSQL_CONN_NAME}].[temp](id:1)")
 
     def fake_query_datasources_by_name(
         _database: object,
@@ -3145,11 +3381,15 @@ def test_raise_for_access_catalog_self_reference_matches_registered_dataset(
         catalog: str | None = None,
         schema: str | None = None,
     ) -> list[object]:
-        # Mirrors SqlaTable.query_datasources_by_name's real exact-match
-        # `filter_by(catalog=catalog)` semantics: a non-None `catalog` would
-        # never match the dataset's stored `catalog=None`, so this only
-        # returns the dataset if the caller normalized the redundant,
-        # self-referential catalog away first.
+        # SqlaTable.query_datasources_by_name's real implementation only adds
+        # a `catalog` filter when `catalog` is truthy (`if catalog:
+        # filters["catalog"] = catalog`); a falsy `catalog` applies no
+        # catalog filter at all, rather than matching a stored `catalog=None`
+        # specifically. This fake narrows that to require `catalog is None`
+        # outright, which is stricter than the real behavior but still
+        # correctly proves the property this test cares about: the dataset
+        # is only found once the caller has normalized the redundant,
+        # self-referential catalog away.
         if table_name == "temp" and schema == "dbo" and catalog is None:
             return [registered_dataset]
         return []
@@ -3160,7 +3400,7 @@ def test_raise_for_access_catalog_self_reference_matches_registered_dataset(
     sm.raise_for_access(query=query, force_dataset_match=True)  # must not raise
 
 
-def test_raise_for_access_catalog_unqualified_still_allowed(
+def test_raise_for_access_mssql_unqualified_still_allowed(
     mocker: MockerFixture,
     app_context: None,
 ) -> None:
@@ -3174,7 +3414,7 @@ def test_raise_for_access_catalog_unqualified_still_allowed(
     SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
     SqlaTable.query_datasources_by_name.return_value = []
 
-    database = _mssql_like_database(mocker, "abcm", "abcm")
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
     query = mocker.MagicMock(
         database=database,
         schema=None,
@@ -3182,21 +3422,23 @@ def test_raise_for_access_catalog_unqualified_still_allowed(
         sql="SELECT * FROM dbo.temp",
     )
     mocker.patch.object(
-        sm, "can_access", side_effect=lambda perm, vm: vm == "[abcm].[dbo]"
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
     )
 
     sm.raise_for_access(query=query)  # must not raise
 
 
-def test_raise_for_access_catalog_different_database_still_denied(
+def test_raise_for_access_mssql_different_database_still_denied(
     mocker: MockerFixture,
     app_context: None,
 ) -> None:
     """
     Security regression guard: a query qualified with a *different* database
     name than the one the connection actually points to must still be denied.
-    The fix must not broaden `[abcm].[dbo]` schema access into cross-database
-    access just because the engine doesn't support catalogs.
+    The fix must not broaden schema access into cross-database access just
+    because the engine doesn't support catalogs.
     """
     sm = SupersetSecurityManager(appbuilder)
     mocker.patch.object(sm, "can_access_database", return_value=False)
@@ -3204,7 +3446,7 @@ def test_raise_for_access_catalog_different_database_still_denied(
     SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
     SqlaTable.query_datasources_by_name.return_value = []
 
-    database = _mssql_like_database(mocker, "abcm", "abcm")
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
     query = mocker.MagicMock(
         database=database,
         schema=None,
@@ -3212,14 +3454,16 @@ def test_raise_for_access_catalog_different_database_still_denied(
         sql="SELECT * FROM another_db.dbo.temp",
     )
     mocker.patch.object(
-        sm, "can_access", side_effect=lambda perm, vm: vm == "[abcm].[dbo]"
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
     )
 
     with pytest.raises(SupersetSecurityException):
         sm.raise_for_access(query=query)
 
 
-def test_raise_for_access_catalog_cross_catalog_join_partially_denied(
+def test_raise_for_access_mssql_cross_catalog_join_partially_denied(
     mocker: MockerFixture,
     app_context: None,
 ) -> None:
@@ -3234,7 +3478,7 @@ def test_raise_for_access_catalog_cross_catalog_join_partially_denied(
     SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
     SqlaTable.query_datasources_by_name.return_value = []
 
-    database = _mssql_like_database(mocker, "abcm", "abcm")
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
     query = mocker.MagicMock(
         database=database,
         schema=None,
@@ -3244,7 +3488,9 @@ def test_raise_for_access_catalog_cross_catalog_join_partially_denied(
         ),
     )
     mocker.patch.object(
-        sm, "can_access", side_effect=lambda perm, vm: vm == "[abcm].[dbo]"
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
     )
 
     with pytest.raises(SupersetSecurityException) as excinfo:
@@ -3317,7 +3563,7 @@ def test_raise_for_access_catalog_self_reference_does_not_weaken_sqllab_strict_m
     SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
     SqlaTable.query_datasources_by_name.return_value = []
 
-    database = _mssql_like_database(mocker, "abcm", "abcm")
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
     query = mocker.MagicMock(
         database=database,
         schema=None,
@@ -3325,7 +3571,9 @@ def test_raise_for_access_catalog_self_reference_does_not_weaken_sqllab_strict_m
         sql="SELECT * FROM abcm.dbo.temp",
     )
     mocker.patch.object(
-        sm, "can_access", side_effect=lambda perm, vm: vm == "[abcm].[dbo]"
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
     )
 
     with pytest.raises(SupersetSecurityException):

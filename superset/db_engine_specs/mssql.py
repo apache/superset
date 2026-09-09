@@ -25,6 +25,7 @@ from typing import Any, Optional
 from flask_babel import gettext as __
 from sqlalchemy import types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
+from sqlalchemy.engine.url import URL
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
@@ -193,6 +194,42 @@ class MssqlEngineSpec(BaseEngineSpec):
         data = super().fetch_data(cursor, limit)
         # Lists of `pyodbc.Row` need to be unpacked further
         return cls.pyodbc_rows_to_tuples(data)
+
+    @classmethod
+    def get_catalog_from_engine_params(
+        cls,
+        sqlalchemy_uri: URL,
+        connect_args: dict[str, Any],
+    ) -> str | None:
+        """
+        Resolve the database from genuine, statically-configured connection
+        settings only: the URL's own database segment, an explicit
+        ``connect_args["database"]``, or a ``Database=`` entry embedded in the
+        documented ``odbc_connect`` connection-string query parameter (the
+        non-default pyodbc driver bundles the whole ODBC connection string --
+        including the database -- into that single opaque parameter, which
+        SQLAlchemy's URL parser never decomposes on its own).
+
+        Returns None when none of these statically state a database -- e.g. a
+        host/DSN-only URI that relies on the SQL login's server-side default
+        database. That default is only known to SQL Server itself, at connect
+        time; resolving it would require a live query, which this method
+        deliberately does not perform.
+        """
+        if sqlalchemy_uri.database:
+            return sqlalchemy_uri.database
+
+        if isinstance(database := connect_args.get("database"), str) and database:
+            return database
+
+        odbc_connect = sqlalchemy_uri.query.get("odbc_connect", "")
+        if isinstance(odbc_connect, str):
+            for part in odbc_connect.split(";"):
+                key, _, value = part.partition("=")
+                if key.strip().lower() == "database" and value.strip():
+                    return value.strip()
+
+        return None
 
     @classmethod
     def extract_error_message(cls, ex: Exception) -> str:

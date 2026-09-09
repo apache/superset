@@ -4686,56 +4686,78 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             denied = set()
 
+            # DB engine specs that don't model catalogs (e.g. MSSQL, where a
+            # single connection can only ever target one on-server database)
+            # never create a catalog-qualified ``catalog_access``/
+            # ``schema_access`` permission, and register datasets with
+            # ``catalog=None`` -- ``add_permissions`` and the dataset-creation
+            # flow only ever use the catalog-less form for such engines. But a
+            # dialect like T-SQL still allows (and sqlglot still parses) a
+            # fully qualified ``database.schema.table`` reference, so a query
+            # that merely re-states the connection's own database (e.g.
+            # ``abcm.dbo.temp`` on a connection already pointed at ``abcm``)
+            # yields a non-empty parsed catalog. Checking that redundant value
+            # as a real catalog -- whether building a ``[db].[db].[schema]``
+            # permission string, or filtering the dataset lookup below by
+            # ``catalog="abcm"`` -- can never match the permission or dataset
+            # that was actually granted, denying access that should be
+            # authorized.
+            #
+            # Resolved once here (not per table, since it only depends on
+            # ``database``): the database statically configured for this
+            # connection, if any -- from the URL, ``connect_args``, or (for
+            # MSSQL specifically) the ``odbc_connect`` connection-string
+            # parameter. See ``get_catalog_from_engine_params`` docstrings for
+            # what each DB engine spec considers "statically configured".
+            # ``None`` when nothing states it (e.g. a host/DSN-only URI
+            # relying on the SQL login's server-side default database) --
+            # that default is only known to the database itself, at connect
+            # time, and resolving it would require a live query, which this
+            # deliberately does not perform; such a table is left unmatched
+            # and denied, same as before this normalization existed.
+            static_connection_catalog: str | None = None
+            if not database.db_engine_spec.supports_catalog:
+                try:
+                    connect_args = database.get_extra()["engine_params"]["connect_args"]
+                except KeyError:
+                    connect_args = {}
+                static_connection_catalog = (
+                    database.db_engine_spec.get_catalog_from_engine_params(
+                        database.url_object, connect_args
+                    )
+                )
+
             # When the caller asks for strict scoping (SQL Lab raw queries,
             # MetaDB) the historical catalog_access/schema_access fallthroughs
             # are skipped and every referenced table must resolve to a
             # registered Superset dataset the user can access. Other callers
             # keep the existing semantics.
             for table_ in tables:
-                # DB engine specs that don't model catalogs (e.g. MSSQL,
-                # where a single connection can only ever target one
-                # on-server database) never create a catalog-qualified
-                # ``catalog_access``/``schema_access`` permission, and
-                # register datasets with ``catalog=None`` -- ``add_permissions``
-                # and the dataset-creation flow only ever use the catalog-less
-                # form for such engines. But a dialect like T-SQL still allows
-                # (and sqlglot still parses) a fully qualified
-                # ``database.schema.table`` reference, so a query that merely
-                # re-states the connection's own database (e.g.
-                # ``abcm.dbo.temp`` on a connection already pointed at
-                # ``abcm``) yields a non-empty ``table_.catalog``. Checking
-                # that redundant value as a real catalog -- whether building a
-                # ``[db].[db].[schema]`` permission string, or filtering the
-                # dataset lookup below by ``catalog="abcm"`` -- can never
-                # match the permission or dataset that was actually granted,
-                # denying access that should be authorized. Normalize such a
-                # self-referential catalog to ``None`` once, up front, so both
+                # Normalize a self-referential catalog to ``None`` so both
                 # checks below agree -- matching how the permission/dataset
                 # was actually created -- while a genuinely different database
                 # name is left untouched and still denied (there is no
                 # permission format to authorize it for these engines).
-                effective_catalog = table_.catalog
-                # The comparison below is intentionally exact, not case-
-                # folded. Whether two differently-cased identifiers refer to
-                # the same catalog/database is governed by the target
-                # engine's own identifier semantics (e.g. server/database
-                # collation on MSSQL, which can itself be configured
-                # case-sensitive) -- there is currently no engine-aware
-                # Superset abstraction to query that. ``denormalize_name``
-                # doesn't answer it either: it round-trips a name through
-                # SQLAlchemy's reflection layer for a specific dialect, not
-                # "are these two identifiers equal under this engine's
-                # collation." This is authorization logic, so a false
+                #
+                # The comparison is intentionally exact, not case-folded.
+                # Whether two differently-cased identifiers refer to the same
+                # catalog/database is governed by the target engine's own
+                # identifier semantics (e.g. server/database collation on
+                # MSSQL, which can itself be configured case-sensitive) --
+                # there is no engine-aware Superset abstraction to query that.
+                # ``denormalize_name`` doesn't answer it either: it round-trips
+                # a name through SQLAlchemy's reflection layer for a specific
+                # dialect, not "are these two identifiers equal under this
+                # engine's collation." This is authorization logic, so a false
                 # positive (treating two genuinely distinct databases as the
-                # same one) would broaden access; a false negative just
-                # falls back to today's pre-existing denial. Exact matching
-                # is the safer default until a real engine-aware comparison
-                # exists -- see the PR discussion on #43974 for the
-                # case-insensitive alternative considered and rejected here.
+                # same one) would broaden access; a false negative just falls
+                # back to the pre-existing denial. Exact matching is the safer
+                # default until a real engine-aware comparison exists.
+                effective_catalog = table_.catalog
                 if (
                     effective_catalog
-                    and not database.db_engine_spec.supports_catalog
-                    and effective_catalog == database.url_object.database
+                    and static_connection_catalog is not None
+                    and effective_catalog == static_connection_catalog
                 ):
                     effective_catalog = None
 
