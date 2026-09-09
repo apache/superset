@@ -22,10 +22,11 @@
  * Rewriting them to a bare `Z` would relabel the wall-clock time as UTC,
  * shifting the instant; they are returned untouched. Timezone names
  * (`UTC`, `Europe/Helsinki`) are not valid ISO offsets and are still
- * stripped the historic way.
+ * stripped the historic way. Trino renders `timestamp with time zone`
+ * with a space before the offset; that separator is accepted too.
  */
 const TS_REGEX_TZ_AWARE =
-  /^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2}:\d{2}\.?\d*)(?:Z|[+-]\d{2}:?\d{2})$/;
+  /^(\d{4}-\d{2}-\d{2})[T\s](\d{2}:\d{2}:\d{2}\.?\d*)[\s]?(?:Z|[+-]\d{2}:?\d{2})$/;
 export const TS_REGEX = /(\d{4}-\d{2}-\d{2})[\sT](\d{2}:\d{2}:\d{2}\.?\d*).*/;
 
 export default function normalizeTimestamp(value: string): string {

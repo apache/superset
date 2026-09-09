@@ -57,6 +57,18 @@ test('normalizeTimestamp should not rewrite timestamps with an explicit UTC offs
   );
 });
 
+test('normalizeTimestamp keeps Trino space-separated offsets intact', () => {
+  // Trino renders `timestamp with time zone` with a space before the
+  // offset; the old guard missed that form and TS_REGEX then stripped
+  // the offset, relabeling wall-clock time as UTC.
+  expect(normalizeTimestamp('2023-03-11 08:26:52.695 +03:00')).toEqual(
+    '2023-03-11 08:26:52.695 +03:00',
+  );
+  expect(normalizeTimestamp('2023-03-11 08:26:52 -05:00')).toEqual(
+    '2023-03-11 08:26:52 -05:00',
+  );
+});
+
 test('normalizeTimestamp preserves fractional seconds on offset-carrying values', () => {
   // DateTime64(3) arrives with milliseconds: the offset-aware passthrough
   // must keep them verbatim, not truncate to whole seconds.
