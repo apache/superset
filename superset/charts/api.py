@@ -67,6 +67,7 @@ from superset.charts.schemas import (
     chart_get_list_schema,
     CHART_SCHEMAS,
     ChartCacheWarmUpRequestSchema,
+    ChartEntityResponseSchema,
     ChartGetResponseSchema,
     ChartPostSchema,
     ChartPutSchema,
@@ -108,8 +109,10 @@ from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.commands.purge import PurgeArchivedCommand, SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO, EmbeddedChartDAO
+from superset.dashboards.schemas import DashboardDatasetSchema
 from superset.exceptions import (
     ScreenshotImageNotAvailableException,
+    SupersetSecurityException,
 )
 from superset.extensions import db, event_logger, security_manager
 from superset.models.embedded_chart import EmbeddedChart
@@ -238,6 +241,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "activity",
         "restore_version",
         "get_embedded",
+        "get_embedded_context",
         "set_embedded",
         "delete_embedded",
     }
@@ -260,6 +264,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         # declared layers too.
         "deck_layers": "read",
         "get_embedded": "read",
+        "get_embedded_context": "read",
         "set_embedded": "set_embedded",
         "delete_embedded": "set_embedded",
     }
@@ -376,6 +381,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     chart_get_response_schema = ChartGetResponseSchema()
 
     embedded_response_schema = EmbeddedChartResponseSchema()
+    chart_entity_response_schema = ChartEntityResponseSchema()
+    dashboard_dataset_schema = DashboardDatasetSchema()
     embedded_config_schema = EmbeddedChartConfigSchema()
 
     openapi_spec_tag = "Charts"
@@ -2079,6 +2086,97 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         embedded: EmbeddedChart = chart.embedded[0]
         result = self.embedded_response_schema.dump(embedded)
         return self.response(200, result=result)
+
+    @expose("/<pk>/embedded_context", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("read")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.get_embedded_context"
+        ),
+        log_to_statsd=False,
+    )
+    def get_embedded_context(self, pk: int) -> Response:
+        """Get a chart together with the dataset needed to render it.
+        ---
+        get:
+          summary: Get a chart and its dataset in one payload
+          description: >-
+            The chart analogue of a dashboard's ``/charts`` and ``/datasets``
+            sub-resources, collapsed into one call because a chart has exactly
+            one of each. Sits under the ``Chart`` read permission, so a
+            standalone embedded chart loads with the same grant its guest token
+            already needs to fetch that chart's data.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The chart id
+          responses:
+            200:
+              description: The chart and its dataset
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          slice:
+                            $ref: '#/components/schemas/ChartEntityResponseSchema'
+                          dataset:
+                            type: object
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.dashboards.api import DASHBOARD_DATASET_INACCESSIBLE_FIELDS
+
+        # Resolved through the base filters so ChartFilter's scoping -- including
+        # its embedded-guest branch -- decides what is visible here.
+        chart = self.datamodel.get(pk, self._base_filters)
+        if not chart:
+            return self.response_404()
+        try:
+            security_manager.raise_for_access(chart=chart)
+        except SupersetSecurityException:
+            return self.response_403()
+        datasource = chart.datasource
+        if datasource is None:
+            return self.response_404()
+
+        dataset = self.dashboard_dataset_schema.dump(datasource.data)
+        # A dashboard narrows member datasets the caller cannot access on their
+        # own, because it returns many datasets of uneven sensitivity. Here there
+        # is exactly one and it belongs to the chart the caller was just
+        # authorized on, so a guest holding a token for that chart keeps the
+        # rendering metadata -- columns, metrics, verbose map -- it needs to draw
+        # the chart. ``params`` is withheld even then: it is operator-authored
+        # free-form configuration rather than anything the renderer reads.
+        entitled_guest = security_manager.has_guest_access_to_chart(chart)
+        if not (security_manager.can_access_datasource(datasource) or entitled_guest):
+            for key in DASHBOARD_DATASET_INACCESSIBLE_FIELDS:
+                dataset.pop(key, None)
+        elif entitled_guest:
+            dataset.pop("params", None)
+
+        return self.response(
+            200,
+            result={
+                "slice": self.chart_entity_response_schema.dump(chart),
+                "dataset": dataset,
+            },
+        )
 
     @expose("/<pk>/embedded", methods=("POST", "PUT"))
     @protect()

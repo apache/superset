@@ -29,9 +29,16 @@ interface State {
 
 /**
  * Fetches the one chart this iframe renders, in the shape `hydrateEmbedded`
- * expects. Uses the explore endpoint because it returns the slice and its
- * dataset together, which is exactly the pair the fabricated dashboard state
- * needs and avoids a second round trip for the datasource.
+ * expects: the slice and its dataset together, which is exactly the pair the
+ * fabricated dashboard state needs.
+ *
+ * It reads them from the chart's own embedded-context endpoint rather than from
+ * `/api/v1/explore/`. Explore sits under its own `Explore` permission, which an
+ * embedded guest role does not hold, so a guest token would get a 403 and the
+ * page would dead-end in its error state. This endpoint sits under the `Chart`
+ * permission the guest already needs for `/api/v1/chart/data`, and it resolves
+ * one fixed chart instead of assembling a payload from request-supplied form
+ * data, which keeps the guest's reachable surface to what the embed needs.
  */
 export default function useExploreData(chartId: string | number): State {
   const [state, setState] = useState<State>({
@@ -44,7 +51,7 @@ export default function useExploreData(chartId: string | number): State {
     let cancelled = false;
 
     SupersetClient.get({
-      endpoint: `/api/v1/explore/?slice_id=${chartId}`,
+      endpoint: `/api/v1/chart/${chartId}/embedded_context`,
     })
       .then(({ json }) => {
         if (cancelled) return;
@@ -59,11 +66,13 @@ export default function useExploreData(chartId: string | number): State {
         }
         setState({
           data: {
+            // `form_data` on the payload already carries the datasource and
+            // viz_type the chart stack keys off.
             slice: {
               ...result.slice,
-              // `form_data` on the explore payload already carries the
-              // datasource and viz_type the chart stack keys off.
-              form_data: result.form_data ?? result.slice.form_data,
+              // The payload identifies the chart as `id`; the rest of the
+              // embedded chart stack keys off `slice_id`.
+              slice_id: Number(chartId),
             },
             dataset: result.dataset,
           },
