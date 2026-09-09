@@ -71,9 +71,21 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-          # TurboSnap (onlyChanged below) needs full history to diff
-          # against the baseline commit.
-          fetch-depth: 0
+          # TurboSnap (onlyChanged below) needs history to diff against the
+          # baseline commit, but NOT fetch-depth: 0. This Chromatic project
+          # was dormant for ~2 years (Chromatic here shipped in #21095,
+          # removed in #27232) before this workflow, so its last known
+          # baseline predates thousands of commits on a very active repo.
+          # With full history, Chromatic's CLI tries to `git log` every
+          # commit back to that ancient baseline as individual CLI args and
+          # hits the OS ARG_MAX limit (E2BIG) -- see
+          # https://github.com/chromaui/chromatic-cli/issues/432, where the
+          # Chromatic team's own recommended workaround is exactly this: a
+          # bounded depth, since a multi-year-old baseline isn't useful
+          # anyway. 500 is far more than any realistic PR needs once a
+          # recent baseline exists (i.e. after this workflow's own first
+          # successful run on master).
+          fetch-depth: 500
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Build Docker Image
