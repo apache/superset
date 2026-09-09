@@ -484,9 +484,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     function getValueRange(key: string, alignPositiveNegative: boolean) {
       const nums = data
         ?.map(row => row?.[key])
-        .filter(
-          value => typeof value === 'number' || typeof value === 'bigint',
-        )
+        .filter(value => typeof value === 'number' || typeof value === 'bigint')
         .map(value =>
           typeof value === 'bigint' ? Number(value) : value,
         ) as number[];

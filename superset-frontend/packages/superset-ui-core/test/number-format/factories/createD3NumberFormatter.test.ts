@@ -107,9 +107,7 @@ describe('createD3NumberFormatter(config)', () => {
     test('formats Number(bigint) with a float format string without throwing', () => {
       const formatter = createD3NumberFormatter({ formatString: ',.2f' });
       // Number(BigInt('9007199254740993')) is the value the formatter actually receives
-      expect(() =>
-        formatter(Number(BigInt('9007199254740993'))),
-      ).not.toThrow();
+      expect(() => formatter(Number(BigInt('9007199254740993')))).not.toThrow();
     });
     test('formats Number(bigint) with SI format (precision loss is acceptable)', () => {
       // Number(BigInt('9007199254740993')) loses the last bit — consistent with
