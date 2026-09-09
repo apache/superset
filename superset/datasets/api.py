@@ -709,8 +709,13 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             lock_entity_for_update(SqlaTable, pk)
 
         # Live version identifiers before the update (empty + query-free when
-        # ``ENABLE_VERSIONING_CAPTURE`` is off).
-        old_info = current_entity_version_info(SqlaTable, pk)
+        # ``ENABLE_VERSIONING_CAPTURE`` is off). On the conditional path the
+        # live transaction id is read under FOR SHARE: a plain read is served
+        # from the request's REPEATABLE READ snapshot on MySQL and can miss a
+        # concurrent commit, letting a stale If-Match token pass the guard.
+        old_info = current_entity_version_info(
+            SqlaTable, pk, lock_for_stale_check=is_conditional_write()
+        )
 
         try:
             raise_for_stale_write(concurrency_token_from(old_info))

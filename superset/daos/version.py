@@ -30,6 +30,7 @@ from __future__ import annotations
 
 from superset.versioning.queries import (
     current_live_transaction_id,
+    current_live_transaction_id_for_share,
     current_live_version_uuid,
     current_version_info,
     current_version_number,
@@ -67,6 +68,9 @@ class VersionDAO:
     current_version_number = staticmethod(current_version_number)
     current_version_info = staticmethod(current_version_info)
     current_live_transaction_id = staticmethod(current_live_transaction_id)
+    current_live_transaction_id_for_share = staticmethod(
+        current_live_transaction_id_for_share
+    )
     current_live_version_uuid = staticmethod(current_live_version_uuid)
     list_change_records_batch = staticmethod(list_change_records_batch)
     list_versions = staticmethod(list_versions)
