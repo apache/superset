@@ -5485,9 +5485,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
           version claim and are treated as
           :data:`DEFAULT_GUEST_TOKEN_REVOCATION_VERSION` (0), so they only become
           revoked once an admin has explicitly bumped the expected version above 0.
-        - **Per-embedded-dashboard cutoff** (``guest_token_revoked_before``): a
+        - **Per-embedded-resource cutoff** (``guest_token_revoked_before``): a
           token is revoked if its ``iat`` predates the revocation cutoff of any of
-          its embedded-dashboard resources.
+          its embedded resources, dashboard or chart.
         """
         return cls._is_guest_token_revoked_by_version(
             token
@@ -5511,31 +5511,41 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     @staticmethod
     def _is_guest_token_revoked_by_embedded(token: dict[str, Any]) -> bool:
         """Return True if the token predates a revocation on any of its
-        embedded-dashboard resources (``guest_token_revoked_before``).
+        embedded resources (``guest_token_revoked_before``).
 
         A token missing ``iat`` cannot prove it was issued after a revocation
-        cutoff, so it is treated as revoked whenever any of its dashboard
+        cutoff, so it is treated as revoked whenever any of its embedded
         resources has an active cutoff; otherwise it is not revoked.
         """
         issued_at = token.get("iat")
 
         # pylint: disable=import-outside-toplevel
+        from superset.daos.chart import EmbeddedChartDAO
         from superset.daos.dashboard import EmbeddedDashboardDAO
         from superset.models.dashboard import Dashboard
 
         for resource in token.get("resources") or []:
-            if resource.get("type") != GuestTokenResourceType.DASHBOARD.value:
-                continue
+            resource_type = resource.get("type")
             resource_id = str(resource.get("id"))
-            # A dashboard resource id may be an embedded UUID or, during the
-            # UUID migration, a legacy dashboard id. Resolve the embedded
-            # config(s) for either form (mirrors validate_guest_token_resources).
-            embedded = EmbeddedDashboardDAO.find_by_id(resource_id)
-            if embedded:
-                embedded_configs = [embedded]
+            embedded_configs: list[Any]
+            if resource_type == GuestTokenResourceType.DASHBOARD.value:
+                # A dashboard resource id may be an embedded UUID or, during the
+                # UUID migration, a legacy dashboard id. Resolve the embedded
+                # config(s) for either form (mirrors
+                # validate_guest_token_resources).
+                embedded = EmbeddedDashboardDAO.find_by_id(resource_id)
+                if embedded:
+                    embedded_configs = [embedded]
+                else:
+                    dashboard = Dashboard.get(resource_id)
+                    embedded_configs = list(dashboard.embedded) if dashboard else []
+            elif resource_type == GuestTokenResourceType.CHART.value:
+                # Charts are only ever addressed by the embedded uuid; there is
+                # no legacy raw-id path to support.
+                embedded_chart = EmbeddedChartDAO.find_by_id(resource_id)
+                embedded_configs = [embedded_chart] if embedded_chart else []
             else:
-                dashboard = Dashboard.get(resource_id)
-                embedded_configs = dashboard.embedded if dashboard else []
+                continue
             for embedded_config in embedded_configs:
                 revoked_before = getattr(
                     embedded_config, "guest_token_revoked_before", None
@@ -5552,13 +5562,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     def revoke_guest_token_access(
         self, embedded_uuid: str, before: Optional[int] = None
     ) -> None:
-        """Revoke all guest tokens issued for an embedded dashboard before
-        ``before`` (epoch seconds, default: now). Subsequent tokens are
+        """Revoke all guest tokens issued for an embedded dashboard or chart
+        before ``before`` (epoch seconds, default: now). Subsequent tokens are
         unaffected."""
         # pylint: disable=import-outside-toplevel
+        from superset.daos.chart import EmbeddedChartDAO
         from superset.daos.dashboard import EmbeddedDashboardDAO
 
-        embedded = EmbeddedDashboardDAO.find_by_id(str(embedded_uuid))
+        embedded: Any = EmbeddedDashboardDAO.find_by_id(str(embedded_uuid))
+        if embedded is None:
+            # The two embed uuid spaces are distinct, so falling through to
+            # charts on a dashboard miss is unambiguous (mirrors EmbeddedView).
+            embedded = EmbeddedChartDAO.find_by_id(str(embedded_uuid))
         if embedded is None:
             return
         # Round the cutoff up to the next whole second so that tokens whose
