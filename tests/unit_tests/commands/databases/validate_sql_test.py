@@ -179,7 +179,13 @@ def test_validate_sql_returns_serialized_annotations(
     mock_template_processor: MagicMock,
     mock_config: dict[str, Any],
 ) -> None:
-    """Test that validator annotations are serialized into the command result."""
+    """Test that validator annotations are serialized into the command result.
+
+    Also covers the case where a Jinja template renders successfully but the
+    rendered SQL is invalid: the rendered SQL is what reaches the validator, and
+    its annotations are not swallowed by template processing.
+    """
+    templated_sql = "SELECT col1 from_ {{ table }}"
     invalid_sql = "SELECT col1 from_ table1"
     mock_template_processor.process_template.return_value = invalid_sql
     mock_validator.validate.return_value = [
@@ -191,7 +197,7 @@ def test_validate_sql_returns_serialized_annotations(
         )
     ]
 
-    data = {"sql": invalid_sql, "schema": "public", "template_params": {}}
+    data = {"sql": templated_sql, "schema": "public", "template_params": {}}
     command = ValidateSQLCommand(model_id=1, data=data)
 
     assert command.run() == [
@@ -202,6 +208,7 @@ def test_validate_sql_returns_serialized_annotations(
             "message": 'ERROR: syntax error at or near "table1"',
         }
     ]
+    assert mock_validator.validate.call_args.args[0] == invalid_sql
 
 
 def test_validate_sql_template_syntax_error(

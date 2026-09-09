@@ -83,9 +83,12 @@ ADVANCED_FEATURES = {
     "sql_validation": "Supports validating SQL before running query",
 }
 
-# Engines wired to a SQL validator in the default ``SQL_VALIDATORS_BY_ENGINE``
-# config. The SQLite-family validator ships too, but is opt-in as it needs the
-# optional ``syntaqlite`` package.
+# Engines wired to a SQL validator by the ``SQL_VALIDATORS_BY_ENGINE`` default in
+# superset/config.py, which is the source of truth; restated rather than imported
+# because importing that module here would execute the operator's
+# ``superset_config.py`` on any import of this one. Keep the two in sync. The
+# SQLite-family validator ships too, but is opt-in as it needs the optional
+# ``syntaqlite`` package.
 SQL_VALIDATION_ENGINES = frozenset({"presto"})
 
 

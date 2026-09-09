@@ -555,9 +555,10 @@ for class_name, info in class_info.items():
             # returns False, is equivalent to overriding has_implicit_cancel).
             'query_cancelation': bool({'cancel_query', 'has_implicit_cancel'} & cap_methods),
             'query_cost_estimation': bool({'estimate_statement_cost', 'estimate_query_cost'} & cap_methods),
-            # SQL validation is implemented in external validator classes keyed by
-            # engine name. Mirrors SQL_VALIDATION_ENGINES in
-            # superset/db_engine_specs/lib.py; keep the two in sync.
+            # SQL validation is implemented in external validator classes keyed
+            # by engine name. Mirrors the SQL_VALIDATORS_BY_ENGINE default in
+            # superset/config.py (and SQL_VALIDATION_ENGINES in
+            # superset/db_engine_specs/lib.py); keep the three in sync.
             'sql_validation': engine_attr in {'presto'},
             'user_impersonation': bool(
                 {'impersonate_user', 'update_impersonation_config', 'get_url_for_impersonation'} & cap_methods
