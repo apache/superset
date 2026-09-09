@@ -279,6 +279,12 @@ const TabsRenderer = memo<TabsRendererProps>(
       }
       const measure = () => setTabBarHeight(tabBar.offsetHeight);
       measure();
+      // Matches the sticky header's own guard in DashboardBuilder, for
+      // environments without ResizeObserver: the bar still pins, it just
+      // keeps the height measured at mount.
+      if (!global.hasOwnProperty('ResizeObserver')) {
+        return undefined;
+      }
       const observer = new ResizeObserver(measure);
       observer.observe(tabBar);
       return () => observer.disconnect();
