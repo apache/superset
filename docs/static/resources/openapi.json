@@ -7019,6 +7019,44 @@
         },
         "type": "object"
       },
+      "EmbeddedChartConfig": {
+        "properties": {
+          "allowed_domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "allowed_domains"
+        ],
+        "type": "object"
+      },
+      "EmbeddedChartResponseSchema": {
+        "properties": {
+          "allowed_domains": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "changed_by": {
+            "$ref": "#/components/schemas/EmbeddedResponseUser"
+          },
+          "changed_on": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "chart_id": {
+            "type": "string"
+          },
+          "uuid": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "EmbeddedDashboardConfig": {
         "properties": {
           "allowed_domains": {
@@ -7088,6 +7126,23 @@
         "properties": {
           "uuid": {
             "format": "uuid",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "EmbeddedResponseUser": {
+        "properties": {
+          "first_name": {
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "type": "string"
+          },
+          "username": {
             "type": "string"
           }
         },
@@ -10542,7 +10597,8 @@
           },
           "type": {
             "enum": [
-              "dashboard"
+              "dashboard",
+              "chart"
             ]
           }
         },
@@ -16677,6 +16733,299 @@
           }
         ],
         "summary": "Get the sub-layer charts declared by a deck.gl Multiple Layers chart",
+        "tags": [
+          "Charts"
+        ]
+      }
+    },
+    "/api/v1/chart/{pk}/embedded": {
+      "delete": {
+        "parameters": [
+          {
+            "description": "The chart id",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successfully removed the configuration"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete a chart's embedded configuration",
+        "tags": [
+          "Charts"
+        ]
+      },
+      "get": {
+        "parameters": [
+          {
+            "description": "The chart id",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/EmbeddedChartResponseSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Result contains the embedded chart config"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get the chart's embedded configuration",
+        "tags": [
+          "Charts"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "description": "The chart id",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmbeddedChartConfig"
+              }
+            }
+          },
+          "description": "The embedded configuration to set",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/EmbeddedChartResponseSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successfully set the configuration"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Set a chart's embedded configuration",
+        "tags": [
+          "Charts"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "description": "The chart id",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmbeddedChartConfig"
+              }
+            }
+          },
+          "description": "The embedded configuration to set",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/EmbeddedChartResponseSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successfully set the configuration"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Update a chart's embedded configuration",
+        "tags": [
+          "Charts"
+        ]
+      }
+    },
+    "/api/v1/chart/{pk}/embedded_context": {
+      "get": {
+        "description": "The chart analogue of a dashboard's ``/charts`` and ``/datasets`` sub-resources, collapsed into one call because a chart has exactly one of each. Sits under the ``Chart`` read permission, so a standalone embedded chart loads with the same grant its guest token already needs to fetch that chart's data.",
+        "parameters": [
+          {
+            "description": "The chart id",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "properties": {
+                        "dataset": {
+                          "type": "object"
+                        },
+                        "slice": {
+                          "$ref": "#/components/schemas/ChartEntityResponseSchema"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The chart and its dataset"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get a chart and its dataset in one payload",
         "tags": [
           "Charts"
         ]
