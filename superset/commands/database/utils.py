@@ -31,6 +31,7 @@ from sqlalchemy.orm import Session
 
 from superset import security_manager
 from superset.db_engine_specs.base import GenericDBException
+from superset.exceptions import OAuth2RedirectError
 from superset.models.core import Database
 from superset.security.manager import SupersetSecurityManager
 from superset.utils.core import timeout
@@ -66,6 +67,10 @@ def _get_all_schema_names_with_retry(
     """
     try:
         return database.get_all_schema_names(catalog=catalog, cache=False)
+    except OAuth2RedirectError:
+        # Not transient: retrying would just kick off a second, redundant
+        # OAuth2 authorization redirect for the same request.
+        raise
     except GenericDBException:  # pylint: disable=broad-except
         return database.get_all_schema_names(catalog=catalog, cache=False)
 

@@ -143,6 +143,44 @@ def test_add_permissions_retries_transient_failure(mocker: MockerFixture) -> Non
     )
 
 
+def test_add_permissions_does_not_retry_oauth2_redirect(mocker: MockerFixture) -> None:
+    """
+    An ``OAuth2RedirectError`` from the schema-listing call is a control-flow
+    signal, not a transient failure: retrying it would just kick off a
+    second, redundant OAuth2 authorization redirect for the same catalog.
+    """
+    from superset.exceptions import OAuth2RedirectError
+
+    database = mocker.MagicMock()
+    database.database_name = "my_db"
+    database.db_engine_spec.supports_catalog = True
+    database.get_all_catalog_names.return_value = ["catalog1", "catalog2"]
+    oauth2_error = OAuth2RedirectError(
+        url="https://oauth.example.com/authorize",
+        tab_id="abc-123",
+        redirect_uri="https://superset.example.com/callback",
+    )
+    database.get_all_schema_names.side_effect = [oauth2_error, ["schema2"]]
+    add_permission_view_menu = mocker.patch(
+        "superset.commands.database.importers.v1.utils.security_manager."
+        "add_permission_view_menu"
+    )
+
+    add_permissions(database)
+
+    assert database.get_all_schema_names.call_count == 2
+    add_permission_view_menu.assert_has_calls(
+        [
+            mocker.call("catalog_access", "[my_db].[catalog1]"),
+            mocker.call("catalog_access", "[my_db].[catalog2]"),
+            mocker.call("schema_access", "[my_db].[catalog2].[schema2]"),
+        ]
+    )
+    # [catalog1] must never be retried: the OAuth2 redirect aborts it after
+    # a single attempt, same as a genuinely unlistable catalog would be.
+    assert add_permission_view_menu.call_count == 3
+
+
 def test_add_permissions_tolerates_failure_creating_permission_view(
     mocker: MockerFixture,
 ) -> None:

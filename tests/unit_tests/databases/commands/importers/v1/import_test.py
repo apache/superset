@@ -501,6 +501,45 @@ def test_import_database_oauth2_redirect_is_nonfatal(
     mock_add_perms.assert_called_once_with(database)
 
 
+def test_import_database_dbapi_error_during_backfill_is_nonfatal(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    ``add_permissions()`` calls ``get_all_catalog_names()`` for catalog
+    discovery outside of its own per-catalog error handling, so a mapped
+    DBAPI error from that call -- not just a connection failure -- must be
+    tolerated the same way an ``OAuth2RedirectError`` already is, instead of
+    failing the whole import.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.db_engine_specs.exceptions import SupersetDBAPIProgrammingError
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mock_add_permissions = mocker.patch(
+        "superset.commands.database.importers.v1.utils.add_permissions"
+    )
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config)
+    existing = import_database(config)
+    mock_add_permissions.reset_mock()
+    mock_add_permissions.side_effect = SupersetDBAPIProgrammingError(
+        "permission denied for catalog discovery"
+    )
+
+    again = copy.deepcopy(database_config)
+    result = import_database(again, overwrite=False)
+
+    assert result.id == existing.id
+    mock_add_permissions.assert_called_once_with(existing)
+
+
 def test_import_datasources_cli_encrypts_password(
     mocker: MockerFixture,
     session: Session,

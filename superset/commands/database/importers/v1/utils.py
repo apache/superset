@@ -27,7 +27,7 @@ from superset.commands.exceptions import ImportFailedError
 from superset.constants import PASSWORD_MASK
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+from superset.db_engine_specs.exceptions import SupersetDBAPIError
 from superset.exceptions import (
     OAuth2RedirectError,
     SupersetSecurityException,
@@ -113,7 +113,11 @@ def _sync_permissions_best_effort(database: Database) -> None:
     """
     try:
         add_permissions(database)
-    except (SupersetDBAPIConnectionError, OAuth2RedirectError) as ex:
+    except (SupersetDBAPIError, OAuth2RedirectError) as ex:
+        # ``add_permissions()`` calls ``get_all_catalog_names()`` outside of
+        # its own per-catalog error handling, so any DBAPI error mapped from
+        # that initial catalog discovery -- not just a connection failure --
+        # must be tolerated here too, or it fails the whole import.
         logger.warning(ex.message)
 
 
