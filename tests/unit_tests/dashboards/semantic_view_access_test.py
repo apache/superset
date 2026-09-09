@@ -429,10 +429,74 @@ def test_gate_denies_dashboard_of_unresolvable_datasources(
 def test_gate_still_allows_empty_dashboard(
     access_fixtures: SimpleNamespace, app_context: None
 ) -> None:
-    """A dashboard with no charts stays accessible (pinned behaviour)."""
+    """A PUBLISHED dashboard with no charts stays accessible.
+
+    Chart-less dashboards can still carry markdown content, and published
+    is the signal that content is meant to be shared; the fixture is
+    published, so this pins the fallback's allow half (sc-120032)."""
     sm = _gate_sm()
     with _gate_patches(sm, granted_perms=set()):
         sm.raise_for_access(dashboard=access_fixtures.empty_dashboard)
+
+
+def test_gate_denies_unpublished_empty_dashboard(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """sc-120032: an UNPUBLISHED chart-less dashboard is editor-only.
+
+    Previously any authenticated user could read it by URL even though it
+    appeared in no list (the list filter's fallback was already
+    published-only); markdown-only dashboards made that a content leak."""
+    # pylint: disable=import-outside-toplevel
+    from superset.exceptions import SupersetSecurityException
+    from superset.models.dashboard import Dashboard
+
+    unpublished_empty = Dashboard(
+        dashboard_title="unpublished empty",
+        slug="unpublished-empty",
+        published=False,
+        slices=[],
+    )
+    access_fixtures.session.add(unpublished_empty)
+    access_fixtures.session.flush()
+
+    sm = _gate_sm()
+    with (
+        _gate_patches(sm, granted_perms=set()),
+        pytest.raises(SupersetSecurityException),
+    ):
+        sm.raise_for_access(dashboard=unpublished_empty)
+
+
+def test_gate_denies_unpublished_dashboard_via_datasource_fallback(
+    access_fixtures: SimpleNamespace, app_context: None
+) -> None:
+    """sc-120031: the fallback is published-gated, killing the inversion.
+
+    With viewers empty, a datasource-entitled non-editor used to be
+    admitted to an UNPUBLISHED dashboard through the fallback — so
+    removing the last viewer subject silently WIDENED access (the viewer
+    branch above is published-gated). The fallback now requires published,
+    matching the list filter's fallback branch."""
+    # pylint: disable=import-outside-toplevel
+    from superset.exceptions import SupersetSecurityException
+    from superset.models.dashboard import Dashboard
+
+    unpublished_regular = Dashboard(
+        dashboard_title="unpublished regular",
+        slug="unpublished-regular",
+        published=False,
+        slices=[access_fixtures.table_slice],
+    )
+    access_fixtures.session.add(unpublished_regular)
+    access_fixtures.session.flush()
+
+    sm = _gate_sm()
+    with (
+        _gate_patches(sm, granted_perms={TABLE_PERM}),
+        pytest.raises(SupersetSecurityException),
+    ):
+        sm.raise_for_access(dashboard=unpublished_regular)
 
 
 def test_gate_denies_dashboard_with_datasource_less_chart(
