@@ -86,6 +86,11 @@ const CloseButton = styled.button`
     outline: none;
     border-bottom-left-radius: 3px;
     border-top-left-radius: 3px;
+
+    &:focus-visible {
+      outline: 2px solid ${theme.colorPrimary};
+      outline-offset: -2px;
+    }
   `}
 `;
 

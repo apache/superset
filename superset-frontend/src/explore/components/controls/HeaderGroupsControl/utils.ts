@@ -96,11 +96,11 @@ export function collectUsedHeaderGroupColumns(
   columnOptions: HeaderGroupColumnOption[] = [],
 ): string[] {
   const explicit = collectHeaderGroupColumns(groups);
-  const visibleKeys = columnOptions.map(option => option.value);
+  const visibleKeys = new Set(columnOptions.map(option => option.value));
   const used = new Set(explicit);
   explicit.forEach(identifier => {
     getClaimedColumnKeys(identifier).forEach(key => {
-      if (visibleKeys.includes(key)) {
+      if (visibleKeys.has(key)) {
         used.add(key);
       }
     });
