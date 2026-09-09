@@ -412,7 +412,7 @@ const CustomModal = ({
                 className="resizable"
                 {...getResizableConfig}
                 onResize={(
-                  _e: React.SyntheticEvent,
+                  _e: MouseEvent | TouchEvent,
                   direction: string,
                   _ref: HTMLDivElement,
                   delta: { width: number; height: number },
