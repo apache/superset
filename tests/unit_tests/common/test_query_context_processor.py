@@ -49,8 +49,8 @@ def _wire_contribution_totals(mock_query_context: MagicMock) -> None:
     ``QueryContext`` owns the normalization and the processor delegates to it, so a
     bare MagicMock would return a value the processor cannot unpack.
     """
-    mock_query_context.prepare_contribution_totals.side_effect = (
-        lambda: normalize_contribution_totals(
+    mock_query_context.prepare_contribution_totals.side_effect = lambda: (
+        normalize_contribution_totals(
             mock_query_context.queries, mock_query_context.cache_values
         )
     )
@@ -2603,4 +2603,25 @@ def test_mark_force_executed_uses_per_query_nonce(processor, mock_query_context)
         processor._mark_force_executed(query_obj, "ck", persisted=True)
     cache_manager.data_cache.set.assert_called_once_with(
         "gtf-force-nonce:task-uuid:ck", 1, timeout=123
+    )
+
+
+def test_gauge_json_metric_label_ignores_verbose_name(
+    processor: QueryContextProcessor, mock_query_context: MagicMock
+) -> None:
+    """Gauge JSON rows retain saved metric keys, unlike CSV/XLSX exports."""
+    from superset.mcp_service.chart.query_result import validate_gauge_query_result
+
+    mock_query_context.datasource.data = {"verbose_map": {"saved_sla": "SLA percent"}}
+    mock_query_context.result_format = ChartDataResultFormat.JSON
+    rows = processor.get_data(
+        pd.DataFrame({"saved_sla": [42]}), [GenericDataType.NUMERIC]
+    )
+    assert rows == [{"saved_sla": 42}]
+    assert (
+        validate_gauge_query_result(
+            {"queries": [{"data": rows}]},
+            {"viz_type": "gauge_chart", "metric": "saved_sla"},
+        )
+        is None
     )

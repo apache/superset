@@ -1,4 +1,3 @@
-/* eslint-disable camelcase */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,36 +16,33 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SetDataMaskHook } from '@superset-ui/core';
-import { SortByItem } from '../types';
+let cached: number | undefined;
 
-export interface ClientViewColumn {
-  key: string;
-  label: string;
+const css = (x: TemplateStringsArray) => x.join('\n');
+
+export default function getScrollBarSize(forceRefresh = false) {
+  if (typeof document === 'undefined') {
+    return 0;
+  }
+  if (cached === undefined || forceRefresh) {
+    const inner = document.createElement('div');
+    const outer = document.createElement('div');
+    inner.style.cssText = css`
+      width: auto;
+      height: 100%;
+      overflow: scroll;
+    `;
+    outer.style.cssText = css`
+      position: absolute;
+      visibility: hidden;
+      overflow: hidden;
+      width: 100px;
+      height: 50px;
+    `;
+    outer.append(inner);
+    document.body.append(outer);
+    cached = outer.clientWidth - inner.clientWidth;
+    outer.remove();
+  }
+  return cached;
 }
-
-export interface ClientViewSnapshot {
-  rows: Record<string, unknown>[];
-  columns: ClientViewColumn[];
-  count: number;
-}
-
-interface TableOwnState {
-  currentPage?: number;
-  pageSize?: number;
-  sortColumn?: string;
-  sortOrder?: 'asc' | 'desc';
-  searchText?: string;
-  sortBy?: SortByItem[];
-  rawSummaryColumns?: string[];
-  totalsRequested?: boolean;
-  clientView?: ClientViewSnapshot;
-}
-
-export const updateTableOwnState = (
-  setDataMask: SetDataMaskHook = () => {},
-  modifiedOwnState: TableOwnState,
-) =>
-  setDataMask({
-    ownState: modifiedOwnState,
-  });
