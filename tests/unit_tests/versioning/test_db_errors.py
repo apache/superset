@@ -21,9 +21,13 @@ metadata database."""
 
 from typing import Any
 
+import pytest
 from sqlalchemy.exc import OperationalError, ProgrammingError
 
-from superset.versioning.db_errors import is_missing_table_error
+from superset.versioning.db_errors import (
+    is_lock_contention_error,
+    is_missing_table_error,
+)
 
 
 class _FakeDriverError(Exception):
@@ -107,3 +111,61 @@ def test_connection_drop_with_no_code_is_not_missing_table() -> None:
         _FakeDriverError("server closed the connection unexpectedly"),
     )
     assert is_missing_table_error(error) is False
+
+
+# ---------------------------------------------------------------------------
+# is_lock_contention_error (sc-120050)
+# ---------------------------------------------------------------------------
+
+
+def _op_error(orig: object) -> OperationalError:
+    err = OperationalError("stmt", None, Exception("boom"))
+    err.orig = orig
+    return err
+
+
+class _Orig:
+    def __init__(self, args=(), pgcode=None, sqlstate=None):
+        self.args = args
+        if pgcode is not None:
+            self.pgcode = pgcode
+        if sqlstate is not None:
+            self.sqlstate = sqlstate
+
+
+@pytest.mark.parametrize(
+    "orig",
+    [
+        _Orig(args=(1213, "Deadlock found when trying to get lock")),
+        _Orig(args=(1205, "Lock wait timeout exceeded")),
+        _Orig(pgcode="40001"),
+        _Orig(pgcode="40P01"),
+        _Orig(pgcode="55P03"),
+        _Orig(sqlstate="40P01"),
+    ],
+)
+def test_lock_contention_positive(orig: _Orig) -> None:
+    assert is_lock_contention_error(_op_error(orig)) is True
+
+
+def test_lock_contention_text_fallback() -> None:
+    err = OperationalError("deadlock detected somewhere", None, Exception())
+    err.orig = None
+    assert is_lock_contention_error(err) is True
+
+
+@pytest.mark.parametrize(
+    "orig",
+    [
+        _Orig(args=(1146, "Table does not exist")),
+        _Orig(args=()),
+        _Orig(pgcode="42P01"),
+        None,
+    ],
+)
+def test_lock_contention_negative(orig: object) -> None:
+    assert is_lock_contention_error(_op_error(orig)) is False
+
+
+def test_lock_contention_none_input() -> None:
+    assert is_lock_contention_error(None) is False

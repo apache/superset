@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""sc-120050: real-database proof for the FOR SHARE validator read.
+"""sc-120050: real-database proof for the locked validator read.
 
 The statement-shape pins live in
 tests/unit_tests/versioning/test_version_info_locking.py; the MySQL

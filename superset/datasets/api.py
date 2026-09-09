@@ -113,11 +113,11 @@ from superset.versioning.api_helpers import (
     current_entity_version_info,
     entity_concurrency_token,
     get_version_endpoint,
-    is_lock_contention_error,
     list_versions_endpoint,
     lock_entity_for_update,
     restore_version_endpoint,
 )
+from superset.versioning.db_errors import is_lock_contention_error
 from superset.versioning.etag import (
     is_conditional_write,
     raise_for_stale_write,
@@ -716,9 +716,12 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         # live transaction id is read under an exclusive row lock: a plain
         # read is served from the request's REPEATABLE READ snapshot on MySQL
         # and can miss a concurrent commit, letting a stale If-Match token
-        # pass the guard. A lock race lost on that read (deadlock / lock
-        # wait) IS a concurrent interleave, so it maps to the same 412 retry
-        # semantics as a stale token.
+        # pass the guard. A lock race lost at that read (deadlock / lock
+        # wait) proves concurrent CONTENTION, not that this request's token
+        # is stale — so it maps to a retryable 409, and the client should
+        # retry the SAME request. (A deadlock at Continuum's version-row
+        # insert inside the command surfaces as the pre-existing 422 via the
+        # command's error mapping.)
         try:
             old_info = current_entity_version_info(
                 SqlaTable, pk, lock_for_stale_check=conditional
@@ -730,11 +733,10 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             # rollback); this clears the aborted session before responding.
             db.session.rollback()  # pylint: disable=consider-using-transaction
             return self.response(
-                412,
+                409,
                 message=_(
-                    "The dataset was changed by another user or browser tab "
-                    "after you opened it. Reopen it to pick up the latest "
-                    "version, then reapply your changes."
+                    "Another save is in progress for this dataset. "
+                    "Retry the same request."
                 ),
             )
 
@@ -811,6 +813,23 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             )
             response = self.response_422(message=str(ex))
         except DatasetUpdateFailedError as ex:
+            # The gap lock the conditional path's locking read takes on a
+            # zero-live-row range can deadlock against another conditional
+            # writer at Continuum's version-row INSERT inside the command;
+            # on_error chains the driver error as __cause__, and the update
+            # transaction has rolled back. (The post-commit override_columns
+            # refresh raises its own exception type and cannot reach this
+            # branch.) Same retryable classification as the read-point
+            # handler above: the token is not proven stale.
+            if conditional and is_lock_contention_error(ex.__cause__):
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+                return self.response(
+                    409,
+                    message=_(
+                        "Another save is in progress for this dataset. "
+                        "Retry the same request."
+                    ),
+                )
             logger.error(
                 "Error updating model %s: %s",
                 self.__class__.__name__,

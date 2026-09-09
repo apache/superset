@@ -205,27 +205,6 @@ def entity_concurrency_token(
     ) or unversioned_entity_token(entity_uuid)
 
 
-def is_lock_contention_error(ex: Exception) -> bool:
-    """Whether *ex* is a database deadlock / lock-wait failure.
-
-    A conditional write that loses a lock race (e.g. MySQL's gap-lock
-    deadlock on the version table, error 1213, or a lock wait timeout,
-    1205; Postgres serialization/deadlock SQLSTATEs 40001/40P01) has, by
-    definition, interleaved with a concurrent writer -- exactly the
-    situation ``If-Match`` exists to surface. Callers map it to the same
-    retry response as a stale token rather than a 500.
-    """
-    orig = getattr(ex, "orig", None)
-    code = getattr(orig, "args", [None])[0] if orig is not None else None
-    if code in (1213, 1205):
-        return True
-    sqlstate = getattr(orig, "pgcode", None)
-    if sqlstate in ("40001", "40P01"):
-        return True
-    text = str(ex).lower()
-    return "deadlock" in text or "lock wait timeout" in text
-
-
 def lock_entity_for_update(model_cls: type[Model], entity_id: int | None) -> None:
     """Row-lock *entity* so a conditional write's check and its update are atomic.
 
