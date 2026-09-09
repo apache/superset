@@ -23,6 +23,7 @@ and implementing cache control in MCP tools.
 """
 
 import logging
+from datetime import datetime, timezone
 from typing import Any, Dict
 
 from superset.mcp_service.common.cache_schemas import CacheStatus
@@ -51,22 +52,29 @@ def get_cache_status_from_result(
 
     cache_hit = bool(query_result.get("is_cached", False))
 
-    # Convert cache age to seconds if available
+    # Prefer the canonical producer/schema key. A bounded legacy alias remains
+    # readable only when the canonical field is absent; it must never override
+    # an explicit canonical null.
     cache_age_seconds = None
-    if cache_age := query_result.get("cache_dttm"):
+    cache_age = (
+        query_result["cached_dttm"]
+        if "cached_dttm" in query_result
+        else query_result.get("cache_dttm")
+    )
+    if cache_age is not None:
         try:
-            from datetime import datetime
-
-            if isinstance(cache_age, str):
+            if type(cache_age) is str:
                 cache_dt = datetime.fromisoformat(cache_age.replace("Z", "+00:00"))
-                cache_age_seconds = int(
-                    (datetime.now(cache_dt.tzinfo) - cache_dt).total_seconds()
+            elif type(cache_age) is datetime:
+                cache_dt = cache_age
+            else:
+                cache_dt = None
+            if cache_dt is not None and cache_dt.tzinfo is not None:
+                cache_age_seconds = max(
+                    0,
+                    int((datetime.now(timezone.utc) - cache_dt).total_seconds()),
                 )
-            elif isinstance(cache_age, datetime):
-                cache_age_seconds = int(
-                    (datetime.now(cache_age.tzinfo) - cache_age).total_seconds()
-                )
-        except Exception as e:
+        except (OverflowError, TypeError, ValueError) as e:
             logger.debug("Could not parse cache age: %s", e)
 
     return CacheStatus(
