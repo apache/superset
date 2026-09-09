@@ -42,6 +42,7 @@ on:
     types: [synchronize, opened, reopened, ready_for_review]
     paths:
       - "superset-frontend/**"
+  workflow_dispatch: {}
 
 # cancel previous workflow jobs for PRs
 concurrency:
