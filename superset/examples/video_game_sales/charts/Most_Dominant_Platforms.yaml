@@ -35,7 +35,7 @@ params:
   datasource: 21__table
   donut: true
   granularity_sqla: year
-  columns:
+  groupby:
   - publisher
   innerRadius: 45
   label_line: true

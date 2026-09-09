@@ -26,7 +26,7 @@ params:
   datasource: 23__table
   donut: true
   granularity_sqla: order_date
-  columns:
+  groupby:
   - product_line
   innerRadius: 41
   label_line: true
