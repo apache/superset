@@ -24,6 +24,12 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Report capture readiness is rechecked immediately before screenshots
+
+Scheduled report and alert captures require chart readiness to remain stable
+immediately before Chromium captures the image. A capture that re-enters a loading
+state during that window fails instead of delivering a screenshot with spinners.
+
 ### Resample "Fill the entire time range"
 
 Charts with Resample can enable **Fill the entire time range** so gap-filling
