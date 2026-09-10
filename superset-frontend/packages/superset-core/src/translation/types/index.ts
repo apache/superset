@@ -86,5 +86,3 @@ export interface TranslatorConfig {
  * Key-value mapping of translation key and the translations.
  */
 export type LocaleData = Partial<Record<Locale, Translations>>;
-
-export default {};

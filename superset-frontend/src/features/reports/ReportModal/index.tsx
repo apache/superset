@@ -195,6 +195,10 @@ function ReportModal({
       active: true,
       force_screenshot: false,
       custom_width: currentReport.custom_width,
+      // A report belongs to either a chart or a dashboard, never both. Explore can
+      // carry dashboard context even for a chart-scoped report, so send only the
+      // entity that matches the creation method; a payload with both `chart` and
+      // `dashboard` is rejected by the backend with a 422 error.
       ...(creationMethod === CreationMethod.Charts
         ? { chart: chart?.id }
         : { dashboard: dashboardId }),

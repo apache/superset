@@ -39,7 +39,11 @@ from superset import (
     security_manager,
 )
 from superset.common.db_query_status import QueryStatus
-from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
+from superset.constants import (
+    QUERY_CANCEL_KEY,
+    QUERY_DISPATCHED_KEY,
+    QUERY_EARLY_CANCEL_KEY,
+)
 from superset.dataframe import df_to_records
 from superset.db_engine_specs import BaseEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -99,6 +103,39 @@ def handle_query_error(
 ) -> dict[str, Any]:
     """Local method handling error while processing the SQL"""
     payload = payload or {}
+
+    # A stop request may have already committed STOPPED status while this
+    # exception was being raised/propagated -- this function is the general
+    # catch-all for failures anywhere in execute_sql_statements (connection
+    # setup, cancel-ID acquisition, parsing, or a per-block failure), not
+    # just ones caused by the stop itself. A terminal stop must stay
+    # terminal, so don't let an unrelated error overwrite it with FAILED.
+    #
+    # Deliberately NOT a flush()-then-refresh(query) here, unlike the other
+    # STOPPED-preservation checks in this module: the exception that got us
+    # here may itself have already set query.status (or other attributes)
+    # locally (e.g. SoftTimeLimitExceeded's own handler sets TIMED_OUT
+    # without committing). Flushing first would push that stale local state
+    # to the DB, clobbering a concurrently-committed STOPPED before this
+    # check ever gets to observe it.
+    #
+    # A targeted refresh(attribute_names=["status"]) alone isn't enough:
+    # verified empirically that even though it expires and reloads only the
+    # named attribute (so a dirty `status` itself is correctly discarded
+    # rather than written), the reload's own SELECT still triggers a normal
+    # autoflush of any OTHER dirty attribute on the session first -- e.g. a
+    # pending query.tmp_table_name or query.executed_sql set earlier would
+    # still get written before the status read. no_autoflush suppresses
+    # that: verified it emits only the targeted SELECT, with no UPDATE
+    # beforehand, and leaves other pending attributes exactly as dirty as
+    # they were (to be flushed normally by this function's own commit()
+    # below, once we're past the STOPPED check).
+    with db.session.no_autoflush:
+        db.session.refresh(query, attribute_names=["status"])
+    if query.status == QueryStatus.STOPPED:
+        payload.update({"status": query.status})
+        return payload
+
     msg = f"{prefix_message} {str(ex)}".strip()
     query.error_message = msg
     query.tmp_table_name = None
@@ -412,6 +449,21 @@ def execute_sql_statements(  # noqa: C901
 
     query = get_query(query_id=query_id)
     payload: dict[str, Any] = {"query_id": query_id}
+
+    # A stop request may have landed before this worker even started (e.g.
+    # the request was queued and the user clicked Stop before a worker
+    # picked it up). Honor it here, mirroring the per-block stopped-check
+    # further down, instead of unconditionally overwriting it back to
+    # RUNNING and dispatching the statement anyway.
+    #
+    # Same disclosed, unfixed TOCTOU residual as the other status checks in
+    # this function (see the longer comment above the pre-payload check
+    # further down): a stop committed strictly between this check and the
+    # `query.status = RUNNING` commit a few lines below is still missed.
+    if query.status == QueryStatus.STOPPED:
+        payload.update({"status": query.status})
+        return payload
+
     database = query.database
     db_engine_spec = database.db_engine_spec
     db_engine_spec.patch()
@@ -509,9 +561,14 @@ def execute_sql_statements(  # noqa: C901
         cursor = conn.cursor()
 
         cancel_query_id = db_engine_spec.get_cancel_query_id(cursor, query)
+        # Recorded unconditionally -- even when no cancel ID comes back --
+        # so cancel_query() can tell "hasn't reached the engine yet" (still
+        # safe to fabricate a stop) apart from "this engine has no cancel
+        # support" (must fail honestly) once we get here.
+        query.set_extra_json_key(QUERY_DISPATCHED_KEY, True)
         if cancel_query_id is not None:
             query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
-            db.session.commit()
+        db.session.commit()
 
         block_count = len(blocks)
         for i, block in enumerate(blocks):
@@ -563,6 +620,41 @@ def execute_sql_statements(  # noqa: C901
         # Commit the connection so CTA queries will create the table and any DML.
         if parsed_script.has_mutation() or query.select_as_cta:
             conn.commit()
+
+    # A stop request may have landed after the last per-block check but
+    # before the final statement finished (there's no next iteration to
+    # catch it on for the last block). Check again before building a SUCCESS
+    # payload or writing results to the backend -- both would otherwise
+    # disagree with the row. The results-backend-write-failure branch below
+    # has its own second check for the same reason (a stop landing while
+    # that specific write is in flight).
+    #
+    # KNOWN, DELIBERATELY UNFIXED RESIDUAL: this codebase has no DB-level
+    # locking, so every "check status, then later commit something based on
+    # what was read" pattern in this function -- this one, the
+    # results-backend-write-failure check below, the startup check before
+    # `query.status = RUNNING` is committed a few lines later, and
+    # cancel_query()'s own QUERY_DISPATCHED_KEY read/commit gap (see the
+    # disclosure comment there) -- has the same fundamental TOCTOU window: a
+    # stop committed strictly between the check and the later commit is
+    # still missed. Each check narrows its window as much as reasonably
+    # possible without locking; none of them claim to close it. Closing any
+    # of them for real needs real DB-level row locking (e.g.
+    # SELECT ... FOR UPDATE) or optimistic-concurrency versioning on the
+    # query row, neither of which is meaningfully verifiable against the
+    # sqlite backend this codebase tests against, and is deliberately not
+    # attempted here.
+    #
+    # flush() first: refresh() does NOT autoflush -- without this, any
+    # pending, uncommitted attribute set earlier in this iteration (e.g.
+    # query.executed_sql, set just before execute_query() ran) would be
+    # silently discarded and reloaded back to its previous committed value
+    # instead of surviving to the function's own later commits.
+    db.session.flush()
+    db.session.refresh(query)
+    if query.status == QueryStatus.STOPPED:
+        payload.update({"status": query.status})
+        return payload
 
     # Success, updating the query entry in database
     query.rows = result_set.size
@@ -652,6 +744,36 @@ def execute_sql_statements(  # noqa: C901
                 # For async queries (not returning results inline), mark as FAILED
                 # because results are inaccessible to the user
                 if not return_results:
+                    # A stop request may have landed and committed STOPPED
+                    # while this (potentially slow) results-backend write was
+                    # in flight. Refresh before marking FAILED -- a terminal
+                    # STOPPED must stay terminal, not be overwritten just
+                    # because the backend write also failed to complete
+                    # around the same time.
+                    #
+                    # flush() first: refresh() does NOT autoflush -- without
+                    # this, the result metadata already set earlier in this
+                    # function (rows, progress, extra "columns", select_sql,
+                    # end_time) plus the results_key = None set just above
+                    # would be silently discarded and reloaded back to their
+                    # previous (pre-execution) values instead of surviving to
+                    # this branch's own commit below.
+                    db.session.flush()
+                    db.session.refresh(query)
+                    if query.status == QueryStatus.STOPPED:
+                        # A fresh, minimal payload -- not `payload.update()`.
+                        # By this point `payload` already has the full
+                        # SUCCESS shape baked in from earlier (result data, a
+                        # nested query["state"] == SUCCESS, and a resultsKey
+                        # for a write that just failed), so patching only the
+                        # top-level "status" key would return a payload that
+                        # simultaneously claims STOPPED while still carrying
+                        # SUCCESS data and a resultsKey pointing at nothing
+                        # actually stored. Matches the shape the other
+                        # STOPPED-preservation return sites in this function
+                        # use (a plain {"query_id", "status"} pair).
+                        return {"query_id": query_id, "status": query.status}
+
                     query.status = QueryStatus.FAILED
                     query.error_message = (
                         "Failed to store query results in the results backend. "
@@ -676,8 +798,24 @@ def execute_sql_statements(  # noqa: C901
                     key,
                 )
 
-    # Only set SUCCESS if we didn't already set FAILED above
-    if query.status != QueryStatus.FAILED:
+    # Only set SUCCESS if we didn't already set FAILED above, and don't
+    # clobber a STOPPED status a concurrent stop request may have committed
+    # since the check above -- a terminal stop must stay terminal. This is a
+    # backstop for the DB row specifically (the payload/results-write
+    # consistency check already happened above); it doesn't reopen or
+    # re-narrow the same disclosed race window from that check.
+    #
+    # flush() first: refresh() does NOT autoflush -- without this, every
+    # result field set on the success path above (rows, progress, extra
+    # "columns", select_sql, end_time, results_key) would be silently
+    # discarded and reloaded back to their pre-execution (typically None)
+    # values on EVERY successful query, since nothing before this point
+    # commits them. This was a real regression caught by CI integration
+    # tests across all three DB backends (sqlite/mysql/postgres) that the
+    # unit-test suite driving this fix never exercised.
+    db.session.flush()
+    db.session.refresh(query)
+    if query.status not in (QueryStatus.FAILED, QueryStatus.STOPPED):
         query.status = QueryStatus.SUCCESS
     db.session.commit()
 
@@ -747,7 +885,41 @@ def cancel_query(query: Query) -> bool:
 
     cancel_query_id = query.extra.get(QUERY_CANCEL_KEY)
     if cancel_query_id is None:
-        return False
+        # KNOWN LIMITATION (deliberately not fixed here): this read of
+        # QUERY_DISPATCHED_KEY and execute_sql_statements()'s own commit of
+        # that same flag (see the "Recorded unconditionally" comment where
+        # it's set) are two independent transactions with no lock between
+        # them. A stop request can still land in the narrow window where
+        # this read has already happened -- deciding "not dispatched yet,
+        # safe to fabricate a stop" -- but the worker's dispatch commit
+        # lands immediately after, so the statement still gets sent to the
+        # engine even though the row was just marked STOPPED. Closing this
+        # for real needs DB-level row locking (e.g. SELECT ... FOR UPDATE)
+        # or optimistic-concurrency versioning on the query row; neither is
+        # meaningfully verifiable against the sqlite backend this codebase's
+        # tests run against, so it's out of scope here rather than a
+        # false claim of safety.
+        if query.extra.get(QUERY_DISPATCHED_KEY):
+            # execute_sql_statements() already opened a connection and asked
+            # this engine spec for a cancel handle, and still got nothing --
+            # this engine genuinely has no way to cancel a query once it's
+            # running. That's a real failure, not a race window; report it
+            # honestly rather than fabricating a stop the engine can't back.
+            return False
+        # No cancel handle has been recorded and execution hasn't reached the
+        # engine yet, so "no ID" here can only mean "too early to have one" --
+        # record the same early-cancel intent Trino's own
+        # prepare_cancel_query() records for its harder case (ID only
+        # obtainable after execution starts), so the stopped check at the top
+        # of the statement-block loop honors the request instead of leaving
+        # the query stuck at RUNNING with no avenue to ever stop it.
+        #
+        # Not committed here: the caller (QueryDAO.stop_query) commits this
+        # together with status=STOPPED in one transaction, so another
+        # request can never observe the flag set but the status still
+        # RUNNING.
+        query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
+        return True
 
     with query.database.get_sqla_engine(
         catalog=query.catalog,
