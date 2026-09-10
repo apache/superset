@@ -130,6 +130,23 @@ def freeform_where_having(form_data: dict[str, Any]) -> dict[str, str]:
     return extras
 
 
+def _as_column_list(value: Any) -> list[Any]:
+    """
+    Normalize a ``groupby``/``columns`` value into a list.
+
+    Single-select controls (e.g. the heatmap ``groupby`` Y axis, which is
+    ``multi: false``, and heatmap charts migrated via ``MigrateHeatmapChart``)
+    store the dimension as a bare string. Wrap a scalar in a one-element list,
+    mirroring ``chart_helpers.resolve_groupby``, so downstream list operations
+    (``.copy()``, ``.insert()``) do not blow up on a ``str``.
+    """
+    if value is None:
+        return []
+    if isinstance(value, str):
+        return [value]
+    return list(value)
+
+
 def columns_from_form_data(form_data: dict[str, Any]) -> list[Any]:
     """
     Derive the query's grouping/raw columns from form data.
@@ -141,10 +158,10 @@ def columns_from_form_data(form_data: dict[str, Any]) -> list[Any]:
     if form_data.get("query_mode") == "raw" and (
         form_data.get("all_columns") or form_data.get("columns")
     ):
-        return list(form_data.get("all_columns") or form_data.get("columns") or [])
+        return _as_column_list(form_data.get("all_columns") or form_data.get("columns"))
 
-    groupby_columns: list[Any] = form_data.get("groupby") or []
-    raw_columns: list[Any] = form_data.get("columns") or []
+    groupby_columns: list[Any] = _as_column_list(form_data.get("groupby"))
+    raw_columns: list[Any] = _as_column_list(form_data.get("columns"))
     # Prefer explicit raw columns only when they are actually present; a stale
     # empty ``columns: []`` key must not shadow the group-by dimensions (which
     # would silently drop the grouping and change the aggregation).

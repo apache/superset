@@ -694,7 +694,7 @@ def build_query_dicts_from_form_data(
     )
 
     x_axis_col: str | None = None
-    if is_timeseries:
+    if is_timeseries or viz_type == "heatmap_v2":
         x_axis_col = extract_x_axis_col(form_data)
         if x_axis_col and x_axis_col not in groupby:
             groupby = [x_axis_col] + groupby
