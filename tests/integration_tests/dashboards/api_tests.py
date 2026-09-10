@@ -4022,6 +4022,33 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert rv.status_code == 200
         assert rv.json == {"status": "running"}
 
+    def test_export_xlsx_status_reports_error_when_backend_unset(self):
+        """Status must not report ready when the backend was cleared after
+        upload: download_xlsx would 501, so the frontend must not claim the
+        file is downloading."""
+        from superset.dashboards.excel_export.download_link import (
+            create_download_link,
+        )
+
+        job_id = uuid.uuid4()
+        create_download_link(
+            job_id,
+            "exports",
+            "dashboard-exports/1/job.xlsx",
+            datetime.now() + timedelta(hours=1),
+            backend="superset.utils.s3.S3ExportStorage",
+        )
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+        original_storage_config = current_app.config["EXPORT_STORAGE"]
+        current_app.config["EXPORT_STORAGE"] = {"backend": None}
+        try:
+            rv = self.client.get(f"/api/v1/dashboard/export_xlsx/status/{job_id}/")
+        finally:
+            current_app.config["EXPORT_STORAGE"] = original_storage_config
+        assert rv.status_code == 200
+        assert rv.json["status"] == "error"
+
     def test_export_xlsx_status_reports_error_when_backend_changed(self):
         """Dashboard API: status never reports ready for a link the download
         endpoint will refuse after a storage-backend migration."""

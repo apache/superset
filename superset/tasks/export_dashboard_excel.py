@@ -639,7 +639,7 @@ def export_dashboard_excel(
                             # Stored naive-local to match is_expired(); the email
                             # labels its timestamps "UTC", so convert for display.
                             expires_at=expires_at.astimezone(timezone.utc),
-                            ttl_seconds=ttl,
+                            ttl_seconds=link_ttl,
                             errored=errored,
                         ),
                     )

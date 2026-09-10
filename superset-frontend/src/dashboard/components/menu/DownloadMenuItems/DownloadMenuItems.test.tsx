@@ -360,7 +360,7 @@ test('Export Data to Excel shows an "already in progress" toast when throttled',
   await userEvent.click(screen.getByText('Export Data to Excel'));
 
   await waitFor(() => {
-    expect(mockAddSuccessToast).toHaveBeenCalledWith(
+    expect(mockAddInfoToast).toHaveBeenCalledWith(
       'An export for this dashboard is already in progress.',
     );
   });

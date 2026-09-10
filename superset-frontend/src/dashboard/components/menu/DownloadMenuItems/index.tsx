@@ -325,9 +325,9 @@ export const useDownloadMenuItems = (
           EXPORT_STATUS_POLL_INTERVAL_MS,
         );
       } else {
-        addSuccessToast(
-          t('An export for this dashboard is already in progress.'),
-        );
+        // The throttle 202 carries no job_id, so there is nothing to poll and
+        // nothing is downloading here: an info toast, not a success one.
+        addInfoToast(t('An export for this dashboard is already in progress.'));
       }
     } catch (error) {
       // status comes from the response (Partial<SupersetClientResponse>), which
