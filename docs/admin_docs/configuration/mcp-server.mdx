@@ -1018,6 +1018,10 @@ For example, `previous calendar month` evaluated on July 17, 2026 resolves to
 `2026-06-01T00:00:00` through, but not including, `2026-07-01T00:00:00`.
 `Last month` is a rolling month, not the previous calendar month.
 
+On a cache hit, these bounds reflect the current request, not necessarily the
+original cached execution. A cached result can outlive a relative-range rollover;
+check `cache_status.cache_hit` before describing the bounds as execution dates.
+
 Relative expressions use Superset's server clock and configured
 `DEFAULT_RELATIVE_START_TIME` / `DEFAULT_RELATIVE_END_TIME` (both default to
 `today`, meaning midnight). Valid explicit dates are used as supplied; the server

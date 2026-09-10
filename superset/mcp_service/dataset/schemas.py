@@ -880,7 +880,9 @@ class QueryDatasetResponse(BaseModel):
             "Resolved exclusive end of the query engine's primary time range. "
             "Null means no primary upper bound is available. Report these bounds when "
             "describing results; do not infer dates from relative expressions. "
-            "Additional filters and datasource timezone adjustments still apply."
+            "Additional filters and datasource timezone adjustments still apply. "
+            "On a cache hit these bounds reflect the current request, not necessarily "
+            "the cached execution; check cache_status.cache_hit."
         ),
     )
     summary: str = Field("", description="Human-readable summary of the results")
