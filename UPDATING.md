@@ -560,9 +560,10 @@ download link. This queued path also needs a worker and SMTP transport.
 
 Direct downloads are limited by `EXCEL_EXPORT_SYNC_MAX_ROWS` (default
 `100_000`), based on the combined `row_limit` of the planned queries. Superset
-uses `ROW_LIMIT` when a query omits its limit and returns `400` before querying
-if the total exceeds the limit. Image exports also return `400` without an export
-bucket because they require background webdriver rendering.
+counts aggregate-only queries as one row, uses `ROW_LIMIT` when other queries
+omit it, and requires the background path for grouping sets. It returns `400`
+before querying if the total exceeds the limit. Image exports are hidden without
+an export bucket because they require background webdriver rendering.
 
 `POST /api/v1/dashboard/<id>/export_xlsx/` returns either `202` with a queued job
 id or `200` with the workbook. It no longer returns `501` when no bucket is set.
@@ -585,7 +586,8 @@ support more chart types.
 A second mode, **Export Images to Excel**, embeds non-table charts as rendered
 images (which viz types stay tabular is controlled by
 `EXCEL_EXPORT_TABLE_VIZ_TYPES`). It renders through the headless webdriver, so the
-menu option only appears when the webdriver screenshot feature flags
+menu option only appears when an export bucket is configured and the webdriver
+screenshot feature flags
 (`ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS`,
 `ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT`) are enabled.
 

@@ -132,6 +132,21 @@ test('Export Images to Excel is hidden when the webdriver is not enabled', () =>
   expect(screen.queryByText('Export Images to Excel')).not.toBeInTheDocument();
 });
 
+test('Export Images to Excel is hidden when export storage is not configured', () => {
+  enableWebDriverScreenshot();
+  render(<MenuWrapper />, {
+    useRedux: true,
+    initialState: {
+      dashboardInfo: {
+        common: { conf: { EXCEL_EXPORT_STORAGE_CONFIGURED: false } },
+      },
+    },
+  });
+
+  expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();
+  expect(screen.queryByText('Export Images to Excel')).not.toBeInTheDocument();
+});
+
 test('Excel export items are hidden when userCanExport is false', () => {
   render(<MenuWrapperWithProps userCanExport={false} />, { useRedux: true });
 

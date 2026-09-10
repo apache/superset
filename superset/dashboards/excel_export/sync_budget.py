@@ -18,9 +18,11 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import Any
 
+from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
 
 from superset.dashboards.excel_export.layout import get_charts_in_layout_order
@@ -28,6 +30,8 @@ from superset.dashboards.excel_export.workbook import (
     resolve_query_context,
     ResolvedQueryContexts,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -48,9 +52,22 @@ class InlineExportPlan:
 
 
 def _finite_row_limit(query: Any) -> int | None:
-    """Return the limit; missing, null, and zero use ``ROW_LIMIT``."""
+    """Return a safe upper bound for one query's result rows."""
     if not isinstance(query, dict):
         return None
+    # Grouping sets do not apply row_limit and may fan out into several queries.
+    if query.get("grouping_sets"):
+        return None
+    columns = query.get("columns")
+    metrics = query.get("metrics")
+    if (
+        columns == []
+        and isinstance(metrics, list)
+        and metrics
+        and not query.get("is_timeseries")
+    ):
+        # A metric query with no grouping columns returns one aggregate row.
+        return 1
     row_limit = query.get("row_limit") or current_app.config["ROW_LIMIT"]
     if isinstance(row_limit, bool) or not isinstance(row_limit, int):
         return None
@@ -74,10 +91,15 @@ def _row_total(query_contexts: ResolvedQueryContexts) -> int | None:
 
 def plan_inline_export(dashboard: Any) -> InlineExportPlan:
     """Resolve a dashboard's queries and calculate its direct-download size."""
-    query_contexts: ResolvedQueryContexts = {
-        chart.id: resolve_query_context(chart)
-        for chart in get_charts_in_layout_order(dashboard)
-    }
+    query_contexts: ResolvedQueryContexts = {}
+    for chart in get_charts_in_layout_order(dashboard):
+        try:
+            query_contexts[chart.id] = resolve_query_context(chart)
+        except SoftTimeLimitExceeded:
+            raise
+        except Exception:  # pylint: disable=broad-except
+            logger.exception("Skipping chart %s while planning Excel export", chart.id)
+            query_contexts[chart.id] = None
     return InlineExportPlan(
         query_contexts=query_contexts,
         requested_rows=_row_total(query_contexts),

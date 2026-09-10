@@ -58,8 +58,9 @@ Notes on the generated workbook:
 Dashboard data exports need no configuration. By default, Superset builds the
 workbook during the request and returns it to the browser. The combined
 `row_limit` of its queries must not exceed `EXCEL_EXPORT_SYNC_MAX_ROWS` (100,000
-by default). Queries without a `row_limit` use `ROW_LIMIT`. Keep this setting
-within your web server's request timeout.
+by default). Aggregate-only queries count as one row; other queries without a
+`row_limit` use `ROW_LIMIT`. Queries that use grouping sets require the
+background path. Keep this setting within your web server's request timeout.
 
 For larger data exports and all image exports, configure the background path:
 
@@ -78,8 +79,9 @@ For larger data exports and all image exports, configure the background path:
 reports and thumbnails (`WEBDRIVER_*`,
 plus the `ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS` and
 `ENABLE_DASHBOARD_DOWNLOAD_WEBDRIVER_SCREENSHOT` feature flags). The menu option
-is hidden when those flags are off; if the webdriver is unreachable, image
-charts come back empty even though the data export path still works.
+is hidden without an export bucket or when those flags are off. If the
+webdriver is unreachable, image charts come back empty even though the data
+export path still works.
 
 Deployments that override `CELERY_CONFIG` must add
 `"superset.tasks.export_dashboard_excel"` to the `imports` tuple, or the task

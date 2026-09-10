@@ -556,6 +556,9 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     # should not expose API TOKEN to frontend
     frontend_config = {k: _get_frontend_config_value(k) for k in FRONTEND_CONF_KEYS}
+    frontend_config["EXCEL_EXPORT_STORAGE_CONFIGURED"] = bool(
+        app.config["EXCEL_EXPORT_S3_BUCKET"]
+    )
 
     frontend_config.update(_soft_delete_conf())
 

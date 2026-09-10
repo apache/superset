@@ -21,6 +21,7 @@ from typing import Any
 from unittest import mock
 
 import pytest
+from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
 
 from superset.dashboards.excel_export.sync_budget import plan_inline_export
@@ -111,6 +112,50 @@ def test_plan_uses_default_when_row_limit_is_omitted(
     assert plan_inline_export(mock.MagicMock()).requested_rows == 350
 
 
+def test_plan_counts_aggregate_only_queries_as_one_row(
+    charts: mock.MagicMock,
+) -> None:
+    charts.return_value = [
+        _chart(chart_id, {"columns": [], "metrics": ["count"]})
+        for chart_id in (10, 20, 30)
+    ]
+
+    assert plan_inline_export(mock.MagicMock()).requested_rows == 3
+
+
+def test_plan_does_not_treat_timeseries_as_single_row(
+    charts: mock.MagicMock,
+) -> None:
+    current_app.config["ROW_LIMIT"] = 250
+    charts.return_value = [
+        _chart(
+            10,
+            {"columns": [], "metrics": ["count"], "is_timeseries": True},
+        )
+    ]
+
+    assert plan_inline_export(mock.MagicMock()).requested_rows == 250
+
+
+def test_plan_rejects_grouping_sets(charts: mock.MagicMock) -> None:
+    charts.return_value = [
+        _chart(
+            10,
+            {
+                "columns": ["country"],
+                "metrics": ["count"],
+                "grouping_sets": [["country"], []],
+                "row_limit": 100,
+            },
+        )
+    ]
+
+    plan = plan_inline_export(mock.MagicMock())
+
+    assert plan.requested_rows is None
+    assert plan.fits_row_budget is False
+
+
 def test_plan_ignores_charts_that_cannot_be_exported(charts: mock.MagicMock) -> None:
     # Skipped charts add no rows.
     charts.return_value = [_chart(10, {"row_limit": 100}), _unexportable_chart(20)]
@@ -171,3 +216,37 @@ def test_plan_resolves_each_chart_exactly_once(charts: mock.MagicMock) -> None:
         plan_inline_export(mock.MagicMock())
 
     assert resolve.call_args_list == [mock.call(first), mock.call(second)]
+
+
+def test_plan_skips_a_chart_when_context_resolution_fails(
+    charts: mock.MagicMock,
+) -> None:
+    first = _chart(10, {"row_limit": 25})
+    malformed = _chart(20, {"row_limit": 50})
+    charts.return_value = [first, malformed]
+
+    with mock.patch(f"{MODULE}.resolve_query_context") as resolve:
+        resolve.side_effect = [
+            {"queries": [{"row_limit": 25}]},
+            ValueError("invalid legacy params"),
+        ]
+        plan = plan_inline_export(mock.MagicMock())
+
+    assert plan.query_contexts == {
+        10: {"queries": [{"row_limit": 25}]},
+        20: None,
+    }
+    assert plan.requested_rows == 25
+
+
+def test_plan_propagates_soft_time_limits(charts: mock.MagicMock) -> None:
+    charts.return_value = [_chart(10, {"row_limit": 25})]
+
+    with (
+        mock.patch(
+            f"{MODULE}.resolve_query_context",
+            side_effect=SoftTimeLimitExceeded,
+        ),
+        pytest.raises(SoftTimeLimitExceeded),
+    ):
+        plan_inline_export(mock.MagicMock())

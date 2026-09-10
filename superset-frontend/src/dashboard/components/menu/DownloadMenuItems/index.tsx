@@ -74,6 +74,11 @@ export const useDownloadMenuItems = (
 
   const { addDangerToast, addSuccessToast } = useToasts();
   const dataMask = useSelector((state: RootState) => state.dataMask);
+  const isExcelExportStorageConfigured = useSelector(
+    (state: RootState) =>
+      state.dashboardInfo?.common?.conf?.EXCEL_EXPORT_STORAGE_CONFIGURED !==
+      false,
+  );
   // Disable both Excel actions while either export is running.
   const [exportingXlsx, setExportingXlsx] = useState<'data' | 'images' | null>(
     null,
@@ -263,7 +268,7 @@ export const useDownloadMenuItems = (
             onClick: () => onExportXlsx('data'),
           },
           // Image exports require the same webdriver flags as PDF and PNG.
-          ...(isWebDriverScreenshotEnabled
+          ...(isWebDriverScreenshotEnabled && isExcelExportStorageConfigured
             ? [
                 {
                   key: 'export-xlsx-images',
