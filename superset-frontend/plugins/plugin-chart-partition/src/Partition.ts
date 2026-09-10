@@ -30,7 +30,7 @@ import {
   sanitizeHtml,
 } from '@superset-ui/core';
 
-interface PartitionDataNode {
+export interface PartitionDataNode {
   // A plain string for the metric row and the first grouping level;
   // an array of the full ancestor path (e.g. ["a", "a.1", "a.1.1"])
   // for any node below that, per PartitionViz.nest_values /
@@ -41,7 +41,7 @@ interface PartitionDataNode {
   children?: PartitionDataNode[];
 }
 
-interface PartitionNode extends HierarchyNode<PartitionDataNode> {
+export interface PartitionNode extends HierarchyNode<PartitionDataNode> {
   x: number;
   dx: number;
   y: number;
@@ -75,7 +75,7 @@ interface IcicleProps {
 
 // Compute dx, dy, x, y for each node and
 // return an array of nodes in breadth-first order
-function init(root: PartitionNode): PartitionNode[] {
+export function init(root: PartitionNode): PartitionNode[] {
   const flat: PartitionNode[] = [];
   const dy = 1 / (root.height + 1);
   // Tracks, per parent, how much of its [x, x+dx] band has already been
