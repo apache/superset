@@ -3636,6 +3636,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         _, kwargs = mock_task.apply_async.call_args
         assert kwargs["task_id"] == job_id
         assert kwargs["kwargs"]["dashboard_id"] == dashboard.id
+        # The acquisition token is threaded into the task so its release is an
+        # ownership-checked compare-and-delete, not a blind delete.
+        assert kwargs["kwargs"]["lock_token"] == mock_acquire.return_value.token
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @with_config({"EXPORT_STORAGE": {"bucket": "exports", "backend": MagicMock()}})

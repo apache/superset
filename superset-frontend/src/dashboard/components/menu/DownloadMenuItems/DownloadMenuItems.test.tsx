@@ -94,13 +94,12 @@ const MenuWrapperWithProps = (
   return <Menu forceSubMenuRender items={menuItems} />;
 };
 
-const rawDownloadResponse = () =>
-  ({
-    headers: {
-      get: () => 'attachment; filename="export.xlsx"',
-    },
-    blob: jest.fn().mockResolvedValue(new Blob(['PK'])),
-  }) as never;
+const lastIframeSrc = () => {
+  const iframes = document.body.querySelectorAll('iframe');
+  return iframes.length
+    ? iframes[iframes.length - 1].getAttribute('src')
+    : null;
+};
 
 const originalCreateObjectURL = window.URL.createObjectURL;
 const originalRevokeObjectURL = window.URL.revokeObjectURL;
@@ -215,16 +214,12 @@ test('Export Data to Excel polls status and auto-downloads once ready', async ()
   mockSupersetClient.post.mockResolvedValue({
     json: { job_id: 'abc' },
   } as never);
-  window.URL.createObjectURL = jest.fn().mockReturnValue('blob:url');
-  window.URL.revokeObjectURL = jest.fn();
-  mockSupersetClient.get
-    .mockResolvedValueOnce({
-      json: {
-        status: 'ready',
-        download_url: '/api/v1/dashboard/export_xlsx/download/abc/',
-      },
-    } as never)
-    .mockResolvedValueOnce(rawDownloadResponse());
+  mockSupersetClient.get.mockResolvedValueOnce({
+    json: {
+      status: 'ready',
+      download_url: '/api/v1/dashboard/export_xlsx/download/abc/',
+    },
+  } as never);
 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
@@ -240,33 +235,31 @@ test('Export Data to Excel polls status and auto-downloads once ready', async ()
     jest.advanceTimersByTime(3000);
   });
 
+  // The download streams through a hidden iframe (no second SupersetClient.get,
+  // so the whole workbook is never buffered in page memory).
   await waitFor(() => {
     expect(mockSupersetClient.get).toHaveBeenCalledWith({
       endpoint: '/api/v1/dashboard/export_xlsx/status/abc/',
     });
-    expect(mockSupersetClient.get).toHaveBeenCalledWith({
-      endpoint: '/api/v1/dashboard/export_xlsx/download/abc/',
-      parseMethod: 'raw',
-    });
+    expect(lastIframeSrc()).toBe('/api/v1/dashboard/export_xlsx/download/abc/');
     expect(mockAddSuccessToast).toHaveBeenCalledWith(
       'Your export is ready and downloading.',
     );
   });
 });
 
-test('a dead download link surfaces a retryable toast without navigating', async () => {
+test('the ready download streams via iframe and never navigates the page', async () => {
   jest.useFakeTimers();
   mockSupersetClient.post.mockResolvedValue({
     json: { job_id: 'abc' },
   } as never);
-  mockSupersetClient.get
-    .mockResolvedValueOnce({
-      json: {
-        status: 'ready',
-        download_url: '/api/v1/dashboard/export_xlsx/download/abc/',
-      },
-    } as never)
-    .mockRejectedValueOnce(new Error('410 gone'));
+  mockSupersetClient.get.mockResolvedValueOnce({
+    json: {
+      status: 'ready',
+      download_url: '/api/v1/dashboard/export_xlsx/download/abc/',
+    },
+  } as never);
+  const hrefBefore = window.location.href;
 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
@@ -277,12 +270,12 @@ test('a dead download link surfaces a retryable toast without navigating', async
     jest.advanceTimersByTime(3000);
   });
 
-  await waitFor(() => {
-    expect(mockAddDangerToast).toHaveBeenCalledWith(
-      'Your export could not be downloaded. It may have expired; please export again.',
-    );
-  });
-  expect(mockAddSuccessToast).not.toHaveBeenCalled();
+  // Download goes through a hidden iframe: the dashboard (and an embedding
+  // parent) is never navigated away, and the file is not buffered in memory.
+  await waitFor(() =>
+    expect(lastIframeSrc()).toBe('/api/v1/dashboard/export_xlsx/download/abc/'),
+  );
+  expect(window.location.href).toBe(hrefBefore);
 });
 
 test('Export Data to Excel keeps polling while status is pending', async () => {
@@ -611,10 +604,7 @@ test('a "running" status restarts the wait window, so queue delay is not counted
         status: 'ready',
         download_url: '/api/v1/dashboard/export_xlsx/download/abc/',
       },
-    } as never)
-    .mockResolvedValueOnce(rawDownloadResponse());
-  window.URL.createObjectURL = jest.fn().mockReturnValue('blob:url');
-  window.URL.revokeObjectURL = jest.fn();
+    } as never);
 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
@@ -639,10 +629,7 @@ test('a "running" status restarts the wait window, so queue delay is not counted
     jest.advanceTimersByTime(3000);
   });
   await waitFor(() => {
-    expect(mockSupersetClient.get).toHaveBeenCalledWith({
-      endpoint: '/api/v1/dashboard/export_xlsx/download/abc/',
-      parseMethod: 'raw',
-    });
+    expect(lastIframeSrc()).toBe('/api/v1/dashboard/export_xlsx/download/abc/');
     expect(mockAddSuccessToast).toHaveBeenCalledWith(
       'Your export is ready and downloading.',
     );
@@ -661,10 +648,7 @@ test('a transient poll failure keeps polling and still downloads', async () => {
         status: 'ready',
         download_url: '/api/v1/dashboard/export_xlsx/download/abc/',
       },
-    } as never)
-    .mockResolvedValueOnce(rawDownloadResponse());
-  window.URL.createObjectURL = jest.fn().mockReturnValue('blob:url');
-  window.URL.revokeObjectURL = jest.fn();
+    } as never);
 
   render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
 
@@ -681,10 +665,7 @@ test('a transient poll failure keeps polling and still downloads', async () => {
     jest.advanceTimersByTime(3000);
   });
   await waitFor(() => {
-    expect(mockSupersetClient.get).toHaveBeenCalledWith({
-      endpoint: '/api/v1/dashboard/export_xlsx/download/abc/',
-      parseMethod: 'raw',
-    });
+    expect(lastIframeSrc()).toBe('/api/v1/dashboard/export_xlsx/download/abc/');
     expect(mockAddSuccessToast).toHaveBeenCalledWith(
       'Your export is ready and downloading.',
     );
@@ -779,4 +760,31 @@ test('unmounting stops the polling loop', async () => {
     jest.advanceTimersByTime(30000);
   });
   expect(mockSupersetClient.get).toHaveBeenCalledTimes(1);
+});
+
+test('the pending toast is announced once, not re-emitted on every poll', async () => {
+  jest.useFakeTimers();
+  mockSupersetClient.post.mockResolvedValue({
+    json: { job_id: 'abc' },
+  } as never);
+  mockSupersetClient.get.mockResolvedValue({
+    json: { status: 'pending' },
+  } as never);
+
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
+
+  await userEvent.click(screen.getByText('Export Data to Excel'));
+  await waitFor(() => expect(mockAddInfoToast).toHaveBeenCalledTimes(1));
+
+  // Several poll cycles later, no additional pending toast has been emitted:
+  // re-emitting would spawn a fresh role="alert" every poll for a slow export.
+  for (let i = 0; i < 4; i += 1) {
+    await act(async () => {
+      jest.advanceTimersByTime(3000);
+    });
+  }
+  await waitFor(() =>
+    expect(mockSupersetClient.get.mock.calls.length).toBeGreaterThan(3),
+  );
+  expect(mockAddInfoToast).toHaveBeenCalledTimes(1);
 });

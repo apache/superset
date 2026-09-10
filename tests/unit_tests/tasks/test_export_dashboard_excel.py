@@ -920,6 +920,29 @@ def test_query_context_is_stamped_with_the_dashboard_id(
     assert payload["form_data"]["dashboardId"] == 1
 
 
+def test_lock_released_with_acquisition_token(mocks: dict[str, Any]) -> None:
+    """The release must carry the acquisition token so a TTL-expired,
+    reacquired lock owned by another export is left untouched (compare-and-
+    delete), not blindly deleted."""
+    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
+    mocks["ChartDataCommand"].return_value.run.return_value = {
+        "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
+    }
+
+    from superset.tasks.export_dashboard_excel import export_dashboard_excel
+
+    export_dashboard_excel(
+        dashboard_id=1,
+        user_id=2,
+        active_data_mask={},
+        job_id=JOB_ID,
+        lock_token="tok-123",  # noqa: S106
+    )
+
+    _, kwargs = mocks["ReleaseDistributedLock"].call_args
+    assert kwargs["token"] == "tok-123"  # noqa: S105
+
+
 def test_inflight_lock_released_on_success(mocks: dict[str, Any]) -> None:
     mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Good")]
     mocks["ChartDataCommand"].return_value.run.return_value = {
@@ -931,7 +954,7 @@ def test_inflight_lock_released_on_success(mocks: dict[str, Any]) -> None:
     # The distributed lock is released for this user+dashboard when the task
     # settles (namespace + params match what the API acquired).
     mocks["ReleaseDistributedLock"].assert_called_once_with(
-        "excel_export", {"user_id": 2, "dashboard_id": 1}
+        "excel_export", {"user_id": 2, "dashboard_id": 1}, token=None
     )
     mocks["ReleaseDistributedLock"].return_value.run.assert_called_once_with()
 
@@ -977,7 +1000,9 @@ def test_guest_export_reconstructs_guest_user_and_releases_its_lock_slot(
     # The file still lands in storage for the status-poll download path.
     mocks["storage_backend"].upload_file.assert_called_once()
     mocks["ReleaseDistributedLock"].assert_called_once_with(
-        "excel_export", {"user_id": guest_lock_slot(token), "dashboard_id": 1}
+        "excel_export",
+        {"user_id": guest_lock_slot(token), "dashboard_id": 1},
+        token=None,
     )
     assert guest_lock_slot(token) != 0
 
@@ -1251,7 +1276,9 @@ def test_lock_released_and_failure_recorded_when_user_resolution_fails(
         )
 
     mocks["ReleaseDistributedLock"].assert_called_once_with(
-        "excel_export", {"user_id": guest_lock_slot(token), "dashboard_id": 1}
+        "excel_export",
+        {"user_id": guest_lock_slot(token), "dashboard_id": 1},
+        token=None,
     )
     mocks["mark_export_failed"].assert_called_once()
 
@@ -1268,6 +1295,6 @@ def test_inflight_lock_released_on_failure(mocks: dict[str, Any]) -> None:
 
     # The lock is freed in ``finally`` even when the export fails.
     mocks["ReleaseDistributedLock"].assert_called_once_with(
-        "excel_export", {"user_id": 2, "dashboard_id": 1}
+        "excel_export", {"user_id": 2, "dashboard_id": 1}, token=None
     )
     mocks["ReleaseDistributedLock"].return_value.run.assert_called_once_with()

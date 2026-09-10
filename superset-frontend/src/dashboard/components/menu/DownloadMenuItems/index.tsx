@@ -210,40 +210,26 @@ export const useDownloadMenuItems = (
     }
   };
 
-  const triggerExportDownload = async (downloadUrl: string) => {
-    // Fetch the file and save it via an anchor instead of navigating: a link
-    // whose object is already gone answers a JSON error, and a navigation
-    // would replace the dashboard (fatal inside an embedded iframe) instead
-    // of surfacing a retryable toast.
-    const response = await SupersetClient.get({
-      endpoint: downloadUrl,
-      parseMethod: 'raw',
-    });
-    const disposition = response.headers.get('Content-Disposition');
-    let fileName = 'dashboard_export.xlsx';
-    if (disposition) {
-      try {
-        const parsed = parseContentDisposition(disposition);
-        if (parsed?.parameters?.filename) {
-          fileName = parsed.parameters.filename;
-        }
-      } catch (error) {
-        logging.warn('Failed to parse Content-Disposition header:', error);
+  const triggerExportDownload = (downloadUrl: string) => {
+    // Stream the file straight to disk via a hidden iframe. The endpoint sends
+    // Content-Disposition: attachment, so the browser saves it without
+    // navigating the dashboard away (fatal inside an embedded iframe) and
+    // without buffering the whole workbook in tab memory the way fetch().blob()
+    // would. The status endpoint already confirmed the link is ready and
+    // backend-matched, so the only failure left is the narrow race where the
+    // object is removed between that check and this click; such an error
+    // response loads invisibly in the iframe and leaves the page untouched.
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = downloadUrl;
+    document.body.appendChild(iframe);
+    // Remove the iframe after the browser has taken over the download; removal
+    // does not cancel a download already handed off to the browser.
+    setTimeout(() => {
+      if (iframe.parentNode) {
+        iframe.parentNode.removeChild(iframe);
       }
-    }
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    try {
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    } finally {
-      window.URL.revokeObjectURL(url);
-    }
+    }, EXPORT_STATUS_POLL_INTERVAL_MS);
   };
 
   const pollExportStatus = (jobId: string, pollState: ExportPollState) => {
@@ -266,18 +252,8 @@ export const useDownloadMenuItems = (
         } = json as ExportStatusResponse;
         if (status === 'ready') {
           if (downloadUrl) {
-            triggerExportDownload(downloadUrl)
-              .then(() =>
-                addSuccessToast(t('Your export is ready and downloading.')),
-              )
-              .catch(error => {
-                logging.error(error);
-                addDangerToast(
-                  t(
-                    'Your export could not be downloaded. It may have expired; please export again.',
-                  ),
-                );
-              });
+            triggerExportDownload(downloadUrl);
+            addSuccessToast(t('Your export is ready and downloading.'));
           } else {
             addDangerToast(t('Sorry, something went wrong. Try again later.'));
           }
@@ -301,7 +277,11 @@ export const useDownloadMenuItems = (
           );
           return;
         }
-        addExportPendingToast();
+        // The pending toast is announced once at enqueue, not re-emitted on
+        // every poll: an info toast expires after a few seconds and noDuplicate
+        // only dedupes live toasts, so re-emitting would create a fresh
+        // role="alert" every poll for the whole export -- noisy, and hostile to
+        // screen readers.
         pollTimerRef.current = setTimeout(
           () => pollExportStatus(jobId, pollState),
           EXPORT_STATUS_POLL_INTERVAL_MS,
