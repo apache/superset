@@ -20,30 +20,25 @@
 // Defaults mirror the reference ECharts option (title, big number, MoM and
 // YoY comparison) so the chart renders out of the box and every fixed value
 // can be overridden through the control panel.
-// The title font size control is the shared Subtitle Font Size select
-// (Tiny / Small / Normal / Large / Huge ratios), reused from the Big Number
-// with Trendline plugin. The default is Tiny so the title stays compact on
-// dashboard tiles. Ratios are multiplied by the chart height; legacy
-// numeric values > 1 are treated as absolute pixels.
+// Font sizes use the shared 5-tier ratio selects (Tiny..Huge) reused from the
+// Big Number with Trendline plugin; ratios are multiplied by the chart
+// height, legacy numeric values > 1 are absolute pixels. Top/gap controls
+// default to 0 so a blank control and an explicit 0 render identically.
 export const DEFAULT_TITLE_FONT_SIZE = 0.15;
 export const DEFAULT_TITLE_COLOR = { r: 102, g: 102, b: 102 }; // #666
 export const DEFAULT_TITLE_LEFT = 20;
-export const DEFAULT_TITLE_TOP = 20;
+export const DEFAULT_TITLE_TOP = 0;
 
-// All font sizes use the shared 5-tier ratio selects (Tiny..Huge); ratios
-// are multiplied by the chart height, matching the Big Number family.
 export const DEFAULT_BIG_NUMBER_FONT_SIZE = 0.4;
 export const DEFAULT_BIG_NUMBER_COLOR = { r: 51, g: 51, b: 51 }; // #333
 export const DEFAULT_BIG_NUMBER_LEFT = 20;
-export const DEFAULT_BIG_NUMBER_TOP = 6;
+export const DEFAULT_BIG_NUMBER_TOP = 0;
 
 export const DEFAULT_COMPARISON1_LABEL = 'MoM';
 export const DEFAULT_COMPARISON1_OFFSET = '1 month ago';
-export const DEFAULT_COMPARISON1_LEFT = 20;
 
 export const DEFAULT_COMPARISON2_LABEL = 'YoY';
 export const DEFAULT_COMPARISON2_OFFSET = '1 year ago';
-export const DEFAULT_COMPARISON2_LEFT = 120;
 export const DEFAULT_COMPARISON_GAP = 24;
 
 export const DEFAULT_COMPARISON_FONT_SIZE = 0.15;

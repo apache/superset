@@ -66,17 +66,17 @@ const toNumber = (value: unknown): number | null => {
 };
 
 /**
- * Normalize a position/gap control value. Any non-numeric input (blank
- * string, null, NaN) is treated as 0, so clearing the control or typing
- * invalid characters produces the same layout as an explicit 0.
- */
-/**
  * 'comparison1Left' -> 'comparison1_left'. Form data keys follow the
  * snake_case control names Explore saves; callers sometimes pass camelCase.
  */
 const camelToSnake = (key: string): string =>
   key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
 
+/**
+ * Normalize a position/gap control value. Any non-numeric input (blank
+ * string, null, NaN) is treated as 0, so clearing the control or typing
+ * invalid characters produces the same layout as an explicit 0.
+ */
 const normalizePosition = (value: unknown): number => {
   const parsed = Number(value);
   return Number.isNaN(parsed) ? 0 : parsed;
@@ -283,11 +283,6 @@ export default function transformProps(
   const metricEntry: Metric | undefined = chartProps.datasource?.metrics?.find(
     metricItem => metricItem.metric_name === metric,
   );
-
-  // Comparison value metrics are rendered with the slot's own number format
-  // so the big number's Number/Currency format does not leak into the
-  // MoM/YoY rows; percent difference formats only apply to time-shift
-  // comparisons.
 
   const numberFormatter = getValueFormatter(
     metric,

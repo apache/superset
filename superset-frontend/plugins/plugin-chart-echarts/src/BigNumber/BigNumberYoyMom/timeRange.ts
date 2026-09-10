@@ -118,7 +118,7 @@ const UNIT_DAYS: Record<string, number> = {
   year: 366,
 };
 
-export const parseTimeOffset = (offset: string | undefined): TimeOffset | null => {
+const parseTimeOffset = (offset: string | undefined): TimeOffset | null => {
   if (!offset) return null;
   const match = OFFSET_RE.exec(offset.trim());
   if (!match) return null;
