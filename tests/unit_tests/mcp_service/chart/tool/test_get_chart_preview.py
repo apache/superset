@@ -47,8 +47,83 @@ from superset.mcp_service.chart.tool.get_chart_preview import (
     ASCIIPreviewStrategy,
     PreviewFormatStrategy,
     TablePreviewStrategy,
+    VegaLitePreviewStrategy,
 )
 from superset.utils import json as utils_json
+
+
+def _gauge_chart() -> SimpleNamespace:
+    """Build a saved Gauge chart with its native form_data controls."""
+    return SimpleNamespace(
+        id=104,
+        slice_name="SLA Gauge",
+        viz_type="gauge_chart",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {
+                "viz_type": "gauge_chart",
+                "metric": "saved_sla",
+                "groupby": ["team"],
+                "row_limit": 3,
+                "min_val": 0,
+                "max_val": 100,
+                "value_formatter": "{value}%",
+            }
+        ),
+    )
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_gauge_ascii_preview_uses_native_row_limit_and_renderer(
+    mock_build_query_context, mock_command
+) -> None:
+    query_context = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["saved_sla"], columns=["team"])]
+    )
+    mock_build_query_context.return_value = query_context
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"team": "Blue", "saved_sla": 88}]}]
+    }
+
+    preview = ASCIIPreviewStrategy(
+        _gauge_chart(), GetChartPreviewRequest(identifier=104, format="ascii")
+    ).generate()
+
+    assert isinstance(preview, ASCIIPreview)
+    assert "Gauge Chart" in preview.ascii_content
+    assert "Blue" in preview.ascii_content
+    assert "88%" in preview.ascii_content
+    assert mock_build_query_context.call_args.kwargs["row_limit"] == 3
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_gauge_vega_preview_surfaces_runtime_metric_error(
+    mock_build_query_context, mock_command
+) -> None:
+    mock_build_query_context.return_value = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["saved_sla"], columns=["team"])]
+    )
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"team": "Blue", "saved_sla": "bad"}]}]
+    }
+
+    preview = VegaLitePreviewStrategy(
+        _gauge_chart(), GetChartPreviewRequest(identifier=104, format="vega_lite")
+    ).generate()
+
+    assert isinstance(preview, ChartError)
+    assert preview.error_type == "NonNumericGaugeMetric"
 
 
 class TestPreviewXAxisInQueryContext:
@@ -1439,3 +1514,80 @@ def test_authorize_guest_query_noop_for_non_guest() -> None:
         strategy._authorize_guest_query(MagicMock())
 
     mock_authorize.assert_not_called()
+
+
+@pytest.mark.parametrize("stored_viz_type", [None, "table", "gauge_chart"])
+@pytest.mark.parametrize(
+    "strategy", [ASCIIPreviewStrategy, TablePreviewStrategy, VegaLitePreviewStrategy]
+)
+def test_saved_gauge_dispatch_and_validation_agree(
+    stored_viz_type: str | None, strategy: type[PreviewFormatStrategy]
+) -> None:
+    """Saved chart identity drives query construction and numeric validation."""
+    chart = _gauge_chart()
+    form_data = utils_json.loads(chart.params)
+    form_data["viz_type"] = stored_viz_type
+    chart.params = utils_json.dumps(form_data)
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview.build_query_context_from_form_data"
+        ) as build,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        build.return_value = SimpleNamespace(
+            queries=[SimpleNamespace(metrics=["saved_sla"])]
+        )
+        command.return_value.run.return_value = {
+            "queries": [{"data": [{"team": "Blue", "saved_sla": "bad"}]}]
+        }
+        result = strategy(chart, GetChartPreviewRequest(identifier=104)).generate()
+    assert isinstance(result, ChartError)
+    assert result.error_type == "NonNumericGaugeMetric"
+    assert build.call_args.args[0]["viz_type"] == "gauge_chart"
+
+
+@pytest.mark.parametrize(
+    "strategy", [ASCIIPreviewStrategy, TablePreviewStrategy, VegaLitePreviewStrategy]
+)
+def test_saved_gauge_preview_skips_empty_aggregate_groups(
+    strategy: type[PreviewFormatStrategy],
+) -> None:
+    """Every saved preview format retains the finite dial from mixed query output."""
+    chart = _gauge_chart()
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview.build_query_context_from_form_data"
+        ) as build,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        build.return_value = SimpleNamespace(
+            queries=[SimpleNamespace(metrics=["saved_sla"])]
+        )
+        command.return_value.run.return_value = {
+            "queries": [
+                {
+                    "data": [
+                        {"team": "Empty", "saved_sla": None},
+                        {"team": "NaN", "saved_sla": float("nan")},
+                        {"team": "Blue", "saved_sla": 42},
+                    ]
+                }
+            ]
+        }
+        result = strategy(chart, GetChartPreviewRequest(identifier=104)).generate()
+    assert not isinstance(result, ChartError)
+    if isinstance(result, VegaLitePreview):
+        assert [row["saved_sla"] for row in result.specification["data"]["values"]] == [
+            42
+        ]
+    elif isinstance(result, TablePreview):
+        assert result.row_count == 1
+        assert "Blue" in result.table_data
+        assert "Empty" not in result.table_data
+    else:
+        assert "Blue" in result.ascii_content
+        assert "Empty" not in result.ascii_content
