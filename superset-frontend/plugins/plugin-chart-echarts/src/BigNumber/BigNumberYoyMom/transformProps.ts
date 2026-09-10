@@ -76,6 +76,42 @@ const normalizePosition = (value: unknown): number => {
 };
 
 /**
+ * Read a comparison value column from a result row. Saved metrics are plain
+ * column names; adhoc metrics are named by their label, or by the SQL
+ * expression itself when no label is set. The backend may normalize
+ * whitespace in expression column names, so fall back to a
+ * whitespace-insensitive match before giving up.
+ */
+const readMetricValue = (
+  row: Record<string, unknown>,
+  column: QueryFormMetric,
+): number | string | null | undefined => {
+  const asScalar = (value: unknown): number | string | null | undefined =>
+    typeof value === 'number' || typeof value === 'string'
+      ? value
+      : value == null
+        ? null
+        : undefined;
+  if (typeof column === 'string') return asScalar(row[column]);
+  const sqlExpression =
+    column.expressionType === 'SQL' ? column.sqlExpression : undefined;
+  const candidates = [column.label, sqlExpression].filter(
+    (key): key is string => !!key,
+  );
+  for (const key of candidates) {
+    if (row[key] !== undefined) return asScalar(row[key]);
+  }
+  if (sqlExpression) {
+    const expression = sqlExpression.replace(/\s+/g, '');
+    const match = Object.keys(row).find(
+      key => key.replace(/\s+/g, '') === expression,
+    );
+    if (match) return asScalar(row[match]);
+  }
+  return undefined;
+};
+
+/**
  * Percentage change between the current value and a comparison value.
  * Mirrors the Big Number with Time Period Comparison behavior: no data on
  * either side yields null (rendered as "—"), both zero yields 0%, and a zero
@@ -355,7 +391,7 @@ export default function transformProps(
   ): number | string | null | undefined => {
     if (!hasData) return null;
     if (isMetricMode(mode, column)) {
-      return column ? row[getMetricLabel(column)] : null;
+      return column ? readMetricValue(row, column) : null;
     }
     if (pointSeries && offset) return matchPointOffset(offset);
     return offset ? row[`${metricName}__${offset}`] : null;

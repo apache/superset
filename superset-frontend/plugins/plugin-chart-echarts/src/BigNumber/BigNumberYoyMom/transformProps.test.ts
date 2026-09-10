@@ -211,6 +211,29 @@ describe('BigNumberYoyMom transformProps', () => {
     expect(graphic[3].style.fill).toBe('rgb(245, 63, 63)');
   });
 
+  test('reads custom SQL comparison values even when the column name has normalized whitespace', () => {
+    const result = transformProps(
+      buildChartProps(
+        [
+          {
+            'SUM(sales)': 100,
+            'MIN(monthly_sales_count - 100000)': 80,
+          },
+        ],
+        {
+          comparison1Mode: 'metric',
+          comparison1Column: {
+            expressionType: 'SQL',
+            sqlExpression: 'MIN(monthly_sales_count-100000)',
+          },
+        },
+      ),
+    );
+    const graphic = result.echartOptions.graphic as Record<string, any>[];
+    // (100 - 80) / 80 = 25%: the whitespace-normalized column is matched.
+    expect(graphic[2].style.text).toBe('MoM ↑25.00%');
+  });
+
   test('time_shift mode wins over a leftover comparison column', () => {
     const result = transformProps(
       buildChartProps(
