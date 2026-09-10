@@ -59,8 +59,7 @@ export const checkIsMissingRequiredValue = (
   const isMissing =
     value === null ||
     value === undefined ||
-    (Array.isArray(value) &&
-      (value.length === 0 || value.every(item => item === null)));
+    (Array.isArray(value) && value.every(item => item === null));
 
   // TODO: this property should be unhardcoded
   return isMissing;
