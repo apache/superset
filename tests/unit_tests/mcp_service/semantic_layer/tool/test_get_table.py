@@ -1035,6 +1035,9 @@ def test_response_preserves_execution_time_bounds(
             "to_dttm": datetime(2026, 7, 1),
             "is_cached": True,
         },
+        [] if empty else [{"count": 3}],
+        ["count"],
+        [],
         10,
         [],
     )

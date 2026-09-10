@@ -1676,6 +1676,8 @@ async def test_query_dataset_returns_engine_time_bounds(
     result_kind: str,
 ) -> None:
     """Resolve MCP inputs with the real factory and serialize execution bounds."""
+    from datetime import datetime
+
     from flask import current_app
     from freezegun import freeze_time
 
@@ -1696,13 +1698,39 @@ async def test_query_dataset_returns_engine_time_bounds(
             )
         payload = _mock_command_result()
         result = payload["queries"][0]
-        result.update(from_dttm=query.from_dttm, to_dttm=query.to_dttm)
+
+        def exact_datetime(value: datetime | None) -> datetime | None:
+            """Strip freezegun's datetime subclass from mocked engine metadata."""
+            if value is None:
+                return None
+            return datetime(
+                value.year,
+                value.month,
+                value.day,
+                value.hour,
+                value.minute,
+                value.second,
+                value.microsecond,
+                tzinfo=value.tzinfo,
+                fold=value.fold,
+            )
+
+        result.update(
+            from_dttm=exact_datetime(query.from_dttm),
+            to_dttm=exact_datetime(query.to_dttm),
+        )
         result["is_cached"] = result_kind == "cached"
         if result_kind == "empty":
             result.update(data=[], colnames=[], rowcount=0)
         return payload
 
-    request: dict[str, Any] = {"dataset_id": 1, "metrics": ["count"]}
+    # Keep these production-resolution assertions isolated from response-cache
+    # entries populated by earlier tests using the same otherwise-identical input.
+    request: dict[str, Any] = {
+        "dataset_id": 1,
+        "metrics": ["count"],
+        "force_refresh": True,
+    }
     if use_filter:
         request["filters"] = [
             {"col": "order_date", "op": "TEMPORAL_RANGE", "val": expression}
