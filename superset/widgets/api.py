@@ -155,11 +155,11 @@ class WidgetControlsRestApi(BaseSupersetApi):
                       items:
                         type: string
                       description: >-
-                        When given, return a `{path: schema}` map of just these
+                        When given, return a "{path: schema}" map of just these
                         drill-in subtrees instead of the whole schema.
           responses:
             200:
-              description: Control JSON Schema, or a `{path: schema}` map
+              description: "Control JSON Schema, or a {path: schema} map"
               content:
                 application/json:
                   schema:
