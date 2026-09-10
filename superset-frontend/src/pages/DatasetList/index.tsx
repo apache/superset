@@ -1661,10 +1661,20 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 <>
                   <p>
                     {t(
-                      'The selected %s are linked to %s charts that appear on %s dashboards. Deleting them will break those objects.',
+                      'The selected %s are linked to %s on %s. Deleting them will break those objects.',
                       datasetsLabelLower(),
-                      bulkRelatedLookup.related.charts.count,
-                      bulkRelatedLookup.related.dashboards.count,
+                      tn(
+                        '%s chart',
+                        '%s charts',
+                        bulkRelatedLookup.related.charts.count,
+                        bulkRelatedLookup.related.charts.count,
+                      ),
+                      tn(
+                        '%s dashboard',
+                        '%s dashboards',
+                        bulkRelatedLookup.related.dashboards.count,
+                        bulkRelatedLookup.related.dashboards.count,
+                      ),
                     )}
                   </p>
                   <AffectedObjectsList
