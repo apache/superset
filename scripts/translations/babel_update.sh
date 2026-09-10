@@ -40,11 +40,18 @@ cat <<'EOF'> "$LICENSE_TMP"
 EOF
 
 cd $ROOT_DIR
+# --add-comments=i18n:: carry translator context from the source into the
+# catalogs. A comment tagged `i18n:` immediately above a translatable string is
+# extracted as a `#. i18n: ...` comment on that entry, and (like the
+# do-not-translate marker below) propagates into every language catalog on the
+# `pybabel update` further down. Only `i18n:`-tagged comments are extracted, so
+# ordinary code comments near a string are not published to translators.
 pybabel extract \
   -F superset/translations/babel.cfg \
   -o superset/translations/messages.pot \
   --no-location \
   --sort-output \
+  --add-comments=i18n: \
   --copyright-holder=Superset \
   --project=Superset \
   -k _ -k __ -k t -k tn:1,2 -k tct .

@@ -323,6 +323,46 @@ pybabel extract -F babel.cfg -o superset/translations/messages.pot -k lazy_gette
 npm run build-translation
 ```
 
+### Adding context for translators
+
+A translatable string arrives in a catalog with no surrounding code, so a term
+that is unambiguous in context can be guessed wrong in isolation. Shipped
+examples include `Slug` rendered as the animal, `Host` as a guest, and `Backend`
+as a driver.
+
+To attach context, put a comment tagged `i18n:` immediately above the string:
+
+```python
+# i18n: the short identifier in a dashboard's URL, not the animal
+"slug": _("Slug"),
+```
+
+```tsx
+// i18n: the database engine behind a connection (PostgreSQL, MySQL), not
+// a server tier or a driver
+Header: t('Backend'),
+```
+
+`babel_update.sh` extracts these with `--add-comments=i18n:`, so they land on the
+entry in `messages.pot` as `#. i18n: ...` and `pybabel update` propagates them
+into every language catalog, the same way the do-not-translate marker described
+below does:
+
+```
+#. i18n: the short identifier in a dashboard's URL, not the animal
+msgid "Slug"
+msgstr ""
+```
+
+Only `i18n:`-tagged comments are extracted, so ordinary code comments near a
+string are not published to translators. Write the comment for someone who
+cannot see the code: say what the term refers to, and where a translation would
+plausibly go wrong.
+
+Per-string context disambiguates one entry. It does not enforce consistency
+across entries — one term used for two concepts across a catalog is a
+catalog-wide problem and needs a per-language terminology decision instead.
+
 ### Updating language files
 
 ```bash
