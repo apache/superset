@@ -556,12 +556,15 @@ def wait_for_stable_readiness(
 ) -> bool:
     """Wait for capture readiness when the available budget can satisfy the dwell.
 
-    Returns ``False`` when less than one stability window remains. The caller may
-    proceed because the preceding readiness gate has already completed; starting
-    an impossible dwell would only convert a usable capture budget into a timeout.
+    Returns ``False`` when less than one stability window plus a polling-interval
+    margin remains. The caller may proceed because the preceding readiness gate has
+    already completed; starting an impossible dwell would only convert a usable
+    capture budget into a timeout.
     """
 
-    minimum_timeout_seconds = REPORT_CAPTURE_READINESS_STABILITY_MS / 1000
+    # The first poll only records the dwell start, so success needs the full
+    # stability window plus at least one polling interval on top of it.
+    minimum_timeout_seconds = (REPORT_CAPTURE_READINESS_STABILITY_MS + 250) / 1000
     if timeout_seconds <= minimum_timeout_seconds:
         return False
 

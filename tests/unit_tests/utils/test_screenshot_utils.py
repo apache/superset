@@ -79,6 +79,17 @@ def test_stable_readiness_skips_impossible_dwell() -> None:
     page.wait_for_function.assert_not_called()
 
 
+def test_stable_readiness_skips_when_budget_below_polling_margin() -> None:
+    page = MagicMock()
+
+    # Above the raw 500 ms window but below window + polling margin: the dwell
+    # cannot complete before the timeout, so it must skip rather than abort.
+    waited = wait_for_stable_readiness(page, "() => true", 0.6)
+
+    assert waited is False
+    page.wait_for_function.assert_not_called()
+
+
 def test_stable_readiness_javascript_resets_dwell_state() -> None:
     node = shutil.which("node")
     if node is None:

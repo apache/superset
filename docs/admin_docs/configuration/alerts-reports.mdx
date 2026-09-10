@@ -487,7 +487,9 @@ applies to alerts that attach reports. Check worker logs for
 these failures.
 
 Immediately before each scheduled report screenshot, chart readiness must remain
-stable for 500 milliseconds. This final check runs after scrolling, content
+stable for 500 milliseconds, unless less than one stability window of the
+execution budget is left, in which case the check is skipped and logged with
+`skipped=True`. This final check runs after scrolling, content
 expansion, and animation waits so a chart that returns to a loading state is not
 captured during the stability window. Successful checks emit
 `report_capture_readiness_stable`; a timeout emits
