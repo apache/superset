@@ -926,6 +926,23 @@ while True:
     page += 1
 ```
 
+## Trash Listing (Soft-Deleted Objects)
+
+When the `SOFT_DELETE` feature flag is enabled, deleting a chart or dashboard moves it to trash rather than removing it outright. The `list_charts` and `list_dashboards` tools accept a `deleted_state` parameter to surface those trashed objects:
+
+- `deleted_state="only"` — return only trashed objects
+- `deleted_state="include"` — return live and trashed objects together
+- Omitted (default) — live objects only; trashed objects are excluded
+
+```python
+# List only trashed charts
+result = mcp.list_charts(deleted_state="only")
+```
+
+Trashed rows carry a non-null `deleted_at` timestamp in the response (populated only when `deleted_state` is used). Visibility follows the same restore-audience scoping as the equivalent REST API filters (`chart_deleted_state` / `dashboard_deleted_state`): a caller sees only the trashed objects they own, unless they hold an admin role, in which case all trashed objects are visible.
+
+Tools whose resource doesn't support trash listing reject the `deleted_state` parameter with an error.
+
 ## Disabling built-in tools
 
 If you have deployed a custom tool via a Superset extension that supersedes one of the built-in Superset tools, you can suppress the built-in version so AI clients only discover your replacement. Disabled tools are removed from the server at startup and are never advertised during tool discovery.
