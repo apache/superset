@@ -222,6 +222,16 @@ def test_get_ssrf_safe_requester_returns_plain_requests_when_allowed() -> None:
     assert get_ssrf_safe_requester(allow_unsafe_hosts=True) is requests
 
 
+def test_get_ssrf_safe_requester_ignores_environment_proxies() -> None:
+    """
+    An environment proxy would route the request through a ProxyManager whose
+    pools bypass the peer-validating connection classes (and whose peer is the
+    proxy, not the target), leaving the rebinding check inactive -- so the
+    protected session must not honour HTTP(S)_PROXY.
+    """
+    assert get_ssrf_safe_requester().trust_env is False
+
+
 def test_get_ssrf_safe_requester_pins_peer_by_default() -> None:
     """
     By default, ``get_ssrf_safe_requester`` returns a session whose adapters

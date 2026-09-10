@@ -145,6 +145,14 @@ def get_ssrf_safe_requester(allow_unsafe_hosts: bool = False) -> Any:
     if allow_unsafe_hosts:
         return requests
     session = requests.Session()
+    # Ignore HTTP(S)_PROXY / NO_PROXY from the environment. A proxied request
+    # goes through Requests' separately built ProxyManager, whose pools never
+    # use the peer-validating connection classes installed below -- and the
+    # peer we'd see there is the proxy itself, not the target -- so the
+    # rebinding check would be silently inactive. Deployments that must route
+    # these calls through a proxy opt in via ``allow_unsafe_hosts`` (which
+    # returns the plain ``requests`` module and honours the environment).
+    session.trust_env = False
     adapter = PeerValidatingHTTPAdapter()
     session.mount("http://", adapter)
     session.mount("https://", adapter)

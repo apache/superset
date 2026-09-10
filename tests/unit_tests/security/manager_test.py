@@ -3994,6 +3994,9 @@ def test_validate_guest_token_resources_accepts_embedded_int_id(
     embedded_dash.embedded = [MagicMock()]  # embedded
     mocker.patch("superset.models.dashboard.Dashboard.get", return_value=embedded_dash)
     raise_for_access = mocker.patch.object(sm, "raise_for_access")
+    # An admin's dashboard entitlement covers every member datasource, so the
+    # per-datasource minting check is skipped (see the dedicated tests below).
+    mocker.patch.object(sm, "is_admin", return_value=True)
 
     sm.validate_guest_token_resources(
         [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
@@ -4034,6 +4037,102 @@ def test_validate_guest_token_resources_rejects_unauthorized_dashboard(
         sm.validate_guest_token_resources(
             [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
         )
+
+
+def _guest_token_dashboard_with_datasources(
+    mocker: MockerFixture, ids: list[int]
+) -> MagicMock:
+    """A published, non-RBAC dashboard whose slices resolve to datasources ``ids``."""
+    dashboard = MagicMock()
+    dashboard.embedded = [MagicMock()]
+    dashboard.viewers = []
+    dashboard.published = True
+    slices = []
+    for ds_id in ids:
+        slc = MagicMock()
+        slc.datasource_type = "table"
+        slc.datasource_id = ds_id
+        slc.resolved_datasource = MagicMock(id=ds_id)
+        slices.append(slc)
+    dashboard.slices = slices
+    mocker.patch("superset.models.dashboard.Dashboard.get", return_value=dashboard)
+    return dashboard
+
+
+def test_validate_guest_token_resources_requires_every_granted_datasource(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    A dashboard-scoped guest token grants every member datasource, but
+    ``raise_for_access(dashboard=...)`` passes on a non-RBAC dashboard as soon
+    as the caller can read any ONE of them. Minting must therefore require
+    access to each datasource the token will grant.
+    """
+    from superset.commands.dashboard.embedded.exceptions import (
+        EmbeddedDashboardAccessDeniedError,
+    )
+    from superset.security.guest_token import GuestTokenResourceType
+
+    sm = SupersetSecurityManager(appbuilder)
+    _guest_token_dashboard_with_datasources(mocker, [1, 2])
+    mocker.patch.object(sm, "raise_for_access", return_value=None)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_viewer", return_value=False)
+    # Can read datasource 1 only.
+    mocker.patch.object(sm, "can_access_datasource", side_effect=lambda ds: ds.id == 1)
+
+    with pytest.raises(EmbeddedDashboardAccessDeniedError):
+        sm.validate_guest_token_resources(
+            [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
+        )
+
+
+def test_validate_guest_token_resources_datasets_claim_limits_the_check(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    When the token carries a ``datasets`` allowlist, only those datasources
+    are granted, so only those need to be accessible to the minting caller.
+    """
+    from superset.security.guest_token import GuestTokenResourceType
+
+    sm = SupersetSecurityManager(appbuilder)
+    _guest_token_dashboard_with_datasources(mocker, [1, 2])
+    mocker.patch.object(sm, "raise_for_access", return_value=None)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_viewer", return_value=False)
+    mocker.patch.object(sm, "can_access_datasource", side_effect=lambda ds: ds.id == 1)
+
+    # Restricted to datasource 1, which the caller can read: allowed.
+    sm.validate_guest_token_resources(
+        [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}], datasets=[1]
+    )
+
+
+def test_validate_guest_token_resources_rbac_viewer_skips_datasource_check(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """
+    A viewer of a published RBAC dashboard is entitled to every member chart
+    through the dashboard itself, so no per-datasource check applies.
+    """
+    from superset.security.guest_token import GuestTokenResourceType
+
+    sm = SupersetSecurityManager(appbuilder)
+    dashboard = _guest_token_dashboard_with_datasources(mocker, [1, 2])
+    dashboard.viewers = [MagicMock()]
+    mocker.patch.object(sm, "raise_for_access", return_value=None)
+    mocker.patch.object(sm, "is_admin", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_viewer", return_value=True)
+    can_access = mocker.patch.object(sm, "can_access_datasource", return_value=False)
+
+    sm.validate_guest_token_resources(
+        [{"type": GuestTokenResourceType.DASHBOARD, "id": 5}]
+    )
+    can_access.assert_not_called()
 
 
 def test_validate_guest_token_resources_checks_access_via_embedded_dao_fallback(

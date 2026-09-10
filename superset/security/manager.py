@@ -5332,7 +5332,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             audience = audience()
         return audience
 
-    def validate_guest_token_resources(self, resources: GuestTokenResources) -> None:
+    def validate_guest_token_resources(
+        self, resources: GuestTokenResources, datasets: Optional[list[int]] = None
+    ) -> None:
         # pylint: disable=import-outside-toplevel
         from superset.commands.dashboard.embedded.exceptions import (
             EmbeddedDashboardAccessDeniedError,
@@ -5364,8 +5366,50 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # embedded dashboard, not just ones they have access to.
                 try:
                     self.raise_for_access(dashboard=dashboard)
+                    self._raise_for_guest_token_datasource_access(dashboard, datasets)
                 except SupersetSecurityException as ex:
                     raise EmbeddedDashboardAccessDeniedError() from ex
+
+    def _raise_for_guest_token_datasource_access(
+        self, dashboard: "Dashboard", datasets: Optional[list[int]]
+    ) -> None:
+        """
+        Require the minting principal to be entitled to every datasource the
+        guest token will grant, not merely to the dashboard.
+
+        A dashboard-scoped guest token reads every member datasource (or the
+        ``datasets`` allowlist, when the token carries one), whereas
+        ``raise_for_access(dashboard=...)`` is satisfied, for a dashboard
+        without explicit viewers, by access to any ONE member datasource. A
+        service role with ``grant_guest_token`` plus access to a single chart
+        could otherwise mint a token exposing charts it cannot read itself.
+        Callers whose dashboard entitlement already covers every member chart
+        (admin, editor, or a viewer of a published RBAC dashboard) need no
+        per-datasource check.
+        """
+        if self.is_admin() or self.is_editor(dashboard):
+            return
+        if dashboard.viewers and dashboard.published and self.is_viewer(dashboard):
+            return
+        seen: set[tuple[str | None, int | None]] = set()
+        for slc in dashboard.slices:
+            key = (slc.datasource_type, slc.datasource_id)
+            if key in seen:
+                continue
+            seen.add(key)
+            resolved = slc.resolved_datasource
+            if resolved is None:
+                # Unresolvable datasource: inaccessible, never absent (same
+                # stance as raise_for_access).
+                raise SupersetSecurityException(
+                    self.get_dashboard_access_error_object(dashboard)
+                )
+            if datasets is not None and resolved.id not in datasets:
+                continue  # the token will not grant this datasource
+            if not self.can_access_datasource(resolved):
+                raise SupersetSecurityException(
+                    self.get_datasource_access_error_object(resolved)
+                )
 
     def create_guest_access_token(
         self,
