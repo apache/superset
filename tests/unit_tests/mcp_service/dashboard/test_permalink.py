@@ -25,6 +25,7 @@ from flask import Flask, g
 from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
 from superset.dashboards.permalink.types import DashboardPermalinkValue
 from superset.mcp_service.dashboard.permalink import (
+    build_dashboard_permalink_url,
     DashboardLookupResult,
     extract_dashboard_permalink_key,
     get_dashboard_permalink,
@@ -452,3 +453,41 @@ def test_stacking_base_without_selections(state: dict[str, object]) -> None:
     ):
         command.return_value.run.return_value = {"dashboardId": "42", "state": state}
         assert get_dashboard_permalink_data_mask("base-key", 42) == {}
+
+
+@pytest.mark.parametrize("application_root", ["/", "/analytics"])
+@pytest.mark.parametrize("in_request", [False, True])
+def test_build_dashboard_permalink_url(
+    app: Flask, application_root: str, in_request: bool
+) -> None:
+    """Use the configured public origin and the Flask deployment prefix."""
+    with patch.dict(
+        app.config,
+        WEBDRIVER_BASEURL_USER_FRIENDLY="https://dashboards.example.test/",
+        APPLICATION_ROOT=application_root,
+    ):
+        expected = (
+            f"https://dashboards.example.test{application_root.rstrip('/')}"
+            "/dashboard/p/shared-key/"
+        )
+        if in_request:
+            with app.test_request_context("/mcp"):
+                assert build_dashboard_permalink_url("shared-key") == expected
+        else:
+            with app.app_context():
+                assert build_dashboard_permalink_url("shared-key") == expected
+
+
+def test_build_dashboard_permalink_url_respects_script_name(app: Flask) -> None:
+    """A proxy's WSGI mount prefix takes precedence inside a request."""
+    with (
+        patch.dict(
+            app.config,
+            WEBDRIVER_BASEURL_USER_FRIENDLY="https://dashboards.example.test/proxy/",
+            APPLICATION_ROOT="/configured",
+        ),
+        app.test_request_context("/mcp", environ_overrides={"SCRIPT_NAME": "/proxy"}),
+    ):
+        assert build_dashboard_permalink_url("shared-key") == (
+            "https://dashboards.example.test/proxy/dashboard/p/shared-key/"
+        )

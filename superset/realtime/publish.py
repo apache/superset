@@ -16,9 +16,12 @@
 # under the License.
 """Neutral publisher for the shared realtime envelope protocol."""
 
+from threading import Lock
 from typing import Any
 
 from flask import current_app, Flask
+
+_channel_lock = Lock()
 
 
 def get_realtime_channel(app: Flask | None = None) -> str:
@@ -27,10 +30,14 @@ def get_realtime_channel(app: Flask | None = None) -> str:
     channel = app.extensions.get("realtime_channel")
     if isinstance(channel, str):
         return channel
-    prefix = app.config.get("REALTIME_CHANNEL_PREFIX", "")
-    channel = f"{prefix() if callable(prefix) else prefix}realtime"
-    app.extensions["realtime_channel"] = channel
-    return channel
+    # Preserve the consumer's fixed subscription even for concurrent first calls.
+    with _channel_lock:
+        channel = app.extensions.get("realtime_channel")
+        if not isinstance(channel, str):
+            prefix = app.config.get("REALTIME_CHANNEL_PREFIX", "")
+            channel = f"{prefix() if callable(prefix) else prefix}realtime"
+            app.extensions["realtime_channel"] = channel
+        return channel
 
 
 def publish_realtime(
