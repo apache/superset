@@ -40,7 +40,7 @@ from superset.mcp_service.dataset.schemas import (
     ListDatasetsRequest,
     serialize_dataset_object,
 )
-from superset.mcp_service.dataset_scope import get_dataset_scope
+from superset.mcp_service.dataset_scope import DatasetScopeFilter, get_dataset_scope
 from superset.mcp_service.mcp_core import ModelListCore
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
@@ -92,11 +92,13 @@ async def list_datasets(
     semantic-layer datasets; false returns only uncertified datasets, while
     omitting it preserves the unfiltered behavior.
 
-    Search matches schema, SQL, table name, UUID, and description. Results are
-    candidates, not a relevance ranking. Compare descriptions and metadata; when
-    multiple candidates fit, explain the alternatives and clarify before querying.
-    An empty search result does not establish that the requested data does not
-    exist. Never substitute a different dataset for one outside the MCP scope.
+    Search matches schema, SQL, table name, and description as case-insensitive
+    substrings; to look a dataset up by UUID, filter on the ``uuid`` column
+    rather than searching for it. Results are candidates, not a relevance
+    ranking. Compare descriptions and metadata; when multiple candidates fit,
+    explain the alternatives and clarify before querying. An empty search result
+    does not establish that the requested data does not exist. Never substitute
+    a different dataset for one outside the MCP scope.
 
     **IMPORTANT**: All parameters must be wrapped in a ``request`` object.
     Do NOT pass ``search``, ``page``, ``page_size``, etc. as top-level
@@ -165,6 +167,7 @@ async def list_datasets(
         from superset.daos.dataset import DatasetDAO
         from superset.datasets.filters import DatasetCertifiedFilter
         from superset.mcp_service.common.schema_discovery import (
+            DATASET_SEARCH_COLUMNS,
             DATASET_SORTABLE_COLUMNS,
             get_all_column_names,
             get_dataset_columns,
@@ -186,7 +189,7 @@ async def list_datasets(
             item_serializer=_serialize_dataset,
             filter_type=DatasetFilter,
             default_columns=DEFAULT_DATASET_COLUMNS,
-            search_columns=["schema", "sql", "table_name", "uuid", "description"],
+            search_columns=DATASET_SEARCH_COLUMNS,
             list_field_name="datasets",
             output_list_schema=DatasetList,
             all_columns=all_columns,
@@ -195,23 +198,18 @@ async def list_datasets(
         )
 
         with event_logger.log_context(action="mcp.list_datasets.query"):
-            custom_filters = None
+            custom_filters = {}
             if request.certified is not None:
-                custom_filters = {
-                    "certified": tool.build_bound_filter(
-                        DatasetCertifiedFilter, request.certified
-                    )
-                }
-            filters = list(request.filters or [])
+                custom_filters["certified"] = tool.build_bound_filter(
+                    DatasetCertifiedFilter, request.certified
+                )
             scope = get_dataset_scope()
             if scope is not None:
-                filters.append(
-                    DatasetFilter(
-                        col="uuid", opr="in", value=[str(uid) for uid in scope]
-                    )
+                custom_filters["mcp_dataset_scope"] = tool.build_bound_filter(
+                    DatasetScopeFilter, scope
                 )
             result = tool.run_tool(
-                filters=filters,
+                filters=request.filters,
                 search=request.search,
                 select_columns=request.select_columns,
                 order_column=request.order_column,
@@ -220,7 +218,7 @@ async def list_datasets(
                 page_size=request.page_size,
                 created_by_me=request.created_by_me,
                 edited_by_me=request.edited_by_me,
-                custom_filters=custom_filters,
+                custom_filters=custom_filters or None,
             )
 
         await ctx.info(

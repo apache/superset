@@ -2679,7 +2679,7 @@ async def test_description_discovery_uses_dao_search_and_exposes_alternatives(
         ):
             rows, count = DatasetDAO.list(
                 search="ORDER",
-                search_columns=["schema", "sql", "table_name", "uuid", "description"],
+                search_columns=["schema", "sql", "table_name", "description"],
                 columns=["id", "table_name", "description"],
                 order_column="id",
                 order_direction="asc",
@@ -2735,7 +2735,14 @@ async def test_description_discovery_uses_dao_search_and_exposes_alternatives(
                 "list_datasets", {"request": {"search": "Order"}}
             )
         data = json.loads(result.content[0].text)
-    assert "description" in listing.call_args.kwargs["search_columns"]
+    from superset.mcp_service.common.schema_discovery import DATASET_SEARCH_COLUMNS
+
+    # The advertised search columns are the ones actually searched, and exclude
+    # uuid: it is a binary column that the text-cast substring search can never
+    # match, so advertising it would invite "not found" from a pasted UUID.
+    assert listing.call_args.kwargs["search_columns"] == DATASET_SEARCH_COLUMNS
+    assert "description" in DATASET_SEARCH_COLUMNS
+    assert "uuid" not in DATASET_SEARCH_COLUMNS
     assert [(row["id"], row["table_name"]) for row in data["datasets"]] == [
         (1, "events"),
         (2, "shipments"),
@@ -2743,22 +2750,21 @@ async def test_description_discovery_uses_dao_search_and_exposes_alternatives(
 
 
 @pytest.mark.asyncio
-async def test_scoped_discovery_filters_before_pagination(
+async def test_scoped_discovery_filters_before_pagination_without_echoing_scope(
     mcp_server: fastmcp.FastMCP,
 ) -> None:
-    """The routing filter is ANDed with caller filters by the normal DAO."""
+    """The routing filter reaches the DAO without leaking the allowlist back."""
     from uuid import UUID
+
+    from superset.mcp_service.dataset_scope import DatasetScopeFilter
 
     uid = UUID("00000000-0000-0000-0000-000000000001")
     with (
-        patch(
-            "superset.mcp_service.dataset_scope.get_dataset_scope", return_value={uid}
-        ),
         patch.object(list_datasets_module, "get_dataset_scope", return_value={uid}),
         patch("superset.daos.dataset.DatasetDAO.list", return_value=([], 0)) as listing,
     ):
         async with Client(mcp_server) as client:
-            await client.call_tool(
+            result = await client.call_tool(
                 "list_datasets",
                 {
                     "request": {
@@ -2770,9 +2776,64 @@ async def test_scoped_discovery_filters_before_pagination(
                     }
                 },
             )
-    operators = listing.call_args.kwargs["column_operators"]
-    assert [(op.col, op.opr, op.value) for op in operators] == [
-        ("table_name", "eq", "events"),
-        ("uuid", "in", [str(uid)]),
+        data = json.loads(result.content[0].text)
+
+    kwargs = listing.call_args.kwargs
+    # Caller filters stay caller filters; the scope rides along as a custom
+    # filter, which BaseDAO.list applies before it counts and pages.
+    assert [(op.col, op.opr, op.value) for op in kwargs["column_operators"]] == [
+        ("table_name", "eq", "events")
     ]
-    assert listing.call_args.kwargs["page"] == 1
+    scope_filter = kwargs["custom_filters"]["mcp_dataset_scope"]
+    assert isinstance(scope_filter._inner, DatasetScopeFilter)
+    assert scope_filter._value == {uid}
+    assert kwargs["page"] == 1
+
+    # The resolved allowlist may name datasets this caller cannot reach, so it
+    # must never be reflected back in the response.
+    assert data["filters_applied"] == [
+        {"col": "table_name", "opr": "eq", "value": "events"}
+    ]
+    assert str(uid) not in json.dumps(data)
+
+
+@pytest.mark.asyncio
+async def test_unscoped_discovery_adds_no_custom_filter(
+    mcp_server: fastmcp.FastMCP,
+) -> None:
+    """With the feature off, list_datasets queries exactly as it did before."""
+    with (
+        patch.object(list_datasets_module, "get_dataset_scope", return_value=None),
+        patch("superset.daos.dataset.DatasetDAO.list", return_value=([], 0)) as listing,
+    ):
+        async with Client(mcp_server) as client:
+            await client.call_tool("list_datasets", {"request": {}})
+    assert listing.call_args.kwargs["custom_filters"] is None
+
+
+def test_scope_filter_restricts_the_query_to_the_allowlist() -> None:
+    """The custom filter narrows to the allowlist against a real UUID column."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.mcp_service.dataset_scope import DatasetScopeFilter
+
+    engine = create_engine("sqlite://")
+    SqlaTable.__table__.create(engine)
+    with Session(engine) as session:
+        session.execute(
+            SqlaTable.__table__.insert(),
+            [
+                {"id": 1, "database_id": 1, "table_name": "events"},
+                {"id": 2, "database_id": 1, "table_name": "shipments"},
+            ],
+        )
+        session.commit()
+        allowed = session.query(SqlaTable.uuid).filter(SqlaTable.id == 1).scalar()
+        query = session.query(SqlaTable.id)
+        scope_filter = DatasetScopeFilter.__new__(DatasetScopeFilter)
+        assert [row.id for row in scope_filter.apply(query, frozenset({allowed}))] == [
+            1
+        ]
+        assert scope_filter.apply(query, frozenset()).count() == 0

@@ -515,6 +515,15 @@ def is_tool_visible_to_current_user(tool: Any) -> bool:
         if _tool_denied_for_principal(tool_func):
             return False
 
+        # Hide tools that a configured dataset scope would refuse on use, so a
+        # scoped deployment advertises only the surface it will actually serve.
+        from superset.mcp_service.dataset_scope import (
+            tool_available_in_dataset_scope,
+        )
+
+        if not tool_available_in_dataset_scope(getattr(tool, "name", "")):
+            return False
+
         if not current_app.config.get("MCP_RBAC_ENABLED", True):
             return check_tool_permission(tool_func, log_denial=False)
 
@@ -1171,7 +1180,7 @@ def _mcp_tool_call_context() -> Generator[None, None, None]:
         _mcp_session_token.reset(token)
 
 
-def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
+def mcp_auth_hook(tool_func: F, *, tool_name: str | None = None) -> F:  # noqa: C901
     """
     Authentication and authorization decorator for MCP tools.
 
@@ -1239,9 +1248,8 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                     )
 
                 try:
-                    enforce_call_dataset_scope(
-                        tool_func.__name__, _tool_sig, args, kwargs
-                    )
+                    if tool_name is not None:
+                        enforce_call_dataset_scope(tool_name, _tool_sig, args, kwargs)
                     logger.debug(
                         "MCP tool call: user=%s, tool=%s",
                         user.username,
@@ -1289,9 +1297,8 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                     )
 
                 try:
-                    enforce_call_dataset_scope(
-                        tool_func.__name__, _tool_sig, args, kwargs
-                    )
+                    if tool_name is not None:
+                        enforce_call_dataset_scope(tool_name, _tool_sig, args, kwargs)
                     logger.debug(
                         "MCP tool call: user=%s, tool=%s",
                         user.username,
