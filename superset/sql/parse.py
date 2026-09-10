@@ -1057,6 +1057,36 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         return isinstance(self._parsed, exp.Select)
 
+    def _command_head(self) -> str | None:
+        """
+        Return the head keyword of an opaque ``exp.Command``, uppercased.
+
+        ``exp.Command.name`` preserves the source case of the head keyword, so
+        every comparison against it has to be case-insensitive; centralizing
+        the check keeps a caller from silently disabling a branch by omitting
+        the fold.
+
+        :return: The uppercased head keyword, or ``None`` when the statement
+            parsed into a structured expression rather than a command
+        """
+        parsed = self._parsed
+        return parsed.name.upper() if isinstance(parsed, exp.Command) else None
+
+    def _nested_body_text(self) -> str | None:
+        """
+        Return the raw body of a command that carries a statement as text.
+
+        The body of a :attr:`_NESTED_BODY_COMMAND_NAMES` command is invisible
+        to node-type matching and cannot be re-parsed, so gates that inspect
+        the tree fall back to scanning this text.
+
+        :return: The raw body text, or ``None`` when this statement does not
+            carry a nested body
+        """
+        if self._command_head() not in self._NESTED_BODY_COMMAND_NAMES:
+            return None
+        return str(self._parsed.expression)
+
     def _explain_analyze_body(self) -> str | None:
         """
         Return the inner statement of an ``EXPLAIN ANALYZE``, if this is one.
@@ -1074,10 +1104,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             ``ANALYZE`` (empty when the tail holds nothing but options), or
             ``None`` when the statement is not one
         """
-        if (
-            not isinstance(self._parsed, exp.Command)
-            or self._parsed.name.upper() != "EXPLAIN"
-        ):
+        if self._command_head() != "EXPLAIN":
             return None
 
         tail = self._parsed.expression.name.strip() if self._parsed.expression else ""
@@ -1108,7 +1135,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         ):
             options, tail = match.group(), tail[match.end() :]
         else:
-            options = ""
+            return None
 
         if not re.search(r"\b(ANALYZE|ANALYSE)\b", options, re.IGNORECASE):
             return None
@@ -1398,15 +1425,14 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         Strip the quoting a setting name may carry and case-fold it.
 
-        Both spellings are equivalent in Postgres (``SET "search_path" = ...``,
-        ``SET SCHEMA 'x'``), so every comparison against a setting name goes
-        through this.
+        Quoted and bare spellings are equivalent in Postgres (``SET
+        "search_path" = ...``), so every comparison goes through this.
         """
         return name.strip("\"'").lower()
 
-    def _leading_set_setting_name(self) -> str | None:
+    def _leading_setting_name(self, head: str) -> str | None:
         """
-        Return the name of the setting an opaque ``SET`` statement rebinds.
+        Return the name of the setting an opaque ``SET``/``RESET`` addresses.
 
         Exotic forms (e.g. ``SET search_path TO "$user", public`` or ``SET
         SCHEMA 'x'``) fall back to an opaque ``exp.Command`` and never reach
@@ -1414,28 +1440,26 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         whose *value* merely contains a setting name (``SET ROLE
         my_search_path_role``) from being misclassified.
 
+        :param head: The command keyword the statement must lead with
         :return: The setting name, lowercased and stripped of any quoting, or
-            ``None`` when this is not an opaque ``SET``
+            ``None`` when this is not an opaque command with that head
         """
-        parsed = self._parsed
-        if not isinstance(parsed, exp.Command) or parsed.name.upper() != "SET":
+        if self._command_head() != head:
             return None
-        tokens = str(parsed.expression).replace("=", " ").split()
+        tokens = str(self._parsed.expression).replace("=", " ").split()
         while tokens and tokens[0].upper() in {"SESSION", "LOCAL", "CURRENT"}:
             tokens.pop(0)
         return self._normalize_setting_name(tokens[0]) if tokens else None
 
-    def _calls_set_config_on_search_path(self) -> bool:
+    def _may_rebind_via_set_config(self) -> bool:
         """
-        Return True if the statement may rebind ``search_path`` via a call.
+        Return True if a ``set_config()`` call may rebind ``search_path``.
 
-        ``set_config('search_path', ...)`` rebinds the search path through a
-        function call rather than a ``SET`` statement, so it never reaches
-        ``get_settings()`` and has to be detected on the parsed tree.
-        PostgreSQL evaluates the setting name as an expression, so a
+        The call rebinds the search path without a ``SET`` statement, so it
+        never reaches ``get_settings()`` and has to be found on the parsed
+        tree. PostgreSQL evaluates the setting name as an expression, so a
         non-literal name (e.g. ``set_config('search_' || 'path', ...)``)
-        rebinds the path just like the literal form but cannot be resolved
-        statically, and is reported as a rebind.
+        cannot be resolved statically and is reported as a rebind too.
         """
         for func in self._parsed.find_all(exp.Anonymous):
             if func.name.lower() != "set_config":
@@ -1467,34 +1491,30 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             for key in self.get_settings()
         ):
             return True
-        if self._calls_set_config_on_search_path():
+        if self._may_rebind_via_set_config():
             return True
         # `EXPLAIN ANALYZE <statement>` runs the body, so a rebind inside it
         # takes effect even though the wrapper hides it from the scan above.
         inner = self._classify_explain_analyze_body(SQLStatement.changes_search_path)
         if inner is not None:
             return inner
-        if (setting := self._leading_set_setting_name()) is not None:
+        if (setting := self._leading_setting_name("SET")) is not None:
             return setting == "search_path"
-        parsed = self._parsed
-        if not isinstance(parsed, exp.Command):
-            return False
-        # A procedural body (e.g. a PL/pgSQL `DO` block) is not SQL and cannot
-        # be re-parsed, so a rebind inside it stays invisible to the scan
-        # above. Fall back to matching the raw text, erring towards a match:
-        # `set_config` is matched alongside `search_path` because a computed
-        # setting name never spells the latter contiguously. Whole-word
-        # matching keeps an unrelated identifier that merely embeds one of
-        # them (`reset_config`, `my_search_path_helper`) from being flagged.
-        if parsed.name.upper() in self._NESTED_BODY_COMMAND_NAMES:
-            return bool(
-                re.search(
-                    r"\b(search_path|set_config)\b",
-                    str(parsed.expression),
-                    re.IGNORECASE,
-                )
-            )
-        return False
+        # `RESET search_path` (and `RESET ALL`) restores the server default,
+        # which is a rebind just as much as setting an explicit value: the
+        # default need not be the schema the caller selected.
+        if (setting := self._leading_setting_name("RESET")) is not None:
+            return setting in {"search_path", "all"}
+        # A nested body is not re-parseable, so a rebind inside it stays
+        # invisible to the scans above. Match its raw text instead, erring
+        # towards a match: `set_config` is matched alongside `search_path`
+        # because a computed setting name never spells the latter
+        # contiguously. Whole-word matching keeps an unrelated identifier that
+        # merely embeds one of them (`reset_config`) from being flagged.
+        body = self._nested_body_text()
+        return bool(
+            body and re.search(r"\b(search_path|set_config)\b", body, re.IGNORECASE)
+        )
 
     def changes_default_schema(self) -> bool:
         """
@@ -1527,25 +1547,29 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         ):
             return True
         # The same forms falling back to an opaque exp.Command.
-        if self._leading_set_setting_name() in {"schema", "catalog"}:
+        if self._leading_setting_name("SET") in rebinding_settings:
             return True
         # `SET SCHEMA 'x'` rebinds resolution exactly as `SET search_path TO x`
         # does, so a nested body carrying one is matched on the raw text, as
         # `changes_search_path` does for its own forms. Unlike a search path,
         # a schema is named all over ordinary SQL, so the `SET` head is
         # required: a body that merely creates or references one is not a
-        # rebind.
-        parsed = self._parsed
-        if (
-            isinstance(parsed, exp.Command)
-            and parsed.name.upper() in self._NESTED_BODY_COMMAND_NAMES
-            and re.search(
-                r"\bset\s+(schema|catalog)\b",
-                str(parsed.expression),
-                re.IGNORECASE,
-            )
+        # rebind. The optional qualifier mirrors the tokens the non-nested
+        # path strips, so `SET LOCAL SCHEMA` is matched in either position.
+        body = self._nested_body_text()
+        if body and re.search(
+            r"\bset\s+(?:(?:session|local|current)\s+)?(?:schema|catalog)\b",
+            body,
+            re.IGNORECASE,
         ):
             return True
+        # An `EXPLAIN ANALYZE` body runs for real, so the rebind it carries
+        # takes effect. Recursing with this method rather than deferring to
+        # `changes_search_path` keeps the forms above visible through the
+        # wrapper too.
+        inner = self._classify_explain_analyze_body(SQLStatement.changes_default_schema)
+        if inner is not None:
+            return inner
         return self.changes_search_path()
 
     def get_disallowed_tables(

@@ -5767,6 +5767,11 @@ def test_get_disallowed_tables_search_path_change(
         # whose name merely embeds one of them is not a change.
         ("CALL reset_config()", False),
         ("CALL my_search_path_helper()", False),
+        # `RESET` restores the server default, which need not be the schema
+        # the caller selected, so it rebinds resolution just as `SET` does.
+        ("RESET search_path", True),
+        ("RESET ALL", True),
+        ("RESET statement_timeout", False),
         # A different setting changed through `set_config` is not a search-path
         # change.
         ("SELECT set_config('statement_timeout', '0', true)", False),
@@ -5832,6 +5837,22 @@ def test_changes_search_path(sql: str, expected: bool) -> None:
         # A `set_config()` whose setting name is a column reference rather than
         # a literal is treated conservatively as a schema change.
         ("SELECT set_config(schema_col, 'tenant_b', false)", "postgresql", True),
+        # `EXPLAIN ANALYZE` runs its body, so a `SET SCHEMA` carried inside one
+        # rebinds resolution just as the bare statement does. Without the
+        # flag the body is only planned, and `EXPLAIN` of an ordinary query
+        # rebinds nothing.
+        ("EXPLAIN ANALYZE SET SCHEMA 'tenant_b'", "postgresql", True),
+        # A qualifier between `SET` and the setting name is matched inside a
+        # nested body too, as it is when the statement stands alone.
+        (
+            "DO $$ BEGIN EXECUTE 'SET LOCAL SCHEMA ''tenant_b'''; END $$",
+            "postgresql",
+            True,
+        ),
+        ("SET LOCAL SCHEMA 'tenant_b'", "postgresql", True),
+        ("EXPLAIN SET SCHEMA 'tenant_b'", "postgresql", False),
+        ("EXPLAIN VERBOSE SELECT * FROM orders", "postgresql", False),
+        ("EXPLAIN (COSTS) SELECT * FROM orders", "postgresql", False),
         # Engines without a sqlglot AST (e.g. Kusto KQL) do not rebind schema
         # resolution through these forms.
         ("print x = 1", "kustokql", False),
