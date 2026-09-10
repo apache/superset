@@ -1023,3 +1023,34 @@ As in Explore, missing or empty range labels are not displayed, and missing or
 empty marker labels use the formatted numeric value. Extra labels have no value
 to annotate and are ignored. These rules also apply to saved-chart previews and
 updates; omitted label controls preserve the saved state.
+
+### Reporting query dates
+
+`query_dataset` and `get_table` return `from_dttm` (inclusive) and `to_dttm`
+(exclusive): the primary time boundaries from the query engine's result payload,
+including cached and empty results. Callers should quote these ISO 8601 values
+when explaining the numbers, rather than calculate dates from the request again.
+For example, `previous calendar month` evaluated on July 17, 2026 resolves to
+`2026-06-01T00:00:00` through, but not including, `2026-07-01T00:00:00`.
+`Last month` is a rolling month, not the previous calendar month.
+
+On a cache hit, these bounds reflect the current request, not necessarily the
+original cached execution. A cached result can outlive a relative-range rollover;
+check `cache_status.cache_hit` before describing the bounds as execution dates.
+
+Relative expressions use Superset's server clock and configured
+`DEFAULT_RELATIVE_START_TIME` / `DEFAULT_RELATIVE_END_TIME` (both default to
+`today`, meaning midnight). Valid explicit dates are used as supplied; the server
+cannot determine whether a model intended a different year.
+
+These fields describe the engine's **primary logical range**, not the observed
+minimum/maximum dates in the rows or every SQL predicate. A null boundary means
+no primary bound is available; it does not prove the absence of other filters.
+Additional column filters and virtual dataset SQL can further constrain the
+data. MCP validation rejects open-ended `time_range` strings such as
+`"2025-01-01 : "` or `" : 2025-02-01"` before execution; use explicit comparison
+filters for one-sided constraints. Those comparisons are not primary bounds. Naive
+boundaries are not labeled UTC: dataset timezone or legacy hour-offset settings
+can adjust the SQL comparisons. Use the applied filters and datasource settings
+as well when explaining such queries. `query_dataset.applied_filters` retains the
+original expressions so callers can compare the requested and resolved ranges.

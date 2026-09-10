@@ -241,6 +241,8 @@ async def test_query_dataset_success(mcp_server: FastMCP) -> None:
     data = json.loads(result.content[0].text)
     assert data["dataset_id"] == 1
     assert data["dataset_name"] == "orders"
+    assert data["from_dttm"] is None
+    assert data["to_dttm"] is None
     assert data["row_count"] == 2
     assert len(data["data"]) == 2
     assert data["data"][0]["category"] == "Electronics"
@@ -1649,3 +1651,173 @@ async def test_query_dataset_bracket_hour_resolves_without_parse_error(
     assert since is not None
     assert until is not None
     assert since < until
+
+
+@pytest.mark.parametrize(
+    ("expression", "expected_start", "expected_end"),
+    [
+        ("Last month", "2026-06-17T00:00:00", "2026-07-17T00:00:00"),
+        ("Last year", "2025-07-17T00:00:00", "2026-07-17T00:00:00"),
+        ("previous calendar month", "2026-06-01T00:00:00", "2026-07-01T00:00:00"),
+        ("Current year", "2026-01-01T00:00:00", "2027-01-01T00:00:00"),
+        ("2025-06-01 : 2025-07-01", "2025-06-01T00:00:00", "2025-07-01T00:00:00"),
+        ("No filter", None, None),
+    ],
+)
+@pytest.mark.parametrize("use_filter", [False, True])
+@pytest.mark.parametrize("result_kind", ["fresh", "cached", "empty"])
+@pytest.mark.asyncio
+async def test_query_dataset_returns_engine_time_bounds(
+    mcp_server: FastMCP,
+    expression: str,
+    expected_start: str | None,
+    expected_end: str | None,
+    use_filter: bool,
+    result_kind: str,
+) -> None:
+    """Resolve MCP inputs with the real factory and serialize execution bounds."""
+    from flask import current_app
+    from freezegun import freeze_time
+
+    from superset.common.chart_data import ChartDataResultType
+    from superset.common.query_object_factory import QueryObjectFactory
+
+    dataset = _make_dataset(main_dttm_col="order_date")
+
+    def execute(
+        datasource_id: int, datasource_type: str, query_dict: dict[str, Any], **_: Any
+    ) -> dict[str, Any]:
+        """Use production date resolution in place of database execution."""
+        factory = QueryObjectFactory(current_app.config, MagicMock())
+        with freeze_time("2026-07-17 12:34:56"):
+            query = factory.create(
+                parent_result_type=ChartDataResultType.FULL,
+                **query_dict,
+            )
+        payload = _mock_command_result()
+        result = payload["queries"][0]
+        result.update(from_dttm=query.from_dttm, to_dttm=query.to_dttm)
+        result["is_cached"] = result_kind == "cached"
+        if result_kind == "empty":
+            result.update(data=[], colnames=[], rowcount=0)
+        return payload
+
+    request: dict[str, Any] = {"dataset_id": 1, "metrics": ["count"]}
+    if use_filter:
+        request["filters"] = [
+            {"col": "order_date", "op": "TEMPORAL_RANGE", "val": expression}
+        ]
+    else:
+        request["time_range"] = expression
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(
+            query_dataset_module, "execute_tabular_query", side_effect=execute
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("query_dataset", {"request": request})
+
+    data = json.loads(result.content[0].text)
+    assert data["from_dttm"] == expected_start
+    assert data["to_dttm"] == expected_end
+    assert data["applied_filters"][0]["val"] == expression.strip()
+
+
+@pytest.mark.parametrize("empty", [False, True])
+@pytest.mark.asyncio
+async def test_query_dataset_cached_bounds_across_rollover(
+    mcp_server: FastMCP, empty: bool
+) -> None:
+    """Round-trip cached rows while resolving bounds for each MCP request."""
+    from datetime import timedelta
+
+    from flask import current_app
+    from flask_caching import Cache
+    from freezegun import freeze_time
+    from pandas import DataFrame
+
+    from superset.common.chart_data import ChartDataResultType
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.common.query_object import QueryObject
+    from superset.common.query_object_factory import QueryObjectFactory
+    from superset.constants import CacheRegion
+    from superset.models.helpers import QueryResult
+
+    dataset = _make_dataset(main_dttm_col="order_date")
+    dataset.column_names = ["count"]
+    context = MagicMock(datasource=dataset, force=False)
+    processor = QueryContextProcessor(context)
+    cache = Cache(current_app, config={"CACHE_TYPE": "SimpleCache"})
+    rows = [] if empty else [{"count": 3}]
+    source_result = QueryResult(
+        df=DataFrame(rows, columns=["count"]),
+        query="SELECT COUNT(*) AS count FROM orders",
+        duration=timedelta(0),
+        applied_filter_columns=["order_date"],
+    )
+    keys: list[str] = []
+
+    def execute(
+        datasource_id: int, datasource_type: str, query_dict: dict[str, Any], **_: Any
+    ) -> dict[str, Any]:
+        """Acquire through production cache handling; adapt its dataframe payload."""
+        query = QueryObjectFactory(current_app.config, MagicMock()).create(
+            parent_result_type=ChartDataResultType.FULL, **query_dict
+        )
+        keys.append(query.cache_key())
+        payload = processor.get_df_payload(query)
+        frame = payload.pop("df")
+        payload.update(
+            data=frame.to_dict(orient="records"), colnames=list(frame.columns)
+        )
+        return {"queries": [payload]}
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(
+            query_dataset_module, "execute_tabular_query", side_effect=execute
+        ),
+        patch.dict(
+            "superset.common.utils.query_cache_manager._cache",
+            {CacheRegion.DATA: cache},
+        ),
+        patch.object(processor, "query_cache_key", side_effect=QueryObject.cache_key),
+        patch.object(processor, "get_cache_timeout", return_value=300),
+        patch.object(processor, "get_annotation_data", return_value={}),
+        patch.object(
+            processor, "get_query_result", return_value=source_result
+        ) as get_query_result,
+    ):
+        async with Client(mcp_server) as client:
+            request = {
+                "request": {
+                    "dataset_id": 1,
+                    "metrics": ["count"],
+                    "time_range": "Last month",
+                }
+            }
+            with freeze_time("2026-07-17 23:59:59"):
+                fresh = await client.call_tool("query_dataset", request)
+            with freeze_time("2026-07-18 00:00:01"):
+                cached = await client.call_tool("query_dataset", request)
+                stored = cache.get(keys[0])
+                assert stored is not None
+                assert "from_dttm" not in stored
+                assert "to_dttm" not in stored
+
+    get_query_result.assert_called_once()
+    assert keys[0] == keys[1]
+    fresh_data = json.loads(fresh.content[0].text)
+    cached_data = json.loads(cached.content[0].text)
+    assert fresh_data["data"] == cached_data["data"] == rows
+    assert fresh_data["cache_status"]["cache_hit"] is False
+    assert cached_data["cache_status"]["cache_hit"] is True
+    assert fresh_data["from_dttm"] == "2026-06-17T00:00:00"
+    assert fresh_data["to_dttm"] == "2026-07-17T00:00:00"
+    assert cached_data["from_dttm"] == "2026-06-18T00:00:00"
+    assert cached_data["to_dttm"] == "2026-07-18T00:00:00"
+    assert cached_data["performance"]["cache_status"] == (
+        "no_data" if empty else "cached"
+    )

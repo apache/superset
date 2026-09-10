@@ -107,6 +107,10 @@ async def query_dataset(  # noqa: C901
     expressions such as "SUM(col)" are not accepted. When the dataset has no
     saved metric for the aggregate you need, use execute_sql instead.
 
+    When reporting results, state the returned from_dttm (inclusive) and
+    to_dttm (exclusive) primary bounds rather than guessing dates from the
+    relative expression. Additional filters can further constrain the range.
+
     Workflow:
     1. list_datasets -> find a dataset
     2. get_dataset_info -> discover available columns and metrics
@@ -351,6 +355,8 @@ async def query_dataset(  # noqa: C901
         if not data:
             return _bounded_response(
                 QueryDatasetResponse(
+                    from_dttm=query_result.get("from_dttm"),
+                    to_dttm=query_result.get("to_dttm"),
                     dataset_id=dataset.id,
                     dataset_name=dataset_name,
                     columns=columns_meta,
@@ -387,6 +393,8 @@ async def query_dataset(  # noqa: C901
 
         return _bounded_response(
             QueryDatasetResponse(
+                from_dttm=query_result.get("from_dttm"),
+                to_dttm=query_result.get("to_dttm"),
                 dataset_id=dataset.id,
                 dataset_name=dataset_name,
                 columns=columns_meta,

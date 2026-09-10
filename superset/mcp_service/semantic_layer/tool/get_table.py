@@ -252,6 +252,8 @@ def _build_response(
 
     if not data:
         return GetTableResponse(
+            from_dttm=query_result.get("from_dttm"),
+            to_dttm=query_result.get("to_dttm"),
             columns=columns_meta,
             data=[],
             row_count=0,
@@ -277,6 +279,8 @@ def _build_response(
     )
 
     return GetTableResponse(
+        from_dttm=query_result.get("from_dttm"),
+        to_dttm=query_result.get("to_dttm"),
         columns=columns_meta,
         data=data,
         row_count=len(data),
@@ -442,6 +446,10 @@ async def get_table(
 
     Works with both built-in datasets and external semantic views. The
     ``dataset_id`` or ``view_id`` comes from the ``list_metrics`` response.
+
+    When reporting results, state the returned from_dttm (inclusive) and
+    to_dttm (exclusive) primary bounds rather than guessing dates from the
+    relative expression. Additional filters can further constrain the range.
 
     Workflow:
     1. list_metrics -> discover metrics and their compatible_dimensions

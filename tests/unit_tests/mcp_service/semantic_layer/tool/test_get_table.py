@@ -1006,3 +1006,63 @@ class TestGetTableTemporalRangeFilterValidation:
             }
         )
         assert req.filters[0].val == "banana"
+
+
+@pytest.mark.parametrize("is_builtin", [False, True])
+@pytest.mark.parametrize("empty", [False, True])
+def test_response_preserves_execution_time_bounds(
+    is_builtin: bool, empty: bool
+) -> None:
+    """Use execution metadata, including for empty results, rather than reparse."""
+    from datetime import datetime
+
+    from superset.mcp_service.semantic_layer.schemas import GetTableRequest
+
+    request = GetTableRequest(
+        dataset_id=42 if is_builtin else None,
+        view_id=None if is_builtin else 1,
+        metrics=["count"],
+        time_range="Last month",
+    )
+    response = get_table_module._build_response(
+        request,
+        is_builtin,
+        "orders",
+        {
+            "data": [] if empty else [{"count": 3}],
+            "colnames": ["count"],
+            "from_dttm": datetime(2026, 6, 1),
+            "to_dttm": datetime(2026, 7, 1),
+            "is_cached": True,
+        },
+        10,
+        [],
+    )
+    data = response.model_dump(mode="json")
+    assert data["from_dttm"] == "2026-06-01T00:00:00"
+    assert data["to_dttm"] == "2026-07-01T00:00:00"
+
+
+@pytest.mark.parametrize("source_field", ["dataset_id", "view_id"])
+@pytest.mark.parametrize("expression", ["2025-01-01 : ", " : 2025-02-01"])
+@pytest.mark.asyncio
+async def test_get_table_rejects_open_ended_range_before_execution(
+    mcp_server: FastMCP, source_field: str, expression: str
+) -> None:
+    """Open-ended MCP input cannot reach the shared comparison-filter rewrite."""
+    from fastmcp.exceptions import ToolError
+
+    with patch.object(get_table_module, "execute_tabular_query") as execute:
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError, match="Unrecognized time_range"):
+                await client.call_tool(
+                    "get_table",
+                    {
+                        "request": {
+                            source_field: 1,
+                            "metrics": ["count"],
+                            "time_range": expression,
+                        }
+                    },
+                )
+    execute.assert_not_called()
