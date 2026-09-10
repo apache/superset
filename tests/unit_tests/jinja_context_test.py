@@ -3443,6 +3443,7 @@ def test_get_rendered_sql_filter_values_index_error_on_empty_list() -> None:
         ),
     ],
 )
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
 def test_has_template(sql: str, expected: bool) -> None:
     """
     Test the ``has_template`` method.
