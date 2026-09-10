@@ -19,16 +19,24 @@
 import { useParams } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { resolveView } from 'src/core/views';
+import { useResolveView } from 'src/core/views';
 
 /**
  * Generic full-page host for a single extension-registered view, reached at
  * `/extensions/view/:viewId`. Extensions cannot render their own views
- * directly (`resolveView` is host-internal, not part of the public
- * `@apache-superset/core` SDK) -- they register a view at
+ * directly (`resolveView`/`useResolveView` are host-internal, not part of
+ * the public `@apache-superset/core` SDK) -- they register a view at
  * `GlobalLocations.settings.panel` and a matching command at
  * `GlobalLocations.settings.menu` whose callback navigates here, and the
  * host resolves and renders it.
+ *
+ * Uses the reactive `useResolveView`, not the plain `resolveView`: this
+ * page is reachable by a direct/full navigation (a bookmark, a page
+ * refresh, or an extension's own menu command falling back to
+ * `window.location.assign` in the absence of an SDK-level SPA-navigation
+ * primitive), and the providing extension's own code loads asynchronously
+ * -- a non-reactive resolve would permanently commit to the "could not be
+ * loaded" placeholder from before that load finishes.
  */
 const ExtensionView = () => {
   const { viewId } = useParams<{ viewId: string }>();
@@ -37,6 +45,8 @@ const ExtensionView = () => {
     name: t('Extension'),
   };
 
+  const resolved = useResolveView(viewId ?? '');
+
   if (!viewId) {
     return null;
   }
@@ -44,7 +54,7 @@ const ExtensionView = () => {
   return (
     <>
       <SubMenu {...menuData} />
-      {resolveView(viewId)}
+      {resolved}
     </>
   );
 };
