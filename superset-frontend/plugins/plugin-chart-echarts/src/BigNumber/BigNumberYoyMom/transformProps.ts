@@ -132,6 +132,7 @@ type ComparisonSlot = {
   label: string;
   offset?: string;
   column?: QueryFormMetric;
+  mode?: 'time_shift' | 'metric';
   current: number | null;
   comparisonValue: number | string | null | undefined;
   formatter: (value: number) => string;
@@ -415,6 +416,7 @@ export default function transformProps(
     label,
     offset,
     column,
+    mode,
     current: slotCurrent,
     comparisonValue,
     formatter,
@@ -422,9 +424,30 @@ export default function transformProps(
     if (!show) return null;
     if (!offset && !column) return null;
     const comparison = toNumber(comparisonValue);
-    const percent = computePercent(slotCurrent, comparison);
     const missing = comparison === null;
 
+    // A comparison value metric (dataset column or custom SQL) supplies the
+    // value itself, so render it like the big number instead of computing a
+    // percentage change. Time shifts keep the percentage-difference display.
+    if (isMetricMode(mode, column)) {
+      if (missing) {
+        return {
+          text: `${label ? `${label} ` : ''}—`,
+          fill: zeroColor,
+        };
+      }
+      return {
+        text: `${label ? `${label} ` : ''}${numberFormatter(comparison)}`,
+        fill:
+          comparison > 0
+            ? positiveColor
+            : comparison < 0
+              ? negativeColor
+              : zeroColor,
+      };
+    }
+
+    const percent = computePercent(slotCurrent, comparison);
     let text: string;
     if (missing || percent === null) {
       text = `${label ? `${label} ` : ''}—`;
@@ -459,6 +482,7 @@ export default function transformProps(
     label: comparison1Label,
     offset: comparison1Offset,
     column: comparison1Column,
+    mode: comparison1Mode,
     current: slotCurrent(comparison1Mode, comparison1Column),
     comparisonValue: slotComparisonValue(
       comparison1Mode,
@@ -472,6 +496,7 @@ export default function transformProps(
     label: comparison2Label,
     offset: comparison2Offset,
     column: comparison2Column,
+    mode: comparison2Mode,
     current: slotCurrent(comparison2Mode, comparison2Column),
     comparisonValue: slotComparisonValue(
       comparison2Mode,
