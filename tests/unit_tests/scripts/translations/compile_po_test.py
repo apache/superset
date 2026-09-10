@@ -49,16 +49,25 @@ def test_run_command_shell_flag() -> None:
         assert kwargs["shell"] is False
 
 
+def test_format_cmd_arg() -> None:
+    """_format_cmd_arg quotes arguments with spaces or cmd metacharacters."""
+    assert compile_po._format_cmd_arg("") == '""'
+    assert compile_po._format_cmd_arg("normal") == "normal"
+    assert compile_po._format_cmd_arg("hello world") == '"hello world"'
+    assert compile_po._format_cmd_arg("file&calc.po") == '"file&calc.po"'
+    assert compile_po._format_cmd_arg("file|more.json") == '"file|more.json"'
+    assert compile_po._format_cmd_arg('file"name') == r'"file\"name"'
+
+
 def test_run_command_quotes_cmd_metacharacters() -> None:
-    """run_command quotes arguments containing cmd metacharacters on Windows."""
+    """run_command formats command line with quoted metacharacters on Windows."""
     with patch("subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(returncode=0)
         with patch("os.name", "nt"):
             compile_po.run_command(["po2json.cmd", "file&calc.po", "file|more.json"])
             mock_run.assert_called_once()
             args, _ = mock_run.call_args
-            assert args[0][1] == '"file&calc.po"'
-            assert args[0][2] == '"file|more.json"'
+            assert args[0] == 'po2json.cmd "file&calc.po" "file|more.json"'
 
 
 def test_run_command_failure() -> None:

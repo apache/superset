@@ -34,19 +34,35 @@ from concurrent.futures import as_completed, ThreadPoolExecutor
 _SHELL = False
 
 
-def _quote_cmd_arg(arg: str) -> str:
-    """Quote arguments containing cmd.exe metacharacters on Windows."""
-    if os.name == "nt" and any(c in arg for c in '&|<>()^%"'):
-        escaped = arg.replace('"', '""')
+def _format_cmd_arg(arg: str) -> str:
+    """Quote an argument if it contains spaces or cmd metacharacters on Windows."""
+    if not arg:
+        return '""'
+    if any(c in arg for c in " \t\n\v&|<>()^%"):
+        escaped = arg.replace('"', '\\"')
+        return f'"{escaped}"'
+    if '"' in arg:
+        escaped = arg.replace('"', '\\"')
         return f'"{escaped}"'
     return arg
 
 
 def run_command(command: list[str], cwd: str | None = None, timeout: int = 120) -> int:
     try:
-        sanitized_command = [_quote_cmd_arg(arg) for arg in command]
+        cmd_to_run: list[str] | str
+        if os.name == "nt":
+            # On Windows, when subprocess.run receives a list of args, Python's
+            # list2cmdline escapes double quotes with backslashes (\"). When invoking
+            # batch wrappers (.cmd/.bat), cmd.exe does not understand \" and passes
+            # literal quote marks into the child process argv, corrupting file paths.
+            # Building the command string directly with _format_cmd_arg ensures both
+            # cmd metacharacter safety and uncorrupted arguments.
+            cmd_to_run = " ".join(_format_cmd_arg(arg) for arg in command)
+        else:
+            cmd_to_run = command
+
         result = subprocess.run(  # noqa: S603
-            sanitized_command,
+            cmd_to_run,
             text=True,
             shell=_SHELL,
             check=False,
@@ -181,9 +197,7 @@ def compile_translations() -> int:  # noqa: C901
     failures: list[str] = []
     max_workers = min(8, (os.cpu_count() or 1) * 2)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        futures = {
-            executor.submit(convert_po_file, f, po2json_cmd): f for f in po_files
-        }
+        futures = [executor.submit(convert_po_file, f, po2json_cmd) for f in po_files]
         for future in as_completed(futures):
             ok, po_path, err = future.result()
             if not ok:
