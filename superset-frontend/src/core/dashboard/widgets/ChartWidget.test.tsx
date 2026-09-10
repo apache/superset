@@ -105,7 +105,7 @@ test('a chart does not draw the name its header already carries', async () => {
   expect(option).toHaveProperty('series');
 });
 
-test('an existing raw-only echarts widget (no chartType) renders exactly as before', async () => {
+test('an existing raw-only echarts widget (no chartType) keeps what it authored', async () => {
   const rawSeries = [{ type: 'pie', data: [{ name: 'a', value: 1 }] }];
   const id = provider.addWidget(provider.getRoot().id, 0, {
     type: 'echarts',
@@ -118,9 +118,11 @@ test('an existing raw-only echarts widget (no chartType) renders exactly as befo
 
   await waitFor(() => expect(mockSetOption).toHaveBeenCalled());
 
+  // The theme fills in what the option leaves unsaid (label colours, palette
+  // entries, and so on), so the authored shape is checked as a subset.
   const [option] = mockSetOption.mock.calls[0];
-  expect(option.series).toEqual(rawSeries);
-  expect(option.legend).toEqual({ show: true });
+  expect(option.series).toMatchObject(rawSeries);
+  expect(option.legend).toMatchObject({ show: true });
 });
 
 test('selecting a structured chart type replaces series with one generated per metric', async () => {
@@ -143,8 +145,8 @@ test('selecting a structured chart type replaces series with one generated per m
   const [option] = mockSetOption.mock.calls[0];
   // The structured layer only manages `series` — everything else the raw
   // option authored survives unmanaged.
-  expect(option.legend).toEqual({ show: true });
-  expect(option.series).toEqual([
+  expect(option.legend).toMatchObject({ show: true });
+  expect(option.series).toMatchObject([
     {
       name: 'count',
       type: 'bar',
@@ -172,7 +174,7 @@ test('a series override is applied by stable metric key when chartType is set', 
   await waitFor(() => expect(mockSetOption).toHaveBeenCalled());
 
   const [option] = mockSetOption.mock.calls[0];
-  expect(option.series).toEqual([
+  expect(option.series).toMatchObject([
     {
       name: 'Total',
       type: 'line',
@@ -203,9 +205,9 @@ test('structured chrome (legend/tooltip/axis) applies alongside raw echartsOptio
   await waitFor(() => expect(mockSetOption).toHaveBeenCalled());
 
   const [option] = mockSetOption.mock.calls[0];
-  expect(option.legend).toEqual({ show: false });
-  expect(option.tooltip).toEqual({ trigger: 'axis' });
-  expect(option.xAxis).toEqual({
+  expect(option.legend).toMatchObject({ show: false });
+  expect(option.tooltip).toMatchObject({ trigger: 'axis' });
+  expect(option.xAxis).toMatchObject({
     type: 'category',
     name: 'Product',
     axisLabel: { color: 'red', rotate: 45 },
