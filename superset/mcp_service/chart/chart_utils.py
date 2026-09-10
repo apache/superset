@@ -1785,19 +1785,6 @@ def _merge_preserved_adhoc_filters(
     return merged
 
 
-def preserve_previous_adhoc_filters(
-    new_form_data: Dict[str, Any], previous_form_data: Mapping[str, Any]
-) -> None:
-    """Compatibility entry point backed by the shared filter merge."""
-    filters = _merge_preserved_adhoc_filters(
-        previous_form_data,
-        new_form_data,
-        drop_existing_temporal=False,
-    )
-    if filters is not None:
-        new_form_data["adhoc_filters"] = filters
-
-
 def _merge_allowlisted_form_data(
     existing_form_data: Mapping[str, Any],
     new_form_data: Mapping[str, Any],
