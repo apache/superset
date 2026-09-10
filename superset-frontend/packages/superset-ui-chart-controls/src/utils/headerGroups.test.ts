@@ -30,6 +30,7 @@ import {
   nestColDefsInHeaderGroups,
   resolveHeaderGroups,
   syncTimeComparisonGroups,
+  toStoredTimeComparisonColumnKey,
   type HeaderGroupConfig,
 } from './headerGroups';
 
@@ -279,6 +280,39 @@ test('expandGroupColumnKey matches a literal Main key', () => {
   ]);
 });
 
+test('expandGroupColumnKey maps a localized Main key onto the stored slot', () => {
+  expect(
+    expandGroupColumnKey('Principal revenue', [
+      'Main revenue',
+      '# revenue',
+      '△ revenue',
+      '% revenue',
+    ]),
+  ).toEqual(['Main revenue']);
+});
+
+test('expandGroupColumnKey maps a stored Main key onto a localized chart key', () => {
+  expect(
+    expandGroupColumnKey('Main revenue', [
+      'Principal revenue',
+      '# revenue',
+      '△ revenue',
+      '% revenue',
+    ]),
+  ).toEqual(['Principal revenue']);
+});
+
+test('toStoredTimeComparisonColumnKey persists a locale-independent Main id', () => {
+  expect(
+    toStoredTimeComparisonColumnKey('Principal revenue', [
+      'Main revenue',
+      '# revenue',
+    ]),
+  ).toBe('Main revenue');
+  expect(toStoredTimeComparisonColumnKey('Main revenue')).toBe('Main revenue');
+  expect(toStoredTimeComparisonColumnKey('# revenue')).toBe('# revenue');
+});
+
 test('expandGroupColumnKey maps a metric to its time comparison columns', () => {
   const visible = [
     'region',
@@ -403,6 +437,46 @@ test('syncTimeComparisonGroups adds missing auto groups and keeps edits', () => 
   ]);
   expect(next[1].label).toBe('Renamed');
   expect(next[1].columns).toEqual(comparisonRevenueColumns);
+});
+
+test('syncTimeComparisonGroups stores locale-independent keys on user groups', () => {
+  const next = syncTimeComparisonGroups(
+    [
+      {
+        id: 'custom',
+        label: 'Custom',
+        columns: ['Principal revenue', '# revenue'],
+        children: [
+          {
+            id: 'child',
+            label: 'Child',
+            columns: ['Principal revenue'],
+          },
+        ],
+      },
+    ],
+    [
+      {
+        id: 'time-compare-revenue',
+        label: 'Revenue',
+        columns: comparisonRevenueColumns,
+        source: 'time_compare',
+      },
+    ],
+  );
+
+  expect(next[0]).toEqual({
+    id: 'custom',
+    label: 'Custom',
+    columns: ['Main revenue', '# revenue'],
+    children: [
+      {
+        id: 'child',
+        label: 'Child',
+        columns: ['Main revenue'],
+      },
+    ],
+  });
 });
 
 test('syncTimeComparisonGroups regenerates auto-group columns from current comparison keys', () => {
@@ -596,6 +670,14 @@ test('getHeaderGroupsControlProps builds time comparison groups', () => {
       columns: [`Main revenue`, '# revenue', '△ revenue', '% revenue'],
     }),
   ]);
+  expect(result.columnOptions).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        value: 'Main revenue',
+        label: 'Main Revenue',
+      }),
+    ]),
+  );
   expect(result.columnOptions.map(option => option.value)).toEqual([
     'region',
     'revenue',

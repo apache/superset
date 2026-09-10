@@ -22,6 +22,7 @@ import {
   getTimeComparisonColumnKeys,
   headerGroupsHaveSameColumns,
   syncTimeComparisonGroups,
+  toStoredTimeComparisonColumnKey,
 } from '@superset-ui/chart-controls';
 import { HeaderGroupColumnOption, HeaderGroupConfig } from './types';
 
@@ -186,16 +187,29 @@ export function pruneStaleHeaderGroupColumns(
 ): HeaderGroupConfig[] {
   const validKeys = new Set(columnOptions.map(option => option.value));
   const visibleKeys = [...validKeys];
-  const isResolvable = (column: string) =>
-    validKeys.has(column) ||
-    expandGroupColumnKey(column, visibleKeys).length > 0;
+  const resolveColumn = (column: string): string | null => {
+    const stored = toStoredTimeComparisonColumnKey(column, visibleKeys);
+    if (stored !== column && validKeys.has(stored)) {
+      return stored;
+    }
+    if (validKeys.has(column)) {
+      return column;
+    }
+    if (expandGroupColumnKey(column, visibleKeys).length > 0) {
+      return column;
+    }
+    return null;
+  };
   return groups.map(group => {
     if (group.source === 'time_compare') {
       return group;
     }
     return {
       ...group,
-      columns: (group.columns ?? []).filter(isResolvable),
+      columns: (group.columns ?? []).flatMap(column => {
+        const resolved = resolveColumn(column);
+        return resolved ? [resolved] : [];
+      }),
       children: pruneStaleHeaderGroupColumns(
         group.children ?? [],
         columnOptions,

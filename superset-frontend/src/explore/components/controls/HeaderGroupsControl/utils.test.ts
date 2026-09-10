@@ -280,6 +280,26 @@ test('pruneStaleHeaderGroupColumns keeps time comparison groups intact', () => {
   expect(pruned[0].columns).toEqual(['Main SUM(sales)', '# SUM(sales)']);
 });
 
+test('pruneStaleHeaderGroupColumns remaps a localized Main key to the stored slot', () => {
+  const pruned = pruneStaleHeaderGroupColumns(
+    [
+      {
+        id: 'custom',
+        label: 'Custom',
+        columns: ['Principal revenue', 'region'],
+      },
+    ],
+    [
+      { value: 'region', label: 'region' },
+      { value: 'Main revenue', label: 'Main revenue' },
+      { value: '# revenue', label: '# revenue' },
+      { value: '△ revenue', label: '△ revenue' },
+      { value: '% revenue', label: '% revenue' },
+    ],
+  );
+  expect(pruned[0].columns).toEqual(['Main revenue', 'region']);
+});
+
 test('syncTimeComparisonGroups adds missing and drops stale auto groups', () => {
   const userGroup: HeaderGroupConfig = {
     id: 'custom',

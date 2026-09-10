@@ -59,13 +59,131 @@ export type HeaderGroupCell = {
   isLastColumn: boolean;
 };
 
+export const TIME_COMPARE_MAIN_KEY = 'Main';
+
+const TIME_COMPARE_SYMBOL_PREFIXES = ['#', '△', '%'] as const;
+
+type TimeCompareSlot = {
+  metric: string;
+  isMain: boolean;
+  prefix: string;
+};
+
+function getMainComparisonPrefixes(): string[] {
+  const translated = t('Main');
+  return translated === TIME_COMPARE_MAIN_KEY
+    ? [TIME_COMPARE_MAIN_KEY]
+    : [translated, TIME_COMPARE_MAIN_KEY];
+}
+
+function isTimeCompareSymbolPrefix(
+  prefix: string,
+): prefix is (typeof TIME_COMPARE_SYMBOL_PREFIXES)[number] {
+  return (TIME_COMPARE_SYMBOL_PREFIXES as readonly string[]).includes(prefix);
+}
+
+function parseTimeComparisonSlot(column: string): TimeCompareSlot | null {
+  for (const prefix of TIME_COMPARE_SYMBOL_PREFIXES) {
+    if (column.startsWith(`${prefix} `)) {
+      return { metric: column.slice(prefix.length + 1), isMain: false, prefix };
+    }
+  }
+  for (const prefix of getMainComparisonPrefixes()) {
+    if (column.startsWith(`${prefix} `)) {
+      return {
+        metric: column.slice(prefix.length + 1),
+        isMain: true,
+        prefix: TIME_COMPARE_MAIN_KEY,
+      };
+    }
+  }
+  return null;
+}
+
+function inferMainSlotFromSiblings(
+  column: string,
+  visibleKeys: string[],
+): TimeCompareSlot | null {
+  const space = column.indexOf(' ');
+  if (space <= 0) {
+    return null;
+  }
+  const prefix = column.slice(0, space);
+  if (isTimeCompareSymbolPrefix(prefix)) {
+    return null;
+  }
+  const metric = column.slice(space + 1);
+  if (
+    !metric ||
+    !TIME_COMPARE_SYMBOL_PREFIXES.some(symbol =>
+      visibleKeys.includes(`${symbol} ${metric}`),
+    )
+  ) {
+    return null;
+  }
+  return { metric, isMain: true, prefix: TIME_COMPARE_MAIN_KEY };
+}
+
+function resolveTimeComparisonSlotKeys(
+  slot: TimeCompareSlot,
+  visibleKeys: string[],
+): string[] {
+  if (!slot.isMain) {
+    const key = `${slot.prefix} ${slot.metric}`;
+    return visibleKeys.filter(item => item === key);
+  }
+  const wanted = new Set(
+    getMainComparisonPrefixes().map(prefix => `${prefix} ${slot.metric}`),
+  );
+  const matches = visibleKeys.filter(key => wanted.has(key));
+  if (matches.length > 0) {
+    return matches;
+  }
+  const alternatives = visibleKeys.filter(key => {
+    const space = key.indexOf(' ');
+    if (space <= 0) {
+      return false;
+    }
+    const prefix = key.slice(0, space);
+    return (
+      !isTimeCompareSymbolPrefix(prefix) && key.slice(space + 1) === slot.metric
+    );
+  });
+  return alternatives.length === 1 ? alternatives : [];
+}
+
+/**
+ * Locale-independent comparison column keys. `Main` is a stored slot id.
+ * Chart headers display `t('Main')` and may use a translated data key.
+ */
 export function getTimeComparisonColumnKeys(colname: string): string[] {
   return [
-    `${t('Main')} ${colname}`,
+    `${TIME_COMPARE_MAIN_KEY} ${colname}`,
     `# ${colname}`,
     `△ ${colname}`,
     `% ${colname}`,
   ];
+}
+
+export function toStoredTimeComparisonColumnKey(
+  column: string,
+  visibleKeys: string[] = [],
+): string {
+  const slot =
+    parseTimeComparisonSlot(column) ??
+    inferMainSlotFromSiblings(column, visibleKeys);
+  if (!slot) {
+    return column;
+  }
+  if (
+    visibleKeys.length > 0 &&
+    resolveTimeComparisonSlotKeys(slot, visibleKeys).length === 0
+  ) {
+    return column;
+  }
+  return slot.isMain
+    ? `${TIME_COMPARE_MAIN_KEY} ${slot.metric}`
+    : `${slot.prefix} ${slot.metric}`;
 }
 
 export function expandGroupColumnKey(
@@ -73,13 +191,23 @@ export function expandGroupColumnKey(
   visibleKeys: string[],
 ): string[] {
   const visible = new Set(visibleKeys);
-  const candidates = visible.has(identifier)
-    ? [identifier]
-    : [
-        `%${identifier}`,
-        ...getTimeComparisonColumnKeys(identifier),
-        `Main ${identifier}`,
-      ];
+  if (visible.has(identifier)) {
+    return [identifier];
+  }
+  const slot =
+    parseTimeComparisonSlot(identifier) ??
+    inferMainSlotFromSiblings(identifier, visibleKeys);
+  if (slot) {
+    return resolveTimeComparisonSlotKeys(slot, visibleKeys);
+  }
+  const translatedMain = t('Main');
+  const candidates = [
+    `%${identifier}`,
+    ...getTimeComparisonColumnKeys(identifier),
+    ...(translatedMain === TIME_COMPARE_MAIN_KEY
+      ? []
+      : [`${translatedMain} ${identifier}`]),
+  ];
   const matchSet = new Set(candidates.filter(key => visible.has(key)));
   return visibleKeys.filter(key => matchSet.has(key));
 }
@@ -155,6 +283,21 @@ function refreshTimeComparisonGroup(
   };
 }
 
+function remapUserGroupComparisonColumns(
+  group: HeaderGroupConfig,
+  visibleKeys: string[],
+): HeaderGroupConfig {
+  return {
+    ...group,
+    columns: (group.columns ?? []).map(column =>
+      toStoredTimeComparisonColumnKey(column, visibleKeys),
+    ),
+    children: group.children?.map(child =>
+      remapUserGroupComparisonColumns(child, visibleKeys),
+    ),
+  };
+}
+
 export function syncTimeComparisonGroups(
   groups: HeaderGroupConfig[],
   timeComparisonGroups: HeaderGroupConfig[] = [],
@@ -167,11 +310,14 @@ export function syncTimeComparisonGroups(
       .filter(group => group.source === 'time_compare')
       .map(group => group.id),
   );
+  const comparisonKeys = timeComparisonGroups.flatMap(
+    group => group.columns ?? [],
+  );
   const kept = groups
     .filter(group => group.source !== 'time_compare' || autoById.has(group.id))
     .map(group => {
       if (group.source !== 'time_compare') {
-        return group;
+        return remapUserGroupComparisonColumns(group, comparisonKeys);
       }
       const fresh = autoById.get(group.id) as HeaderGroupConfig;
       return refreshTimeComparisonGroup(group, fresh.columns, true);
@@ -221,6 +367,19 @@ function labelFromVerboseMap(
     }
   }
   return verboseMap[key] ?? key;
+}
+
+function columnOptionLabel(
+  colname: string,
+  verboseMap?: Record<string, string> | string[] | null,
+): string {
+  const slot = parseTimeComparisonSlot(colname);
+  if (!slot) {
+    return labelFromVerboseMap(colname, verboseMap);
+  }
+  const metricLabel = labelFromVerboseMap(slot.metric, verboseMap);
+  const prefix = slot.isMain ? t('Main') : slot.prefix;
+  return `${prefix} ${metricLabel}`;
 }
 
 export function resolveHeaderGroups(
@@ -705,7 +864,7 @@ export function getHeaderGroupsControlProps(
   }
 
   const columnLabel = (colname: string) =>
-    labelFromVerboseMap(colname, verboseMap);
+    columnOptionLabel(colname, verboseMap);
 
   return {
     columnOptions: colnames.map((colname: string) => ({
