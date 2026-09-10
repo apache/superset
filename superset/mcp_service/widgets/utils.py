@@ -52,3 +52,18 @@ def unknown_widget_type_error(widget_type: str) -> dict[str, Any]:
 
 def resolve_widget(widget_type: str) -> type[Widget] | None:
     return registry.get(widget_type)
+
+
+def unknown_node_error(node_id: str) -> dict[str, Any]:
+    """Structured error for a node id absent from the widget-node store
+    (mirrors ``unknown_widget_type_error``)."""
+    return {
+        "error": {
+            "error_type": "unknown_node",
+            "message": f"Unknown widget node: {node_id!r}",
+            "suggestions": [
+                "The node id must already exist in the widget-node store; "
+                "this tool does not create nodes.",
+            ],
+        }
+    }

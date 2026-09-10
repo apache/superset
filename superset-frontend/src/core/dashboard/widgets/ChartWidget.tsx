@@ -53,6 +53,7 @@ import { LabelLayout } from 'echarts/features';
 import { CanvasRenderer } from 'echarts/renderers';
 import { dashboard as dashboardApi } from '@apache-superset/core';
 import { useTheme } from '@apache-superset/core/theme';
+import type { QueryFormMetric } from '@superset-ui/core';
 import { Flex, Loading, Typography } from '@superset-ui/core/components';
 import { provider, useDashboardRevision } from '../store';
 import { fetchQueryData } from '../chartData';
@@ -63,6 +64,15 @@ import {
 import { resolveBindings } from '../resolveBindings';
 import { getActiveFiltersForDataset } from '../collectActiveFilters';
 import type { FilterValueChangedPayload } from '../filterVocabulary';
+import {
+  applyStructuredEchartsSeries,
+  type EchartsChartType,
+  type SeriesOverrideValue,
+} from './echartsStructuredSeries';
+import {
+  applyStructuredChrome,
+  type EchartsChromeValue,
+} from './echartsStructuredChrome';
 import { getChartTheme } from '../chartTheme';
 import { applySeriesDefaults } from '../echartsSeriesDefaults';
 
@@ -323,6 +333,14 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bindingKey]);
 
+  const chartType = node?.props?.chartType as
+    EchartsChartType | null | undefined;
+  const customizeSeries = (
+    node?.props?.customize as
+      { series?: Record<string, SeriesOverrideValue> } | undefined
+  )?.series;
+  const chrome = node?.props?.chrome as EchartsChromeValue | undefined;
+
   const colorScheme = provider.getRoot().props?.colorScheme;
   const chartTheme = useMemo(
     () =>
@@ -343,11 +361,22 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
       (node?.props?.echartsOptions as Record<string, unknown>) ?? {},
       { rows, chartTheme, theme },
     );
+    const withStructuredSeries = applyStructuredEchartsSeries(
+      resolved,
+      chartType,
+      (dataBinding?.metrics ?? []) as QueryFormMetric[],
+      rows,
+      customizeSeries,
+    );
+    const withStructuredChrome = applyStructuredChrome(
+      withStructuredSeries,
+      chrome,
+    );
     // The chart's name is drawn by the widget's header, which reads it from
     // this same option (see `widgetLabel`). Leaving it here too would print it
     // twice, at two sizes, in two places — and the header's copy is the one
     // that sits where every other widget's name sits.
-    const withoutTitle = { ...resolved };
+    const withoutTitle = { ...withStructuredChrome };
     delete withoutTitle.title;
 
     // Everything an AI-authored option doesn't say for itself comes from the
@@ -355,7 +384,7 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
     // whatever chart overrides the theme carries. Merged *under* the option
     // (rightmost source wins in `mergeEchartsThemeOverrides`), so an explicit
     // choice in the spec still takes precedence.
-    const merged = mergeEchartsThemeOverrides(
+    const merged = mergeEchartsThemeOverrides<Record<string, unknown>>(
       {
         ...getEchartsTheme(theme, withoutTitle),
         // The fallback for a series with no name of its own. A named one is
@@ -367,13 +396,24 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
       withoutTitle,
       theme.echartsOptionsOverrides ?? {},
     );
+    // The theme layer styles a title as well; there is none to style.
+    delete merged.title;
 
     // Per-series-type theming can't ride along in the merge — a source array
     // replaces the destination's, so any `series` the theme layer added would
     // be dropped by the authored one. Filled in afterwards, and only where the
     // option is silent, which leaves an explicit choice in the spec intact.
     return applySeriesDefaults(merged, chartTheme);
-  }, [node?.props?.echartsOptions, rows, theme, chartTheme]);
+  }, [
+    node?.props?.echartsOptions,
+    chartType,
+    customizeSeries,
+    chrome,
+    dataBinding,
+    rows,
+    theme,
+    chartTheme,
+  ]);
 
   if (!node) return null;
 

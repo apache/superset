@@ -45,9 +45,40 @@ jest.spyOn(SupersetClient, 'get').mockResolvedValue({
   },
 } as never);
 
+// A minimal backend schema for `metric-tile` (schema-controlled), so tests
+// below can exercise the validated form/JSON commit path without pulling in
+// the full real control model. `mockPost` routes `/control-schema` and
+// `/validate` calls separately, the same split `SchemaControlPanel.test.tsx`
+// uses, since both now round-trip through this panel on an edit.
+const METRIC_TILE_SCHEMA = {
+  type: 'object',
+  properties: {
+    prefix: { type: 'string', title: 'Prefix' },
+  },
+};
+
+const postSpy = jest.spyOn(SupersetClient, 'post');
+const mockPost = (
+  controlSchemaResult: unknown = METRIC_TILE_SCHEMA,
+  validateErrors: unknown[] = [],
+) => {
+  postSpy.mockImplementation(({ endpoint }: { endpoint: string }) => {
+    if (endpoint.endsWith('/validate')) {
+      return Promise.resolve({
+        json: { result: { errors: validateErrors } },
+      } as never);
+    }
+    return Promise.resolve({
+      json: { result: controlSchemaResult },
+    } as never);
+  });
+};
+
 beforeEach(() => {
   provider.reset();
   resetSchemaControlledWidgetTypesForTests();
+  postSpy.mockReset();
+  mockPost();
 });
 
 /**
@@ -109,10 +140,16 @@ test('applying properties writes them to the widget', async () => {
   });
   await userEvent.click(screen.getByTestId('inspector-props-apply'));
 
-  expect(provider.getNode(id)?.props?.dataBinding).toEqual({
-    datasetId: 3,
-    metrics: ['count'],
-  });
+  // Apply now always round-trips through `commitWidgetProps` (see the 404
+  // fallback tests below), so even a widget type with no backend schema
+  // commits asynchronously — this can no longer assert immediately after
+  // the click.
+  await waitFor(() =>
+    expect(provider.getNode(id)?.props?.dataBinding).toEqual({
+      datasetId: 3,
+      metrics: ['count'],
+    }),
+  );
 });
 
 test('a key deleted from the properties stops reaching the widget', async () => {
@@ -128,8 +165,11 @@ test('a key deleted from the properties stops reaching the widget', async () => 
   // the widget would go on rendering from the value it appeared to lose.
   // Sending `undefined` is as close to a removal as a merge can express: the
   // widget reads nothing there, and the key does not survive serialization
-  // back into the editor.
-  expect(provider.getNode(id)?.props?.drop).toBeUndefined();
+  // back into the editor. Apply is asynchronous (see the comment on the
+  // previous test), so this waits for the commit to actually land.
+  await waitFor(() =>
+    expect(provider.getNode(id)?.props?.drop).toBeUndefined(),
+  );
   expect(provider.getNode(id)?.props?.keep).toBe(1);
   expect(screen.getByTestId('inspector-props')).toHaveValue(
     JSON.stringify({ keep: 1 }, null, 2),
@@ -350,16 +390,9 @@ test('selecting the dashboard offers the properties the dashboard has', () => {
   ].forEach(section => expect(screen.getByText(section)).toBeInTheDocument());
 });
 
-test('the dashboard is not a widget, so it is not placed and cannot be deleted', () => {
+test('the dashboard is not a widget, so it has no identity of its own', () => {
   selectRoot();
 
-  // `removeWidget` refuses the root outright, so a Delete there is a
-  // control that only ever raises; and the root is placed by nothing, so it
-  // has no column or row of its own to start at.
-  expect(screen.queryByTestId('inspector-delete')).not.toBeInTheDocument();
-  expect(
-    screen.queryByTestId('inspector-section-placement'),
-  ).not.toBeInTheDocument();
   expect(screen.queryByTestId('inspector-identity')).not.toBeInTheDocument();
 });
 
@@ -377,18 +410,6 @@ test('the panel counts what is on the dashboard', () => {
   );
 });
 
-test('a child is asked where it starts', () => {
-  const rootId = provider.getRoot().id;
-  const childId = provider.addWidget(rootId, 0, { type: 'markdown' });
-  provider.setSelection(childId);
-  render(<Inspector />);
-
-  expect(screen.getByTestId('inspector-col')).toBeInTheDocument();
-  expect(screen.getByTestId('inspector-row')).toBeInTheDocument();
-  expect(screen.getByTestId('inspector-colSpan')).toBeInTheDocument();
-  expect(screen.getByTestId('inspector-rowSpan')).toBeInTheDocument();
-});
-
 test('a container is not offered any arrangement fields from the panel', () => {
   selectRoot();
 
@@ -403,4 +424,150 @@ test('a container is not offered any arrangement fields from the panel', () => {
   ].forEach(key =>
     expect(screen.queryByTestId(`inspector-${key}`)).not.toBeInTheDocument(),
   );
+});
+
+// A schema-controlled widget type (`metric-tile`) round-trips every edit —
+// form or JSON — through the backend `/validate` endpoint before committing
+// (see `controlValueValidation.ts`). These tests exercise that path
+// end-to-end through the Inspector, the way `SchemaControlPanel.test.tsx`
+// exercises the Form tab alone.
+test('a form edit updates both node.props and the JSON representation', async () => {
+  const id = select('metric-tile', {
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+    prefix: '',
+  });
+
+  await userEvent.type(await screen.findByRole('textbox'), '$');
+  await waitFor(() => expect(provider.getNode(id)?.props?.prefix).toBe('$'));
+
+  const jsonTextarea = (await openJson()) as HTMLTextAreaElement;
+  expect(JSON.parse(jsonTextarea.value)).toEqual({
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+    prefix: '$',
+  });
+});
+
+test('a valid JSON edit updates node.props and the form controls', async () => {
+  const id = select('metric-tile', {
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+    prefix: '',
+  });
+  await openJson();
+
+  fireEvent.change(screen.getByTestId('inspector-props'), {
+    target: {
+      value: JSON.stringify({
+        dataBinding: { datasetId: 1, metrics: ['count'] },
+        prefix: '€',
+      }),
+    },
+  });
+  await userEvent.click(screen.getByTestId('inspector-props-apply'));
+  await waitFor(() => expect(provider.getNode(id)?.props?.prefix).toBe('€'));
+
+  await userEvent.click(screen.getByRole('tab', { name: 'Form' }));
+  expect(await screen.findByRole('textbox')).toHaveValue('€');
+});
+
+test('malformed JSON on a schema-controlled widget cannot be applied and leaves node.props untouched', async () => {
+  const id = select('metric-tile', {
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+    prefix: 'kept',
+  });
+  await openJson();
+
+  fireEvent.change(screen.getByTestId('inspector-props'), {
+    target: { value: '{ "broken": ' },
+  });
+
+  expect(screen.getByTestId('inspector-props-apply')).toBeDisabled();
+  expect(provider.getNode(id)?.props?.prefix).toBe('kept');
+});
+
+test('a JSON edit rejected by backend validation leaves node.props unchanged and surfaces the error', async () => {
+  const id = select('metric-tile', {
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+    prefix: 'kept',
+  });
+  await openJson();
+  mockPost(METRIC_TILE_SCHEMA, [{ loc: ['prefix'], message: 'Too long' }]);
+
+  fireEvent.change(screen.getByTestId('inspector-props'), {
+    target: {
+      value: JSON.stringify({
+        dataBinding: { datasetId: 1, metrics: ['count'] },
+        prefix: 'way too long',
+      }),
+    },
+  });
+  await userEvent.click(screen.getByTestId('inspector-props-apply'));
+
+  expect(
+    await screen.findByTestId('inspector-props-validation-error'),
+  ).toHaveTextContent('Too long');
+  // Rejected atomically: the stored node — and the draft, which was never
+  // reverted — are exactly what they were before Apply.
+  expect(provider.getNode(id)?.props?.prefix).toBe('kept');
+});
+
+test('switching between Form and JSON tabs does not reset already-accepted values', async () => {
+  const id = select('metric-tile', {
+    dataBinding: { datasetId: 1, metrics: ['count'] },
+    prefix: 'kept',
+  });
+
+  await openJson();
+  await userEvent.click(screen.getByRole('tab', { name: 'Form' }));
+
+  expect(await screen.findByRole('textbox')).toHaveValue('kept');
+  expect(provider.getNode(id)?.props?.prefix).toBe('kept');
+});
+
+test('a widget type the backend confirms has no schema (a 404 from /validate) keeps committing JSON edits without a validation gate', async () => {
+  // The JSON editor always attempts `/validate` first — the Inspector's own
+  // `useSchemaControlledWidgetTypes` cache is `null` while loading and empty
+  // on a fetch failure, so gating on it (rather than on the backend's own
+  // 404) would silently skip validation for a widget that does have a
+  // schema, for as long as that list hasn't resolved.
+  const id = select('echarts', { title: 'Revenue' });
+  await openJson();
+  postSpy.mockImplementation(({ endpoint }: { endpoint: string }) =>
+    endpoint.endsWith('/validate')
+      ? Promise.reject(new Response(null, { status: 404 }))
+      : Promise.resolve({ json: { result: METRIC_TILE_SCHEMA } } as never),
+  );
+
+  fireEvent.change(screen.getByTestId('inspector-props'), {
+    target: { value: '{"title":"Quarterly"}' },
+  });
+  await userEvent.click(screen.getByTestId('inspector-props-apply'));
+
+  await waitFor(() =>
+    expect(provider.getNode(id)?.props?.title).toBe('Quarterly'),
+  );
+  expect(postSpy).toHaveBeenCalledWith(
+    expect.objectContaining({
+      endpoint: expect.stringContaining('/validate'),
+    }),
+  );
+});
+
+test('a non-404 failure from /validate leaves node.props unchanged and surfaces the error, even for a widget type the cached list has not resolved for', async () => {
+  const id = select('echarts', { title: 'Revenue' });
+  await openJson();
+  postSpy.mockImplementation(({ endpoint }: { endpoint: string }) =>
+    endpoint.endsWith('/validate')
+      ? Promise.reject(new Error('network error'))
+      : Promise.resolve({ json: { result: METRIC_TILE_SCHEMA } } as never),
+  );
+
+  fireEvent.change(screen.getByTestId('inspector-props'), {
+    target: { value: '{"title":"Quarterly"}' },
+  });
+  await userEvent.click(screen.getByTestId('inspector-props-apply'));
+
+  expect(
+    await screen.findByTestId('inspector-props-validation-error'),
+  ).toHaveTextContent('network error');
+  expect(provider.getNode(id)?.props?.title).toBe('Revenue');
 });

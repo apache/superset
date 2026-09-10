@@ -36,7 +36,7 @@ entry, so they live here rather than in a parallel registry.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, ClassVar
 
 from pydantic import BaseModel, ValidationError
 
@@ -44,6 +44,13 @@ from pydantic import BaseModel, ValidationError
 # JSON Schema, preserves field order, and blanks ``x-dynamic`` enums when no
 # configuration is supplied — the exact machinery the SIP proposes to share.
 from superset_core.semantic_layers.config import build_configuration_schema
+from superset_core.widgets.enrichment import (
+    build_dependency_graph,
+    dynamic_field_paths,
+    EnricherFn,
+    run_enrichers,
+    toposort_or_raise,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +73,20 @@ class Widget:
     name: str
     description: str = ""
     controls_class: type[BaseModel]
+    enrichers: ClassVar[dict[str, EnricherFn]] = {}
+
+    @classmethod
+    def validate_control_schema(cls) -> None:
+        """Validate the static control schema without running enrichers.
+
+        Widget registration happens during application initialization, before
+        there is a request user. Enrichers may perform permission-scoped data
+        lookups, so registration must only verify that the schema can be built
+        and that its dynamic-field dependency graph is acyclic.
+        """
+        schema = build_configuration_schema(cls.controls_class)
+        fields = dynamic_field_paths(schema)
+        toposort_or_raise(build_dependency_graph(fields), cls.widget_type)
 
     @classmethod
     def get_control_schema(
@@ -84,6 +105,14 @@ class Widget:
         values). Partial or invalid values during editing are tolerated and
         fall back to the base schema; enrichment errors propagate so the caller
         can degrade gracefully.
+
+        Every ``x-dynamic`` field found in the built schema is enriched (if
+        this widget has a registered enricher for its path, see ``enrichers``)
+        in dependency order — derived from each field's own ``x-dependsOn``,
+        see ``superset_core.widgets.enrichment``. A cyclic dependency raises
+        ``ValueError``; for a built-in or registered widget this is caught
+        once at registration time (``inject_widget_implementations``), not on
+        every request.
         """
         parsed: BaseModel | None = None
         if control_values:
@@ -98,21 +127,10 @@ class Widget:
                     exc_info=True,
                 )
         schema = build_configuration_schema(cls.controls_class, parsed)
-        cls.enrich_schema(schema, parsed, series or [])
+        fields = dynamic_field_paths(schema)
+        order = toposort_or_raise(build_dependency_graph(fields), cls.widget_type)
+        run_enrichers(schema, fields, order, cls.enrichers, parsed, series or [])
         return schema
-
-    @classmethod
-    def enrich_schema(
-        cls,
-        schema: dict[str, Any],
-        parsed: BaseModel | None,
-        series: list[str],
-    ) -> None:
-        """
-        Hook to populate ``x-dynamic`` fields from the current control values
-        and the discovered ``series`` values. Default is a no-op; overridden by
-        widgets with dependent fields. Mutates ``schema`` in place.
-        """
 
     @classmethod
     def validate_control_values(
@@ -132,7 +150,7 @@ class Widget:
         every rule lives declaratively on the model; this method just surfaces
         whatever the model enforces.
         """
-        if not control_values:
+        if control_values is None:
             return []
         try:
             cls.controls_class.model_validate(control_values)

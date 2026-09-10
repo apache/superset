@@ -21,6 +21,7 @@ import {
   fireEvent,
   render,
   screen,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 import DashboardProvider from './DashboardProvider';
@@ -125,6 +126,37 @@ test('the root carries no header of its own', () => {
   expect(
     screen.queryByTestId(`widget-remove-${rootId}`),
   ).not.toBeInTheDocument();
+});
+
+test('the overflow menu sits to the right of the bin', () => {
+  const { id } = withBlock();
+
+  const bin = screen.getByTestId(`widget-remove-${id}`);
+  const menu = screen.getByTestId(`widget-menu-${id}`);
+  expect(
+    bin.compareDocumentPosition(menu) & Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+});
+
+test('the bin does not double its own spacing with the gap before the menu', () => {
+  const { id } = withBlock();
+
+  // ActionButton bakes in its own trailing margin for sitting alone at the
+  // end of a row; here it sits mid-row against the header's own gap, and
+  // the two together doubled the space before the menu that follows it.
+  const bin = screen.getByTestId(`widget-remove-${id}`);
+  expect(getComputedStyle(bin).marginRight).toBe('0px');
+});
+
+test('the overflow menu does not duplicate the bin', async () => {
+  const { id } = withBlock();
+
+  // Disabling every placeholder to make room for a working Remove would
+  // bury the one real action here — the bin already offers it.
+  await userEvent.click(screen.getByTestId(`widget-menu-${id}`));
+
+  expect(await screen.findByText('Force refresh')).toBeInTheDocument();
+  expect(screen.queryByText('Remove widget')).not.toBeInTheDocument();
 });
 
 test("a widget's name reads as its title, not as a caption on it", () => {

@@ -92,7 +92,9 @@ const OutlineTile = styled.div<{ $selected: boolean }>`
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 2}px;
     border: 1px solid ${$selected ? theme.colorPrimary : theme.colorBorder};
-    border-radius: ${theme.borderRadiusSM}px;
+    /* The same radius the canvas draws the widget itself at, and the
+       Palette draws its tile at — one rounding language, not three. */
+    border-radius: ${theme.borderRadiusLG}px;
     background-color: ${
       $selected ? theme.colorPrimaryBg : theme.colorFillQuaternary
     };

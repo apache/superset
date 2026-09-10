@@ -34,12 +34,21 @@ const mount = () => {
   return onAdd;
 };
 
-test('the panel offers widgets, properties and an outline', () => {
+test('the panel offers building blocks, properties and an outline', () => {
   mount();
 
-  expect(screen.getByRole('tab', { name: 'Widgets' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('tab', { name: 'Building Blocks' }),
+  ).toBeInTheDocument();
   expect(screen.getByRole('tab', { name: 'Properties' })).toBeInTheDocument();
   expect(screen.getByRole('tab', { name: 'Outline' })).toBeInTheDocument();
+});
+
+test('building blocks comes first, ahead of properties and outline', () => {
+  mount();
+
+  const labels = screen.getAllByRole('tab').map(tab => tab.textContent);
+  expect(labels).toEqual(['Building Blocks', 'Properties', 'Outline']);
 });
 
 test('widgets is what you start on, and it lists what is registered', () => {
@@ -162,7 +171,7 @@ const widthOf = () =>
 test('the panel opens wide enough to edit a widget in', () => {
   mount();
 
-  expect(widthOf()).toBe(350);
+  expect(widthOf()).toBe(400);
 });
 
 test('the handle resizes from the keyboard, so a drag is not the only way', () => {
@@ -171,13 +180,24 @@ test('the handle resizes from the keyboard, so a drag is not the only way', () =
   handle.focus();
 
   fireEvent.keyDown(handle, { key: 'ArrowRight' });
-  expect(widthOf()).toBe(366);
+  expect(widthOf()).toBe(416);
 
   fireEvent.keyDown(handle, { key: 'End' });
   expect(widthOf()).toBe(800);
 
   fireEvent.keyDown(handle, { key: 'Home' });
-  expect(widthOf()).toBe(280);
+  expect(widthOf()).toBe(320);
+});
+
+test('a wide control in a tab scrolls the page, not the rail sideways', () => {
+  mount();
+
+  // `allowOverflow={false}` asks the tab body to scroll vertically; left at
+  // Tabs's own default it scrolls both axes, and a control sized for the
+  // wider modal it was written for (see DashboardProperties) would then hand
+  // the whole rail a sideways scrollbar too.
+  const body = document.querySelector('.ant-tabs-body-holder') as HTMLElement;
+  expect(body).toHaveStyle({ overflowX: 'hidden' });
 });
 
 test('the handle reports the width it actually has', () => {
@@ -187,7 +207,7 @@ test('the handle reports the width it actually has', () => {
   // control is lying about the only thing it does.
   expect(screen.getByTestId('panel-resize')).toHaveAttribute(
     'aria-valuenow',
-    '350',
+    '400',
   );
 });
 
@@ -226,12 +246,14 @@ test('the panel can be got out of the way, and brought back', async () => {
   // they were in it.
   await userEvent.click(screen.getByTestId('panel-collapse'));
 
-  expect(screen.queryByRole('tab', { name: 'Widgets' })).toBeNull();
+  expect(screen.queryByRole('tab', { name: 'Building Blocks' })).toBeNull();
   expect(screen.getByTestId('panel-expand')).toBeInTheDocument();
 
   await userEvent.click(screen.getByTestId('panel-expand'));
 
-  expect(screen.getByRole('tab', { name: 'Widgets' })).toBeInTheDocument();
+  expect(
+    screen.getByRole('tab', { name: 'Building Blocks' }),
+  ).toBeInTheDocument();
 });
 
 test('a closed panel keeps the width it was opened at', async () => {
