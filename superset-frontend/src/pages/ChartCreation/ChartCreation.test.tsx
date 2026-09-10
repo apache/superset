@@ -153,6 +153,20 @@ test('renders a select and a VizTypeGallery', async () => {
   expect(screen.getByText(/choose chart type/i)).toBeInTheDocument();
 });
 
+test('does not double up the vertical Steps icon-to-content gap', async () => {
+  // antd 6 added its own icon->content gap on `.ant-steps-item-wrapper`
+  // (column-gap), stacking on top of the pre-existing `margin-right` on
+  // `.ant-steps-item-icon` and shifting every step's content to the right.
+  const { container } = await renderComponent();
+  const styledContainer = container.firstChild;
+  expect(styledContainer).toHaveStyleRule('column-gap', '0', {
+    target: '.ant-steps-item-wrapper',
+  });
+  expect(styledContainer).toHaveStyleRule('margin-right', '8px', {
+    target: '.ant-steps-item-icon',
+  });
+});
+
 test('renders dataset help text when user lacks dataset write permissions', async () => {
   await renderComponent();
   expect(screen.queryByText('Add a dataset')).not.toBeInTheDocument();

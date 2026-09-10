@@ -1953,3 +1953,51 @@ def test_count_distinct_calculated_column_is_parenthesized() -> None:
         f"COUNT_DISTINCT over a calculated column should parenthesize the "
         f"expression. Rendered: {rendered}"
     )
+
+
+def test_gauge_query_restores_long_sql_metric_label(mocker: MockerFixture) -> None:
+    """Engine-compatible SQL aliases do not replace the frontend result label."""
+    from collections.abc import Callable
+
+    from sqlalchemy import literal_column
+
+    from superset.mcp_service.chart.query_result import validate_gauge_query_result
+
+    table = _build_sqla_table_for_query(mocker, "SELECT 42 AS truncated")
+    expected = "SUM(" + "long_column_" * 200 + ")"
+    mocker.patch.object(
+        table.db_engine_spec, "make_label_compatible", return_value="truncated"
+    )
+    column = table.make_sqla_column_compatible(literal_column("42"), expected)
+    assert column.name == "truncated"
+    assert column.key == expected
+    mocker.patch.object(
+        table,
+        "get_query_str_extended",
+        return_value=mocker.MagicMock(
+            sql="SELECT 42 AS truncated", labels_expected=[column.key]
+        ),
+    )
+
+    def get_df(
+        sql: str,
+        catalog: str,
+        schema: str,
+        mutator: Callable[[pd.DataFrame], pd.DataFrame],
+    ) -> pd.DataFrame:
+        """Apply the real query result relabeling callback to driver output."""
+        return mutator(pd.DataFrame({"truncated": [42]}))
+
+    mocker.patch.object(table.database, "get_df", side_effect=get_df)
+    result = table.query(_query_obj())
+    assert list(result.df.columns) == [expected]
+    assert (
+        validate_gauge_query_result(
+            {"queries": [{"data": result.df.to_dict(orient="records")}]},
+            {
+                "viz_type": "gauge_chart",
+                "metric": {"expressionType": "SQL", "sqlExpression": expected},
+            },
+        )
+        is None
+    )
