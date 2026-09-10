@@ -628,6 +628,11 @@ AFTER_ASSET_CREATE = _after_asset_create
 It defaults to `None`, which is a no-op: with nothing configured, chart and
 dashboard creation behaves exactly as it did before this hook existed.
 
+The hook runs before the surrounding database transaction commits, so an
+exception raised inside it aborts the chart or dashboard creation. Keep it
+fast and side-effect-light, and avoid raising unless you intend to cancel
+the creation.
+
 ## Carrying extra data through chart and dashboard exports
 
 Deployments often attach their own metadata to charts and dashboards — an owning
