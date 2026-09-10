@@ -11414,7 +11414,7 @@ msgid "Recover this item"
 msgstr "恢复此项目"
 
 msgid "Recover this item to open it"
-msgstr "恢复此项目并打开"
+msgstr "恢复此项目后方可打开"
 
 msgid "Rectangle"
 msgstr "长方形"
