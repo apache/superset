@@ -560,6 +560,7 @@ def export_dashboard_excel(
     job_id: str,
     mode: str = EXPORT_MODE_DATA,
     guest_token: GuestToken | None = None,
+    lock_token: str | None = None,
 ) -> None:
     """
     Export a dashboard's charts to an ``.xlsx`` and record a download link.
@@ -663,6 +664,10 @@ def export_dashboard_excel(
                 export_lock_params(
                     user_id or guest_lock_slot(guest_token), dashboard_id
                 ),
+                # Compare-and-delete on the API's acquisition token: if the
+                # lock's TTL expired and another export reacquired the key,
+                # this release must not delete the new holder's lock.
+                token=lock_token,
             ).run()
         except Exception:  # pylint: disable=broad-except
             # Best-effort: the lock's TTL is the backstop if this fails.

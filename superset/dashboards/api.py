@@ -1869,12 +1869,13 @@ class DashboardRestApi(
         lock_params = export_lock_params(
             user_id or guest_lock_slot(guest_token_payload), dashboard.id
         )
+        acquire = AcquireDistributedLock(
+            EXPORT_LOCK_NAMESPACE,
+            lock_params,
+            ttl_seconds=EXPORT_LOCK_TTL_SECONDS,
+        )
         try:
-            AcquireDistributedLock(
-                EXPORT_LOCK_NAMESPACE,
-                lock_params,
-                ttl_seconds=EXPORT_LOCK_TTL_SECONDS,
-            ).run()
+            acquire.run()
         except LockAlreadyHeldException:
             return self.response(
                 202,
@@ -1891,6 +1892,7 @@ class DashboardRestApi(
                     "job_id": job_id,
                     "mode": payload.get("mode", "data"),
                     "guest_token": guest_token_payload,
+                    "lock_token": acquire.token,
                 },
                 task_id=job_id,
             )
@@ -1898,7 +1900,9 @@ class DashboardRestApi(
             # If enqueuing fails (e.g. broker down) the task will never run to
             # release the lock, so free it now rather than block exports until
             # the TTL expires.
-            ReleaseDistributedLock(EXPORT_LOCK_NAMESPACE, lock_params).run()
+            ReleaseDistributedLock(
+                EXPORT_LOCK_NAMESPACE, lock_params, token=acquire.token
+            ).run()
             raise
         return self.response(202, job_id=job_id)
 
