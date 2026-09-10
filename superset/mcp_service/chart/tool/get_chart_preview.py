@@ -44,7 +44,7 @@ from superset.mcp_service.chart.preview_utils import (
     generate_gauge_vega_lite_preview,
 )
 from superset.mcp_service.chart.query_result import (
-    normalize_gauge_query_result,
+    normalize_chart_query_result,
     query_result_failure,
 )
 from superset.mcp_service.chart.schemas import (
@@ -183,6 +183,8 @@ def _no_query_fields_error(chart: ChartLike) -> ChartError:
 
 def _preview_row_limit(form_data: dict[str, Any], fallback: int) -> int:
     """Keep Gauge preview cardinality aligned with its frontend row limit."""
+    if form_data.get("mcp_geographic"):
+        return min(10000, max(1, int(form_data.get("row_limit") or 10000)))
     if form_data.get("viz_type") != "gauge_chart":
         return fallback
     value = form_data.get("row_limit", 10)
@@ -280,7 +282,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
 
             if query_failure := query_result_failure(result):
                 return query_failure
-            result = normalize_gauge_query_result(result, form_data)
+            result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
                 return result
 
@@ -359,7 +361,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
 
             if query_failure := query_result_failure(result):
                 return query_failure
-            result = normalize_gauge_query_result(result, form_data)
+            result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
                 return result
 
@@ -458,7 +460,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
             if query_failure := query_result_failure(result):
                 return query_failure
-            result = normalize_gauge_query_result(result, form_data)
+            result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
                 return result
 
@@ -467,6 +469,19 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             if result and "queries" in result and len(result["queries"]) > 0:
                 chart_data = result["queries"][0].get("data", [])
 
+            if form_data.get("viz_type") in {
+                "country_map",
+                "world_map",
+                "deck_scatter",
+            }:
+                return ChartError(
+                    error=(
+                        "Geographic Vega previews are not supported. "
+                        "Use table/ascii for "
+                        "data or Explore for native geography."
+                    ),
+                    error_type="UnsupportedGeographicPreview",
+                )
             if form_data.get("viz_type") == "gauge_chart":
                 return generate_gauge_vega_lite_preview(chart_data, form_data)
             if not chart_data or not isinstance(chart_data, list):

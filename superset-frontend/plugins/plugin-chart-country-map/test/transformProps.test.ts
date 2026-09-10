@@ -127,3 +127,28 @@ test('renames v1 API records using adhoc metric labels', () => {
   );
   expect(transformed.data).toEqual([{ country_id: 'FRA', metric: 3.14 }]);
 });
+
+test('normalizes typed region display while preserving source values for cross-filters', () => {
+  const data = [{ state: 'CA', count: 10 }];
+  const transformed = transformProps(
+    createProps(
+      { entity: 'state', selectCountry: 'usa', regionFormat: 'abbreviation' },
+      { queriesData: [{ data }] },
+    ),
+  );
+  expect(transformed.data).toEqual([
+    { country_id: 'US-CA', source_value: 'CA', metric: 10 },
+  ]);
+  expect(data).toEqual([{ state: 'CA', count: 10 }]);
+});
+
+test('typed country maps reject unrecognized values', () => {
+  expect(() =>
+    transformProps(
+      createProps(
+        { entity: 'state', selectCountry: 'usa', regionFormat: 'abbreviation' },
+        { queriesData: [{ data: [{ state: 'BC', count: 10 }] }] },
+      ),
+    ),
+  ).toThrow('Unrecognized');
+});

@@ -67,15 +67,17 @@ export default function transformProps(chartProps: ChartProps) {
   const entityLabel = getColumnLabel(entity);
   const metricLabel = getMetricLabel(metric);
   const data =
-    Array.isArray(rawData) &&
-    rawData.length > 0 &&
-    entityLabel in rawData[0] &&
-    metricLabel in rawData[0]
-      ? transformData(rawData, {
+    formData.mcpGeographic ||
+    (Array.isArray(rawData) &&
+      rawData.length > 0 &&
+      entityLabel in rawData[0] &&
+      metricLabel in rawData[0])
+      ? transformData(rawData ?? [], {
           entity,
           metric,
           secondaryMetric,
           countryFieldtype,
+          strict: formData.mcpGeographic,
         })
       : rawData;
 

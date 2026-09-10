@@ -29,7 +29,7 @@ from typing import Any, Dict, List
 
 from superset.mcp_service.chart.query_result import (
     metric_result_label,
-    normalize_gauge_query_result,
+    normalize_chart_query_result,
     query_result_failure,
 )
 from superset.mcp_service.chart.schemas import (
@@ -102,7 +102,7 @@ def generate_preview_from_form_data(
 
         if query_failure := query_result_failure(result):
             return query_failure
-        result = normalize_gauge_query_result(result, form_data)
+        result = normalize_chart_query_result(result, form_data)
         if isinstance(result, ChartError):
             return result
         if not result or not result.get("queries"):
@@ -154,6 +154,8 @@ def _generate_ascii_preview_from_data(
     else:
         content = _generate_safe_ascii_table(data)
 
+    if viz_type in {"country_map", "world_map", "deck_scatter"}:
+        content = "Geographic source data (geometry not reproduced)\n" + content
     return ASCIIPreview(
         ascii_content=content, width=80, height=20, supports_color=False
     )
@@ -508,7 +510,7 @@ def _prepare_gauge_preview(  # noqa: C901
     data: Any, form_data: Dict[str, Any]
 ) -> tuple[list[dict[str, Any]], dict[str, Any]] | ChartError:
     """Validate Gauge rows and derive display values used by both previews."""
-    normalized = normalize_gauge_query_result(
+    normalized = normalize_chart_query_result(
         {"queries": [{"data": data}]}, {**form_data, "viz_type": "gauge_chart"}
     )
     if isinstance(normalized, ChartError):
@@ -935,6 +937,15 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
     viz_type = form_data.get("viz_type", "table")
     if viz_type == "gauge_chart":
         return generate_gauge_vega_lite_preview(data, form_data)
+
+    if viz_type in {"country_map", "world_map", "deck_scatter"}:
+        return ChartError(
+            error=(
+                "Geographic Vega previews are not supported. Use table/ascii for "
+                "source data, or open Explore for native geography."
+            ),
+            error_type="UnsupportedGeographicPreview",
+        )
 
     # Map Superset viz types to Vega-Lite marks
     viz_to_mark = {

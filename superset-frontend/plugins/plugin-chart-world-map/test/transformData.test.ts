@@ -81,3 +81,34 @@ test('joins by full country name', () => {
   expect(rows[0].country).toEqual('FRA');
   expect(rows[0].code).toEqual('France');
 });
+
+test('typed world maps retain country and bubble metric semantics', () => {
+  expect(
+    transformData([{ country: 'us', sales: 10, population: 20 }], {
+      entity: 'country',
+      metric: 'sales',
+      secondaryMetric: 'population',
+      countryFieldtype: 'cca2',
+      strict: true,
+    })[0],
+  ).toMatchObject({ country: 'USA', m1: 10, m2: 20 });
+});
+
+test.each([
+  { country: 'not-a-country', sales: 10, population: 20 },
+  { country: 'US', sales: null, population: 20 },
+  { country: 'US', sales: 10, population: -1 },
+])(
+  'typed world maps reject invalid values instead of XXX placeholders',
+  row => {
+    expect(() =>
+      transformData([row], {
+        entity: 'country',
+        metric: 'sales',
+        secondaryMetric: 'population',
+        countryFieldtype: 'cca2',
+        strict: true,
+      }),
+    ).toThrow();
+  },
+);

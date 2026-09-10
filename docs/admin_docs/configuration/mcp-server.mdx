@@ -1038,3 +1038,65 @@ boundaries are not labeled UTC: dataset timezone or legacy hour-offset settings
 can adjust the SQL comparisons. Use the applied filters and datasource settings
 as well when explaining such queries. `query_dataset.applied_filters` retains the
 original expressions so callers can compare the requested and resolved ranges.
+
+
+## Geographic chart generation
+
+`generate_chart`, `update_chart`, and `generate_explore_link` accept the same
+bounded geographic configs. Call `get_chart_type_schema` with `country_map`,
+`world_map`, or `deck_scatter` to discover availability and complete examples.
+The `chart_type` discriminator belongs **inside** `config`. Existing chart
+contracts and legacy native map behavior are unchanged.
+
+```json
+{
+  "dataset_id": 3,
+  "config": {
+    "chart_type": "country_map",
+    "country": "usa",
+    "region_format": "abbreviation",
+    "entity": {"name": "state"},
+    "metric": {"name": "sales", "aggregate": "SUM"},
+    "filters": [{"column": "country", "op": "IN", "value": ["USA"]}]
+  }
+}
+```
+
+- **Country map:** supported boundary sets are `usa`, `canada`, `australia`,
+  `japan`, and `uk`. Select the source `region_format`: `name` (e.g.
+  `California`), `abbreviation` (ISO suffix, e.g. `CA`), or `iso_3166_2`
+  (e.g. `US-CA`). Identifiers are limited to Superset's bundled boundaries,
+  not the entire ISO registry. Japanese abbreviation values are numeric
+  **strings**, such as `13`. Names are exact-first, then case/diacritic-insensitive
+  only when the result is unique. No fuzzy matching or geocoding is performed.
+- **World map:** set `country_format` to `name`, `cca2`, `cca3`, or `cioc`,
+  plus `entity` and `metric`. Choropleth color uses `metric`. For bubbles set
+  `show_bubbles: true` and supply `secondary_metric` for size (it may be the
+  same metric). Superset's bundled world-country dictionary defines coverage.
+- **Geographic points:** set `chart_type: "deck_scatter"`,
+  `latitude: {"name": "latitude"}`, and `longitude: {"name": "longitude"}`.
+  Numeric coordinates must be within ±90 and ±180 respectively. Optional
+  `dimension` groups/colors points; `radius_metric` aggregates a nonnegative
+  size at each location. Otherwise `radius` is fixed in `point_unit`: `radius_m` (default), `radius_km`,
+  `radius_miles`, `square_m`, `square_km`, or `square_miles`. Native minimum
+  and maximum on-screen radii are 2 and 250 pixels. Spatial null filters
+  exclude rows without coordinates.
+
+Region values that cannot resolve for the selected country/format return an
+`InvalidGeographicResult` error (`INVALID_GEOGRAPHIC_RESULT` during compilation).
+For example, `BC` does not resolve for USA; choose Canada or explicitly filter
+the dataset. No unrecognized returned rows are silently discarded. Multiple
+query groups resolving to one boundary also fail: normalize source values
+before aggregation rather than incorrectly adding averages or distinct counts.
+Source values remain intact for data/export and country-map cross-filtering.
+
+Generation validates the configured result (up to `row_limit`, bounded at
+10,000), not just the first two rows. This is not an audit of rows excluded by
+filters or limits. Saved and cached-preview updates preserve omitted controls;
+explicit null optional roles and empty filters clear them. Dataset rebinding
+requires a complete typed config and discards old dataset roles and filters.
+
+ASCII/table previews show source data and do not reproduce geography. Vega
+previews return `UnsupportedGeographicPreview` rather than an unrelated chart.
+Use the returned Explore link for the native map. Point maps use a public
+Carto basemap; browser network access and deployment basemap policy still apply.

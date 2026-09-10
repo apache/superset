@@ -23,6 +23,8 @@ import {
   getValueFormatter,
 } from '@superset-ui/core';
 
+import normalizeRegions from './normalizeRegions';
+
 export default function transformProps(chartProps: ChartProps) {
   const {
     width,
@@ -59,9 +61,33 @@ export default function transformProps(chartProps: ChartProps) {
   const metricLabel = getMetricLabel(metric);
   // rename only rows carrying both source labels, so pre-shaped legacy
   // payloads pass through even when the entity column is named country_id
-  const data = (rawData ?? []).map((row: Record<string, unknown>) =>
+  if (formData.regionFormat) {
+    for (const row of rawData ?? []) {
+      const value = row[metricLabel];
+      if (typeof value !== 'number' || !Number.isFinite(value)) {
+        throw new Error(
+          `Geographic metric ${metricLabel} must be a finite number`,
+        );
+      }
+    }
+  }
+  const displayData = formData.regionFormat
+    ? normalizeRegions(
+        rawData ?? [],
+        entityLabel,
+        String(selectCountry),
+        formData.regionFormat,
+      )
+    : (rawData ?? []);
+  const data = displayData.map((row: Record<string, unknown>, index: number) =>
     entityLabel in row && metricLabel in row
-      ? { country_id: row[entityLabel], metric: row[metricLabel] }
+      ? {
+          country_id: row[entityLabel],
+          metric: row[metricLabel],
+          ...(formData.regionFormat
+            ? { source_value: rawData[index][entityLabel] }
+            : {}),
+        }
       : row,
   );
 

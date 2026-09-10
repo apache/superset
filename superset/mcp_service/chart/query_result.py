@@ -223,3 +223,144 @@ def validate_gauge_query_result(
     """Check Gauge results using the same finite-dial contract as rendering."""
     normalized = normalize_gauge_query_result(result, form_data)
     return normalized if isinstance(normalized, ChartError) else None
+
+
+GEOGRAPHIC_VIZ_TYPES = frozenset({"country_map", "world_map", "deck_scatter"})
+
+
+def _geographic_metric_labels(form_data: Mapping[str, Any]) -> list[str]:
+    """Resolve metrics once, including fixed versus metric point sizing."""
+    if form_data.get("viz_type") == "deck_scatter":
+        radius = form_data.get("point_radius_fixed")
+        if not isinstance(radius, Mapping) or radius.get("type") not in {
+            "fix",
+            "metric",
+        }:
+            raise ValueError("Invalid geographic point radius configuration")
+        metrics = [radius.get("value")] if radius["type"] == "metric" else []
+    else:
+        metrics = [form_data.get("metric")]
+        secondary = form_data.get("secondary_metric")
+        if form_data.get("show_bubbles") and secondary is None:
+            raise ValueError("show_bubbles requires secondary_metric")
+        if secondary is not None:
+            metrics.append(secondary)
+    labels = [metric_result_label(metric) for metric in metrics]
+    if any(label is None for label in labels):
+        raise ValueError("Geographic metric has no resolvable result label")
+    return [label for label in labels if label is not None]
+
+
+def _validate_geographic_metrics(
+    row: Mapping[str, Any], labels: list[str], form_data: Mapping[str, Any]
+) -> None:
+    """Validate every selected metric without dropping invalid rows."""
+    secondary = metric_result_label(form_data.get("secondary_metric"))
+    for label in labels:
+        value = row.get(label)
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(value)
+        ):
+            raise ValueError(f"Geographic metric {label!r} must be a finite number")
+        if value < 0 and (
+            form_data.get("viz_type") == "deck_scatter" or label == secondary
+        ):
+            raise ValueError("Geographic size metrics must be nonnegative")
+
+
+def _geographic_row_identifier(
+    row: Mapping[str, Any], form_data: Mapping[str, Any]
+) -> str | None:
+    """Resolve a polygon identifier or validate numeric point coordinates."""
+    from superset.examples.countries import countries
+    from superset.utils.geographic import resolve_geographic_value, resolve_region
+
+    viz = form_data["viz_type"]
+    entity = form_data.get("entity")
+    if viz != "deck_scatter" and not isinstance(entity, str):
+        raise ValueError("Geographic maps require an entity column")
+    if viz == "country_map":
+        return resolve_region(
+            row.get(entity or ""),
+            form_data.get("select_country", ""),
+            form_data.get("region_format", ""),
+        )
+    if viz == "world_map":
+        field = form_data.get("country_fieldtype")
+        if field not in {"name", "cca2", "cca3", "cioc"}:
+            raise ValueError("Choose country_format name, cca2, cca3, or cioc")
+        return resolve_geographic_value(
+            row.get(entity or ""),
+            [(c[field], c["cca3"]) for c in countries if c[field]],
+            fold_diacritics=False,
+        )
+    spatial = form_data.get("spatial")
+    if not isinstance(spatial, Mapping) or spatial.get("type") != "latlong":
+        raise ValueError("Geographic points require latlong spatial columns")
+    for role, bound in (("latCol", 90), ("lonCol", 180)):
+        column = spatial.get(role)
+        if not isinstance(column, str):
+            raise ValueError(f"{role} requires a named coordinate column")
+        value = row.get(column)
+        if (
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(value)
+            or not -bound <= value <= bound
+        ):
+            raise ValueError(
+                f"{role} must be a finite number between {-bound} and {bound}"
+            )
+    return None
+
+
+def validate_geographic_query_result(
+    result: Any, form_data: Mapping[str, Any]
+) -> ChartError | None:
+    """Reject unresolved regions and malformed or nonfinite geographic results.
+
+    Preserve source values for exports and filtering. The native transform owns
+    display-only ISO mapping using the same bundled boundary identifiers.
+    Legacy charts without the typed MCP contract retain their native behavior.
+    """
+    if form_data.get("viz_type") not in GEOGRAPHIC_VIZ_TYPES or not form_data.get(
+        "mcp_geographic"
+    ):
+        return None
+    try:
+        if (
+            not isinstance(result, Mapping)
+            or not isinstance(result.get("queries"), list)
+            or len(result["queries"]) != 1
+        ):
+            raise ValueError("Expected exactly one geographic query result")
+        query = result["queries"][0]
+        if not isinstance(query, Mapping) or not isinstance(query.get("data"), list):
+            raise ValueError("Expected geographic query data to be a list of records")
+        labels = _geographic_metric_labels(form_data)
+        seen: set[str] = set()
+        for row in query["data"]:
+            if not isinstance(row, Mapping):
+                raise ValueError("Expected geographic rows to be records")
+            _validate_geographic_metrics(row, labels, form_data)
+            if identifier := _geographic_row_identifier(row, form_data):
+                if identifier in seen:
+                    raise ValueError(
+                        f"Multiple result rows resolve to {identifier}; "
+                        "normalize source values before aggregation"
+                    )
+                seen.add(identifier)
+    except (ValueError, TypeError, KeyError) as exc:
+        return ChartError(error=str(exc), error_type="InvalidGeographicResult")
+    return None
+
+
+def normalize_chart_query_result(result: Any, form_data: Mapping[str, Any]) -> Any:
+    """Apply typed result contracts without modifying unrelated chart results."""
+    if failure := query_result_failure(result):
+        return failure
+    if failure := validate_geographic_query_result(result, form_data):
+        return failure
+    return normalize_gauge_query_result(result, form_data)

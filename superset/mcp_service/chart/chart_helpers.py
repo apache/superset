@@ -485,6 +485,20 @@ def resolve_metrics(form_data: dict[str, Any], viz_type: str) -> list[Any]:
     if viz_type == "bubble":
         return [m for field in ("x", "y", "size") if (m := form_data.get(field))]
 
+    if viz_type in {"country_map", "world_map"}:
+        from superset.mcp_service.chart.query_result import metric_result_label
+
+        result = []
+        labels = set()
+        for field in (
+            ("metric", "secondary_metric") if viz_type == "world_map" else ("metric",)
+        ):
+            if metric := form_data.get(field):
+                label = metric_result_label(metric)
+                if label not in labels:
+                    result.append(metric)
+                    labels.add(label)
+        return result
     metrics = form_data.get("metrics") or []
     if not metrics and (metric := form_data.get("metric")):
         metrics = [metric]
@@ -544,6 +558,10 @@ def resolve_metrics_and_groupby(
             plural_metrics = form_data.get("metrics") or []
             metric = plural_metrics[0] if plural_metrics else None
         return ([metric] if metric else []), []
+
+    if viz_type in {"country_map", "world_map"}:
+        entity = form_data.get("entity")
+        return resolve_metrics(form_data, viz_type), [entity] if entity else []
 
     return resolve_metrics(form_data, viz_type), resolve_groupby(form_data)
 
@@ -674,11 +692,20 @@ def build_query_dicts_from_form_data(
             row_limit=row_limit,
             order_desc=order_desc,
         )
-        if deck_metrics:
+        if viz_type == "deck_scatter" and form_data.get("mcp_geographic"):
+            from superset.mcp_service.chart.query_result import metric_result_label
+
+            qd["is_timeseries"] = False
+            qd["orderby"] = (
+                [(metric_result_label(deck_metrics[0]), False)] if deck_metrics else []
+            )
+        elif deck_metrics:
             # Mirror BaseDeckGLViz.query_obj(): order by first metric descending
             qd["orderby"] = [(deck_metrics[0], not form_data.get("order_desc", True))]
-        if viz_type in _DECK_TIMESERIES_VIZ_TYPES and (
-            time_grain := form_data.get("time_grain_sqla")
+        if (
+            not form_data.get("mcp_geographic")
+            and viz_type in _DECK_TIMESERIES_VIZ_TYPES
+            and (time_grain := form_data.get("time_grain_sqla"))
         ):
             qd["is_timeseries"] = True
             qd["granularity"] = form_data.get("granularity_sqla")

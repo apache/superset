@@ -38,6 +38,11 @@ def generate_ascii_chart(
     if not data:
         return "No data available for ASCII chart"
 
+    if chart_type in {"country_map", "world_map", "deck_scatter"}:
+        return (
+            "Geographic source data (geometry not reproduced)\n"
+            + generate_ascii_table(data, width)
+        )
     try:
         # Clamp to safe minimums to prevent negative plot sizes
         width = max(width, 21)
