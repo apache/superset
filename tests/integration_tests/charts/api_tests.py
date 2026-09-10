@@ -44,7 +44,7 @@ from superset.tags.models import ObjectType, Tag, TaggedObject, TagType
 from superset.utils import json
 from superset.utils.core import get_example_default_schema, override_user
 from superset.utils.database import get_example_database
-from superset.utils.screenshots import ScreenshotCachePayload
+from superset.utils.screenshots import ScreenshotCachePayload, StatusValues
 from tests.conftest import with_config
 from tests.integration_tests.base_api_tests import ApiEditorsTestCaseMixin
 from tests.integration_tests.base_tests import (
@@ -1207,6 +1207,7 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @patch("superset.charts.api.cache_chart_thumbnail")
     @patch("superset.charts.api.ChartScreenshot.get_from_cache_key")
+    @patch("superset.charts.api.ChartScreenshot.supports_updated_staleness", True)
     def test_thumbnail_does_not_recompute_stale_updated(
         self, mock_get_from_cache_key, mock_cache_task
     ):
@@ -1217,8 +1218,15 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         against accidentally propagating ``check_updated_staleness`` to this
         high-traffic card path (the way the on-demand ``cache_screenshot``
         endpoint opts in): adding it here would enqueue stale thumbnails and
-        return 202 while preserving no cached image, failing this test."""
-        from datetime import datetime, timedelta
+        return 202 while preserving no cached image, failing this test.
+
+        ``ChartScreenshot.supports_updated_staleness`` is forced True here so the
+        test actually proves the kwarg is absent: were the card path to copy
+        ``check_updated_staleness=screenshot_obj.supports_updated_staleness`` the
+        flag would evaluate True and the stale entry would be rescheduled,
+        failing the assertions below. Because the card path calls
+        ``should_trigger_task()`` with no kwarg, they still hold."""
+        from datetime import datetime, timedelta, timezone
 
         self.login(ADMIN_USERNAME)
 
@@ -1228,7 +1236,10 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
             .one_or_none()
         )
         # A valid, correctly-scoped UPDATED entry, but 400s old against a 300s TTL.
-        stale_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
+        # UTC-aware to match the cache's UTC timestamp normalization.
+        stale_timestamp = (
+            datetime.now(timezone.utc) - timedelta(seconds=400)
+        ).isoformat()
         mock_get_from_cache_key.return_value = ScreenshotCachePayload(
             b"fake image data",
             scope=f"chart:{chart.id}",
@@ -1246,6 +1257,40 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
 
         assert rv.status_code == 200
         mock_cache_task.delay.assert_not_called()
+        assert rv.data == b"fake image data"
+
+    @with_feature_flags(THUMBNAILS=True)
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @patch("superset.charts.api.ChartScreenshot.get_from_cache_key")
+    def test_screenshot_serves_retained_image_on_error(self, mock_get_from_cache_key):
+        """A failed forced refresh leaves the on-demand screenshot entry in an
+        ERROR backoff while still carrying the retained last-good image. The
+        screenshot read path must serve those retained bytes (200) rather than
+        404 for the length of the backoff -- gating serve on status == UPDATED
+        would reject the still-valid image for up to a day."""
+        self.login(ADMIN_USERNAME)
+
+        chart = (
+            db.session.query(Slice)
+            .filter_by(slice_name="Girl Name Cloud")
+            .one_or_none()
+        )
+        # A valid, correctly-scoped image whose entry is in ERROR backoff.
+        payload = ScreenshotCachePayload(
+            b"fake image data",
+            scope=f"chart:{chart.id}",
+        )
+        payload.status = StatusValues.ERROR
+        mock_get_from_cache_key.return_value = payload
+
+        # Resolve the digest under the requesting user, mirroring the thumbnail
+        # test: THUMBNAIL_EXECUTORS defaults to CURRENT_USER.
+        with override_user(self.get_user(ADMIN_USERNAME)):
+            digest = chart.digest
+
+        rv = self.client.get(f"api/v1/chart/{chart.id}/screenshot/{digest}/")
+
+        assert rv.status_code == 200
         assert rv.data == b"fake image data"
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")

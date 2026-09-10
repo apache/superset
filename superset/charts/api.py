@@ -127,7 +127,6 @@ from superset.utils.screenshots import (
     ChartScreenshot,
     DEFAULT_CHART_WINDOW_SIZE,
     ScreenshotCachePayload,
-    StatusValues,
 )
 from superset.utils.urls import get_url_path
 from superset.versioning.api_helpers import (
@@ -1280,16 +1279,22 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             # serve its image under a different, merely-accessible `pk`.
             if cache_payload.get_scope() != f"chart:{chart.id}":
                 return self.response_404()
-            if cache_payload.status == StatusValues.UPDATED:
-                try:
-                    image = cache_payload.get_image()
-                except ScreenshotImageNotAvailableException:
-                    return self.response_404()
-                return Response(
-                    FileWrapper(image),
-                    mimetype="image/png",
-                    direct_passthrough=True,
-                )
+            # Serve whenever a valid image is present instead of gating on
+            # status == UPDATED. A failed forced refresh leaves the entry in an
+            # ERROR/COMPUTING backoff while still carrying the retained last-good
+            # image; requiring UPDATED here would 404 that image for up to a day.
+            # get_from_cache_key already rejects an invalid UPDATED image, and a
+            # retained non-UPDATED image passes the invalid-image check, so only
+            # genuinely valid bytes are served.
+            try:
+                image = cache_payload.get_image()
+            except ScreenshotImageNotAvailableException:
+                return self.response_404()
+            return Response(
+                FileWrapper(image),
+                mimetype="image/png",
+                direct_passthrough=True,
+            )
         return self.response_404()
 
     @expose("/<pk>/thumbnail/<digest>/", methods=("GET",))

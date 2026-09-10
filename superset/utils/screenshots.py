@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import base64
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from io import BytesIO
 from typing import cast, TYPE_CHECKING, TypedDict
@@ -111,7 +111,7 @@ class ScreenshotCachePayload:
         scope: str | None = None,
     ):
         self._image = image
-        self._timestamp = timestamp or datetime.now().isoformat()
+        self._timestamp = timestamp or datetime.now(timezone.utc).isoformat()
         self.status = StatusValues.UPDATED if image else status
         self._scope = scope
 
@@ -151,7 +151,7 @@ class ScreenshotCachePayload:
         self._scope = scope
 
     def update_timestamp(self) -> None:
-        self._timestamp = datetime.now().isoformat()
+        self._timestamp = datetime.now(timezone.utc).isoformat()
 
     def pending(self) -> None:
         self.update_timestamp()
@@ -192,17 +192,22 @@ class ScreenshotCachePayload:
         return validate_screenshot_image(self._image)
 
     def _age_seconds(self) -> float | None:
-        """Seconds since this entry's timestamp, or None if the stored
-        timestamp is unusable -- a corrupt string (ValueError), a legacy
-        tz-aware value that cannot be subtracted from naive now() (TypeError),
-        or a future timestamp (negative age, e.g. a worker whose clock is ahead)
-        that would otherwise keep the entry served for the TTL plus the clock
-        skew instead of self-healing. Callers treat None as 'past any TTL' so
-        the entry self-heals."""
+        """Seconds since this entry's timestamp.
+
+        Returns None only when the stored timestamp is unusable/corrupt (a
+        string ``datetime.fromisoformat`` cannot parse -- ValueError/TypeError),
+        which callers treat as 'past any TTL' so the entry self-heals.
+
+        A negative age (a future timestamp from residual clock skew after UTC
+        normalization -- e.g. a worker whose clock is slightly ahead of the web
+        host) is returned as-is rather than coerced to None. Callers apply
+        ``age is None or age >/>= TTL``, so a negative age reads as NOT
+        stale/expired: the entry is treated as fresh. This is what lets the web
+        tier and the worker converge -- if a future timestamp were treated as
+        stale, the web would re-enqueue at 202 while the worker saw its own
+        timestamp as fresh and skipped, looping forever."""
         try:
-            age_seconds = (
-                datetime.now() - datetime.fromisoformat(self.get_timestamp())
-            ).total_seconds()
+            stored = datetime.fromisoformat(self.get_timestamp())
         except (ValueError, TypeError):
             logger.warning(
                 "Unusable screenshot cache timestamp %r; "
@@ -210,13 +215,12 @@ class ScreenshotCachePayload:
                 self.get_timestamp(),
             )
             return None
-        if age_seconds < 0:
-            logger.warning(
-                "Future screenshot cache timestamp %r; treating entry as expired/stale",
-                self.get_timestamp(),
-            )
-            return None
-        return age_seconds
+        if stored.tzinfo is None:
+            # Legacy entry written before UTC normalization: assume UTC so
+            # aware/naive subtraction never raises and old entries age out
+            # normally (not a mass self-heal).
+            stored = stored.replace(tzinfo=timezone.utc)
+        return (datetime.now(timezone.utc) - stored).total_seconds()
 
     def is_error_cache_ttl_expired(self) -> bool:
         # strict '>' (an entry exactly at the TTL is still fresh). An unusable
@@ -239,10 +243,10 @@ class ScreenshotCachePayload:
     def is_updated_stale(self) -> bool:
         """Whether a successfully-rendered (UPDATED) entry is old enough to be
         recomputed. Returns False when the TTL is unset/0 (no-op unless an operator
-        opts in). A timestamp we cannot use -- a corrupt string (ValueError) or a
-        legacy tz-aware string that parses but cannot be subtracted from naive
-        now() (TypeError) -- is logged and treated as stale so it self-heals rather
-        than being served forever."""
+        opts in). A timestamp we cannot use -- a corrupt string (ValueError/
+        TypeError) -- is logged and treated as stale so it self-heals rather than
+        being served forever. A future timestamp (negative age from residual clock
+        skew) reads as fresh via the normal age math, so web and worker converge."""
         # `.get` (not `[]` like the sibling ERROR/COMPUTING helpers) on purpose:
         # a deployment whose config predates this key should silently disable the
         # feature, not raise KeyError. Checked first so a disabled feature never
