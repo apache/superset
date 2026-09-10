@@ -31,6 +31,7 @@ import {
   NativeFilterType,
   ChartCustomizationType,
 } from '@superset-ui/core';
+import { getSelectExtraFormData } from 'src/filters/utils';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 
 // Helper to create minimal filter for testing
@@ -216,9 +217,14 @@ test('HYDRATE_DASHBOARD handles chart_customization_config that is entirely null
   expect(customizationKeys).toHaveLength(0);
 });
 
-test.each([null, []])(
-  'HYDRATE_DASHBOARD preserves an explicit required select clear (%j) from a permalink',
-  value => {
+test.each<[null | [], boolean]>([
+  [null, false],
+  [[], false],
+  [null, true],
+  [[], true],
+])(
+  'HYDRATE_DASHBOARD preserves an explicit required select clear (value: %j, UI mask: %j) from a permalink',
+  (value, useUiMask) => {
     const id = 'NATIVE_FILTER-region';
     const filter: Filter = {
       ...createFilter(id, 'region', { enableEmptyFilter: true }),
@@ -246,6 +252,9 @@ test.each([null, []])(
         },
       },
     };
+    if (useUiMask) {
+      dataMask[id].extraFormData = getSelectExtraFormData('region', [], true);
+    }
     const action = hydrateAction([], [filter]);
     action.data.dataMask = dataMask;
 

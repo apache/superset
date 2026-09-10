@@ -31,7 +31,7 @@ from typing import Any
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.constants import NO_TIME_RANGE
+from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, NO_TIME_RANGE
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.permalink import (
     build_dashboard_permalink_url,
@@ -190,7 +190,7 @@ def _select_data_mask(
                     {
                         "expressionType": "SQL",
                         "clause": "WHERE",
-                        "sqlExpression": "1 = 0",
+                        "sqlExpression": EMPTY_FILTER_SQL_EXPRESSION,
                     }
                 ]
             }

@@ -20,6 +20,7 @@
 /* eslint-disable no-param-reassign */
 // <- When we work with Immer, we need reassign, so disabling lint
 import { produce } from 'immer';
+import { EMPTY_FILTER_SQL_EXPRESSION } from 'src/utils/common';
 import {
   DataMask,
   DataMaskStateWithId,
@@ -147,7 +148,7 @@ function fillNativeFilters(
         predicate =>
           predicate.expressionType === 'SQL' &&
           predicate.clause === 'WHERE' &&
-          predicate.sqlExpression === '1 = 0',
+          predicate.sqlExpression === EMPTY_FILTER_SQL_EXPRESSION,
       );
     const shouldRestoreDefault =
       isRequired &&

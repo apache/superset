@@ -29,6 +29,7 @@ export interface ToastMeta {
   text: string;
   duration: number;
   /** Optional interactive action, dismissed after activation. */
+  // Deliberately non-serializable: this transient toast callback is not persisted.
   action?: { label: string; onClick: () => void };
   /** Whether to skip displaying this message if there are another toast
    * with the same message. */
