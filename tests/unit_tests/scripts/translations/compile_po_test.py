@@ -40,13 +40,25 @@ def test_run_command_success() -> None:
 
 
 def test_run_command_shell_flag() -> None:
-    """run_command passes shell=_SHELL to subprocess.run."""
+    """run_command passes shell=False to subprocess.run to prevent command injection."""
     with patch("subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(returncode=0)
         compile_po.run_command(["echo", "hello"])
         mock_run.assert_called_once()
         _, kwargs = mock_run.call_args
-        assert kwargs["shell"] == compile_po._SHELL
+        assert kwargs["shell"] is False
+
+
+def test_run_command_quotes_cmd_metacharacters() -> None:
+    """run_command quotes arguments containing cmd metacharacters on Windows."""
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0)
+        with patch("os.name", "nt"):
+            compile_po.run_command(["po2json.cmd", "file&calc.po", "file|more.json"])
+            mock_run.assert_called_once()
+            args, _ = mock_run.call_args
+            assert args[0][1] == '"file&calc.po"'
+            assert args[0][2] == '"file|more.json"'
 
 
 def test_run_command_failure() -> None:
@@ -314,8 +326,8 @@ def test_compile_translations_success(tmp_path: Path) -> None:
     ):
         rc = compile_po.compile_translations()
         assert rc == 0
-        # Verify oxfmt was called with --no-error-on-unmatched-pattern
+        # Verify oxfmt was called with --no-ignore
         oxfmt_calls = [c for c in executed_commands if any("oxfmt" in arg for arg in c)]
         assert len(oxfmt_calls) >= 1
-        assert "--no-error-on-unmatched-pattern" in oxfmt_calls[0]
+        assert "--no-ignore" in oxfmt_calls[0]
         assert "--write" in oxfmt_calls[0]

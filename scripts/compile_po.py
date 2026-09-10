@@ -28,19 +28,30 @@ import subprocess
 import sys
 from concurrent.futures import as_completed, ThreadPoolExecutor
 
-# `os.name == "nt"` detects whether the script is running on Windows
-# (Windows NT family). On Windows, shell=True is required for subprocess.run
-# to resolve and execute batch/cmd wrappers (such as npm.cmd, npx.cmd, or binaries
-# under node_modules/.bin) without needing to manually append file extensions or
-# encountering FileNotFoundError.
-# On POSIX systems (Linux, macOS), shell=False is used for direct process execution.
-_SHELL = os.name == "nt"
+# Commands are executed directly with shell=False across all platforms to
+# avoid running repository-controlled paths through a command shell (such as
+# cmd.exe on Windows), which would expose command operator injection (&, |).
+_SHELL = False
+
+
+def _quote_cmd_arg(arg: str) -> str:
+    """Quote arguments containing cmd.exe metacharacters on Windows."""
+    if os.name == "nt" and any(c in arg for c in '&|<>()^%"'):
+        escaped = arg.replace('"', '""')
+        return f'"{escaped}"'
+    return arg
 
 
 def run_command(command: list[str], cwd: str | None = None, timeout: int = 120) -> int:
     try:
+        sanitized_command = [_quote_cmd_arg(arg) for arg in command]
         result = subprocess.run(  # noqa: S603
-            command, text=True, shell=_SHELL, check=False, cwd=cwd, timeout=timeout
+            sanitized_command,
+            text=True,
+            shell=_SHELL,
+            check=False,
+            cwd=cwd,
+            timeout=timeout,
         )
         return result.returncode
     except (subprocess.TimeoutExpired, FileNotFoundError, OSError):
@@ -59,7 +70,8 @@ def find_node_bin(root_dir: str, bin_name: str) -> str | None:
         os.path.join(root_dir, "superset-frontend", "node_modules", ".bin"),
         os.path.join(root_dir, "node_modules", ".bin"),
     ]:
-        for ext in ["", ".cmd", ".ps1"]:
+        extensions = [".cmd", ".ps1", ""] if os.name == "nt" else ["", ".cmd", ".ps1"]
+        for ext in extensions:
             candidate = os.path.join(base, f"{bin_name}{ext}")
             if os.path.isfile(candidate):
                 return candidate
@@ -191,12 +203,13 @@ def compile_translations() -> int:  # noqa: C901
     )
     if json_files:
         print(f"Step 4: Running oxfmt on {len(json_files)} JSON files...")
-        # messages.json is gitignored (generated output); pass
-        # --no-error-on-unmatched-pattern so oxfmt completes without error
-        # even when ignore rules match.
+        # messages.json is gitignored (generated output); oxfmt respects
+        # .gitignore by default even for explicitly-passed paths.
+        # Passing --no-ignore bypasses ignore rules so the generated JSON
+        # files are actively formatted.
         if (
             run_command(
-                [*oxfmt_cmd, "--write", "--no-error-on-unmatched-pattern", *json_files],
+                [*oxfmt_cmd, "--write", "--no-ignore", *json_files],
                 cwd=root_dir,
                 timeout=300,
             )
