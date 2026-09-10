@@ -31,6 +31,7 @@ from superset.utils.report_execution import (
     ReportExecutionContext,
 )
 from superset.utils.screenshot_utils import (
+    CHART_CONTAINER_HAS_RENDERED_CONTENT_JS,
     CHART_CONTAINER_READY_JS,
     CHART_CONTAINER_STATE_JS,
     CHART_HOLDERS_READY_JS,
@@ -39,10 +40,14 @@ from superset.utils.screenshot_utils import (
     FIND_ALL_UNREADY_CHART_HOLDERS_JS,
     FIND_CHART_HOLDER_STATES_JS,
     FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS,
+    get_screenshot_blankness_metrics,
     REPORT_ALL_CHART_HOLDERS_READY_JS,
+    REPORT_HAS_RENDERED_CHART_HOLDERS_JS,
     resolve_screenshot_task_budget_seconds,
+    ScreenshotBlankCaptureError,
     ScreenshotTaskBudgetExceededError,
     take_tiled_screenshot,
+    TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
 )
 
 WindowSize = tuple[int, int]
@@ -75,8 +80,13 @@ except ImportError:
 
     # Define dummy classes when playwright is not available
     BrowserContext = Any
-    PlaywrightError = Exception
-    PlaywrightTimeout = Exception
+
+    class PlaywrightError(Exception):  # type: ignore[no-redef]
+        """Fallback Playwright error that does not swallow unrelated failures."""
+
+    class PlaywrightTimeout(PlaywrightError):  # type: ignore[no-redef]  # noqa: N818
+        """Fallback matching Playwright's timeout error hierarchy."""
+
     Locator = Any
     Page = Any
     sync_playwright = None
@@ -239,6 +249,131 @@ class WebDriverPlaywright(WebDriverProxy):
             return page.screenshot(full_page=True, **timeout_kwargs)
         else:
             return element.screenshot(**timeout_kwargs)
+
+    @staticmethod
+    def _get_validated_screenshot(
+        page: Page,
+        element: Locator,
+        element_name: str,
+        log_context: str | None,
+        report_execution_context: ReportExecutionContext | None,
+    ) -> bytes:
+        """Capture a standard screenshot and reject blank report output."""
+
+        context_suffix = f" [{log_context}]" if log_context else ""
+        for attempt in range(1, TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS + 1):
+            capture_timeout = (
+                report_execution_context.deadline.timeout_seconds(
+                    "screenshot_capture",
+                    reserve_seconds=(
+                        report_execution_context.post_capture_reserve_seconds
+                    ),
+                )
+                if report_execution_context
+                else None
+            )
+            capture_started_at = time.monotonic()
+            image = WebDriverPlaywright._get_screenshot(
+                page,
+                element,
+                element_name,
+                timeout_seconds=capture_timeout,
+            )
+            capture_elapsed = time.monotonic() - capture_started_at
+            if report_execution_context is None:
+                return image
+
+            blankness = get_screenshot_blankness_metrics(image)
+            try:
+                has_rendered_content = bool(
+                    page.evaluate(
+                        CHART_CONTAINER_HAS_RENDERED_CONTENT_JS
+                        if element_name == "chart-container"
+                        else REPORT_HAS_RENDERED_CHART_HOLDERS_JS
+                    )
+                )
+            except PlaywrightError:
+                has_rendered_content = False
+                logger.warning(
+                    "report_capture_content_state_failed capture=standard%s",
+                    context_suffix,
+                    exc_info=True,
+                )
+            is_blank = has_rendered_content and blankness.is_blank
+            logger.info(
+                "report_capture_validation capture=standard attempt=%s/%s "
+                "capture_elapsed_seconds=%.2f has_rendered_content=%s is_blank=%s "
+                "dominant_pixel_ratio=%.5f near_white_pixel_ratio=%.5f "
+                "mean_luminance=%.2f luminance_stddev=%.2f entropy=%.3f "
+                "structural_edge_ratio=%.5f%s",
+                attempt,
+                TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+                capture_elapsed,
+                has_rendered_content,
+                is_blank,
+                blankness.dominant_pixel_ratio,
+                blankness.near_white_pixel_ratio,
+                blankness.mean_luminance,
+                blankness.luminance_stddev,
+                blankness.entropy,
+                blankness.structural_edge_ratio,
+                context_suffix,
+            )
+            if not is_blank:
+                return image
+
+            logger.warning(
+                "report_capture_blank_standard attempt=%s/%s "
+                "capture_elapsed_seconds=%.2f dominant_pixel_ratio=%.5f "
+                "near_white_pixel_ratio=%.5f mean_luminance=%.2f "
+                "luminance_stddev=%.2f entropy=%.3f structural_edge_ratio=%.5f%s",
+                attempt,
+                TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+                capture_elapsed,
+                blankness.dominant_pixel_ratio,
+                blankness.near_white_pixel_ratio,
+                blankness.mean_luminance,
+                blankness.luminance_stddev,
+                blankness.entropy,
+                blankness.structural_edge_ratio,
+                context_suffix,
+            )
+            if attempt == TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS:
+                raise ScreenshotBlankCaptureError(
+                    "Chromium returned a blank standard screenshot "
+                    f"after {attempt} attempts"
+                )
+            repaint_timeout = report_execution_context.deadline.timeout_seconds(
+                "screenshot_repaint",
+                requested_seconds=5.0,
+                reserve_seconds=report_execution_context.post_capture_reserve_seconds,
+            )
+            try:
+                page.bring_to_front()
+                page.evaluate(
+                    """() => {
+                        window.scrollBy(0, 1);
+                        window.scrollBy(0, -1);
+                        window.__supersetRepaintComplete = false;
+                        requestAnimationFrame(() => requestAnimationFrame(() => {
+                            window.__supersetRepaintComplete = true;
+                        }));
+                    }"""
+                )
+                page.wait_for_function(
+                    "() => window.__supersetRepaintComplete === true",
+                    timeout=repaint_timeout * 1000,
+                )
+            except PlaywrightError:
+                logger.warning(
+                    "report_capture_repaint_timeout capture=standard attempt=%s/%s%s",
+                    attempt,
+                    TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+                    context_suffix,
+                    exc_info=True,
+                )
+
+        raise AssertionError("standard screenshot retry loop did not return or raise")
 
     @staticmethod
     def _expand_scrollable_content(
@@ -948,21 +1083,12 @@ class WebDriverPlaywright(WebDriverProxy):
                             user.username if user else "None",
                             context_suffix,
                         )
-                        capture_timeout = (
-                            report_execution_context.deadline.timeout_seconds(
-                                "screenshot_capture",
-                                reserve_seconds=(
-                                    report_execution_context.post_capture_reserve_seconds
-                                ),
-                            )
-                            if report_execution_context
-                            else None
-                        )
-                        img = WebDriverPlaywright._get_screenshot(
+                        img = WebDriverPlaywright._get_validated_screenshot(
                             page,
                             element,
                             element_name,
-                            timeout_seconds=capture_timeout,
+                            log_context,
+                            report_execution_context,
                         )
                         logger.debug(
                             "Screenshot result: %d bytes for url: %s%s",
@@ -1020,21 +1146,12 @@ class WebDriverPlaywright(WebDriverProxy):
                         user.username if user else "None",
                         context_suffix,
                     )
-                    capture_timeout = (
-                        report_execution_context.deadline.timeout_seconds(
-                            "screenshot_capture",
-                            reserve_seconds=(
-                                report_execution_context.post_capture_reserve_seconds
-                            ),
-                        )
-                        if report_execution_context
-                        else None
-                    )
-                    img = WebDriverPlaywright._get_screenshot(
+                    img = WebDriverPlaywright._get_validated_screenshot(
                         page,
                         element,
                         element_name,
-                        timeout_seconds=capture_timeout,
+                        log_context,
+                        report_execution_context,
                     )
                     logger.debug(
                         "Screenshot result: %d bytes for url: %s%s",

@@ -333,8 +333,12 @@ class ImportV1ColumnSchema(Schema):
     filterable = fields.Boolean()
     expression = fields.String(allow_none=True)
     description = fields.String(allow_none=True)
-    python_date_format = fields.String(allow_none=True)
-    datetime_format = fields.String(allow_none=True)
+    python_date_format = fields.String(
+        allow_none=True, validate=[Length(1, 255), validate_python_date_format]
+    )
+    datetime_format = fields.String(
+        allow_none=True, validate=[Length(1, 100), validate_python_date_format]
+    )
     uuid = fields.UUID(allow_none=True)
 
 
