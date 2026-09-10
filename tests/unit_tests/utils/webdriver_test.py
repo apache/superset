@@ -1587,7 +1587,10 @@ class TestWebDriverPlaywrightChartReadiness:
         page.screenshot.return_value = _png("white")
         page.evaluate.return_value = False
         context = _report_context()
-        context.deadline._clock = lambda: 689.6
+        context = replace(
+            context,
+            deadline=replace(context.deadline, _clock=lambda: 689.6),
+        )
 
         result = WebDriverPlaywright._get_validated_screenshot(
             page,
