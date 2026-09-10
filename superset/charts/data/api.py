@@ -363,14 +363,15 @@ class ChartDataRestApi(ChartRestApi):
             query_context = self._create_query_context_from_form(json_body)
             # Validate sort parameters before executing the query so bad sort
             # directions are rejected early, before the query builder runs.
-            orderby = (
-                json_body.get("queries", [{}])[0].get("orderby", [])
-                if isinstance(json_body, dict) and json_body.get("queries")
-                else []
+            # A request can carry multiple query objects, so every one of
+            # them needs to be checked, not just the first.
+            queries = (
+                json_body.get("queries", []) if isinstance(json_body, dict) else []
             )
-            sort_error = validate_sort_params(orderby)
-            if sort_error is not None:
-                return sort_error
+            for query in queries:
+                sort_error = validate_sort_params(query.get("orderby", []))
+                if sort_error is not None:
+                    return sort_error
             command = ChartDataCommand(query_context)
             command.validate()
         except DatasourceNotFound:

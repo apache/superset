@@ -1591,7 +1591,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
-    [serverPaginationData, setDataMask],
+    [serverPagination, serverPaginationData, setDataMask],
   );
 
   const handleSearch = (searchText: string) => {

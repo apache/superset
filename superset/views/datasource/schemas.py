@@ -96,7 +96,7 @@ class SamplesPayloadSchema(Schema):
             "description": "Expects a list of lists where the first element is the "
             "column name to sort by, and the second element is a boolean "
             "(true = ascending).",
-            "example": [("my_col_1", False), ("my_col_2", True)],
+            "example": [["my_col_1", False], ["my_col_2", True]],
         },
     )
 

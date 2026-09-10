@@ -102,6 +102,11 @@ export default function DrillDetailPane({
   const [sortColumn, setSortColumn] = useState<string | undefined>();
   const [sortOrder, setSortOrder] = useState<SortOrder>(null);
   const lastPageIndex = useRef(pageIndex);
+  // Bumped whenever the sort changes, so a page fetch that was already in
+  // flight under the previous ordering can be told apart from the current
+  // one and its (now stale) result ignored instead of being written into
+  // the freshly-cleared page cache.
+  const sortGeneration = useRef(0);
   const [filters, setFilters] = useState(initialFilters);
   const [isLoading, setIsLoading] = useState(false);
   const [responseError, setResponseError] = useState('');
@@ -328,6 +333,11 @@ export default function DrillDetailPane({
   useEffect(() => {
     if (!responseError && !isLoading && !resultsPages.has(pageIndex)) {
       setIsLoading(true);
+      // Snapshot which sort this request was made under, so a response that
+      // arrives after the sort has since changed again can be told apart
+      // from the current one and dropped instead of contaminating the page
+      // cache with rows fetched under a now-superseded ordering.
+      const requestGeneration = sortGeneration.current;
       const jsonPayload = {
         ...getDrillPayload(formData, filters),
         ...(orderby.length > 0 && { orderby }),
@@ -343,23 +353,26 @@ export default function DrillDetailPane({
         dashboardId,
       )
         .then(response => {
+          if (requestGeneration !== sortGeneration.current) return;
           setResultsPages(
-            new Map([
-              ...[...resultsPages.entries()].slice(-cachePageLimit + 1),
-              [
-                pageIndex,
-                {
-                  total: response.total_count,
-                  data: response.data,
-                  colNames: ensureIsArray(response.colnames),
-                  colTypes: ensureIsArray(response.coltypes),
-                },
-              ],
-            ]),
+            prevResultsPages =>
+              new Map([
+                ...[...prevResultsPages.entries()].slice(-cachePageLimit + 1),
+                [
+                  pageIndex,
+                  {
+                    total: response.total_count,
+                    data: response.data,
+                    colNames: ensureIsArray(response.colnames),
+                    colTypes: ensureIsArray(response.coltypes),
+                  },
+                ],
+              ]),
           );
           setResponseError('');
         })
         .catch(error => {
+          if (requestGeneration !== sortGeneration.current) return;
           setResponseError(`${error.name}: ${error.message}`);
         })
         .finally(() => {
@@ -435,7 +448,10 @@ export default function DrillDetailPane({
               setSortColumn(order ? column : undefined);
               setSortOrder(order);
               // Cached pages reflect the previous sort, so drop them and restart
-              // from the first page with the new ordering.
+              // from the first page with the new ordering. Bump the sort
+              // generation too, so any fetch already in flight under the old
+              // ordering is recognized as stale and ignored on arrival.
+              sortGeneration.current += 1;
               setResultsPages(new Map());
               setPageIndex(0);
               return;

@@ -73,8 +73,8 @@ export interface TableProps<RecordType> {
   /**
    * Called when the sort state changes, with it translated to a query
    * `orderby` (`[[columnId, isAscending]]`) so the consumer can re-request
-   * server-sorted data. Only the primary sort column is included, matching the
-   * chart data API's single-column sort constraint.
+   * server-sorted data. When multiple columns are sorted, all of them are
+   * included, in the priority order the user applied them.
    */
   onServerSort?: (orderby: [string, boolean][]) => void;
   themeOverrides?: GridThemeOverrides;

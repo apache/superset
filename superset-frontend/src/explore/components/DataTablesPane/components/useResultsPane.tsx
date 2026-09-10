@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useMemo, ReactElement, useCallback } from 'react';
+import {
+  useState,
+  useEffect,
+  useMemo,
+  useRef,
+  ReactElement,
+  useCallback,
+} from 'react';
 
 import { t } from '@apache-superset/core/translation';
 import {
@@ -82,12 +89,19 @@ export const useResultsPane = ({
   // `orderby` + `row_limit` are applied to the raw SQL *before* post-processing,
   // which changes the rows that feed those operations and corrupts the result.
   // In that case we fall back to client-side sorting of what the chart produced.
-  const [hasPostProcessing, setHasPostProcessing] = useState(false);
+  // Start disabled (true) rather than false: detection below runs
+  // asynchronously, and defaulting to "no post-processing" would let a sort
+  // click during that window send a server-side orderby for a post-processed
+  // query before we actually know it's safe to do so.
+  const [hasPostProcessing, setHasPostProcessing] = useState(true);
   const [resultResp, setResultResp] = useState<QueryResultInterface[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [responseError, setResponseError] = useState<string>('');
   const queryCount = metadata?.queryObjectCount ?? 1;
   const isQueryCountDynamic = metadata?.dynamicQueryObjectCount;
+  // Guards against an older, slower request resolving after a newer one
+  // (e.g. rapid header-click re-sorts) and clobbering the latest result.
+  const latestRequestId = useRef(0);
 
   const noOpInputChange = useCallback(() => {}, []);
 
@@ -132,6 +146,10 @@ export const useResultsPane = ({
     // it's an invalid formData when gets a errorMessage
     if (errorMessage) return;
     if (!isRequest) return;
+
+    // Tag this run so a stale response (from a request superseded by a
+    // newer sort/row-limit change) can be ignored when it resolves.
+    const requestId = ++latestRequestId.current;
 
     // The chart query and the results query produce identical SQL, so reuse the
     // chart's data instead of a second request. The chart always ran with a
@@ -184,19 +202,22 @@ export const useResultsPane = ({
       ownState,
     })
       .then(({ json }) => {
+        cache.set(cappedFormData, json.result);
+        if (requestId !== latestRequestId.current) return;
         setResultResp(ensureIsArray(json.result) as QueryResultInterface[]);
         setResponseError('');
-        cache.set(cappedFormData, json.result);
         if (queryForce) {
           setForceQuery?.(false);
         }
       })
       .catch(response => {
         getClientErrorObject(response).then(({ error, message }) => {
+          if (requestId !== latestRequestId.current) return;
           setResponseError(error || message || t('Sorry, an error occurred'));
         });
       })
       .finally(() => {
+        if (requestId !== latestRequestId.current) return;
         setIsLoading(false);
       });
   }, [cappedFormData, isRequest, queriesResponse, effectiveRowLimit]);
