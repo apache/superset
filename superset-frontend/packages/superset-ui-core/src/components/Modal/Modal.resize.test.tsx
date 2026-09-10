@@ -68,7 +68,14 @@ beforeEach(() => {
 
 const renderModal = (props: Record<string, any> = {}) =>
   render(
-    <Modal show onHide={jest.fn()} title="Test Modal" resizable draggable {...props}>
+    <Modal
+      show
+      onHide={jest.fn()}
+      title="Test Modal"
+      resizable
+      draggable
+      {...props}
+    >
       <div>Modal content</div>
     </Modal>,
   );
@@ -241,29 +248,70 @@ describe('Modal controlled Draggable', () => {
     renderModal();
 
     act(() => {
+      lastResizableProps.onResizeStart();
       lastResizableProps.onResize({}, 'left', {}, { width: 50, height: 0 });
     });
 
-    // Bottom-right corner must stay anchored: growing left by 50px means
-    // the modal itself moves right by 50px.
-    expect(lastDraggableProps.position).toEqual({ x: 50, y: 0 });
+    // re-resizable grows the box away from its layout origin and never moves
+    // it, so anchoring the right edge means moving the modal left by the
+    // growth delta.
+    expect(lastDraggableProps.position).toEqual({ x: -50, y: 0 });
   });
 
   test('shifts Draggable up when resizing from the top edge', () => {
     renderModal();
 
     act(() => {
+      lastResizableProps.onResizeStart();
       lastResizableProps.onResize({}, 'top', {}, { width: 0, height: 40 });
     });
 
-    expect(lastDraggableProps.position).toEqual({ x: 0, y: 40 });
+    expect(lastDraggableProps.position).toEqual({ x: 0, y: -40 });
+  });
+
+  test('anchors both axes when resizing from the topLeft corner', () => {
+    renderModal();
+
+    act(() => {
+      lastResizableProps.onResizeStart();
+      lastResizableProps.onResize({}, 'topLeft', {}, { width: 50, height: 40 });
+    });
+
+    // Corner directions are camelCase; the left/top match must be
+    // case-insensitive or the x axis is never synced.
+    expect(lastDraggableProps.position).toEqual({ x: -50, y: -40 });
+  });
+
+  test('handles cumulative onResize deltas idempotently', () => {
+    renderModal();
+
+    act(() => {
+      lastDraggableProps.onDrag(null, { x: 20, y: 30 });
+    });
+    act(() => {
+      lastResizableProps.onResizeStart();
+      // re-resizable reports the total delta since the gesture started,
+      // once per mouse-move event.
+      lastResizableProps.onResize({}, 'left', {}, { width: 25, height: 0 });
+      lastResizableProps.onResize({}, 'left', {}, { width: 50, height: 0 });
+      lastResizableProps.onResize({}, 'left', {}, { width: 75, height: 0 });
+    });
+
+    // Position is base - delta, not an accumulation of every event.
+    expect(lastDraggableProps.position).toEqual({ x: -55, y: 30 });
   });
 
   test('does not move Draggable when resizing from the bottom-right corner', () => {
     renderModal();
 
     act(() => {
-      lastResizableProps.onResize({}, 'bottomRight', {}, { width: 30, height: 20 });
+      lastResizableProps.onResizeStart();
+      lastResizableProps.onResize(
+        {},
+        'bottomRight',
+        {},
+        { width: 30, height: 20 },
+      );
     });
 
     // Bottom/right handles grow away from the anchored top-left; position

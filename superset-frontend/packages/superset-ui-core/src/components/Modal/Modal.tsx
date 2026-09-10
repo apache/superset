@@ -269,6 +269,8 @@ const CustomModal = ({
     [bodyStyle, stylesProp],
   );
   const draggableRef = useRef<HTMLDivElement>(null);
+  // Modal position at the start of a resize gesture; see onResize below.
+  const resizeBasePositionRef = useRef<{ x: number; y: number } | null>(null);
   const [bounds, setBounds] = useState<DraggableBounds>({});
   // Controlled position for react-draggable. Keeping Draggable in controlled
   // mode lets us sync position with re-resizable's onResize so that resizing
@@ -411,17 +413,23 @@ const CustomModal = ({
               <Resizable
                 className="resizable"
                 {...getResizableConfig}
+                onResizeStart={() => {
+                  resizeBasePositionRef.current = position;
+                }}
                 onResize={(_e, direction, _ref, delta) => {
                   // When resizing from the top or left, the opposite corner
                   // should stay anchored. re-resizable adjusts size but
                   // cannot move the Draggable wrapper, so we sync position.
+                  // delta is cumulative from gesture start, so the target
+                  // position must be derived from the position captured at
+                  // resize start, not accumulated per event. Direction
+                  // strings are camelCase ("topLeft"), so match
+                  // case-insensitively.
+                  const base = resizeBasePositionRef.current ?? position;
+                  const dir = direction.toLowerCase();
                   setPosition(prev => ({
-                    x: direction.includes('left')
-                      ? prev.x + delta.width
-                      : prev.x,
-                    y: direction.includes('top')
-                      ? prev.y + delta.height
-                      : prev.y,
+                    x: dir.includes('left') ? base.x - delta.width : prev.x,
+                    y: dir.includes('top') ? base.y - delta.height : prev.y,
                   }));
                 }}
               >
