@@ -19870,3 +19870,8 @@ msgstr "大数字与比较行之间的垂直间隙（像素）。"
 #: superset-frontend/plugins/plugin-chart-echarts/src/BigNumber/BigNumberYoyMom/controlPanel.tsx
 msgid "No change color"
 msgstr "无变化颜色"
+msgid "Big Number with YoY & MoM"
+msgstr "带同比与环比的大数字"
+
+msgid "Showcases a single number along with period-over-period (MoM) and year-over-year (YoY) percentage changes."
+msgstr "展示单个数字及其环比（MoM）、同比（YoY）对比变化。"
