@@ -28,16 +28,14 @@ import {
 import type { EChartsCoreOption } from 'echarts/core';
 import type { GraphicComponentOption } from 'echarts/components';
 import {
-  DEFAULT_BACKGROUND_COLOR,
   DEFAULT_BIG_NUMBER_COLOR,
   DEFAULT_BIG_NUMBER_FONT_SIZE,
   DEFAULT_BIG_NUMBER_LEFT,
   DEFAULT_BIG_NUMBER_TOP,
   DEFAULT_COMPARISON1_LABEL,
-  DEFAULT_COMPARISON1_LEFT,
   DEFAULT_COMPARISON1_OFFSET,
   DEFAULT_COMPARISON2_LABEL,
-  DEFAULT_COMPARISON2_LEFT,
+  DEFAULT_COMPARISON_GAP,
   DEFAULT_COMPARISON2_OFFSET,
   DEFAULT_COMPARISON_FONT_SIZE,
   DEFAULT_COMPARISON_NEGATIVE_COLOR,
@@ -91,7 +89,6 @@ type ComparisonSlot = {
   label: string;
   offset?: string;
   column?: QueryFormMetric;
-  left: number;
   current: number | null;
   comparisonValue: number | string | null | undefined;
 };
@@ -136,21 +133,22 @@ export default function transformProps(
     comparison1Label = t(DEFAULT_COMPARISON1_LABEL),
     comparison1Offset = DEFAULT_COMPARISON1_OFFSET,
     comparison1Column,
+    comparison1Left: legacyComparison1Left,
     comparison1Mode,
-    comparison1Left = DEFAULT_COMPARISON1_LEFT,
     showComparison2 = true,
     comparison2Label = t(DEFAULT_COMPARISON2_LABEL),
     comparison2Offset = DEFAULT_COMPARISON2_OFFSET,
     comparison2Column,
+    comparison2Left: legacyComparison2Left,
     comparison2Mode,
-    comparison2Left = DEFAULT_COMPARISON2_LEFT,
+    comparisonGap = DEFAULT_COMPARISON_GAP,
+    swapComparisonOrder = false,
     comparisonFontSize = DEFAULT_COMPARISON_FONT_SIZE,
     comparisonTop = DEFAULT_COMPARISON_TOP,
     comparisonPositiveColor = DEFAULT_COMPARISON_POSITIVE_COLOR,
     comparisonNegativeColor = DEFAULT_COMPARISON_NEGATIVE_COLOR,
     comparisonZeroColor = DEFAULT_COMPARISON_ZERO_COLOR,
     percentDifferenceFormat = NumberFormats.PERCENT_2_POINT,
-    backgroundColor = DEFAULT_BACKGROUND_COLOR,
     timeGrainSqla,
   } = formData;
 
@@ -225,16 +223,8 @@ export default function transformProps(
 
   const graphic: GraphicComponentOption[] = [];
 
-  // Auto-positioning keeps the three text rows from overlapping and tight:
-  // - Without a title the big number moves up into the title's spot
-  //   (titleTop) so dashboards do not show an empty strip at the top.
-  // - With a title, the big number hugs the title's bottom edge
-  //   (titleFontSize * 1.2 + 6px gap); a manually configured bigNumberTop
-  //   only applies when it is larger, so a small title never leaves a big
-  //   gap above the number.
-  // - The comparison line always sits below the big number's bottom edge
-  //   (bigNumberFontSize * 1.2 + 5px gap), so a larger number pushes it
-  //   down instead of overlapping.
+  // Auto-positioning keeps the text stack compact and centered, matching the
+  // flex-centered layout used by the other Big Number visualizations.
   // The title font size follows the shared Subtitle Font Size control:
   // ratios (<= 1, Tiny 0.125 .. Huge 0.4) are multiplied by the chart
   // height; legacy numeric values > 1 are absolute pixels.
@@ -265,11 +255,22 @@ export default function transformProps(
       : Math.ceil(comparisonFontSizeValue);
   const titleRowHeight = titleFontSizePx * 1.2;
   const bigNumberRowHeight = bigNumberFontSizePx * 1.2;
-  // bigNumberTop and comparisonTop are gaps: from the title to the big
-  // number, and from the big number to the comparison rows respectively.
+  const comparisonRowHeight = comparisonFontSizePx * 1.2;
+  const hasComparison =
+    (showComparison1 && !!(comparison1Offset || comparison1Column)) ||
+    (showComparison2 && !!(comparison2Offset || comparison2Column));
+  // Match the Big Number family: the complete text stack is centered in the
+  // tile. The configured top values remain minimum padding, while the gap
+  // controls preserve the spacing inside the stack.
+  const contentHeight =
+    (hasTitle ? titleRowHeight + bigNumberTop : 0) +
+    bigNumberRowHeight +
+    (hasComparison ? comparisonTop + comparisonRowHeight : 0);
+  const contentTop = Math.max(titleTop, (height - contentHeight) / 2);
+  const effectiveTitleTop = hasTitle ? contentTop : titleTop;
   const effectiveBigNumberTop = hasTitle
-    ? titleTop + titleRowHeight + bigNumberTop
-    : titleTop;
+    ? contentTop + titleRowHeight + bigNumberTop
+    : contentTop;
   const effectiveComparisonTop =
     effectiveBigNumberTop + bigNumberRowHeight + comparisonTop;
 
@@ -277,7 +278,7 @@ export default function transformProps(
     graphic.push({
       type: 'text',
       left: titleLeft,
-      top: titleTop,
+      top: effectiveTitleTop,
       style: {
         text: headerText,
         fontSize: titleFontSizePx,
@@ -315,48 +316,8 @@ export default function transformProps(
     '#f53f3f',
   ) as string;
   const zeroColor = toCssColor(comparisonZeroColor, '#666') as string;
-
-  const buildComparison = ({
-    show,
-    label,
-    offset,
-    column,
-    left,
-    current: slotCurrent,
-    comparisonValue,
-  }: ComparisonSlot): GraphicComponentOption | null => {
-    if (!show) return null;
-    if (!offset && !column) return null;
-    const comparison = toNumber(comparisonValue);
-    const percent = computePercent(slotCurrent, comparison);
-    const missing = comparison === null;
-
-    let text: string;
-    if (missing || percent === null) {
-      text = `${label ? `${label} ` : ''}—`;
-    } else {
-      const arrow = percent > 0 ? '↑' : percent < 0 ? '↓' : '';
-      text = `${label ? `${label} ` : ''}${arrow}${percentFormatter(
-        Math.abs(percent),
-      )}`;
-    }
-    const fill =
-      missing || percent === null || percent === 0
-        ? zeroColor
-        : percent > 0
-          ? positiveColor
-          : negativeColor;
-    return {
-      type: 'text',
-      left,
-      top: effectiveComparisonTop,
-      style: {
-        text,
-        fontSize: comparisonFontSizePx,
-        fill,
-      },
-    };
-  };
+  const comparisonLeft = 20;
+  const comparisonGapPx = Math.max(0, Number(comparisonGap) || 0);
 
   const slotComparisonValue = (
     mode: 'time_shift' | 'metric' | undefined,
@@ -384,12 +345,54 @@ export default function transformProps(
     return current;
   };
 
-  const comparison1 = buildComparison({
+  const buildComparisonContent = ({
+    show,
+    label,
+    offset,
+    column,
+    current: slotCurrent,
+    comparisonValue,
+  }: ComparisonSlot): { text: string; fill: string } | null => {
+    if (!show) return null;
+    if (!offset && !column) return null;
+    const comparison = toNumber(comparisonValue);
+    const percent = computePercent(slotCurrent, comparison);
+    const missing = comparison === null;
+
+    let text: string;
+    if (missing || percent === null) {
+      text = `${label ? `${label} ` : ''}—`;
+    } else {
+      const arrow = percent > 0 ? '↑' : percent < 0 ? '↓' : '';
+      text = `${label ? `${label} ` : ''}${arrow}${percentFormatter(
+        Math.abs(percent),
+      )}`;
+    }
+    const fill =
+      missing || percent === null || percent === 0
+        ? zeroColor
+        : percent > 0
+          ? positiveColor
+          : negativeColor;
+    return { text, fill };
+  };
+
+  // Estimate the rendered width of a comparison line so the second slot is
+  // pushed past the first one even when no extra gap is configured. Full-width
+  // characters (labels, arrows) are wider than ASCII digits and separators.
+  const estimateTextWidth = (text: string, fontSizePx: number): number =>
+    Math.ceil(
+      Array.from(text).reduce(
+        (width, char) => width + (char.charCodeAt(0) > 255 ? 1.1 : 0.62),
+        0,
+      ) * fontSizePx,
+    );
+
+  const comparison1Content = buildComparisonContent({
     show: showComparison1,
     label: comparison1Label,
     offset: comparison1Offset,
     column: comparison1Column,
-    left: comparison1Left,
     current: slotCurrent(comparison1Mode, comparison1Column),
     comparisonValue: slotComparisonValue(
       comparison1Mode,
@@ -397,12 +400,11 @@ export default function transformProps(
       comparison1Offset,
     ),
   });
-  const comparison2 = buildComparison({
+  const comparison2Content = buildComparisonContent({
     show: showComparison2,
     label: comparison2Label,
     offset: comparison2Offset,
     column: comparison2Column,
-    left: comparison2Left,
     current: slotCurrent(comparison2Mode, comparison2Column),
     comparisonValue: slotComparisonValue(
       comparison2Mode,
@@ -410,11 +412,45 @@ export default function transformProps(
       comparison2Offset,
     ),
   });
-  if (comparison1) graphic.push(comparison1);
-  if (comparison2) graphic.push(comparison2);
+  const comparisonWidth = Math.max(
+    comparison1Content
+      ? estimateTextWidth(comparison1Content.text, comparisonFontSizePx)
+      : 0,
+    comparison2Content
+      ? estimateTextWidth(comparison2Content.text, comparisonFontSizePx)
+      : 0,
+  );
+  const comparisonLefts =
+    legacyComparison1Left !== undefined || legacyComparison2Left !== undefined
+      ? [
+          legacyComparison1Left ?? comparisonLeft,
+          legacyComparison2Left ??
+            comparisonLeft + comparisonWidth + comparisonGapPx,
+        ]
+      : swapComparisonOrder
+        ? [comparisonLeft + comparisonWidth + comparisonGapPx, comparisonLeft]
+        : [comparisonLeft, comparisonLeft + comparisonWidth + comparisonGapPx];
+
+  const pushComparison = (
+    content: { text: string; fill: string } | null,
+    left: number,
+  ) => {
+    if (!content) return;
+    graphic.push({
+      type: 'text',
+      left,
+      top: effectiveComparisonTop,
+      style: {
+        text: content.text,
+        fontSize: comparisonFontSizePx,
+        fill: content.fill,
+      },
+    });
+  };
+  pushComparison(comparison1Content, comparisonLefts[0]);
+  pushComparison(comparison2Content, comparisonLefts[1]);
 
   const echartOptions: EChartsCoreOption = {
-    backgroundColor: toCssColor(backgroundColor, '#fff'),
     tooltip: { show: false },
     graphic,
     xAxis: { show: false },
