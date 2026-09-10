@@ -143,6 +143,7 @@ type ComparisonSlot = {
   current: number | null;
   comparisonValue: number | string | null | undefined;
   formatter: (value: number) => string;
+  valueFormatter: (value: number) => string;
 };
 
 // A comparison slot reads its value either from a configured comparison
@@ -283,10 +284,10 @@ export default function transformProps(
     metricItem => metricItem.metric_name === metric,
   );
 
-  // Comparison value metrics are rendered with the default number format so
-  // the big number's Number/Currency format does not leak into the MoM/YoY
-  // rows; percent difference formats only apply to time-shift comparisons.
-  const comparisonValueFormatter = getNumberFormatter();
+  // Comparison value metrics are rendered with the slot's own number format
+  // so the big number's Number/Currency format does not leak into the
+  // MoM/YoY rows; percent difference formats only apply to time-shift
+  // comparisons.
 
   const numberFormatter = getValueFormatter(
     metric,
@@ -316,6 +317,13 @@ export default function transformProps(
     formatPercentValue(comparison1PercentDifferenceFormat, value);
   const percentFormatter2 = (value: number) =>
     formatPercentValue(comparison2PercentDifferenceFormat, value);
+  // Comparison value metrics render with the slot's configured number format
+  // (the same control used for percent differences), falling back to the
+  // default Smart Number format when unset.
+  const valueFormatter1 = (value: number) =>
+    getNumberFormatter(comparison1PercentDifferenceFormat)(value);
+  const valueFormatter2 = (value: number) =>
+    getNumberFormatter(comparison2PercentDifferenceFormat)(value);
 
   const row = data[0] || {};
   const rawBigNumber = hasData ? row[metricName] : null;
@@ -457,6 +465,7 @@ export default function transformProps(
     current: slotCurrent,
     comparisonValue,
     formatter,
+    valueFormatter,
   }: ComparisonSlot): { text: string; fill: string } | null => {
     if (!show) return null;
     if (!offset && !column) return null;
@@ -474,9 +483,7 @@ export default function transformProps(
         };
       }
       return {
-        text: `${label ? `${label} ` : ''}${comparisonValueFormatter(
-          comparison,
-        )}`,
+        text: `${label ? `${label} ` : ''}${valueFormatter(comparison)}`,
         fill:
           comparison > 0
             ? positiveColor
@@ -529,6 +536,7 @@ export default function transformProps(
       comparison1Offset,
     ),
     formatter: percentFormatter1,
+    valueFormatter: valueFormatter1,
   });
   const comparison2Content = buildComparisonContent({
     show: showComparison2,
@@ -543,6 +551,7 @@ export default function transformProps(
       comparison2Offset,
     ),
     formatter: percentFormatter2,
+    valueFormatter: valueFormatter2,
   });
   const comparisonWidth = Math.max(
     comparison1Content

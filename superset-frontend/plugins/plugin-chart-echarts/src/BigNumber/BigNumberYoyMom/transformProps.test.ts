@@ -235,6 +235,22 @@ describe('BigNumberYoyMom transformProps', () => {
     expect(graphic[2].style.text).toBe('MoM 80');
   });
 
+  test('formats comparison values with the slot percent difference format', () => {
+    const result = transformProps(
+      buildChartProps(
+        [{ 'SUM(sales)': 100, prev_month_sales: 80 }],
+        {
+          comparison1Mode: 'metric',
+          comparison1Column: 'prev_month_sales',
+          comparison1PercentDifferenceFormat: ',.3f',
+        },
+      ),
+    );
+    const graphic = result.echartOptions.graphic as Record<string, any>[];
+    // The slot's configured number format applies to comparison values.
+    expect(graphic[2].style.text).toBe('MoM 80.000');
+  });
+
   test('reads snake_case form data keys exactly as Explore saves them', () => {
     const result = transformProps(
       buildChartProps(
