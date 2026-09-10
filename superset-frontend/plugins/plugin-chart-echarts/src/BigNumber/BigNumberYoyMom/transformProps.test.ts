@@ -205,10 +205,11 @@ describe('BigNumberYoyMom transformProps', () => {
     );
     const graphic = result.echartOptions.graphic as Record<string, any>[];
 
-    expect(graphic[2].style.text).toBe('MoM ↑25.00%');
+    // A comparison value column renders the value itself, like the big number.
+    expect(graphic[2].style.text).toBe('MoM $80');
     expect(graphic[2].style.fill).toBe('rgb(0, 180, 42)');
-    expect(graphic[3].style.text).toBe('YoY ↓16.67%');
-    expect(graphic[3].style.fill).toBe('rgb(245, 63, 63)');
+    expect(graphic[3].style.text).toBe('YoY $120');
+    expect(graphic[3].style.fill).toBe('rgb(0, 180, 42)');
   });
 
   test('reads custom SQL comparison values even when the column name has normalized whitespace', () => {
@@ -230,8 +231,8 @@ describe('BigNumberYoyMom transformProps', () => {
       ),
     );
     const graphic = result.echartOptions.graphic as Record<string, any>[];
-    // (100 - 80) / 80 = 25%: the whitespace-normalized column is matched.
-    expect(graphic[2].style.text).toBe('MoM ↑25.00%');
+    // The whitespace-normalized column is matched and the value rendered.
+    expect(graphic[2].style.text).toBe('MoM $80');
   });
 
   test('time_shift mode wins over a leftover comparison column', () => {
@@ -266,7 +267,7 @@ describe('BigNumberYoyMom transformProps', () => {
       ),
     );
     const graphic = result.echartOptions.graphic as Record<string, any>[];
-    expect(graphic[2].style.text).toBe('MoM ↑25.00%');
+    expect(graphic[2].style.text).toBe('MoM $80');
   });
 
   test('shows "—" when the configured comparison column is missing', () => {
