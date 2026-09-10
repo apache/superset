@@ -582,10 +582,15 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   );
 
   useEffect(() => {
-    if (!isLikeOperator || clearAllTrigger) {
+    if (!isLikeOperator || clearAllTrigger || cascadeClearTrigger) {
       debouncedLikeChange.cancel();
     }
-  }, [clearAllTrigger, debouncedLikeChange, isLikeOperator]);
+  }, [
+    cascadeClearTrigger,
+    clearAllTrigger,
+    debouncedLikeChange,
+    isLikeOperator,
+  ]);
 
   useEffect(() => () => debouncedLikeChange.cancel(), [debouncedLikeChange]);
 

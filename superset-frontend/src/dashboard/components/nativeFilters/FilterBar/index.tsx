@@ -321,10 +321,23 @@ const FilterBar: FC<FiltersBarProps> = ({
         // longer belongs to the parent's option set (e.g. Country=UK with a
         // City value only valid under USA), producing impossible filter
         // combinations that blank charts.
-        const prevValue = draft[filter.id]?.filterState?.value;
-        const nextValue = baseDataMask.filterState?.value;
+        const prevMask = draft[filter.id];
+        const prevValue = prevMask?.filterState?.value;
+        const prevExtra = prevMask?.extraFormData;
+        const nextExtra = baseDataMask.extraFormData;
+        // Filters configured with defaultToFirstItem auto-select their first
+        // option on load. That seed is initialization, not a dependency
+        // change, and must not clear descendants. Persisted values reach the
+        // applied state through the sync effect rather than this callback, so
+        // any other first emission is a genuine user selection.
+        const isAutoSeedInit =
+          prevValue === undefined && !!filter.controlValues?.defaultToFirstItem;
+        // The effective dependency state is the parent's extraFormData (the
+        // clauses and time_range merged into descendants), not the raw
+        // selected value: inverse-selection toggles change the clause while
+        // the selected value stays identical.
         const parentValueChanged =
-          prevValue !== undefined && !isEqual(prevValue, nextValue);
+          !!prevMask && !isAutoSeedInit && !isEqual(prevExtra, nextExtra);
         if (parentValueChanged) {
           const childIds = resolveTransitiveChildIds(filter.id, filters);
           childIds.forEach(childId => {
