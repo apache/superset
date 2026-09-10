@@ -131,7 +131,10 @@ const Tags = lazyWithRetry(
 );
 
 const Extensions = lazyWithRetry(
-  () => import(/* webpackChunkName: "Tags" */ 'src/extensions/ExtensionsList'),
+  () =>
+    import(
+      /* webpackChunkName: "Extensions" */ 'src/extensions/ExtensionsList'
+    ),
 );
 
 const RowLevelSecurityList = lazyWithRetry(
