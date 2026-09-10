@@ -274,18 +274,37 @@ def test_invalid_config_has_a_distinct_metric_from_success() -> None:
     mock_stats.instance.incr.assert_called_once_with(f"{_METRIC_PREFIX}.invalid_config")
 
 
-def test_atomic_delete_uses_a_mysql_compatible_derived_table() -> None:
-    """Wrap the self-referencing candidate query for MySQL deletion."""
+def test_locked_recheck_is_a_select_and_delete_names_only_literal_ids() -> None:
+    """The locked re-check + delete must not hit MySQL's ERROR 1093.
 
-    def select_candidates(limit: int) -> sa.sql.Select:
-        return prune_audit._duplicate_candidates(datetime(2026, 1, 1), limit)
+    MySQL rejects a DELETE whose subquery reads the target table. The candidacy
+    re-check therefore runs as a SELECT (which may read ``purge_audit_log`` via
+    its correlated boundary/repeat/pending subqueries), and the DELETE names
+    only the literal surviving-id list — so ``purge_audit_log`` appears exactly
+    once in the DELETE (its target), never inside a subquery.
+    """
+    table = prune_audit.PurgeAuditLog.__table__
+    now: datetime = datetime(2026, 1, 1)
 
-    statement: sa.sql.Delete = prune_audit._delete_statement(select_candidates)
-    sql: str = str(statement.compile(dialect=mysql.dialect()))
+    recheck: sa.sql.Select = sa.select(table.c.id).where(
+        table.c.id.in_([1, 2, 3]), *prune_audit._duplicate_predicates(table, now)
+    )
+    recheck_sql: str = str(recheck.compile(dialect=mysql.dialect()))
+    delete_sql: str = str(
+        sa.delete(table)
+        .where(table.c.id.in_([1, 2, 3]))
+        .compile(dialect=mysql.dialect())
+    )
 
-    assert "DELETE FROM purge_audit_log" in sql
-    assert "prune_candidates" in sql
-    assert "SELECT" in sql
+    # The re-check is a SELECT that legitimately reads the table (aliased).
+    assert recheck_sql.startswith("SELECT")
+    assert "purge_audit_log" in recheck_sql
+    # The DELETE has no subquery reading the target table — the property that
+    # keeps it clear of ERROR 1093. Its WHERE is a literal id list, not a
+    # SELECT; ``purge_audit_log`` appears only as the target and the qualified
+    # id column, never inside a nested SELECT.
+    assert delete_sql.startswith("DELETE FROM purge_audit_log")
+    assert "SELECT" not in delete_sql
 
 
 @pytest.mark.parametrize(
@@ -309,8 +328,11 @@ def test_reason_comparison_is_null_safe_on_every_supported_dialect(
         partial(prune_audit._duplicate_candidates, now),
         partial(prune_audit._operational_candidates, now, now),
     ):
+        # The reason comparison lives in the candidacy predicates, which the
+        # discovery select and the locked re-check share; compile the discovery
+        # select (LIMIT-bounded) and assert the null-safe operator per dialect.
         sql: str = str(
-            prune_audit._delete_statement(select_candidates).compile(dialect=dialect)
+            select_candidates(prune_audit.BATCH_SIZE).compile(dialect=dialect)
         )
         assert same_reason_operator in sql
 

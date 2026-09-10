@@ -32,6 +32,7 @@ from typing import Any
 from unittest.mock import patch
 from uuid import UUID, uuid4
 
+import pytest
 import sqlalchemy as sa
 from flask import current_app
 from sqlalchemy.orm import Query
@@ -50,6 +51,7 @@ from superset.models.purge_audit_log import (
     STATUS_PENDING,
     STATUS_TARGET_ABSENT,
 )
+from superset.utils.core import backend
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.deletion_retention._base import (
     ensure_purge_audit_coordination,
@@ -601,12 +603,18 @@ class TestPruneAudit(SupersetTestCase):
         """
         blocked_since: UUID = self.add_row(STATUS_BLOCKED, entity="rc", age_days=3)
         later_block: UUID = self.add_row(STATUS_BLOCKED, entity="rc", age_days=1)
+        now: datetime = audit.utc_now()
         select_candidates: Callable[[int], sa.sql.Select] = partial(
-            prune_audit._duplicate_candidates, audit.utc_now()
+            prune_audit._duplicate_candidates, now
+        )
+        recheck_predicates: Callable[[sa.FromClause], list[sa.ColumnElement[bool]]] = (
+            partial(prune_audit._duplicate_predicates, now=now)
         )
 
         attempt: UUID = self.add_row(STATUS_PENDING, entity="rc", age_days=2)
-        removed: int = prune_audit._delete_batch(select_candidates)
+        _discovered, removed = prune_audit._delete_batch(
+            select_candidates, recheck_predicates
+        )
 
         assert removed == 0
         assert set(self.remaining_ids("rc")) == {
@@ -614,6 +622,98 @@ class TestPruneAudit(SupersetTestCase):
             attempt,
             later_block,
         }
+
+    def _set_session_isolation(self, level: str) -> None:
+        """Force the session connection's default isolation for its subsequent
+        transactions (Postgres/MySQL only).
+
+        Lets a test exercise REPEATABLE READ even though Superset pins MySQL to
+        READ COMMITTED at runtime. ``level`` is a hard-coded constant from the
+        caller, never external input.
+        """
+        db.session.rollback()
+        if db.engine.dialect.name == "postgresql":
+            stmt = f"SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL {level}"
+        else:  # mysql / mariadb
+            stmt = f"SET SESSION TRANSACTION ISOLATION LEVEL {level}"
+        db.session.execute(sa.text(stmt))
+        db.session.commit()
+
+    def test_recheck_reads_current_state_under_repeatable_read(self) -> None:
+        """The locked re-check must read state committed AFTER discovery ran.
+
+        Under REPEATABLE READ, discovery's SELECT fixes this transaction's
+        consistent-read snapshot and the lock's UPDATE does not refresh it, so a
+        re-check on that same transaction would miss a row a concurrent
+        ``write_ahead`` committed in the discovery→lock window and wrongly delete
+        a future survivor. ``_delete_batch`` ends the discovery transaction
+        before taking the lock, so the re-check opens a fresh snapshot that sees
+        the new row — correct regardless of isolation level.
+
+        Superset pins MySQL to READ COMMITTED in production and CI, where every
+        statement re-reads latest-committed and this can't occur; so this is
+        isolation-independence hardening, not a shipped-config repro. Forcing RR
+        on the session is what gives the guard teeth: revert the pre-lock
+        ``rollback`` and this fails (later_block is deleted). It runs in the
+        Postgres lane too, since PG has REPEATABLE READ.
+        """
+        if backend() == "sqlite":
+            # SQLite has no snapshot isolation / cross-connection stale read.
+            pytest.skip("no REPEATABLE READ snapshot to exercise")
+
+        blocked_since: UUID = self.add_row(STATUS_BLOCKED, entity="win", age_days=3)
+        later_block: UUID = self.add_row(STATUS_BLOCKED, entity="win", age_days=1)
+        now: datetime = audit.utc_now()
+        select_candidates: Callable[[int], sa.sql.Select] = partial(
+            prune_audit._duplicate_candidates, now
+        )
+        recheck_predicates: Callable[[sa.FromClause], list[sa.ColumnElement[bool]]] = (
+            partial(prune_audit._duplicate_predicates, now=now)
+        )
+
+        real_acquire = prune_audit.acquire_coordination_lock
+
+        def acquire_after_injecting_pending(session: Any) -> None:
+            # A concurrent write_ahead commits a pending row in the
+            # discovery→lock window, from a SEPARATE connection/transaction. It
+            # precedes later_block (age 2 vs 1), so it defers it as a survivor.
+            with db.engine.begin() as conn:
+                conn.execute(
+                    sa.insert(PurgeAuditLog.__table__).values(
+                        id=uuid4(),
+                        status=STATUS_PENDING,
+                        trigger=audit.TRIGGER_RETENTION,
+                        actor=audit.ACTOR_SYSTEM,
+                        entity_type=_ENTITY_TYPE,
+                        entity_uuid=f"{_PREFIX}win",
+                        created_on=now - timedelta(days=2),
+                    )
+                )
+            real_acquire(session)
+
+        self._set_session_isolation("REPEATABLE READ")
+        try:
+            with patch.object(
+                prune_audit,
+                "acquire_coordination_lock",
+                acquire_after_injecting_pending,
+            ):
+                discovered, removed = prune_audit._delete_batch(
+                    select_candidates, recheck_predicates
+                )
+        finally:
+            self._set_session_isolation("READ COMMITTED")
+
+        # Discovery found later_block (no pending yet). The re-check, on a fresh
+        # post-lock snapshot, sees the injected pending → later_block is
+        # preceded by an unresolved attempt → filtered out → not deleted.
+        assert discovered == 1
+        assert removed == 0, (
+            "re-check missed a pending committed in the discovery->lock window; "
+            "the later block was wrongly deleted"
+        )
+        assert later_block in self.remaining_ids("win")
+        assert blocked_since in self.remaining_ids("win")
 
     # -- Timestamp ties (legacy second-precision rows) ----------------------
 
