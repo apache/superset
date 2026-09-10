@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ChartProps } from '@superset-ui/core';
+import { Comparator } from '@superset-ui/chart-controls';
 import transformProps from '../src/transformProps';
 
 const onContextMenu = jest.fn();
@@ -151,4 +152,56 @@ test('typed country maps reject unrecognized values', () => {
       ),
     ),
   ).toThrow('Unrecognized');
+});
+
+test('builds color formatters from conditional formatting config', () => {
+  const transformed = transformProps(
+    createProps({
+      conditionalFormatting: [
+        {
+          column: 'metric',
+          colorScheme: '#FF0000',
+          operator: Comparator.GreaterThan,
+          targetValue: 50,
+          useGradient: false,
+        },
+      ],
+    }),
+  );
+
+  expect(transformed.formatters).toHaveLength(1);
+  expect(transformed.formatters?.[0].column).toBe('metric');
+  expect(transformed.formatters?.[0].getColorFromValue(100)).toBe('#FF0000');
+  expect(transformed.formatters?.[0].getColorFromValue(10)).toBeUndefined();
+});
+
+test('returns an empty formatters array when conditional formatting is unset', () => {
+  const transformed = transformProps(createProps());
+  expect(transformed.formatters).toEqual([]);
+});
+
+test('conditional formatting uses the normalized region metric and preserves the source identifier', () => {
+  const transformed = transformProps(
+    createProps(
+      {
+        entity: 'state',
+        selectCountry: 'usa',
+        regionFormat: 'abbreviation',
+        conditionalFormatting: [
+          {
+            column: 'metric',
+            colorScheme: '#FF0000',
+            operator: Comparator.GreaterThan,
+            targetValue: 5,
+            useGradient: false,
+          },
+        ],
+      },
+      { queriesData: [{ data: [{ state: 'CA', count: 10 }] }] },
+    ),
+  );
+  expect(transformed.data).toEqual([
+    { country_id: 'US-CA', source_value: 'CA', metric: 10 },
+  ]);
+  expect(transformed.formatters[0].getColorFromValue(10)).toBe('#FF0000');
 });
