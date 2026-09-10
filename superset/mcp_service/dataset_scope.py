@@ -59,6 +59,12 @@ OUT_OF_SCOPE_ERROR = (
 # Only these tools can operate in dataset-scoped mode. Other paths can read data
 # through SQL, cached results, screenshots, or external semantic sources without
 # a registered dataset identity. Refuse them rather than guess at their lineage.
+#
+# This deliberately gates execution only, not ``tools/list`` visibility. Tool
+# listings are assembled by the tool-search transform, which synthesizes its own
+# meta tools; filtering that listing on this set would hide the very tools a
+# client needs to reach the scoped ones. A refusal the model can read is a
+# better failure than a tool surface that silently disappears.
 SCOPED_TOOLS = frozenset(
     {
         "health_check",
@@ -106,18 +112,12 @@ class DatasetScopeFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         return query.filter(SqlaTable.uuid.in_(value))
 
 
-def get_dataset_scope() -> frozenset[UUID] | None:
-    """Union effective roles' UUID allowlists; None disables routing constraints.
+def parse_dataset_role_allowlist(config: Any) -> dict[str, set[UUID]] | None:
+    """Validate the allowlist mapping; None means routing constraints are off.
 
-    Missing roles contribute nothing, including Admin. Authorization is applied
-    separately by the dataset DAO and the normal query execution/RLS machinery.
-    No scope is cached across calls or users.
+    Split out from scope resolution so a deployment can fail at startup on a
+    malformed mapping rather than on every subsequent tool call.
     """
-    if not has_app_context():
-        # Reached only for FastMCP internal operations such as tool discovery,
-        # which run without a Flask context and therefore touch no dataset data.
-        return None
-    config = current_app.config.get(CONFIG_KEY)
     if config is None:
         return None
     if not isinstance(config, dict):
@@ -134,6 +134,23 @@ def get_dataset_scope() -> frozenset[UUID] | None:
         raise MCPDatasetScopeError(
             f"{CONFIG_KEY} contains an entry that is not a list of dataset UUIDs."
         ) from ex
+    return normalized
+
+
+def get_dataset_scope() -> frozenset[UUID] | None:
+    """Union effective roles' UUID allowlists; None disables routing constraints.
+
+    Missing roles contribute nothing, including Admin. Authorization is applied
+    separately by the dataset DAO and the normal query execution/RLS machinery.
+    No scope is cached across calls or users.
+    """
+    if not has_app_context():
+        # Reached only for FastMCP internal operations such as tool discovery,
+        # which run without a Flask context and therefore touch no dataset data.
+        return None
+    normalized = parse_dataset_role_allowlist(current_app.config.get(CONFIG_KEY))
+    if normalized is None:
+        return None
     if not getattr(g, "user", None):
         return frozenset()
     return frozenset(
@@ -141,15 +158,6 @@ def get_dataset_scope() -> frozenset[UUID] | None:
         for role in security_manager.get_user_roles()
         for identifier in normalized.get(role.name, set())
     )
-
-
-def tool_available_in_dataset_scope(tool_name: str) -> bool:
-    """Return whether a tool is callable at all under the current scope.
-
-    Drives ``tools/list`` visibility so scoped deployments advertise only the
-    tools they will actually serve, instead of a surface that refuses on use.
-    """
-    return get_dataset_scope() is None or tool_name in SCOPED_TOOLS
 
 
 def enforce_call_dataset_scope(
