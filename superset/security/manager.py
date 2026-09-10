@@ -2253,17 +2253,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # Explorable refactor and accidentally excluded Query, which is not a
         # BaseDatasource but does expose the same hierarchy.
         if isinstance(datasource, BaseDatasource) or (
-            hasattr(datasource, "database") and hasattr(datasource, "schema_perm")
+            getattr(datasource, "database", None) is not None
+            and hasattr(datasource, "schema_perm")
         ):
+            database = cast("Database", getattr(datasource, "database", None))
             # Database-level access grants all schemas
-            if self.can_access_database(datasource.database):
+            if self.can_access_database(database):
                 return True
 
             # Catalog-level access grants all schemas in catalog
             if (
                 hasattr(datasource, "catalog")
                 and datasource.catalog
-                and self.can_access_catalog(datasource.database, datasource.catalog)
+                and self.can_access_catalog(database, datasource.catalog)
             ):
                 return True
 

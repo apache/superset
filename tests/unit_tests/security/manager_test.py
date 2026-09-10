@@ -1212,6 +1212,28 @@ def test_can_access_schema_query_denied_ungranted_schema(
     assert sm.can_access_schema(query) is False
 
 
+def test_can_access_schema_transient_query_no_database(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """can_access_schema(Query) must not crash when database is None.
+
+    A transient Query built from just a ``database_id`` (the ORM relationship
+    was never loaded) has ``database = None``.  The widened gate must reject
+    it rather than passing it through to ``can_access_database(None)``, which
+    would crash.
+    """
+    from superset.models.sql_lab import Query
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_all_datasources", return_value=False)
+
+    query = Query(sql="SELECT * FROM t1", schema="main", catalog=None, database_id=1)
+    query.database = None
+
+    assert sm.can_access_schema(query) is False
+
+
 def test_raise_for_access_chart_for_datasource_permission(
     mocker: MockerFixture,
     app_context: None,
