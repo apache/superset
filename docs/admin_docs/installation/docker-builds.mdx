@@ -45,6 +45,12 @@ Here are the build presets that are exposed through the `supersetbot docker` uti
 - `websocket`: For Superset clusters supporting advanced features.
 - `dockerize`: Used by Helm in initContainers to wait for database dependencies to be available.
 
+The `ci` and `showtime` Docker targets share an entrypoint that runs container
+initialization before starting the server and stops if initialization exits with
+a nonzero status. `SERVER_THREADS_AMOUNT` defaults to `8` when unset or empty, while an
+explicit value is preserved. The server then replaces the entrypoint process so
+it receives signals directly and its exit status becomes the container status.
+
 ## Key tags examples
 
 - `latest`: The latest official release build
