@@ -206,9 +206,9 @@ describe('BigNumberYoyMom transformProps', () => {
     const graphic = result.echartOptions.graphic as Record<string, any>[];
 
     // A comparison value column renders the value itself, like the big number.
-    expect(graphic[2].style.text).toBe('MoM 80');
+    expect(graphic[2].style.text).toBe('MoM ↑80');
     expect(graphic[2].style.fill).toBe('rgb(0, 180, 42)');
-    expect(graphic[3].style.text).toBe('YoY 120');
+    expect(graphic[3].style.text).toBe('YoY ↑120');
     expect(graphic[3].style.fill).toBe('rgb(0, 180, 42)');
   });
 
@@ -232,7 +232,7 @@ describe('BigNumberYoyMom transformProps', () => {
     );
     const graphic = result.echartOptions.graphic as Record<string, any>[];
     // The whitespace-normalized column is matched and the value rendered.
-    expect(graphic[2].style.text).toBe('MoM 80');
+    expect(graphic[2].style.text).toBe('MoM ↑80');
   });
 
   test('formats comparison values with the slot percent difference format', () => {
@@ -248,7 +248,7 @@ describe('BigNumberYoyMom transformProps', () => {
     );
     const graphic = result.echartOptions.graphic as Record<string, any>[];
     // The slot's configured number format applies to comparison values.
-    expect(graphic[2].style.text).toBe('MoM 80.000');
+    expect(graphic[2].style.text).toBe('MoM ↑80.000');
   });
 
   test('reads snake_case form data keys exactly as Explore saves them', () => {
@@ -277,8 +277,8 @@ describe('BigNumberYoyMom transformProps', () => {
     const graphic = result.echartOptions.graphic as Record<string, any>[];
     // snake_case keys from the saved form data are picked up and both slots
     // render their comparison values, not percentages.
-    expect(graphic[2].style.text).toBe('MoM 80');
-    expect(graphic[3].style.text).toBe('YoY -100000');
+    expect(graphic[2].style.text).toBe('MoM ↑80');
+    expect(graphic[3].style.text).toBe('YoY ↓-100000');
   });
 
   test('time_shift mode wins over a leftover comparison column', () => {
@@ -313,7 +313,7 @@ describe('BigNumberYoyMom transformProps', () => {
       ),
     );
     const graphic = result.echartOptions.graphic as Record<string, any>[];
-    expect(graphic[2].style.text).toBe('MoM 80');
+    expect(graphic[2].style.text).toBe('MoM ↑80');
   });
 
   test('shows "—" when the configured comparison column is missing', () => {
