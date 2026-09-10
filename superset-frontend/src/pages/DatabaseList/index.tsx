@@ -747,6 +747,8 @@ function DatabaseList({
       },
       {
         accessor: 'backend',
+        // i18n: the database engine behind a connection (PostgreSQL, MySQL),
+        // not a server tier or a driver
         Header: t('Backend'),
         size: 'xl',
         disableSortBy: true,
