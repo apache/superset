@@ -40,7 +40,7 @@
     "cross-env": "^10.1.0",
     "fs-extra": "^11.4.0",
     "jest": "^30.5.1",
-    "yeoman-test": "^11.6.0"
+    "yeoman-test": "^11.7.0"
   },
   "engines": {
     "node": ">= 18.0.0",
