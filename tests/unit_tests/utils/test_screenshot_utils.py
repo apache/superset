@@ -16,21 +16,26 @@
 # under the License.
 
 import io
+import shutil
+import subprocess
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
 from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 
+from superset.utils import json
 from superset.utils.report_execution import (
     ReportExecutionContext,
     ReportExecutionDeadline,
 )
 from superset.utils.screenshot_utils import (
+    _stable_readiness_js,
     combine_screenshot_tiles,
     CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS,
     get_screenshot_blankness_metrics,
     is_screenshot_nearly_uniform,
+    REPORT_CAPTURE_READINESS_STABILITY_MS,
     resolve_screenshot_task_budget_seconds,
     SCREENSHOT_TASK_BUDGET_MAX_MARGIN_SECONDS,
     ScreenshotBlankCaptureError,
@@ -40,6 +45,7 @@ from superset.utils.screenshot_utils import (
     take_tiled_screenshot,
     TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS,
     TiledScreenshotBudgetExceededError,
+    wait_for_stable_readiness,
 )
 
 
@@ -58,6 +64,71 @@ def _two_tone_blank(width: int = 100, height: int = 100) -> bytes:
     output = io.BytesIO()
     image.save(output, format="PNG")
     return output.getvalue()
+
+
+def test_stable_readiness_skips_impossible_dwell() -> None:
+    page = MagicMock()
+
+    waited = wait_for_stable_readiness(
+        page,
+        "() => true",
+        REPORT_CAPTURE_READINESS_STABILITY_MS / 1000,
+    )
+
+    assert waited is False
+    page.wait_for_function.assert_not_called()
+
+
+def test_stable_readiness_javascript_resets_dwell_state() -> None:
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is required to execute the readiness predicate")
+
+    expression = _stable_readiness_js("() => globalThis.ready")
+    script = r"""
+const input = JSON.parse(require("fs").readFileSync(0, "utf8"));
+global.window = global;
+let now = 0;
+global.performance = {now: () => now};
+global.ready = false;
+const predicate = eval("(" + input.expression + ")");
+const results = [];
+const poll = (token, time, ready) => {
+  now = time;
+  global.ready = ready;
+  results.push(predicate({token, stabilityMs: 500}));
+};
+poll("first", 0, false);
+poll("first", 100, true);
+poll("first", 599, true);
+poll("first", 600, true);
+poll("first", 700, false);
+poll("first", 800, true);
+poll("first", 1300, true);
+poll("second", 1400, true);
+poll("second", 1900, true);
+process.stdout.write(JSON.stringify(results));
+"""
+
+    completed = subprocess.run(  # noqa: S603
+        [node, "-e", script],
+        input=json.dumps({"expression": expression}),
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+
+    assert json.loads(completed.stdout) == [
+        False,
+        False,
+        False,
+        True,
+        False,
+        False,
+        True,
+        False,
+        True,
+    ]
 
 
 class TestScreenshotBlankDetection:
@@ -847,7 +918,7 @@ class TestTakeTiledScreenshot:
             if wait_calls == 0:
                 events.append("mount")
             elif "__supersetCaptureReadiness" in expression:
-                assert arg["stabilityMs"] == 500
+                assert arg["stabilityMs"] == REPORT_CAPTURE_READINESS_STABILITY_MS
                 events.append("stable_ready")
             else:
                 events.append("ready")
@@ -1118,12 +1189,17 @@ class TestTakeTiledScreenshot:
 
         # One initial holder-mount gate, then readiness and stable-readiness
         # polls per tile.
-        assert mock_page.wait_for_function.call_count == 7
-        stable_calls = mock_page.wait_for_function.call_args_list[2::2]
+        stable_calls = [
+            call
+            for call in mock_page.wait_for_function.call_args_list
+            if call.args and "__supersetCaptureReadiness" in call.args[0]
+        ]
         assert len(stable_calls) == 3
         for stable_call in stable_calls:
-            assert "__supersetCaptureReadiness" in stable_call.args[0]
-            assert stable_call.kwargs["arg"]["stabilityMs"] == 500
+            assert (
+                stable_call.kwargs["arg"]["stabilityMs"]
+                == REPORT_CAPTURE_READINESS_STABILITY_MS
+            )
 
         # Each call uses viewport-scoped JS and the load_wait timeout
         mount_call, *tile_calls = mock_page.wait_for_function.call_args_list

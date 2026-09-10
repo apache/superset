@@ -548,6 +548,34 @@ CHART_CONTAINER_READY_JS = f"""
 """
 STABLE_CHART_CONTAINER_READY_JS = _stable_readiness_js(CHART_CONTAINER_READY_JS)
 
+
+def wait_for_stable_readiness(
+    page: Page,
+    readiness_predicate: str,
+    timeout_seconds: float,
+) -> bool:
+    """Wait for capture readiness when the available budget can satisfy the dwell.
+
+    Returns ``False`` when less than one stability window remains. The caller may
+    proceed because the preceding readiness gate has already completed; starting
+    an impossible dwell would only convert a usable capture budget into a timeout.
+    """
+
+    minimum_timeout_seconds = REPORT_CAPTURE_READINESS_STABILITY_MS / 1000
+    if timeout_seconds <= minimum_timeout_seconds:
+        return False
+
+    page.wait_for_function(
+        readiness_predicate,
+        arg={
+            "token": str(time.monotonic_ns()),
+            "stabilityMs": REPORT_CAPTURE_READINESS_STABILITY_MS,
+        },
+        timeout=timeout_seconds * 1000,
+    )
+    return True
+
+
 # Diagnostic companion to CHART_CONTAINER_READY_JS: reports why a chart
 # capture is (or is not) ready. Chart pages have no dashboard grid holders,
 # so the holder-count diagnostics read as vacuous zeros there.
@@ -1191,22 +1219,20 @@ def take_tiled_screenshot(  # noqa: C901
                         ),
                     )
                     try:
-                        page.wait_for_function(
+                        waited_for_stability = wait_for_stable_readiness(
+                            page,
                             STABLE_REPORT_CHART_HOLDERS_READY_JS,
-                            arg={
-                                "token": str(time.monotonic_ns()),
-                                "stabilityMs": REPORT_CAPTURE_READINESS_STABILITY_MS,
-                            },
-                            timeout=stable_wait * 1000,
+                            stable_wait,
                         )
                         logger.info(
                             "report_capture_readiness_stable tile=%s/%s "
-                            "attempt=%s/%s stability_ms=%s%s",
+                            "attempt=%s/%s stability_ms=%s skipped=%s%s",
                             i + 1,
                             num_tiles,
                             capture_attempt,
                             TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
                             REPORT_CAPTURE_READINESS_STABILITY_MS,
+                            not waited_for_stability,
                             context_suffix,
                         )
                     except PlaywrightTimeout:

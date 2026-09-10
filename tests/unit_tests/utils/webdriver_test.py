@@ -28,7 +28,10 @@ from superset.utils.report_execution import (
     ReportExecutionContext,
     ReportExecutionDeadline,
 )
-from superset.utils.screenshot_utils import ScreenshotBlankCaptureError
+from superset.utils.screenshot_utils import (
+    REPORT_CAPTURE_READINESS_STABILITY_MS,
+    ScreenshotBlankCaptureError,
+)
 from superset.utils.webdriver import (
     check_playwright_availability,
     PLAYWRIGHT_AVAILABLE,
@@ -1526,7 +1529,7 @@ class TestWebDriverPlaywrightChartReadiness:
 
         assert page.wait_for_function.call_args.kwargs["timeout"] == 590_000
 
-    def test_capture_readiness_requires_a_stable_dwell(self):
+    def test_capture_readiness_wires_stable_predicate_and_timeout(self):
         page = MagicMock()
         element = MagicMock()
         page.screenshot.return_value = _png("white")
@@ -1540,7 +1543,7 @@ class TestWebDriverPlaywrightChartReadiness:
             polling=None,
         ):
             assert "__supersetCaptureReadiness" in expression
-            assert arg["stabilityMs"] == 500
+            assert arg["stabilityMs"] == REPORT_CAPTURE_READINESS_STABILITY_MS
 
         page.wait_for_function.side_effect = signature_checked_wait
 
@@ -1555,8 +1558,47 @@ class TestWebDriverPlaywrightChartReadiness:
         assert result == _png("white")
         readiness_call = page.wait_for_function.call_args
         assert "__supersetCaptureReadiness" in readiness_call.args[0]
-        assert readiness_call.kwargs["arg"]["stabilityMs"] == 500
+        assert (
+            readiness_call.kwargs["arg"]["stabilityMs"]
+            == REPORT_CAPTURE_READINESS_STABILITY_MS
+        )
         assert readiness_call.kwargs["timeout"] == 690_000
+
+    def test_chart_capture_uses_chart_container_stable_predicate(self):
+        page = MagicMock()
+        element = MagicMock()
+        element.screenshot.return_value = _png("white")
+        page.evaluate.return_value = False
+
+        WebDriverPlaywright._get_validated_screenshot(
+            page,
+            element,
+            "chart-container",
+            "execution_id=test",
+            report_execution_context=_report_context(chart_id=7),
+        )
+
+        predicate = page.wait_for_function.call_args.args[0]
+        assert "document.querySelector('.chart-container')" in predicate
+
+    def test_capture_skips_stability_dwell_when_budget_is_too_short(self):
+        page = MagicMock()
+        element = MagicMock()
+        page.screenshot.return_value = _png("white")
+        page.evaluate.return_value = False
+        context = _report_context()
+        context.deadline._clock = lambda: 689.6
+
+        result = WebDriverPlaywright._get_validated_screenshot(
+            page,
+            element,
+            "standalone",
+            "execution_id=test",
+            report_execution_context=context,
+        )
+
+        assert result == _png("white")
+        page.wait_for_function.assert_not_called()
 
     def test_report_readiness_budget_exhaustion_skips_poll_and_capture(self):
         from uuid import UUID

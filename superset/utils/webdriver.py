@@ -51,6 +51,7 @@ from superset.utils.screenshot_utils import (
     STABLE_REPORT_ALL_CHART_HOLDERS_READY_JS,
     take_tiled_screenshot,
     TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+    wait_for_stable_readiness,
 )
 
 WindowSize = tuple[int, int]
@@ -278,20 +279,18 @@ class WebDriverPlaywright(WebDriverProxy):
                     else STABLE_REPORT_ALL_CHART_HOLDERS_READY_JS
                 )
                 try:
-                    page.wait_for_function(
+                    waited_for_stability = wait_for_stable_readiness(
+                        page,
                         stable_predicate,
-                        arg={
-                            "token": str(time.monotonic_ns()),
-                            "stabilityMs": REPORT_CAPTURE_READINESS_STABILITY_MS,
-                        },
-                        timeout=stable_timeout * 1000,
+                        stable_timeout,
                     )
                     logger.info(
                         "report_capture_readiness_stable capture=standard "
-                        "attempt=%s/%s stability_ms=%s%s",
+                        "attempt=%s/%s stability_ms=%s skipped=%s%s",
                         attempt,
                         TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
                         REPORT_CAPTURE_READINESS_STABILITY_MS,
+                        not waited_for_stability,
                         context_suffix,
                     )
                 except PlaywrightTimeout:
