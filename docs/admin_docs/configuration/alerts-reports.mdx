@@ -259,8 +259,8 @@ Superset automatically retries webhook deliveries on `429 Too Many Requests` and
 
 ### Kubernetes-specific
 
-- You must have a `celery beat` pod running. If you're using the chart included in the GitHub repository under [helm/superset](https://github.com/apache/superset/tree/master/helm/superset), you need to put `supersetCeleryBeat.enabled = true` in your values override.
-- You can see the dedicated docs about [Kubernetes installation](/admin-docs/installation/kubernetes) for more details.
+- You must have a `celery beat` pod running. For Kubernetes deployments, use the [Apache Superset Kubernetes Operator documentation](https://apache.github.io/superset-kubernetes-operator/) for deployment configuration.
+- Existing legacy Helm chart deployments configure this with `supersetCeleryBeat.enabled = true` in the values override.
 
 ### Docker Compose specific
 
