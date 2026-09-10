@@ -190,8 +190,6 @@ const config: ControlPanelConfig = {
       label: t('Chart Options'),
       expanded: true,
       controlSetRows: [
-        ['y_axis_format'],
-        ['currency_format'],
         [<ControlSubSectionHeader>{t('Title')}</ControlSubSectionHeader>],
         [
           {
@@ -258,6 +256,8 @@ const config: ControlPanelConfig = {
             {t('Big Number')}
           </ControlSubSectionHeader>,
         ],
+        ['y_axis_format'],
+        ['currency_format'],
         [
           {
             name: 'big_number_font_size',
