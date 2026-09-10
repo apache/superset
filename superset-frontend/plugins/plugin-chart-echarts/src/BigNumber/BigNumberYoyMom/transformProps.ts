@@ -91,6 +91,7 @@ type ComparisonSlot = {
   column?: QueryFormMetric;
   current: number | null;
   comparisonValue: number | string | null | undefined;
+  formatter: (value: number) => string;
 };
 
 // A comparison slot reads its value either from a configured comparison
@@ -133,12 +134,14 @@ export default function transformProps(
     comparison1Label = t(DEFAULT_COMPARISON1_LABEL),
     comparison1Offset = DEFAULT_COMPARISON1_OFFSET,
     comparison1Column,
+    comparison1PercentDifferenceFormat,
     comparison1Left: legacyComparison1Left,
     comparison1Mode,
     showComparison2 = true,
     comparison2Label = t(DEFAULT_COMPARISON2_LABEL),
     comparison2Offset = DEFAULT_COMPARISON2_OFFSET,
     comparison2Column,
+    comparison2PercentDifferenceFormat,
     comparison2Left: legacyComparison2Left,
     comparison2Mode,
     comparisonGap = DEFAULT_COMPARISON_GAP,
@@ -215,7 +218,23 @@ export default function transformProps(
     currencyCodeColumn,
     detectedCurrency,
   );
-  const percentFormatter = getNumberFormatter(percentDifferenceFormat);
+  // MoM and YoY each carry their own percent difference format, falling back
+  // to the legacy global control for charts saved before the split.
+  // d3 percentage formats (e.g. ",.2%") scale the value by 100 and append the
+  // "%" sign themselves; plain number formats (",.2f", Smart Number) expect
+  // the already-scaled percentage value, so multiply by 100 before formatting.
+  const formatPercentValue = (
+    format: string | undefined,
+    percent: number,
+  ): string => {
+    const d3Format = format || percentDifferenceFormat;
+    const formatter = getNumberFormatter(d3Format);
+    return formatter(d3Format.includes('%') ? percent : percent * 100);
+  };
+  const percentFormatter1 = (value: number) =>
+    formatPercentValue(comparison1PercentDifferenceFormat, value);
+  const percentFormatter2 = (value: number) =>
+    formatPercentValue(comparison2PercentDifferenceFormat, value);
 
   const row = data[0] || {};
   const rawBigNumber = hasData ? row[metricName] : null;
@@ -352,6 +371,7 @@ export default function transformProps(
     column,
     current: slotCurrent,
     comparisonValue,
+    formatter,
   }: ComparisonSlot): { text: string; fill: string } | null => {
     if (!show) return null;
     if (!offset && !column) return null;
@@ -364,7 +384,7 @@ export default function transformProps(
       text = `${label ? `${label} ` : ''}—`;
     } else {
       const arrow = percent > 0 ? '↑' : percent < 0 ? '↓' : '';
-      text = `${label ? `${label} ` : ''}${arrow}${percentFormatter(
+      text = `${label ? `${label} ` : ''}${arrow}${formatter(
         Math.abs(percent),
       )}`;
     }
@@ -399,6 +419,7 @@ export default function transformProps(
       comparison1Column,
       comparison1Offset,
     ),
+    formatter: percentFormatter1,
   });
   const comparison2Content = buildComparisonContent({
     show: showComparison2,
@@ -411,6 +432,7 @@ export default function transformProps(
       comparison2Column,
       comparison2Offset,
     ),
+    formatter: percentFormatter2,
   });
   const comparisonWidth = Math.max(
     comparison1Content

@@ -25,8 +25,11 @@ jest.mock('@apache-superset/core/translation', () => ({
 
 jest.mock('@superset-ui/core', () => ({
   getMetricLabel: jest.fn(metric => metric),
-  getNumberFormatter: jest.fn(format => (value: number) => {
-    if (format === ',.2%') return `${(value * 100).toFixed(2)}%`;
+  getNumberFormatter: jest.fn((format: string) => (value: number) => {
+    const precision = /^,\.(\d)%$/.exec(format);
+    if (precision) return `${(value * 100).toFixed(Number(precision[1]))}%`;
+    const fixed = /^,\.(\d)f$/.exec(format);
+    if (fixed) return value.toFixed(Number(fixed[1]));
     return String(value);
   }),
   getValueFormatter: jest.fn(
@@ -127,6 +130,45 @@ describe('BigNumberYoyMom transformProps', () => {
     expect(graphic[2].left).toBe(20);
     expect(graphic[2].left + 329).toBeLessThanOrEqual(graphic[3].left);
     expect(graphic[3].left).toBe(349);
+  });
+
+  test('formats MoM and YoY percentages with their own formats', () => {
+    const result = transformProps(
+      buildChartProps(
+        [
+          {
+            'SUM(sales)': 100,
+            'SUM(sales)__1 month ago': 90,
+            'SUM(sales)__1 year ago': 80,
+          },
+        ],
+        {
+          comparison1PercentDifferenceFormat: ',.1%',
+          comparison2PercentDifferenceFormat: ',.3%',
+        },
+      ),
+    );
+    const graphic = result.echartOptions.graphic as Record<string, any>[];
+    // .1% rounds 11.11% to one decimal, .3% keeps 25.00% with three decimals.
+    expect(graphic[2].style.text).toBe('MoM ↑11.1%');
+    expect(graphic[3].style.text).toBe('YoY ↑25.000%');
+  });
+
+  test('scales percentages by 100 for plain number formats', () => {
+    const result = transformProps(
+      buildChartProps(
+        [
+          {
+            'SUM(sales)': 100,
+            'SUM(sales)__1 month ago': 90,
+          },
+        ],
+        { comparison1PercentDifferenceFormat: ',.2f' },
+      ),
+    );
+    const graphic = result.echartOptions.graphic as Record<string, any>[];
+    // ",.2f" has no "%": the decimal 0.1111 is scaled to 11.11 first.
+    expect(graphic[2].style.text).toBe('MoM ↑11.11');
   });
 
   test('keeps the comparison row near the bottom on a tall tile', () => {

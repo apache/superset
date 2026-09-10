@@ -334,6 +334,18 @@ const config: ControlPanelConfig = {
           },
         ],
         [
+          {
+            name: 'comparison1_percent_difference_format',
+            config: {
+              ...sharedControls.y_axis_format,
+              label: t('MoM percent difference format'),
+              default: NumberFormats.PERCENT_2_POINT,
+              visibility: ({ controls }) =>
+                controls?.show_comparison1?.value === true,
+            },
+          },
+        ],
+        [
           <ControlSubSectionHeader>
             {t('YoY Comparison')}
           </ControlSubSectionHeader>,
@@ -357,6 +369,18 @@ const config: ControlPanelConfig = {
               label: t('YoY label'),
               renderTrigger: true,
               default: t(DEFAULT_COMPARISON2_LABEL),
+              visibility: ({ controls }) =>
+                controls?.show_comparison2?.value === true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'comparison2_percent_difference_format',
+            config: {
+              ...sharedControls.y_axis_format,
+              label: t('YoY percent difference format'),
+              default: NumberFormats.PERCENT_2_POINT,
               visibility: ({ controls }) =>
                 controls?.show_comparison2?.value === true,
             },
@@ -418,16 +442,6 @@ const config: ControlPanelConfig = {
               renderTrigger: true,
               default: DEFAULT_COMPARISON_TOP,
               description: t('Vertical gap in pixels between the big number and the comparison rows.'),
-            },
-          },
-        ],
-        [
-          {
-            name: 'percent_difference_format',
-            config: {
-              ...sharedControls.y_axis_format,
-              label: t('Percent difference format'),
-              default: NumberFormats.PERCENT_2_POINT,
             },
           },
         ],
