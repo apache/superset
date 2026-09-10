@@ -24,6 +24,18 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Resample "Fill the entire time range"
+
+Charts with Resample can enable **Fill the entire time range** so gap-filling
+covers the full queried window (`from_dttm` / `to_dttm`), not only between the
+first and last returned data points. Existing charts are unchanged until the
+control is turned on.
+
+Resample projections remain capped by `MAX_RESAMPLE_ROWS` (default
+`1_000_000`). That cap now also covers calendar frequencies (month, quarter,
+year, …) that previously skipped the check because they have no fixed
+`Timedelta`.
+
 ### Tagging is on by default
 
 `TAGGING_SYSTEM` now ships **on**. The Tags menu entry, the tag columns and
@@ -232,7 +244,7 @@ unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
 - The dashboard datasource-based visibility fallback now fails closed: a dashboard whose member charts’ datasources cannot be resolved (deleted datasource rows, missing `datasource_id`, or unsupported datasource types) is no longer accessible to users without explicit editor/viewer rights, and a dashboard composed of semantic-view charts now requires `datasource_access` on (at least one of) its semantic views or their parent semantic layer — previously any authenticated user could open such a dashboard’s shell. Because the fallback now considers every member chart rather than only table-backed ones, a user holding `datasource_access` on any single member datasource — including a semantic view or its parent layer — can open a mixed dashboard that previously denied them. Dashboards with no charts remain accessible, and dashboards with explicit viewers are unaffected. Conversely, holders of `all_datasource_access` now see every published no-viewer dashboard in the dashboard list — including chart-less ones previously hidden by the inner joins — matching what the object-level gate already allowed them to open.
 - Version restore (`POST /api/v1/{chart,dashboard,dataset}/<uuid>/versions/<version_uuid>/restore`) now refuses an **externally managed** entity (`is_managed_externally = True`) with HTTP 403, enforcing server-side what the docs already promised. Previously the refusal existed only in the browser, so an otherwise-authorized editor could restore such an entity by calling the endpoint directly and have the restore overwritten on the next external sync. Soft-delete recovery is deliberately unaffected — it changes visibility, not content.
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
-- The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed should `pip uninstall cockroachdb && pip install sqlalchemy-cockroachdb` (or simply reinstall the extra) to restore CockroachDB connectivity.
+- The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed must `pip uninstall cockroachdb` before reinstalling the extra -- both packages register the same `cockroachdb` SQLAlchemy dialect entry point, so leaving the old one in place can still load the abandoned implementation.
 
 ### Native Value filter "Select all" always targets the whole column
 
@@ -1232,6 +1244,8 @@ Added a new combined datasource list endpoint at `GET /api/v1/datasource/` to se
 Custom time ranges that use the "Now" or "Today" anchor (for the Start, End, or the relative anchor itself) previously resolved that anchor in UTC before formatting it into a naive datetime string, which was then re-parsed elsewhere as local time. For users outside UTC, this made the resolved anchor drift by their browser's UTC offset. "Now"/"Today" now resolve directly in local time, matching the later local re-parse.
 
 Charts and dashboards using these anchors will compute a different (correct) timestamp after upgrading; if a chart's filters or drill-downs were tuned to compensate for the old offset, review them after upgrading.
+
+- [43916](https://github.com/apache/superset/pull/43916): The `docker-compose` dev loop now skips re-running `superset load_examples` on every `docker compose up` once the example data and dashboards are present in the databases (set `SUPERSET_FORCE_LOAD_EXAMPLES=yes` to reload them anyway), and the `superset-node` service now defaults `DISABLE_TS_CHECKER=true` like `docker-compose-light.yml` already did, skipping webpack's TypeScript type-checking pass in dev by default.
 
 ## 6.1.0
 

@@ -259,8 +259,8 @@ Superset automatically retries webhook deliveries on `429 Too Many Requests` and
 
 ### Kubernetes-specific
 
-- You must have a `celery beat` pod running. If you're using the chart included in the GitHub repository under [helm/superset](https://github.com/apache/superset/tree/master/helm/superset), you need to put `supersetCeleryBeat.enabled = true` in your values override.
-- You can see the dedicated docs about [Kubernetes installation](/admin-docs/installation/kubernetes) for more details.
+- You must have a `celery beat` pod running. For Kubernetes deployments, use the [Apache Superset Kubernetes Operator documentation](https://apache.github.io/superset-kubernetes-operator/) for deployment configuration.
+- Existing legacy Helm chart deployments configure this with `supersetCeleryBeat.enabled = true` in the values override.
 
 ### Docker Compose specific
 
@@ -475,6 +475,16 @@ to determine which hosts are internal.
 ## Troubleshooting
 
 There are many reasons that reports might not be working. Try these steps to check for specific issues.
+
+### Blank PDF or PNG captures
+
+Playwright report captures are checked for blank image content as well as chart
+readiness. Captures detected as blank where chart content is expected are retried
+up to three total attempts, within the execution deadline. If they remain blank,
+the report fails instead of delivering the blank or partial attachment. This also
+applies to alerts that attach reports. Check worker logs for
+`ScreenshotBlankCaptureError` and `report_capture_validation` when investigating
+these failures.
 
 ### Confirm feature flag is enabled and you have sufficient permissions
 
