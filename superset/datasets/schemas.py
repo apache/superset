@@ -46,11 +46,7 @@ get_export_ids_schema = {
     "items": {"type": "integer"},
     "example": [1, 2, 3],
 }
-get_related_objects_ids_schema = {
-    "type": "array",
-    "items": {"type": "integer"},
-    "example": [1, 2, 3],
-}
+get_related_objects_ids_schema = get_delete_ids_schema
 get_drill_info_schema = {
     "type": "object",
     "properties": {
@@ -245,6 +241,9 @@ class DatasetRelatedDashboard(Schema):
 
 class DatasetRelatedCharts(Schema):
     count = fields.Integer(metadata={"description": "Chart count"})
+    restricted_count = fields.Integer(
+        metadata={"description": "Charts the current user cannot access"}
+    )
     result = fields.List(
         fields.Nested(DatasetRelatedChart),
         metadata={"description": "A list of dashboards"},
@@ -253,6 +252,9 @@ class DatasetRelatedCharts(Schema):
 
 class DatasetRelatedDashboards(Schema):
     count = fields.Integer(metadata={"description": "Dashboard count"})
+    restricted_count = fields.Integer(
+        metadata={"description": "Dashboards the current user cannot access"}
+    )
     result = fields.List(
         fields.Nested(DatasetRelatedDashboard),
         metadata={"description": "A list of dashboards"},

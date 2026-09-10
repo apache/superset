@@ -41,6 +41,7 @@ from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
+from superset.subjects.utils import get_or_create_user_subject
 from superset.utils import json
 from superset.utils.core import backend, get_example_default_schema, shortid
 from superset.utils.database import get_example_database, get_main_database
@@ -2676,6 +2677,57 @@ class TestDatasetApi(SupersetTestCase):
             dashboard["id"] for dashboard in response["dashboards"]["result"]
         } == expected_dashboards
         assert response["dashboards"]["count"] == len(expected_dashboards)
+
+    def test_get_datasets_bulk_related_objects_keeps_restricted_in_count(self):
+        """
+        Dataset API: Test related objects report the full dependent count to a
+        non-admin editor while withholding the objects they cannot access
+        """
+        alpha = self.get_user(ALPHA_USERNAME)
+        database = Database(
+            database_name="db_related_restricted", sqlalchemy_uri="sqlite://"
+        )
+        db.session.add(database)
+        db.session.flush()
+        dataset = SqlaTable(
+            table_name="related_restricted",
+            database=database,
+            editors=[get_or_create_user_subject(alpha.id)],
+        )
+        db.session.add(dataset)
+        db.session.flush()
+        chart = Slice(
+            slice_name="restricted related chart",
+            datasource_id=dataset.id,
+            datasource_type="table",
+            viz_type="table",
+        )
+        db.session.add(chart)
+        db.session.commit()
+
+        try:
+            self.login(ALPHA_USERNAME)
+            with patch.object(security_manager, "can_access_chart", return_value=False):
+                bulk_rv = self.client.get(
+                    f"api/v1/dataset/related_objects/?q={rison.dumps([dataset.id])}"
+                )
+                single_rv = self.client.get(
+                    f"api/v1/dataset/{dataset.id}/related_objects"
+                )
+            for rv in (bulk_rv, single_rv):
+                assert rv.status_code == 200, rv.data
+                payload = json.loads(rv.data)
+                assert payload["charts"] == {
+                    "count": 1,
+                    "restricted_count": 1,
+                    "result": [],
+                }
+                assert "restricted related chart" not in rv.data.decode()
+        finally:
+            db.session.delete(chart)
+            db.session.delete(dataset)
+            db.session.delete(database)
+            db.session.commit()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_datasets_bulk_related_objects_not_found(self):

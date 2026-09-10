@@ -196,6 +196,7 @@ interface DatasetListProps {
 
 type RelatedObjects = {
   count: number;
+  restricted_count?: number;
   result: Array<Record<string, unknown>>;
 };
 
@@ -211,7 +212,8 @@ type BulkRelatedLookup =
 /**
  * The "Affected Dashboards" / "Affected Charts" lists rendered inside a dataset
  * delete confirmation, capped at 10 each with an overflow footer. Shared by the
- * single-row delete modal and the bulk-delete confirm.
+ * single-row delete modal and the bulk-delete confirm. `count` is the full
+ * number of dependents; `result` only holds the ones the user can see.
  */
 const AffectedObjectsList: FunctionComponent<DatasetRelatedObjects> = ({
   charts,
@@ -249,6 +251,16 @@ const AffectedObjectsList: FunctionComponent<DatasetRelatedObjects> = ({
             )
           }
         />
+        {(dashboards.restricted_count ?? 0) > 0 && (
+          <p>
+            {tn(
+              '%s additional restricted dashboard',
+              '%s additional restricted dashboards',
+              dashboards.restricted_count,
+              dashboards.restricted_count,
+            )}
+          </p>
+        )}
       </>
     )}
     {charts.count >= 1 && (
@@ -282,6 +294,16 @@ const AffectedObjectsList: FunctionComponent<DatasetRelatedObjects> = ({
             )
           }
         />
+        {(charts.restricted_count ?? 0) > 0 && (
+          <p>
+            {tn(
+              '%s additional restricted chart',
+              '%s additional restricted charts',
+              charts.restricted_count,
+              charts.restricted_count,
+            )}
+          </p>
+        )}
       </>
     )}
   </>

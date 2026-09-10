@@ -6070,6 +6070,10 @@
             "description": "Chart count",
             "type": "integer"
           },
+          "restricted_count": {
+            "description": "Charts the current user cannot access",
+            "type": "integer"
+          },
           "result": {
             "description": "A list of dashboards",
             "items": {
@@ -6101,6 +6105,10 @@
         "properties": {
           "count": {
             "description": "Dashboard count",
+            "type": "integer"
+          },
+          "restricted_count": {
+            "description": "Dashboards the current user cannot access",
             "type": "integer"
           },
           "result": {
@@ -23666,7 +23674,7 @@
     },
     "/api/v1/dataset/related_objects/": {
       "get": {
-        "description": "Aggregates the charts built on any of the requested datasets and the dashboards those charts appear on. Each chart and dashboard is listed once even if it depends on several of the datasets.",
+        "description": "Aggregates the charts built on any of the requested datasets and the dashboards those charts appear on. Each chart and dashboard is listed once even if it depends on several of the datasets. Requested datasets the user cannot see are ignored; the response is 404 only when none of them are visible.",
         "parameters": [
           {
             "content": {

@@ -1187,7 +1187,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
           description: >-
             Aggregates the charts built on any of the requested datasets and the
             dashboards those charts appear on. Each chart and dashboard is listed
-            once even if it depends on several of the datasets.
+            once even if it depends on several of the datasets. Requested datasets
+            the user cannot see are ignored; the response is 404 only when none
+            of them are visible.
           parameters:
           - in: query
             name: q
@@ -1221,7 +1223,13 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
     @staticmethod
     def _related_objects_payload(data: dict[str, Any]) -> dict[str, Any]:
-        """Serialize related charts and dashboards the current user can access."""
+        """
+        Serialize related charts and dashboards.
+
+        ``count`` is the full number of dependents so the caller can warn about
+        the real blast radius; ``result`` only lists the ones the current user
+        can access and ``restricted_count`` says how many were withheld.
+        """
         charts = [
             {
                 "id": chart.id,
@@ -1242,8 +1250,16 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             if security_manager.can_access_dashboard(dashboard)
         ]
         return {
-            "charts": {"count": len(charts), "result": charts},
-            "dashboards": {"count": len(dashboards), "result": dashboards},
+            "charts": {
+                "count": len(data["charts"]),
+                "restricted_count": len(data["charts"]) - len(charts),
+                "result": charts,
+            },
+            "dashboards": {
+                "count": len(data["dashboards"]),
+                "restricted_count": len(data["dashboards"]) - len(dashboards),
+                "result": dashboards,
+            },
         }
 
     @expose("/", methods=("DELETE",))

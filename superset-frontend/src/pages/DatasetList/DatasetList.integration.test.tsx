@@ -341,6 +341,29 @@ test('bulk delete confirm names the charts and dashboards that will break', asyn
   expect(rison.decode(query!)).toEqual(selected.map(({ id }) => id));
 }, 45000);
 
+test('bulk delete confirm counts dependents the user cannot see', async () => {
+  // An editor who is not on a dependent chart's viewer list still breaks it
+  // by deleting the dataset, so the total must not collapse to zero.
+  fetchMock.get(API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS, {
+    charts: {
+      count: 2,
+      restricted_count: 1,
+      result: [{ id: 101, slice_name: 'Chart A' }],
+    },
+    dashboards: { count: 1, restricted_count: 1, result: [] },
+  });
+
+  const modal = await openBulkDeleteConfirm([mockDatasets[0], mockDatasets[1]]);
+
+  expect(await within(modal).findByText('Chart A')).toBeInTheDocument();
+  expect(modal).toHaveTextContent(
+    /linked to 2 charts that appear on 1 dashboards/i,
+  );
+  expect(modal).toHaveTextContent(/1 additional restricted chart/i);
+  expect(modal).toHaveTextContent(/1 additional restricted dashboard/i);
+  expect(modal).not.toHaveTextContent(/no charts or dashboards depend on/i);
+}, 45000);
+
 test('bulk delete confirm says when nothing depends on the selection', async () => {
   fetchMock.get(
     API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS,
