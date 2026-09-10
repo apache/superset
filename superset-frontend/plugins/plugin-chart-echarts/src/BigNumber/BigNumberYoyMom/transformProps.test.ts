@@ -89,7 +89,7 @@ describe('BigNumberYoyMom transformProps', () => {
     expect(graphic[0].style.fontSize).toBe(45);
     expect(graphic[0].style.fill).toBe('rgb(102, 102, 102)');
     expect(graphic[0].left).toBe(20);
-    expect(graphic[0].top).toBe(20);
+    expect(graphic[0].top).toBe(21);
 
     expect(graphic[1].style.text).toBe('$1,234,567');
     expect(graphic[1].style.fontSize).toBe(120);
@@ -99,13 +99,50 @@ describe('BigNumberYoyMom transformProps', () => {
     expect(graphic[2].style.text).toBe('MoM ↑23.46%');
     expect(graphic[2].style.fill).toBe('rgb(0, 180, 42)');
     expect(graphic[2].left).toBe(20);
-    // title 0.15*300=45px -> number hugs bottom: 20+54+6=80 ->
-    // comparison 80 + 120*1.2 + 5 = 229 (big number default 0.4*300=120px)
-    expect(graphic[2].top).toBe(229);
+    // The whole stack is centered when it fits the tile.
+    expect(graphic[2].top).toBe(225);
 
     expect(graphic[3].style.text).toBe('YoY ↓17.70%');
     expect(graphic[3].style.fill).toBe('rgb(245, 63, 63)');
-    expect(graphic[3].left).toBe(120);
+    // The second slot is pushed past the estimated width of the first one
+    // (MoM ↑23.46% at 45px ≈ 329px) plus the default 24px gap.
+    expect(graphic[3].left).toBe(373);
+  });
+
+  test('separates comparisons by estimated width when the gap is zero', () => {
+    const result = transformProps(
+      buildChartProps(
+        [
+          {
+            'SUM(sales)': 100,
+            'SUM(sales)__1 month ago': 90,
+            'SUM(sales)__1 year ago': 80,
+          },
+        ],
+        { comparisonGap: 0 },
+      ),
+    );
+    const graphic = result.echartOptions.graphic as Record<string, any>[];
+    // No overlap even at gap 0: YoY starts after the estimated MoM width.
+    expect(graphic[2].left).toBe(20);
+    expect(graphic[2].left + 329).toBeLessThanOrEqual(graphic[3].left);
+    expect(graphic[3].left).toBe(349);
+  });
+
+  test('keeps the comparison row near the bottom on a tall tile', () => {
+    const result = transformProps({
+      ...buildChartProps([
+        {
+          'SUM(sales)': 100,
+          'SUM(sales)__1 month ago': 90,
+        },
+      ]),
+      height: 500,
+    });
+    const graphic = result.echartOptions.graphic as Record<string, any>[];
+
+    // The title, number and comparison rows stay centered as one stack.
+    expect(graphic[2].top).toBe(373);
   });
 
   test('reads comparison values from configured result columns', () => {
@@ -204,7 +241,6 @@ describe('BigNumberYoyMom transformProps', () => {
           comparisonPositiveColor: { r: 0, g: 128, b: 0 },
           comparisonNegativeColor: { r: 128, g: 0, b: 0 },
           comparisonZeroColor: { r: 200, g: 200, b: 200 },
-          backgroundColor: { r: 240, g: 240, b: 240 },
         },
       ),
     );
@@ -213,7 +249,6 @@ describe('BigNumberYoyMom transformProps', () => {
     const bigNumber = graphic[1];
     const mom = graphic[2];
 
-    expect(result.echartOptions.backgroundColor).toBe('rgb(240, 240, 240)');
     expect(title.style.text).toBe('Revenue');
     expect(title.style.fontSize).toBe(18);
     expect(title.style.fill).toBe('rgb(1, 2, 3)');
@@ -263,13 +298,12 @@ describe('BigNumberYoyMom transformProps', () => {
       ),
     );
     const graphic = result.echartOptions.graphic as Record<string, any>[];
-    // no title element: big number takes the title spot, comparisons follow
-    // its bottom edge (20 + 120 * 1.2 + 5 = 169).
+    // no title element: big number and comparisons stay centered as a stack.
     expect(graphic).toHaveLength(3);
     expect(graphic[0].style.text).toBe('$100');
-    expect(graphic[0].top).toBe(20);
-    expect(graphic[1].top).toBe(169);
-    expect(graphic[2].top).toBe(169);
+    expect(graphic[0].top).toBe(51);
+    expect(graphic[1].top).toBe(195);
+    expect(graphic[2].top).toBe(195);
   });
 
   test('pushes comparisons below a large big number without overlapping', () => {
@@ -285,9 +319,9 @@ describe('BigNumberYoyMom transformProps', () => {
       ),
     );
     const graphic = result.echartOptions.graphic as Record<string, any>[];
-    // 20 + 60 * 1.2 + 5 = 97
-    expect(graphic[0].top).toBe(20);
-    expect(graphic[1].top).toBe(97);
+    // The stack is centered while preserving the configured internal gap.
+    expect(graphic[0].top).toBe(87);
+    expect(graphic[1].top).toBe(159);
   });
 
   test('maps title font size ratios to pixels', () => {
@@ -299,10 +333,9 @@ describe('BigNumberYoyMom transformProps', () => {
     );
     const graphicTiny = tiny.echartOptions.graphic as Record<string, any>[];
     const graphicHuge = huge.echartOptions.graphic as Record<string, any>[];
-    // Tiny: ceil(0.125*300)=38 -> title bottom 20+45.6=65.6 -> number 71.6
-    // Huge: ceil(0.4*300)=120 -> title bottom 20+144=164 -> number 170
+    // The title and number are centered as a stack when no comparisons show.
     expect(graphicTiny[0].style.fontSize).toBe(38);
-    expect(graphicTiny[1].top).toBe(71.6);
+    expect(graphicTiny[1].top).toBeCloseTo(76.8);
     expect(graphicHuge[0].style.fontSize).toBe(120);
     expect(graphicHuge[1].top).toBe(170);
   });
@@ -313,9 +346,8 @@ describe('BigNumberYoyMom transformProps', () => {
     );
     const graphic = result.echartOptions.graphic as Record<string, any>[];
     // graphic[0]=title, graphic[1]=big number.
-    // title bottom = 20 + 40 * 1.2 = 68 → big number moves to 74
-    expect(graphic[0].top).toBe(20);
-    expect(graphic[1].top).toBe(74);
+    expect(graphic[0].top).toBe(24);
+    expect(graphic[1].top).toBe(78);
   });
 
   test('uses the configured comparison gap below the big number', () => {

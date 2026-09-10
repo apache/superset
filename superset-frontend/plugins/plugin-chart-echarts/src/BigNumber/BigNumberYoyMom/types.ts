@@ -48,20 +48,23 @@ export type BigNumberYoyMomFormData = QueryFormData & {
   comparison1Mode?: 'time_shift' | 'metric';
   comparison1Offset?: string;
   comparison1Column?: QueryFormMetric;
+  /** @deprecated Use comparisonGap and swapComparisonOrder. */
   comparison1Left?: number;
   showComparison2?: boolean;
   comparison2Label?: string;
   comparison2Mode?: 'time_shift' | 'metric';
   comparison2Offset?: string;
   comparison2Column?: QueryFormMetric;
+  /** @deprecated Use comparisonGap and swapComparisonOrder. */
   comparison2Left?: number;
+  comparisonGap?: number;
+  swapComparisonOrder?: boolean;
   comparisonFontSize?: number;
   comparisonTop?: number;
   comparisonPositiveColor?: RGBColor;
   comparisonNegativeColor?: RGBColor;
   comparisonZeroColor?: RGBColor;
   percentDifferenceFormat?: string;
-  backgroundColor?: RGBColor;
 };
 
 export type BigNumberYoyMomDatum = {

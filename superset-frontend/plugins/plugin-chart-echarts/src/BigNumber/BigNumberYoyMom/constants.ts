@@ -44,15 +44,14 @@ export const DEFAULT_COMPARISON1_LEFT = 20;
 export const DEFAULT_COMPARISON2_LABEL = 'YoY';
 export const DEFAULT_COMPARISON2_OFFSET = '1 year ago';
 export const DEFAULT_COMPARISON2_LEFT = 120;
+export const DEFAULT_COMPARISON_GAP = 24;
 
 export const DEFAULT_COMPARISON_FONT_SIZE = 0.15;
-export const DEFAULT_COMPARISON_TOP = 5;
+export const DEFAULT_COMPARISON_TOP = 0;
 
 export const DEFAULT_COMPARISON_POSITIVE_COLOR = { r: 0, g: 180, b: 42 }; // #00b42a
 export const DEFAULT_COMPARISON_NEGATIVE_COLOR = { r: 245, g: 63, b: 63 }; // #f53f3f
 export const DEFAULT_COMPARISON_ZERO_COLOR = { r: 102, g: 102, b: 102 }; // #666
-
-export const DEFAULT_BACKGROUND_COLOR = { r: 255, g: 255, b: 255 }; // #fff
 
 // Relative time shifts offered for the two comparison slots. Free text is
 // still supported by the SelectControl so custom deltas are allowed.
