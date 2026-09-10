@@ -1189,6 +1189,8 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     import inspect
     import types
 
+    from superset.mcp_service.dataset_scope import enforce_tool_dataset_scope
+
     is_async = inspect.iscoroutinefunction(tool_func)
 
     # Detect if the original function expects a ctx: Context parameter.
@@ -1237,6 +1239,10 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                     )
 
                 try:
+                    enforce_tool_dataset_scope(
+                        tool_func.__name__,
+                        _tool_sig.bind_partial(*args, **kwargs).arguments,
+                    )
                     logger.debug(
                         "MCP tool call: user=%s, tool=%s",
                         user.username,
@@ -1284,6 +1290,10 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
                     )
 
                 try:
+                    enforce_tool_dataset_scope(
+                        tool_func.__name__,
+                        _tool_sig.bind_partial(*args, **kwargs).arguments,
+                    )
                     logger.debug(
                         "MCP tool call: user=%s, tool=%s",
                         user.username,

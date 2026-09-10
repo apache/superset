@@ -2621,3 +2621,158 @@ class TestListDatasetsRequestWrapper:
             or "Unexpected" in error_text
             or "request" in error_text
         )
+
+
+@pytest.mark.asyncio
+async def test_description_discovery_uses_dao_search_and_exposes_alternatives(
+    mcp_server: fastmcp.FastMCP,
+) -> None:
+    """Description-only matches are candidates with explicit source identities."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.daos.dataset import DatasetDAO
+
+    engine = create_engine("sqlite://")
+    SqlaTable.__table__.create(engine)
+    with Session(engine) as session:
+        session.execute(
+            SqlaTable.__table__.insert(),
+            [
+                {
+                    "id": 1,
+                    "database_id": 1,
+                    "table_name": "events",
+                    "description": "Order fulfillment",
+                },
+                {
+                    "id": 2,
+                    "database_id": 1,
+                    "table_name": "shipments",
+                    "description": "Order history",
+                },
+                {
+                    "id": 3,
+                    "database_id": 1,
+                    "table_name": "private",
+                    "description": "Order details",
+                },
+                {
+                    "id": 4,
+                    "database_id": 1,
+                    "table_name": "unrelated",
+                    "description": None,
+                },
+            ],
+        )
+        session.commit()
+        # Keep the production DAO search and pagination; model an access filter
+        # that hides dataset 3 before either matching or counting.
+        with (
+            patch("superset.daos.base.db.session", session),
+            patch.object(
+                DatasetDAO,
+                "_apply_base_filter",
+                side_effect=lambda query, **kwargs: query.filter(SqlaTable.id != 3),
+            ),
+        ):
+            rows, count = DatasetDAO.list(
+                search="ORDER",
+                search_columns=["schema", "sql", "table_name", "uuid", "description"],
+                columns=["id", "table_name", "description"],
+                order_column="id",
+                order_direction="asc",
+            )
+            assert count == 2
+            assert [row.id for row in rows] == [1, 2]
+            from superset.daos.base import ColumnOperator
+
+            # UUID union (including an inaccessible dataset) is intersected by
+            # the existing access filter before count and page boundaries.
+            identifiers = (
+                session.query(SqlaTable.uuid).filter(SqlaTable.id.in_([1, 3])).all()
+            )
+            scoped_rows, scoped_count = DatasetDAO.list(
+                search="Order",
+                search_columns=["description"],
+                columns=["id"],
+                column_operators=[
+                    ColumnOperator(
+                        col="uuid",
+                        opr="in",
+                        value=[str(row.uuid) for row in identifiers],
+                    )
+                ],
+                page_size=1,
+                page=1,
+            )
+            assert scoped_count == 1
+            assert scoped_rows == []
+            assert (
+                DatasetDAO.list(
+                    columns=["id"],
+                    column_operators=[ColumnOperator(col="uuid", opr="in", value=[])],
+                )[1]
+                == 0
+            )
+            for search in ("no matching description", "%", "_"):
+                assert (
+                    DatasetDAO.list(
+                        search=search,
+                        search_columns=["description"],
+                        columns=["id"],
+                    )[1]
+                    == 0
+                )
+
+    candidates = [create_mock_dataset(1, "events"), create_mock_dataset(2, "shipments")]
+    for candidate in candidates:
+        candidate.description = "Order fulfillment"
+    with patch.object(DatasetDAO, "list", return_value=(candidates, 2)) as listing:
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "list_datasets", {"request": {"search": "Order"}}
+            )
+        data = json.loads(result.content[0].text)
+    assert "description" in listing.call_args.kwargs["search_columns"]
+    assert [(row["id"], row["table_name"]) for row in data["datasets"]] == [
+        (1, "events"),
+        (2, "shipments"),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_scoped_discovery_filters_before_pagination(
+    mcp_server: fastmcp.FastMCP,
+) -> None:
+    """The routing filter is ANDed with caller filters by the normal DAO."""
+    from uuid import UUID
+
+    uid = UUID("00000000-0000-0000-0000-000000000001")
+    with (
+        patch(
+            "superset.mcp_service.dataset_scope.get_dataset_scope", return_value={uid}
+        ),
+        patch.object(list_datasets_module, "get_dataset_scope", return_value={uid}),
+        patch("superset.daos.dataset.DatasetDAO.list", return_value=([], 0)) as listing,
+    ):
+        async with Client(mcp_server) as client:
+            await client.call_tool(
+                "list_datasets",
+                {
+                    "request": {
+                        "filters": [
+                            {"col": "table_name", "opr": "eq", "value": "events"}
+                        ],
+                        "page": 2,
+                        "page_size": 5,
+                    }
+                },
+            )
+    operators = listing.call_args.kwargs["column_operators"]
+    assert [(op.col, op.opr, op.value) for op in operators] == [
+        ("table_name", "eq", "events"),
+        ("uuid", "in", [str(uid)]),
+    ]
+    assert listing.call_args.kwargs["page"] == 1
