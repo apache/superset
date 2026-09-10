@@ -41,7 +41,7 @@ class IBMiEngineSpec(Db2EngineSpec):
         " - SECOND({col}) SECONDS"
         " - MICROSECOND({col}) MICROSECONDS ",
         TimeGrain.DAY: "DATE({col})",
-        TimeGrain.WEEK: "{col} - (DAYOFWEEK({col})) DAYS",
+        TimeGrain.WEEK: "{col} - (DAYOFWEEK_ISO({col})-1) DAYS",
         TimeGrain.MONTH: "{col} - (DAY({col})-1) DAYS",
         TimeGrain.QUARTER: "{col} - (DAY({col})-1) DAYS"
         " - (MONTH({col})-1) MONTHS"

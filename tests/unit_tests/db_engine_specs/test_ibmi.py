@@ -53,7 +53,7 @@ def test_epoch_to_dttm() -> None:
             " - SECOND(my_col) SECONDS - MICROSECOND(my_col) MICROSECONDS ",
         ),
         (TimeGrain.DAY, "DATE(my_col)"),
-        (TimeGrain.WEEK, "my_col - (DAYOFWEEK(my_col)) DAYS"),
+        (TimeGrain.WEEK, "my_col - (DAYOFWEEK_ISO(my_col)-1) DAYS"),
         (TimeGrain.MONTH, "my_col - (DAY(my_col)-1) DAYS"),
         (
             TimeGrain.QUARTER,
