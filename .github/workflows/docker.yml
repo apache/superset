@@ -92,7 +92,7 @@ jobs:
             fi
           }
           for preset in dev lean websocket dockerize; do
-            assert_effective_py_ver "$preset" "3.11.14-slim-trixie"
+            assert_effective_py_ver "$preset" "3.11.16-slim-trixie"
           done
           assert_effective_py_ver py311 "3.11-slim-bookworm"
           assert_effective_py_ver py312 "3.12-slim-bookworm"
