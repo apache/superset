@@ -33,10 +33,7 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
-import {
-  getChartDataRequest,
-  handleChartDataResponse,
-} from 'src/components/Chart/chartAction';
+import { requestChartDataResolved } from 'src/components/Chart/chartAction';
 import { DrillDownLevel } from './types';
 
 /**
@@ -68,6 +65,13 @@ interface StoredDrillState {
   selectedLeaf?: string;
   /** Filters for the value selected at the deepest level, if any. */
   selectedLeafFilters?: BinaryQueryObjectFilterClause[];
+  /**
+   * Identity of the chart configuration (and dashboard slot) this state
+   * belongs to. A remount that restores from the store compares this against
+   * the current config so a stale record from a different configuration is
+   * discarded rather than replayed.
+   */
+  configKey: string;
 }
 const drillStateStore = new Map<string | number, StoredDrillState>();
 
@@ -89,6 +93,15 @@ interface UseDrillDownStateArgs {
   formData: QueryFormData;
   /** Original chart data, shown when the drill stack is empty */
   baseQueriesResponse?: QueryData[] | null;
+  /**
+   * True when the chart's owning cross-filter data mask has been cleared
+   * (dashboard teardown, or the user removed this chart's cross-filter from the
+   * filter bar). Persisted drill state mirrors that data mask, so when it is
+   * gone the stored stack is orphaned: on mount it is discarded instead of
+   * replayed (which would re-fire a drilled query while linked charts sit at
+   * root). Defaults to false so non-dashboard callers keep plain persistence.
+   */
+  crossFilterCleared?: boolean;
 }
 
 interface UseDrillDownStateResult {
@@ -131,24 +144,49 @@ export function useDrillDownState({
   chartId,
   formData,
   baseQueriesResponse,
+  crossFilterCleared,
 }: UseDrillDownStateArgs): UseDrillDownStateResult {
   const chartKey = chartId;
+
+  // Identity of the current drill configuration (and dashboard slot). The drill
+  // stack is anchored to the primary dimension (x_axis or groupby) and the
+  // hierarchy list, so this key changes whenever the drill would target a
+  // different set of columns. It is stored alongside persisted state and
+  // compared on restore.
+  const configFd = formData as Record<string, unknown>;
+  const configKey = JSON.stringify([
+    chartId,
+    formData.viz_type,
+    configFd.x_axis ?? configFd.xAxis,
+    configFd[HIERARCHY_FIELD] ?? configFd[HIERARCHY_FIELD_CAMEL],
+    configFd[DEFAULT_GROUPBY_FIELD],
+  ]);
+
+  // Restore persisted state only when it still belongs to this chart: the
+  // stored config identity must match, and the cross-filter data mask that
+  // backed the drill must not have been cleared while the chart was unmounted.
+  // Otherwise the record is orphaned and replaying it would re-fire a drilled
+  // query while linked charts are back at root.
+  const storedState =
+    chartKey != null ? drillStateStore.get(chartKey) : undefined;
+  const restoredState =
+    storedState && storedState.configKey === configKey && !crossFilterCleared
+      ? storedState
+      : undefined;
 
   // Drill state intentionally persists in drillStateStore across unmounts
   // (dashboard virtualization scroll-out, tab switches, filter re-layouts) so
   // it stays in sync with the cross-filter the drill emits into Redux. Evicting
   // it on unmount previously left the emitted cross-filter orphaned — the drill
   // appeared to reset while the filter lingered. The store is cleared on chart
-  // reconfigure (the layout effect below) and via clearDrillDownState.
+  // reconfigure (the layout effect below), on an orphaned restore (below), and
+  // via clearDrillDownState.
 
   const [drillStack, setDrillStack] = useState<DrillDownLevel[]>(
-    () =>
-      (chartKey != null
-        ? drillStateStore.get(chartKey)?.drillStack
-        : undefined) ?? [],
+    () => restoredState?.drillStack ?? [],
   );
-  const [selectedLeaf, setSelectedLeaf] = useState<string | undefined>(() =>
-    chartKey != null ? drillStateStore.get(chartKey)?.selectedLeaf : undefined,
+  const [selectedLeaf, setSelectedLeaf] = useState<string | undefined>(
+    () => restoredState?.selectedLeaf,
   );
   // Filters for the value picked at the deepest level. Applied to the drilled
   // chart's own query so it narrows to the selected leaf (a single bar),
@@ -157,14 +195,25 @@ export function useDrillDownState({
   // happen to include themselves in their cross-filter scope look "filtered".
   const [selectedLeafFilters, setSelectedLeafFilters] = useState<
     BinaryQueryObjectFilterClause[] | undefined
-  >(() =>
-    chartKey != null
-      ? drillStateStore.get(chartKey)?.selectedLeafFilters
-      : undefined,
-  );
+  >(() => restoredState?.selectedLeafFilters);
   const [drillData, setDrillData] = useState<QueryData[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
+
+  // Evict a persisted record that exists but was not restored (orphaned by a
+  // config change or a cleared data mask) so it cannot leak to a later remount.
+  const evictedOrphanRef = useRef(false);
+  useLayoutEffect(() => {
+    if (evictedOrphanRef.current) {
+      return;
+    }
+    evictedOrphanRef.current = true;
+    if (chartKey != null && storedState && !restoredState) {
+      drillStateStore.delete(chartKey);
+    }
+    // Run once on mount; storedState/restoredState reflect the initial state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Persist drill navigation synchronously so it survives remounts (see
   // drillStateStore) without racing. Writing on a deferred effect would let a
@@ -187,10 +236,11 @@ export function useDrillDownState({
           drillStack: stack,
           selectedLeaf: leaf,
           selectedLeafFilters: leafFilters,
+          configKey,
         });
       }
     },
-    [chartKey],
+    [chartKey, configKey],
   );
 
   // Reset when the drill configuration changes, not just chart id or viz type.
@@ -201,14 +251,6 @@ export function useDrillDownState({
   // it, and that incidental re-renders from filter changes don't either.
   // useLayoutEffect runs synchronously before paint so the stale drill state
   // is cleared without a visible flash when the chart is reconfigured.
-  const configFd = formData as Record<string, unknown>;
-  const configKey = JSON.stringify([
-    chartId,
-    formData.viz_type,
-    configFd.x_axis ?? configFd.xAxis,
-    configFd[HIERARCHY_FIELD] ?? configFd[HIERARCHY_FIELD_CAMEL],
-    configFd[DEFAULT_GROUPBY_FIELD],
-  ]);
   const prevConfigKeyRef = useRef(configKey);
   useLayoutEffect(() => {
     if (prevConfigKeyRef.current === configKey) {
@@ -358,6 +400,7 @@ export function useDrillDownState({
     }
 
     const activeFormData = effectiveFormDataRef.current;
+    const controller = new AbortController();
     let cancelled = false;
     setIsLoading(true);
     setError(undefined);
@@ -390,11 +433,10 @@ export function useDrillDownState({
       for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
         try {
           // eslint-disable-next-line no-await-in-loop
-          const { response, json } = await getChartDataRequest({
-            formData: activeFormData,
-          });
-          // eslint-disable-next-line no-await-in-loop
-          const queriesResponse = await handleChartDataResponse(response, json);
+          const queriesResponse = await requestChartDataResolved(
+            { formData: activeFormData },
+            controller.signal,
+          );
           if (!cancelled) {
             setDrillData(queriesResponse as QueryData[]);
           }
@@ -432,6 +474,9 @@ export function useDrillDownState({
 
     return () => {
       cancelled = true;
+      // Abort any in-flight (or async-awaiting) drill request so a superseded
+      // or unmounted drill cancels its outstanding tasks instead of leaking.
+      controller.abort();
       // If the component unmounts while the query is still in-flight, the
       // finally block above will see `cancelled === true` and skip the state
       // update. Eagerly clear isLoading here so that any parent reading it

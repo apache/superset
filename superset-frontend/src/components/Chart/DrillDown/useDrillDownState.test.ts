@@ -21,10 +21,7 @@ import { QueryFormData } from '@superset-ui/core';
 import { useDrillDownState, clearDrillDownState } from './useDrillDownState';
 
 jest.mock('src/components/Chart/chartAction', () => ({
-  getChartDataRequest: jest.fn(() =>
-    Promise.resolve({ response: {}, json: { result: [{ data: [] }] } }),
-  ),
-  handleChartDataResponse: jest.fn(() =>
+  requestChartDataResolved: jest.fn(() =>
     Promise.resolve([{ data: [{ col1: 'val1' }] }]),
   ),
 }));
@@ -373,6 +370,62 @@ test('drill state survives a remount (persisted per chart id)', async () => {
   expect(second.result.current.isDrilling).toBe(true);
 });
 
+test('a remount after the owning cross-filter was cleared discards persisted drill state', async () => {
+  const formData = {
+    ...baseFormData,
+    drilldown_hierarchy: ['country', 'region', 'city'],
+  };
+
+  const first = renderHook(() =>
+    useDrillDownState({
+      chartId: 42,
+      formData,
+      baseQueriesResponse: [{ data: [] }],
+    }),
+  );
+
+  act(() => {
+    first.result.current.drillDown(
+      [{ col: 'country', op: '==', val: 'USA' }],
+      'USA',
+    );
+  });
+  await waitFor(() => {
+    expect(first.result.current.isLoading).toBe(false);
+  });
+  expect(first.result.current.drillStack).toHaveLength(1);
+
+  // The dashboard clears this chart's cross-filter data mask (dashboard
+  // teardown, or the user removed it from the filter bar) while the chart is
+  // unmounted. The persisted drill stack now outlives the mask that backed it.
+  first.unmount();
+
+  const second = renderHook(() =>
+    useDrillDownState({
+      chartId: 42,
+      formData,
+      baseQueriesResponse: [{ data: [] }],
+      crossFilterCleared: true,
+    }),
+  );
+
+  // Orphaned state must NOT replay: the chart returns to root instead of
+  // re-firing a drilled query while linked charts sit at root.
+  expect(second.result.current.drillStack).toHaveLength(0);
+  expect(second.result.current.isDrilling).toBe(false);
+
+  // And the orphaned record is evicted, so a later remount also starts fresh.
+  second.unmount();
+  const third = renderHook(() =>
+    useDrillDownState({
+      chartId: 42,
+      formData,
+      baseQueriesResponse: [{ data: [] }],
+    }),
+  );
+  expect(third.result.current.drillStack).toHaveLength(0);
+});
+
 test('reconfiguring the chart (viz type change) clears persisted drill state', async () => {
   const formData = {
     ...baseFormData,
@@ -663,12 +716,12 @@ test('a single-level hierarchy is not drillable', () => {
 });
 
 test('retry logic: succeeds on second attempt after a transient failure', async () => {
-  const { getChartDataRequest } = jest.requireMock(
+  const { requestChartDataResolved } = jest.requireMock(
     'src/components/Chart/chartAction',
   );
-  getChartDataRequest
+  requestChartDataResolved
     .mockRejectedValueOnce(new Error('transient'))
-    .mockResolvedValueOnce({ response: {}, json: { result: [{ data: [] }] } });
+    .mockResolvedValueOnce([{ data: [] }]);
 
   const formData = {
     ...baseFormData,
@@ -694,10 +747,10 @@ test('retry logic: succeeds on second attempt after a transient failure', async 
 
 test('retry logic: surfaces error after all attempts are exhausted', async () => {
   jest.useFakeTimers();
-  const { getChartDataRequest } = jest.requireMock(
+  const { requestChartDataResolved } = jest.requireMock(
     'src/components/Chart/chartAction',
   );
-  getChartDataRequest.mockRejectedValue(new Error('persistent failure'));
+  requestChartDataResolved.mockRejectedValue(new Error('persistent failure'));
 
   const formData = {
     ...baseFormData,
@@ -730,10 +783,7 @@ test('retry logic: surfaces error after all attempts are exhausted', async () =>
 
   // Restore
   jest.useRealTimers();
-  getChartDataRequest.mockResolvedValue({
-    response: {},
-    json: { result: [{ data: [] }] },
-  });
+  requestChartDataResolved.mockResolvedValue([{ data: [] }]);
 });
 
 test('isLoading resets to false on unmount during in-flight query', () => {

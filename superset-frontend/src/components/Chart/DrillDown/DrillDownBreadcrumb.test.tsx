@@ -116,6 +116,47 @@ test('selectedLeaf is rendered as non-clickable text', () => {
   expect(leafElement).not.toHaveAttribute('role', 'button');
 });
 
+test('an empty-string leaf is preserved and labelled (empty)', () => {
+  const onJumpTo = jest.fn();
+
+  render(
+    <DrillDownBreadcrumb
+      hierarchy={hierarchy}
+      drillStack={drillStack}
+      selectedLeaf=""
+      onJumpTo={onJumpTo}
+    />,
+  );
+
+  // A blank leaf is a valid selection; it must still add a trailing segment
+  // (rendered as "(empty)") rather than being dropped as if absent.
+  expect(screen.getByText('(empty)')).toBeInTheDocument();
+
+  // With an empty leaf present, the last drilled level ('Texas') is no longer
+  // the active level, so it becomes clickable again.
+  const texasElement = screen.getByText('Texas');
+  fireEvent.click(texasElement);
+  expect(onJumpTo).toHaveBeenCalledWith(2);
+});
+
+test('an empty-string leaf still renders the breadcrumb (not null)', () => {
+  const onJumpTo = jest.fn();
+
+  const { container } = render(
+    <DrillDownBreadcrumb
+      hierarchy={hierarchy}
+      drillStack={[]}
+      selectedLeaf=""
+      onJumpTo={onJumpTo}
+    />,
+  );
+
+  // drillStack is empty but a blank leaf is still a selection, so the
+  // breadcrumb must not early-return null.
+  expect(container).not.toBeEmptyDOMElement();
+  expect(screen.getByText('(empty)')).toBeInTheDocument();
+});
+
 test('last drill label is not clickable when there is no selectedLeaf', () => {
   const onJumpTo = jest.fn();
 

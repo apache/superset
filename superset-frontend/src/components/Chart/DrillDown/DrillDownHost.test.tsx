@@ -16,12 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, act, fireEvent } from 'spec/helpers/testing-library';
+import {
+  render as baseRender,
+  screen,
+  act,
+  fireEvent,
+} from 'spec/helpers/testing-library';
 import { FeatureFlag, QueryFormData } from '@superset-ui/core';
 import { ChartSource } from 'src/types/ChartSource';
 import { DrillDownHost } from './DrillDownHost';
 import { clearDrillDownState } from './useDrillDownState';
 import type { ChartRendererProps } from '../ChartRenderer';
+
+// DrillDownHost reads the cross-filter data mask via useSelector, so every
+// render needs a Redux provider. Default to one; individual tests can still
+// pass initialState (e.g. a live/cleared cross-filter) through the options.
+const render = (
+  ui: Parameters<typeof baseRender>[0],
+  options?: Parameters<typeof baseRender>[1],
+) => baseRender(ui, { useRedux: true, ...options });
 
 // Captures the onDrillDown callback handed to the chart renderer so tests can
 // invoke a drill interaction directly.
@@ -48,10 +61,7 @@ beforeEach(() => {
 });
 
 jest.mock('src/components/Chart/chartAction', () => ({
-  getChartDataRequest: jest.fn(() =>
-    Promise.resolve({ response: {}, json: { result: [{ data: [] }] } }),
-  ),
-  handleChartDataResponse: jest.fn(() =>
+  requestChartDataResolved: jest.fn(() =>
     Promise.resolve([{ data: [{ region: 'Texas' }] }]),
   ),
 }));
@@ -368,4 +378,61 @@ test('drilling on a temporal bucket passes TEMPORAL_RANGE through unchanged', ()
       },
     }),
   );
+});
+
+test('a failed drill surfaces an error and does not leave the chart stuck loading', async () => {
+  jest.useFakeTimers();
+  const { requestChartDataResolved } = jest.requireMock(
+    'src/components/Chart/chartAction',
+  );
+  requestChartDataResolved.mockRejectedValue(new Error('boom'));
+
+  let lastProps: Record<string, unknown> = {};
+  function CapturePropsRenderer(
+    props: ChartRendererProps & {
+      onDrillDown?: (f: unknown, l: string) => void;
+    },
+  ) {
+    capturedOnDrillDown = props.onDrillDown;
+    lastProps = props as unknown as Record<string, unknown>;
+    return <div data-test="mock-chart-renderer" />;
+  }
+
+  const formDataWithHierarchy: QueryFormData = {
+    ...baseFormData,
+    drilldown_hierarchy: ['country', 'region', 'city'],
+  };
+
+  render(
+    <DrillDownHost
+      ChartRendererComponent={CapturePropsRenderer as any}
+      {...baseRendererProps}
+      formData={formDataWithHierarchy}
+      emitCrossFilters
+      actions={{ updateDataMask: jest.fn() } as any}
+    />,
+  );
+
+  act(() => {
+    capturedOnDrillDown?.([{ col: 'country', op: '==', val: 'USA' }], 'USA');
+  });
+
+  // Exhaust the retry backoff (3 attempts with 400ms * attempt delays).
+  for (let i = 0; i < 4; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+  }
+  jest.useRealTimers();
+
+  // The failure is surfaced to the user via the error banner...
+  expect(screen.getByRole('alert')).toBeInTheDocument();
+  // ...and the chart body is not pinned to a perpetual loading spinner: on
+  // failure the overlay falls back to a recoverable state instead of leaving
+  // chartStatus === 'loading' with null data.
+  expect(lastProps.chartStatus).not.toEqual('loading');
+
+  // Restore the shared mock for subsequent tests.
+  requestChartDataResolved.mockResolvedValue([{ data: [{ region: 'Texas' }] }]);
 });

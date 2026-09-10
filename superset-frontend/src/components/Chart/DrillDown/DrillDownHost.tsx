@@ -30,9 +30,12 @@ import {
   BinaryQueryObjectFilterClause,
   FeatureFlag,
   isFeatureEnabled,
+  ensureIsArray,
 } from '@superset-ui/core';
+import { useSelector } from 'react-redux';
 import { css } from '@apache-superset/core/theme';
 import { ChartSource } from 'src/types/ChartSource';
+import type { RootState } from 'src/dashboard/types';
 import { useDrillDownState } from './useDrillDownState';
 import { DrillDownBreadcrumb } from './DrillDownBreadcrumb';
 import type { ChartRendererProps } from '../ChartRenderer';
@@ -95,6 +98,18 @@ export function DrillDownHost({
 }: DrillDownHostProps) {
   const { formData, queriesResponse } = rendererProps;
 
+  // Live cross-filter selection this chart has emitted into the dashboard data
+  // mask. A drilled chart writes its path here; when the mask is cleared
+  // (dashboard teardown, or the user removes the cross-filter from the filter
+  // bar) this goes empty. The hook uses it to discard persisted drill state
+  // that outlived its data mask instead of replaying it on remount.
+  const crossFilterValue = useSelector<RootState, unknown>(
+    state => state.dataMask?.[rendererProps.chartId]?.filterState?.value,
+  );
+  const crossFilterCleared =
+    !!rendererProps.emitCrossFilters &&
+    ensureIsArray(crossFilterValue).length === 0;
+
   const {
     isDrilling,
     drillStack,
@@ -111,6 +126,7 @@ export function DrillDownHost({
     chartId: rendererProps.chartId,
     formData,
     baseQueriesResponse: queriesResponse,
+    crossFilterCleared,
   });
 
   // Drill-down is a dashboard interaction gated behind the DRILL_DOWN feature
@@ -165,6 +181,13 @@ export function DrillDownHost({
       // At the base level, render the chart unchanged.
       return {};
     }
+    // A failed drill query leaves effectiveQueriesResponse null. Rather than
+    // pin the chart body to a perpetual loading spinner, fall back to the base
+    // chart (recoverable): the breadcrumb and error banner above convey the
+    // failure and let the user navigate back or retry.
+    if (error != null && !isLoading) {
+      return {};
+    }
     return {
       formData: effectiveFormData as QueryFormData,
       queriesResponse: (effectiveQueriesResponse ?? null) as QueryData[] | null,
@@ -182,7 +205,13 @@ export function DrillDownHost({
       // in-chart selection, so render it with an empty selection.
       filterState: { selectedValues: null },
     };
-  }, [isDrilling, effectiveFormData, effectiveQueriesResponse, isLoading]);
+  }, [
+    isDrilling,
+    effectiveFormData,
+    effectiveQueriesResponse,
+    isLoading,
+    error,
+  ]);
 
   const handleResetTo = useCallback(
     (depth: number) => {

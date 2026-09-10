@@ -47,7 +47,7 @@ export function DrillDownBreadcrumb({
 }: DrillDownBreadcrumbProps) {
   const theme = useTheme();
 
-  if (drillStack.length === 0 && !selectedLeaf) {
+  if (drillStack.length === 0 && selectedLeaf == null) {
     return null;
   }
 
@@ -78,15 +78,19 @@ export function DrillDownBreadcrumb({
   // no leaf, or the leaf itself) is inert.
   const items: { title: ReactNode }[] = [clickable(hierarchy[0] ?? '', 0)];
   drillStack.forEach((level, index) => {
-    const isLast = index === drillStack.length - 1 && !selectedLeaf;
+    const isLast = index === drillStack.length - 1 && selectedLeaf == null;
     items.push(
       isLast
         ? { title: <span>{level.label}</span> }
         : clickable(level.label, index + 1),
     );
   });
-  if (selectedLeaf) {
-    items.push({ title: <span>{selectedLeaf}</span> });
+  if (selectedLeaf != null) {
+    // An empty-string leaf is a valid selection (the blank category); label it
+    // so the segment is not rendered as an ambiguous empty gap.
+    items.push({
+      title: <span>{selectedLeaf === '' ? t('(empty)') : selectedLeaf}</span>,
+    });
   }
 
   return (
