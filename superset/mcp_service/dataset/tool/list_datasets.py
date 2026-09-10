@@ -40,6 +40,7 @@ from superset.mcp_service.dataset.schemas import (
     ListDatasetsRequest,
     serialize_dataset_object,
 )
+from superset.mcp_service.dataset_scope import get_dataset_scope
 from superset.mcp_service.mcp_core import ModelListCore
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
@@ -90,6 +91,12 @@ async def list_datasets(
     time. Set ``request.certified`` to true to return only governed,
     semantic-layer datasets; false returns only uncertified datasets, while
     omitting it preserves the unfiltered behavior.
+
+    Search matches schema, SQL, table name, UUID, and description. Results are
+    candidates, not a relevance ranking. Compare descriptions and metadata; when
+    multiple candidates fit, explain the alternatives and clarify before querying.
+    An empty search result does not establish that the requested data does not
+    exist. Never substitute a different dataset for one outside the MCP scope.
 
     **IMPORTANT**: All parameters must be wrapped in a ``request`` object.
     Do NOT pass ``search``, ``page``, ``page_size``, etc. as top-level
@@ -179,7 +186,7 @@ async def list_datasets(
             item_serializer=_serialize_dataset,
             filter_type=DatasetFilter,
             default_columns=DEFAULT_DATASET_COLUMNS,
-            search_columns=["schema", "sql", "table_name", "uuid"],
+            search_columns=["schema", "sql", "table_name", "uuid", "description"],
             list_field_name="datasets",
             output_list_schema=DatasetList,
             all_columns=all_columns,
@@ -195,8 +202,16 @@ async def list_datasets(
                         DatasetCertifiedFilter, request.certified
                     )
                 }
+            filters = list(request.filters or [])
+            scope = get_dataset_scope()
+            if scope is not None:
+                filters.append(
+                    DatasetFilter(
+                        col="uuid", opr="in", value=[str(uid) for uid in scope]
+                    )
+                )
             result = tool.run_tool(
-                filters=request.filters,
+                filters=filters,
                 search=request.search,
                 select_columns=request.select_columns,
                 order_column=request.order_column,
