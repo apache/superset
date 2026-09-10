@@ -104,7 +104,12 @@ class DatasetFilter(ColumnOperator):
         driver as a system-class error — paging operators over what is really a
         caller mistake, such as a truncated UUID.
         """
-        if self.col != "uuid":
+        if self.col != "uuid" or self.opr in {
+            ColumnOperatorEnum.is_null,
+            ColumnOperatorEnum.is_not_null,
+        }:
+            # Null checks ignore the value, which get_schema advertises for uuid
+            # and callers must still supply because the field is required.
             return self
         values = self.value if isinstance(self.value, list) else [self.value]
         for value in values:

@@ -24,7 +24,8 @@ from unittest.mock import MagicMock, Mock, patch
 from uuid import UUID
 
 import pytest
-from flask import current_app, Flask, g
+from fastmcp.exceptions import ToolError
+from flask import Flask, g
 
 from superset.mcp_service.dataset_scope import (
     DATASET_IDENTIFIER_FIELDS,
@@ -326,26 +327,28 @@ async def test_resources_and_prompts_are_unaffected_by_the_scope(
 async def test_scope_does_not_hide_tools_from_listing(mock_auth: Mock) -> None:
     """Scoped mode gates execution, not discovery.
 
-    Tool listings pass through the tool-search transform, which synthesizes its
-    own meta tools; filtering the listing on SCOPED_TOOLS would hide the very
-    tools a client uses to reach the scoped ones.
+    Tool listings pass through the tool-search transform, which is enabled by
+    default and synthesizes its own meta tools; filtering the listing on
+    SCOPED_TOOLS left a stock deployment unable to reach the scoped tools at
+    all. An unsupported tool must stay listed and refuse when called.
     """
-    from superset.mcp_service.auth import is_tool_visible_to_current_user
+    from fastmcp import Client
 
-    tool = MagicMock()
-    tool.name = "execute_sql"
-    tool.fn = MagicMock()
-    tool.fn.__name__ = "execute_sql"
+    from superset.mcp_service.app import mcp
 
-    with (
-        patch(
-            "superset.mcp_service.dataset_scope.get_dataset_scope",
-            return_value=frozenset({FIRST}),
-        ),
-        current_app.test_request_context(),
+    with patch(
+        "superset.mcp_service.dataset_scope.get_dataset_scope",
+        return_value=frozenset({FIRST}),
     ):
-        g.user = SimpleNamespace(id=1, username="admin")
-        assert is_tool_visible_to_current_user(tool) is True
+        async with Client(mcp) as client:
+            listed = {tool.name for tool in await client.list_tools()}
+            assert "execute_sql" in listed
+            assert SCOPED_TOOLS <= listed
+
+            with pytest.raises(ToolError, match="No query was run"):
+                await client.call_tool(
+                    "execute_sql", {"request": {"database_id": 1, "sql": "SELECT 1"}}
+                )
 
 
 @pytest.mark.parametrize(
@@ -398,3 +401,29 @@ def test_startup_validation_accepts_absent_and_valid_allowlists() -> None:
     assert parse_dataset_role_allowlist({"Readers": [str(FIRST)]}) == {
         "Readers": {FIRST}
     }
+
+
+@pytest.mark.parametrize("opr", ["is_null", "is_not_null"])
+def test_uuid_null_checks_ignore_the_filter_value(opr: str) -> None:
+    """get_schema advertises these operators for uuid, and value is required."""
+    from superset.mcp_service.dataset.schemas import DatasetFilter
+
+    assert DatasetFilter(col="uuid", opr=opr, value="")
+
+
+def test_scoped_tools_cover_the_documented_discovery_workflow() -> None:
+    """get_table's own workflow starts at list_metrics, so it must be reachable."""
+    assert {
+        "list_metrics",
+        "get_compatible_dimensions",
+        "get_compatible_metrics",
+    } <= SCOPED_TOOLS
+    assert all(
+        tool in DATASET_IDENTIFIER_FIELDS
+        for tool in SCOPED_TOOLS
+        - {
+            "health_check",
+            "get_schema",
+            "list_datasets",
+        }
+    )
