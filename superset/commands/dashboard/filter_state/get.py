@@ -71,8 +71,8 @@ class GetFilterStateCommand(GetTemporaryCacheCommand):
         if not isinstance(metadata, dict):
             return {}
 
-        native_filters: list[dict[str, Any]] = metadata.get(
-            "native_filter_configuration", []
+        native_filters: list[dict[str, Any]] = (
+            metadata.get("native_filter_configuration") or []
         )
         id_to_name = {
             native_filter["id"]: native_filter["name"]
