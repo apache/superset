@@ -83,6 +83,10 @@ const disableDevModeInRules = rules =>
     };
   });
 
+function getAbsolutePath(value) {
+  return path.dirname(require.resolve(path.join(value, 'package.json')));
+}
+
 export default {
   stories: [
     '../src/**/*.stories.tsx',
@@ -129,7 +133,3 @@ export default {
     options: {},
   }
 };
-
-function getAbsolutePath(value) {
-  return path.dirname(require.resolve(path.join(value, 'package.json')));
-}

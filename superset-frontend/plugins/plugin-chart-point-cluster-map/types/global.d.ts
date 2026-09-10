@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default } from './TabsRenderer';
-export type { TabsRendererProps, TabItem, TabsComponent } from './TabsRenderer';
-export { StickyTabsOffsetContext } from './StickyTabsOffsetContext';
+
+// webpack's runtime-configurable public path, mirroring src/globals.d.ts.
+// Used to point maplibre-gl at its CopyPlugin-emitted worker asset (see
+// MapLibre.tsx) with the correct app-root / reverse-proxy prefix applied.
+declare var __webpack_public_path__: string;

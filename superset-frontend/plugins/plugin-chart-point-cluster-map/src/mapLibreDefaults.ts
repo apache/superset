@@ -16,6 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-export { default } from './TabsRenderer';
-export type { TabsRendererProps, TabItem, TabsComponent } from './TabsRenderer';
-export { StickyTabsOffsetContext } from './StickyTabsOffsetContext';
+
+// Kept in their own module (rather than exported from MapLibre.tsx) so that
+// transformProps.ts can use them without pulling in MapLibre.tsx's
+// `maplibre-gl` import and its module-level setWorkerUrl() side effect.
+export const DEFAULT_MAX_ZOOM = 16;
+export const DEFAULT_POINT_RADIUS = 60;

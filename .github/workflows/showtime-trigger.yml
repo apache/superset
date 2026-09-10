@@ -1,6 +1,6 @@
 name: 🎪 Superset Showtime
 
-# Ultra-simple: just sync on any PR state change
+# Sync on Showtime label changes and updates to PRs using Showtime.
 on:
   # zizmor: ignore[dangerous-triggers] - required to react to PR label changes; PR code is
   # only checked out and built after the maintainer-authorization gate (write/admin actors)
@@ -19,6 +19,19 @@ on:
         required: false
         type: string
 
+# Triggers on labeled/unlabeled/synchronize/closed -- far more events per PR than
+# typical CI's synchronize-only trigger. Without this, every event queues its own
+# run and nothing ever supersedes a stale one, so runs pile up indefinitely on
+# active PRs (observed: 6 simultaneously queued runs for a single PR) and end up
+# starved competing for the same runner pool as everything else. cancel-in-progress
+# is correct here, not just a queue-relief hack: this job's whole purpose is
+# reconciling to the *current* desired state, so a run still working toward an
+# already-superseded state is wasted work regardless of whether it's queued or
+# mid-sync.
+concurrency:
+  group: showtime-${{ github.event.pull_request.number || github.event.inputs.pr_number }}
+  cancel-in-progress: true
+
 # Common environment variables for all jobs (non-sensitive only)
 env:
   AWS_REGION: us-west-2
@@ -32,6 +45,15 @@ permissions:
 jobs:
   sync:
     name: 🎪 Sync PR to desired state
+    # Inspect the changed label so removing the last Showtime label still syncs.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.event.label.name, '🎪 ') ||
+      (
+        (github.event.action == 'synchronize' ||
+         github.event.action == 'closed') &&
+        contains(toJson(github.event.pull_request.labels.*.name), '"🎪 ')
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
