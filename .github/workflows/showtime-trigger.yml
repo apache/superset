@@ -39,7 +39,7 @@ jobs:
       (
         (github.event.action == 'synchronize' ||
          github.event.action == 'closed') &&
-        contains(join(github.event.pull_request.labels.*.name, ','), '🎪 ')
+        contains(toJson(github.event.pull_request.labels.*.name), '"🎪 ')
       )
     runs-on: ubuntu-latest
     timeout-minutes: 90
