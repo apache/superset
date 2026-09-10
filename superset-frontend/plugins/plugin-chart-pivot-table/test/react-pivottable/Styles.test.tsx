@@ -43,17 +43,24 @@ test('sticky-positions the row-label column and its corner header cell(s) so the
   expect(rowLabelStyle.position).toBe('sticky');
   expect(rowLabelStyle.left).toBe('0px');
 
-  // The corner cell(s) above the frozen row-label column (the padding
-  // placeholder and/or the row-attribute name cell in the row-header
-  // row) must stick on both axes and paint over the column labels that
-  // scroll underneath them.
+  // The corner cells above the frozen row-label column (the column
+  // attribute name cell in each column-header row and the row-attribute
+  // name cell in the row-header row) must stick on both axes and paint
+  // over the column labels that scroll underneath them.
   const cornerCells = [
-    ...container.querySelectorAll(
-      "thead tr:first-of-type th[aria-hidden='true']",
-    ),
+    ...container.querySelectorAll('thead th.pvtCornerLabel'),
     ...container.querySelectorAll('thead tr.pvtRowHeaderRow th.pvtAxisLabel'),
   ];
   expect(cornerCells.length).toBeGreaterThan(0);
+  // The frozen block in each column-header row has to cover the same
+  // columns as the frozen row label below it (its own column plus the
+  // padding column), otherwise the uncovered strip shows column labels
+  // scrolling through the corner.
+  const rowLabelSpan = (rowLabelCell as HTMLTableCellElement).colSpan;
+  expect(rowLabelSpan).toBe(2);
+  container.querySelectorAll('thead th.pvtCornerLabel').forEach(cell => {
+    expect((cell as HTMLTableCellElement).colSpan).toBe(rowLabelSpan);
+  });
   cornerCells.forEach(cell => {
     const style = getComputedStyle(cell);
     expect(style.position).toBe('sticky');
@@ -91,6 +98,18 @@ test('keeps the sticky totals row above the frozen row-label column', () => {
   expect(totalsRow).toBeInTheDocument();
   expect(Number(getComputedStyle(totalsRow as Element).zIndex)).toBeGreaterThan(
     Number(getComputedStyle(rowLabelCell as Element).zIndex),
+  );
+
+  // The totals row's leading label freezes at the left edge alongside the
+  // body row labels, and sits above the totals values in its own row.
+  const totalsLabel = totalsRow?.querySelector('th.pvtRowTotalLabel');
+  expect(totalsLabel).toBeInTheDocument();
+  const totalsLabelStyle = getComputedStyle(totalsLabel as Element);
+  expect(totalsLabelStyle.position).toBe('sticky');
+  expect(totalsLabelStyle.left).toBe('0px');
+  expect(Number(totalsLabelStyle.zIndex)).toBeGreaterThan(0);
+  expect((totalsLabel as HTMLTableCellElement).colSpan).toBe(
+    (rowLabelCell as HTMLTableCellElement).colSpan,
   );
 });
 
