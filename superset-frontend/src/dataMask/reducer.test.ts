@@ -282,3 +282,34 @@ test('HYDRATE_DASHBOARD still restores a required select default for an incomple
   expect(result.filterState).toEqual(filter.defaultDataMask.filterState);
   expect(result.extraFormData).toEqual(filter.defaultDataMask.extraFormData);
 });
+
+test.each([null, 'invalid', {}, 1, [null], [undefined], [1], [{}]])(
+  'HYDRATE_DASHBOARD restores a required select default for malformed adhoc filters (%j)',
+  adhocFilters => {
+    const id = 'NATIVE_FILTER-region';
+    const filter: Filter = {
+      ...createFilter(id, 'region', { enableEmptyFilter: true }),
+      defaultDataMask: {
+        filterState: { value: ['APAC'] },
+        extraFormData: {
+          filters: [{ col: 'region', op: 'IN', val: ['APAC'] }],
+        },
+      },
+    };
+    const action = hydrateAction([], [filter]);
+    action.data.dataMask = {
+      [id]: {
+        id,
+        filterState: { value: null },
+        // Permalinks are runtime input and may violate the TypeScript schema.
+        extraFormData: {
+          adhoc_filters: adhocFilters,
+        } as unknown as DataMaskStateWithId[string]['extraFormData'],
+      },
+    };
+
+    const result = reducer({}, action)[id];
+    expect(result.filterState).toEqual(filter.defaultDataMask.filterState);
+    expect(result.extraFormData).toEqual(filter.defaultDataMask.extraFormData);
+  },
+);

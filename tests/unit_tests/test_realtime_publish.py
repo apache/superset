@@ -17,6 +17,8 @@
 
 """Tests for the neutral realtime publisher."""
 
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier, Event
 from unittest.mock import Mock, patch
 
 import pytest
@@ -92,4 +94,31 @@ def test_task_manager_shares_resolved_channel() -> None:
         TaskManager.init_app(app)
         assert TaskManager.get_realtime_channel() == get_realtime_channel()
         assert get_realtime_channel() == "shared:realtime"
+    prefix.assert_called_once_with()
+
+
+def test_channel_resolves_callable_once_under_concurrency() -> None:
+    """Concurrent cache misses must publish on the same resolved channel."""
+    app = Flask(__name__)
+    initial_reads = Barrier(2)
+    prefix_entered = Event()
+
+    class ConcurrentExtensions(dict[str, object]):
+        """Synchronize both initial cache misses before either can populate it."""
+
+        def get(self, key: str, default: object = None) -> object:
+            """Allow later reads through after both initial misses have arrived."""
+            value = super().get(key, default)
+            if key == "realtime_channel" and not prefix_entered.is_set():
+                initial_reads.wait(timeout=5)
+                prefix_entered.set()
+            return value
+
+    app.extensions = ConcurrentExtensions()
+    prefix = Mock(side_effect=["shared:", "wrong:"])
+    app.config["REALTIME_CHANNEL_PREFIX"] = prefix
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(executor.map(get_realtime_channel, [app, app]))
+    assert results == ["shared:realtime", "shared:realtime"]
+    assert get_realtime_channel(app) == "shared:realtime"
     prefix.assert_called_once_with()

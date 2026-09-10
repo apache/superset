@@ -50,6 +50,11 @@ rejected rather than silently applying exact matching. Clearing a required selec
 filter with `values: []` matches no rows, including when opening the returned
 permalink; an explicit clear does not restore its saved default.
 
+Returned dashboard permalink URLs use `WEBDRIVER_BASEURL_USER_FRIENDLY` as
+the public origin and respect `APPLICATION_ROOT` (or the request's WSGI
+`SCRIPT_NAME` when mounted behind a proxy). Set the public URL to the
+browser-accessible Superset host; the MCP service's own host may be different.
+
 To stack filters across chat turns, pass the previous
 `apply_dashboard_filters` response's `permalink_key` as `base_permalink_key`
 in the next request for the same dashboard. For example, apply Region = EMEA,

@@ -141,12 +141,14 @@ function fillNativeFilters(
     //      a permalink was captured before FilterValue produced extraFormData.
     // A select filter's explicit match-nothing predicate is a complete clear,
     // not an incomplete permalink captured while the filter was initializing.
+    const adhocFilters = loaded?.extraFormData?.adhoc_filters;
     const isExplicitSelectClear =
       filter.filterType === 'filter_select' &&
       !loadedHasValue &&
-      loaded?.extraFormData?.adhoc_filters?.some(
+      Array.isArray(adhocFilters) &&
+      adhocFilters.some(
         predicate =>
-          predicate.expressionType === 'SQL' &&
+          predicate?.expressionType === 'SQL' &&
           predicate.clause === 'WHERE' &&
           predicate.sqlExpression === EMPTY_FILTER_SQL_EXPRESSION,
       );

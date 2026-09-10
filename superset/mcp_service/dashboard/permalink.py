@@ -39,7 +39,7 @@ from superset.mcp_service.dashboard.schemas import (
     redact_filter_state_data_model_metadata,
 )
 from superset.mcp_service.privacy import user_can_view_data_model_metadata
-from superset.mcp_service.utils.url_utils import get_superset_base_url
+from superset.utils.urls import get_url_path
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +114,7 @@ def build_dashboard_permalink_url(key: str) -> str:
     permalink``, mounted at the application root); the ``/superset``-prefixed
     form is a legacy path that only redirects here.
     """
-    return f"{get_superset_base_url()}/dashboard/p/{key}/"
+    return get_url_path("Superset.dashboard_permalink", user_friendly=True, key=key)
 
 
 def create_dashboard_permalink(
