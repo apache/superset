@@ -17,12 +17,17 @@
 # isort:skip_file
 """Tests for security api methods"""
 
+from unittest.mock import patch
+
 import jwt
 import pytest
 
 from flask.ctx import AppContext
 from flask_wtf.csrf import generate_csrf
 from superset import db, security_manager
+from superset.commands.dashboard.embedded.exceptions import (
+    EmbeddedDashboardAccessDeniedError,
+)
 from superset.daos.dashboard import EmbeddedDashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.utils.urls import get_url_host
@@ -376,6 +381,29 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         )
 
         self.assert400(response)
+
+    def test_post_guest_token_dashboard_access_denied(self):
+        """
+        A minting principal that is not entitled to the scoped dashboard gets
+        a 403, not a 500: validate_guest_token_resources raises
+        EmbeddedDashboardAccessDeniedError and the endpoint must translate
+        it, since @safe would otherwise report it as a server error.
+        """
+        self.login(ADMIN_USERNAME)
+        user = {"username": "bob", "first_name": "Bob", "last_name": "Also Bob"}
+        resource = {"type": "dashboard", "id": "any-id"}
+        params = {"user": user, "resources": [resource], "rls": []}
+
+        with patch.object(
+            security_manager,
+            "validate_guest_token_resources",
+            side_effect=EmbeddedDashboardAccessDeniedError(),
+        ):
+            response = self.client.post(
+                self.uri, data=json.dumps(params), content_type="application/json"
+            )
+
+        self.assert403(response)
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", scope="class")
