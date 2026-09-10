@@ -91,16 +91,6 @@ try:
         mcp_config = get_mcp_config(_mcp_app.config)
         _mcp_app.config.update(mcp_config)
 
-        # Fail at startup on a malformed dataset routing allowlist rather than
-        # refusing every tool call, which would leave the operator diagnosing a
-        # typo from per-request errors.
-        from superset.mcp_service.dataset_scope import (
-            CONFIG_KEY,
-            parse_dataset_role_allowlist,
-        )
-
-        parse_dataset_role_allowlist(_mcp_app.config.get(CONFIG_KEY))
-
         # Configure the chart plugin registry with post-overlay values so
         # MCP-specific overrides (e.g. MCP_DISABLED_CHART_PLUGINS set by the
         # operator) take effect.  This module is the registry's only configure
@@ -122,6 +112,17 @@ try:
 
         app = _mcp_app
         logger.info("Flask app fully initialized for standalone MCP service")
+
+    # Fail at startup on a malformed dataset routing allowlist rather than
+    # refusing every tool call, which would leave the operator diagnosing a typo
+    # from per-request errors. Checked for both the standalone and the
+    # in-process app, since either can carry the setting from superset_config.
+    from superset.mcp_service.dataset_scope import (
+        CONFIG_KEY,
+        parse_dataset_role_allowlist,
+    )
+
+    parse_dataset_role_allowlist(app.config.get(CONFIG_KEY))
 
 except Exception as e:
     logger.error("Failed to create Flask app: %s", e)

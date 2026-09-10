@@ -73,6 +73,12 @@ SCOPED_TOOLS = frozenset(
         "get_dataset_info",
         "query_dataset",
         "get_table",
+        # The metric/dimension discovery tools get_table's own documented
+        # workflow starts with. They name a dataset, so they can be scoped, and
+        # refusing them would block the allowed tool they lead into.
+        "list_metrics",
+        "get_compatible_dimensions",
+        "get_compatible_metrics",
     }
 )
 
@@ -81,6 +87,9 @@ DATASET_IDENTIFIER_FIELDS = {
     "get_dataset_info": "identifier",
     "query_dataset": "dataset_id",
     "get_table": "dataset_id",
+    "list_metrics": "dataset_id",
+    "get_compatible_dimensions": "dataset_id",
+    "get_compatible_metrics": "dataset_id",
 }
 
 
