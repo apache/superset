@@ -4638,7 +4638,7 @@ def test_format_time_humanized_skips_activation_for_english(
     mock_activate.assert_not_called()
 
 
-def _orderby_sql(database: Database, orderby: list[tuple[str, bool]]) -> str:
+def _orderby_sql(database: Database, orderby: list[OrderBy]) -> str:
     """Build a SqlaTable query with the given orderby and return compiled SQL.
 
     Shared by the tests below. The column is resolved through
