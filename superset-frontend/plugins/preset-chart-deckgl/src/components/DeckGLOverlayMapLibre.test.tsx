@@ -19,12 +19,12 @@
 import { render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import type { Layer } from '@deck.gl/core';
-import type { MapboxOverlay } from '@deck.gl/mapbox';
+import type { MapLibreOverlay } from '@deck.gl/maplibre';
 import DeckGLOverlayMapLibre from './DeckGLOverlayMapLibre';
 
 const setProps = jest.fn();
-const mockOverlay = { setProps } as unknown as MapboxOverlay;
-const MockMapboxOverlay = jest.fn((..._args: unknown[]) => mockOverlay);
+const mockOverlay = { setProps } as unknown as MapLibreOverlay;
+const MockMapLibreOverlay = jest.fn((..._args: unknown[]) => mockOverlay);
 
 jest.mock('react-map-gl/maplibre', () => {
   const { useState } = jest.requireActual('react');
@@ -36,14 +36,14 @@ jest.mock('react-map-gl/maplibre', () => {
   };
 });
 
-jest.mock('@deck.gl/mapbox', () => ({
+jest.mock('@deck.gl/maplibre', () => ({
   // A `function`, not an arrow (the real component calls this with `new`,
   // and arrow functions can't be constructors), that only reaches
-  // MockMapboxOverlay when actually invoked - referencing it directly here
+  // MockMapLibreOverlay when actually invoked - referencing it directly here
   // would hit it before its `const` initializer runs, since jest hoists
   // this mock factory above the rest of the file.
-  MapboxOverlay: function MapboxOverlay(...args: unknown[]) {
-    return MockMapboxOverlay(...args);
+  MapLibreOverlay: function MapLibreOverlay(...args: unknown[]) {
+    return MockMapLibreOverlay(...args);
   },
 }));
 
@@ -51,12 +51,12 @@ afterEach(() => {
   jest.clearAllMocks();
 });
 
-test('constructs a single MapboxOverlay with the initial layers', () => {
+test('constructs a single MapLibreOverlay with the initial layers', () => {
   const layers = [{ id: 'layer-1' } as unknown as Layer];
   render(<DeckGLOverlayMapLibre layers={layers} />);
 
-  expect(MockMapboxOverlay).toHaveBeenCalledTimes(1);
-  expect(MockMapboxOverlay).toHaveBeenCalledWith({ layers });
+  expect(MockMapLibreOverlay).toHaveBeenCalledTimes(1);
+  expect(MockMapLibreOverlay).toHaveBeenCalledWith({ layers });
 });
 
 test('threads updated props into the overlay via setProps on every render', () => {
@@ -69,8 +69,8 @@ test('threads updated props into the overlay via setProps on every render', () =
   rerender(<DeckGLOverlayMapLibre layers={updatedLayers} />);
 
   // The overlay itself is only constructed once; later prop changes go
-  // through setProps rather than a new MapboxOverlay instance.
-  expect(MockMapboxOverlay).toHaveBeenCalledTimes(1);
+  // through setProps rather than a new MapLibreOverlay instance.
+  expect(MockMapLibreOverlay).toHaveBeenCalledTimes(1);
   expect(setProps).toHaveBeenLastCalledWith({ layers: updatedLayers });
 });
 
