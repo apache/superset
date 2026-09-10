@@ -18,6 +18,7 @@
 """Typed geographic contracts, native query semantics, and boundary parity."""
 
 from copy import deepcopy
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 from unittest.mock import Mock, patch
@@ -403,6 +404,19 @@ async def test_fastmcp_geographic_entry_points_execute_result_contract(  # noqa:
     kind: str, valid: bool, entry: str, persist: bool
 ) -> None:
     """Public calls execute the real compile contract, including failed queries."""
+    await _exercise_public_geographic_entry(kind, valid, entry, persist)
+
+
+async def _exercise_public_geographic_entry(  # noqa: C901
+    kind: str,
+    valid: bool,
+    entry: str,
+    persist: bool,
+    *,
+    rebind: bool = False,
+    result_override: dict[str, Any] | None = None,
+) -> None:
+    """Run native public compile/save paths against controlled database results."""
     import importlib
     from contextlib import ExitStack
 
@@ -430,6 +444,28 @@ async def test_fastmcp_geographic_entry_points_execute_result_contract(  # noqa:
         description="",
         url="/explore/?slice_id=9",
     )
+    if rebind:
+        old = json.loads(chart.params)
+        old.update(
+            template_params={"stale": "source"},
+            time_range="Last week",
+            groupby=["segment"],
+            granularity_sqla="old_date",
+            secondary_metric="old_metric",
+            dimension="segment",
+            color_scheme="supersetColors",
+            adhoc_filters=[
+                {
+                    "subject": "segment",
+                    "operator": "IN",
+                    "comparator": ["Retail"],
+                    "expressionType": "SIMPLE",
+                    "clause": "WHERE",
+                }
+            ],
+        )
+        chart.params = json.dumps(old)
+        request["dataset_id"] = 4
     if entry == "update_chart":
         request.update(identifier=9, generate_preview=not persist)
     else:
@@ -439,10 +475,26 @@ async def test_fastmcp_geographic_entry_points_execute_result_contract(  # noqa:
         request["save_chart"] = persist
     if entry == "update_chart_preview":
         request["form_data_key"] = "geographic-cache"
-    response_data = result_for(kind) if valid else invalid_result_for(kind)
+    response_data = (
+        result_override
+        if result_override is not None
+        else (result_for(kind) if valid else invalid_result_for(kind))
+    )
+    if rebind:
+        response_data["queries"][0]["data"][0]["old_metric"] = 1
     domain = "explore" if entry == "generate_explore_link" else "chart"
     module = importlib.import_module(f"superset.mcp_service.{domain}.tool.{entry}")
     with ExitStack() as stack:
+        if rebind:
+            stack.enter_context(
+                patch(
+                    "superset.mcp_service.chart.validation.dataset_validator.build_dataset_context_from_orm",
+                    return_value=Mock(
+                        available_columns=[{"name": "segment"}, {"name": "old_date"}],
+                        available_metrics=[{"name": "old_metric"}],
+                    ),
+                )
+            )
         for target, value in [
             (
                 "superset.mcp_service.auth.get_user_from_request",
@@ -558,10 +610,25 @@ async def test_fastmcp_geographic_entry_points_execute_result_contract(  # noqa:
         async with Client(mcp) as client:
             response = await client.call_tool(entry, {"request": request})
         payload = response.structured_content
-        assert payload["success"] is valid, payload
+        assert payload["success"] is valid, json.dumps(payload)
         assert command.return_value.run.called
         if valid:
             assert payload["form_data"]["viz_type"] == kind
+            if rebind:
+                rebound = payload["form_data"]
+                assert not rebound.get("adhoc_filters"), rebound
+                assert "template_params" not in rebound
+                assert not rebound.get("groupby")
+                assert not rebound.get("granularity_sqla")
+                assert not rebound.get("secondary_metric")
+                assert not rebound.get("dimension")
+                assert rebound.get("time_range") != "Last week"
+                assert rebound["color_scheme"] == "supersetColors"
+                assert rebound["datasource"] == "4__table"
+                if persist:
+                    saved = update.call_args.args[-1]
+                    assert saved["query_context"] is None
+                    assert not json.loads(saved["params"]).get("adhoc_filters")
         else:
             assert payload["error"]["error_code"] == "INVALID_GEOGRAPHIC_RESULT", (
                 payload
@@ -577,6 +644,18 @@ async def test_geographic_chart_data_saved_cached_and_exports(
     kind: str, data_path: str, valid: bool, export_format: str
 ) -> None:
     """Raw identifiers survive every data/export path; invalid rows fail all three."""
+    await _exercise_geographic_data_export(kind, data_path, valid, export_format)
+
+
+async def _exercise_geographic_data_export(
+    kind: str,
+    data_path: str,
+    valid: bool,
+    export_format: str,
+    *,
+    decimal_coordinates: bool = False,
+) -> None:
+    """Exercise saved and cached data/export with pre-JSON database scalars."""
     import importlib
     from contextlib import ExitStack
     from types import SimpleNamespace
@@ -585,6 +664,8 @@ async def test_geographic_chart_data_saved_cached_and_exports(
     form = {**form_for(kind), "datasource": "3__table", "slice_name": "Locations"}
     source = result_for(kind) if valid else invalid_result_for(kind)
     rows = source["queries"][0]["data"]
+    if decimal_coordinates:
+        rows[0] = {"latitude": Decimal("37.5"), "longitude": Decimal("-122.25")}
     source["queries"][0].update(colnames=list(rows[0]), rowcount=len(rows))
     query = {"columns": list(rows[0]), "metrics": [], "row_limit": 10000}
     context = SimpleNamespace(
@@ -649,7 +730,16 @@ async def test_geographic_chart_data_saved_cached_and_exports(
             assert "error_type" not in payload, payload
             assert payload["row_count"] == 1
             if export_format == "json":
-                assert payload["data"] == rows
+                if decimal_coordinates:
+                    # MCP's Pydantic export preserves Decimal precision as text;
+                    # the native chart JSON converter emits numeric coordinates.
+                    assert payload["data"] == [
+                        {key: str(value) for key, value in rows[0].items()}
+                    ]
+                    assert isinstance(rows[0]["latitude"], Decimal)
+                    assert json.json_int_dttm_ser(rows[0]["latitude"]) == 37.5
+                else:
+                    assert payload["data"] == rows
             elif export_format == "csv":
                 import csv
                 from io import StringIO
@@ -867,3 +957,103 @@ async def test_public_rebind_guidance_matches_chart_roles(viz: str) -> None:
     details = payload["error"]["details"]
     assert "metric" in details
     assert ("geographic" in details) is (viz != "gauge_chart")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", KINDS)
+@pytest.mark.parametrize("persist", [False, True])
+async def test_public_geographic_rebind_drops_same_named_source_state(
+    kind: str, persist: bool
+) -> None:
+    """Saved and unsaved rebinding drops even target-resolvable source filters."""
+    await _exercise_public_geographic_entry(
+        kind, True, "update_chart", persist, rebind=True
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "entry",
+    ["generate_chart", "generate_explore_link", "update_chart", "update_chart_preview"],
+)
+@pytest.mark.parametrize("persist", [False, True])
+async def test_public_decimal_coordinates_compile(entry: str, persist: bool) -> None:
+    """NUMERIC query coordinates are validated before the JSON conversion step."""
+    result = result_for("deck_scatter")
+    result["queries"][0]["data"][0] = {
+        "latitude": Decimal("37.8"),
+        "longitude": Decimal("-122.4"),
+    }
+    await _exercise_public_geographic_entry(
+        "deck_scatter", True, entry, persist, result_override=result
+    )
+    assert isinstance(result["queries"][0]["data"][0]["latitude"], Decimal)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("kind", ["country_map", "world_map"])
+async def test_public_decimal_geographic_metrics_compile(kind: str) -> None:
+    """NUMERIC aggregates remain valid without coercing source export values."""
+    result = result_for(kind)
+    result["queries"][0]["data"][0]["SUM(sales)"] = Decimal("10.5")
+    await _exercise_public_geographic_entry(
+        kind, True, "generate_chart", False, result_override=result
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "value",
+    [
+        Decimal("NaN"),
+        Decimal("sNaN"),
+        Decimal("Infinity"),
+        Decimal("-Infinity"),
+        Decimal("90.00001"),
+        Decimal("90.000000000000000000000000000000001"),
+        Decimal("-90.000000000000000000000000000000001"),
+        True,
+        "37.8",
+        1 + 2j,
+    ],
+)
+async def test_public_decimal_coordinate_invalid_values(value: object) -> None:
+    """Decimal support never permits nonfinite, out-of-range, or nonreal points."""
+    result = result_for("deck_scatter")
+    result["queries"][0]["data"][0]["latitude"] = value
+    await _exercise_public_geographic_entry(
+        "deck_scatter", False, "generate_chart", False, result_override=result
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("data_path", ["saved", "saved_cache", "unsaved_cache"])
+@pytest.mark.parametrize("export_format", ["json", "csv", "excel"])
+async def test_public_decimal_coordinates_data_exports(
+    data_path: str, export_format: str
+) -> None:
+    """Finite database Decimals survive saved/cached JSON, CSV, and Excel paths."""
+    await _exercise_geographic_data_export(
+        "deck_scatter", data_path, True, export_format, decimal_coordinates=True
+    )
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        Decimal("NaN"),
+        Decimal("sNaN"),
+        Decimal("Infinity"),
+        Decimal("1e1000"),
+        "1.5",
+        True,
+        1 + 2j,
+    ],
+)
+def test_decimal_geographic_metric_rejects_non_json_numbers(value: object) -> None:
+    """Decimal support retains strict finite JSON-compatible metric results."""
+    result = result_for("world_map")
+    result["queries"][0]["data"][0]["SUM(sales)"] = value
+    assert isinstance(
+        normalize_chart_query_result(result, form_for("world_map")), ChartError
+    )

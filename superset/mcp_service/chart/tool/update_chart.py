@@ -51,6 +51,7 @@ from superset.mcp_service.chart.schemas import (
     ColumnRef,
     GaugeChartConfig,
     GenerateChartResponse,
+    GeographicChartConfig,
     PerformanceMetadata,
     TableChartConfig,
     UpdateChartRequest,
@@ -370,11 +371,11 @@ def _build_replacement_form_data(
     new_form_data.pop("_mcp_warnings", None)
     dataset_rebind = replacement_dataset_id is not None
     if replacement_dataset_id is not None and not isinstance(
-        parsed_config, GaugeChartConfig
+        parsed_config, (GaugeChartConfig, GeographicChartConfig)
     ):
         # Drop only the inherited state the replacement dataset cannot
-        # resolve, then merge as a same-dataset update. Gauge keeps the
-        # stricter presentation-only rebind handled downstream.
+        # resolve, then merge as a same-dataset update. Gauge and geographic
+        # configs keep the stricter presentation-only rebind downstream.
         invalid_keys = _inherited_state_invalid_keys(
             existing_form_data,
             new_form_data,

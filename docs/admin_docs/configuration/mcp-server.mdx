@@ -1091,6 +1091,9 @@ the dataset. No unrecognized returned rows are silently discarded. Multiple
 query groups resolving to one boundary also fail: normalize source values
 before aggregation rather than incorrectly adding averages or distinct counts.
 Source values remain intact for data/export and country-map cross-filtering.
+Database `NUMERIC`/Decimal query coordinates and metrics are supported when
+finite and representable as JSON numbers. Coordinate bounds are checked before
+JSON conversion; numeric strings and booleans are not accepted as coordinates.
 
 Generation validates the configured result (up to `row_limit`, bounded at
 10,000), not just the first two rows. This is not an audit of rows excluded by

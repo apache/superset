@@ -41,6 +41,7 @@ from superset.mcp_service.chart.schemas import (
     PieChartConfig,
     PivotTableChartConfig,
     TableChartConfig,
+    TreemapChartConfig,
     WaterfallChartConfig,
     WorldMapChartConfig,
     XYChartConfig,
@@ -57,6 +58,7 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "table": TypeAdapter(TableChartConfig),
     "pie": TypeAdapter(PieChartConfig),
     "gauge": TypeAdapter(GaugeChartConfig),
+    "treemap_v2": TypeAdapter(TreemapChartConfig),
     "pivot_table": TypeAdapter(PivotTableChartConfig),
     "interactive_pivot": TypeAdapter(InteractivePivotChartConfig),
     "mixed_timeseries": TypeAdapter(MixedTimeseriesChartConfig),
@@ -242,6 +244,13 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "metric": {"name": "progress", "aggregate": "AVG"},
         },
     ],
+    "treemap_v2": [
+        {
+            "chart_type": "treemap_v2",
+            "groupby": [{"name": "region"}, {"name": "product"}],
+            "metric": {"name": "revenue", "aggregate": "SUM"},
+        },
+    ],
 }
 
 
@@ -331,9 +340,9 @@ def get_chart_type_schema(
     for a chart configuration before calling generate_chart or update_chart.
 
     Valid chart_type values depend on the host deployment. Core types are xy,
-    country_map, world_map, deck_scatter, table, pie, gauge, pivot_table,
-    mixed_timeseries, handlebars, big_number,
-    histogram, box_plot, and waterfall. Deployments that enable an AG Grid
+    country_map, world_map, deck_scatter, table, pie, gauge, treemap_v2,
+    pivot_table, mixed_timeseries, handlebars, big_number, histogram, box_plot,
+    and waterfall. Deployments that enable an AG Grid
     pivot extension also expose interactive_pivot.
 
     Returns the JSON Schema for the requested chart type, optionally

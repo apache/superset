@@ -19,8 +19,10 @@
 
 import math
 from collections.abc import Mapping
+from decimal import Decimal
 from functools import lru_cache
-from typing import Any
+from numbers import Real
+from typing import Any, TypeGuard
 
 from superset.mcp_service.chart.schemas import ChartError
 
@@ -252,6 +254,22 @@ def _geographic_metric_labels(form_data: Mapping[str, Any]) -> list[str]:
     return [label for label in labels if label is not None]
 
 
+def _is_finite_geographic_number(value: object) -> TypeGuard[Real | Decimal]:
+    """Accept database NUMERIC/real scalars that remain finite in JSON.
+
+    Validation precedes JSON conversion; retain the original Decimal values for
+    data/export while rejecting booleans, complex numbers, and numeric strings.
+    """
+    if isinstance(value, bool) or not isinstance(value, (Real, Decimal)):
+        return False
+    if isinstance(value, Decimal) and not value.is_finite():
+        return False
+    try:
+        return math.isfinite(value)
+    except (OverflowError, ValueError):
+        return False
+
+
 def _validate_geographic_metrics(
     row: Mapping[str, Any], labels: list[str], form_data: Mapping[str, Any]
 ) -> None:
@@ -259,11 +277,7 @@ def _validate_geographic_metrics(
     secondary = metric_result_label(form_data.get("secondary_metric"))
     for label in labels:
         value = row.get(label)
-        if (
-            isinstance(value, bool)
-            or not isinstance(value, (int, float))
-            or not math.isfinite(value)
-        ):
+        if not _is_finite_geographic_number(value):
             raise ValueError(f"Geographic metric {label!r} must be a finite number")
         if value < 0 and (
             form_data.get("viz_type") == "deck_scatter" or label == secondary
@@ -315,10 +329,9 @@ def _geographic_row_identifier(
             raise ValueError(f"{role} requires a named coordinate column")
         value = row.get(column)
         if (
-            isinstance(value, bool)
-            or not isinstance(value, (int, float))
-            or not math.isfinite(value)
-            or not -bound <= value <= bound
+            not _is_finite_geographic_number(value)
+            or value < -bound
+            or not value <= bound
         ):
             raise ValueError(
                 f"{role} must be a finite number between {-bound} and {bound}"

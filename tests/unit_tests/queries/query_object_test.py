@@ -851,3 +851,34 @@ def test_exec_post_processing_rejects_string_helpers(
 
     with pytest.raises(InvalidPostProcessingError):
         query_object.exec_post_processing(df)
+
+
+def test_cache_key_distinguishes_bounds_without_time_range():
+    """
+    Regression for the datasource query endpoint: a caller that passes a range
+    only as a ``TEMPORAL_RANGE`` filter has no ``time_range``, and
+    ``QueryContextFactory._apply_granularity`` removes that filter once
+    ``granularity`` names its column. The resolved bounds are then the only
+    thing telling one range from another, so they have to reach the key --
+    otherwise every range collides and the second request is served the first
+    range's rows.
+    """
+    query_object1 = QueryObject(
+        from_dttm=datetime(1965, 1, 1), to_dttm=datetime(1968, 1, 1)
+    )
+    query_object2 = QueryObject(
+        from_dttm=datetime(1966, 1, 1), to_dttm=datetime(1967, 1, 1)
+    )
+
+    assert query_object1.cache_key() != query_object2.cache_key()
+
+
+def test_cache_key_ignores_bounds_when_time_range_is_set():
+    """
+    ``time_range`` stands in for the bounds, so they stay out of the key: a
+    relative range such as "Last week" keeps one key as its bounds advance.
+    """
+    query_object1 = QueryObject(time_range="Last week", from_dttm=datetime(1965, 1, 1))
+    query_object2 = QueryObject(time_range="Last week", from_dttm=datetime(1970, 1, 1))
+
+    assert query_object1.cache_key() == query_object2.cache_key()
