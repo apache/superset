@@ -732,8 +732,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   }, []);
 
   const fetchBulkRelatedObjects = useCallback((selected: Dataset[]) => {
-    // Semantic views delete through their own endpoint and have no
-    // related_objects lookup, so only regular datasets are checked.
+    // Semantic views share the id space with datasets but have no
+    // related_objects lookup, so only regular datasets are checked; the modal
+    // says so rather than claiming nothing depends on them.
     const ids = selected.filter(d => !isSemanticView(d)).map(({ id }) => id);
     bulkRelatedLookupId.current += 1;
     const lookupId = bulkRelatedLookupId.current;
@@ -1672,13 +1673,25 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   />
                 </>
               ) : (
-                <p>
-                  {t(
-                    'No charts or dashboards depend on the selected %s.',
-                    datasetsLabelLower(),
-                  )}
-                </p>
+                pendingBulkSemanticCount === 0 && (
+                  <p>
+                    {t(
+                      'No charts or dashboards depend on the selected %s.',
+                      datasetsLabelLower(),
+                    )}
+                  </p>
+                )
               ))}
+            {pendingBulkSemanticCount > 0 && (
+              <p>
+                {tn(
+                  'Charts built on the selected semantic view are not checked and will break if it is deleted.',
+                  'Charts built on the %s selected semantic views are not checked and will break if they are deleted.',
+                  pendingBulkSemanticCount,
+                  pendingBulkSemanticCount,
+                )}
+              </p>
+            )}
           </>
         }
         onConfirm={handleBulkDatasetDelete}

@@ -378,6 +378,39 @@ test('bulk delete confirm says when nothing depends on the selection', async () 
   expect(within(modal).queryByText('Affected Charts')).not.toBeInTheDocument();
 }, 45000);
 
+test('bulk delete confirm never claims a semantic view has no dependents', async () => {
+  // Semantic views have no dependents lookup, so a mixed selection must say
+  // their charts are unchecked instead of reporting the dataset-only result
+  // as the whole picture.
+  const dataset = mockDatasets[0];
+  const semanticView = {
+    ...mockDatasets[1],
+    id: 99,
+    table_name: 'orders_semantic',
+    kind: 'semantic_view',
+  };
+  fetchMock.get(
+    API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS,
+    emptyRelatedObjects,
+  );
+
+  const modal = await openBulkDeleteConfirm([dataset, semanticView]);
+
+  expect(
+    await within(modal).findByText(
+      /charts built on the selected semantic view/i,
+    ),
+  ).toBeInTheDocument();
+  expect(modal).not.toHaveTextContent(/no charts or dashboards depend on/i);
+
+  // Only the regular dataset goes to the dataset lookup.
+  const [lookup] = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS,
+  );
+  const query = new URL(lookup.url, 'http://localhost').searchParams.get('q');
+  expect(rison.decode(query!)).toEqual([dataset.id]);
+}, 45000);
+
 test('bulk delete confirm says when the dependents lookup failed', async () => {
   // A failed lookup must read as "unknown", never as "nothing depends on
   // these". The delete itself stays possible: the warning is an aid, not a
