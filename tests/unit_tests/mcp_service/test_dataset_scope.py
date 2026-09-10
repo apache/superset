@@ -17,8 +17,9 @@
 
 """Dataset routing is additive across roles and never grants data access."""
 
+import inspect
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
@@ -26,6 +27,7 @@ from fastmcp.exceptions import ToolError
 from flask import Flask, g
 
 from superset.mcp_service.dataset_scope import (
+    enforce_call_dataset_scope,
     enforce_tool_dataset_scope,
     get_dataset_scope,
 )
@@ -151,3 +153,51 @@ def test_unscopable_operations_refuse(
         pytest.raises(ToolError, match="No query was run"),
     ):
         enforce_tool_dataset_scope(tool_name, {"request": payload})
+
+
+def _sig() -> inspect.Signature:
+    def tool(request: object) -> None: ...
+
+    return inspect.signature(tool)
+
+
+def test_disabled_scope_never_binds_call_arguments() -> None:
+    """Tools keep their unmodified argument handling while the feature is off."""
+    signature = MagicMock(wraps=_sig())
+    with patch(
+        "superset.mcp_service.dataset_scope.get_dataset_scope", return_value=None
+    ):
+        enforce_call_dataset_scope("execute_sql", signature, (), {"nonexistent": 1})
+    signature.bind_partial.assert_not_called()
+
+
+def test_unbindable_arguments_defer_to_tool_validation() -> None:
+    """A binding failure must not mask the tool's own argument error."""
+    with (
+        patch(
+            "superset.mcp_service.dataset_scope.get_dataset_scope",
+            return_value=frozenset({FIRST}),
+        ),
+        patch(
+            "superset.daos.dataset.DatasetDAO.find_by_id",
+            return_value=SimpleNamespace(uuid=FIRST),
+        ),
+    ):
+        # Extra keyword arguments make bind_partial raise; the scope decision
+        # still falls back to the raw kwargs rather than surfacing a TypeError.
+        enforce_call_dataset_scope(
+            "query_dataset",
+            _sig(),
+            (),
+            {"request": {"dataset_id": 1}, "unexpected": True},
+        )
+
+
+def test_allowlist_is_wired_into_the_mcp_config_defaults() -> None:
+    """The standalone MCP app must carry the setting through its config overlay."""
+    from superset.mcp_service.mcp_config import get_mcp_config
+
+    assert get_mcp_config()["MCP_DATASET_ROLE_ALLOWLIST"] is None
+    assert get_mcp_config({"MCP_DATASET_ROLE_ALLOWLIST": {"Readers": [str(FIRST)]}})[
+        "MCP_DATASET_ROLE_ALLOWLIST"
+    ] == {"Readers": [str(FIRST)]}

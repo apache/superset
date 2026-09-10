@@ -17,6 +17,7 @@
 
 """Optional MCP dataset routing constraints, independent of authorization."""
 
+import inspect
 from collections.abc import Mapping
 from typing import Any
 from uuid import UUID
@@ -78,15 +79,46 @@ def get_dataset_scope() -> frozenset[UUID] | None:
     )
 
 
-def enforce_tool_dataset_scope(tool_name: str, arguments: Mapping[str, Any]) -> None:
-    """Refuse unsupported paths or out-of-scope datasets before tool execution.
+def enforce_call_dataset_scope(
+    tool_name: str,
+    signature: inspect.Signature,
+    args: tuple[Any, ...],
+    kwargs: Mapping[str, Any],
+) -> None:
+    """Bind a tool's call arguments only when routing constraints are configured.
 
-    Lookup uses the ordinary access-filtered DAO, never skip_base_filter. An
-    allowlist entry therefore cannot grant access to an otherwise hidden dataset.
+    Binding eagerly would make every MCP tool call pay for — and be able to fail
+    on — signature resolution even where the feature is switched off.
     """
     scope = get_dataset_scope()
     if scope is None:
         return
+    arguments: Mapping[str, Any]
+    try:
+        arguments = signature.bind_partial(*args, **kwargs).arguments
+    except TypeError:
+        # Leave malformed calls to the tool's own argument validation, which
+        # reports them far more precisely than a binding failure here would.
+        arguments = dict(kwargs)
+    _enforce(tool_name, arguments, scope)
+
+
+def enforce_tool_dataset_scope(tool_name: str, arguments: Mapping[str, Any]) -> None:
+    """Refuse unsupported paths or out-of-scope datasets before tool execution."""
+    scope = get_dataset_scope()
+    if scope is None:
+        return
+    _enforce(tool_name, arguments, scope)
+
+
+def _enforce(
+    tool_name: str, arguments: Mapping[str, Any], scope: frozenset[UUID]
+) -> None:
+    """Apply the routing decision for one resolved scope and argument set.
+
+    Lookup uses the ordinary access-filtered DAO, never skip_base_filter. An
+    allowlist entry therefore cannot grant access to an otherwise hidden dataset.
+    """
     if tool_name not in SCOPED_TOOLS:
         raise ToolError(SCOPE_ERROR)
     if tool_name not in {"get_dataset_info", "query_dataset", "get_table"}:
