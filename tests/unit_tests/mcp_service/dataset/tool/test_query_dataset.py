@@ -2259,6 +2259,8 @@ async def test_query_dataset_returns_engine_time_bounds(
     result_kind: str,
 ) -> None:
     """Resolve MCP inputs with the real factory and serialize execution bounds."""
+    from datetime import datetime
+
     from flask import current_app
     from freezegun import freeze_time
 
@@ -2279,10 +2281,24 @@ async def test_query_dataset_returns_engine_time_bounds(
             )
         payload = _mock_command_result()
         result = payload["queries"][0]
-        result.update(from_dttm=query.from_dttm, to_dttm=query.to_dttm)
+        # freezegun returns datetime subclasses, while real query results contain
+        # plain datetimes and the MCP result validator intentionally rejects
+        # arbitrary scalar subclasses.
+        result.update(
+            from_dttm=(
+                datetime.fromisoformat(query.from_dttm.isoformat())
+                if query.from_dttm is not None
+                else None
+            ),
+            to_dttm=(
+                datetime.fromisoformat(query.to_dttm.isoformat())
+                if query.to_dttm is not None
+                else None
+            ),
+        )
         result["is_cached"] = result_kind == "cached"
         if result_kind == "empty":
-            result.update(data=[], colnames=[], rowcount=0)
+            result.update(data=[], colnames=[], coltypes=[], rowcount=0)
         return payload
 
     request: dict[str, Any] = {"dataset_id": 1, "metrics": ["count"]}
@@ -2357,7 +2373,9 @@ async def test_query_dataset_reexecutes_across_rollover(
         payload = processor.get_df_payload(query)
         frame = payload.pop("df")
         payload.update(
-            data=frame.to_dict(orient="records"), colnames=list(frame.columns)
+            data=frame.to_dict(orient="records"),
+            colnames=list(frame.columns),
+            coltypes=[GenericDataType.NUMERIC for _ in frame.columns],
         )
         return {"queries": [payload]}
 
