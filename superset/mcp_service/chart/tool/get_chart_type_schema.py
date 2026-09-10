@@ -38,6 +38,7 @@ from superset.mcp_service.chart.schemas import (
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    SankeyChartConfig,
     TableChartConfig,
     WaterfallChartConfig,
     XYChartConfig,
@@ -58,6 +59,7 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "big_number": TypeAdapter(BigNumberChartConfig),
     "histogram": TypeAdapter(HistogramChartConfig),
     "box_plot": TypeAdapter(BoxPlotChartConfig),
+    "sankey_v2": TypeAdapter(SankeyChartConfig),
     "waterfall": TypeAdapter(WaterfallChartConfig),
 }
 
@@ -192,6 +194,14 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "percentile_high": 90,
         },
     ],
+    "sankey_v2": [
+        {
+            "chart_type": "sankey_v2",
+            "source": {"name": "from_stage"},
+            "target": {"name": "to_stage"},
+            "metric": {"name": "users", "aggregate": "SUM"},
+        },
+    ],
     "waterfall": [
         {
             "chart_type": "waterfall",
@@ -302,7 +312,7 @@ def get_chart_type_schema(
 
     Valid chart_type values depend on the host deployment. Core types are xy,
     table, pie, gauge, pivot_table, mixed_timeseries, handlebars, big_number,
-    histogram, box_plot, and waterfall. Deployments that enable an AG Grid
+    histogram, box_plot, waterfall, and sankey_v2. Deployments that enable an AG Grid
     pivot extension also expose interactive_pivot.
 
     Returns the JSON Schema for the requested chart type, optionally
