@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any
 
 import redis
@@ -133,7 +133,12 @@ class AcquireDistributedLock(BaseDistributedLockCommand):
             value={"token": self.token},
             codec=self.codec,
             key=self.key,
-            expires_on=datetime.now(timezone.utc) + timedelta(seconds=self.ttl_seconds),
+            # Naive local time: KeyValueEntry.is_expired() and
+            # delete_expired_entries compare against a naive datetime.now(), so
+            # a tz-aware UTC value would mis-expire the lock on any non-UTC
+            # server (throttle fails open, or a killed worker holds it for
+            # hours past the TTL).
+            expires_on=datetime.now() + timedelta(seconds=self.ttl_seconds),
         )
 
         logger.debug(

@@ -1945,9 +1945,13 @@ class DashboardRestApi(
         if payload is None:
             return self.response(200, status="pending")
         if payload.get("status") == STATUS_READY:
-            # Same backend-mismatch rule as download_xlsx: never report ready
-            # for a link the download endpoint will refuse.
-            if not _link_backend_matches(payload.get("backend")):
+            # Never report ready for a link the download endpoint will refuse:
+            # an unset backend (config cleared since upload) 501s there, and a
+            # mismatched backend 410s. Both mean the file cannot be served.
+            storage_backend = current_app.config["EXPORT_STORAGE"].get("backend")
+            if storage_backend is None or not _link_backend_matches(
+                payload.get("backend")
+            ):
                 return self.response(
                     200, status=STATUS_ERROR, message="This download has expired."
                 )
