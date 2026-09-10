@@ -411,24 +411,17 @@ const CustomModal = ({
               <Resizable
                 className="resizable"
                 {...getResizableConfig}
-                onResize={(
-                  _e: MouseEvent | TouchEvent,
-                  direction: string,
-                  _ref: HTMLDivElement,
-                  delta: { width: number; height: number },
-                ) => {
+                onResize={(_e, direction, _ref, delta) => {
                   // When resizing from the top or left, the opposite corner
                   // should stay anchored. re-resizable adjusts size but
                   // cannot move the Draggable wrapper, so we sync position.
                   setPosition(prev => ({
-                    x:
-                      direction.includes('left')
-                        ? prev.x + delta.width
-                        : prev.x,
-                    y:
-                      direction.includes('top')
-                        ? prev.y + delta.height
-                        : prev.y,
+                    x: direction.includes('left')
+                      ? prev.x + delta.width
+                      : prev.x,
+                    y: direction.includes('top')
+                      ? prev.y + delta.height
+                      : prev.y,
                   }));
                 }}
               >
