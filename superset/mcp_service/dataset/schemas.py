@@ -72,6 +72,7 @@ class DatasetFilter(ColumnOperator):
     """
 
     col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
+        "uuid",
         "table_name",
         "schema",
         "database_name",

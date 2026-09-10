@@ -1746,3 +1746,32 @@ async def test_query_dataset_available_columns_preview(
     else:
         assert "Available columns: (none)" in data["error"]
     assert "get_dataset_info with this dataset_id" in data["error"]
+
+
+@pytest.mark.parametrize("identifier", [1, "1", "00000000-0000-0000-0000-000000000001"])
+async def test_out_of_scope_query_refuses_without_execution(
+    mcp_server: FastMCP,
+    identifier: int | str,
+) -> None:
+    """The authenticated MCP entry point refuses rather than queries a substitute."""
+    from uuid import UUID
+
+    from fastmcp.exceptions import ToolError
+
+    dataset = _make_dataset()
+    dataset.uuid = UUID("00000000-0000-0000-0000-000000000001")
+    with (
+        patch(
+            "superset.mcp_service.dataset_scope.get_dataset_scope",
+            return_value=frozenset(),
+        ),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch.object(query_dataset_module, "execute_tabular_query") as execute,
+    ):
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError, match="Do not substitute"):
+                await client.call_tool(
+                    "query_dataset",
+                    {"request": {"dataset_id": identifier, "metrics": ["count"]}},
+                )
+        execute.assert_not_called()
