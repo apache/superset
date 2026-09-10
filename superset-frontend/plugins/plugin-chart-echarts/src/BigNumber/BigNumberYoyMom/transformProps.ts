@@ -477,8 +477,11 @@ export default function transformProps(
           fill: zeroColor,
         };
       }
+      const arrow = comparison > 0 ? '↑' : comparison < 0 ? '↓' : '';
       return {
-        text: `${label ? `${label} ` : ''}${valueFormatter(comparison)}`,
+        text: `${label ? `${label} ` : ''}${arrow}${valueFormatter(
+          comparison,
+        )}`,
         fill:
           comparison > 0
             ? positiveColor
