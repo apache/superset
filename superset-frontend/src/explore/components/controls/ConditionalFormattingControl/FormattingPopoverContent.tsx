@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useMemo, useCallback } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -248,7 +248,12 @@ const boundUnitShouldUpdate = (
 const renderOperator = ({
   showOnlyNone,
   columnType,
-}: { showOnlyNone?: boolean; columnType?: GenericDataType } = {}) => {
+  config,
+}: {
+  showOnlyNone?: boolean;
+  columnType?: GenericDataType;
+  config?: ConditionalFormattingConfig;
+} = {}) => {
   let options;
   switch (columnType) {
     case GenericDataType.String:
@@ -266,7 +271,7 @@ const renderOperator = ({
       name="operator"
       label={t('Operator')}
       rules={rulesRequired}
-      initialValue={options[0].value}
+      initialValue={config?.operator ?? options[0].value}
     >
       <Select
         ariaLabel={t('Operator')}
@@ -279,6 +284,7 @@ const renderOperator = ({
 const renderBoundFields = (
   operator?: Comparator,
   serverPagination?: boolean,
+  config?: ConditionalFormattingConfig,
 ) => {
   const { showMin, showMax } = getBoundVisibility(operator);
   // Cross-validate min/max only when both are shown; a lone bound
@@ -306,7 +312,7 @@ const renderBoundFields = (
           <FormItem
             name="boundUnit"
             label={t('Bound unit')}
-            initialValue={boundUnitOptions[0].value}
+            initialValue={config?.boundUnit ?? boundUnitOptions[0].value}
             tooltip={
               serverPagination
                 ? t(
@@ -330,7 +336,10 @@ const renderBoundFields = (
                 <FormItem
                   name="percentDenominator"
                   label={t('% of')}
-                  initialValue={percentDenominatorOptions[0].value}
+                  initialValue={
+                    config?.percentDenominator ??
+                    percentDenominatorOptions[0].value
+                  }
                 >
                   <Select
                     ariaLabel={t('Percent denominator')}
@@ -425,6 +434,7 @@ const renderOperatorFields = (
   { getFieldValue }: GetFieldValue,
   columnType?: GenericDataType,
   serverPagination?: boolean,
+  config?: ConditionalFormattingConfig,
 ) => {
   const columnTypeString = columnType === GenericDataType.String;
   const columnTypeBoolean = columnType === GenericDataType.Boolean;
@@ -434,12 +444,14 @@ const renderOperatorFields = (
   if (columnTypeBoolean) {
     return (
       <Row gutter={12}>
-        <Col span={operatorColSpan}>{renderOperator({ columnType })}</Col>
+        <Col span={operatorColSpan}>
+          {renderOperator({ columnType, config })}
+        </Col>
         <Col span={valueColSpan}>
           <FormItem
             name="targetValue"
             label={t('Target value')}
-            initialValue=""
+            initialValue={config?.targetValue ?? ''}
             hidden
           />
         </Col>
@@ -454,9 +466,11 @@ const renderOperatorFields = (
   return isOperatorNone(operator) ? (
     <>
       <Row gutter={12}>
-        <Col span={operatorColSpan}>{renderOperator({ columnType })}</Col>
+        <Col span={operatorColSpan}>
+          {renderOperator({ columnType, config })}
+        </Col>
       </Row>
-      {showBoundFields && renderBoundFields(operator, serverPagination)}
+      {showBoundFields && renderBoundFields(operator, serverPagination, config)}
       {showDivergingFields && renderDivergingFields()}
     </>
   ) : isOperatorMultiValue(operator) ? (
@@ -473,7 +487,7 @@ const renderOperatorFields = (
           <FullWidthInputNumber />
         </FormItem>
       </Col>
-      <Col span={6}>{renderOperator({ columnType })}</Col>
+      <Col span={6}>{renderOperator({ columnType, config })}</Col>
       <Col span={9}>
         <FormItem
           name="targetValueRight"
@@ -501,7 +515,7 @@ const renderOperatorFields = (
           </FormItem>
         </Col>
       </Row>
-      {showBoundFields && renderBoundFields(operator, serverPagination)}
+      {showBoundFields && renderBoundFields(operator, serverPagination, config)}
     </>
   );
 };
@@ -523,54 +537,56 @@ export const FormattingPopoverContent = ({
 }) => {
   const [form] = Form.useForm();
   const colors = colorScheme();
-  const [showOperatorFields, setShowOperatorFields] = useState(
-    config === undefined ||
-      (config?.colorScheme !== ColorSchemeEnum.Green &&
-        config?.colorScheme !== ColorSchemeEnum.Red),
-  );
+  const defaultColorToken = colors[0]?.colors?.[0];
 
-  const [useGradient, setUseGradient] = useState(() =>
-    config?.useGradient !== undefined ? config.useGradient : true,
-  );
-
-  const handleChange = (event: any) => {
-    setShowOperatorFields(
-      !(event === ColorSchemeEnum.Green || event === ColorSchemeEnum.Red),
-    );
-  };
-
-  const [column, setColumn] = useState<string>(
-    config?.column || columns[0]?.value,
-  );
-  const visibleAllColumns = useMemo(
-    () => !!(allColumns && Array.isArray(allColumns) && allColumns.length),
-    [allColumns],
-  );
-
-  const [columnFormatting, setColumnFormatting] = useState<string | undefined>(
+  // Initial values for the form fields, and the fallback for the watched
+  // values below (Form.useWatch reads an empty store on the first render)
+  const initialColumn = config?.column || columns[0]?.value;
+  const initialColumnFormatting =
     config?.columnFormatting ??
-      (Array.isArray(allColumns)
-        ? allColumns.find(item => item.value === column)?.value
-        : undefined),
-  );
+    (Array.isArray(allColumns)
+      ? allColumns.find(item => item.value === initialColumn)?.value
+      : undefined);
+  const initialObjectFormatting =
+    config?.objectFormatting || formattingOptions[0].value;
 
-  const [objectFormatting, setObjectFormatting] =
-    useState<ObjectFormattingEnum>(
-      config?.objectFormatting || formattingOptions[0].value,
-    );
-
-  const [previousColumnType, setPreviousColumnType] = useState<
-    GenericDataType | undefined
-  >();
+  const column = Form.useWatch('column', form) ?? initialColumn;
+  const objectFormatting =
+    Form.useWatch<ObjectFormattingEnum>('objectFormatting', form) ??
+    initialObjectFormatting;
+  const colorSchemeValue =
+    Form.useWatch('colorScheme', form) ?? config?.colorScheme;
+  const showOperatorFields =
+    colorSchemeValue !== ColorSchemeEnum.Green &&
+    colorSchemeValue !== ColorSchemeEnum.Red;
 
   const columnType = useMemo(
     () => columns.find(item => item.value === column)?.dataType,
     [columns, column],
   );
+  const visibleAllColumns = useMemo(
+    () => !!(allColumns && Array.isArray(allColumns) && allColumns.length),
+    [allColumns],
+  );
+  const numericColumns = useMemo(
+    () => allColumns.filter(col => col.dataType === GenericDataType.Numeric),
+    [allColumns],
+  );
+  const visibleUseGradient = useMemo(
+    () =>
+      numericColumns.length > 0
+        ? numericColumns.some((col: ColumnOption) => col.value === column) &&
+          objectFormatting === ObjectFormattingEnum.BACKGROUND_COLOR
+        : false,
+    [column, numericColumns, objectFormatting],
+  );
 
   const handleColumnChange = (value: string) => {
     const newColumnType = columns.find(item => item.value === value)?.dataType;
-    if (newColumnType !== previousColumnType) {
+    const currentColumnType = columns.find(
+      item => item.value === column,
+    )?.dataType;
+    if (newColumnType !== currentColumnType) {
       let defaultOperator: Comparator;
 
       switch (newColumnType) {
@@ -590,31 +606,9 @@ export const FormattingPopoverContent = ({
         operator: defaultOperator,
       });
     }
-    setColumn(value);
-    setPreviousColumnType(newColumnType);
   };
-
-  const handleAllColumnChange = (value: string | undefined) => {
-    setColumnFormatting(value);
-  };
-  const numericColumns = useMemo(
-    () => allColumns.filter(col => col.dataType === GenericDataType.Numeric),
-    [allColumns],
-  );
-  const defaultColorToken = colors[0]?.colors?.[0];
-
-  const visibleUseGradient = useMemo(
-    () =>
-      numericColumns.length > 0
-        ? numericColumns.some((col: ColumnOption) => col.value === column) &&
-          objectFormatting === ObjectFormattingEnum.BACKGROUND_COLOR
-        : false,
-    [column, numericColumns, objectFormatting],
-  );
 
   const handleObjectChange = (value: ObjectFormattingEnum) => {
-    setObjectFormatting(value);
-
     if (value === ObjectFormattingEnum.CELL_BAR) {
       const currentColumnValue = form.getFieldValue('columnFormatting');
 
@@ -627,7 +621,6 @@ export const FormattingPopoverContent = ({
         form.setFieldsValue({
           columnFormatting: newValue,
         });
-        setColumnFormatting(newValue);
       }
     }
   };
@@ -639,14 +632,6 @@ export const FormattingPopoverContent = ({
         : allColumns,
     [objectFormatting, numericColumns, allColumns],
   );
-
-  useEffect(() => {
-    if (column && !previousColumnType) {
-      setPreviousColumnType(
-        columns.find(item => item.value === column)?.dataType,
-      );
-    }
-  }, [column, columns, previousColumnType]);
 
   const trendColorsTooltip = (
     <div>
@@ -670,7 +655,7 @@ export const FormattingPopoverContent = ({
             name="column"
             label={t('Column')}
             rules={rulesRequired}
-            initialValue={columns[0]?.value}
+            initialValue={initialColumn}
           >
             <Select
               ariaLabel={t('Select column')}
@@ -686,12 +671,11 @@ export const FormattingPopoverContent = ({
             name="colorScheme"
             label={t('Color scheme')}
             rules={rulesRequired}
-            initialValue={defaultColorToken}
+            initialValue={config?.colorScheme ?? defaultColorToken}
             tooltip={extraColorChoices.length > 0 ? trendColorsTooltip : ''}
           >
             <ColorPickerControl
               ariaLabel={t('Color scheme')}
-              onChange={event => handleChange(event)}
               presets={[...colors, ...extraColorChoices]}
               resolveThemeTokens
               outputFormat="hex"
@@ -706,14 +690,11 @@ export const FormattingPopoverContent = ({
               name="columnFormatting"
               label={t('Formatting column')}
               rules={rulesRequired}
-              initialValue={columnFormatting}
+              initialValue={initialColumnFormatting}
             >
               <Select
                 ariaLabel={t('Select column name')}
                 options={getColumnOptions()}
-                onChange={(value: string | undefined) => {
-                  handleAllColumnChange(value as string);
-                }}
               />
             </FormItem>
           </Col>
@@ -722,7 +703,7 @@ export const FormattingPopoverContent = ({
               name="objectFormatting"
               label={t('Formatting object')}
               rules={rulesRequired}
-              initialValue={objectFormatting}
+              initialValue={initialObjectFormatting}
               tooltip={
                 objectFormatting === ObjectFormattingEnum.CELL_BAR
                   ? t(
@@ -748,12 +729,11 @@ export const FormattingPopoverContent = ({
             <FormItem
               name="useGradient"
               valuePropName="checked"
-              initialValue={useGradient}
+              initialValue={
+                config?.useGradient !== undefined ? config.useGradient : true
+              }
             >
-              <Checkbox
-                onChange={event => setUseGradient(event.target.checked)}
-                checked={useGradient}
-              />
+              <Checkbox />
             </FormItem>
           </Col>
           <Col>
@@ -764,11 +744,11 @@ export const FormattingPopoverContent = ({
       <FormItem noStyle shouldUpdate={shouldFormItemUpdate}>
         {showOperatorFields ? (
           (props: GetFieldValue) =>
-            renderOperatorFields(props, columnType, serverPagination)
+            renderOperatorFields(props, columnType, serverPagination, config)
         ) : (
           <Row gutter={12}>
             <Col span={6}>
-              {renderOperator({ showOnlyNone: true, columnType })}
+              {renderOperator({ showOnlyNone: true, columnType, config })}
             </Col>
           </Row>
         )}

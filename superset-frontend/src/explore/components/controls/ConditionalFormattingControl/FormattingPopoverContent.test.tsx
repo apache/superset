@@ -25,7 +25,12 @@ import {
   within,
 } from 'spec/helpers/testing-library';
 import tinycolor from 'tinycolor2';
-import { Comparator, ColorSchemeEnum } from '@superset-ui/chart-controls';
+import {
+  BoundUnit,
+  ColorSchemeEnum,
+  Comparator,
+  PercentDenominator,
+} from '@superset-ui/chart-controls';
 import { GenericDataType } from '@apache-superset/core/common';
 import { FormattingPopoverContent } from './FormattingPopoverContent';
 
@@ -1133,4 +1138,127 @@ test('disables the % of column option when serverPagination is true', async () =
   });
 
   expect(onChange.mock.calls[0][0].boundUnit).toBe('value');
+});
+
+test('keeps formatting values when the formatting block remounts', async () => {
+  const { rerender } = render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      allColumns={columns}
+    />,
+  );
+
+  const objectSelect = screen.getByLabelText('Select object name');
+  fireEvent.change(objectSelect, { target: { value: 'TEXT_COLOR' } });
+  fireEvent.click(await screen.findByTitle('text color'));
+
+  const columnSelect = screen.getByLabelText('Select column name');
+  fireEvent.change(columnSelect, { target: { value: 'column2' } });
+  fireEvent.click(await screen.findByTitle('Column 2'));
+
+  // Unmount the formatting block, then mount it again
+  rerender(
+    <FormattingPopoverContent onChange={mockOnChange} columns={columns} />,
+  );
+  expect(screen.queryByLabelText('Select object name')).not.toBeInTheDocument();
+  rerender(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      allColumns={columns}
+    />,
+  );
+
+  // The user's selections survive the remount instead of resetting to the
+  // initialValue
+  await waitFor(() => {
+    expect(
+      screen
+        .getByLabelText('Select object name')
+        .closest('.ant-select')
+        ?.querySelector('.ant-select-content'),
+    ).toHaveTextContent('text color');
+  });
+  await waitFor(() => {
+    expect(
+      screen
+        .getByLabelText('Select column name')
+        .closest('.ant-select')
+        ?.querySelector('.ant-select-content'),
+    ).toHaveTextContent('Column 2');
+  });
+});
+
+test('keeps the gradient selection when the gradient row remounts', async () => {
+  render(
+    <FormattingPopoverContent
+      onChange={mockOnChange}
+      columns={columns}
+      allColumns={columns}
+    />,
+  );
+
+  const gradientCheckbox = findUseGradientCheckbox();
+  fireEvent.click(gradientCheckbox);
+  expect(gradientCheckbox).not.toBeChecked();
+
+  const objectSelect = screen.getByLabelText('Select object name');
+  // Switch away from background color to unmount the gradient row
+  fireEvent.change(objectSelect, { target: { value: 'TEXT_COLOR' } });
+  fireEvent.click(await screen.findByTitle('text color'));
+  await waitFor(() => {
+    expect(screen.queryByText('Use gradient')).not.toBeInTheDocument();
+  });
+
+  // Switch back to remount the gradient row
+  fireEvent.change(objectSelect, { target: { value: 'BACKGROUND_COLOR' } });
+  fireEvent.click(await screen.findByTitle('background color'));
+
+  await waitFor(() => {
+    expect(findUseGradientCheckbox()).not.toBeChecked();
+  });
+});
+
+test('opens a saved rule with the stored operator, target value, bound unit, and percent denominator', async () => {
+  render(
+    <FormattingPopoverContent
+      config={{
+        column: 'column1',
+        operator: Comparator.GreaterThan,
+        targetValue: 5,
+        boundUnit: BoundUnit.Percent,
+        percentDenominator: PercentDenominator.Sum,
+      }}
+      columns={columns}
+      allColumns={columns}
+      onChange={mockOnChange}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(
+      screen
+        .getByLabelText('Operator')
+        .closest('.ant-select')
+        ?.querySelector('.ant-select-content'),
+    ).toHaveTextContent('>');
+  });
+  expect(screen.getByLabelText('Target value')).toHaveValue('5');
+  await waitFor(() => {
+    expect(
+      screen
+        .getByLabelText('Bound unit')
+        .closest('.ant-select')
+        ?.querySelector('.ant-select-content'),
+    ).toHaveTextContent('% of column');
+  });
+  await waitFor(() => {
+    expect(
+      screen
+        .getByLabelText('Percent denominator')
+        .closest('.ant-select')
+        ?.querySelector('.ant-select-content'),
+    ).toHaveTextContent('Column sum');
+  });
 });
