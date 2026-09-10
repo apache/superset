@@ -46,6 +46,7 @@ jest.mock('src/utils/getBootstrapData', () => ({
     user: {
       userId: 1,
       username: 'admin',
+      permissions: {},
       roles: {
         Admin: [['can_write', 'Theme']],
       },
@@ -201,6 +202,7 @@ beforeEach(() => {
 afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
   jest.clearAllMocks();
+  (isUserEditorOrAdmin as jest.Mock).mockReturnValue(false);
 });
 
 test('renders themes list with all theme names', async () => {
@@ -307,6 +309,11 @@ test('shows apply action button for all themes', async () => {
 });
 
 test('shows delete button only for non-system themes', async () => {
+  // The default user is an admin (and, for this assertion, also treated as
+  // an editor of every row), so this test isolates the is_system exclusion
+  // from the per-row editorship/admin gating covered separately below.
+  (isUserEditorOrAdmin as jest.Mock).mockReturnValue(true);
+
   render(
     <ThemesList
       user={mockUser}
@@ -326,6 +333,113 @@ test('shows delete button only for non-system themes', async () => {
   const deleteButtons = await screen.findAllByTestId('delete-action');
   // Should have delete buttons for Light Theme and Custom Theme (not Dark Theme which is system)
   expect(deleteButtons.length).toBe(2);
+});
+
+const nonAdminUser = {
+  userId: 5,
+  username: 'non_admin',
+  permissions: {},
+  roles: { Gamma: [['can_write', 'Theme']] },
+};
+
+test('hides the delete action for a non-editor, non-admin viewing a regular theme', async () => {
+  // TC-3: a non-editor, non-admin user must not see an enabled Delete
+  // action on a row they cannot manage, even though they have the blanket
+  // Theme:can_write permission (mocked via hasPerm above). isUserEditorOrAdmin
+  // keeps its default mocked return of false (not an editor of this row).
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+      initialState: { user: nonAdminUser },
+    },
+  );
+
+  await screen.findByText('Custom Theme');
+
+  // Custom Theme is a regular (non-system, non-default, non-dark) theme,
+  // so the only thing standing between this user and Delete is editorship.
+  expect(screen.queryAllByTestId('delete-action')).toHaveLength(0);
+  // The Edit action stays visible but read-only, matching the already-correct
+  // View toggle behavior for non-editors.
+  const editButtons = await screen.findAllByTestId('edit-action');
+  editButtons.forEach(button => {
+    expect(button).toHaveAttribute('aria-label', 'View');
+  });
+});
+
+test('hides the edit and delete actions for a non-admin editor on a system default/dark theme', async () => {
+  // TC-5: even a user who IS an editor of a system default/dark theme may
+  // not edit or delete it while it holds that slot — only an admin can,
+  // matching UpdateThemeCommand/DeleteThemeCommand server-side. Simulate
+  // "editor of this row" via the mocked isUserEditorOrAdmin, while the
+  // current user is not an admin.
+  (isUserEditorOrAdmin as jest.Mock).mockReturnValue(true);
+
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+      initialState: { user: nonAdminUser },
+    },
+  );
+
+  await screen.findByText('Custom Theme');
+
+  const editButtons = await screen.findAllByTestId('edit-action');
+  // Light Theme (row 0) is the system default theme.
+  expect(editButtons[0]).toHaveAttribute('aria-label', 'View');
+
+  // Only Custom Theme (a regular theme this user edits) should offer Delete;
+  // the system default theme (Light Theme) must not, despite this user
+  // being an editor of it.
+  const deleteButtons = await screen.findAllByTestId('delete-action');
+  expect(deleteButtons.length).toBe(1);
+});
+
+test('keeps delete and edit actions enabled for an editor on a regular theme', async () => {
+  // Positive case: an editor (non-admin) of a regular theme should still see
+  // fully enabled Edit and Delete actions for it, so the editorship fix
+  // above does not over-hide.
+  (isUserEditorOrAdmin as jest.Mock).mockReturnValue(true);
+
+  render(
+    <ThemesList
+      user={mockUser}
+      addDangerToast={jest.fn()}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      useQueryParams: true,
+      useTheme: true,
+      initialState: { user: nonAdminUser },
+    },
+  );
+
+  await screen.findByText('Custom Theme');
+
+  const editButtons = await screen.findAllByTestId('edit-action');
+  // Custom Theme is the third row.
+  expect(editButtons[2]).toHaveAttribute('aria-label', 'Edit');
+
+  const deleteButtons = await screen.findAllByTestId('delete-action');
+  expect(deleteButtons).toHaveLength(1);
 });
 
 test('shows set default action for non-default themes', async () => {

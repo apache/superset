@@ -58,7 +58,10 @@ import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
-import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
+import {
+  isUserAdmin,
+  isUserEditorOrAdmin,
+} from 'src/dashboard/util/permissionUtils';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   setSystemDefaultTheme,
@@ -528,24 +531,33 @@ function ThemesList({
           const handleApply = () => handleThemeApply(original);
           const handleExport = () => handleBulkThemeExport([original]);
 
-          // A user may edit a non-system theme only if they are an editor
-          // (or an admin), including editorship granted indirectly via
-          // EXTRA_EDITORS_RESOLVER. Everyone else gets a read-only view.
-          const allowEdit =
+          // A user may edit or delete a non-system theme only if they are an
+          // editor (or an admin), including editorship granted indirectly
+          // via EXTRA_EDITORS_RESOLVER. The active system default/dark theme
+          // slot may only be edited or deleted by an admin, even by a user
+          // who is otherwise an editor of that theme, matching the server's
+          // UpdateThemeCommand/DeleteThemeCommand checks. Everyone else gets
+          // a read-only view.
+          const isProtectedSystemTheme = Boolean(
+            original.is_system_default || original.is_system_dark,
+          );
+          const canManageTheme =
             !original.is_system &&
-            isUserEditorOrAdmin(
-              currentUser,
-              original.editors,
-              original.extra_editors,
-            );
+            (isProtectedSystemTheme
+              ? isUserAdmin(currentUser)
+              : isUserEditorOrAdmin(
+                  currentUser,
+                  original.editors,
+                  original.extra_editors,
+                ));
 
           const actions = [
             canEdit
               ? {
                   label: 'edit-action',
-                  tooltip: allowEdit ? t('Edit') : t('View'),
+                  tooltip: canManageTheme ? t('Edit') : t('View'),
                   placement: 'bottom',
-                  icon: allowEdit ? 'EditOutlined' : 'EyeOutlined',
+                  icon: canManageTheme ? 'EditOutlined' : 'EyeOutlined',
                   onClick: handleEdit,
                 }
               : null,
@@ -603,7 +615,7 @@ function ThemesList({
                   onClick: () => handleUnsetSystemDark(),
                 }
               : null,
-            canDelete && !original.is_system
+            canDelete && canManageTheme
               ? {
                   label: 'delete-action',
                   tooltip: t('Delete theme'),
