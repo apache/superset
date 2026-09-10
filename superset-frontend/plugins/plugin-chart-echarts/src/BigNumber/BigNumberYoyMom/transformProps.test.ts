@@ -235,6 +235,36 @@ describe('BigNumberYoyMom transformProps', () => {
     expect(graphic[2].style.text).toBe('MoM 80');
   });
 
+  test('reads snake_case form data keys exactly as Explore saves them', () => {
+    const result = transformProps(
+      buildChartProps(
+        [
+          {
+            'SUM(sales)': 100,
+            count: 80,
+            xx: -100000,
+          },
+        ],
+        {
+          comparison1_mode: 'metric',
+          comparison1_column: 'count',
+          comparison2_mode: 'metric',
+          comparison2_column: {
+            expressionType: 'SQL',
+            sqlExpression: 'MIN(monthly_sales_count-100000)',
+            label: 'xx',
+            hasCustomLabel: true,
+          },
+        },
+      ),
+    );
+    const graphic = result.echartOptions.graphic as Record<string, any>[];
+    // snake_case keys from the saved form data are picked up and both slots
+    // render their comparison values, not percentages.
+    expect(graphic[2].style.text).toBe('MoM 80');
+    expect(graphic[3].style.text).toBe('YoY -100000');
+  });
+
   test('time_shift mode wins over a leftover comparison column', () => {
     const result = transformProps(
       buildChartProps(

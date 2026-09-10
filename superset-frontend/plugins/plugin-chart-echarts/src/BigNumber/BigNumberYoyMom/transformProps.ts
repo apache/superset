@@ -70,6 +70,13 @@ const toNumber = (value: unknown): number | null => {
  * string, null, NaN) is treated as 0, so clearing the control or typing
  * invalid characters produces the same layout as an explicit 0.
  */
+/**
+ * 'comparison1Left' -> 'comparison1_left'. Form data keys follow the
+ * snake_case control names Explore saves; callers sometimes pass camelCase.
+ */
+const camelToSnake = (key: string): string =>
+  key.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+
 const normalizePosition = (value: unknown): number => {
   const parsed = Number(value);
   return Number.isNaN(parsed) ? 0 : parsed;
@@ -161,43 +168,68 @@ export default function transformProps(
       currencyCodeColumn,
     },
   } = chartProps;
-  const {
-    metric = 'value',
-    yAxisFormat,
-    currencyFormat,
-    headerText = '',
-    titleFontSize = DEFAULT_TITLE_FONT_SIZE,
-    titleColor = DEFAULT_TITLE_COLOR,
-    titleLeft = DEFAULT_TITLE_LEFT,
-    titleTop,
-    bigNumberFontSize = DEFAULT_BIG_NUMBER_FONT_SIZE,
-    bigNumberColor = DEFAULT_BIG_NUMBER_COLOR,
-    bigNumberLeft = DEFAULT_BIG_NUMBER_LEFT,
-    bigNumberTop,
-    showComparison1 = true,
-    comparison1Label = t(DEFAULT_COMPARISON1_LABEL),
-    comparison1Offset = DEFAULT_COMPARISON1_OFFSET,
-    comparison1Column,
-    comparison1PercentDifferenceFormat,
-    comparison1Left: legacyComparison1Left,
-    comparison1Mode,
-    showComparison2 = true,
-    comparison2Label = t(DEFAULT_COMPARISON2_LABEL),
-    comparison2Offset = DEFAULT_COMPARISON2_OFFSET,
-    comparison2Column,
-    comparison2PercentDifferenceFormat,
-    comparison2Left: legacyComparison2Left,
-    comparison2Mode,
-    comparisonGap = DEFAULT_COMPARISON_GAP,
-    swapComparisonOrder = false,
-    comparisonFontSize = DEFAULT_COMPARISON_FONT_SIZE,
-    comparisonTop,
-    comparisonPositiveColor = DEFAULT_COMPARISON_POSITIVE_COLOR,
-    comparisonNegativeColor = DEFAULT_COMPARISON_NEGATIVE_COLOR,
-    comparisonZeroColor = DEFAULT_COMPARISON_ZERO_COLOR,
-    percentDifferenceFormat = NumberFormats.PERCENT_2_POINT,
-    timeGrainSqla,
-  } = formData;
+  // Form data keys follow the snake_case control names that Explore saves.
+  // Tolerate camelCase too (older form data / direct callers) by falling
+  // back to the snake_case spelling when the camelCase key is absent.
+  const formDataRecord = formData as unknown as Record<string, unknown>;
+  const pick = <T,>(key: string): T | undefined =>
+    (formDataRecord[key] ?? formDataRecord[camelToSnake(key)]) as T | undefined;
+  const metric = pick<string>('metric') ?? 'value';
+  const yAxisFormat = pick<string>('yAxisFormat');
+  const currencyFormat = pick<Parameters<typeof getValueFormatter>[4]>(
+    'currencyFormat',
+  );
+  const headerText = pick<string>('headerText') ?? '';
+  const titleFontSize =
+    pick<number>('titleFontSize') ?? DEFAULT_TITLE_FONT_SIZE;
+  const titleColor = pick<RGBColor>('titleColor') ?? DEFAULT_TITLE_COLOR;
+  const titleLeft = pick<number>('titleLeft') ?? DEFAULT_TITLE_LEFT;
+  const titleTop = pick<number>('titleTop');
+  const bigNumberFontSize =
+    pick<number>('bigNumberFontSize') ?? DEFAULT_BIG_NUMBER_FONT_SIZE;
+  const bigNumberColor =
+    pick<RGBColor>('bigNumberColor') ?? DEFAULT_BIG_NUMBER_COLOR;
+  const bigNumberLeft =
+    pick<number>('bigNumberLeft') ?? DEFAULT_BIG_NUMBER_LEFT;
+  const bigNumberTop = pick<number>('bigNumberTop');
+  const showComparison1 = pick<boolean>('showComparison1') ?? true;
+  const comparison1Label =
+    pick<string>('comparison1Label') ?? t(DEFAULT_COMPARISON1_LABEL);
+  const comparison1Offset =
+    pick<string>('comparison1Offset') ?? DEFAULT_COMPARISON1_OFFSET;
+  const comparison1Column = pick<QueryFormMetric>('comparison1Column');
+  const comparison1PercentDifferenceFormat = pick<string>(
+    'comparison1PercentDifferenceFormat',
+  );
+  const legacyComparison1Left = pick<number>('comparison1Left');
+  const comparison1Mode = pick<'time_shift' | 'metric'>('comparison1Mode');
+  const showComparison2 = pick<boolean>('showComparison2') ?? true;
+  const comparison2Label =
+    pick<string>('comparison2Label') ?? t(DEFAULT_COMPARISON2_LABEL);
+  const comparison2Offset =
+    pick<string>('comparison2Offset') ?? DEFAULT_COMPARISON2_OFFSET;
+  const comparison2Column = pick<QueryFormMetric>('comparison2Column');
+  const comparison2PercentDifferenceFormat = pick<string>(
+    'comparison2PercentDifferenceFormat',
+  );
+  const legacyComparison2Left = pick<number>('comparison2Left');
+  const comparison2Mode = pick<'time_shift' | 'metric'>('comparison2Mode');
+  const comparisonGap = pick<number>('comparisonGap') ?? DEFAULT_COMPARISON_GAP;
+  const swapComparisonOrder = pick<boolean>('swapComparisonOrder') ?? false;
+  const comparisonFontSize =
+    pick<number>('comparisonFontSize') ?? DEFAULT_COMPARISON_FONT_SIZE;
+  const comparisonTop = pick<number>('comparisonTop');
+  const comparisonPositiveColor =
+    pick<RGBColor>('comparisonPositiveColor') ??
+    DEFAULT_COMPARISON_POSITIVE_COLOR;
+  const comparisonNegativeColor =
+    pick<RGBColor>('comparisonNegativeColor') ??
+    DEFAULT_COMPARISON_NEGATIVE_COLOR;
+  const comparisonZeroColor =
+    pick<RGBColor>('comparisonZeroColor') ?? DEFAULT_COMPARISON_ZERO_COLOR;
+  const percentDifferenceFormat =
+    pick<string>('percentDifferenceFormat') ?? NumberFormats.PERCENT_2_POINT;
+  const timeGrainSqla = pick<string>('timeGrainSqla');
 
   const { data = [], detected_currency: detectedCurrency } =
     queriesData[0] || {};
