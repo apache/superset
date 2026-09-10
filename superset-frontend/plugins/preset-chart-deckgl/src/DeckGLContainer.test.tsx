@@ -34,10 +34,12 @@ jest.mock('react-map-gl/maplibre', () => ({
     children,
     mapStyle,
     onMove,
+    onIdle,
   }: {
     children: ReactNode;
     mapStyle: unknown;
     onMove: (evt: { viewState: Record<string, number> }) => void;
+    onIdle: () => void;
   }) => (
     <div data-test="maplibre-map" data-map-style={JSON.stringify(mapStyle)}>
       <button
@@ -48,14 +50,24 @@ jest.mock('react-map-gl/maplibre', () => ({
           onMove({ viewState: { longitude: 1, latitude: 2, zoom: 3 } })
         }
       />
+      <button type="button" aria-label="idle map" onClick={onIdle} />
       {children}
     </div>
   ),
 }));
 
 jest.mock('react-map-gl/mapbox', () => ({
-  Map: ({ children, mapStyle }: { children: ReactNode; mapStyle: unknown }) => (
+  Map: ({
+    children,
+    mapStyle,
+    onIdle,
+  }: {
+    children: ReactNode;
+    mapStyle: unknown;
+    onIdle: () => void;
+  }) => (
     <div data-test="mapbox-map" data-map-style={JSON.stringify(mapStyle)}>
+      <button type="button" aria-label="idle map" onClick={onIdle} />
       {children}
     </div>
   ),
@@ -178,6 +190,20 @@ test('DeckGLContainer supports layer factories for MapLibre overlays', () => {
     'data-layers-count',
     '1',
   );
+});
+
+test('DeckGLContainer marks map pixels ready only after the map becomes idle', () => {
+  renderContainer({ mapProvider: 'maplibre' });
+
+  const mapHost = screen.getByTestId('maplibre-map').parentElement;
+  expect(mapHost).toHaveClass('deckgl-map-host');
+  expect(mapHost).not.toHaveClass('deckgl-map-render-finished');
+
+  fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
+  expect(mapHost).toHaveClass('deckgl-map-render-finished');
+
+  fireEvent.click(screen.getByRole('button', { name: 'move map' }));
+  expect(mapHost).not.toHaveClass('deckgl-map-render-finished');
 });
 
 test('DeckGLContainer updates viewport controls after map movement is throttled', () => {

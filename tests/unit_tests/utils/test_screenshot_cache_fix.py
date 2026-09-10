@@ -31,6 +31,7 @@ from superset.exceptions import LockAlreadyHeldException
 from superset.utils.screenshots import (
     BaseScreenshot,
     ScreenshotCachePayload,
+    ScreenshotCacheWriteError,
     StatusValues,
 )
 
@@ -59,6 +60,16 @@ class MockCache:
     def clear(self):
         """Clear all cached values."""
         self._cache.clear()
+
+
+class RejectImageCache(MockCache):
+    """Simulate a backend that rejects only oversized image payloads."""
+
+    def set(self, key, value):
+        if value.get("image") is not None:
+            return False
+        self._cache[key] = value
+        return True
 
 
 @pytest.fixture
@@ -256,6 +267,44 @@ class TestCacheOnlyOnSuccess:
         cached_value = BaseScreenshot.cache.get(cache_key)
         assert cached_value is not None
         assert cached_value["status"] == "Updated"
+
+    def test_rejected_image_write_replaces_computing_with_error(
+        self,
+        mocker: MockerFixture,
+        screenshot_obj: BaseScreenshot,
+        mock_user: MagicMock,
+    ) -> None:
+        """A Memcached-style False result must become an image-free Error."""
+
+        mocker.patch(DISTRIBUTED_LOCK_PATH)
+        mocker.patch(BASE_SCREENSHOT_PATH + ".get_from_cache_key", return_value=None)
+        mocker.patch(
+            BASE_SCREENSHOT_PATH + ".get_screenshot",
+            return_value=FAKE_PNG_BYTES,
+        )
+        mocker.patch(
+            BASE_SCREENSHOT_PATH + ".resize_image",
+            return_value=FAKE_PNG_BYTES,
+        )
+        BaseScreenshot.cache = RejectImageCache()
+
+        with pytest.raises(ScreenshotCacheWriteError, match="persist Updated"):
+            screenshot_obj.compute_and_cache(user=mock_user, force=True)
+
+        cache_key = screenshot_obj.get_cache_key()
+        cached_value = BaseScreenshot.cache.get(cache_key)
+        assert cached_value is not None
+        assert cached_value["status"] == "Error"
+        assert cached_value["image"] is None
+
+
+def test_error_state_discards_an_existing_image() -> None:
+    payload = ScreenshotCachePayload(image=FAKE_PNG_BYTES)
+
+    payload.error()
+
+    assert payload.get_status() == "Error"
+    assert payload.to_dict()["image"] is None
 
 
 class TestShouldTriggerTask:

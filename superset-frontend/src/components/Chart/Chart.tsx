@@ -529,6 +529,7 @@ function Chart({
     <ErrorBoundary onError={handleRenderContainerFailure} showMessage={false}>
       <Styles
         data-ui-anchor="chart"
+        data-chart-status={chartStatus}
         className="chart-container"
         data-test="chart-container"
         height={height}

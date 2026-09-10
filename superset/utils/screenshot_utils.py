@@ -278,6 +278,7 @@ LOADING_SELECTOR = r".loading"
 ALERT_SELECTOR = r'[role="alert"]'
 EMPTY_SELECTOR = r".ant-empty, .ag-overlay-no-rows-wrapper:not(.ag-hidden)"
 MISSING_CHART_SELECTOR = r".missing-chart-container"
+CHART_RENDERED_SELECTOR = r'.chart-container[data-chart-status="rendered"]'
 CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS = f"""clip => {{
     const holders = Array.from(
         document.querySelectorAll('{CHART_HOLDER_SELECTOR}')
@@ -297,12 +298,11 @@ CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS = f"""clip => {{
     }}).length;
     return {{total: holders.length, contentful}};
 }}"""
-TERMINAL_MARKER_SELECTOR = (
-    f"{SLICE_CONTAINER_SELECTOR}, {ALERT_SELECTOR}, {EMPTY_SELECTOR}, "
-    f"{MISSING_CHART_SELECTOR}"
-)
 CHART_ID_CLASS_PATTERN = r"\bdashboard-chart-id-(\d+)\b"
 
+# Renderer completion markers. The shared ``data-chart-status`` attribute is
+# driven by the existing chart reducer and becomes ``rendered`` only after the
+# lazy plugin module has loaded and SuperChart's render-success callback fires.
 # ECharts paint marker. The frontend
 # (plugins/plugin-chart-echarts/src/components/Echart.tsx) tags the canvas host
 # ``.echarts-host`` and adds ``.echarts-render-finished`` only in the ECharts
@@ -310,11 +310,10 @@ CHART_ID_CLASS_PATTERN = r"\bdashboard-chart-id-(\d+)\b"
 # ``.slice_container`` alone is a pre-paint signal (it mounts when data arrives,
 # before the canvas is drawn; chartStatus/onRenderSuccess fire pre-paint too), so
 # a holder that still contains an unpainted host is treated as not-yet-rendered and
-# the report screenshot waits for it instead of capturing a blank chart. Only
-# ECharts hosts are gated; DOM/SVG vizzes paint on commit and non-ECharts canvas
-# vizzes (deck.gl/mapbox/etc.) have no ``.echarts-host`` so they are unaffected.
+# the report screenshot waits for it instead of capturing a blank chart.
 ECHARTS_UNPAINTED_HOST_SELECTOR = r".echarts-host:not(.echarts-render-finished)"
 AG_GRID_HOST_SELECTOR = r'[data-themed-ag-grid="true"]'
+DECKGL_UNPAINTED_HOST_SELECTOR = r".deckgl-map-host:not(.deckgl-map-render-finished)"
 CHART_ERROR_OR_EMPTY_SELECTOR = (
     f"{ALERT_SELECTOR}, {EMPTY_SELECTOR}, {MISSING_CHART_SELECTOR}"
 )
@@ -369,8 +368,14 @@ def _unready_chart_holders_js_body(*, viewport_only: bool) -> str:
         const hasErrorOrEmpty = holder.querySelector(
             '{CHART_ERROR_OR_EMPTY_SELECTOR}'
         ) !== null;
+        const hasRenderedChart = holder.querySelector(
+            '{CHART_RENDERED_SELECTOR}'
+        ) !== null;
         const hasUnpaintedEchart = holder.querySelector(
             '{ECHARTS_UNPAINTED_HOST_SELECTOR}'
+        ) !== null;
+        const hasUnpaintedDeckGl = holder.querySelector(
+            '{DECKGL_UNPAINTED_HOST_SELECTOR}'
         ) !== null;
         const agGrids = Array.from(holder.querySelectorAll(
             '{AG_GRID_HOST_SELECTOR}'
@@ -383,11 +388,13 @@ def _unready_chart_holders_js_body(*, viewport_only: bool) -> str:
         }});
         const hasUnpaintedAgGrid = unpaintedAgGrids.length > 0;
         // Ready = a settled error/empty/missing state, or a slice container
-        // whose renderer has painted. ECharts and AG Grid expose explicit
-        // completion signals; keep either host unready until its signal fires.
+        // whose plugin loaded and rendered. Canvas/grid/map renderers expose
+        // additional paint signals; keep their hosts unready until those fire.
         const isReady = !stillLoading && (
             hasErrorOrEmpty || (
-                hasSliceContainer && !hasUnpaintedEchart && !hasUnpaintedAgGrid
+                hasSliceContainer && hasRenderedChart
+                && !hasUnpaintedEchart && !hasUnpaintedAgGrid
+                && !hasUnpaintedDeckGl
             )
         );
         if (!isReady) {{
@@ -398,10 +405,14 @@ def _unready_chart_holders_js_body(*, viewport_only: bool) -> str:
                 state = 'spinner_mounted';
             }} else if (stillLoading) {{
                 state = 'waiting_on_database';
+            }} else if (hasSliceContainer && !hasRenderedChart) {{
+                state = 'plugin_loading';
             }} else if (hasSliceContainer && hasUnpaintedEchart) {{
                 state = 'mounted_unpainted';
             }} else if (hasSliceContainer && hasUnpaintedAgGrid) {{
                 state = 'ag_grid_unpainted';
+            }} else if (hasSliceContainer && hasUnpaintedDeckGl) {{
+                state = 'deckgl_map_unpainted';
             }} else {{
                 state = 'nothing_mounted';
             }}
@@ -438,10 +449,16 @@ FIND_CHART_HOLDER_STATES_JS = f"""
         const hasSliceContainer = holder.querySelector(
             '{SLICE_CONTAINER_SELECTOR}'
         ) !== null;
+        const hasRenderedChart = holder.querySelector(
+            '{CHART_RENDERED_SELECTOR}'
+        ) !== null;
         const stillLoading = holder.querySelector('{LOADING_SELECTOR}') !== null;
         const hasUnpaintedAgGrid = Array.from(holder.querySelectorAll(
             '{AG_GRID_HOST_SELECTOR}'
         )).some(grid => grid._agGridFirstDataRendered !== true);
+        const hasUnpaintedDeckGl = holder.querySelector(
+            '{DECKGL_UNPAINTED_HOST_SELECTOR}'
+        ) !== null;
         if (stillLoading && hasSliceContainer) {{
             return {{ chartId, state: 'spinner_mounted', agGridWaitObserved }};
         }}
@@ -456,6 +473,9 @@ FIND_CHART_HOLDER_STATES_JS = f"""
         ) !== null) {{
             return {{ chartId, state: 'empty', agGridWaitObserved }};
         }}
+        if (hasSliceContainer && !hasRenderedChart) {{
+            return {{ chartId, state: 'plugin_loading', agGridWaitObserved }};
+        }}
         if (hasSliceContainer && holder.querySelector(
             '{ECHARTS_UNPAINTED_HOST_SELECTOR}'
         ) !== null) {{
@@ -464,7 +484,10 @@ FIND_CHART_HOLDER_STATES_JS = f"""
         if (hasSliceContainer && hasUnpaintedAgGrid) {{
             return {{ chartId, state: 'ag_grid_unpainted', agGridWaitObserved }};
         }}
-        if (hasSliceContainer) {{
+        if (hasSliceContainer && hasUnpaintedDeckGl) {{
+            return {{ chartId, state: 'deckgl_map_unpainted', agGridWaitObserved }};
+        }}
+        if (hasSliceContainer && hasRenderedChart) {{
             return {{ chartId, state: 'rendered', agGridWaitObserved }};
         }}
         return {{ chartId, state: 'nothing_mounted', agGridWaitObserved }};
@@ -540,14 +563,16 @@ CHART_CONTAINER_READY_JS = f"""
     const chart = document.querySelector('.chart-container');
     return chart !== null
         && chart.querySelector('{LOADING_SELECTOR}') === null
-        && chart.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null
         && (
             chart.querySelector('{CHART_ERROR_OR_EMPTY_SELECTOR}') !== null
             || (
-                chart.querySelector('{ECHARTS_UNPAINTED_HOST_SELECTOR}') === null
+                chart.getAttribute('data-chart-status') === 'rendered'
+                && chart.querySelector('{SLICE_CONTAINER_SELECTOR}') !== null
+                && chart.querySelector('{ECHARTS_UNPAINTED_HOST_SELECTOR}') === null
                 && !Array.from(
                     chart.querySelectorAll('{AG_GRID_HOST_SELECTOR}')
                 ).some(grid => grid._agGridFirstDataRendered !== true)
+                && chart.querySelector('{DECKGL_UNPAINTED_HOST_SELECTOR}') === null
             )
         );
 }}
@@ -596,6 +621,9 @@ CHART_CONTAINER_STATE_JS = f"""
     if (chart.querySelector('{CHART_ERROR_OR_EMPTY_SELECTOR}') !== null) {{
         return 'terminal';
     }}
+    if (chart.getAttribute('data-chart-status') !== 'rendered') {{
+        return 'plugin_loading';
+    }}
     if (chart.querySelector('{ECHARTS_UNPAINTED_HOST_SELECTOR}') !== null) {{
         return 'mounted_unpainted';
     }}
@@ -604,7 +632,10 @@ CHART_CONTAINER_STATE_JS = f"""
     )) {{
         return 'ag_grid_unpainted';
     }}
-    if (chart.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null) {{
+    if (chart.querySelector('{DECKGL_UNPAINTED_HOST_SELECTOR}') !== null) {{
+        return 'deckgl_map_unpainted';
+    }}
+    if (chart.querySelector('{SLICE_CONTAINER_SELECTOR}') !== null) {{
         return 'terminal';
     }}
     return 'mounted_pre_terminal';
@@ -616,6 +647,7 @@ CHART_CONTAINER_HAS_RENDERED_CONTENT_JS = f"""
     const chart = document.querySelector('.chart-container');
     return chart !== null
         && chart.querySelector('{CHART_ERROR_OR_EMPTY_SELECTOR}') === null
+        && chart.getAttribute('data-chart-status') === 'rendered'
         && chart.querySelector('{SLICE_CONTAINER_SELECTOR}') !== null;
 }}
 """
@@ -624,7 +656,9 @@ REPORT_HAS_RENDERED_CHART_HOLDERS_JS = f"""
 () => Array.from(document.querySelectorAll('{CHART_HOLDER_SELECTOR}')).some(
     holder => holder.querySelector(
         '{CHART_ERROR_OR_EMPTY_SELECTOR}'
-    ) === null && holder.querySelector('{SLICE_CONTAINER_SELECTOR}') !== null
+    ) === null
+        && holder.querySelector('{CHART_RENDERED_SELECTOR}') !== null
+        && holder.querySelector('{SLICE_CONTAINER_SELECTOR}') !== null
 )
 """
 

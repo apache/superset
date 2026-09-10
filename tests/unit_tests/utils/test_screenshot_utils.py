@@ -1941,6 +1941,56 @@ def test_readiness_predicates_gate_on_unpainted_echarts_hosts() -> None:
     assert "mounted_unpainted" in FIND_CHART_HOLDER_STATES_JS
 
 
+def test_readiness_predicates_require_generic_plugin_render_completion() -> None:
+    """A mounted slice shell is not ready while its lazy plugin is loading."""
+    from superset.utils.screenshot_utils import (
+        CHART_CONTAINER_READY_JS,
+        CHART_HOLDERS_READY_JS,
+        CHART_RENDERED_SELECTOR,
+        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
+        FIND_CHART_HOLDER_STATES_JS,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+    )
+
+    assert CHART_RENDERED_SELECTOR == ('.chart-container[data-chart-status="rendered"]')
+    for predicate in (
+        CHART_HOLDERS_READY_JS,
+        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+    ):
+        assert CHART_RENDERED_SELECTOR in predicate
+    assert "data-chart-status" in CHART_CONTAINER_READY_JS
+    assert "plugin_loading" in FIND_CHART_HOLDER_STATES_JS
+
+
+def test_readiness_predicates_gate_on_deckgl_map_idle() -> None:
+    """DeckGL captures wait for Mapbox/MapLibre styles and tiles to settle."""
+    from superset.utils.screenshot_utils import (
+        CHART_CONTAINER_READY_JS,
+        CHART_HOLDERS_READY_JS,
+        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
+        DECKGL_UNPAINTED_HOST_SELECTOR,
+        FIND_CHART_HOLDER_STATES_JS,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+    )
+
+    assert DECKGL_UNPAINTED_HOST_SELECTOR == (
+        ".deckgl-map-host:not(.deckgl-map-render-finished)"
+    )
+    for predicate in (
+        CHART_HOLDERS_READY_JS,
+        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+        CHART_CONTAINER_READY_JS,
+    ):
+        assert DECKGL_UNPAINTED_HOST_SELECTOR in predicate
+    assert "deckgl_map_unpainted" in FIND_CHART_HOLDER_STATES_JS
+
+
 def test_readiness_predicates_gate_on_unpainted_ag_grid_hosts() -> None:
     """Report readiness follows the AG Grid first-data-rendered contract used
     by the frontend image export path, rather than accepting its mounted shell."""

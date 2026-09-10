@@ -1923,6 +1923,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
+            503:
+              description: Screenshot cache unavailable
         """
         if is_feature_enabled(
             "GRANULAR_EXPORT_CONTROLS"
@@ -1951,17 +1953,20 @@ class DashboardRestApi(
 
         # if the permalink key is provided, dashboard_state will be ignored
         # else, create a permalink key from the dashboard_state
-        permalink_key = payload.get("permalinkKey", None)
-        if permalink_key:
-            if error_response := self._validate_permalink_for_dashboard(
+        permalink_key = payload.get("permalinkKey")
+        if permalink_key and (
+            error_response := self._validate_permalink_for_dashboard(
                 permalink_key, dashboard
-            ):
-                return error_response
-        else:
-            permalink_key = CreateDashboardPermalinkCommand(
+            )
+        ):
+            return error_response
+        permalink_key = (
+            permalink_key
+            or CreateDashboardPermalinkCommand(
                 dashboard_id=str(dashboard.id),
                 state=dashboard_state,
             ).run()
+        )
 
         dashboard_url = get_url_path("Superset.dashboard_permalink", key=permalink_key)
         screenshot_obj = DashboardScreenshot(dashboard_url, dashboard.digest)
@@ -1989,7 +1994,16 @@ class DashboardRestApi(
             logger.info("Triggering screenshot ASYNC")
             cache_payload.pending()
             cache_payload.set_scope(cache_scope)
-            screenshot_obj.cache.set(cache_key, cache_payload.to_dict())
+            if not screenshot_obj.store_cache_payload(cache_key, cache_payload):
+                logger.error(
+                    "Refusing to enqueue dashboard screenshot because Pending "
+                    "state could not be cached: %s",
+                    cache_key,
+                )
+                return self.response(
+                    503,
+                    message=gettext("Screenshot cache is unavailable"),
+                )
             try:
                 cache_dashboard_screenshot.delay(
                     username=get_current_user(),
@@ -2010,7 +2024,12 @@ class DashboardRestApi(
                 )
             except Exception:  # pylint: disable=broad-except
                 cache_payload.error()
-                screenshot_obj.cache.set(cache_key, cache_payload.to_dict())
+                if not screenshot_obj.store_cache_payload(cache_key, cache_payload):
+                    logger.error(
+                        "Could not persist dashboard screenshot Error state "
+                        "after enqueue failure: %s",
+                        cache_key,
+                    )
                 raise
             return build_response(202)
         return build_response(202 if cache_payload.is_in_progress() else 200)

@@ -68,6 +68,7 @@ export const DeckGLContainer = memo(
   forwardRef((props: DeckGLContainerProps, ref) => {
     const [tooltip, setTooltip] = useState<TooltipProps['tooltip']>(null);
     const [lastUpdate, setLastUpdate] = useState<number | null>(null);
+    const [mapRenderComplete, setMapRenderComplete] = useState(false);
     const [viewState, setViewState] = useState(props.viewport);
     const prevViewport = usePrevious(props.viewport);
 
@@ -91,13 +92,23 @@ export const DeckGLContainer = memo(
 
     useEffect(() => {
       if (!isEqual(props.viewport, prevViewport)) {
+        setMapRenderComplete(false);
         setViewState(props.viewport);
       }
     }, [prevViewport, props.viewport]);
 
+    useEffect(() => {
+      setMapRenderComplete(false);
+    }, [props.mapProvider, props.mapStyle]);
+
     const onMove = useCallback((evt: { viewState: JsonObject }) => {
+      setMapRenderComplete(false);
       setViewState(evt.viewState as Viewport);
       setLastUpdate(Date.now());
+    }, []);
+
+    const onMapIdle = useCallback(() => {
+      setMapRenderComplete(true);
     }, []);
 
     const layers = useCallback(() => {
@@ -160,6 +171,9 @@ export const DeckGLContainer = memo(
     return (
       <>
         <div
+          className={`deckgl-map-host${
+            mapRenderComplete ? ' deckgl-map-render-finished' : ''
+          }`}
           style={{ position: 'relative', width, height }}
           onContextMenu={(e: MouseEvent<HTMLDivElement>) => {
             e.preventDefault();
@@ -170,6 +184,7 @@ export const DeckGLContainer = memo(
             <MapboxMap
               {...viewState}
               onMove={onMove}
+              onIdle={onMapIdle}
               mapStyle={mapStyle}
               style={{ width, height }}
             >
@@ -179,6 +194,7 @@ export const DeckGLContainer = memo(
             <MapLibreMap
               {...viewState}
               onMove={onMove}
+              onIdle={onMapIdle}
               mapStyle={mapStyle}
               style={{ width, height }}
             >

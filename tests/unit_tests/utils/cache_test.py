@@ -228,6 +228,31 @@ def test_set_and_log_cache_returns_persistence_outcome(mocker: MockerFixture) ->
     assert set_and_log_cache(reports_none, "k", {"df": "small"}) is True
 
 
+def test_set_cache_value_reports_backend_outcomes(mocker: MockerFixture) -> None:
+    """The shared primitive handles NullCache, False, None, and exceptions."""
+    from flask_caching.backends import NullCache
+
+    from superset.utils.cache import set_cache_value
+
+    cache_instance = _make_cache_instance(mocker)
+    cache_instance.set.return_value = True
+    assert set_cache_value(cache_instance, "k", {"value": 1}) is True
+
+    cache_instance.set.return_value = None
+    assert set_cache_value(cache_instance, "k", {"value": 1}) is True
+
+    cache_instance.set.return_value = False
+    assert set_cache_value(cache_instance, "k", {"value": 1}) is False
+
+    cache_instance.set.side_effect = RuntimeError("backend down")
+    assert set_cache_value(cache_instance, "k", {"value": 1}) is False
+
+    null_instance = mocker.MagicMock()
+    null_instance.cache = NullCache()
+    assert set_cache_value(null_instance, "k", {"value": 1}) is False
+    null_instance.set.assert_not_called()
+
+
 def test_set_and_log_cache_over_threshold(mocker: MockerFixture) -> None:
     """A value exceeding DATA_CACHE_MAX_VALUE_SIZE is not cached."""
     from superset.utils.cache import set_and_log_cache

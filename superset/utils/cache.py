@@ -39,6 +39,56 @@ from superset.utils.json import json_int_dttm_ser
 logger = logging.getLogger(__name__)
 
 
+def is_cache_configured(cache_instance: Cache | None) -> bool:
+    """Return whether a Flask-Caching instance has a configured backend."""
+
+    if cache_instance is None:
+        return False
+    try:
+        return not isinstance(cache_instance.cache, NullCache)
+    except AttributeError:
+        # A few lightweight test doubles expose only get/set. Treat those as
+        # configured so the persistence result still comes from set().
+        return True
+
+
+def set_cache_value(
+    cache_instance: Cache | None,
+    cache_key: str,
+    cache_value: Any,
+    cache_timeout: int | None = None,
+) -> bool:
+    """Persist a cache value and report silent as well as raised failures.
+
+    Flask-Caching backends may return ``False`` instead of raising when a
+    value is rejected (for example, an oversized Memcached item). Backends
+    that return ``None`` provide no status and are treated as successful.
+    """
+
+    if cache_instance is None or not is_cache_configured(cache_instance):
+        logger.warning("Cache backend is not configured for key %s", cache_key)
+        return False
+
+    try:
+        result = (
+            cache_instance.set(cache_key, cache_value)
+            if cache_timeout is None
+            else cache_instance.set(
+                cache_key,
+                cache_value,
+                timeout=cache_timeout,
+            )
+        )
+        if result is False:
+            logger.warning("Cache backend reported a failed set for key %s", cache_key)
+            return False
+        return True
+    except Exception as ex:  # pylint: disable=broad-except
+        logger.warning("Could not cache key %s", cache_key)
+        logger.exception(ex)
+        return False
+
+
 def generate_cache_key(values_dict: dict[str, Any], key_prefix: str = "") -> str:
     hash_str = hash_from_dict(values_dict, default=json_int_dttm_ser)
     cache_key = f"{key_prefix}{hash_str}"
@@ -70,19 +120,20 @@ def set_and_log_cache(
         gate on this, since a silent skip would otherwise let a follow-up read
         serve a stale value.
     """
-    if isinstance(cache_instance.cache, NullCache):
+    if not is_cache_configured(cache_instance):
         return False
 
-    timeout = (
-        cache_timeout
-        if cache_timeout is not None
-        else app.config["CACHE_DEFAULT_TIMEOUT"]
-    )
-
-    # Skip caching if timeout is CACHE_DISABLED_TIMEOUT (no caching requested)
-    if timeout == CACHE_DISABLED_TIMEOUT:
-        return False
     try:
+        timeout = (
+            cache_timeout
+            if cache_timeout is not None
+            else app.config["CACHE_DEFAULT_TIMEOUT"]
+        )
+
+        # Skip caching if timeout is CACHE_DISABLED_TIMEOUT (no caching requested)
+        if timeout == CACHE_DISABLED_TIMEOUT:
+            return False
+
         dttm: str = (
             datetime.now(timezone.utc).replace(tzinfo=None).isoformat().split(".")[0]
         )
@@ -107,13 +158,7 @@ def set_and_log_cache(
                 app.config["STATS_LOGGER"].incr("skip_cache_value_too_large")
                 return False
 
-        # Flask-Caching's set() returns bool | None: cachelib backends can report
-        # a failed write by returning False without raising, while some backends
-        # return None (no status). Treat an explicit False as failure so callers
-        # that gate on persistence (the forced-refresh marker) don't claim a write
-        # that never landed; treat None as success.
-        if cache_instance.set(cache_key, value, timeout=timeout) is False:
-            logger.warning("Cache backend reported a failed set for key %s", cache_key)
+        if not set_cache_value(cache_instance, cache_key, value, timeout):
             return False
         stats_logger = app.config["STATS_LOGGER"]
         stats_logger.incr("set_cache_key")
@@ -135,8 +180,6 @@ def set_and_log_cache(
             db.session.add(ck)
         return True
     except Exception as ex:  # pylint: disable=broad-except
-        # cache.set call can fail if the backend is down or if
-        # the key is too large or whatever other reasons
         logger.warning("Could not cache key %s", cache_key)
         logger.exception(ex)
         return False

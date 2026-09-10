@@ -32,6 +32,7 @@ from superset.exceptions import (
     ScreenshotImageNotAvailableException,
 )
 from superset.extensions import event_logger
+from superset.utils.cache import set_cache_value
 from superset.utils.hashing import hash_from_dict
 from superset.utils.report_execution import ReportExecutionContext
 from superset.utils.urls import modify_url_query
@@ -67,6 +68,10 @@ class StatusValues(Enum):
     COMPUTING = "Computing"
     UPDATED = "Updated"
     ERROR = "Error"
+
+
+class ScreenshotCacheWriteError(RuntimeError):
+    """Raised when a screenshot state cannot be persisted."""
 
 
 class ScreenshotCachePayloadType(TypedDict):
@@ -165,6 +170,7 @@ class ScreenshotCachePayload:
         self,
     ) -> None:
         self.update_timestamp()
+        self._image = None
         self.status = StatusValues.ERROR
 
     def get_image(self) -> BytesIO:
@@ -357,6 +363,43 @@ class BaseScreenshot:
         logger.info("Failed at getting from cache: %s", cache_key)
         return None
 
+    @classmethod
+    def store_cache_payload(
+        cls,
+        cache_key: str,
+        cache_payload: ScreenshotCachePayload,
+    ) -> bool:
+        """Persist screenshot state and report backend write failures."""
+
+        return set_cache_value(cls.cache, cache_key, cache_payload.to_dict())
+
+    @classmethod
+    def _store_cache_payload_or_raise(
+        cls,
+        cache_key: str,
+        cache_payload: ScreenshotCachePayload,
+        *,
+        replace_rejected_image_with_error: bool = False,
+    ) -> None:
+        """Persist screenshot state, optionally replacing a rejected image."""
+
+        if cls.store_cache_payload(cache_key, cache_payload):
+            return
+        failed_status = cache_payload.get_status()
+        if (
+            replace_rejected_image_with_error
+            and cache_payload.status == StatusValues.UPDATED
+        ):
+            # A backend may reject only the image-bearing payload (for example
+            # Memcached's item-size limit). Replace it with a small terminal
+            # state so API polling observes a truthful Error instead of stale
+            # Computing forever.
+            cache_payload.error()
+            cls.store_cache_payload(cache_key, cache_payload)
+        raise ScreenshotCacheWriteError(
+            f"Could not persist {failed_status} state for {cache_key}"
+        )
+
     def compute_and_cache(  # pylint: disable=too-many-arguments
         self,
         force: bool,
@@ -399,7 +442,7 @@ class BaseScreenshot:
                 logger.info("Processing url for thumbnail: %s", cache_key)
                 cache_payload.set_scope(self.cache_scope)
                 cache_payload.computing()
-                self.cache.set(cache_key, cache_payload.to_dict())
+                self._store_cache_payload_or_raise(cache_key, cache_payload)
                 image = None
                 # Assuming all sorts of things can go wrong with Selenium
                 try:
@@ -464,7 +507,11 @@ class BaseScreenshot:
                         cache_payload.error()
 
                 logger.info("Caching thumbnail: %s", cache_key)
-                self.cache.set(cache_key, cache_payload.to_dict())
+                self._store_cache_payload_or_raise(
+                    cache_key,
+                    cache_payload,
+                    replace_rejected_image_with_error=True,
+                )
                 logger.info(
                     "Updated thumbnail cache for %s; Status: %s",
                     cache_key,
