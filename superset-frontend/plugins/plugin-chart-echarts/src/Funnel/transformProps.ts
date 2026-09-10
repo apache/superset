@@ -50,9 +50,12 @@ import { resolveLegendLayout } from '../utils/legendLayout';
 import { defaultGrid } from '../defaults';
 import { DEFAULT_LEGEND_FORM_DATA, OpacityEnum } from '../constants';
 import { getDefaultTooltip } from '../utils/tooltip';
-import { Refs } from '../types';
+import { LegendOrientation, Refs } from '../types';
 
 const percentFormatter = getNumberFormatter(NumberFormats.PERCENT_2_POINT);
+
+// horizontal funnel legends need a taller default height than the regular default of 20.
+const DEFAULT_HORIZONTAL_LEGEND_MARGIN = 40;
 
 export function parseParams({
   params,
@@ -244,11 +247,19 @@ export default function transformProps(
     if (!legendSort) return 0;
     return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
   });
+  const isHorizontalLegend = [
+    LegendOrientation.Top,
+    LegendOrientation.Bottom,
+  ].includes(legendOrientation);
+  const resolvedLegendMargin =
+    typeof legendMargin !== 'number' && isHorizontalLegend
+      ? DEFAULT_HORIZONTAL_LEGEND_MARGIN
+      : legendMargin;
   const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
     chartHeight: height,
     chartWidth: width,
     legendItems: legendData,
-    legendMargin,
+    legendMargin: resolvedLegendMargin,
     orientation: legendOrientation,
     show: showLegend,
     theme,
