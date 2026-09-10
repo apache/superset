@@ -26,7 +26,11 @@ from superset.commands.sql_lab.estimate import (
     QueryEstimationCommand,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException, SupersetSecurityException
+from superset.exceptions import (
+    SupersetErrorException,
+    SupersetParseError,
+    SupersetSecurityException,
+)
 
 
 def _make_params(**kwargs: object) -> EstimateQueryCostType:
@@ -487,3 +491,150 @@ def test_run_wraps_raw_jsondecodeerror_from_cost_estimation(
 
     assert exc_info.value.status == 500
     assert exc_info.value.error.error_type == SupersetErrorType.GENERIC_BACKEND_ERROR
+
+
+# ---------------------------------------------------------------------------
+# Templates are rendered before estimating, as on the execution path
+# ---------------------------------------------------------------------------
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+@patch("superset.commands.sql_lab.estimate.get_template_processor")
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
+def test_run_renders_a_template_without_template_params(
+    mock_dao: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_template_processor: MagicMock,
+    mock_app: MagicMock,
+) -> None:
+    """A query needs no declared parameter to need rendering: ``get_time_filter()``
+    and friends take none, and SQL Lab posts an empty ``template_params`` for an
+    estimate, so gating the render on it left the template in place for the
+    parser to choke on."""
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+    }
+    mock_database = MagicMock()
+    mock_database.db_engine_spec.engine = "postgresql"
+    mock_database.allow_dml = False
+    mock_database.db_engine_spec.query_cost_formatter.return_value = [{"Cost": "1"}]
+    mock_dao.find_by_id.return_value = mock_database
+    mock_security_manager.raise_for_access.return_value = None
+    mock_get_template_processor.return_value.process_template.return_value = "SELECT 1"
+
+    sql = "{% set tf = get_time_filter('ds') %}SELECT 1 {% if tf %}{% endif %}"
+    command = QueryEstimationCommand(_make_params(sql=sql))
+
+    assert command.run() == [{"Cost": "1"}]
+    mock_get_template_processor.return_value.process_template.assert_called_once_with(
+        sql
+    )
+    # What reaches the engine is the rendered SQL.
+    assert (
+        mock_database.db_engine_spec.estimate_query_cost.call_args.args[3] == "SELECT 1"
+    )
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+@patch("superset.commands.sql_lab.estimate.get_template_processor")
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
+def test_run_estimates_a_template_its_parameters_fully_bind(
+    mock_dao: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_template_processor: MagicMock,
+    mock_app: MagicMock,
+) -> None:
+    """A template whose parameters are all supplied renders to the same SQL the
+    query would run, so it is estimated rather than refused."""
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {},
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
+    }
+    mock_database = MagicMock()
+    mock_database.db_engine_spec.engine = "postgresql"
+    mock_database.allow_dml = False
+    mock_database.db_engine_spec.query_cost_formatter.return_value = [{"Cost": "2"}]
+    mock_dao.find_by_id.return_value = mock_database
+    mock_security_manager.raise_for_access.return_value = None
+    mock_get_template_processor.return_value.process_template.return_value = (
+        "SELECT '2026-08-20'"
+    )
+
+    command = QueryEstimationCommand(
+        _make_params(sql="SELECT '{{ ds }}'", template_params={"ds": "2026-08-20"})
+    )
+
+    assert command.run() == [{"Cost": "2"}]
+    mock_get_template_processor.return_value.process_template.assert_called_once_with(
+        "SELECT '{{ ds }}'", ds="2026-08-20"
+    )
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+@patch("superset.commands.sql_lab.estimate.get_template_processor")
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
+def test_run_names_an_unprovided_parameter_rather_than_a_typo(
+    mock_dao: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_template_processor: MagicMock,
+    mock_app: MagicMock,
+) -> None:
+    """``DebugUndefined`` leaves an unprovided parameter in place instead of
+    raising, and in some positions the leftover then fails to parse. Reported as
+    written that reads as a typo, so the cause is named instead."""
+    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    mock_database = MagicMock()
+    mock_database.db_engine_spec.engine = "postgresql"
+    mock_database.allow_dml = False
+    mock_dao.find_by_id.return_value = mock_database
+    mock_security_manager.raise_for_access.return_value = None
+    processor = mock_get_template_processor.return_value
+    processor.process_template.return_value = "SELECT * FROM {{ tbl }}"
+    processor.has_template.return_value = True
+
+    command = QueryEstimationCommand(_make_params(sql="SELECT * FROM {{ tbl }}"))
+    with pytest.raises(SupersetParseError) as exc_info:
+        command.run()
+
+    message = exc_info.value.error.message
+    assert "template parameters that were not provided" in message
+    assert "typo" not in message
+    # Still the same error type, so the client keeps handling it as invalid SQL.
+    assert exc_info.value.error.error_type == SupersetErrorType.INVALID_SQL_ERROR
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+@patch("superset.commands.sql_lab.estimate.get_template_processor")
+@patch("superset.commands.sql_lab.estimate.security_manager", new_callable=MagicMock)
+@patch("superset.commands.sql_lab.estimate.DatabaseDAO")
+def test_run_leaves_a_genuine_syntax_error_alone(
+    mock_dao: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_template_processor: MagicMock,
+    mock_app: MagicMock,
+) -> None:
+    """SQL that fails to parse with no template left in it keeps the parser's own
+    message -- the query really is malformed."""
+    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    mock_database = MagicMock()
+    mock_database.db_engine_spec.engine = "postgresql"
+    mock_database.allow_dml = False
+    mock_dao.find_by_id.return_value = mock_database
+    mock_security_manager.raise_for_access.return_value = None
+    processor = mock_get_template_processor.return_value
+    processor.process_template.return_value = "SELECT FROM FROM"
+    processor.has_template.return_value = False
+
+    command = QueryEstimationCommand(_make_params(sql="SELECT FROM FROM"))
+    with pytest.raises(SupersetParseError) as exc_info:
+        command.run()
+
+    assert "template parameters" not in exc_info.value.error.message

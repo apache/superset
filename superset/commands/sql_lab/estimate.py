@@ -32,6 +32,7 @@ from superset.exceptions import (
     SupersetDisallowedSQLTableException,
     SupersetDMLNotAllowedException,
     SupersetErrorException,
+    SupersetParseError,
     SupersetTimeoutException,
 )
 from superset.jinja_context import get_template_processor
@@ -161,27 +162,51 @@ class QueryEstimationCommand(BaseCommand):
     ) -> list[dict[str, Any]]:
         self.validate()
 
-        sql = self._sql
-        if self._template_params:
-            # Access is already checked in validate() before any rendering.
-            template_processor = get_template_processor(self._database)
-            try:
-                sql = template_processor.process_template(sql, **self._template_params)
-            except TemplateError as ex:
-                raise SupersetErrorException(
-                    SupersetError(
-                        message=str(ex),
-                        error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
-                        level=ErrorLevel.ERROR,
-                    ),
-                    status=400,
-                ) from ex
+        # Access is already checked in validate() before any rendering.
+        #
+        # Rendered whether or not `template_params` was supplied, the way
+        # `validate()` above already jinja-processes for authorization and the
+        # execution path does in `SqlQueryRenderImpl.render`. A query needs no
+        # declared parameter to need rendering -- `get_time_filter()`,
+        # `current_username()`, `url_param()` take none -- and SQL Lab posts an
+        # empty `template_params` for an estimate, so those never rendered.
+        template_processor = get_template_processor(self._database)
+        try:
+            sql = template_processor.process_template(
+                self._sql, **self._template_params
+            )
+        except TemplateError as ex:
+            raise SupersetErrorException(
+                SupersetError(
+                    message=str(ex),
+                    error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+                status=400,
+            ) from ex
 
         # Apply the same SQL security controls used by the execution path
         # (sql_lab.execute_sql_statements) so cost estimation cannot be used to
         # probe disallowed functions/tables, bypass the DML guard, or confirm
         # the existence of rows hidden by row-level security.
-        sql = self._apply_sql_security(sql)
+        try:
+            sql = self._apply_sql_security(sql)
+        except SupersetParseError as ex:
+            # An unprovided parameter is left in place by `DebugUndefined`
+            # rather than raising, and in some positions the leftover then
+            # fails to parse. Reported as written, that reads as a typo in the
+            # SQL; name the actual cause instead.
+            if template_processor.has_template(sql):
+                raise SupersetParseError(
+                    sql,
+                    self._database.db_engine_spec.engine,
+                    message=__(
+                        "The query has template parameters that were not "
+                        "provided, so its cost cannot be estimated. Provide "
+                        "them, or replace them with literal values."
+                    ),
+                ) from ex
+            raise
 
         timeout = app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
         timeout_msg = f"The estimation exceeded the {timeout} seconds timeout."

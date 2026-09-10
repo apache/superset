@@ -3416,3 +3416,82 @@ def test_get_rendered_sql_filter_values_index_error_on_empty_list() -> None:
         match=r"Virtual dataset template error: list object has no element 0",
     ):
         table.get_rendered_sql(processor)
+
+
+@pytest.mark.parametrize(
+    "sql,expected",
+    [
+        pytest.param("SELECT 1", False, id="plain"),
+        pytest.param("SELECT '{{ current_username() }}'", True, id="expression"),
+        pytest.param("{% set a = 1 %}SELECT {{ a }}", True, id="statement"),
+        # A comment leaves no trace in a parsed template, but still has to be
+        # expanded away before the SQL is SQL.
+        pytest.param("SELECT 1 {# a comment #}", True, id="comment"),
+        # A whole query that is one macro lexes without a `data` token at all.
+        pytest.param("{{ dataset(1) }}", True, id="template_only"),
+        # Merely containing braces is not templating: the array literal opens
+        # like a template and is abandoned unterminated, and the JSON literal is
+        # never even mistaken for one.
+        pytest.param("SELECT '{{1,2},{3,4}}'::int[]", False, id="postgres_array"),
+        pytest.param("""SELECT '{"a": 1}'::json""", False, id="json_literal"),
+        # A real template alongside an array literal is still a template: the
+        # first construct closes before the lexer gives up on the second.
+        pytest.param(
+            "SELECT '{{ current_username() }}', '{{1,2},{3,4}}'::int[]",
+            True,
+            id="template_beside_array",
+        ),
+    ],
+)
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_has_template(sql: str, expected: bool) -> None:
+    """
+    Test the ``has_template`` method.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = get_template_processor(database=database)
+
+    assert processor.has_template(sql) is expected
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=False)
+def test_has_template_when_processing_is_disabled() -> None:
+    """
+    Test that ``has_template`` reports no template when nothing is expanded.
+
+    With ``ENABLE_TEMPLATE_PROCESSING`` off, ``get_template_processor`` returns
+    a ``NoOpTemplateProcessor``: the braces are never expanded, so they are not
+    a template, they are just part of the SQL.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = get_template_processor(database=database)
+
+    assert processor.has_template("SELECT '{{ current_username() }}'") is False
+
+
+def test_has_template_for_a_processor_with_its_own_syntax() -> None:
+    """
+    Test that a processor expanding its own syntax can report it.
+
+    ``has_template`` answers for Jinja, so a processor whose ``process_template``
+    expands something else has to override it, or it reports no template for SQL
+    it would in fact expand. ``CustomPrestoTemplateProcessor`` is the in-repo
+    example of such a processor, and of the override.
+    """
+    from tests.integration_tests.superset_test_custom_template_processors import (
+        CustomPrestoTemplateProcessor,
+    )
+
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = CustomPrestoTemplateProcessor(database=database)
+
+    assert processor.has_template("SELECT '$DATE()'") is True
+    # Jinja is still recognized, and plain SQL is still plain.
+    assert processor.has_template("SELECT '{{ current_username() }}'") is True
+    assert processor.has_template("SELECT 1") is False
+
+    # Without the override, the same SQL reads as having no template at all.
+    assert (
+        get_template_processor(database=database).has_template("SELECT '$DATE()'")
+        is False
+    )

@@ -22,6 +22,11 @@ from typing import Any, Dict, SupportsInt  # noqa: F401
 
 from superset.jinja_context import PrestoTemplateProcessor
 
+# The shape of the macros ``process_template`` below expands. It resolves each
+# call against the macros actually available, so it builds its own pattern from
+# their names; this one only has to recognize the syntax.
+MACRO_PATTERN = re.compile(r"\$\w+\s*\([^()]*\)")
+
 
 def DATE(  # noqa: N802
     ts: datetime, day_offset: SupportsInt = 0, hour_offset: SupportsInt = 0
@@ -36,6 +41,14 @@ class CustomPrestoTemplateProcessor(PrestoTemplateProcessor):
     """A custom presto template processor for test."""
 
     engine = "db_for_macros_testing"
+
+    def has_template(self, sql: str) -> bool:
+        """Reports the ``$`` syntax this processor expands, alongside Jinja.
+
+        Overridden because the inherited implementation answers for Jinja only,
+        and would report no template for SQL this processor does expand.
+        """
+        return bool(MACRO_PATTERN.search(sql)) or super().has_template(sql)
 
     def process_template(self, sql: str, **kwargs) -> str:
         """Processes a sql template with $ style macro using regex."""

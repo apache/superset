@@ -983,6 +983,42 @@ class BaseTemplateProcessor:
         kwargs.update(self._context)
         return validate_template_context(self.engine, kwargs)
 
+    def has_template(self, sql: str) -> bool:
+        """Whether the SQL contains anything for ``process_template`` to expand
+
+        Lexed rather than parsed, so that a comment -- which leaves no trace in
+        a parsed template -- still counts, and using this processor's own
+        environment, so that any customized delimiters are honored. Lexing
+        evaluates nothing.
+
+        Answers for Jinja, so a subclass whose ``process_template`` expands a
+        syntax of its own has to answer for that syntax too -- see
+        ``tests.integration_tests.superset_test_custom_template_processors``
+        for a worked example. Left unimplemented, such a processor reports no
+        template for SQL it would in fact expand.
+
+        >>> has_template("SELECT '{{ current_username() }}'")
+        True
+        >>> has_template("{{ dataset(1) }}")
+        True
+        >>> has_template("SELECT '{{1,2},{3,4}}'::int[]")
+        False
+        """
+        kinds = set()
+        try:
+            for _, kind, _ in self.env.lex(sql):
+                kinds.add(kind)
+        except TemplateSyntaxError:
+            # Jinja gave up partway. Whatever it had already closed off before
+            # that is still a template, so the tokens seen so far are kept.
+            pass
+
+        # Only a closed construct counts. `'{{1,2},{3,4}}'` opens like one and
+        # is abandoned unterminated, so requiring the closing token keeps an
+        # array literal out while still catching a real template that happens
+        # to sit alongside one.
+        return bool(kinds & {"variable_end", "block_end", "comment_end"})
+
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """Processes a sql template
 
@@ -1119,6 +1155,12 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
 
 
 class NoOpTemplateProcessor(BaseTemplateProcessor):
+    def has_template(self, sql: str) -> bool:
+        """
+        Nothing is ever expanded, so there is never a template
+        """
+        return False
+
     def process_template(self, sql: str, **kwargs: Any) -> str:
         """
         Makes processing a template a noop
