@@ -1,6 +1,6 @@
 name: 🎪 Superset Showtime
 
-# Ultra-simple: just sync on any PR state change
+# Sync on Showtime label changes and updates to PRs using Showtime.
 on:
   # zizmor: ignore[dangerous-triggers] - required to react to PR label changes; PR code is
   # only checked out and built after the maintainer-authorization gate (write/admin actors)
@@ -32,6 +32,15 @@ permissions:
 jobs:
   sync:
     name: 🎪 Sync PR to desired state
+    # Inspect the changed label so removing the last Showtime label still syncs.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      startsWith(github.event.label.name, '🎪 ') ||
+      (
+        (github.event.action == 'synchronize' ||
+         github.event.action == 'closed') &&
+        contains(join(github.event.pull_request.labels.*.name, ','), '🎪 ')
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
