@@ -1,0 +1,33 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# Grype config for the container image scan in .github/workflows/docker.yml
+# (job: docker-build, step: "Scan built image for vulnerabilities").
+#
+# The image bundles this project's own dev build as the "apache-superset"
+# package, installed from source with version "0.0.0.dev0" rather than a
+# real released version. Grype cannot compare that placeholder against a
+# fixed-version threshold, so it treats every historical apache-superset
+# GHSA/CVE ever published as still unfixed -- 61 false positives confirmed
+# locally against this exact package metadata, spanning every severity up
+# to Critical. This excludes the paths where that self-referential package
+# metadata lives inside the image so Grype does not attempt to match
+# vulnerabilities against our own package at all; every other package in
+# the image is unaffected and still scanned normally.
+exclude:
+  - "**/apache_superset-*.dist-info/**"
+  - "**/apache_superset.egg-info/**"
