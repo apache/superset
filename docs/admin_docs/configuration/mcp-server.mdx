@@ -1060,3 +1060,60 @@ once, even when multiple dimensions are missing.
 The tool does not rewrite dots into SQL path separators: quoting and nested-field
 support depend on the dataset's database dialect, and dots can also be literal
 characters in column names.
+## Dataset discovery and routing
+
+`list_datasets` searches schema, SQL, table name, UUID, and **description** using
+escaped, case-insensitive substring matching. Write descriptions with business
+terminology to make differently named datasets discoverable. Matching datasets
+are candidates, ordered by the requested sort (last modified by default), not
+ranked recommendations. Compare descriptions and metrics, present alternatives
+when ambiguous, and clarify before querying. No matches does not prove that data
+does not exist; search only covers accessible datasets and the configured scope.
+
+`query_dataset` returns `dataset_id` and `dataset_name`; `get_table` additionally
+returns `source` and the corresponding dataset or external-view identity. Cite
+these fields in answers rather than guessing the source from the query text.
+Neither tool selects an alternative dataset automatically.
+
+### Optional per-role dataset scope
+
+Set `MCP_DATASET_ROLE_ALLOWLIST` in `superset_config.py` to constrain MCP to a
+curated set of registered datasets:
+
+```python
+MCP_DATASET_ROLE_ALLOWLIST = {
+    "Finance Readers": ["00000000-0000-0000-0000-000000000001"],
+    "Operations Readers": ["00000000-0000-0000-0000-000000000002"],
+}
+```
+
+Obtain dataset UUIDs from `get_dataset_info` (or request `uuid` in
+`list_datasets.select_columns`). Use UUIDs, not names or numeric IDs, in config.
+Effective roles, including group roles, contribute the **union** of their lists.
+That union is **intersected with existing dataset access**. Unconfigured roles
+contribute nothing; Admin has no routing exemption. `None` (the default) disables
+this feature; `{}` allows no datasets. Invalid entries cause a configuration
+error on tool calls rather than silently disabling the restriction.
+
+Scoped mode supports `list_datasets`, `get_dataset_info`, `query_dataset`, and
+`get_table` with a built-in dataset, plus `health_check` and `get_schema`.
+Discovery filters before counting and pagination. Other tools refuse in this
+mode, including SQL Lab, chart/dashboard previews and data, cached query results,
+external semantic sources, mutations, and extension tools. These paths cannot
+all be attributed reliably to registered dataset UUIDs; scoped mode deliberately
+refuses them instead of attempting SQL lineage inference. Use dataset tools for
+scoped conversations. This restriction applies to every caller of the MCP tools,
+not just a particular chat client.
+
+An out-of-scope request returns an explicit refusal. The assistant must explain
+that limitation, never silently substitute an allowed but different dataset.
+This feature controls routing and usability, **not authorization or SQL table
+access**. Existing dataset permissions, query validation, and row-level security
+remain mandatory and unchanged. A registered virtual dataset may itself query
+multiple physical tables; this configuration selects registered dataset objects,
+not their underlying SQL dependencies. It does not restrict the Superset UI/API.
+
+Description search adds one text predicate to an existing catalog substring
+scan, without joins or additional queries. It is not an indexed full-text search:
+large catalogs and long descriptions can increase scan time. Benchmark with your
+metadata database and catalog size when tuning discovery latency.
