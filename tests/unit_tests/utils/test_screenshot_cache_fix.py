@@ -356,6 +356,49 @@ class TestShouldTriggerTask:
         payload_computing = ScreenshotCachePayload(status=StatusValues.COMPUTING)
         assert payload_computing.should_trigger_task(force=True) is True
 
+    @patch("superset.utils.screenshots.app")
+    def test_fresh_pending_request_is_not_enqueued_again(
+        self, mock_app: MagicMock
+    ) -> None:
+        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
+        payload = ScreenshotCachePayload(status=StatusValues.PENDING)
+
+        assert payload.should_enqueue_task(force=False) is False
+        assert payload.should_enqueue_task(force=True) is False
+
+    @patch("superset.utils.screenshots.app")
+    def test_stale_pending_request_is_enqueued_again(self, mock_app: MagicMock) -> None:
+        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
+        old_timestamp = (datetime.now() - timedelta(seconds=400)).isoformat()
+        payload = ScreenshotCachePayload(
+            status=StatusValues.PENDING, timestamp=old_timestamp
+        )
+
+        assert payload.should_enqueue_task(force=False) is True
+
+    @patch("superset.utils.screenshots.app")
+    def test_fresh_in_progress_scope_mismatch_is_enqueued_again(
+        self, mock_app: MagicMock
+    ) -> None:
+        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
+        payload = ScreenshotCachePayload(
+            status=StatusValues.COMPUTING,
+            scope="dashboard:other",
+        )
+
+        assert (
+            payload.should_enqueue_task(
+                force=False,
+                expected_scope="dashboard:expected",
+            )
+            is True
+        )
+
+    def test_force_enqueues_updated_payload(self) -> None:
+        payload = ScreenshotCachePayload(image=b"image_data")
+
+        assert payload.should_enqueue_task(force=True) is True
+
 
 class TestIsComputingStale:
     """Test the is_computing_stale method."""

@@ -1969,9 +1969,9 @@ class DashboardRestApi(
         image_url = get_url_path(
             "DashboardRestApi.screenshot", pk=dashboard.id, digest=cache_key
         )
-        cache_payload = (
-            screenshot_obj.get_from_cache_key(cache_key) or ScreenshotCachePayload()
-        )
+        cached_payload = screenshot_obj.get_from_cache_key(cache_key)
+        cache_payload = cached_payload or ScreenshotCachePayload()
+        cache_scope = f"dashboard:{dashboard.id}"
 
         def build_response(status_code: int) -> WerkzeugResponse:
             return self.response(
@@ -1983,26 +1983,37 @@ class DashboardRestApi(
                 task_status=cache_payload.get_status(),
             )
 
-        if cache_payload.should_trigger_task(
-            force, expected_scope=f"dashboard:{dashboard.id}"
+        if cached_payload is None or cache_payload.should_enqueue_task(
+            force, expected_scope=cache_scope
         ):
             logger.info("Triggering screenshot ASYNC")
-            cache_dashboard_screenshot.delay(
-                username=get_current_user(),
-                guest_token=(
-                    g.user.guest_token
-                    if get_current_user() and isinstance(g.user, GuestUser)
-                    else None
-                ),
-                dashboard_id=dashboard.id,
-                dashboard_url=dashboard_url,
-                thumb_size=thumb_size,
-                window_size=window_size,
-                cache_key=cache_key,
-                force=force,
-            )
+            cache_payload.pending()
+            cache_payload.set_scope(cache_scope)
+            screenshot_obj.cache.set(cache_key, cache_payload.to_dict())
+            try:
+                cache_dashboard_screenshot.delay(
+                    username=get_current_user(),
+                    guest_token=(
+                        g.user.guest_token
+                        if get_current_user() and isinstance(g.user, GuestUser)
+                        else None
+                    ),
+                    dashboard_id=dashboard.id,
+                    dashboard_url=dashboard_url,
+                    thumb_size=thumb_size,
+                    window_size=window_size,
+                    cache_key=cache_key,
+                    # The API has already invalidated the prior artifact by
+                    # persisting PENDING. Avoid making duplicate queued tasks
+                    # recompute after another worker has completed the request.
+                    force=False,
+                )
+            except Exception:  # pylint: disable=broad-except
+                cache_payload.error()
+                screenshot_obj.cache.set(cache_key, cache_payload.to_dict())
+                raise
             return build_response(202)
-        return build_response(200)
+        return build_response(202 if cache_payload.is_in_progress() else 200)
 
     @expose("/<pk>/screenshot/<digest>/", methods=("GET",))
     @validate_feature_flags(["THUMBNAILS", "ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS"])
@@ -2069,6 +2080,8 @@ class DashboardRestApi(
             # this check any cache_key learned for one dashboard would serve
             # its image under a different, merely-accessible `pk`.
             if cache_payload.get_scope() != f"dashboard:{dashboard.id}":
+                return self.response_404()
+            if not cache_payload.is_updated():
                 return self.response_404()
             try:
                 image = cache_payload.get_image()

@@ -150,7 +150,11 @@ def cache_dashboard_screenshot(  # pylint: disable=too-many-arguments
         current_user = security_manager.find_user(exec_username)
 
     with override_user(current_user):
-        screenshot = DashboardScreenshot(dashboard_url, dashboard.digest)
+        screenshot = DashboardScreenshot(
+            dashboard_url,
+            dashboard.digest,
+            require_complete_capture=True,
+        )
         screenshot.cache_scope = f"dashboard:{dashboard.id}"
         screenshot.compute_and_cache(
             user=current_user,

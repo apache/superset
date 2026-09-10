@@ -263,6 +263,27 @@ class TestStandardScreenshotValidation:
         assert result == _png("white")
         page.screenshot.assert_called_once_with(full_page=True)
 
+    def test_api_capture_rejects_blank_rendered_content(self):
+        page = MagicMock()
+        element = MagicMock()
+        page.screenshot.return_value = _png("white")
+        page.evaluate.return_value = True
+
+        with pytest.raises(
+            ScreenshotBlankCaptureError,
+            match="blank standard screenshot after 3 attempts",
+        ):
+            WebDriverPlaywright._get_validated_screenshot(
+                page,
+                element,
+                "standalone",
+                "cache_key=test",
+                None,
+                validate_rendered_content=True,
+            )
+
+        assert page.screenshot.call_count == 3
+
 
 class TestWebDriverPlaywrightFallback:
     """Test WebDriverPlaywright fallback behavior when unavailable."""
@@ -1393,6 +1414,62 @@ class TestWebDriverPlaywrightChartReadiness:
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
     @patch("superset.utils.webdriver.app")
+    def test_api_screenshot_requires_hydrated_layout_and_ready_holders(
+        self,
+        mock_app,
+        mock_browser_manager,
+    ):
+        from superset.utils.webdriver import PlaywrightTimeout
+
+        mock_app.config = {**self._base_config}
+        mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
+        mock_page.evaluate.return_value = []
+        mock_page.wait_for_function.side_effect = PlaywrightTimeout("zero holders")
+
+        with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
+            with pytest.raises(PlaywrightTimeout):
+                WebDriverPlaywright("chrome").get_screenshot(
+                    "http://example.com",
+                    "standalone",
+                    MagicMock(),
+                    require_complete_capture=True,
+                )
+
+        predicate = mock_page.wait_for_function.call_args.args[0]
+        assert "document.querySelector('.dashboard-grid')" in predicate
+        assert "unready.length === 0" in predicate
+        assert "arg" not in mock_page.wait_for_function.call_args.kwargs
+        mock_page.screenshot.assert_not_called()
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.app")
+    def test_api_screenshot_allows_hydrated_active_tab_without_charts(
+        self,
+        mock_app,
+        mock_browser_manager,
+    ):
+        mock_app.config = {**self._base_config}
+        mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
+        mock_page.evaluate.return_value = []
+        mock_page.screenshot.return_value = _png("black")
+
+        with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
+            result = WebDriverPlaywright("chrome").get_screenshot(
+                "http://example.com",
+                "standalone",
+                MagicMock(),
+                require_complete_capture=True,
+            )
+
+        predicate = mock_page.wait_for_function.call_args.args[0]
+        assert "document.querySelector('.dashboard-grid')" in predicate
+        assert "holders.length > 0" not in predicate
+        assert result == _png("black")
+
+    @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
+    @patch("superset.utils.webdriver._browser_manager")
+    @patch("superset.utils.webdriver.app")
     def test_readiness_check_scoped_to_viewport_visible_holders(
         self, mock_app, mock_browser_manager
     ):
@@ -2102,6 +2179,7 @@ class TestWebDriverPlaywrightAnimationWaitOrder:
             report_execution_context=None,
             url="http://example.com",
             screenshot_started_at=ANY,
+            require_complete_capture=False,
         )
         # The only wait_for_timeout call should be the 0ms headstart; no global
         # animation wait should be issued (handled per-tile by take_tiled_screenshot)

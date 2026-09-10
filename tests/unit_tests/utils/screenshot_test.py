@@ -26,8 +26,10 @@ from superset.utils.hashing import hash_from_dict
 from superset.utils.screenshots import (
     BaseScreenshot,
     ChartScreenshot,
+    DashboardScreenshot,
     ScreenshotCachePayload,
     ScreenshotCachePayloadType,
+    StatusValues,
 )
 
 BASE_SCREENSHOT_PATH = "superset.utils.screenshots.BaseScreenshot"
@@ -75,6 +77,25 @@ def test_get_screenshot(mocker: MockerFixture, screenshot_obj):
     driver.return_value.get_screenshot.return_value = fake_bytes
     screenshot_data = screenshot_obj.get_screenshot(mock_user)
     assert screenshot_data == fake_bytes
+
+
+def test_dashboard_screenshot_threads_complete_capture_requirement(
+    mocker: MockerFixture, mock_user
+):
+    screenshot_obj = DashboardScreenshot(
+        "http://example.com",
+        "sample_digest",
+        require_complete_capture=True,
+    )
+    driver = mocker.patch(BASE_SCREENSHOT_PATH + ".driver")
+    driver.return_value.get_screenshot.return_value = FAKE_PNG_BYTES
+
+    screenshot_obj.get_screenshot(mock_user)
+
+    assert (
+        driver.return_value.get_screenshot.call_args.kwargs["require_complete_capture"]
+        is True
+    )
 
 
 def test_get_cache_key(app_context, screenshot_obj):
@@ -306,6 +327,28 @@ class TestScreenshotCachePayloadGetImage:
 
         # Should be different BytesIO instances
         assert result1 is not result2
+
+
+@pytest.mark.parametrize("status", [StatusValues.COMPUTING, StatusValues.ERROR])
+def test_explicit_status_round_trips_with_an_existing_image(
+    status: StatusValues,
+) -> None:
+    payload = ScreenshotCachePayload(
+        image=FAKE_PNG_BYTES,
+        status=status,
+        scope="dashboard:5",
+    )
+
+    restored = ScreenshotCachePayload.from_dict(payload.to_dict())
+
+    assert restored.status == status
+    assert restored.get_status() == status.value
+
+
+def test_image_without_explicit_status_defaults_to_updated() -> None:
+    payload = ScreenshotCachePayload(image=FAKE_PNG_BYTES)
+
+    assert payload.status == StatusValues.UPDATED
 
 
 class TestScreenshotCachePayloadScope:

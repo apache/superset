@@ -106,13 +106,15 @@ class ScreenshotCachePayload:
     def __init__(
         self,
         image: bytes | None = None,
-        status: StatusValues = StatusValues.PENDING,
+        status: StatusValues | None = None,
         timestamp: str = "",
         scope: str | None = None,
     ):
         self._image = image
         self._timestamp = timestamp or datetime.now().isoformat()
-        self.status = StatusValues.UPDATED if image else status
+        self.status = status or (
+            StatusValues.UPDATED if image else StatusValues.PENDING
+        )
         self._scope = scope
 
     @classmethod
@@ -191,10 +193,37 @@ class ScreenshotCachePayload:
 
     def is_computing_stale(self) -> bool:
         """Check if a COMPUTING status is stale (task likely failed or stuck)."""
+        return self.is_in_progress_stale()
+
+    def is_in_progress_stale(self) -> bool:
+        """Check if a pending or computing request has exceeded its TTL."""
         computing_ttl = app.config["THUMBNAIL_COMPUTING_CACHE_TTL"]
         return (
             datetime.now() - datetime.fromisoformat(self.get_timestamp())
         ).total_seconds() >= computing_ttl
+
+    def is_in_progress(self) -> bool:
+        """Return whether screenshot computation has not reached a terminal state."""
+        return self.status in (StatusValues.PENDING, StatusValues.COMPUTING)
+
+    def is_updated(self) -> bool:
+        """Return whether the cached screenshot completed successfully."""
+        return self.status == StatusValues.UPDATED
+
+    def should_enqueue_task(
+        self, force: bool = False, expected_scope: str | None = None
+    ) -> bool:
+        """Check whether an API caller should enqueue screenshot computation.
+
+        A fresh pending or computing payload represents an accepted in-flight
+        request, so additional polling and force requests are coalesced. Stale
+        in-flight payloads remain retryable through the computing cache TTL.
+        """
+        if expected_scope is not None and self._scope != expected_scope:
+            return True
+        if self.is_in_progress():
+            return self.is_in_progress_stale()
+        return self.should_trigger_task(force, expected_scope)
 
     def should_trigger_task(
         self, force: bool = False, expected_scope: str | None = None
@@ -241,10 +270,16 @@ class BaseScreenshot:
     # every dashboard and chart.
     cache_scope: str | None = None
 
-    def __init__(self, url: str, digest: str | None):
+    def __init__(
+        self,
+        url: str,
+        digest: str | None,
+        require_complete_capture: bool = False,
+    ):
         self.digest = digest
         self.url = url
         self.screenshot = None
+        self.require_complete_capture = require_complete_capture
 
     def driver(
         self,
@@ -268,6 +303,7 @@ class BaseScreenshot:
             user,
             log_context=log_context,
             report_execution_context=report_execution_context,
+            require_complete_capture=self.require_complete_capture,
         )
         return self.screenshot
 
@@ -504,6 +540,7 @@ class DashboardScreenshot(BaseScreenshot):
         digest: str | None,
         window_size: WindowSize | None = None,
         thumb_size: WindowSize | None = None,
+        require_complete_capture: bool = False,
     ):
         # per the element above, dashboard screenshots
         # should always capture in standalone
@@ -511,7 +548,11 @@ class DashboardScreenshot(BaseScreenshot):
             url,
             standalone=DashboardStandaloneMode.REPORT.value,
         )
-        super().__init__(url, digest)
+        super().__init__(
+            url,
+            digest,
+            require_complete_capture=require_complete_capture,
+        )
         self.window_size = window_size or DEFAULT_DASHBOARD_WINDOW_SIZE
         self.thumb_size = thumb_size or DEFAULT_DASHBOARD_THUMBNAIL_SIZE
 

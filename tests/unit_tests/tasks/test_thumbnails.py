@@ -143,3 +143,44 @@ def test_cache_dashboard_thumbnail_resolves_cache_key_when_not_provided(
         force=False,
         cache_key="resolved_cache_key",
     )
+
+
+@_apply_patches
+def test_cache_dashboard_screenshot_requires_complete_capture(
+    mock_screenshot_cls: MagicMock,
+    mock_get_url_path: MagicMock,
+    mock_override_user: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_executor: MagicMock,
+    mock_dashboard: MagicMock,
+    mock_thumbnail_cache: None,
+) -> None:
+    """Direct API captures opt into fail-closed rendering."""
+    from superset.tasks.thumbnails import cache_dashboard_screenshot
+
+    mock_screenshot = _make_screenshot_mock()
+    mock_screenshot_cls.return_value = mock_screenshot
+    mock_get_executor.return_value = (None, "admin")
+    mock_security_manager.find_user.return_value = MagicMock()
+
+    with patch("superset.models.dashboard.Dashboard.get", return_value=mock_dashboard):
+        cache_dashboard_screenshot(
+            username="admin",
+            dashboard_id=1,
+            dashboard_url="/dashboard/p/test/",
+            force=False,
+            cache_key="test_cache_key",
+        )
+
+    mock_screenshot_cls.assert_called_once_with(
+        "/dashboard/p/test/",
+        "test_digest",
+        require_complete_capture=True,
+    )
+    mock_screenshot.compute_and_cache.assert_called_once_with(
+        user=ANY,
+        window_size=None,
+        thumb_size=None,
+        cache_key="test_cache_key",
+        force=False,
+    )

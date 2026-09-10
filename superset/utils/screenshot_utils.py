@@ -517,9 +517,15 @@ STABLE_REPORT_CHART_HOLDERS_READY_JS = _stable_readiness_js(
 STABLE_REPORT_ALL_CHART_HOLDERS_READY_JS = _stable_readiness_js(
     REPORT_ALL_CHART_HOLDERS_READY_JS
 )
+DASHBOARD_ALL_CHART_HOLDERS_READY_JS = (
+    "() => { if (document.querySelector('.dashboard-grid') === null) "
+    f"return false; {UNREADY_ALL_CHART_HOLDERS_JS_BODY} "
+    "return unready.length === 0; }"
+)
 CHART_HOLDERS_MOUNTED_JS = (
     f"() => document.querySelectorAll('{CHART_HOLDER_SELECTOR}').length > 0"
 )
+DASHBOARD_LAYOUT_READY_JS = "() => document.querySelector('.dashboard-grid') !== null"
 FIND_UNREADY_CHART_HOLDERS_JS = (
     f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} return unready; }}"
 )
@@ -781,6 +787,7 @@ def take_tiled_screenshot(  # noqa: C901
     report_execution_context: ReportExecutionContext | None = None,
     url: str | None = None,
     screenshot_started_at: float | None = None,
+    require_complete_capture: bool = False,
 ) -> bytes | None:
     """
     Take a tiled screenshot of a large dashboard by scrolling and capturing sections.
@@ -803,6 +810,10 @@ def take_tiled_screenshot(  # noqa: C901
             task budget -- the same clock _wait_for_charts_ready uses.
             Ignored when a report_execution_context provides its own
             deadline; falls back to "now" when omitted.
+        require_complete_capture: Whether an API screenshot request should use
+            fail-closed readiness and blank-capture behavior. The rendered DOM,
+            rather than the model's total slice count, defines the active tab's
+            capture contents.
 
     Returns:
         Combined screenshot bytes or None if failed
@@ -815,6 +826,12 @@ def take_tiled_screenshot(  # noqa: C901
     """
     if report_execution_context:
         log_context = report_execution_context.log_context
+    expected_chart_count = (
+        report_execution_context.expected_chart_count
+        if report_execution_context
+        else None
+    )
+    strict_capture = report_execution_context is not None or require_complete_capture
     context_suffix = f" [{log_context}]" if log_context else ""
     # Set right before re-raising the per-tile readiness timeout below, and
     # checked in the except block at the bottom of this function.
@@ -882,14 +899,25 @@ def take_tiled_screenshot(  # noqa: C901
             * 1000
         )
 
-        if report_execution_context:
+        if strict_capture:
             mount_wait = _timeout_seconds(
                 "chart_holder_mount",
-                reserve_seconds=report_execution_context.readiness_reserve_seconds,
+                requested_seconds=(
+                    None if report_execution_context else float(load_wait)
+                ),
+                reserve_seconds=(
+                    report_execution_context.readiness_reserve_seconds
+                    if report_execution_context
+                    else 0.0
+                ),
             )
             try:
                 page.wait_for_function(
-                    CHART_HOLDERS_MOUNTED_JS,
+                    (
+                        CHART_HOLDERS_MOUNTED_JS
+                        if report_execution_context
+                        else DASHBOARD_LAYOUT_READY_JS
+                    ),
                     timeout=mount_wait * 1000,
                 )
             except PlaywrightTimeout:
@@ -902,7 +930,7 @@ def take_tiled_screenshot(  # noqa: C901
                     "terminal_reason=zero_holders_timeout states=%s; "
                     "aborting before dimensions, capture, or delivery",
                     url,
-                    report_execution_context.expected_chart_count,
+                    expected_chart_count,
                     len(holder_states),
                     elapsed,
                     f"{remaining:.2f}" if remaining is not None else None,
@@ -1050,11 +1078,7 @@ def take_tiled_screenshot(  # noqa: C901
                     "terminal_reason=readiness_timeout unready_holders=%s "
                     "states=%s; aborting before capture or delivery",
                     url,
-                    (
-                        report_execution_context.expected_chart_count
-                        if report_execution_context
-                        else None
-                    ),
+                    expected_chart_count,
                     len(holder_states),
                     ready_holders,
                     i + 1,
@@ -1196,17 +1220,13 @@ def take_tiled_screenshot(  # noqa: C901
                 total_chart_holders = 0
                 contentful_chart_holders = 0
 
-            if (
-                total_chart_holders == 0
-                and report_execution_context
-                and report_execution_context.expected_chart_count
-            ):
+            if total_chart_holders == 0 and strict_capture and expected_chart_count:
                 logger.warning(
                     "report_capture_no_chart_holders tile=%s/%s "
                     "expected_holders=%s holder_count_failed=%s%s",
                     i + 1,
                     num_tiles,
-                    report_execution_context.expected_chart_count,
+                    expected_chart_count,
                     holder_count_failed,
                     context_suffix,
                 )
@@ -1345,7 +1365,7 @@ def take_tiled_screenshot(  # noqa: C901
                         context_suffix,
                     )
                     if capture_attempt == TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS:
-                        if report_execution_context:
+                        if strict_capture:
                             # Exhausted retries must never turn a rejected report
                             # tile into accepted content. Only thumbnails may
                             # retain a blank capture below.
@@ -1450,11 +1470,7 @@ def take_tiled_screenshot(  # noqa: C901
             "elapsed_seconds=%.2f "
             "remaining_seconds=%s%s",
             url,
-            (
-                report_execution_context.expected_chart_count
-                if report_execution_context
-                else None
-            ),
+            expected_chart_count,
             len(holder_states),
             sum(holder.get("state") in ready_states for holder in holder_states),
             sum(holder.get("agGridWaitObserved") is True for holder in holder_states),
@@ -1466,11 +1482,11 @@ def take_tiled_screenshot(  # noqa: C901
         logger.info("Combining screenshot tiles...%s", context_suffix)
         combined_screenshot = combine_screenshot_tiles(
             screenshot_tiles,
-            allow_partial_fallback=report_execution_context is None,
+            allow_partial_fallback=not strict_capture,
             log_context=log_context,
         )
 
-        if report_execution_context and contentful_tiles_captured:
+        if strict_capture and contentful_tiles_captured:
             combined_blankness = get_screenshot_blankness_metrics(combined_screenshot)
             logger.info(
                 "report_capture_validation capture=combined "
@@ -1517,7 +1533,7 @@ def take_tiled_screenshot(  # noqa: C901
         # Preserve the explicit blank-capture or timeout reason for report execution
         # history instead of degrading it to an anonymous None screenshot.
         logger.exception("Tiled screenshot capture rejected%s", context_suffix)
-        if report_execution_context:
+        if strict_capture:
             raise
         return None
     except SoftTimeLimitExceeded:
