@@ -2668,21 +2668,24 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         with mock.patch.object(Slice, "get_query_context") as mock_get_query_context:
             mock_get_query_context.return_value = None
 
-            assert json.loads(
-                self.client.put(
-                    "/api/v1/chart/warm_up_cache",  # noqa: F541
-                    json={"chart_id": slc.id},
-                ).data
-            ) == {
-                "result": [
-                    {
-                        "chart_id": slc.id,
-                        "viz_error": "Chart's query context does not exist. Open the "
-                        "chart in Explore once (or re-save it) to generate it.",
-                        "viz_status": None,
-                    },
-                ],
-            }
+            assert (
+                json.loads(
+                    self.client.put(
+                        "/api/v1/chart/warm_up_cache",  # noqa: F541
+                        json={"chart_id": slc.id},
+                    ).data
+                )
+                == {
+                    "result": [
+                        {
+                            "chart_id": slc.id,
+                            "viz_error": "Chart's query context does not exist. Open the "
+                            "chart in Explore once (or re-save it) to generate it.",
+                            "viz_status": None,
+                        },
+                    ],
+                }
+            )
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_no_datasource(self) -> None:
@@ -2696,21 +2699,24 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         ) as mock_datasource:
             mock_datasource.return_value = None
 
-            assert json.loads(
-                self.client.put(
-                    "/api/v1/chart/warm_up_cache",  # noqa: F541
-                    json={"chart_id": slc.id},
-                ).data
-            ) == {
-                "result": [
-                    {
-                        "chart_id": slc.id,
-                        "viz_error": "Chart's query context does not exist. Open the "
-                        "chart in Explore once (or re-save it) to generate it.",
-                        "viz_status": None,
-                    },
-                ],
-            }
+            assert (
+                json.loads(
+                    self.client.put(
+                        "/api/v1/chart/warm_up_cache",  # noqa: F541
+                        json={"chart_id": slc.id},
+                    ).data
+                )
+                == {
+                    "result": [
+                        {
+                            "chart_id": slc.id,
+                            "viz_error": "Chart's query context does not exist. Open the "
+                            "chart in Explore once (or re-save it) to generate it.",
+                            "viz_status": None,
+                        },
+                    ],
+                }
+            )
 
     @pytest.mark.usefixtures("create_chart_with_tag")
     def test_update_chart_add_tags_can_write_on_tag(self):

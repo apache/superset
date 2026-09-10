@@ -915,9 +915,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 f"{dashboard.dashboard_title!r} existing; see issue #25890"
             )
             titles = [d["dashboard_title"] for d in data["result"]]
-            assert dashboard.dashboard_title in titles, (
-                f"Admin list missing the inserted dashboard. Got titles: {titles}"
-            )
+            assert (
+                dashboard.dashboard_title in titles
+            ), f"Admin list missing the inserted dashboard. Got titles: {titles}"
         finally:
             db.session.delete(dashboard)
             db.session.commit()
@@ -986,9 +986,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 f"{chart.slice_name!r} existing; see issue #25890"
             )
             names = [c["slice_name"] for c in data["result"]]
-            assert chart.slice_name in names, (
-                f"Admin list missing the inserted chart. Got slice_names: {names}"
-            )
+            assert (
+                chart.slice_name in names
+            ), f"Admin list missing the inserted chart. Got slice_names: {names}"
         finally:
             db.session.delete(chart)
             db.session.commit()
@@ -4758,30 +4758,30 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
             all_tags = dashboard.tags
             all_tag_names = [t.name for t in all_tags]
             assert "critical" in all_tag_names, "Should include custom tag"
-            assert any(t.name.startswith("editor:") for t in all_tags), (
-                "Should include editor tags"
-            )
-            assert any(t.name.startswith("type:") for t in all_tags), (
-                "Should include type tags"
-            )
+            assert any(
+                t.name.startswith("editor:") for t in all_tags
+            ), "Should include editor tags"
+            assert any(
+                t.name.startswith("type:") for t in all_tags
+            ), "Should include type tags"
 
             # 2. MODEL: dashboard.custom_tags returns ONLY custom tags
             custom_only = dashboard.custom_tags
             custom_tag_names = [t.name for t in custom_only]
             assert "critical" in custom_tag_names, "Should include custom tag"
-            assert not any(t.name.startswith("editor:") for t in custom_only), (
-                f"custom_tags should NOT include editor tags, got: {custom_tag_names}"
-            )
-            assert not any(t.name.startswith("type:") for t in custom_only), (
-                f"custom_tags should NOT include type tags, got: {custom_tag_names}"
-            )
+            assert not any(
+                t.name.startswith("editor:") for t in custom_only
+            ), f"custom_tags should NOT include editor tags, got: {custom_tag_names}"
+            assert not any(
+                t.name.startswith("type:") for t in custom_only
+            ), f"custom_tags should NOT include type tags, got: {custom_tag_names}"
             assert len(custom_only) < len(all_tags), "Should filter out implicit tags"
 
             # Verify all tags in custom_tags have type=custom
             for tag in custom_only:
-                assert tag.type == TagType.custom, (
-                    f"Tag {tag.name} has type {tag.type}, expected TagType.custom"
-                )
+                assert (
+                    tag.type == TagType.custom
+                ), f"Tag {tag.name} has type {tag.type}, expected TagType.custom"
 
             # 3. API: With config=True, API returns ONLY custom tags
             rv = self.client.get("api/v1/dashboard/")
@@ -4793,9 +4793,9 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
             )
             assert test_dash is not None
             # API returns "tags" (get_list override renames custom_tags→tags)
-            assert "tags" in test_dash, (
-                f"Response should have tags, got: {test_dash.keys()}"
-            )
+            assert (
+                "tags" in test_dash
+            ), f"Response should have tags, got: {test_dash.keys()}"
 
             # API should return ONLY custom tags
             api_tag_names = [t["name"] for t in test_dash["tags"]]
@@ -4803,9 +4803,9 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
             assert not any(
                 t["name"].startswith("editor:") for t in test_dash["tags"]
             ), f"API should NOT include editor tags, got: {api_tag_names}"
-            assert not any(t["name"].startswith("type:") for t in test_dash["tags"]), (
-                f"API should NOT include type tags, got: {api_tag_names}"
-            )
+            assert not any(
+                t["name"].startswith("type:") for t in test_dash["tags"]
+            ), f"API should NOT include type tags, got: {api_tag_names}"
             assert len(test_dash["tags"]) == 1, (
                 f"API should return only 1 custom tag, "
                 f"got {len(test_dash['tags'])}: {api_tag_names}"
