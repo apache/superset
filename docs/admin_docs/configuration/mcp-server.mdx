@@ -1054,3 +1054,25 @@ boundaries are not labeled UTC: dataset timezone or legacy hour-offset settings
 can adjust the SQL comparisons. Use the applied filters and datasource settings
 as well when explaining such queries. `query_dataset.applied_filters` retains the
 original expressions so callers can compare the requested and resolved ranges.
+
+## Dataset query dimensions and nested fields
+
+The `query_dataset` tool accepts exact column names registered on the selected
+Superset dataset. Use `get_dataset_info` with the same `dataset_id` to discover
+those names; a column available on one dataset may not exist on another.
+
+A dotted name such as `address.city.name` can be used as a GROUP BY
+column when that exact name is registered. Registering only the parent
+`address` column does not register its nested fields. If a field is missing,
+refresh the dataset columns when the database exposes nested-field metadata,
+or add a calculated column with the warehouse-appropriate field-access
+expression and query its registered name. For ad-hoc expressions, use
+`execute_sql` instead.
+
+Unknown dimensions return the selected dataset's name and ID, up to ten
+available column names, and a pointer to `get_dataset_info` for the full list.
+Unregistered dotted dimensions also include shared nested-field setup guidance
+once, even when multiple dimensions are missing.
+The tool does not rewrite dots into SQL path separators: quoting and nested-field
+support depend on the dataset's database dialect, and dots can also be literal
+characters in column names.

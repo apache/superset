@@ -1939,6 +1939,137 @@ class TestGetChartPreview:
         assert query["filters"] == [{"col": "gender", "op": "==", "val": "boy"}]
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("preview_format", ["table", "ascii", "vega_lite"])
+    async def test_extra_form_data_filters_reach_preview_query(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        preview_format: str,
+    ) -> None:
+        """extra_form_data (e.g. a dashboard's active native filters) must merge
+        into the preview query so the preview reflects the filtered view, for
+        every render format (each strategy builds its own query context)."""
+        from contextlib import nullcontext
+
+        get_chart_preview_module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_preview"
+        )
+        query_context_factory_module = importlib.import_module(
+            "superset.common.query_context_factory"
+        )
+        get_data_command_module = importlib.import_module(
+            "superset.commands.chart.data.get_data_command"
+        )
+
+        class AsyncContext:
+            async def debug(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def error(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def info(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def report_progress(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+            async def warning(self, *args: Any, **kwargs: Any) -> None:
+                pass
+
+        captured_query_contexts: list[dict[str, Any]] = []
+
+        class QueryContextFactory:
+            def create(self, **kwargs: Any) -> object:
+                captured_query_contexts.append(kwargs)
+                return object()
+
+        class ChartDataCommand:
+            def __init__(self, query_context: object) -> None:
+                self.query_context = query_context
+
+            def validate(self) -> None:
+                pass
+
+            def run(self) -> dict[str, Any]:
+                return {
+                    "queries": [
+                        {
+                            "data": [{"gender": "girl", "count": 1}],
+                            "colnames": ["gender", "count"],
+                            "rowcount": 1,
+                        }
+                    ]
+                }
+
+        chart = SimpleNamespace(
+            id=42,
+            slice_name="Saved Chart Preview",
+            viz_type="table",
+            datasource_id=1,
+            datasource_type="table",
+            params=utils_json.dumps(
+                {
+                    "viz_type": "table",
+                    "groupby": ["gender"],
+                    "metrics": ["count"],
+                    "adhoc_filters": [],
+                }
+            ),
+        )
+
+        monkeypatch.setattr(
+            get_chart_preview_module,
+            "find_chart_by_identifier",
+            lambda identifier: chart,
+        )
+        monkeypatch.setattr(
+            get_chart_preview_module,
+            "validate_chart_dataset",
+            lambda *args, **kwargs: SimpleNamespace(
+                is_valid=True,
+                warnings=[],
+                error=None,
+            ),
+        )
+        monkeypatch.setattr(
+            get_chart_preview_module.db.session,
+            "refresh",
+            lambda chart: None,
+        )
+        monkeypatch.setattr(
+            get_chart_preview_module.event_logger,
+            "log_context",
+            lambda **kwargs: nullcontext(),
+        )
+        monkeypatch.setattr(
+            query_context_factory_module,
+            "QueryContextFactory",
+            QueryContextFactory,
+        )
+        monkeypatch.setattr(
+            get_data_command_module,
+            "ChartDataCommand",
+            ChartDataCommand,
+        )
+
+        await get_chart_preview_module._get_chart_preview_internal(
+            GetChartPreviewRequest(
+                identifier=42,
+                format=preview_format,
+                extra_form_data={
+                    "filters": [{"col": "gender", "op": "==", "val": "girl"}]
+                },
+            ),
+            AsyncContext(),
+        )
+
+        # Each strategy builds its own query context; assert the forwarded filter
+        # reached the query regardless of render format (the capture happens before
+        # any format-specific rendering).
+        query = captured_query_contexts[0]["queries"][0]
+        assert {"col": "gender", "op": "==", "val": "girl"} in query["filters"]
+
+    @pytest.mark.asyncio
     async def test_preview_dimensions(self):
         """Test preview dimensions in response."""
         # Standard dimensions that may appear in preview responses

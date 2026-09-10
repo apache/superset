@@ -42,6 +42,7 @@ from superset.mcp_service.chart.plugins.mixed_timeseries import (
 from superset.mcp_service.chart.plugins.pie import PieChartPlugin
 from superset.mcp_service.chart.plugins.pivot_table import PivotTableChartPlugin
 from superset.mcp_service.chart.plugins.table import TableChartPlugin
+from superset.mcp_service.chart.plugins.treemap import TreemapChartPlugin
 from superset.mcp_service.chart.plugins.waterfall import WaterfallChartPlugin
 from superset.mcp_service.chart.plugins.xy import XYChartPlugin
 from superset.mcp_service.chart.registry import register
@@ -52,6 +53,7 @@ register(BulletChartPlugin())
 register(TableChartPlugin())
 register(PieChartPlugin())
 register(GaugeChartPlugin())
+register(TreemapChartPlugin())
 register(PivotTableChartPlugin())
 register(InteractivePivotChartPlugin())
 register(MixedTimeseriesChartPlugin())
@@ -73,6 +75,7 @@ __all__ = [
     "PieChartPlugin",
     "PivotTableChartPlugin",
     "TableChartPlugin",
+    "TreemapChartPlugin",
     "WaterfallChartPlugin",
     "XYChartPlugin",
 ]

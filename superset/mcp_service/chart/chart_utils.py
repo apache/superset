@@ -54,6 +54,7 @@ from superset.mcp_service.chart.schemas import (
     resolve_bullet_order_target,
     SortByConfig,
     TableChartConfig,
+    TreemapChartConfig,
     WaterfallChartConfig,
     XYChartConfig,
 )
@@ -1320,6 +1321,25 @@ def map_gauge_config(config: GaugeChartConfig) -> Dict[str, Any]:
     return form_data
 
 
+def map_treemap_config(config: TreemapChartConfig) -> Dict[str, Any]:
+    """Map treemap config to Superset form_data (viz_type ``treemap_v2``).
+
+    Matches the frontend Treemap buildQuery contract: one ``metric`` plus an
+    ordered ``groupby`` hierarchy (first column outermost). When
+    ``sort_by_metric`` is set the query orders by the metric descending.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "treemap_v2",
+        "groupby": [g.name for g in config.groupby],
+        "metric": create_metric_object(config.metric),
+        "sort_by_metric": config.sort_by_metric,
+        "row_limit": config.row_limit,
+        "color_scheme": config.color_scheme or "supersetColors",
+    }
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
 def map_histogram_config(config: "HistogramChartConfig") -> Dict[str, Any]:
     """Map histogram config to Superset form_data (viz_type histogram_v2).
 
@@ -2514,6 +2534,17 @@ def _gauge_chart_what(config: GaugeChartConfig) -> str:
         dims = ", ".join(g.name for g in config.groupby if g.name)
         if dims:
             return f"{metric_label} by {dims}"
+    return f"{metric_label}"
+
+
+def _treemap_chart_what(config: TreemapChartConfig) -> str:
+    """Build the 'what' portion for a treemap chart name."""
+    metric_label = (
+        config.metric.label or config.metric.name or config.metric.sql_expression
+    )
+    dims = ", ".join(g.name for g in config.groupby if g.name)
+    if dims:
+        return f"{dims} by {metric_label}"
     return f"{metric_label}"
 
 
