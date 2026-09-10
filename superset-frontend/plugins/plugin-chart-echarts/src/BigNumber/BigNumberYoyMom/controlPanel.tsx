@@ -31,15 +31,13 @@ import {
 } from '../sharedControls';
 import {
   COMPARISON_OFFSET_CHOICES,
-  DEFAULT_BACKGROUND_COLOR,
   DEFAULT_BIG_NUMBER_COLOR,
   DEFAULT_BIG_NUMBER_LEFT,
   DEFAULT_BIG_NUMBER_TOP,
   DEFAULT_COMPARISON1_LABEL,
-  DEFAULT_COMPARISON1_LEFT,
   DEFAULT_COMPARISON1_OFFSET,
   DEFAULT_COMPARISON2_LABEL,
-  DEFAULT_COMPARISON2_LEFT,
+  DEFAULT_COMPARISON_GAP,
   DEFAULT_COMPARISON2_OFFSET,
   DEFAULT_COMPARISON_NEGATIVE_COLOR,
   DEFAULT_COMPARISON_POSITIVE_COLOR,
@@ -336,21 +334,6 @@ const config: ControlPanelConfig = {
           },
         ],
         [
-          {
-            name: 'comparison1_left',
-            config: {
-              type: 'TextControl',
-              label: t('MoM left position'),
-              isInt: true,
-              renderTrigger: true,
-              default: DEFAULT_COMPARISON1_LEFT,
-              description: t('Horizontal offset in pixels from the left edge.'),
-              visibility: ({ controls }) =>
-                controls?.show_comparison1?.value === true,
-            },
-          },
-        ],
-        [
           <ControlSubSectionHeader>
             {t('YoY Comparison')}
           </ControlSubSectionHeader>,
@@ -381,15 +364,32 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'comparison2_left',
+            name: 'comparison_gap',
             config: {
-              type: 'TextControl',
-              label: t('YoY left position'),
-              isInt: true,
+              type: 'SliderControl',
+              label: t('Comparison spacing'),
+              min: 0,
+              max: 240,
+              step: 4,
+              default: DEFAULT_COMPARISON_GAP,
               renderTrigger: true,
-              default: DEFAULT_COMPARISON2_LEFT,
-              description: t('Horizontal offset in pixels from the left edge.'),
+              description: t('Horizontal spacing between MoM and YoY.'),
               visibility: ({ controls }) =>
+                controls?.show_comparison1?.value === true &&
+                controls?.show_comparison2?.value === true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'swap_comparison_order',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Swap MoM and YoY positions'),
+              default: false,
+              renderTrigger: true,
+              visibility: ({ controls }) =>
+                controls?.show_comparison1?.value === true &&
                 controls?.show_comparison2?.value === true,
             },
           },
@@ -461,17 +461,6 @@ const config: ControlPanelConfig = {
               label: t('No change color'),
               renderTrigger: true,
               default: DEFAULT_COMPARISON_ZERO_COLOR,
-            },
-          },
-        ],
-        [
-          {
-            name: 'background_color',
-            config: {
-              type: 'ColorPickerControl',
-              label: t('Background color'),
-              renderTrigger: true,
-              default: DEFAULT_BACKGROUND_COLOR,
             },
           },
         ],
