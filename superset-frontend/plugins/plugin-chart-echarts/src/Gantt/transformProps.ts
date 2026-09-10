@@ -205,49 +205,49 @@ export default function transformProps(chartProps: EchartsGanttChartProps) {
     seriesCount += map.size;
   });
 
-const borderLines: { yAxis: number }[] = [];
-const categoryLines: { yAxis: number; name?: string }[] = [];
-let sum = 0;
-let prevSum = 0;
-let maxCategoryLabelWidth = 0;
+  const borderLines: { yAxis: number }[] = [];
+  const categoryLines: { yAxis: number; name?: string }[] = [];
+  let sum = 0;
+  let prevSum = 0;
+  let maxCategoryLabelWidth = 0;
 
-let measureContext: CanvasRenderingContext2D | null = null;
-if (typeof document !== 'undefined') {
-  const canvas = document.createElement('canvas');
-  measureContext = canvas.getContext('2d');
-  if (measureContext) {
-    measureContext.font = `${theme.fontSizeSM}px ${theme.fontFamily}`;
+  let measureContext: CanvasRenderingContext2D | null = null;
+  if (typeof document !== 'undefined') {
+    const canvas = document.createElement('canvas');
+    measureContext = canvas.getContext('2d');
+    if (measureContext) {
+      measureContext.font = `${theme.fontSizeSM}px ${theme.fontFamily}`;
+    }
   }
-}
 
-Array.from(seriesInCategoriesMap.entries()).forEach(([key, map]) => {
-  sum += map.size;
+  Array.from(seriesInCategoriesMap.entries()).forEach(([key, map]) => {
+    sum += map.size;
 
-  const name = key === null || key === undefined ? undefined : String(key);
+    const name = key === null || key === undefined ? undefined : String(key);
 
-  categoryLines.push({
-    yAxis: seriesCount - (sum + prevSum) / 2,
-    name,
+    categoryLines.push({
+      yAxis: seriesCount - (sum + prevSum) / 2,
+      name,
+    });
+
+    if (name) {
+      // Prefer exact canvas measurement; fall back to an approximate width
+      // (~0.62 of the font size per character) when canvas is unavailable (e.g. SSR).
+      const labelWidth = measureContext
+        ? measureContext.measureText(name).width
+        : name.length * theme.fontSizeSM * 0.62;
+
+      maxCategoryLabelWidth = Math.max(maxCategoryLabelWidth, labelWidth);
+    }
+
+    borderLines.push({ yAxis: seriesCount - sum });
+
+    prevSum = sum;
   });
 
-  if (name) {
-    const labelWidth = measureContext
-      ? measureContext.measureText(name).width
-      : name.length * theme.fontSizeSM * 0.62;
-
-    maxCategoryLabelWidth = Math.max(maxCategoryLabelWidth, labelWidth);
-  }
-
-  borderLines.push({ yAxis: seriesCount - sum });
-
-  prevSum = sum;
-});
-
-const safeLabelWidth = maxCategoryLabelWidth;
-
-const xAxisFormatter = getXAxisFormatter(xAxisTimeFormat);
-const tooltipTimeFormatter = getTooltipTimeFormatter(tooltipTimeFormat);
-const tooltipValuesFormatter = getNumberFormatter(tooltipValuesFormat);
+  const xAxisFormatter = getXAxisFormatter(xAxisTimeFormat);
+  const tooltipTimeFormatter = getTooltipTimeFormatter(tooltipTimeFormat);
+  const tooltipValuesFormatter = getNumberFormatter(tooltipValuesFormat);
 
   const bounds: [number | undefined, number | undefined] = [
     undefined,
@@ -379,13 +379,13 @@ const tooltipValuesFormatter = getNumberFormatter(tooltipValuesFormat);
   const { legendLayout, effectiveLegendType } = resolveLegendLayout({
     availableWidth:
       legendOrientation === LegendOrientation.Top ||
-        legendOrientation === LegendOrientation.Bottom
+      legendOrientation === LegendOrientation.Bottom
         ? getHorizontalLegendAvailableWidth({
-          chartWidth: width,
-          orientation: legendOrientation,
-          padding,
-          zoomable,
-        })
+            chartWidth: width,
+            orientation: legendOrientation,
+            padding,
+            zoomable,
+          })
         : undefined,
     chartHeight: height,
     chartWidth: width,
@@ -452,7 +452,7 @@ const tooltipValuesFormatter = getNumberFormatter(tooltipValuesFormat);
     grid: {
       ...defaultGrid,
       ...padding,
-      left: (padding.left || 0) + safeLabelWidth + 10,
+      left: (padding.left || 0) + maxCategoryLabelWidth + 10,
     },
     dataZoom: zoomable && [
       {
