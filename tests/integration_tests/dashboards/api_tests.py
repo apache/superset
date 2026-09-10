@@ -3881,7 +3881,15 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         db.session.commit()
         self.login(ADMIN_USERNAME)
 
-        rv = self.client.get(f"/api/v1/dashboard/export_xlsx/status/{job_id}/")
+        # A configured backend matching the link's (MagicMock's dotted path is
+        # exactly "unittest.mock.MagicMock"): status reports ready only when the
+        # download endpoint could actually serve it.
+        original_storage_config = current_app.config["EXPORT_STORAGE"]
+        current_app.config["EXPORT_STORAGE"] = {"backend": MagicMock()}
+        try:
+            rv = self.client.get(f"/api/v1/dashboard/export_xlsx/status/{job_id}/")
+        finally:
+            current_app.config["EXPORT_STORAGE"] = original_storage_config
 
         assert rv.status_code == 200
         assert rv.json["status"] == "ready"
