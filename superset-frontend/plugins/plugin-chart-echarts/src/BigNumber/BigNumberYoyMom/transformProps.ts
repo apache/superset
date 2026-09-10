@@ -251,6 +251,11 @@ export default function transformProps(
     metricItem => metricItem.metric_name === metric,
   );
 
+  // Comparison value metrics are rendered with the default number format so
+  // the big number's Number/Currency format does not leak into the MoM/YoY
+  // rows; percent difference formats only apply to time-shift comparisons.
+  const comparisonValueFormatter = getNumberFormatter();
+
   const numberFormatter = getValueFormatter(
     metric,
     currencyFormats,
@@ -437,7 +442,9 @@ export default function transformProps(
         };
       }
       return {
-        text: `${label ? `${label} ` : ''}${numberFormatter(comparison)}`,
+        text: `${label ? `${label} ` : ''}${comparisonValueFormatter(
+          comparison,
+        )}`,
         fill:
           comparison > 0
             ? positiveColor
