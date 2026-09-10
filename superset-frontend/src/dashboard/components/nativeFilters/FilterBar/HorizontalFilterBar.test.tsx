@@ -17,9 +17,18 @@
  * under the License.
  */
 import { NativeFilterType, Preset } from '@superset-ui/core';
-import type { Filter } from '@superset-ui/core';
+import type { DataMaskStateWithId, Filter } from '@superset-ui/core';
 import { SelectFilterPlugin } from 'src/filters/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
+import type { DashboardInfo, DashboardLayout } from 'src/dashboard/types';
+import {
+  useDashboardInfoStore,
+  useDashboardLayoutStore,
+  useDashboardStateStore,
+  useNativeFiltersStore,
+  type FilterEntry,
+} from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { createSelectNativeFilter } from 'spec/fixtures/mockNativeFilters';
 import HorizontalBar from './Horizontal';
@@ -125,9 +134,11 @@ const buildStateWithFilters = (
   dashboardInfo: {
     id: 1,
     dash_edit_perm: true,
-    filterBarOrientation: FilterBarOrientation.Horizontal,
+    // Orientation is read via selectFilterBarOrientation (metadata), so child
+    // FilterControls renders horizontally inside the horizontal bar.
     metadata: {
       native_filter_configuration: filters,
+      filter_bar_orientation: FilterBarOrientation.Horizontal,
     },
   },
   dashboardLayout: {
@@ -159,12 +170,31 @@ const buildStateWithFilters = (
 const renderWithFilters = (
   filters: ReturnType<typeof createSelectNativeFilter>[],
   overrideProps?: Partial<HorizontalBarProps>,
-) =>
-  render(<HorizontalBar {...defaultProps} {...overrideProps} />, {
+) => {
+  const state = buildStateWithFilters(filters);
+  // The bar reads these from Zustand, not the Redux initialState.
+  useDashboardInfoStore.setState({
+    dashboardInfo: state.dashboardInfo as unknown as DashboardInfo,
+  });
+  useDashboardStateStore.setState({ activeTabs: ['ROOT_ID'] });
+  useDashboardLayoutStore.setState({
+    layout: state.dashboardLayout.present as unknown as DashboardLayout,
+  });
+  useNativeFiltersStore.setState({
+    filters: state.nativeFilters.filters as unknown as Record<
+      string,
+      FilterEntry
+    >,
+  });
+  useDataMaskStore.setState({
+    dataMask: state.dataMask as DataMaskStateWithId,
+  });
+  return render(<HorizontalBar {...defaultProps} {...overrideProps} />, {
     useRedux: true,
     useRouter: true,
-    initialState: buildStateWithFilters(filters),
+    initialState: state,
   });
+};
 
 test('renders default actions slot, settings gear, and empty message together in horizontal mode', async () => {
   const sentinelActions = (
@@ -172,6 +202,16 @@ test('renders default actions slot, settings gear, and empty message together in
       apply
     </button>
   );
+  // The bar reads these from Zustand, not the Redux initialState.
+  useDashboardInfoStore.setState({
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      metadata: { filter_bar_orientation: FilterBarOrientation.Horizontal },
+    } as unknown as DashboardInfo,
+  });
+  useNativeFiltersStore.setState({ filters: {} });
+  useDataMaskStore.setState({ dataMask: {} });
 
   await waitFor(() =>
     render(

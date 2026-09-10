@@ -19,6 +19,9 @@
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { SupersetClient } from '@superset-ui/core';
+import { useDashboardSlicesStore } from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import type { Slice } from 'src/dashboard/types';
 import DeckglLayerVisibilityCustomizationPlugin from './DeckglLayerVisibilityCustomizationPlugin';
 import { PluginDeckglLayerVisibilityProps } from './types';
 
@@ -82,6 +85,13 @@ const mockApiResponse = {
   },
 };
 
+beforeEach(() => {
+  useDashboardSlicesStore
+    .getState()
+    .setSlices(mockCharts as unknown as Record<number, Slice>);
+  useDataMaskStore.setState({ dataMask: {} });
+});
+
 test('displays loading state initially', () => {
   mockSupersetClientGet.mockImplementation(() => new Promise(() => {}));
 
@@ -100,20 +110,13 @@ test('displays loading state initially', () => {
 
 test('displays disabled select when no deck.gl multi layer charts are found', async () => {
   mockSupersetClientGet.mockResolvedValue({ json: { result: [] } });
+  useDashboardSlicesStore.getState().setSlices({
+    1: { form_data: { viz_type: 'line' } },
+  } as unknown as Record<number, Slice>);
 
   render(<DeckglLayerVisibilityCustomizationPlugin {...defaultProps} />, {
     useRedux: true,
-    initialState: {
-      sliceEntities: {
-        slices: {
-          chart1: {
-            form_data: {
-              viz_type: 'line',
-            },
-          },
-        },
-      },
-    },
+    initialState: {},
   });
 
   await waitFor(() => {
@@ -484,9 +487,21 @@ test('renders validate message when filterState has validateMessage', async () =
   });
 });
 
-test('respects existing visible_deckgl_layers from Redux state', async () => {
+test('respects existing visible_deckgl_layers from the data mask store', async () => {
   mockSupersetClientGet.mockResolvedValue(mockApiResponse);
   const setDataMaskMock = jest.fn();
+
+  // The plugin reads the data mask from useDataMaskStore (Zustand), not Redux.
+  useDataMaskStore.setState({
+    dataMask: {
+      filter1: {
+        id: 'filter1',
+        extraFormData: { visible_deckgl_layers: [1, 2] },
+        filterState: {},
+        ownState: {},
+      },
+    },
+  });
 
   render(
     <DeckglLayerVisibilityCustomizationPlugin
@@ -502,13 +517,6 @@ test('respects existing visible_deckgl_layers from Redux state', async () => {
       useRedux: true,
       initialState: {
         sliceEntities: { slices: mockCharts },
-        dataMask: {
-          filter1: {
-            extraFormData: {
-              visible_deckgl_layers: [1, 2],
-            },
-          },
-        },
       },
     },
   );

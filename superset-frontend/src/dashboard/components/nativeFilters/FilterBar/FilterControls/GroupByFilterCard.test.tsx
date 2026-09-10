@@ -24,6 +24,7 @@ import { LabeledValue } from '@superset-ui/core/components';
 import { render, screen } from 'spec/helpers/testing-library';
 import GroupByFilterCard, {
   createLabelSortComparator,
+  mapDatasetColumnsToOptions,
 } from './GroupByFilterCard';
 
 jest.mock('src/utils/cachedSupersetGet', () => ({
@@ -74,4 +75,20 @@ test('renders the column-loading spinner small and muted', async () => {
   const spinner = await screen.findByTestId('loading-indicator');
   expect(spinner).toHaveClass('inline');
   expect(spinner).toHaveStyle({ opacity: 0.25, width: '40px' });
+});
+
+test('mapDatasetColumnsToOptions drops non-filterable columns and prefers verbose_name', () => {
+  const options = mapDatasetColumnsToOptions([
+    { column_name: 'region', verbose_name: 'Region', filterable: true },
+    { column_name: 'secret', filterable: false },
+    { column_name: 'amount' },
+  ]);
+  expect(options).toEqual([
+    { label: 'Region', value: 'region' },
+    { label: 'amount', value: 'amount' },
+  ]);
+});
+
+test('mapDatasetColumnsToOptions returns [] for undefined columns', () => {
+  expect(mapDatasetColumnsToOptions(undefined)).toEqual([]);
 });

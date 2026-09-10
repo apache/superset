@@ -23,6 +23,11 @@ import { mockAllIsIntersecting } from 'react-intersection-observer/test-utils';
 
 import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
 import { overwriteConfirmMetadata } from 'spec/fixtures/mockDashboardState';
+import {
+  useDashboardInfoStore,
+  useDashboardStateStore,
+} from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 import OverwriteConfirmModal from './OverwriteConfirmModal';
 
 const middlewares = [thunk];
@@ -65,10 +70,14 @@ test('requests update dashboard api when save button is clicked', async () => {
     },
     { name: updateDashboardEndpoint },
   );
+  const dashboardInfo = { metadata: {} } as DashboardInfo;
+  useDashboardInfoStore.setState({ dashboardInfo });
+  // Seed the confirm metadata so we can assert the save flow clears it.
+  useDashboardStateStore.setState({ overwriteConfirmMetadata });
   const store = mockStore({
     dashboardLayout: { present: {} },
     dashboardFilters: {},
-    dashboardInfo: { metadata: {} },
+    dashboardInfo,
     charts: {},
   });
   const { findByTestId } = render(
@@ -91,10 +100,11 @@ test('requests update dashboard api when save button is clicked', async () => {
       fetchMock.callHistory.calls(updateDashboardEndpoint)?.[0]?.options?.body,
     ).toEqual(JSON.stringify(overwriteConfirmMetadata.data)),
   );
+  // A successful save clears the confirm metadata in the Zustand state store
+  // (previously a SET_OVERRIDE_CONFIRM Redux dispatch, now a direct store write).
   await waitFor(() =>
-    expect(store.getActions()).toContainEqual({
-      type: 'SET_OVERRIDE_CONFIRM',
-      overwriteConfirmMetadata: undefined,
-    }),
+    expect(
+      useDashboardStateStore.getState().overwriteConfirmMetadata,
+    ).toBeUndefined(),
   );
 });
