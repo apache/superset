@@ -55,11 +55,13 @@ from superset.utils.geographic import resolve_geographic_value, resolve_region
 from superset.utils.geographic_regions import REGIONS
 
 KINDS = ("country_map", "world_map", "deck_scatter")
+# Reuse the compiled union schema; each validation still creates a fresh config.
+CHART_CONFIG_ADAPTER = TypeAdapter(ChartConfig)
 
 
 def config_for(kind: str) -> Any:
     """Parse the published example rather than duplicating a private contract."""
-    return TypeAdapter(ChartConfig).validate_python(_CHART_EXAMPLES[kind][0])
+    return CHART_CONFIG_ADAPTER.validate_python(_CHART_EXAMPLES[kind][0])
 
 
 def form_for(kind: str) -> dict[str, Any]:
@@ -93,6 +95,17 @@ def invalid_result_for(kind: str) -> dict[str, Any]:
 
 
 @pytest.mark.parametrize("kind", KINDS)
+def test_geographic_example_configs_are_independent(kind: str) -> None:
+    """Sharing a compiled schema must not share mutable config instances."""
+    first = config_for(kind)
+    second = config_for(kind)
+    assert first is not second
+    first.row_limit = 1
+    assert second.row_limit == 10000
+    assert config_for(kind).row_limit == 10000
+
+
+@pytest.mark.parametrize("kind", KINDS)
 def test_geographic_schema_examples_and_all_request_unions(kind: str) -> None:
     """Each entry point uses the required, bounded shared discriminator."""
     example = _CHART_EXAMPLES[kind][0]
@@ -116,9 +129,9 @@ def test_geographic_schema_examples_and_all_request_unions(kind: str) -> None:
         {"bogus": 1},
     ):
         with pytest.raises(ValidationError):
-            TypeAdapter(ChartConfig).validate_python({**example, **patch_})
+            CHART_CONFIG_ADAPTER.validate_python({**example, **patch_})
     with pytest.raises(ValidationError):
-        TypeAdapter(ChartConfig).validate_python(
+        CHART_CONFIG_ADAPTER.validate_python(
             {k: v for k, v in example.items() if k != "chart_type"}
         )
 
@@ -202,7 +215,7 @@ def test_region_data_matches_frontend_geometry(country: str) -> None:
 @pytest.mark.parametrize("kind", KINDS)
 def test_geographic_native_query_and_filters(kind: str) -> None:
     """Query roles and ordering match the frontend's buildQuery contract."""
-    config = TypeAdapter(ChartConfig).validate_python(
+    config = CHART_CONFIG_ADAPTER.validate_python(
         {
             **_CHART_EXAMPLES[kind][0],
             "filters": [{"column": "segment", "op": "IN", "value": ["Retail"]}],
@@ -232,7 +245,7 @@ def test_geographic_native_query_and_filters(kind: str) -> None:
 @pytest.mark.parametrize("same", [True, False])
 def test_world_bubble_metrics_deduplicate_by_label(same: bool) -> None:
     """The secondary bubble-size metric is queried unless its alias is shared."""
-    config = TypeAdapter(ChartConfig).validate_python(
+    config = CHART_CONFIG_ADAPTER.validate_python(
         {
             **_CHART_EXAMPLES["world_map"][0],
             "show_bubbles": True,
@@ -327,7 +340,7 @@ def test_update_omissions_explicit_clearing_and_rebind(kind: str) -> None:
     assert merged["row_limit"] == 12
     assert merged["time_range"] == "Last week"
     assert merged["adhoc_filters"] == old["adhoc_filters"]
-    cleared = TypeAdapter(ChartConfig).validate_python(
+    cleared = CHART_CONFIG_ADAPTER.validate_python(
         {**_CHART_EXAMPLES[kind][0], "filters": [], "time_range": None}
     )
     merged = merge_chart_form_data(old, map_config_to_form_data(cleared), cleared)
@@ -669,7 +682,7 @@ def test_metric_alias_cannot_replace_a_geographic_dimension(kind: str) -> None:
         else "country"
     )
     with pytest.raises(ValidationError, match="conflicts with a geographic column"):
-        TypeAdapter(ChartConfig).validate_python(
+        CHART_CONFIG_ADAPTER.validate_python(
             {
                 **_CHART_EXAMPLES[kind][0],
                 field: {"name": "sales", "aggregate": "SUM", "label": label},
@@ -693,7 +706,7 @@ def test_explicit_temporal_binding_clear_preserves_user_filters(kind: str) -> No
         _mcp_dashboard_time_filter_subject="event_time",
         adhoc_filters=[generated, user_filter],
     )
-    config = TypeAdapter(ChartConfig).validate_python(
+    config = CHART_CONFIG_ADAPTER.validate_python(
         {**_CHART_EXAMPLES[kind][0], "temporal_column": None}
     )
     merged = merge_chart_form_data(old, map_config_to_form_data(config), config)
@@ -721,7 +734,7 @@ def test_geographic_nested_refs_filters_and_time_are_strict(kind: str) -> None:
     name = example[role]["name"]
     example[role] = {"column_name": name}
     example["filters"] = [{"col": name, "opr": "IN", "val": ["CA"]}]
-    config = TypeAdapter(ChartConfig).validate_python(example)
+    config = CHART_CONFIG_ADAPTER.validate_python(example)
     assert getattr(config, role).name == name
     assert config.filters[0].column == name
     for patch_ in (
@@ -730,7 +743,7 @@ def test_geographic_nested_refs_filters_and_time_are_strict(kind: str) -> None:
         {"filters": [{"column": name, "op": "IN", "value": ["CA"] * 1001}]},
     ):
         with pytest.raises(ValidationError):
-            TypeAdapter(ChartConfig).validate_python({**example, **patch_})
+            CHART_CONFIG_ADAPTER.validate_python({**example, **patch_})
 
 
 @pytest.mark.parametrize("kind", KINDS)
