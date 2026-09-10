@@ -252,7 +252,7 @@ class GetTableResponse(BaseModel):
             "Null means no primary lower bound is available. ISO 8601; naive "
             "values are in Superset's logical time coordinates, not necessarily UTC. "
             "On cache hits, these are current-request bounds; cached rows can reflect "
-            "an earlier relative range. Check performance.cache_status."
+            "an earlier relative range. Check cache_status.cache_hit."
         ),
     )
     to_dttm: datetime | None = Field(
@@ -263,7 +263,7 @@ class GetTableResponse(BaseModel):
             "describing results; do not infer dates from relative expressions. "
             "Additional filters and datasource timezone adjustments still apply. "
             "On cache hits, these are current-request bounds; cached rows can reflect "
-            "an earlier relative range. Check performance.cache_status."
+            "an earlier relative range. Check cache_status.cache_hit."
         ),
     )
     summary: str

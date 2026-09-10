@@ -1030,8 +1030,10 @@ cannot determine whether a model intended a different year.
 These fields describe the engine's **primary logical range**, not the observed
 minimum/maximum dates in the rows or every SQL predicate. A null boundary means
 no primary bound is available; it does not prove the absence of other filters.
-Additional column filters, virtual dataset SQL, and semantic-view one-sided
-ranges rewritten as comparison filters can further constrain the data. Naive
+Additional column filters and virtual dataset SQL can further constrain the
+data. MCP validation rejects open-ended `time_range` strings such as
+`"2025-01-01 : "` or `" : 2025-02-01"` before execution; use explicit comparison
+filters for one-sided constraints. Those comparisons are not primary bounds. Naive
 boundaries are not labeled UTC: dataset timezone or legacy hour-offset settings
 can adjust the SQL comparisons. Use the applied filters and datasource settings
 as well when explaining such queries. `query_dataset.applied_filters` retains the
