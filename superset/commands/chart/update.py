@@ -29,12 +29,12 @@ from superset.commands.chart.exceptions import (
     ChartForbiddenError,
     ChartInvalidError,
     ChartNotFoundError,
-    ChartQueryContextDatasourceMismatchValidationError,
     ChartUpdateFailedError,
     DashboardsForbiddenError,
     DashboardsNotFoundValidationError,
     DatasourceTypeUpdateRequiredValidationError,
 )
+from superset.commands.chart.utils import validate_query_context_datasource
 from superset.commands.exceptions import DatasourceTypeInvalidError
 from superset.commands.utils import (
     compute_subjects,
@@ -49,7 +49,6 @@ from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tags.models import ObjectType
-from superset.utils import json
 from superset.utils.core import DatasourceType
 from superset.utils.decorators import on_error, transaction
 from superset.versioning.changes.normalization import (
@@ -115,7 +114,8 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         requested_dashboard_ids = {d.id for d in requested_dashboards}
 
         if new_dashboard_ids := requested_dashboard_ids - existing_dashboard_ids:
-            # For NEW dashboard relationships, verify user has editorship
+            # For NEW dashboard relationships, verify user has access first
+            # to avoid leaking information about inaccessible dashboards
             accessible_dashboards = DashboardDAO.find_by_ids(list(new_dashboard_ids))
             unauthorized_dashboard_ids = new_dashboard_ids - {
                 d.id for d in accessible_dashboards
@@ -123,10 +123,10 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
 
             if unauthorized_dashboard_ids:
                 exceptions.append(DashboardsNotFoundValidationError())
+                return
 
-            # Additional editorship check - must match CreateChartCommand behavior
             for dash in accessible_dashboards:
-                if not security_manager.is_editor(dash):
+                if dash.is_managed_externally or not security_manager.is_editor(dash):
                     raise DashboardsForbiddenError()
 
     def _validate_query_context_datasource(
@@ -134,49 +134,15 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
     ) -> None:
         """
         Ensure a query-context-only update keeps the chart's own datasource.
-
-        The submitted query context is only verified when it carries a parseable
-        ``datasource`` object; a payload that references a different datasource than
-        the chart's persisted one is rejected. Payloads without a datasource fall
-        back to the chart's datasource at execution time and need no check.
         """
         if not self._model:
             return
-
-        raw_query_context = self._properties.get("query_context")
-        if not raw_query_context:
-            return
-
-        try:
-            query_context = json.loads(raw_query_context)
-        except (TypeError, ValueError):
-            # TypeError covers a query_context that isn't a string (e.g. an
-            # already-parsed dict); that shape is intentionally out of scope
-            # here since the schema serializes it as a JSON string. ValueError
-            # covers a string that failed to parse. Either way, an unverifiable
-            # payload is left for downstream handling rather than guessed at.
-            return
-
-        datasource = (
-            query_context.get("datasource") if isinstance(query_context, dict) else None
+        validate_query_context_datasource(
+            self._properties.get("query_context"),
+            self._model.datasource_id,
+            self._model.datasource_type,
+            exceptions,
         )
-        if not isinstance(datasource, dict):
-            return
-
-        try:
-            ids_match = int(datasource["id"]) == self._model.datasource_id
-        except (KeyError, TypeError, ValueError):
-            ids_match = False
-
-        # A datasource object must carry a type that matches the chart's own.
-        # Treating a missing type as valid would let an id-only payload through,
-        # and query-context loading reads datasource["type"] directly, so that
-        # payload raises KeyError when the saved context is later replayed.
-        datasource_type = datasource.get("type")
-        types_match = str(datasource_type) == self._model.datasource_type
-
-        if not ids_match or not types_match:
-            exceptions.append(ChartQueryContextDatasourceMismatchValidationError())
 
     def validate(self) -> None:  # noqa: C901
         exceptions: list[ValidationError] = []

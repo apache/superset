@@ -46,7 +46,7 @@ jobs:
           persist-credentials: false
 
       - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
+        uses: $/.github/actions/setup-supersetbot/
 
       - name: Execute custom Node.js script
         env:

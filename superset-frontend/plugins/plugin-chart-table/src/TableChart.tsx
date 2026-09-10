@@ -47,6 +47,7 @@ import {
   extractTextFromHTML,
   TimeGranularity,
   forceHexAlpha,
+  DateWithFormatter,
 } from '@superset-ui/core';
 import {
   styled,
@@ -98,7 +99,6 @@ import { formatColumnValue } from './utils/formatValue';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
 import { updateTableOwnState } from './DataTable/utils/externalAPIs';
 import getScrollBarSize from './DataTable/utils/getScrollBarSize';
-import DateWithFormatter from './utils/DateWithFormatter';
 
 type ValueRange = [number, number];
 
@@ -264,7 +264,14 @@ const VisuallyHidden = styled.label`
   border: 0;
 `;
 
-function SearchInput({ value, onChange, onBlur, inputRef }: SearchInputProps) {
+function SearchInput({
+  value,
+  onChange,
+  onBlur,
+  onCompositionStart,
+  onCompositionEnd,
+  inputRef,
+}: SearchInputProps) {
   return (
     <Space direction="vertical" size={4} className="dt-global-filter">
       <span aria-hidden="true">{t('Search')}</span>
@@ -275,6 +282,8 @@ function SearchInput({ value, onChange, onBlur, inputRef }: SearchInputProps) {
         size="small"
         onChange={onChange}
         onBlur={onBlur}
+        onCompositionStart={onCompositionStart}
+        onCompositionEnd={onCompositionEnd}
         ref={inputRef}
       />
     </Space>

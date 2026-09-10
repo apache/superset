@@ -77,6 +77,13 @@ DEPRECATED_EXTRAS_FIELDS = (
     DeprecatedField(old_name="having", new_name="having"),
 )
 
+# Post-processing options that QueryObject resolves before calling the operation.
+# They are not parameters of the pandas function and would otherwise be stripped
+# by ``_drop_unsupported_options``.
+_QUERY_OBJECT_RESOLVED_OPTIONS: dict[str, frozenset[str]] = {
+    "resample": frozenset({"fill_time_range"}),
+}
+
 
 class QueryObject:  # pylint: disable=too-many-instance-attributes
     """
@@ -167,6 +174,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.from_dttm = kwargs.get("from_dttm")
         self.to_dttm = kwargs.get("to_dttm")
         self.result_type = kwargs.get("result_type")
+        # Per-query forced-refresh idempotency nonce (the async task's UUID). Set
+        # on the async read-back so a re-issued force reads the warmed result the
+        # task cached instead of recomputing; see QueryContextProcessor.
+        self.force_nonce = kwargs.get("force_nonce")
         self.time_offsets = kwargs.get("time_offsets", [])
         self.time_compare_full_range = kwargs.get("time_compare_full_range", False)
         self.inner_from_dttm = kwargs.get("inner_from_dttm")
@@ -262,6 +273,9 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             # reports it as InvalidPostProcessingError.
             return post_proc
 
+        # ``function`` is only resolved when ``operation`` is a known builtin name.
+        assert isinstance(operation, str)
+
         parameters = inspect.signature(function).parameters
         if any(
             parameter.kind is inspect.Parameter.VAR_KEYWORD
@@ -283,6 +297,11 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 inspect.Parameter.KEYWORD_ONLY,
             )
         }
+        # Options that QueryObject resolves itself before invoking the operation
+        # (e.g. ``fill_time_range`` → ``time_range_start`` / ``time_range_end``).
+        # They are not kwargs of the pandas function, but must survive until
+        # ``exec_post_processing``.
+        keyword_parameters |= _QUERY_OBJECT_RESOLVED_OPTIONS.get(operation, frozenset())
 
         options = post_proc.get("options") or {}
         unsupported = {key for key in options if key not in keyword_parameters}
@@ -661,5 +680,32 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                             )
                         )
                     func = extra_ops[operation]
-                df = func(df, **post_process.get("options", {}))
+                options = post_process.get("options", {})
+                if operation == "resample":
+                    options = self._resolve_resample_options(options)
+                df = func(df, **options)
             return df
+
+    def _resolve_resample_options(self, options: dict[str, Any]) -> dict[str, Any]:
+        """
+        Translate the `fill_time_range` flag into explicit resample boundaries.
+
+        Clients cannot supply the boundaries themselves because time ranges may be
+        expressed in natural language (e.g. `Last week`) and are only resolved into
+        concrete datetimes server side. Client-supplied ``time_range_start`` /
+        ``time_range_end`` are ignored in favor of the query's resolved bounds.
+
+        :param options: Options of the `resample` post processing operation.
+        :return: Options with the boundaries of the queried time range applied.
+        """
+        if not options.get("fill_time_range"):
+            return options
+
+        resolved = {
+            key: value
+            for key, value in options.items()
+            if key not in ("fill_time_range", "time_range_start", "time_range_end")
+        }
+        resolved["time_range_start"] = self.from_dttm
+        resolved["time_range_end"] = self.to_dttm
+        return resolved

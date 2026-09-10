@@ -66,7 +66,7 @@ jobs:
           fetch-depth: 0
 
       - name: Setup Docker Environment
-        uses: ./.github/actions/setup-docker
+        uses: $/.github/actions/setup-docker
         with:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -81,7 +81,7 @@ jobs:
           package-manager-cache: false
 
       - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
+        uses: $/.github/actions/setup-supersetbot
 
       - name: Execute custom Node.js script
         env:
@@ -139,7 +139,7 @@ jobs:
           package-manager-cache: false
 
       - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
+        uses: $/.github/actions/setup-supersetbot/
 
       - name: Label the PRs with the right release-related labels
         env:
