@@ -513,4 +513,4 @@ Now that you have a working extension, explore:
 - **[Deployment](./deployment.md)** - Packaging and deploying your extension
 - **[Security](./security.md)** - Security best practices for extensions
 
-No complete real-world extension is bundled in this repository yet. For working examples, browse the [community extension registry](./registry.md). The scaffold built in this guide mirrors the templates shipped in [`superset-extensions-cli/templates`](https://github.com/apache/superset/tree/master/superset-extensions-cli/templates), the closest in-repo reference for the expected project layout.
+No complete real-world extension is bundled in this repository yet. For working examples, browse the [community extension registry](./registry.md). The scaffold built in this guide mirrors the templates shipped in [`superset-extensions-cli/src/superset_extensions_cli/templates`](https://github.com/apache/superset/tree/master/superset-extensions-cli/src/superset_extensions_cli/templates), the closest in-repo reference for the expected project layout.
