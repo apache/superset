@@ -244,13 +244,20 @@ def _table_chart_config() -> dict[str, Any]:
     }
 
 
-def test_migrate_chart_table_leaves_viz_type_unchanged_by_default() -> None:
+def test_migrate_chart_table_leaves_viz_type_unchanged_by_default(
+    mocker: MockerFixture,
+) -> None:
     """
     Table V2 (``ag-grid-table``) is gated behind ``AG_GRID_TABLE_ENABLED``,
     off by default. Importing a ``table`` chart -- e.g. ``load_examples`` on
     a fresh install -- must not silently hand back an ag-grid-table chart
     the frontend hasn't registered the plugin for.
     """
+    mocker.patch.object(
+        feature_flag_manager,
+        "is_feature_enabled",
+        side_effect=lambda flag: False,
+    )
     chart_config = _table_chart_config()
 
     new_config = migrate_chart(chart_config)
