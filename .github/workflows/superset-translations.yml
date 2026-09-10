@@ -51,7 +51,7 @@ jobs:
         # checkout, so it can't see into a submodule's gitlink. Keep this one
         # on the workspace-relative ./ form, consistent with every other
         # workflow in the repo that references this action.
-        uses: ./.github/actions/cached-dependencies
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: npm-install
       - name: lint

@@ -145,6 +145,46 @@ D3_TIME_FORMAT = {
 Restart Superset after changing `superset_config.py` so the frontend receives
 the updated formatter configuration.
 
+## Serving translated language packs
+
+Non-English page loads need the frontend translation catalog (the "language
+pack") available before the entry bundle runs, so translations are in place
+for the very first render instead of racing a later fetch. Superset delivers
+that pack as a separate, cacheable script rather than inlining it into the
+HTML:
+
+```html
+<script src="/language_pack/pt_BR/1a2b3c4d5e6f/script.js"></script>
+```
+
+`spa.html` emits this tag, pointing at the `language_pack_script` view, before
+loading the entry bundle whenever the request's locale isn't English. The
+`<version>` segment is a short hash of the pack's contents, so the URL is
+content-addressed:
+
+- When the version in the URL matches the server's current pack, the response
+  carries `Cache-Control: public, max-age=31536000, immutable` — the browser
+  fetches that language's pack once and reuses it across sessions.
+- If a cached HTML page references a version that's since changed (e.g. after
+  a translation update or upgrade), the endpoint still serves the current
+  pack, but with `Cache-Control: no-cache` so any copy stored under the
+  now-stale URL must be revalidated with the server before it's reused.
+- English pages emit no script tag; there's no pack to load.
+
+Each worker caches a locale's pack and version hash in memory for its
+lifetime, so a translation file changed on disk isn't picked up, and doesn't
+produce a new version hash, until the worker restarts. Restart (or roll)
+Superset after deploying a translation update so clients get the new pack.
+
+This endpoint is intentionally unauthenticated. Translation catalogs are
+static, public content shipped in the Superset repo, and the login page and
+embedded dashboards need them to load before a user session exists.
+
+If you already override the language pack via `COMMON_BOOTSTRAP_OVERRIDES_FUNC`
+(a `common.language_pack` value, historically used to work around translation
+race conditions), that override still takes precedence: `spa.html` skips the
+script tag and uses your supplied pack instead.
+
 ## Chart-data query timing
 
 Set `CHART_DATA_INCLUDE_TIMING = True` to add an optional versioned timing object

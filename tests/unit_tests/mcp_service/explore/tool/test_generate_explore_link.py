@@ -21,10 +21,11 @@ Comprehensive unit tests for MCP generate_explore_link tool
 
 import importlib
 import logging
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
-from fastmcp import Client
+from fastmcp import Client, FastMCP
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.schemas import (
@@ -45,6 +46,56 @@ from superset.mcp_service.common.error_schemas import DatasetContext
 generate_explore_link_module = importlib.import_module(
     "superset.mcp_service.explore.tool.generate_explore_link"
 )
+
+
+@pytest.mark.parametrize("time_range", ["", "   ", "No filter"])
+@pytest.mark.parametrize("comparator", ["Last week", "", "   "])
+@patch.object(generate_explore_link_module, "validate_and_compile")
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_gauge_fastmcp_entry_compiles_and_returns_native_form_data(
+    mock_find_dataset, mock_validate, mcp_server, time_range: str, comparator: str
+) -> None:
+    """The public Gauge request reaches compile and a native Explore payload."""
+    from superset.mcp_service.chart.compile import CompileResult
+
+    mock_find_dataset.return_value = _mock_dataset(id=3)
+    mock_validate.return_value = CompileResult(success=True)
+    request = {
+        "dataset_id": "3",
+        "config": {
+            "chart_type": "gauge",
+            "metric": {"name": "num", "aggregate": "AVG"},
+            "min_val": 0,
+            "max_val": 100,
+            "number_format": ",.1f",
+            "time_range": time_range,
+            "adhoc_filters": [
+                {
+                    "subject": "event_time",
+                    "operator": "TEMPORAL_RANGE",
+                    "comparator": comparator,
+                }
+            ],
+        },
+    }
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool("generate_explore_link", {"request": request})
+
+    assert result.structured_content["success"] is True
+    form_data = result.structured_content["form_data"]
+    assert form_data["viz_type"] == "gauge_chart"
+    assert form_data["metric"]["label"] == "AVG(num)"
+    assert form_data["number_format"] == ",.1f"
+    if comparator == "Last week":
+        assert form_data["time_range"] == "Last week"
+    else:
+        assert form_data.get("time_range") in (None, "No filter")
+        assert form_data["adhoc_filters"][0]["subject"] == "event_time"
+        assert form_data["adhoc_filters"][0]["comparator"] == "No filter"
+    assert mock_validate.call_args.kwargs["run_compile_check"] is True
+
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -1227,3 +1278,73 @@ class TestGenerateExploreLinkValidation:
             assert error["error_type"] == "permission_denied"
             assert "Dataset not found" in error["message"]
             mock_create_permalink.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "filter_value",
+    [
+        {"subject": "event_time", "operator": "TEMPORAL_RANGE"},
+        {"subject": "event_time", "operator": "TEMPORAL_RANGE", "comparator": None},
+    ],
+)
+async def test_gauge_fastmcp_rejects_missing_temporal_comparator(
+    mcp_server: FastMCP,
+    filter_value: dict[str, Any],
+) -> None:
+    """Transport validation rejects malformed ranges before query compilation."""
+    from fastmcp.exceptions import ToolError
+
+    with patch.object(generate_explore_link_module, "validate_and_compile") as compile_:
+        async with Client(mcp_server) as client:
+            with pytest.raises(ToolError, match="requires a temporal comparator"):
+                await client.call_tool(
+                    "generate_explore_link",
+                    {
+                        "request": {
+                            "dataset_id": "3",
+                            "config": {
+                                "chart_type": "gauge",
+                                "metric": {"name": "num", "aggregate": "AVG"},
+                                "adhoc_filters": [filter_value],
+                            },
+                        }
+                    },
+                )
+        compile_.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_gauge_fastmcp_rejects_conflicting_temporal_filters(
+    mcp_server: FastMCP,
+) -> None:
+    """Public native-form input cannot silently lose the second time restriction."""
+    from fastmcp.exceptions import ToolError
+
+    temporal = {
+        "subject": "event_time",
+        "operator": "TEMPORAL_RANGE",
+        "comparator": "Last week",
+    }
+    with patch.object(generate_explore_link_module, "validate_and_compile") as compile_:
+        async with Client(mcp_server) as client:
+            with pytest.raises(
+                ToolError, match="conflicts with another temporal range"
+            ):
+                await client.call_tool(
+                    "generate_explore_link",
+                    {
+                        "request": {
+                            "dataset_id": "3",
+                            "config": {
+                                "chart_type": "gauge",
+                                "metric": "saved_sla",
+                                "adhoc_filters": [
+                                    temporal,
+                                    {**temporal, "subject": "other_time"},
+                                ],
+                            },
+                        }
+                    },
+                )
+        compile_.assert_not_called()
