@@ -44,6 +44,23 @@ import {
 import { PivotData, flatKey } from './utilities';
 import { Styles } from './Styles';
 
+/**
+ * Pivot keys are stringified on their way through `PivotData`, so a temporal
+ * header holding an epoch timestamp arrives as e.g. "1700000000000". Coerce
+ * such numeric strings back to numbers so temporal formatters (which expect
+ * an epoch) render correctly. A bare four-digit string is the ISO 8601
+ * year-only form ("2017"), which the shared `stringifyTimeInput` in core
+ * reads as that calendar year; coercing it would turn the year into two
+ * seconds past 1970, so it is passed through untouched.
+ */
+const toDateFormatterInput = (value: unknown): unknown =>
+  typeof value === 'string' &&
+  value.trim() !== '' &&
+  !/^\d{4}$/.test(value.trim()) &&
+  Number.isFinite(Number(value))
+    ? Number(value)
+    : value;
+
 type ClickCallback = (
   e: MouseEvent,
   value: unknown,
@@ -989,15 +1006,9 @@ export function TableRenderer(props: TableRendererProps) {
               />
             );
           };
-          // Coerce numeric timestamp strings to numbers so temporal formatters
-          // (which typically expect an epoch) render correctly.
           const rawHeaderCellValue = colKey[attrIdx];
           const headerCellFormatterValue =
-            typeof rawHeaderCellValue === 'string' &&
-            rawHeaderCellValue.trim() !== '' &&
-            Number.isFinite(Number(rawHeaderCellValue))
-              ? Number(rawHeaderCellValue)
-              : rawHeaderCellValue;
+            toDateFormatterInput(rawHeaderCellValue);
           const headerCellFormattedValue =
             dateFormatters?.[attrName]?.(headerCellFormatterValue) ??
             rawHeaderCellValue;
@@ -1263,14 +1274,7 @@ export function TableRenderer(props: TableRendererProps) {
             ? toggleRowKey(flatRowKeySlice)
             : null;
 
-          // Coerce numeric timestamp strings to numbers so temporal formatters
-          // (which typically expect an epoch) render correctly.
-          const headerFormatterValue =
-            typeof r === 'string' &&
-            r.trim() !== '' &&
-            Number.isFinite(Number(r))
-              ? Number(r)
-              : r;
+          const headerFormatterValue = toDateFormatterInput(r);
           const headerCellFormattedValue =
             dateFormatters?.[settingsRowAttrs[i]]?.(headerFormatterValue) ?? r;
           const isActiveHeader = valueCellClassName.includes('active');
