@@ -48,7 +48,7 @@ class InlineExportPlan:
 
 
 def _finite_row_limit(query: Any) -> int | None:
-    """Return the query's row limit, using ``ROW_LIMIT`` when omitted."""
+    """Return the limit; missing, null, and zero use ``ROW_LIMIT``."""
     if not isinstance(query, dict):
         return None
     row_limit = query.get("row_limit") or current_app.config["ROW_LIMIT"]

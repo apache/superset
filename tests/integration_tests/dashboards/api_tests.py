@@ -4033,34 +4033,52 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     @with_feature_flags(EMBEDDED_SUPERSET=True)
     @patch("superset.dashboards.api.build_workbook")
     def test_export_xlsx_sync_still_blocks_guest_sessions(self, mock_build):
-        """Dashboard API: the synchronous path does not become a way for an
-        embedded guest session to export a dashboard. Guest support is deliberately
-        out of scope here, so a guest holding a token that *does* grant access to
-        this dashboard is still refused, before any workbook is built."""
+        """Dashboard API: synchronous exports reject embedded guests."""
         dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
         embedded = EmbeddedDashboardDAO.upsert(dashboard, ["superset.example"])
         db.session.commit()
-        token = security_manager.create_guest_access_token(
-            {"username": "xlsx_guest"},
-            [{"type": GuestTokenResourceType.DASHBOARD, "id": str(embedded.uuid)}],
-            [],
+        public_role = security_manager.get_public_role()
+        export_permission = security_manager.find_permission_view_menu(
+            "can_export", "Dashboard"
         )
+        assert public_role is not None
+        assert export_permission is not None
+        permission_added = export_permission not in public_role.permissions
+        if permission_added:
+            security_manager.add_permission_role(public_role, export_permission)
 
-        with self.client as client:
-            rv = client.post(
-                f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
-                json={"active_data_mask": {}},
-                headers={
-                    current_app.config["GUEST_TOKEN_HEADER_NAME"]: token.decode("utf-8")
-                    if isinstance(token, bytes)
-                    else token
-                },
+        try:
+            token = security_manager.create_guest_access_token(
+                {"username": "xlsx_guest"},
+                [
+                    {
+                        "type": GuestTokenResourceType.DASHBOARD,
+                        "id": str(embedded.uuid),
+                    }
+                ],
+                [],
             )
-            assert isinstance(g.user, GuestUser)
 
-        assert rv.status_code == 400
-        assert "email address" in rv.data.decode("utf-8")
-        mock_build.assert_not_called()
+            with self.client as client:
+                rv = client.post(
+                    f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+                    json={"active_data_mask": {}},
+                    headers={
+                        current_app.config["GUEST_TOKEN_HEADER_NAME"]: token.decode(
+                            "utf-8"
+                        )
+                        if isinstance(token, bytes)
+                        else token
+                    },
+                )
+                assert isinstance(g.user, GuestUser)
+
+            assert rv.status_code == 400
+            assert "email address" in rv.data.decode("utf-8")
+            mock_build.assert_not_called()
+        finally:
+            if permission_added:
+                security_manager.del_permission_role(public_role, export_permission)
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_embedded_dashboards(self):
