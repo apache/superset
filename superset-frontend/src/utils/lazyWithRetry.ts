@@ -37,7 +37,27 @@ export interface LazyRetryOptions {
   retries?: number;
   /** Base delay between attempts; doubled on every subsequent attempt. */
   retryDelayMs?: number;
+  /**
+   * Predicate deciding whether an error is worth retrying. Defaults to
+   * `isChunkLoadError` so deterministic failures (syntax errors, missing
+   * dependencies, module-evaluation errors) surface immediately instead of
+   * being retried.
+   */
+  isRetryable?: (error: unknown) => boolean;
 }
+
+/**
+ * Recognizes the transient "chunk failed to load" errors browsers/bundlers
+ * raise on a stale or momentarily-unreachable asset, as opposed to
+ * deterministic module errors (syntax errors, missing dependencies) that
+ * will fail identically on every retry.
+ */
+export const isChunkLoadError = (error: unknown): boolean =>
+  error instanceof Error &&
+  (error.name === 'ChunkLoadError' ||
+    /loading chunk|failed to fetch dynamically imported module/i.test(
+      error.message,
+    ));
 
 const sleep = (ms: number): Promise<void> =>
   new Promise(resolve => {
@@ -45,14 +65,16 @@ const sleep = (ms: number): Promise<void> =>
   });
 
 /**
- * Calls `factory`, retrying with exponential backoff when it rejects. Rejects
- * with the last error once every attempt has been exhausted.
+ * Calls `factory`, retrying with exponential backoff when it rejects with a
+ * retryable error. Rejects with the last error once every attempt has been
+ * exhausted, or immediately when the error is not retryable.
  */
 export async function retryImport<T>(
   factory: () => Promise<T>,
   {
     retries = DEFAULT_LAZY_RETRIES,
     retryDelayMs = DEFAULT_LAZY_RETRY_DELAY_MS,
+    isRetryable = isChunkLoadError,
   }: LazyRetryOptions = {},
 ): Promise<T> {
   let lastError: unknown;
@@ -62,9 +84,11 @@ export async function retryImport<T>(
       return await factory();
     } catch (error) {
       lastError = error;
-      if (attempt < retries) {
+      if (attempt < retries && isRetryable(error)) {
         // eslint-disable-next-line no-await-in-loop
         await sleep(retryDelayMs * 2 ** attempt);
+      } else {
+        break;
       }
     }
   }

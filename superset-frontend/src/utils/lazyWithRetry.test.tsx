@@ -63,3 +63,14 @@ test('retryImport does not retry a successful import (#41266)', async () => {
   });
   expect(factory).toHaveBeenCalledTimes(1);
 });
+
+test('retryImport does not retry a deterministic, non-chunk error', async () => {
+  const factory = jest
+    .fn()
+    .mockRejectedValue(new SyntaxError('Unexpected token'));
+
+  await expect(
+    retryImport(factory, { retries: 2, retryDelayMs: 0 }),
+  ).rejects.toThrow('Unexpected token');
+  expect(factory).toHaveBeenCalledTimes(1);
+});
