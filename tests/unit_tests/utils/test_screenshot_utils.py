@@ -83,6 +83,7 @@ def test_stable_readiness_javascript_resets_dwell_state() -> None:
     node = shutil.which("node")
     if node is None:
         pytest.skip("Node.js is required to execute the readiness predicate")
+    assert node is not None
 
     expression = _stable_readiness_js("() => globalThis.ready")
     script = r"""
