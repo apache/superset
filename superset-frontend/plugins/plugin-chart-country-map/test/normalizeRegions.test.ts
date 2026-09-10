@@ -106,3 +106,21 @@ test('compact boundary identifiers match the actual GeoJSON assets', () => {
     expect(new Set(pairs.map(pair => JSON.stringify(pair)))).toEqual(expected);
   }
 });
+
+test('bundled duplicate UK names require codes without cross-transform leakage', () => {
+  expect(() =>
+    normalizeRegions([{ region: 'Halton' }], 'region', 'uk', 'name'),
+  ).toThrow('Ambiguous');
+  expect(
+    normalizeRegions([{ region: 'GB-HAL' }], 'region', 'uk', 'iso_3166_2'),
+  ).toEqual([{ region: 'GB-HAL' }]);
+  expect(
+    normalizeRegions([{ region: 'WRL' }], 'region', 'uk', 'abbreviation'),
+  ).toEqual([{ region: 'GB-WRL' }]);
+  expect(
+    normalizeRegions([{ region: 'ca' }], 'region', 'usa', 'abbreviation'),
+  ).toEqual([{ region: 'US-CA' }]);
+  expect(
+    normalizeRegions([{ region: 'bc' }], 'region', 'canada', 'abbreviation'),
+  ).toEqual([{ region: 'CA-BC' }]);
+});

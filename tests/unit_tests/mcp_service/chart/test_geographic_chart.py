@@ -770,3 +770,100 @@ def test_geographic_query_context_seeds_native_form_data(kind: str) -> None:
         assert seeded["spatial"]["latCol"] == "latitude"
     else:
         assert seeded["entity"] == ("state" if kind == "country_map" else "country")
+
+
+@pytest.mark.parametrize("kind", KINDS)
+def test_geographic_ascii_clamps_width_and_handles_render_errors(kind: str) -> None:
+    """Map data previews share the safe table fallback behavior."""
+    from superset.mcp_service.chart.ascii_charts import generate_ascii_chart
+
+    with patch("superset.mcp_service.chart.ascii_charts.generate_ascii_table") as table:
+        table.return_value = "table"
+        assert generate_ascii_chart([{"value": 1}], kind, width=-1).endswith("table")
+        table.assert_called_once_with([{"value": 1}], 21)
+        table.side_effect = ValueError("invalid table")
+        assert (
+            generate_ascii_chart([{"value": 1}], kind)
+            == "ASCII chart generation failed"
+        )
+
+
+def test_geographic_recommendations_preserve_time_series_and_bound_cardinality() -> (
+    None
+):
+    """Ambiguous names do not override temporal or high-cardinality suggestions."""
+    from superset.mcp_service.chart.schemas import DataColumn
+    from superset.mcp_service.chart.tool.get_chart_data import _build_candidates
+
+    def column(name: str, dtype: str, count: int = 10) -> DataColumn:
+        """Build realistic inferred column metadata."""
+        return DataColumn(
+            name=name,
+            display_name=name,
+            data_type=dtype,
+            unique_count=count,
+            null_count=0,
+            sample_values=[],
+        )
+
+    metric = column("sales", "numeric")
+    state = column("state", "string")
+    assert "country map" in _build_candidates([state, metric], 10)
+    assert "line chart" in _build_candidates(
+        [state, metric, column("date", "temporal")], 10
+    )
+    assert "country map" not in _build_candidates(
+        [column("state", "string", 1000), metric], 1000
+    )
+    assert "country map" not in _build_candidates(
+        [column("state", "boolean"), metric], 10
+    )
+
+
+def test_world_country_aliases_are_cached_by_format() -> None:
+    """Per-row validation reuses bounded immutable aliases without format leakage."""
+    from superset.mcp_service.chart.query_result import _world_country_entries
+
+    assert _world_country_entries("cca2") is _world_country_entries("cca2")
+    assert ("US", "USA") in _world_country_entries("cca2")
+    assert ("USA", "USA") in _world_country_entries("cca3")
+    assert ("US", "USA") not in _world_country_entries("cca3")
+
+
+def test_ambiguous_bundled_uk_name_requires_a_code() -> None:
+    """Do not guess which bundled Halton geometry a name refers to."""
+    with pytest.raises(ValueError, match="ambiguous"):
+        resolve_region("Halton", "uk", "name")
+    assert resolve_region("GB-HAL", "uk", "iso_3166_2") == "GB-HAL"
+    assert resolve_region("WRL", "uk", "abbreviation") == "GB-WRL"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("viz", ["gauge_chart", *KINDS])
+async def test_public_rebind_guidance_matches_chart_roles(viz: str) -> None:
+    """Gauge rebind guidance must not request geographic roles."""
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart.find_chart_by_identifier",
+            return_value=Mock(id=1, datasource_id=3, viz_type=viz),
+        ),
+    ):
+        async with Client(mcp) as client:
+            response = await client.call_tool(
+                "update_chart",
+                {
+                    "request": {
+                        "identifier": 1,
+                        "dataset_id": 4,
+                    }
+                },
+            )
+    payload = response.structured_content
+    assert not payload["success"]
+    details = payload["error"]["details"]
+    assert "metric" in details
+    assert ("geographic" in details) is (viz != "gauge_chart")

@@ -28,6 +28,7 @@ from copy import deepcopy
 from typing import Any, Dict, List
 
 from superset.mcp_service.chart.query_result import (
+    GEOGRAPHIC_VIZ_TYPES,
     metric_result_label,
     normalize_chart_query_result,
     query_result_failure,
@@ -154,7 +155,7 @@ def _generate_ascii_preview_from_data(
     else:
         content = _generate_safe_ascii_table(data)
 
-    if viz_type in {"country_map", "world_map", "deck_scatter"}:
+    if viz_type in GEOGRAPHIC_VIZ_TYPES:
         content = "Geographic source data (geometry not reproduced)\n" + content
     return ASCIIPreview(
         ascii_content=content, width=80, height=20, supports_color=False
@@ -938,7 +939,7 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
     if viz_type == "gauge_chart":
         return generate_gauge_vega_lite_preview(data, form_data)
 
-    if viz_type in {"country_map", "world_map", "deck_scatter"}:
+    if viz_type in GEOGRAPHIC_VIZ_TYPES:
         return ChartError(
             error=(
                 "Geographic Vega previews are not supported. Use table/ascii for "

@@ -165,15 +165,19 @@ def _build_candidates(
     categorical = [c for c in columns if c.data_type in ("string", "boolean")]
 
     numeric_names = {c.name.lower() for c in numeric}
-    categorical_names = {c.name.lower() for c in categorical}
+    categorical_names = {
+        c.name.lower()
+        for c in categorical
+        if c.data_type == "string" and 1 < c.unique_count <= 250
+    }
+    if temporal and numeric:
+        return _candidates_temporal_numeric(numeric, row_count)
     if {"latitude", "longitude"} <= numeric_names:
         return ["geographic points", "table"]
     if numeric and categorical_names & {"country", "country_code"}:
         return ["world map", "bar chart", "table"]
     if numeric and categorical_names & {"state", "province"}:
         return ["country map", "bar chart", "table"]
-    if temporal and numeric:
-        return _candidates_temporal_numeric(numeric, row_count)
     if categorical and numeric:
         return _candidates_categorical_numeric(numeric, categorical)
     if len(numeric) >= 2:

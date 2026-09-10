@@ -806,9 +806,13 @@ async def update_chart(  # noqa: C901
                     else "Dataset rebind requires a complete typed geographic config."
                 ),
                 details=(
-                    "Provide chart_type and complete geographic/metric roles valid on "
-                    "the target "
-                    "dataset. This prevents stale metric, groupby, and filter roles "
+                    (
+                        "Provide chart_type='gauge' and a metric valid on the target "
+                        if getattr(chart, "viz_type", None) == "gauge_chart"
+                        else "Provide chart_type and complete geographic/metric roles "
+                        "valid on the target "
+                    )
+                    + "dataset. This prevents stale metric, groupby, and filter roles "
                     "from the previous dataset from being retained."
                 ),
             )

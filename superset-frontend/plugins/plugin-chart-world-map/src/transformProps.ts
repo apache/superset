@@ -23,6 +23,7 @@ import {
   getMetricLabel,
   getValueFormatter,
 } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import transformData from './transformData';
 
 export default function transformProps(chartProps: ChartProps) {
@@ -60,6 +61,12 @@ export default function transformProps(chartProps: ChartProps) {
     currencyCodeColumn,
   } = datasource;
   const { data: rawData, detected_currency: detectedCurrency } = queriesData[0];
+
+  if (formData.mcpGeographic && !Array.isArray(rawData)) {
+    throw new Error(
+      t('Expected geographic query data to be a list of records'),
+    );
+  }
 
   // The legacy explore_json endpoint joined country metadata server-side;
   // rows carrying both the entity and metric labels are v1 records that

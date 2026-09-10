@@ -179,6 +179,9 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
   // Track mouse position to distinguish clicks from drags
   let mousedownPos: { x: number; y: number } | null = null;
 
+  const sourceValue = (code: string) =>
+    data.find(row => row.country_id === code)?.source_value ?? code;
+
   // Cross-filter support
   const getCrossFilterDataMask = (
     source: GeoFeature,
@@ -200,11 +203,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
                 {
                   col: entity,
                   op: 'IN',
-                  val: values.map(
-                    code =>
-                      data.find(row => row.country_id === code)?.source_value ??
-                      code,
-                  ),
+                  val: values.map(sourceValue),
                 },
               ]
             : [],
@@ -229,8 +228,7 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     const iso = feature?.properties?.ISO;
     if (!iso || typeof onContextMenu !== 'function' || !entity) return;
 
-    const drillVal =
-      data.find(row => row.country_id === iso)?.source_value ?? iso;
+    const drillVal = sourceValue(iso);
     const drillToDetailFilters = [
       { col: entity, op: '==', val: drillVal, formattedVal: drillVal },
     ];

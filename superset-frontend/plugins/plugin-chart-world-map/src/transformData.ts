@@ -17,6 +17,7 @@
  * under the License.
  */
 import { getColumnLabel, getMetricLabel } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { getCountry } from './countries';
 
 export interface WorldMapDataRow {
@@ -71,7 +72,9 @@ export default function transformData(
     if (options.strict) {
       if (!countryInfo || seen.has(countryInfo.cca3)) {
         throw new Error(
-          'Unrecognized or duplicate country value; choose the matching country format or normalize source values before aggregation.',
+          t(
+            'Unrecognized or duplicate country value; choose the matching country format or normalize source values before aggregation.',
+          ),
         );
       }
       seen.add(countryInfo.cca3);
@@ -81,11 +84,14 @@ export default function transformData(
       ]) {
         const value = record[label];
         if (typeof value !== 'number' || !Number.isFinite(value)) {
-          throw new Error(`Geographic metric ${label} must be a finite number`);
+          throw new Error(
+            t('Geographic metric %s must be a finite number', label),
+          );
         }
       }
-      if (secondaryLabel && Number(record[secondaryLabel]) < 0) {
-        throw new Error('Bubble-size metric must be nonnegative');
+      const size = secondaryLabel ? record[secondaryLabel] : undefined;
+      if (typeof size === 'number' && size < 0) {
+        throw new Error(t('Bubble-size metric must be nonnegative'));
       }
     }
     if (countryInfo) {

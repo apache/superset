@@ -342,6 +342,16 @@ class GetChartInfoRequest(BaseModel):
             "and the caller to have dashboard access."
         ),
     )
+    extra_form_data: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Active dashboard filters the user currently has applied to this chart, "
+            "forwarded so the response reports the chart as the user actually views "
+            "it. Surfaced under filters.active_filters; this is not a query "
+            "(get_chart_info returns metadata only). Format: "
+            '{"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}'
+        ),
+    )
     select_columns: Annotated[
         List[str],
         Field(
@@ -2648,6 +2658,7 @@ class GeographicChartConfig(BaseChartConfig):
                 raise ValueError(
                     f"{field} requires aggregate, saved_metric, or sql_expression"
                 )
+        # These helpers import chart schemas, so defer to avoid a cycle.
         from superset.mcp_service.chart.chart_utils import create_metric_object
         from superset.mcp_service.chart.query_result import metric_result_label
 
@@ -3311,6 +3322,14 @@ class GetChartPreviewRequest(QueryCacheControl):
     ascii_height: int | None = Field(
         default=20, description="ASCII chart height in lines (for ascii format)"
     )
+    extra_form_data: dict[str, Any] | None = Field(
+        default=None,
+        description=(
+            "Extra form data to merge into the preview query, typically from "
+            "dashboard native filters, so the preview reflects the filtered view. "
+            'Format: {"filters": [{"col": "country", "op": "IN", "val": ["US"]}]}'
+        ),
+    )
 
 
 # Discriminated union preview formats for type safety
@@ -3650,6 +3669,28 @@ class ChartFiltersInfo(BaseModel):
             "dashboard passed via get_chart_info's dashboard_id argument. Empty "
             "when no dashboard_id was provided or no native filter targets this "
             "chart."
+        ),
+    )
+    active_filters: List[Dict[str, Any]] = Field(
+        default_factory=list,
+        description=(
+            "Dashboard native filters the user currently has ACTIVE on this chart "
+            "(live selections forwarded from the dashboard via extra_form_data), "
+            "distinct from the chart's own saved filters and from dashboard_filters "
+            "(the dashboard's default/configured state). A non-empty list means the "
+            "chart is being viewed filtered; report these as the active filters. "
+            "Column-based and adhoc filters exactly as forwarded, in their "
+            "original shapes; an active time-range filter is reported "
+            "separately under active_time_range."
+        ),
+    )
+    active_time_range: str | None = Field(
+        None,
+        description=(
+            "Dashboard time-range filter the user currently has ACTIVE on this "
+            "chart (forwarded via extra_form_data.time_range), distinct from the "
+            "chart's own saved time_range. Set when the active view includes a "
+            "time filter."
         ),
     )
 

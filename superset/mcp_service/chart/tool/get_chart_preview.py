@@ -44,6 +44,7 @@ from superset.mcp_service.chart.preview_utils import (
     generate_gauge_vega_lite_preview,
 )
 from superset.mcp_service.chart.query_result import (
+    GEOGRAPHIC_VIZ_TYPES,
     normalize_chart_query_result,
     query_result_failure,
 )
@@ -267,6 +268,7 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             query_context = build_query_context_from_form_data(
                 form_data,
                 chart=self.chart,
+                extra_form_data=self.request.extra_form_data,
                 row_limit=_preview_row_limit(form_data, 50),
                 order_desc=True,
                 force=False,
@@ -346,6 +348,7 @@ class TablePreviewStrategy(PreviewFormatStrategy):
             query_context = build_query_context_from_form_data(
                 form_data,
                 chart=self.chart,
+                extra_form_data=self.request.extra_form_data,
                 row_limit=_preview_row_limit(form_data, 20),
                 order_desc=True,
                 force=False,
@@ -447,6 +450,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             query_context = build_query_context_from_form_data(
                 form_data,
                 chart=self.chart,
+                extra_form_data=self.request.extra_form_data,
                 row_limit=_preview_row_limit(form_data, 1000),
                 order_desc=True,
                 force=self.request.force_refresh,
@@ -469,11 +473,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             if result and "queries" in result and len(result["queries"]) > 0:
                 chart_data = result["queries"][0].get("data", [])
 
-            if form_data.get("viz_type") in {
-                "country_map",
-                "world_map",
-                "deck_scatter",
-            }:
+            if form_data.get("viz_type") in GEOGRAPHIC_VIZ_TYPES:
                 return ChartError(
                     error=(
                         "Geographic Vega previews are not supported. "
@@ -1440,6 +1440,9 @@ async def get_chart_preview(
     """Get chart preview by ID or UUID.
 
     Returns preview URL or formatted content (ascii, table, vega_lite).
+
+    Pass extra_form_data (e.g. a dashboard's active native filters) to render
+    the preview over the filtered data rather than the full dataset.
 
     When format includes 'url', the returned preview_url uses the same scheme
     as the configured instance URL (HTTPS in production/staging, HTTP in local

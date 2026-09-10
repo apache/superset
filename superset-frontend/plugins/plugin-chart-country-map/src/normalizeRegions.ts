@@ -24,17 +24,11 @@ interface Boundary {
   properties: { ISO?: string; NAME_1?: string; NAME_2?: string };
 }
 
-/** Exact matches win; folded matches must resolve to one rendered boundary. */
-export function resolveRegion(
-  value: unknown,
+/** Index immutable aliases once per transform, preserving ambiguity checks. */
+function createRegionResolver(
   boundaries: Boundary[],
   format: RegionFormat,
-): string {
-  if (typeof value !== 'string' || !value || value.length > 500) {
-    throw new Error(
-      'Geographic values must be nonempty strings of at most 500 characters',
-    );
-  }
+): (value: unknown) => string {
   const fold = (text: string) =>
     text
       .toLowerCase()
@@ -50,19 +44,41 @@ export function resolveRegion(
           : p.ISO;
     return alias ? [{ alias, code: p.ISO }] : [];
   });
-  const exact = entries.filter(e => e.alias === value);
-  const matches = new Set(
-    (exact.length
-      ? exact
-      : entries.filter(e => fold(e.alias) === fold(value))
-    ).map(e => e.code),
-  );
-  if (matches.size !== 1) {
-    throw new Error(
-      `${matches.size ? 'Ambiguous' : 'Unrecognized'} region ${JSON.stringify(value.slice(0, 100))}; choose the matching country/region format or explicitly filter the dataset.`,
-    );
-  }
-  return [...matches][0];
+  const exactIndex = new Map<string, Set<string>>();
+  const foldedIndex = new Map<string, Set<string>>();
+  entries.forEach(({ alias, code }) => {
+    for (const [index, key] of [
+      [exactIndex, alias],
+      [foldedIndex, fold(alias)],
+    ] as const) {
+      const codes = index.get(key) ?? new Set<string>();
+      codes.add(code);
+      index.set(key, codes);
+    }
+  });
+  return value => {
+    if (typeof value !== 'string' || !value || value.length > 500) {
+      throw new Error(
+        'Geographic values must be nonempty strings of at most 500 characters',
+      );
+    }
+    const matches = exactIndex.get(value) ?? foldedIndex.get(fold(value));
+    if (matches?.size !== 1) {
+      throw new Error(
+        `${matches?.size ? 'Ambiguous' : 'Unrecognized'} region ${JSON.stringify(value.slice(0, 100))}; choose the matching country/region format or explicitly filter the dataset.`,
+      );
+    }
+    return [...matches][0];
+  };
+}
+
+/** Exact matches win; folded matches must resolve to one rendered boundary. */
+export function resolveRegion(
+  value: unknown,
+  boundaries: Boundary[],
+  format: RegionFormat,
+): string {
+  return createRegionResolver(boundaries, format)(value);
 }
 
 /** Normalize display-only values, leaving raw query/export records intact. */
@@ -83,13 +99,10 @@ export default function normalizeRegions(
   const boundaries = regions[country].map(([ISO, NAME_1]) => ({
     properties: { ISO, NAME_1 },
   }));
+  const resolve = createRegionResolver(boundaries, format as RegionFormat);
   const seen = new Set<string>();
   return records.map(record => {
-    const iso = resolveRegion(
-      record[entity],
-      boundaries,
-      format as RegionFormat,
-    );
+    const iso = resolve(record[entity]);
     if (seen.has(iso)) {
       throw new Error(
         `Multiple result rows resolve to ${iso}; normalize source values before aggregation.`,

@@ -19,6 +19,7 @@
 
 import math
 from collections.abc import Mapping
+from functools import lru_cache
 from typing import Any
 
 from superset.mcp_service.chart.schemas import ChartError
@@ -270,11 +271,20 @@ def _validate_geographic_metrics(
             raise ValueError("Geographic size metrics must be nonnegative")
 
 
+@lru_cache(maxsize=4)
+def _world_country_entries(field: str) -> tuple[tuple[str, str], ...]:
+    """Reuse immutable country aliases for the four supported world formats."""
+    from superset.examples.countries import countries
+
+    return tuple(
+        (country[field], country["cca3"]) for country in countries if country[field]
+    )
+
+
 def _geographic_row_identifier(
     row: Mapping[str, Any], form_data: Mapping[str, Any]
 ) -> str | None:
     """Resolve a polygon identifier or validate numeric point coordinates."""
-    from superset.examples.countries import countries
     from superset.utils.geographic import resolve_geographic_value, resolve_region
 
     viz = form_data["viz_type"]
@@ -293,7 +303,7 @@ def _geographic_row_identifier(
             raise ValueError("Choose country_format name, cca2, cca3, or cioc")
         return resolve_geographic_value(
             row.get(entity or ""),
-            [(c[field], c["cca3"]) for c in countries if c[field]],
+            _world_country_entries(field),
             fold_diacritics=False,
         )
     spatial = form_data.get("spatial")

@@ -160,12 +160,15 @@ def _compile_chart(
             )
         result = normalize_chart_query_result(result, form_data)
         if isinstance(result, ChartError):
+            error_code = (
+                "INVALID_GEOGRAPHIC_RESULT"
+                if form_data.get("mcp_geographic")
+                else "INVALID_GAUGE_RESULT"
+            )
             return CompileResult(
                 success=False,
                 error=result.error,
-                error_code="INVALID_GEOGRAPHIC_RESULT"
-                if form_data.get("mcp_geographic")
-                else "INVALID_GAUGE_RESULT",
+                error_code=error_code,
                 tier="compile",
                 error_obj=ChartGenerationError(
                     error_type=result.error_type,
@@ -187,9 +190,7 @@ def _compile_chart(
                             "Check the metric alias and SQL expression",
                         ]
                     ),
-                    error_code="INVALID_GEOGRAPHIC_RESULT"
-                    if form_data.get("mcp_geographic")
-                    else "INVALID_GAUGE_RESULT",
+                    error_code=error_code,
                 ),
             )
         for query in result.get("queries", []):
