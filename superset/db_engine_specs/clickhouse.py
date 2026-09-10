@@ -402,6 +402,10 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     # inherit the parent's True.
     supports_multivalues_insert = False
 
+    # What ``pandas.api.types.infer_dtype`` reports for an object column that
+    # holds date or datetime values.
+    _DATE_LIKE_INFERRED_TYPES = frozenset({"datetime", "datetime64", "date"})
+
     sqlalchemy_uri_placeholder = (
         "clickhousedb://user:password@host[:port][/dbname][?secure=value&=value...]"
     )
@@ -599,11 +603,10 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             inner = "Float64"
         elif pd.api.types.is_datetime64_any_dtype(dtype):
             inner = "DateTime64(6)"
-        elif pd.api.types.infer_dtype(series, skipna=True) in {
-            "datetime",
-            "datetime64",
-            "date",
-        }:
+        elif (
+            pd.api.types.infer_dtype(series, skipna=True)
+            in cls._DATE_LIKE_INFERRED_TYPES
+        ):
             # Object columns that actually hold date/datetime values.
             inner = "DateTime64(6)"
         else:
@@ -612,52 +615,85 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             inner = "String"
         return f"Nullable({inner})"
 
+    @staticmethod
+    def _unwrap_clickhouse_type(ch_type: str) -> str:
+        """Strip ``Nullable(...)`` and ``LowCardinality(...)`` wrappers.
+
+        ``LowCardinality(Nullable(String))`` becomes ``String``; the wrappers
+        change how a column is stored, not what its values have to be.
+        """
+        inner = ch_type.strip()
+        while True:
+            for wrapper in ("Nullable(", "LowCardinality("):
+                if inner.startswith(wrapper) and inner.endswith(")"):
+                    inner = inner[len(wrapper) : -1].strip()
+                    break
+            else:
+                return inner
+
     @classmethod
     def _coerce_to_declared_types(cls, df: Any, column_types: dict[str, str]) -> Any:
-        """Make object columns hold what the DDL we emit says they hold.
+        """Make object columns hold what the table's column types say they hold.
 
         The driver's column writers take the declared type at its word: the
         ``String`` writer calls ``encode()`` on every value and the
-        ``DateTime64`` writer calls ``timestamp()``. An object column reaches
-        them holding whatever pandas parsed out of the file, so a column this
-        spec types from inference rather than from a dtype can declare one
-        thing and carry another, and the insert fails on the first value that
-        doesn't match. Two cases arise from ordinary uploads:
+        ``DateTime``/``DateTime64`` writers call ``timestamp()``. An object
+        column reaches them holding whatever pandas parsed out of the file, so
+        it can carry something other than what its column declares, and the
+        insert fails on the first value that doesn't match. Two cases arise
+        from ordinary uploads:
 
-        * ``String`` is the fallback for anything whose exact type can't be
-          inferred, which includes a column mixing text with numbers — an ID
-          column with a single ``N/A`` cell. Values are rendered with ``str()``
-          (so ``bytes``, ``Decimal`` and ``UUID`` also survive), which is what
-          the declared type promises.
-        * ``DateTime64(6)`` is declared for object columns holding dates, but
-          ``datetime.date`` has no ``timestamp()`` — only ``datetime.datetime``
-          does. ``to_datetime`` normalizes both to real timestamps.
+        * A ``String`` column receiving a mix of text and numbers — an ID column
+          with a single ``N/A`` cell. Values are rendered with ``str()``, which
+          is what the declared type promises. ``Decimal`` and ``UUID`` render
+          as their text form; ``bytes`` render as their Python repr
+          (``"b'ab'"``) rather than being decoded, since decoding could itself
+          fail on data that isn't UTF-8.
+        * A ``DateTime`` or ``DateTime64`` column receiving ``datetime.date``
+          objects, which have no ``timestamp()`` — only ``datetime.datetime``
+          does. ``to_datetime`` normalizes both to real timestamps. Only columns
+          that already hold date/datetime objects are converted, so text is
+          never reparsed as a date.
 
-        NULLs are preserved either way, so they still round-trip as NULL. Only
-        columns this call declares are touched: when appending to a table that
-        already exists the server's schema governs, not our inference.
+        ``column_types`` maps column names to ClickHouse type names: the DDL
+        this spec emits when it creates a table, or the server's own schema
+        when appending to an existing one. Either way the types are honoured,
+        not changed — only the values are made to fit them. Columns the frame
+        doesn't hold, and types other than the two above, are left alone.
+
+        NULLs are preserved, so they still round-trip as NULL.
         """
         # pylint: disable=import-outside-toplevel
         import pandas as pd
 
         object_columns = {
-            name: ch_type
+            name: cls._unwrap_clickhouse_type(ch_type)
             for name, ch_type in column_types.items()
-            if pd.api.types.is_object_dtype(df[name].dtype)
+            if name in df.columns and pd.api.types.is_object_dtype(df[name].dtype)
         }
         if not object_columns:
             return df
 
         df = df.copy()
-        for name, ch_type in object_columns.items():
-            if ch_type == "Nullable(String)":
+        for name, inner in object_columns.items():
+            if inner == "String":
                 df[name] = df[name].map(
                     lambda value: value if isinstance(value, str) else str(value),
                     na_action="ignore",
                 )
-            elif ch_type == "Nullable(DateTime64(6))":
+            elif (
+                inner.startswith("DateTime")
+                and pd.api.types.infer_dtype(df[name], skipna=True)
+                in cls._DATE_LIKE_INFERRED_TYPES
+            ):
                 df[name] = pd.to_datetime(df[name])
         return df
+
+    @classmethod
+    def _existing_column_types(cls, client: Any, qualified: str) -> dict[str, str]:
+        """Read an existing table's column names and ClickHouse types."""
+        result = client.query(f"DESCRIBE TABLE {qualified}")
+        return {row[0]: row[1] for row in result.result_rows}
 
     @classmethod
     def df_to_sql(
@@ -730,6 +766,14 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
                     columns_ddl = ", ".join(
                         f"{_quote(name)} {ch_type}"
                         for name, ch_type in column_types.items()
+                    )
+                else:
+                    # Appending to a table that already exists: its schema
+                    # governs the types, not our inference, but the frame
+                    # still has to satisfy that schema for the insert to go
+                    # through.
+                    df = cls._coerce_to_declared_types(
+                        df, cls._existing_column_types(client, qualified)
                     )
 
                 if exists and if_exists == "replace":
@@ -821,6 +865,18 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         except Exception:
             if staging_is_disposable:
                 cls._drop_quietly(client, staging, "staging")
+            else:
+                # The target has been dropped, so the staging table holds the
+                # only copy of the data. It is kept, and without a pointer to
+                # its randomly suffixed name nobody would know where to look.
+                logger.error(
+                    "Replacing the ClickHouse table %s failed after it was "
+                    "dropped. The uploaded rows are kept in %s; rename it to "
+                    "%s to recover them.",
+                    qualified,
+                    staging,
+                    qualified,
+                )
             raise
 
         if swap_leaves_old_data_in_staging:
