@@ -33,7 +33,6 @@ from superset.utils.core import (
     extract_dataframe_dtypes,
     QueryStatus,
 )
-from superset.views.datasource.schemas import SamplesPayloadSchema
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -107,7 +106,7 @@ def get_samples(  # pylint: disable=too-many-arguments
     force: bool = False,
     page: int = 1,
     per_page: int = 1000,
-    payload: SamplesPayloadSchema | None = None,
+    payload: dict[str, Any] | None = None,
     datasource: Datasource | None = None,
     dashboard_id: int | None = None,
 ) -> dict[str, Any]:

@@ -77,5 +77,7 @@ def test_prepare_drill_detail_query_allows_datasource_without_flag() -> None:
     assert prepared_query.metrics is None
     assert prepared_query.post_processing == []
     assert prepared_query.columns == ["id"]
-    assert prepared_query.orderby == [("id", True)]
+    # A caller-supplied orderby (e.g. a column-header sort) is preserved
+    # rather than being overwritten with the first-column default.
+    assert prepared_query.orderby == [("name", False)]
     assert query_obj.columns == []

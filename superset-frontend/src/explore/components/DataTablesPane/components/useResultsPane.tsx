@@ -149,7 +149,8 @@ export const useResultsPane = ({
 
     // Tag this run so a stale response (from a request superseded by a
     // newer sort/row-limit change) can be ignored when it resolves.
-    const requestId = ++latestRequestId.current;
+    latestRequestId.current += 1;
+    const requestId = latestRequestId.current;
 
     // The chart query and the results query produce identical SQL, so reuse the
     // chart's data instead of a second request. The chart always ran with a
