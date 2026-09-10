@@ -57,6 +57,10 @@ import type { QueryFormMetric } from '@superset-ui/core';
 import { Flex, Loading, Typography } from '@superset-ui/core/components';
 import { provider, useDashboardRevision } from '../store';
 import { fetchQueryData } from '../chartData';
+import {
+  getEchartsTheme,
+  mergeEchartsThemeOverrides,
+} from '@superset-ui/plugin-chart-echarts';
 import { resolveBindings } from '../resolveBindings';
 import { getActiveFiltersForDataset } from '../collectActiveFilters';
 import type { FilterValueChangedPayload } from '../filterVocabulary';
@@ -69,6 +73,8 @@ import {
   applyStructuredChrome,
   type EchartsChromeValue,
 } from './echartsStructuredChrome';
+import { getChartTheme } from '../chartTheme';
+import { applySeriesDefaults } from '../echartsSeriesDefaults';
 
 type DataBindingSpec = dashboardApi.DataBindingSpec;
 type DataRow = dashboardApi.DataRow;
@@ -335,11 +341,25 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
   )?.series;
   const chrome = node?.props?.chrome as EchartsChromeValue | undefined;
 
+  const colorScheme = provider.getRoot().props?.colorScheme;
+  const chartTheme = useMemo(
+    () =>
+      getChartTheme(
+        theme,
+        // Empty is unset, not a scheme named "": the registry would look up
+        // the empty key and hand back no palette at all. Matches how the
+        // dashboard API reads the same prop.
+        typeof colorScheme === 'string' && colorScheme !== ''
+          ? colorScheme
+          : undefined,
+      ),
+    [theme, colorScheme],
+  );
   const option = useMemo(() => {
     if (!rows) return undefined;
     const resolved = resolveBindings(
       (node?.props?.echartsOptions as Record<string, unknown>) ?? {},
-      { rows, theme },
+      { rows, chartTheme, theme },
     );
     const withStructuredSeries = applyStructuredEchartsSeries(
       resolved,
@@ -358,7 +378,32 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
     // that sits where every other widget's name sits.
     const withoutTitle = { ...withStructuredChrome };
     delete withoutTitle.title;
-    return withoutTitle;
+
+    // Everything an AI-authored option doesn't say for itself comes from the
+    // theme: text/axis/legend/tooltip colors, the categorical palette, and
+    // whatever chart overrides the theme carries. Merged *under* the option
+    // (rightmost source wins in `mergeEchartsThemeOverrides`), so an explicit
+    // choice in the spec still takes precedence.
+    const merged = mergeEchartsThemeOverrides<Record<string, unknown>>(
+      {
+        ...getEchartsTheme(theme, withoutTitle),
+        // The fallback for a series with no name of its own. A named one is
+        // coloured by that name in `applySeriesDefaults`, so it never reaches
+        // this list.
+        color: chartTheme.categoricalColors,
+        backgroundColor: 'transparent',
+      },
+      withoutTitle,
+      theme.echartsOptionsOverrides ?? {},
+    );
+    // The theme layer styles a title as well; there is none to style.
+    delete merged.title;
+
+    // Per-series-type theming can't ride along in the merge — a source array
+    // replaces the destination's, so any `series` the theme layer added would
+    // be dropped by the authored one. Filled in afterwards, and only where the
+    // option is silent, which leaves an explicit choice in the spec intact.
+    return applySeriesDefaults(merged, chartTheme);
   }, [
     node?.props?.echartsOptions,
     chartType,
@@ -367,6 +412,7 @@ export default function ChartWidget({ nodeId }: { nodeId: string }) {
     dataBinding,
     rows,
     theme,
+    chartTheme,
   ]);
 
   if (!node) return null;

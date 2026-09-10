@@ -35,6 +35,9 @@
 // `const` export (unlike the ambient `declare function`s alongside it, which
 // this object exists to implement and have no JS output of their own).
 import { dashboard as dashboardApi } from '@apache-superset/core';
+import { CategoricalColorNamespace } from '@superset-ui/core';
+import { themeObject } from '@apache-superset/core/theme';
+import { getChartTheme } from './chartTheme';
 import { store } from 'src/views/store';
 import { provider, useDashboardRevision } from './store';
 import { fetchQueryData } from './chartData';
@@ -48,6 +51,19 @@ import { navigation } from '../navigation';
 registerBuiltInWidgets();
 
 export { useDashboardRevision };
+
+/**
+ * The canvas's own categorical scheme, or undefined for the deployment's
+ * default.
+ *
+ * On the root node, beside its title: a colour scheme is a property of the
+ * dashboard, so it travels with the saved definition and the assistant can
+ * both read and set it through the same API it edits everything else with.
+ */
+function canvasColorScheme(): string | undefined {
+  const scheme = provider.getRoot().props?.colorScheme;
+  return typeof scheme === 'string' && scheme !== '' ? scheme : undefined;
+}
 
 // The classic dashboard's id lives in the ordinary Redux store (populated
 // when its own page mounts), not in `provider` — that class only ever knows
@@ -76,4 +92,10 @@ export const dashboard: typeof dashboardApi = {
   getValue: provider.getValue,
   on: provider.on,
   fetchQueryData,
+  // Both read per call rather than captured once: the canvas's scheme, the
+  // deployment's default and the light/dark theme can each change after this
+  // module is imported.
+  getCategoricalColors: () =>
+    CategoricalColorNamespace.getScale(canvasColorScheme()).colors,
+  getChartTheme: () => getChartTheme(themeObject.theme, canvasColorScheme()),
 };
