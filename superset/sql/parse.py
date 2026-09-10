@@ -735,6 +735,66 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         return self.format()
 
 
+_SELECT_TRAILING_CLAUSES: tuple[str, ...] = (
+    "options",
+    "settings",
+    "format",
+    "locks",
+    "offset",
+    "limit",
+    "sort",
+    "cluster",
+    "distribute",
+    "order",
+    "windows",
+    "qualify",
+    "having",
+    "group",
+    "where",
+    "joins",
+    "laterals",
+    "from",
+    "into",
+    "expressions",
+)
+
+
+def _get_select_trailing_child(node: exp.Select) -> exp.Expression | None:
+    for clause_name in _SELECT_TRAILING_CLAUSES:
+        val = node.args.get(clause_name)
+        if isinstance(val, list) and val:
+            return _find_last_token_node(val[-1])
+        if isinstance(val, exp.Expression):
+            return _find_last_token_node(val)
+    return None
+
+
+def _find_last_token_node(node: exp.Expression) -> exp.Expression:
+    """
+    Find the last token/leaf node in SQL generation order to attach trailing comments.
+
+    Avoids optimizer hints (exp.Hint) and non-trailing subtrees to prevent injecting
+    trailing comments inside optimizer hint blocks (e.g. /*+ SET_VAR(...) */).
+    """
+    if isinstance(node, exp.Select):
+        if trailing := _get_select_trailing_child(node):
+            return trailing
+
+    children: list[exp.Expression] = []
+    for k, v in node.args.items():
+        if k in ("hint", "comments"):
+            continue
+        if isinstance(v, exp.Expression):
+            children.append(v)
+        elif isinstance(v, list):
+            children.extend(item for item in v if isinstance(item, exp.Expression))
+
+    if children:
+        return _find_last_token_node(children[-1])
+
+    return node
+
+
 class SQLStatement(BaseSQLStatement[exp.Expression]):
     """
     A SQL statement.
@@ -932,11 +992,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # statement; move them back to the last token in the last real statement
         if len(statements) > 1 and isinstance(statements[-1], exp.Semicolon):
             last_statement = statements.pop()
-            target = statements[-1]
-            for node in statements[-1].walk():
-                if hasattr(node, "comments"):  # pragma: no cover
-                    target = node
-
+            target = _find_last_token_node(statements[-1])
             target.comments = target.comments or []
             target.comments.extend(last_statement.comments)
 
@@ -1453,10 +1509,33 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 found.add(entry)
         return found
 
+    def _has_limit_by(self) -> bool:
+        """
+        Check if the statement has a ClickHouse `LIMIT ... BY` clause.
+
+        `LIMIT n BY <cols>` keeps `n` rows *per group*, so it is a de-duplication
+        clause rather than a row cap. sqlglot models the `BY` columns as the
+        `expressions` of the root `Limit` node, or of the root `Offset` node for
+        the `LIMIT n OFFSET m BY x` and `LIMIT m, n BY x` spellings.
+
+        :return: True if the statement's limit or offset carries `BY` columns.
+        """
+        for arg in ("limit", "offset"):
+            node = self._parsed.args.get(arg)
+            if isinstance(node, exp.Expression) and node.expressions:
+                return True
+
+        return False
+
     def get_limit_value(self) -> int | None:
         """
         Parse a SQL query and return the `LIMIT` or `TOP` value, if present.
         """
+        # `LIMIT 2 BY id` bounds each group, not the result set, so reporting 2
+        # here would make `_set_query_limit()` clamp the whole query to 2 rows.
+        if self._has_limit_by():
+            return None
+
         if limit_node := self._parsed.args.get("limit"):
             literal = limit_node.args.get("expression") or getattr(
                 limit_node, "this", None
@@ -1494,18 +1573,40 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         if not isinstance(self._parsed, exp.Query):
             return
 
-        if method == LimitMethod.FORCE_LIMIT:
+        # A ClickHouse `LIMIT ... BY` occupies the very `limit`/`offset` slot that
+        # `FORCE_LIMIT` overwrites, so forcing a row cap in place would drop the
+        # `BY` grouping and silently change what the query returns. The cap can't
+        # be appended alongside it either -- sqlglot rejects ClickHouse's native
+        # `LIMIT n BY x LIMIT m` with "Found multiple 'LIMIT' clauses" -- so it
+        # goes on a wrapping query instead, exactly as `WRAP_SQL` does.
+        if method == LimitMethod.FORCE_LIMIT and not self._has_limit_by():
             self._parsed.args["limit"] = exp.Limit(
                 expression=exp.Literal(this=str(limit), is_string=False)
             )
-        elif method == LimitMethod.WRAP_SQL:
-            self._parsed = exp.Select(
+        elif method in {LimitMethod.FORCE_LIMIT, LimitMethod.WRAP_SQL}:
+            inner = self._parsed.copy()
+            wrapper = exp.Select(
                 expressions=[exp.Star()],
                 limit=exp.Limit(
                     expression=exp.Literal(this=str(limit), is_string=False)
                 ),
-                from_=exp.From(this=exp.Subquery(this=self._parsed.copy())),
+                from_=exp.From(this=exp.Subquery(this=inner)),
             )
+
+            # `FORMAT` and `SETTINGS` configure the query rather than produce
+            # rows, and only mean what they say at the top level: ClickHouse
+            # rejects `FORMAT` inside a subquery outright, and a nested
+            # `SETTINGS` binds to that subquery alone, so top-level-only settings
+            # such as `extremes` would quietly stop applying. Moving them onto
+            # the wrapper keeps their original whole-query scope. Row-producing
+            # modifiers stay in the subquery, where ClickHouse keeps honoring
+            # them: a wrapped `WITH TOTALS` query still emits its totals block,
+            # and `WITH ROLLUP`/`WITH CUBE` still emit their extra rows.
+            for modifier in ("format", "settings"):
+                if value := inner.args.pop(modifier, None):
+                    wrapper.set(modifier, value)
+
+            self._parsed = wrapper
         else:  # method == LimitMethod.FETCH_MANY
             pass
 
