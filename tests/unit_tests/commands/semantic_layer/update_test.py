@@ -565,6 +565,33 @@ def test_unmask_configuration_rejects_secret_reveal_with_new_none_valued_key() -
         )
 
 
+def test_unmask_configuration_rejects_secret_reveal_with_removed_key() -> None:
+    """
+    Dropping a stored key while reusing the masked secret is a configuration
+    change too: the update replaces the stored dictionary wholesale, so the
+    key really is gone afterwards while the real secret is carried over.
+    Comparing only the submitted keys would let that through.
+    """
+    with pytest.raises(SemanticLayerInvalidError):
+        _unmask_configuration(
+            '{"account": "prod-account", "region": "eu-west-1", "password": "hunter2"}',
+            {"account": "prod-account", "password": PASSWORD_MASK},
+        )
+
+
+def test_unmask_configuration_allows_removed_key_with_fresh_secret() -> None:
+    """
+    Dropping a stored key is still allowed when a genuinely fresh secret is
+    supplied alongside it -- only the masked round-trip is restricted.
+    """
+    result = _unmask_configuration(
+        '{"account": "prod-account", "region": "eu-west-1", "password": "hunter2"}',
+        {"account": "prod-account", "password": "fresh-secret"},
+    )
+
+    assert result == {"account": "prod-account", "password": "fresh-secret"}
+
+
 def test_unmask_configuration_allows_fresh_secret_with_changed_field() -> None:
     """
     A deliberate configuration change is still possible when a genuinely

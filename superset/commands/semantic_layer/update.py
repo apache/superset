@@ -82,8 +82,9 @@ def _unmask_configuration(
     pluggable and defined outside this repo (see
     ``superset/core/api/core_api_injection.py``), so unlike the analogous
     database-connection fix there's no fixed "destination fields" list to
-    narrow this to -- any other field changing at all is treated as unsafe
-    to combine with a secret reveal.
+    narrow this to -- any other field changing at all, including a stored
+    key being dropped from the payload, is treated as unsafe to combine
+    with a secret reveal.
     """
     try:
         existing_configuration = (
@@ -102,9 +103,18 @@ def _unmask_configuration(
     # introduced key with an explicit None value would be misread as
     # unchanged and let a masked secret slip through alongside it. A
     # sentinel default makes that distinction explicit.
-    if masked_keys and any(
-        key not in masked_keys and existing_configuration.get(key, _MISSING) != value
-        for key, value in new_configuration.items()
+    # Iterating only the submitted keys would miss a REMOVED key: the update
+    # replaces the stored dictionary wholesale, so dropping an optional field
+    # while reusing the masked secret changes the effective configuration
+    # just as surely as editing one. Treat missing keys as changes too.
+    removed_keys = set(existing_configuration) - set(new_configuration)
+    if masked_keys and (
+        removed_keys
+        or any(
+            key not in masked_keys
+            and existing_configuration.get(key, _MISSING) != value
+            for key, value in new_configuration.items()
+        )
     ):
         raise SemanticLayerInvalidError(
             "This update changes the configuration while reusing a stored "

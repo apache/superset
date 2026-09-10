@@ -37,6 +37,7 @@ from sqlalchemy import asc, desc
 from sqlalchemy.orm import selectinload
 
 from superset.commands.dashboard.embedded.exceptions import (
+    EmbeddedDashboardAccessDeniedError,
     EmbeddedDashboardNotFoundError,
 )
 from superset.commands.exceptions import ForbiddenError
@@ -265,6 +266,12 @@ class SecurityRestApi(BaseSupersetApi):
             return self.response(200, token=token)
         except EmbeddedDashboardNotFoundError as error:
             return self.response_400(message=error.message)
+        except EmbeddedDashboardAccessDeniedError as error:
+            # The minting principal is not entitled to the dashboard being
+            # scoped (see validate_guest_token_resources): an authorization
+            # denial, not a server fault, so answer 403 rather than letting
+            # @safe turn it into a logged 500.
+            return self.response_403(message=error.message)
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
