@@ -17,11 +17,13 @@
 # pylint: disable=invalid-name
 from __future__ import annotations
 
+import inspect
 import logging
 from datetime import datetime
 from pprint import pformat
 from typing import Any, NamedTuple, TYPE_CHECKING
 
+from flask import current_app
 from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas import DataFrame
@@ -74,6 +76,13 @@ DEPRECATED_EXTRAS_FIELDS = (
     DeprecatedField(old_name="where", new_name="where"),
     DeprecatedField(old_name="having", new_name="having"),
 )
+
+# Post-processing options that QueryObject resolves before calling the operation.
+# They are not parameters of the pandas function and would otherwise be stripped
+# by ``_drop_unsupported_options``.
+_QUERY_OBJECT_RESOLVED_OPTIONS: dict[str, frozenset[str]] = {
+    "resample": frozenset({"fill_time_range"}),
+}
 
 
 class QueryObject:  # pylint: disable=too-many-instance-attributes
@@ -165,6 +174,10 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self.from_dttm = kwargs.get("from_dttm")
         self.to_dttm = kwargs.get("to_dttm")
         self.result_type = kwargs.get("result_type")
+        # Per-query forced-refresh idempotency nonce (the async task's UUID). Set
+        # on the async read-back so a re-issued force reads the warmed result the
+        # task cached instead of recomputing; see QueryContextProcessor.
+        self.force_nonce = kwargs.get("force_nonce")
         self.time_offsets = kwargs.get("time_offsets", [])
         self.time_compare_full_range = kwargs.get("time_compare_full_range", False)
         self.inner_from_dttm = kwargs.get("inner_from_dttm")
@@ -194,19 +207,125 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         #   1. 'metric_name'   - name of predefined metric
         #   2. { label: 'label_name' }  - legacy format for a predefined metric
         #   3. { expressionType: 'SIMPLE' | 'SQL', ... } - adhoc metric
-        def is_str_or_adhoc(metric: Metric) -> bool:
-            return isinstance(metric, str) or is_adhoc_metric(metric)
+        # Keys that only ever appear on an ad-hoc metric definition. A dict
+        # carrying one of these but missing `expressionType` is a malformed
+        # ad-hoc metric, not a legacy predefined-metric reference, and must
+        # not be silently collapsed to its label, which would later be
+        # misread as a request for a saved metric of that name.
+        adhoc_metric_keys = {"sqlExpression", "aggregate", "column"}
 
-        self.metrics = metrics and [
-            x if is_str_or_adhoc(x) else x["label"]  # type: ignore
-            for x in metrics
-        ]
+        def normalize_metric(metric: Metric) -> Metric:
+            if isinstance(metric, str) or is_adhoc_metric(metric):
+                return metric
+            if adhoc_metric_keys & metric.keys():
+                raise QueryObjectValidationError(
+                    _(
+                        "Invalid ad-hoc metric %(label)s: `expressionType` is missing",
+                        label=metric.get("label"),
+                    )
+                )
+            return metric["label"]  # type: ignore
+
+        self.metrics = metrics and [normalize_metric(x) for x in metrics]
 
     def _set_post_processing(
         self, post_processing: list[dict[str, Any] | None] | None
     ) -> None:
-        post_processing = post_processing or []
-        self.post_processing = [post_proc for post_proc in post_processing if post_proc]
+        self.post_processing = [
+            self._drop_unsupported_options(post_proc)
+            for post_proc in post_processing or []
+            if post_proc
+        ]
+
+    @staticmethod
+    def _drop_unsupported_options(post_proc: dict[str, Any]) -> dict[str, Any]:
+        """
+        Drop options that the post-processing operation no longer accepts.
+
+        A chart's ``query_context`` is written when the chart is saved and is
+        never rewritten afterwards, while Explore rebuilds the query from
+        ``form_data`` at every render. A chart saved by an older version of
+        Superset can therefore reference an option that has since been removed
+        from the operation. ``exec_post_processing`` passes the stored options
+        as keyword arguments, so that option raises a bare ``TypeError`` on
+        every path that replays the stored ``query_context`` -- the chart data
+        endpoint, alerts and reports, thumbnails, CSV export -- while the same
+        chart still renders correctly in Explore.
+
+        Comparing against the signature avoids a hard-coded list of removed
+        option names, which would need extending at each release.
+
+        Only the built-in operations in ``pandas_postprocessing.__all__`` are
+        inspected. The module also exposes helpers, imported submodules and
+        typing aliases, none of which are operations; and options belonging to a
+        callable registered through ``EXTRA_PANDAS_POSTPROCESSING_OPS`` are the
+        operator's to manage, so both are passed through untouched.
+        """
+        operation = post_proc.get("operation")
+        function = (
+            getattr(pandas_postprocessing, operation, None)
+            if isinstance(operation, str) and operation in pandas_postprocessing.__all__
+            else None
+        )
+        if function is None:
+            # A missing, unknown or operator-registered operation is left
+            # untouched, so that exec_post_processing either dispatches it or
+            # reports it as InvalidPostProcessingError.
+            return post_proc
+
+        # ``function`` is only resolved when ``operation`` is a known builtin name.
+        assert isinstance(operation, str)
+
+        parameters = inspect.signature(function).parameters
+        if any(
+            parameter.kind is inspect.Parameter.VAR_KEYWORD
+            for parameter in parameters.values()
+        ):
+            return post_proc
+
+        # `exec_post_processing` calls the operation as `operation(df, **options)`,
+        # so an option can only reach a parameter that a caller may fill by
+        # keyword. That excludes the first parameter, which receives the
+        # DataFrame positionally, and any positional-only or `*args` parameter.
+        keyword_parameters = {
+            name
+            for position, (name, parameter) in enumerate(parameters.items())
+            if position > 0
+            and parameter.kind
+            in (
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.KEYWORD_ONLY,
+            )
+        }
+        # Options that QueryObject resolves itself before invoking the operation
+        # (e.g. ``fill_time_range`` → ``time_range_start`` / ``time_range_end``).
+        # They are not kwargs of the pandas function, but must survive until
+        # ``exec_post_processing``.
+        keyword_parameters |= _QUERY_OBJECT_RESOLVED_OPTIONS.get(operation, frozenset())
+
+        options = post_proc.get("options") or {}
+        unsupported = {key for key in options if key not in keyword_parameters}
+        if not unsupported:
+            return post_proc
+
+        # Logged at info: a chart saved before the option was removed hits this
+        # on every render, so a warning would repeat for as long as the chart
+        # is not resaved, without anything new to report.
+        logger.info(
+            "Dropping unsupported option(s) %s of post-processing operation "
+            "`%s`. The chart's stored query_context predates the current "
+            "signature of that operation.",
+            sorted(unsupported),
+            operation,
+        )
+        return {
+            **post_proc,
+            "options": {
+                key: value
+                for key, value in options.items()
+                if key in keyword_parameters
+            },
+        }
 
     def _init_series_columns(
         self,
@@ -544,13 +663,49 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     raise InvalidPostProcessingError(
                         _("`operation` property of post processing object undefined")
                     )
-                if not hasattr(pandas_postprocessing, operation):
-                    raise InvalidPostProcessingError(
-                        _(
-                            "Unsupported post processing operation: %(operation)s",
-                            type=operation,
-                        )
+                # ``OPERATIONS`` is the authoritative list of built-in operations;
+                # excludes escape_separator/unescape_separator (str -> str helpers
+                # used by flatten, not DataFrame post-processing operations).
+                if operation in pandas_postprocessing.OPERATIONS:
+                    func = getattr(pandas_postprocessing, operation)
+                else:
+                    extra_ops = pandas_postprocessing.build_extra_ops_map(
+                        current_app.config.get("EXTRA_PANDAS_POSTPROCESSING_OPS", [])
                     )
+                    if operation not in extra_ops:
+                        raise InvalidPostProcessingError(
+                            _(
+                                "Unsupported post processing operation: %(operation)s",
+                                operation=operation,
+                            )
+                        )
+                    func = extra_ops[operation]
                 options = post_process.get("options", {})
-                df = getattr(pandas_postprocessing, operation)(df, **options)
+                if operation == "resample":
+                    options = self._resolve_resample_options(options)
+                df = func(df, **options)
             return df
+
+    def _resolve_resample_options(self, options: dict[str, Any]) -> dict[str, Any]:
+        """
+        Translate the `fill_time_range` flag into explicit resample boundaries.
+
+        Clients cannot supply the boundaries themselves because time ranges may be
+        expressed in natural language (e.g. `Last week`) and are only resolved into
+        concrete datetimes server side. Client-supplied ``time_range_start`` /
+        ``time_range_end`` are ignored in favor of the query's resolved bounds.
+
+        :param options: Options of the `resample` post processing operation.
+        :return: Options with the boundaries of the queried time range applied.
+        """
+        if not options.get("fill_time_range"):
+            return options
+
+        resolved = {
+            key: value
+            for key, value in options.items()
+            if key not in ("fill_time_range", "time_range_start", "time_range_end")
+        }
+        resolved["time_range_start"] = self.from_dttm
+        resolved["time_range_end"] = self.to_dttm
+        return resolved

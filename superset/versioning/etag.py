@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING
 from uuid import UUID
 
 import sqlalchemy as sa
+from flask import request
 from flask_appbuilder import Model
 
 from superset.extensions import db
@@ -76,3 +77,46 @@ def set_version_etag_by_uuid(
         response,
         VersionDAO.current_live_version_uuid(model_cls, entity_id, entity_uuid),
     )
+
+
+class StaleEntityError(Exception):
+    """The request's ``If-Match`` doesn't match the entity's live version."""
+
+
+def _entity_tag(tag: str) -> str:
+    """Strip the content-coding suffix ``Flask-Compress`` appends to ETags.
+
+    A compressed response legitimately carries a different validator than the
+    identity one — Flask-Compress rewrites ``"<uuid>"`` to ``"<uuid>:zstd"``
+    (see ``flask_compress``) — so a client replaying the ETag it read never
+    matches the raw version uuid. Version uuids contain no ``:``, so cutting
+    at the first one recovers the entity identity from either form.
+    """
+    return tag.split(":", 1)[0]
+
+
+def is_conditional_write() -> bool:
+    """Whether the request carries an ``If-Match`` precondition."""
+    return bool(request.if_match)
+
+
+def raise_for_stale_write(current_version_uuid: str | None) -> None:
+    """Enforce ``If-Match`` on a write request, if the client sent one.
+
+    Clients that read an entity's ``ETag`` may replay it as ``If-Match`` on a
+    subsequent write to get optimistic concurrency: the write is rejected when
+    the entity moved on in the meantime, instead of silently clobbering
+    whatever landed in between.
+
+    The condition is skipped — rather than failing closed — when the caller
+    has no validator to offer (``ENABLE_VERSIONING_CAPTURE`` off). Failing
+    closed there would block every conditional write on deployments running
+    without version capture, and those are no worse off than before they sent
+    the header.
+    """
+    if_match = request.if_match
+    if not if_match or if_match.star_tag or current_version_uuid is None:
+        return
+    live = _entity_tag(str(current_version_uuid))
+    if not any(_entity_tag(tag) == live for tag in if_match.as_set(True)):
+        raise StaleEntityError()

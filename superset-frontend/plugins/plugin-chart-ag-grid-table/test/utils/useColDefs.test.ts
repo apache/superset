@@ -811,6 +811,79 @@ test('cellStyle defaults non-numeric columns to left alignment', () => {
   });
 });
 
+test('cellStyle reflects an edited conditional-formatting rule (color/threshold change, same column)', () => {
+  // columnColorFormatters entries only carry a computed getColorFromValue
+  // closure -- the rule's operator/threshold/color aren't mirrored onto the
+  // entry itself. Memoizing on JSON.stringify(columnColorFormatters) alone
+  // would see the same "shape" on both renders and keep closing over the
+  // first render's (red) formatter. The memo must instead depend on the raw
+  // conditionalFormatting config, which does capture the color/threshold.
+  const numericCol = makeColumn({
+    key: 'count',
+    label: 'Count',
+    dataType: GenericDataType.Numeric,
+    isNumeric: true,
+    isMetric: true,
+  });
+  // getCommonColProps also depends on `columns`/`data` by reference (as it
+  // must, since transformProps.ts doesn't memoize them either), so those
+  // need to stay referentially stable across rerenders here -- otherwise a
+  // new array on every render would mask a broken formatter dependency by
+  // invalidating the memo for an unrelated reason.
+  const stableColumns = [numericCol];
+  const stableData = [{ count: 42 }];
+
+  const cellStyleParams = {
+    value: 42,
+    colDef: { field: 'count' },
+    rowIndex: 0,
+    node: {},
+  } as never;
+
+  const { result, rerender } = renderHook(
+    (props: { color: string; targetValue: number }) =>
+      useColDefs({
+        ...defaultProps,
+        columns: stableColumns,
+        data: stableData,
+        columnColorFormatters: [
+          {
+            column: 'count',
+            objectFormatting: ObjectFormattingEnum.BACKGROUND_COLOR,
+            getColorFromValue: (value: unknown) =>
+              value === 42 ? props.color : undefined,
+          },
+        ],
+        conditionalFormatting: [
+          {
+            column: 'count',
+            operator: '>',
+            targetValue: props.targetValue,
+            colorScheme: props.color,
+          } as never,
+        ],
+      }),
+    {
+      wrapper: defaultThemeWrapper,
+      initialProps: { color: '#ff0000', targetValue: 0 },
+    },
+  );
+
+  const firstCellStyle = getCellStyleFunction(result.current[0].cellStyle);
+  expect(firstCellStyle(cellStyleParams)).toMatchObject({
+    backgroundColor: '#ff0000',
+  });
+
+  // Same column, edited threshold/color -- must produce a fresh colDef
+  // whose cellStyle uses the new formatter, not the stale red one.
+  rerender({ color: '#0000ff', targetValue: 10 });
+
+  const secondCellStyle = getCellStyleFunction(result.current[0].cellStyle);
+  expect(secondCellStyle(cellStyleParams)).toMatchObject({
+    backgroundColor: '#0000ff',
+  });
+});
+
 test('cellStyle respects explicit horizontal alignment overrides', () => {
   const numericCol = makeColumn({
     key: 'count',

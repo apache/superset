@@ -21,10 +21,14 @@ from pytest import fixture, mark, raises  # noqa: PT013
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context import QueryContext
 from superset.common.query_context_processor import QueryContextProcessor
-from superset.connectors.sqla.models import BaseDatasource
+from superset.connectors.sqla.models import BaseDatasource, TableColumn
 from superset.constants import TimeGrain
 from superset.exceptions import QueryObjectValidationError
-from superset.models.helpers import ExploreMixin
+from superset.models.helpers import (
+    _get_temporal_physical_column_metadata,
+    ExploreMixin,
+)
+from superset.utils.core import GenericDataType
 
 # Create processor and bind ExploreMixin methods to datasource
 processor = QueryContextProcessor(
@@ -371,6 +375,222 @@ def test_join_offset_dfs_no_time_grain_aligns_relative_offset() -> None:
     assert_frame_equal(expected, result)
 
 
+def test_join_offset_dfs_no_time_grain_aligns_temporal_string_axis() -> None:
+    """A physical temporal x-axis is aligned even when its values are strings."""
+    df = DataFrame({"displayed_ds": ["2021-01-01T12:00:00"], "D": [1]})
+    offset_df = DataFrame({"displayed_ds": ["2020-01-01T12:00:00"], "B": [5]})
+
+    result = query_context_processor.join_offset_dfs(
+        df,
+        {"1 year ago": offset_df},
+        time_grain=None,
+        join_keys=["displayed_ds"],
+        x_axis_label="displayed_ds",
+        x_axis_is_temporal=True,
+    )
+
+    assert result["displayed_ds"].tolist() == ["2021-01-01T12:00:00"]
+    assert result["B"].tolist() == [5]
+
+
+def test_join_offset_dfs_rejects_unparseable_temporal_string_axis() -> None:
+    """Invalid values on a declared temporal x-axis fail instead of self-joining."""
+    df = DataFrame({"ds": ["not-a-date"], "D": [1]})
+    offset_df = DataFrame({"ds": ["not-a-date"], "B": [5]})
+    with raises(
+        QueryObjectValidationError,
+        match="contains values that cannot be parsed as datetimes",
+    ):
+        query_context_processor.join_offset_dfs(
+            df,
+            {"1 year ago": offset_df},
+            time_grain=None,
+            join_keys=["ds"],
+            x_axis_label="ds",
+            x_axis_is_temporal=True,
+        )
+
+
+def test_join_offset_dfs_no_time_grain_preserves_categorical_string_axis() -> None:
+    """Categorical x-axes retain the raw-key join used without a time grain."""
+    df = DataFrame({"category": ["alpha"], "D": [1]})
+    offset_df = DataFrame({"category": ["alpha"], "B": [5]})
+    result = query_context_processor.join_offset_dfs(
+        df,
+        {"1 year ago": offset_df},
+        time_grain=None,
+        join_keys=["category"],
+        x_axis_label="category",
+    )
+
+    assert result["B"].tolist() == [5]
+
+
+def test_join_offset_dfs_no_time_grain_aligns_mixed_offset_temporal_strings() -> None:
+    """Mixed UTC offsets are compared by their parsed local wall clocks."""
+    df = DataFrame(
+        {
+            "ds": [
+                "2021-03-20T12:00:00-04:00",
+                "2021-12-01T12:00:00-05:00",
+            ],
+            "D": [1, 2],
+        }
+    )
+    offset_df = DataFrame(
+        {
+            "ds": [
+                "2020-03-20T12:00:00-04:00",
+                "2020-12-01T12:00:00-05:00",
+            ],
+            "B": [5, 6],
+        }
+    )
+    result = query_context_processor.join_offset_dfs(
+        df,
+        {"1 year ago": offset_df},
+        time_grain=None,
+        join_keys=["ds"],
+        x_axis_label="ds",
+        x_axis_is_temporal=True,
+    )
+
+    assert result["B"].tolist() == [5, 6]
+
+
+def test_temporal_physical_column_honors_explicit_false(monkeypatch) -> None:
+    """Explicit non-temporal metadata takes precedence over inferred type."""
+    columns = [
+        {
+            "is_dttm": False,
+            "type_generic": GenericDataType.TEMPORAL,
+        },
+        TableColumn(column_name="ds", type="TIMESTAMP", is_dttm=False),
+    ]
+
+    for column in columns:
+        monkeypatch.setattr(
+            query_context_processor,
+            "get_column",
+            lambda column_name, column=column: column,
+        )
+        metadata = _get_temporal_physical_column_metadata(query_context_processor, "ds")
+        assert not metadata.is_temporal
+
+
+def test_temporal_physical_column_strips_expression(monkeypatch) -> None:
+    """Metadata lookup normalizes whitespace like SQL column resolution."""
+    looked_up: list[str] = []
+
+    def get_column(column_name: str) -> dict[str, bool | str]:
+        looked_up.append(column_name)
+        return {"is_dttm": True, "python_date_format": "epoch_s"}
+
+    monkeypatch.setattr(query_context_processor, "get_column", get_column)
+
+    metadata = _get_temporal_physical_column_metadata(query_context_processor, " ds ")
+
+    assert metadata.is_temporal
+    assert metadata.python_date_format == "epoch_s"
+    assert looked_up == ["ds"]
+
+
+def test_join_offset_dfs_no_time_grain_aligns_epoch_seconds_axis() -> None:
+    """A declared epoch-seconds temporal axis uses its metadata format."""
+    df = DataFrame({"ds": [1012780800], "D": [1]})
+    offset_df = DataFrame({"ds": [981244800], "B": [5]})
+
+    result = query_context_processor.join_offset_dfs(
+        df,
+        {"1 year ago": offset_df},
+        time_grain=None,
+        join_keys=["ds"],
+        x_axis_label="ds",
+        x_axis_is_temporal=True,
+        x_axis_datetime_format="epoch_s",
+    )
+
+    assert result["B"].tolist() == [5]
+
+
+def test_join_offset_dfs_no_time_grain_aligns_out_of_bounds_dates() -> None:
+    """Valid dates outside nanosecond bounds align at second resolution."""
+    df = DataFrame({"ds": ["2002-01-01", "9999-12-31"], "D": [1, 2]})
+    offset_df = DataFrame({"ds": ["2001-01-01", "9998-12-31"], "B": [5, 6]})
+
+    result = query_context_processor.join_offset_dfs(
+        df,
+        {"1 year ago": offset_df},
+        time_grain=None,
+        join_keys=["ds"],
+        x_axis_label="ds",
+        x_axis_is_temporal=True,
+    )
+
+    assert result["B"].tolist() == [5, 6]
+
+
+def test_join_offset_dfs_no_time_grain_out_of_bounds_respects_format() -> None:
+    """A wider-resolution retry preserves the declared strftime format."""
+    df = DataFrame({"ds": ["03/04/2022", "31/12/9999"], "D": [1, 2]})
+    offset_df = DataFrame({"ds": ["03/03/2022", "30/11/9999"], "B": [5, 6]})
+
+    result = query_context_processor.join_offset_dfs(
+        df,
+        {"1 month ago": offset_df},
+        time_grain=None,
+        join_keys=["ds"],
+        x_axis_label="ds",
+        x_axis_is_temporal=True,
+        x_axis_datetime_format="%d/%m/%Y",
+    )
+
+    assert result["B"].tolist() == [5, 6]
+
+
+def test_join_offset_dfs_numeric_temporal_without_format_uses_raw_key() -> None:
+    """An uninterpretable numeric temporal axis retains raw-key behavior."""
+    df = DataFrame({"ds": [1012780800], "D": [1]})
+    offset_df = DataFrame({"ds": [1012780800], "B": [5]})
+
+    result = query_context_processor.join_offset_dfs(
+        df,
+        {"1 year ago": offset_df},
+        time_grain=None,
+        join_keys=["ds"],
+        x_axis_label="ds",
+        x_axis_is_temporal=True,
+    )
+
+    assert result["B"].tolist() == [5]
+
+
+def test_join_offset_dfs_no_time_grain_wraps_datetime_parser_value_error(
+    monkeypatch,
+) -> None:
+    """A pandas parser-policy change remains a user-facing validation error."""
+    df = DataFrame({"ds": ["2021-01-01"], "D": [1]})
+    offset_df = DataFrame({"ds": ["2020-01-01"], "B": [5]})
+
+    def fail_to_parse(*args, **kwargs):
+        raise ValueError("mixed time zones require utc=True")
+
+    monkeypatch.setattr("superset.models.helpers.pd.to_datetime", fail_to_parse)
+
+    with raises(
+        QueryObjectValidationError,
+        match="contains values that cannot be parsed as datetimes",
+    ):
+        query_context_processor.join_offset_dfs(
+            df,
+            {"1 year ago": offset_df},
+            time_grain=None,
+            join_keys=["ds"],
+            x_axis_label="ds",
+            x_axis_is_temporal=True,
+        )
+
+
 def test_join_offset_dfs_no_time_grain_unmatched_timestamps_yield_nulls() -> None:
     """
     Without a time grain, offset timestamps that have no exact shifted
@@ -521,7 +741,7 @@ def test_join_offset_dfs_no_time_grain_uninterpretable_offset_subsecond() -> Non
         )
 
 
-@mark.parametrize("offset", ["yesterday", "last month"])
+@mark.parametrize("offset", ["yesterday", "last month", "friday", "june"])
 def test_join_offset_dfs_no_time_grain_anchor_offset(offset: str) -> None:
     """
     Phrases that parsedatetime resolves to a fixed point rather than a shift
@@ -579,12 +799,7 @@ def test_join_offset_dfs_no_time_grain_dst_nonexistent_hour() -> None:
 
 
 def test_join_offset_dfs_no_time_grain_dst_ambiguous_hour() -> None:
-    """
-    A shift landing on a local hour that DST repeats aligns on the wall clock
-    the offset query returned. 01:30 occurs twice on 2021-11-07 in US/Eastern;
-    shifting the tz-aware timestamp directly raised AmbiguousTimeError out of
-    pandas rather than picking either reading.
-    """
+    """One reading of a repeated local hour still aligns by wall clock."""
     df = DataFrame({"ds": [Timestamp("2021-12-07 01:30", tz="US/Eastern")], "D": [1]})
     offset_df = DataFrame(
         {
@@ -600,6 +815,127 @@ def test_join_offset_dfs_no_time_grain_dst_ambiguous_hour() -> None:
     )
 
     assert result["B"].tolist() == [5]
+
+
+def test_join_offset_dfs_no_time_grain_rejects_both_dst_fold_readings() -> None:
+    """
+    When the offset query returns both readings of a repeated local hour,
+    dropping their UTC offsets would give both rows the same merge key and
+    expand the main series. Reject the ambiguous alignment instead.
+    """
+    df = DataFrame({"ds": [Timestamp("2021-12-07 01:30", tz="US/Eastern")], "D": [1]})
+    offset_df = DataFrame(
+        {
+            "ds": [
+                Timestamp("2021-11-07 01:30").tz_localize("US/Eastern", ambiguous=True),
+                Timestamp("2021-11-07 01:30").tz_localize(
+                    "US/Eastern", ambiguous=False
+                ),
+            ],
+            "B": [5, 6],
+        }
+    )
+
+    with raises(
+        QueryObjectValidationError,
+        match="ambiguous daylight-saving fold",
+    ):
+        query_context_processor.join_offset_dfs(
+            df, {"1 month ago": offset_df}, time_grain=None, join_keys=["ds"]
+        )
+
+
+def test_join_offset_dfs_no_time_grain_rejects_naive_normalization_collision() -> None:
+    """Distinct naive values that normalize alike cannot expand the result."""
+    df = DataFrame({"ds": ["2021-02-01"], "D": [1]})
+    offset_df = DataFrame(
+        {
+            "ds": ["2021-01-01", "2021-01-01 00:00:00"],
+            "B": [5, 6],
+        }
+    )
+
+    with raises(
+        QueryObjectValidationError,
+        match="normalize to the same instant",
+    ):
+        query_context_processor.join_offset_dfs(
+            df,
+            {"1 month ago": offset_df},
+            time_grain=None,
+            join_keys=["ds"],
+            x_axis_label="ds",
+            x_axis_is_temporal=True,
+        )
+
+
+def test_join_offset_dfs_no_time_grain_rejects_dst_fold_with_raw_duplicate() -> None:
+    """A raw duplicate does not mask a DST fold in the same normalized group."""
+    df = DataFrame({"ds": [Timestamp("2021-12-07 01:30", tz="US/Eastern")], "D": [1]})
+    first_fold = Timestamp("2021-11-07 01:30").tz_localize("US/Eastern", ambiguous=True)
+    second_fold = Timestamp("2021-11-07 01:30").tz_localize(
+        "US/Eastern", ambiguous=False
+    )
+    offset_df = DataFrame(
+        {
+            "ds": [first_fold, first_fold, second_fold],
+            "B": [5, 6, 7],
+        }
+    )
+
+    with raises(
+        QueryObjectValidationError,
+        match="ambiguous daylight-saving fold",
+    ):
+        query_context_processor.join_offset_dfs(
+            df, {"1 month ago": offset_df}, time_grain=None, join_keys=["ds"]
+        )
+
+
+def test_join_offset_dfs_no_time_grain_preserves_raw_duplicate_offsets() -> None:
+    """Pre-existing naive duplicate keys are not diagnosed as a DST fold."""
+    df = DataFrame({"ds": [Timestamp("2021-02-01")], "D": [1]})
+    offset_df = DataFrame(
+        {
+            "ds": [Timestamp("2021-01-01"), Timestamp("2021-01-01")],
+            "B": [5, 6],
+        }
+    )
+
+    result = query_context_processor.join_offset_dfs(
+        df, {"1 month ago": offset_df}, time_grain=None, join_keys=["ds"]
+    )
+
+    assert result["B"].tolist() == [5, 6]
+
+
+def test_join_offset_dfs_no_time_grain_all_null_anchor_still_raises() -> None:
+    """An all-null temporal axis does not bypass anchor validation."""
+    df = DataFrame({"ds": Series([None], dtype="datetime64[ns]"), "D": [1]})
+    offset_df = DataFrame({"ds": [float("nan")], "B": [float("nan")]})
+
+    with raises(QueryObjectValidationError, match="Time Grain must be"):
+        query_context_processor.join_offset_dfs(
+            df, {"friday": offset_df}, time_grain=None, join_keys=["ds"]
+        )
+
+
+def test_join_offset_dfs_no_time_grain_allows_month_end_clamp_on_left() -> None:
+    """Multiple main dates may intentionally shift to one month-end key."""
+    df = DataFrame(
+        {
+            "ds": [Timestamp("2021-03-30"), Timestamp("2021-03-31")],
+            "D": [1, 2],
+        }
+    )
+    offset_df = DataFrame({"ds": [Timestamp("2021-02-28")], "B": [5]})
+
+    result = query_context_processor.join_offset_dfs(
+        df, {"1 month ago": offset_df}, time_grain=None, join_keys=["ds"]
+    )
+
+    assert len(result) == len(df)
+    assert result["B"].tolist() == [5, 5]
 
 
 @mark.parametrize(

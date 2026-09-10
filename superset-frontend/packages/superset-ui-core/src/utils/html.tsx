@@ -154,6 +154,20 @@ const KNOWN_HTML_TAGS = new Set([
   'html',
   'head',
   'body',
+  // Script-capable elements and foreign-content roots (SVG/MathML). These
+  // must be classified as HTML so that downstream sanitization is applied;
+  // omitting them makes the heuristic fail open — payloads such as
+  // `<svg onload=...>` or `<details open ontoggle=...>` would be classified
+  // "not HTML" and returned verbatim by sanitizeHtmlIfNeeded.
+  'svg',
+  'math',
+  'details',
+  'summary',
+  'object',
+  'embed',
+  'marquee',
+  'template',
+  'dialog',
 ]);
 
 const HTML_TAG_PATTERN = new RegExp(
@@ -183,10 +197,15 @@ export function isProbablyHTML(text: string) {
   const parser = new DOMParser();
   const doc = parser.parseFromString(cleanedStr, 'text/html');
 
-  // Check if parsing created actual HTML elements (not just text nodes)
-  const elements = Array.from(doc.body.childNodes).filter(
-    node => node.nodeType === 1,
-  ) as Element[];
+  // Check if parsing created actual HTML elements (not just text nodes).
+  // Some elements (e.g. <style>, <title>, <meta>, <link>) parse into
+  // document.head rather than document.body, so both must be inspected —
+  // otherwise a bare <style> payload is classified "not HTML" and skips
+  // sanitization.
+  const elements = [
+    ...Array.from(doc.head.childNodes),
+    ...Array.from(doc.body.childNodes),
+  ].filter(node => node.nodeType === 1) as Element[];
 
   // If no elements were created, it's not HTML
   if (elements.length === 0) {

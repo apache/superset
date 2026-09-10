@@ -107,6 +107,12 @@ jobs:
       needs.changes.outputs.docker == 'true'
     runs-on: ubuntu-26.04
     timeout-minutes: 60
+    permissions:
+      contents: read
+      # Required for the vulnerability scan below to upload its SARIF
+      # results to GitHub code scanning (advanced-security is enabled by
+      # default), matching the same grant in github-action-validator.yml.
+      security-events: write
     strategy:
       matrix:
         build_preset: ${{fromJson(needs.setup_matrix.outputs.matrix_config)}}
@@ -213,6 +219,62 @@ jobs:
           docker images $IMAGE_TAG
           docker history $IMAGE_TAG
 
+      # Scan the built image for known vulnerabilities and publish results
+      # to the Security tab. Trivy did this until #38780 removed it: both
+      # aquasecurity/trivy-action and the trivy binary itself were
+      # compromised (twice) to steal GitHub Secrets from CI runs. Grype is a
+      # different tool from a different maintainer with no shared supply
+      # chain, and is already on the ASF Infra GitHub Actions allowlist.
+      - name: Scan built image for vulnerabilities
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.build_preset == 'lean'
+        id: grype-scan
+        # This step's own failure (e.g. a transient issue pulling the Grype
+        # vulnerability DB) must not fail docker-build, matching the
+        # informational fail-build: false below -- one is findings, the
+        # other is the scan itself not completing.
+        continue-on-error: true
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+        with:
+          image: ${{ env.IMAGE_TAG }}
+          output-format: sarif
+          severity-cutoff: high
+          only-fixed: true
+          # Informational only, matching the prior Trivy setup: this
+          # workflow does not gate merges on scan findings.
+          fail-build: false
+
+      - name: Upload vulnerability scan results to GitHub Security tab
+        if: >-
+          github.event_name == 'push' && github.ref == 'refs/heads/master' &&
+          matrix.build_preset == 'lean' && steps.grype-scan.outputs.sarif != ''
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          sarif_file: ${{ steps.grype-scan.outputs.sarif }}
+
+      - name: WebSocket server smoke test
+        if: contains(fromJson('["lean", "dev"]'), matrix.build_preset)
+        shell: bash
+        run: |
+          # The realtime WebSocket server is bundled in the official image and
+          # launched via an alternate entrypoint; verify the bundled Node runtime
+          # starts it and it serves /health. (A JWT secret >= 32 bytes is required
+          # or the server refuses to start; no Redis is needed for /health.)
+          # Both presets are checked because docker-compose-non-dev.yml runs the
+          # websocket service from the dev target.
+          docker run -d --name superset-ws \
+            -e JWT_SECRET="ci-smoke-test-secret-ci-smoke-test-secret" \
+            -e PORT=8080 -p 8080:8080 \
+            "$IMAGE_TAG" /app/docker/entrypoints/run-websocket.sh
+          ok=""
+          for _ in $(seq 1 20); do
+            if curl -sf http://localhost:8080/health; then echo "ws /health OK"; ok=1; break; fi
+            sleep 2
+          done
+          docker logs superset-ws || true
+          docker rm -f superset-ws || true
+          [ "$ok" = "1" ] || { echo "::error::websocket /health did not come up"; exit 1; }
+
       - name: docker-compose sanity check
         if: matrix.build_preset == 'dev'
         shell: bash
@@ -266,7 +328,7 @@ jobs:
   actions-timeline:
     needs: [docker-build, docker-compose-image-tag]
     if: always()
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     permissions:
       actions: read
     steps:

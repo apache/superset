@@ -83,6 +83,9 @@ interface GetExploreUrlParams {
 interface BuildV1ChartDataPayloadParams {
   formData: QueryFormData;
   force?: boolean;
+  // Per-query forced-refresh nonces (the async tasks' UUIDs), assigned to each
+  // built query by index for the synchronous read-back of a forced refresh.
+  queryForceNonces?: string[];
   resultFormat?: string;
   resultType?: string;
   setDataMask?: SetDataMaskHook;
@@ -281,6 +284,7 @@ export const getQuerySettings = (
 export const buildV1ChartDataPayload = async ({
   formData,
   force,
+  queryForceNonces,
   resultFormat,
   resultType,
   setDataMask,
@@ -299,7 +303,7 @@ export const buildV1ChartDataPayload = async ({
     : undefined;
   const buildQuery =
     (registryResult ? await registryResult : undefined) ?? defaultBuildQuery;
-  return buildQuery(
+  const payload = await buildQuery(
     {
       ...formData,
       force,
@@ -314,6 +318,18 @@ export const buildV1ChartDataPayload = async ({
       },
     },
   );
+  // Stamp each query with its forced-refresh nonce (its async task's UUID, from
+  // the 202 `task_ids`, index-aligned to queries) for the synchronous read-back.
+  if (queryForceNonces?.length && Array.isArray(payload.queries)) {
+    payload.queries.forEach((query, index) => {
+      if (queryForceNonces[index]) {
+        // eslint-disable-next-line no-param-reassign
+        (query as { force_nonce?: string }).force_nonce =
+          queryForceNonces[index];
+      }
+    });
+  }
+  return payload;
 };
 
 export const exportChart = async ({
@@ -461,10 +477,15 @@ export const getSimpleSQLExpression = (
     if (comparatorArray.length > 0 && showComparator) {
       const formattedComparators = comparatorArray
         .map(val => optionLabel(val))
-        .map(
-          val =>
-            `${quote}${isString ? String(val).replace(/'/g, "''") : val}${quote}`,
-        );
+        .map(val => {
+          // Array-literal values (e.g. ['a', 'b']) are shown as-is rather than
+          // quoted/escaped as a string, so array-column filters read naturally.
+          const asString = String(val);
+          if (asString.startsWith('[') && asString.endsWith(']')) {
+            return asString;
+          }
+          return `${quote}${isString ? asString.replace(/'/g, "''") : val}${quote}`;
+        });
       expression += ` ${prefix}${formattedComparators.join(', ')}${suffix}`;
     }
   }

@@ -136,6 +136,7 @@ describe('DatabaseModal', () => {
                 format: 'int32',
                 maximum: 65536,
                 minimum: 0,
+                nullable: true,
                 type: 'integer',
               },
               query: {
@@ -153,7 +154,7 @@ describe('DatabaseModal', () => {
                 type: 'string',
               },
             },
-            required: ['database', 'host', 'port', 'username'],
+            required: ['database', 'host', 'username'],
             type: 'object',
           },
           preferred: true,

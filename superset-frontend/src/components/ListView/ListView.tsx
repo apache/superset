@@ -341,6 +341,8 @@ export interface ListViewProps<T extends object = any> {
   defaultViewMode?: ViewModeType;
   forceViewMode?: ViewModeType;
   highlightRowId?: number;
+  /** Highlight arbitrary rows by predicate on the mapped record (e.g. by uuid). */
+  isRowHighlighted?: (record: Record<string, unknown>) => boolean;
   showThumbnails?: boolean;
   emptyState?: EmptyStateProps;
   columnsForWrapText?: string[];
@@ -384,6 +386,7 @@ export function ListView<T extends object = any>({
   defaultViewMode = 'card',
   forceViewMode,
   highlightRowId,
+  isRowHighlighted,
   emptyState,
   columnsForWrapText,
   enableBulkTag = false,
@@ -658,6 +661,7 @@ export function ListView<T extends object = any>({
                   columns={columns}
                   loading={loading && rows.length > 0}
                   highlightRowId={highlightRowId}
+                  isRowHighlighted={isRowHighlighted}
                   columnsForWrapText={columnsForWrapText}
                   expandable={expandable}
                   bulkSelectEnabled={bulkSelectEnabled}

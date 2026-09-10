@@ -130,6 +130,7 @@ export enum GenericDataType {
   String = 1,
   Temporal = 2,
   Boolean = 3,
+  MultiValue = 4,
 }
 
 /**

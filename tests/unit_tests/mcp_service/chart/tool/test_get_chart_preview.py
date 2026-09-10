@@ -44,13 +44,86 @@ from superset.mcp_service.chart.tool.get_chart_preview import (
     _build_query_metrics,
     _first_query_has_fields,
     _no_query_fields_error,
-    _sanitize_chart_preview_for_llm_context,
     ASCIIPreviewStrategy,
     PreviewFormatStrategy,
     TablePreviewStrategy,
+    VegaLitePreviewStrategy,
 )
-from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.utils import json as utils_json
+
+
+def _gauge_chart() -> SimpleNamespace:
+    """Build a saved Gauge chart with its native form_data controls."""
+    return SimpleNamespace(
+        id=104,
+        slice_name="SLA Gauge",
+        viz_type="gauge_chart",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {
+                "viz_type": "gauge_chart",
+                "metric": "saved_sla",
+                "groupby": ["team"],
+                "row_limit": 3,
+                "min_val": 0,
+                "max_val": 100,
+                "value_formatter": "{value}%",
+            }
+        ),
+    )
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_gauge_ascii_preview_uses_native_row_limit_and_renderer(
+    mock_build_query_context, mock_command
+) -> None:
+    query_context = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["saved_sla"], columns=["team"])]
+    )
+    mock_build_query_context.return_value = query_context
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"team": "Blue", "saved_sla": 88}]}]
+    }
+
+    preview = ASCIIPreviewStrategy(
+        _gauge_chart(), GetChartPreviewRequest(identifier=104, format="ascii")
+    ).generate()
+
+    assert isinstance(preview, ASCIIPreview)
+    assert "Gauge Chart" in preview.ascii_content
+    assert "Blue" in preview.ascii_content
+    assert "88%" in preview.ascii_content
+    assert mock_build_query_context.call_args.kwargs["row_limit"] == 3
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_gauge_vega_preview_surfaces_runtime_metric_error(
+    mock_build_query_context, mock_command
+) -> None:
+    mock_build_query_context.return_value = SimpleNamespace(
+        queries=[SimpleNamespace(metrics=["saved_sla"], columns=["team"])]
+    )
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"team": "Blue", "saved_sla": "bad"}]}]
+    }
+
+    preview = VegaLitePreviewStrategy(
+        _gauge_chart(), GetChartPreviewRequest(identifier=104, format="vega_lite")
+    ).generate()
+
+    assert isinstance(preview, ChartError)
+    assert preview.error_type == "NonNumericGaugeMetric"
 
 
 class TestPreviewXAxisInQueryContext:
@@ -858,11 +931,11 @@ class TestGetChartPreview:
         assert len(metadata.optimization_suggestions) == 1
 
 
-class TestChartPreviewSanitization:
-    """Tests for chart preview read-path sanitization."""
+class TestChartPreviewValuePreservation:
+    """Tests for chart preview read-path value preservation."""
 
-    def test_sanitize_chart_preview_wraps_ascii_and_alt_text(self) -> None:
-        """ASCII previews should be wrapped while operational URLs stay raw."""
+    def test_chart_preview_preserves_ascii_and_alt_text(self) -> None:
+        """ASCII preview values and operational URLs remain exact."""
         preview = ChartPreview(
             chart_id=3,
             chart_name="Regional Trend",
@@ -878,20 +951,16 @@ class TestChartPreviewSanitization:
             performance=PerformanceMetadata(query_duration_ms=8, cache_status="miss"),
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
 
-        assert result.chart_name == sanitize_for_llm_context("Regional Trend")
+        assert result.chart_name == ("Regional Trend")
         assert result.explore_url == "http://localhost:8088/explore/?slice_id=3"
-        assert result.chart_description == sanitize_for_llm_context(
-            "Preview of line: Regional Trend"
-        )
-        assert result.content.ascii_content == sanitize_for_llm_context("North > South")
-        assert result.accessibility.alt_text == sanitize_for_llm_context(
-            "Preview of Regional Trend"
-        )
+        assert result.chart_description == ("Preview of line: Regional Trend")
+        assert result.content.ascii_content == ("North > South")
+        assert result.accessibility.alt_text == ("Preview of Regional Trend")
 
-    def test_sanitize_chart_preview_wraps_vega_lite_data_values(self):
-        """Vega-Lite previews should wrap description and row string values."""
+    def test_chart_preview_preserves_vega_lite_data_values(self):
+        """Vega-Lite descriptions and row string values remain exact."""
         preview = ChartPreview(
             chart_id=4,
             chart_name="Category Share",
@@ -923,24 +992,20 @@ class TestChartPreviewSanitization:
             format="vega_lite",
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
         specification = result.content.specification
 
         assert specification["$schema"] == (
             "https://vega.github.io/schema/vega-lite/v5.json"
         )
-        assert specification["description"] == sanitize_for_llm_context(
-            "Pie chart for category share"
-        )
-        assert specification["data"]["values"][0][
-            "category"
-        ] == sanitize_for_llm_context("Retail")
-        assert specification["data"]["values"][0]["url"] == sanitize_for_llm_context(
+        assert specification["description"] == ("Pie chart for category share")
+        assert specification["data"]["values"][0]["category"] == ("Retail")
+        assert specification["data"]["values"][0]["url"] == (
             "https://example.com/retail"
         )
         assert specification["data"]["values"][0]["value"] == 10
 
-    def test_sanitize_chart_preview_leaves_non_mapping_vega_lite_data_unchanged(
+    def test_chart_preview_leaves_non_mapping_vega_lite_data_unchanged(
         self,
     ) -> None:
         """Non-mapping Vega-Lite data should not be treated as inline values."""
@@ -965,15 +1030,13 @@ class TestChartPreviewSanitization:
             format="vega_lite",
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
         specification = result.content.specification
 
-        assert specification["description"] == sanitize_for_llm_context(
-            "Pie chart for category share"
-        )
+        assert specification["description"] == ("Pie chart for category share")
         assert specification["data"] == "named_dataset"
 
-    def test_sanitize_chart_preview_wraps_table_content(self):
+    def test_chart_preview_preserves_table_content(self):
         preview = ChartPreview(
             chart_id=5,
             chart_name="Top Customers",
@@ -993,15 +1056,13 @@ class TestChartPreviewSanitization:
             performance=PerformanceMetadata(query_duration_ms=9, cache_status="miss"),
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
 
-        assert result.content.table_data == sanitize_for_llm_context(
-            "Customer | Revenue\nAcme | 100"
-        )
+        assert result.content.table_data == ("Customer | Revenue\nAcme | 100")
         assert result.content.row_count == 1
         assert result.content.supports_sorting is True
 
-    def test_sanitize_chart_preview_wraps_interactive_html_but_keeps_urls(self):
+    def test_chart_preview_preserves_interactive_html_and_urls(self):
         preview = ChartPreview(
             chart_id=6,
             chart_name="Interactive Trend",
@@ -1025,11 +1086,9 @@ class TestChartPreviewSanitization:
             height=600,
         )
 
-        result = _sanitize_chart_preview_for_llm_context(preview)
+        result = preview
 
-        assert result.content.html_content == sanitize_for_llm_context(
-            "<div>Revenue by region</div>"
-        )
+        assert result.content.html_content == ("<div>Revenue by region</div>")
         assert (
             result.content.preview_url == "/superset/explore/?slice_id=6&standalone=1"
         )
@@ -1455,3 +1514,80 @@ def test_authorize_guest_query_noop_for_non_guest() -> None:
         strategy._authorize_guest_query(MagicMock())
 
     mock_authorize.assert_not_called()
+
+
+@pytest.mark.parametrize("stored_viz_type", [None, "table", "gauge_chart"])
+@pytest.mark.parametrize(
+    "strategy", [ASCIIPreviewStrategy, TablePreviewStrategy, VegaLitePreviewStrategy]
+)
+def test_saved_gauge_dispatch_and_validation_agree(
+    stored_viz_type: str | None, strategy: type[PreviewFormatStrategy]
+) -> None:
+    """Saved chart identity drives query construction and numeric validation."""
+    chart = _gauge_chart()
+    form_data = utils_json.loads(chart.params)
+    form_data["viz_type"] = stored_viz_type
+    chart.params = utils_json.dumps(form_data)
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview.build_query_context_from_form_data"
+        ) as build,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        build.return_value = SimpleNamespace(
+            queries=[SimpleNamespace(metrics=["saved_sla"])]
+        )
+        command.return_value.run.return_value = {
+            "queries": [{"data": [{"team": "Blue", "saved_sla": "bad"}]}]
+        }
+        result = strategy(chart, GetChartPreviewRequest(identifier=104)).generate()
+    assert isinstance(result, ChartError)
+    assert result.error_type == "NonNumericGaugeMetric"
+    assert build.call_args.args[0]["viz_type"] == "gauge_chart"
+
+
+@pytest.mark.parametrize(
+    "strategy", [ASCIIPreviewStrategy, TablePreviewStrategy, VegaLitePreviewStrategy]
+)
+def test_saved_gauge_preview_skips_empty_aggregate_groups(
+    strategy: type[PreviewFormatStrategy],
+) -> None:
+    """Every saved preview format retains the finite dial from mixed query output."""
+    chart = _gauge_chart()
+    with (
+        patch(
+            "superset.mcp_service.chart.tool.get_chart_preview.build_query_context_from_form_data"
+        ) as build,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        build.return_value = SimpleNamespace(
+            queries=[SimpleNamespace(metrics=["saved_sla"])]
+        )
+        command.return_value.run.return_value = {
+            "queries": [
+                {
+                    "data": [
+                        {"team": "Empty", "saved_sla": None},
+                        {"team": "NaN", "saved_sla": float("nan")},
+                        {"team": "Blue", "saved_sla": 42},
+                    ]
+                }
+            ]
+        }
+        result = strategy(chart, GetChartPreviewRequest(identifier=104)).generate()
+    assert not isinstance(result, ChartError)
+    if isinstance(result, VegaLitePreview):
+        assert [row["saved_sla"] for row in result.specification["data"]["values"]] == [
+            42
+        ]
+    elif isinstance(result, TablePreview):
+        assert result.row_count == 1
+        assert "Blue" in result.table_data
+        assert "Empty" not in result.table_data
+    else:
+        assert "Blue" in result.ascii_content
+        assert "Empty" not in result.ascii_content

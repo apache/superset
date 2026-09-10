@@ -20,7 +20,10 @@ from typing import Any
 
 from superset import db, security_manager
 from superset.commands.exceptions import ImportFailedError
-from superset.commands.importers.v1.utils import find_existing_for_import
+from superset.commands.importers.v1.utils import (
+    apply_extra_import_fields,
+    find_existing_for_import,
+)
 from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.subjects.models import Subject
@@ -324,7 +327,27 @@ def import_dashboard(  # noqa: C901
     # overwrite branches below are intentionally skipped because the caller has
     # already established trust at the command level.
     user = get_user()
-    if existing := find_existing_for_import(Dashboard, config["uuid"]):
+    existing = find_existing_for_import(Dashboard, config["uuid"])
+    if not existing and (incoming_slug := config.get("slug")) is not None:
+        # ``Dashboard.import_from_dict`` matches an existing row on any of the
+        # model's unique constraints, which include ``slug`` as well as
+        # ``uuid``. A config carrying a fresh UUID but a slug that already
+        # belongs to an active dashboard would therefore be matched-and-updated
+        # by slug, without passing through the permission gate below (which only
+        # ran on a UUID match). Resolve that slug collision to the existing
+        # dashboard here so the same overwrite gate applies; align the UUID so
+        # the subsequent import updates that row deterministically.
+        existing = (
+            db.session.query(Dashboard)
+            .filter(
+                Dashboard.slug == incoming_slug,
+                Dashboard.deleted_at.is_(None),
+            )
+            .one_or_none()
+        )
+        if existing:
+            config["uuid"] = str(existing.uuid)
+    if existing:
         if existing.deleted_at is not None:
             # RESTORE path — re-importing a soft-deleted UUID is an implicit
             # restore-with-update, a distinct operation from overwriting an
@@ -446,6 +469,7 @@ def import_dashboard(  # noqa: C901
             except TypeError:
                 logger.info("Unable to encode `%s` field: %s", key, value)
 
+    extra = config.pop("extra", None)
     dashboard = Dashboard.import_from_dict(config, recursive=False)
     if dashboard.id is None:
         db.session.flush()
@@ -469,5 +493,7 @@ def import_dashboard(  # noqa: C901
         for viewer in viewers:
             if viewer not in dashboard.viewers:
                 dashboard.viewers.append(viewer)
+
+    apply_extra_import_fields(dashboard, "dashboard", extra)
 
     return dashboard

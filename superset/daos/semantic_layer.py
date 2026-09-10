@@ -53,8 +53,10 @@ class SemanticLayerDAO(BaseDAO[SemanticLayer], AbstractSemanticLayerDAO):
             return None
 
     @classmethod
-    def find_all(cls, skip_base_filter: bool = False) -> list[SemanticLayer]:
-        query = db.session.query(SemanticLayer)
+    def find_all(
+        cls, skip_base_filter: bool = False, *, force_fetch: bool | None = None
+    ) -> list[SemanticLayer]:
+        query = cls._query(force_fetch)
         query = cls._apply_base_filter(query, skip_base_filter)
         if not security_manager.can_access_all_datasources():
             perms = security_manager.user_view_menu_names("datasource_access")

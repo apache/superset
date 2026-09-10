@@ -243,6 +243,42 @@ Each subject in the response includes flat scalar ids (`user_id`, `role_id`, `gr
 than a nested object, so callers can match directly on whichever id they already have — only the
 id field matching the subject's `type` is populated; the others are `null`.
 
+#### Extending Editorship with EXTRA_EDITORS_RESOLVER
+
+Deployments that grant edit access to a dashboard or chart through a mechanism outside
+Superset's own Subject-based `editors` list — for example, a folder-permission system or an
+internal directory service — can plug that logic in with `EXTRA_EDITORS_RESOLVER`:
+
+```python
+def extra_editors_resolver(resource):
+    # `resource` is the Dashboard or Slice instance being checked.
+    # Return Subject instances, raw subject ids, or dicts with an `id` key.
+    return [...]
+
+
+EXTRA_EDITORS_RESOLVER = extra_editors_resolver
+```
+
+The resolver's result is unioned with the resource's own `editors` for editorship checks: it
+feeds `is_editor`, `raise_for_editorship`, save-as, and soft-delete restore. When
+`EXTRA_EDITORS_RESOLVER` is configured, the usual lockout-prevention behavior — automatically
+re-adding a non-admin who removes themselves from a resource's editors — is skipped, since the
+deployment has its own way of keeping the resource editable. This skip is global to the setting,
+not per-resource: it still applies on a resource where the resolver currently returns no
+subjects, so a resolver that can't guarantee an alternate editor for every resource can let the
+last editor remove themselves and leave it uneditable by non-admins.
+
+Resolved subject ids are also surfaced as `extra_editors` in the chart and dashboard `GET`
+responses, so API clients can distinguish resolver-granted editorship from the resource's own
+`editors` list. This field is attached after serialization and isn't part of the OpenAPI response
+schema, so generated API clients won't see it as a typed field.
+
+Because the resolver is arbitrary per-deployment Python rather than a SQL-expressible condition,
+editorship it grants cannot be reflected in list-view filtering (for example, the soft-deleted
+archive is scoped to editors via a SQL query). It does still run once per row on chart and
+dashboard list responses to populate `extra_editors`, so a slow or unavailable external resolver
+affects ordinary list requests, not just direct per-object checks.
+
 ### Dashboard Access Control
 
 Access to dashboards is managed via editors (subjects that have edit permissions to the dashboard).
@@ -582,6 +618,28 @@ SELECT * FROM (
 - In **SQL Lab**, RLS is enforced only when the `RLS_IN_SQLLAB` feature flag is enabled:
   queries run against tables that have associated datasets with RLS filters will then have
   the appropriate predicates injected automatically.
+
+#### RLS Indicator in the Dataset List and Explore
+
+When a dataset has one or more RLS filters that apply to it, Superset shows a lock
+icon badge next to the dataset name in the **Datasets** list and next to the dataset
+selector in **Explore**. Hovering over the badge shows a tooltip listing each
+applicable filter's name, filter type (Regular or Base), group key (if any), assigned
+subjects (labeled "Roles" in the tooltip, but may include users and groups too), and
+clause.
+
+This badge also surfaces filters that are inherited from the physical tables
+referenced by a virtual (SQL-based) dataset, as described above. Inherited filters
+are marked "from underlying table" in the tooltip, and a summary note is shown
+whenever any of the listed filters are inherited rather than assigned directly to
+the dataset. Inherited-filter detection depends on Superset's SQL parser being able
+to identify the referenced tables and match them to a physical dataset by name,
+schema, and database, so it's best-effort: unparseable or unmatched references won't
+surface a filter on the badge even if one would apply at query time.
+
+The badge is a visibility aid only — it does not change which filters are applied to
+a query. Use the RLS REST API described below if you need to confirm exactly which
+filters affect a dataset.
 
 #### Checking RLS Filters via the API
 
