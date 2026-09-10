@@ -31,7 +31,6 @@ import {
   DEFAULT_BIG_NUMBER_COLOR,
   DEFAULT_BIG_NUMBER_FONT_SIZE,
   DEFAULT_BIG_NUMBER_LEFT,
-  DEFAULT_BIG_NUMBER_TOP,
   DEFAULT_COMPARISON1_LABEL,
   DEFAULT_COMPARISON1_OFFSET,
   DEFAULT_COMPARISON2_LABEL,
@@ -40,12 +39,10 @@ import {
   DEFAULT_COMPARISON_FONT_SIZE,
   DEFAULT_COMPARISON_NEGATIVE_COLOR,
   DEFAULT_COMPARISON_POSITIVE_COLOR,
-  DEFAULT_COMPARISON_TOP,
   DEFAULT_COMPARISON_ZERO_COLOR,
   DEFAULT_TITLE_COLOR,
   DEFAULT_TITLE_FONT_SIZE,
   DEFAULT_TITLE_LEFT,
-  DEFAULT_TITLE_TOP,
 } from './constants';
 import {
   BigNumberYoyMomChartProps,
@@ -66,6 +63,16 @@ const toNumber = (value: unknown): number | null => {
   if (typeof value === 'bigint') return Number(value);
   const parsed = Number(value);
   return Number.isNaN(parsed) ? null : parsed;
+};
+
+/**
+ * Normalize a position/gap control value. Any non-numeric input (blank
+ * string, null, NaN) is treated as 0, so clearing the control or typing
+ * invalid characters produces the same layout as an explicit 0.
+ */
+const normalizePosition = (value: unknown): number => {
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? 0 : parsed;
 };
 
 /**
@@ -125,11 +132,11 @@ export default function transformProps(
     titleFontSize = DEFAULT_TITLE_FONT_SIZE,
     titleColor = DEFAULT_TITLE_COLOR,
     titleLeft = DEFAULT_TITLE_LEFT,
-    titleTop = DEFAULT_TITLE_TOP,
+    titleTop,
     bigNumberFontSize = DEFAULT_BIG_NUMBER_FONT_SIZE,
     bigNumberColor = DEFAULT_BIG_NUMBER_COLOR,
     bigNumberLeft = DEFAULT_BIG_NUMBER_LEFT,
-    bigNumberTop = DEFAULT_BIG_NUMBER_TOP,
+    bigNumberTop,
     showComparison1 = true,
     comparison1Label = t(DEFAULT_COMPARISON1_LABEL),
     comparison1Offset = DEFAULT_COMPARISON1_OFFSET,
@@ -147,7 +154,7 @@ export default function transformProps(
     comparisonGap = DEFAULT_COMPARISON_GAP,
     swapComparisonOrder = false,
     comparisonFontSize = DEFAULT_COMPARISON_FONT_SIZE,
-    comparisonTop = DEFAULT_COMPARISON_TOP,
+    comparisonTop,
     comparisonPositiveColor = DEFAULT_COMPARISON_POSITIVE_COLOR,
     comparisonNegativeColor = DEFAULT_COMPARISON_NEGATIVE_COLOR,
     comparisonZeroColor = DEFAULT_COMPARISON_ZERO_COLOR,
@@ -275,6 +282,9 @@ export default function transformProps(
   const titleRowHeight = titleFontSizePx * 1.2;
   const bigNumberRowHeight = bigNumberFontSizePx * 1.2;
   const comparisonRowHeight = comparisonFontSizePx * 1.2;
+  const titleTopValue = normalizePosition(titleTop);
+  const bigNumberTopValue = normalizePosition(bigNumberTop);
+  const comparisonTopValue = normalizePosition(comparisonTop);
   const hasComparison =
     (showComparison1 && !!(comparison1Offset || comparison1Column)) ||
     (showComparison2 && !!(comparison2Offset || comparison2Column));
@@ -282,16 +292,16 @@ export default function transformProps(
   // tile. The configured top values remain minimum padding, while the gap
   // controls preserve the spacing inside the stack.
   const contentHeight =
-    (hasTitle ? titleRowHeight + bigNumberTop : 0) +
+    (hasTitle ? titleRowHeight + bigNumberTopValue : 0) +
     bigNumberRowHeight +
-    (hasComparison ? comparisonTop + comparisonRowHeight : 0);
-  const contentTop = Math.max(titleTop, (height - contentHeight) / 2);
-  const effectiveTitleTop = hasTitle ? contentTop : titleTop;
+    (hasComparison ? comparisonTopValue + comparisonRowHeight : 0);
+  const contentTop = Math.max(titleTopValue, (height - contentHeight) / 2);
+  const effectiveTitleTop = hasTitle ? contentTop : titleTopValue;
   const effectiveBigNumberTop = hasTitle
-    ? contentTop + titleRowHeight + bigNumberTop
+    ? contentTop + titleRowHeight + bigNumberTopValue
     : contentTop;
   const effectiveComparisonTop =
-    effectiveBigNumberTop + bigNumberRowHeight + comparisonTop;
+    effectiveBigNumberTop + bigNumberRowHeight + comparisonTopValue;
 
   if (headerText) {
     graphic.push({
