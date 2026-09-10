@@ -53,6 +53,7 @@ from superset.mcp_service.chart.response_preflight import (
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
+    BulletChartConfig,
     ChartConfig,
     ColumnRef,
     GaugeChartConfig,
@@ -412,12 +413,28 @@ def _build_replacement_form_data(
         dataset_rebind = False
     merge_table_column_config(existing_form_data, new_form_data)
     merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
-    merged = _merge_replacement_config(
-        existing_form_data,
-        new_form_data,
-        parsed_config,
-        dataset_rebind=dataset_rebind,
-    )
+    if isinstance(parsed_config, BulletChartConfig):
+        merge_update_form_data(existing_form_data, new_form_data, parsed_config)
+        merged = new_form_data
+    else:
+        merged = _merge_replacement_config(
+            existing_form_data,
+            new_form_data,
+            parsed_config,
+            dataset_rebind=dataset_rebind,
+        )
+        merge_update_form_data(existing_form_data, merged, parsed_config)
+        merge_same_viz_form_data(existing_form_data, merged, parsed_config)
+        for config_field, form_data_field in (
+            ("group_by", "groupby"),
+            ("group_by_secondary", "groupby_b"),
+            ("sort_by", "order_by_cols"),
+        ):
+            if (
+                config_field in parsed_config.model_fields_set
+                and getattr(parsed_config, config_field, None) == []
+            ):
+                merged.pop(form_data_field, None)
     if replacement_dataset_id is not None:
         merged["datasource"] = f"{replacement_dataset_id}__table"
     return merged
@@ -451,12 +468,6 @@ def _build_update_payload(
                 else None
             ),
         )
-        new_form_data.pop("_mcp_warnings", None)
-        existing_form_data = _get_existing_form_data(chart)
-        merge_update_form_data(existing_form_data, new_form_data, parsed_config)
-        merge_table_column_config(existing_form_data, new_form_data)
-        merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
-        merge_same_viz_form_data(existing_form_data, new_form_data, parsed_config)
         _canonicalize_form_data_datasource(new_form_data, effective_dataset_id)
 
         chart_name = (
@@ -539,15 +550,16 @@ def _build_preview_form_data(
     )
 
     if parsed_config is not None:
-        new_form_data = map_config_to_form_data(
-            parsed_config, dataset_id=effective_dataset_id
+        merged = _build_replacement_form_data(
+            existing_form_data,
+            parsed_config,
+            effective_dataset_id,
+            replacement_dataset_id=(
+                request.dataset_id
+                if request.dataset_id != getattr(chart, "datasource_id", None)
+                else None
+            ),
         )
-        new_form_data.pop("_mcp_warnings", None)
-        merge_update_form_data(existing_form_data, new_form_data, parsed_config)
-        merge_table_column_config(existing_form_data, new_form_data)
-        merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
-        merge_same_viz_form_data(existing_form_data, new_form_data, parsed_config)
-        merged = new_form_data
     elif request.add_columns is not None:
         patched = _append_table_columns(existing_form_data, request.add_columns)
         if isinstance(patched, GenerateChartResponse):

@@ -57,6 +57,7 @@ from superset.mcp_service.chart.response_preflight import (
 )
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
+    BulletChartConfig,
     ChartError,
     PerformanceMetadata,
     UpdateChartPreviewRequest,
@@ -234,6 +235,8 @@ def update_chart_preview(  # noqa: C901
                     warnings.append(INVALID_FORM_DATA_KEY_WARNING)
 
             if previous_form_data:
+                merge_table_column_config(previous_form_data, new_form_data)
+                merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
                 previous_datasource = str(
                     previous_form_data.get("datasource")
                     or previous_form_data.get("datasource_id")
@@ -242,16 +245,27 @@ def update_chart_preview(  # noqa: C901
                 dataset_rebind = bool(
                     previous_datasource
                 ) and previous_datasource != str(dataset.id)
-                new_form_data = merge_chart_form_data(
-                    previous_form_data,
-                    new_form_data,
-                    config,
-                    dataset_rebind=dataset_rebind,
-                )
-                merge_update_form_data(previous_form_data, new_form_data, config)
-                merge_table_column_config(previous_form_data, new_form_data)
-                merge_interactive_pivot_ui_config(previous_form_data, new_form_data)
-                merge_same_viz_form_data(previous_form_data, new_form_data, config)
+                if isinstance(config, BulletChartConfig):
+                    merge_update_form_data(previous_form_data, new_form_data, config)
+                else:
+                    new_form_data = merge_chart_form_data(
+                        previous_form_data,
+                        new_form_data,
+                        config,
+                        dataset_rebind=dataset_rebind,
+                    )
+                    merge_update_form_data(previous_form_data, new_form_data, config)
+                    merge_same_viz_form_data(previous_form_data, new_form_data, config)
+                    for config_field, form_data_field in (
+                        ("group_by", "groupby"),
+                        ("group_by_secondary", "groupby_b"),
+                        ("sort_by", "order_by_cols"),
+                    ):
+                        if (
+                            config_field in config.model_fields_set
+                            and getattr(config, config_field, None) == []
+                        ):
+                            new_form_data.pop(form_data_field, None)
 
             validation_config = config
             try:
