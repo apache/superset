@@ -23,6 +23,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal
+from uuid import UUID
 
 from pydantic import (
     AliasChoices,
@@ -94,6 +95,26 @@ class DatasetFilter(ColumnOperator):
     value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
     )
+
+    @model_validator(mode="after")
+    def uuid_values_must_be_uuids(self) -> "DatasetFilter":
+        """Reject malformed UUIDs before they reach the database.
+
+        ``uuid`` is a binary column, so an unparseable value fails deep in the
+        driver as a system-class error — paging operators over what is really a
+        caller mistake, such as a truncated UUID.
+        """
+        if self.col != "uuid":
+            return self
+        values = self.value if isinstance(self.value, list) else [self.value]
+        for value in values:
+            try:
+                UUID(str(value))
+            except (ValueError, AttributeError, TypeError) as ex:
+                raise ValueError(
+                    f"Filter value for 'uuid' must be a UUID, got {value!r}."
+                ) from ex
+        return self
 
 
 class TableColumnInfo(BaseModel):

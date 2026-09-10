@@ -24,7 +24,7 @@ from unittest.mock import MagicMock, Mock, patch
 from uuid import UUID
 
 import pytest
-from flask import Flask, g
+from flask import current_app, Flask, g
 
 from superset.mcp_service.dataset_scope import (
     DATASET_IDENTIFIER_FIELDS,
@@ -34,7 +34,6 @@ from superset.mcp_service.dataset_scope import (
     NO_DATASET_IDENTITY_ERROR,
     OUT_OF_SCOPE_ERROR,
     SCOPED_TOOLS,
-    tool_available_in_dataset_scope,
     UNSUPPORTED_TOOL_ERROR,
 )
 
@@ -239,8 +238,17 @@ def test_disabled_scope_never_binds_call_arguments() -> None:
     signature.bind_partial.assert_not_called()
 
 
-def test_unbindable_arguments_defer_to_tool_validation() -> None:
-    """A binding failure must not mask the tool's own argument error."""
+@pytest.mark.parametrize("dataset_uuid,allowed", [(FIRST, True), (THIRD, False)])
+def test_unbindable_arguments_still_enforce_the_scope(
+    dataset_uuid: UUID, allowed: bool
+) -> None:
+    """A binding failure must not mask the tool's own error — or skip the check.
+
+    Extra keyword arguments make ``bind_partial`` raise. Falling back to the raw
+    kwargs keeps the refusal decision intact; simply returning on ``TypeError``
+    would turn a malformed call into a scope bypass, which the disallowed case
+    below is what catches.
+    """
     with (
         patch(
             "superset.mcp_service.dataset_scope.get_dataset_scope",
@@ -248,33 +256,16 @@ def test_unbindable_arguments_defer_to_tool_validation() -> None:
         ),
         patch(
             "superset.daos.dataset.DatasetDAO.find_by_id",
-            return_value=SimpleNamespace(uuid=FIRST),
-        ),
+            return_value=SimpleNamespace(uuid=dataset_uuid),
+        ) as find,
     ):
-        # Extra keyword arguments make bind_partial raise; the scope decision
-        # still falls back to the raw kwargs rather than surfacing a TypeError.
-        enforce_call_dataset_scope(
-            "query_dataset",
-            _sig(),
-            (),
-            {"request": {"dataset_id": 1}, "unexpected": True},
-        )
-
-
-@pytest.mark.parametrize(
-    "tool_name,visible", [("query_dataset", True), ("execute_sql", False)]
-)
-def test_tool_visibility_tracks_the_scope(tool_name: str, visible: bool) -> None:
-    """Scoped deployments advertise only the tools they will actually serve."""
-    with patch(
-        "superset.mcp_service.dataset_scope.get_dataset_scope",
-        return_value=frozenset({FIRST}),
-    ):
-        assert tool_available_in_dataset_scope(tool_name) is visible
-    with patch(
-        "superset.mcp_service.dataset_scope.get_dataset_scope", return_value=None
-    ):
-        assert tool_available_in_dataset_scope(tool_name) is True
+        kwargs = {"request": {"dataset_id": 1}, "unexpected": True}
+        if allowed:
+            enforce_call_dataset_scope("query_dataset", _sig(), (), kwargs)
+        else:
+            with pytest.raises(MCPDatasetScopeError, match=OUT_OF_SCOPE_ERROR):
+                enforce_call_dataset_scope("query_dataset", _sig(), (), kwargs)
+        find.assert_called_once_with(1, query_options=None)
 
 
 def test_allowlist_is_wired_into_the_mcp_config_defaults() -> None:
@@ -331,32 +322,79 @@ async def test_resources_and_prompts_are_unaffected_by_the_scope(
                 assert await client.get_prompt(name)
 
 
-@pytest.mark.parametrize(
-    "tool_name,visible_when_scoped", [("query_dataset", True), ("execute_sql", False)]
-)
-def test_scoped_mode_hides_the_tools_it_would_refuse(
-    app: Flask, tool_name: str, visible_when_scoped: bool
-) -> None:
-    """Tool visibility reflects the scope so clients do not plan around refusals.
+@pytest.mark.asyncio
+async def test_scope_does_not_hide_tools_from_listing(mock_auth: Mock) -> None:
+    """Scoped mode gates execution, not discovery.
 
-    Exercised through ``is_tool_visible_to_current_user``, the single source of
-    truth that ``RBACToolVisibilityMiddleware`` and tool search both consult.
+    Tool listings pass through the tool-search transform, which synthesizes its
+    own meta tools; filtering the listing on SCOPED_TOOLS would hide the very
+    tools a client uses to reach the scoped ones.
     """
     from superset.mcp_service.auth import is_tool_visible_to_current_user
 
     tool = MagicMock()
-    tool.name = tool_name
+    tool.name = "execute_sql"
     tool.fn = MagicMock()
-    tool.fn.__name__ = tool_name
+    tool.fn.__name__ = "execute_sql"
 
-    with app.app_context():
-        g.user = SimpleNamespace(id=1, username="admin")
-        with patch(
+    with (
+        patch(
             "superset.mcp_service.dataset_scope.get_dataset_scope",
             return_value=frozenset({FIRST}),
-        ):
-            assert is_tool_visible_to_current_user(tool) is visible_when_scoped
-        with patch(
-            "superset.mcp_service.dataset_scope.get_dataset_scope", return_value=None
-        ):
-            assert is_tool_visible_to_current_user(tool) is True
+        ),
+        current_app.test_request_context(),
+    ):
+        g.user = SimpleNamespace(id=1, username="admin")
+        assert is_tool_visible_to_current_user(tool) is True
+
+
+@pytest.mark.parametrize(
+    "value", [str(FIRST), [str(FIRST), str(SECOND)], FIRST.hex, str(FIRST).upper()]
+)
+def test_uuid_filter_accepts_uuid_values(value: object) -> None:
+    """The uuid filter is the supported way to look a dataset up by UUID."""
+    from superset.mcp_service.dataset.schemas import DatasetFilter
+
+    assert DatasetFilter(col="uuid", opr="in", value=value)
+
+
+@pytest.mark.parametrize("value", ["not-a-uuid", "0000-0000", 7, [str(FIRST), "nope"]])
+def test_uuid_filter_rejects_malformed_values(value: object) -> None:
+    """A truncated UUID is a caller mistake, not a system error to page on.
+
+    Without this the value reaches the binary column and fails in the driver as
+    a StatementError, which the error middleware classifies as a bug.
+    """
+    from pydantic import ValidationError
+
+    from superset.mcp_service.dataset.schemas import DatasetFilter
+
+    with pytest.raises(ValidationError, match="must be a UUID"):
+        DatasetFilter(col="uuid", opr="in", value=value)
+
+
+def test_non_uuid_filters_are_unvalidated() -> None:
+    """Validation is scoped to the uuid column and changes nothing else."""
+    from superset.mcp_service.dataset.schemas import DatasetFilter
+
+    assert DatasetFilter(col="table_name", opr="eq", value="not-a-uuid")
+
+
+@pytest.mark.parametrize("config", [[], {"Readers": "*"}, {"Readers": ["bad"]}])
+def test_startup_validation_rejects_a_malformed_allowlist(config: object) -> None:
+    """A typo surfaces at boot, not as a refusal on every subsequent call."""
+    from superset.mcp_service.dataset_scope import parse_dataset_role_allowlist
+
+    with pytest.raises(MCPDatasetScopeError, match="MCP_DATASET_ROLE_ALLOWLIST"):
+        parse_dataset_role_allowlist(config)
+
+
+def test_startup_validation_accepts_absent_and_valid_allowlists() -> None:
+    """Parsing normalizes to UUIDs and leaves the unset case unrestricted."""
+    from superset.mcp_service.dataset_scope import parse_dataset_role_allowlist
+
+    assert parse_dataset_role_allowlist(None) is None
+    assert parse_dataset_role_allowlist({}) == {}
+    assert parse_dataset_role_allowlist({"Readers": [str(FIRST)]}) == {
+        "Readers": {FIRST}
+    }

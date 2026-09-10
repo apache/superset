@@ -515,15 +515,6 @@ def is_tool_visible_to_current_user(tool: Any) -> bool:
         if _tool_denied_for_principal(tool_func):
             return False
 
-        # Hide tools that a configured dataset scope would refuse on use, so a
-        # scoped deployment advertises only the surface it will actually serve.
-        from superset.mcp_service.dataset_scope import (
-            tool_available_in_dataset_scope,
-        )
-
-        if not tool_available_in_dataset_scope(getattr(tool, "name", "")):
-            return False
-
         if not current_app.config.get("MCP_RBAC_ENABLED", True):
             return check_tool_permission(tool_func, log_denial=False)
 
