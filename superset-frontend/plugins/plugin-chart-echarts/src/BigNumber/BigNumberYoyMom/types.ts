@@ -48,6 +48,7 @@ export type BigNumberYoyMomFormData = QueryFormData & {
   comparison1Mode?: 'time_shift' | 'metric';
   comparison1Offset?: string;
   comparison1Column?: QueryFormMetric;
+  comparison1PercentDifferenceFormat?: string;
   /** @deprecated Use comparisonGap and swapComparisonOrder. */
   comparison1Left?: number;
   showComparison2?: boolean;
@@ -55,6 +56,7 @@ export type BigNumberYoyMomFormData = QueryFormData & {
   comparison2Mode?: 'time_shift' | 'metric';
   comparison2Offset?: string;
   comparison2Column?: QueryFormMetric;
+  comparison2PercentDifferenceFormat?: string;
   /** @deprecated Use comparisonGap and swapComparisonOrder. */
   comparison2Left?: number;
   comparisonGap?: number;
