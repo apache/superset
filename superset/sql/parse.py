@@ -1393,6 +1393,17 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         return bool(self.get_disallowed_tables(tables, default_schema))
 
+    @staticmethod
+    def _normalize_setting_name(name: str) -> str:
+        """
+        Strip the quoting a setting name may carry and case-fold it.
+
+        Both spellings are equivalent in Postgres (``SET "search_path" = ...``,
+        ``SET SCHEMA 'x'``), so every comparison against a setting name goes
+        through this.
+        """
+        return name.strip("\"'").lower()
+
     def _leading_set_setting_name(self) -> str | None:
         """
         Return the name of the setting an opaque ``SET`` statement rebinds.
@@ -1412,7 +1423,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         tokens = str(parsed.expression).replace("=", " ").split()
         while tokens and tokens[0].upper() in {"SESSION", "LOCAL", "CURRENT"}:
             tokens.pop(0)
-        return tokens[0].strip("\"'").lower() if tokens else None
+        return self._normalize_setting_name(tokens[0]) if tokens else None
 
     def _calls_set_config_on_search_path(self) -> bool:
         """
@@ -1451,7 +1462,10 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # parse as a structured exp.Set, surfaced by get_settings(). Strip any
         # identifier quoting so `SET "search_path" = ...` (equivalent to the
         # unquoted form in Postgres) is still recognized.
-        if any(key.strip('"').lower() == "search_path" for key in self.get_settings()):
+        if any(
+            self._normalize_setting_name(key) == "search_path"
+            for key in self.get_settings()
+        ):
             return True
         if self._calls_set_config_on_search_path():
             return True
@@ -1460,12 +1474,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         inner = self._classify_explain_analyze_body(SQLStatement.changes_search_path)
         if inner is not None:
             return inner
+        if (setting := self._leading_set_setting_name()) is not None:
+            return setting == "search_path"
         parsed = self._parsed
         if not isinstance(parsed, exp.Command):
             return False
-        head = parsed.name.upper()
-        if head == "SET":
-            return self._leading_set_setting_name() == "search_path"
         # A procedural body (e.g. a PL/pgSQL `DO` block) is not SQL and cannot
         # be re-parsed, so a rebind inside it stays invisible to the scan
         # above. Fall back to matching the raw text, erring towards a match:
@@ -1473,7 +1486,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # setting name never spells the latter contiguously. Whole-word
         # matching keeps an unrelated identifier that merely embeds one of
         # them (`reset_config`, `my_search_path_helper`) from being flagged.
-        if head in self._NESTED_BODY_COMMAND_NAMES:
+        if parsed.name.upper() in self._NESTED_BODY_COMMAND_NAMES:
             return bool(
                 re.search(
                     r"\b(search_path|set_config)\b",
@@ -1509,11 +1522,29 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             "catalog",
         }
         if any(
-            key.strip('"').lower() in rebinding_settings for key in self.get_settings()
+            self._normalize_setting_name(key) in rebinding_settings
+            for key in self.get_settings()
         ):
             return True
         # The same forms falling back to an opaque exp.Command.
         if self._leading_set_setting_name() in {"schema", "catalog"}:
+            return True
+        # `SET SCHEMA 'x'` rebinds resolution exactly as `SET search_path TO x`
+        # does, so a nested body carrying one is matched on the raw text, as
+        # `changes_search_path` does for its own forms. Unlike a search path,
+        # a schema is named all over ordinary SQL, so the `SET` head is
+        # required: a body that merely creates or references one is not a
+        # rebind.
+        parsed = self._parsed
+        if (
+            isinstance(parsed, exp.Command)
+            and parsed.name.upper() in self._NESTED_BODY_COMMAND_NAMES
+            and re.search(
+                r"\bset\s+(schema|catalog)\b",
+                str(parsed.expression),
+                re.IGNORECASE,
+            )
+        ):
             return True
         return self.changes_search_path()
 

@@ -5819,6 +5819,16 @@ def test_changes_search_path(sql: str, expected: bool) -> None:
         ("SET CATALOG tenant_b", "postgresql", True),
         ("SET CURRENT SCHEMA foo", "postgresql", True),
         ("SET ROLE admin", "postgresql", False),
+        # A rebind inside a body the parser leaves opaque (here a PL/pgSQL
+        # block) is matched on the raw text, in either spelling.
+        ("DO $$ BEGIN SET SCHEMA 'tenant_b'; END $$", "postgresql", True),
+        ("DO $$ BEGIN SET CATALOG tenant_b; END $$", "postgresql", True),
+        ("EXECUTE 'SET SCHEMA ''tenant_b'''", "postgresql", True),
+        # A schema is named all over ordinary SQL, so only the `SET` head
+        # counts: a body that merely creates or references one is not a
+        # rebind.
+        ("DO $$ BEGIN CREATE SCHEMA tenant_b; END $$", "postgresql", False),
+        ("CALL populate_schema()", "postgresql", False),
         # A `set_config()` whose setting name is a column reference rather than
         # a literal is treated conservatively as a schema change.
         ("SELECT set_config(schema_col, 'tenant_b', false)", "postgresql", True),
