@@ -165,6 +165,16 @@ control can override a simple metric's own aggregation (to Sum or Average) for t
 only — metrics built from custom SQL keep their own aggregation regardless.
 :::
 
+In the **Options** panel, the **Show values as** control displays each cell as a percentage of its
+row total, column total, or grand total instead of its actual value:
+
+:::note
+Totals and subtotals are still computed correctly first, as described above; **Show values as**
+only changes how the already-correct cell, row-total, column-total, and grand-total values are
+displayed. Because the result is always a percentage, a per-metric custom formatter (currency,
+decimal precision, etc.) doesn't apply while a fraction option is selected.
+:::
+
 ### Line Chart
 
 In this section, we are going to create a line chart to understand the average price of a ticket by
