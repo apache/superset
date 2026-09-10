@@ -355,10 +355,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           percent_metrics: exploreFormData?.percent_metrics,
           groupby: exploreFormData?.groupby,
           all_columns: exploreFormData?.all_columns,
-          query_mode: queryModeValue ?? exploreFormData?.query_mode,
-          comparison_type:
-            comparisonTypeValue ?? exploreFormData?.comparison_type,
-          time_compare: timeCompareValue ?? exploreFormData?.time_compare,
+          query_mode: exploreFormData?.query_mode,
+          comparison_type: exploreFormData?.comparison_type,
+          time_compare: exploreFormData?.time_compare,
         },
         controls: {
           time_compare: { value: timeCompareValue },
