@@ -206,9 +206,9 @@ describe('BigNumberYoyMom transformProps', () => {
     const graphic = result.echartOptions.graphic as Record<string, any>[];
 
     // A comparison value column renders the value itself, like the big number.
-    expect(graphic[2].style.text).toBe('MoM $80');
+    expect(graphic[2].style.text).toBe('MoM 80');
     expect(graphic[2].style.fill).toBe('rgb(0, 180, 42)');
-    expect(graphic[3].style.text).toBe('YoY $120');
+    expect(graphic[3].style.text).toBe('YoY 120');
     expect(graphic[3].style.fill).toBe('rgb(0, 180, 42)');
   });
 
@@ -232,7 +232,7 @@ describe('BigNumberYoyMom transformProps', () => {
     );
     const graphic = result.echartOptions.graphic as Record<string, any>[];
     // The whitespace-normalized column is matched and the value rendered.
-    expect(graphic[2].style.text).toBe('MoM $80');
+    expect(graphic[2].style.text).toBe('MoM 80');
   });
 
   test('time_shift mode wins over a leftover comparison column', () => {
@@ -267,7 +267,7 @@ describe('BigNumberYoyMom transformProps', () => {
       ),
     );
     const graphic = result.echartOptions.graphic as Record<string, any>[];
-    expect(graphic[2].style.text).toBe('MoM $80');
+    expect(graphic[2].style.text).toBe('MoM 80');
   });
 
   test('shows "—" when the configured comparison column is missing', () => {
