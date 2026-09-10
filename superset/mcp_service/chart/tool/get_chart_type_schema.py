@@ -220,6 +220,17 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "groupby": [{"name": "region"}, {"name": "product"}],
             "metric": {"name": "revenue", "aggregate": "SUM"},
         },
+        {
+            "chart_type": "treemap_v2",
+            "groupby": ["region", "product"],
+            "metric": "total_revenue",
+            "show_labels": True,
+            "show_upper_labels": True,
+            "label_type": "key_value",
+            "number_format": ",.2f",
+            "sort_by_metric": False,
+            "row_limit": 100,
+        },
     ],
 }
 

@@ -1917,6 +1917,159 @@ class TestSavedChartExtraFormDataFilters:
         assert payload["queries"][0]["data"] is rows
         assert payload["queries"][0]["rowcount"] == source_rowcount
 
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("data_path", ["saved", "saved_cache", "unsaved_cache"])
+    @pytest.mark.parametrize("export_format", ["json", "csv", "excel"])
+    @pytest.mark.parametrize("has_finite", [True, False])
+    async def test_treemap_fastmcp_validates_results_and_exports(
+        self,
+        mcp_server: Any,
+        mock_auth: Any,
+        data_path: str,
+        export_format: str,
+        has_finite: bool,
+    ) -> None:
+        """Treemap validates hierarchy metrics on saved and cached export paths."""
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        chart = SimpleNamespace(
+            id=10,
+            slice_name="SLA",
+            viz_type="treemap_v2",
+            datasource_id=1,
+            datasource_type="table",
+            query_context=json.dumps(
+                {
+                    "datasource": {"id": 1, "type": "table"},
+                    "queries": [
+                        {
+                            "columns": ["team"],
+                            "metrics": ["saved_sla"],
+                            "row_limit": 10,
+                        }
+                    ],
+                }
+            ),
+            params=json.dumps(
+                {
+                    "viz_type": "treemap_v2",
+                    "metric": "saved_sla",
+                    "groupby": ["team"],
+                }
+            ),
+        )
+
+        def fake_load(self: Any, data: dict[str, Any]) -> Any:
+            return SimpleNamespace(
+                queries=[
+                    SimpleNamespace(
+                        filter=[],
+                        time_range=None,
+                        to_dict=lambda: dict(data["queries"][0]),
+                    )
+                ],
+                form_data={},
+            )
+
+        rows: list[dict[str, Any]] = [
+            {"team": "Blue", "saved_sla": 42 if has_finite else None}
+        ]
+        source_rowcount = len(rows) + 7
+        payload = {
+            "queries": [
+                {
+                    "data": rows,
+                    "rowcount": source_rowcount,
+                    "colnames": ["team", "saved_sla"],
+                }
+            ]
+        }
+
+        class Command:
+            def __init__(self, query_context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return payload
+
+        cached_form_data = {
+            "viz_type": "treemap_v2",
+            "datasource": "1__table",
+            "metric": "saved_sla",
+            "groupby": ["team"],
+            "slice_name": "SLA",
+        }
+        query = {"columns": ["team"], "metrics": ["saved_sla"]}
+        with (
+            patch.object(
+                module,
+                "get_cached_form_data",
+                return_value=json.dumps(cached_form_data),
+            ),
+            patch.object(
+                module, "build_query_dicts_from_form_data", return_value=[query]
+            ),
+            patch.object(
+                module,
+                "build_query_context_from_form_data",
+                return_value=fake_load(None, {"queries": [query]}),
+            ),
+            patch.object(module, "find_chart_by_identifier", return_value=chart),
+            patch.object(
+                module,
+                "validate_chart_dataset",
+                return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+            ),
+            patch(
+                "superset.charts.schemas.ChartDataQueryContextSchema.load", fake_load
+            ),
+            patch(
+                "superset.commands.chart.data.get_data_command.ChartDataCommand",
+                Command,
+            ),
+        ):
+            async with Client(mcp_server) as client:
+                request = {"format": export_format}
+                if data_path != "unsaved_cache":
+                    request["identifier"] = "10"
+                if data_path != "saved":
+                    request["form_data_key"] = "raw-treemap-cache"
+                result = await client.call_tool("get_chart_data", {"request": request})
+
+        data = json.loads(result.content[0].text)
+        if not has_finite:
+            assert data["error_type"] == "InvalidTreemapMetric"
+            return
+        assert data["row_count"] == len(rows)
+        assert data["total_rows"] == (
+            source_rowcount if export_format == "json" else len(rows)
+        )
+        expected_groups = [row["team"] for row in rows]
+        if export_format == "json":
+            assert [row["team"] for row in data["data"]] == expected_groups
+            assert data["data_quality"]["completeness"] == pytest.approx(1)
+            assert data.get("query_results") is None
+        elif export_format == "csv":
+            import csv
+            from io import StringIO
+
+            exported = list(csv.DictReader(StringIO(data["csv_data"])))
+            assert [row["team"] for row in exported] == expected_groups
+        else:
+            import base64
+            from io import BytesIO
+
+            from openpyxl import load_workbook
+
+            workbook = load_workbook(BytesIO(base64.b64decode(data["excel_data"])))
+            assert list(workbook.active.values)[0] == ("team", "saved_sla")
+            assert [
+                row[0] for row in list(workbook.active.values)[1:]
+            ] == expected_groups
+            assert [row[1] for row in list(workbook.active.values)[1:]] == [42]
+        assert payload["queries"][0]["data"] is rows
+        assert payload["queries"][0]["rowcount"] == source_rowcount
+
 
 class TestOAuthErrorRouting:
     """Query-time OAuth errors must reach the dedicated OAuth handlers.

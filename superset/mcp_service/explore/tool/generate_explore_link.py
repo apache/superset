@@ -280,7 +280,8 @@ async def generate_explore_link(
                 normalized_config,
                 form_data,
                 dataset,
-                run_compile_check=normalized_config.chart_type == "gauge",
+                run_compile_check=normalized_config.chart_type
+                in ("gauge", "treemap_v2"),
             )
         if not compile_result.success:
             await ctx.warning(
