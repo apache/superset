@@ -27,10 +27,15 @@ import {
 } from 'react-table';
 import { styled } from '@apache-superset/core/theme';
 import { Table, TableSize } from '@superset-ui/core/components/Table';
-import { TableRowSelection, SorterResult } from 'antd/es/table/interface';
+import {
+  ColumnsType,
+  TableRowSelection,
+  SorterResult,
+} from 'antd/es/table/interface';
+import type { TableProps } from 'antd/es/table';
 import { mapColumns, mapRows } from './utils';
 
-interface TableCollectionProps<T extends object> {
+export interface TableCollectionProps<T extends object> {
   getTableProps: TablePropGetter<T>;
   getTableBodyProps: TableBodyPropGetter<T>;
   prepareRow: (row: Row<T>) => void;
@@ -39,6 +44,10 @@ interface TableCollectionProps<T extends object> {
   columns: ColumnInstance<T>[];
   loading: boolean;
   highlightRowId?: number;
+  // Optional predicate to highlight arbitrary rows (in addition to
+  // highlightRowId). Receives the mapped record (which spreads row.original), so
+  // callers can match on any field, e.g. by uuid.
+  isRowHighlighted?: (record: Record<string, unknown>) => boolean;
   columnsForWrapText?: string[];
   setSortBy?: (updater: SortingRule<T>[]) => void;
   bulkSelectEnabled?: boolean;
@@ -53,6 +62,7 @@ interface TableCollectionProps<T extends object> {
   onPageChange?: (page: number, pageSize: number) => void;
   isPaginationSticky?: boolean;
   showRowCount?: boolean;
+  expandable?: Record<string, unknown>;
 }
 
 const StyledTable = styled(Table)<{
@@ -60,12 +70,6 @@ const StyledTable = styled(Table)<{
   showRowCount?: boolean;
 }>`
   ${({ theme, isPaginationSticky, showRowCount }) => `
-    th.ant-column-cell {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
     .actions {
       opacity: 0;
       font-size: ${theme.fontSizeXL}px;
@@ -161,6 +165,7 @@ function TableCollection<T extends object>({
   rows,
   loading,
   highlightRowId,
+  isRowHighlighted,
   setSortBy,
   headerGroups,
   columnsForWrapText,
@@ -177,6 +182,7 @@ function TableCollection<T extends object>({
   onPageChange,
   isPaginationSticky = false,
   showRowCount = true,
+  expandable,
 }: TableCollectionProps<T>) {
   const mappedColumns = useMemo(
     () => mapColumns<T>(columns, headerGroups, columnsForWrapText),
@@ -196,6 +202,14 @@ function TableCollection<T extends object>({
   const rowSelection: TableRowSelection | undefined = useMemo(() => {
     if (!bulkSelectEnabled) return undefined;
 
+    // antd Table's `rowSelection` API renders its own checkbox column.
+    // The select-all `data-test` lives on the `<th>` via `header.cell`
+    // below (keyed on antd's `ant-table-selection-column` className), NOT
+    // via `columnTitle` — rc-table's MeasureCell renders the column
+    // `title` verbatim inside `<tbody>`, so a `columnTitle` wrapper leaks
+    // any `data-test` attr into the measure row and breaks Playwright
+    // strict-mode selectors. `renderCell` only renders in real body rows,
+    // so wrapping per-row checkboxes there is safe.
     return {
       selectedRowKeys,
       onSelect: (record, selected) => {
@@ -204,6 +218,9 @@ function TableCollection<T extends object>({
       onSelectAll: (selected: boolean) => {
         toggleAllRowsSelected?.(selected);
       },
+      renderCell: (_value, _record, _index, originNode) => (
+        <span data-test="row-select-checkbox">{originNode}</span>
+      ),
     };
   }, [
     bulkSelectEnabled,
@@ -280,17 +297,54 @@ function TableCollection<T extends object>({
 
   const getRowClassName = useCallback(
     (record: Record<string, unknown>) =>
-      highlightRowId !== undefined && record?.id === highlightRowId
+      (highlightRowId !== undefined && record?.id === highlightRowId) ||
+      isRowHighlighted?.(record)
         ? 'table-row-highlighted'
         : '',
-    [highlightRowId],
+    [highlightRowId, isRowHighlighted],
+  );
+
+  // Memoize the custom cell/row components. A fresh `components` object (with
+  // new inner function identities) makes antd treat them as new component types
+  // and remount every row and cell on each render — which would, for example,
+  // tear down an open hover popover inside a cell whenever the table re-renders
+  // (e.g. when rowClassName changes for row highlighting).
+  const tableComponents = useMemo(
+    () => ({
+      header: {
+        cell: (props: HTMLAttributes<HTMLTableCellElement>) => {
+          const isSelectionColumn =
+            props.className?.includes('ant-table-selection-column') ?? false;
+          return (
+            <th
+              {...props}
+              data-test={
+                isSelectionColumn ? 'header-toggle-all' : 'sort-header'
+              }
+            />
+          );
+        },
+      },
+      body: {
+        row: (props: HTMLAttributes<HTMLTableRowElement>) => (
+          <tr {...props} data-test="table-row" />
+        ),
+        cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
+          <td {...props} data-test="table-row-cell" />
+        ),
+      },
+    }),
+    [],
   );
 
   return (
     <StyledTable
       loading={loading}
       sticky={sticky ?? false}
-      columns={mappedColumns}
+      // Forward-compat: TS 6.0 tightens antd Table's generic inference so our
+      // typed-against-react-table mapped columns must be widened to the antd
+      // ColumnsType<object> surface the Table expects here.
+      columns={mappedColumns as unknown as ColumnsType<object>}
       data={mappedRows}
       size={size}
       data-test="listview-table"
@@ -303,23 +357,12 @@ function TableCollection<T extends object>({
       sortDirections={['ascend', 'descend', 'ascend']}
       isPaginationSticky={isPaginationSticky}
       showRowCount={showRowCount}
-      rowClassName={getRowClassName}
-      components={{
-        header: {
-          cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
-            <th {...props} data-test="sort-header" role="columnheader" />
-          ),
-        },
-        body: {
-          row: (props: HTMLAttributes<HTMLTableRowElement>) => (
-            <tr {...props} data-test="table-row" />
-          ),
-          cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
-            <td {...props} data-test="table-row-cell" />
-          ),
-        },
-      }}
-      onChange={handleTableChange}
+      rowClassName={
+        getRowClassName as unknown as TableProps<object>['rowClassName']
+      }
+      expandable={expandable}
+      components={tableComponents}
+      onChange={handleTableChange as unknown as TableProps<object>['onChange']}
     />
   );
 }

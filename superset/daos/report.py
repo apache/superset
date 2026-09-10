@@ -20,7 +20,9 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from superset.daos.base import BaseDAO
+from sqlalchemy import or_, select
+
+from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
 from superset.reports.filters import ReportScheduleFilter
 from superset.reports.models import (
@@ -41,6 +43,71 @@ REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER = "Notification sent with error"
 
 class ReportScheduleDAO(BaseDAO[ReportSchedule]):
     base_filter = ReportScheduleFilter
+
+    @classmethod
+    def apply_column_operators(
+        cls,
+        query: Any,
+        column_operators: list[ColumnOperator] | None = None,
+    ) -> Any:
+        """Override to handle editor self-filters via subqueries.
+
+        - editor: filters reports by editor user ID via report_schedule_editors
+        - created_by_fk_or_editor: OR(created_by_fk == value, id IN editor_subq)
+        """
+        if not column_operators:
+            return query
+
+        remaining_operators: list[ColumnOperator] = []
+        for c in column_operators:
+            if not isinstance(c, ColumnOperator):
+                c = ColumnOperator.model_validate(c)
+            if c.col == "editor":
+                from superset.subjects.models import report_schedule_editors, Subject
+
+                operator_enum = ColumnOperatorEnum(c.opr)
+                subq = (
+                    select(report_schedule_editors.c.report_schedule_id)
+                    .join(
+                        Subject.__table__,
+                        Subject.__table__.c.id == report_schedule_editors.c.subject_id,
+                    )
+                    .where(
+                        Subject.__table__.c.type == 1,
+                        operator_enum.apply(Subject.__table__.c.user_id, c.value),
+                    )
+                )
+                query = query.filter(ReportSchedule.id.in_(subq))
+            elif c.col == "created_by_fk_or_editor":
+                if c.opr != "eq":
+                    raise ValueError(
+                        f"created_by_fk_or_editor only supports 'eq'; got '{c.opr}'"
+                    )
+                from superset.subjects.models import report_schedule_editors, Subject
+
+                editor_subq = (
+                    select(report_schedule_editors.c.report_schedule_id)
+                    .join(
+                        Subject.__table__,
+                        Subject.__table__.c.id == report_schedule_editors.c.subject_id,
+                    )
+                    .where(
+                        Subject.__table__.c.type == 1,
+                        Subject.__table__.c.user_id == c.value,
+                    )
+                )
+                query = query.filter(
+                    or_(
+                        ReportSchedule.created_by_fk == c.value,
+                        ReportSchedule.id.in_(editor_subq),
+                    )
+                )
+            else:
+                remaining_operators.append(c)
+
+        if remaining_operators:
+            query = super().apply_column_operators(query, remaining_operators)
+        return query
 
     @staticmethod
     def find_by_chart_id(chart_id: int) -> list[ReportSchedule]:
@@ -92,16 +159,26 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
 
     @staticmethod
     def find_by_extra_metadata(slug: str) -> list[ReportSchedule]:
+        """
+        Searches extra_json for a substring.
+
+        Matching is a plain substring scan that ignores which dashboard a
+        report belongs to, so callers acting on a single dashboard have to
+        narrow the results on ``dashboard_id`` themselves.
+        """
         return (
             db.session.query(ReportSchedule)
-            .filter(ReportSchedule.extra_json.like(f"%{slug}%"))
+            .filter(ReportSchedule.extra_json.contains(slug, autoescape=True))
             .all()
         )
 
     @staticmethod
     def find_by_native_filter_id(native_filter_id: str) -> list[ReportSchedule]:
         """
-        searches extra_json for a filter ID string
+        Searches extra_json for a filter ID string.
+
+        Carries the same caveat as :meth:`find_by_extra_metadata`: results span
+        every dashboard, not just the one owning the filter.
         """
         return (
             db.session.query(ReportSchedule)
@@ -113,16 +190,26 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
 
     @staticmethod
     def validate_unique_creation_method(
-        dashboard_id: int | None = None, chart_id: int | None = None
+        dashboard_id: int | None = None,
+        chart_id: int | None = None,
+        creation_method: str | None = None,
     ) -> bool:
         """
-        Validate if the user already has a chart or dashboard
-        with a report attached form the self subscribe reports
+        Validate if the user already has a chart or dashboard with a report
+        attached that was created via the same creation method as the one
+        being validated. Only reports created through the same method (e.g.
+        two "charts"-sourced reports) compete for the one-per-object slot --
+        an unrelated self-subscribed alert/report (creation method
+        "alerts_reports") on the same chart or dashboard doesn't count
+        against it.
         """
 
         query = db.session.query(ReportSchedule).filter_by(created_by_fk=get_user_id())
         if dashboard_id is not None:
             query = query.filter(ReportSchedule.dashboard_id == dashboard_id)
+
+        if creation_method is not None:
+            query = query.filter(ReportSchedule.creation_method == creation_method)
 
         if chart_id is not None:
             query = query.filter(ReportSchedule.chart_id == chart_id)

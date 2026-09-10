@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent, waitFor } from '@superset-ui/core/spec';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook, act } from '@testing-library/react';
 import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
 import { useConfirmModal } from '.';
 
@@ -33,10 +33,12 @@ test('initially returns null ConfirmModal', () => {
 test('showConfirm creates modal with config', () => {
   const { result } = renderHook(() => useConfirmModal());
 
-  result.current.showConfirm({
-    title: 'Test Title',
-    body: 'Test Body',
-    onConfirm: jest.fn(),
+  act(() => {
+    result.current.showConfirm({
+      title: 'Test Title',
+      body: 'Test Body',
+      onConfirm: jest.fn(),
+    });
   });
 
   expect(result.current.ConfirmModal).not.toBeNull();
@@ -45,10 +47,12 @@ test('showConfirm creates modal with config', () => {
 test('renders modal when showConfirm is called', () => {
   const { result } = renderHook(() => useConfirmModal());
 
-  result.current.showConfirm({
-    title: 'Delete Item',
-    body: 'Are you sure you want to delete this item?',
-    onConfirm: jest.fn(),
+  act(() => {
+    result.current.showConfirm({
+      title: 'Delete Item',
+      body: 'Are you sure you want to delete this item?',
+      onConfirm: jest.fn(),
+    });
   });
 
   renderWithTheme(<>{result.current.ConfirmModal}</>);
@@ -63,10 +67,12 @@ test('calls onConfirm when confirm button is clicked', async () => {
   const onConfirm = jest.fn();
   const { result } = renderHook(() => useConfirmModal());
 
-  result.current.showConfirm({
-    title: 'Confirm',
-    body: 'Proceed?',
-    onConfirm,
+  act(() => {
+    result.current.showConfirm({
+      title: 'Confirm',
+      body: 'Proceed?',
+      onConfirm,
+    });
   });
 
   renderWithTheme(<>{result.current.ConfirmModal}</>);
@@ -82,10 +88,12 @@ test('handles async onConfirm', async () => {
   const onConfirm = jest.fn().mockResolvedValue(undefined);
   const { result } = renderHook(() => useConfirmModal());
 
-  result.current.showConfirm({
-    title: 'Async Action',
-    body: 'This will take some time',
-    onConfirm,
+  act(() => {
+    result.current.showConfirm({
+      title: 'Async Action',
+      body: 'This will take some time',
+      onConfirm,
+    });
   });
 
   renderWithTheme(<>{result.current.ConfirmModal}</>);
@@ -100,10 +108,12 @@ test('handles async onConfirm', async () => {
 test('closes modal on cancel', async () => {
   const { result } = renderHook(() => useConfirmModal());
 
-  result.current.showConfirm({
-    title: 'Test',
-    body: 'Test',
-    onConfirm: jest.fn(),
+  act(() => {
+    result.current.showConfirm({
+      title: 'Test',
+      body: 'Test',
+      onConfirm: jest.fn(),
+    });
   });
 
   expect(result.current.ConfirmModal).not.toBeNull();
@@ -120,12 +130,14 @@ test('closes modal on cancel', async () => {
 test('supports custom button text', () => {
   const { result } = renderHook(() => useConfirmModal());
 
-  result.current.showConfirm({
-    title: 'Delete',
-    body: 'Remove this?',
-    onConfirm: jest.fn(),
-    confirmText: 'Remove',
-    cancelText: 'Keep',
+  act(() => {
+    result.current.showConfirm({
+      title: 'Delete',
+      body: 'Remove this?',
+      onConfirm: jest.fn(),
+      confirmText: 'Remove',
+      cancelText: 'Keep',
+    });
   });
 
   renderWithTheme(<>{result.current.ConfirmModal}</>);
@@ -137,11 +149,13 @@ test('supports custom button text', () => {
 test('supports danger button style', () => {
   const { result } = renderHook(() => useConfirmModal());
 
-  result.current.showConfirm({
-    title: 'Delete',
-    body: 'This is dangerous',
-    onConfirm: jest.fn(),
-    confirmButtonStyle: 'danger',
+  act(() => {
+    result.current.showConfirm({
+      title: 'Delete',
+      body: 'This is dangerous',
+      onConfirm: jest.fn(),
+      confirmButtonStyle: 'danger',
+    });
   });
 
   renderWithTheme(<>{result.current.ConfirmModal}</>);
@@ -155,10 +169,12 @@ test('handles errors in onConfirm gracefully', async () => {
   const onConfirm = jest.fn().mockRejectedValue(new Error('Test error'));
   const { result } = renderHook(() => useConfirmModal());
 
-  result.current.showConfirm({
-    title: 'Error Test',
-    body: 'This will fail',
-    onConfirm,
+  act(() => {
+    result.current.showConfirm({
+      title: 'Error Test',
+      body: 'This will fail',
+      onConfirm,
+    });
   });
 
   renderWithTheme(<>{result.current.ConfirmModal}</>);
@@ -177,10 +193,12 @@ test('closes modal after successful confirm', async () => {
   const onConfirm = jest.fn().mockResolvedValue(undefined);
   const { result } = renderHook(() => useConfirmModal());
 
-  result.current.showConfirm({
-    title: 'Success Test',
-    body: 'This will succeed',
-    onConfirm,
+  act(() => {
+    result.current.showConfirm({
+      title: 'Success Test',
+      body: 'This will succeed',
+      onConfirm,
+    });
   });
 
   expect(result.current.ConfirmModal).not.toBeNull();

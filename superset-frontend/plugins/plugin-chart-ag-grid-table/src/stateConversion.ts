@@ -19,6 +19,7 @@
 
 import {
   BackendOwnState,
+  ChartStateConverterOptions,
   QuerySortBy,
   type AgGridChartState,
   type AgGridSortModel,
@@ -216,7 +217,13 @@ function convertFilterToSQL(
     if (conditions.length === 0) return null;
     if (conditions.length === 1) return conditions[0];
 
-    return `(${conditions.join(` ${filter.operator} `)})`;
+    // The join operator is interpolated into raw SQL, so only allow the two
+    // boolean connectors AG Grid produces.
+    const joinOperator = String(filter.operator).toUpperCase();
+    if (joinOperator !== 'AND' && joinOperator !== 'OR') {
+      return null;
+    }
+    return `(${conditions.join(` ${joinOperator} `)})`;
   }
 
   // Handle blank/notBlank operators for all filter types
@@ -263,20 +270,26 @@ function convertFilterToSQL(
     filter.filter !== undefined &&
     filter.type
   ) {
+    // Number values are interpolated into the clause without quoting, so they
+    // must be finite numbers. Coerce and skip the filter if it is not numeric.
+    const numericValue = Number(filter.filter);
+    if (!Number.isFinite(numericValue)) {
+      return null;
+    }
     // Map number filter types to SQL operators
     switch (filter.type) {
       case FILTER_OPERATORS.EQUALS:
-        return `${colId} ${SQL_OPERATORS.EQUALS} ${filter.filter}`;
+        return `${colId} ${SQL_OPERATORS.EQUALS} ${numericValue}`;
       case FILTER_OPERATORS.NOT_EQUAL:
-        return `${colId} ${SQL_OPERATORS.NOT_EQUALS} ${filter.filter}`;
+        return `${colId} ${SQL_OPERATORS.NOT_EQUALS} ${numericValue}`;
       case FILTER_OPERATORS.LESS_THAN:
-        return `${colId} ${SQL_OPERATORS.LESS_THAN} ${filter.filter}`;
+        return `${colId} ${SQL_OPERATORS.LESS_THAN} ${numericValue}`;
       case FILTER_OPERATORS.LESS_THAN_OR_EQUAL:
-        return `${colId} ${SQL_OPERATORS.LESS_THAN_OR_EQUAL} ${filter.filter}`;
+        return `${colId} ${SQL_OPERATORS.LESS_THAN_OR_EQUAL} ${numericValue}`;
       case FILTER_OPERATORS.GREATER_THAN:
-        return `${colId} ${SQL_OPERATORS.GREATER_THAN} ${filter.filter}`;
+        return `${colId} ${SQL_OPERATORS.GREATER_THAN} ${numericValue}`;
       case FILTER_OPERATORS.GREATER_THAN_OR_EQUAL:
-        return `${colId} ${SQL_OPERATORS.GREATER_THAN_OR_EQUAL} ${filter.filter}`;
+        return `${colId} ${SQL_OPERATORS.GREATER_THAN_OR_EQUAL} ${numericValue}`;
       default:
         return null;
     }
@@ -314,7 +327,9 @@ export function convertFilterModel(
     return undefined;
   }
 
-  const sqlClauses: Record<string, string> = {};
+  // Null-prototype object: column ids come from the (user-influenced) filter
+  // model and are used as keys here, so avoid prototype-chain keys.
+  const sqlClauses: Record<string, string> = Object.create(null);
 
   Object.entries(filterModel).forEach(([colId, filter]) => {
     const sqlClause = convertFilterToSQL(colId, filter);
@@ -339,7 +354,24 @@ export function convertFilterModel(
  */
 export function convertAgGridStateToOwnState(
   agGridState: AgGridChartState,
+  options: ChartStateConverterOptions = {},
 ): Partial<BackendOwnState> {
+  // In client mode, AG Grid handles sort/filter/pagination locally, so for
+  // the *live* query none of it needs to reach the backend -- folding it
+  // into ownState there would only trigger an unnecessary requery/remount.
+  // A *download* query has no client-side pass to apply that state though:
+  // dashboard doesn't consume the Explore-only clientView snapshot, so
+  // exports still need it converted to reproduce the displayed
+  // sort/filter/columns (options.forExport).
+  //
+  // Only an explicit `false` is treated as "definitely client mode":
+  // legacy persisted table_state/permalinks predate serverPagination and
+  // have it `undefined`, and treating that the same as `false` would
+  // silently drop their persisted server-side sort/filter on restore.
+  if (agGridState.serverPagination === false && !options.forExport) {
+    return {};
+  }
+
   const ownState: Partial<BackendOwnState> = {};
 
   const sortBy = convertSortModel(agGridState.sortModel);

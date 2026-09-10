@@ -17,7 +17,7 @@
  * under the License.
  */
 import { render, screen, fireEvent } from '@superset-ui/core/spec';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { TableInstance, useTable } from 'react-table';
 import TableCollection from '.';
 
@@ -99,9 +99,12 @@ test('Body should be visible', () => {
 test('Body content should be blurred loading', () => {
   render(<TableCollection {...defaultProps} loading />);
 
-  expect(screen.getByTestId('listview-table').parentNode).toHaveClass(
-    'ant-spin-blur',
-  );
+  // antd v6 removed the `ant-spin-blur` class. The body content is now dimmed
+  // via CSS applied to `.ant-spin-container` while its wrapping `.ant-spin`
+  // carries the `.ant-spin-spinning` class.
+  const container = screen.getByTestId('listview-table').parentNode;
+  expect(container).toHaveClass('ant-spin-container');
+  expect(container?.parentNode).toHaveClass('ant-spin-spinning');
 });
 
 test('Should the loading-indicator be visible during loading', () => {
@@ -214,6 +217,12 @@ test('Bulk selection should work with pagination', () => {
   // Check that selection checkboxes are rendered
   const checkboxes = screen.getAllByRole('checkbox');
   expect(checkboxes.length).toBeGreaterThan(0);
+
+  // Guard: the select-all column header carries `data-test="header-toggle-all"`,
+  // which the `header.cell` slot keys on antd's internal `ant-table-selection-column`
+  // class. If antd renames that class, this assertion fails fast at the unit level
+  // instead of leaking into Playwright as a flake.
+  expect(screen.getByTestId('header-toggle-all')).toBeInTheDocument();
 });
 
 test('should call setSortBy when clicking sortable column header', () => {
@@ -322,4 +331,30 @@ test('should not apply highlight when records have no id field and highlightRowI
   // Check that no rows have the highlight class (was the bug: all rows were highlighted)
   const highlightedRows = container.querySelectorAll('.table-row-highlighted');
   expect(highlightedRows).toHaveLength(0);
+});
+
+test('should highlight every row for which isRowHighlighted returns true', () => {
+  const dataWithIds = [
+    { col1: 'a', col2: 'a2', id: 1, parent: { child: 'n1' } },
+    { col1: 'b', col2: 'b2', id: 2, parent: { child: 'n2' } },
+    { col1: 'c', col2: 'c2', id: 3, parent: { child: 'n3' } },
+  ];
+  const { result } = renderHook(() =>
+    useTable({ columns: tableHook.columns, data: dataWithIds }),
+  );
+  const newTableHook = result.current;
+
+  const { container } = render(
+    <TableCollection
+      {...defaultProps}
+      rows={newTableHook.rows}
+      prepareRow={newTableHook.prepareRow}
+      // Predicate matches on an arbitrary field (here: id in a set), highlighting
+      // multiple rows — this is what the Task List uses to highlight dependencies.
+      isRowHighlighted={record => [1, 3].includes(record.id as number)}
+    />,
+  );
+
+  const highlightedRows = container.querySelectorAll('.table-row-highlighted');
+  expect(highlightedRows).toHaveLength(2);
 });

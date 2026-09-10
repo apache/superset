@@ -28,7 +28,7 @@ import {
 import { CustomFrame } from '../components';
 
 const TODAY = '2024-06-03';
-jest.useFakeTimers();
+jest.useFakeTimers({ advanceTimers: true });
 jest.setSystemTime(new Date(TODAY).getTime());
 
 const emptyValue = '';
@@ -61,7 +61,7 @@ test('renders with default props', async () => {
   expect(screen.getByRole('spinbutton')).toBeInTheDocument();
   expect(screen.getByText('Days Before')).toBeInTheDocument();
   expect(screen.getByText('Specific Date/Time')).toBeInTheDocument();
-  expect(screen.getByRole('img', { name: 'calendar' })).toBeInTheDocument();
+  expect(screen.getByLabelText('calendar')).toBeInTheDocument();
 });
 
 test('renders with empty store', () => {
@@ -73,7 +73,7 @@ test('renders with empty store', () => {
   expect(screen.getByRole('spinbutton')).toBeInTheDocument();
   expect(screen.getByText('Days Before')).toBeInTheDocument();
   expect(screen.getByText('Specific Date/Time')).toBeInTheDocument();
-  expect(screen.getByRole('img', { name: 'calendar' })).toBeInTheDocument();
+  expect(screen.getByLabelText('calendar')).toBeInTheDocument();
 });
 
 test('renders since and until with specific date/time with default locale', () => {
@@ -81,7 +81,7 @@ test('renders since and until with specific date/time with default locale', () =
     store: emptyStore,
   });
   expect(screen.getAllByText('Specific Date/Time').length).toBe(2);
-  expect(screen.getAllByRole('img', { name: 'calendar' }).length).toBe(2);
+  expect(screen.getAllByLabelText('calendar').length).toBe(2);
 });
 
 test('renders with invalid locale', () => {
@@ -93,7 +93,7 @@ test('renders with invalid locale', () => {
   expect(screen.getByRole('spinbutton')).toBeInTheDocument();
   expect(screen.getByText('Days Before')).toBeInTheDocument();
   expect(screen.getByText('Specific Date/Time')).toBeInTheDocument();
-  expect(screen.getByRole('img', { name: 'calendar' })).toBeInTheDocument();
+  expect(screen.getByLabelText('calendar')).toBeInTheDocument();
 });
 
 test('renders since and until with specific date/time with invalid locale', () => {
@@ -101,7 +101,7 @@ test('renders since and until with specific date/time with invalid locale', () =
     store: invalidStore,
   });
   expect(screen.getAllByText('Specific Date/Time').length).toBe(2);
-  expect(screen.getAllByRole('img', { name: 'calendar' }).length).toBe(2);
+  expect(screen.getAllByLabelText('calendar').length).toBe(2);
 });
 
 test('renders since and until with specific date/time', async () => {
@@ -110,7 +110,7 @@ test('renders since and until with specific date/time', async () => {
   });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   expect(screen.getAllByText('Specific Date/Time').length).toBe(2);
-  expect(screen.getAllByRole('img', { name: 'calendar' }).length).toBe(2);
+  expect(screen.getAllByLabelText('calendar').length).toBe(2);
 });
 
 test('renders since and until with relative date/time', async () => {
@@ -237,7 +237,7 @@ test('should translate Date Picker', async () => {
     store,
   });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
-  userEvent.click(screen.getAllByRole('img', { name: 'calendar' })[0]);
+  userEvent.click(screen.getAllByLabelText('calendar')[0]);
   expect(screen.getByText('2021')).toBeInTheDocument();
 
   expect(screen.getByText('lu')).toBeInTheDocument();
@@ -265,7 +265,7 @@ test('calls onChange when START Specific Date/Time is selected', async () => {
   const specificDateTimeOptions = screen.getAllByText('Specific Date/Time');
   expect(specificDateTimeOptions.length).toBe(2);
 
-  const calendarIcons = screen.getAllByRole('img', { name: 'calendar' });
+  const calendarIcons = screen.getAllByLabelText('calendar');
   userEvent.click(calendarIcons[0]);
 
   const randomDate = screen.getByTitle('2021-03-11');
@@ -293,7 +293,7 @@ test('calls onChange when END Specific Date/Time is selected', async () => {
   const specificDateTimeOptions = screen.getAllByText('Specific Date/Time');
   expect(specificDateTimeOptions.length).toBe(2);
 
-  const calendarIcons = screen.getAllByRole('img', { name: 'calendar' });
+  const calendarIcons = screen.getAllByLabelText('calendar');
   userEvent.click(calendarIcons[1]);
 
   const randomDate = screen.getByTitle('2021-03-28');
@@ -329,7 +329,7 @@ test('calls onChange when a date is picked from anchor mode date picker', async 
 
   expect(dateTimeRadio).toBeChecked();
 
-  const calendarIcon = screen.getByRole('img', { name: 'calendar' });
+  const calendarIcon = screen.getByLabelText('calendar');
   userEvent.click(calendarIcon);
 
   const randomDate = screen.getByTitle('2024-06-05');

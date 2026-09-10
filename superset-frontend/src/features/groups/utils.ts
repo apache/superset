@@ -19,6 +19,7 @@
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
+import { getUserDisplayLabel } from 'src/features/users/utils';
 import { FormValues } from './types';
 
 export const createGroup = async (values: FormValues) => {
@@ -64,7 +65,7 @@ export const fetchUserOptions = async (
     return {
       data: results.map((user: any) => ({
         value: user.id,
-        label: user.username,
+        label: getUserDisplayLabel(user),
       })),
       totalCount: response.json?.count ?? 0,
     };

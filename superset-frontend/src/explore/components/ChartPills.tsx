@@ -17,7 +17,7 @@
  * under the License.
  */
 import { forwardRef, RefObject } from 'react';
-import { QueryData } from '@superset-ui/core';
+import { QueryData, VizType } from '@superset-ui/core';
 import { css, SupersetTheme } from '@apache-superset/core/theme';
 import {
   CachedLabel,
@@ -68,7 +68,9 @@ export const ChartPills = forwardRef(
     const firstQueryResponse = queriesResponse?.[0];
 
     // For table charts with server pagination, check second query for total count
-    const isTableChart = formData?.viz_type === 'table';
+    const isTableChart =
+      formData?.viz_type === VizType.Table ||
+      formData?.viz_type === VizType.TableAgGrid;
     const hasCountQuery = queriesResponse && queriesResponse.length > 1;
     const countFromSecondQuery = hasCountQuery
       ? queriesResponse[1]?.data?.[0]?.rowcount

@@ -74,6 +74,7 @@ describe('Header', () => {
   function setup(overrideProps: Partial<HeaderTestProps> = {}) {
     return render(
       <Provider store={mockStoreWithTabs}>
+        {/* @ts-expect-error react-dnd types not updated for React 18 */}
         <DndProvider backend={HTML5Backend}>
           <Header {...(props as HeaderTestProps)} {...overrideProps} />
         </DndProvider>
@@ -144,7 +145,9 @@ describe('Header', () => {
     const deleteComponent = jest.fn();
     setup({ editMode: true, deleteComponent });
 
-    const trashButton = screen.getByRole('button', { name: 'delete' });
+    const trashButton = screen.getByRole('button', {
+      name: 'Delete component',
+    });
     fireEvent.click(trashButton);
 
     expect(deleteComponent).toHaveBeenCalledTimes(1);

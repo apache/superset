@@ -21,6 +21,7 @@ import { render, userEvent, waitFor } from 'spec/helpers/testing-library';
 import { initialState } from 'src/SqlLab/fixtures';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import { ViewLocations } from 'src/SqlLab/contributions';
+import * as sqlLabActions from 'src/SqlLab/actions/sqlLab';
 import {
   registerTestView,
   cleanupExtensions,
@@ -106,6 +107,46 @@ test('right sidebar is hidden when no extensions registered', () => {
   });
   // No right sidebar content — the third Splitter.Panel is conditionally omitted
   expect(queryByText('Right Sidebar Content')).not.toBeInTheDocument();
+});
+
+test('dispatches toggleLeftBar(true) when sidebar is resized to zero', async () => {
+  const toggleLeftBarSpy = jest
+    .spyOn(sqlLabActions, 'toggleLeftBar')
+    .mockReturnValue({
+      type: sqlLabActions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
+    } as any);
+  const { getByRole } = render(<AppLayout {...defaultProps} />, {
+    useRedux: true,
+    initialState,
+  });
+  await userEvent.click(getByRole('button', { name: 'Resize to zero' }));
+  await waitFor(() => expect(toggleLeftBarSpy).toHaveBeenCalledWith(true));
+  toggleLeftBarSpy.mockRestore();
+});
+
+test('dispatches toggleLeftBar(false) when sidebar is resized to non-zero', async () => {
+  const collapsedState = {
+    ...initialState,
+    sqlLab: {
+      ...initialState.sqlLab,
+      unsavedQueryEditor: {
+        id: initialState.sqlLab.tabHistory[0],
+        hideLeftBar: true,
+      },
+    },
+  };
+  const toggleLeftBarSpy = jest
+    .spyOn(sqlLabActions, 'toggleLeftBar')
+    .mockReturnValue({
+      type: sqlLabActions.QUERY_EDITOR_TOGGLE_LEFT_BAR,
+    } as any);
+  const { getByRole } = render(<AppLayout {...defaultProps} />, {
+    useRedux: true,
+    initialState: collapsedState,
+  });
+  await userEvent.click(getByRole('button', { name: 'Resize' }));
+  await waitFor(() => expect(toggleLeftBarSpy).toHaveBeenCalledWith(false));
+  toggleLeftBarSpy.mockRestore();
 });
 
 test('renders right sidebar when view is contributed at rightSidebar location', () => {

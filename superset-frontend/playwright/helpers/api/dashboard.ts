@@ -19,6 +19,19 @@
 
 import { Page, APIResponse } from '@playwright/test';
 import rison from 'rison';
+import getEmptyLayout from '../../../src/dashboard/util/getEmptyLayout';
+import {
+  BACKGROUND_TRANSPARENT,
+  DASHBOARD_GRID_ID,
+  DASHBOARD_ROOT_ID,
+  GRID_COLUMN_COUNT,
+  GRID_DEFAULT_CHART_WIDTH,
+} from '../../../src/dashboard/util/constants';
+import {
+  CHART_TYPE,
+  ROW_TYPE,
+} from '../../../src/dashboard/util/componentTypes';
+import type { LayoutItem } from '../../../src/dashboard/types';
 import {
   apiGet,
   apiPost,
@@ -45,6 +58,78 @@ export interface DashboardCreatePayload {
   json_metadata?: string;
   published?: boolean;
   theme_id?: number;
+}
+
+export interface DashboardLayoutChart {
+  id: number;
+  sliceName: string;
+  width?: number;
+  height?: number;
+}
+
+type DashboardPositionItem = Omit<LayoutItem, 'meta'> & {
+  meta?: LayoutItem['meta'];
+};
+
+export type DashboardPositionJson = Record<
+  string,
+  DashboardPositionItem | string
+>;
+
+const DASHBOARD_ROW_ID = 'ROW-1';
+const DEFAULT_CHART_HEIGHT = 50;
+
+/**
+ * Build a v2 dashboard layout with every chart in one row.
+ */
+export function buildSingleRowDashboardLayout(
+  charts: readonly DashboardLayoutChart[],
+): DashboardPositionJson {
+  const totalWidth = charts.reduce(
+    (sum, chart) => sum + (chart.width ?? GRID_DEFAULT_CHART_WIDTH),
+    0,
+  );
+  if (totalWidth > GRID_COLUMN_COUNT) {
+    throw new Error(
+      `Chart widths total ${totalWidth} columns, exceeding the ` +
+        `${GRID_COLUMN_COUNT}-column dashboard grid`,
+    );
+  }
+
+  const emptyLayout = getEmptyLayout();
+  const chartKeys = charts.map(chart => `CHART-${chart.id}`);
+  const positionJson: DashboardPositionJson = {
+    ...emptyLayout,
+    [DASHBOARD_GRID_ID]: {
+      ...emptyLayout[DASHBOARD_GRID_ID],
+      children: [DASHBOARD_ROW_ID],
+    },
+    [DASHBOARD_ROW_ID]: {
+      type: ROW_TYPE,
+      id: DASHBOARD_ROW_ID,
+      children: chartKeys,
+      parents: [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID],
+      meta: { background: BACKGROUND_TRANSPARENT },
+    },
+  };
+
+  charts.forEach(chart => {
+    const chartKey = `CHART-${chart.id}`;
+    positionJson[chartKey] = {
+      type: CHART_TYPE,
+      id: chartKey,
+      children: [],
+      parents: [DASHBOARD_ROOT_ID, DASHBOARD_GRID_ID, DASHBOARD_ROW_ID],
+      meta: {
+        chartId: chart.id,
+        width: chart.width ?? GRID_DEFAULT_CHART_WIDTH,
+        height: chart.height ?? DEFAULT_CHART_HEIGHT,
+        sliceName: chart.sliceName,
+      },
+    };
+  });
+
+  return positionJson;
 }
 
 /**
@@ -132,26 +217,14 @@ export interface DashboardResult {
   published?: boolean;
 }
 
-/**
- * Get a dashboard by its title
- * @param page - Playwright page instance (provides authentication context)
- * @param title - The dashboard_title to search for
- * @returns Dashboard object if found, null if not found
- */
-export async function getDashboardByName(
+async function getDashboardByFilter(
   page: Page,
-  title: string,
+  col: 'dashboard_title' | 'slug',
+  value: string,
 ): Promise<DashboardResult | null> {
-  const filter = {
-    filters: [
-      {
-        col: 'dashboard_title',
-        opr: 'eq',
-        value: title,
-      },
-    ],
-  };
-  const queryParam = rison.encode(filter);
+  const queryParam = rison.encode({
+    filters: [{ col, opr: 'eq', value }],
+  });
   const response = await apiGet(
     page,
     `${ENDPOINTS.DASHBOARD}?q=${queryParam}`,
@@ -168,4 +241,30 @@ export async function getDashboardByName(
   }
 
   return null;
+}
+
+/**
+ * Get a dashboard by its title
+ * @param page - Playwright page instance (provides authentication context)
+ * @param title - The dashboard_title to search for
+ * @returns Dashboard object if found, null if not found
+ */
+export async function getDashboardByName(
+  page: Page,
+  title: string,
+): Promise<DashboardResult | null> {
+  return getDashboardByFilter(page, 'dashboard_title', title);
+}
+
+/**
+ * Get a dashboard by its slug
+ * @param page - Playwright page instance (provides authentication context)
+ * @param slug - The slug to search for
+ * @returns Dashboard object if found, null if not found
+ */
+export async function getDashboardBySlug(
+  page: Page,
+  slug: string,
+): Promise<DashboardResult | null> {
+  return getDashboardByFilter(page, 'slug', slug);
 }

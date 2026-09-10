@@ -96,15 +96,16 @@ const config: ControlPanelConfig = {
               type: 'SelectControl',
               renderTrigger: true,
               affectsDataMask: true,
-              label: t('Match type'),
+              label: () => t('Match type'),
               default: operatorType,
               choices: getOperatorTypeChoices(true),
-              description: t(
-                'Determines how the filter matches values. ' +
-                  '"Exact match" uses the IN operator (default). ' +
-                  'ILIKE options enable partial text matching with a free-text input. ' +
-                  'Warning: ILIKE queries may be slow on large datasets as they cannot use indexes effectively.',
-              ),
+              description: () =>
+                t(
+                  'Determines how the filter matches values. ' +
+                    '"Exact match" uses the IN operator (default). ' +
+                    'ILIKE options enable partial text matching with a free-text input. ' +
+                    'Warning: ILIKE queries may be slow on large datasets as they cannot use indexes effectively.',
+                ),
               mapStateToProps: state => {
                 const isStringColumn = isStringOperatorColumn(
                   state.controls?.groupby?.value,
@@ -133,9 +134,9 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               renderTrigger: true,
-              label: t('Sort ascending'),
+              label: () => t('Sort ascending'),
               default: sortAscending,
-              description: t('Check for sorting ascending'),
+              description: () => t('Check for sorting ascending'),
             },
           },
         ],
@@ -144,7 +145,7 @@ const config: ControlPanelConfig = {
             name: 'creatable',
             config: {
               type: 'CheckboxControl',
-              label: t('Allow creation of new values'),
+              label: () => t('Allow creation of new values'),
               default: creatable,
               affectsDataMask: true,
               renderTrigger: true,
@@ -156,7 +157,7 @@ const config: ControlPanelConfig = {
             name: 'multiSelect',
             config: {
               type: 'CheckboxControl',
-              label: t('Can select multiple values'),
+              label: () => t('Can select multiple values'),
               default: multiSelect,
               resetConfig: true,
               affectsDataMask: true,
@@ -169,12 +170,11 @@ const config: ControlPanelConfig = {
             name: 'enableEmptyFilter',
             config: {
               type: 'CheckboxControl',
-              label: t('Filter value is required'),
+              label: () => t('Filter value is required'),
               default: enableEmptyFilter,
               renderTrigger: true,
-              description: t(
-                'User must select a value before applying the filter',
-              ),
+              description: () =>
+                t('User must select a value before applying the filter'),
             },
           },
         ],
@@ -183,15 +183,16 @@ const config: ControlPanelConfig = {
             name: 'defaultToFirstItem',
             config: {
               type: 'CheckboxControl',
-              label: t('Select first filter value by default'),
+              label: () => t('Select first filter value by default'),
               default: defaultToFirstItem,
               resetConfig: true,
               affectsDataMask: true,
               renderTrigger: true,
               requiredFirst: true,
-              description: t(
-                'When using this option, default value can’t be set. Using this option may impact the load times for your dashboard.',
-              ),
+              description: () =>
+                t(
+                  "When using this option, default value can't be set. Using this option may impact the load times for your dashboard.",
+                ),
             },
           },
         ],
@@ -202,9 +203,9 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               renderTrigger: true,
               affectsDataMask: true,
-              label: t('Inverse selection'),
+              label: () => t('Inverse selection'),
               default: inverseSelection,
-              description: t('Exclude selected values'),
+              description: () => t('Exclude selected values'),
             },
           },
         ],
@@ -215,13 +216,14 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               renderTrigger: true,
               affectsDataMask: true,
-              label: t('Dynamically search all filter values'),
+              label: () => t('Dynamically search all filter values'),
               default: searchAllOptions,
-              description: t(
-                'By default, each filter loads at most 1000 choices at the initial page load. ' +
-                  'Check this box if you have more than 1000 filter values and want to enable dynamically ' +
-                  'searching that loads filter values as users type (may add stress to your database).',
-              ),
+              description: () =>
+                t(
+                  'By default, each filter loads at most 1000 choices at the initial page load. ' +
+                    'Check this box if you have more than 1000 filter values and want to enable dynamically ' +
+                    'searching that loads filter values as users type (may add stress to your database).',
+                ),
             },
           },
         ],

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Component } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   Button,
   Col,
@@ -69,23 +69,6 @@ interface TimeSeriesColumnControlState {
   popoverVisible: boolean;
 }
 
-const defaultProps = {
-  label: t('Time series columns'),
-  tooltip: '',
-  colType: '',
-  width: '',
-  height: '',
-  timeLag: '',
-  timeRatio: '',
-  comparisonType: '',
-  showYAxis: false,
-  yAxisBounds: [null, null],
-  bounds: [null, null],
-  d3format: '',
-  dateFormat: '',
-  sparkType: 'line',
-};
-
 const comparisonTypeOptions = [
   { value: 'value', label: t('Actual value'), key: 'value' },
   { value: 'diff', label: t('Difference'), key: 'diff' },
@@ -128,97 +111,118 @@ const ButtonBar = styled.div`
   justify-content: center;
 `;
 
-export default class TimeSeriesColumnControl extends Component<
-  TimeSeriesColumnControlProps,
-  TimeSeriesColumnControlState
-> {
-  static defaultProps = defaultProps;
-
-  constructor(props: TimeSeriesColumnControlProps) {
-    super(props);
-
-    this.onSave = this.onSave.bind(this);
-    this.onClose = this.onClose.bind(this);
-    this.resetState = this.resetState.bind(this);
-    this.initialState = this.initialState.bind(this);
-    this.onPopoverVisibleChange = this.onPopoverVisibleChange.bind(this);
-
-    this.state = this.initialState();
-  }
-
-  initialState(): TimeSeriesColumnControlState {
-    return {
-      label: this.props.label ?? t('Time series columns'),
-      tooltip: this.props.tooltip ?? '',
-      colType: this.props.colType ?? '',
-      width: this.props.width ?? '',
-      height: this.props.height ?? '',
-      timeLag: this.props.timeLag ?? 0,
-      timeRatio: this.props.timeRatio ?? '',
-      comparisonType: this.props.comparisonType ?? '',
-      showYAxis: this.props.showYAxis ?? false,
-      yAxisBounds: this.props.yAxisBounds ?? [null, null],
-      bounds: this.props.bounds ?? [null, null],
-      d3format: this.props.d3format ?? '',
-      dateFormat: this.props.dateFormat ?? '',
-      sparkType: this.props.sparkType ?? 'line',
+function TimeSeriesColumnControl({
+  label: propLabel = t('Time series columns'),
+  tooltip: propTooltip = '',
+  colType: propColType = '',
+  width: propWidth = '',
+  height: propHeight = '',
+  timeLag: propTimeLag = '',
+  timeRatio: propTimeRatio = '',
+  comparisonType: propComparisonType = '',
+  showYAxis: propShowYAxis = false,
+  yAxisBounds: propYAxisBounds = [null, null],
+  bounds: propBounds = [null, null],
+  d3format: propD3format = '',
+  dateFormat: propDateFormat = '',
+  sparkType: propSparkType = 'line',
+  onChange,
+}: TimeSeriesColumnControlProps) {
+  const getInitialState = useCallback(
+    (): TimeSeriesColumnControlState => ({
+      label: propLabel ?? t('Time series columns'),
+      tooltip: propTooltip ?? '',
+      colType: propColType ?? '',
+      width: propWidth ?? '',
+      height: propHeight ?? '',
+      timeLag: propTimeLag ?? 0,
+      timeRatio: propTimeRatio ?? '',
+      comparisonType: propComparisonType ?? '',
+      showYAxis: propShowYAxis ?? false,
+      yAxisBounds: propYAxisBounds ?? [null, null],
+      bounds: propBounds ?? [null, null],
+      d3format: propD3format ?? '',
+      dateFormat: propDateFormat ?? '',
+      sparkType: propSparkType ?? 'line',
       popoverVisible: false,
-    };
-  }
+    }),
+    [
+      propLabel,
+      propTooltip,
+      propColType,
+      propWidth,
+      propHeight,
+      propTimeLag,
+      propTimeRatio,
+      propComparisonType,
+      propShowYAxis,
+      propYAxisBounds,
+      propBounds,
+      propD3format,
+      propDateFormat,
+      propSparkType,
+    ],
+  );
 
-  resetState() {
-    const initialState = this.initialState();
-    this.setState({ ...initialState });
-  }
+  const [state, setState] =
+    useState<TimeSeriesColumnControlState>(getInitialState());
 
-  onSave() {
-    this.props.onChange?.(this.state);
-    this.setState({ popoverVisible: false });
-  }
+  const resetState = useCallback(() => {
+    setState(getInitialState());
+  }, [getInitialState]);
 
-  onClose() {
-    this.resetState();
-  }
+  const onSave = useCallback(() => {
+    onChange?.(state);
+    setState(prev => ({ ...prev, popoverVisible: false }));
+  }, [onChange, state]);
 
-  onSelectChange(attr: string, opt: string) {
-    this.setState(prevState => ({ ...prevState, [attr]: opt }));
-  }
+  const onClose = useCallback(() => {
+    resetState();
+  }, [resetState]);
 
-  onTextInputChange(attr: string, event: React.ChangeEvent<HTMLInputElement>) {
-    this.setState(prevState => ({ ...prevState, [attr]: event.target.value }));
-  }
+  const onSelectChange = useCallback((attr: string, opt: string) => {
+    setState(prev => ({ ...prev, [attr]: opt }));
+  }, []);
 
-  onCheckboxChange(attr: string, value: boolean) {
-    this.setState(prevState => ({ ...prevState, [attr]: value }));
-  }
+  const onTextInputChange = useCallback(
+    (attr: string, event: React.ChangeEvent<HTMLInputElement>) => {
+      setState(prev => ({ ...prev, [attr]: event.target.value }));
+    },
+    [],
+  );
 
-  onBoundsChange(bounds: (number | null)[]) {
-    this.setState({ bounds });
-  }
+  const onCheckboxChange = useCallback((attr: string, value: boolean) => {
+    setState(prev => ({ ...prev, [attr]: value }));
+  }, []);
 
-  onPopoverVisibleChange(popoverVisible: boolean) {
-    if (popoverVisible) {
-      this.setState({ popoverVisible });
-    } else {
-      this.resetState();
-    }
-  }
+  const onBoundsChange = useCallback((bounds: (number | null)[]) => {
+    setState(prev => ({ ...prev, bounds }));
+  }, []);
 
-  onYAxisBoundsChange(yAxisBounds: (number | null)[]) {
-    this.setState({ yAxisBounds });
-  }
+  const onPopoverVisibleChange = useCallback(
+    (popoverVisible: boolean) => {
+      if (popoverVisible) {
+        setState(prev => ({ ...prev, popoverVisible }));
+      } else {
+        resetState();
+      }
+    },
+    [resetState],
+  );
 
-  textSummary() {
-    return `${this.props.label ?? ''}`;
-  }
+  const onYAxisBoundsChange = useCallback((yAxisBounds: (number | null)[]) => {
+    setState(prev => ({ ...prev, yAxisBounds }));
+  }, []);
 
-  formRow(
-    label: string,
-    tooltip: string,
-    ttLabel: string,
-    control: React.ReactNode,
-  ) {
-    return (
+  const textSummary = useCallback(() => `${propLabel ?? ''}`, [propLabel]);
+
+  const formRow = useCallback(
+    (
+      label: string,
+      tooltip: string,
+      ttLabel: string,
+      control: React.ReactNode,
+    ) => (
       <StyledRow>
         <StyledCol xs={24} md={11}>
           {label}
@@ -228,214 +232,241 @@ export default class TimeSeriesColumnControl extends Component<
           {control}
         </Col>
       </StyledRow>
-    );
-  }
+    ),
+    [],
+  );
 
-  renderPopover() {
+  const renderPopover = useCallback(() => {
+    const handleLabelChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+      onTextInputChange('label', e);
+    const handleTooltipChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+      onTextInputChange('tooltip', e);
+    const handleColTypeChange = (opt: string) => onSelectChange('colType', opt);
+    const handleSparkTypeChange = (opt: string) =>
+      onSelectChange('sparkType', opt);
+    const handleWidthChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+      onTextInputChange('width', e);
+    const handleHeightChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+      onTextInputChange('height', e);
+    const handleTimeLagChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+      onTextInputChange('timeLag', e);
+    const handleTimeRatioChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+      onTextInputChange('timeRatio', e);
+    const handleComparisonTypeChange = (opt: string) =>
+      onSelectChange('comparisonType', opt);
+    const handleShowYAxisChange = (value: boolean) =>
+      onCheckboxChange('showYAxis', value);
+    const handleD3formatChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+      onTextInputChange('d3format', e);
+    const handleDateFormatChange = (e: React.ChangeEvent<HTMLInputElement>) =>
+      onTextInputChange('dateFormat', e);
+
     return (
       <div id="ts-col-popo" style={{ width: 320 }}>
-        {this.formRow(
+        {formRow(
           t('Label'),
           t('The column header label'),
           'time-lag',
           <Input
-            value={this.state.label}
-            onChange={this.onTextInputChange.bind(this, 'label')}
+            value={state.label}
+            onChange={handleLabelChange}
             placeholder={t('Label')}
           />,
         )}
-        {this.formRow(
+        {formRow(
           t('Tooltip'),
           t('Column header tooltip'),
           'col-tooltip',
           <Input
-            value={this.state.tooltip}
-            onChange={this.onTextInputChange.bind(this, 'tooltip')}
+            value={state.tooltip}
+            onChange={handleTooltipChange}
             placeholder={t('Tooltip')}
           />,
         )}
-        {this.formRow(
+        {formRow(
           t('Type'),
           t('Type of comparison, value difference or percentage'),
           'col-type',
           <Select
             ariaLabel={t('Type')}
-            value={this.state.colType || undefined}
-            onChange={this.onSelectChange.bind(this, 'colType')}
+            value={state.colType || undefined}
+            onChange={handleColTypeChange}
             options={colTypeOptions}
           />,
         )}
         <Divider />
-        {this.state.colType === 'spark' &&
-          this.formRow(
+        {state.colType === 'spark' &&
+          formRow(
             t('Chart type'),
             t('Type of chart to display in sparkline'),
             'spark-type',
             <Select
               ariaLabel={t('Chart Type')}
-              value={this.state.sparkType || undefined}
-              onChange={this.onSelectChange.bind(this, 'sparkType')}
+              value={state.sparkType || undefined}
+              onChange={handleSparkTypeChange}
               options={sparkTypeOptions}
             />,
           )}
-        {this.state.colType === 'spark' &&
-          this.formRow(
+        {state.colType === 'spark' &&
+          formRow(
             t('Width'),
             t('Width of the sparkline'),
             'spark-width',
             <Input
-              value={this.state.width}
-              onChange={this.onTextInputChange.bind(this, 'width')}
+              value={state.width}
+              onChange={handleWidthChange}
               placeholder={t('Width')}
             />,
           )}
-        {this.state.colType === 'spark' &&
-          this.formRow(
+        {state.colType === 'spark' &&
+          formRow(
             t('Height'),
             t('Height of the sparkline'),
             'spark-width',
             <Input
-              value={this.state.height}
-              onChange={this.onTextInputChange.bind(this, 'height')}
+              value={state.height}
+              onChange={handleHeightChange}
               placeholder={t('Height')}
             />,
           )}
-        {['time', 'avg'].indexOf(this.state.colType) >= 0 &&
-          this.formRow(
+        {['time', 'avg'].indexOf(state.colType) >= 0 &&
+          formRow(
             t('Time lag'),
             t(
               'Number of periods to compare against. You can use negative numbers to compare from the beginning of the time range.',
             ),
             'time-lag',
             <Input
-              value={this.state.timeLag}
-              onChange={this.onTextInputChange.bind(this, 'timeLag')}
+              value={state.timeLag}
+              onChange={handleTimeLagChange}
               placeholder={t('Time Lag')}
             />,
           )}
-        {['spark'].indexOf(this.state.colType) >= 0 &&
-          this.formRow(
+        {['spark'].indexOf(state.colType) >= 0 &&
+          formRow(
             t('Time ratio'),
             t('Number of periods to ratio against'),
             'time-ratio',
             <Input
-              value={this.state.timeRatio}
-              onChange={this.onTextInputChange.bind(this, 'timeRatio')}
+              value={state.timeRatio}
+              onChange={handleTimeRatioChange}
               placeholder={t('Time Ratio')}
             />,
           )}
-        {this.state.colType === 'time' &&
-          this.formRow(
+        {state.colType === 'time' &&
+          formRow(
             t('Type'),
             t('Type of comparison, value difference or percentage'),
             'comp-type',
             <Select
               ariaLabel={t('Type')}
-              value={this.state.comparisonType || undefined}
-              onChange={this.onSelectChange.bind(this, 'comparisonType')}
+              value={state.comparisonType || undefined}
+              onChange={handleComparisonTypeChange}
               options={comparisonTypeOptions}
             />,
           )}
-        {this.state.colType === 'spark' &&
-          this.formRow(
+        {state.colType === 'spark' &&
+          formRow(
             t('Show Y-axis'),
             t(
               'Show Y-axis on the sparkline. Will display the manually set min/max if set or min/max values in the data otherwise.',
             ),
             'show-y-axis-bounds',
             <CheckboxControl
-              value={this.state.showYAxis}
-              onChange={this.onCheckboxChange.bind(this, 'showYAxis')}
+              value={state.showYAxis}
+              onChange={handleShowYAxisChange}
             />,
           )}
-        {this.state.colType === 'spark' &&
-          this.formRow(
+        {state.colType === 'spark' &&
+          formRow(
             t('Y-axis bounds'),
             t('Manually set min/max values for the y-axis.'),
             'y-axis-bounds',
             <BoundsControl
-              value={this.state.yAxisBounds}
-              onChange={this.onYAxisBoundsChange.bind(this)}
+              value={state.yAxisBounds}
+              onChange={onYAxisBoundsChange}
             />,
           )}
-        {this.state.colType !== 'spark' &&
-          this.formRow(
+        {state.colType !== 'spark' &&
+          formRow(
             t('Color bounds'),
             t(`Number bounds used for color encoding from red to blue.
                Reverse the numbers for blue to red. To get pure red or blue,
                you can enter either only min or max.`),
             'bounds',
-            <BoundsControl
-              value={this.state.bounds}
-              onChange={this.onBoundsChange.bind(this)}
-            />,
+            <BoundsControl value={state.bounds} onChange={onBoundsChange} />,
           )}
-        {this.formRow(
+        {formRow(
           t('Number format'),
           t('Optional d3 number format string'),
           'd3-format',
           <Input
-            value={this.state.d3format}
-            onChange={this.onTextInputChange.bind(this, 'd3format')}
+            value={state.d3format}
+            onChange={handleD3formatChange}
             placeholder={t('Number format string')}
           />,
         )}
-        {this.state.colType === 'spark' &&
-          this.formRow(
+        {state.colType === 'spark' &&
+          formRow(
             t('Date format'),
             t('Optional d3 date format string'),
             'date-format',
             <Input
-              value={this.state.dateFormat}
-              onChange={this.onTextInputChange.bind(this, 'dateFormat')}
+              value={state.dateFormat}
+              onChange={handleDateFormatChange}
               placeholder={t('Date format string')}
             />,
           )}
         <ButtonBar>
-          <Button buttonSize="small" onClick={this.onClose} cta>
+          <Button buttonSize="small" onClick={onClose} cta>
             {t('Close')}
           </Button>
-          <Button
-            buttonStyle="primary"
-            buttonSize="small"
-            onClick={this.onSave}
-            cta
-          >
+          <Button buttonStyle="primary" buttonSize="small" onClick={onSave} cta>
             {t('Save')}
           </Button>
         </ButtonBar>
       </div>
     );
-  }
+  }, [
+    state,
+    formRow,
+    onTextInputChange,
+    onSelectChange,
+    onCheckboxChange,
+    onBoundsChange,
+    onYAxisBoundsChange,
+    onClose,
+    onSave,
+  ]);
 
-  render() {
-    return (
-      <span>
-        {this.textSummary()}{' '}
-        <ControlPopover
-          trigger="click"
-          content={this.renderPopover()}
-          title={t('Column Configuration')}
-          open={this.state.popoverVisible}
-          onOpenChange={this.onPopoverVisibleChange}
+  return (
+    <span>
+      {textSummary()}{' '}
+      <ControlPopover
+        trigger="click"
+        content={renderPopover()}
+        title={t('Column Configuration')}
+        open={state.popoverVisible}
+        onOpenChange={onPopoverVisibleChange}
+      >
+        <span
+          css={theme => ({
+            display: 'inline-block',
+            cursor: 'pointer',
+            '& svg path': {
+              fill: theme.colorIcon,
+              transition: `fill ${theme.motionDurationMid} ease-out`,
+            },
+            '&:hover svg path': {
+              fill: theme.colorPrimary,
+            },
+          })}
         >
-          <span
-            css={theme => ({
-              display: 'inline-block',
-              cursor: 'pointer',
-              '& svg path': {
-                fill: theme.colorIcon,
-                transition: `fill ${theme.motionDurationMid} ease-out`,
-              },
-              '&:hover svg path': {
-                fill: theme.colorPrimary,
-              },
-            })}
-          >
-            <Icons.EditOutlined iconSize="s" />
-          </span>
-        </ControlPopover>
-      </span>
-    );
-  }
+          <Icons.EditOutlined iconSize="s" />
+        </span>
+      </ControlPopover>
+    </span>
+  );
 }
+
+export default TimeSeriesColumnControl;

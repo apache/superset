@@ -85,7 +85,7 @@ const BulkTagModal: FC<BulkTagModalProps> = ({
         }
         addSuccessToast(t('Tagged %s %ss', tagged.length, resourceName));
       })
-      .catch(err => {
+      .catch(() => {
         addDangerToast(t('Failed to tag items'));
       });
 
@@ -125,7 +125,7 @@ const BulkTagModal: FC<BulkTagModalProps> = ({
         <div className="bulk-tag-text">
           {t('You are adding tags to %s %ss', selected.length, resourceName)}
         </div>
-        <FormLabel>{t('tags')}</FormLabel>
+        <FormLabel>{t('Tags')}</FormLabel>
         <AsyncSelect
           ariaLabel="tags"
           // @ts-expect-error
@@ -134,6 +134,7 @@ const BulkTagModal: FC<BulkTagModalProps> = ({
           onHide={onHide}
           // @ts-expect-error
           onChange={tags => setTags(tags)}
+          getPopupContainer={() => document.body}
           placeholder={t('Select Tags')}
           mode="multiple"
         />

@@ -44,25 +44,18 @@ test.beforeEach(async ({ page }) => {
 test('should redirect to login with incorrect username and password', async ({
   page,
 }) => {
-  // Setup request interception before login attempt
-  const loginRequestPromise = authPage.waitForLoginRequest();
+  // The form submission is async (SupersetClient.postForm uses ensureAuth)
+  // so listen for the page reload before triggering the login
+  await Promise.all([
+    page.waitForEvent('load', { timeout: TIMEOUT.PAGE_LOAD }),
+    authPage.loginWithCredentials('wronguser', 'wrongpassword'),
+  ]);
 
-  // Attempt login with incorrect credentials (both username and password invalid)
-  await authPage.loginWithCredentials('wronguser', 'wrongpassword');
-
-  // Wait for login request and verify response
-  const loginResponse = await loginRequestPromise;
-  // Failed login returns 401 Unauthorized or 302 redirect to login
-  expect([401, 302]).toContain(loginResponse.status());
-
-  // Wait for redirect to complete before checking URL
-  await page.waitForURL(url => url.pathname.endsWith(URL.LOGIN), {
-    timeout: TIMEOUT.PAGE_LOAD,
-  });
+  // After the reload, wait for the React login form to render
+  await authPage.waitForLoginForm();
 
   // Verify we stay on login page
-  const currentUrl = await authPage.getCurrentUrl();
-  expect(currentUrl).toContain(URL.LOGIN);
+  expect(page.url()).toContain(URL.LOGIN);
 
   // Verify error message is shown
   const hasError = await authPage.hasLoginError();
@@ -70,16 +63,12 @@ test('should redirect to login with incorrect username and password', async ({
 });
 
 test('should login with correct username and password', async ({ page }) => {
-  // Setup request interception before login attempt
-  const loginRequestPromise = authPage.waitForLoginRequest();
-
   // Login with correct credentials
   await authPage.loginWithCredentials(adminUsername, adminPassword);
 
-  // Wait for login request and verify response
-  const loginResponse = await loginRequestPromise;
-  // Successful login returns 302 redirect
-  expect(loginResponse.status()).toBe(302);
+  // Use waitForLoginSuccess (proven in global-setup) — guards against race
+  // conditions with cookie check before falling back to response interception
+  await authPage.waitForLoginSuccess({ timeout: TIMEOUT.PAGE_LOAD });
 
   // Wait for successful redirect to welcome page
   await page.waitForURL(url => url.pathname.endsWith(URL.WELCOME), {

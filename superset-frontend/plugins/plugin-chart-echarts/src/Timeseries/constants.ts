@@ -23,6 +23,7 @@ import {
 import { t } from '@apache-superset/core/translation';
 import { LegendOrientation, LegendType } from '../types';
 import {
+  BarValueLabelPosition,
   OrientationType,
   EchartsTimeseriesSeriesType,
   EchartsTimeseriesFormData,
@@ -44,9 +45,9 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   // ...DEFAULT_TITLE_FORM_DATA, // TODO: figure out why these break things for stories (e.g. Bubble Chart)
   // here are the contents of DEFAULT_TITLE_FORM_DATA:
   xAxisTitle: '',
-  xAxisTitleMargin: 0,
+  xAxisTitleMargin: 40,
   yAxisTitle: '',
-  yAxisTitleMargin: 15,
+  yAxisTitleMargin: 50,
   yAxisTitlePosition: 'Top',
   // Now that the weird bug workaround is over, here's the rest...
   ...DEFAULT_SORT_SERIES_DATA,
@@ -64,13 +65,18 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   logAxis: false,
   markerEnabled: false,
   markerSize: 6,
+  maxMarkerSize: 30,
+  minMarkerSize: 5,
   minorSplitLine: false,
+  gridlines: true,
+  axisTicks: true,
   opacity: 0.2,
   orderDesc: true,
   rowLimit: 10000,
   seriesType: EchartsTimeseriesSeriesType.Line,
   stack: false,
   tooltipTimeFormat: 'smart_date',
+  tooltipTruncation: 'end',
   xAxisTimeFormat: 'smart_date',
   xAxisNumberFormat: 'SMART_NUMBER',
   truncateXAxis: true,
@@ -83,6 +89,11 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   xAxisLabelInterval: defaultXAxis.xAxisLabelInterval,
   groupby: [],
   showValue: false,
+  // Legacy charts saved before this field existed have no valueLabelPosition
+  // in form_data and must keep their pre-existing Outside End placement;
+  // Auto is opt-in via the Value label position control, not the default.
+  valueLabelPosition: BarValueLabelPosition.OutsideEnd,
+  labelPosition: 'auto',
   onlyTotal: false,
   percentageThreshold: 0,
   orientation: OrientationType.Vertical,

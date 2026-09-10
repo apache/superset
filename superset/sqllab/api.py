@@ -21,8 +21,9 @@ from urllib import parse
 
 from flask import current_app as app, request, Response
 from flask_appbuilder import permission_name
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
+from jinja2.exceptions import TemplateError
 from marshmallow import ValidationError
 from werkzeug.utils import secure_filename
 
@@ -37,7 +38,9 @@ from superset.commands.sql_lab.streaming_export_command import (
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.database import DatabaseDAO
 from superset.daos.query import QueryDAO
-from superset.extensions import event_logger
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetErrorException
+from superset.extensions import event_logger, security_manager
 from superset.jinja_context import get_template_processor
 from superset.models.sql_lab import Query
 from superset.sql.parse import SQLScript
@@ -149,8 +152,9 @@ class SqlLabRestApi(BaseSupersetApi):
     @statsd_metrics
     @requires_json
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".estimate_query_cost",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.estimate_query_cost"
+        ),
         log_to_statsd=False,
     )
     def estimate_query_cost(self) -> Response:
@@ -237,31 +241,53 @@ class SqlLabRestApi(BaseSupersetApi):
             sql = model["sql"]
             template_params = model.get("template_params")
             database_id = model.get("database_id")
+            database_engine = None
 
-            # Process Jinja templates if template_params and database_id are provided
-            if template_params and database_id is not None:
+            # Process Jinja templates if template_params are provided
+            if database_id is not None:
                 database = DatabaseDAO.find_by_id(database_id)
-                if database:
-                    try:
-                        template_params = (
-                            json.loads(template_params)
-                            if isinstance(template_params, str)
-                            else template_params
-                        )
-                        if template_params:
-                            template_processor = get_template_processor(
-                                database=database
-                            )
-                            sql = template_processor.process_template(
-                                sql, **template_params
-                            )
-                    except json.JSONDecodeError:
-                        logger.warning(
-                            "Invalid template parameter %s. Skipping processing",
-                            str(template_params),
-                        )
 
-            result = SQLScript(sql, model.get("engine")).format()
+                if database:
+                    database_engine = database.db_engine_spec.engine
+
+                    if template_params:
+                        try:
+                            template_params = (
+                                json.loads(template_params)
+                                if isinstance(template_params, str)
+                                else template_params
+                            )
+                            if template_params:
+                                # Check access before rendering the Jinja
+                                # template (mirrors the SQL Lab execute path).
+                                security_manager.raise_for_access(
+                                    database=database,
+                                    sql=sql,
+                                    template_params=template_params,
+                                    force_dataset_match=True,
+                                )
+                                template_processor = get_template_processor(
+                                    database=database
+                                )
+                                sql = template_processor.process_template(
+                                    sql, **template_params
+                                )
+                        except json.JSONDecodeError:
+                            logger.warning(
+                                "Invalid template parameter %s. Skipping processing",
+                                str(template_params),
+                            )
+                        except TemplateError as ex:
+                            raise SupersetErrorException(
+                                SupersetError(
+                                    message=str(ex),
+                                    error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                                    level=ErrorLevel.ERROR,
+                                ),
+                                status=400,
+                            ) from ex
+
+            result = SQLScript(sql, model.get("engine", database_engine)).format()
             return self.response(200, result=result)
         except ValidationError as error:
             return self.response_400(message=error.messages)
@@ -302,6 +328,10 @@ class SqlLabRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_data", "Superset"):
+            return self.response_403()
         result = SqlResultExportCommand(client_id=client_id).run()
 
         query, data, row_count = result["query"], result["data"], result["count"]
@@ -331,9 +361,9 @@ class SqlLabRestApi(BaseSupersetApi):
     @permission_name("read")
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self,
-        *args,
-        **kwargs: f"{self.__class__.__name__}.export_streaming_csv",
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.export_streaming_csv"
+        ),
         log_to_statsd=False,
     )
     def export_streaming_csv(self) -> Response:
@@ -376,6 +406,10 @@ class SqlLabRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_data", "Superset"):
+            return self.response_403()
         # Extract parameters from form data
         client_id = request.form.get("client_id")
         filename = request.form.get("filename")
@@ -404,6 +438,14 @@ class SqlLabRestApi(BaseSupersetApi):
         chunk_size = 1024
         command = StreamingSqlResultExportCommand(client_id, chunk_size)
         command.validate()
+
+        if filename:
+            # Sanitize the user-supplied filename before it is used in the
+            # Content-Disposition header (consistent with the generated-name
+            # path below). secure_filename may reduce a name consisting entirely
+            # of unsafe characters to an empty string, in which case we fall
+            # back to the generated default.
+            filename = secure_filename(filename) or None
 
         if not filename:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -441,7 +483,7 @@ class SqlLabRestApi(BaseSupersetApi):
     @expose("/results/")
     @protect()
     @statsd_metrics
-    @rison(sql_lab_get_results_schema)
+    @parse_rison(sql_lab_get_results_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_results",
         log_to_statsd=False,

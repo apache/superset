@@ -17,12 +17,15 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
+import { ErrorTypeEnum } from '@superset-ui/core';
 import DatasetPanel, {
   REFRESHING,
   tableColumnDefinition,
   COLUMN_TITLE,
+  ERROR_TITLE,
 } from 'src/features/datasets/AddDataset/DatasetPanel/DatasetPanel';
 import { exampleColumns, exampleDataset } from './fixtures';
+import { ITableColumn } from './types';
 import {
   SELECT_MESSAGE,
   CREATE_MESSAGE,
@@ -30,22 +33,22 @@ import {
   SELECT_TABLE_TITLE,
   NO_COLUMNS_TITLE,
   NO_COLUMNS_DESCRIPTION,
-  ERROR_TITLE,
-  ERROR_DESCRIPTION,
 } from './MessageContent';
 
 jest.mock(
   '@superset-ui/core/components/Icons/AsyncIcon',
   () =>
-    ({ fileName }: { fileName: string }) => (
-      <span role="img" aria-label={fileName.replace('_', '-')} />
-    ),
+    ({ fileName }: { fileName: string }) =>
+      (
+        // eslint-disable-next-line jsx-a11y/prefer-tag-over-role -- mirrors AsyncIcon's real span+role="img" shape
+        <span role="img" aria-label={fileName.replace('_', '-')} />
+      ),
 );
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatasetPanel', () => {
   test('renders a blank state DatasetPanel', () => {
-    render(<DatasetPanel hasError={false} columnList={[]} loading={false} />, {
+    render(<DatasetPanel columnList={[]} loading={false} />, {
       useRouter: true,
     });
 
@@ -61,24 +64,16 @@ describe('DatasetPanel', () => {
       exact: false,
     });
     expect(blankDatasetDescription2).toBeVisible();
-    const sqlLabLink = screen.getByRole('button', {
+    const sqlLabLink = screen.getByRole('link', {
       name: CREATE_MESSAGE,
     });
     expect(sqlLabLink).toBeVisible();
   });
 
   test('renders a no columns screen', () => {
-    render(
-      <DatasetPanel
-        tableName="Name"
-        hasError={false}
-        columnList={[]}
-        loading={false}
-      />,
-      {
-        useRouter: true,
-      },
-    );
+    render(<DatasetPanel tableName="Name" columnList={[]} loading={false} />, {
+      useRouter: true,
+    });
 
     const blankDatasetImg = screen.getByRole('img', { name: /empty/i });
     expect(blankDatasetImg).toBeVisible();
@@ -89,17 +84,9 @@ describe('DatasetPanel', () => {
   });
 
   test('renders a loading screen', () => {
-    render(
-      <DatasetPanel
-        tableName="Name"
-        hasError={false}
-        columnList={[]}
-        loading
-      />,
-      {
-        useRouter: true,
-      },
-    );
+    render(<DatasetPanel tableName="Name" columnList={[]} loading />, {
+      useRouter: true,
+    });
 
     const loadingIndicator = screen.getByTestId('loading-indicator');
     expect(loadingIndicator).toBeVisible();
@@ -111,7 +98,12 @@ describe('DatasetPanel', () => {
     render(
       <DatasetPanel
         tableName="Name"
-        hasError
+        error={{
+          error_type: ErrorTypeEnum.GENERIC_BACKEND_ERROR,
+          extra: null,
+          level: 'error',
+          message: 'Structured backend failure',
+        }}
         columnList={[]}
         loading={false}
       />,
@@ -122,8 +114,9 @@ describe('DatasetPanel', () => {
 
     const errorTitle = screen.getByText(ERROR_TITLE);
     expect(errorTitle).toBeVisible();
-    const errorDescription = screen.getByText(ERROR_DESCRIPTION);
+    const errorDescription = screen.getByText('Structured backend failure');
     expect(errorDescription).toBeVisible();
+    expect(screen.getByTitle('Name')).toHaveStyle({ position: 'relative' });
   });
 
   test('renders a table with columns displayed', async () => {
@@ -131,7 +124,6 @@ describe('DatasetPanel', () => {
     render(
       <DatasetPanel
         tableName={tableName}
-        hasError={false}
         columnList={exampleColumns}
         loading={false}
       />,
@@ -157,7 +149,6 @@ describe('DatasetPanel', () => {
     render(
       <DatasetPanel
         tableName="example_table"
-        hasError={false}
         columnList={exampleColumns}
         loading={false}
         datasets={exampleDataset}
@@ -173,5 +164,27 @@ describe('DatasetPanel', () => {
         /this table already has a dataset associated with it. you can only associate one dataset with a table./i,
       ),
     ).toBeVisible();
+  });
+
+  test('sorts the column list by name when sorting by Column Name', () => {
+    const sorter = tableColumnDefinition[0].sorter as (
+      a: ITableColumn,
+      b: ITableColumn,
+    ) => number;
+    const sorted = [...exampleColumns].sort(sorter);
+    expect(sorted.map(c => c.name)).toEqual([
+      'birth_date',
+      'height_in_inches',
+      'name',
+    ]);
+  });
+
+  test('sorts the column list by type when sorting by Datatype', () => {
+    const sorter = tableColumnDefinition[1].sorter as (
+      a: ITableColumn,
+      b: ITableColumn,
+    ) => number;
+    const sorted = [...exampleColumns].sort(sorter);
+    expect(sorted.map(c => c.type)).toEqual(['DATE', 'NUMBER', 'STRING']);
   });
 });

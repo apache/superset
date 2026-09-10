@@ -21,8 +21,9 @@ from __future__ import annotations
 
 import json  # noqa: TID251
 import re
+from datetime import timedelta
 from textwrap import dedent
-from typing import Any
+from typing import Any, cast
 from urllib.parse import parse_qs, urlparse
 
 import pytest
@@ -32,7 +33,11 @@ from sqlalchemy.dialects import sqlite
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.sql import sqltypes
 
-from superset.db_engine_specs.base import BaseEngineSpec, convert_inspector_columns
+from superset.db_engine_specs.base import (
+    BaseEngineSpec,
+    BasicParametersType,
+    convert_inspector_columns,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2RedirectError
 from superset.sql.parse import Table
@@ -44,6 +49,7 @@ from superset.superset_typing import (
 )
 from superset.utils.core import FilterOperator, GenericDataType
 from superset.utils.oauth2 import decode_oauth2_state
+from tests.conftest import with_config
 from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 
 
@@ -81,6 +87,13 @@ def test_get_text_clause_with_colon() -> None:
         "SELECT foo FROM tbl WHERE foo = '123:456')"
     )
     assert text_clause.text == "SELECT foo FROM tbl WHERE foo = '123\\:456')"
+
+
+def test_normalize_custom_sql_metric_is_identity_by_default() -> None:
+    """Unconfigured engines preserve custom metric SQL exactly."""
+    expression: str = "DATE_TRUNC('QUARTER', created_at) /* keep */"
+
+    assert BaseEngineSpec.normalize_custom_sql_metric(expression) == expression
 
 
 def test_validate_db_uri(mocker: MockerFixture) -> None:
@@ -285,6 +298,13 @@ def test_get_default_catalog(mocker: MockerFixture) -> None:
     assert BaseEngineSpec.get_default_catalog(database) is None
 
 
+def test_prepare_identifier_returns_name_unchanged() -> None:
+    name = "physical_column"
+
+    assert BaseEngineSpec.prepare_identifier(name, normalize_columns=False) is name
+    assert BaseEngineSpec.prepare_identifier(name, normalize_columns=True) is name
+
+
 def test_quote_table() -> None:
     """
     Test the `quote_table` function.
@@ -360,6 +380,66 @@ def test_unmask_encrypted_extra() -> None:
     )
 
 
+def test_mask_encrypted_extra_oauth2_client_info_with_narrow_override() -> None:
+    """
+    Test that the OAuth2 client secret is masked even when an engine spec
+    overrides `encrypted_extra_sensitive_fields` without including it.
+    """
+
+    class NarrowFieldsSpec(BaseEngineSpec):
+        encrypted_extra_sensitive_fields = {"$.auth_params.password"}
+
+    config = json.dumps(
+        {
+            "auth_params": {"password": "my_password"},
+            "oauth2_client_info": {
+                "id": "my_client_id",
+                "secret": "my_client_secret",
+            },
+        }
+    )
+
+    assert NarrowFieldsSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "auth_params": {"password": "XXXXXXXXXX"},
+            "oauth2_client_info": {
+                "id": "my_client_id",
+                "secret": "XXXXXXXXXX",
+            },
+        }
+    )
+
+
+def test_mask_encrypted_extra_oauth2_client_info_without_sensitive_fields() -> None:
+    """
+    Test that the OAuth2 client secret is masked even when an engine spec
+    declares no sensitive fields at all.
+    """
+
+    class NoFieldsSpec(BaseEngineSpec):
+        encrypted_extra_sensitive_fields: set[str] = set()
+
+    config = json.dumps(
+        {
+            "auth_params": {"password": "my_password"},
+            "oauth2_client_info": {
+                "id": "my_client_id",
+                "secret": "my_client_secret",
+            },
+        }
+    )
+
+    assert NoFieldsSpec.mask_encrypted_extra(config) == json.dumps(
+        {
+            "auth_params": {"password": "my_password"},
+            "oauth2_client_info": {
+                "id": "my_client_id",
+                "secret": "XXXXXXXXXX",
+            },
+        }
+    )
+
+
 @pytest.mark.parametrize(
     "masked_encrypted_extra,expected_result",
     [
@@ -371,6 +451,7 @@ def test_unmask_encrypted_extra() -> None:
             {
                 "$.credentials_info.private_key",
                 "$.access_token",
+                "$.oauth2_client_info.secret",
             },
         ),
         (
@@ -381,11 +462,12 @@ def test_unmask_encrypted_extra() -> None:
             {
                 "$.credentials_info.private_key",
                 "$.access_token",
+                "$.oauth2_client_info.secret",
             },
         ),
         (
             None,
-            {"$.*"},
+            {"$.*", "$.oauth2_client_info.secret"},
         ),
     ],
 )
@@ -597,6 +679,19 @@ def test_extract_errors(mocker: MockerFixture) -> None:
     assert result == [expected]
 
 
+@with_config(
+    {
+        "CUSTOM_DATABASE_ERRORS": {
+            "examples": {
+                re.compile("This connector does not support roles"): (
+                    "Custom error message",
+                    SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    {},
+                )
+            }
+        }
+    },
+)
 def test_extract_errors_from_config(mocker: MockerFixture) -> None:
     """
     Test that custom error messages are extracted correctly from app config
@@ -605,21 +700,6 @@ def test_extract_errors_from_config(mocker: MockerFixture) -> None:
 
     class TestEngineSpec(BaseEngineSpec):
         engine_name = "ExampleEngine"
-
-    mocker.patch(
-        "flask.current_app.config",
-        {
-            "CUSTOM_DATABASE_ERRORS": {
-                "examples": {
-                    re.compile("This connector does not support roles"): (
-                        "Custom error message",
-                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                        {},
-                    )
-                }
-            }
-        },
-    )
 
     msg = "This connector does not support roles"
     result = TestEngineSpec.extract_errors(Exception(msg), database_name="examples")
@@ -631,6 +711,19 @@ def test_extract_errors_from_config(mocker: MockerFixture) -> None:
     assert result == [expected]
 
 
+@with_config(
+    {
+        "CUSTOM_DATABASE_ERRORS": {
+            "examples": {
+                re.compile("This connector does not support roles"): (
+                    "Custom error message",
+                    SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    {},
+                )
+            }
+        }
+    },
+)
 def test_extract_errors_only_to_specified_database(mocker: MockerFixture) -> None:
     """
     Test that custom error messages are only applied to the specified database_name.
@@ -638,21 +731,6 @@ def test_extract_errors_only_to_specified_database(mocker: MockerFixture) -> Non
 
     class TestEngineSpec(BaseEngineSpec):
         engine_name = "ExampleEngine"
-
-    mocker.patch(
-        "flask.current_app.config",
-        {
-            "CUSTOM_DATABASE_ERRORS": {
-                "examples": {
-                    re.compile("This connector does not support roles"): (
-                        "Custom error message",
-                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                        {},
-                    )
-                }
-            }
-        },
-    )
 
     msg = "This connector does not support roles"
     # database_name doesn't match configured one, so default message is used
@@ -665,6 +743,27 @@ def test_extract_errors_only_to_specified_database(mocker: MockerFixture) -> Non
     assert result == [expected]
 
 
+@with_config(
+    {
+        "CUSTOM_DATABASE_ERRORS": {
+            "examples": {
+                re.compile(r'message="(?P<message>[^"]*)"'): (
+                    'Unexpected error: "%(message)s"',
+                    SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    {
+                        "custom_doc_links": [
+                            {
+                                "url": "https://example.com/docs",
+                                "label": "Check documentation",
+                            },
+                        ],
+                        "show_issue_info": False,
+                    },
+                )
+            }
+        }
+    },
+)
 def test_extract_errors_from_config_with_regex(mocker: MockerFixture) -> None:
     """
     Test that custom error messages with regex, custom_doc_links,
@@ -673,29 +772,6 @@ def test_extract_errors_from_config_with_regex(mocker: MockerFixture) -> None:
 
     class TestEngineSpec(BaseEngineSpec):
         engine_name = "ExampleEngine"
-
-    mocker.patch(
-        "flask.current_app.config",
-        {
-            "CUSTOM_DATABASE_ERRORS": {
-                "examples": {
-                    re.compile(r'message="(?P<message>[^"]*)"'): (
-                        'Unexpected error: "%(message)s"',
-                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                        {
-                            "custom_doc_links": [
-                                {
-                                    "url": "https://example.com/docs",
-                                    "label": "Check documentation",
-                                },
-                            ],
-                            "show_issue_info": False,
-                        },
-                    )
-                }
-            }
-        },
-    )
 
     msg = (
         "db error: SomeUserError(type=USER_ERROR, name=TABLE_NOT_FOUND, "
@@ -735,6 +811,7 @@ def test_extract_errors_from_config_with_regex(mocker: MockerFixture) -> None:
     ]
 
 
+@with_config({"CUSTOM_DATABASE_ERRORS": {"examples": "not a dict"}})
 def test_extract_errors_with_non_dict_custom_errors(mocker: MockerFixture):
     """
     Test that extract_errors doesn't fail when custom database errors
@@ -743,11 +820,6 @@ def test_extract_errors_with_non_dict_custom_errors(mocker: MockerFixture):
 
     class TestEngineSpec(BaseEngineSpec):
         engine_name = "ExampleEngine"
-
-    mocker.patch(
-        "flask.current_app.config",
-        {"CUSTOM_DATABASE_ERRORS": "not a dict"},
-    )
 
     msg = "This connector does not support roles"
     result = TestEngineSpec.extract_errors(Exception(msg))
@@ -759,6 +831,7 @@ def test_extract_errors_with_non_dict_custom_errors(mocker: MockerFixture):
     assert result == [expected]
 
 
+@with_config({"CUSTOM_DATABASE_ERRORS": {"examples": "not a dict"}})
 def test_extract_errors_with_non_dict_engine_custom_errors(mocker: MockerFixture):
     """
     Test that extract_errors doesn't fail when database-specific custom errors
@@ -768,11 +841,6 @@ def test_extract_errors_with_non_dict_engine_custom_errors(mocker: MockerFixture
     class TestEngineSpec(BaseEngineSpec):
         engine_name = "ExampleEngine"
 
-    mocker.patch(
-        "flask.current_app.config",
-        {"CUSTOM_DATABASE_ERRORS": {"examples": "not a dict"}},
-    )
-
     msg = "This connector does not support roles"
     result = TestEngineSpec.extract_errors(Exception(msg), database_name="examples")
 
@@ -783,6 +851,19 @@ def test_extract_errors_with_non_dict_engine_custom_errors(mocker: MockerFixture
     assert result == [expected]
 
 
+@with_config(
+    {
+        "CUSTOM_DATABASE_ERRORS": {
+            "examples": {
+                re.compile("This connector does not support roles"): (
+                    "",
+                    SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    {},
+                )
+            }
+        }
+    },
+)
 def test_extract_errors_with_empty_custom_error_message(mocker: MockerFixture):
     """
     Test that when the custom error message is empty,
@@ -792,21 +873,6 @@ def test_extract_errors_with_empty_custom_error_message(mocker: MockerFixture):
     class TestEngineSpec(BaseEngineSpec):
         engine_name = "ExampleEngine"
 
-    mocker.patch(
-        "flask.current_app.config",
-        {
-            "CUSTOM_DATABASE_ERRORS": {
-                "examples": {
-                    re.compile("This connector does not support roles"): (
-                        "",
-                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                        {},
-                    )
-                }
-            }
-        },
-    )
-
     msg = "This connector does not support roles"
     result = TestEngineSpec.extract_errors(Exception(msg), database_name="examples")
 
@@ -817,6 +883,26 @@ def test_extract_errors_with_empty_custom_error_message(mocker: MockerFixture):
     assert result == [expected]
 
 
+@with_config(
+    {
+        "CUSTOM_DATABASE_ERRORS": {
+            "examples": {
+                re.compile("connection error"): (
+                    "Examples DB error message",
+                    SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    {},
+                )
+            },
+            "examples_2": {
+                re.compile("connection error"): (
+                    "Examples_2 DB error message",
+                    SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    {},
+                )
+            },
+        }
+    },
+)
 def test_extract_errors_matches_database_name_selection(mocker: MockerFixture) -> None:
     """
     Test that custom error messages are matched by database_name.
@@ -824,28 +910,6 @@ def test_extract_errors_matches_database_name_selection(mocker: MockerFixture) -
 
     class TestEngineSpec(BaseEngineSpec):
         engine_name = "ExampleEngine"
-
-    mocker.patch(
-        "flask.current_app.config",
-        {
-            "CUSTOM_DATABASE_ERRORS": {
-                "examples": {
-                    re.compile("connection error"): (
-                        "Examples DB error message",
-                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                        {},
-                    )
-                },
-                "examples_2": {
-                    re.compile("connection error"): (
-                        "Examples_2 DB error message",
-                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                        {},
-                    )
-                },
-            }
-        },
-    )
 
     msg = "connection error occurred"
     # When database_name is examples_2 we should get that specific message
@@ -858,6 +922,19 @@ def test_extract_errors_matches_database_name_selection(mocker: MockerFixture) -
     assert result == [expected]
 
 
+@with_config(
+    {
+        "CUSTOM_DATABASE_ERRORS": {
+            "examples": {
+                re.compile("connection error"): (
+                    "Examples DB error message",
+                    SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+                    {},
+                )
+            },
+        }
+    },
+)
 def test_extract_errors_no_match_falls_back(mocker: MockerFixture) -> None:
     """
     Test that when database_name has no match, the original error message is preserved.
@@ -865,21 +942,6 @@ def test_extract_errors_no_match_falls_back(mocker: MockerFixture) -> None:
 
     class TestEngineSpec(BaseEngineSpec):
         engine_name = "ExampleEngine"
-
-    mocker.patch(
-        "flask.current_app.config",
-        {
-            "CUSTOM_DATABASE_ERRORS": {
-                "examples": {
-                    re.compile("connection error"): (
-                        "Examples DB error message",
-                        SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
-                        {},
-                    )
-                },
-            }
-        },
-    )
 
     msg = "some other error"
     result = TestEngineSpec.extract_errors(Exception(msg), database_name="examples_2")
@@ -980,16 +1042,13 @@ def test_get_oauth2_authorization_uri_with_pkce(mocker: MockerFixture) -> None:
     assert query["code_challenge"][0] == expected_challenge
 
 
+@with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})
 def test_get_oauth2_token_without_pkce(mocker: MockerFixture) -> None:
     """
     Test that BaseEngineSpec.get_oauth2_token works without PKCE code_verifier.
     """
     from superset.db_engine_specs.base import BaseEngineSpec
 
-    mocker.patch(
-        "flask.current_app.config",
-        {"DATABASE_OAUTH2_TIMEOUT": mocker.MagicMock(total_seconds=lambda: 30)},
-    )
     mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
     mock_post.return_value.json.return_value = {
         "access_token": "test-access-token",  # noqa: S105
@@ -1015,6 +1074,7 @@ def test_get_oauth2_token_without_pkce(mocker: MockerFixture) -> None:
     assert "code_verifier" not in request_body
 
 
+@with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})
 def test_get_oauth2_token_with_pkce(mocker: MockerFixture) -> None:
     """
     Test BaseEngineSpec.get_oauth2_token includes code_verifier when provided.
@@ -1022,10 +1082,6 @@ def test_get_oauth2_token_with_pkce(mocker: MockerFixture) -> None:
     from superset.db_engine_specs.base import BaseEngineSpec
     from superset.utils.oauth2 import generate_code_verifier
 
-    mocker.patch(
-        "flask.current_app.config",
-        {"DATABASE_OAUTH2_TIMEOUT": mocker.MagicMock(total_seconds=lambda: 30)},
-    )
     mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
     mock_post.return_value.json.return_value = {
         "access_token": "test-access-token",  # noqa: S105
@@ -1097,6 +1153,7 @@ def test_get_oauth2_authorization_uri_additional_params(
     assert query["access_type"][0] == "offline"
 
 
+@with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})
 def test_get_oauth2_token_additional_params(mocker: MockerFixture) -> None:
     """
     Test that a subclass can inject additional params into the token request body
@@ -1109,10 +1166,6 @@ def test_get_oauth2_token_additional_params(mocker: MockerFixture) -> None:
             "audience": "https://api.example.com",
         }
 
-    mocker.patch(
-        "flask.current_app.config",
-        {"DATABASE_OAUTH2_TIMEOUT": mocker.MagicMock(total_seconds=lambda: 30)},
-    )
     mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
     mock_post.return_value.json.return_value = {
         "access_token": "test-access-token",  # noqa: S105
@@ -1141,6 +1194,125 @@ def test_get_oauth2_token_additional_params(mocker: MockerFixture) -> None:
 
     # Additional param included
     assert request_body["audience"] == "https://api.example.com"
+
+
+@with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})
+def test_get_oauth2_fresh_token_success(mocker: MockerFixture) -> None:
+    """
+    Test that get_oauth2_fresh_token returns the token response on success.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post.return_value.status_code = 200
+    mock_post.return_value.json.return_value = {
+        "access_token": "new-access-token",
+        "expires_in": 3600,
+    }
+
+    config: OAuth2ClientConfig = {
+        "id": "client-id",
+        "secret": "client-secret",
+        "scope": "read write",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "https://oauth.example.com/authorize",
+        "token_request_uri": "https://oauth.example.com/token",
+        "request_content_type": "json",
+    }
+
+    result = BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
+    assert result == {"access_token": "new-access-token", "expires_in": 3600}
+
+
+@with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})
+def test_get_oauth2_fresh_token_raises_on_invalid_grant(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a definitive refresh-token rejection requests interactive OAuth2.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.exceptions import OAuth2TokenRefreshError
+
+    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post.return_value.status_code = 400
+    mock_post.return_value.json.return_value = {"error": "invalid_grant"}
+
+    config: OAuth2ClientConfig = {
+        "id": "client-id",
+        "secret": "client-secret",
+        "scope": "read write",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "https://oauth.example.com/authorize",
+        "token_request_uri": "https://oauth.example.com/token",
+        "request_content_type": "json",
+    }
+
+    with pytest.raises(OAuth2TokenRefreshError) as exc_info:
+        BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
+
+    assert "invalid_grant" not in str(exc_info.value.to_dict())
+
+
+@pytest.mark.parametrize(
+    "status_code,error", [(400, "temporarily_unavailable"), (401, "invalid_client")]
+)
+@with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})
+def test_get_oauth2_fresh_token_preserves_token_on_ambiguous_error(
+    mocker: MockerFixture,
+    status_code: int,
+    error: str,
+) -> None:
+    """Non-invalid_grant responses remain ordinary provider failures."""
+    from requests.exceptions import HTTPError
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post.return_value.status_code = status_code
+    mock_post.return_value.json.return_value = {"error": error}
+    mock_post.return_value.raise_for_status.side_effect = HTTPError()
+
+    config: OAuth2ClientConfig = {
+        "id": "client-id",
+        "secret": "client-secret",
+        "scope": "read write",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "https://oauth.example.com/authorize",
+        "token_request_uri": "https://oauth.example.com/token",
+        "request_content_type": "json",
+    }
+
+    with pytest.raises(HTTPError):
+        BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
+
+
+@with_config({"DATABASE_OAUTH2_TIMEOUT": timedelta(seconds=30)})
+def test_get_oauth2_fresh_token_raises_on_server_error(mocker: MockerFixture) -> None:
+    """
+    Test that get_oauth2_fresh_token raises HTTPError (not OAuth2TokenRefreshError)
+    on 5xx.
+    """
+    from requests.exceptions import HTTPError
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    mock_post = mocker.patch("superset.db_engine_specs.base.requests.post")
+    mock_post.return_value.status_code = 500
+    mock_post.return_value.raise_for_status.side_effect = HTTPError("500 Server Error")
+
+    config: OAuth2ClientConfig = {
+        "id": "client-id",
+        "secret": "client-secret",
+        "scope": "read write",
+        "redirect_uri": "http://localhost:8088/api/v1/database/oauth2/",
+        "authorization_request_uri": "https://oauth.example.com/authorize",
+        "token_request_uri": "https://oauth.example.com/token",
+        "request_content_type": "json",
+    }
+
+    with pytest.raises(HTTPError):
+        BaseEngineSpec.get_oauth2_fresh_token(config, "refresh-token")
 
 
 def test_start_oauth2_dance_uses_config_redirect_uri(mocker: MockerFixture) -> None:
@@ -1182,6 +1354,12 @@ def test_start_oauth2_dance_uses_config_redirect_uri(mocker: MockerFixture) -> N
     assert error.extra["redirect_uri"] == custom_redirect_uri
 
 
+@with_config(
+    {
+        "SECRET_KEY": "test-secret-key",
+        "DATABASE_OAUTH2_JWT_ALGORITHM": "HS256",
+    }
+)
 def test_start_oauth2_dance_falls_back_to_url_for(mocker: MockerFixture) -> None:
     """
     Test that start_oauth2_dance falls back to url_for when no config is set.
@@ -1189,14 +1367,7 @@ def test_start_oauth2_dance_falls_back_to_url_for(mocker: MockerFixture) -> None
     fallback_uri = "http://localhost:8088/api/v1/database/oauth2/"
 
     mocker.patch(
-        "flask.current_app.config",
-        {
-            "SECRET_KEY": "test-secret-key",
-            "DATABASE_OAUTH2_JWT_ALGORITHM": "HS256",
-        },
-    )
-    mocker.patch(
-        "superset.db_engine_specs.base.url_for",
+        "superset.utils.oauth2.url_for",
         return_value=fallback_uri,
     )
     mocker.patch("superset.daos.key_value.KeyValueDAO")
@@ -1223,3 +1394,243 @@ def test_start_oauth2_dance_falls_back_to_url_for(mocker: MockerFixture) -> None
     error = exc_info.value.error
 
     assert error.extra["redirect_uri"] == fallback_uri
+
+
+def test_get_table_names_strips_schema_with_regex_metacharacters(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_table_names strips a schema prefix containing regex
+    metacharacters without raising and without mangling unrelated names.
+    """
+    schema = "a.b(c)"
+
+    inspector = mocker.MagicMock()
+    inspector.get_table_names.return_value = [
+        f"{schema}.orders",
+        "axbc.other",
+    ]
+
+    database = mocker.MagicMock()
+
+    spec = BaseEngineSpec
+    mocker.patch.object(spec, "try_remove_schema_from_table_name", True)
+
+    tables = spec.get_table_names(database, inspector, schema)
+
+    # The real schema prefix is stripped; the look-alike name is left intact
+    # because the metacharacters are escaped before being used as a regex.
+    # "axbc.other" would match the old unescaped pattern ^a.b(c)\. and be
+    # incorrectly stripped — the escaped version correctly preserves it.
+    assert tables == {"orders", "axbc.other"}
+
+
+def test_get_view_names_strips_schema_with_regex_metacharacters(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_view_names strips a schema prefix containing regex
+    metacharacters without raising and without mangling unrelated names.
+    """
+    schema = "a.b(c)"
+
+    inspector = mocker.MagicMock()
+    inspector.get_view_names.return_value = [
+        f"{schema}.report",
+        "axbc.other",
+    ]
+
+    database = mocker.MagicMock()
+
+    spec = BaseEngineSpec
+    mocker.patch.object(spec, "try_remove_schema_from_table_name", True)
+
+    views = spec.get_view_names(database, inspector, schema)
+
+    # "axbc.other" would match the old unescaped pattern ^a.b(c)\. and be
+    # incorrectly stripped — the escaped version correctly preserves it.
+    assert views == {"report", "axbc.other"}
+
+
+def test_normalize_column_values_is_identity() -> None:
+    """BaseEngineSpec.normalize_column_values must return the input unchanged."""
+    values = [1, None, "text", 3.14]
+    assert BaseEngineSpec.normalize_column_values(values) is values
+
+
+def test_resolve_column_type_prefers_cursor_type() -> None:
+    """cursor_type wins over pa_mapped when both are present."""
+    assert BaseEngineSpec.resolve_column_type("INTEGER", "FLOAT") == "INTEGER"
+
+
+def test_resolve_column_type_falls_back_to_pa_mapped() -> None:
+    """pa_mapped is used when cursor_type is absent."""
+    assert BaseEngineSpec.resolve_column_type(None, "FLOAT") == "FLOAT"
+
+
+def test_resolve_column_type_returns_none_when_both_absent() -> None:
+    """None is returned when neither source provides a type."""
+    assert BaseEngineSpec.resolve_column_type(None, None) is None
+
+
+def test_base_spec_supports_offset_default_true() -> None:
+    """
+    New engines opt-in to OFFSET support by default. Engines that do not
+    support OFFSET (like Elasticsearch SQL) opt out explicitly.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    assert BaseEngineSpec.supports_offset is True
+
+
+def test_base_spec_public_information_includes_supports_offset() -> None:
+    """
+    The supports_offset capability is exposed via get_public_information
+    so the frontend can reason about it (e.g. future UI disablement).
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    info = BaseEngineSpec.get_public_information()
+
+    assert "supports_offset" in info
+    assert info["supports_offset"] is True
+
+
+def _parameters(encryption: bool) -> BasicParametersType:
+    parameters: dict[str, Any] = {
+        "username": "user",
+        "password": "pwd",
+        "host": "localhost",
+        "port": 5432,
+        "database": "db",
+        "query": {},
+        "encryption": encryption,
+    }
+    return cast(BasicParametersType, parameters)
+
+
+def test_build_sqlalchemy_uri_omits_disable_parameters_by_default() -> None:
+    """
+    Specs that do not define ``encryption_disable_parameters`` must keep
+    emitting nothing at all when encryption is off.
+    """
+    from superset.db_engine_specs.base import BasicParametersMixin
+
+    class TestEngineSpec(BasicParametersMixin):
+        engine = "testdb"
+        encryption_parameters = {"sslmode": "require"}
+
+    uri = TestEngineSpec.build_sqlalchemy_uri(_parameters(encryption=False))
+
+    assert make_url(uri).query == {}
+
+
+@pytest.mark.parametrize(
+    "encryption,expected_query",
+    [
+        (True, {"sslmode": "require"}),
+        (False, {"sslmode": "disable"}),
+    ],
+)
+def test_build_sqlalchemy_uri_applies_disable_parameters(
+    encryption: bool, expected_query: dict[str, str]
+) -> None:
+    from superset.db_engine_specs.base import BasicParametersMixin
+
+    class TestEngineSpec(BasicParametersMixin):
+        engine = "testdb"
+        encryption_parameters = {"sslmode": "require"}
+        encryption_disable_parameters = {"sslmode": "disable"}
+
+    uri = TestEngineSpec.build_sqlalchemy_uri(_parameters(encryption=encryption))
+
+    assert dict(make_url(uri).query) == expected_query
+
+
+@pytest.mark.parametrize(
+    "uri,expected_encryption",
+    [
+        ("testdb://user:pwd@localhost:5432/db?sslmode=require", True),
+        ("testdb://user:pwd@localhost:5432/db?sslmode=disable", False),
+    ],
+)
+def test_get_parameters_from_uri_strips_both_parameter_sets(
+    uri: str, expected_encryption: bool
+) -> None:
+    """
+    Both sets share a key with differing values, so neither may leak into
+    ``query`` and reappear as a user-supplied extra parameter.
+    """
+    from superset.db_engine_specs.base import BasicParametersMixin
+
+    class TestEngineSpec(BasicParametersMixin):
+        engine = "testdb"
+        encryption_parameters = {"sslmode": "require"}
+        encryption_disable_parameters = {"sslmode": "disable"}
+
+    parameters = TestEngineSpec.get_parameters_from_uri(uri)
+
+    assert parameters["encryption"] is expected_encryption
+    assert parameters["query"] == {}
+
+
+def test_get_parameters_from_uri_keeps_unrelated_query_parameters() -> None:
+    from superset.db_engine_specs.base import BasicParametersMixin
+
+    class TestEngineSpec(BasicParametersMixin):
+        engine = "testdb"
+        encryption_parameters = {"sslmode": "require"}
+        encryption_disable_parameters = {"sslmode": "disable"}
+
+    parameters = TestEngineSpec.get_parameters_from_uri(
+        "testdb://user:pwd@localhost:5432/db?sslmode=disable&application_name=superset"
+    )
+
+    assert parameters["query"] == {"application_name": "superset"}
+
+
+def test_get_public_information_exposes_ansi_identifier_quote() -> None:
+    """The base spec advertises ANSI double quotes for identifier quoting,
+    escaped by doubling the closing character."""
+    assert BaseEngineSpec.get_public_information()["identifier_quote"] == {
+        "start": '"',
+        "end": '"',
+        "escape_by_doubling": True,
+    }
+
+
+def test_multivalue_columns_disabled_by_default() -> None:
+    """Engines must opt in to multi-value support; base defaults to off."""
+    assert BaseEngineSpec.supports_multivalue_columns is False
+
+
+@pytest.mark.parametrize(
+    "method", ["array_contains_any", "array_contains_all", "array_length"]
+)
+def test_array_capabilities_raise_when_unsupported(method: str) -> None:
+    """Array capability methods raise NotImplementedError unless overridden."""
+    from sqlalchemy import column
+
+    fn = getattr(BaseEngineSpec, method)
+    args = (column("c"), ["v"]) if "contains" in method else (column("c"),)
+    with pytest.raises(NotImplementedError):
+        fn(*args)
+
+
+@pytest.mark.parametrize("aggregate", ["MEDIAN", "STDDEV_SAMP", "VAR_SAMP"])
+def test_base_spec_extended_aggregation_func_defaults_to_unsupported(
+    aggregate: str,
+) -> None:
+    """
+    By default, an engine spec has no verified expression for the "extended"
+    aggregates (MEDIAN/STDDEV_SAMP/VAR_SAMP) -- they must be explicitly opted
+    into per engine spec, the same way `supports_grouping_sets` and
+    `_time_grain_expressions` work. Silence here means "unsupported", not
+    "untested" -- callers must not fall back to guessing SQL.
+    """
+    assert BaseEngineSpec.get_extended_aggregation_func(aggregate) is None
+
+
+def test_base_spec_extended_aggregation_func_unknown_name_is_unsupported() -> None:
+    """An aggregate name outside the known extended set is also just None."""
+    assert BaseEngineSpec.get_extended_aggregation_func("NOT_A_REAL_AGGREGATE") is None

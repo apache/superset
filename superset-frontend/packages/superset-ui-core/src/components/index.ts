@@ -29,6 +29,11 @@ export {
   type ConfirmStatusChangeProps,
 } from './ConfirmStatusChange';
 export { CertifiedBadge } from './CertifiedBadge';
+export {
+  RlsBadge,
+  type RlsFilterSummary,
+  type RlsBadgeProps,
+} from './RlsBadge';
 export * from './Icons';
 export * from './Timer';
 export {
@@ -201,6 +206,7 @@ export * from './Result';
 export {
   ThemedAgGridReact,
   type ThemedAgGridReactProps,
+  type AgGridContainerElement,
   setupAGGridModules,
   defaultModules,
 } from './ThemedAgGridReact';

@@ -17,9 +17,12 @@
 from typing import Any
 from unittest.mock import patch
 
-import prison
+import rison
 
-from superset.exceptions import SupersetException
+from superset.utils.slack import (
+    SlackChannelListingClientError,
+    SlackChannelListingError,
+)
 from tests.unit_tests.conftest import with_feature_flags
 
 
@@ -31,22 +34,92 @@ def test_slack_channels_success(
     full_api_access: None,
 ) -> None:
     mock_search.return_value = [{"id": "C123", "name": "general"}]
-    params = prison.dumps({})
+    params = rison.dumps({})
     rv = client.get(f"/api/v1/report/slack_channels/?q={params}")
     assert rv.status_code == 200
     data = rv.json
     assert data["result"] == [{"id": "C123", "name": "general"}]
+    assert data["count"] == 1
 
 
 @with_feature_flags(ALERT_REPORTS=True)
 @patch("superset.reports.api.get_channels_with_search")
-def test_slack_channels_handles_superset_exception(
+def test_slack_channels_paginates(
     mock_search: Any,
     client: Any,
     full_api_access: None,
 ) -> None:
-    mock_search.side_effect = SupersetException("Slack API error")
-    params = prison.dumps({})
+    # A large workspace: the endpoint must return only the requested page while
+    # reporting the full count, so the browser never receives every channel.
+    mock_search.return_value = [
+        {"id": f"C{i}", "name": f"channel-{i}"} for i in range(250)
+    ]
+    params = rison.dumps({"page": 1, "page_size": 100})
+    rv = client.get(f"/api/v1/report/slack_channels/?q={params}")
+    assert rv.status_code == 200
+    data = rv.json
+    assert data["count"] == 250
+    assert len(data["result"]) == 100
+    assert data["result"][0] == {"id": "C100", "name": "channel-100"}
+
+
+@with_feature_flags(ALERT_REPORTS=True)
+@patch("superset.reports.api.get_channels_with_search")
+def test_slack_channels_page_without_page_size_returns_all(
+    mock_search: Any,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    # Pagination only kicks in when both page and page_size are supplied; a page
+    # without page_size falls through to the full (unsliced) list.
+    mock_search.return_value = [
+        {"id": f"C{i}", "name": f"channel-{i}"} for i in range(30)
+    ]
+    params = rison.dumps({"page": 1})
+    rv = client.get(f"/api/v1/report/slack_channels/?q={params}")
+    assert rv.status_code == 200
+    assert rv.json["count"] == 30
+    assert len(rv.json["result"]) == 30
+
+
+@with_feature_flags(ALERT_REPORTS=True)
+@patch("superset.reports.api.logger")
+@patch("superset.reports.api.get_channels_with_search")
+def test_slack_channels_client_error_logs_warning(
+    mock_search: Any,
+    logger_mock: Any,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    # A permanent token/client-setup failure (e.g. a revoked bot token) is
+    # expected, already-handled noise, so it must be logged at WARNING, not
+    # ERROR, to avoid polluting Sentry with an actionable-looking signal.
+    mock_search.side_effect = SlackChannelListingClientError("Slack API error")
+    params = rison.dumps({})
     rv = client.get(f"/api/v1/report/slack_channels/?q={params}")
     assert rv.status_code == 422
     assert "Slack API error" in rv.json["message"]
+    logger_mock.error.assert_not_called()
+    logger_mock.warning.assert_called_once()
+    assert "Slack API error" in logger_mock.warning.call_args.args[1]
+
+
+@with_feature_flags(ALERT_REPORTS=True)
+@patch("superset.reports.api.logger")
+@patch("superset.reports.api.get_channels_with_search")
+def test_slack_channels_transient_error_logs_error(
+    mock_search: Any,
+    logger_mock: Any,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    # A transient listing failure (rate limits, transport errors) means Slack is
+    # unavailable, so it must stay ERROR to preserve an actionable signal.
+    mock_search.side_effect = SlackChannelListingError("Slack API error")
+    params = rison.dumps({})
+    rv = client.get(f"/api/v1/report/slack_channels/?q={params}")
+    assert rv.status_code == 422
+    assert "Slack API error" in rv.json["message"]
+    logger_mock.warning.assert_not_called()
+    logger_mock.error.assert_called_once()
+    assert "Slack API error" in logger_mock.error.call_args.args[1]

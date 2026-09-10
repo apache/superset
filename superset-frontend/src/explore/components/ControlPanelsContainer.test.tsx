@@ -234,6 +234,26 @@ describe('ControlPanelsContainer', () => {
     );
   });
 
+  test('renders section with function label and description', async () => {
+    getChartControlPanelRegistry().remove('table');
+    getChartControlPanelRegistry().registerValue('table', {
+      controlPanelSections: [
+        {
+          label: () => t('Dynamic Section Label'),
+          description: () => t('Dynamic section description'),
+          expanded: true,
+          controlSetRows: [['groupby']],
+        },
+      ],
+    });
+    render(<ControlPanelsContainer {...getDefaultProps()} />, {
+      useRedux: true,
+    });
+    await waitFor(() => {
+      expect(screen.getByText('Dynamic Section Label')).toBeInTheDocument();
+    });
+  });
+
   test('hidden state of controls is correctly applied', async () => {
     getChartControlPanelRegistry().remove('table');
     getChartControlPanelRegistry().registerValue('table', {

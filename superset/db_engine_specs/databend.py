@@ -152,47 +152,6 @@ class DatabendBaseEngineSpec(BaseEngineSpec):
         return None
 
 
-class DatabendEngineSpec(DatabendBaseEngineSpec):
-    """Engine spec for databend_sqlalchemy connector (legacy)"""
-
-    engine = "databend"
-    engine_name = "Databend (legacy)"  # Internal name for legacy connector
-    _function_names: list[str] = []
-
-    _show_functions_column = "name"
-    supports_file_upload = False
-
-    # Note: Primary metadata is in DatabendConnectEngineSpec which provides
-    # the native connection UI. This spec exists for backwards compatibility.
-
-    @classmethod
-    def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
-        return {NewConnectionError: SupersetDBAPIDatabaseError}
-
-    @classmethod
-    def get_dbapi_mapped_exception(cls, exception: Exception) -> Exception:
-        new_exception = cls.get_dbapi_exception_mapping().get(type(exception))
-        if new_exception == SupersetDBAPIDatabaseError:
-            return SupersetDBAPIDatabaseError("Connection failed")
-        if not new_exception:
-            return exception
-        return new_exception(str(exception))
-
-    @classmethod
-    def get_function_names(cls, database: Database) -> list[str]:
-        if cls._function_names:
-            return cls._function_names
-        try:
-            names = database.get_df("SELECT name FROM system.functions;")[
-                "name"
-            ].tolist()
-            cls._function_names = names
-            return names
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.exception("Error retrieving system.functions: %s", str(ex))
-            return []
-
-
 class DatabendParametersSchema(Schema):
     username = fields.String(allow_none=True, metadata={"description": __("Username")})
     password = fields.String(allow_none=True, metadata={"description": __("Password")})
@@ -218,8 +177,13 @@ class DatabendParametersSchema(Schema):
     )
 
 
-class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
-    """Engine spec for databend with native connection UI (recommended)"""
+class DatabendEngineSpec(BasicParametersMixin, DatabendBaseEngineSpec):
+    """Engine spec for Databend with native connection UI.
+
+    Databend has a single connector (``databend-sqlalchemy``), so this single
+    spec supports both SQLAlchemy URI and individual-parameter (dynamic form)
+    configuration. Both styles resolve to the ``databend`` SQLAlchemy backend.
+    """
 
     engine = "databend"
     engine_name = "Databend"
@@ -227,14 +191,19 @@ class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
     default_driver = "databend"
     _function_names: list[str] = []
 
+    _show_functions_column = "name"
+    supports_file_upload = False
+
     sqlalchemy_uri_placeholder = (
-        "databend://user:password@host[:port][/dbname][?secure=value&=value...]"
+        "databend://user:password@host[:port][/dbname][?sslmode=value&=value...]"
     )
     parameters_schema = DatabendParametersSchema()
-    encryption_parameters = {"secure": "true"}
+    encryption_parameters = {"sslmode": "require"}
+    encryption_disable_parameters = {"sslmode": "disable"}
 
-    # Note: Inherits metadata from DatabendEngineSpec. This spec provides
-    # the native connection UI experience in Superset.
+    # every ``sslmode`` the driver resolves to an https scheme; it accepts both
+    # spellings, so a hand-written ``sslmode=enable`` must not read as plaintext
+    encryption_sslmodes = frozenset({"require", "enable"})
 
     metadata = {
         "description": (
@@ -250,7 +219,7 @@ class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
         ],
         "pypi_packages": ["databend-sqlalchemy"],
         "connection_string": (
-            "databend://{username}:{password}@{host}:{port}/{database}?secure=true"
+            "databend://{username}:{password}@{host}:{port}/{database}?sslmode=require"
         ),
         "default_port": 443,
         "parameters": {
@@ -264,7 +233,7 @@ class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
-        return {}
+        return {NewConnectionError: SupersetDBAPIDatabaseError}
 
     @classmethod
     def get_dbapi_mapped_exception(cls, exception: Exception) -> Exception:
@@ -295,29 +264,75 @@ class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
 
     @classmethod
     def build_sqlalchemy_uri(
-        cls, parameters: BasicParametersType, *_args: dict[str, str] | None
+        cls,
+        parameters: BasicParametersType,
+        encrypted_extra: dict[str, str] | None = None,
     ) -> str:
-        url_params = parameters.copy()
-        if url_params.get("encryption"):
-            query = parameters.get("query", {}).copy()
-            query.update(cls.encryption_parameters)
-            url_params["query"] = query
-        if not url_params.get("database"):
-            url_params["database"] = "__default__"
-        url_params.pop("encryption", None)
-        return str(URL(f"{cls.engine}", **url_params))
+        """
+        Build a Databend URI, always stating the TLS mode explicitly.
+
+        The driver honours ``sslmode`` rather than inferring TLS from the port,
+        so an unencrypted connection needs ``sslmode=disable`` spelled out
+        rather than simply omitting the encryption parameters.
+        """
+        query = parameters.get("query", {}).copy()
+        query.update(
+            cls.encryption_parameters
+            if parameters.get("encryption")
+            else cls.encryption_disable_parameters
+        )
+
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return URL.create(
+            cls.engine,
+            username=parameters.get("username"),
+            password=parameters.get("password"),
+            host=parameters.get("host"),
+            port=parameters.get("port"),
+            database=parameters.get("database") or "__default__",
+            query=query,
+        ).render_as_string(hide_password=False)
+
+    @classmethod
+    def _encryption_from_tls_parameters(
+        cls, sslmode: str | None, secure: str | None
+    ) -> bool:
+        """
+        Resolve whether a connection is encrypted from either TLS spelling.
+
+        ``databend-py`` parsed the legacy ``secure`` value with ``asbool``, so
+        casing is not significant in either parameter.
+        """
+        if sslmode is not None:
+            return sslmode.lower() in cls.encryption_sslmodes
+        if secure is not None:
+            return secure.lower() == "true"
+        return False
 
     @classmethod
     def get_parameters_from_uri(
-        cls, uri: str, *_args: dict[str, Any] | None
+        cls,
+        uri: str,
+        encrypted_extra: dict[str, Any] | None = None,
     ) -> BasicParametersType:
+        """
+        Decompose a Databend URI into individual connection parameters.
+
+        The legacy ``secure`` parameter is still recognised so that connections
+        stored before the move to ``sslmode`` repopulate the form correctly. Its
+        values were parsed as booleans by the previous driver, so casing is not
+        significant in either parameter. Both are always removed, so a URI
+        carrying the legacy and the current spelling at once cannot leak one of
+        them back into the connection as a user-supplied extra parameter.
+        """
         url = make_url_safe(uri)
-        query = url.query
-        if "secure" in query:
-            encryption = url.query.get("secure") == "true"
-            query.pop("secure")
-        else:
-            encryption = False
+        query = dict(url.query)
+        encryption = cls._encryption_from_tls_parameters(
+            query.pop("sslmode", None), query.pop("secure", None)
+        )
         return BasicParametersType(
             username=url.username,
             password=url.password,
@@ -404,3 +419,21 @@ class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
         :return: Conditionally mutated label
         """
         return f"{label}_{hash_from_str(label)[:6]}"
+
+
+def __getattr__(name: str) -> Any:
+    # Backwards-compatible alias. Previously there were two separate specs
+    # (a legacy ``DatabendEngineSpec`` without parameter support and a
+    # ``DatabendConnectEngineSpec`` with it), both registered under the
+    # ``databend`` engine. Because neither declared distinct ``drivers``,
+    # ``get_engine_spec`` resolved to the first-defined (legacy) spec, which
+    # lacks ``parameters_schema``/``build_sqlalchemy_uri`` and broke the
+    # "configure via individual parameters" flow. They are now merged into a
+    # single spec.
+    #
+    # The alias is exposed via module-level ``__getattr__`` (PEP 562) rather
+    # than a class binding so that ``load_engine_specs`` -- which iterates
+    # ``module.__dict__`` -- does not collect the same spec twice.
+    if name == "DatabendConnectEngineSpec":
+        return DatabendEngineSpec
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

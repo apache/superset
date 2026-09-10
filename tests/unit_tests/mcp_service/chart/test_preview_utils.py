@@ -19,6 +19,48 @@
 Tests for preview_utils query context column building.
 """
 
+import ast
+import inspect
+from pathlib import Path
+from unittest.mock import Mock, patch
+
+from superset.mcp_service.chart import preview_utils
+
+
+def _imports_chart_data_command(node: ast.Import | ast.ImportFrom) -> bool:
+    blocked_module = "superset.commands.chart.data.get_data_command"
+
+    if isinstance(node, ast.Import):
+        return any(
+            alias.name == blocked_module or alias.name.startswith(f"{blocked_module}.")
+            for alias in node.names
+        )
+
+    module = node.module or ""
+    return (
+        module == blocked_module
+        or module.startswith(f"{blocked_module}.")
+        or (
+            module == "superset.commands.chart.data"
+            and any(alias.name == "get_data_command" for alias in node.names)
+        )
+    )
+
+
+def test_preview_utils_does_not_top_level_import_chart_data_command():
+    """preview_utils constants should stay safe to import before app setup."""
+    source_path = inspect.getsourcefile(preview_utils) or preview_utils.__file__
+    source = Path(source_path).read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    top_level_imports = [
+        node for node in tree.body if isinstance(node, (ast.Import, ast.ImportFrom))
+    ]
+
+    assert preview_utils.SUPPORTED_FORM_DATA_PREVIEW_FORMATS == frozenset(
+        {"ascii", "table", "vega_lite"}
+    )
+    assert not any(_imports_chart_data_command(node) for node in top_level_imports)
+
 
 class TestPreviewUtilsColumnBuilding:
     """Tests for x_axis + groupby column building in generate_preview_from_form_data.
@@ -156,3 +198,85 @@ class TestPreviewUtilsColumnBuilding:
                 columns.insert(0, x_axis_config)
 
         assert columns == ["territory", "year"]
+
+
+def test_build_query_columns_empty_columns_key_keeps_groupby():
+    """MCP path: an explicitly empty ``columns`` list no longer shadows ``groupby``.
+
+    ``_build_query_columns`` delegates to the shared
+    ``superset.common.form_data_query_context.columns_from_form_data``; this pins
+    the (intentional) behavior change so the export and MCP paths stay in sync.
+    """
+    assert preview_utils._build_query_columns(
+        {"groupby": ["country"], "columns": []}
+    ) == ["country"]
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data")
+@patch("superset.extensions.db.session.get")
+def test_unsaved_gauge_preview_uses_shared_builder_and_preserves_ordering(
+    mock_find_dataset, mock_build_query_context, mock_command
+):
+    """Unsaved previews execute the same Gauge QueryObject path as Explore."""
+    mock_find_dataset.return_value = Mock(id=7)
+    mock_build_query_context.return_value = Mock()
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [{"data": [{"AVG(score)": 75}]}]
+    }
+    form_data = {
+        "viz_type": "gauge_chart",
+        "metric": {
+            "expressionType": "SIMPLE",
+            "aggregate": "AVG",
+            "column": {"column_name": "score"},
+            "label": "AVG(score)",
+        },
+        "groupby": [],
+        "sort_by_metric": True,
+        "row_limit": 4,
+        "intervals": "30,70,200",
+        "datasource_id": 99,
+        "datasource_type": "query",
+        "datasource": "99__query",
+    }
+
+    result = preview_utils.generate_preview_from_form_data(
+        form_data, dataset_id=7, preview_format="ascii"
+    )
+
+    assert result.ascii_content.startswith("Gauge Chart")
+    query_form_data = mock_build_query_context.call_args.args[0]
+    assert query_form_data["sort_by_metric"] is True
+    assert query_form_data["datasource"] == "7__table"
+    assert query_form_data["datasource_id"] == 7
+    assert query_form_data["datasource_type"] == "table"
+    from superset.mcp_service.chart.chart_helpers import resolve_form_data_datasource
+
+    assert resolve_form_data_datasource(query_form_data) == (7, "table")
+    assert form_data["datasource_id"] == 99
+    mock_build_query_context.assert_called_once_with(
+        query_form_data, row_limit=4, force=False
+    )
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data")
+@patch("superset.extensions.db.session.get")
+def test_unsaved_gauge_preview_surfaces_query_error(
+    mock_find_dataset, mock_build_query_context, mock_command
+):
+    mock_find_dataset.return_value = Mock(id=7)
+    mock_build_query_context.return_value = Mock()
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [{"status": "failed", "error": "bad metric", "data": []}]
+    }
+    result = preview_utils.generate_preview_from_form_data(
+        {"viz_type": "gauge_chart", "metric": "saved_sla"},
+        dataset_id=7,
+        preview_format="vega_lite",
+    )
+    assert result.error_type == "QueryError"
+    assert "bad metric" in result.error

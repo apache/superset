@@ -37,7 +37,9 @@ const StyledToastPresenter = styled.div<VisualProps>(
     z-index: ${theme.zIndexPopupBase + 1};
     word-break: break-word;
 
-    height: calc(100vh - 100px);
+    /* Cap height for scrolling, but hug the toasts so the fixed overlay does not
+       reserve the full viewport and block controls underneath it. */
+    max-height: calc(100vh - 100px);
 
     display: flex;
     flex-direction: ${position === 'bottom' ? 'column-reverse' : 'column'};

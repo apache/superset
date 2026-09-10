@@ -105,9 +105,9 @@ Charts built from enriched datasets containing:
 pre-commit install
 
 # Quick validation (faster than --all-files)
-pre-commit run                    # Staged files only
+pre-commit run                   # Staged files only
 pre-commit run mypy              # Python type checking
-pre-commit run prettier          # Code formatting
+pre-commit run format            # Code formatting
 pre-commit run eslint            # Frontend linting
 ```
 

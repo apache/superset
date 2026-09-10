@@ -26,8 +26,10 @@ import {
   lruCache,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
+import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 import Chart from 'src/types/Chart';
-import { intersection } from 'lodash';
+import { deletedToast, deleteFailedToast } from 'src/utils/softDeleteCopy';
+import { intersection } from 'lodash-es';
 import rison from 'rison';
 import type {
   ListViewFetchDataConfig as FetchDataConfig,
@@ -36,12 +38,9 @@ import type {
 import SupersetText from 'src/utils/textUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { User } from 'src/types/bootstrapTypes';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { RecentActivity, WelcomeTable } from 'src/features/home/types';
-import {
-  OwnerSelectLabel,
-  OWNER_TEXT_LABEL_PROP,
-  OWNER_EMAIL_PROP,
-} from 'src/features/owners/OwnerSelectLabel';
+import { normalizeSubjectToPickerValue } from 'src/features/subjects/SubjectPicker/utils';
 import {
   Dashboard,
   EncryptedExtraField,
@@ -89,7 +88,7 @@ const createFetchResourceMethod =
     resource: string,
     relation: string,
     handleError: (error: Response) => void,
-    user?: { userId: string | number; firstName: string; lastName: string },
+    user?: { userId?: string | number; firstName: string; lastName: string },
   ) =>
   async (filterValue = '', page: number, pageSize: number) => {
     const resourceEndpoint = `/api/v1/${resource}/${method}/${relation}`;
@@ -104,12 +103,13 @@ const createFetchResourceMethod =
 
     let fetchedLoggedUser = false;
     let loggedUserExtra: Record<string, unknown> | undefined;
-    const loggedUser = user
-      ? {
-          label: `${user.firstName} ${user.lastName}`,
-          value: user.userId,
-        }
-      : undefined;
+    const loggedUser =
+      user?.userId === undefined
+        ? undefined
+        : {
+            label: `${user.firstName} ${user.lastName}`,
+            value: user.userId,
+          };
 
     const data: {
       label: string;
@@ -199,14 +199,14 @@ export const getEditedObjects = (userId: string | number) => {
     .catch(err => err);
 };
 
-export const getUserOwnedObjects = (
+export const getUserEditableObjects = (
   userId: string | number,
   resource: string,
   filters: Filter[] = [
     {
-      col: 'owners',
-      opr: 'rel_m_m',
-      value: `${userId}`,
+      col: 'id',
+      opr: 'is_editable',
+      value: 1,
     },
   ],
   selectColumns?: string[],
@@ -269,34 +269,58 @@ export const getRecentActivityObjs = (
 export const createFetchRelated = createFetchResourceMethod('related');
 export const createFetchDistinct = createFetchResourceMethod('distinct');
 
-export const createFetchOwners = (
-  resource: string,
-  handleError: (error: Response) => void,
-  user?: { userId: string | number; firstName: string; lastName: string },
-) => {
-  const fetchRelated = createFetchRelated(
-    resource,
-    'owners',
-    handleError,
-    user,
-  );
-  return async (filterValue = '', page: number, pageSize: number) => {
-    const result = await fetchRelated(filterValue, page, pageSize);
-    return {
-      ...result,
-      data: result.data.map(item => {
-        const email = item.extra?.email as string | undefined;
-        return {
-          label: OwnerSelectLabel({ name: item.label, email }),
-          value: item.value,
-          title: item.label,
-          [OWNER_TEXT_LABEL_PROP]: item.label,
-          [OWNER_EMAIL_PROP]: email ?? '',
-        };
-      }),
+const createFetchSubjectRelation =
+  (relation: string) =>
+  (
+    resource: string,
+    handleError: (error: Response) => void,
+    user?: { userId?: string | number; firstName: string; lastName: string },
+  ) => {
+    const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
+    const subjectUser =
+      currentUserSubjectId === undefined || !user
+        ? undefined
+        : {
+            ...user,
+            userId: currentUserSubjectId,
+          };
+    const fetchRelated = createFetchRelated(
+      resource,
+      relation,
+      handleError,
+      subjectUser,
+    );
+    return async (filterValue = '', page: number, pageSize: number) => {
+      const result = await fetchRelated(filterValue, page, pageSize);
+      return {
+        ...result,
+        data: result.data.flatMap(item => {
+          const secondaryLabel = item.extra?.secondary_label as
+            | string
+            | undefined;
+          const type = item.extra?.type as number | undefined;
+          const value = normalizeSubjectToPickerValue({
+            value: item.value,
+            text: item.label,
+            type,
+            secondary_label: secondaryLabel,
+          });
+          return value
+            ? [
+                {
+                  ...value,
+                  title: item.label,
+                },
+              ]
+            : [];
+        }),
+      };
     };
   };
-};
+
+export const createFetchEditors = createFetchSubjectRelation('editors');
+export const createFetchSubjects = createFetchSubjectRelation('subjects');
+export const createFetchViewers = createFetchSubjectRelation('viewers');
 
 export function createErrorHandler(
   handleErrorFunc: (
@@ -327,6 +351,7 @@ export function handleChartDelete(
   refreshData: (arg0?: FetchDataConfig | null) => void,
   chartFilter?: string,
   userId?: string | number,
+  getData?: (tab: TableTab) => void,
 ) {
   const filters = {
     pageIndex: 0,
@@ -350,12 +375,13 @@ export function handleChartDelete(
   }).then(
     () => {
       if (chartFilter === 'Mine') refreshData(filters);
+      else if (chartFilter && getData) getData(chartFilter as TableTab);
       else refreshData();
-      addSuccessToast(t('Deleted: %s', sliceName));
+      addSuccessToast(deletedToast(sliceName));
     },
-    () => {
-      addDangerToast(t('There was an issue deleting: %s', sliceName));
-    },
+    createErrorHandler(errMsg =>
+      addDangerToast(deleteFailedToast(sliceName, errMsg)),
+    ),
   );
 }
 
@@ -383,9 +409,9 @@ export function handleDashboardDelete(
         ],
         filters: [
           {
-            id: 'owners',
-            operator: 'rel_m_m',
-            value: `${userId}`,
+            id: 'id',
+            operator: 'is_editable',
+            value: true,
           },
         ],
       };
@@ -393,12 +419,10 @@ export function handleDashboardDelete(
       else if (dashboardFilter === 'Other' && getData)
         getData(dashboardFilter as TableTab);
       else refreshData();
-      addSuccessToast(t('Deleted: %s', dashboardTitle));
+      addSuccessToast(deletedToast(dashboardTitle));
     },
     createErrorHandler(errMsg =>
-      addDangerToast(
-        t('There was an issue deleting %s: %s', dashboardTitle, errMsg),
-      ),
+      addDangerToast(deleteFailedToast(dashboardTitle, errMsg)),
     ),
   );
 }
@@ -434,6 +458,17 @@ export const CardContainer = styled.div<{
         ? `${theme.sizeUnit * 8 + 3}px ${theme.sizeUnit * 20}px`
         : `${theme.sizeUnit * 8 + 1}px ${theme.sizeUnit * 20}px`
     };
+
+    /* Full-width cards on mobile (consumption mode) */
+    ${
+      isMobileConsumptionEnabled()
+        ? `@media (max-width: ${theme.screenSMMax}px) {
+      grid-template-columns: 1fr;
+      padding-left: ${theme.sizeUnit * 4}px;
+      padding-right: ${theme.sizeUnit * 4}px;
+    }`
+        : ''
+    }
   `}
 `;
 
@@ -447,6 +482,18 @@ export const CardStyles = styled.div`
     height: 168px;
   }
 `;
+
+/**
+ * Cards make their whole surface clickable, but `ListViewCard` also renders its
+ * cover as a router `<Link>`. A click on the cover is therefore handled twice —
+ * once by the link and once by the card wrapper — pushing two identical history
+ * entries for a single click, so the Back button only pops the duplicate and
+ * leaves the user on the page they tried to leave. Let the link win in that case.
+ */
+export const isNavigationHandledByLink = (event: {
+  target: EventTarget | null;
+}): boolean =>
+  Boolean((event.target as HTMLElement | null)?.closest?.('a[href]'));
 
 export /* eslint-disable no-underscore-dangle */
 const isNeedsPassword = (payload: any) =>
@@ -637,9 +684,9 @@ export function getFilterValues(
   if (tab === TableTab.Mine && user) {
     return [
       {
-        id: 'owners',
-        operator: 'rel_m_m',
-        value: `${user.userId}`,
+        id: 'id',
+        operator: 'is_editable',
+        value: true,
       },
     ];
   }

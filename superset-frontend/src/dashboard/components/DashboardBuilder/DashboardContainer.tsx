@@ -20,6 +20,7 @@
 // when its container size changes, due to e.g., builder side panel opening
 import {
   FC,
+  FocusEvent as ReactFocusEvent,
   memo,
   useCallback,
   useEffect,
@@ -29,7 +30,7 @@ import {
 } from 'react';
 import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import {
   ChartCustomizationConfiguration,
   ChartCustomizationType,
@@ -37,7 +38,7 @@ import {
   NativeFilterType,
   getLabelsColorMap,
 } from '@superset-ui/core';
-import { ParentSize } from '@visx/responsive';
+import { useParentSize } from '@visx/responsive';
 import Tabs from '@superset-ui/core/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import {
@@ -63,7 +64,11 @@ import {
 } from 'src/dashboard/actions/dashboardState';
 import { getColorNamespace, resetColors } from 'src/utils/colorScheme';
 import { calculateScopes } from 'src/dashboard/util/calculateScopes';
-import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
+import { createChartLayoutItemMap } from 'src/dashboard/util/getChartIdsInFilterScope';
+import {
+  isLegacyChartCustomizationFormat,
+  migrateChartCustomization,
+} from 'src/dashboard/util/migrateChartCustomization';
 import { NATIVE_FILTER_DIVIDER_PREFIX } from '../nativeFilters/FiltersConfigModal/utils';
 import { selectFilterConfiguration } from '../nativeFilters/state';
 import { getRootLevelTabsComponent } from './utils';
@@ -83,6 +88,39 @@ interface FilterScopeData extends ScopeData {
 
 interface CustomizationScopeData extends ScopeData {
   customizationId: string;
+}
+
+function normalizeChartCustomizationsForScopeCalculation(
+  chartCustomizations: ChartCustomizationConfiguration,
+  chartIds: number[],
+): ChartCustomizationConfiguration {
+  const truthyCustomizations = chartCustomizations.filter(Boolean);
+
+  if (!truthyCustomizations.some(isLegacyChartCustomizationFormat)) {
+    return truthyCustomizations;
+  }
+
+  return truthyCustomizations.map(item => {
+    if (!isLegacyChartCustomizationFormat(item)) {
+      return item;
+    }
+
+    const migratedCustomization = migrateChartCustomization(item);
+
+    if (!item.chartId) {
+      return migratedCustomization;
+    }
+
+    return {
+      ...migratedCustomization,
+      // Legacy items could target a single chart without an explicit scope.
+      // Preserve that targeting before calculateScopes recomputes chartsInScope.
+      scope: {
+        ...migratedCustomization.scope,
+        excluded: chartIds.filter(chartId => chartId !== item.chartId),
+      },
+    };
+  });
 }
 
 export const renderedChartIdsSelector: (state: RootState) => number[] =
@@ -157,9 +195,8 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     prevRenderedChartIds.current = [];
   }, [dashboardInfo?.metadata?.color_namespace, dispatch]);
 
-  const chartLayoutItems = useMemo(
-    () =>
-      Object.values(dashboardLayout).filter(item => item?.type === CHART_TYPE),
+  const chartLayoutItemMap = useMemo(
+    () => createChartLayoutItemMap(Object.values(dashboardLayout)),
     [dashboardLayout],
   );
 
@@ -171,7 +208,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     const scopes = calculateScopes(
       filterItems,
       chartIds,
-      chartLayoutItems,
+      chartLayoutItemMap,
       item =>
         item.id.startsWith(NATIVE_FILTER_DIVIDER_PREFIX) ||
         item.type === NativeFilterType.Divider,
@@ -185,17 +222,23 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       prevFilterScopesRef.current = scopes;
       dispatch(setInScopeStatusOfFilters(scopes));
     }
-  }, [chartIds, filterItems, chartLayoutItems, dispatch]);
+  }, [chartIds, filterItems, chartLayoutItemMap, dispatch]);
 
   useEffect(() => {
     if (chartCustomizations.length === 0) {
       return;
     }
 
+    const normalizedCustomizations =
+      normalizeChartCustomizationsForScopeCalculation(
+        chartCustomizations,
+        chartIds,
+      );
+
     const scopes = calculateScopes(
-      chartCustomizations,
+      normalizedCustomizations,
       chartIds,
-      chartLayoutItems,
+      chartLayoutItemMap,
       item => item.type === ChartCustomizationType.Divider,
     ).map(scope => ({
       customizationId: scope.id,
@@ -207,7 +250,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       prevCustomizationScopesRef.current = scopes;
       dispatch(setInScopeStatusOfCustomizations(scopes));
     }
-  }, [chartIds, chartCustomizations, chartLayoutItems, dispatch]);
+  }, [chartIds, chartCustomizations, chartLayoutItemMap, dispatch]);
 
   const childIds: string[] = useMemo(
     () => (topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID]),
@@ -285,10 +328,10 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, [onBeforeUnload]);
 
   const renderTabBar = useCallback(() => <></>, []);
-  const handleFocus = useCallback(e => {
+  const handleFocus = useCallback((e: ReactFocusEvent<HTMLElement>) => {
     if (
       // prevent scrolling when tabbing to the tab pane
-      e.target.classList.contains('ant-tabs-tabpane') &&
+      e.target.classList.contains('ant-tabs-content') &&
       window.scrollY < TOP_OF_PAGE_RANGE
     ) {
       // prevent window from jumping down when tabbing
@@ -299,7 +342,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, []);
 
   const renderParentSizeChildren = useCallback(
-    ({ width }) => {
+    ({ width }: { width: number }) => {
       const tabItems = childIds.map((id, index) => ({
         key: index === 0 ? DASHBOARD_GRID_ID : index.toString(),
         label: null,
@@ -330,9 +373,13 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     [activeKey, childIds, dashboardLayout, handleFocus, renderTabBar, tabIndex],
   );
 
+  // Hook form, not <ParentSize>: @visx 4.0.0's component clips content taller
+  // than the viewport, which breaks dashboard page scrolling.
+  const { parentRef, width } = useParentSize();
+
   return (
-    <div className="grid-container" data-test="grid-container">
-      <ParentSize>{renderParentSizeChildren}</ParentSize>
+    <div className="grid-container" data-test="grid-container" ref={parentRef}>
+      {renderParentSizeChildren({ width })}
     </div>
   );
 };

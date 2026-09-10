@@ -39,8 +39,10 @@ jest.mock('@superset-ui/core/components/Select/AsyncSelect', () => () => (
   <div data-test="mock-async-select" />
 ));
 jest.mock('src/core/editors', () => ({
-  EditorHost: ({ value }: { value: string }) => (
-    <div data-test="mock-async-ace-editor">{value}</div>
+  EditorHost: ({ value, height }: { value: string; height: string }) => (
+    <div data-test="mock-async-ace-editor" data-height={height}>
+      {value}
+    </div>
   ),
 }));
 
@@ -77,6 +79,18 @@ describe('TemplateParamsEditor', () => {
     await waitFor(() => {
       expect(getByTestId('mock-async-ace-editor')).toBeInTheDocument();
     });
+  });
+
+  test('renders the editor with a bounded height to avoid overflowing the popover', async () => {
+    const { container, getByTestId } = setup();
+    fireEvent.click(getByText(container, 'Parameters'));
+    await waitFor(() => {
+      expect(getByTestId('mock-async-ace-editor')).toBeInTheDocument();
+    });
+    expect(getByTestId('mock-async-ace-editor')).toHaveAttribute(
+      'data-height',
+      '360px',
+    );
   });
 
   test('renders templateParams', async () => {

@@ -25,6 +25,7 @@ import { OAuth2ClientField } from './OAuth2ClientField';
 describe('OAuth2ClientField', () => {
   const mockChangeMethods = {
     onEncryptedExtraInputChange: jest.fn(),
+    onClearEncryptedExtraKey: jest.fn(),
     onParametersChange: jest.fn(),
     onChange: jest.fn(),
     onQueryChange: jest.fn(),
@@ -179,5 +180,86 @@ describe('OAuth2ClientField', () => {
     expect(getByTestId('client-authorization-request-uri')).toHaveValue('');
     expect(getByTestId('client-token-request-uri')).toHaveValue('');
     expect(getByTestId('client-scope')).toHaveValue('');
+  });
+
+  test('renders nothing when engine is gsheets and isPublic is true', () => {
+    const props = {
+      ...defaultProps,
+      isPublic: true,
+      db: {
+        ...defaultProps.db,
+        engine: 'gsheets',
+      },
+    };
+
+    const { queryByText } = render(<OAuth2ClientField {...props} />);
+
+    expect(queryByText('OAuth2 client information')).not.toBeInTheDocument();
+  });
+
+  test('renders normally when engine is gsheets but isPublic is false', () => {
+    const props = {
+      ...defaultProps,
+      isPublic: false,
+      db: {
+        ...defaultProps.db,
+        engine: 'gsheets',
+      },
+    };
+
+    const { getByText } = render(<OAuth2ClientField {...props} />);
+
+    expect(getByText('OAuth2 client information')).toBeInTheDocument();
+  });
+
+  test('re-syncs local state when masked_encrypted_extra is cleared', () => {
+    const props = {
+      ...defaultProps,
+      db: {
+        ...defaultProps.db,
+        engine: 'gsheets',
+      },
+      isPublic: false,
+    };
+
+    const { getByTestId, getByText, rerender } = render(
+      <OAuth2ClientField {...props} />,
+    );
+
+    fireEvent.click(getByText('OAuth2 client information'));
+    expect(getByTestId('client-id')).toHaveValue('test-id');
+
+    // Simulate the gsheets dropdown toggling to "public" — the parent
+    // dispatches an EncryptedExtraInputChange that drops the
+    // oauth2_client_info key from masked_encrypted_extra.
+    rerender(
+      <OAuth2ClientField
+        {...props}
+        db={{
+          ...props.db,
+          masked_encrypted_extra: '{}',
+        }}
+      />,
+    );
+
+    expect(getByTestId('client-id')).toHaveValue('');
+    expect(getByTestId('client-secret')).toHaveValue('');
+  });
+
+  test.each([
+    ['the literal string "null"', 'null'],
+    ['malformed JSON', 'not json'],
+    ['a JSON primitive', '42'],
+    ['a JSON array', '[1, 2, 3]'],
+  ])('mounts safely when masked_encrypted_extra is %s', (_label, value) => {
+    const props = {
+      ...defaultProps,
+      db: {
+        ...defaultProps.db,
+        masked_encrypted_extra: value,
+      },
+    };
+
+    expect(() => render(<OAuth2ClientField {...props} />)).not.toThrow();
   });
 });

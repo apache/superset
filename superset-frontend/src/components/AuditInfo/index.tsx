@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import getOwnerName from 'src/utils/getOwnerName';
+import getUserName from 'src/utils/getUserName';
 import { t } from '@apache-superset/core/translation';
 import { Tooltip } from '@superset-ui/core/components';
 import type { AuditInfoProps } from './types';
@@ -29,7 +29,7 @@ export const ModifiedInfo = ({ user, date }: AuditInfoProps) => {
   );
 
   if (user) {
-    const userName = getOwnerName(user);
+    const userName = getUserName(user);
     const title = t('Modified by: %s', userName);
     return (
       <Tooltip title={title} placement="bottom">
@@ -48,7 +48,7 @@ export const CreatedInfo = ({ user, date }: AuditInfoProps) => {
   );
 
   if (user) {
-    const userName = getOwnerName(user);
+    const userName = getUserName(user);
     const title = t('Created by: %s', userName);
     return (
       <Tooltip title={title} placement="bottom">

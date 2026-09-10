@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import re
+from datetime import datetime
 from re import Pattern
 from typing import Any, TYPE_CHECKING, TypedDict
 
@@ -30,9 +31,9 @@ from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.exceptions import ValidationError
 from requests import Session
-from requests.exceptions import HTTPError
 from shillelagh.adapters.api.gsheets.lib import SCOPES
 from shillelagh.exceptions import UnauthenticatedError
+from sqlalchemy import text, types
 from sqlalchemy.engine import create_engine
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -42,8 +43,7 @@ from superset.databases.schemas import encrypted_field_properties, EncryptedStri
 from superset.db_engine_specs.base import DatabaseCategory
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetException
-from superset.superset_typing import OAuth2TokenResponse
+from superset.exceptions import OAuth2TokenRefreshError, SupersetException
 from superset.utils import json
 from superset.utils.oauth2 import get_oauth2_access_token
 
@@ -154,7 +154,28 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         "https://accounts.google.com/o/oauth2/v2/auth"
     )
     oauth2_token_request_uri = "https://oauth2.googleapis.com/token"  # noqa: S105
-    oauth2_exception = UnauthenticatedError
+    oauth2_exception = (UnauthenticatedError, OAuth2TokenRefreshError)
+
+    @classmethod
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
+        """
+        Convert a datetime to a SQL literal understood by shillelagh's GSheets
+        adapter.
+
+        ``SqliteEngineSpec.convert_dttm`` (inherited via ``ShillelaghEngineSpec``)
+        has no case for ``types.Date`` and returns ``None``, which makes Superset
+        fall back to a literal that still carries a time-of-day component. The
+        GSheets adapter's virtual table layer parses that literal with
+        ``datetime.date.fromisoformat``, which rejects the trailing time and
+        silently drops the filter value, producing an invalid query against the
+        Google Sheets API. A bare ``YYYY-MM-DD`` literal is required instead.
+        """
+        sqla_type = cls.get_sqla_column_type(target_type)
+        if isinstance(sqla_type, types.Date):
+            return f"'{dttm.date().isoformat()}'"
+        return super().convert_dttm(target_type, dttm, db_extra=db_extra)
 
     @classmethod
     def get_oauth2_authorization_uri(
@@ -219,29 +240,6 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         )
 
     @classmethod
-    def get_oauth2_fresh_token(
-        cls,
-        config: OAuth2ClientConfig,
-        refresh_token: str,
-    ) -> OAuth2TokenResponse:
-        """
-        Refresh an OAuth2 access token that has expired.
-
-        When trying to refresh an expired token that was revoked on Google side,
-        the request fails with 400 status code.
-        """
-        try:
-            return super().get_oauth2_fresh_token(config, refresh_token)
-        except HTTPError as ex:
-            if ex.response is not None and ex.response.status_code == 400:
-                error_data = ex.response.json()
-                if error_data.get("error") == "invalid_grant":
-                    raise UnauthenticatedError(
-                        error_data.get("error_description", "Token has been revoked")
-                    ) from ex
-            raise
-
-    @classmethod
     def impersonate_user(
         cls,
         database: Database,
@@ -293,7 +291,8 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
             schema=table.schema,
         ) as conn:
             cursor = conn.cursor()
-            cursor.execute(f'SELECT GET_METADATA("{table.table}")')
+            escaped_table = table.table.replace('"', '""')
+            cursor.execute(f'SELECT GET_METADATA("{escaped_table}")')
             results = cursor.fetchone()[0]
         try:
             metadata = json.loads(results)
@@ -320,12 +319,27 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         params: dict[str, Any],
     ) -> None:
         """
-        Remove `oauth2_client_info` from `encrypted_extra`.
+        Remove `oauth2_client_info` from `encrypted_extra` and wrap
+        service_account_info and catalog in adapter_kwargs for shillelagh.
         """
         ShillelaghEngineSpec.update_params_from_encrypted_extra(database, params)
 
         if "oauth2_client_info" in params:
             del params["oauth2_client_info"]
+
+        if "service_account_info" in params:
+            sa_info = params.pop("service_account_info")
+            connect_args = params.setdefault("connect_args", {})
+            adapter_kwargs = connect_args.setdefault("adapter_kwargs", {})
+            adapter_kwargs.setdefault("gsheetsapi", {})["service_account_info"] = (
+                sa_info
+            )
+
+        if "catalog" in params:
+            catalog = params["catalog"]  # keep in params for table listing
+            connect_args = params.setdefault("connect_args", {})
+            adapter_kwargs = connect_args.setdefault("adapter_kwargs", {})
+            adapter_kwargs.setdefault("gsheetsapi", {})["catalog"] = catalog
 
     @classmethod
     def get_parameters_from_uri(
@@ -379,7 +393,22 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
         # On create the encrypted credentials are a string,
         # at all other times they are a dict
         if isinstance(encrypted_credentials, str):
-            encrypted_credentials = json.loads(encrypted_credentials)
+            try:
+                encrypted_credentials = json.loads(encrypted_credentials)
+            except json.JSONDecodeError:
+                errors.append(
+                    SupersetError(
+                        message=(
+                            "The service account credentials are not valid JSON. "
+                            "Please check that the field contains a valid service "
+                            "account key."
+                        ),
+                        error_type=SupersetErrorType.INVALID_PAYLOAD_FORMAT_ERROR,
+                        level=ErrorLevel.ERROR,
+                        extra={"invalid": ["service_account_info"]},
+                    ),
+                )
+                return errors
 
         # We need a subject in case domain wide delegation is set, otherwise the
         # check will fail. This means that the admin will be able to add sheets
@@ -389,8 +418,14 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
 
         engine = create_engine(
             "gsheets://",
-            service_account_info=encrypted_credentials,
-            subject=subject,
+            connect_args={
+                "adapter_kwargs": {
+                    "gsheetsapi": {
+                        "service_account_info": encrypted_credentials,
+                        "subject": subject,
+                    }
+                }
+            },
         )
         conn = engine.connect()
         idx = 0
@@ -431,7 +466,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
 
             try:
                 url = url.replace('"', '""')
-                results = conn.execute(f'SELECT * FROM "{url}" LIMIT 1')  # noqa: S608
+                results = conn.execute(text(f'SELECT * FROM "{url}" LIMIT 1'))  # noqa: S608
                 results.fetchall()
             except Exception:  # pylint: disable=broad-except
                 errors.append(

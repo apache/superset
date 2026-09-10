@@ -20,13 +20,14 @@ import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
-import { selectOption } from 'spec/helpers/testing-library';
+import { selectPillOption } from 'spec/helpers/testing-library';
 import {
   setupMocks,
   renderDatasetList,
   mockAdminUser,
   mockDatasets,
   setupBulkDeleteMocks,
+  mockDatasetListEndpoints,
   API_ENDPOINTS,
 } from './DatasetList.testHelpers';
 
@@ -72,8 +73,7 @@ test('ListView provider correctly merges filter + sort + pagination state on ref
   // the ListView provider correctly merges them for the API call.
   // Component tests verify individual pieces persist; this verifies they COMBINE correctly.
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     result: mockDatasets,
     count: mockDatasets.length,
   });
@@ -91,31 +91,33 @@ test('ListView provider correctly merges filter + sort + pagination state on ref
   });
 
   const callsBeforeSort = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASETS,
+    API_ENDPOINTS.DATASOURCE_COMBINED,
   ).length;
   await userEvent.click(nameHeader);
 
   // Wait for sort-triggered refetch to complete before applying filter
   await waitFor(() => {
     expect(
-      fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length,
+      fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED).length,
     ).toBeGreaterThan(callsBeforeSort);
   });
 
-  // 2. Apply a filter using selectOption helper
+  // 2. Apply a filter using selectPillOption helper (compact pill UI)
   const beforeFilterCallCount = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASETS,
+    API_ENDPOINTS.DATASOURCE_COMBINED,
   ).length;
-  await selectOption('Virtual', 'Type');
+  await selectPillOption('Virtual', 'Type');
 
   // Wait for filter API call to complete
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
+    const calls = fetchMock.callHistory.calls(
+      API_ENDPOINTS.DATASOURCE_COMBINED,
+    );
     expect(calls.length).toBeGreaterThan(beforeFilterCallCount);
   });
 
   // 3. Verify the final API call contains ALL three state pieces merged correctly
-  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
+  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED);
   const latestCall = calls[calls.length - 1];
   const { url } = latestCall;
 
@@ -151,8 +153,7 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
 
   setupBulkDeleteMocks();
 
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASETS] });
-  fetchMock.get(API_ENDPOINTS.DATASETS, {
+  mockDatasetListEndpoints({
     result: mockDatasets,
     count: mockDatasets.length,
   });
@@ -218,7 +219,7 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
 
   // Capture datasets call count before confirming
   const datasetsCallCountBeforeDelete = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASETS,
+    API_ENDPOINTS.DATASOURCE_COMBINED,
   ).length;
 
   const confirmButton = within(modal)
@@ -242,7 +243,7 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
   // Wait for datasets refetch after delete
   await waitFor(() => {
     const datasetsCallCount = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASETS,
+      API_ENDPOINTS.DATASOURCE_COMBINED,
     ).length;
     expect(datasetsCallCount).toBeGreaterThan(datasetsCallCountBeforeDelete);
   });
@@ -258,3 +259,294 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
   // This confirms the full bulk operation cycle coordinates correctly:
   // selection state → action handler → list refresh → state cleanup
 }, 45000);
+
+const emptyRelatedObjects = {
+  charts: { count: 0, result: [] },
+  dashboards: { count: 0, result: [] },
+};
+
+/**
+ * Renders the list, bulk-selects the given datasets, opens the bulk Delete
+ * confirm and resolves with the dialog.
+ */
+async function openBulkDeleteConfirm(selected: typeof mockDatasets) {
+  mockDatasetListEndpoints({ result: selected, count: selected.length });
+  fetchMock.delete(API_ENDPOINTS.DATASET_BULK_DELETE, {
+    message: `${selected.length} datasets deleted successfully`,
+  });
+
+  renderDatasetList(mockAdminUser);
+  await waitFor(() => {
+    expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+  });
+
+  await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+  const bulkSelectControls = await screen.findByTestId('bulk-select-controls');
+  const table = screen.getByTestId('listview-table');
+  await within(table).findAllByRole('checkbox');
+
+  for (const { table_name: name } of selected) {
+    // eslint-disable-next-line no-await-in-loop
+    const cell = await within(table).findByText(name);
+    // eslint-disable-next-line no-await-in-loop
+    await userEvent.click(within(cell.closest('tr')!).getByRole('checkbox'));
+  }
+  await waitFor(() => {
+    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+      new RegExp(`${selected.length} Selected`, 'i'),
+    );
+  });
+
+  await userEvent.click(
+    await within(bulkSelectControls).findByRole('button', { name: 'Delete' }),
+  );
+  return screen.findByRole('dialog');
+}
+
+test('bulk delete confirm names the charts and dashboards that will break', async () => {
+  // Single-row delete names the affected charts and counts dashboards; the
+  // bulk confirm must surface the same warning for the whole selection.
+  const selected = [mockDatasets[0], mockDatasets[1]];
+  fetchMock.get(API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS, {
+    charts: {
+      count: 2,
+      result: [
+        { id: 101, slice_name: 'Chart A' },
+        { id: 102, slice_name: 'Chart B' },
+      ],
+    },
+    dashboards: {
+      count: 1,
+      result: [{ id: 201, title: 'Executive Dashboard' }],
+    },
+  });
+
+  const modal = await openBulkDeleteConfirm(selected);
+
+  // findByText waits out the async lookup.
+  expect(await within(modal).findByText('Affected Charts')).toBeInTheDocument();
+  expect(within(modal).getByText('Affected Dashboards')).toBeInTheDocument();
+  expect(within(modal).getByText('Chart A')).toBeInTheDocument();
+  expect(within(modal).getByText('Chart B')).toBeInTheDocument();
+  expect(within(modal).getByText('Executive Dashboard')).toBeInTheDocument();
+  expect(modal).toHaveTextContent(/linked to 2 charts on 1 dashboard\./i);
+
+  // The whole selection goes out in one lookup.
+  const [lookup] = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS,
+  );
+  const query = new URL(lookup.url, 'http://localhost').searchParams.get('q');
+  expect(rison.decode(query!)).toEqual(selected.map(({ id }) => id));
+}, 45000);
+
+test('bulk delete confirm counts dependents the user cannot see', async () => {
+  // An editor who is not on a dependent chart's viewer list still breaks it
+  // by deleting the dataset, so the total must not collapse to zero.
+  fetchMock.get(API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS, {
+    charts: {
+      count: 2,
+      restricted_count: 1,
+      result: [{ id: 101, slice_name: 'Chart A' }],
+    },
+    dashboards: { count: 1, restricted_count: 1, result: [] },
+  });
+
+  const modal = await openBulkDeleteConfirm([mockDatasets[0], mockDatasets[1]]);
+
+  expect(await within(modal).findByText('Chart A')).toBeInTheDocument();
+  expect(modal).toHaveTextContent(/linked to 2 charts on 1 dashboard\./i);
+  expect(modal).toHaveTextContent(/1 additional restricted chart/i);
+  expect(modal).toHaveTextContent(/1 additional restricted dashboard/i);
+  expect(modal).not.toHaveTextContent(/no charts or dashboards depend on/i);
+}, 45000);
+
+test('bulk delete confirm says when nothing depends on the selection', async () => {
+  fetchMock.get(
+    API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS,
+    emptyRelatedObjects,
+  );
+
+  const modal = await openBulkDeleteConfirm([mockDatasets[0], mockDatasets[1]]);
+
+  expect(
+    await within(modal).findByText(/no charts or dashboards depend on/i),
+  ).toBeInTheDocument();
+  expect(within(modal).queryByText('Affected Charts')).not.toBeInTheDocument();
+}, 45000);
+
+test('bulk delete confirm never claims a semantic view has no dependents', async () => {
+  // Semantic views have no dependents lookup, so a mixed selection must say
+  // their charts are unchecked instead of reporting the dataset-only result
+  // as the whole picture.
+  const dataset = mockDatasets[0];
+  const semanticView = {
+    ...mockDatasets[1],
+    id: 99,
+    table_name: 'orders_semantic',
+    kind: 'semantic_view',
+  };
+  fetchMock.get(
+    API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS,
+    emptyRelatedObjects,
+  );
+
+  const modal = await openBulkDeleteConfirm([dataset, semanticView]);
+
+  expect(
+    await within(modal).findByText(
+      /charts built on the selected semantic view/i,
+    ),
+  ).toBeInTheDocument();
+  expect(modal).not.toHaveTextContent(/no charts or dashboards depend on/i);
+
+  // Only the regular dataset goes to the dataset lookup.
+  const [lookup] = fetchMock.callHistory.calls(
+    API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS,
+  );
+  const query = new URL(lookup.url, 'http://localhost').searchParams.get('q');
+  expect(rison.decode(query!)).toEqual([dataset.id]);
+}, 45000);
+
+test('bulk delete confirm says when the dependents lookup failed', async () => {
+  // A failed lookup must read as "unknown", never as "nothing depends on
+  // these". The delete itself stays possible: the warning is an aid, not a
+  // gate.
+  fetchMock.get(API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS, 500);
+
+  const modal = await openBulkDeleteConfirm([mockDatasets[0], mockDatasets[1]]);
+
+  expect(
+    await within(modal).findByText(
+      /could not check which charts and dashboards/i,
+    ),
+  ).toBeInTheDocument();
+  expect(modal).not.toHaveTextContent(/linked to/i);
+  await userEvent.type(
+    within(modal).getByTestId('delete-modal-input'),
+    'DELETE',
+  );
+  expect(within(modal).getByRole('button', { name: 'Delete' })).toBeEnabled();
+}, 45000);
+
+test('bulk delete confirm cannot be submitted before the dependents lookup resolves', async () => {
+  // Typing DELETE while the lookup is still pending must not enable the
+  // button, or a fast user confirms before seeing the blast radius.
+  let resolveLookup: (response: typeof emptyRelatedObjects) => void = () => {};
+  fetchMock.get(
+    API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS,
+    () =>
+      new Promise<typeof emptyRelatedObjects>(resolve => {
+        resolveLookup = resolve;
+      }),
+  );
+
+  const modal = await openBulkDeleteConfirm([mockDatasets[0], mockDatasets[1]]);
+
+  expect(
+    within(modal).getByText(/checking for affected charts and dashboards/i),
+  ).toBeInTheDocument();
+  await userEvent.type(
+    within(modal).getByTestId('delete-modal-input'),
+    'DELETE',
+  );
+  expect(within(modal).getByRole('button', { name: 'Delete' })).toBeDisabled();
+
+  resolveLookup(emptyRelatedObjects);
+
+  await within(modal).findByText(/no charts or dashboards depend on/i);
+  expect(within(modal).getByRole('button', { name: 'Delete' })).toBeEnabled();
+}, 45000);
+
+/**
+ * Renders the list with one regular dataset plus the given semantic-view row,
+ * bulk-selects both, opens the bulk Archive confirm, and asserts the modal
+ * keeps the danger treatment: no recovery promise, type-DELETE gate present.
+ */
+async function expectMixedBulkArchiveKeepsDangerTreatment(semanticView: {
+  [key: string]: unknown;
+  table_name: string;
+}) {
+  window.featureFlags = { SOFT_DELETE: true } as never;
+  try {
+    setupBulkDeleteMocks();
+    mockDatasetListEndpoints({
+      result: [mockDatasets[0], semanticView],
+      count: 2,
+    });
+
+    renderDatasetList(mockAdminUser);
+    await waitFor(() => {
+      expect(screen.getByTestId('listview-table')).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+    const bulkSelectControls = await screen.findByTestId(
+      'bulk-select-controls',
+    );
+    const table = screen.getByTestId('listview-table');
+    await within(table).findAllByRole('checkbox');
+
+    for (const name of [mockDatasets[0].table_name, semanticView.table_name]) {
+      // eslint-disable-next-line no-await-in-loop
+      const cell = await within(table).findByText(name);
+      // eslint-disable-next-line no-await-in-loop
+      await userEvent.click(within(cell.closest('tr')!).getByRole('checkbox'));
+    }
+    await waitFor(() => {
+      expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+        /2 Selected/i,
+      );
+    });
+
+    await userEvent.click(
+      await within(bulkSelectControls).findByRole('button', {
+        name: 'Archive',
+      }),
+    );
+
+    const modal = await screen.findByRole('dialog');
+    expect(modal).toHaveTextContent(/deleted permanently/i);
+    expect(modal).not.toHaveTextContent(/recover them there/i);
+    // The type-DELETE gate returns for the irreversible part.
+    expect(within(modal).getByTestId('delete-modal-input')).toBeInTheDocument();
+  } finally {
+    window.featureFlags = {} as never;
+  }
+}
+
+test('a bulk archive containing a semantic view drops the recoverable promise', async () => {
+  // Semantic views have no soft-delete: their endpoint hard-deletes. A mixed
+  // selection must therefore not be confirmed with "you can recover them
+  // there" copy and the type-DELETE friction removed -- that is a recoverable
+  // promise attached to an irreversible action. The modal keeps the danger
+  // treatment and says plainly which part of the selection dies.
+  //
+  // Both discriminators, as the real combined endpoint emits them:
+  // SemanticViewListSchema serializes kind AND source_type as Constants,
+  // so a row with one but not the other is unrepresentable on the wire.
+  await expectMixedBulkArchiveKeepsDangerTreatment({
+    ...mockDatasets[1],
+    id: 99,
+    table_name: 'orders_semantic',
+    kind: 'semantic_view',
+    source_type: 'semantic_layer',
+  });
+});
+
+test('semantic-view classification holds without the optional source_type', async () => {
+  // The discriminating case: `source_type` is optional on the row type, so a
+  // row carrying only `kind` is legal under the TS contract even though the
+  // live combined endpoint always emits both. Classification must key off the
+  // required `kind` -- this test FAILS against a `source_type`-based
+  // predicate (the row silently counts as a regular dataset and the modal
+  // promises recovery for something the handler would destroy), and passes
+  // against `isSemanticView`. It exists so that predicate cannot quietly
+  // revert.
+  // mockDatasets carries no source_type, so this row has `kind` only.
+  await expectMixedBulkArchiveKeepsDangerTreatment({
+    ...mockDatasets[1],
+    id: 99,
+    table_name: 'orders_semantic',
+    kind: 'semantic_view',
+  });
+});

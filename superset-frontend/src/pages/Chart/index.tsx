@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import type { Location, Action } from 'history';
 import { t } from '@apache-superset/core/translation';
@@ -36,6 +36,11 @@ import { URL_PARAMS } from 'src/constants';
 import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 import { getAppliedFilterValues } from 'src/dashboard/util/activeDashboardFilters';
 import { getParsedExploreURLParams } from 'src/explore/exploreUtils/getParsedExploreURLParams';
+import {
+  getChartStateFromHistoryState,
+  isSameChartState,
+  selectRestoreTarget,
+} from 'src/explore/exploreUtils/exploreHistory';
 import { hydrateExplore } from 'src/explore/actions/hydrateExplore';
 import ExploreViewContainer from 'src/explore/components/ExploreViewContainer';
 import { ExploreResponsePayload, SaveActionType } from 'src/explore/types';
@@ -43,6 +48,7 @@ import { fallbackExploreInitialData } from 'src/explore/fixtures';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
 import type Chart from 'src/types/Chart';
+import { mapSubjectValuesToIds } from 'src/features/subjects/SubjectPicker';
 
 const isValidResult = (rv: JsonObject): boolean =>
   rv?.result?.form_data && rv?.result?.dataset;
@@ -50,10 +56,19 @@ const isValidResult = (rv: JsonObject): boolean =>
 const hasDatasetId = (rv: JsonObject): boolean =>
   isDefined(rv?.result?.dataset?.id);
 
-const fetchExploreData = async (exploreUrlParams: URLSearchParams) => {
+const EXPLORE_ROUTE_PREFIX = '/explore/';
+
+const isExploreRoute = (pathname: string): boolean =>
+  pathname.startsWith(EXPLORE_ROUTE_PREFIX);
+
+const fetchExploreData = async (
+  exploreUrlParams: URLSearchParams,
+  signal?: AbortSignal,
+) => {
   const rv = await makeApi<{}, ExploreResponsePayload>({
     method: 'GET',
     endpoint: 'api/v1/explore/',
+    signal,
   })(exploreUrlParams);
   if (isValidResult(rv)) {
     if (hasDatasetId(rv)) {
@@ -130,14 +145,21 @@ const getDashboardContextFormData = (search: string) => {
 export default function ExplorePage() {
   const [isLoaded, setIsLoaded] = useState(false);
   const fetchGeneration = useRef(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const dispatch = useDispatch();
   const history = useHistory();
+  const restoreTarget = useSelector(selectRestoreTarget, shallowEqual);
 
   const loadExploreData = useCallback(
     (
       loc: { search: string; pathname: string },
       saveAction?: SaveActionType | null,
     ) => {
+      // Abort any in-flight request before starting a new one
+      abortControllerRef.current?.abort();
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+
       fetchGeneration.current += 1;
       const generation = fetchGeneration.current;
       const exploreUrlParams = getParsedExploreURLParams(loc);
@@ -145,7 +167,7 @@ export default function ExplorePage() {
 
       const isStale = () => generation !== fetchGeneration.current;
 
-      fetchExploreData(exploreUrlParams)
+      fetchExploreData(exploreUrlParams, controller.signal)
         .then(({ result }) => {
           if (isStale()) {
             return;
@@ -183,7 +205,19 @@ export default function ExplorePage() {
             }),
           );
         })
-        .catch(err => Promise.all([getClientErrorObject(err), err]))
+        .catch(err => {
+          // Silently ignore aborted requests - AbortError may be wrapped in SupersetApiError by makeApi
+          // or come through with statusText === 'abort' from SupersetClient
+          if (
+            err.name === 'AbortError' ||
+            err.statusText === 'abort' ||
+            err.originalError?.name === 'AbortError' ||
+            err.originalError?.statusText === 'abort'
+          ) {
+            return;
+          }
+          return Promise.all([getClientErrorObject(err), err]);
+        })
         .then(resolved => {
           if (isStale()) {
             return;
@@ -221,7 +255,9 @@ export default function ExplorePage() {
                 : Promise.reject()
             )
               .then(
-                ({ result: { id, url, owners, form_data: _, ...data } }) => {
+                ({
+                  result: { id, url, editors, viewers, form_data: _, ...data },
+                }) => {
                   if (isStale()) {
                     return;
                   }
@@ -230,7 +266,8 @@ export default function ExplorePage() {
                     datasource: err.extra?.datasource_name,
                     slice_id: id,
                     slice_url: url,
-                    owners: owners?.map(({ id }) => id),
+                    editors: mapSubjectValuesToIds(editors),
+                    viewers: mapSubjectValuesToIds(viewers),
                   };
                   dispatch(
                     hydrateExplore({
@@ -251,12 +288,20 @@ export default function ExplorePage() {
           return Promise.resolve();
         })
         .finally(() => {
-          if (!isStale()) {
+          if (!isStale() && !controller.signal.aborted) {
             setIsLoaded(true);
           }
         });
     },
     [dispatch],
+  );
+
+  // Cleanup: abort in-flight requests on unmount
+  useEffect(
+    () => () => {
+      abortControllerRef.current?.abort();
+    },
+    [],
   );
 
   // Initial fetch on mount
@@ -270,11 +315,27 @@ export default function ExplorePage() {
   // PUSH/POP: full reload (unmount + re-fetch).
   // REPLACE with saveAction state: re-fetch without unmount (keeps chart visible).
   // Other REPLACE: ignored (URL sync from updateHistory).
+  // Entries holding a chart state of the loaded chart are skipped: Explore
+  // pushed them itself, and ExploreViewContainer restores a popped one in place.
+  // Navigations that leave Explore must not trigger a re-fetch while the page
+  // is unmounting, as the destination's URL params are not chart params.
   useEffect(() => {
     const unlisten = history.listen((loc: Location, action: Action) => {
       const saveAction = (loc.state as Record<string, unknown>)?.saveAction as
         | SaveActionType
         | undefined;
+      const chartState = getChartStateFromHistoryState(loc.state);
+      if (chartState) {
+        if (action === 'PUSH') {
+          return;
+        }
+        if (action === 'POP' && isSameChartState(chartState, restoreTarget)) {
+          return;
+        }
+      }
+      if (!isExploreRoute(loc.pathname)) {
+        return;
+      }
       if (action === 'PUSH' || action === 'POP') {
         setIsLoaded(false);
         loadExploreData(loc, saveAction);
@@ -283,7 +344,7 @@ export default function ExplorePage() {
       }
     });
     return unlisten;
-  }, [history, loadExploreData]);
+  }, [history, loadExploreData, restoreTarget]);
 
   if (!isLoaded) {
     return <Loading />;

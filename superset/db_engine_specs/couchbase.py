@@ -175,14 +175,16 @@ class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
                 port=parameters.get("port"),
                 query=query_params,
             )
-        print(uri)
-        return str(uri)
+        # SQLAlchemy 2.0 made URL.__str__() hide the password by default
+        # (it rendered in full under 1.4); render_as_string(hide_password=
+        # False) is required here since this URI is stored/used to actually
+        # connect, not just displayed.
+        return uri.render_as_string(hide_password=False)
 
     @classmethod
     def get_parameters_from_uri(
         cls, uri: str, encrypted_extra: Optional[dict[str, Any]] = None
     ) -> BaseBasicParametersType:
-        print("get_parameters is called : ", uri)
         url = make_url_safe(uri)
         query = {
             key: value

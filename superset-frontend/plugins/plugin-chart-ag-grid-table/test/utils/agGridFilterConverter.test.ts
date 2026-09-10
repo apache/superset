@@ -284,6 +284,67 @@ describe('agGridFilterConverter', () => {
         val: 18,
       });
     });
+
+    test('should emit a numeric BETWEEN clause for a metric range filter', () => {
+      const filterModel: AgGridFilterModel = {
+        revenue: {
+          filterType: 'number',
+          type: 'inRange',
+          filter: 10,
+          filterTo: 20,
+        },
+      };
+
+      // revenue is a metric, so the range filter renders as a HAVING clause
+      const result = convertAgGridFiltersToSQL(filterModel, ['revenue']);
+
+      expect(result.havingClause).toContain('BETWEEN 10 AND 20');
+    });
+
+    test('should drop a metric range filter whose bounds are not numeric', () => {
+      const filterModel = {
+        revenue: {
+          filterType: 'number',
+          type: 'inRange',
+          filter: '0',
+          filterTo: '100 OR 1=1',
+        },
+      } as unknown as AgGridFilterModel;
+
+      const result = convertAgGridFiltersToSQL(filterModel, ['revenue']);
+
+      // a non-numeric bound must never be interpolated into the clause
+      expect(result.havingClause).toBeUndefined();
+
+      const emptyBoundFilterModel = {
+        revenue: {
+          filterType: 'number',
+          type: 'inRange',
+          filter: '0',
+          filterTo: '',
+        },
+      } as unknown as AgGridFilterModel;
+
+      const result2 = convertAgGridFiltersToSQL(emptyBoundFilterModel, [
+        'revenue',
+      ]);
+      expect(result2.havingClause).toBeUndefined();
+
+      // A missing upper bound must drop the clause rather than fall through
+      // to a generic single-operand BETWEEN.
+      const missingBoundFilterModel = {
+        revenue: {
+          filterType: 'number',
+          type: 'inRange',
+          filter: '0',
+        },
+      } as unknown as AgGridFilterModel;
+
+      const result3 = convertAgGridFiltersToSQL(missingBoundFilterModel, [
+        'revenue',
+      ]);
+      expect(result3.havingClause).toBeUndefined();
+    });
   });
 
   describe('Null/blank filters', () => {

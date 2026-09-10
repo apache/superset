@@ -26,4 +26,16 @@ export interface DeleteModalProps {
   open: boolean;
   title: ReactNode;
   name?: string;
+  /**
+   * Recoverable (soft-delete) mode: the action moves the object to the archive
+   * rather than destroying it, so the modal drops the "type DELETE to confirm"
+   * friction and uses a primary (non-danger) confirm button.
+   */
+  recoverable?: boolean;
+  /** Disable confirmation independently of the typed-text gate. */
+  disablePrimaryButton?: boolean;
+  /** Show progress on the primary action and prevent duplicate submission. */
+  loading?: boolean;
+  /** Clear and re-arm the typed-text gate when the reviewed data changes. */
+  confirmationResetKey?: string | number;
 }

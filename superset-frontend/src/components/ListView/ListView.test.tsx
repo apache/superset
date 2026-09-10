@@ -239,7 +239,10 @@ describe('ListView', () => {
   });
 
   test('calls fetchData on sort', async () => {
-    const sortHeader = screen.getAllByTestId('sort-header')[1];
+    // sort-header[0] is the first data column ('id'); the select-all
+    // column header carries `data-test="header-toggle-all"` instead
+    // of `sort-header` (see TableCollection's `header.cell` slot).
+    const sortHeader = screen.getAllByTestId('sort-header')[0];
     await userEvent.click(sortHeader);
 
     expect(mockedPropsComprehensive.fetchData).toHaveBeenCalledWith({
@@ -301,15 +304,19 @@ describe('ListView', () => {
   });
 
   test('renders UI filters', () => {
-    const filterControls = screen.getAllByRole('combobox');
-    expect(filterControls).toHaveLength(2);
+    // select and datetime_range filters render as compact pill buttons;
+    // search filter renders as a text input
+    const filterPills = screen.getAllByTestId('compact-filter-pill');
+    expect(filterPills).toHaveLength(3); // ID, Age, Time
   });
 
   test('calls fetchData on filter', async () => {
-    // Handle select filter
-    const selectFilter = screen.getAllByRole('combobox')[0];
-    await userEvent.click(selectFilter);
-    const option = screen.getByText('foo');
+    // Click the ID compact pill to open its option panel
+    const idPill = screen.getByRole('button', { name: 'ID' });
+    await userEvent.click(idPill);
+
+    // Wait for and click the 'foo' option in the dropdown panel
+    const option = await screen.findByRole('option', { name: 'foo' });
     await userEvent.click(option);
 
     // Handle search filter
@@ -341,7 +348,10 @@ describe('ListView', () => {
       initialSort: [{ id: 'something' }],
     });
 
-    const sortSelect = screen.getByTestId('card-sort-select');
+    const sortSelectContainer = screen.getByTestId('card-sort-select');
+    const sortSelect = sortSelectContainer.querySelector(
+      '[data-test="compact-filter-pill"]',
+    ) as HTMLElement;
     await userEvent.click(sortSelect);
 
     const sortOption = screen.getByText('Alphabetical');
@@ -349,4 +359,248 @@ describe('ListView', () => {
 
     expect(mockedPropsComprehensive.fetchData).toHaveBeenCalled();
   });
+
+  test('switches view mode via click of the toggle buttons', async () => {
+    const { container } = factory({
+      renderCard: jest.fn(),
+      data: [],
+      count: 0,
+      initialSort: [{ id: 'something' }],
+    });
+
+    const [cardToggle, tableToggle] =
+      container.querySelectorAll<HTMLElement>('.toggle-button');
+
+    expect(screen.getByTestId('empty-state')).toHaveClass('card');
+
+    await userEvent.click(tableToggle);
+    expect(screen.getByTestId('empty-state')).toHaveClass('table');
+
+    await userEvent.click(cardToggle);
+    expect(screen.getByTestId('empty-state')).toHaveClass('card');
+  });
+});
+
+// Mobile support tests
+test('respects forceViewMode prop and hides view toggle', () => {
+  // Omit cardSortSelectOptions to avoid CardSortSelect needing initialSort
+  const { cardSortSelectOptions: _cardSortSelectOptions, ...propsWithoutSort } =
+    mockedPropsComprehensive;
+  render(
+    <MemoryRouter>
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
+        <ListView
+          {...propsWithoutSort}
+          renderCard={() => <div>Card</div>}
+          forceViewMode="card"
+        />
+      </QueryParamProvider>
+    </MemoryRouter>,
+    { store: mockStore() },
+  );
+
+  // View toggle should not be present when forceViewMode is set
+  expect(screen.queryByLabelText('card-view')).not.toBeInTheDocument();
+  expect(screen.queryByLabelText('list-view')).not.toBeInTheDocument();
+});
+
+test('shows card view when forceViewMode is card', () => {
+  // Omit cardSortSelectOptions to avoid CardSortSelect needing initialSort
+  const { cardSortSelectOptions: _cardSortSelectOptions, ...propsWithoutSort } =
+    mockedPropsComprehensive;
+  render(
+    <MemoryRouter>
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
+        <ListView
+          {...propsWithoutSort}
+          renderCard={() => <div data-test="test-card">Card Content</div>}
+          forceViewMode="card"
+        />
+      </QueryParamProvider>
+    </MemoryRouter>,
+    { store: mockStore() },
+  );
+
+  // Should render cards, not table rows
+  expect(screen.getAllByTestId('test-card')).toHaveLength(2);
+});
+
+test('renders mobile filter drawer when mobileFiltersOpen is true', () => {
+  const setMobileFiltersOpen = jest.fn();
+  // Omit cardSortSelectOptions to avoid CardSortSelect needing initialSort
+  const { cardSortSelectOptions: _cardSortSelectOptions, ...propsWithoutSort } =
+    mockedPropsComprehensive;
+  render(
+    <MemoryRouter>
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
+        <ListView
+          {...propsWithoutSort}
+          mobileFiltersOpen
+          setMobileFiltersOpen={setMobileFiltersOpen}
+          mobileFiltersDrawerTitle="Search Dashboards"
+        />
+      </QueryParamProvider>
+    </MemoryRouter>,
+    { store: mockStore() },
+  );
+
+  // Drawer should be visible with custom title
+  expect(screen.getByText('Search Dashboards')).toBeInTheDocument();
+});
+
+test('calls setMobileFiltersOpen(false) when drawer is closed', async () => {
+  const setMobileFiltersOpen = jest.fn();
+  // Omit cardSortSelectOptions to avoid CardSortSelect needing initialSort
+  const { cardSortSelectOptions: _cardSortSelectOptions, ...propsWithoutSort } =
+    mockedPropsComprehensive;
+  render(
+    <MemoryRouter>
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
+        <ListView
+          {...propsWithoutSort}
+          mobileFiltersOpen
+          setMobileFiltersOpen={setMobileFiltersOpen}
+          mobileFiltersDrawerTitle="Search"
+        />
+      </QueryParamProvider>
+    </MemoryRouter>,
+    { store: mockStore() },
+  );
+
+  // Click the close button on the drawer
+  const closeButton = screen.getByLabelText('Close');
+  await userEvent.click(closeButton);
+
+  expect(setMobileFiltersOpen).toHaveBeenCalledWith(false);
+});
+
+test('mobile drawer contains FilterControls', () => {
+  const setMobileFiltersOpen = jest.fn();
+  const { cardSortSelectOptions: _cardSortSelectOptions, ...propsWithoutSort } =
+    mockedPropsComprehensive;
+  render(
+    <MemoryRouter>
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
+        <ListView
+          {...propsWithoutSort}
+          mobileFiltersOpen
+          setMobileFiltersOpen={setMobileFiltersOpen}
+        />
+      </QueryParamProvider>
+    </MemoryRouter>,
+    { store: mockStore() },
+  );
+
+  // The drawer should contain the filter controls; select filters render
+  // as popover triggers (aria-haspopup="listbox") in the drawer
+  const drawer = screen.getByRole('dialog');
+  const filterTriggers = drawer.querySelectorAll('[aria-haspopup="listbox"]');
+  expect(filterTriggers.length).toBeGreaterThan(0);
+});
+
+test('mobile drawer contains CardSortSelect when in card view with sort options', () => {
+  const setMobileFiltersOpen = jest.fn();
+  render(
+    <MemoryRouter>
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
+        <ListView
+          {...mockedPropsComprehensive}
+          renderCard={() => <div>Card</div>}
+          forceViewMode="card"
+          mobileFiltersOpen
+          setMobileFiltersOpen={setMobileFiltersOpen}
+          initialSort={[{ id: 'something' }]}
+        />
+      </QueryParamProvider>
+    </MemoryRouter>,
+    { store: mockStore() },
+  );
+
+  // Sort select should be present (may be multiple - one in drawer, one in header)
+  const sortSelects = screen.getAllByTestId('card-sort-select');
+  expect(sortSelects.length).toBeGreaterThan(0);
+});
+
+test('uses default drawer title when mobileFiltersDrawerTitle not provided', () => {
+  const setMobileFiltersOpen = jest.fn();
+  const { cardSortSelectOptions: _cardSortSelectOptions, ...propsWithoutSort } =
+    mockedPropsComprehensive;
+  render(
+    <MemoryRouter>
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
+        <ListView
+          {...propsWithoutSort}
+          mobileFiltersOpen
+          setMobileFiltersOpen={setMobileFiltersOpen}
+        />
+      </QueryParamProvider>
+    </MemoryRouter>,
+    { store: mockStore() },
+  );
+
+  // Default title should be 'Search'
+  expect(screen.getByText('Search')).toBeInTheDocument();
+});
+
+test('does not render drawer when mobileFiltersOpen is false', () => {
+  const setMobileFiltersOpen = jest.fn();
+  const { cardSortSelectOptions: _cardSortSelectOptions, ...propsWithoutSort } =
+    mockedPropsComprehensive;
+  render(
+    <MemoryRouter>
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
+        <ListView
+          {...propsWithoutSort}
+          mobileFiltersOpen={false}
+          setMobileFiltersOpen={setMobileFiltersOpen}
+          mobileFiltersDrawerTitle="Search"
+        />
+      </QueryParamProvider>
+    </MemoryRouter>,
+    { store: mockStore() },
+  );
+
+  // Drawer should not be visible (title not in visible content)
+  // Note: Ant Design drawer might still be in DOM but hidden
+  const drawer = document.querySelector('.ant-drawer-open');
+  expect(drawer).toBeNull();
+});
+
+test('does not render mobile drawer without setMobileFiltersOpen prop', () => {
+  const { cardSortSelectOptions: _cardSortSelectOptions, ...propsWithoutSort } =
+    mockedPropsComprehensive;
+  render(
+    <MemoryRouter>
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
+        <ListView {...propsWithoutSort} />
+      </QueryParamProvider>
+    </MemoryRouter>,
+    { store: mockStore() },
+  );
+
+  // No drawer elements should exist
+  const drawer = document.querySelector('.ant-drawer');
+  expect(drawer).toBeNull();
+});
+
+test('forceViewMode table shows table view', () => {
+  const { cardSortSelectOptions: _cardSortSelectOptions, ...propsWithoutSort } =
+    mockedPropsComprehensive;
+  render(
+    <MemoryRouter>
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
+        <ListView
+          {...propsWithoutSort}
+          renderCard={() => <div data-test="card">Card</div>}
+          forceViewMode="table"
+        />
+      </QueryParamProvider>
+    </MemoryRouter>,
+    { store: mockStore() },
+  );
+
+  // Should show table, not cards
+  expect(screen.queryByTestId('card')).not.toBeInTheDocument();
+  // Table should be present
+  expect(screen.getByRole('table')).toBeInTheDocument();
 });

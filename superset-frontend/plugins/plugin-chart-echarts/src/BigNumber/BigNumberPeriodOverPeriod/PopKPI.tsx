@@ -29,7 +29,7 @@ import {
   DEFAULT_DATE_PATTERN,
   ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
-import { isEmpty } from 'lodash';
+import { isEmpty } from 'lodash-es';
 import {
   PopKPIComparisonSymbolStyleProps,
   PopKPIComparisonValueStyleProps,

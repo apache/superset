@@ -19,7 +19,7 @@
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { createWrapper } from 'spec/helpers/testing-library';
 
 import useQueryEditor from '.';

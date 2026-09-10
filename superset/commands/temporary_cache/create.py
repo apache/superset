@@ -32,6 +32,7 @@ class CreateTemporaryCacheCommand(BaseCommand, ABC):
 
     @transaction(on_error=partial(on_error, reraise=TemporaryCacheCreateFailedError))
     def run(self) -> str:
+        self.validate()
         return self.create(self._cmd_params)
 
     def validate(self) -> None:

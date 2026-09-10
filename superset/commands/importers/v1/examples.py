@@ -46,6 +46,7 @@ from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.exceptions import QueryClauseValidationException
 from superset.models.core import Database
 from superset.sql.parse import transpile_to_dialect
+from superset.subjects.utils import get_default_viewers_for_current_user
 from superset.utils.core import get_example_default_schema
 from superset.utils.decorators import transaction
 
@@ -68,7 +69,7 @@ def transpile_virtual_dataset_sql(config: dict[str, Any], database_id: int) -> N
     if not sql:
         return
 
-    database = db.session.query(Database).get(database_id)
+    database = db.session.get(Database, database_id)
     if not database:
         logger.warning("Database %s not found, skipping SQL transpilation", database_id)
         return
@@ -162,6 +163,14 @@ class ImportExamplesCommand(ImportModelsCommand):
         dataset_info: dict[str, dict[str, Any]] = {}
         for file_name, config in configs.items():
             if file_name.startswith("datasets/"):
+                # Some examples ship a dataset config for a table that another
+                # example already defines (same uuid, re-exported under a
+                # different folder). Import each uuid once per run --
+                # reimporting it just repeats the same column/metric sync
+                # against an identical config.
+                if config["uuid"] in dataset_info:
+                    continue
+
                 # find the ID of the corresponding database
                 if config["database_uuid"] not in database_ids:
                     raise Exception(  # pylint: disable=broad-exception-raised
@@ -199,6 +208,10 @@ class ImportExamplesCommand(ImportModelsCommand):
                     "datasource_name": dataset.table_name,
                 }
 
+        # Resolve the creator's default viewers once for the whole bundle
+        # rather than once per chart/dashboard (a membership query each).
+        default_viewers = get_default_viewers_for_current_user()
+
         # import charts
         chart_ids: dict[str, int] = {}
         for file_name, config in configs.items():
@@ -212,6 +225,7 @@ class ImportExamplesCommand(ImportModelsCommand):
                     config,
                     overwrite=overwrite,
                     ignore_permissions=True,
+                    default_viewers=default_viewers,
                 )
                 chart_ids[str(chart.uuid)] = chart.id
 
@@ -228,6 +242,7 @@ class ImportExamplesCommand(ImportModelsCommand):
                     config,
                     overwrite=overwrite,
                     ignore_permissions=True,
+                    default_viewers=default_viewers,
                 )
                 dashboard.published = True
 

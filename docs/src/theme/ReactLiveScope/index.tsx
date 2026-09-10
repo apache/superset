@@ -52,12 +52,21 @@ if (isBrowser) {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { Alert } = require('@apache-superset/core/components');
 
-    console.log('[ReactLiveScope] SupersetComponents keys:', Object.keys(SupersetComponents || {}).slice(0, 10));
-    console.log('[ReactLiveScope] Has Button?', 'Button' in (SupersetComponents || {}));
+    console.log(
+      '[ReactLiveScope] SupersetComponents keys:',
+      Object.keys(SupersetComponents || {}).slice(0, 10),
+    );
+    console.log(
+      '[ReactLiveScope] Has Button?',
+      'Button' in (SupersetComponents || {}),
+    );
 
     Object.assign(ReactLiveScope, SupersetComponents, { Alert });
 
-    console.log('[ReactLiveScope] Final scope keys:', Object.keys(ReactLiveScope).slice(0, 20));
+    console.log(
+      '[ReactLiveScope] Final scope keys:',
+      Object.keys(ReactLiveScope).slice(0, 20),
+    );
   } catch (e) {
     console.error('[ReactLiveScope] Failed to load Superset components:', e);
   }

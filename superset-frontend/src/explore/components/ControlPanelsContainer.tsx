@@ -59,7 +59,7 @@ import {
   sections,
 } from '@superset-ui/chart-controls';
 import { useSelector } from 'react-redux';
-import { kebabCase, isEqual } from 'lodash';
+import { kebabCase, isEqual } from 'lodash-es';
 
 import {
   Collapse,
@@ -79,7 +79,7 @@ import ControlRow from './ControlRow';
 import Control from './Control';
 import { ExploreAlert } from './ExploreAlert';
 import { RunQueryButton } from './RunQueryButton';
-import { Operators } from '../constants';
+import { CONTROL_SECTIONS_ID, Operators } from '../constants';
 import { Clauses } from './controls/FilterControl/types';
 import StashFormDataContainer from './StashFormDataContainer';
 
@@ -152,8 +152,8 @@ const Styles = styled.div`
   display: flex;
   flex-direction: column;
 
-  // Resizable add overflow-y: auto as a style to this div
-  // To override it, we need to use !important
+  /* Resizable adds overflow-y: auto as a style to this div */
+  /* To override it, we need to use !important */
   overflow: visible !important;
 
   #controlSections {
@@ -166,28 +166,28 @@ const Styles = styled.div`
     flex: 1 1 100%;
   }
 
-  // Ensure Ant Design tabs allow content to expand
+  /* Ensure Ant Design tabs allow content to expand */
+  .ant-tabs-body {
+    overflow: visible;
+    height: auto;
+  }
+
+  .ant-tabs-body-holder {
+    overflow: visible;
+    height: auto;
+  }
+
   .ant-tabs-content {
     overflow: visible;
     height: auto;
   }
 
-  .ant-tabs-content-holder {
-    overflow: visible;
-    height: auto;
-  }
-
-  .ant-tabs-tabpane {
-    overflow: visible;
-    height: auto;
-  }
-
-  // Ensure collapse components can expand
-  .ant-collapse-content {
+  /* Ensure collapse components can expand */
+  .ant-collapse-panel {
     overflow: visible;
   }
 
-  .ant-collapse-content-box {
+  .ant-collapse-body {
     overflow: visible;
   }
 
@@ -403,7 +403,14 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               props.controls[controlName].value,
             );
         if (shouldUpdateControls) {
-          props.actions.setControlValue(controlName, alteredControls);
+          props.actions.setControlValue(
+            controlName,
+            alteredControls,
+            undefined,
+            {
+              programmatic: true,
+            },
+          );
         }
       });
     }
@@ -630,10 +637,17 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             line-height: 1.3;
           `}
         >
-          {label}
+          {typeof label === 'function' ? (label as () => ReactNode)() : label}
         </span>{' '}
         {description && (
-          <Tooltip id={sectionId} title={description}>
+          <Tooltip
+            id={sectionId}
+            title={
+              typeof description === 'function'
+                ? (description as () => ReactNode)()
+                : description
+            }
+          >
             <Icons.InfoCircleOutlined css={iconStyles} />
           </Tooltip>
         )}
@@ -648,6 +662,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
       </span>
     );
 
+    let isInSubSection = false;
     const PanelChildren = (
       <>
         <StashFormDataContainer
@@ -665,8 +680,19 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             .filter(Boolean)}
         />
         {isVisible && (
-          <>
+          <div style={{ paddingLeft: theme.sizeUnit * 2 }}>
             {section.controlSetRows.map((controlSets, i) => {
+              // Detect sub-section header rows (React elements with no name prop)
+              const isSubSectionHeaderRow = controlSets.some(
+                item =>
+                  isValidElement(item) &&
+                  !(item as React.ReactElement<Record<string, unknown>>).props
+                    ?.name,
+              );
+              if (isSubSectionHeaderRow) {
+                isInSubSection = true;
+              }
+
               const renderedControls = controlSets
                 .map(controlItem => {
                   if (!controlItem) {
@@ -715,14 +741,23 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
               if (renderedControls.length === 0) {
                 return null;
               }
-              return (
+              // Indent controls within sub-sections for visual hierarchy
+              const paddingLeft =
+                isInSubSection && !isSubSectionHeaderRow
+                  ? theme.sizeUnit * 3
+                  : 0;
+              return paddingLeft ? (
+                <div key={`controlsetrow-${i}`} style={{ paddingLeft }}>
+                  <ControlRow controls={renderedControls} />
+                </div>
+              ) : (
                 <ControlRow
                   key={`controlsetrow-${i}`}
                   controls={renderedControls}
                 />
               );
             })}
-          </>
+          </div>
         )}
       </>
     );
@@ -913,7 +948,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     <>
       <Styles ref={containerRef}>
         <Tabs
-          id="controlSections"
+          id={CONTROL_SECTIONS_ID}
           data-test="control-tabs"
           allowOverflow={false}
           activeKey={activeTabKey}

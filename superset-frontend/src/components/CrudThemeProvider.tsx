@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useEffect, useMemo } from 'react';
+import {
+  ReactNode,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+} from 'react';
 import { logging } from '@apache-superset/core/utils';
 import {
   Theme,
@@ -24,6 +31,7 @@ import {
   isThemeConfigDark,
 } from '@apache-superset/core/theme';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { ThemeContext } from 'src/theme/ThemeProvider';
 import type { Dashboard } from 'src/types/Dashboard';
 
 interface CrudThemeProviderProps {
@@ -32,18 +40,24 @@ interface CrudThemeProviderProps {
 }
 
 /**
- * CrudThemeProvider applies a dashboard-specific theme using theme data
- * from the dashboard API response. Merges with the system's base theme
- * (light or dark) and loads custom fonts. Falls back to the global theme
- * if the theme data is missing or invalid.
+ * Applies a dashboard-specific theme from the dashboard API response, merged
+ * over the system's base theme (light or dark), and loads custom fonts. Falls
+ * back to the global theme when the theme data is missing or invalid.
+ *
+ * A single, stable Theme instance is updated in place instead of recreated, so
+ * the SupersetThemeProvider identity stays constant and the dashboard subtree
+ * is not remounted when the applied theme changes.
  */
 export default function CrudThemeProvider({
   children,
   theme,
 }: CrudThemeProviderProps) {
-  const { dashboardTheme, fontUrls } = useMemo(() => {
-    if (!theme?.json_data) {
-      return { dashboardTheme: null, fontUrls: undefined };
+  const themeContext = useContext(ThemeContext);
+  const hasThemeConfigOverride = themeContext?.hasThemeConfigOverride ?? false;
+
+  const parsedTheme = useMemo(() => {
+    if (hasThemeConfigOverride || !theme?.json_data) {
+      return null;
     }
     try {
       const themeConfig = JSON.parse(theme.json_data);
@@ -53,24 +67,53 @@ export default function CrudThemeProvider({
         common: { theme: bootstrapTheme },
       } = getBootstrapData();
       const baseTheme = isDark ? bootstrapTheme.dark : bootstrapTheme.default;
-      const createdTheme = Theme.fromConfig(
-        normalizedConfig,
-        baseTheme || undefined,
-      );
       const rawUrls = themeConfig?.token?.fontUrls;
-      const urls = Array.isArray(rawUrls) ? (rawUrls as string[]) : undefined;
-      return { dashboardTheme: createdTheme, fontUrls: urls };
+      const fontUrls = Array.isArray(rawUrls)
+        ? (rawUrls as string[])
+        : undefined;
+      return { normalizedConfig, baseTheme: baseTheme || undefined, fontUrls };
     } catch (error) {
       logging.warn('Failed to load dashboard theme:', error);
-      return { dashboardTheme: null, fontUrls: undefined };
+      return null;
     }
-  }, [theme?.json_data]);
+  }, [theme?.json_data, hasThemeConfigOverride]);
+
+  // Create the stable instance once; update it in place on later changes.
+  const dashboardThemeRef = useRef<Theme | null>(null);
+  if (parsedTheme && !dashboardThemeRef.current) {
+    try {
+      dashboardThemeRef.current = Theme.fromConfig(
+        parsedTheme.normalizedConfig,
+        parsedTheme.baseTheme,
+      );
+    } catch (error) {
+      logging.warn('Failed to load dashboard theme:', error);
+    }
+  }
+
+  useLayoutEffect(() => {
+    if (parsedTheme && dashboardThemeRef.current) {
+      try {
+        dashboardThemeRef.current.setConfig(
+          parsedTheme.normalizedConfig,
+          parsedTheme.baseTheme,
+        );
+      } catch (error) {
+        logging.warn('Failed to load dashboard theme:', error);
+      }
+    }
+  }, [parsedTheme]);
 
   useEffect(() => {
-    if (!dashboardTheme || !fontUrls?.length) return undefined;
-
-    // JSON.stringify provides safe escaping to prevent CSS injection
-    const css = fontUrls
+    if (
+      !parsedTheme ||
+      !dashboardThemeRef.current ||
+      !parsedTheme.fontUrls?.length
+    ) {
+      return undefined;
+    }
+    // JSON.stringify escapes the URL to prevent CSS injection.
+    const css = parsedTheme.fontUrls
       .map((url: string) => `@import url(${JSON.stringify(url)});`)
       .join('\n');
     const style = document.createElement('style');
@@ -81,15 +124,13 @@ export default function CrudThemeProvider({
     return () => {
       style.remove();
     };
-  }, [dashboardTheme, fontUrls]);
+  }, [parsedTheme]);
 
-  if (!dashboardTheme) {
+  if (!parsedTheme || !dashboardThemeRef.current) {
     return <>{children}</>;
   }
 
-  return (
-    <dashboardTheme.SupersetThemeProvider>
-      {children}
-    </dashboardTheme.SupersetThemeProvider>
-  );
+  const DashboardThemeProvider =
+    dashboardThemeRef.current.SupersetThemeProvider;
+  return <DashboardThemeProvider>{children}</DashboardThemeProvider>;
 }

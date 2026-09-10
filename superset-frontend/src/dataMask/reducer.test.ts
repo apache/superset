@@ -23,11 +23,15 @@ import {
   type SetDataMaskForFilterChangesComplete,
 } from './actions';
 import {
+  type ChartCustomization,
   type DataMaskStateWithId,
   type Filter,
+  type FilterConfiguration,
   type NativeFilterTarget,
   NativeFilterType,
+  ChartCustomizationType,
 } from '@superset-ui/core';
+import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 
 // Helper to create minimal filter for testing
 const createFilter = (
@@ -115,4 +119,99 @@ test('when user edits a filter without changing targets, their selection is pres
   expect(result['NATIVE_FILTER-1']?.extraFormData?.time_range).toEqual(
     '1 year ago',
   );
+});
+
+test('when a required range filter was cleared to [null, null], modifying it applies the new default instead of the cleared state', () => {
+  // Regression for the PR #40470 review: [null, null] is a range filter's
+  // canonical "cleared" value. It must count as "no value" so the empty state
+  // does not wipe a newly-defined default — consistent with `loadedHasValue`
+  // in fillNativeFilters.
+  const initialState: DataMaskStateWithId = {
+    'NATIVE_FILTER-1': {
+      id: 'NATIVE_FILTER-1',
+      ...getInitialDataMask('NATIVE_FILTER-1'),
+      filterState: { value: [null, null] },
+    },
+  };
+
+  const oldFilters = {
+    'NATIVE_FILTER-1': createFilter('NATIVE_FILTER-1', 'col_a', {
+      enableEmptyFilter: true,
+    }),
+  };
+
+  const modifiedFilter: Filter = {
+    ...createFilter('NATIVE_FILTER-1', 'col_a', { enableEmptyFilter: true }),
+    defaultDataMask: { filterState: { value: [10, 20] } },
+  };
+
+  const action = createModifyAction(modifiedFilter, oldFilters);
+
+  const result = reducer(initialState, action);
+
+  // The cleared [null, null] state must not be preserved; the new default wins.
+  expect(result['NATIVE_FILTER-1']?.filterState?.value).toEqual([10, 20]);
+});
+
+// Runtime data from the server can contain null entries in
+// chart_customization_config even though the TS type does not include | null
+// yet. These helpers build HYDRATE_DASHBOARD actions that mirror that reality.
+function hydrateAction(
+  chartCustomizationConfig: unknown[],
+  nativeFilterConfig: FilterConfiguration = [],
+) {
+  return {
+    type: HYDRATE_DASHBOARD as typeof HYDRATE_DASHBOARD,
+    data: {
+      dashboardInfo: {
+        metadata: {
+          native_filter_configuration: nativeFilterConfig,
+          chart_customization_config:
+            chartCustomizationConfig as ChartCustomization[],
+        },
+      },
+      dataMask: {},
+    },
+  };
+}
+
+test('HYDRATE_DASHBOARD filters null entries from chart_customization_config', () => {
+  const customizationId = 'CHART_CUSTOMIZATION-group-1';
+  const action = hydrateAction([
+    null,
+    {
+      id: customizationId,
+      type: ChartCustomizationType.ChartCustomization,
+      name: 'Dynamic Group By',
+      filterType: 'chart_customization_dynamic_groupby',
+      targets: [{ datasetId: 1, column: { name: 'status' } }],
+      scope: { rootPath: ['ROOT_ID'], excluded: [] },
+      chartsInScope: [10],
+      defaultDataMask: {
+        extraFormData: {},
+        filterState: { value: ['status'] },
+      },
+      controlValues: {},
+      cascadeParentIds: [],
+      description: '',
+    },
+    null,
+  ]);
+
+  const result = reducer({}, action);
+
+  expect(result[customizationId]).toBeDefined();
+  expect(result[customizationId].filterState?.value).toEqual(['status']);
+});
+
+test('HYDRATE_DASHBOARD handles chart_customization_config that is entirely null', () => {
+  const action = hydrateAction([null, null]);
+
+  const result = reducer({}, action);
+
+  // Should not crash; no customization keys should appear
+  const customizationKeys = Object.keys(result).filter(k =>
+    k.startsWith('CHART_CUSTOMIZATION'),
+  );
+  expect(customizationKeys).toHaveLength(0);
 });

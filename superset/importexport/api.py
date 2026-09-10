@@ -18,7 +18,7 @@ from datetime import datetime
 from io import BytesIO
 from zipfile import is_zipfile, ZipFile
 
-from flask import request, Response, send_file
+from flask import request, Response
 from flask_appbuilder.api import expose, protect
 
 from superset.commands.export.assets import ExportAssetsCommand
@@ -30,6 +30,7 @@ from superset.commands.importers.v1.assets import ImportAssetsCommand
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.extensions import event_logger
 from superset.utils import json
+from superset.utils.core import parse_boolean_string, send_export_zip
 from superset.views.base_api import BaseSupersetApi, requires_form_data, statsd_metrics
 
 
@@ -83,13 +84,7 @@ class ImportExportRestApi(BaseSupersetApi):
                     fp.write(file_content().encode())
         buf.seek(0)
 
-        response = send_file(
-            buf,
-            mimetype="application/zip",
-            as_attachment=True,
-            download_name=filename,
-        )
-        return response
+        return send_export_zip(buf, filename)
 
     @expose("/import/", methods=("POST",))
     @protect()
@@ -157,6 +152,12 @@ class ImportExportRestApi(BaseSupersetApi):
                     sparse:
                       description: allow sparse update of resources
                       type: boolean
+                    overwrite:
+                      description: >-
+                        overwrite existing assets? Defaults to ``true`` for
+                        backwards compatibility. When ``false``, the import
+                        fails if any of the assets already exist.
+                      type: boolean
           responses:
             200:
               description: Assets import result
@@ -188,6 +189,9 @@ class ImportExportRestApi(BaseSupersetApi):
         if not contents:
             raise NoValidFilesFoundError()
         sparse = request.form.get("sparse") == "true"
+        # Defaults to True for backwards compatibility: historically this
+        # endpoint always overwrote existing assets.
+        overwrite = parse_boolean_string(request.form.get("overwrite", "true"))
 
         passwords = (
             json.loads(request.form["passwords"])
@@ -218,6 +222,7 @@ class ImportExportRestApi(BaseSupersetApi):
         command = ImportAssetsCommand(
             contents,
             sparse=sparse,
+            overwrite=overwrite,
             passwords=passwords,
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,

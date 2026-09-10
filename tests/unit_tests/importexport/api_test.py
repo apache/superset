@@ -48,7 +48,9 @@ def test_export_assets(
     mocked_export_result = [
         (
             "metadata.yaml",
-            lambda: "version: 1.0.0\ntype: assets\ntimestamp: '2022-01-01T00:00:00+00:00'\n",  # noqa: E501
+            lambda: (
+                "version: 1.0.0\ntype: assets\ntimestamp: '2022-01-01T00:00:00+00:00'\n"
+            ),  # noqa: E501
         ),
         ("databases/example.yaml", lambda: "<DATABASE CONTENTS>"),
     ]
@@ -109,6 +111,7 @@ def test_import_assets(
     ImportAssetsCommand.assert_called_with(
         mocked_contents,
         sparse=False,
+        overwrite=True,
         passwords=passwords,
         ssh_tunnel_passwords=None,
         ssh_tunnel_private_keys=None,
@@ -160,11 +163,60 @@ def test_import_assets_with_encrypted_extra_secrets(
     ImportAssetsCommand.assert_called_with(
         mocked_contents,
         sparse=False,
+        overwrite=True,
         passwords=None,
         ssh_tunnel_passwords=None,
         ssh_tunnel_private_keys=None,
         ssh_tunnel_priv_key_passwords=None,
         encrypted_extra_secrets=secrets,
+    )
+
+
+def test_import_assets_overwrite_false(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Passing ``overwrite=false`` on the form must be forwarded to
+    ``ImportAssetsCommand``. Previously the flag was ignored and assets were
+    always overwritten.
+    """
+    mocked_contents = {
+        "metadata.yaml": (
+            "version: 1.0.0\ntype: assets\ntimestamp: '2022-01-01T00:00:00+00:00'\n"
+        ),
+        "databases/example.yaml": "<DATABASE CONTENTS>",
+    }
+
+    ImportAssetsCommand = mocker.patch("superset.importexport.api.ImportAssetsCommand")  # noqa: N806
+
+    root = Path("assets_export")
+    buf = BytesIO()
+    with ZipFile(buf, "w") as bundle:
+        for path, contents in mocked_contents.items():
+            with bundle.open(str(root / path), "w") as fp:
+                fp.write(contents.encode())
+    buf.seek(0)
+
+    form_data = {
+        "bundle": (buf, "assets_export.zip"),
+        "overwrite": "false",
+    }
+    response = client.post(
+        "/api/v1/assets/import/", data=form_data, content_type="multipart/form-data"
+    )
+    assert response.status_code == 200
+
+    ImportAssetsCommand.assert_called_with(
+        mocked_contents,
+        sparse=False,
+        overwrite=False,
+        passwords=None,
+        ssh_tunnel_passwords=None,
+        ssh_tunnel_private_keys=None,
+        ssh_tunnel_priv_key_passwords=None,
+        encrypted_extra_secrets=None,
     )
 
 

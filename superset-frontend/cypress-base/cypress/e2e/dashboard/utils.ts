@@ -160,18 +160,6 @@ export function interceptLog() {
   cy.intercept('**/superset/log/?explode=events&dashboard_id=*').as('logs');
 }
 
-export function interceptFav() {
-  cy.intercept({ url: `**/api/v1/dashboard/*/favorites/`, method: 'POST' }).as(
-    'select',
-  );
-}
-
-export function interceptUnfav() {
-  cy.intercept({ url: `**/api/v1/dashboard/*/favorites/`, method: 'POST' }).as(
-    'unselect',
-  );
-}
-
 export function interceptDataset() {
   cy.intercept('GET', `**/api/v1/dataset/*`).as('getDataset');
 }
@@ -483,19 +471,19 @@ export function applyAdvancedTimeRangeFilterOnDashboard(
   endRange?: string,
 ) {
   cy.get('.control-label').contains('Range type').should('be.visible');
-  cy.get('.ant-popover-content .ant-select-selector')
+  cy.get('.ant-popover-content .ant-select-content')
     .should('be.visible')
     .click();
   cy.get(`[label="Advanced"]`).should('be.visible').click();
   cy.get('.section-title').contains('Advanced Time Range').should('be.visible');
   if (startRange) {
-    cy.get('.ant-popover-inner-content')
+    cy.get('.ant-popover-content')
       .find('[class^=ant-input]')
       .first()
       .type(`${startRange}`);
   }
   if (endRange) {
-    cy.get('.ant-popover-inner-content')
+    cy.get('.ant-popover-content')
       .find('[class^=ant-input]')
       .last()
       .type(`${endRange}`);
@@ -526,15 +514,14 @@ export function inputNativeFilterDefaultValue(
       )
         .eq(1)
         .within(() => {
-          cy.get('.ant-select-selection-search-input').type(
-            `${defaultValue}{enter}`,
-            { force: true },
-          );
+          cy.get('.ant-select-input').type(`${defaultValue}{enter}`, {
+            force: true,
+          });
         });
     });
   } else {
     cy.getBySel('default-input').within(() => {
-      cy.get('.ant-select-selection-search-input').click();
+      cy.get('.ant-select-input').click();
       cy.get('.ant-select-item-option-content').contains(defaultValue).click();
     });
   }

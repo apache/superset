@@ -17,7 +17,7 @@
   {% import 'appbuilder/general/lib.html' as lib %}
   {% from 'superset/partials/asset_bundle.html' import css_bundle, js_bundle with context %}
   {% import "superset/macros.html" as macros %}
-  {% set favicons = appbuilder.app.config['FAVICONS'] %}
+  {% set favicons = config['FAVICONS'] %}
 
   <head>
     <title>
@@ -31,7 +31,24 @@
     </title>
 
     {% block head_meta %}
-      <link rel="manifest" href="{{ assets_prefix }}/static/assets/pwa-manifest.json?v=4">
+      {% if is_feature_enabled is defined and is_feature_enabled('MOBILE_CONSUMPTION_MODE') %}
+        {# Without this, mobile browsers lay the page out at the ~980px legacy
+           viewport and the mobile consumption mode's breakpoints never match.
+           Only emitted when the flag is on so desktop-only deployments keep
+           the shrink-to-fit rendering on phones. #}
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+      {% endif %}
+      {# Manifest is served dynamically by PwaManifestView so APPLICATION_ROOT
+         and STATIC_ASSETS_PREFIX resolve at request time. Do NOT use
+         `assets_prefix` here — that may point to a CDN host with no
+         Superset backend. See superset/views/pwa_manifest.py. #}
+      <link rel="manifest" href="{{ application_root_rstrip }}/pwa-manifest.json">
+      {% if title %}<meta property="og:title" content="{{ title }}" />{% endif %}
+      {% if dashboard_description %}
+        <meta property="og:description" content="{{ dashboard_description }}" />
+      {% endif %}
+      <meta property="og:type" content="article" />
+      {% if request %}<meta property="og:url" content="{{ request.url }}" />{% endif %}
     {% endblock %}
 
     <style>
@@ -43,6 +60,13 @@
       body {
         background: {{ theme_tokens.colorBgBase | default('#fff') }};
         color: #000;
+      }
+      {% endif %}
+      {% if standalone_mode %}
+      /* Keep body sized so screenshot waits don't see it as hidden before React mounts. */
+      html, body.standalone {
+        min-height: 100vh;
+        margin: 0;
       }
       {% endif %}
     </style>
@@ -138,6 +162,42 @@
     {% endblock %}
 
     {% block tail_js %}
+      {#
+        Load the language pack BEFORE the entry bundle so module-level
+        `const X = t('...')` calls across webpack-split chunks all find a
+        configured translator on first access (upstream issue #35330). The
+        script sets window.__SUPERSET_LANGUAGE_PACK__ and is content-addressed
+        (/language_pack/<lang>/<version>/script.js), so browsers cache it as
+        immutable across page loads and cache-bust automatically whenever
+        translations change. English emits no tag at all. If the script fails
+        to load, preamble.ts falls back to the async language pack fetch.
+      #}
+      {% if language_pack_src %}
+        <script src="{{ language_pack_src }}" nonce="{{ macros.get_nonce() }}"></script>
+      {% endif %}
+      {#
+        Operators can still supply a pack directly in the bootstrap payload
+        via COMMON_BOOTSTRAP_OVERRIDES_FUNC (the historical #35330
+        workaround). When one is present, stash it on window here instead of
+        emitting the versioned script tag, so early chunks see the override.
+      #}
+      {% if language_pack_inline %}
+        <script nonce="{{ macros.get_nonce() }}">
+          (function () {
+            try {
+              var el = document.getElementById('app');
+              if (!el) return;
+              var data = JSON.parse(el.getAttribute('data-bootstrap') || '{}');
+              var pack = data && data.common && data.common.language_pack;
+              if (pack) {
+                window.__SUPERSET_LANGUAGE_PACK__ = pack;
+              }
+            } catch (e) {
+              /* swallow: fall back to async fetch in preamble.ts */
+            }
+          })();
+        </script>
+      {% endif %}
       {% if entry %}
         {{ js_bundle(assets_prefix, entry) }}
       {% endif %}

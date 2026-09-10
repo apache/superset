@@ -49,7 +49,7 @@ export interface VirtualDatasetCreatePayload {
   schema: string | null;
   table_name: string;
   sql: string;
-  owners?: number[];
+  editors?: number[];
 }
 
 /**
@@ -65,7 +65,7 @@ export interface DatasetResult {
     id: number;
     database_name: string;
   };
-  owners?: Array<{ id: number }>;
+  editors?: Array<{ id: number }>;
   dataset_type?: 'physical' | 'virtual';
 }
 
@@ -124,7 +124,7 @@ export async function createTestVirtualDataset(
     schema: '',
     table_name: name,
     sql: "SELECT 1 as id, 'test' as name",
-    owners: [],
+    editors: [],
   });
 
   if (!response.ok()) {
@@ -201,6 +201,21 @@ export async function apiDeleteDataset(
   options?: ApiRequestOptions,
 ): Promise<APIResponse> {
   return apiDelete(page, `${ENDPOINTS.DATASET}${datasetId}`, options);
+}
+
+/**
+ * Export datasets as a zip file via the API.
+ * Uses Rison encoding for the query parameter (required by the endpoint).
+ * @param page - Playwright page instance (provides authentication context)
+ * @param datasetIds - Array of dataset IDs to export
+ * @returns API response containing the export zip
+ */
+export async function apiExportDatasets(
+  page: Page,
+  datasetIds: number[],
+): Promise<APIResponse> {
+  const query = rison.encode(datasetIds);
+  return apiGet(page, `${ENDPOINTS.DATASET_EXPORT}?q=${query}`);
 }
 
 /**

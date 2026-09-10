@@ -18,7 +18,6 @@
  */
 
 import '@testing-library/jest-dom';
-import mockConsole, { RestoreConsole } from 'jest-mock-console';
 import { ChartProps } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import { render, screen, waitFor } from '@superset-ui/core/spec';
@@ -38,8 +37,6 @@ describe('SuperChartCore', () => {
     new SlowChartPlugin().configure({ key: ChartKeys.SLOW }),
   ];
 
-  let restoreConsole: RestoreConsole;
-
   beforeAll(() => {
     jest.setTimeout(30000);
     plugins.forEach(p => {
@@ -51,14 +48,6 @@ describe('SuperChartCore', () => {
     plugins.forEach(p => {
       p.unregister();
     });
-  });
-
-  beforeEach(() => {
-    restoreConsole = mockConsole();
-  });
-
-  afterEach(() => {
-    restoreConsole();
   });
 
   describe('registered charts', () => {
@@ -227,15 +216,28 @@ describe('SuperChartCore', () => {
     });
   });
 
-  describe('.processChartProps()', () => {
-    test('use identity functions for unspecified transforms', () => {
-      const chart = new SuperChartCore({
-        chartType: ChartKeys.DILIGENT,
+  describe('processChartProps behavior', () => {
+    test('applies identity pre/post transforms so chartProps reach overrideTransformProps unchanged', async () => {
+      // When pre/post transform props are not specified, identity functions are used,
+      // so the original chartProps should reach overrideTransformProps unchanged.
+      // overrideTransformProps is used here as a probe to read the final chartProps;
+      // it's not part of what's being tested for identity behavior.
+      const chartProps2 = new ChartProps({
+        queriesData: [{ message: 'identity-test' }],
+        theme: supersetTheme,
       });
-      const chartProps2 = new ChartProps();
-      expect(chart.processChartProps({ chartProps: chartProps2 })).toBe(
-        chartProps2,
+
+      render(
+        <SuperChartCore
+          chartType={ChartKeys.DILIGENT}
+          chartProps={chartProps2}
+          overrideTransformProps={props => props.queriesData[0]}
+        />,
       );
+
+      await waitFor(() => {
+        expect(screen.getByText('identity-test')).toBeInTheDocument();
+      });
     });
   });
 });

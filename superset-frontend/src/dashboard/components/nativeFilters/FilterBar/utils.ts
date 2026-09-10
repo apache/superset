@@ -23,7 +23,7 @@ import {
   Filter,
   FilterState,
 } from '@superset-ui/core';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import { useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { areObjectsEqual } from 'src/reduxUtils';
@@ -48,6 +48,9 @@ export const checkIsMissingRequiredValue = (
   filter: FilterElement,
   filterState?: FilterState,
 ) => {
+  // Only `enableEmptyFilter` ("Filter value is required") makes a value
+  // mandatory. `defaultToFirstItem` merely seeds an initial selection, so a
+  // filter cleared by the user must stay clearable, with Apply enabled.
   const isRequired = !!filter.controlValues?.enableEmptyFilter;
 
   if (!isRequired) return false;
@@ -74,13 +77,9 @@ export const checkIsApplyDisabled = (
   const selectedExtraFormData = getOnlyExtraFormData(dataMaskSelected);
   const appliedExtraFormData = getOnlyExtraFormData(dataMaskApplied);
 
-  // Check counts first
-  const selectedCount = Object.keys(selectedExtraFormData).length;
-  const appliedCount = Object.keys(appliedExtraFormData).length;
-
-  if (selectedCount !== appliedCount) return true;
-
-  // Check for changes
+  // Check for changes. ignoreUndefined drops empty keys on both sides so that
+  // a filter present in Selected with a real value but absent (or undefined)
+  // in Applied is correctly detected as a change.
   const dataEqual = areObjectsEqual(
     selectedExtraFormData,
     appliedExtraFormData,

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useMemo, useState, ReactNode } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   useFilters,
   usePagination,
@@ -34,7 +34,7 @@ import {
 } from 'use-query-params';
 
 import rison from 'rison';
-import { isEqual } from 'lodash';
+import { isEqual } from 'lodash-es';
 import {
   ListViewFetchDataConfig as FetchDataConfig,
   ListViewFilter as Filter,
@@ -192,15 +192,10 @@ interface UseListViewConfig {
   count: number;
   initialPageSize: number;
   initialSort?: SortColumn[];
-  bulkSelectMode?: boolean;
   initialFilters?: Filter[];
-  bulkSelectColumnConfig?: {
-    id: string;
-    Header: (conf: any) => ReactNode;
-    Cell: (conf: any) => ReactNode;
-  };
   renderCard?: boolean;
   defaultViewMode?: ViewModeType;
+  forceViewMode?: ViewModeType;
 }
 
 export function useListViewState({
@@ -211,10 +206,9 @@ export function useListViewState({
   initialPageSize,
   initialFilters = [],
   initialSort = [],
-  bulkSelectMode = false,
-  bulkSelectColumnConfig,
   renderCard = false,
   defaultViewMode = 'card',
+  forceViewMode,
 }: UseListViewConfig) {
   const [query, setQuery] = useQueryParams({
     filters: RisonParam,
@@ -242,17 +236,36 @@ export function useListViewState({
   };
 
   const [viewMode, setViewMode] = useState<ViewModeType>(
-    (query.viewMode as ViewModeType) ||
+    // forceViewMode overrides everything (used for mobile)
+    forceViewMode ||
+      (query.viewMode as ViewModeType) ||
       (renderCard ? defaultViewMode : 'table'),
   );
 
-  const columnsWithSelect = useMemo(() => {
+  // Update viewMode when forceViewMode changes (e.g., screen resize). When
+  // forceViewMode is cleared (e.g., resizing from mobile back to desktop),
+  // fall back to the persisted query param or the default view instead of
+  // leaving the view stuck in the previously forced mode.
+  useEffect(() => {
+    if (forceViewMode) {
+      setViewMode(forceViewMode);
+    } else {
+      setViewMode(
+        (query.viewMode as ViewModeType) ||
+          (renderCard ? defaultViewMode : 'table'),
+      );
+    }
+    // Only react to forceViewMode transitions; query.viewMode, renderCard, and
+    // defaultViewMode are read for their current values, not to retrigger
+    // this effect on every change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forceViewMode]);
+
+  const columnsWithFilter = useMemo(
     // add exact filter type so filters with falsy values are not filtered out
-    const columnsWithFilter = columns.map(f => ({ ...f, filter: 'exact' }));
-    return bulkSelectMode
-      ? [bulkSelectColumnConfig, ...columnsWithFilter]
-      : columnsWithFilter;
-  }, [bulkSelectMode, columns]);
+    () => columns.map(f => ({ ...f, filter: 'exact' })),
+    [columns],
+  );
 
   const {
     getTableProps,
@@ -271,7 +284,7 @@ export function useListViewState({
     state: { pageIndex, pageSize, sortBy, filters },
   } = useTable(
     {
-      columns: columnsWithSelect,
+      columns: columnsWithFilter,
       data,
       disableFilters: true,
       disableSortRemove: true,

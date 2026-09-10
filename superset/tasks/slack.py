@@ -18,16 +18,26 @@ import logging
 
 from flask import current_app
 
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.extensions import celery_app
+from superset.utils.decorators import transaction
 from superset.utils.slack import get_channels
 
 logger = logging.getLogger(__name__)
 
 
 @celery_app.task(name="slack.cache_channels")
+@transaction()
 def cache_channels() -> None:
     cache_timeout = current_app.config["SLACK_CACHE_TIMEOUT"]
     retry_count = current_app.config.get("SLACK_API_RATE_LIMIT_RETRY_COUNT", 2)
+
+    if cache_timeout == CACHE_DISABLED_TIMEOUT:
+        logger.warning(
+            "Skipping Slack channels cache warm-up because "
+            "SLACK_CACHE_TIMEOUT disables caching"
+        )
+        return
 
     logger.info(
         "Starting Slack channels cache warm-up task "
@@ -37,7 +47,11 @@ def cache_channels() -> None:
     )
 
     try:
-        get_channels(force=True, cache_timeout=cache_timeout)
+        get_channels(
+            force=True,
+            cache_timeout=cache_timeout,
+            raise_on_cache_write_error=True,
+        )
     except Exception as ex:
         logger.exception(
             "Failed to cache Slack channels: %s. "

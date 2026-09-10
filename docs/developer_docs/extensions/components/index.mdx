@@ -29,7 +29,7 @@ These UI components are available to Superset extension developers through the `
 
 ## Available Components
 
-- [Alert](./alert)
+- [Alert](./alert.mdx)
 
 ## Usage
 
@@ -39,11 +39,7 @@ All components are exported from the `@apache-superset/core/components` package:
 import { Alert } from '@apache-superset/core/components';
 
 export function MyExtensionPanel() {
-  return (
-    <Alert type="info">
-      Welcome to my extension!
-    </Alert>
-  );
+  return <Alert type="info">Welcome to my extension!</Alert>;
 }
 ```
 
@@ -51,8 +47,8 @@ export function MyExtensionPanel() {
 
 Components in `@apache-superset/core/components` are automatically documented here. To add a new extension component:
 
-1. Add the component to `superset-frontend/packages/superset-core/src/ui/components/`
-2. Export it from `superset-frontend/packages/superset-core/src/ui/components/index.ts`
+1. Add the component to `superset-frontend/packages/superset-core/src/components/`
+2. Export it from `superset-frontend/packages/superset-core/src/components/index.ts`
 3. Create a Storybook story with an `Interactive` export:
 
 ```tsx
@@ -68,7 +64,7 @@ export default {
   },
 };
 
-export const InteractiveMyComponent = (args) => <MyComponent {...args} />;
+export const InteractiveMyComponent = args => <MyComponent {...args} />;
 
 InteractiveMyComponent.args = {
   variant: 'primary',
@@ -90,4 +86,4 @@ InteractiveMyComponent.argTypes = {
 
 ## Interactive Documentation
 
-For interactive examples with controls, visit the [Storybook](/storybook/?path=/docs/extension-components--docs).
+For interactive examples with controls, run Storybook locally — see the [Storybook documentation](/developer-docs/testing/storybook).

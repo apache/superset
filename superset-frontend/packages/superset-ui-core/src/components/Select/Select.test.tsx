@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  act,
   createEvent,
   fireEvent,
   render,
@@ -25,6 +26,8 @@ import {
   waitFor,
   within,
 } from '@superset-ui/core/spec';
+import { formatNumber } from '@superset-ui/core';
+import { Constants } from '@superset-ui/core/components';
 import { Select } from '.';
 
 type Option = {
@@ -68,6 +71,38 @@ const NULL_OPTION = { label: '<NULL>', value: null } as unknown as {
   value: number;
 };
 
+// A dedicated option set for the stableSelectAll tests, kept local so it is
+// isolated from tests that mutate the shared OPTIONS array (e.g. toggling
+// `disabled`). A search for "Ap" matches a strict subset (Apple, Apricot).
+const STABLE_OPTIONS = [
+  { label: 'Apple', value: 1 },
+  { label: 'Apricot', value: 2 },
+  { label: 'Banana', value: 3 },
+  { label: 'Blueberry', value: 4 },
+  { label: 'Cherry', value: 5 },
+  { label: 'Cranberry', value: 6 },
+];
+
+// A grouped option list for the stableSelectAll tests: bulk "Select all" must
+// target the five leaf options, not the two value-less group headers.
+const GROUPED_STABLE_OPTIONS = [
+  {
+    label: 'Citrus',
+    options: [
+      { label: 'Orange', value: 1 },
+      { label: 'Lemon', value: 2 },
+    ],
+  },
+  {
+    label: 'Berries',
+    options: [
+      { label: 'Strawberry', value: 3 },
+      { label: 'Blueberry', value: 4 },
+      { label: 'Raspberry', value: 5 },
+    ],
+  },
+];
+
 const defaultProps = {
   allowClear: true,
   ariaLabel: ARIA_LABEL,
@@ -85,17 +120,21 @@ const getElementsByClassName = (className: string) =>
 const getSelect = () =>
   screen.getByRole('combobox', { name: new RegExp(ARIA_LABEL, 'i') });
 
-const selectAllButtonText = (length: number) => `Select all (${length})`;
-const deselectAllButtonText = (length: number) => `Clear (${length})`;
+const selectAllButtonText = (length: number) =>
+  `Select all (${formatNumber('SMART_NUMBER', length)})`;
+const deselectAllButtonText = (length: number) =>
+  `Clear (${formatNumber('SMART_NUMBER', length)})`;
 
 const findSelectOption = (text: string) =>
   waitFor(() =>
-    within(getElementByClassName('.rc-virtual-list')).getByText(text),
+    within(getElementByClassName('.ant-select-dropdown-list')).getByText(text),
   );
 
 const querySelectOption = (text: string) =>
   waitFor(() =>
-    within(getElementByClassName('.rc-virtual-list')).queryByText(text),
+    within(getElementByClassName('.ant-select-dropdown-list')).queryByText(
+      text,
+    ),
   );
 
 const getAllSelectOptions = () =>
@@ -105,10 +144,22 @@ const findAllSelectOptions = () =>
   waitFor(() => getElementsByClassName('.ant-select-item-option-content'));
 
 const findSelectValue = () =>
-  waitFor(() => getElementByClassName('.ant-select-selection-item'));
+  // antd v6: single-mode value is `.ant-select-content-has-value`, multiple-mode
+  // tags remain `.ant-select-selection-item`.
+  waitFor(() =>
+    getElementByClassName(
+      '.ant-select-content-has-value, .ant-select-selection-item',
+    ),
+  );
 
 const findAllSelectValues = () =>
-  waitFor(() => [...getElementsByClassName('.ant-select-selection-item')]);
+  // antd v6: multiple-mode tags keep `.ant-select-selection-item`, single-mode
+  // value is `.ant-select-content-has-value`.
+  waitFor(() => [
+    ...getElementsByClassName(
+      '.ant-select-selection-item, .ant-select-content-has-value',
+    ),
+  ]);
 
 const clearAll = () => userEvent.click(screen.getByLabelText('close-circle'));
 
@@ -360,10 +411,114 @@ test('searches for custom fields', async () => {
 
 test('removes duplicated values', async () => {
   render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => 'a,b,b,b,c,d,d',
+    },
+  });
+  fireEvent(input, paste);
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(4);
+  expect(values[0]).toHaveTextContent('a');
+  expect(values[1]).toHaveTextContent('b');
+  expect(values[2]).toHaveTextContent('c');
+  expect(values[3]).toHaveTextContent('d');
+});
+
+test('typing an unquoted comma splits the value into a chip', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  await type('Australia');
+  expect(await findSelectOption('Australia')).toBeInTheDocument();
+  await type(',', undefined, false);
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(1);
+  expect(values[0]).toHaveTextContent('Australia');
+});
+
+test('closing quote and separator arriving in a single input event still create the chip', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  await open();
+  await type('"Australia, U');
+  // dead-key keyboard layouts deliver the closing quote together with the
+  // next character in one input event
+  fireEvent.change(getSelect(), { target: { value: '"Australia, US",' } });
+  await waitFor(() =>
+    expect(getElementsByClassName('.ant-select-selection-item')).toHaveLength(
+      1,
+    ),
+  );
+  expect(getElementByClassName('.ant-select-selection-item')).toHaveTextContent(
+    'Australia, US',
+  );
+});
+
+test('an options prop update mid-typing keeps the created option tokenizable', async () => {
+  const { rerender } = render(
+    <Select {...defaultProps} mode="multiple" allowNewOptions />,
+  );
+  await type('"Australia, US"');
+  expect(await findSelectOption('Australia, US')).toBeInTheDocument();
+  rerender(
+    <Select
+      {...defaultProps}
+      options={[...OPTIONS]}
+      mode="multiple"
+      allowNewOptions
+    />,
+  );
+  await type(',', undefined, false);
+  await waitFor(() =>
+    expect(getElementsByClassName('.ant-select-selection-item')).toHaveLength(
+      1,
+    ),
+  );
+  expect(getElementByClassName('.ant-select-selection-item')).toHaveTextContent(
+    'Australia, US',
+  );
+});
+
+test('typing a comma inside double quotes keeps the value as a single chip', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  await type('"Australia, US"');
+  expect(await findSelectOption('Australia, US')).toBeInTheDocument();
+  await type(',', undefined, false);
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(1);
+  expect(values[0]).toHaveTextContent('Australia, US');
+});
+
+test('prevents the default paste action when pasted values are consumed', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => `${OPTIONS[0].label},${OPTIONS[1].label}`,
+    },
+  });
+  fireEvent(input, paste);
+  await findAllSelectValues();
+  expect(paste.defaultPrevented).toBe(true);
+});
+
+test('allows the default paste action when nothing is consumable', async () => {
+  render(<Select {...defaultProps} mode="multiple" />);
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'zzz,yyy',
+    },
+  });
+  fireEvent(input, paste);
+  expect(paste.defaultPrevented).toBe(false);
+});
+
+test('trims whitespace from pasted comma-separated values', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'a, b,  c , d',
     },
   });
   fireEvent(input, paste);
@@ -757,7 +912,7 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
   );
   await open();
 
-  const withinSelector = within(getElementByClassName('.ant-select-selector'));
+  const withinSelector = within(getElementByClassName('.ant-select-content'));
   await waitFor(() => {
     expect(
       withinSelector.queryByText(OPTIONS[0].label),
@@ -779,6 +934,28 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
   expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
 });
 
+// Regression test for the bug described in: https://github.com/apache/superset/issues/39339
+// The AntD v6 upgrade renamed `.ant-select-selection-overflow` (the tag
+// container) to `.ant-select-content`, and a CSS rule meant only to cap the
+// height of individual tags/placeholder text was mistakenly widened to also
+// match the renamed container class. That capped the whole multi-row tag
+// container to a single line's height, so wrapped rows spilled outside the
+// select's border, the dropdown arrow mis-centered against the wrong height,
+// and the search input (rendered last in the wrapped row) became invisible
+// once the dropdown opened.
+test('does not cap the tag container to a single line when tags wrap to multiple rows', () => {
+  render(
+    <Select
+      {...defaultProps}
+      value={OPTIONS.slice(0, 8)}
+      mode="multiple"
+      maxTagCount={6}
+    />,
+  );
+  const content = getElementByClassName('.ant-select-content');
+  expect(content).not.toHaveStyle({ maxHeight: '32px' });
+});
+
 // Test for checking the issue described in: https://github.com/apache/superset/issues/35132
 test('Maintains stable maxTagCount to prevent click target disappearing in oneLine mode', async () => {
   render(
@@ -790,7 +967,7 @@ test('Maintains stable maxTagCount to prevent click target disappearing in oneLi
     />,
   );
 
-  const withinSelector = within(getElementByClassName('.ant-select-selector'));
+  const withinSelector = within(getElementByClassName('.ant-select-content'));
   expect(withinSelector.getByText(OPTIONS[0].label)).toBeVisible();
   expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
 
@@ -809,6 +986,60 @@ test('Maintains stable maxTagCount to prevent click target disappearing in oneLi
 
   expect(await withinSelector.findByText(OPTIONS[0].label)).toBeVisible();
   expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
+});
+
+test('dropdown width matches input width after tags collapse in oneLine mode', async () => {
+  render(
+    <div style={{ width: '300px' }}>
+      <Select
+        {...defaultProps}
+        value={[OPTIONS[0], OPTIONS[1], OPTIONS[2]]}
+        mode="multiple"
+        oneLine
+      />
+    </div>,
+  );
+
+  await open();
+
+  // Wait for RAF to complete and tags to collapse
+  await waitFor(() => {
+    const withinSelector = within(getElementByClassName('.ant-select-content'));
+    expect(
+      withinSelector.queryByText(OPTIONS[0].label),
+    ).not.toBeInTheDocument();
+    expect(withinSelector.getByText('+ 3 ...')).toBeVisible();
+  });
+
+  const selectElement = document.querySelector('.ant-select') as HTMLElement;
+  expect(selectElement).toBeInTheDocument();
+
+  // Mock the select element's width since JSDOM doesn't perform real layout
+  jest.spyOn(selectElement, 'getBoundingClientRect').mockReturnValue({
+    width: 300,
+    height: 32,
+    top: 0,
+    left: 0,
+    right: 300,
+    bottom: 32,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  } as DOMRect);
+
+  // Close and reopen to trigger width measurement with mocked value
+  await type('{esc}');
+  await open();
+
+  const dropdown = document.querySelector(
+    '.ant-select-dropdown',
+  ) as HTMLElement;
+  expect(dropdown).toBeInTheDocument();
+
+  // Verify the dropdown has inline width matching the mocked select width
+  await waitFor(() => {
+    expect(parseInt(dropdown.style.width, 10)).toBe(300);
+  });
 });
 
 test('does not render "Select all" when there are 0 or 1 options', async () => {
@@ -857,6 +1088,35 @@ test('do not count unselected disabled options in "Select all"', async () => {
   expect(
     screen.getByText(selectAllButtonText(OPTIONS.length - 1)),
   ).toBeInTheDocument();
+});
+
+test('"Select all" does not count null-valued options', async () => {
+  // A falsy-valued option (e.g. <NULL>, value: null) is skipped by
+  // handleSelectAll, so it must not be counted in the "Select all" badge or
+  // the count overstates the selection. Regression test for #40228. Uses a
+  // local options array to stay isolated from tests that mutate OPTIONS.
+  const localOptions = [
+    { label: 'Alpha', value: 1 },
+    { label: 'Bravo', value: 2 },
+  ];
+  render(
+    <Select
+      {...defaultProps}
+      options={[...localOptions, NULL_OPTION]}
+      mode="multiple"
+      maxTagCount={0}
+    />,
+  );
+  await open();
+  // Three options are visible, but the <NULL> option is not bulk-selectable,
+  // so the badge must count only the two real options (would be 3 before fix).
+  await userEvent.click(
+    await screen.findByText(selectAllButtonText(localOptions.length)),
+  );
+  // And Select all selects exactly those two — the null option is skipped.
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(1);
+  expect(values[0]).toHaveTextContent(`+ ${localOptions.length} ...`);
 });
 
 test('"Deselect all" counts all selected options', async () => {
@@ -915,6 +1175,353 @@ test('"Select all" does not affect disabled options', async () => {
   expect(await findSelectValue()).not.toHaveTextContent(options[1].label);
 });
 
+test('abbreviates large numbers in bulk action buttons', async () => {
+  const manyOptions = Array.from({ length: 1500 }, (_, i) => ({
+    label: `Option ${i}`,
+    value: i,
+  }));
+  render(<Select {...defaultProps} mode="multiple" options={manyOptions} />);
+  await open();
+  // SMART_NUMBER format uses lowercase 'k' for thousands (d3-format)
+  expect(await screen.findByText('Select all (1.5k)')).toBeInTheDocument();
+});
+
+// The stableSelectAll tests advance fake timers past the FAST_DEBOUNCE so the
+// component's own search filter narrows `visibleOptions` (and flips
+// `isSearching`) before asserting — the exact point at which the un-fixed code
+// drops the badge to the search-scoped count. Asserting before that debounce
+// fires (as an earlier revision did) would pass against the un-fixed code too.
+test('stableSelectAll pins the "Select all" count to the full option set while searching', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  try {
+    render(
+      <Select
+        {...defaultProps}
+        options={STABLE_OPTIONS}
+        mode="multiple"
+        stableSelectAll
+      />,
+    );
+    const select = getSelect();
+    userEvent.click(select);
+    // Baseline: the full-column count is shown before any search.
+    expect(
+      await screen.findByText(selectAllButtonText(STABLE_OPTIONS.length)),
+    ).toBeInTheDocument();
+
+    await userEvent.type(select, 'Ap');
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE + 50);
+    });
+    // The visible list narrows to the searched subset...
+    await waitFor(() => expect(getAllSelectOptions().length).toBe(2));
+
+    // ...but the badge must still report the full column count.
+    expect(
+      screen.getByText(selectAllButtonText(STABLE_OPTIONS.length)),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(selectAllButtonText(2))).not.toBeInTheDocument();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('without stableSelectAll the "Select all" count narrows to the searched subset', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  try {
+    render(
+      <Select {...defaultProps} options={STABLE_OPTIONS} mode="multiple" />,
+    );
+    const select = getSelect();
+    userEvent.click(select);
+    expect(
+      await screen.findByText(selectAllButtonText(STABLE_OPTIONS.length)),
+    ).toBeInTheDocument();
+
+    await userEvent.type(select, 'Ap');
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE + 50);
+    });
+    await waitFor(() => expect(getAllSelectOptions().length).toBe(2));
+
+    // Generic consumers keep the search-scoped count.
+    expect(screen.getByText(selectAllButtonText(2))).toBeInTheDocument();
+    expect(
+      screen.queryByText(selectAllButtonText(STABLE_OPTIONS.length)),
+    ).not.toBeInTheDocument();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('stableSelectAll selects the entire option set even while a search is active', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  try {
+    const onChange = jest.fn();
+    render(
+      <Select
+        {...defaultProps}
+        options={STABLE_OPTIONS}
+        mode="multiple"
+        stableSelectAll
+        onChange={onChange}
+      />,
+    );
+    const select = getSelect();
+    userEvent.click(select);
+    await screen.findByText(selectAllButtonText(STABLE_OPTIONS.length));
+
+    await userEvent.type(select, 'Ap');
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE + 50);
+    });
+    await waitFor(() => expect(getAllSelectOptions().length).toBe(2));
+
+    await userEvent.click(
+      screen.getByText(selectAllButtonText(STABLE_OPTIONS.length)),
+    );
+    await waitFor(() => expect(onChange).toHaveBeenCalled());
+    expect(onChange.mock.calls.at(-1)?.[0]).toHaveLength(STABLE_OPTIONS.length);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('stableSelectAll excludes disabled options from the full-set count while searching', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  try {
+    // Cherry is disabled → 5 of the 6 options are selectable.
+    const options = STABLE_OPTIONS.map(option =>
+      option.label === 'Cherry' ? { ...option, disabled: true } : option,
+    );
+    render(
+      <Select
+        {...defaultProps}
+        options={options}
+        mode="multiple"
+        stableSelectAll
+      />,
+    );
+    const select = getSelect();
+    userEvent.click(select);
+    expect(await screen.findByText(selectAllButtonText(5))).toBeInTheDocument();
+
+    await userEvent.type(select, 'Ap');
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE + 50);
+    });
+    await waitFor(() => expect(getAllSelectOptions().length).toBe(2));
+
+    // The count reflects the full selectable set (5), not the 2 visible.
+    expect(screen.getByText(selectAllButtonText(5))).toBeInTheDocument();
+    expect(screen.queryByText(selectAllButtonText(2))).not.toBeInTheDocument();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('stableSelectAll deduplicates already-selected values when selecting the full set', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  try {
+    const onChange = jest.fn();
+    // Apple (1) is already selected; the "Ap" search narrows the visible list
+    // to a subset while "Select all" still targets the whole set.
+    render(
+      <Select
+        {...defaultProps}
+        options={STABLE_OPTIONS}
+        mode="multiple"
+        stableSelectAll
+        value={[{ label: 'Apple', value: 1 }]}
+        onChange={onChange}
+      />,
+    );
+    const select = getSelect();
+    userEvent.click(select);
+    await screen.findByText(selectAllButtonText(STABLE_OPTIONS.length));
+
+    await userEvent.type(select, 'Ap');
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE + 50);
+    });
+    await waitFor(() => expect(getAllSelectOptions().length).toBe(2));
+
+    await userEvent.click(
+      screen.getByText(selectAllButtonText(STABLE_OPTIONS.length)),
+    );
+    await waitFor(() => expect(onChange).toHaveBeenCalled());
+    // Full set is 6; the already-selected Apple is not duplicated (a failed
+    // dedup would push it again and yield 7).
+    expect(onChange.mock.calls.at(-1)?.[0]).toHaveLength(STABLE_OPTIONS.length);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('stableSelectAll keeps "Clear" counting and clearing the full selection while searching', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  try {
+    const onChange = jest.fn();
+    // Pre-select Banana (3) and Cherry (5); neither matches the "Ap" search.
+    render(
+      <Select
+        {...defaultProps}
+        options={STABLE_OPTIONS}
+        mode="multiple"
+        stableSelectAll
+        value={[
+          { label: 'Banana', value: 3 },
+          { label: 'Cherry', value: 5 },
+        ]}
+        onChange={onChange}
+      />,
+    );
+    const select = getSelect();
+    userEvent.click(select);
+    expect(
+      await screen.findByText(deselectAllButtonText(2)),
+    ).toBeInTheDocument();
+
+    await userEvent.type(select, 'Ap');
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE + 50);
+    });
+    await waitFor(() => expect(getAllSelectOptions().length).toBe(2));
+
+    // "Clear" still reflects the full selection (2), not the visible subset (0).
+    expect(screen.getByText(deselectAllButtonText(2))).toBeInTheDocument();
+    expect(
+      screen.queryByText(deselectAllButtonText(0)),
+    ).not.toBeInTheDocument();
+
+    // Clicking it removes the whole selection even though those values are not
+    // in the search results.
+    await userEvent.click(screen.getByText(deselectAllButtonText(2)));
+    await waitFor(() => expect(onChange).toHaveBeenCalled());
+    expect(onChange.mock.calls.at(-1)?.[0]).toHaveLength(0);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('stableSelectAll "Clear" count matches the action for a selected <NULL> value while searching', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  try {
+    const onChange = jest.fn();
+    // The <NULL> option carries a falsy value, which "Select all" skips but
+    // "Clear" (like the un-gated path) still removes. Pre-select <NULL> and
+    // Banana (3); "Ap" hides both. The Clear count must equal what Clear
+    // removes — otherwise the label overstates the action.
+    render(
+      <Select
+        {...defaultProps}
+        options={[...STABLE_OPTIONS, NULL_OPTION]}
+        mode="multiple"
+        stableSelectAll
+        value={[NULL_OPTION, { label: 'Banana', value: 3 }]}
+        onChange={onChange}
+      />,
+    );
+    const select = getSelect();
+    userEvent.click(select);
+    expect(
+      await screen.findByText(deselectAllButtonText(2)),
+    ).toBeInTheDocument();
+
+    await userEvent.type(select, 'Ap');
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE + 50);
+    });
+    await waitFor(() => expect(getAllSelectOptions().length).toBe(2));
+
+    // Count still reflects the full selection (2)...
+    expect(screen.getByText(deselectAllButtonText(2))).toBeInTheDocument();
+    // ...and clicking removes all of it, including the <NULL> selection.
+    await userEvent.click(screen.getByText(deselectAllButtonText(2)));
+    await waitFor(() => expect(onChange).toHaveBeenCalled());
+    expect(onChange.mock.calls.at(-1)?.[0]).toHaveLength(0);
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('stableSelectAll does not read a normal selection as the "Select all" sentinel while searching', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  try {
+    // Pre-select four values, then search so exactly three eligible options are
+    // visible: selectValue.length (4) === selectAllEligible.length (3) + 1 — the
+    // coincidence that used to flip selectAllMode true. stableSelectAll adds real
+    // values with no phantom "Select all" slot, so the collapsed-tag count must
+    // not subtract one for a sentinel that does not exist.
+    render(
+      <Select
+        {...defaultProps}
+        options={STABLE_OPTIONS}
+        mode="multiple"
+        stableSelectAll
+        maxTagCount={2}
+        value={[
+          { label: 'Apple', value: 1 },
+          { label: 'Apricot', value: 2 },
+          { label: 'Banana', value: 3 },
+          { label: 'Blueberry', value: 4 },
+        ]}
+      />,
+    );
+    const select = getSelect();
+    userEvent.click(select);
+
+    await userEvent.type(select, 'erry');
+    act(() => {
+      jest.advanceTimersByTime(Constants.FAST_DEBOUNCE + 50);
+    });
+    // Blueberry, Cherry, Cranberry match "erry".
+    await waitFor(() => expect(getAllSelectOptions().length).toBe(3));
+
+    // Four selected, two shown → two hidden. The overflow badge must report
+    // "+ 2 ...", not the sentinel-undercounted "+ 1 ...".
+    expect(screen.getByText('+ 2 ...')).toBeInTheDocument();
+    expect(screen.queryByText('+ 1 ...')).not.toBeInTheDocument();
+  } finally {
+    jest.useRealTimers();
+  }
+});
+
+test('stableSelectAll counts and selects grouped options by their leaf values', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      {...defaultProps}
+      options={GROUPED_STABLE_OPTIONS}
+      mode="multiple"
+      stableSelectAll
+      onChange={onChange}
+    />,
+  );
+  const select = getSelect();
+  userEvent.click(select);
+
+  // Five leaf options across two groups. The group headers carry no value, so
+  // without flattening the full set the count collapses to zero and the bulk
+  // actions disappear entirely.
+  const selectAll = await screen.findByText(selectAllButtonText(5));
+  expect(selectAll).toBeInTheDocument();
+
+  await userEvent.click(selectAll);
+  await waitFor(() => expect(onChange).toHaveBeenCalled());
+
+  const [selectedValues, selectedOptions] = onChange.mock.calls.at(-1) ?? [];
+  const valueOf = (item: number | { value: number }) =>
+    item && typeof item === 'object' ? item.value : item;
+  const sortNumeric = (values: number[]) => [...values].sort((a, b) => a - b);
+
+  // The five leaf values are selected — never the value-less group headers.
+  expect(sortNumeric(selectedValues.map(valueOf))).toEqual([1, 2, 3, 4, 5]);
+  // The option metadata alongside the values is also the flattened leaf set,
+  // not an empty array left over from filtering the group nodes.
+  expect(sortNumeric(selectedOptions.map(valueOf))).toEqual([1, 2, 3, 4, 5]);
+});
+
 test('dropdown takes full width of the select input for multi select', async () => {
   render(
     <div style={{ width: '400px' }}>
@@ -950,14 +1557,14 @@ test('dropdown takes full width of the select input for single select', async ()
 test('does not fire onChange when searching but no selection', async () => {
   const onChange = jest.fn();
   render(
-    <div role="main">
+    <main>
       <Select
         {...defaultProps}
         onChange={onChange}
         mode="multiple"
         allowNewOptions
       />
-    </div>,
+    </main>,
   );
   await open();
   await type('Joh');
@@ -998,7 +1605,7 @@ test('fires onChange when pasting a selection', async () => {
   const onChange = jest.fn();
   render(<Select {...defaultProps} onChange={onChange} />);
   await open();
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => OPTIONS[0].label,
@@ -1026,7 +1633,7 @@ test('does not duplicate options when using numeric values', async () => {
 test('pasting an existing option does not duplicate it', async () => {
   render(<Select {...defaultProps} options={[OPTIONS[0]]} />);
   await open();
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => OPTIONS[0].label,
@@ -1052,7 +1659,7 @@ test('pasting an existing option does not duplicate it in multiple mode', async 
     />,
   );
   await open();
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => 'John,Liam,Peter',
@@ -1066,7 +1673,7 @@ test('pasting an existing option does not duplicate it in multiple mode', async 
 test('pasting an non-existent option should not add it if allowNewOptions is false', async () => {
   render(<Select {...defaultProps} options={[]} allowNewOptions={false} />);
   await open();
-  const input = getElementByClassName('.ant-select-selection-search-input');
+  const input = getElementByClassName('.ant-select-input');
   const paste = createEvent.paste(input, {
     clipboardData: {
       getData: () => 'John',
@@ -1074,6 +1681,127 @@ test('pasting an non-existent option should not add it if allowNewOptions is fal
   });
   fireEvent(input, paste);
   expect(await findAllSelectOptions()).toHaveLength(0);
+});
+
+// Reference for the bug this tests: https://github.com/apache/superset/issues/32645
+// Dashboard filters with "Dynamically search all filter values" only load a
+// page of options client-side, so a pasted value outside that page used to be
+// silently dropped. allowNewOptionsOnPaste keeps such values so the filter can
+// still apply them.
+test('keeps pasted values outside loaded options when allowNewOptionsOnPaste is true', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      {...defaultProps}
+      mode="multiple"
+      allowNewOptions={false}
+      allowNewOptionsOnPaste
+      onChange={onChange}
+    />,
+  );
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      // Liam is a loaded option; OutsideValue is not in the loaded page.
+      getData: () => 'Liam,OutsideValue',
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(() => {
+    const values = [
+      ...getElementsByClassName('.ant-select-selection-item'),
+    ].map(value => value.textContent);
+    // The paste handler appends, so the loaded option resolves first.
+    expect(values).toEqual(['Liam', 'OutsideValue']);
+  });
+  // Assert the unloaded value actually reaches the change handler (the value
+  // that gets applied to the filter query), not just the rendered label.
+  expect(onChange).toHaveBeenCalledWith(
+    expect.arrayContaining([
+      expect.objectContaining({ value: 'OutsideValue' }),
+    ]),
+    expect.anything(),
+  );
+});
+
+test('trims whitespace around pasted comma-separated values', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      {...defaultProps}
+      mode="multiple"
+      allowNewOptions={false}
+      allowNewOptionsOnPaste
+      onChange={onChange}
+    />,
+  );
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      // Note the space after the comma — it must not leak into the value.
+      getData: () => 'Liam, OutsideValue',
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(() => {
+    const values = [
+      ...getElementsByClassName('.ant-select-selection-item'),
+    ].map(value => value.textContent);
+    expect(values).toEqual(['Liam', 'OutsideValue']);
+  });
+  expect(onChange).toHaveBeenCalledWith(
+    expect.arrayContaining([
+      expect.objectContaining({ value: 'OutsideValue' }),
+    ]),
+    expect.anything(),
+  );
+});
+
+test('does not create an empty option when pasting blank text', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      {...defaultProps}
+      mode="multiple"
+      allowNewOptions={false}
+      allowNewOptionsOnPaste
+      onChange={onChange}
+    />,
+  );
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => '   ',
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(() => {
+    const values = [
+      ...getElementsByClassName('.ant-select-selection-item'),
+    ].map(value => value.textContent);
+    expect(values).toEqual([]);
+  });
+  // No empty-string value should ever reach the handler.
+  onChange.mock.calls.forEach(([value]) => {
+    expect(value).not.toContain('');
+  });
+});
+
+test('drops pasted values outside loaded options when allowNewOptionsOnPaste is false', async () => {
+  render(<Select {...defaultProps} mode="multiple" allowNewOptions={false} />);
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'Liam,OutsideValue',
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(() => {
+    const values = [
+      ...getElementsByClassName('.ant-select-selection-item'),
+    ].map(value => value.textContent);
+    expect(values).toEqual(['Liam']);
+  });
 });
 
 test('does not fire onChange if the same value is selected in single mode', async () => {
@@ -1090,7 +1818,7 @@ test('does not fire onChange if the same value is selected in single mode', asyn
 
 // Reference for the bug this tests: https://github.com/apache/superset/pull/33043#issuecomment-2809419640
 test('typing and deleting the last character for a new option displays correctly', async () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   render(<Select {...defaultProps} allowNewOptions />);
 
   await open();
@@ -1224,6 +1952,26 @@ describe('grouped options search', () => {
   });
 });
 
+test('cancels pending debounce on unmount', async () => {
+  const mockOnSearch = jest.fn();
+  const { unmount } = render(
+    <Select
+      {...defaultProps}
+      allowNewOptions
+      mode="multiple"
+      onSearch={mockOnSearch}
+    />,
+  );
+
+  await type('test');
+  await new Promise(resolve => setTimeout(resolve, 300));
+  expect(mockOnSearch).toHaveBeenCalledWith('test');
+  mockOnSearch.mockClear();
+  await type('unmounted');
+  unmount();
+  await new Promise(resolve => setTimeout(resolve, 400));
+  expect(mockOnSearch).not.toHaveBeenCalled();
+});
 /*
  TODO: Add tests that require scroll interaction. Needs further investigation.
  - Fetches more data when scrolling and more data is available

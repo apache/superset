@@ -34,6 +34,7 @@ const apiData = {
     lastName: 'last name',
     permissions: {},
     roles: {},
+    groups: [],
   },
 };
 const apiDataWithTabState = {

@@ -17,15 +17,246 @@
 
 import io
 from unittest.mock import MagicMock, patch
+from uuid import UUID
 
 import pytest
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont, UnidentifiedImageError
 
+from superset.utils.report_execution import (
+    ReportExecutionContext,
+    ReportExecutionDeadline,
+)
 from superset.utils.screenshot_utils import (
     combine_screenshot_tiles,
+    CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS,
+    get_screenshot_blankness_metrics,
+    is_screenshot_nearly_uniform,
+    resolve_screenshot_task_budget_seconds,
+    SCREENSHOT_TASK_BUDGET_MAX_MARGIN_SECONDS,
+    ScreenshotBlankCaptureError,
+    ScreenshotCaptureTimeoutError,
+    ScreenshotTaskBudgetExceededError,
     SCROLL_SETTLE_TIMEOUT_MS,
     take_tiled_screenshot,
+    TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS,
+    TiledScreenshotBudgetExceededError,
 )
+
+
+def _png(width: int, height: int, color: str) -> bytes:
+    image = Image.new("RGB", (width, height), color)
+    output = io.BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+def _two_tone_blank(width: int = 100, height: int = 100) -> bytes:
+    image = Image.new("RGB", (width, height), "white")
+    for y in range(int(height * 0.85), height):
+        for x in range(width):
+            image.putpixel((x, y), (245, 245, 245))
+    output = io.BytesIO()
+    image.save(output, format="PNG")
+    return output.getvalue()
+
+
+class TestScreenshotBlankDetection:
+    def test_uniform_png_is_blank(self):
+        is_blank, dominant_ratio = is_screenshot_nearly_uniform(_png(100, 100, "white"))
+
+        assert is_blank is True
+        assert dominant_ratio == 1.0
+
+    def test_chart_like_png_is_not_blank(self):
+        image = Image.new("RGB", (100, 100), "white")
+        for x in range(10, 90):
+            for y in range(10, 90):
+                image.putpixel((x, y), (x, y, 100))
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+
+        is_blank, dominant_ratio = is_screenshot_nearly_uniform(output.getvalue())
+
+        assert is_blank is False
+        assert dominant_ratio < 0.995
+
+    def test_two_tone_near_white_png_is_blank(self):
+        is_blank, dominant_ratio = is_screenshot_nearly_uniform(_two_tone_blank())
+
+        assert is_blank is True
+        assert dominant_ratio == 0.85
+
+    def test_two_tone_gray_below_near_white_cutoff_is_blank(self):
+        image = Image.new("RGB", (100, 100), "white")
+        for y in range(85, 100):
+            for x in range(100):
+                image.putpixel((x, y), (239, 239, 239))
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+
+        is_blank, dominant_ratio = is_screenshot_nearly_uniform(output.getvalue())
+
+        assert is_blank is True
+        assert dominant_ratio == 0.85
+
+    def test_sparse_readable_text_is_not_blank(self):
+        image = Image.new("RGB", (800, 1000), "white")
+        label = Image.new("RGB", (60, 14), "white")
+        ImageDraw.Draw(label).text(
+            (0, 0), "No data", fill="black", font=ImageFont.load_default()
+        )
+        label = label.resize((240, 56), Image.Resampling.NEAREST)
+        image.paste(label, (20, 20))
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+
+        is_blank, _dominant_ratio = is_screenshot_nearly_uniform(output.getvalue())
+
+        assert is_blank is False
+
+    def test_tall_sparse_report_with_content_is_not_blank(self):
+        image = Image.new("RGB", (800, 4000), "white")
+        draw = ImageDraw.Draw(image)
+        draw.rectangle((20, 20, 780, 220), outline="black", width=3)
+        for y in range(60, 220, 40):
+            draw.line((20, y, 780, y), fill="black", width=2)
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+
+        is_blank, _dominant_ratio = is_screenshot_nearly_uniform(output.getvalue())
+
+        assert is_blank is False
+
+    def test_high_density_light_thin_line_chart_is_not_blank(self):
+        image = Image.new("RGB", (3000, 1200), "white")
+        draw = ImageDraw.Draw(image)
+        for y in (200, 500, 800, 1050):
+            draw.line((180, y, 2850, y), fill=(225, 225, 225), width=2)
+        draw.line((180, 100, 180, 1050), fill=(170, 170, 170), width=3)
+        draw.line((180, 1050, 2850, 1050), fill=(170, 170, 170), width=3)
+        points = [
+            (250, 900),
+            (700, 720),
+            (1200, 790),
+            (1750, 480),
+            (2250, 560),
+            (2800, 250),
+        ]
+        draw.line(points, fill=(145, 180, 210), width=3)
+        for x, y in points:
+            draw.ellipse((x - 5, y - 5, x + 5, y + 5), fill=(145, 180, 210))
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+
+        metrics = get_screenshot_blankness_metrics(output.getvalue())
+
+        assert metrics.is_blank is False
+        assert metrics.structural_edge_ratio >= 0.02
+
+    def test_high_density_sparse_light_table_is_not_blank(self):
+        image = Image.new("RGB", (3000, 1200), "white")
+        draw = ImageDraw.Draw(image)
+        columns = (150, 900, 1700, 2850)
+        rows = (150, 350, 550, 750)
+        for y in rows:
+            draw.line((columns[0], y, columns[-1], y), fill=(210, 210, 210), width=2)
+        for x in columns:
+            draw.line((x, rows[0], x, rows[-1]), fill=(210, 210, 210), width=2)
+        for row in range(3):
+            for column in range(3):
+                x = columns[column] + 35
+                y = rows[row] + 55
+                draw.rectangle(
+                    (x, y, x + 180 + column * 80, y + 9), fill=(155, 155, 155)
+                )
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+
+        metrics = get_screenshot_blankness_metrics(output.getvalue())
+
+        assert metrics.is_blank is False
+        assert metrics.structural_edge_ratio >= 0.02
+
+    def test_sparse_png_with_dark_content_is_not_blank(self):
+        image = Image.new("RGB", (100, 100), "white")
+        for x in range(20, 80):
+            for y in range(20, 24):
+                image.putpixel((x, y), (50, 50, 50))
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+
+        is_blank, dominant_ratio = is_screenshot_nearly_uniform(output.getvalue())
+
+        assert is_blank is False
+        assert dominant_ratio == 0.976
+
+    def test_non_image_bytes_are_left_for_combination_validation(self):
+        assert is_screenshot_nearly_uniform(b"not an image") == (False, 0.0)
+
+
+def _report_context() -> ReportExecutionContext:
+    """Return a deterministic context with 30 seconds available for readiness."""
+
+    return ReportExecutionContext(
+        execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+        report_schedule_id=11,
+        dashboard_id=805,
+        expected_chart_count=52,
+        deadline=ReportExecutionDeadline(
+            total_seconds=240,
+            started_at=0,
+            _clock=lambda: 0,
+        ),
+        capture_reserve_seconds=60,
+        delivery_reserve_seconds=120,
+        cleanup_reserve_seconds=30,
+    )
+
+
+class TestResolveScreenshotTaskBudget:
+    def _task(self, timelimit):
+        task = MagicMock()
+        task.request.timelimit = timelimit
+        return task
+
+    def test_prefers_soft_limit_and_reserves_scaled_margin(self):
+        task = self._task((400, 300))
+        with patch("superset.utils.screenshot_utils.current_task", task):
+            budget = resolve_screenshot_task_budget_seconds()
+
+        assert budget == 240
+
+    def test_uses_hard_limit_and_caps_cleanup_margin(self):
+        task = self._task((2000, None))
+        with patch("superset.utils.screenshot_utils.current_task", task):
+            budget = resolve_screenshot_task_budget_seconds()
+
+        assert budget == 2000 - SCREENSHOT_TASK_BUDGET_MAX_MARGIN_SECONDS
+
+    @pytest.mark.parametrize("timelimit", [None, (), (None, None), "300", (0, 0)])
+    def test_absent_or_malformed_timelimit_preserves_standalone_timeout(
+        self, timelimit
+    ):
+        task = self._task(timelimit)
+        with patch("superset.utils.screenshot_utils.current_task", task):
+            assert resolve_screenshot_task_budget_seconds() is None
+
+    def test_outside_celery_preserves_standalone_timeout(self):
+        with patch("superset.utils.screenshot_utils.current_task", None):
+            assert resolve_screenshot_task_budget_seconds() is None
+
+    def test_broken_task_metadata_preserves_standalone_timeout(self):
+        task = MagicMock()
+        type(task).request = property(
+            lambda self: (_ for _ in ()).throw(RuntimeError("boom"))
+        )
+        with (
+            patch("superset.utils.screenshot_utils.current_task", task),
+            patch("superset.utils.screenshot_utils.logger") as mock_logger,
+        ):
+            assert resolve_screenshot_task_budget_seconds("execution_id=abc") is None
+
+        assert mock_logger.debug.call_args.kwargs["exc_info"] is True
 
 
 class TestCombineScreenshotTiles:
@@ -104,6 +335,16 @@ class TestCombineScreenshotTiles:
             # Should return first tile as fallback
             assert result == valid_tile
 
+    def test_report_mode_rejects_partial_first_tile_fallback(self):
+        """A report must not turn a tile-combine failure into a partial image."""
+
+        valid_tile = self._create_test_image(100, 100)
+        with pytest.raises(UnidentifiedImageError):
+            combine_screenshot_tiles(
+                [valid_tile, b"invalid_image_data"],
+                allow_partial_fallback=False,
+            )
+
 
 class TestTakeTiledScreenshot:
     @pytest.fixture
@@ -146,6 +387,511 @@ class TestTakeTiledScreenshot:
             # Should have called combine function
             mock_combine.assert_called_once()
 
+    def test_blank_tile_forces_repaint_and_retries(self, mock_page):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                assert arg == {"top": 1000, "bottom": 2000}
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        chart_tile = self._create_chart_like_tile()
+        mock_page.screenshot.side_effect = [_png(800, 1000, "white"), chart_tile]
+
+        with (
+            patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles",
+                return_value=b"combined",
+            ) as mock_combine,
+            patch("superset.utils.screenshot_utils.logger") as mock_logger,
+        ):
+            result = take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                report_execution_context=_report_context(),
+            )
+
+        assert result == b"combined"
+        mock_combine.assert_called_once()
+        combined_tiles = mock_combine.call_args.args[0]
+        assert len(combined_tiles) == 1
+        assert is_screenshot_nearly_uniform(combined_tiles[0])[0] is False
+        assert mock_page.screenshot.call_count == 2
+        mock_page.bring_to_front.assert_called_once_with()
+        assert any(
+            "requestAnimationFrame" in call.args[0]
+            for call in mock_page.evaluate.call_args_list
+        )
+        readiness_log = next(
+            call
+            for call in mock_logger.info.call_args_list
+            if call.args[0].startswith("report_readiness_ready")
+        )
+        assert readiness_log.args[6] == 1
+        retry_log = next(
+            call
+            for call in mock_logger.info.call_args_list
+            if call.args[0].startswith("report_capture_blank_tile_retries")
+        )
+        assert retry_log.args[1] == 1
+
+    def test_repeated_blank_tiles_fail_closed_for_reports(self, mock_page):
+        element_info = {"height": 2000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = _png(800, 1000, "white")
+
+        with (
+            patch("superset.utils.screenshot_utils.logger"),
+            patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles"
+            ) as mock_combine,
+            pytest.raises(
+                ScreenshotBlankCaptureError,
+                match="blank tile 1/2 after 3 attempts",
+            ),
+        ):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=1000,
+                report_execution_context=_report_context(),
+            )
+
+        assert mock_page.screenshot.call_count == 3
+        mock_combine.assert_not_called()
+
+    def test_blank_combined_image_is_advisory_after_contentful_tiles_pass(
+        self, mock_page
+    ):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = self._create_chart_like_tile()
+
+        with (
+            patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles",
+                return_value=_two_tone_blank(800, 1000),
+            ),
+            patch("superset.utils.screenshot_utils.logger") as mock_logger,
+        ):
+            result = take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=1000,
+                report_execution_context=_report_context(),
+            )
+
+        assert result == _two_tone_blank(800, 1000)
+        assert any(
+            call.args[0].startswith("report_capture_blank_combined_retained")
+            and call.args[1] == 1
+            for call in mock_logger.warning.call_args_list
+        )
+
+    def test_blank_combined_image_is_allowed_for_terminal_empty_states(self, mock_page):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+        blank = _two_tone_blank(800, 1000)
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 0}
+            if "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "empty"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = blank
+
+        with patch(
+            "superset.utils.screenshot_utils.combine_screenshot_tiles",
+            return_value=blank,
+        ):
+            result = take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=1000,
+                report_execution_context=_report_context(),
+            )
+
+        assert result == blank
+        assert mock_page.screenshot.call_count == 1
+
+    def test_single_uniform_content_tile_fails_closed_for_reports(self, mock_page):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+        uniform_tile = _png(800, 1000, "navy")
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = uniform_tile
+
+        with (
+            patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles"
+            ) as mock_combine,
+            pytest.raises(ScreenshotBlankCaptureError),
+        ):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                report_execution_context=_report_context(),
+            )
+
+        assert mock_page.screenshot.call_count == 3
+        mock_combine.assert_not_called()
+
+    def test_uniform_tile_without_visible_charts_is_allowed(self, mock_page):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 0}
+            if "window.scrollTo" in script:
+                return None
+            return []
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = _png(800, 1000, "white")
+
+        with patch(
+            "superset.utils.screenshot_utils.combine_screenshot_tiles",
+            return_value=b"combined",
+        ):
+            result = take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
+
+        assert result == b"combined"
+        assert mock_page.screenshot.call_count == 1
+        mock_page.bring_to_front.assert_not_called()
+
+    def test_capture_timeout_retries_with_remaining_budget(self, mock_page):
+        from superset.utils.screenshot_utils import PlaywrightTimeout
+
+        elapsed = 0.0
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+        context = ReportExecutionContext(
+            execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+            report_schedule_id=11,
+            dashboard_id=805,
+            expected_chart_count=52,
+            deadline=ReportExecutionDeadline(
+                total_seconds=400,
+                started_at=0,
+                _clock=lambda: elapsed,
+            ),
+            capture_reserve_seconds=60,
+            delivery_reserve_seconds=120,
+            cleanup_reserve_seconds=30,
+        )
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        def screenshot(**_kwargs):
+            nonlocal elapsed
+            if mock_page.screenshot.call_count == 1:
+                elapsed = 180.0
+                raise PlaywrightTimeout("wedged compositor")
+            return self._create_chart_like_tile()
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.side_effect = screenshot
+
+        with patch(
+            "superset.utils.screenshot_utils.combine_screenshot_tiles",
+            return_value=b"combined",
+        ):
+            result = take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                report_execution_context=context,
+            )
+
+        assert result == b"combined"
+        first_call, second_call = mock_page.screenshot.call_args_list
+        assert first_call.kwargs["timeout"] == 120_000
+        assert second_call.kwargs["timeout"] == 70_000
+
+    def test_repeated_capture_timeout_propagates_specific_error(self, mock_page):
+        from superset.utils.screenshot_utils import PlaywrightTimeout
+
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.side_effect = PlaywrightTimeout("wedged compositor")
+
+        with pytest.raises(
+            ScreenshotCaptureTimeoutError,
+            match="timed out capturing tile 1/1 after 3 attempts",
+        ):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                report_execution_context=_report_context(),
+            )
+
+        assert mock_page.screenshot.call_count == 3
+
+    def test_holder_count_failure_does_not_abort_capture(self, mock_page):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                raise RuntimeError("execution context destroyed")
+            if "window.scrollTo" in script:
+                return None
+            return []
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = _png(800, 1000, "white")
+
+        with (
+            patch(
+                "superset.utils.screenshot_utils.combine_screenshot_tiles",
+                return_value=b"combined",
+            ) as mock_combine,
+            patch("superset.utils.screenshot_utils.logger") as mock_logger,
+        ):
+            result = take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
+
+        assert result == b"combined"
+        assert mock_page.screenshot.call_count == 3
+        assert len(mock_combine.call_args.args[0]) == 1
+        assert any(
+            call.args[0].startswith("Unable to count chart holders")
+            for call in mock_logger.warning.call_args_list
+        )
+        assert any(
+            call.args[0].startswith("report_capture_blank_tile_retained")
+            for call in mock_logger.warning.call_args_list
+        )
+
+    def test_repaint_wait_timeout_is_bounded_and_retried(self, mock_page):
+        from superset.utils.screenshot_utils import PlaywrightTimeout
+
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.side_effect = [
+            _png(800, 1000, "white"),
+            self._create_chart_like_tile(),
+        ]
+
+        def wait_for_function(script, **_kwargs):
+            if "__supersetRepaintComplete" in script:
+                raise PlaywrightTimeout("no repaint")
+            return None
+
+        mock_page.wait_for_function.side_effect = wait_for_function
+
+        with patch(
+            "superset.utils.screenshot_utils.combine_screenshot_tiles",
+            return_value=b"combined",
+        ):
+            result = take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                report_execution_context=_report_context(),
+            )
+
+        assert result == b"combined"
+        assert any(
+            call.args == ("() => window.__supersetRepaintComplete === true",)
+            and call.kwargs == {"timeout": 5000.0}
+            for call in mock_page.wait_for_function.call_args_list
+        )
+        assert mock_page.screenshot.call_count == 2
+
+    def test_repaint_preserves_celery_soft_timeout(self, mock_page):
+        from celery.exceptions import SoftTimeLimitExceeded
+
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.return_value = _png(800, 1000, "white")
+        mock_page.wait_for_function.side_effect = [None, None, SoftTimeLimitExceeded()]
+
+        with pytest.raises(SoftTimeLimitExceeded):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                report_execution_context=_report_context(),
+            )
+
+    def test_repeated_capture_timeout_preserves_thumbnail_contract(self, mock_page):
+        from superset.utils.screenshot_utils import PlaywrightTimeout
+
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if script == CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS:
+                return {"total": 1, "contentful": 1}
+            if "requestAnimationFrame" in script or "window.scrollTo" in script:
+                return None
+            return []
+
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.side_effect = PlaywrightTimeout("wedged compositor")
+
+        result = take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
+
+        assert result is None
+        assert mock_page.screenshot.call_count == 3
+
+    @staticmethod
+    def _create_chart_like_tile() -> bytes:
+        image = Image.new("RGB", (800, 1000), "white")
+        for x in range(100, 700):
+            for y in range(100, 900):
+                image.putpixel((x, y), (x % 255, y % 255, 100))
+        output = io.BytesIO()
+        image.save(output, format="PNG")
+        return output.getvalue()
+
+    def test_slow_holder_mount_is_polled_before_dimensions_and_capture(
+        self,
+        mock_page,
+    ):
+        """Tiling waits for React to mount a holder before measuring the dashboard."""
+        events: list[str] = []
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+        wait_calls = 0
+
+        def wait_for_function(*args, **kwargs):
+            nonlocal wait_calls
+            events.append("mount" if wait_calls == 0 else "ready")
+            wait_calls += 1
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                events.append("dimensions")
+                return element_info
+            if "window.scrollTo" in script:
+                return None
+            return [{"chartId": "7", "state": "rendered"}]
+
+        def screenshot(**kwargs):
+            events.append("capture")
+            return b"tile"
+
+        mock_page.wait_for_function.side_effect = wait_for_function
+        mock_page.evaluate.side_effect = evaluate
+        mock_page.screenshot.side_effect = screenshot
+
+        with patch(
+            "superset.utils.screenshot_utils.combine_screenshot_tiles",
+            return_value=b"combined",
+        ):
+            result = take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                load_wait=30,
+                report_execution_context=_report_context(),
+            )
+
+        assert result == b"combined"
+        assert events == ["mount", "dimensions", "ready", "capture"]
+
+    def test_zero_holders_timeout_before_dimensions_or_capture(self, mock_page):
+        """An empty DOM cannot vacuously pass the tiled readiness gate."""
+        from superset.utils.screenshot_utils import PlaywrightTimeout
+
+        mock_page.wait_for_function.side_effect = PlaywrightTimeout("zero holders")
+        mock_page.evaluate.return_value = []
+
+        with pytest.raises(PlaywrightTimeout):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                load_wait=30,
+                report_execution_context=_report_context(),
+            )
+
+        assert mock_page.evaluate.call_count == 1
+        assert "state: 'rendered'" in mock_page.evaluate.call_args.args[0]
+        mock_page.screenshot.assert_not_called()
+
     def test_element_not_found_returns_none(self):
         """Test that missing element returns None."""
         mock_page = MagicMock()
@@ -183,10 +929,10 @@ class TestTakeTiledScreenshot:
 
                 # Should log dashboard dimensions with lazy logging format
                 mock_logger.info.assert_any_call(
-                    "Dashboard: %sx%spx at (%s, %s)", 800, 5000, 50, 100
+                    "Dashboard: %sx%spx at (%s, %s)%s", 800, 5000, 50, 100, ""
                 )
                 # Should log number of tiles with lazy logging format
-                mock_logger.info.assert_any_call("Taking %s screenshot tiles", 3)
+                mock_logger.info.assert_any_call("Taking %s screenshot tiles%s", 3, "")
 
     def test_exception_handling_returns_none(self):
         """Test that exceptions are handled and None is returned."""
@@ -199,8 +945,29 @@ class TestTakeTiledScreenshot:
             assert result is None
             # The exception object is passed, not the string
             call_args = mock_logger.exception.call_args
-            assert call_args[0][0] == "Tiled screenshot failed: %s"
+            assert call_args[0][0] == "Tiled screenshot failed: %s%s"
             assert str(call_args[0][1]) == "Unexpected error"
+            assert call_args[0][2] == ""  # no log_context passed
+
+    def test_exception_handling_logs_context(self):
+        """Genuine system faults (not a customer chart-loading issue) stay at
+        ERROR/exception level, and still carry the log context (e.g. report
+        execution id) for correlation with the run that triggered this
+        screenshot."""
+        mock_page = MagicMock()
+        mock_page.locator.side_effect = Exception("Unexpected error")
+
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            result = take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                log_context="execution_id=abc-123",
+            )
+
+            assert result is None
+            call_args = mock_logger.exception.call_args
+            assert call_args[0][2] == " [execution_id=abc-123]"
 
     def test_screenshot_clip_parameters(self, mock_page):
         """Test that screenshot clipping parameters are correct."""
@@ -289,25 +1056,24 @@ class TestTakeTiledScreenshot:
         with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
             take_tiled_screenshot(mock_page, "dashboard", tile_height=2000)
 
-            # Check page.evaluate calls for scrolling
-            # First call is for dimensions, subsequent are for scrolling
             evaluate_calls = mock_page.evaluate.call_args_list
-
-            # Should have 1 dimension query + 3 scroll calls
-            assert len(evaluate_calls) == 4
+            scroll_calls = [
+                call
+                for call in evaluate_calls
+                if call.args[0].startswith("window.scrollTo")
+            ]
 
             # First call is for dimensions (contains querySelector)
             assert "querySelector" in str(evaluate_calls[0])
 
-            # Subsequent calls are scroll positions
             # Tile 1: scroll to y=100 (dashboard_top + 0 * tile_height)
-            assert evaluate_calls[1][0][0] == "window.scrollTo(0, 100)"
+            assert scroll_calls[0].args[0] == "window.scrollTo(0, 100)"
 
             # Tile 2: scroll to y=2100 (dashboard_top + 1 * tile_height)
-            assert evaluate_calls[2][0][0] == "window.scrollTo(0, 2100)"
+            assert scroll_calls[1].args[0] == "window.scrollTo(0, 2100)"
 
             # Tile 3: scroll to y=4100 (dashboard_top + 2 * tile_height)
-            assert evaluate_calls[3][0][0] == "window.scrollTo(0, 4100)"
+            assert scroll_calls[2].args[0] == "window.scrollTo(0, 4100)"
 
     def test_reset_scroll_position(self, mock_page):
         """Test that scroll position waits are called after each scroll."""
@@ -320,3 +1086,784 @@ class TestTakeTiledScreenshot:
             # Each wait should use the scroll settle timeout constant
             for call in mock_page.wait_for_timeout.call_args_list:
                 assert call[0][0] == SCROLL_SETTLE_TIMEOUT_MS
+
+    def test_per_tile_readiness_wait_uses_viewport_check(self, mock_page):
+        """wait_for_function polls viewport-visible chart holders after each scroll."""
+        with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                load_wait=30,
+                report_execution_context=_report_context(),
+            )
+
+        # One initial holder-mount gate, then one readiness poll per tile.
+        assert mock_page.wait_for_function.call_count == 4
+
+        # Each call uses viewport-scoped JS and the load_wait timeout
+        mount_call, *tile_calls = mock_page.wait_for_function.call_args_list
+        assert "length > 0" in mount_call.args[0]
+        assert mount_call.kwargs["timeout"] == 30 * 1000
+        for call in tile_calls:
+            js = call[0][0]
+            assert "getBoundingClientRect" in js
+            assert "window.innerHeight" in js
+            assert "dashboard-component-chart-holder" in js
+            assert call[1]["timeout"] == 30 * 1000
+
+    def test_per_tile_readiness_timeout_raises_and_skips_capture(self, mock_page):
+        """A per-tile readiness timeout raises and does not capture that tile.
+
+        This is a product decision (fail loudly, never snapshot spinners or
+        blank charts): a per-tile timeout must abort the tiled screenshot
+        instead of warning and continuing.
+        """
+        from superset.utils.screenshot_utils import PlaywrightTimeout
+
+        timeout = PlaywrightTimeout("Timeout waiting for chart holders")
+        mock_page.wait_for_function.side_effect = [None, timeout]
+        mock_page.evaluate.side_effect = [
+            {"height": 5000, "top": 100, "left": 50, "width": 800},  # dimensions
+            None,  # window.scrollTo(...) for tile 1
+            [{"chartId": "42", "state": "waiting_on_database"}],  # unready
+            [{"chartId": "42", "state": "waiting_on_database"}],  # all states
+        ]
+
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                with pytest.raises(PlaywrightTimeout):
+                    take_tiled_screenshot(
+                        mock_page,
+                        "dashboard",
+                        tile_height=2000,
+                        load_wait=30,
+                        report_execution_context=_report_context(),
+                    )
+
+        # No tile should have been captured -- fail loudly, don't snapshot
+        # a blank or partially-loaded tile.
+        mock_page.screenshot.assert_not_called()
+
+        # The mount gate passes and only the first tile readiness poll runs.
+        assert mock_page.wait_for_function.call_count == 2
+
+        # A chart failing to load in time is a customer chart-loading issue,
+        # not a Superset system fault -- WARNING, not ERROR (#38130, #38441).
+        # The report still fails loudly via the raise, asserted above.
+        mock_logger.error.assert_not_called()
+        mock_logger.warning.assert_called_once()
+        warning_args = mock_logger.warning.call_args[0]
+        assert "unready" in warning_args[0].lower()
+        assert warning_args[3] == 1  # mounted holders
+        assert warning_args[4] == 0  # ready holders
+        assert warning_args[5] == 1  # tile index
+        assert warning_args[6] == 3  # total tiles
+        assert warning_args[7] == 0  # tiles captured so far
+        assert warning_args[8] == 3  # total tiles
+        assert isinstance(warning_args[9], float)  # tile elapsed
+        assert isinstance(warning_args[10], float)  # total elapsed
+        assert warning_args[12] == 30  # effective wait
+        assert "capture_kind=report" in warning_args[13]
+        # Diagnostic payload identifies chart id AND the state it's stuck in
+        # (spinner mounted vs nothing mounted vs waiting-on-database) so a
+        # slow query can be told apart from the virtualization race.
+        assert warning_args[14] == [{"chartId": "42", "state": "waiting_on_database"}]
+
+    def test_timeout_warning_includes_log_context(self, mock_page):
+        """The log context (e.g. report execution id) is threaded through for
+        correlation with the run that triggered this screenshot."""
+        from superset.utils.screenshot_utils import PlaywrightTimeout
+
+        mock_page.wait_for_function.side_effect = PlaywrightTimeout("timed out")
+        mock_page.evaluate.side_effect = [
+            {"height": 2000, "top": 0, "left": 0, "width": 800},
+            None,
+            [{"chartId": "7", "state": "nothing_mounted"}],
+            [{"chartId": "7", "state": "nothing_mounted"}],
+        ]
+
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                with pytest.raises(PlaywrightTimeout):
+                    take_tiled_screenshot(
+                        mock_page,
+                        "dashboard",
+                        tile_height=2000,
+                        load_wait=5,
+                        log_context="execution_id=abc-123",
+                    )
+
+        warning_args = mock_logger.warning.call_args[0]
+        assert warning_args[13] == " [execution_id=abc-123]"
+
+    def test_chart_holder_with_nothing_mounted_blocks_wait(self, mock_page):
+        """Regression test for the vacuous-pass race (PR #39895).
+
+        A chart holder that intersects the viewport but has not yet mounted
+        a spinner or a chart (e.g. its IntersectionObserver callback hasn't
+        fired) must not satisfy the readiness predicate.
+        """
+        from superset.utils.screenshot_utils import PlaywrightTimeout
+
+        js_call_count = {"n": 0}
+
+        def fake_wait_for_function(js, timeout=None):
+            js_call_count["n"] += 1
+            # Simulate evaluating the predicate against a DOM with a chart
+            # holder in viewport that has mounted nothing at all.
+            assert "dashboard-component-chart-holder" in js
+            if "getBoundingClientRect" not in js:
+                return None
+            raise PlaywrightTimeout("Timeout waiting for chart holders")
+
+        mock_page.wait_for_function.side_effect = fake_wait_for_function
+        mock_page.evaluate.side_effect = [
+            {"height": 2000, "top": 0, "left": 0, "width": 800},  # dimensions
+            None,  # window.scrollTo(...) for tile 1
+            [{"chartId": "7", "state": "nothing_mounted"}],  # diagnostics
+            [{"chartId": "7", "state": "nothing_mounted"}],  # all states
+        ]
+
+        with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+            with pytest.raises(PlaywrightTimeout):
+                take_tiled_screenshot(
+                    mock_page, "dashboard", tile_height=2000, load_wait=5
+                )
+
+        assert js_call_count["n"] == 1
+        mock_page.screenshot.assert_not_called()
+
+    def test_unready_holder_state_classification_embedded_in_js(self, mock_page):
+        """The readiness JS classifies *why* a holder isn't ready.
+
+        Distinguishing "spinner_mounted" (query done, not yet in the
+        virtualization viewport), "waiting_on_database" (initial query still
+        in flight), and "nothing_mounted" (the vacuous-pass race) is what
+        lets a slow query be told apart from the race during an incident.
+        """
+        from superset.utils.screenshot_utils import (
+            CHART_HOLDERS_READY_JS,
+            FIND_CHART_HOLDER_STATES_JS,
+            FIND_UNREADY_CHART_HOLDERS_JS,
+            REPORT_CHART_HOLDERS_READY_JS,
+        )
+
+        for js in (CHART_HOLDERS_READY_JS, FIND_UNREADY_CHART_HOLDERS_JS):
+            assert "spinner_mounted" in js
+            assert "waiting_on_database" in js
+            assert "nothing_mounted" in js
+            assert ".slice_container" in js
+            assert (
+                '.dashboard-component-chart-holder[class*="dashboard-chart-id-"]'
+            ) in js
+            assert "holder.className.match(/\\bdashboard-chart-id-(\\d+)\\b/)" in js
+        assert "holders.length > 0" not in CHART_HOLDERS_READY_JS
+        assert "holders.length > 0" in REPORT_CHART_HOLDERS_READY_JS
+
+        assert "rendered" in FIND_CHART_HOLDER_STATES_JS
+        assert "empty" in FIND_CHART_HOLDER_STATES_JS
+        assert "error" in FIND_CHART_HOLDER_STATES_JS
+        assert "virtualized" in FIND_CHART_HOLDER_STATES_JS
+        assert "waiting_on_database" in FIND_CHART_HOLDER_STATES_JS
+        assert (
+            '.dashboard-component-chart-holder[class*="dashboard-chart-id-"]'
+        ) in FIND_CHART_HOLDER_STATES_JS
+
+    def test_readiness_constants_are_production_safe(self):
+        from superset.utils.screenshot_utils import (
+            CHART_CONTAINER_READY_JS,
+            CHART_HOLDERS_READY_JS,
+            FIND_CHART_HOLDER_STATES_JS,
+            FIND_UNREADY_CHART_HOLDERS_JS,
+            REPORT_CHART_HOLDERS_READY_JS,
+        )
+
+        for js in (
+            CHART_CONTAINER_READY_JS,
+            CHART_HOLDERS_READY_JS,
+            FIND_CHART_HOLDER_STATES_JS,
+            FIND_UNREADY_CHART_HOLDERS_JS,
+            REPORT_CHART_HOLDERS_READY_JS,
+        ):
+            assert "data-test" not in js
+
+    def test_per_tile_timing_logged_at_debug(self, mock_page):
+        """Each tile logs how long it waited for readiness, for profiling."""
+        with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+            with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                take_tiled_screenshot(
+                    mock_page,
+                    "dashboard",
+                    tile_height=2000,
+                    load_wait=30,
+                    log_context="execution_id=abc-123",
+                )
+
+        # 3 tiles, all ready immediately (mock_page.wait_for_function is a
+        # no-op MagicMock by default) -> one timing line per tile.
+        timing_calls = [
+            call
+            for call in mock_logger.debug.call_args_list
+            if "ready after" in call[0][0]
+        ]
+        assert len(timing_calls) == 3
+
+        first_call_args = timing_calls[0][0]
+        assert first_call_args[1] == 1  # tile index
+        assert first_call_args[2] == 3  # total tiles
+        elapsed = first_call_args[3]
+        assert isinstance(elapsed, float)
+        assert elapsed >= 0
+        assert first_call_args[4] == 30  # load_wait
+        assert first_call_args[5] == " [execution_id=abc-123]"
+
+    def test_all_chart_holders_ready_passes(self, mock_page):
+        """All chart holders rendered or errored -> wait passes, tile captured."""
+        with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+            result = take_tiled_screenshot(
+                mock_page, "dashboard", tile_height=2000, load_wait=5
+            )
+
+        # mock_page.wait_for_function is a MagicMock by default and does not
+        # raise, i.e. the readiness check passes immediately for every tile.
+        assert mock_page.wait_for_function.call_count == 3
+        assert mock_page.screenshot.call_count == 3
+        assert result is not None
+
+    def test_thumbnail_zero_holders_preserves_existing_capture_behavior(
+        self,
+        mock_page,
+    ):
+        """The report-only mount gate must not make empty thumbnails time out."""
+
+        with patch(
+            "superset.utils.screenshot_utils.combine_screenshot_tiles",
+            return_value=b"thumbnail",
+        ):
+            result = take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                load_wait=30,
+            )
+
+        assert result == b"thumbnail"
+        assert mock_page.wait_for_function.call_count == 3
+        predicate = mock_page.wait_for_function.call_args_list[0].args[0]
+        assert "holders.length > 0" not in predicate
+        assert mock_page.screenshot.call_count == 3
+
+    def test_load_wait_default_is_sixty_seconds(self):
+        """load_wait defaults to 60 to match SCREENSHOT_LOAD_WAIT config default."""
+        import inspect
+
+        from superset.utils.screenshot_utils import take_tiled_screenshot
+
+        sig = inspect.signature(take_tiled_screenshot)
+        assert sig.parameters["load_wait"].default == 60
+
+    def test_per_tile_animation_wait_called_per_tile(self, mock_page):
+        """animation_wait adds an extra wait per tile after the spinner check."""
+        with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+            take_tiled_screenshot(
+                mock_page, "dashboard", tile_height=2000, animation_wait=5
+            )
+
+        # 3 tiles × (1 scroll settle + 1 animation wait) = 6 total calls
+        assert mock_page.wait_for_timeout.call_count == 6
+
+        animation_calls = [
+            call
+            for call in mock_page.wait_for_timeout.call_args_list
+            if call[0][0] == 5 * 1000
+        ]
+        assert len(animation_calls) == 3
+
+    def test_animation_wait_default_is_zero(self):
+        """animation_wait defaults to 0 so no extra per-tile wait by default."""
+        import inspect
+
+        from superset.utils.screenshot_utils import take_tiled_screenshot
+
+        sig = inspect.signature(take_tiled_screenshot)
+        assert sig.parameters["animation_wait"].default == 0
+
+
+class TestTileWaitBudget:
+    """The tiled operation's cumulative per-tile waits are capped by one
+    wall-clock budget derived from the running Celery task's own time limit
+    (resolve_screenshot_task_budget_seconds), falling back to a fixed total
+    ceiling outside Celery because per-tile waits accumulate."""
+
+    @pytest.fixture
+    def mock_page(self):
+        """Create a mock Playwright page object for a 3-tile (5000px) dashboard."""
+        page = MagicMock()
+        element = MagicMock()
+        page.locator.return_value = element
+        page.evaluate.return_value = {
+            "height": 5000,
+            "top": 100,
+            "left": 50,
+            "width": 800,
+        }
+        page.screenshot.return_value = b"fake_screenshot_data"
+        return page
+
+    class _FakeClock:
+        """Stateful monotonic() stand-in the test advances explicitly.
+
+        Robust to how many times the code under test samples the clock per
+        tile (budget check, per-tile wait timing, animation budget) -- only
+        explicit advances move time forward.
+        """
+
+        def __init__(self) -> None:
+            self.now = 0.0
+
+        def __call__(self) -> float:
+            return self.now
+
+    def test_budget_error_is_task_budget_error_subclass(self):
+        """Callers can catch the whole budget-error family with the base
+        ScreenshotTaskBudgetExceededError type."""
+        assert issubclass(
+            TiledScreenshotBudgetExceededError, ScreenshotTaskBudgetExceededError
+        )
+
+    def test_per_tile_wait_shrinks_as_budget_depletes(self, mock_page, monkeypatch):
+        """Each tile's readiness-wait timeout is capped at the remaining budget."""
+        monkeypatch.setattr(
+            "superset.utils.screenshot_utils.TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS",  # noqa: E501
+            1000,
+        )
+        clock = self._FakeClock()
+        # Simulate slow tiles: the readiness wait itself consumes wall time,
+        # so each subsequent tile sees less remaining budget.
+        wait_durations = iter([950, 40, 5])
+
+        def slow_wait(*args, **kwargs):
+            clock.now += next(wait_durations)
+
+        mock_page.wait_for_function.side_effect = slow_wait
+
+        with patch("superset.utils.screenshot_utils.current_task", None):
+            with patch("superset.utils.screenshot_utils.time.monotonic", new=clock):
+                with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                    result = take_tiled_screenshot(
+                        mock_page, "dashboard", tile_height=2000, load_wait=100
+                    )
+
+        assert result is not None
+        timeouts = [
+            call[1]["timeout"] for call in mock_page.wait_for_function.call_args_list
+        ]
+        # remaining budget at each tile's wait: 1000, 50, 10 seconds
+        # -> capped timeouts shrink
+        assert timeouts == [100 * 1000, 50 * 1000, 10 * 1000]
+        assert timeouts == sorted(timeouts, reverse=True)
+
+    def test_readiness_wait_uses_budget_recomputed_after_scroll_settle(
+        self, mock_page, monkeypatch
+    ):
+        """The readiness-wait timeout must be capped using the budget
+        recomputed *after* the scroll-settle sleep, not the stale value from
+        before it -- otherwise each tile could overrun the total budget by up
+        to one settle interval."""
+        monkeypatch.setattr(
+            "superset.utils.screenshot_utils.TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS",  # noqa: E501
+            1000,
+        )
+        # A single-tile dashboard to keep the scenario simple.
+        mock_page.evaluate.return_value = {
+            "height": 1000,
+            "top": 100,
+            "left": 50,
+            "width": 800,
+        }
+        clock = self._FakeClock()
+        # The scroll-settle sleep itself consumes 950s of wall-clock time,
+        # leaving only 50s of the 1000s budget by the time the readiness
+        # wait is capped.
+        mock_page.wait_for_timeout.side_effect = lambda *args, **kwargs: setattr(
+            clock, "now", clock.now + 950
+        )
+
+        with patch("superset.utils.screenshot_utils.current_task", None):
+            with patch("superset.utils.screenshot_utils.time.monotonic", new=clock):
+                with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                    take_tiled_screenshot(
+                        mock_page, "dashboard", tile_height=2000, load_wait=999
+                    )
+
+        timeout = mock_page.wait_for_function.call_args_list[0][1]["timeout"]
+        # Must reflect the post-settle remaining budget (50s), not the
+        # stale pre-settle value (1000s, which would have let load_wait's
+        # full 999s through uncapped).
+        assert timeout == 50 * 1000
+
+    def test_budget_exhausted_raises_and_stops_capturing(self, mock_page, monkeypatch):
+        """Exhausting the budget aborts cleanly instead of capturing unchecked."""
+        monkeypatch.setattr(
+            "superset.utils.screenshot_utils.TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS",  # noqa: E501
+            1000,
+        )
+        clock = self._FakeClock()
+        # Tile 0's readiness wait consumes the whole budget; tile 1's budget
+        # check then sees remaining <= 0 and raises before capturing.
+        mock_page.wait_for_function.side_effect = lambda *args, **kwargs: setattr(
+            clock, "now", 1000.0
+        )
+
+        with patch("superset.utils.screenshot_utils.current_task", None):
+            with patch("superset.utils.screenshot_utils.time.monotonic", new=clock):
+                with patch(
+                    "superset.utils.screenshot_utils.combine_screenshot_tiles"
+                ) as mock_combine:
+                    with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+                        with pytest.raises(TiledScreenshotBudgetExceededError):
+                            take_tiled_screenshot(
+                                mock_page, "dashboard", tile_height=2000, load_wait=100
+                            )
+
+        # Nothing is captured: the pre-capture bounded check raises before
+        # snapshotting the tile whose readiness wait consumed the budget
+        # (the capture call itself is deadline-bounded in this design).
+        assert mock_page.screenshot.call_count == 0
+        # Tiles were never combined -- the function raised before that point.
+        mock_combine.assert_not_called()
+
+        # Budget exhaustion is a customer chart-loading issue, not a Superset
+        # system fault, so it must log at WARNING (not ERROR) -- consistent
+        # with the #38130/#38441 precedent for screenshot timeout logging.
+        assert mock_logger.error.call_count == 0
+        terminal_warning = next(
+            call
+            for call in mock_logger.warning.call_args_list
+            if call.args[0].startswith("report_capture_terminal")
+        )
+        warning_args = terminal_warning.args
+        assert "terminal_reason=budget_exhausted" in warning_args[0]
+
+    def test_budget_exhausted_warning_includes_log_context(
+        self, mock_page, monkeypatch
+    ):
+        """log_context (e.g. report execution id) is appended to the warning."""
+        monkeypatch.setattr(
+            "superset.utils.screenshot_utils.TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS",  # noqa: E501
+            1000,
+        )
+        clock = self._FakeClock()
+        # Tile 0's readiness wait consumes the whole budget; tile 1's budget
+        # check then sees remaining <= 0 and raises.
+        mock_page.wait_for_function.side_effect = lambda *args, **kwargs: setattr(
+            clock, "now", 1000.0
+        )
+        with patch("superset.utils.screenshot_utils.current_task", None):
+            with patch("superset.utils.screenshot_utils.time.monotonic", new=clock):
+                with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                    with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+                        with pytest.raises(TiledScreenshotBudgetExceededError):
+                            take_tiled_screenshot(
+                                mock_page,
+                                "dashboard",
+                                tile_height=2000,
+                                load_wait=100,
+                                log_context="execution_id=abc-123",
+                            )
+
+        warning_args = mock_logger.warning.call_args[0]
+        assert warning_args[-1] == " [execution_id=abc-123]"
+
+    def test_budget_exhausted_before_first_tile_raises_without_capture(
+        self, mock_page, monkeypatch
+    ):
+        """No budget floor: a budget already exhausted by setup (element
+        lookup/dimension probing) raises before the first tile is captured,
+        matching the non-tiled path's raise-before-capture semantics."""
+        monkeypatch.setattr(
+            "superset.utils.screenshot_utils.TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS",  # noqa: E501
+            1000,
+        )
+        clock = self._FakeClock()
+        # The dashboard-dimension evaluate() itself consumes the whole budget.
+        original_return = {"height": 5000, "top": 100, "left": 50, "width": 800}
+
+        def slow_evaluate(*args, **kwargs):
+            clock.now = 1000.0
+            return original_return
+
+        mock_page.evaluate.side_effect = slow_evaluate
+
+        with patch("superset.utils.screenshot_utils.current_task", None):
+            with patch("superset.utils.screenshot_utils.time.monotonic", new=clock):
+                with patch(
+                    "superset.utils.screenshot_utils.combine_screenshot_tiles"
+                ) as mock_combine:
+                    with pytest.raises(TiledScreenshotBudgetExceededError):
+                        take_tiled_screenshot(
+                            mock_page, "dashboard", tile_height=2000, load_wait=100
+                        )
+
+        mock_page.screenshot.assert_not_called()
+        mock_combine.assert_not_called()
+
+    def test_no_celery_context_uses_fixed_total_fallback(self, mock_page):
+        """Outside Celery the helper returns None; the tiled path must fall
+        back to the fixed total ceiling rather than running uncapped, because
+        per-tile waits accumulate across tiles."""
+        clock = self._FakeClock()
+        with patch("superset.utils.screenshot_utils.current_task", None):
+            with patch("superset.utils.screenshot_utils.time.monotonic", new=clock):
+                with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                    take_tiled_screenshot(
+                        mock_page,
+                        "dashboard",
+                        tile_height=2000,
+                        load_wait=10_000,  # deliberately above the fallback
+                    )
+
+        first_timeout = mock_page.wait_for_function.call_args_list[0][1]["timeout"]
+        assert first_timeout == TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS * 1000
+
+    def test_screenshot_started_at_counts_pre_capture_time_against_budget(
+        self, mock_page, monkeypatch
+    ):
+        """Time spent before tiling (navigation, headstart, element waits)
+        counts against the non-report budget when the caller provides the
+        overall screenshot start time -- the same clock the non-tiled
+        readiness wait uses. Report captures use their deadline instead."""
+        monkeypatch.setattr(
+            "superset.utils.screenshot_utils.TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS",  # noqa: E501
+            1000,
+        )
+        clock = self._FakeClock()
+        # The overall screenshot started 900s ago; only 100s of budget remains.
+        clock.now = 900.0
+
+        with patch("superset.utils.screenshot_utils.current_task", None):
+            with patch("superset.utils.screenshot_utils.time.monotonic", new=clock):
+                with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                    take_tiled_screenshot(
+                        mock_page,
+                        "dashboard",
+                        tile_height=2000,
+                        load_wait=500,
+                        screenshot_started_at=0.0,
+                    )
+
+        first_timeout = mock_page.wait_for_function.call_args_list[0][1]["timeout"]
+        assert first_timeout == 100 * 1000
+
+    def test_omitted_screenshot_started_at_anchors_clock_locally(
+        self, mock_page, monkeypatch
+    ):
+        """Without the caller-provided anchor the clock starts at entry
+        (backward-compatible default)."""
+        monkeypatch.setattr(
+            "superset.utils.screenshot_utils.TILED_SCREENSHOT_TOTAL_WAIT_BUDGET_SECONDS",  # noqa: E501
+            1000,
+        )
+        clock = self._FakeClock()
+        clock.now = 900.0
+
+        with patch("superset.utils.screenshot_utils.current_task", None):
+            with patch("superset.utils.screenshot_utils.time.monotonic", new=clock):
+                with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                    take_tiled_screenshot(
+                        mock_page,
+                        "dashboard",
+                        tile_height=2000,
+                        load_wait=500,
+                    )
+
+        first_timeout = mock_page.wait_for_function.call_args_list[0][1]["timeout"]
+        assert first_timeout == 500 * 1000
+
+    def test_derived_task_budget_caps_tile_wait(self, mock_page):
+        """Inside Celery, the tiled path caps waits using the same
+        task-derived budget as the non-tiled path (helper reuse, #42427)."""
+        task = MagicMock()
+        task.request.timelimit = (120, None)  # (hard, soft): 120s hard limit
+
+        clock = self._FakeClock()
+        with patch("superset.utils.screenshot_utils.current_task", task):
+            with patch("superset.utils.screenshot_utils.time.monotonic", new=clock):
+                with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                    take_tiled_screenshot(
+                        mock_page, "dashboard", tile_height=2000, load_wait=200
+                    )
+
+        # margin = min(300, 120 * 0.2) = 24; budget = 120 - 24 = 96
+        first_timeout = mock_page.wait_for_function.call_args_list[0][1]["timeout"]
+        assert first_timeout == 96 * 1000
+        assert first_timeout < 200 * 1000
+
+    def test_fast_dashboard_matches_default_behavior(self, mock_page):
+        """Well under budget, waits are not capped and behavior is unchanged."""
+        with patch("superset.utils.screenshot_utils.current_task", None):
+            with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                result = take_tiled_screenshot(
+                    mock_page,
+                    "dashboard",
+                    tile_height=2000,
+                    load_wait=30,
+                    animation_wait=5,
+                )
+
+        assert result is not None
+        assert mock_page.screenshot.call_count == 3
+
+        for call in mock_page.wait_for_function.call_args_list:
+            assert call[1]["timeout"] == 30 * 1000
+
+        animation_calls = [
+            call
+            for call in mock_page.wait_for_timeout.call_args_list
+            if call[0][0] == 5 * 1000
+        ]
+        assert len(animation_calls) == 3
+
+    def test_per_tile_timing_debug_line_logged(self, mock_page):
+        """Each tile logs a DEBUG timing breakdown (readiness wait, animation
+        wait) so slow dashboards can be profiled from logs alone."""
+        with patch("superset.utils.screenshot_utils.current_task", None):
+            with patch("superset.utils.screenshot_utils.logger") as mock_logger:
+                with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+                    take_tiled_screenshot(
+                        mock_page,
+                        "dashboard",
+                        tile_height=2000,
+                        log_context="cache_key=xyz",
+                    )
+
+        timing_calls = [
+            call for call in mock_logger.debug.call_args_list if "timing" in call[0][0]
+        ]
+        assert len(timing_calls) == 3
+        for i, call in enumerate(timing_calls):
+            args = call[0]
+            assert args[1] == i + 1  # tile index
+            assert args[2] == 3  # total tiles
+            assert args[-1] == " [cache_key=xyz]"
+
+
+def test_readiness_predicates_gate_on_unpainted_echarts_hosts() -> None:
+    """The report gate, the single-chart gate, and the diagnostics query all
+    key on the ECharts paint marker so a pre-paint canvas is never captured."""
+    from superset.utils.screenshot_utils import (
+        CHART_CONTAINER_READY_JS,
+        ECHARTS_UNPAINTED_HOST_SELECTOR,
+        FIND_CHART_HOLDER_STATES_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+    )
+
+    assert (
+        ECHARTS_UNPAINTED_HOST_SELECTOR == ".echarts-host:not(.echarts-render-finished)"
+    )
+    assert ECHARTS_UNPAINTED_HOST_SELECTOR in REPORT_CHART_HOLDERS_READY_JS
+    assert ECHARTS_UNPAINTED_HOST_SELECTOR in CHART_CONTAINER_READY_JS
+    assert "mounted_unpainted" in FIND_CHART_HOLDER_STATES_JS
+
+
+def test_readiness_predicates_gate_on_unpainted_ag_grid_hosts() -> None:
+    """Report readiness follows the AG Grid first-data-rendered contract used
+    by the frontend image export path, rather than accepting its mounted shell."""
+    from superset.utils.screenshot_utils import (
+        AG_GRID_HOST_SELECTOR,
+        CHART_CONTAINER_READY_JS,
+        CHART_CONTAINER_STATE_JS,
+        CHART_HOLDERS_READY_JS,
+        FIND_CHART_HOLDER_STATES_JS,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+    )
+
+    assert AG_GRID_HOST_SELECTOR == '[data-themed-ag-grid="true"]'
+    for predicate in (
+        CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+        CHART_CONTAINER_READY_JS,
+    ):
+        assert AG_GRID_HOST_SELECTOR in predicate
+        assert "_agGridFirstDataRendered !== true" in predicate
+    for predicate in (
+        CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+    ):
+        assert "grid._supersetAgGridWaitObserved = true" in predicate
+    assert "ag_grid_unpainted" in FIND_CHART_HOLDER_STATES_JS
+    assert "grid._supersetAgGridWaitObserved === true" in (FIND_CHART_HOLDER_STATES_JS)
+    assert "agGridWaitObserved" in FIND_CHART_HOLDER_STATES_JS
+    assert "ag_grid_unpainted" in CHART_CONTAINER_STATE_JS
+
+
+def test_ag_grid_no_rows_overlay_is_a_terminal_empty_state() -> None:
+    """A mounted zero-row grid must not wait for firstDataRendered forever."""
+    from superset.utils.screenshot_utils import (
+        CHART_CONTAINER_READY_JS,
+        CHART_HOLDERS_READY_JS,
+        EMPTY_SELECTOR,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+    )
+
+    assert ".ag-overlay-no-rows-wrapper:not(.ag-hidden)" in EMPTY_SELECTOR
+    for predicate in (
+        CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+        CHART_CONTAINER_READY_JS,
+    ):
+        assert ".ag-overlay-no-rows-wrapper:not(.ag-hidden)" in predicate
+
+
+def test_expand_scrollable_content_js_unrolls_ag_grid_and_css_scroll() -> None:
+    """The pre-capture DOM-expansion script must reach both flavors of
+    clipped table content: ag-Grid's row virtualization (needs its own API
+    to force a full render) and plain CSS overflow/height clipping (the
+    content already exists in the DOM and just needs the constraint lifted).
+    It must also lift the fixed heights on the shared `.chart-container` /
+    `.slice_container` / ag-Grid-wrapper ancestor chain, not just the
+    scrollable descendant itself -- a bounding-box capture
+    (`element.screenshot()`, used for single-chart exports) clips to the
+    ancestor's own box, which does not grow just because a descendant's
+    content does (#38090, reviewed by @aminghadersohi on #43979)."""
+    from superset.utils.screenshot_utils import (
+        AG_GRID_HOST_SELECTOR,
+        CHART_CONTAINER_SELECTOR,
+        EXPAND_SCROLLABLE_CONTENT_JS,
+        GENERIC_SCROLLABLE_DESCENDANT_SELECTOR,
+        SLICE_CONTAINER_SELECTOR_FOR_EXPANSION,
+    )
+
+    assert AG_GRID_HOST_SELECTOR in EXPAND_SCROLLABLE_CONTENT_JS
+    assert "setGridOption('domLayout', 'print')" in EXPAND_SCROLLABLE_CONTENT_JS
+    assert "grid._agGridApi" in EXPAND_SCROLLABLE_CONTENT_JS
+    # The grid's own host and its immediate parent (the ag-Grid table
+    # plugin's fixed-pixel-height wrapper) both get their height lifted --
+    # not just the descendant content inside the grid.
+    assert "grid.style.height = 'auto'" in EXPAND_SCROLLABLE_CONTENT_JS
+    assert "grid.parentElement.style.height = 'auto'" in EXPAND_SCROLLABLE_CONTENT_JS
+
+    assert SLICE_CONTAINER_SELECTOR_FOR_EXPANSION == ".slice_container"
+    assert SLICE_CONTAINER_SELECTOR_FOR_EXPANSION in EXPAND_SCROLLABLE_CONTENT_JS
+
+    assert CHART_CONTAINER_SELECTOR == ".chart-container"
+    assert GENERIC_SCROLLABLE_DESCENDANT_SELECTOR == (
+        '.chart-container [style*="overflow"], .chart-container .ant-table-body'
+    )
+    assert GENERIC_SCROLLABLE_DESCENDANT_SELECTOR in EXPAND_SCROLLABLE_CONTENT_JS
+    # Gated on actually clipping, so a non-scrollable match (e.g. a sticky
+    # table header with no overflow of its own) is left untouched.
+    assert "el.scrollHeight > el.clientHeight" in EXPAND_SCROLLABLE_CONTENT_JS
+    assert "overflow = 'visible'" in EXPAND_SCROLLABLE_CONTENT_JS
+    assert "maxHeight = 'none'" in EXPAND_SCROLLABLE_CONTENT_JS
+
+    # Takes an explicit wait budget rather than hardcoding one, so it can be
+    # bounded by a report's remaining deadline (see webdriver_test.py).
+    assert "async (maxWaitMs) =>" in EXPAND_SCROLLABLE_CONTENT_JS
+    assert "Date.now() + maxWaitMs" in EXPAND_SCROLLABLE_CONTENT_JS

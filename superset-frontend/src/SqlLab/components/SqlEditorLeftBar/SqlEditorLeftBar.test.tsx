@@ -201,7 +201,7 @@ test('display no compatible schema found when schema api throws errors', async (
     ).toBeGreaterThanOrEqual(1),
   );
   const select = screen.getByRole('combobox', {
-    name: 'Select schema or type to search schemas',
+    name: 'Select schema',
   });
   userEvent.click(select);
   expect(
