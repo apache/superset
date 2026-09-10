@@ -96,6 +96,44 @@ export const resolveView = (id: string): React.ReactElement => {
   );
 };
 
+/**
+ * Reactive counterpart to `resolveView`, for hosting a single
+ * extension-registered view (see `src/pages/ExtensionView`).
+ *
+ * `resolveView` reads the registry once, synchronously, at call time.
+ * That's a real gap for a host page reached by direct/full navigation
+ * (a bookmark, a page refresh, or an extension's own menu command using
+ * `window.location.assign` -- see `ExtensionView`'s own docstring): the
+ * extension providing the view loads asynchronously (its remote entry is
+ * fetched over the network), so on first render the registry is still
+ * empty and a plain `resolveView` call permanently commits to the
+ * "could not be loaded" placeholder, with nothing to trigger a re-render
+ * once the extension actually finishes loading and registers. Subscribing
+ * via `useSyncExternalStore` (the same registry-change events `useViews`
+ * already subscribes to) re-renders once that registration lands.
+ *
+ * Snapshots the registered `component` itself, not a freshly
+ * `React.createElement`-ed result -- `useSyncExternalStore` requires a
+ * `getSnapshot` that returns a stable reference when nothing changed, and
+ * `entry.component` is exactly that (unlike a new element object created
+ * fresh on every call).
+ */
+export const useResolveView = (id: string): React.ReactElement => {
+  const component = useSyncExternalStore(
+    subscribe,
+    () => viewRegistry.get(id)?.component,
+    () => undefined,
+  );
+  if (!component) {
+    return React.createElement(ExtensionPlaceholder, { id });
+  }
+  return React.createElement(
+    ErrorBoundary,
+    null,
+    React.createElement(component),
+  );
+};
+
 const getViews: typeof viewsApi.getViews = (
   location: string,
 ): View[] | undefined => {
