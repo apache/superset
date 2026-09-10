@@ -238,9 +238,9 @@ class TestCacheOnlyOnSuccess:
         def check_cache_during_screenshot(*args: object, **kwargs: object) -> bytes:
             cache_key = screenshot_obj.get_cache_key()
             cached_value = BaseScreenshot.cache.get(cache_key)
-            assert (
-                cached_value is not None
-            ), "Cache should be set to COMPUTING before screenshot starts"
+            assert cached_value is not None, (
+                "Cache should be set to COMPUTING before screenshot starts"
+            )
             assert cached_value["status"] == "Computing"
             return FAKE_PNG_BYTES
 
