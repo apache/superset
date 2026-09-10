@@ -236,7 +236,13 @@ jobs:
             # sqlite needs this working directory
             mkdir ${{ github.workspace }}/.temp
       - name: Start Celery worker
-        uses: ./.github/actions/cached-dependencies
+        # cached-dependencies is a git submodule (not a plain directory), and
+        # the $/ self-repository syntax resolves action files directly from
+        # the repository without performing a real (submodule-aware)
+        # checkout, so it can't see into a submodule's gitlink. Keep this one
+        # on the workspace-relative ./ form, consistent with every other
+        # workflow in the repo that references this action.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: celery-worker
       - name: Python integration tests (SQLite)
