@@ -55,10 +55,11 @@ class DatabaseUpdateUnsafeRebindError(ValidationError):
         super().__init__(
             _(
                 "This update would change the connection's effective "
-                "destination (host/port, engine parameters, or SSH tunnel "
-                "endpoint) while reusing the stored credential. Provide "
-                "the real password (or SSH tunnel credential) to confirm "
-                "a connection move."
+                "destination (host/port, engine parameters, SSH tunnel "
+                "endpoint, or OAuth2 endpoint URIs) while reusing the stored "
+                "credential. Provide the real password (or SSH tunnel "
+                "credential / OAuth2 client secret) to confirm a connection "
+                "move."
             ),
             field_name=field_name,
         )

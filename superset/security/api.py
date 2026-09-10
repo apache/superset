@@ -224,7 +224,9 @@ class SecurityRestApi(BaseSupersetApi):
         """
         try:
             body = guest_token_create_schema.load(request.json)
-            self.appbuilder.sm.validate_guest_token_resources(body["resources"])
+            self.appbuilder.sm.validate_guest_token_resources(
+                body["resources"], datasets=body.get("datasets")
+            )
             guest_token_validator_hook = current_app.config.get(
                 "GUEST_TOKEN_VALIDATOR_HOOK"
             )
@@ -271,7 +273,9 @@ class SecurityRestApi(BaseSupersetApi):
             # scoped (see validate_guest_token_resources): an authorization
             # denial, not a server fault, so answer 403 rather than letting
             # @safe turn it into a logged 500.
-            return self.response_403(message=error.message)
+            # FAB 5.x: response_403() takes no message argument (unlike
+            # response_400), so build the 403 explicitly.
+            return self.response(403, message=error.message)
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
