@@ -1096,7 +1096,7 @@ Effective roles, including group roles, contribute the **union** of their lists.
 That union is **intersected with existing dataset access**. Unconfigured roles
 contribute nothing; Admin has no routing exemption. `None` (the default) disables
 this feature; `{}` allows no datasets. Invalid entries cause a configuration
-error on tool calls rather than silently disabling the restriction.
+error at startup rather than silently disabling the restriction.
 
 Scoped mode supports `list_datasets`, `get_dataset_info`, `query_dataset`, and
 `get_table` with a built-in dataset, plus `health_check` and `get_schema`.
@@ -1104,11 +1104,11 @@ Discovery filters before counting and pagination. Other tools refuse in this
 mode, including SQL Lab, chart/dashboard previews and data, cached query results,
 external semantic sources, mutations, and extension tools. These paths cannot
 all be attributed reliably to registered dataset UUIDs; scoped mode deliberately
-refuses them instead of attempting SQL lineage inference. Unsupported tools are
-also hidden from `tools/list`, so clients are not offered a surface that only
-refuses. Prompts and resources are unaffected: they expose schema and instance
-metadata, not dataset rows. This restriction applies to every caller of the MCP
-tools, not just a particular chat client.
+refuses them instead of attempting SQL lineage inference. Unsupported tools stay
+listed and refuse when called, so the assistant reads an explanation it can pass
+on rather than finding the tool missing. Prompts and resources are unaffected:
+they expose schema and instance metadata, not dataset rows. This restriction
+applies to every caller of the MCP tools, not just a particular chat client.
 
 An out-of-scope request returns an explicit refusal. The assistant must explain
 that limitation, never silently substitute an allowed but different dataset.
