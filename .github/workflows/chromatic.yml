@@ -30,6 +30,11 @@
 # A prior Chromatic setup here (#21095) was removed in #27232 for being
 # unmaintained and overlapping with Applitools (since also discontinued).
 # Keep this one simple and watch it before considering a required check.
+#
+# The master (push) run auto-accepts its own changes so the baseline stays
+# current; otherwise every subsequent PR would keep reporting the same
+# already-merged diff against a stale baseline. PR runs are left alone so a
+# human still reviews what changed.
 name: Chromatic
 
 on:
@@ -124,4 +129,5 @@ jobs:
           # since the baseline build.
           onlyChanged: true
           exitZeroOnChanges: true
+          autoAcceptChanges: ${{ github.event_name == 'push' }}
           zip: true
