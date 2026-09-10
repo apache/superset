@@ -48,8 +48,14 @@ jobs:
       # astral-sh/setup-uv@v7.0.0, which isn't itself on the ASF Actions
       # allowlist (only v8.1.0+ are, at apache/infrastructure-actions'
       # actions.yml). Needs an INFRA request before this can de-vendor too.
+      # chart-testing-action is a submodule (not a plain directory), and the
+      # $/ self-repository syntax resolves action files directly from the
+      # repository without performing a real (submodule-aware) checkout, so
+      # it can't see into a submodule's link. Keep this one on the
+      # workspace-relative ./ form, consistent with every other workflow in
+      # the repo that references a submodule action.
       - name: Set up chart-testing
-        uses: $/.github/actions/chart-testing-action
+        uses: ./.github/actions/chart-testing-action # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
 
       - name: Run chart-testing (list-changed)
         id: list-changed

@@ -118,8 +118,13 @@ jobs:
           persist-credentials: false
           sparse-checkout: .github/actions
 
+      # This action lives under a second, sparse checkout of this same repo
+      # into workflow-source/ (see above), not at the repository root, so
+      # the $/ self-repository syntax (which resolves paths against the
+      # repository itself, not the local workspace) can't reach it. The
+      # workspace-relative ./ form is required here.
       - name: Setup Docker Environment
-        uses: $/workflow-source/.github/actions/setup-docker
+        uses: ./workflow-source/.github/actions/setup-docker # zizmor: ignore[self-repository] - path is a local sparse checkout under workflow-source/, not the repo root; ./ is required here
         with:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -131,8 +136,11 @@ jobs:
         with:
           node-version: 20
 
+      # Same reasoning as the Setup Docker Environment step above: this
+      # path is under the local workflow-source/ sparse checkout, not the
+      # repository root, so $/ can't resolve it.
       - name: Setup supersetbot
-        uses: $/workflow-source/.github/actions/setup-supersetbot/
+        uses: ./workflow-source/.github/actions/setup-supersetbot/ # zizmor: ignore[self-repository] - path is a local sparse checkout under workflow-source/, not the repo root; ./ is required here
 
       - name: Rebuild and push
         env:
