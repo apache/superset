@@ -1244,7 +1244,9 @@ def test_mask_configuration_no_write_only_properties(mocker: MockerFixture) -> N
     config = {"account": "test"}
     result = _mask_configuration(layer, config)
 
-    assert result is config
+    # The recursive masker returns a (defensively copied) equal mapping when
+    # nothing is marked secret, rather than the same object.
+    assert result == config
 
 
 def test_mask_configuration_no_registered_class(mocker: MockerFixture) -> None:
