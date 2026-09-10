@@ -18,6 +18,7 @@ from datetime import datetime
 from typing import Optional
 
 import pytest
+from pytest_mock import MockerFixture
 
 from superset.constants import TimeGrain
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
@@ -123,3 +124,98 @@ def test_engine_metadata() -> None:
     assert spec.engine == "mongodb"
     assert spec.engine_name == "MongoDB"
     assert spec.force_column_alias_quotes is False
+
+
+@pytest.mark.parametrize(
+    "uri,schema,expected",
+    [
+        (
+            "mongodb://user:pass@host:27017/dbone?mode=superset",
+            "dbtwo",
+            "mongodb://user:pass@host:27017/dbtwo?mode=superset",
+        ),
+        (
+            "mongodb://user:pass@host:27017/dbone?mode=superset",
+            None,
+            "mongodb://user:pass@host:27017/dbone?mode=superset",
+        ),
+        (
+            "mongodb+srv://user:pass@host/dbone?mode=superset",
+            "dbtwo",
+            "mongodb+srv://user:pass@host/dbtwo?mode=superset",
+        ),
+    ],
+)
+def test_adjust_engine_params(uri: str, schema: Optional[str], expected: str) -> None:
+    """The selected schema replaces the database in the connection URI."""
+    from sqlalchemy.engine.url import make_url
+
+    from superset.db_engine_specs.mongodb import MongoDBEngineSpec
+
+    adjusted, connect_args = MongoDBEngineSpec.adjust_engine_params(
+        make_url(uri), {"foo": "bar"}, schema=schema
+    )
+
+    assert adjusted.render_as_string(hide_password=False) == expected
+    assert connect_args == {"foo": "bar"}
+
+
+def test_get_schema_from_engine_params() -> None:
+    from sqlalchemy.engine.url import make_url
+
+    from superset.db_engine_specs.mongodb import MongoDBEngineSpec
+
+    assert (
+        MongoDBEngineSpec.get_schema_from_engine_params(
+            make_url("mongodb://user:pass@host:27017/dbone?mode=superset"), {}
+        )
+        == "dbone"
+    )
+    assert (
+        MongoDBEngineSpec.get_schema_from_engine_params(
+            make_url("mongodb://user:pass@host:27017"), {}
+        )
+        is None
+    )
+
+
+def test_get_default_schema() -> None:
+    from superset.db_engine_specs.mongodb import MongoDBEngineSpec
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="mongo",
+        sqlalchemy_uri="mongodb://user:pass@host:27017/dbone?mode=superset",
+    )
+
+    assert MongoDBEngineSpec.get_default_schema(database, None) == "dbone"
+
+
+def test_select_star_does_not_qualify_collection(mocker: MockerFixture) -> None:
+    """
+    PyMongoSQL treats ``schema.collection`` as a literal collection name, so the
+    preview query must reference the bare collection and rely on the schema
+    being applied to the connection instead.
+    """
+    from sqlalchemy.engine.default import DefaultDialect
+
+    from superset.db_engine_specs.mongodb import MongoDBEngineSpec
+    from superset.sql.parse import Table
+
+    database = mocker.MagicMock()
+    database.compile_sqla_query.side_effect = lambda qry, catalog, schema: str(
+        qry.compile(dialect=DefaultDialect(), compile_kwargs={"literal_binds": True})
+    )
+
+    sql = MongoDBEngineSpec.select_star(
+        database,
+        Table("orders", "testdb"),
+        DefaultDialect(),
+        limit=10,
+        show_cols=False,
+        latest_partition=False,
+    )
+
+    assert sql == "SELECT\n  *\nFROM orders\nLIMIT 10"
+    database.compile_sqla_query.assert_called_once()
+    assert database.compile_sqla_query.call_args.args[1:] == (None, "testdb")
