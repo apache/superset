@@ -387,6 +387,11 @@ const config: ControlPanelConfig = {
           },
         ],
         [
+          <ControlSubSectionHeader>
+            {t('Comparison Style')}
+          </ControlSubSectionHeader>,
+        ],
+        [
           {
             name: 'comparison_gap',
             config: {
@@ -417,11 +422,6 @@ const config: ControlPanelConfig = {
                 controls?.show_comparison2?.value === true,
             },
           },
-        ],
-        [
-          <ControlSubSectionHeader>
-            {t('Comparison Style')}
-          </ControlSubSectionHeader>,
         ],
         [
           {
