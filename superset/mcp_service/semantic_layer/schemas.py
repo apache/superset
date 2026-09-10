@@ -250,7 +250,9 @@ class GetTableResponse(BaseModel):
         description=(
             "Resolved inclusive start of the query engine's primary time range. "
             "Null means no primary lower bound is available. ISO 8601; naive "
-            "values are in Superset's logical time coordinates, not necessarily UTC."
+            "values are in Superset's logical time coordinates, not necessarily UTC. "
+            "On cache hits, these are current-request bounds; cached rows can reflect "
+            "an earlier relative range. Check performance.cache_status."
         ),
     )
     to_dttm: datetime | None = Field(
@@ -260,8 +262,8 @@ class GetTableResponse(BaseModel):
             "Null means no primary upper bound is available. Report these bounds when "
             "describing results; do not infer dates from relative expressions. "
             "Additional filters and datasource timezone adjustments still apply. "
-            "On a cache hit these bounds reflect the current request, not necessarily "
-            "the cached execution; check cache_status.cache_hit."
+            "On cache hits, these are current-request bounds; cached rows can reflect "
+            "an earlier relative range. Check performance.cache_status."
         ),
     )
     summary: str
