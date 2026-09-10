@@ -70,10 +70,7 @@ type TimeCompareSlot = {
 };
 
 function getMainComparisonPrefixes(): string[] {
-  const translated = t('Main');
-  return translated === TIME_COMPARE_MAIN_KEY
-    ? [TIME_COMPARE_MAIN_KEY]
-    : [translated, TIME_COMPARE_MAIN_KEY];
+  return [...new Set([t('Main'), TIME_COMPARE_MAIN_KEY])];
 }
 
 function isTimeCompareSymbolPrefix(
@@ -196,13 +193,10 @@ export function expandGroupColumnKey(
   if (slot) {
     return resolveTimeComparisonSlotKeys(slot, visibleKeys);
   }
-  const translatedMain = t('Main');
   const candidates = [
     `%${identifier}`,
     ...getTimeComparisonColumnKeys(identifier),
-    ...(translatedMain === TIME_COMPARE_MAIN_KEY
-      ? []
-      : [`${translatedMain} ${identifier}`]),
+    `${t('Main')} ${identifier}`,
   ];
   const matchSet = new Set(candidates.filter(key => visible.has(key)));
   return visibleKeys.filter(key => matchSet.has(key));
