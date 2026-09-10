@@ -119,7 +119,7 @@ jobs:
           sparse-checkout: .github/actions
 
       - name: Setup Docker Environment
-        uses: ./workflow-source/.github/actions/setup-docker
+        uses: $/workflow-source/.github/actions/setup-docker
         with:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
@@ -132,7 +132,7 @@ jobs:
           node-version: 20
 
       - name: Setup supersetbot
-        uses: ./workflow-source/.github/actions/setup-supersetbot/
+        uses: $/workflow-source/.github/actions/setup-supersetbot/
 
       - name: Rebuild and push
         env:

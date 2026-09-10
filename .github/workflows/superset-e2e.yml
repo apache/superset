@@ -46,7 +46,7 @@ jobs:
           persist-credentials: false
       - name: Check for file changes
         id: check
-        uses: ./.github/actions/change-detector/
+        uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -114,13 +114,13 @@ jobs:
           submodules: recursive
       # -------------------------------------------------------
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
       - name: Setup postgres
-        uses: ./.github/actions/cached-dependencies
+        uses: $/.github/actions/cached-dependencies
         with:
           run: setup-postgres
       - name: Import test data
-        uses: ./.github/actions/cached-dependencies
+        uses: $/.github/actions/cached-dependencies
         with:
           run: testdata
       - name: Setup Node.js
@@ -130,19 +130,19 @@ jobs:
           cache: "npm"
           cache-dependency-path: "superset-frontend/package-lock.json"
       - name: Install npm dependencies
-        uses: ./.github/actions/cached-dependencies
+        uses: $/.github/actions/cached-dependencies
         with:
           run: npm-install
       - name: Build javascript packages
-        uses: ./.github/actions/cached-dependencies
+        uses: $/.github/actions/cached-dependencies
         with:
           run: build-instrumented-assets
       - name: Install cypress
-        uses: ./.github/actions/cached-dependencies
+        uses: $/.github/actions/cached-dependencies
         with:
           run: cypress-install
       - name: Run Cypress
-        uses: ./.github/actions/cached-dependencies
+        uses: $/.github/actions/cached-dependencies
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
@@ -228,13 +228,13 @@ jobs:
           submodules: recursive
       # -------------------------------------------------------
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
       - name: Setup postgres
-        uses: ./.github/actions/cached-dependencies
+        uses: $/.github/actions/cached-dependencies
         with:
           run: setup-postgres
       - name: Import test data
-        uses: ./.github/actions/cached-dependencies
+        uses: $/.github/actions/cached-dependencies
         with:
           run: playwright_testdata
       - name: Setup Node.js
@@ -244,29 +244,29 @@ jobs:
           cache: "npm"
           cache-dependency-path: "superset-frontend/package-lock.json"
       - name: Install npm dependencies
-        uses: ./.github/actions/cached-dependencies
+        uses: $/.github/actions/cached-dependencies
         with:
           run: npm-install
       - name: Build javascript packages
-        uses: ./.github/actions/cached-dependencies
+        uses: $/.github/actions/cached-dependencies
         with:
           run: build-instrumented-assets
       - name: Build embedded SDK
-        uses: ./.github/actions/cached-dependencies
+        uses: $/.github/actions/cached-dependencies
         with:
           run: build-embedded-sdk
       - name: Install Playwright
-        uses: ./.github/actions/cached-dependencies
+        uses: $/.github/actions/cached-dependencies
         with:
           run: playwright-install
       - name: Run Playwright (Required Tests)
-        uses: ./.github/actions/cached-dependencies
+        uses: $/.github/actions/cached-dependencies
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
         with:
           run: playwright-run "${{ matrix.app_root }}"
       - name: Run Playwright (Soft-delete Tests)
-        uses: ./.github/actions/cached-dependencies
+        uses: $/.github/actions/cached-dependencies
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
           # Scoped to this step: each playwright-run boots its own gunicorn
@@ -281,7 +281,7 @@ jobs:
         with:
           run: playwright-run "${{ matrix.app_root }}" recently-archived/
       - name: Run Playwright (Embedded Tests)
-        uses: ./.github/actions/cached-dependencies
+        uses: $/.github/actions/cached-dependencies
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
           # Scoped to this step for the same reason as Soft-delete above:

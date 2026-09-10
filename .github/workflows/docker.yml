@@ -35,7 +35,7 @@ jobs:
           persist-credentials: false
       - name: Check for file changes
         id: check
-        uses: ./.github/actions/change-detector/
+        uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -68,7 +68,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
+        uses: $/.github/actions/setup-supersetbot/
       - name: Assert PY_VER override applies to every preset except py311/py312
         shell: bash
         env:
@@ -147,14 +147,14 @@ jobs:
           echo "Disk after cleanup:"; df -h /
 
       - name: Setup Docker Environment
-        uses: ./.github/actions/setup-docker
+        uses: $/.github/actions/setup-docker
         with:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
           build: "true"
 
       - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
+        uses: $/.github/actions/setup-supersetbot/
 
       - name: Build Docker Image
         shell: bash
@@ -314,7 +314,7 @@ jobs:
             /usr/local/share/boost || true
           echo "Disk after cleanup:"; df -h /
       - name: Setup Docker Environment
-        uses: ./.github/actions/setup-docker
+        uses: $/.github/actions/setup-docker
         with:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
