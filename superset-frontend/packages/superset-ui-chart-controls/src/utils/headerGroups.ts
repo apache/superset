@@ -108,10 +108,6 @@ function inferMainSlotFromSiblings(
   if (space <= 0) {
     return null;
   }
-  const prefix = column.slice(0, space);
-  if (isTimeCompareSymbolPrefix(prefix)) {
-    return null;
-  }
   const metric = column.slice(space + 1);
   if (
     !metric ||

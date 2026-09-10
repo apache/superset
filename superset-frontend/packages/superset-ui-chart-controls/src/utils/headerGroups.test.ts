@@ -302,6 +302,18 @@ test('expandGroupColumnKey maps a stored Main key onto a localized chart key', (
   ).toEqual(['Principal revenue']);
 });
 
+test('expandGroupColumnKey ignores visible keys that are not comparison slots', () => {
+  expect(
+    expandGroupColumnKey('Main revenue', [
+      'revenue',
+      'Principal revenue',
+      '# revenue',
+      '△ revenue',
+      '% revenue',
+    ]),
+  ).toEqual(['Principal revenue']);
+});
+
 test('toStoredTimeComparisonColumnKey persists a locale-independent Main id', () => {
   expect(
     toStoredTimeComparisonColumnKey('Principal revenue', [
@@ -311,6 +323,31 @@ test('toStoredTimeComparisonColumnKey persists a locale-independent Main id', ()
   ).toBe('Main revenue');
   expect(toStoredTimeComparisonColumnKey('Main revenue')).toBe('Main revenue');
   expect(toStoredTimeComparisonColumnKey('# revenue')).toBe('# revenue');
+});
+
+test('toStoredTimeComparisonColumnKey leaves unmatched comparison-like keys unchanged', () => {
+  expect(
+    toStoredTimeComparisonColumnKey('Principal revenue', ['Main revenue']),
+  ).toBe('Principal revenue');
+  expect(
+    toStoredTimeComparisonColumnKey('Main Street', [
+      'Main revenue',
+      '# revenue',
+    ]),
+  ).toBe('Main Street');
+  expect(
+    toStoredTimeComparisonColumnKey('# profit', comparisonRevenueColumns),
+  ).toBe('# profit');
+});
+
+test('expandGroupColumnKey skips ambiguous localized Main keys', () => {
+  expect(
+    expandGroupColumnKey('Main revenue', [
+      'Principal revenue',
+      'Actual revenue',
+      '# revenue',
+    ]),
+  ).toEqual([]);
 });
 
 test('expandGroupColumnKey maps a metric to its time comparison columns', () => {
