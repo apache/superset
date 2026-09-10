@@ -60,7 +60,7 @@ export default function buildQuery(formData: QueryFormData) {
     const metricLabel = (metric: QueryFormMetric): string =>
       typeof metric === 'string'
         ? metric
-        : metric.label ?? (metric as { expressionType?: string }).expressionType ?? '';
+        : metric.label ?? metric.expressionType ?? '';
     const mainLabels = new Set(mainMetrics.map(metricLabel));
     const comparisonMetrics = ensureIsArray([
       metricMode1 ? formDataYoyMom.comparison1_column : null,
