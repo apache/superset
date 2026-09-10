@@ -41,6 +41,14 @@ A K8s deployment can scale up and down based on usage and deploy rolling updates
 
 You will need to build your own Docker image, and back up your metadata DB, both as described in Docker Compose above. You'll also need to configure the operator's Superset resources and deploy and maintain your Kubernetes cluster.
 
+## [Easypanel](https://easypanel.io/templates/apache-superset)
+
+**Summary:** [Easypanel](https://easypanel.io/) offers an official one-click template that deploys Superset for you without running Docker commands manually. This is a quick way to try Superset, similar in spirit to Docker Compose above, but without managing a `docker-compose.yml` file yourself.
+
+**Responsibilities**
+
+As with Docker Compose, you are responsible for backing up your metadata DB and extending the Superset image if you need additional database drivers.
+
 ## [PyPI (Python)](/admin-docs/installation/pypi)
 
 **Summary:** This is the only method that requires no knowledge of containers. It requires the most hands-on work to deploy, connect, and maintain each component.
