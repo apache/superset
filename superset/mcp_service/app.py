@@ -174,7 +174,7 @@ Alerts & Reports:
 - get_report_info: Get detailed alert/report schedule info by ID
 
 Dataset discovery and attribution:
-- Search includes dataset descriptions; returned matches are candidates, not ranked recommendations.
+- Search covers dataset table names, descriptions, schemas and SQL; returned matches are candidates, not ranked recommendations. Look datasets up by UUID with a uuid filter, not with search.
 - Compare candidate descriptions and metrics. If the choice is ambiguous, show the candidate dataset IDs/names and clarify before querying.
 - Cite the dataset_id/dataset_name or source identity returned by query_dataset/get_table in answers.
 - No matches does not mean the data does not exist. State the search/scope limitation.
