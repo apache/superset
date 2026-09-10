@@ -888,16 +888,6 @@ export function TableRenderer(props: TableRendererProps) {
         return null;
       }
 
-      const spaceCell =
-        attrIdx === 0 && settingsRowAttrs.length !== 0 ? (
-          <th
-            key="padding"
-            colSpan={settingsRowAttrs.length}
-            rowSpan={settingsColAttrs.length}
-            aria-hidden="true"
-          />
-        ) : null;
-
       const needToggle =
         settingsColSubtotalDisplay.enabled === true &&
         attrIdx !== settingsColAttrs.length - 1;
@@ -911,8 +901,21 @@ export function TableRenderer(props: TableRendererProps) {
         subArrow =
           attrIdx + 1 < maxColVisible! ? arrowExpanded : arrowCollapsed;
       }
+      // With row dimensions, the corner block above the frozen row labels
+      // is rowAttrs.length + 1 columns wide: the row-attribute columns plus
+      // the padding column that renderTableRow folds into the last row
+      // label. Span the column-attribute name across that whole block so a
+      // single sticky cell freezes it, rather than a rowAttrs-wide spacer
+      // that leaves the name's own column scrolling through the corner.
+      const hasRowAttrs = settingsRowAttrs.length !== 0;
       const attrNameCell = (
-        <th key="label" className="pvtAxisLabel">
+        <th
+          key="label"
+          className={
+            hasRowAttrs ? 'pvtAxisLabel pvtCornerLabel' : 'pvtAxisLabel'
+          }
+          colSpan={hasRowAttrs ? settingsRowAttrs.length + 1 : undefined}
+        >
           {displayHeaderCell(
             needToggle,
             subArrow,
@@ -1102,7 +1105,7 @@ export function TableRenderer(props: TableRendererProps) {
           </th>
         ) : null;
 
-      const cells = [spaceCell, attrNameCell, ...attrValueCells, totalCell];
+      const cells = [attrNameCell, ...attrValueCells, totalCell];
       return <tr key={`colAttr-${attrIdx}`}>{cells}</tr>;
     },
     [

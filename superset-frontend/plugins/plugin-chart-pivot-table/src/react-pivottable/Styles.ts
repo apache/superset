@@ -45,18 +45,25 @@ export const Styles = styled.div<{ isDashboardEditMode: boolean }>`
       z-index: 2;
     }
 
-    /* Corner cell(s) sitting above the frozen row-label column: the
-     * placeholder cell spanning the column-attribute rows, and the
-     * row-attribute name cell(s) in the row-header row (which only
-     * renders when there are row dimensions). The z-index keeps them
-     * over the column labels scrolling underneath within the thead. */
-    table.pvtTable thead tr:first-of-type th[aria-hidden='true'],
+    /* Corner cells sitting above the frozen row-label column: the
+     * column-attribute name cell spanning the full leading block in each
+     * column-header row, and the row-attribute name cell(s) in the
+     * row-header row. Both only render when there are row dimensions.
+     * The z-index keeps them over the column labels scrolling underneath
+     * within the thead. */
+    table.pvtTable thead th.pvtCornerLabel,
     table.pvtTable thead tr.pvtRowHeaderRow th.pvtAxisLabel {
       position: ${isDashboardEditMode ? 'inherit' : 'sticky'};
       top: 0;
       left: 0;
       z-index: 1;
       background-color: ${theme.colorBgBase};
+    }
+
+    /* Keep the column-attribute name next to the column labels it names
+     * rather than at the far left of the merged corner block. */
+    table.pvtTable thead th.pvtCornerLabel {
+      text-align: right;
     }
 
     table tbody tr {
@@ -82,6 +89,15 @@ export const Styles = styled.div<{ isDashboardEditMode: boolean }>`
     table.pvtTable tbody tr.pvtRowTotals th,
     table.pvtTable tbody tr.pvtRowTotals td {
       background-color: ${theme.colorBgBase};
+    }
+
+    /* The totals row's leading label freezes at the left edge like the
+     * body row labels above it. The z-index keeps it over the totals
+     * values scrolling underneath within the row's own stacking context. */
+    table.pvtTable tbody tr.pvtRowTotals th.pvtRowTotalLabel {
+      position: ${isDashboardEditMode ? 'inherit' : 'sticky'};
+      left: 0;
+      z-index: 1;
     }
 
     table.pvtTable thead tr:last-of-type th,
