@@ -229,9 +229,10 @@ const config: ControlPanelConfig = {
           {
             name: 'title_left',
             config: {
-              type: 'TextControl',
+              type: 'NumberControl',
               label: t('Title left position'),
-              isInt: true,
+              min: 0,
+              step: 1,
               renderTrigger: true,
               default: DEFAULT_TITLE_LEFT,
               description: t('Horizontal offset in pixels from the left edge.'),
@@ -242,9 +243,10 @@ const config: ControlPanelConfig = {
           {
             name: 'title_top',
             config: {
-              type: 'TextControl',
+              type: 'NumberControl',
               label: t('Title top position'),
-              isInt: true,
+              min: 0,
+              step: 1,
               renderTrigger: true,
               default: DEFAULT_TITLE_TOP,
               description: t('Vertical offset in pixels from the top edge.'),
@@ -282,9 +284,10 @@ const config: ControlPanelConfig = {
           {
             name: 'big_number_left',
             config: {
-              type: 'TextControl',
+              type: 'NumberControl',
               label: t('Big number left position'),
-              isInt: true,
+              min: 0,
+              step: 1,
               renderTrigger: true,
               default: DEFAULT_BIG_NUMBER_LEFT,
               description: t('Horizontal offset in pixels from the left edge.'),
@@ -295,9 +298,10 @@ const config: ControlPanelConfig = {
           {
             name: 'big_number_top',
             config: {
-              type: 'TextControl',
+              type: 'NumberControl',
               label: t('Gap from title'),
-              isInt: true,
+              min: 0,
+              step: 1,
               renderTrigger: true,
               default: DEFAULT_BIG_NUMBER_TOP,
               description: t('Vertical gap in pixels between the title and the big number.'),
@@ -436,9 +440,10 @@ const config: ControlPanelConfig = {
           {
             name: 'comparison_top',
             config: {
-              type: 'TextControl',
+              type: 'NumberControl',
               label: t('Gap from big number'),
-              isInt: true,
+              min: 0,
+              step: 1,
               renderTrigger: true,
               default: DEFAULT_COMPARISON_TOP,
               description: t('Vertical gap in pixels between the big number and the comparison rows.'),
