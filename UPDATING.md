@@ -30,6 +30,18 @@ Scheduled report and alert captures require chart readiness to remain stable
 immediately before Chromium captures the image. A capture that re-enters a loading
 state during that window fails instead of delivering a screenshot with spinners.
 
+### Resample "Fill the entire time range"
+
+Charts with Resample can enable **Fill the entire time range** so gap-filling
+covers the full queried window (`from_dttm` / `to_dttm`), not only between the
+first and last returned data points. Existing charts are unchanged until the
+control is turned on.
+
+Resample projections remain capped by `MAX_RESAMPLE_ROWS` (default
+`1_000_000`). That cap now also covers calendar frequencies (month, quarter,
+year, …) that previously skipped the check because they have no fixed
+`Timedelta`.
+
 ### Tagging is on by default
 
 `TAGGING_SYSTEM` now ships **on**. The Tags menu entry, the tag columns and
