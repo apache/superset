@@ -936,10 +936,10 @@ When the `SOFT_DELETE` feature flag is enabled, deleting a chart or dashboard mo
 
 ```python
 # List only trashed charts
-result = mcp.list_charts(deleted_state="only")
+result = mcp.list_charts(request={"deleted_state": "only"})
 ```
 
-Trashed rows carry a non-null `deleted_at` timestamp in the response (populated only when `deleted_state` is used). Visibility follows the same restore-audience scoping as the equivalent REST API filters (`chart_deleted_state` / `dashboard_deleted_state`): a caller sees only the trashed objects they own, unless they hold an admin role, in which case all trashed objects are visible.
+Trashed rows carry a non-null `deleted_at` timestamp in the response (populated only when `deleted_state` is used). Visibility follows the same restore-audience scoping as the equivalent REST API filters (`chart_deleted_state` / `dashboard_deleted_state`): a non-admin caller sees only the trashed objects they can edit (the same audience that can restore them), not merely the ones they own; admins see all trashed objects.
 
 Tools whose resource doesn't support trash listing reject the `deleted_state` parameter with an error.
 
