@@ -16,24 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { ReactNode } from 'react';
 
-export type Callback = (...args: any[]) => void;
-
-export interface ConfirmStatusChangeProps {
-  title: ReactNode;
-  description: ReactNode;
-  onConfirm: Callback;
-  children: (showConfirm: Callback) => ReactNode;
-  /**
-   * Forwarded to the underlying DeleteModal: recoverable (soft-delete) mode
-   * drops the "type DELETE to confirm" step and uses a primary confirm button.
-   */
-  recoverable?: boolean;
-  /**
-   * Forwarded to the underlying DeleteModal: keeps the confirm button disabled
-   * regardless of the typed-text gate, e.g. while the caller is still loading
-   * information the user needs before confirming.
-   */
-  disablePrimaryButton?: boolean;
-}
+// Kept in their own module (rather than exported from MapLibre.tsx) so that
+// transformProps.ts can use them without pulling in MapLibre.tsx's
+// `maplibre-gl` import and its module-level setWorkerUrl() side effect.
+export const DEFAULT_MAX_ZOOM = 16;
+export const DEFAULT_POINT_RADIUS = 60;

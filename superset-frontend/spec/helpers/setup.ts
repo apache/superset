@@ -37,6 +37,13 @@ expect.extend(matchers);
 // Allow JSX tests to have React import readily available
 global.React = React;
 
+// webpack's runtime-configurable public path (see src/public-path.ts and
+// src/globals.d.ts). Modules that reference it at import time (e.g. to
+// build a static-asset URL, such as plugin-chart-point-cluster-map's
+// MapLibre.tsx) would otherwise throw ReferenceError under jest, since
+// nothing else in the test environment ever sets this webpack-only global.
+global.__webpack_public_path__ = '/static/assets/';
+
 // Mock ace-builds globally for tests
 jest.mock('ace-builds/src-min-noconflict/mode-handlebars', () => ({}));
 jest.mock('ace-builds/src-min-noconflict/mode-css', () => ({}));
