@@ -1157,8 +1157,8 @@ test('says suggestions could not be loaded when the server fails', async () => {
   const comparator = screen.getByRole('combobox', {
     name: 'Comparator option',
   });
-  userEvent.type(comparator, 'typed-by-hand');
-  userEvent.click(await screen.findByTitle('typed-by-hand'));
+  await userEvent.type(comparator, 'typed-by-hand');
+  await userEvent.click(await screen.findByTitle('typed-by-hand'));
   await waitFor(() => expect(props.onChange).toHaveBeenCalled());
   const [filter] = props.onChange.mock.calls.at(-1);
   expect(filter.comparator).toEqual(['typed-by-hand']);
@@ -1226,7 +1226,7 @@ test('ignores a stale failing response that loses the race to a newer success', 
   await waitFor(() => expect(landedCalls).toBe(1));
 
   // A newer request succeeds while the first is still pending.
-  userEvent.type(comparator, 'al');
+  await userEvent.type(comparator, 'al');
   expect(
     await screen.findByTitle('alpha', {}, { timeout: 3000 }),
   ).toBeInTheDocument();
@@ -1291,7 +1291,7 @@ test('drops the note once suggestions load again', async () => {
   // plain reassignment: the first response has fully settled (the note is
   // already on screen), so the lazy read cannot hand it this value.
   columnValuesResponse = { result: ['alpha'], limit: 10000 };
-  userEvent.type(comparator, 'al');
+  await userEvent.type(comparator, 'al');
   expect(
     await screen.findByTitle('alpha', {}, { timeout: 3000 }),
   ).toBeInTheDocument();

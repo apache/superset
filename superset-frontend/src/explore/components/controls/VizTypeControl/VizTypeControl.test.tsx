@@ -308,7 +308,7 @@ describe('VizTypeControl', () => {
     // whole tile), so it must hang off the image's bottom-right corner
     // rather than its top edge.
     await waitForRenderWrapper();
-    userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
+    await userEvent.click(screen.getByRole('tab', { name: 'All charts' }));
 
     const visualizations = screen.getByTestId(getTestId('viz-row'));
     const image = await within(visualizations).findByAltText(

@@ -810,8 +810,8 @@ test('Results grid receives verbose names for a view-as-table-only user', async 
   });
   // Let the drill_info request settle the way it would while the dashboard loads.
   await waitFor(() => expect(mockCachedSupersetGet).toHaveBeenCalled());
-  openMenu();
-  userEvent.click(screen.getByTestId('view-query-menu-item'));
+  await openMenu();
+  await userEvent.click(screen.getByTestId('view-query-menu-item'));
 
   await waitFor(() =>
     expect(

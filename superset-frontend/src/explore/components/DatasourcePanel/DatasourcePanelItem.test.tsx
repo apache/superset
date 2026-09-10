@@ -142,7 +142,7 @@ test('can collapse metrics and columns', async () => {
   expect(mockData.onToggleCollapse).toHaveBeenCalled();
 });
 
-test('folder drag handle is a separate element from the collapse toggle', () => {
+test('folder drag handle is a separate element from the collapse toggle', async () => {
   setup();
 
   const toggleButtons = screen
@@ -157,7 +157,7 @@ test('folder drag handle is a separate element from the collapse toggle', () => 
   expect(toggleButton).not.toBe(dragHandle);
   expect(toggleButton.tagName).toBe('BUTTON');
 
-  userEvent.click(toggleButton);
+  await userEvent.click(toggleButton);
   expect(mockData.onToggleCollapse).toHaveBeenCalledWith('1');
 });
 
