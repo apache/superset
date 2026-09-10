@@ -1581,9 +1581,17 @@ async def test_query_dataset_cached_bounds_across_rollover(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("dimension", ["address.city.name", "event_name"])
+@pytest.mark.parametrize(
+    "dimensions",
+    [
+        ["address.city.name"],
+        ["event_name"],
+        ["address.city.name", "address.postal_code"],
+        ["address.city.name", "event_name", "address.postal_code"],
+    ],
+)
 async def test_query_dataset_unregistered_dimension_is_actionable(
-    mcp_server: FastMCP, dimension: str
+    mcp_server: FastMCP, dimensions: list[str]
 ) -> None:
     """Unregistered struct paths and wrong-dataset names explain how to recover."""
     dataset = _make_dataset(
@@ -1601,19 +1609,30 @@ async def test_query_dataset_unregistered_dimension_is_actionable(
                     "request": {
                         "dataset_id": 1,
                         "metrics": ["count"],
-                        "columns": [dimension],
+                        "columns": dimensions,
                     }
                 },
             )
     data = json.loads(result.content[0].text)
     assert data["error_type"] == "ValidationError"
-    assert dimension in data["error"]
+    for dimension in dimensions:
+        assert dimension in data["error"]
     assert "example_events" in data["error"]
     assert "Available columns: address, channel" in data["error"]
     assert "get_dataset_info" in data["error"]
-    if "." in dimension:
+    dotted_dimensions = [name for name in dimensions if "." in name]
+    if dotted_dimensions:
         assert "not registered" in data["error"]
-        assert "calculated column" in data["error"]
+        for guidance in (
+            "query_dataset requires exact registered column names",
+            "registering a parent struct does not expose its nested fields",
+            "Refresh the dataset columns",
+            "add a calculated column",
+            "Use execute_sql",
+        ):
+            assert data["error"].count(guidance) == 1
+    else:
+        assert "nested fields" not in data["error"]
     execute.assert_not_called()
 
 

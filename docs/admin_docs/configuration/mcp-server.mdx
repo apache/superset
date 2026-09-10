@@ -1055,7 +1055,8 @@ expression and query its registered name. For ad-hoc expressions, use
 
 Unknown dimensions return the selected dataset's name and ID, up to ten
 available column names, and a pointer to `get_dataset_info` for the full list.
-Unregistered dotted dimensions also include nested-field setup guidance.
+Unregistered dotted dimensions also include shared nested-field setup guidance
+once, even when multiple dimensions are missing.
 The tool does not rewrite dots into SQL path separators: quoting and nested-field
 support depend on the dataset's database dialect, and dots can also be literal
 characters in column names.

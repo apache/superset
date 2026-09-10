@@ -204,19 +204,25 @@ async def query_dataset(  # noqa: C901
                 f"Available columns: {available}. "
                 "Use get_dataset_info with this dataset_id for the full column list."
             )
-            for name in missing_dimensions:
-                if "." in name:
-                    validation_errors.append(
-                        f"'{name}' is not registered as a column on this dataset. "
-                        "query_dataset requires exact registered column names; "
-                        "registering a parent struct does not expose its "
-                        "nested fields. "
-                        "Refresh the dataset columns if the database exposes "
-                        "this field, "
-                        "or add a calculated column using the warehouse's field-access "
-                        "expression and query its registered name. "
-                        "Use execute_sql if you need an ad-hoc nested-field expression."
-                    )
+            dotted_missing = [name for name in missing_dimensions if "." in name]
+            if dotted_missing:
+                names = ", ".join(f"'{name}'" for name in dotted_missing)
+                registration = (
+                    "is not registered as a column"
+                    if len(dotted_missing) == 1
+                    else "are not registered as columns"
+                )
+                validation_errors.append(
+                    f"{names} {registration} on this dataset. "
+                    "query_dataset requires exact registered column names; "
+                    "registering a parent struct does not expose its "
+                    "nested fields. "
+                    "Refresh the dataset columns if the database exposes "
+                    "this field, "
+                    "or add a calculated column using the warehouse's field-access "
+                    "expression and query its registered name. "
+                    "Use execute_sql if you need an ad-hoc nested-field expression."
+                )
 
         if validation_errors:
             error_msg = "; ".join(validation_errors)
