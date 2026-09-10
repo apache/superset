@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,24 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { ReactNode } from 'react';
 
-export type Callback = (...args: any[]) => void;
-
-export interface ConfirmStatusChangeProps {
-  title: ReactNode;
-  description: ReactNode;
-  onConfirm: Callback;
-  children: (showConfirm: Callback) => ReactNode;
-  /**
-   * Forwarded to the underlying DeleteModal: recoverable (soft-delete) mode
-   * drops the "type DELETE to confirm" step and uses a primary confirm button.
-   */
-  recoverable?: boolean;
-  /**
-   * Forwarded to the underlying DeleteModal: keeps the confirm button disabled
-   * regardless of the typed-text gate, e.g. while the caller is still loading
-   * information the user needs before confirming.
-   */
-  disablePrimaryButton?: boolean;
-}
+// webpack's runtime-configurable public path, mirroring src/globals.d.ts.
+// Used to point maplibre-gl at its CopyPlugin-emitted worker asset (see
+// MapLibre.tsx) with the correct app-root / reverse-proxy prefix applied.
+declare var __webpack_public_path__: string;
