@@ -26,7 +26,7 @@ from typing import Any, Callable, cast
 from zipfile import is_zipfile, ZipFile
 
 import rison
-from flask import current_app, g, redirect, request, Response, url_for
+from flask import current_app, g, redirect, request, Response, send_file, url_for
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import (
     expose,
@@ -46,7 +46,7 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext, ngettext
 from marshmallow import ValidationError
 from werkzeug.wrappers import Response as WerkzeugResponse
-from werkzeug.wsgi import FileWrapper
+from werkzeug.wsgi import ClosingIterator, FileWrapper
 
 from superset import db, is_feature_enabled
 from superset.charts.schemas import ChartEntityResponseSchema
@@ -193,7 +193,6 @@ from superset.versioning.api_helpers import (
 )
 from superset.versioning.etag import set_version_etag
 from superset.versioning.schemas import VersionListItemSchema
-from superset.views.base import generate_download_headers, XlsxResponse
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -1938,10 +1937,23 @@ class DashboardRestApi(
                 g.user,
                 query_contexts=query_contexts,
             )
-            with open(tmp_path, "rb") as workbook:
-                content = workbook.read()
+            filename = get_filename(
+                dashboard.dashboard_title, dashboard.id, skip_id=False
+            )
+            response = send_file(
+                tmp_path,
+                mimetype=(
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                ),
+                as_attachment=True,
+                download_name=f"{filename}.xlsx",
+                max_age=0,
+            )
+        except Exception:
+            if tmp_path and os.path.exists(tmp_path):
+                os.remove(tmp_path)
+            raise
         finally:
-            # Always release the lock and remove the temporary workbook.
             try:
                 ReleaseDistributedLock(EXPORT_LOCK_NAMESPACE, lock_params).run()
             except Exception:  # pylint: disable=broad-except
@@ -1950,13 +1962,15 @@ class DashboardRestApi(
                     "Failed to release in-flight export lock for dashboard %s",
                     dashboard.id,
                 )
-            if tmp_path and os.path.exists(tmp_path):
+
+        assert tmp_path is not None
+
+        def cleanup() -> None:
+            if os.path.exists(tmp_path):
                 os.remove(tmp_path)
 
-        filename = get_filename(dashboard.dashboard_title, dashboard.id, skip_id=False)
-        return XlsxResponse(
-            content, headers=generate_download_headers("xlsx", filename)
-        )
+        response.response = ClosingIterator(response.response, [cleanup])
+        return response
 
     def _validate_permalink_for_dashboard(
         self, permalink_key: str, dashboard: Dashboard

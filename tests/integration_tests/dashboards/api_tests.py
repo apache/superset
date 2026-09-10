@@ -3772,6 +3772,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         rv = self.client.post(
             f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
             json={"active_data_mask": {}},
+            buffered=True,
         )
 
         assert rv.status_code == 200
@@ -3801,6 +3802,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         rv = self.client.post(
             f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
             json={"active_data_mask": data_mask},
+            buffered=True,
         )
 
         assert rv.status_code == 200
@@ -3888,6 +3890,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         rv = self.client.post(
             f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
             json={"active_data_mask": {}},
+            buffered=True,
         )
 
         assert rv.status_code == 200
@@ -3935,6 +3938,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         rv = self.client.post(
             f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
             json={"active_data_mask": {}},
+            buffered=True,
         )
 
         assert rv.status_code == 200
@@ -3968,8 +3972,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     @with_config({"EXCEL_EXPORT_S3_BUCKET": None})
     @patch("superset.dashboards.api.build_workbook")
     def test_export_xlsx_sync_deletes_the_temp_file_on_success(self, mock_build):
-        """Dashboard API: the workbook is built through a temp file, which must not
-        outlive the response."""
+        """Dashboard API: the temp workbook is deleted when the response closes."""
         mock_build.side_effect = self._write_stub_workbook
         before = self._export_temp_files()
         self.login(ADMIN_USERNAME)
@@ -3981,6 +3984,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         )
 
         assert rv.status_code == 200
+        assert len(set(self._export_temp_files()) - set(before)) == 1
+        rv.close()
         assert self._export_temp_files() == before
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
