@@ -2490,7 +2490,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The error message
         """
 
-        return "You do not have permission to access this datasource"
+        return _("You do not have permission to access this datasource")
 
     @staticmethod
     def get_datasource_access_link(

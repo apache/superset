@@ -110,7 +110,7 @@ export function DatasourceSecurityAccessErrorMessage({
   const description: ReactNode = (
     <>
       <div>{ownerLine}</div>
-      {extra?.link && extra?.is_access_denial && (
+      {extra?.link && (extra?.is_access_denial || !!extra?.tables?.length) && (
         <Typography.Link
           href={extra.link}
           target="_blank"
