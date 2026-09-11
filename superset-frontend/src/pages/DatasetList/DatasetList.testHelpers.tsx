@@ -360,6 +360,7 @@ export const API_ENDPOINTS = {
   DATASOURCE_COMBINED: 'glob:*/api/v1/datasource/?*',
   DATASET_GET: 'glob:*/api/v1/dataset/[0-9]*',
   DATASET_RELATED_OBJECTS: 'glob:*/api/v1/dataset/*/related_objects*',
+  DATASET_BULK_RELATED_OBJECTS: 'glob:*/api/v1/dataset/related_objects/?q=*',
   DATASET_DELETE: 'glob:*/api/v1/dataset/[0-9]*',
   DATASET_BULK_DELETE: 'glob:*/api/v1/dataset/?q=*', // Matches DELETE /api/v1/dataset/?q=...
   DATASET_DUPLICATE: 'glob:*/api/v1/dataset/duplicate*',
@@ -479,10 +480,21 @@ export const setupDuplicateMocks = () => {
 };
 
 export const setupBulkDeleteMocks = () => {
-  fetchMock.removeRoutes({ names: [API_ENDPOINTS.DATASET_BULK_DELETE] });
+  fetchMock.removeRoutes({
+    names: [
+      API_ENDPOINTS.DATASET_BULK_DELETE,
+      API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS,
+    ],
+  });
   fetchMock.delete(API_ENDPOINTS.DATASET_BULK_DELETE, {
     message: '3 datasets deleted successfully',
   });
+  // The bulk confirm looks up the dependents of the selection; default to none.
+  fetchMock.get(
+    API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS,
+    { charts: { count: 0, result: [] }, dashboards: { count: 0, result: [] } },
+    { name: API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS },
+  );
 };
 
 // Setup error mocks for negative flow testing
