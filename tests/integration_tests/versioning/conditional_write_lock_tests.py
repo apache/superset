@@ -27,14 +27,12 @@ read transaction instead of modelling a concurrent request. The
 dialect-independent statement-shape pin lives in
 tests/unit_tests/versioning/test_lock_entity.py.
 
-Isolation note: the CI MySQL lane runs InnoDB's default REPEATABLE READ
--- no ``isolation_level`` is configured in the test configs, and the
-app's READ COMMITTED defaulter (``set_db_default_isolation``) does not
-take effect -- so on that lane dropping ``with_for_update()`` also flips
-the interleave test at the row level (the plain re-read serves the stale
-snapshot). If the isolation default is ever made effective, that extra
-flip disappears and the unit shape pin remains the load-bearing guard,
-as designed.
+Isolation note: CI pins the MySQL server to READ COMMITTED
+(.github/workflows/bashlib.sh) and PostgreSQL defaults to it, so the
+REPEATABLE READ staleness this fix targets is otherwise MASKED in CI —
+an RC re-read sees the concurrent commit even without the lock. The
+forced-RR test below closes that hole for the mutant that keeps
+``populate_existing()`` but drops ``with_for_update()``.
 """
 
 import gc
@@ -171,6 +169,40 @@ class TestConditionalWriteLockRefresh(SupersetTestCase):
             )
         finally:
             db.session.rollback()
+
+    def test_lock_refresh_survives_forced_repeatable_read(self) -> None:
+        """Forced-RR proof: the locking read defeats the snapshot itself.
+
+        CI pins the MySQL server to READ COMMITTED (bashlib.sh) and PG
+        defaults to it, so without forcing REPEATABLE READ here, a mutant
+        that keeps populate_existing() but drops with_for_update() would
+        still pass every lane — an RC re-read sees the concurrent commit
+        anyway. Under forced RR the unlocked re-read is a consistent read
+        served from the pre-commit snapshot (stale), while the locking
+        read is exempt and returns committed data. MySQL-only: under
+        PostgreSQL's REPEATABLE READ a locking read of a concurrently
+        updated row raises a serialization failure instead of returning
+        it, which is a different (also safe) outcome.
+        """
+        if db.session.get_bind().dialect.name != "mysql":
+            pytest.skip("forced-RR locking-read semantics are MySQL-specific")
+        db.session.rollback()
+        db.session.connection(execution_options={"isolation_level": "REPEATABLE READ"})
+        dataset = self._dataset()
+        dataset_id = dataset.id
+        original = dataset.description
+        assert original != "committed under forced RR"
+
+        try:
+            _write_description_out_of_band(dataset_id, "committed under forced RR")
+
+            locked = lock_entity_for_update(SqlaTable, dataset_id)
+
+            assert locked is not None
+            assert dataset.description == "committed under forced RR"
+        finally:
+            db.session.rollback()
+            _write_description_out_of_band(dataset_id, original)
 
     def test_lock_is_a_no_op_refresh_without_concurrent_writes(self) -> None:
         """Quiet-path control: no interleaved commit, no observable change.
