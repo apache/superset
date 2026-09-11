@@ -34,6 +34,7 @@ import { SAVE_TYPE_NEWDASHBOARD } from 'src/dashboard/util/constants';
 import FilterScopeModal from 'src/dashboard/components/filterscope/FilterScopeModal';
 import getDashboardUrl from 'src/dashboard/util/getDashboardUrl';
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
+import { isEmbedded as isInIframe } from 'src/dashboard/util/isEmbedded';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { HeaderDropdownProps } from 'src/dashboard/components/Header/types';
@@ -290,8 +291,13 @@ export const useHeaderActionsMenu = ({
       });
     }
 
-    // Toggle fullscreen (hide on mobile)
-    if (!editMode && !isEmbedded && !isMobile && !getUrlParam(URL_PARAMS.standalone)) {
+    // Toggle fullscreen (hide on mobile). Hidden entirely inside an iframe: there,
+    // "Exit fullscreen" reloads without the standalone param and brings back the full
+    // Superset nav, breaking the embed. Note `isEmbedded` above is
+    // `!dashboardInfo.userId` (anonymous guest via the embedded SDK), which does not
+    // cover an authenticated user whose dashboard is iframed, hence the separate check.
+    // Top-level users keep both directions so fullscreen is not a one-way door.
+    if (!editMode && !isEmbedded && !isMobile && !isInIframe()) {
       menuItems.push({
         key: MenuKeys.ToggleFullscreen,
         label: getUrlParam(URL_PARAMS.standalone)
