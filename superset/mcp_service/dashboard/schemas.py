@@ -279,7 +279,8 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             "tool can describe the dashboard as the user currently views it, "
             'filtered. Accepts dashboard dataMask state, e.g. {"dataMask": '
             '{"<configured filter ID>": {"filterState": {"value": ["EMEA"]}}}}, '
-            'or {"applied_filters": [{"col", "op", "val"}]}. Native mask values '
+            'or {"applied_filters": [{"col": "region", "op": "IN", '
+            '"val": ["EMEA"]}]}. Native mask values '
             "are projected without column metadata for restricted users. Ignored "
             "when permalink_key is provided."
         ),
