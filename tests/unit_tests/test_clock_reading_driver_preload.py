@@ -36,6 +36,7 @@ from freezegun import freeze_time
     reason="clickhouse_connect is not installed",
 )
 def test_clock_reading_driver_is_preloaded_before_tests() -> None:
+    """Verify the session fixture imports the driver before tests run."""
     assert "clickhouse_connect" in sys.modules
 
 
@@ -45,6 +46,12 @@ def test_clock_reading_driver_is_preloaded_before_tests() -> None:
 )
 @freeze_time("2021-04-01T00:00:00Z")
 def test_clickhouse_engine_spec_resolves_under_frozen_clock() -> None:
+    """Verify the ClickHouse Connect engine spec resolves under a frozen clock."""
+    # Defer the engine-spec package import until after the session preload;
+    # a module-top import would execute during collection, before the fixture.
     from superset.db_engine_specs import get_engine_spec
 
-    assert get_engine_spec("clickhousedb", "connect") is not None
+    assert (
+        get_engine_spec("clickhousedb", "connect").__name__
+        == "ClickHouseConnectEngineSpec"
+    )

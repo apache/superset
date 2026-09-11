@@ -23,6 +23,7 @@ RBAC logic is tested directly in test_auth_rbac.py.
 """
 
 from collections.abc import Iterator
+from contextvars import Token
 
 import pytest
 
@@ -44,7 +45,7 @@ def isolate_mcp_user_id_var() -> Iterator[None]:
     surfaces as a flake. Scoping the var to each test removes the ordering
     dependence.
     """
-    token = _mcp_user_id_var.set(None)
+    token: Token[int | None] = _mcp_user_id_var.set(None)
     try:
         yield
     finally:

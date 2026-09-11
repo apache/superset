@@ -95,9 +95,10 @@ def _preload_clock_reading_drivers() -> None:
     third-party entry point in every worker. Engine-spec discovery itself
     stays lazy, so tests that exercise it still observe a cold state.
     """
-    # Deferred, guarded import: the driver is an optional dependency, so a
-    # module-top import would make this conftest fail to load in an
-    # environment where it is not installed.
+    # Even a guarded module-top import would tie the driver to collection on
+    # every invocation, including --collect-only and partial runs. Session setup
+    # imports it once per worker, after conftest/plugin loading and before any
+    # test can enter freeze_time. Guard ImportError because the driver is optional.
     try:
         import clickhouse_connect  # noqa: F401
     except ImportError:
