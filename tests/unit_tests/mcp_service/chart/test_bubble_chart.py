@@ -208,6 +208,18 @@ class TestBubbleChartAnalyzers:
         assert "gdp" in semantics.data_story
         assert "life_expectancy" in semantics.data_story
 
+    def test_semantics_name_a_sql_expression_metric(self) -> None:
+        """A SQL-expression metric has no name; label or expression stands in."""
+        from superset.mcp_service.chart.chart_utils import analyze_chart_semantics
+
+        config = BubbleChartConfig(
+            **_base(x={"sql_expression": "AVG(gdp)", "label": "GDP per capita"})
+        )
+
+        semantics = analyze_chart_semantics("bubble_v2", config)
+
+        assert "GDP per capita" in semantics.data_story
+
 
 class TestBubbleImplicitAggregate:
     """x/y/size are metric slots, so a bare column means SUM — say so.
