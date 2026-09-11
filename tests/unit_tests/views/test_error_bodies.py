@@ -67,9 +67,12 @@ def test_no_lazy_gettext_reaches_json_error_response() -> None:
     convention rather than correctness — if it fires, switch the site to
     the eager ``__()`` alias.
     """
+    import superset
+
     pattern = re.compile(r"json_error_response\(\s*_\(", re.S)
     offenders: list[str] = []
-    for path in pathlib.Path("superset").rglob("*.py"):
+    package_root = pathlib.Path(superset.__file__).parent
+    for path in package_root.rglob("*.py"):
         source = path.read_text(errors="ignore")
         if "json_error_response" not in source:
             continue
