@@ -76,7 +76,11 @@ This feature is **disabled by default**. It requires:
 4. **A configured SMTP transport, for email delivery only.** When set (same
    settings as alerts & reports: `SMTP_*`, `EMAIL_REPORTS_SUBJECT_PREFIX`),
    logged-in users with an email address also receive the download link by
-   email. The polling auto-download works without it.
+   email. The polling auto-download works without it. The emailed link is
+   absolute and built from `WEBDRIVER_BASEURL_USER_FRIENDLY` (default
+   `http://0.0.0.0:8080/`), so set it to your public Superset origin
+   (e.g. `WEBDRIVER_BASEURL_USER_FRIENDLY = "https://superset.example.com/"`)
+   or remote recipients get an unreachable link.
 
 **Export Images to Excel** additionally requires a working headless webdriver —
 the same infrastructure scheduled reports and thumbnails use (`WEBDRIVER_*`,

@@ -120,6 +120,8 @@ def mocks() -> Iterator[dict[str, Any]]:
         user = mock.MagicMock()
         user.email = "user@example.com"
         patched["security_manager"].get_user_by_id.return_value = user
+        # Guest tokens are not revoked unless a test opts in.
+        patched["security_manager"]._is_guest_token_revoked.return_value = False
 
         dashboard = mock.MagicMock()
         dashboard.id = 1
@@ -1033,6 +1035,43 @@ def test_expired_guest_token_aborts_before_running_queries(
             guest_token=token,
         )
 
+    mocks["security_manager"].get_guest_user_from_token.assert_not_called()
+    mocks["ChartDataCommand"].return_value.run.assert_not_called()
+    mocks["mark_export_failed"].assert_called_once()
+    mocks["ReleaseDistributedLock"].return_value.run.assert_called_once_with()
+
+
+def test_revoked_guest_token_aborts_before_running_queries(
+    mocks: dict[str, Any],
+) -> None:
+    """A guest token revoked while the export was queued must not run chart
+    queries: the worker re-applies the request-path revocation check and, when it
+    trips, aborts, records a failure, and releases the lock. Both revocation
+    mechanisms (global version bump and per-embedded-dashboard cutoff) are
+    exercised against the real helper in
+    ``tests/unit_tests/security``; here we assert the worker delegates to it."""
+    from superset.tasks.export_dashboard_excel import export_dashboard_excel
+
+    # Unexpired but revoked, so the abort is attributable to the revocation check.
+    mocks["security_manager"]._is_guest_token_revoked.return_value = True
+    token: GuestToken = {
+        "iat": 0.0,
+        "exp": time.time() + 3600,
+        "user": {},
+        "resources": [],
+        "rls_rules": [],
+    }
+
+    with pytest.raises(SupersetException, match="revoked"):
+        export_dashboard_excel(
+            dashboard_id=1,
+            user_id=None,
+            active_data_mask={},
+            job_id=JOB_ID_FAIL,
+            guest_token=token,
+        )
+
+    mocks["security_manager"]._is_guest_token_revoked.assert_called_once_with(token)
     mocks["security_manager"].get_guest_user_from_token.assert_not_called()
     mocks["ChartDataCommand"].return_value.run.assert_not_called()
     mocks["mark_export_failed"].assert_called_once()

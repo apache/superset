@@ -40,7 +40,7 @@ import tempfile
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, cast
 
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app, g
@@ -542,13 +542,18 @@ def _resolve_requesting_user(
         return security_manager.get_user_by_id(user_id)
     if guest_token:
         # The token's signature/exp were verified at request time, but the
-        # export can sit queued: refuse to run chart queries under a guest
-        # token that has since expired. (Such a guest can no longer reach the
-        # @protect-ed status endpoint to retrieve the result anyway, and has no
-        # email fallback, so nothing servable is lost.)
+        # export can sit queued: re-run the request-path guest checks so a
+        # token that has since expired or been revoked cannot execute chart
+        # queries. (Such a guest can no longer reach the @protect-ed status
+        # endpoint to retrieve the result anyway, and has no email fallback,
+        # so nothing servable is lost.)
         exp = guest_token.get("exp")
         if exp is not None and exp < time.time():
             raise SupersetException("The guest token has expired.")
+        if security_manager._is_guest_token_revoked(  # noqa: SLF001
+            cast(dict[str, Any], guest_token)
+        ):
+            raise SupersetException("The guest token has been revoked.")
         return security_manager.get_guest_user_from_token(guest_token)
     # Anonymous requester: run under the anonymous principal so the Public
     # role applies, mirroring superset.tasks.async_queries.
