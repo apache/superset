@@ -22,6 +22,7 @@ import { kebabCase } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
+import { store } from 'src/views/store';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { forceLoadAllCharts, restoreVirtualization } from './downloadUtils';
 
@@ -56,8 +57,8 @@ export default function downloadAsPdf(
       : event.currentTarget.closest(selector);
 
     if (!elementToPrint) {
-      return addWarningToast(
-        t('PDF download failed, please refresh and try again.'),
+      return store.dispatch(
+        addWarningToast(t('PDF download failed, please refresh and try again.')),
       );
     }
 
