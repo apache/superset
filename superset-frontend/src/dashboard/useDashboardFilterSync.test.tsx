@@ -154,6 +154,27 @@ test('toast undo restores the prior mask and removes newly introduced entries', 
   expect(store.getState().dataMask).toEqual(previous);
 });
 
+test('toast undo does not restore inherited properties for forwarded filter ids', async () => {
+  resolvePermalink.mockResolvedValue({
+    ...permalink,
+    state: {
+      ...permalink.state,
+      dataMask: JSON.parse('{"constructor":{"id":"constructor"}}'),
+    },
+  });
+  const { store, dispatch } = setup();
+  await receive();
+  dispatch.mockClear();
+  act(() => store.getState().messageToasts[0].action?.onClick());
+  expect(dispatch).toHaveBeenCalledTimes(2);
+  expect(
+    Object.prototype.hasOwnProperty.call(
+      store.getState().dataMask,
+      'constructor',
+    ),
+  ).toBe(false);
+});
+
 test.each(['unmount', 'navigate'])(
   '%s during resolution prevents dispatch',
   async mode => {

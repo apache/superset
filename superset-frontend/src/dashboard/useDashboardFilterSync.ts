@@ -86,7 +86,9 @@ export default function useDashboardFilterSync(dashboardId?: number) {
                 entries.forEach(([id]) => {
                   // Remove first: updateDataMask merges rather than replaces.
                   dispatch(removeDataMask(id));
-                  if (previous[id]) dispatch(updateDataMask(id, previous[id]));
+                  if (Object.prototype.hasOwnProperty.call(previous, id)) {
+                    dispatch(updateDataMask(id, previous[id]));
+                  }
                 });
                 dismissToast();
               },
