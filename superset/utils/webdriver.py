@@ -1563,8 +1563,7 @@ class WebDriverPlaywright(WebDriverProxy):
             page.locator(".standalone").wait_for(timeout=effective_wait * 1000)
 
             # Safety net: remove any residual display:none from CSSMotion
-            unhidden = page.evaluate(UNHIDE_TAB_PANELS_JS)
-            if unhidden:
+            if unhidden := page.evaluate(UNHIDE_TAB_PANELS_JS):
                 logger.debug(
                     "browser_print_pdf_unhide url=%s panels_unhidden=%d",
                     render_url,
@@ -1605,8 +1604,7 @@ class WebDriverPlaywright(WebDriverProxy):
                     log_context or "",
                 )
 
-            expanded = page.evaluate(EXPAND_TABLE_CONTAINERS_JS)
-            if expanded:
+            if expanded := page.evaluate(EXPAND_TABLE_CONTAINERS_JS):
                 logger.info(
                     "browser_print_pdf_expand_tables url=%s tables_expanded=%d "
                     "log_context=%s",
@@ -1621,7 +1619,16 @@ class WebDriverPlaywright(WebDriverProxy):
             # in every band.  Must run AFTER EXPAND_TABLE_CONTAINERS_JS (final
             # widths) and BEFORE SCALE_WIDE_TABLES_JS (so already-banded tables
             # are not unnecessarily scaled — each band ≤ usableWidth).
-            _landscape_factor = 1.414 if print_orientation == "landscape" else 1.0
+            #
+            # In 'auto' orientation mode the landscape factor is applied here so
+            # that tables wide enough to fit on a single landscape page are NOT
+            # split into multiple portrait-width bands.  Without this, banding
+            # runs at portrait width, each band fits, and SCALE_WIDE_TABLES_JS
+            # sees no overflow — so data-print-landscape is never set and the
+            # documented auto-orientation never takes effect.
+            _landscape_factor = (
+                1.414 if print_orientation in ("landscape", "auto") else 1.0
+            )
             _usable_width = int((pdf_viewport_width - 24) * _landscape_factor)
             col_measurements = page.evaluate(MEASURE_TABLE_COLUMNS_JS)
             band_opts = {

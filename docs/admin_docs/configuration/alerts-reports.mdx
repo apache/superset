@@ -36,6 +36,7 @@ By default, dashboard PDF reports are produced by stitching raster screenshots. 
 
 - The `PLAYWRIGHT_REPORTS_AND_THUMBNAILS` [feature flag](/admin-docs/configuration/feature-flags) must also be enabled (Playwright must be installed and working).
 - This path is dashboard-only. Chart PDF reports always use the screenshot path regardless of this flag.
+- **Multi-tab reports via `ALERT_REPORT_TABS` are not supported.** When a report targets a dashboard spread across multiple permalink URLs (i.e. `ALERT_REPORT_TABS` is enabled and more than one tab is selected), `_get_browser_print_pdf` returns `None` and the report falls back to the raster screenshot path even when this flag is enabled. Single-URL dashboard reports (including dashboards with tabs navigated via hash fragments) are fully supported.
 - If the browser-print render fails for any reason, Superset falls back to the screenshot path automatically. No report delivery is skipped.
 
 ### Enabling
