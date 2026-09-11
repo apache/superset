@@ -32,6 +32,15 @@ jest.mock('@apache-superset/core/translation', () => ({
   t: (str: string) => str,
 }));
 
+jest.mock('@apache-superset/core/utils', () => ({
+  logging: { error: jest.fn() },
+}));
+
+jest.mock('./downloadUtils', () => ({
+  forceLoadAllCharts: jest.fn().mockResolvedValue(false),
+  restoreVirtualization: jest.fn(),
+}));
+
 afterEach(() => {
   jest.restoreAllMocks();
 });
@@ -63,4 +72,23 @@ test('does not throw when the target element is not found and no toast callback 
   await expect(
     downloadAsPdf('.non-existent-selector', 'test-file', true)({} as any),
   ).resolves.not.toThrow();
+});
+
+test('warns the user via the bound toast callback when PDF generation fails', async () => {
+  const element = document.createElement('div');
+  jest.spyOn(document, 'querySelector').mockReturnValue(element);
+  const domToPdf = jest.requireMock('dom-to-pdf').default as jest.Mock;
+  domToPdf.mockRejectedValue(new Error('boom'));
+  const addWarningToast = jest.fn();
+
+  await downloadAsPdf(
+    '.some-selector',
+    'test-file',
+    true,
+    addWarningToast,
+  )({} as any);
+
+  expect(addWarningToast).toHaveBeenCalledWith(
+    'PDF download failed, please refresh and try again.',
+  );
 });
