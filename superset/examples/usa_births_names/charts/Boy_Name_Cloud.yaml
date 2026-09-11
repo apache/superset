@@ -28,7 +28,7 @@ params:
     subject: gender
   compare_lag: '10'
   compare_suffix: o10Y
-  granularity_sqla: ds
+  granularity: ds
   groupby: []
   limit: '100'
   markup_type: markdown

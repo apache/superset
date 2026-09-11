@@ -30,6 +30,7 @@ from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
 from superset.constants import EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS
+from superset.utils.core import ExtraFiltersReasonType
 
 if TYPE_CHECKING:
     from superset.mcp_service.chart.schemas import AppliedDashboardFilter
@@ -37,16 +38,98 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# extra_form_data override targets that the query object actually reads. Note
+# that ``time_grain`` is deliberately absent: the query object has no such field
+# and nothing downstream consumes it, matching the REST path, where
+# form_data_query_context reads only ``time_grain_sqla``. Listing it here would
+# write a key that ChartDataQueryObjectSchema (``unknown = EXCLUDE``) discards.
 QUERY_CONTEXT_EXTRA_FORM_DATA_OVERRIDE_KEYS = {
     "granularity",
-    "time_grain",
     "time_grain_sqla",
     "time_range",
+}
+
+# Of the keys above, these are not query object fields: the query object carries
+# the time grain inside ``extras`` (see ChartDataExtrasSchema), mirroring how
+# form_data is translated in superset.common.form_data_query_context. Writing
+# them at the top level instead means ChartDataQueryObjectSchema, which is
+# configured with ``unknown = EXCLUDE``, silently drops the override.
+QUERY_CONTEXT_EXTRA_FORM_DATA_EXTRAS_KEYS = {
+    "time_grain_sqla",
 }
 
 
 class ChartNotOnDashboardError(ValueError):
     """Raised when a chart is not part of the given dashboard's slices."""
+
+
+def requested_filter_columns(extra_form_data: dict[str, Any] | None) -> set[str]:
+    """Return simple column names explicitly requested through extra form data."""
+    if not extra_form_data:
+        return set()
+
+    columns: set[str] = set()
+    for filter_ in extra_form_data.get("filters") or []:
+        if isinstance(filter_, dict) and isinstance(column := filter_.get("col"), str):
+            columns.add(column)
+    for filter_ in extra_form_data.get("adhoc_filters") or []:
+        if (
+            isinstance(filter_, dict)
+            and filter_.get("expressionType") == "SIMPLE"
+            and isinstance(column := filter_.get("subject"), str)
+        ):
+            columns.add(column)
+    return columns
+
+
+def rejected_columns_in_query(query: Any) -> set[str]:
+    """Return the rejected filter column names reported by one query payload.
+
+    Query construction reports dropped filters as ``rejected_filters`` entries
+    (``{"reason": ..., "column": ...}``), the shape every consumer of a
+    chart-data or query payload sees. The raw ``rejected_filter_columns`` list
+    is still accepted for payloads captured before that conversion.
+    """
+    if not isinstance(query, dict):
+        return set()
+
+    # QUERY results retain the datasource-only list so temporal pseudo-filter
+    # rejections cannot be mistaken for ordinary filters with the same name.
+    # Prefer it whenever present, including when it is empty.
+    if "rejected_filter_columns" in query:
+        return {
+            column
+            for column in query.get("rejected_filter_columns") or []
+            if isinstance(column, str)
+        }
+
+    columns = {
+        column
+        for entry in query.get("rejected_filters") or []
+        if isinstance(entry, dict)
+        and entry.get("reason") != ExtraFiltersReasonType.NO_TEMPORAL_COLUMN
+        and isinstance(column := entry.get("column"), str)
+    }
+    return columns
+
+
+def rejected_requested_filter_columns(
+    result: Any, extra_form_data: dict[str, Any] | None
+) -> list[str]:
+    """Find request filters rejected by datasource query construction.
+
+    Only columns the caller asked for are reported, so a stale filter stored in
+    an older chart configuration cannot fail the request.
+    """
+    if not isinstance(result, dict):
+        return []
+    requested = requested_filter_columns(extra_form_data)
+    rejected = {
+        column
+        for query in result.get("queries", [])
+        for column in rejected_columns_in_query(query)
+    }
+    return sorted(requested & rejected)
 
 
 def find_chart_by_identifier(
@@ -199,6 +282,8 @@ def apply_form_data_filters_to_query(
         query["where"] = where
     if having := form_data.get("having"):
         query["having"] = having
+    if extras := form_data.get("extras"):
+        query["extras"] = {**(query.get("extras") or {}), **extras}
 
 
 def _join_sql_clause(existing_clause: str, additional_clause: str) -> str:
@@ -247,7 +332,10 @@ def merge_form_data_filters_into_query(
             and key in form_data
             and form_data[key] is not None
         ):
-            query[key] = form_data[key]
+            if key in QUERY_CONTEXT_EXTRA_FORM_DATA_EXTRAS_KEYS:
+                query["extras"] = {**(query.get("extras") or {}), key: form_data[key]}
+            else:
+                query[key] = form_data[key]
 
     for clause in ("where", "having"):
         if additional_clause := form_data.get(clause):
@@ -255,6 +343,9 @@ def merge_form_data_filters_into_query(
                 query[clause] = _join_sql_clause(existing_clause, additional_clause)
             else:
                 query[clause] = additional_clause
+
+    if extras := form_data.get("extras"):
+        query["extras"] = {**(query.get("extras") or {}), **extras}
 
 
 def merge_extra_form_data_filters_into_query(
@@ -484,6 +575,13 @@ def _build_single_query_dict(
         qd["row_limit"] = effective_row_limit
     if order_desc is not None:
         qd["order_desc"] = order_desc
+    # sort_by_metric charts (pie/funnel/treemap/sankey/gauge) order by the
+    # metric descending. buildQuery derives this on the frontend; the MCP path
+    # builds the query dict directly and never reads a top-level
+    # form_data['orderby'], so translate the flag here or a row_limit truncates
+    # an unordered result (dropping the heaviest rows rather than the top-N).
+    if form_data.get("sort_by_metric") and metrics:
+        qd["orderby"] = [(metrics[0], False)]
     apply_form_data_filters_to_query(qd, form_data)
     return qd
 

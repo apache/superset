@@ -333,7 +333,7 @@ class BaseScreenshot:
         Computes the thumbnail and caches the result
 
         :param user: If no user is given will use the current context
-        :param cache: The cache to keep the thumbnail payload
+        :param cache_key: The cache key to store the thumbnail payload under
         :param window_size: The window size from which will process the thumb
         :param thumb_size: The final thumbnail size
         :param force: Will force the computation even if it's already cached

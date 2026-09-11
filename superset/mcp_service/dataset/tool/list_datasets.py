@@ -76,6 +76,7 @@ _DEFAULT_LIST_DATASETS_REQUEST = ListDatasetsRequest()
         title="List datasets",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 @requires_data_model_metadata_access

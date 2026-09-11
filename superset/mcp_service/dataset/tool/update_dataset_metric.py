@@ -102,6 +102,8 @@ def _serialize_metric(metric: Any) -> DatasetMetricDetail:
         # Overwrites an existing metric's definition and affects every chart
         # that uses it — non-additive, like update_chart.
         destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 async def update_dataset_metric(  # noqa: C901

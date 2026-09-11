@@ -40,12 +40,16 @@ from superset.mcp_service.chart.chart_utils import (
     analyze_chart_semantics,
     generate_chart_name,
     map_config_to_form_data,
+    merge_chart_form_data,
+    merge_interactive_pivot_ui_config,
     merge_table_column_config,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
+    ChartConfig,
     ColumnRef,
+    GaugeChartConfig,
     GenerateChartResponse,
     PerformanceMetadata,
     TableChartConfig,
@@ -195,19 +199,204 @@ def _append_table_columns(
 def _merge_replacement_config(
     existing_form_data: dict[str, Any],
     new_form_data: dict[str, Any],
-    parsed_config: Any,
+    parsed_config: ChartConfig,
+    *,
+    dataset_rebind: bool = False,
 ) -> dict[str, Any]:
-    """Merge a replacement config, honoring an explicit empty filter list."""
-    merged = {
-        **{
+    """Delegate update semantics to the shared form-data merge helper."""
+    return merge_chart_form_data(
+        existing_form_data,
+        new_form_data,
+        parsed_config,
+        dataset_rebind=dataset_rebind,
+    )
+
+
+def _valid_dataset_reference(
+    value: Any,
+    columns: set[str],
+    metrics: set[str],
+    *,
+    allow_metric: bool = False,
+) -> bool:
+    """Return whether a form_data reference resolves against a dataset."""
+    if not isinstance(value, str):
+        return True
+    normalized = value.casefold()
+    return normalized in columns or (allow_metric and normalized in metrics)
+
+
+def _inherited_metrics_match_dataset(
+    existing_form_data: dict[str, Any],
+    columns: set[str],
+    metrics: set[str],
+) -> bool:
+    for metric in existing_form_data.get("metrics") or []:
+        if isinstance(metric, str) and not _valid_dataset_reference(
+            metric, columns, metrics, allow_metric=True
+        ):
+            return False
+        if isinstance(metric, dict):
+            column = metric.get("column")
+            if isinstance(column, dict) and not _valid_dataset_reference(
+                column.get("column_name"), columns, metrics
+            ):
+                return False
+    return True
+
+
+def _inherited_sort_matches_dataset(
+    order_by_cols: Any, columns: set[str], metrics: set[str]
+) -> bool:
+    for order_by in order_by_cols or []:
+        try:
+            column = json.loads(order_by)[0]
+        except (TypeError, ValueError, IndexError):
+            return False
+        if not _valid_dataset_reference(column, columns, metrics, allow_metric=True):
+            return False
+    return True
+
+
+def _inherited_filters_match_dataset(
+    filters: Any, columns: set[str], metrics: set[str]
+) -> bool:
+    for filter_ in filters or []:
+        if not isinstance(filter_, dict):
+            return False
+        if filter_.get("expressionType") not in (None, "SIMPLE"):
+            return False
+        subject = filter_.get("subject") or filter_.get("col")
+        allow_metric = str(filter_.get("clause", "WHERE")).upper() == "HAVING"
+        if not _valid_dataset_reference(
+            subject, columns, metrics, allow_metric=allow_metric
+        ):
+            return False
+    return True
+
+
+#: form_data keys carrying query roles, mapped to the config field that
+#: sets them explicitly. An explicit field is the caller's stated intent,
+#: so it is never treated as inherited state.
+_INHERITED_QUERY_ROLE_FIELDS = {
+    "groupby": "group_by",
+    "groupby_b": "group_by_secondary",
+    "all_columns": None,
+    "columns": None,
+    "x_axis": None,
+    "granularity_sqla": None,
+    "metrics": None,
+    "order_by_cols": "sort_by",
+    "adhoc_filters": "filters",
+}
+
+_INHERITED_COLUMN_LIST_KEYS = frozenset(
+    {"groupby", "groupby_b", "all_columns", "columns"}
+)
+_INHERITED_COLUMN_SCALAR_KEYS = frozenset({"x_axis", "granularity_sqla"})
+
+
+def _inherited_state_invalid_keys(
+    existing_form_data: dict[str, Any],
+    new_form_data: dict[str, Any],
+    parsed_config: ChartConfig,
+    dataset_id: int,
+) -> set[str]:
+    """Return inherited query fields that are invalid for a new dataset.
+
+    A dataset rebind only has to discard the state that cannot resolve
+    against the replacement dataset; everything else stays valid and is
+    preserved so the update does not silently reset the chart.
+    """
+    fields_set = parsed_config.model_fields_set
+    inherited_keys = {
+        key
+        for key, config_field in _INHERITED_QUERY_ROLE_FIELDS.items()
+        if key not in new_form_data
+        and config_field not in fields_set
+        and existing_form_data.get(key)
+    }
+    if not inherited_keys:
+        return set()
+
+    from superset.daos.dataset import DatasetDAO
+    from superset.mcp_service.chart.validation.dataset_validator import (
+        build_dataset_context_from_orm,
+    )
+
+    context = build_dataset_context_from_orm(DatasetDAO.find_by_id(dataset_id))
+    if context is None:
+        # The replacement dataset cannot be inspected, so no inherited
+        # reference can be shown to be safe.
+        return inherited_keys
+    columns = {column["name"].casefold() for column in context.available_columns}
+    metrics = {metric["name"].casefold() for metric in context.available_metrics}
+
+    invalid_keys: set[str] = set()
+    for key in inherited_keys & _INHERITED_COLUMN_LIST_KEYS:
+        values = existing_form_data.get(key)
+        if isinstance(values, list) and not all(
+            _valid_dataset_reference(value, columns, metrics) for value in values
+        ):
+            invalid_keys.add(key)
+    for key in inherited_keys & _INHERITED_COLUMN_SCALAR_KEYS:
+        if not _valid_dataset_reference(existing_form_data.get(key), columns, metrics):
+            invalid_keys.add(key)
+    if "metrics" in inherited_keys and not _inherited_metrics_match_dataset(
+        existing_form_data, columns, metrics
+    ):
+        invalid_keys.add("metrics")
+    if "order_by_cols" in inherited_keys and not _inherited_sort_matches_dataset(
+        existing_form_data.get("order_by_cols"), columns, metrics
+    ):
+        invalid_keys.add("order_by_cols")
+    if "adhoc_filters" in inherited_keys and not _inherited_filters_match_dataset(
+        existing_form_data.get("adhoc_filters"), columns, metrics
+    ):
+        invalid_keys.add("adhoc_filters")
+    return invalid_keys
+
+
+def _build_replacement_form_data(
+    existing_form_data: dict[str, Any],
+    parsed_config: ChartConfig,
+    effective_dataset_id: int | None,
+    replacement_dataset_id: int | None = None,
+) -> dict[str, Any]:
+    """Map and merge a replacement config for preview and save paths."""
+    new_form_data = map_config_to_form_data(
+        parsed_config, dataset_id=effective_dataset_id
+    )
+    new_form_data.pop("_mcp_warnings", None)
+    dataset_rebind = replacement_dataset_id is not None
+    if replacement_dataset_id is not None and not isinstance(
+        parsed_config, GaugeChartConfig
+    ):
+        # Drop only the inherited state the replacement dataset cannot
+        # resolve, then merge as a same-dataset update. Gauge keeps the
+        # stricter presentation-only rebind handled downstream.
+        invalid_keys = _inherited_state_invalid_keys(
+            existing_form_data,
+            new_form_data,
+            parsed_config,
+            replacement_dataset_id,
+        )
+        existing_form_data = {
             key: value
             for key, value in existing_form_data.items()
-            if key != "column_config"
-        },
-        **new_form_data,
-    }
-    if getattr(parsed_config, "filters", None) == []:
-        merged.pop("adhoc_filters", None)
+            if key not in invalid_keys
+        }
+        dataset_rebind = False
+    merge_table_column_config(existing_form_data, new_form_data)
+    merge_interactive_pivot_ui_config(existing_form_data, new_form_data)
+    merged = _merge_replacement_config(
+        existing_form_data,
+        new_form_data,
+        parsed_config,
+        dataset_rebind=dataset_rebind,
+    )
+    if replacement_dataset_id is not None:
+        merged["datasource"] = f"{replacement_dataset_id}__table"
     return merged
 
 
@@ -229,11 +418,16 @@ def _build_update_payload(
     )
 
     if parsed_config is not None:
-        new_form_data = map_config_to_form_data(
-            parsed_config, dataset_id=effective_dataset_id
+        new_form_data = _build_replacement_form_data(
+            _get_existing_form_data(chart),
+            parsed_config,
+            effective_dataset_id,
+            replacement_dataset_id=(
+                request.dataset_id
+                if request.dataset_id != getattr(chart, "datasource_id", None)
+                else None
+            ),
         )
-        new_form_data.pop("_mcp_warnings", None)
-        merge_table_column_config(_get_existing_form_data(chart), new_form_data)
 
         chart_name = (
             request.chart_name
@@ -310,15 +504,15 @@ def _build_preview_form_data(
     )
 
     if parsed_config is not None:
-        new_form_data = map_config_to_form_data(
-            parsed_config, dataset_id=effective_dataset_id
-        )
-        new_form_data.pop("_mcp_warnings", None)
-        merge_table_column_config(existing_form_data, new_form_data)
-        # In the preview, an explicit filters list, including [], replaces saved
-        # filters. An omitted filters field preserves them through the shallow merge.
-        merged = _merge_replacement_config(
-            existing_form_data, new_form_data, parsed_config
+        merged = _build_replacement_form_data(
+            existing_form_data,
+            parsed_config,
+            effective_dataset_id,
+            replacement_dataset_id=(
+                request.dataset_id
+                if request.dataset_id != getattr(chart, "datasource_id", None)
+                else None
+            ),
         )
     elif request.add_columns is not None:
         patched = _append_table_columns(existing_form_data, request.add_columns)
@@ -476,6 +670,8 @@ def _create_preview_url(
         title="Update chart",
         readOnlyHint=False,
         destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
     ),
 )
 async def update_chart(  # noqa: C901
@@ -596,6 +792,21 @@ async def update_chart(  # noqa: C901
                 }
             )
 
+        if (
+            request.dataset_id is not None
+            and request.dataset_id != getattr(chart, "datasource_id", None)
+            and request.config is None
+            and getattr(chart, "viz_type", None) == "gauge_chart"
+        ):
+            return _validation_error_response(
+                message="Gauge dataset rebind requires a complete Gauge config.",
+                details=(
+                    "Provide chart_type='gauge' and a metric valid on the target "
+                    "dataset. This prevents stale metric, groupby, and filter roles "
+                    "from the previous dataset from being retained."
+                ),
+            )
+
         # Validate dataset access before allowing update.
         # check_chart_data_access is the centralized data-level
         # permission check that complements the class-level RBAC
@@ -714,6 +925,7 @@ async def update_chart(  # noqa: C901
             preview_or_error = _build_preview_form_data(request, chart, parsed_config)
             if isinstance(preview_or_error, GenerateChartResponse):
                 return preview_or_error
+            new_form_data = preview_or_error
 
             # Validate before caching the form_data — same rationale as above.
             if validation_config is not None:

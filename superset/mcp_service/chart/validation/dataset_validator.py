@@ -22,6 +22,8 @@ Validates that referenced columns exist in the dataset schema.
 
 import difflib
 import logging
+import re
+from collections.abc import Iterable, Mapping
 from typing import Any, Dict, List, Tuple, TypeVar
 
 from superset.mcp_service.chart.schemas import (
@@ -37,6 +39,50 @@ from superset.mcp_service.common.error_schemas import (
 _C = TypeVar("_C", bound=ChartConfig)
 
 logger = logging.getLogger(__name__)
+
+_NUMERIC_TYPE_PATTERN = re.compile(
+    r"\b(?:(?:TINY|SMALL|MEDIUM|BIG)?INT(?:EGER)?|INT[248]|FLOAT[48]?|"
+    r"DOUBLE(?:\s+PRECISION)?|DECIMAL|NUMERIC|REAL|NUMBER|(?:SMALL)?MONEY)\b"
+)
+
+
+class AmbiguousDatasetReferenceError(ValueError):
+    """A non-exact reference matches multiple names that differ only by case."""
+
+    def __init__(self, name: str, matches: list[str], reference_kind: str) -> None:
+        self.name = name
+        self.matches = sorted(matches)
+        self.reference_kind = reference_kind
+        choices = ", ".join(repr(match) for match in self.matches)
+        super().__init__(
+            f"{reference_kind.capitalize()} reference {name!r} is ambiguous because "
+            f"the dataset contains names that differ only by case: {choices}. "
+            f"Use the exact {reference_kind} name."
+        )
+
+
+def resolve_dataset_reference(
+    name: str, candidates: Iterable[str], reference_kind: str
+) -> str | None:
+    """Resolve exact names first and reject ambiguous case-insensitive matches."""
+    candidate_names = list(candidates)
+    if name in candidate_names:
+        return name
+    matches = [
+        candidate
+        for candidate in candidate_names
+        if candidate.casefold() == name.casefold()
+    ]
+    if len(matches) > 1:
+        raise AmbiguousDatasetReferenceError(name, matches, reference_kind)
+    return matches[0] if matches else None
+
+
+def is_numeric_column(column: Mapping[str, Any]) -> bool:
+    """Return whether dataset metadata identifies a numeric SQL column."""
+    if column.get("is_numeric", False):
+        return True
+    return bool(_NUMERIC_TYPE_PATTERN.search(str(column.get("type") or "").upper()))
 
 
 def is_dataset_column_temporal(
@@ -204,11 +250,19 @@ class DatasetValidator:
         if not temporal_column:
             return None
 
+        try:
+            resolved_name = resolve_dataset_reference(
+                temporal_column,
+                (column["name"] for column in dataset_context.available_columns),
+                "physical column",
+            )
+        except AmbiguousDatasetReferenceError as ex:
+            return DatasetValidator._build_ambiguous_reference_error(ex)
         matching_column = next(
             (
                 column
                 for column in dataset_context.available_columns
-                if column["name"].lower() == temporal_column.lower()
+                if column["name"] == resolved_name
             ),
             None,
         )
@@ -253,15 +307,12 @@ class DatasetValidator:
         emit ``SUM(sum_boys)`` as an ad-hoc SIMPLE metric, producing the
         broken-SQL pattern this validator is meant to prevent.
         """
-        column_names_lower = {
-            col["name"].lower() for col in dataset_context.available_columns
-        }
-        metric_names_lower = {
-            metric["name"].lower() for metric in dataset_context.available_metrics
-        }
+        column_names = [col["name"] for col in dataset_context.available_columns]
+        metric_names = [metric["name"] for metric in dataset_context.available_metrics]
 
         invalid_columns: List[ColumnRef] = []
         saved_metric_typo: List[ColumnRef] = []
+        ambiguous_references: list[AmbiguousDatasetReferenceError] = []
         for col_ref in column_refs:
             if col_ref.saved_metric:
                 continue
@@ -271,10 +322,24 @@ class DatasetValidator:
             if col_ref.name is None:
                 # Should be unreachable per validate_metric_shape; defensive.
                 continue
-            name_lower = col_ref.name.lower()
-            if name_lower in column_names_lower:
+            try:
+                resolved_column = resolve_dataset_reference(
+                    col_ref.name, column_names, "physical column"
+                )
+            except AmbiguousDatasetReferenceError as ex:
+                ambiguous_references.append(ex)
                 continue
-            if name_lower in metric_names_lower:
+            if resolved_column is not None:
+                continue
+            try:
+                resolved_metric = resolve_dataset_reference(
+                    col_ref.name, metric_names, "saved metric"
+                )
+            except AmbiguousDatasetReferenceError:
+                # This non-saved ref is still best explained by the tailored
+                # saved-metric hint rather than choosing one metric arbitrarily.
+                resolved_metric = metric_names[0] if metric_names else None
+            if resolved_metric is not None:
                 # Name matches a saved metric but the ref didn't opt into
                 # saved-metric resolution. Surface a tailored hint so the
                 # caller (typically an LLM) can flip ``saved_metric=true``.
@@ -282,6 +347,10 @@ class DatasetValidator:
             else:
                 invalid_columns.append(col_ref)
 
+        if ambiguous_references:
+            return DatasetValidator._build_ambiguous_reference_error(
+                ambiguous_references[0]
+            )
         if saved_metric_typo:
             return DatasetValidator._build_saved_metric_hint_error(saved_metric_typo)
 
@@ -300,6 +369,25 @@ class DatasetValidator:
 
         return DatasetValidator._build_column_error(
             invalid_columns, suggestions_map, dataset_context
+        )
+
+    @staticmethod
+    def _build_ambiguous_reference_error(
+        error: AmbiguousDatasetReferenceError,
+    ) -> ChartGenerationError:
+        """Build an actionable error for case-colliding dataset metadata."""
+        return ChartGenerationError(
+            error_type="ambiguous_dataset_reference",
+            message=(
+                f"{error.reference_kind.capitalize()} reference "
+                f"'{error.name}' is ambiguous"
+            ),
+            details=str(error),
+            suggestions=[
+                f"Use one exact name: {', '.join(error.matches)}",
+                "Use get_dataset_info to inspect exact dataset casing",
+            ],
+            error_code="AMBIGUOUS_DATASET_REFERENCE",
         )
 
     @staticmethod
@@ -390,19 +478,20 @@ class DatasetValidator:
 
     @staticmethod
     def _column_exists(column_name: str, dataset_context: DatasetContext) -> bool:
-        """Check if column exists in dataset (case-insensitive)."""
-        column_lower = column_name.lower()
-
-        # Check regular columns
-        for col in dataset_context.available_columns:
-            if col["name"].lower() == column_lower:
+        """Check if a physical column or saved metric resolves unambiguously."""
+        for candidates, reference_kind in (
+            (dataset_context.available_columns, "physical column"),
+            (dataset_context.available_metrics, "saved metric"),
+        ):
+            if (
+                resolve_dataset_reference(
+                    column_name,
+                    (candidate["name"] for candidate in candidates),
+                    reference_kind,
+                )
+                is not None
+            ):
                 return True
-
-        # Check metrics
-        for metric in dataset_context.available_metrics:
-            if metric["name"].lower() == column_lower:
-                return True
-
         return False
 
     @staticmethod
@@ -424,20 +513,21 @@ class DatasetValidator:
             The canonical column name from the dataset, or the original name
             if no match is found.
         """
-        column_lower = column_name.lower()
-
-        # Check regular columns first
-        for col in dataset_context.available_columns:
-            if col["name"].lower() == column_lower:
-                return col["name"]
-
-        # Check metrics
-        for metric in dataset_context.available_metrics:
-            if metric["name"].lower() == column_lower:
-                return metric["name"]
-
-        # Return original if not found (validation should catch this case)
-        return column_name
+        resolved_column = resolve_dataset_reference(
+            column_name,
+            (col["name"] for col in dataset_context.available_columns),
+            "physical column",
+        )
+        if resolved_column is not None:
+            return resolved_column
+        return (
+            resolve_dataset_reference(
+                column_name,
+                (metric["name"] for metric in dataset_context.available_metrics),
+                "saved metric",
+            )
+            or column_name
+        )
 
     @staticmethod
     def get_canonical_metric_name(
@@ -452,11 +542,14 @@ class DatasetValidator:
         Returns the original name when no metric matches (validation catches
         the missing-metric case separately).
         """
-        metric_lower = metric_name.lower()
-        for metric in dataset_context.available_metrics:
-            if metric["name"].lower() == metric_lower:
-                return metric["name"]
-        return metric_name
+        return (
+            resolve_dataset_reference(
+                metric_name,
+                (metric["name"] for metric in dataset_context.available_metrics),
+                "saved metric",
+            )
+            or metric_name
+        )
 
     @staticmethod
     def normalize_filters(
@@ -626,15 +719,19 @@ class DatasetValidator:
         a regular column name marked as saved_metric would pass
         _column_exists (which checks both lists) but fail at query time.
         """
-        metric_names = {m["name"].lower() for m in dataset_context.available_metrics}
-        # ``saved_metric=True`` requires ``name`` per ColumnRef.validate_metric_shape.
-        invalid: list[str] = [
-            col_ref.name
-            for col_ref in column_refs
-            if col_ref.saved_metric
-            and col_ref.name is not None
-            and col_ref.name.lower() not in metric_names
-        ]
+        metric_names = [m["name"] for m in dataset_context.available_metrics]
+        invalid: list[str] = []
+        for col_ref in column_refs:
+            if not col_ref.saved_metric or col_ref.name is None:
+                continue
+            try:
+                resolved = resolve_dataset_reference(
+                    col_ref.name, metric_names, "saved metric"
+                )
+            except AmbiguousDatasetReferenceError as ex:
+                return DatasetValidator._build_ambiguous_reference_error(ex)
+            if resolved is None:
+                invalid.append(col_ref.name)
         if not invalid:
             return None
 
@@ -680,12 +777,23 @@ class DatasetValidator:
                 # Should be unreachable per validate_metric_shape; defensive.
                 continue
 
-            # Find column info
-            col_info = None
-            for col in dataset_context.available_columns:
-                if col["name"].lower() == col_ref.name.lower():
-                    col_info = col
-                    break
+            try:
+                resolved_name = resolve_dataset_reference(
+                    col_ref.name,
+                    (col["name"] for col in dataset_context.available_columns),
+                    "physical column",
+                )
+            except AmbiguousDatasetReferenceError as ex:
+                errors.append(DatasetValidator._build_ambiguous_reference_error(ex))
+                continue
+            col_info = next(
+                (
+                    col
+                    for col in dataset_context.available_columns
+                    if col["name"] == resolved_name
+                ),
+                None,
+            )
 
             if col_info:
                 # Check numeric aggregates on non-numeric columns.
@@ -702,11 +810,11 @@ class DatasetValidator:
                     "STDDEV",
                     "VAR",
                 ]
+                type_name = str(col_info.get("type") or "").strip().upper()
                 if (
                     col_ref.aggregate in numeric_aggs
-                    and not col_info.get("is_numeric", False)
-                    and col_info.get("type", "").upper()
-                    not in ["INTEGER", "FLOAT", "DOUBLE", "DECIMAL", "NUMERIC"]
+                    and type_name not in {"", "UNKNOWN"}
+                    and not is_numeric_column(col_info)
                 ):
                     from superset.mcp_service.utils.error_builder import (  # noqa: E501
                         ChartErrorBuilder,

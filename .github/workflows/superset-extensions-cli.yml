@@ -39,13 +39,13 @@ jobs:
 
       - name: Check for file changes
         id: check
-        uses: ./.github/actions/change-detector/
+        uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
         if: steps.check.outputs.superset-extensions-cli
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
           requirements-type: dev
@@ -74,7 +74,7 @@ jobs:
   actions-timeline:
     needs: test-superset-extensions-cli-package
     if: always()
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-slim
     steps:
       - uses: Kesin11/actions-timeline@57fc93f20c6da7fbc14063c6d24a2a5627c799ad # v3.2.0
         with:

@@ -20,6 +20,7 @@ MCP tool: get_chart_data
 """
 
 import logging
+import math
 import time
 from typing import Any, Dict, List, TYPE_CHECKING
 
@@ -43,8 +44,12 @@ from superset.mcp_service.chart.chart_helpers import (
     find_chart_by_identifier,
     get_cached_form_data,
     merge_extra_form_data_filters_into_query,
+    rejected_requested_filter_columns,
 )
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.query_result import (
+    query_result_failure,
+)
 from superset.mcp_service.chart.schemas import (
     ChartData,
     ChartError,
@@ -61,6 +66,7 @@ from superset.mcp_service.utils.oauth2_utils import (
 from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
+
 
 _GENERIC_TYPE_MAP: dict[int, str] = {
     GenericDataType.NUMERIC: "numeric",
@@ -100,6 +106,7 @@ _VIZ_CATEGORY: dict[str, str] = {
     "box_plot": "box_plot",
     "world_map": "map",
     "pivot_table_v2": "table",
+    "ag-grid-pivot-table": "table",
     # Own category: cumulative-flow semantics differ from a plain bar, like
     # funnel/gauge carry distinct categories.
     "waterfall": "waterfall",
@@ -280,6 +287,7 @@ def _build_query_results(
         title="Get chart data",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_chart_data(  # noqa: C901
@@ -514,6 +522,23 @@ async def get_chart_data(  # noqa: C901
             # The query_context contains all the information needed to reproduce
             # the chart's data exactly as shown in the visualization
             query_context_json = None
+            if using_unsaved_state and cached_form_data_dict is not None:
+                form_data = cached_form_data_dict
+            else:
+                try:
+                    parsed_saved_form_data = (
+                        utils_json.loads(chart.params) if chart.params else {}
+                    )
+                    form_data = (
+                        parsed_saved_form_data
+                        if isinstance(parsed_saved_form_data, dict)
+                        else {}
+                    )
+                except (TypeError, ValueError):
+                    form_data = {}
+
+            if not using_unsaved_state:
+                form_data["viz_type"] = chart.viz_type or form_data.get("viz_type")
 
             # If using cached form_data, we need to build query_context from it
             if using_unsaved_state and cached_form_data_dict is not None:
@@ -558,7 +583,6 @@ async def get_chart_data(  # noqa: C901
                     "Consider re-saving the chart to enable full data retrieval."
                 )
                 # Try to construct from form_data as a fallback
-                form_data = utils_json.loads(chart.params) if chart.params else {}
                 from superset.common.query_context_factory import QueryContextFactory
 
                 factory = QueryContextFactory()
@@ -684,6 +708,22 @@ async def get_chart_data(  # noqa: C901
                 command = ChartDataCommand(query_context)
                 command.validate()
                 result = command.run()
+
+            if query_failure := query_result_failure(result):
+                return query_failure
+
+            if rejected := rejected_requested_filter_columns(
+                result, request.extra_form_data
+            ):
+                rejected_columns = ", ".join(rejected)
+                await ctx.warning(
+                    "Requested filters reference unknown dataset columns: %s"
+                    % rejected_columns
+                )
+                return ChartError(
+                    error=f"Unknown dataset column(s) in filters: {rejected_columns}",
+                    error_type="ValidationError",
+                )
 
             # Handle empty query results for certain chart types
             if not result or ("queries" not in result) or len(result["queries"]) == 0:
@@ -979,7 +1019,7 @@ async def get_chart_data(  # noqa: C901
         )
 
 
-async def _query_from_form_data(
+async def _query_from_form_data(  # noqa: C901
     form_data: Dict[str, Any],
     request: GetChartDataRequest,
     ctx: Context,
@@ -1034,6 +1074,22 @@ async def _query_from_form_data(
             command.validate()
             result = command.run()
 
+        if query_failure := query_result_failure(result):
+            return query_failure
+
+        if rejected := rejected_requested_filter_columns(
+            result, request.extra_form_data
+        ):
+            rejected_columns = ", ".join(rejected)
+            await ctx.warning(
+                "Requested filters reference unknown dataset columns: %s"
+                % rejected_columns
+            )
+            return ChartError(
+                error=f"Unknown dataset column(s) in filters: {rejected_columns}",
+                error_type="ValidationError",
+            )
+
         if not result or "queries" not in result or len(result["queries"]) == 0:
             logger.warning(
                 "get_chart_data: empty query results for unsaved chart "
@@ -1085,6 +1141,23 @@ async def _query_from_form_data(
         )
 
         chart_name = form_data.get("slice_name", "Unsaved chart")
+        if request.format in {"csv", "excel"}:
+            from superset.models.slice import Slice
+
+            # A transient chart supplies export metadata without saving anything.
+            chart = Slice(id=0, slice_name=chart_name, viz_type=viz_type)
+            export = (
+                _export_data_as_csv
+                if request.format == "csv"
+                else _export_data_as_excel
+            )
+            return export(
+                chart,
+                data[: request.limit] if request.limit else data,
+                raw_columns,
+                cache_status,
+                PerformanceMetadata(query_duration_ms=0, cache_status="fresh_query"),
+            )
         summary = (
             f"Unsaved chart ({viz_type}). "
             f"Contains {len(data)} rows across {len(raw_columns)} columns."
@@ -1243,6 +1316,9 @@ def _write_excel_data(ws: Any, data: List[Dict[str, Any]], columns: List[str]) -
             value = row.get(col, "")
             if value is None:
                 value = ""
+            elif isinstance(value, float) and not math.isfinite(value):
+                # XLSX has no non-finite numbers; preserve them as CSV-style text.
+                value = str(value)
             elif isinstance(value, (list, dict)):
                 value = str(value)
             ws.cell(row=row_idx, column=col_idx, value=value)
@@ -1285,7 +1361,9 @@ def _create_excel_with_xlsxwriter(
     import xlsxwriter
 
     output = io.BytesIO()
-    workbook = xlsxwriter.Workbook(output, {"in_memory": True})
+    workbook = xlsxwriter.Workbook(
+        output, {"in_memory": True, "nan_inf_to_errors": True}
+    )
     sheet_name = chart.slice_name[:31] if chart.slice_name else "Chart Data"
     worksheet = workbook.add_worksheet(sheet_name)
 

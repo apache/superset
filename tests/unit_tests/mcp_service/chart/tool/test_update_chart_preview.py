@@ -20,19 +20,26 @@ Unit tests for update_chart_preview MCP tool
 """
 
 import importlib
+from contextlib import nullcontext
 from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
 
+from superset.extensions import feature_flag_manager
 from superset.mcp_service.app import mcp
-from superset.mcp_service.chart.chart_utils import map_big_number_config
+from superset.mcp_service.chart.chart_utils import (
+    map_big_number_config,
+    preserve_previous_adhoc_filters,
+)
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
     BigNumberChartConfig,
     ColumnRef,
     FilterConfig,
+    GaugeChartConfig,
+    InteractivePivotChartConfig,
     LegendConfig,
     TableChartConfig,
     TablePreview,
@@ -80,6 +87,99 @@ def _mock_dataset(id: int = 1) -> Mock:
     dataset.metrics = []
     dataset.database = database
     return dataset
+
+
+@patch.object(
+    update_chart_preview_module,
+    "event_logger",
+    new=Mock(log_context=lambda **kwargs: nullcontext()),
+)
+@patch.object(update_chart_preview_module, "validate_and_compile")
+@patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
+@patch("superset.daos.dataset.DatasetDAO.find_by_id")
+@patch.object(update_chart_preview_module, "analyze_chart_semantics")
+@patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+@patch.object(update_chart_preview_module, "generate_explore_link")
+@patch.object(update_chart_preview_module, "_get_previous_form_data")
+@patch.object(update_chart_preview_module, "_find_dataset")
+def test_cached_gauge_update_preserves_controls_and_compiles(
+    mock_find_dataset,
+    mock_get_previous_form_data,
+    mock_generate_explore_link,
+    mock_capabilities,
+    mock_semantics,
+    mock_find_by_id,
+    unused_access_mock,
+    mock_validate_and_compile,
+    mock_auth,
+) -> None:
+    """Cached Gauge iteration preserves omissions and validates runtime output."""
+    mock_find_dataset.return_value = _mock_dataset(id=3)
+    mock_find_by_id.return_value = _mock_dataset(id=3)
+    mock_get_previous_form_data.return_value = {
+        "viz_type": "gauge_chart",
+        "datasource": "3__table",
+        "metric": "old_sla",
+        "groupby": ["team"],
+        "font_size": 19,
+        "number_format": ",.1f",
+        "show_pointer": False,
+        "_mcp_dashboard_time_filter_subject": "event_time",
+        "adhoc_filters": [
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "event_time",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "No filter",
+            },
+            {
+                "clause": "WHERE",
+                "expressionType": "SIMPLE",
+                "subject": "event_time",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "Last week",
+            },
+        ],
+    }
+    cached_filters = mock_get_previous_form_data.return_value["adhoc_filters"]
+    cached_filters.insert(0, dict(cached_filters[0]))
+    mock_generate_explore_link.return_value = (
+        "http://localhost:8088/explore/?form_data_key=new_key"
+    )
+    mock_capabilities.return_value = None
+    mock_semantics.return_value = None
+    mock_validate_and_compile.return_value = Mock(success=True, warnings=[])
+    request = UpdateChartPreviewRequest(
+        form_data_key="old_key",
+        dataset_id=3,
+        config=GaugeChartConfig(
+            chart_type="gauge",
+            metric={"name": "new_sla", "saved_metric": True},
+            max_val=120,
+            temporal_column=None,
+        ),
+    )
+
+    result = update_chart_preview_module.update_chart_preview(
+        request=request, ctx=Mock()
+    )
+
+    assert result["success"] is True, result
+    generated = mock_generate_explore_link.call_args.args[1]
+    assert generated["metric"] == "new_sla"
+    assert generated["groupby"] == ["team"]
+    assert generated["font_size"] == 19
+    assert generated["show_pointer"] is False
+    assert generated["max_val"] == 120
+    assert result["form_data"] == generated
+    assert mock_validate_and_compile.call_args.kwargs["run_compile_check"] is True
+
+    assert [
+        f["comparator"]
+        for f in generated["adhoc_filters"]
+        if f["operator"] == "TEMPORAL_RANGE"
+    ] == ["Last week"]
 
 
 class TestUpdateChartPreview:
@@ -614,7 +714,7 @@ class TestUpdateChartPreview:
             ]
         }
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             previous_form_data,
         )
@@ -647,12 +747,31 @@ class TestUpdateChartPreview:
             "subject": "ds",
         }
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             {"adhoc_filters": [cached_temporal_filter]},
         )
 
         assert new_form_data["adhoc_filters"] == [cached_temporal_filter]
+
+    def test_preserves_filters_with_distinct_comparators(self) -> None:
+        """Filters that differ only by value are not deduplicated."""
+        previous_filter = {
+            "clause": "WHERE",
+            "comparator": 2020,
+            "expressionType": "SIMPLE",
+            "operator": ">",
+            "subject": "year",
+        }
+        generated_filter = {**previous_filter, "comparator": 2021}
+        new_form_data = {"adhoc_filters": [generated_filter]}
+
+        preserve_previous_adhoc_filters(
+            new_form_data,
+            {"adhoc_filters": [previous_filter]},
+        )
+
+        assert new_form_data["adhoc_filters"] == [previous_filter, generated_filter]
 
     def test_replaces_cached_temporal_filter_when_column_changes(self) -> None:
         """A newly selected temporal column replaces the cached binding."""
@@ -680,7 +799,7 @@ class TestUpdateChartPreview:
         new_form_data: dict[str, Any] = {"adhoc_filters": [new_temporal_filter]}
         new_form_data["_mcp_dashboard_time_filter_subject"] = "created_at"
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             {
                 "adhoc_filters": [region_filter, previous_temporal_filter],
@@ -711,7 +830,7 @@ class TestUpdateChartPreview:
             "_mcp_dashboard_time_filter_subject": "created_at",
         }
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             {
                 "adhoc_filters": [previous_binding],
@@ -746,7 +865,7 @@ class TestUpdateChartPreview:
             previous_form_data = map_big_number_config(config, dataset_id=42)
             new_form_data = map_big_number_config(rebound_config, dataset_id=42)
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             previous_form_data,
         )
@@ -775,7 +894,7 @@ class TestUpdateChartPreview:
         }
         new_form_data: dict[str, Any] = {}
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             {
                 "adhoc_filters": [region_filter, previous_temporal_filter],
@@ -803,7 +922,7 @@ class TestUpdateChartPreview:
         }
 
         new_form_data: dict[str, Any] = {}
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             {
                 "adhoc_filters": [generated_binding, user_filter],
@@ -841,7 +960,7 @@ class TestUpdateChartPreview:
             "_mcp_dashboard_time_filter_subject": "created_at",
         }
 
-        update_chart_preview_module._preserve_previous_adhoc_filters(
+        preserve_previous_adhoc_filters(
             new_form_data,
             {
                 "adhoc_filters": [previous_binding, unrelated_filter],
@@ -997,6 +1116,83 @@ class TestUpdateChartPreview:
         assert result["error"] is None
         assert result["warnings"] == []
         mock_get_previous_form_data.assert_called_once_with("valid_key_12345")
+
+    @patch.object(update_chart_preview_module, "validate_and_compile")
+    @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch.object(update_chart_preview_module, "analyze_chart_semantics")
+    @patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+    @patch.object(update_chart_preview_module, "generate_explore_link")
+    @patch.object(update_chart_preview_module, "_get_previous_form_data")
+    @patch.object(update_chart_preview_module, "_find_dataset")
+    @patch("superset.mcp_service.auth.get_user_from_request")
+    @pytest.mark.asyncio
+    async def test_preserves_interactive_pivot_ui_config(
+        self,
+        mock_get_user_from_request,
+        mock_find_dataset,
+        mock_get_previous_form_data,
+        mock_generate_explore_link,
+        mock_analyze_chart_capabilities,
+        mock_analyze_chart_semantics,
+        mock_find_by_id,
+        unused_access_mock,
+        mock_validate_and_compile,
+    ) -> None:
+        """Cached preview iteration keeps state and UI-only formatting."""
+        mock_user = Mock(id=1)
+        mock_get_user_from_request.return_value = mock_user
+        mock_find_dataset.return_value = _mock_dataset(id=3)
+        mock_find_by_id.return_value = _mock_dataset(id=3)
+        mock_validate_and_compile.return_value = Mock(success=True)
+        mock_get_previous_form_data.return_value = {
+            "viz_type": "ag-grid-pivot-table",
+            "column_config": {"Revenue": {"d3NumberFormat": "$,.2f"}},
+            "conditional_formatting": [
+                {"column": "Revenue", "operator": ">", "targetValue": 1000}
+            ],
+            "pivot_table_state": {
+                "columnSizing": {
+                    "columnSizingModel": [{"colId": "region", "width": 180}]
+                },
+                "sort": {"sortModel": []},
+                "rowGroup": {"groupColIds": ["old_region"]},
+            },
+        }
+        mock_generate_explore_link.return_value = (
+            "http://localhost:8088/explore/?form_data_key=new_preview_key"
+        )
+        mock_analyze_chart_capabilities.return_value = None
+        mock_analyze_chart_semantics.return_value = None
+
+        request = UpdateChartPreviewRequest(
+            form_data_key="valid_key_12345",
+            dataset_id=3,
+            config=InteractivePivotChartConfig(
+                chart_type="interactive_pivot",
+                rows=[ColumnRef(name="region")],
+                columns=[ColumnRef(name="quarter")],
+                metrics=[ColumnRef(name="revenue", aggregate="SUM", label="Revenue")],
+            ),
+        )
+
+        with patch.object(
+            feature_flag_manager, "is_feature_enabled", return_value=True
+        ):
+            result = update_chart_preview_module.update_chart_preview(
+                request=request, ctx=Mock()
+            )
+
+        generated = mock_generate_explore_link.call_args.args[1]
+        assert generated["viz_type"] == "ag-grid-pivot-table"
+        assert generated["column_config"] == {"Revenue": {"d3NumberFormat": "$,.2f"}}
+        assert generated["conditional_formatting"][0]["column"] == "Revenue"
+        state = generated["pivot_table_state"]
+        assert state["columnSizing"]["columnSizingModel"][0]["width"] == 180
+        assert state["sort"] == {"sortModel": []}
+        assert state["rowGroup"] == {"groupColIds": ["region"]}
+        assert state["pivot"] == {"pivotMode": True, "pivotColIds": ["quarter"]}
+        assert result["success"] is True
 
     @patch.object(update_chart_preview_module, "validate_and_compile")
     @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)

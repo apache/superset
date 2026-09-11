@@ -43,6 +43,7 @@ from superset.mcp_service.chart.schemas import (
     ColumnRef,
     CurrencyFormat,
     FilterConfig,
+    GaugeChartConfig,
     HandlebarsChartConfig,
     HistogramChartConfig,
     MixedTimeseriesChartConfig,
@@ -50,6 +51,7 @@ from superset.mcp_service.chart.schemas import (
     PivotTableChartConfig,
     SortByConfig,
     TableChartConfig,
+    TreemapChartConfig,
     WaterfallChartConfig,
     XYChartConfig,
 )
@@ -571,6 +573,206 @@ def merge_table_column_config(
     new_form_data["column_config"] = merged_column_config
 
 
+def merge_interactive_pivot_ui_config(
+    existing_form_data: Mapping[str, Any], new_form_data: Dict[str, Any]
+) -> None:
+    """Preserve UI-managed Interactive Pivot config during MCP replacement.
+
+    Rows, columns, and metric aggregation are declarative MCP fields, so their
+    three state sections come from ``new_form_data``. Other state sections
+    (column sizing/order, filters, sorting, and pagination) are managed by the
+    grid UI and survive an update. Formatting controls that MCP cannot express
+    also survive rather than being erased by an unrelated config change.
+    """
+    viz_type = "ag-grid-pivot-table"
+    if (
+        existing_form_data.get("viz_type") != viz_type
+        or new_form_data.get("viz_type") != viz_type
+    ):
+        return
+    for key in ("column_config", "conditional_formatting"):
+        if key in existing_form_data and key not in new_form_data:
+            new_form_data[key] = existing_form_data[key]
+
+    existing_state = existing_form_data.get("pivot_table_state")
+    new_state = new_form_data.get("pivot_table_state")
+    if isinstance(existing_state, dict) and isinstance(new_state, dict):
+        new_form_data["pivot_table_state"] = {**existing_state, **new_state}
+
+
+_GAUGE_FORM_DATA_FIELD_MAP: dict[str, str] = {
+    "groupby": "groupby",
+    "sort_by_metric": "sort_by_metric",
+    "row_limit": "row_limit",
+    "min_val": "min_val",
+    "max_val": "max_val",
+    "color_scheme": "color_scheme",
+    "font_size": "font_size",
+    "number_format": "number_format",
+    "currency_format": "currency_format",
+    "value_formatter": "value_formatter",
+    "start_angle": "start_angle",
+    "end_angle": "end_angle",
+    "show_pointer": "show_pointer",
+    "animation": "animation",
+    "show_axis_tick": "show_axis_tick",
+    "show_split_line": "show_split_line",
+    "split_number": "split_number",
+    "show_progress": "show_progress",
+    "overlap": "overlap",
+    "round_cap": "round_cap",
+    "intervals": "intervals",
+    "interval_color_indices": "interval_color_indices",
+    "time_range": "time_range",
+    "granularity_sqla": "granularity_sqla",
+}
+
+_GAUGE_PRESENTATION_FORM_DATA_KEYS = frozenset(
+    {
+        "min_val",
+        "max_val",
+        "color_scheme",
+        "font_size",
+        "number_format",
+        "currency_format",
+        "value_formatter",
+        "start_angle",
+        "end_angle",
+        "show_pointer",
+        "animation",
+        "show_axis_tick",
+        "show_split_line",
+        "split_number",
+        "show_progress",
+        "overlap",
+        "round_cap",
+        "intervals",
+        "interval_color_indices",
+    }
+)
+
+
+def _without_generated_gauge_time_filter(
+    form_data: dict[str, Any],
+) -> list[Any]:
+    """Return cached filters without the mapper-owned temporal binding."""
+    generated_subject = form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+    return [
+        filter_
+        for filter_ in form_data.get("adhoc_filters", [])
+        if not (
+            generated_subject
+            and isinstance(filter_, dict)
+            and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+            and filter_.get("subject") == generated_subject
+            and filter_.get("comparator") == NO_TIME_RANGE
+            and filter_.get("clause") == "WHERE"
+            and filter_.get("expressionType") == "SIMPLE"
+        )
+    ]
+
+
+def merge_chart_form_data(  # noqa: C901
+    existing_form_data: dict[str, Any],
+    new_form_data: dict[str, Any],
+    config: ChartConfig,
+    *,
+    dataset_rebind: bool = False,
+) -> dict[str, Any]:
+    """Merge update form_data while preserving omitted same-viz controls.
+
+    A viz-type change never inherits old controls. Dataset rebinds similarly
+    drop query roles and filters; Gauge presentation controls remain safe to
+    preserve because they do not reference the old dataset.
+    """
+    if existing_form_data.get("viz_type") != new_form_data.get("viz_type"):
+        return dict(new_form_data)
+    if not isinstance(config, GaugeChartConfig):
+        if dataset_rebind:
+            return dict(new_form_data)
+        fields_set = config.model_fields_set
+        if "filters" not in fields_set:
+            preserve_previous_adhoc_filters(new_form_data, existing_form_data)
+        merged = {**existing_form_data, **new_form_data}
+        # An explicitly empty collection clears the control rather than
+        # falling through to the inherited value.
+        for config_field, form_data_field in (
+            ("filters", "adhoc_filters"),
+            ("group_by", "groupby"),
+            ("group_by_secondary", "groupby_b"),
+            ("sort_by", "order_by_cols"),
+        ):
+            if config_field in fields_set and getattr(config, config_field, None) == []:
+                merged.pop(form_data_field, None)
+        return merged
+
+    fields_set = config.model_fields_set
+    if dataset_rebind:
+        merged = {
+            key: value
+            for key, value in existing_form_data.items()
+            if key in _GAUGE_PRESENTATION_FORM_DATA_KEYS
+        }
+    else:
+        merged = dict(existing_form_data)
+
+    patch = dict(new_form_data)
+    for config_field, form_data_field in _GAUGE_FORM_DATA_FIELD_MAP.items():
+        if config_field not in fields_set:
+            patch.pop(form_data_field, None)
+
+    filters_explicit = "filters" in fields_set
+    temporal_explicit = "temporal_column" in fields_set
+    if not filters_explicit:
+        if temporal_explicit:
+            preserved_filters = (
+                []
+                if dataset_rebind
+                else _without_generated_gauge_time_filter(existing_form_data)
+            )
+            generated_filters = patch.get("adhoc_filters", [])
+            patch["adhoc_filters"] = [*preserved_filters, *generated_filters]
+            if config.temporal_column is None:
+                patch.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+        else:
+            patch.pop("adhoc_filters", None)
+            patch.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+
+    merged.update(patch)
+    if filters_explicit:
+        if config.filters == [] and not (temporal_explicit and config.temporal_column):
+            merged.pop("adhoc_filters", None)
+        if MCP_DASHBOARD_TIME_FILTER_SUBJECT not in patch:
+            merged.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    for nullable_field in (
+        "color_scheme",
+        "currency_format",
+        "time_range",
+        "granularity_sqla",
+    ):
+        if nullable_field in fields_set and getattr(config, nullable_field) is None:
+            merged.pop(_GAUGE_FORM_DATA_FIELD_MAP[nullable_field], None)
+    if temporal_explicit and config.temporal_column is None:
+        merged.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    if subject := merged.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT):
+        seen_binding = False
+        filters = []
+        for filter_ in merged.get("adhoc_filters", []):
+            is_binding = (
+                isinstance(filter_, dict)
+                and filter_.get("subject") == subject
+                and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+                and filter_.get("comparator") == NO_TIME_RANGE
+                and filter_.get("clause") == "WHERE"
+                and filter_.get("expressionType") == "SIMPLE"
+            )
+            if not is_binding or not seen_binding:
+                filters.append(filter_)
+            seen_binding = seen_binding or is_binding
+        merged["adhoc_filters"] = filters
+    return merged
+
+
 def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
     """Create a metric object for a column with enhanced validation.
 
@@ -665,6 +867,8 @@ def add_legend_config(form_data: Dict[str, Any], config: XYChartConfig) -> None:
             # Canonical form_data key is camelCase; the echarts plugins read
             # `legendOrientation` directly off form_data.
             form_data["legendOrientation"] = config.legend.position
+    if config.legend_orientation:
+        form_data["legendOrientation"] = config.legend_orientation
 
 
 def add_color_scheme(form_data: Dict[str, Any], color_scheme: str | None) -> None:
@@ -1012,6 +1216,67 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
     add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
 
+    return form_data
+
+
+def map_gauge_config(config: GaugeChartConfig) -> Dict[str, Any]:
+    """Map gauge config to Superset form_data (viz_type ``gauge_chart``).
+
+    Matches the frontend Gauge buildQuery contract: a single ``metric`` and an
+    optional ``groupby`` list (one dial per row). ``min_val``/``max_val`` fix
+    the dial scale; both default to ``None`` (auto), mirroring the frontend
+    defaults.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "gauge_chart",
+        "groupby": [g.name for g in (config.groupby or [])],
+        "metric": create_metric_object(config.metric),
+        "sort_by_metric": config.sort_by_metric,
+        "row_limit": config.row_limit,
+        "min_val": config.min_val,
+        "max_val": config.max_val,
+        "color_scheme": config.color_scheme or "supersetColors",
+        "font_size": config.font_size,
+        "number_format": config.number_format,
+        "value_formatter": config.value_formatter,
+        "start_angle": config.start_angle,
+        "end_angle": config.end_angle,
+        "show_pointer": config.show_pointer,
+        "animation": config.animation,
+        "show_axis_tick": config.show_axis_tick,
+        "show_split_line": config.show_split_line,
+        "split_number": config.split_number,
+        "show_progress": config.show_progress,
+        "overlap": config.overlap,
+        "round_cap": config.round_cap,
+        "intervals": config.intervals,
+        "interval_color_indices": config.interval_color_indices,
+    }
+    if config.time_range is not None:
+        form_data["time_range"] = config.time_range
+    if config.granularity_sqla is not None:
+        form_data["granularity_sqla"] = config.granularity_sqla
+    add_currency_format(form_data, config.currency_format)
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
+def map_treemap_config(config: TreemapChartConfig) -> Dict[str, Any]:
+    """Map treemap config to Superset form_data (viz_type ``treemap_v2``).
+
+    Matches the frontend Treemap buildQuery contract: one ``metric`` plus an
+    ordered ``groupby`` hierarchy (first column outermost). When
+    ``sort_by_metric`` is set the query orders by the metric descending.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "treemap_v2",
+        "groupby": [g.name for g in config.groupby],
+        "metric": create_metric_object(config.metric),
+        "sort_by_metric": config.sort_by_metric,
+        "row_limit": config.row_limit,
+        "color_scheme": config.color_scheme or "supersetColors",
+    }
+    _add_adhoc_filters(form_data, config.filters)
     return form_data
 
 
@@ -1415,6 +1680,8 @@ def map_filter_operator(op: str) -> str:
         "NOT LIKE": "NOT LIKE",
         "IN": "IN",
         "NOT IN": "NOT IN",
+        "IS NULL": "IS NULL",
+        "IS NOT NULL": "IS NOT NULL",
     }
     return operator_map.get(op, op)
 
@@ -1521,6 +1788,29 @@ def _pie_chart_what(config: PieChartConfig) -> str:
         config.metric.label or config.metric.name or config.metric.sql_expression
     )
     return f"{dim} by {metric_label}"
+
+
+def _gauge_chart_what(config: GaugeChartConfig) -> str:
+    """Build the 'what' portion for a gauge chart name."""
+    metric_label = (
+        config.metric.label or config.metric.name or config.metric.sql_expression
+    )
+    if config.groupby:
+        dims = ", ".join(g.name for g in config.groupby if g.name)
+        if dims:
+            return f"{metric_label} by {dims}"
+    return f"{metric_label}"
+
+
+def _treemap_chart_what(config: TreemapChartConfig) -> str:
+    """Build the 'what' portion for a treemap chart name."""
+    metric_label = (
+        config.metric.label or config.metric.name or config.metric.sql_expression
+    )
+    dims = ", ".join(g.name for g in config.groupby if g.name)
+    if dims:
+        return f"{dims} by {metric_label}"
+    return f"{metric_label}"
 
 
 def _pivot_table_what(config: PivotTableChartConfig) -> str:
@@ -1643,10 +1933,16 @@ def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabi
         "deck_scatter",
         "deck_hex",
         "ag-grid-table",  # AG Grid tables are interactive
+        "ag-grid-pivot-table",
     ]
 
     supports_interaction = viz_type in interactive_types
-    supports_drill_down = viz_type in ["table", "pivot_table_v2", "ag-grid-table"]
+    supports_drill_down = viz_type in [
+        "table",
+        "pivot_table_v2",
+        "ag-grid-table",
+        "ag-grid-pivot-table",
+    ]
     supports_real_time = viz_type in [
         "echarts_timeseries_line",
         "echarts_timeseries_bar",
@@ -1696,6 +1992,10 @@ def analyze_chart_semantics(viz_type: str | None, config: Any) -> ChartSemantics
         "pivot_table_v2": (
             "Cross-tabulates data with rows, columns, and aggregated metrics "
             "for multi-dimensional analysis"
+        ),
+        "ag-grid-pivot-table": (
+            "Interactively cross-tabulates data with AG Grid row groups, pivot "
+            "columns, value aggregation, and side-panel reconfiguration"
         ),
         "mixed_timeseries": (
             "Combines two different chart types on the same time axis "
@@ -1753,3 +2053,61 @@ def analyze_chart_semantics(viz_type: str | None, config: Any) -> ChartSemantics
         anomalies=[],  # Would need actual data analysis to populate
         statistical_summary={},  # Would need actual data analysis to populate
     )
+
+
+def preserve_previous_adhoc_filters(
+    new_form_data: dict[str, Any], previous_form_data: dict[str, Any]
+) -> None:
+    """Preserve saved filters without dropping mapper-generated bindings.
+
+    Saved predicates the caller did not mention survive the update, while the
+    bindings generated for the new config are appended when they are not
+    already represented. A stale temporal binding is dropped when the config
+    rebinds the time filter to a different subject.
+    """
+    previous_filters = previous_form_data.get("adhoc_filters")
+    if not isinstance(previous_filters, list) or not previous_filters:
+        return
+
+    generated_filters = new_form_data.get("adhoc_filters", [])
+    previous_binding = previous_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+    new_binding = new_form_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT)
+    merged_filters = [
+        filter_
+        for filter_ in previous_filters
+        if not (
+            previous_binding
+            and previous_binding != new_binding
+            and isinstance(filter_, dict)
+            and filter_.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+            and filter_.get("subject") == previous_binding
+            and filter_.get("comparator") == NO_TIME_RANGE
+        )
+    ]
+    for generated_filter in generated_filters:
+        if not isinstance(generated_filter, dict):
+            if generated_filter not in merged_filters:
+                merged_filters.append(generated_filter)
+            continue
+
+        # A saved temporal predicate on the same subject wins over the
+        # generated default, so only the comparator-insensitive match is
+        # treated as already represented for TEMPORAL_RANGE.
+        is_same_filter = any(
+            isinstance(previous_filter, dict)
+            and previous_filter.get("clause") == generated_filter.get("clause")
+            and previous_filter.get("expressionType")
+            == generated_filter.get("expressionType")
+            and previous_filter.get("subject") == generated_filter.get("subject")
+            and previous_filter.get("operator") == generated_filter.get("operator")
+            and (
+                generated_filter.get("operator") == FilterOperator.TEMPORAL_RANGE.value
+                or previous_filter.get("comparator")
+                == generated_filter.get("comparator")
+            )
+            for previous_filter in merged_filters
+        )
+        if not is_same_filter:
+            merged_filters.append(generated_filter)
+
+    new_form_data["adhoc_filters"] = merged_filters

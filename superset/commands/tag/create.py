@@ -18,13 +18,15 @@ import logging
 from functools import partial
 from typing import Any
 
+from jinja2.exceptions import TemplateError
+
 from superset import security_manager
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.tag.exceptions import TagCreateFailedError, TagInvalidError
 from superset.commands.tag.utils import to_object_model, to_object_type
 from superset.commands.utils import current_user_can_modify_object
 from superset.daos.tag import TagDAO
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.tags.models import ObjectType, TagType
 from superset.utils.decorators import on_error, transaction
 
@@ -95,8 +97,30 @@ class CreateCustomTagCommand(CreateMixin, BaseCommand):
                     )
                 )
         except SupersetSecurityException:
+            # A routine, expected authorization denial; swallowed silently by
+            # design (no logging) and surfaced to the caller as a validation
+            # failure rather than an unhandled 500.
             exceptions.append(
-                TagCreateFailedError(f"Access denied for {object_type} {object_id}")
+                TagCreateFailedError(
+                    f"Could not validate access for {object_type} {object_id}"
+                )
+            )
+        except (TemplateError, SupersetParseError) as ex:
+            # Authorizing a saved query parses its Jinja-templated SQL to resolve
+            # table references. Malformed Jinja (TemplateError) or an
+            # unresolvable partition macro (SupersetParseError) is a validation
+            # failure, not an unhandled 500 -- but unlike an access denial it is
+            # genuinely unexpected, so log it for server-side visibility and
+            # preserve the underlying error text instead of discarding it.
+            logger.warning(
+                "Could not parse query %s while validating tag access: %s",
+                object_id,
+                str(ex),
+            )
+            exceptions.append(
+                TagCreateFailedError(
+                    f"Could not validate access for {object_type} {object_id}: {ex}"
+                )
             )
 
 

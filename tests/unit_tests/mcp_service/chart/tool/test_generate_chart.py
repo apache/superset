@@ -30,6 +30,7 @@ from superset.mcp_service.chart.schemas import (
     AxisConfig,
     ColumnRef,
     FilterConfig,
+    GaugeChartConfig,
     GenerateChartRequest,
     LegendConfig,
     TableChartConfig,
@@ -97,6 +98,91 @@ class TestGenerateChart:
             result = await generate_chart(request, ctx=ctx)
 
         assert result.chart_type_label == "table chart"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("has_finite", [True, False])
+    async def test_unsaved_gauge_generate_preserves_controls_and_compiles(
+        self, has_finite: bool
+    ) -> None:
+        """Gauge generate returns native form_data and checks concrete values."""
+        request = GenerateChartRequest(
+            dataset_id=7,
+            config=GaugeChartConfig(
+                chart_type="gauge",
+                metric={"name": "score", "aggregate": "AVG"},
+                groupby=[{"name": "team"}],
+                min_val=0,
+                max_val=100,
+                number_format=",.1f",
+                value_formatter="{value}%",
+                show_pointer=False,
+                intervals="50,100",
+                interval_color_indices="1,3",
+            ),
+            preview_formats=["url"],
+        )
+        ctx = MagicMock(
+            info=AsyncMock(),
+            debug=AsyncMock(),
+            warning=AsyncMock(),
+            error=AsyncMock(),
+            report_progress=AsyncMock(),
+        )
+        validation_result = Mock(
+            is_valid=True, request=request, warnings={}, error=None
+        )
+        dataset = Mock(id=7, datasource_name="scores", table_name="scores")
+        user = Mock(id=1, username="admin", roles=[], groups=[])
+
+        with (
+            patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
+            patch(
+                "superset.mcp_service.chart.validation.ValidationPipeline."
+                "validate_request_with_warnings",
+                return_value=validation_result,
+            ),
+            patch(
+                "superset.mcp_service.chart.chart_utils.generate_explore_link",
+                return_value="http://localhost/explore/?form_data_key=gauge-key",
+            ),
+            patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+            patch(
+                "superset.mcp_service.chart.tool.generate_chart.has_dataset_access",
+                return_value=True,
+            ),
+            patch(
+                "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+                return_value=Mock(),
+            ) as mock_build,
+            patch(
+                "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            ) as mock_command,
+        ):
+            mock_command.return_value.run.return_value = {
+                "queries": [
+                    {
+                        "data": [
+                            {"team": "Empty", "AVG(score)": None},
+                            {"team": "NaN", "AVG(score)": float("nan")},
+                        ]
+                        + ([{"team": "Blue", "AVG(score)": 75}] if has_finite else [])
+                    }
+                ]
+            }
+            result = await generate_chart(request, ctx=ctx)
+        if not has_finite:
+            assert result.success is False
+            assert result.error is not None
+            return
+
+        assert result.success is True
+        assert result.form_data["viz_type"] == "gauge_chart"
+        assert result.form_data["metric"]["label"] == "AVG(score)"
+        assert result.form_data["groupby"] == ["team"]
+        assert result.form_data["show_pointer"] is False
+        assert result.form_data["intervals"] == "50,100"
+        assert mock_build.call_args.kwargs["row_limit"] == 10
+        mock_command.return_value.validate.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_generate_chart_request_structure(self):
@@ -187,6 +273,13 @@ class TestGenerateChart:
         filters = [FilterConfig(column="col", op=op, value="val") for op in operators]
         for i, f in enumerate(filters):
             assert f.op == operators[i]
+
+        null_filter = FilterConfig(column="optional_value", op="IS NOT NULL")
+        assert null_filter.value is None
+        with pytest.raises(ValueError, match="must not have 'value'"):
+            FilterConfig(column="optional_value", op="IS NULL", value="unexpected")
+        with pytest.raises(ValueError, match="requires 'value'"):
+            FilterConfig(column="optional_value", op="=")
 
     @pytest.mark.asyncio
     async def test_generate_chart_response_structure(self):
@@ -305,6 +398,10 @@ class TestGenerateChart:
         assert col2.name == "sales"
         assert col2.aggregate == "SUM"
         assert col2.label == "Total Sales"
+
+        aliased = ColumnRef.model_validate({"column": "sales", "aggregate": "AVG"})
+        assert aliased.name == "sales"
+        assert aliased.aggregate == "AVG"
 
         # All supported aggregations
         aggs = ["SUM", "AVG", "COUNT", "MIN", "MAX", "COUNT_DISTINCT"]
