@@ -896,3 +896,60 @@ def test_compile_respects_treemap_row_limit() -> None:
         result = _compile_chart({**FORM_DATA, "row_limit": 1}, 7)
     assert result.success is True
     assert build.call_args.kwargs["row_limit"] == 1
+
+
+@pytest.mark.parametrize("selected", ["event_time", None])
+@pytest.mark.parametrize("override", ["dashboard_time", None, "omitted"])
+def test_treemap_selected_time_column_reaches_query(
+    selected: str | None,
+    override: str | None,
+) -> None:
+    """The selected time column and explicit dashboard overrides reach execution."""
+    from superset.mcp_service.chart.chart_helpers import (
+        build_query_dicts_from_form_data,
+    )
+
+    form = {
+        "viz_type": "treemap_v2",
+        "groupby": ["region"],
+        "metric": "revenue",
+        "granularity_sqla": selected,
+        "time_range": "2026-01-01 : 2026-02-01",
+    }
+    extra = {} if override == "omitted" else {"granularity_sqla": override}
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="postgresql",
+    ):
+        query = build_query_dicts_from_form_data(
+            form,
+            7,
+            "table",
+            extra_form_data=extra,
+        )[0]
+    # Shared dashboard normalization treats a null extra as no override.
+    # Clearing the chart's selected column itself is covered by selected=None.
+    expected = selected if override in (None, "omitted") else override
+    assert query.get("granularity") == expected
+    assert query["time_range"] == form["time_range"]
+    assert query["columns"] == ["region"]
+    assert query["metrics"] == ["revenue"]
+
+
+def test_treemap_mixed_type_categories_remain_separate() -> None:
+    """Match frontend raw-key grouping and display-name categorical colors."""
+    preview = treemap_vega_lite(
+        [{"region": 1, "revenue": 1}, {"region": "1", "revenue": 3}],
+        {
+            "viz_type": "treemap_v2",
+            "groupby": ["region"],
+            "metric": "revenue",
+            "show_labels": True,
+            "color_scheme": "supersetColors",
+        },
+    )
+    assert not isinstance(preview, ChartError)
+    nodes = preview.specification["data"]["values"]
+    assert len(nodes) == 2
+    assert [node["name"] for node in nodes] == ["1", "1"]
+    assert [node["value"] for node in nodes] == [1, 3]

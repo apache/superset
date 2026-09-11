@@ -591,6 +591,11 @@ def _build_single_query_dict(
     if form_data.get("sort_by_metric") and metrics:
         qd["orderby"] = [(metrics[0], False)]
     if form_data.get("viz_type") == "treemap_v2":
+        # extractExtras maps the selected SQL time column to QueryObject granularity.
+        # A normalized dashboard override takes precedence, including a clear.
+        granularity = form_data.get("granularity", form_data.get("granularity_sqla"))
+        if granularity is not None:
+            qd["granularity"] = granularity
         # Match Treemap buildQuery/applyOrderBy, including hierarchy tie-breakers.
         ordering = qd.pop("orderby", [])
         ordering.extend(
