@@ -58,7 +58,9 @@ export default function downloadAsPdf(
 
     if (!elementToPrint) {
       return store.dispatch(
-        addWarningToast(t('PDF download failed, please refresh and try again.')),
+        addWarningToast(
+          t('PDF download failed, please refresh and try again.'),
+        ),
       );
     }
 

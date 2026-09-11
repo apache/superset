@@ -19,6 +19,7 @@
 import domToImage from 'dom-to-image-more';
 import { getInstanceByDom } from 'echarts/core';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
+import { store } from 'src/views/store';
 import downloadAsImageOptimized, {
   waitForStableScrollHeight,
 } from './downloadAsImage';
@@ -34,7 +35,16 @@ jest.mock('echarts/core', () => ({
 }));
 
 jest.mock('src/components/MessageToasts/actions', () => ({
-  addWarningToast: jest.fn(),
+  // Must return a plain action object: the utils now pass the action to
+  // `store.dispatch`, and Redux rejects a dispatched `undefined`.
+  addWarningToast: jest.fn((toast: unknown) => ({
+    type: 'ADD_WARNING_TOAST',
+    toast,
+  })),
+}));
+
+jest.mock('src/views/store', () => ({
+  store: { dispatch: jest.fn() },
 }));
 
 jest.mock('@apache-superset/core/translation', () => ({
@@ -45,6 +55,7 @@ const mockToJpeg = domToImage.toJpeg as jest.Mock;
 const mockToPng = domToImage.toPng as jest.Mock;
 const mockAddWarningToast = addWarningToast as jest.Mock;
 const mockGetInstanceByDom = getInstanceByDom as jest.Mock;
+const mockDispatch = store.dispatch as jest.Mock;
 
 // document.fonts.ready is not implemented in jsdom; provide a resolved promise
 Object.defineProperty(document, 'fonts', {
@@ -210,6 +221,11 @@ test('shows warning toast when element is not found', async () => {
   expect(mockAddWarningToast).toHaveBeenCalledWith(
     'Image download failed, please refresh and try again.',
   );
+  // The action creator's result is what reaches the store, not the toast itself
+  expect(mockDispatch).toHaveBeenCalledWith({
+    type: 'ADD_WARNING_TOAST',
+    toast: 'Image download failed, please refresh and try again.',
+  });
   expect(mockToJpeg).not.toHaveBeenCalled();
 });
 

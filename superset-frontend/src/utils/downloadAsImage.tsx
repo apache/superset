@@ -390,7 +390,9 @@ export default function downloadAsImageOptimized(
 
     if (!elementToPrint) {
       store.dispatch(
-        addWarningToast(t('Image download failed, please refresh and try again.')),
+        addWarningToast(
+          t('Image download failed, please refresh and try again.'),
+        ),
       );
       return;
     }
@@ -436,7 +438,9 @@ export default function downloadAsImageOptimized(
       if (!isFirstDataRendered) {
         store.dispatch(
           addWarningToast(
-            t('The chart is still loading. Please wait a moment and try again.'),
+            t(
+              'The chart is still loading. Please wait a moment and try again.',
+            ),
           ),
         );
         // This early return skips the capture, so restore virtualization here;
@@ -537,7 +541,9 @@ export default function downloadAsImageOptimized(
       } catch (error) {
         console.error('Creating image failed', error);
         store.dispatch(
-          addWarningToast(t('Image download failed, please refresh and try again.')),
+          addWarningToast(
+            t('Image download failed, please refresh and try again.'),
+          ),
         );
       } finally {
         cellFixups.forEach(({ el, minHeight, overflow }) => {
@@ -618,7 +624,9 @@ export default function downloadAsImageOptimized(
     } catch (error) {
       console.error('Creating image failed', error);
       store.dispatch(
-        addWarningToast(t('Image download failed, please refresh and try again.')),
+        addWarningToast(
+          t('Image download failed, please refresh and try again.'),
+        ),
       );
     } finally {
       if (cleanup) cleanup();
