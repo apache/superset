@@ -434,7 +434,10 @@ class BaseScreenshot:
                     enqueue()
                 except Exception:  # pylint: disable=broad-except
                     try:
-                        if not cls.store_error_if_no_active_task(cache_key, scope):
+                        if not cls.store_error_if_no_active_task(
+                            cache_key,
+                            scope=scope,
+                        ):
                             logger.error(
                                 "Could not persist screenshot Error state after "
                                 "enqueue failure: %s",
