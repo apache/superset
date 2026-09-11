@@ -90,7 +90,8 @@ export const useDownloadMenuItems = (
   } = props;
 
   const dispatch = useDispatch();
-  const { addDangerToast, addInfoToast, addSuccessToast } = useToasts();
+  const { addDangerToast, addInfoToast, addSuccessToast, addWarningToast } =
+    useToasts();
   // Track the in-flight poll timer so navigating away stops the polling
   // (and the full-page navigation it would eventually trigger).
   const pollTimerRef = useRef<ReturnType<typeof setTimeout>>();
@@ -148,7 +149,12 @@ export const useDownloadMenuItems = (
 
   const onDownloadPdf = async (e: SyntheticEvent) => {
     try {
-      downloadAsPdf(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
+      downloadAsPdf(
+        SCREENSHOT_NODE_SELECTOR,
+        dashboardTitle,
+        true,
+        addWarningToast,
+      )(e);
     } catch (error) {
       logging.error(error);
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
@@ -158,7 +164,14 @@ export const useDownloadMenuItems = (
 
   const onDownloadImage = async (e: SyntheticEvent) => {
     try {
-      downloadAsImage(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
+      downloadAsImage(
+        SCREENSHOT_NODE_SELECTOR,
+        dashboardTitle,
+        true,
+        undefined,
+        undefined,
+        addWarningToast,
+      )(e);
     } catch (error) {
       logging.error(error);
       addDangerToast(t('Sorry, something went wrong. Try again later.'));

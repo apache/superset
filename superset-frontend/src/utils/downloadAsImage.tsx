@@ -26,11 +26,7 @@ import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import type { AgGridContainerElement } from '@superset-ui/core/components';
 import { isSafari } from 'src/utils/common';
-import {
-  dispatchWarningToast,
-  forceLoadAllCharts,
-  restoreVirtualization,
-} from './downloadUtils';
+import { forceLoadAllCharts, restoreVirtualization } from './downloadUtils';
 
 const IMAGE_DOWNLOAD_QUALITY = 0.95;
 const PNG_SCALE = 2; // Higher quality for PNG
@@ -430,6 +426,10 @@ export default function downloadAsImageOptimized(
   isExactSelector = false,
   theme?: SupersetTheme,
   options: DownloadImageOptions = {},
+  // Bound via `useToasts()`/`bindActionCreators`, not the raw action creator
+  // from `actions.ts`: this module has no dispatch of its own, so an unbound
+  // creator would only build a Redux action object and never render a toast.
+  addWarningToast?: (message: string) => void,
 ) {
   const { format = 'jpeg', backgroundType = 'solid' } = options;
 
@@ -439,7 +439,7 @@ export default function downloadAsImageOptimized(
       : event.currentTarget.closest(selector);
 
     if (!elementToPrint) {
-      await dispatchWarningToast(
+      addWarningToast?.(
         t('Image download failed, please refresh and try again.'),
       );
       return;
@@ -484,7 +484,7 @@ export default function downloadAsImageOptimized(
       const isFirstDataRendered = agContainer._agGridFirstDataRendered === true;
 
       if (!isFirstDataRendered) {
-        await dispatchWarningToast(
+        addWarningToast?.(
           t('The chart is still loading. Please wait a moment and try again.'),
         );
         // This early return skips the capture, so restore virtualization here;
@@ -606,7 +606,7 @@ export default function downloadAsImageOptimized(
         triggerDownload(dataUrl, description, isPng);
       } catch (error) {
         console.error('Creating image failed', error);
-        await dispatchWarningToast(
+        addWarningToast?.(
           t('Image download failed, please refresh and try again.'),
         );
       } finally {
@@ -738,7 +738,7 @@ export default function downloadAsImageOptimized(
       triggerDownload(dataUrl, description, isPng);
     } catch (error) {
       console.error('Creating image failed', error);
-      await dispatchWarningToast(
+      addWarningToast?.(
         t('Image download failed, please refresh and try again.'),
       );
     } finally {
