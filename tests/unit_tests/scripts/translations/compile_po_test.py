@@ -61,6 +61,8 @@ def test_format_cmd_arg() -> None:
         compile_po._format_cmd_arg('file "with" spaces.po')
         == '"file ""with"" spaces.po"'
     )
+    assert compile_po._format_cmd_arg("dir with space\\") == '"dir with space\\\\"'
+    assert compile_po._format_cmd_arg('file\\"name') == '"file\\\\""name"'
 
 
 def test_run_command_quotes_cmd_metacharacters() -> None:
@@ -72,6 +74,17 @@ def test_run_command_quotes_cmd_metacharacters() -> None:
             mock_run.assert_called_once()
             args, _ = mock_run.call_args
             assert args[0] == 'po2json.cmd "file&calc.po" "file""name.json"'
+
+
+def test_run_command_formats_trailing_backslash_on_windows() -> None:
+    """run_command doubles trailing backslashes for CommandLineToArgvW."""
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0)
+        with patch("os.name", "nt"):
+            compile_po.run_command(["compile_po", "path with space\\", "next_arg"])
+            mock_run.assert_called_once()
+            args, _ = mock_run.call_args
+            assert args[0] == 'compile_po "path with space\\\\" next_arg'
 
 
 def test_run_command_failure() -> None:
@@ -339,8 +352,8 @@ def test_compile_translations_success(tmp_path: Path) -> None:
     ):
         rc = compile_po.compile_translations()
         assert rc == 0
-        # Verify oxfmt was called with --no-ignore
+        # Verify oxfmt was called with --no-error-on-unmatched-pattern
         oxfmt_calls = [c for c in executed_commands if any("oxfmt" in arg for arg in c)]
         assert len(oxfmt_calls) >= 1
-        assert "--no-ignore" in oxfmt_calls[0]
+        assert "--no-error-on-unmatched-pattern" in oxfmt_calls[0]
         assert "--write" in oxfmt_calls[0]

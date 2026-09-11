@@ -35,13 +35,33 @@ _SHELL = False
 
 
 def _format_cmd_arg(arg: str) -> str:
-    """Quote an argument if it contains spaces or cmd metacharacters on Windows."""
+    """Quote an argument if it contains spaces or cmd metacharacters on Windows,
+    properly escaping embedded quotes and backslashes per Windows CLI rules.
+    """
     if not arg:
         return '""'
-    if any(c in arg for c in ' \t\n\v&|<>()^%"'):
-        escaped = arg.replace('"', '""')
-        return f'"{escaped}"'
-    return arg
+    if not any(c in arg for c in ' \t\n\v&|<>()^%"'):
+        return arg
+
+    result = ['"']
+    bs_count = 0
+    for c in arg:
+        if c == "\\":
+            bs_count += 1
+        elif c == '"':
+            result.append("\\" * (bs_count * 2))
+            result.append('""')
+            bs_count = 0
+        else:
+            if bs_count:
+                result.append("\\" * bs_count)
+                bs_count = 0
+            result.append(c)
+
+    if bs_count:
+        result.append("\\" * (bs_count * 2))
+    result.append('"')
+    return "".join(result)
 
 
 def run_command(command: list[str], cwd: str | None = None, timeout: int = 120) -> int:
@@ -83,7 +103,9 @@ def find_node_bin(root_dir: str, bin_name: str) -> str | None:
         os.path.join(root_dir, "superset-frontend", "node_modules", ".bin"),
         os.path.join(root_dir, "node_modules", ".bin"),
     ]:
-        extensions = [".cmd", ".ps1", ""] if os.name == "nt" else ["", ".cmd", ".ps1"]
+        extensions = (
+            [".cmd", ".bat", ".exe", ""] if os.name == "nt" else ["", ".cmd", ".bat"]
+        )
         for ext in extensions:
             candidate = os.path.join(base, f"{bin_name}{ext}")
             if os.path.isfile(candidate):
@@ -214,13 +236,12 @@ def compile_translations() -> int:  # noqa: C901
     )
     if json_files:
         print(f"Step 4: Running oxfmt on {len(json_files)} JSON files...")
-        # messages.json is gitignored (generated output); oxfmt respects
-        # .gitignore by default even for explicitly-passed paths.
-        # Passing --no-ignore bypasses ignore rules so the generated JSON
-        # files are actively formatted.
+        # messages.json is gitignored (generated output); pass
+        # --no-error-on-unmatched-pattern so oxfmt completes successfully
+        # even if ignore rules match. Note: oxfmt does not accept --no-ignore.
         if (
             run_command(
-                [*oxfmt_cmd, "--write", "--no-ignore", *json_files],
+                [*oxfmt_cmd, "--write", "--no-error-on-unmatched-pattern", *json_files],
                 cwd=root_dir,
                 timeout=300,
             )
