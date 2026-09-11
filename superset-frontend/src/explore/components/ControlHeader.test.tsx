@@ -123,6 +123,7 @@ test('renders description icon outside label when hovered', async () => {
   const label = screen.getByText('Date Range');
   const infoIcon = screen.getByRole('button', { name: 'Show info tooltip' });
   expect(infoIcon).toBeInTheDocument();
+  expect(infoIcon.tagName).toBe('BUTTON');
   // Ensure info icon is not a descendant of FormLabel / label
   const formLabel = label.closest('label');
   expect(formLabel).not.toContainElement(infoIcon);
