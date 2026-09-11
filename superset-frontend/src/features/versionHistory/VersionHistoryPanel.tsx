@@ -212,6 +212,16 @@ export default function VersionHistoryPanel({
   // newestGroup comes from the hook's last unfiltered fetch — the visible
   // timeline is search-filtered, so its first group may be an older save.
   const currentTransactionId = newestGroup?.transactionId ?? null;
+  // Exactly one group carries the active "you are here" treatment: the
+  // previewed group while a historical preview is open, otherwise the
+  // current (live) group at rest. Deriving it here — rather than letting
+  // each item OR its own flags together — is what keeps the highlight
+  // exclusive when a preview is active.
+  const highlightedTransactionId =
+    previewedTransactionId != null &&
+    previewedTransactionId !== currentTransactionId
+      ? previewedTransactionId
+      : currentTransactionId;
   const canRestoreKnownVersion = canRestore && currentVersionStatus === 'known';
   const restoreNotice =
     newestGroup?.actionKind === 'restore'
@@ -295,10 +305,7 @@ export default function VersionHistoryPanel({
               group={entry}
               isCurrent={entry.transactionId === currentTransactionId}
               canRestore={canRestoreKnownVersion}
-              isPreviewed={
-                entry.transactionId === previewedTransactionId &&
-                entry.transactionId !== currentTransactionId
-              }
+              isHighlighted={entry.transactionId === highlightedTransactionId}
               onPreview={onPreview}
               onExitPreview={onExitPreview}
               onRestore={onRestore}
