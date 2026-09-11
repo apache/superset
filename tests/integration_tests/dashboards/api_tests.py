@@ -4185,6 +4185,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         )
         response = self._cache_screenshot(dashboard.id)
         assert response.status_code == 202
+        assert response.json["permalink_key"]
         mock_store_cache_payload.assert_called_once()
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
@@ -4275,8 +4276,49 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     @patch("superset.dashboards.api.cache_dashboard_screenshot")
     @patch("superset.utils.screenshots.set_cache_value", return_value=True)
     @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
-    def test_enqueue_failure_persists_terminal_error(
+    def test_fresh_error_requires_force_to_retry(
         self, mock_get_from_cache_key, mock_set_cache_value, mock_cache_task
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+        mock_get_from_cache_key.return_value = ScreenshotCachePayload(
+            status=StatusValues.ERROR,
+            scope=f"dashboard:{dashboard.id}",
+        )
+
+        response = self._cache_screenshot(dashboard.id)
+
+        assert response.status_code == 200
+        assert response.json["task_status"] == "Error"
+        mock_set_cache_value.assert_not_called()
+        mock_cache_task.delay.assert_not_called()
+
+        response = self._cache_screenshot(dashboard.id, force=True)
+
+        assert response.status_code == 202
+        assert response.json["task_status"] == "Pending"
+        mock_set_cache_value.assert_called_once()
+        mock_cache_task.delay.assert_called_once()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.store_error_if_no_active_task",
+        return_value=True,
+    )
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch("superset.utils.screenshots.set_cache_value", return_value=True)
+    @patch("superset.dashboards.api.DashboardScreenshot.get_from_cache_key")
+    def test_enqueue_failure_persists_terminal_error(
+        self,
+        mock_get_from_cache_key,
+        mock_set_cache_value,
+        mock_cache_task,
+        mock_store_error,
     ):
         self.login(ADMIN_USERNAME)
         dashboard = (
@@ -4290,14 +4332,13 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         response = self._cache_screenshot(dashboard.id)
 
         assert response.status_code == 500
-        assert mock_set_cache_value.call_count == 2
-        pending_payload, error_payload = (
-            call.args[2] for call in mock_set_cache_value.call_args_list
-        )
+        mock_set_cache_value.assert_called_once()
+        pending_payload = mock_set_cache_value.call_args.args[2]
         assert pending_payload["status"] == "Pending"
-        assert error_payload["status"] == "Error"
-        assert error_payload["image"] is None
-        assert error_payload["scope"] == f"dashboard:{dashboard.id}"
+        mock_store_error.assert_called_once_with(
+            mock_set_cache_value.call_args.args[1],
+            scope=f"dashboard:{dashboard.id}",
+        )
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
@@ -4324,6 +4365,30 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
+    @patch("superset.dashboards.api.cache_dashboard_screenshot")
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.cache.get",
+        side_effect=RuntimeError("cache unavailable"),
+    )
+    def test_cache_read_failure_does_not_enqueue_invisible_task(
+        self, mock_cache_get, mock_cache_task
+    ):
+        self.login(ADMIN_USERNAME)
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "dash with tag")
+            .first()
+        )
+
+        response = self._cache_screenshot(dashboard.id)
+
+        assert response.status_code == 503
+        assert response.json["message"] == "Screenshot cache is unavailable"
+        mock_cache_get.assert_called_once()
+        mock_cache_task.delay.assert_not_called()
+
+    @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch(
         "superset.dashboards.api.DashboardScreenshot.store_cache_payload",
         return_value=True,
@@ -4346,6 +4411,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         ).run()
         response = self._cache_screenshot(dashboard.id, {"permalinkKey": permalink_key})
         assert response.status_code == 202
+        assert response.json["permalink_key"] == permalink_key
         mock_store_cache_payload.assert_called_once()
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)

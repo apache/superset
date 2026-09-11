@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { memo, useCallback, useEffect, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Map as MapLibreMap } from 'react-map-gl/maplibre';
 import { Map as MapboxMap } from 'react-map-gl/mapbox';
 import * as maplibregl from 'maplibre-gl';
@@ -160,24 +160,106 @@ function MapLibre({
   const offsetHorizontal = (width * 0.5) / 100;
   const offsetVertical = (height * 0.5) / 100;
 
-  const bbox =
-    bounds && bounds[0] && bounds[1]
-      ? [
-          bounds[0][0] - offsetHorizontal,
-          bounds[0][1] - offsetVertical,
-          bounds[1][0] + offsetHorizontal,
-          bounds[1][1] + offsetVertical,
-        ]
-      : [-180, -90, 180, 90];
+  const bbox = useMemo(
+    () =>
+      bounds && bounds[0] && bounds[1]
+        ? [
+            bounds[0][0] - offsetHorizontal,
+            bounds[0][1] - offsetVertical,
+            bounds[1][0] + offsetHorizontal,
+            bounds[1][1] + offsetVertical,
+          ]
+        : [-180, -90, 180, 90],
+    [bounds, offsetHorizontal, offsetVertical],
+  );
 
-  const clusters = clusterer.getClusters(bbox, Math.round(viewport.zoom));
+  const clusters = useMemo(
+    () => clusterer.getClusters(bbox, Math.round(viewport.zoom)),
+    [bbox, clusterer, viewport.zoom],
+  );
 
   const theme = useTheme();
-  const resolvedMapStyle: ResolvedMapStyle =
-    mapProvider === 'mapbox'
-      ? mapStyle || DEFAULT_MAP_STYLE
-      : resolveMapStyle(mapStyle, DEFAULT_MAP_STYLE);
+  const resolvedMapStyle: ResolvedMapStyle = useMemo(
+    () =>
+      mapProvider === 'mapbox'
+        ? mapStyle || DEFAULT_MAP_STYLE
+        : resolveMapStyle(mapStyle, DEFAULT_MAP_STYLE),
+    [mapProvider, mapStyle],
+  );
   const mapboxApiKey = mapProvider === 'mapbox' ? getMapboxApiKey() : '';
+
+  // The top-level renderer callback only proves that this React module
+  // mounted. Track both the base-map idle event and the imperative canvas
+  // redraw for the same inputs before declaring its pixels capture-ready.
+  const currentMapSource = useMemo(
+    () => ({
+      hasMapboxApiKey: Boolean(mapboxApiKey),
+      mapProvider,
+      resolvedMapStyle,
+    }),
+    [mapProvider, mapboxApiKey, resolvedMapStyle],
+  );
+  const currentMapRender = useMemo(
+    () => ({
+      height,
+      source: currentMapSource,
+      viewport,
+      width,
+    }),
+    [currentMapSource, height, viewport, width],
+  );
+  const currentOverlayRender = useMemo(
+    () => ({
+      aggregatorName,
+      clusters,
+      globalOpacity,
+      hasCustomMetric,
+      height,
+      mapProvider,
+      pointRadius,
+      pointRadiusUnit,
+      renderWhileDragging,
+      rgb,
+      viewport,
+      width,
+    }),
+    [
+      aggregatorName,
+      clusters,
+      globalOpacity,
+      hasCustomMetric,
+      height,
+      mapProvider,
+      pointRadius,
+      pointRadiusUnit,
+      renderWhileDragging,
+      rgb,
+      viewport,
+      width,
+    ],
+  );
+  const [completedMapRender, setCompletedMapRender] = useState<object | null>(
+    null,
+  );
+  const [completedOverlayRender, setCompletedOverlayRender] = useState<
+    object | null
+  >(null);
+  const [failedMapRender, setFailedMapRender] = useState<object | null>(null);
+  const handleMapIdle = useCallback(
+    () => setCompletedMapRender(currentMapRender),
+    [currentMapRender],
+  );
+  const handleMapError = useCallback(() => {
+    setFailedMapRender(currentMapSource);
+  }, [currentMapSource]);
+  const handleOverlayRedraw = useCallback(
+    () => setCompletedOverlayRender(currentOverlayRender),
+    [currentOverlayRender],
+  );
+  const mapRenderComplete =
+    completedMapRender === currentMapRender &&
+    completedOverlayRender === currentOverlayRender &&
+    failedMapRender !== currentMapSource;
 
   if (mapProvider === 'mapbox' && !mapboxApiKey) {
     return (
@@ -203,29 +285,33 @@ function MapLibre({
     mapProvider === 'mapbox' ? { mapboxAccessToken: mapboxApiKey } : {};
 
   return (
-    <MapComponent
-      {...viewport}
-      {...mapboxProps}
-      style={{ width, height }}
-      mapStyle={resolvedMapStyle}
-      onMove={handleMove}
+    <div
+      data-superset-map-status={mapRenderComplete ? 'rendered' : 'loading'}
+      style={{ position: 'relative', width, height }}
     >
-      <ScatterPlotOverlay
-        locations={clusters}
-        dotRadius={pointRadius}
-        pointRadiusUnit={pointRadiusUnit}
-        rgb={rgb}
-        globalOpacity={globalOpacity}
-        compositeOperation="screen"
-        renderWhileDragging={renderWhileDragging}
-        aggregation={hasCustomMetric ? aggregatorName : undefined}
-        zoom={viewport.zoom}
-        lngLatAccessor={(location: GeoJSONLocation) => {
-          const { coordinates } = location.geometry;
-          return [coordinates[0], coordinates[1]];
-        }}
-      />
-    </MapComponent>
+      <MapComponent
+        {...viewport}
+        {...mapboxProps}
+        style={{ width, height }}
+        mapStyle={resolvedMapStyle}
+        onMove={handleMove}
+        onIdle={handleMapIdle}
+        onError={handleMapError}
+      >
+        <ScatterPlotOverlay
+          locations={clusters}
+          dotRadius={pointRadius}
+          pointRadiusUnit={pointRadiusUnit}
+          rgb={rgb}
+          globalOpacity={globalOpacity}
+          compositeOperation="screen"
+          renderWhileDragging={renderWhileDragging}
+          aggregation={hasCustomMetric ? aggregatorName : undefined}
+          zoom={viewport.zoom}
+          onRedraw={handleOverlayRedraw}
+        />
+      </MapComponent>
+    </div>
   );
 }
 

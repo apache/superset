@@ -42,14 +42,10 @@ logger = logging.getLogger(__name__)
 def is_cache_configured(cache_instance: Cache | None) -> bool:
     """Return whether a Flask-Caching instance has a configured backend."""
 
-    if cache_instance is None:
-        return False
-    try:
-        return not isinstance(cache_instance.cache, NullCache)
-    except AttributeError:
-        # A few lightweight test doubles expose only get/set. Treat those as
-        # configured so the persistence result still comes from set().
-        return True
+    return cache_instance is not None and not isinstance(
+        cache_instance.cache,
+        NullCache,
+    )
 
 
 def set_cache_value(

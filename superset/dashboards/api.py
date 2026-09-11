@@ -168,6 +168,7 @@ from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
     DashboardScreenshot,
     DEFAULT_DASHBOARD_WINDOW_SIZE,
+    ScreenshotCacheError,
     ScreenshotCachePayload,
 )
 from superset.utils.urls import get_url_path
@@ -1895,9 +1896,17 @@ class DashboardRestApi(
     )
     def cache_dashboard_screenshot(self, pk: int, **kwargs: Any) -> WerkzeugResponse:
         """Compute and cache a screenshot.
+
+        Reusing ``permalinkKey`` polls the same task. A non-force request
+        returns a cached ``Error`` until ``THUMBNAIL_ERROR_CACHE_TTL`` expires;
+        clients must send ``force=true`` to retry before then.
         ---
         post:
           summary: Compute and cache a screenshot
+          description: >-
+            Reuse permalinkKey to poll the same task. A non-force request
+            returns a cached Error until THUMBNAIL_ERROR_CACHE_TTL expires;
+            send force=true to retry before then.
           parameters:
           - in: path
             schema:
@@ -1909,6 +1918,12 @@ class DashboardRestApi(
                   schema:
                     $ref: '#/components/schemas/DashboardScreenshotPostSchema'
           responses:
+            200:
+              description: Existing dashboard screenshot task status
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/DashboardCacheScreenshotResponseSchema"
             202:
               description: Dashboard async result
               content:
@@ -1974,14 +1989,22 @@ class DashboardRestApi(
         image_url = get_url_path(
             "DashboardRestApi.screenshot", pk=dashboard.id, digest=cache_key
         )
-        cached_payload = screenshot_obj.get_from_cache_key(cache_key)
-        cache_payload = cached_payload or ScreenshotCachePayload()
         cache_scope = f"dashboard:{dashboard.id}"
+        try:
+            cached_payload = screenshot_obj.get_from_cache_key(cache_key)
+        except ScreenshotCacheError:
+            logger.exception("Screenshot cache read failed: %s", cache_key)
+            return self.response(
+                503,
+                message=gettext("Screenshot cache is unavailable"),
+            )
+        cache_payload = cached_payload or ScreenshotCachePayload()
 
         def build_response(status_code: int) -> WerkzeugResponse:
             return self.response(
                 status_code,
                 cache_key=cache_key,
+                permalink_key=permalink_key,
                 dashboard_url=dashboard_url,
                 image_url=image_url,
                 task_updated_at=cache_payload.get_timestamp(),
@@ -1992,45 +2015,37 @@ class DashboardRestApi(
             force, expected_scope=cache_scope
         ):
             logger.info("Triggering screenshot ASYNC")
-            cache_payload.pending()
-            cache_payload.set_scope(cache_scope)
-            if not screenshot_obj.store_cache_payload(cache_key, cache_payload):
-                logger.error(
-                    "Refusing to enqueue dashboard screenshot because Pending "
-                    "state could not be cached: %s",
+            try:
+                cache_payload, should_enqueue = screenshot_obj.prepare_and_enqueue_task(
                     cache_key,
+                    force=force,
+                    scope=cache_scope,
+                    enqueue=functools.partial(
+                        cache_dashboard_screenshot.delay,
+                        username=get_current_user(),
+                        guest_token=(
+                            g.user.guest_token
+                            if get_current_user() and isinstance(g.user, GuestUser)
+                            else None
+                        ),
+                        dashboard_id=dashboard.id,
+                        dashboard_url=dashboard_url,
+                        thumb_size=thumb_size,
+                        window_size=window_size,
+                        cache_key=cache_key,
+                        # Pending invalidates the prior artifact. Accepted
+                        # duplicate tasks should skip a completed result.
+                        force=False,
+                    ),
                 )
+            except ScreenshotCacheError:
+                logger.exception("Screenshot task preparation failed: %s", cache_key)
                 return self.response(
                     503,
                     message=gettext("Screenshot cache is unavailable"),
                 )
-            try:
-                cache_dashboard_screenshot.delay(
-                    username=get_current_user(),
-                    guest_token=(
-                        g.user.guest_token
-                        if get_current_user() and isinstance(g.user, GuestUser)
-                        else None
-                    ),
-                    dashboard_id=dashboard.id,
-                    dashboard_url=dashboard_url,
-                    thumb_size=thumb_size,
-                    window_size=window_size,
-                    cache_key=cache_key,
-                    # The API has already invalidated the prior artifact by
-                    # persisting PENDING. Avoid making duplicate queued tasks
-                    # recompute after another worker has completed the request.
-                    force=False,
-                )
-            except Exception:  # pylint: disable=broad-except
-                cache_payload.error()
-                if not screenshot_obj.store_cache_payload(cache_key, cache_payload):
-                    logger.error(
-                        "Could not persist dashboard screenshot Error state "
-                        "after enqueue failure: %s",
-                        cache_key,
-                    )
-                raise
+            if not should_enqueue:
+                return build_response(202 if cache_payload.is_in_progress() else 200)
             return build_response(202)
         return build_response(202 if cache_payload.is_in_progress() else 200)
 

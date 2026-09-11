@@ -280,9 +280,54 @@ class TestStandardScreenshotValidation:
                 "cache_key=test",
                 None,
                 validate_rendered_content=True,
+                require_complete_capture=True,
             )
 
         assert page.screenshot.call_count == 3
+
+    def test_api_capture_requires_readiness_to_remain_stable(self):
+        page = MagicMock()
+        element = MagicMock()
+        page.screenshot.return_value = _png("black")
+        page.evaluate.return_value = False
+
+        result = WebDriverPlaywright._get_validated_screenshot(
+            page,
+            element,
+            "standalone",
+            "cache_key=test",
+            None,
+            validate_rendered_content=True,
+            require_complete_capture=True,
+        )
+
+        assert result == _png("black")
+        stable_call = page.wait_for_function.call_args
+        assert "__supersetCaptureReadiness" in stable_call.args[0]
+        assert "const requireCompleteRender = true" in stable_call.args[0]
+        assert stable_call.kwargs["arg"]["stabilityMs"] == (
+            REPORT_CAPTURE_READINESS_STABILITY_MS
+        )
+
+    def test_api_capture_aborts_if_loading_returns_during_stability(self):
+        from superset.utils.webdriver import PlaywrightTimeout
+
+        page = MagicMock()
+        element = MagicMock()
+        page.wait_for_function.side_effect = PlaywrightTimeout("loading returned")
+
+        with pytest.raises(PlaywrightTimeout, match="loading returned"):
+            WebDriverPlaywright._get_validated_screenshot(
+                page,
+                element,
+                "standalone",
+                "cache_key=test",
+                None,
+                validate_rendered_content=True,
+                require_complete_capture=True,
+            )
+
+        page.screenshot.assert_not_called()
 
 
 class TestWebDriverPlaywrightFallback:

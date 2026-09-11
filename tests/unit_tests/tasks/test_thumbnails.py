@@ -25,7 +25,9 @@ import pytest
 @pytest.fixture
 def mock_thumbnail_cache() -> Iterator[None]:
     """Enable thumbnail cache mocking so tasks don't exit early."""
-    with patch("superset.tasks.thumbnails.thumbnail_cache", True):
+    cache = MagicMock()
+    cache.cache = MagicMock()
+    with patch("superset.tasks.thumbnails.thumbnail_cache", cache):
         yield
 
 
@@ -183,6 +185,7 @@ def test_cache_dashboard_screenshot_requires_complete_capture(
         thumb_size=None,
         cache_key="test_cache_key",
         force=False,
+        retry_fresh_error=True,
     )
 
 
@@ -213,12 +216,10 @@ def test_cache_dashboard_screenshot_setup_failure_persists_error(
             cache_key="test_cache_key",
         )
 
-    mock_screenshot_cls.store_cache_payload.assert_called_once()
-    stored_key, error_payload = mock_screenshot_cls.store_cache_payload.call_args.args
-    assert stored_key == "test_cache_key"
-    assert error_payload.get_status() == "Error"
-    assert error_payload.get_scope() == "dashboard:1"
-    assert error_payload.to_dict()["image"] is None
+    mock_screenshot_cls.store_error_if_no_active_task.assert_called_once_with(
+        "test_cache_key",
+        scope="dashboard:1",
+    )
 
 
 def test_cache_dashboard_screenshot_skips_real_null_cache() -> None:

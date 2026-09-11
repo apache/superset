@@ -29,10 +29,14 @@ export interface RedrawParams {
 }
 
 interface CanvasOverlayProps {
+  onRedraw?: () => void;
   redraw: (params: RedrawParams) => void;
 }
 
-export default function CanvasOverlay({ redraw }: CanvasOverlayProps) {
+export default function CanvasOverlay({
+  onRedraw,
+  redraw,
+}: CanvasOverlayProps) {
   const mapLibreContext = useMapLibre();
   const mapboxContext = useMapbox();
   const mapRef = (mapLibreContext.current ?? mapboxContext.current) as any;
@@ -76,7 +80,8 @@ export default function CanvasOverlay({ redraw }: CanvasOverlayProps) {
       isDragging: isDraggingRef.current,
       project,
     });
-  }, [mapRef, redraw, project]);
+    onRedraw?.();
+  }, [mapRef, onRedraw, redraw, project]);
 
   useEffect(() => {
     const map = mapRef?.getMap();

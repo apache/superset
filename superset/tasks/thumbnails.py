@@ -31,7 +31,6 @@ from superset.utils.core import override_user
 from superset.utils.screenshots import (
     ChartScreenshot,
     DashboardScreenshot,
-    ScreenshotCachePayload,
 )
 from superset.utils.urls import get_url_path
 from superset.utils.webdriver import WindowSize
@@ -165,6 +164,11 @@ def cache_dashboard_screenshot(  # pylint: disable=too-many-arguments
                 thumb_size=thumb_size,
                 cache_key=cache_key,
                 force=force,
+                # This task was already accepted by the API. If a duplicate
+                # delivery failed during setup and briefly recorded Error,
+                # finish the accepted generation without recomputing a valid
+                # Updated artifact.
+                retry_fresh_error=True,
             )
     except Exception:  # pylint: disable=broad-except
         logger.exception(
@@ -172,9 +176,10 @@ def cache_dashboard_screenshot(  # pylint: disable=too-many-arguments
             cache_key,
         )
         if cache_key:
-            error_payload = ScreenshotCachePayload(scope=f"dashboard:{dashboard_id}")
-            error_payload.error()
-            if not DashboardScreenshot.store_cache_payload(cache_key, error_payload):
+            if not DashboardScreenshot.store_error_if_no_active_task(
+                cache_key,
+                scope=f"dashboard:{dashboard_id}",
+            ):
                 logger.error(
                     "Could not persist dashboard screenshot Error state: %s",
                     cache_key,

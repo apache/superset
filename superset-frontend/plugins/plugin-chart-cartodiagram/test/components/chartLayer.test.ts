@@ -19,6 +19,17 @@
 
 import { ChartLayer } from '../../src/components/ChartLayer';
 import { ChartLayerOptions } from '../../src/types';
+import '@testing-library/jest-dom';
+
+const mockCreateChartComponent = jest.fn((..._args: unknown[]) => null);
+
+jest.mock('../../src/util/chartUtil', () => ({
+  createChartComponent: (...args: unknown[]) =>
+    mockCreateChartComponent(...args),
+}));
+jest.mock('react-dom/client', () => ({
+  createRoot: () => ({ render: jest.fn(), unmount: jest.fn() }),
+}));
 
 describe('ChartLayer', () => {
   test('creates div and loading mask', () => {
@@ -52,4 +63,32 @@ describe('ChartLayer', () => {
     chartLayer.removeAllChartElements();
     expect(chartLayer.charts).toEqual([]);
   });
+});
+
+test('marks each chart container loading synchronously until React commits', () => {
+  const options: ChartLayerOptions = {
+    chartVizType: 'pie',
+    locale: 'en',
+    chartConfigs: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [0, 0] },
+          properties: {},
+        },
+      ],
+    },
+    chartSizeValues: { 1: { width: 100, height: 100 } },
+  };
+  const chartLayer = new ChartLayer(options);
+
+  chartLayer.createCharts(1);
+
+  const container = chartLayer.charts[0].htmlElement;
+  expect(container).toHaveAttribute('data-superset-map-status', 'loading');
+  const onRenderComplete = mockCreateChartComponent.mock.calls[0][6];
+  expect(onRenderComplete).toEqual(expect.any(Function));
+  (onRenderComplete as () => void)();
+  expect(container).toHaveAttribute('data-superset-map-status', 'rendered');
 });

@@ -190,16 +190,21 @@ class TestGranularExportDashboardAPI(SupersetTestCase):
         THUMBNAILS=True,
         ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True,
     )
+    @patch(
+        "superset.dashboards.api.DashboardScreenshot.store_cache_payload",
+        return_value=True,
+    )
     @patch.object(
         SupersetSecurityManager,
         "can_access",
         side_effect=_deny_can_export_image,
     )
     def test_dashboard_cache_screenshot_allowed_when_flag_disabled(
-        self, mock_can_access
+        self, mock_can_access, mock_store_cache_payload
     ) -> None:
         """When GRANULAR_EXPORT_CONTROLS is OFF, the granular permission check
-        is skipped even if the user lacks can_export_image."""
+        is skipped even if the user lacks can_export_image.
+        """
         self.login(ADMIN_USERNAME)
         dashboard = self.get_dash_by_slug("births") or self.get_dash_by_slug(
             "birth_names"
@@ -208,6 +213,7 @@ class TestGranularExportDashboardAPI(SupersetTestCase):
         rison_params = rison.dumps({"force": False})
         rv = self.client.post(f"{uri}?q={rison_params}", json={})
         assert rv.status_code == 202
+        mock_store_cache_payload.assert_called_once()
 
 
 class TestGranularExportSqlLabAPI(SupersetTestCase):

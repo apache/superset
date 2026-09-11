@@ -27,11 +27,12 @@ import * as fitViewportModule from '../utils/fitViewport';
 
 // Mock DeckGLContainer
 jest.mock('../DeckGLContainer', () => ({
-  DeckGLContainerStyledWrapper: ({ viewport, layers }: any) => (
+  DeckGLContainerStyledWrapper: ({ viewport, layers, isLoading }: any) => (
     <div
       data-test="deckgl-container"
       data-viewport={JSON.stringify(viewport)}
       data-layers-count={layers?.length || 0}
+      data-loading={String(isLoading)}
     >
       DeckGL Container Mock
     </div>
@@ -444,6 +445,58 @@ describe('DeckMulti stale-response guard', () => {
       ).toBe('1');
     });
   });
+
+  test('ignores an error parsed after a newer layer generation starts', async () => {
+    let resolveError: (value: { message: string }) => void = () => {};
+    const parseError = jest.fn(
+      () =>
+        new Promise<{ message: string }>(resolve => {
+          resolveError = resolve;
+        }),
+    );
+    (SupersetClient.post as jest.Mock)
+      .mockRejectedValueOnce({
+        response: {
+          bodyUsed: false,
+          clone: () => ({ json: parseError }),
+          text: () => Promise.resolve('stale layer failure'),
+          url: '/api/v1/chart/data',
+          status: 500,
+          statusText: 'Server error',
+          redirected: false,
+          type: 'basic',
+        },
+      })
+      .mockResolvedValue({ json: { result: [{ data: [] }] } });
+    const { rerender } = renderWithProviders(
+      <DeckMulti
+        {...baseMockProps}
+        formData={{ ...baseMockProps.formData, deck_slices: [1] }}
+      />,
+    );
+
+    await waitFor(() => expect(parseError).toHaveBeenCalledTimes(1));
+    rerender(
+      <Provider store={mockStore}>
+        <ThemeProvider theme={supersetTheme}>
+          <DeckMulti
+            {...baseMockProps}
+            formData={{ ...baseMockProps.formData, deck_slices: [2] }}
+          />
+        </ThemeProvider>
+      </Provider>,
+    );
+    await waitFor(() => expect(SupersetClient.post).toHaveBeenCalledTimes(2));
+
+    resolveError({ message: 'stale layer failure' });
+    await waitFor(() =>
+      expect(screen.getByTestId('deckgl-container')).toHaveAttribute(
+        'data-loading',
+        'false',
+      ),
+    );
+    expect(screen.queryByText(/stale layer failure/)).not.toBeInTheDocument();
+  });
 });
 
 describe('DeckMulti Component Rendering', () => {
@@ -459,6 +512,53 @@ describe('DeckMulti Component Rendering', () => {
     await waitFor(() => {
       expect(screen.getByTestId('deckgl-container')).toBeInTheDocument();
     });
+  });
+
+  test('keeps the container loading until every visible layer settles', async () => {
+    let resolveFirstLayer: (value: unknown) => void = () => {};
+    (SupersetClient.post as jest.Mock)
+      .mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            resolveFirstLayer = resolve;
+          }),
+      )
+      .mockResolvedValueOnce({ json: { result: [{ data: [] }] } });
+
+    renderWithProviders(<DeckMulti {...baseMockProps} />);
+
+    await waitFor(() => expect(SupersetClient.post).toHaveBeenCalledTimes(2));
+    expect(screen.getByTestId('deckgl-container')).toHaveAttribute(
+      'data-loading',
+      'true',
+    );
+
+    resolveFirstLayer({ json: { result: [{ data: [] }] } });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('deckgl-container')).toHaveAttribute(
+        'data-loading',
+        'false',
+      ),
+    );
+  });
+
+  test('surfaces sub-slices whose metadata cannot be loaded', async () => {
+    (SupersetClient.get as jest.Mock).mockRejectedValue(
+      new Error('metadata unavailable'),
+    );
+
+    renderWithProviders(<DeckMulti {...baseMockProps} />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('deckgl-container')).toHaveAttribute(
+        'data-loading',
+        'false',
+      ),
+    );
+    expect(screen.getByText(/Layer 1 could not be loaded/)).toBeInTheDocument();
+    expect(screen.getByText(/Layer 2 could not be loaded/)).toBeInTheDocument();
+    expect(SupersetClient.post).not.toHaveBeenCalled();
   });
 
   test('should pass the base viewport through to DeckGLContainer', async () => {

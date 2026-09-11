@@ -27,7 +27,11 @@ from unittest.mock import MagicMock, patch
 import pytest
 from pytest_mock import MockerFixture
 
-from superset.exceptions import LockAlreadyHeldException
+from superset.exceptions import (
+    AcquireDistributedLockFailedException,
+    LockAlreadyHeldException,
+    ReleaseDistributedLockFailedException,
+)
 from superset.utils.screenshots import (
     BaseScreenshot,
     ScreenshotCachePayload,
@@ -48,6 +52,7 @@ class MockCache:
 
     def __init__(self):
         self._cache = {}
+        self.cache = self
 
     def set(self, key, value):
         """Set the cache with a new value."""
@@ -298,10 +303,19 @@ class TestCacheOnlyOnSuccess:
         assert cached_value["image"] is None
 
 
-def test_error_state_discards_an_existing_image() -> None:
+def test_error_state_preserves_an_existing_thumbnail_image() -> None:
     payload = ScreenshotCachePayload(image=FAKE_PNG_BYTES)
 
     payload.error()
+
+    assert payload.get_status() == "Error"
+    assert payload.to_dict()["image"] is not None
+
+
+def test_error_state_can_discard_a_rejected_image() -> None:
+    payload = ScreenshotCachePayload(image=FAKE_PNG_BYTES)
+
+    payload.error(discard_image=True)
 
     assert payload.get_status() == "Error"
     assert payload.to_dict()["image"] is None
@@ -447,6 +461,14 @@ class TestShouldTriggerTask:
         payload = ScreenshotCachePayload(image=b"image_data")
 
         assert payload.should_enqueue_task(force=True) is True
+
+    @patch("superset.utils.screenshots.app")
+    def test_accepted_worker_can_retry_a_fresh_error(self, mock_app: MagicMock) -> None:
+        mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
+        payload = ScreenshotCachePayload(status=StatusValues.ERROR)
+
+        assert payload.should_trigger_task(force=False) is False
+        assert payload.should_trigger_task(force=False, retry_fresh_error=True) is True
 
 
 class TestIsComputingStale:
@@ -600,6 +622,245 @@ class TestIntegrationCacheBugFix:
         screenshot_obj.compute_and_cache(user=mock_user, force=False)
 
         get_screenshot.assert_not_called()
+
+    @patch("superset.utils.screenshots.app")
+    def test_enqueue_task_claims_a_missing_key_atomically(
+        self,
+        mock_app: MagicMock,
+        mocker: MockerFixture,
+    ) -> None:
+        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
+        mock_lock = mocker.patch(DISTRIBUTED_LOCK_PATH)
+        enqueue = MagicMock()
+        BaseScreenshot.cache = MockCache()
+
+        payload, should_enqueue = BaseScreenshot.prepare_and_enqueue_task(
+            "key",
+            force=False,
+            scope="dashboard:1",
+            enqueue=enqueue,
+        )
+
+        assert should_enqueue is True
+        assert payload.get_status() == "Pending"
+        assert payload.get_scope() == "dashboard:1"
+        assert BaseScreenshot.cache.get("key")["status"] == "Pending"
+        enqueue.assert_called_once_with()
+        mock_lock.assert_called_once_with(namespace="thumbnail_enqueue", key="key")
+
+    @patch("superset.utils.screenshots.app")
+    def test_enqueue_task_rechecks_fresh_pending_under_lock(
+        self,
+        mock_app: MagicMock,
+        mocker: MockerFixture,
+    ) -> None:
+        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
+        mocker.patch(DISTRIBUTED_LOCK_PATH)
+        BaseScreenshot.cache = MockCache()
+        BaseScreenshot.cache.set(
+            "key",
+            ScreenshotCachePayload(
+                status=StatusValues.PENDING,
+                scope="dashboard:1",
+            ).to_dict(),
+        )
+
+        enqueue = MagicMock()
+        payload, should_enqueue = BaseScreenshot.prepare_and_enqueue_task(
+            "key",
+            force=True,
+            scope="dashboard:1",
+            enqueue=enqueue,
+        )
+
+        assert should_enqueue is False
+        assert payload.get_status() == "Pending"
+        enqueue.assert_not_called()
+
+    @patch("superset.utils.screenshots.app")
+    def test_enqueue_task_does_not_publish_during_lock_contention(
+        self,
+        mock_app: MagicMock,
+        mocker: MockerFixture,
+    ) -> None:
+        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
+        mock_lock = mocker.patch(DISTRIBUTED_LOCK_PATH)
+        mock_lock.return_value.__enter__.side_effect = LockAlreadyHeldException(
+            "lock held"
+        )
+        BaseScreenshot.cache = MockCache()
+        BaseScreenshot.cache.set(
+            "key",
+            ScreenshotCachePayload(
+                image=FAKE_PNG_BYTES,
+                scope="dashboard:1",
+            ).to_dict(),
+        )
+
+        enqueue = MagicMock()
+        payload, should_enqueue = BaseScreenshot.prepare_and_enqueue_task(
+            "key",
+            force=True,
+            scope="dashboard:1",
+            enqueue=enqueue,
+        )
+
+        assert should_enqueue is False
+        assert payload.get_status() == "Pending"
+        assert BaseScreenshot.cache.get("key")["status"] == "Updated"
+        enqueue.assert_not_called()
+
+    @patch("superset.utils.screenshots.app")
+    def test_enqueue_failure_records_error_before_releasing_producer_lock(
+        self,
+        mock_app: MagicMock,
+        mocker: MockerFixture,
+    ) -> None:
+        mock_app.config = {"THUMBNAIL_COMPUTING_CACHE_TTL": 300}
+        lock_depth = 0
+
+        class TrackingLock:
+            def __enter__(self) -> None:
+                nonlocal lock_depth
+                lock_depth += 1
+
+            def __exit__(self, *args: object) -> None:
+                nonlocal lock_depth
+                lock_depth -= 1
+
+        mocker.patch(DISTRIBUTED_LOCK_PATH, return_value=TrackingLock())
+        BaseScreenshot.cache = MockCache()
+
+        def fail_enqueue() -> None:
+            assert lock_depth == 1
+            raise RuntimeError("broker unavailable")
+
+        with pytest.raises(RuntimeError, match="broker unavailable"):
+            BaseScreenshot.prepare_and_enqueue_task(
+                "key",
+                force=False,
+                scope="dashboard:1",
+                enqueue=fail_enqueue,
+            )
+
+        assert lock_depth == 0
+        assert BaseScreenshot.cache.get("key")["status"] == "Error"
+
+    def test_accepted_worker_retries_error_but_skips_updated(
+        self,
+        mocker: MockerFixture,
+        screenshot_obj: BaseScreenshot,
+        mock_user: MagicMock,
+    ) -> None:
+        mocker.patch(DISTRIBUTED_LOCK_PATH)
+        get_screenshot = mocker.patch(
+            BASE_SCREENSHOT_PATH + ".get_screenshot",
+            return_value=FAKE_PNG_BYTES,
+        )
+        mocker.patch(
+            BASE_SCREENSHOT_PATH + ".resize_image",
+            return_value=FAKE_PNG_BYTES,
+        )
+        BaseScreenshot.cache = MockCache()
+        cache_key = screenshot_obj.get_cache_key()
+        BaseScreenshot.cache.set(
+            cache_key,
+            ScreenshotCachePayload(status=StatusValues.ERROR).to_dict(),
+        )
+
+        screenshot_obj.compute_and_cache(
+            user=mock_user,
+            force=False,
+            retry_fresh_error=True,
+        )
+
+        assert get_screenshot.call_count == 1
+        assert BaseScreenshot.cache.get(cache_key)["status"] == "Updated"
+
+        screenshot_obj.compute_and_cache(
+            user=mock_user,
+            force=False,
+            retry_fresh_error=True,
+        )
+
+        assert get_screenshot.call_count == 1
+
+    def test_setup_error_does_not_overwrite_an_active_task(
+        self,
+        mocker: MockerFixture,
+    ) -> None:
+        """A duplicate setup failure leaves the lock owner's state untouched."""
+        mock_lock = mocker.patch(DISTRIBUTED_LOCK_PATH)
+        mock_lock.return_value.__enter__.side_effect = LockAlreadyHeldException(
+            "lock held"
+        )
+        BaseScreenshot.cache = MockCache()
+        BaseScreenshot.cache.set(
+            "key",
+            ScreenshotCachePayload(
+                status=StatusValues.COMPUTING,
+                scope="dashboard:1",
+            ).to_dict(),
+        )
+
+        assert BaseScreenshot.store_error_if_no_active_task("key", "dashboard:1")
+        assert BaseScreenshot.cache.get("key")["status"] == "Computing"
+
+    def test_setup_error_preserves_a_completed_task(
+        self,
+        mocker: MockerFixture,
+    ) -> None:
+        """A late duplicate failure cannot replace a completed artifact."""
+        mocker.patch(DISTRIBUTED_LOCK_PATH)
+        BaseScreenshot.cache = MockCache()
+        BaseScreenshot.cache.set(
+            "key",
+            ScreenshotCachePayload(
+                image=FAKE_PNG_BYTES,
+                scope="dashboard:1",
+            ).to_dict(),
+        )
+
+        assert BaseScreenshot.store_error_if_no_active_task("key", "dashboard:1")
+        assert BaseScreenshot.cache.get("key")["status"] == "Updated"
+
+    def test_setup_error_replaces_an_unowned_pending_task(
+        self,
+        mocker: MockerFixture,
+    ) -> None:
+        """The sole failed worker still records a terminal state."""
+        mocker.patch(DISTRIBUTED_LOCK_PATH)
+        BaseScreenshot.cache = MockCache()
+        BaseScreenshot.cache.set(
+            "key",
+            ScreenshotCachePayload(
+                status=StatusValues.PENDING,
+                scope="dashboard:1",
+            ).to_dict(),
+        )
+
+        assert BaseScreenshot.store_error_if_no_active_task("key", "dashboard:1")
+        payload = BaseScreenshot.cache.get("key")
+        assert payload["status"] == "Error"
+        assert payload["image"] is None
+
+    @pytest.mark.parametrize(
+        "lock_error",
+        [
+            AcquireDistributedLockFailedException("acquire failed"),
+            ReleaseDistributedLockFailedException("release failed"),
+        ],
+    )
+    def test_setup_error_reports_lock_backend_failure(
+        self,
+        mocker: MockerFixture,
+        lock_error: Exception,
+    ) -> None:
+        """Lock-backend failures do not mask the original task failure."""
+        mock_lock = mocker.patch(DISTRIBUTED_LOCK_PATH)
+        mock_lock.return_value.__enter__.side_effect = lock_error
+
+        assert not BaseScreenshot.store_error_if_no_active_task("key", "dashboard:1")
 
     def test_computing_preserves_previous_image(
         self,

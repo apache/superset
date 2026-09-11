@@ -24,6 +24,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useState,
   isValidElement,
 } from 'react';
@@ -32,7 +33,7 @@ import { Map as MapLibreMap } from 'react-map-gl/maplibre';
 import { Map as MapboxMap } from 'react-map-gl/mapbox';
 import mapboxgl from 'mapbox-gl';
 import type { Layer } from '@deck.gl/core';
-import { JsonObject, JsonValue, usePrevious } from '@superset-ui/core';
+import { JsonObject, JsonValue } from '@superset-ui/core';
 import {
   resolveMapStyle,
   type MapProvider,
@@ -61,6 +62,7 @@ export type DeckGLContainerProps = {
   width: number;
   height: number;
   layers: (Layer | (() => Layer))[];
+  isLoading?: boolean;
   onViewportChange?: (viewport: Viewport) => void;
 };
 
@@ -68,9 +70,17 @@ export const DeckGLContainer = memo(
   forwardRef((props: DeckGLContainerProps, ref) => {
     const [tooltip, setTooltip] = useState<TooltipProps['tooltip']>(null);
     const [lastUpdate, setLastUpdate] = useState<number | null>(null);
-    const [mapRenderComplete, setMapRenderComplete] = useState(false);
+    const [completedMapRender, setCompletedMapRender] = useState<object | null>(
+      null,
+    );
+    const [completedDeckRender, setCompletedDeckRender] = useState<
+      object | null
+    >(null);
+    const [failedMapRender, setFailedMapRender] = useState<object | null>(null);
+    const [failedDeckRender, setFailedDeckRender] = useState<object | null>(
+      null,
+    );
     const [viewState, setViewState] = useState(props.viewport);
-    const prevViewport = usePrevious(props.viewport);
 
     useImperativeHandle(ref, () => ({ setTooltip }), []);
 
@@ -91,36 +101,92 @@ export const DeckGLContainer = memo(
     }, [tick]);
 
     useEffect(() => {
-      if (!isEqual(props.viewport, prevViewport)) {
-        setMapRenderComplete(false);
-        setViewState(props.viewport);
-      }
-    }, [prevViewport, props.viewport]);
-
-    useEffect(() => {
-      setMapRenderComplete(false);
-    }, [props.mapProvider, props.mapStyle]);
+      setViewState(current =>
+        isEqual(current, props.viewport) ? current : props.viewport,
+      );
+    }, [props.viewport]);
 
     const onMove = useCallback((evt: { viewState: JsonObject }) => {
-      setMapRenderComplete(false);
       setViewState(evt.viewState as Viewport);
       setLastUpdate(Date.now());
     }, []);
 
-    const onMapIdle = useCallback(() => {
-      setMapRenderComplete(true);
-    }, []);
-
-    const layers = useCallback(() => {
-      // Support for layer factory
-      if (props.layers.some(l => typeof l === 'function')) {
-        return props.layers.map(l =>
-          typeof l === 'function' ? l() : l,
-        ) as Layer[];
-      }
-
-      return props.layers as Layer[];
-    }, [props.layers]);
+    const isMapbox = props.mapProvider === 'mapbox';
+    const canRenderMap = !isMapbox || Boolean(props.mapboxApiKey);
+    const mapStyle = useMemo<ResolvedMapStyle>(
+      () =>
+        isMapbox
+          ? props.mapStyle || DEFAULT_MAP_STYLE
+          : resolveMapStyle(props.mapStyle, DEFAULT_MAP_STYLE),
+      [isMapbox, props.mapStyle],
+    );
+    const currentMapSource = useMemo(
+      () => ({
+        hasMapboxApiKey: Boolean(props.mapboxApiKey),
+        mapProvider: props.mapProvider,
+        mapStyle,
+      }),
+      [mapStyle, props.mapProvider, props.mapboxApiKey],
+    );
+    const currentMapRender = useMemo(
+      () => ({
+        height: props.height,
+        source: currentMapSource,
+        viewState,
+        width: props.width,
+      }),
+      [currentMapSource, props.height, props.width, viewState],
+    );
+    const resolvedLayers = useMemo(
+      () =>
+        canRenderMap
+          ? (props.layers.map(layer =>
+              typeof layer === 'function' ? layer() : layer,
+            ) as Layer[])
+          : [],
+      [canRenderMap, props.layers],
+    );
+    const currentDeckRender = useMemo(
+      () => ({
+        ...currentMapRender,
+        layers: resolvedLayers,
+      }),
+      [currentMapRender, resolvedLayers],
+    );
+    const currentDeckSource = useMemo(
+      () => ({
+        layers: resolvedLayers,
+        mapSource: currentMapSource,
+      }),
+      [currentMapSource, resolvedLayers],
+    );
+    const onMapIdle = useCallback(
+      () => setCompletedMapRender(currentMapRender),
+      [currentMapRender],
+    );
+    // MapLibre can emit idle after a source or tile error. Remember errors for
+    // this source generation so a move or later idle event cannot turn missing
+    // basemap pixels into a successful capture.
+    const onMapError = useCallback(() => {
+      setFailedMapRender(currentMapSource);
+    }, [currentMapSource]);
+    const onDeckAfterRender = useCallback(
+      () => setCompletedDeckRender(currentDeckRender),
+      [currentDeckRender],
+    );
+    const onDeckError = useCallback(
+      (error: Error) => {
+        console.error('DeckGL rendering failed', error);
+        setFailedDeckRender(currentDeckSource);
+      },
+      [currentDeckSource],
+    );
+    const mapRenderComplete =
+      !props.isLoading &&
+      failedMapRender !== currentMapSource &&
+      failedDeckRender !== currentDeckSource &&
+      completedMapRender === currentMapRender &&
+      completedDeckRender === currentDeckRender;
 
     const isCustomTooltip = (content: ReactNode): boolean =>
       isValidElement(content) &&
@@ -138,10 +204,6 @@ export const DeckGLContainer = memo(
 
     const theme = useTheme();
     const { children = null, height, width } = props;
-    const isMapbox = props.mapProvider === 'mapbox';
-    const mapStyle: ResolvedMapStyle = isMapbox
-      ? props.mapStyle || DEFAULT_MAP_STYLE
-      : resolveMapStyle(props.mapStyle, DEFAULT_MAP_STYLE);
 
     if (isMapbox && !props.mapboxApiKey) {
       return (
@@ -171,9 +233,7 @@ export const DeckGLContainer = memo(
     return (
       <>
         <div
-          className={`deckgl-map-host${
-            mapRenderComplete ? ' deckgl-map-render-finished' : ''
-          }`}
+          data-superset-map-status={mapRenderComplete ? 'rendered' : 'loading'}
           style={{ position: 'relative', width, height }}
           onContextMenu={(e: MouseEvent<HTMLDivElement>) => {
             e.preventDefault();
@@ -185,20 +245,30 @@ export const DeckGLContainer = memo(
               {...viewState}
               onMove={onMove}
               onIdle={onMapIdle}
+              onError={onMapError}
               mapStyle={mapStyle}
               style={{ width, height }}
             >
-              <DeckGLOverlayMapbox layers={layers()} />
+              <DeckGLOverlayMapbox
+                layers={resolvedLayers}
+                onAfterRender={onDeckAfterRender}
+                onError={onDeckError}
+              />
             </MapboxMap>
           ) : (
             <MapLibreMap
               {...viewState}
               onMove={onMove}
               onIdle={onMapIdle}
+              onError={onMapError}
               mapStyle={mapStyle}
               style={{ width, height }}
             >
-              <DeckGLOverlayMapLibre layers={layers()} />
+              <DeckGLOverlayMapLibre
+                layers={resolvedLayers}
+                onAfterRender={onDeckAfterRender}
+                onError={onDeckError}
+              />
             </MapLibreMap>
           )}
           {children}

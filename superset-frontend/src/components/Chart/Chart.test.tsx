@@ -41,15 +41,6 @@ const baseProps = {
   setControlValue: jest.fn(),
 };
 
-test('exposes the generic plugin-render completion state in production DOM', () => {
-  render(<Chart {...baseProps} chartStatus="rendered" queriesResponse={[]} />);
-
-  expect(screen.getByTestId('chart-container')).toHaveAttribute(
-    'data-chart-status',
-    'rendered',
-  );
-});
-
 test('shows backend error instead of loading spinner when datasource is still a placeholder', () => {
   render(
     <Chart

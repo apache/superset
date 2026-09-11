@@ -172,6 +172,9 @@ const DeckMulti = (props: DeckMultiProps) => {
     {},
   );
   const [layerOrder, setLayerOrder] = useState<number[]>([]);
+  const [layersLoading, setLayersLoading] = useState(
+    () => ensureIsArray(props.formData.deck_slices).length > 0,
+  );
   // Per-slice error messages for layers that failed to load, so the failure is
   // surfaced in the chart instead of only the browser console.
   const [layerErrors, setLayerErrors] = useState<Record<number, string>>({});
@@ -312,7 +315,7 @@ const DeckMulti = (props: DeckMultiProps) => {
       formData: QueryFormData,
       payloadIndex: number,
       generation: number,
-    ): void => {
+    ): Promise<void> => {
       const layerIndex = getLayerIndex(
         subslice.slice_id,
         payloadIndex,
@@ -367,7 +370,7 @@ const DeckMulti = (props: DeckMultiProps) => {
       } as any as JsonObject & { slice_id: number };
 
       const vizType = subsliceCopy.form_data.viz_type as string;
-      Promise.all([
+      return Promise.all([
         getChartBuildQueryRegistry().get(vizType),
         getChartTransformPropsRegistry().get(vizType),
       ])
@@ -461,6 +464,9 @@ const DeckMulti = (props: DeckMultiProps) => {
           // the console.
           const { message, error: errorText } =
             await getClientErrorObject(error);
+          if (loadGenerationRef.current !== generation) {
+            return;
+          }
           setLayerErrors(layerErrors => ({
             ...layerErrors,
             [subsliceCopy.slice_id]:
@@ -490,7 +496,7 @@ const DeckMulti = (props: DeckMultiProps) => {
       const { current: generation } = loadGenerationRef;
       setViewport(getAdjustedViewport());
       setSubSlicesLayers({});
-      setLayerErrors({});
+      setLayersLoading(true);
       // Start a fresh feature accumulation for the incremental autozoom refit.
       layerFeaturesRef.current = {};
 
@@ -505,7 +511,23 @@ const DeckMulti = (props: DeckMultiProps) => {
       }
 
       const deckSlicesOrder = formData.deck_slices || [];
+      const missingSliceIds = deckSlicesOrder.filter((sliceId: number) => {
+        const isVisible =
+          !visibleDeckLayers || visibleDeckLayers.includes(sliceId);
+        return (
+          isVisible && !slices.some(subslice => subslice.slice_id === sliceId)
+        );
+      });
+      setLayerErrors(
+        Object.fromEntries(
+          missingSliceIds.map((sliceId: number) => [
+            sliceId,
+            t('Layer %(id)s could not be loaded.', { id: sliceId }),
+          ]),
+        ),
+      );
 
+      const pendingLoads: Promise<void>[] = [];
       slices.forEach(
         (subslice: { slice_id: number } & JsonObject, payloadIndex: number) => {
           if (visibleDeckLayers && Array.isArray(visibleDeckLayers)) {
@@ -514,7 +536,9 @@ const DeckMulti = (props: DeckMultiProps) => {
             }
           }
 
-          loadSingleLayer(subslice, formData, payloadIndex, generation);
+          pendingLoads.push(
+            loadSingleLayer(subslice, formData, payloadIndex, generation),
+          );
         },
       );
 
@@ -530,6 +554,11 @@ const DeckMulti = (props: DeckMultiProps) => {
       });
 
       setLayerOrder(orderedSliceIds);
+      Promise.all(pendingLoads).then(() => {
+        if (loadGenerationRef.current === generation) {
+          setLayersLoading(false);
+        }
+      });
     },
     [getAdjustedViewport, loadSingleLayer],
   );
@@ -643,6 +672,7 @@ const DeckMulti = (props: DeckMultiProps) => {
 
     if (deckSlicesChanged || visibilityFilterChanged) {
       const sliceIds = ensureIsArray(formData.deck_slices) as number[];
+      setLayersLoading(true);
       const maxSlices = getDeckMultiMaxSlices();
       if (sliceIds.length > maxSlices) {
         // Mirrors the cap the legacy viz.py pipeline enforced server-side:
@@ -658,6 +688,7 @@ const DeckMulti = (props: DeckMultiProps) => {
             { max: maxSlices, count: sliceIds.length },
           ),
         });
+        setLayersLoading(false);
         return;
       }
       // deck_multi issues no query of its own (see buildQuery.ts), so each
@@ -724,6 +755,7 @@ const DeckMulti = (props: DeckMultiProps) => {
         ref={containerRef}
         viewport={viewport}
         layers={layers}
+        isLoading={layersLoading}
         mapStyle={selectedMap.mapStyle}
         mapProvider={selectedMap.mapProvider}
         mapboxApiKey={getMapboxApiKey()}

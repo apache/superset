@@ -29,6 +29,7 @@ from superset.utils.screenshots import (
     DashboardScreenshot,
     ScreenshotCachePayload,
     ScreenshotCachePayloadType,
+    ScreenshotCacheReadError,
     StatusValues,
 )
 
@@ -44,6 +45,7 @@ class MockCache:
 
     def __init__(self):
         self._cache = None  # Store the cached value
+        self.cache = self
 
     def set(self, _key, value):
         """Set the cache with a new value."""
@@ -122,6 +124,17 @@ def test_get_from_cache_key(mocker: MockerFixture, screenshot_obj):
     cache_payload = screenshot_obj.get_from_cache_key("key")
     assert isinstance(cache_payload, ScreenshotCachePayload)
     assert cache_payload._image == fake_bytes  # pylint: disable=protected-access
+
+
+def test_get_from_cache_key_preserves_backend_failure(
+    mocker: MockerFixture, screenshot_obj
+):
+    failing_cache = MagicMock()
+    failing_cache.get.side_effect = RuntimeError("cache unavailable")
+    mocker.patch.object(BaseScreenshot, "cache", failing_cache)
+
+    with pytest.raises(ScreenshotCacheReadError, match="Could not read"):
+        screenshot_obj.get_from_cache_key("key")
 
 
 class TestComputeAndCache:

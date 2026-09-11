@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import cloudLayout from 'd3-cloud';
 import { scaleLinear } from 'd3-scale';
 import { seed, CategoricalColorNamespace } from '@superset-ui/core';
@@ -197,7 +205,9 @@ function WordCloud({
 }: FullWordCloudProps) {
   const [words, setWords] = useState<Word[]>([]);
   const [scaleFactor, setScaleFactor] = useState(1);
+  const [layoutComplete, setLayoutComplete] = useState(false);
   const isMountedRef = useRef(true);
+  const layoutGenerationRef = useRef(0);
 
   // Store previous props for comparison
   const prevPropsRef = useRef<{
@@ -221,12 +231,13 @@ function WordCloud({
   );
 
   const commitLayoutIfMounted = useCallback(
-    (newWords: Word[], newScaleFactor: number) => {
-      if (isMountedRef.current) {
+    (newWords: Word[], newScaleFactor: number, generation: number) => {
+      if (isMountedRef.current && generation === layoutGenerationRef.current) {
         setWords(newWords);
         // Persist the accepted scale factor so the SVG viewBox matches the
         // canvas the layout was computed for (otherwise enlarged layouts clip)
         setScaleFactor(newScaleFactor);
+        setLayoutComplete(true);
       }
     },
     [],
@@ -237,6 +248,7 @@ function WordCloud({
       encoder: SimpleEncoder,
       currentScaleFactor: number,
       isValid: (word: Word[]) => boolean,
+      generation: number,
     ) => {
       cloudLayout()
         .size([width * currentScaleFactor, height * currentScaleFactor])
@@ -248,13 +260,17 @@ function WordCloud({
         .fontWeight((d: PlainObject) => encoder.getFontWeight(d))
         .fontSize((d: PlainObject) => encoder.getFontSize(d))
         .on('end', (cloudWords: Word[]) => {
+          if (generation !== layoutGenerationRef.current) {
+            return;
+          }
           if (isValid(cloudWords) || currentScaleFactor > MAX_SCALE_FACTOR) {
-            commitLayoutIfMounted(cloudWords, currentScaleFactor);
+            commitLayoutIfMounted(cloudWords, currentScaleFactor, generation);
           } else {
             generateCloud(
               encoder,
               currentScaleFactor + SCALE_FACTOR_STEP,
               isValid,
+              generation,
             );
           }
         })
@@ -264,6 +280,9 @@ function WordCloud({
   );
 
   const update = useCallback(() => {
+    const generation = layoutGenerationRef.current + 1;
+    layoutGenerationRef.current = generation;
+    setLayoutComplete(false);
     const encoder = createEncoder(encoding);
     encoder.setDomainFromDataset(data);
 
@@ -276,10 +295,14 @@ function WordCloud({
     );
     const topResults = sortedData.slice(0, topResultsCount);
 
-    generateCloud(encoder, 1, (cloudWords: Word[]) =>
-      topResults.every((d: PlainObject) =>
-        cloudWords.find(({ text }) => encoder.getText(d) === text),
-      ),
+    generateCloud(
+      encoder,
+      1,
+      (cloudWords: Word[]) =>
+        topResults.every((d: PlainObject) =>
+          cloudWords.find(({ text }) => encoder.getText(d) === text),
+        ),
+      generation,
     );
   }, [data, encoding, createEncoder, generateCloud]);
 
@@ -292,7 +315,7 @@ function WordCloud({
   }, []);
 
   // Initial update on mount and when dependencies change
-  useEffect(() => {
+  useLayoutEffect(() => {
     const prevProps = prevPropsRef.current;
     const shouldUpdate =
       !prevProps ||
@@ -320,6 +343,7 @@ function WordCloud({
 
   return (
     <svg
+      data-superset-render-status={layoutComplete ? 'rendered' : 'loading'}
       width={width}
       height={height}
       viewBox={`-${viewBoxWidth / 2} -${viewBoxHeight / 2} ${viewBoxWidth} ${viewBoxHeight}`}

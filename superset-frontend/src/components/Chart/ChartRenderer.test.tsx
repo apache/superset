@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
+import { fireEvent, render } from 'spec/helpers/testing-library';
 import {
   ChartMetadata,
   getChartMetadataRegistry,
@@ -34,6 +34,7 @@ import type { Dispatch } from 'redux';
 interface MockSuperChartProps {
   postTransformProps?: (props: JsonObject) => JsonObject;
   formData?: JsonObject;
+  onRenderSuccess?: () => void;
   [key: string]: unknown;
 }
 
@@ -42,6 +43,7 @@ jest.mock('@superset-ui/core', () => ({
   SuperChart: ({
     postTransformProps = (x: JsonObject) => x,
     isRefreshing = false,
+    onRenderSuccess,
     ...props
   }: MockSuperChartProps & { isRefreshing?: boolean }) => (
     <div
@@ -54,6 +56,12 @@ jest.mock('@superset-ui/core', () => ({
         ]?.(),
       )}
     >
+      <button
+        type="button"
+        aria-label="complete render"
+        data-test="complete-render"
+        onClick={onRenderSuccess}
+      />
       {JSON.stringify(postTransformProps(props).formData)}
     </div>
   ),
@@ -121,6 +129,52 @@ test('should render SuperChart', () => {
     <ChartRenderer {...requiredProps} chartIsStale={false} />,
   );
   expect(getByTestId('mock-super-chart')).toBeInTheDocument();
+});
+
+test('tracks renderer completion across spinner-suppressed refreshes', () => {
+  const initialProps: ChartRendererProps = {
+    ...requiredProps,
+    chartStatus: 'success',
+    queriesResponse: [{ data: [{ value: 1 }] }],
+  };
+  const { getByTestId, rerender } = render(<ChartRenderer {...initialProps} />);
+  const captureMarker = getByTestId('mock-super-chart').parentElement;
+
+  expect(captureMarker).toHaveAttribute('data-chart-status', 'success');
+  fireEvent.click(getByTestId('complete-render'));
+  expect(captureMarker).toHaveAttribute('data-chart-status', 'rendered');
+
+  rerender(
+    <ChartRenderer
+      {...initialProps}
+      chartStatus="loading"
+      suppressLoadingSpinner
+    />,
+  );
+  expect(captureMarker).toHaveAttribute('data-chart-status', 'loading');
+
+  rerender(
+    <ChartRenderer
+      {...initialProps}
+      chartStatus="success"
+      suppressLoadingSpinner
+    />,
+  );
+  expect(captureMarker).toHaveAttribute('data-chart-status', 'rendered');
+
+  rerender(
+    <ChartRenderer
+      {...initialProps}
+      chartIsStale
+      chartStatus="success"
+      latestQueryFormData={{
+        ...requiredProps.latestQueryFormData,
+        viz_type: VizType.PivotTable,
+      }}
+      suppressLoadingSpinner
+    />,
+  );
+  expect(captureMarker).toHaveAttribute('data-chart-status', 'success');
 });
 
 test('should use latestQueryFormData instead of formData when chartIsStale is true', () => {

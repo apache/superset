@@ -278,7 +278,7 @@ LOADING_SELECTOR = r".loading"
 ALERT_SELECTOR = r'[role="alert"]'
 EMPTY_SELECTOR = r".ant-empty, .ag-overlay-no-rows-wrapper:not(.ag-hidden)"
 MISSING_CHART_SELECTOR = r".missing-chart-container"
-CHART_RENDERED_SELECTOR = r'.chart-container[data-chart-status="rendered"]'
+CHART_RENDERED_SELECTOR = r'[data-chart-status="rendered"]'
 CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS = f"""clip => {{
     const holders = Array.from(
         document.querySelectorAll('{CHART_HOLDER_SELECTOR}')
@@ -298,11 +298,16 @@ CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS = f"""clip => {{
     }}).length;
     return {{total: holders.length, contentful}};
 }}"""
+TERMINAL_MARKER_SELECTOR = (
+    f"{SLICE_CONTAINER_SELECTOR}, {ALERT_SELECTOR}, {EMPTY_SELECTOR}, "
+    f"{MISSING_CHART_SELECTOR}"
+)
 CHART_ID_CLASS_PATTERN = r"\bdashboard-chart-id-(\d+)\b"
 
-# Renderer completion markers. The shared ``data-chart-status`` attribute is
-# driven by the existing chart reducer and becomes ``rendered`` only after the
-# lazy plugin module has loaded and SuperChart's render-success callback fires.
+# API complete-capture renderer markers. The shared ``data-chart-status``
+# attribute distinguishes an initially mounted slice container from a loaded
+# plugin. Existing thumbnail and scheduled-report readiness remains unchanged;
+# only callers that opt into ``require_complete_capture`` use these extra gates.
 # ECharts paint marker. The frontend
 # (plugins/plugin-chart-echarts/src/components/Echart.tsx) tags the canvas host
 # ``.echarts-host`` and adds ``.echarts-render-finished`` only in the ECharts
@@ -310,10 +315,16 @@ CHART_ID_CLASS_PATTERN = r"\bdashboard-chart-id-(\d+)\b"
 # ``.slice_container`` alone is a pre-paint signal (it mounts when data arrives,
 # before the canvas is drawn; chartStatus/onRenderSuccess fire pre-paint too), so
 # a holder that still contains an unpainted host is treated as not-yet-rendered and
-# the report screenshot waits for it instead of capturing a blank chart.
+# the screenshot waits for it instead of capturing a blank chart.
 ECHARTS_UNPAINTED_HOST_SELECTOR = r".echarts-host:not(.echarts-render-finished)"
 AG_GRID_HOST_SELECTOR = r'[data-themed-ag-grid="true"]'
-DECKGL_UNPAINTED_HOST_SELECTOR = r".deckgl-map-host:not(.deckgl-map-render-finished)"
+MAP_UNPAINTED_HOST_SELECTOR = (
+    r'[data-superset-map-status]:not([data-superset-map-status="rendered"])'
+)
+ASYNC_CHART_UNPAINTED_HOST_SELECTOR = (
+    r"[data-superset-render-status]:"
+    r'not([data-superset-render-status="rendered"])'
+)
 CHART_ERROR_OR_EMPTY_SELECTOR = (
     f"{ALERT_SELECTOR}, {EMPTY_SELECTOR}, {MISSING_CHART_SELECTOR}"
 )
@@ -335,7 +346,11 @@ FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS = (
 )
 
 
-def _unready_chart_holders_js_body(*, viewport_only: bool) -> str:
+def _unready_chart_holders_js_body(
+    *,
+    viewport_only: bool,
+    require_complete_render: bool = False,
+) -> str:
     """Return the shared holder-readiness scan body.
 
     A holder is ready only after a terminal marker appears and its loading
@@ -357,7 +372,9 @@ def _unready_chart_holders_js_body(*, viewport_only: bool) -> str:
         if viewport_only
         else ""
     )
+    require_complete_render_js = str(require_complete_render).lower()
     return f"""
+    const requireCompleteRender = {require_complete_render_js};
     const holders = document.querySelectorAll('{CHART_HOLDER_SELECTOR}');
     const unready = [];
     for (const holder of holders) {{{viewport_skip}
@@ -374,8 +391,11 @@ def _unready_chart_holders_js_body(*, viewport_only: bool) -> str:
         const hasUnpaintedEchart = holder.querySelector(
             '{ECHARTS_UNPAINTED_HOST_SELECTOR}'
         ) !== null;
-        const hasUnpaintedDeckGl = holder.querySelector(
-            '{DECKGL_UNPAINTED_HOST_SELECTOR}'
+        const hasUnpaintedMap = holder.querySelector(
+            '{MAP_UNPAINTED_HOST_SELECTOR}'
+        ) !== null;
+        const hasUnpaintedAsyncChart = holder.querySelector(
+            '{ASYNC_CHART_UNPAINTED_HOST_SELECTOR}'
         ) !== null;
         const agGrids = Array.from(holder.querySelectorAll(
             '{AG_GRID_HOST_SELECTOR}'
@@ -387,14 +407,18 @@ def _unready_chart_holders_js_body(*, viewport_only: bool) -> str:
             grid._supersetAgGridWaitObserved = true;
         }});
         const hasUnpaintedAgGrid = unpaintedAgGrids.length > 0;
-        // Ready = a settled error/empty/missing state, or a slice container
-        // whose plugin loaded and rendered. Canvas/grid/map renderers expose
-        // additional paint signals; keep their hosts unready until those fire.
-        const isReady = !stillLoading && (
+        // All callers retain the established ECharts and AG Grid paint gates.
+        // API complete captures additionally require the generic plugin marker
+        // and explicit first-party map paint markers without changing reports
+        // or thumbnails. A map marker cannot be bypassed by an in-chart warning.
+        const isReady = !stillLoading
+            && (!requireCompleteRender || (
+                !hasUnpaintedMap && !hasUnpaintedAsyncChart
+            )) && (
             hasErrorOrEmpty || (
-                hasSliceContainer && hasRenderedChart
+                hasSliceContainer
                 && !hasUnpaintedEchart && !hasUnpaintedAgGrid
-                && !hasUnpaintedDeckGl
+                && (!requireCompleteRender || hasRenderedChart)
             )
         );
         if (!isReady) {{
@@ -405,14 +429,23 @@ def _unready_chart_holders_js_body(*, viewport_only: bool) -> str:
                 state = 'spinner_mounted';
             }} else if (stillLoading) {{
                 state = 'waiting_on_database';
-            }} else if (hasSliceContainer && !hasRenderedChart) {{
+            }} else if (
+                requireCompleteRender && hasSliceContainer && !hasRenderedChart
+            ) {{
                 state = 'plugin_loading';
             }} else if (hasSliceContainer && hasUnpaintedEchart) {{
                 state = 'mounted_unpainted';
             }} else if (hasSliceContainer && hasUnpaintedAgGrid) {{
                 state = 'ag_grid_unpainted';
-            }} else if (hasSliceContainer && hasUnpaintedDeckGl) {{
-                state = 'deckgl_map_unpainted';
+            }} else if (
+                requireCompleteRender && hasSliceContainer && hasUnpaintedMap
+            ) {{
+                state = 'map_unpainted';
+            }} else if (
+                requireCompleteRender
+                && hasSliceContainer && hasUnpaintedAsyncChart
+            ) {{
+                state = 'async_chart_unpainted';
             }} else {{
                 state = 'nothing_mounted';
             }}
@@ -430,11 +463,23 @@ UNREADY_CHART_HOLDERS_JS_BODY = _unready_chart_holders_js_body(viewport_only=Tru
 # Full-dashboard scan (non-tiled report capture, which screenshots the whole
 # element in one shot and therefore cannot ignore below-the-fold holders).
 UNREADY_ALL_CHART_HOLDERS_JS_BODY = _unready_chart_holders_js_body(viewport_only=False)
+UNREADY_COMPLETE_CHART_HOLDERS_JS_BODY = _unready_chart_holders_js_body(
+    viewport_only=True,
+    require_complete_render=True,
+)
+UNREADY_COMPLETE_ALL_CHART_HOLDERS_JS_BODY = _unready_chart_holders_js_body(
+    viewport_only=False,
+    require_complete_render=True,
+)
+
 
 # Diagnostic query for every chart holder, including terminal and virtualized
 # states. It interpolates the same selector constants as the predicates.
-FIND_CHART_HOLDER_STATES_JS = f"""
+def _find_chart_holder_states_js(*, require_complete_render: bool = False) -> str:
+    require_complete_render_js = str(require_complete_render).lower()
+    return f"""
 () => {{
+    const requireCompleteRender = {require_complete_render_js};
     const holders = document.querySelectorAll('{CHART_HOLDER_SELECTOR}');
     return Array.from(holders).map(holder => {{
         const chartIdMatch = holder.className.match(/{CHART_ID_CLASS_PATTERN}/);
@@ -456,8 +501,11 @@ FIND_CHART_HOLDER_STATES_JS = f"""
         const hasUnpaintedAgGrid = Array.from(holder.querySelectorAll(
             '{AG_GRID_HOST_SELECTOR}'
         )).some(grid => grid._agGridFirstDataRendered !== true);
-        const hasUnpaintedDeckGl = holder.querySelector(
-            '{DECKGL_UNPAINTED_HOST_SELECTOR}'
+        const hasUnpaintedMap = holder.querySelector(
+            '{MAP_UNPAINTED_HOST_SELECTOR}'
+        ) !== null;
+        const hasUnpaintedAsyncChart = holder.querySelector(
+            '{ASYNC_CHART_UNPAINTED_HOST_SELECTOR}'
         ) !== null;
         if (stillLoading && hasSliceContainer) {{
             return {{ chartId, state: 'spinner_mounted', agGridWaitObserved }};
@@ -465,15 +513,7 @@ FIND_CHART_HOLDER_STATES_JS = f"""
         if (stillLoading) {{
             return {{ chartId, state: 'waiting_on_database', agGridWaitObserved }};
         }}
-        if (holder.querySelector('{ALERT_SELECTOR}') !== null) {{
-            return {{ chartId, state: 'error', agGridWaitObserved }};
-        }}
-        if (holder.querySelector(
-            '{EMPTY_SELECTOR}, {MISSING_CHART_SELECTOR}'
-        ) !== null) {{
-            return {{ chartId, state: 'empty', agGridWaitObserved }};
-        }}
-        if (hasSliceContainer && !hasRenderedChart) {{
+        if (requireCompleteRender && hasSliceContainer && !hasRenderedChart) {{
             return {{ chartId, state: 'plugin_loading', agGridWaitObserved }};
         }}
         if (hasSliceContainer && holder.querySelector(
@@ -484,16 +524,40 @@ FIND_CHART_HOLDER_STATES_JS = f"""
         if (hasSliceContainer && hasUnpaintedAgGrid) {{
             return {{ chartId, state: 'ag_grid_unpainted', agGridWaitObserved }};
         }}
-        if (hasSliceContainer && hasUnpaintedDeckGl) {{
-            return {{ chartId, state: 'deckgl_map_unpainted', agGridWaitObserved }};
+        if (requireCompleteRender && hasSliceContainer && hasUnpaintedMap) {{
+            return {{ chartId, state: 'map_unpainted', agGridWaitObserved }};
         }}
-        if (hasSliceContainer && hasRenderedChart) {{
+        if (
+            requireCompleteRender
+            && hasSliceContainer && hasUnpaintedAsyncChart
+        ) {{
+            return {{
+                chartId,
+                state: 'async_chart_unpainted',
+                agGridWaitObserved,
+            }};
+        }}
+        if (holder.querySelector('{ALERT_SELECTOR}') !== null) {{
+            return {{ chartId, state: 'error', agGridWaitObserved }};
+        }}
+        if (holder.querySelector(
+            '{EMPTY_SELECTOR}, {MISSING_CHART_SELECTOR}'
+        ) !== null) {{
+            return {{ chartId, state: 'empty', agGridWaitObserved }};
+        }}
+        if (hasSliceContainer && (!requireCompleteRender || hasRenderedChart)) {{
             return {{ chartId, state: 'rendered', agGridWaitObserved }};
         }}
         return {{ chartId, state: 'nothing_mounted', agGridWaitObserved }};
     }});
 }}
 """
+
+
+FIND_CHART_HOLDER_STATES_JS = _find_chart_holder_states_js()
+FIND_COMPLETE_CHART_HOLDER_STATES_JS = _find_chart_holder_states_js(
+    require_complete_render=True
+)
 
 CHART_HOLDERS_READY_JS = (
     f"() => {{ {UNREADY_CHART_HOLDERS_JS_BODY} return unready.length === 0; }}"
@@ -510,6 +574,14 @@ REPORT_CHART_HOLDERS_READY_JS = (
 REPORT_ALL_CHART_HOLDERS_READY_JS = (
     f"() => {{ {UNREADY_ALL_CHART_HOLDERS_JS_BODY} "
     "return holders.length > 0 && unready.length === 0; }"
+)
+DASHBOARD_CHART_HOLDERS_READY_JS = (
+    f"() => {{ {UNREADY_COMPLETE_CHART_HOLDERS_JS_BODY} return unready.length === 0; }}"
+)
+DASHBOARD_ALL_CHART_HOLDERS_READY_JS = (
+    "() => { if (document.querySelector('.dashboard-grid') === null) "
+    f"return false; {UNREADY_COMPLETE_ALL_CHART_HOLDERS_JS_BODY} "
+    "return unready.length === 0; }"
 )
 
 
@@ -540,10 +612,11 @@ STABLE_REPORT_CHART_HOLDERS_READY_JS = _stable_readiness_js(
 STABLE_REPORT_ALL_CHART_HOLDERS_READY_JS = _stable_readiness_js(
     REPORT_ALL_CHART_HOLDERS_READY_JS
 )
-DASHBOARD_ALL_CHART_HOLDERS_READY_JS = (
-    "() => { if (document.querySelector('.dashboard-grid') === null) "
-    f"return false; {UNREADY_ALL_CHART_HOLDERS_JS_BODY} "
-    "return unready.length === 0; }"
+STABLE_DASHBOARD_CHART_HOLDERS_READY_JS = _stable_readiness_js(
+    DASHBOARD_CHART_HOLDERS_READY_JS
+)
+STABLE_DASHBOARD_ALL_CHART_HOLDERS_READY_JS = _stable_readiness_js(
+    DASHBOARD_ALL_CHART_HOLDERS_READY_JS
 )
 CHART_HOLDERS_MOUNTED_JS = (
     f"() => document.querySelectorAll('{CHART_HOLDER_SELECTOR}').length > 0"
@@ -555,6 +628,12 @@ FIND_UNREADY_CHART_HOLDERS_JS = (
 FIND_ALL_UNREADY_CHART_HOLDERS_JS = (
     f"() => {{ {UNREADY_ALL_CHART_HOLDERS_JS_BODY} return unready; }}"
 )
+FIND_COMPLETE_UNREADY_CHART_HOLDERS_JS = (
+    f"() => {{ {UNREADY_COMPLETE_CHART_HOLDERS_JS_BODY} return unready; }}"
+)
+FIND_COMPLETE_ALL_UNREADY_CHART_HOLDERS_JS = (
+    f"() => {{ {UNREADY_COMPLETE_ALL_CHART_HOLDERS_JS_BODY} return unready; }}"
+)
 
 # A chart capture has one target rather than dashboard holders, but needs the
 # same positive terminal-state guarantee and loading exclusion.
@@ -563,16 +642,14 @@ CHART_CONTAINER_READY_JS = f"""
     const chart = document.querySelector('.chart-container');
     return chart !== null
         && chart.querySelector('{LOADING_SELECTOR}') === null
+        && chart.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null
         && (
             chart.querySelector('{CHART_ERROR_OR_EMPTY_SELECTOR}') !== null
             || (
-                chart.getAttribute('data-chart-status') === 'rendered'
-                && chart.querySelector('{SLICE_CONTAINER_SELECTOR}') !== null
-                && chart.querySelector('{ECHARTS_UNPAINTED_HOST_SELECTOR}') === null
+                chart.querySelector('{ECHARTS_UNPAINTED_HOST_SELECTOR}') === null
                 && !Array.from(
                     chart.querySelectorAll('{AG_GRID_HOST_SELECTOR}')
                 ).some(grid => grid._agGridFirstDataRendered !== true)
-                && chart.querySelector('{DECKGL_UNPAINTED_HOST_SELECTOR}') === null
             )
         );
 }}
@@ -621,9 +698,6 @@ CHART_CONTAINER_STATE_JS = f"""
     if (chart.querySelector('{CHART_ERROR_OR_EMPTY_SELECTOR}') !== null) {{
         return 'terminal';
     }}
-    if (chart.getAttribute('data-chart-status') !== 'rendered') {{
-        return 'plugin_loading';
-    }}
     if (chart.querySelector('{ECHARTS_UNPAINTED_HOST_SELECTOR}') !== null) {{
         return 'mounted_unpainted';
     }}
@@ -632,10 +706,7 @@ CHART_CONTAINER_STATE_JS = f"""
     )) {{
         return 'ag_grid_unpainted';
     }}
-    if (chart.querySelector('{DECKGL_UNPAINTED_HOST_SELECTOR}') !== null) {{
-        return 'deckgl_map_unpainted';
-    }}
-    if (chart.querySelector('{SLICE_CONTAINER_SELECTOR}') !== null) {{
+    if (chart.querySelector('{TERMINAL_MARKER_SELECTOR}') !== null) {{
         return 'terminal';
     }}
     return 'mounted_pre_terminal';
@@ -647,7 +718,6 @@ CHART_CONTAINER_HAS_RENDERED_CONTENT_JS = f"""
     const chart = document.querySelector('.chart-container');
     return chart !== null
         && chart.querySelector('{CHART_ERROR_OR_EMPTY_SELECTOR}') === null
-        && chart.getAttribute('data-chart-status') === 'rendered'
         && chart.querySelector('{SLICE_CONTAINER_SELECTOR}') !== null;
 }}
 """
@@ -656,9 +726,7 @@ REPORT_HAS_RENDERED_CHART_HOLDERS_JS = f"""
 () => Array.from(document.querySelectorAll('{CHART_HOLDER_SELECTOR}')).some(
     holder => holder.querySelector(
         '{CHART_ERROR_OR_EMPTY_SELECTOR}'
-    ) === null
-        && holder.querySelector('{CHART_RENDERED_SELECTOR}') !== null
-        && holder.querySelector('{SLICE_CONTAINER_SELECTOR}') !== null
+    ) === null && holder.querySelector('{SLICE_CONTAINER_SELECTOR}') !== null
 )
 """
 
@@ -913,9 +981,15 @@ def take_tiled_screenshot(  # noqa: C901
             )
         if remaining is None:
             return float(requested_seconds or load_wait)
+        available = remaining - reserve_seconds
+        if available <= 0:
+            raise TiledScreenshotBudgetExceededError(
+                f"Tiled screenshot budget of {task_budget:.2f}s exhausted "
+                f"before {phase} after {elapsed:.2f}s"
+            )
         if requested_seconds is None or requested_seconds <= 0:
-            return remaining
-        return min(float(requested_seconds), remaining)
+            return available
+        return min(float(requested_seconds), available)
 
     try:
         # Get the target element
@@ -1085,14 +1159,26 @@ def take_tiled_screenshot(  # noqa: C901
                     (
                         REPORT_CHART_HOLDERS_READY_JS
                         if report_execution_context
-                        else CHART_HOLDERS_READY_JS
+                        else (
+                            DASHBOARD_CHART_HOLDERS_READY_JS
+                            if require_complete_capture
+                            else CHART_HOLDERS_READY_JS
+                        )
                     ),
                     timeout=tile_load_wait * 1000,
                 )
             except PlaywrightTimeout:
                 tile_elapsed = time.monotonic() - tile_wait_start
-                unready_chart_holders = page.evaluate(FIND_UNREADY_CHART_HOLDERS_JS)
-                holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
+                unready_chart_holders = page.evaluate(
+                    FIND_COMPLETE_UNREADY_CHART_HOLDERS_JS
+                    if require_complete_capture
+                    else FIND_UNREADY_CHART_HOLDERS_JS
+                )
+                holder_states = page.evaluate(
+                    FIND_COMPLETE_CHART_HOLDER_STATES_JS
+                    if require_complete_capture
+                    else FIND_CHART_HOLDER_STATES_JS
+                )
                 ready_states = {"rendered", "empty", "error", "virtualized"}
                 ready_holders = sum(
                     holder.get("state") in ready_states for holder in holder_states
@@ -1268,19 +1354,35 @@ def take_tiled_screenshot(  # noqa: C901
             # Take screenshot with clipping to capture only this tile's content
             tile_screenshot: bytes | None = None
             for capture_attempt in range(1, TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS + 1):
-                if report_execution_context:
+                if strict_capture:
                     stable_wait = _timeout_seconds(
                         "capture_readiness_stability",
+                        requested_seconds=(
+                            None
+                            if report_execution_context
+                            else (REPORT_CAPTURE_READINESS_STABILITY_MS + 1000) / 1000
+                        ),
                         reserve_seconds=(
                             report_execution_context.readiness_reserve_seconds
+                            if report_execution_context
+                            else 1.0
                         ),
                     )
                     try:
                         waited_for_stability = wait_for_stable_readiness(
                             page,
-                            STABLE_REPORT_CHART_HOLDERS_READY_JS,
+                            (
+                                STABLE_REPORT_CHART_HOLDERS_READY_JS
+                                if report_execution_context
+                                else STABLE_DASHBOARD_CHART_HOLDERS_READY_JS
+                            ),
                             stable_wait,
                         )
+                        if require_complete_capture and not waited_for_stability:
+                            raise TiledScreenshotBudgetExceededError(
+                                "Screenshot task budget cannot satisfy capture "
+                                "readiness stability"
+                            )
                         logger.info(
                             "report_capture_readiness_stable tile=%s/%s "
                             "attempt=%s/%s stability_ms=%s skipped=%s%s",

@@ -24,6 +24,7 @@ import { View } from 'ol';
 import BaseEvent from 'ol/events/Event';
 import { unByKey } from 'ol/Observable';
 import { toLonLat } from 'ol/proj';
+import Source from 'ol/source/Source';
 import { debounce } from 'lodash-es';
 import { fitMapToCharts } from '../util/mapUtil';
 import { ChartLayer } from './ChartLayer';
@@ -61,19 +62,38 @@ export const OlChartMap = (props: OlChartMapProps) => {
   const [currentChartConfigs, setCurrentChartConfigs] =
     useState<ChartConfig>(chartConfigs);
   const [currentMapView, setCurrentMapView] = useState<MapViewConfigs>(mapView);
+  const [layersReady, setLayersReady] = useState(false);
+  const [layerLoadFailed, setLayerLoadFailed] = useState(false);
+  const [mapRenderComplete, setMapRenderComplete] = useState(false);
+
+  useEffect(() => {
+    const renderCompleteKey = olMap.on('rendercomplete', () => {
+      setMapRenderComplete(true);
+    });
+    const moveStartKey = olMap.on('movestart', () => {
+      setMapRenderComplete(false);
+    });
+    return () => {
+      unByKey([renderCompleteKey, moveStartKey]);
+    };
+  }, [olMap]);
 
   /**
    * Add map to correct DOM element.
    */
   useEffect(() => {
+    setMapRenderComplete(false);
     olMap.setTarget(mapId);
+    olMap.render();
   }, [olMap, mapId]);
 
   /**
    * Update map size if size of parent container changes.
    */
   useEffect(() => {
+    setMapRenderComplete(false);
     olMap.updateSize();
+    olMap.render();
   }, [olMap, width, height]);
 
   /**
@@ -165,6 +185,18 @@ export const OlChartMap = (props: OlChartMapProps) => {
    * Update non-chart layers
    */
   useEffect(() => {
+    let cancelled = false;
+    const monitoredSources: Source[] = [];
+    const onLayerLoadError = () => {
+      if (!cancelled) {
+        setLayerLoadFailed(true);
+        setMapRenderComplete(false);
+      }
+    };
+    setLayersReady(false);
+    setLayerLoadFailed(false);
+    setMapRenderComplete(false);
+
     // clear existing layers
     // We first filter the layers we want to remove,
     // because removing items from an array during a loop can be erroneous.
@@ -184,16 +216,37 @@ export const OlChartMap = (props: OlChartMapProps) => {
       // stay on top, though.
       const createdLayersPromises = configs.map(createLayer);
       const createdLayers = await Promise.allSettled(createdLayersPromises);
+      if (cancelled) {
+        return;
+      }
+      let everyLayerCreated = true;
       createdLayers.forEach((createdLayer, idx) => {
         if (createdLayer.status === 'fulfilled' && createdLayer.value) {
+          const source = createdLayer.value.getSource();
+          if (source) {
+            source.addEventListener('tileloaderror', onLayerLoadError);
+            source.addEventListener('featuresloaderror', onLayerLoadError);
+            monitoredSources.push(source);
+          }
           olMap.getLayers().insertAt(0, createdLayer.value);
         } else {
+          everyLayerCreated = false;
           console.warn(`Layer could not be created: ${configs[idx]}`);
         }
       });
+      setLayersReady(everyLayerCreated);
+      setMapRenderComplete(false);
+      olMap.render();
     };
 
     addLayers(layerConfigs);
+    return () => {
+      cancelled = true;
+      monitoredSources.forEach(source => {
+        source.removeEventListener('tileloaderror', onLayerLoadError);
+        source.removeEventListener('featuresloaderror', onLayerLoadError);
+      });
+    };
   }, [olMap, layerConfigs]);
 
   /**
@@ -320,6 +373,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
    * the chart layer, if it does not exist yet.
    */
   useEffect(() => {
+    setMapRenderComplete(false);
     const layers = olMap.getLayers();
     const chartLayer = layers
       .getArray()
@@ -389,6 +443,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
       }
       chartLayer.changed();
     }
+    olMap.render();
   }, [
     olMap,
     theme,
@@ -403,6 +458,11 @@ export const OlChartMap = (props: OlChartMapProps) => {
   return (
     <div
       id={mapId}
+      data-superset-map-status={
+        layersReady && !layerLoadFailed && mapRenderComplete
+          ? 'rendered'
+          : 'loading'
+      }
       style={{
         height: `${height}px`,
         width: `${width}px`,

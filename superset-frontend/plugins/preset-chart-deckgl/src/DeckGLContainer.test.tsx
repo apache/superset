@@ -35,11 +35,13 @@ jest.mock('react-map-gl/maplibre', () => ({
     mapStyle,
     onMove,
     onIdle,
+    onError,
   }: {
     children: ReactNode;
     mapStyle: unknown;
     onMove: (evt: { viewState: Record<string, number> }) => void;
     onIdle: () => void;
+    onError: () => void;
   }) => (
     <div data-test="maplibre-map" data-map-style={JSON.stringify(mapStyle)}>
       <button
@@ -51,6 +53,7 @@ jest.mock('react-map-gl/maplibre', () => ({
         }
       />
       <button type="button" aria-label="idle map" onClick={onIdle} />
+      <button type="button" aria-label="fail map" onClick={onError} />
       {children}
     </div>
   ),
@@ -61,13 +64,16 @@ jest.mock('react-map-gl/mapbox', () => ({
     children,
     mapStyle,
     onIdle,
+    onError,
   }: {
     children: ReactNode;
     mapStyle: unknown;
     onIdle: () => void;
+    onError: () => void;
   }) => (
     <div data-test="mapbox-map" data-map-style={JSON.stringify(mapStyle)}>
       <button type="button" aria-label="idle map" onClick={onIdle} />
+      <button type="button" aria-label="fail map" onClick={onError} />
       {children}
     </div>
   ),
@@ -78,16 +84,54 @@ jest.mock('mapbox-gl', () => ({ accessToken: '' }));
 jest.mock(
   './components/DeckGLOverlayMapLibre',
   () =>
-    ({ layers }: { layers: unknown[] }) => (
-      <div data-test="maplibre-overlay" data-layers-count={layers.length} />
+    ({
+      layers,
+      onAfterRender,
+      onError,
+    }: {
+      layers: unknown[];
+      onAfterRender: () => void;
+      onError: (error: Error) => void;
+    }) => (
+      <div data-test="maplibre-overlay" data-layers-count={layers.length}>
+        <button
+          type="button"
+          aria-label="paint layers"
+          onClick={onAfterRender}
+        />
+        <button
+          type="button"
+          aria-label="fail layers"
+          onClick={() => onError(new Error('layer failed'))}
+        />
+      </div>
     ),
 );
 
 jest.mock(
   './components/DeckGLOverlayMapbox',
   () =>
-    ({ layers }: { layers: unknown[] }) => (
-      <div data-test="mapbox-overlay" data-layers-count={layers.length} />
+    ({
+      layers,
+      onAfterRender,
+      onError,
+    }: {
+      layers: unknown[];
+      onAfterRender: () => void;
+      onError: (error: Error) => void;
+    }) => (
+      <div data-test="mapbox-overlay" data-layers-count={layers.length}>
+        <button
+          type="button"
+          aria-label="paint layers"
+          onClick={onAfterRender}
+        />
+        <button
+          type="button"
+          aria-label="fail layers"
+          onClick={() => onError(new Error('layer failed'))}
+        />
+      </div>
     ),
 );
 
@@ -182,7 +226,7 @@ test('DeckGLContainer passes Mapbox styles through when a key exists', () => {
 
 test('DeckGLContainer supports layer factories for MapLibre overlays', () => {
   const layer = { id: 'layer-1' } as unknown as Layer;
-  const layerFactory = () => layer;
+  const layerFactory = jest.fn(() => layer);
 
   renderContainer({ mapProvider: 'maplibre', layers: [layerFactory] });
 
@@ -190,20 +234,253 @@ test('DeckGLContainer supports layer factories for MapLibre overlays', () => {
     'data-layers-count',
     '1',
   );
+  fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
+  fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
+  expect(screen.getByTestId('maplibre-map').parentElement).toHaveAttribute(
+    'data-superset-map-status',
+    'rendered',
+  );
+  expect(layerFactory).toHaveBeenCalledTimes(1);
 });
 
 test('DeckGLContainer marks map pixels ready only after the map becomes idle', () => {
-  renderContainer({ mapProvider: 'maplibre' });
+  const { rerender } = renderContainer({
+    mapProvider: 'maplibre',
+    mapStyle: 'style-a',
+  });
 
   const mapHost = screen.getByTestId('maplibre-map').parentElement;
-  expect(mapHost).toHaveClass('deckgl-map-host');
-  expect(mapHost).not.toHaveClass('deckgl-map-render-finished');
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
 
   fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
-  expect(mapHost).toHaveClass('deckgl-map-render-finished');
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+
+  fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+
+  rerender(
+    <ThemeProvider theme={supersetTheme}>
+      <DeckGLContainer
+        {...baseProps}
+        mapProvider="maplibre"
+        mapStyle="style-b"
+      />
+    </ThemeProvider>,
+  );
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+
+  fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+  fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+
+  // Returning to a previously completed input must create a fresh generation;
+  // otherwise stale completion signals from the first style-a render win.
+  rerender(
+    <ThemeProvider theme={supersetTheme}>
+      <DeckGLContainer
+        {...baseProps}
+        mapProvider="maplibre"
+        mapStyle="style-a"
+      />
+    </ThemeProvider>,
+  );
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+  fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+  fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
 
   fireEvent.click(screen.getByRole('button', { name: 'move map' }));
-  expect(mapHost).not.toHaveClass('deckgl-map-render-finished');
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+
+  fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+  fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+
+  rerender(
+    <ThemeProvider theme={supersetTheme}>
+      <DeckGLContainer
+        {...baseProps}
+        viewport={{ ...baseProps.viewport, zoom: 2 }}
+        mapProvider="maplibre"
+        mapStyle="style-a"
+      />
+    </ThemeProvider>,
+  );
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+});
+
+test('DeckGLContainer invalidates completion for layers, dimensions, loading, and errors', () => {
+  const firstLayer = { id: 'first' } as unknown as Layer;
+  const secondLayer = { id: 'second' } as unknown as Layer;
+  const { rerender } = renderContainer({
+    mapProvider: 'maplibre',
+    layers: [firstLayer],
+  });
+  const mapHost = screen.getByTestId('maplibre-map').parentElement;
+
+  fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
+  fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+
+  rerender(
+    <ThemeProvider theme={supersetTheme}>
+      <DeckGLContainer
+        {...baseProps}
+        mapProvider="maplibre"
+        layers={[secondLayer]}
+      />
+    </ThemeProvider>,
+  );
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+  fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+
+  rerender(
+    <ThemeProvider theme={supersetTheme}>
+      <DeckGLContainer
+        {...baseProps}
+        mapProvider="maplibre"
+        layers={[secondLayer]}
+        isLoading
+      />
+    </ThemeProvider>,
+  );
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+
+  fireEvent.click(screen.getByRole('button', { name: 'fail map' }));
+  fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
+  fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+
+  rerender(
+    <ThemeProvider theme={supersetTheme}>
+      <DeckGLContainer
+        {...baseProps}
+        mapProvider="maplibre"
+        layers={[secondLayer]}
+      />
+    </ThemeProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'move map' }));
+  fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
+  fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+
+  rerender(
+    <ThemeProvider theme={supersetTheme}>
+      <DeckGLContainer
+        {...baseProps}
+        mapProvider="maplibre"
+        mapStyle="recovered-style"
+        layers={[secondLayer]}
+      />
+    </ThemeProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
+  fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+});
+
+test('DeckGLContainer does not complete after the current overlay fails', () => {
+  const error = jest.spyOn(console, 'error').mockImplementation(() => {});
+  const failedLayer = { id: 'failed' } as unknown as Layer;
+  const recoveredLayer = { id: 'recovered' } as unknown as Layer;
+  const { rerender } = renderContainer({
+    mapProvider: 'maplibre',
+    layers: [failedLayer],
+  });
+  const mapHost = screen.getByTestId('maplibre-map').parentElement;
+
+  fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
+  fireEvent.click(screen.getByRole('button', { name: 'fail layers' }));
+  fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+  expect(error).toHaveBeenCalledWith(
+    'DeckGL rendering failed',
+    expect.any(Error),
+  );
+
+  rerender(
+    <ThemeProvider theme={supersetTheme}>
+      <DeckGLContainer
+        {...baseProps}
+        mapProvider="maplibre"
+        layers={[recoveredLayer]}
+      />
+    </ThemeProvider>,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+  error.mockRestore();
+});
+
+test('DeckGLContainer requires fresh signals after a Mapbox map remount', () => {
+  const { rerender } = renderContainer({
+    mapProvider: 'mapbox',
+    mapStyle: 'mapbox://styles/mapbox/dark-v9',
+    mapboxApiKey: 'pk.test',
+  });
+
+  fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
+  fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
+  expect(screen.getByTestId('mapbox-map').parentElement).toHaveAttribute(
+    'data-superset-map-status',
+    'rendered',
+  );
+
+  rerender(
+    <ThemeProvider theme={supersetTheme}>
+      <DeckGLContainer
+        {...baseProps}
+        mapProvider="mapbox"
+        mapStyle="mapbox://styles/mapbox/dark-v9"
+      />
+    </ThemeProvider>,
+  );
+  expect(screen.queryByTestId('mapbox-map')).not.toBeInTheDocument();
+
+  rerender(
+    <ThemeProvider theme={supersetTheme}>
+      <DeckGLContainer
+        {...baseProps}
+        mapProvider="mapbox"
+        mapStyle="mapbox://styles/mapbox/dark-v9"
+        mapboxApiKey="pk.test"
+      />
+    </ThemeProvider>,
+  );
+  const remountedHost = screen.getByTestId('mapbox-map').parentElement;
+  expect(remountedHost).toHaveAttribute('data-superset-map-status', 'loading');
+  fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
+  expect(remountedHost).toHaveAttribute('data-superset-map-status', 'loading');
+  fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
+  expect(remountedHost).toHaveAttribute('data-superset-map-status', 'rendered');
+});
+
+test('DeckGLContainer stays complete when controlled viewport catches up after a move', () => {
+  const movedViewport = { longitude: 1, latitude: 2, zoom: 3 };
+  const { rerender } = renderContainer({ mapProvider: 'maplibre' });
+  const mapHost = screen.getByTestId('maplibre-map').parentElement;
+
+  fireEvent.click(screen.getByRole('button', { name: 'move map' }));
+  fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
+  fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+
+  rerender(
+    <ThemeProvider theme={supersetTheme}>
+      <DeckGLContainer
+        {...baseProps}
+        viewport={movedViewport}
+        mapProvider="maplibre"
+      />
+    </ThemeProvider>,
+  );
+
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
 });
 
 test('DeckGLContainer updates viewport controls after map movement is throttled', () => {

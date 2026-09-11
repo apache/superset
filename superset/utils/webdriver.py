@@ -41,6 +41,8 @@ from superset.utils.screenshot_utils import (
     EXPAND_SCROLLABLE_CONTENT_MAX_WAIT_SECONDS,
     FIND_ALL_UNREADY_CHART_HOLDERS_JS,
     FIND_CHART_HOLDER_STATES_JS,
+    FIND_COMPLETE_ALL_UNREADY_CHART_HOLDERS_JS,
+    FIND_COMPLETE_CHART_HOLDER_STATES_JS,
     FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS,
     get_screenshot_blankness_metrics,
     REPORT_ALL_CHART_HOLDERS_READY_JS,
@@ -50,6 +52,7 @@ from superset.utils.screenshot_utils import (
     ScreenshotBlankCaptureError,
     ScreenshotTaskBudgetExceededError,
     STABLE_CHART_CONTAINER_READY_JS,
+    STABLE_DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
     STABLE_REPORT_ALL_CHART_HOLDERS_READY_JS,
     take_tiled_screenshot,
     TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
@@ -258,6 +261,42 @@ class WebDriverPlaywright(WebDriverProxy):
             return element.screenshot(**timeout_kwargs)
 
     @staticmethod
+    def _get_capture_stability_timeout(
+        log_context: str | None,
+        report_execution_context: ReportExecutionContext | None,
+        screenshot_started_at: float | None,
+    ) -> float:
+        """Return a bounded wait for the pre-capture readiness dwell."""
+
+        if report_execution_context:
+            return report_execution_context.deadline.timeout_seconds(
+                "capture_readiness_stability",
+                reserve_seconds=report_execution_context.readiness_reserve_seconds,
+            )
+
+        task_budget = resolve_screenshot_task_budget_seconds(log_context)
+        elapsed = (
+            max(0.0, time.monotonic() - screenshot_started_at)
+            if task_budget is not None and screenshot_started_at is not None
+            else 0.0
+        )
+        remaining = task_budget - elapsed if task_budget is not None else None
+        requested_stability_seconds = (
+            REPORT_CAPTURE_READINESS_STABILITY_MS + 1000
+        ) / 1000
+        stable_timeout = (
+            min(requested_stability_seconds, remaining - 1.0)
+            if remaining is not None
+            else requested_stability_seconds
+        )
+        minimum_stability_seconds = (REPORT_CAPTURE_READINESS_STABILITY_MS + 250) / 1000
+        if stable_timeout <= minimum_stability_seconds:
+            raise ScreenshotTaskBudgetExceededError(
+                "Screenshot task budget exhausted before capture readiness stability"
+            )
+        return stable_timeout
+
+    @staticmethod
     def _get_validated_screenshot(
         page: Page,
         element: Locator,
@@ -265,22 +304,27 @@ class WebDriverPlaywright(WebDriverProxy):
         log_context: str | None,
         report_execution_context: ReportExecutionContext | None,
         validate_rendered_content: bool = False,
+        require_complete_capture: bool = False,
+        screenshot_started_at: float | None = None,
     ) -> bytes:
         """Capture a standard screenshot and reject blank rendered output."""
 
         context_suffix = f" [{log_context}]" if log_context else ""
         for attempt in range(1, TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS + 1):
-            if report_execution_context:
-                stable_timeout = report_execution_context.deadline.timeout_seconds(
-                    "capture_readiness_stability",
-                    reserve_seconds=(
-                        report_execution_context.readiness_reserve_seconds
-                    ),
+            if report_execution_context or require_complete_capture:
+                stable_timeout = WebDriverPlaywright._get_capture_stability_timeout(
+                    log_context,
+                    report_execution_context,
+                    screenshot_started_at,
                 )
                 stable_predicate = (
                     STABLE_CHART_CONTAINER_READY_JS
                     if element_name == "chart-container"
-                    else STABLE_REPORT_ALL_CHART_HOLDERS_READY_JS
+                    else (
+                        STABLE_DASHBOARD_ALL_CHART_HOLDERS_READY_JS
+                        if require_complete_capture
+                        else STABLE_REPORT_ALL_CHART_HOLDERS_READY_JS
+                    )
                 )
                 try:
                     waited_for_stability = wait_for_stable_readiness(
@@ -501,7 +545,17 @@ class WebDriverPlaywright(WebDriverProxy):
             log_context = report_execution_context.log_context
         context_suffix = f" [{log_context}]" if log_context else ""
         ready_states = {"rendered", "empty", "error", "virtualized"}
-        initial_chart_holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
+        api_dashboard_capture = (
+            element_name == "standalone" and require_complete_capture
+        )
+        strict_dashboard_capture = element_name == "standalone" and (
+            report_execution_context is not None or require_complete_capture
+        )
+        initial_chart_holder_states = page.evaluate(
+            FIND_COMPLETE_CHART_HOLDER_STATES_JS
+            if api_dashboard_capture
+            else FIND_CHART_HOLDER_STATES_JS
+        )
         initial_unready_chart_holders = [
             holder
             for holder in initial_chart_holder_states
@@ -511,9 +565,6 @@ class WebDriverPlaywright(WebDriverProxy):
             report_execution_context.expected_chart_count
             if report_execution_context
             else None
-        )
-        strict_dashboard_capture = element_name == "standalone" and (
-            report_execution_context is not None or require_complete_capture
         )
         initial_mounted_holders = len(initial_chart_holder_states)
         initial_ready_holders = sum(
@@ -667,7 +718,11 @@ class WebDriverPlaywright(WebDriverProxy):
                     context_suffix,
                 )
                 raise
-            chart_holder_states = page.evaluate(FIND_CHART_HOLDER_STATES_JS)
+            chart_holder_states = page.evaluate(
+                FIND_COMPLETE_CHART_HOLDER_STATES_JS
+                if api_dashboard_capture
+                else FIND_CHART_HOLDER_STATES_JS
+            )
             unready_chart_holders = [
                 holder
                 for holder in chart_holder_states
@@ -682,11 +737,14 @@ class WebDriverPlaywright(WebDriverProxy):
             # full-page capture that includes below-the-fold holders -- the real
             # culprits (off-screen holders that never rendered) would be hidden.
             # Surface them explicitly using the non-viewport-scoped scan.
-            below_fold_unready = (
-                page.evaluate(FIND_ALL_UNREADY_CHART_HOLDERS_JS)
-                if strict_dashboard_capture
-                else unready_chart_holders
-            )
+            if api_dashboard_capture:
+                below_fold_unready = page.evaluate(
+                    FIND_COMPLETE_ALL_UNREADY_CHART_HOLDERS_JS
+                )
+            elif strict_dashboard_capture:
+                below_fold_unready = page.evaluate(FIND_ALL_UNREADY_CHART_HOLDERS_JS)
+            else:
+                below_fold_unready = unready_chart_holders
             deadline_elapsed = deadline.elapsed_seconds if deadline else elapsed
             deadline_remaining = (
                 deadline.remaining_seconds if deadline else remaining_budget
@@ -1180,6 +1238,8 @@ class WebDriverPlaywright(WebDriverProxy):
                             log_context,
                             report_execution_context,
                             validate_rendered_content=validate_rendered_content,
+                            require_complete_capture=require_complete_capture,
+                            screenshot_started_at=screenshot_started_at,
                         )
                         logger.debug(
                             "Screenshot result: %d bytes for url: %s%s",
@@ -1245,6 +1305,8 @@ class WebDriverPlaywright(WebDriverProxy):
                         log_context,
                         report_execution_context,
                         validate_rendered_content=validate_rendered_content,
+                        require_complete_capture=require_complete_capture,
+                        screenshot_started_at=screenshot_started_at,
                     )
                     logger.debug(
                         "Screenshot result: %d bytes for url: %s%s",

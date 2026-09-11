@@ -59,13 +59,23 @@ jest.mock('src/utils/urlUtils', () => ({
 }));
 
 const RETRY_INTERVAL = 3000;
+const MAX_SCREENSHOT_WAIT = RETRY_INTERVAL * 32;
 const DASHBOARD_ID = 123;
 const CACHE_KEY = 'test-cache-key';
+const PERMALINK_KEY = 'test-permalink-key';
+
+const taskResponse = (
+  taskStatus: 'Pending' | 'Computing' | 'Updated' | 'Error',
+) => ({
+  json: {
+    cache_key: CACHE_KEY,
+    permalink_key: PERMALINK_KEY,
+    task_status: taskStatus,
+  },
+});
 
 const mockPostSuccess = () =>
-  (SupersetClient.post as jest.Mock).mockResolvedValue({
-    json: { cache_key: CACHE_KEY },
-  });
+  (SupersetClient.post as jest.Mock).mockResolvedValue(taskResponse('Pending'));
 
 const createResponse = (): Response =>
   ({
@@ -109,51 +119,160 @@ test('downloadScreenshot calls API with force=true to ensure fresh screenshots',
     result.current(DownloadScreenshotFormat.PNG);
   });
 
-  expect(SupersetClient.post).toHaveBeenCalledTimes(1);
-  const callArgs = (SupersetClient.post as jest.Mock).mock.calls[0][0];
+  expect(SupersetClient.post).toHaveBeenCalledTimes(2);
+  const [[callArgs], [pollArgs]] = (SupersetClient.post as jest.Mock).mock
+    .calls;
 
   // Verify that force=true is included in the endpoint URL
   // This prevents regression where stale cached screenshots are returned
   expect(callArgs.endpoint).toContain('force');
   expect(callArgs.endpoint).toMatch(/force[:%]true|force[:%]!t/);
+
+  expect(pollArgs.endpoint).not.toContain('force');
+  expect(pollArgs.jsonPayload).toEqual({ permalinkKey: PERMALINK_KEY });
 });
 
-test('does not issue overlapping GETs while a previous GET is in-flight', async () => {
+test('does not issue overlapping status polls', async () => {
   jest.useFakeTimers();
-  mockPostSuccess();
-
-  // GET never resolves within the test — simulates a slow screenshot request.
-  (SupersetClient.get as jest.Mock).mockImplementation(
-    () => new Promise(() => {}),
-  );
+  (SupersetClient.post as jest.Mock)
+    .mockResolvedValueOnce(taskResponse('Pending'))
+    .mockImplementation(() => new Promise(() => {}));
 
   await triggerDownload();
 
-  // First (immediate) GET fires right after POST resolves.
-  expect(SupersetClient.get).toHaveBeenCalledTimes(1);
+  // Initial trigger plus one immediate status poll.
+  expect(SupersetClient.post).toHaveBeenCalledTimes(2);
 
-  // Advance past several retry intervals while the first GET is still pending.
+  // Advance past several retry intervals while the first poll is still pending.
   await act(async () => {
     jest.advanceTimersByTime(RETRY_INTERVAL * 5);
     await flushPromises();
   });
 
   // isFetching guard must prevent the interval from stacking new requests.
+  expect(SupersetClient.post).toHaveBeenCalledTimes(2);
+
+  await act(async () => {
+    jest.advanceTimersByTime(MAX_SCREENSHOT_WAIT - RETRY_INTERVAL * 5);
+    await flushPromises();
+  });
+  expect(logging.error).toHaveBeenCalledWith(
+    'Screenshot generation timed out',
+    expect.objectContaining({ permalinkKey: PERMALINK_KEY }),
+  );
+
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
+
+test('times out when the initial request never settles', async () => {
+  jest.useFakeTimers();
+  (SupersetClient.post as jest.Mock).mockImplementation(
+    () => new Promise(() => {}),
+  );
+
+  await triggerDownload();
+
+  await act(async () => {
+    jest.advanceTimersByTime(MAX_SCREENSHOT_WAIT);
+    await flushPromises();
+  });
+
+  expect(logging.error).toHaveBeenCalledWith(
+    'Screenshot generation timed out',
+    {
+      permalinkKey: undefined,
+      dashboardId: DASHBOARD_ID,
+      format: DownloadScreenshotFormat.PNG,
+    },
+  );
+  expect(SupersetClient.post).toHaveBeenCalledTimes(1);
+
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
+
+test('times out when the artifact download never settles', async () => {
+  jest.useFakeTimers();
+  (SupersetClient.post as jest.Mock).mockResolvedValue(taskResponse('Updated'));
+
+  await triggerDownload();
+  expect(SupersetClient.get).toHaveBeenCalledTimes(1);
+
+  await act(async () => {
+    jest.advanceTimersByTime(MAX_SCREENSHOT_WAIT);
+    await flushPromises();
+  });
+
+  expect(logging.error).toHaveBeenCalledWith(
+    'Screenshot generation timed out',
+    expect.objectContaining({ permalinkKey: PERMALINK_KEY }),
+  );
   expect(SupersetClient.get).toHaveBeenCalledTimes(1);
 
   jest.clearAllTimers();
   jest.useRealTimers();
 });
 
+test('keeps independent deadlines for concurrent downloads', async () => {
+  jest.useFakeTimers();
+  let resolveFirstPoll: (
+    response: ReturnType<typeof taskResponse>,
+  ) => void = () => {};
+  const firstPoll = new Promise<ReturnType<typeof taskResponse>>(resolve => {
+    resolveFirstPoll = resolve;
+  });
+  (SupersetClient.post as jest.Mock)
+    .mockResolvedValueOnce(taskResponse('Pending'))
+    .mockReturnValueOnce(firstPoll)
+    .mockResolvedValueOnce(taskResponse('Pending'))
+    .mockImplementationOnce(() => new Promise(() => {}));
+  (SupersetClient.get as jest.Mock).mockResolvedValue(createResponse());
+  Object.assign(window.URL, {
+    createObjectURL: jest.fn(() => 'blob:mock'),
+    revokeObjectURL: jest.fn(),
+  });
+  const clickSpy = jest
+    .spyOn(HTMLAnchorElement.prototype, 'click')
+    .mockImplementation(() => {});
+  const { result } = renderHook(() => useDownloadScreenshot(DASHBOARD_ID));
+
+  await act(async () => {
+    result.current(DownloadScreenshotFormat.PNG);
+    await flushPromises();
+  });
+  await act(async () => {
+    result.current(DownloadScreenshotFormat.PDF);
+    await flushPromises();
+  });
+  expect(SupersetClient.post).toHaveBeenCalledTimes(4);
+
+  await act(async () => {
+    resolveFirstPoll(taskResponse('Updated'));
+    await flushPromises();
+  });
+  expect(clickSpy).toHaveBeenCalledTimes(1);
+
+  await act(async () => {
+    jest.advanceTimersByTime(MAX_SCREENSHOT_WAIT);
+    await flushPromises();
+  });
+  expect(logging.error).toHaveBeenCalledWith(
+    'Screenshot generation timed out',
+    expect.objectContaining({ format: DownloadScreenshotFormat.PDF }),
+  );
+
+  clickSpy.mockRestore();
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
+
 test('triggers only one download when multiple successful responses race', async () => {
   jest.useFakeTimers();
-  mockPostSuccess();
-
-  // First GET returns 404 (not ready), then resolves 200 for every subsequent call.
-  // Without the isDownloaded guard any late-arriving 200 would trigger a second click.
-  (SupersetClient.get as jest.Mock)
-    .mockRejectedValueOnce(notReadyError())
-    .mockResolvedValue(createResponse());
+  (SupersetClient.post as jest.Mock)
+    .mockResolvedValueOnce(taskResponse('Pending'))
+    .mockResolvedValue(taskResponse('Updated'));
+  (SupersetClient.get as jest.Mock).mockResolvedValue(createResponse());
 
   // jsdom does not implement URL.createObjectURL / revokeObjectURL — stub them.
   Object.assign(window.URL, {
@@ -179,15 +298,14 @@ test('triggers only one download when multiple successful responses race', async
   jest.useRealTimers();
 });
 
-test('logs cacheKey, dashboardId, and format when retries are exhausted', async () => {
+test('logs permalinkKey, dashboardId, and format when retries are exhausted', async () => {
   jest.useFakeTimers();
   mockPostSuccess();
-  (SupersetClient.get as jest.Mock).mockRejectedValue(notReadyError());
 
   await triggerDownload();
 
-  // Drive one retry interval at a time so each failed GET has a chance to
-  // resolve and increment the retry counter before the next interval fires.
+  // Drive one retry interval at a time so each status poll has a chance to
+  // resolve before the next interval fires.
   for (let i = 0; i < 31; i += 1) {
     // eslint-disable-next-line no-await-in-loop
     await act(async () => {
@@ -197,11 +315,72 @@ test('logs cacheKey, dashboardId, and format when retries are exhausted', async 
   }
 
   expect(logging.error).toHaveBeenCalledWith('Max retries reached', {
-    cacheKey: CACHE_KEY,
+    permalinkKey: PERMALINK_KEY,
     dashboardId: DASHBOARD_ID,
     format: DownloadScreenshotFormat.PNG,
   });
 
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
+
+test('stops polling immediately when screenshot generation reaches Error', async () => {
+  jest.useFakeTimers();
+  (SupersetClient.post as jest.Mock)
+    .mockResolvedValueOnce(taskResponse('Pending'))
+    .mockResolvedValueOnce(taskResponse('Error'));
+
+  await triggerDownload();
+
+  expect(logging.error).toHaveBeenCalledWith('Screenshot generation failed', {
+    cacheKey: CACHE_KEY,
+    dashboardId: DASHBOARD_ID,
+    format: DownloadScreenshotFormat.PNG,
+  });
+  expect(SupersetClient.get).not.toHaveBeenCalled();
+
+  await act(async () => {
+    jest.advanceTimersByTime(RETRY_INTERVAL * 5);
+    await flushPromises();
+  });
+  expect(SupersetClient.post).toHaveBeenCalledTimes(2);
+
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
+
+test('recovers when an Updated image is evicted before GET', async () => {
+  jest.useFakeTimers();
+  (SupersetClient.post as jest.Mock)
+    .mockResolvedValueOnce(taskResponse('Pending'))
+    .mockResolvedValueOnce(taskResponse('Updated'))
+    .mockResolvedValueOnce(taskResponse('Pending'))
+    .mockResolvedValue(taskResponse('Updated'));
+  (SupersetClient.get as jest.Mock)
+    .mockRejectedValueOnce(notReadyError())
+    .mockResolvedValueOnce(createResponse());
+
+  Object.assign(window.URL, {
+    createObjectURL: jest.fn(() => 'blob:mock'),
+    revokeObjectURL: jest.fn(),
+  });
+  const clickSpy = jest
+    .spyOn(HTMLAnchorElement.prototype, 'click')
+    .mockImplementation(() => {});
+
+  await triggerDownload();
+  for (let i = 0; i < 2; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    await act(async () => {
+      jest.advanceTimersByTime(RETRY_INTERVAL);
+      await flushPromises();
+    });
+  }
+
+  expect(clickSpy).toHaveBeenCalledTimes(1);
+  expect(SupersetClient.get).toHaveBeenCalledTimes(2);
+
+  clickSpy.mockRestore();
   jest.clearAllTimers();
   jest.useRealTimers();
 });

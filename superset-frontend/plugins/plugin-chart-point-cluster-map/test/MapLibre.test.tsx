@@ -18,7 +18,7 @@
  */
 
 import { type ReactNode } from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import {
   OSM_TILE_ATTRIBUTION,
@@ -58,7 +58,13 @@ jest.mock('@math.gl/web-mercator', () => ({
 
 jest.mock('../src/components/ScatterPlotOverlay', () => {
   const MockOverlay = (props: Record<string, unknown>) => (
-    <div data-testid="scatter-overlay" data-opacity={props.globalOpacity} />
+    <div data-testid="scatter-overlay" data-opacity={props.globalOpacity}>
+      <button
+        type="button"
+        aria-label="redraw overlay"
+        onClick={props.onRedraw as () => void}
+      />
+    </div>
   );
   return { __esModule: true, default: MockOverlay };
 });
@@ -220,6 +226,57 @@ test('passes globalOpacity to ScatterPlotOverlay', () => {
   const overlay = container.querySelector('[data-testid="scatter-overlay"]');
   expect(overlay).not.toBeNull();
   expect(overlay!.getAttribute('data-opacity')).toBe('0.5');
+});
+
+test('marks map pixels ready only after map idle and canvas redraw', () => {
+  const { container, rerender } = render(<MapLibre {...defaultProps} />);
+  const mapHost = container.querySelector('[data-superset-map-status]');
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+
+  act(() => (lastMapProps.onIdle as () => void)());
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+
+  fireEvent.click(screen.getByRole('button', { name: 'redraw overlay' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+
+  rerender(<MapLibre {...defaultProps} globalOpacity={0.5} />);
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+  fireEvent.click(screen.getByRole('button', { name: 'redraw overlay' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+
+  act(() =>
+    (
+      lastMapProps.onMove as (event: {
+        viewState: { longitude: number; latitude: number; zoom: number };
+      }) => void
+    )({
+      viewState: { longitude: 1, latitude: 2, zoom: 3 },
+    }),
+  );
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+
+  act(() => (lastMapProps.onError as () => void)());
+  act(() => (lastMapProps.onIdle as () => void)());
+  fireEvent.click(screen.getByRole('button', { name: 'redraw overlay' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+
+  act(() =>
+    (
+      lastMapProps.onMove as (event: {
+        viewState: { longitude: number; latitude: number; zoom: number };
+      }) => void
+    )({
+      viewState: { longitude: 4, latitude: 5, zoom: 6 },
+    }),
+  );
+  act(() => (lastMapProps.onIdle as () => void)());
+  fireEvent.click(screen.getByRole('button', { name: 'redraw overlay' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+
+  rerender(<MapLibre {...defaultProps} mapStyle="recovered-style" />);
+  act(() => (lastMapProps.onIdle as () => void)());
+  fireEvent.click(screen.getByRole('button', { name: 'redraw overlay' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
 });
 
 test('converts OSM raster tile templates into MapLibre style objects', () => {

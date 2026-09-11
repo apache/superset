@@ -51,6 +51,7 @@ interface ScatterPlotOverlayProps {
   globalOpacity?: number;
   lngLatAccessor?: (location: GeoJSONLocation) => [number, number];
   locations: GeoJSONLocation[];
+  onRedraw?: () => void;
   pointRadiusUnit?: string;
   renderWhileDragging?: boolean;
   rgb?: (string | number)[];
@@ -142,6 +143,7 @@ function ScatterPlotOverlay({
   globalOpacity = 1,
   lngLatAccessor = defaultLngLatAccessor,
   locations,
+  onRedraw,
   pointRadiusUnit,
   renderWhileDragging = true,
   rgb,
@@ -400,7 +402,7 @@ function ScatterPlotOverlay({
     ],
   );
 
-  return <CanvasOverlay redraw={redraw} />;
+  return <CanvasOverlay onRedraw={onRedraw} redraw={redraw} />;
 }
 
 export default memo(ScatterPlotOverlay);

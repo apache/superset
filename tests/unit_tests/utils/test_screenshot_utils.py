@@ -595,6 +595,30 @@ class TestTakeTiledScreenshot:
         assert mock_page.screenshot.call_count == 3
         mock_combine.assert_not_called()
 
+    def test_api_tiled_capture_requires_budget_for_stability_dwell(self, mock_page):
+        """API captures fail rather than skip the final stable-ready window."""
+
+        with (
+            patch(
+                "superset.utils.screenshot_utils.resolve_screenshot_task_budget_seconds",
+                return_value=1.6,
+            ),
+            patch("superset.utils.screenshot_utils.time.monotonic", return_value=0.0),
+            pytest.raises(
+                TiledScreenshotBudgetExceededError,
+                match="cannot satisfy capture readiness stability",
+            ),
+        ):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                screenshot_started_at=0.0,
+                require_complete_capture=True,
+            )
+
+        mock_page.screenshot.assert_not_called()
+
     def test_blank_combined_image_is_advisory_after_contentful_tiles_pass(
         self, mock_page
     ):
@@ -1942,53 +1966,107 @@ def test_readiness_predicates_gate_on_unpainted_echarts_hosts() -> None:
 
 
 def test_readiness_predicates_require_generic_plugin_render_completion() -> None:
-    """A mounted slice shell is not ready while its lazy plugin is loading."""
+    """Only API complete captures gate on the lazy-plugin marker."""
     from superset.utils.screenshot_utils import (
         CHART_CONTAINER_READY_JS,
         CHART_HOLDERS_READY_JS,
         CHART_RENDERED_SELECTOR,
         DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
+        DASHBOARD_CHART_HOLDERS_READY_JS,
         FIND_CHART_HOLDER_STATES_JS,
+        FIND_COMPLETE_CHART_HOLDER_STATES_JS,
         REPORT_ALL_CHART_HOLDERS_READY_JS,
         REPORT_CHART_HOLDERS_READY_JS,
     )
 
-    assert CHART_RENDERED_SELECTOR == ('.chart-container[data-chart-status="rendered"]')
+    assert CHART_RENDERED_SELECTOR == '[data-chart-status="rendered"]'
+    for predicate in (
+        DASHBOARD_CHART_HOLDERS_READY_JS,
+        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
+    ):
+        assert "const requireCompleteRender = true" in predicate
+        assert CHART_RENDERED_SELECTOR in predicate
     for predicate in (
         CHART_HOLDERS_READY_JS,
-        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
         REPORT_CHART_HOLDERS_READY_JS,
         REPORT_ALL_CHART_HOLDERS_READY_JS,
     ):
-        assert CHART_RENDERED_SELECTOR in predicate
-    assert "data-chart-status" in CHART_CONTAINER_READY_JS
+        assert "const requireCompleteRender = false" in predicate
+    assert "data-chart-status" not in CHART_CONTAINER_READY_JS
+    assert "const requireCompleteRender = false" in FIND_CHART_HOLDER_STATES_JS
+    assert "const requireCompleteRender = true" in FIND_COMPLETE_CHART_HOLDER_STATES_JS
     assert "plugin_loading" in FIND_CHART_HOLDER_STATES_JS
 
 
-def test_readiness_predicates_gate_on_deckgl_map_idle() -> None:
-    """DeckGL captures wait for Mapbox/MapLibre styles and tiles to settle."""
+def test_readiness_predicates_gate_on_explicit_map_paint_status() -> None:
+    """Only API complete captures wait for map pixels to settle."""
     from superset.utils.screenshot_utils import (
         CHART_CONTAINER_READY_JS,
         CHART_HOLDERS_READY_JS,
         DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
-        DECKGL_UNPAINTED_HOST_SELECTOR,
+        DASHBOARD_CHART_HOLDERS_READY_JS,
         FIND_CHART_HOLDER_STATES_JS,
+        FIND_COMPLETE_CHART_HOLDER_STATES_JS,
+        MAP_UNPAINTED_HOST_SELECTOR,
         REPORT_ALL_CHART_HOLDERS_READY_JS,
         REPORT_CHART_HOLDERS_READY_JS,
     )
 
-    assert DECKGL_UNPAINTED_HOST_SELECTOR == (
-        ".deckgl-map-host:not(.deckgl-map-render-finished)"
+    assert MAP_UNPAINTED_HOST_SELECTOR == (
+        '[data-superset-map-status]:not([data-superset-map-status="rendered"])'
     )
     for predicate in (
-        CHART_HOLDERS_READY_JS,
+        DASHBOARD_CHART_HOLDERS_READY_JS,
         DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
+    ):
+        assert "const requireCompleteRender = true" in predicate
+        assert MAP_UNPAINTED_HOST_SELECTOR in predicate
+    for predicate in (
+        CHART_HOLDERS_READY_JS,
         REPORT_CHART_HOLDERS_READY_JS,
         REPORT_ALL_CHART_HOLDERS_READY_JS,
-        CHART_CONTAINER_READY_JS,
     ):
-        assert DECKGL_UNPAINTED_HOST_SELECTOR in predicate
-    assert "deckgl_map_unpainted" in FIND_CHART_HOLDER_STATES_JS
+        assert "const requireCompleteRender = false" in predicate
+    assert MAP_UNPAINTED_HOST_SELECTOR not in CHART_CONTAINER_READY_JS
+    assert "!hasUnpaintedMap && !hasUnpaintedAsyncChart" in (
+        DASHBOARD_CHART_HOLDERS_READY_JS
+    )
+    assert FIND_COMPLETE_CHART_HOLDER_STATES_JS.index("map_unpainted") < (
+        FIND_COMPLETE_CHART_HOLDER_STATES_JS.index("state: 'error'")
+    )
+    assert "const requireCompleteRender = false" in FIND_CHART_HOLDER_STATES_JS
+    assert "const requireCompleteRender = true" in FIND_COMPLETE_CHART_HOLDER_STATES_JS
+    assert "map_unpainted" in FIND_COMPLETE_CHART_HOLDER_STATES_JS
+
+
+def test_readiness_predicates_gate_on_async_chart_paint_status() -> None:
+    """API complete captures wait for first-party async SVG layouts."""
+    from superset.utils.screenshot_utils import (
+        ASYNC_CHART_UNPAINTED_HOST_SELECTOR,
+        CHART_HOLDERS_READY_JS,
+        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
+        DASHBOARD_CHART_HOLDERS_READY_JS,
+        FIND_COMPLETE_CHART_HOLDER_STATES_JS,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+    )
+
+    assert ASYNC_CHART_UNPAINTED_HOST_SELECTOR == (
+        '[data-superset-render-status]:not([data-superset-render-status="rendered"])'
+    )
+    for predicate in (
+        DASHBOARD_CHART_HOLDERS_READY_JS,
+        DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
+    ):
+        assert ASYNC_CHART_UNPAINTED_HOST_SELECTOR in predicate
+        assert "const requireCompleteRender = true" in predicate
+    for predicate in (
+        CHART_HOLDERS_READY_JS,
+        REPORT_CHART_HOLDERS_READY_JS,
+        REPORT_ALL_CHART_HOLDERS_READY_JS,
+    ):
+        assert "const requireCompleteRender = false" in predicate
+    assert "async_chart_unpainted" in FIND_COMPLETE_CHART_HOLDER_STATES_JS
 
 
 def test_readiness_predicates_gate_on_unpainted_ag_grid_hosts() -> None:

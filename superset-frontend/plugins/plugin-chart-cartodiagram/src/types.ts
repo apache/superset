@@ -206,4 +206,5 @@ export type ChartWrapperProps = {
   height: number;
   chartConfig: ChartConfigFeature;
   locale: string;
+  onRenderComplete?: () => void;
 };

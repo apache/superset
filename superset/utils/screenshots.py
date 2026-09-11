@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import base64
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
@@ -28,7 +29,9 @@ from flask import current_app as app
 from superset import thumbnail_cache
 from superset.distributed_lock import DistributedLock
 from superset.exceptions import (
+    AcquireDistributedLockFailedException,
     LockAlreadyHeldException,
+    ReleaseDistributedLockFailedException,
     ScreenshotImageNotAvailableException,
 )
 from superset.extensions import event_logger
@@ -70,7 +73,15 @@ class StatusValues(Enum):
     ERROR = "Error"
 
 
-class ScreenshotCacheWriteError(RuntimeError):
+class ScreenshotCacheError(RuntimeError):
+    """Base exception for screenshot-cache access failures."""
+
+
+class ScreenshotCacheReadError(ScreenshotCacheError):
+    """Raised when a screenshot state cannot be read."""
+
+
+class ScreenshotCacheWriteError(ScreenshotCacheError):
     """Raised when a screenshot state cannot be persisted."""
 
 
@@ -88,8 +99,8 @@ class ScreenshotCachePayloadType(TypedDict):
 
 
 # Magic bytes for a cheap image sanity check. This is intentionally not a full
-# decode: it's meant to catch 0-byte/corrupt/blank payloads before they're
-# cached or served, not to validate the image is renderable.
+# decode: it catches empty and obviously corrupt payloads before they're cached
+# or served, but does not prove that the image is renderable or non-blank.
 PNG_MAGIC_BYTES = b"\x89PNG\r\n\x1a\n"
 JPEG_MAGIC_BYTES = b"\xff\xd8\xff"
 
@@ -166,11 +177,10 @@ class ScreenshotCachePayload:
         self.status = StatusValues.UPDATED
         self._image = image
 
-    def error(
-        self,
-    ) -> None:
+    def error(self, *, discard_image: bool = False) -> None:
         self.update_timestamp()
-        self._image = None
+        if discard_image:
+            self._image = None
         self.status = StatusValues.ERROR
 
     def get_image(self) -> BytesIO:
@@ -232,7 +242,10 @@ class ScreenshotCachePayload:
         return self.should_trigger_task(force, expected_scope)
 
     def should_trigger_task(
-        self, force: bool = False, expected_scope: str | None = None
+        self,
+        force: bool = False,
+        expected_scope: str | None = None,
+        retry_fresh_error: bool = False,
     ) -> bool:
         """
         :param expected_scope: The scope (e.g. "dashboard:<id>") the caller
@@ -248,7 +261,10 @@ class ScreenshotCachePayload:
         return (
             force
             or self.status == StatusValues.PENDING
-            or (self.status == StatusValues.ERROR and self.is_error_cache_ttl_expired())
+            or (
+                self.status == StatusValues.ERROR
+                and (retry_fresh_error or self.is_error_cache_ttl_expired())
+            )
             or (self.status == StatusValues.COMPUTING and self.is_computing_stale())
             or (self.status == StatusValues.UPDATED and self._image is None)
             or (
@@ -340,7 +356,14 @@ class BaseScreenshot:
     @classmethod
     def get_from_cache_key(cls, cache_key: str) -> ScreenshotCachePayload | None:
         logger.info("Attempting to get from cache: %s", cache_key)
-        if payload := cls.cache.get(cache_key):
+        try:
+            payload = cls.cache.get(cache_key)
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.exception("Could not read screenshot cache key %s", cache_key)
+            raise ScreenshotCacheReadError(
+                f"Could not read screenshot cache key {cache_key}"
+            ) from ex
+        if payload:
             # Initially, only bytes were stored. This was changed to store an instance
             # of ScreenshotCachePayload, but since it can't be serialized in all
             # backends it was further changed to a dict of attributes.
@@ -374,6 +397,115 @@ class BaseScreenshot:
         return set_cache_value(cls.cache, cache_key, cache_payload.to_dict())
 
     @classmethod
+    def prepare_and_enqueue_task(
+        cls,
+        cache_key: str,
+        *,
+        force: bool,
+        scope: str,
+        enqueue: Callable[[], None],
+    ) -> tuple[ScreenshotCachePayload, bool]:
+        """Atomically claim a cache key and publish its API task.
+
+        Producers use a short, separate lock from workers. Holding it through
+        broker publication prevents a second producer from colliding with a
+        fast worker or racing enqueue-failure cleanup. A leaked producer lock
+        cannot block an already accepted worker.
+
+        :return: The latest payload and whether the caller owns the enqueue.
+        """
+
+        try:
+            with DistributedLock(
+                namespace="thumbnail_enqueue",
+                key=cache_key,
+            ):
+                cache_payload = cls.get_from_cache_key(cache_key)
+                cache_payload = cache_payload or ScreenshotCachePayload()
+                if not cache_payload.should_enqueue_task(
+                    force,
+                    expected_scope=scope,
+                ):
+                    return cache_payload, False
+                cache_payload.pending()
+                cache_payload.set_scope(scope)
+                cls._store_cache_payload_or_raise(cache_key, cache_payload)
+                try:
+                    enqueue()
+                except Exception:  # pylint: disable=broad-except
+                    try:
+                        if not cls.store_error_if_no_active_task(cache_key, scope):
+                            logger.error(
+                                "Could not persist screenshot Error state after "
+                                "enqueue failure: %s",
+                                cache_key,
+                            )
+                    except ScreenshotCacheError:
+                        logger.exception(
+                            "Could not inspect screenshot state after enqueue "
+                            "failure: %s",
+                            cache_key,
+                        )
+                    raise
+                return cache_payload, True
+        except LockAlreadyHeldException:
+            # Another API producer owns publication for this key. Polling will
+            # observe its Pending transition or terminal result.
+            cache_payload = ScreenshotCachePayload(scope=scope)
+            cache_payload.pending()
+            return cache_payload, False
+        except (
+            AcquireDistributedLockFailedException,
+            ReleaseDistributedLockFailedException,
+        ) as ex:
+            raise ScreenshotCacheWriteError(
+                f"Could not coordinate screenshot task for {cache_key}"
+            ) from ex
+
+    @classmethod
+    def store_error_if_no_active_task(cls, cache_key: str, scope: str) -> bool:
+        """Persist a setup failure without overwriting another worker's state.
+
+        Worker setup happens before ``compute_and_cache`` acquires its lock. A
+        duplicate delivery can therefore fail during setup while the original
+        worker owns the screenshot lock. Acquiring that same lock before the
+        fallback write keeps the state monotonic: an active worker remains in
+        control, and an already completed artifact remains ``Updated``.
+        """
+
+        try:
+            with DistributedLock(
+                namespace="thumbnail",
+                key=cache_key,
+                ttl_seconds=app.config["THUMBNAIL_COMPUTING_CACHE_TTL"],
+            ):
+                cache_payload = cls.get_from_cache_key(cache_key)
+                if cache_payload and cache_payload.is_updated():
+                    logger.info(
+                        "Skipping screenshot Error state for completed task: %s",
+                        cache_key,
+                    )
+                    return True
+                error_payload = ScreenshotCachePayload(scope=scope)
+                error_payload.error()
+                return cls.store_cache_payload(cache_key, error_payload)
+        except LockAlreadyHeldException:
+            logger.info(
+                "Skipping screenshot Error state while another task owns %s",
+                cache_key,
+            )
+            return True
+        except (
+            AcquireDistributedLockFailedException,
+            ReleaseDistributedLockFailedException,
+        ):
+            logger.exception(
+                "Could not coordinate screenshot Error state for %s",
+                cache_key,
+            )
+            return False
+
+    @classmethod
     def _store_cache_payload_or_raise(
         cls,
         cache_key: str,
@@ -394,7 +526,7 @@ class BaseScreenshot:
             # Memcached's item-size limit). Replace it with a small terminal
             # state so API polling observes a truthful Error instead of stale
             # Computing forever.
-            cache_payload.error()
+            cache_payload.error(discard_image=True)
             cls.store_cache_payload(cache_key, cache_payload)
         raise ScreenshotCacheWriteError(
             f"Could not persist {failed_status} state for {cache_key}"
@@ -407,6 +539,7 @@ class BaseScreenshot:
         window_size: WindowSize | None = None,
         thumb_size: WindowSize | None = None,
         cache_key: str | None = None,
+        retry_fresh_error: bool = False,
     ) -> None:
         """
         Computes the thumbnail and caches the result
@@ -429,7 +562,9 @@ class BaseScreenshot:
                     self.get_from_cache_key(cache_key) or ScreenshotCachePayload()
                 )
                 if not cache_payload.should_trigger_task(
-                    force=force, expected_scope=self.cache_scope
+                    force=force,
+                    expected_scope=self.cache_scope,
+                    retry_fresh_error=retry_fresh_error,
                 ):
                     logger.info(
                         "Skipping compute - already processed for thumbnail: %s",
