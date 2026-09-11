@@ -35,6 +35,24 @@ const Actions = styled.div`
   `}
 `;
 
+// The action buttons do not shrink, so in a narrow host (Explore's chart
+// column can be under 500px) they would otherwise crush the message into
+// per-word wrapping. Letting the action slot wrap under the message keeps
+// the text readable, and is a no-op wherever a single row fits — the
+// wide dashboard banner renders unchanged.
+const BannerAlert = styled(Alert)`
+  ${({ theme }) => `
+    && {
+      flex-wrap: wrap;
+      row-gap: ${theme.sizeUnit * 2}px;
+    }
+    && .ant-alert-content {
+      flex: 1 1 max-content;
+      min-width: 0;
+    }
+  `}
+`;
+
 export interface PreviewBannerProps {
   entityType: VersionedEntityType;
   /**
@@ -91,7 +109,7 @@ export default function PreviewBanner({
 
   return (
     <>
-      <Alert
+      <BannerAlert
         type="info"
         closable={false}
         data-test="version-preview-banner"
