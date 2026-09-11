@@ -696,7 +696,8 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
             if name in {transform._call_tool_name, transform._search_tool_name}:
                 raise ToolError(
                     f"'{name}' is a synthetic search tool and cannot be "
-                    f"called via the call_tool proxy"
+                    f"called via the call_tool proxy",
+                    log_level=logging.WARNING,
                 )
             if arguments:
                 target_tool = await ctx.fastmcp.get_tool(name)
