@@ -27,6 +27,7 @@ import {
   themeObject as supersetThemeObject,
   normalizeThemeConfig,
 } from '@apache-superset/core/theme';
+import { isEqual } from 'lodash';
 import { makeApi, SupersetClient } from '@superset-ui/core';
 import type {
   BootstrapThemeData,
@@ -554,9 +555,15 @@ export class ThemeController {
    * @param config - The complete theme configuration object
    */
   public setThemeConfig(config: SupersetThemeConfig): void {
+    // Only a config that differs from the workspace default is an explicit
+    // override; an auto-forwarded default must not suppress the dashboard theme.
+    const isExplicitOverride =
+      !isEqual(config.theme_default, this.defaultTheme) ||
+      !isEqual(config.theme_dark || null, this.darkTheme);
+
     this.defaultTheme = config.theme_default;
     this.darkTheme = config.theme_dark || null;
-    this.themeConfigOverride = true;
+    this.themeConfigOverride = isExplicitOverride;
 
     let newMode: ThemeMode;
     try {

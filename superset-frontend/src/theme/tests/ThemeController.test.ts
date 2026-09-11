@@ -1105,6 +1105,21 @@ test('setThemeConfig flags an active theme config override', () => {
   expect(controller.hasThemeConfigOverride()).toBe(true);
 });
 
+test('setThemeConfig does not flag an override when the config matches the workspace default', () => {
+  // Regression: an auto-forwarded workspace default (e.g. the Embedded SDK
+  // echoing the workspace theme) must not flip the precedence flag, or an
+  // embedded dashboard's own assigned theme is suppressed.
+  const controller = createController();
+
+  // createController bootstraps DEFAULT_THEME/DARK_THEME as the workspace default.
+  controller.setThemeConfig({
+    theme_default: DEFAULT_THEME,
+    theme_dark: DARK_THEME,
+  });
+
+  expect(controller.hasThemeConfigOverride()).toBe(false);
+});
+
 test('setThemeConfig handles theme_default only', () => {
   mockGetBootstrapData.mockReturnValue(
     createMockBootstrapData({
@@ -2388,8 +2403,10 @@ test('refreshSystemThemes is a no-op when the server returns no result', async (
 
 test('refreshSystemThemes is skipped when an embedded theme-config override is active', async () => {
   const controller = createController();
+  // A genuine SDK/host theme that differs from the workspace default is what
+  // flags an override; forwarding the workspace default alone does not.
   controller.setThemeConfig({
-    theme_default: DEFAULT_THEME,
+    theme_default: { token: { colorPrimary: '#sdk-brand' } },
     theme_dark: DARK_THEME,
   });
   expect(controller.hasThemeConfigOverride()).toBe(true);
@@ -2520,9 +2537,10 @@ test('refreshSystemThemes does not clobber an override applied while its fetch w
   // Override is inactive at entry, so the refresh proceeds and awaits the GET.
   const refresh = controller.refreshSystemThemes();
 
-  // An embedded theme-config override is applied while the request is in flight.
+  // An embedded theme-config override (a real SDK/host theme, distinct from the
+  // workspace default) is applied while the request is in flight.
   controller.setThemeConfig({
-    theme_default: DEFAULT_THEME,
+    theme_default: { token: { colorPrimary: '#sdk-brand' } },
     theme_dark: DARK_THEME,
   });
   expect(controller.hasThemeConfigOverride()).toBe(true);
