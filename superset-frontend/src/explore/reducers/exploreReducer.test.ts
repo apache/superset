@@ -17,8 +17,12 @@
  * under the License.
  */
 
-import { QueryFormData } from '@superset-ui/core';
-import { sections, CustomControlItem } from '@superset-ui/chart-controls';
+import { NO_TIME_RANGE, QueryFormData } from '@superset-ui/core';
+import {
+  sections,
+  sharedControls,
+  CustomControlItem,
+} from '@superset-ui/chart-controls';
 import { getControlStateFromControlConfig } from 'src/explore/controlUtils';
 import exploreReducer, { ExploreState } from './exploreReducer';
 import { setControlValue, setStashFormData } from '../actions/exploreActions';
@@ -122,4 +126,99 @@ test('SET_FIELD_VALUE clears the custom-shift date error when time_compare leave
     >[1],
   );
   expect(afterSwitch.controls.start_date_offset.validationErrors).toEqual([]);
+});
+
+// Regression guard for the partition-pruning indicator on the standalone Time
+// Range control. `time_range`'s mapStateToProps decides whether the time range
+// is mirrored onto a partition column, which depends on `time_range` itself and
+// on `granularity_sqla`. SET_FIELD_VALUE rebuilds the changed control against
+// the *pre-action* form data and rebuilds no other control at all, so without
+// `validationDependencies` the glyph keeps rendering after the range is set to
+// "No filter" or the temporal column is switched away from the mapped one --
+// promising a predicate the generated SQL does not carry.
+const PARTITION_FILTER_MAPPING = {
+  partition_column: 'dt_epoch',
+  mapped_column: 'event_time',
+  active: true,
+  is_monotonic: true,
+  mirrorable_operators: ['<', '<=', '==', '>', '>=', 'IN', 'TEMPORAL_RANGE'],
+};
+
+function mirroredTimeRangeState(): ExploreState {
+  const datasource = {
+    main_dttm_col: 'event_time',
+    always_filter_main_dttm: false,
+    columns: [{ column_name: 'event_time', is_dttm: true }],
+    metrics: [],
+    partition_filter_mapping: PARTITION_FILTER_MAPPING,
+  } as unknown as ExploreState['datasource'];
+  const form_data = {
+    granularity_sqla: 'event_time',
+    time_range: '2026-01-01 : 2026-02-01',
+  } as unknown as QueryFormData;
+  const controlPanelState = { controls: {}, form_data, datasource };
+
+  return {
+    form_data,
+    datasource,
+    controls: {
+      time_range: getControlStateFromControlConfig(
+        sharedControls.time_range,
+        controlPanelState,
+        form_data.time_range,
+      )!,
+      granularity_sqla: getControlStateFromControlConfig(
+        sharedControls.granularity_sqla,
+        controlPanelState,
+        form_data.granularity_sqla,
+      )!,
+    },
+  } as ExploreState;
+}
+
+test('SET_FIELD_VALUE drops the time range partition mapping when the range becomes "No filter"', () => {
+  const initialState = mirroredTimeRangeState();
+  expect(initialState.controls.time_range.partitionMapping).toEqual(
+    PARTITION_FILTER_MAPPING,
+  );
+
+  const afterNoFilter = exploreReducer(
+    initialState,
+    setControlValue('time_range', NO_TIME_RANGE) as Parameters<
+      typeof exploreReducer
+    >[1],
+  );
+  expect(afterNoFilter.controls.time_range.partitionMapping).toBeNull();
+});
+
+test('SET_FIELD_VALUE drops the time range partition mapping when the temporal column is not the mapped one', () => {
+  const initialState = mirroredTimeRangeState();
+
+  const afterColumnSwitch = exploreReducer(
+    initialState,
+    setControlValue('granularity_sqla', 'ingested_at') as Parameters<
+      typeof exploreReducer
+    >[1],
+  );
+  expect(afterColumnSwitch.controls.time_range.partitionMapping).toBeNull();
+});
+
+test('SET_FIELD_VALUE restores the time range partition mapping when a real range is chosen', () => {
+  const initialState = mirroredTimeRangeState();
+  const noFilterState = exploreReducer(
+    initialState,
+    setControlValue('time_range', NO_TIME_RANGE) as Parameters<
+      typeof exploreReducer
+    >[1],
+  );
+
+  const afterRealRange = exploreReducer(
+    noFilterState,
+    setControlValue('time_range', '2026-03-01 : 2026-04-01') as Parameters<
+      typeof exploreReducer
+    >[1],
+  );
+  expect(afterRealRange.controls.time_range.partitionMapping).toEqual(
+    PARTITION_FILTER_MAPPING,
+  );
 });
