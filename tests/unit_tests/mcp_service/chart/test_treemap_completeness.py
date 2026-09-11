@@ -251,7 +251,13 @@ def test_result_validation_is_non_mutating_and_chart_specific() -> None:
 def test_treemap_geometry_area_hierarchy_labels_and_color() -> None:
     """Coordinates partition parents and area follows the metric, not row count."""
     preview = treemap_vega_lite(
-        ROWS, {**FORM_DATA, "currency_format": None, "show_labels": True}
+        ROWS,
+        {
+            **FORM_DATA,
+            "currency_format": None,
+            "show_labels": True,
+            "number_format": None,
+        },
     )
     assert not isinstance(preview, ChartError)
     spec = preview.specification
@@ -496,7 +502,10 @@ async def test_registered_generate_chart_native_roundtrip(
     command.return_value.validate.assert_called_once()
 
 
-def test_vega_scenegraph_renders_nested_metric_geometry() -> None:
+@pytest.mark.parametrize("number_format", [None, ",.1f"])
+def test_vega_scenegraph_renders_nested_metric_geometry(
+    number_format: str | None,
+) -> None:
     """Compile the specification and inspect rendered rectangles, not a snapshot."""
     import os
     import shutil
@@ -505,7 +514,13 @@ def test_vega_scenegraph_renders_nested_metric_geometry() -> None:
     if not os.environ.get("NODE_PATH"):
         pytest.skip("Requires Node vega@5 and vega-lite@5 via NODE_PATH")
     spec = treemap_vega_lite(
-        ROWS, {**FORM_DATA, "currency_format": None, "show_labels": True}
+        ROWS,
+        {
+            **FORM_DATA,
+            "currency_format": None,
+            "show_labels": True,
+            "number_format": number_format,
+        },
     )
     assert not isinstance(spec, ChartError)
     script = r"""
@@ -633,10 +648,10 @@ async def test_registered_cached_preview_is_treemap(
 @pytest.mark.parametrize(
     "patch_data", [{"show_labels": True}, {"filters": []}, {"color_scheme": None}]
 )
-@pytest.mark.parametrize("known_dataset", [True, False])
+@pytest.mark.parametrize("known_dataset", [True, False, None])
 async def test_registered_update_preview_preserves_cached_controls(
     patch_data: dict[str, Any],
-    known_dataset: bool,
+    known_dataset: bool | None,
 ) -> None:
     """Partial native updates reach real FastMCP hydration, merge, and cache writes."""
     import importlib
@@ -659,11 +674,17 @@ async def test_registered_update_preview_preserves_cached_controls(
         patch.object(
             module,
             "_get_previous_form_data",
-            return_value=FORM_DATA
-            if known_dataset
-            else {
-                key: value for key, value in FORM_DATA.items() if key != "datasource"
-            },
+            return_value=(
+                FORM_DATA
+                if known_dataset
+                else {
+                    key: value
+                    for key, value in FORM_DATA.items()
+                    if key != "datasource"
+                }
+                if known_dataset is False
+                else None
+            ),
         ),
         patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
         patch.object(module, "has_dataset_access", return_value=True),
@@ -697,6 +718,7 @@ async def test_registered_update_preview_preserves_cached_controls(
             )
     data = result.structured_content
     if not known_dataset:
+        assert data["error"]["error_type"] == "ValidationError"
         assert data["success"] is False
         cache_write.assert_not_called()
         return
@@ -715,7 +737,8 @@ async def test_registered_update_preview_preserves_cached_controls(
 
 
 @pytest.mark.asyncio
-async def test_registered_saved_update_preserves_omissions() -> None:
+@pytest.mark.parametrize("malformed", [False, True])
+async def test_registered_saved_update_preserves_omissions(malformed: bool) -> None:
     """The registered save path persists the same partial Treemap merge as preview."""
     import importlib
 
@@ -730,7 +753,11 @@ async def test_registered_saved_update_preserves_omissions() -> None:
         slice_name="Treemap",
         viz_type="treemap_v2",
         uuid="11111111-1111-1111-1111-111111111111",
-        params=json.dumps(FORM_DATA),
+        params=json.dumps(
+            {**FORM_DATA, "metric": {"expressionType": "SIMPLE"}}
+            if malformed
+            else FORM_DATA
+        ),
     )
     with (
         patch(
@@ -769,6 +796,12 @@ async def test_registered_saved_update_preserves_omissions() -> None:
                 },
             )
     data = result.structured_content
+    if malformed:
+        assert data["success"] is False
+        assert data["error"]["error_type"] == "ValidationError"
+        assert data["error"]["message"] == "Invalid Treemap update configuration"
+        update.assert_not_called()
+        return
     assert data["success"] is True, data
     assert data["chart"]["is_unsaved_state"] is False
     persisted = json.loads(update.call_args.args[1]["params"])

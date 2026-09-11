@@ -230,7 +230,7 @@ def treemap_vega_lite(  # noqa: C901
     ]
     if form_data.get("show_labels", True) or form_data.get("show_upper_labels", True):
         label_type = form_data.get("label_type", "key_value")
-        number_format = form_data.get("number_format", "SMART_NUMBER")
+        number_format = form_data.get("number_format") or "SMART_NUMBER"
         from superset.utils import json
 
         fmt = json.dumps(".3~s" if number_format == "SMART_NUMBER" else number_format)

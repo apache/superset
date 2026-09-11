@@ -22,6 +22,8 @@ MCP tool: get_chart_type_schema
 from __future__ import annotations
 
 import logging
+from copy import deepcopy
+from functools import lru_cache
 from typing import Any, Dict
 
 from pydantic import TypeAdapter
@@ -235,6 +237,12 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
 }
 
 
+@lru_cache(maxsize=len(_CHART_TYPE_ADAPTERS))
+def _compiled_chart_schema(chart_type: str) -> dict[str, Any]:
+    """Compile static adapter schemas once; callers must copy before exposing them."""
+    return _CHART_TYPE_ADAPTERS[chart_type].json_schema()
+
+
 def _get_chart_type_schema_impl(
     chart_type: str,
     include_examples: bool = True,
@@ -289,7 +297,7 @@ def _get_chart_type_schema_impl(
             "valid_chart_types": enabled_types,
         }
 
-    schema = adapter.json_schema()
+    schema = deepcopy(_compiled_chart_schema(chart_type))
     result: Dict[str, Any] = {
         "chart_type": chart_type,
         "schema": schema,

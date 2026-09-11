@@ -193,11 +193,24 @@ def update_chart_preview(  # noqa: C901
             dataset_rebind = previous_datasource != str(dataset.id) and (
                 bool(previous_datasource) or config.chart_type == "treemap_v2"
             )
-            config = resolve_treemap_update_config(
-                config,
-                previous_form_data or {},
-                dataset_rebind=dataset_rebind,
-            )
+            try:
+                config = resolve_treemap_update_config(
+                    config,
+                    previous_form_data or {},
+                    dataset_rebind=dataset_rebind,
+                )
+            except ValueError as ex:
+                return {
+                    "chart": None,
+                    "error": {
+                        "error_type": "ValidationError",
+                        "message": "Invalid Treemap update configuration",
+                        "details": str(ex),
+                    },
+                    "success": False,
+                    "schema_version": "2.0",
+                    "api_version": "v1",
+                }
             try:
                 config = DatasetValidator.normalize_column_names(
                     config,

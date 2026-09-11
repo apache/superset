@@ -158,26 +158,29 @@ def _compile_chart(
             )
         result = normalize_chart_query_result(result, form_data)
         if isinstance(result, ChartError):
+            is_treemap = form_data.get("viz_type") == "treemap_v2"
+            error_code = (
+                "INVALID_TREEMAP_RESULT" if is_treemap else "INVALID_GAUGE_RESULT"
+            )
+            message = (
+                "Treemap metric query returned invalid values"
+                if is_treemap
+                else "Gauge metric query returned invalid values"
+            )
             return CompileResult(
                 success=False,
                 error=result.error,
-                error_code="INVALID_TREEMAP_RESULT"
-                if form_data.get("viz_type") == "treemap_v2"
-                else "INVALID_GAUGE_RESULT",
+                error_code=error_code,
                 tier="compile",
                 error_obj=ChartGenerationError(
                     error_type=result.error_type,
-                    message="Treemap metric query returned invalid values"
-                    if form_data.get("viz_type") == "treemap_v2"
-                    else "Gauge metric query returned invalid values",
+                    message=message,
                     details=result.error,
                     suggestions=[
                         "Use a numeric-producing metric",
                         "Check the metric alias and SQL expression",
                     ],
-                    error_code="INVALID_TREEMAP_RESULT"
-                    if form_data.get("viz_type") == "treemap_v2"
-                    else "INVALID_GAUGE_RESULT",
+                    error_code=error_code,
                 ),
             )
         for query in result.get("queries", []):

@@ -844,16 +844,21 @@ async def update_chart(  # noqa: C901
         new_form_data: dict[str, Any] | None = None
 
         # config is already a typed ChartConfig | None (validated by Pydantic)
-        parsed_config = (
-            resolve_treemap_update_config(
-                request.config,
-                _get_existing_form_data(chart),
-                dataset_rebind=request.dataset_id is not None
-                and request.dataset_id != chart.datasource_id,
+        try:
+            parsed_config = (
+                resolve_treemap_update_config(
+                    request.config,
+                    _get_existing_form_data(chart),
+                    dataset_rebind=request.dataset_id is not None
+                    and request.dataset_id != chart.datasource_id,
+                )
+                if request.config is not None
+                else None
             )
-            if request.config is not None
-            else None
-        )
+        except ValueError as ex:
+            return _validation_error_response(
+                "Invalid Treemap update configuration", str(ex)
+            )
         validation_config = parsed_config
         if request.add_columns is not None:
             validation_config = TableChartConfig(columns=request.add_columns)
