@@ -141,7 +141,7 @@ const KebabButton = styled(Button)`
     }
     &&:hover,
     &&:focus {
-      color: ${theme.colorPrimaryActive};
+      color: ${theme.colorPrimaryHover};
     }
   `}
 `;
@@ -158,7 +158,12 @@ export interface SaveGroupItemProps {
   /** The newest self save: it IS the live state, not a historical one. */
   isCurrent: boolean;
   canRestore: boolean;
-  isPreviewed: boolean;
+  /**
+   * Whether this group carries the active "you are here" treatment. The
+   * panel derives it so exactly one group is highlighted at a time: the
+   * previewed group while a preview is open, else the current group.
+   */
+  isHighlighted: boolean;
   onPreview: (group: SaveGroup) => void;
   /** Leave an active historical preview (back to the live version). */
   onExitPreview?: () => void;
@@ -253,7 +258,7 @@ export default function SaveGroupItem({
   group,
   isCurrent,
   canRestore,
-  isPreviewed,
+  isHighlighted,
   onPreview,
   onExitPreview,
   onRestore,
@@ -291,11 +296,6 @@ export default function SaveGroupItem({
     };
 
   const currentTag = isCurrent ? <Tag>{t('Current')}</Tag> : null;
-
-  // The active treatment applies to the current version at rest and to a
-  // historical version while it is being previewed — the same styling in
-  // both cases, so "which version am I looking at" always reads the same.
-  const isHighlighted = isPreviewed || isCurrent;
 
   const hasRecords = group.records.length > 0;
   const toggleExpanded = () => {

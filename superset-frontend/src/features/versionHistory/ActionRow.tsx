@@ -117,7 +117,7 @@ const KebabButton = styled(Button)`
     }
     &&:hover,
     &&:focus {
-      color: ${theme.colorPrimaryActive};
+      color: ${theme.colorPrimaryHover};
     }
   `}
 `;

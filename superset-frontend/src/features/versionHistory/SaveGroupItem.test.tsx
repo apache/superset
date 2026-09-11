@@ -17,7 +17,7 @@
  * under the License.
  */
 import { fireEvent, render, within } from 'spec/helpers/testing-library';
-import type { SaveGroup } from './types';
+import type { ActivityRecord, SaveGroup } from './types';
 import SaveGroupItem, { SaveGroupItemProps } from './SaveGroupItem';
 
 const makeGroup = (overrides: Partial<SaveGroup> = {}): SaveGroup => ({
@@ -38,7 +38,7 @@ const renderItem = (props: Partial<SaveGroupItemProps> = {}) =>
       group={makeGroup()}
       isCurrent={false}
       canRestore
-      isPreviewed={false}
+      isHighlighted={false}
       onPreview={jest.fn()}
       onExitPreview={jest.fn()}
       onRestore={jest.fn()}
@@ -51,20 +51,14 @@ const groupBackground = (root: HTMLElement) =>
   getComputedStyle(within(root).getByTestId('version-history-save-group'))
     .backgroundColor;
 
-test('the current version carries the active highlight at rest', () => {
-  // The "you are here" contract: the current version at rest gets exactly
-  // the same treatment a historical version gets while previewed, and a
-  // resting historical version gets neither.
-  const { container: currentAtRest } = renderItem({ isCurrent: true });
-  const { container: previewedHistorical } = renderItem({ isPreviewed: true });
-  const { container: restingHistorical } = renderItem();
+test('a highlighted group carries the active treatment; a resting one does not', () => {
+  // Which single group is highlighted is the panel's decision (see the
+  // exclusivity test in VersionHistoryPanel.test.tsx); this component's
+  // contract is only that the flag renders the active treatment.
+  const { container: highlighted } = renderItem({ isHighlighted: true });
+  const { container: resting } = renderItem();
 
-  expect(groupBackground(currentAtRest)).toBe(
-    groupBackground(previewedHistorical),
-  );
-  expect(groupBackground(restingHistorical)).not.toBe(
-    groupBackground(currentAtRest),
-  );
+  expect(groupBackground(highlighted)).not.toBe(groupBackground(resting));
 });
 
 test('group icons are semantic: check-circle for current, save for history', () => {
@@ -86,7 +80,7 @@ test('group icons are semantic: check-circle for current, save for history', () 
   ).not.toBeInTheDocument();
 });
 
-test('rows of the current group show the active timeline dot at rest', () => {
+test('rows of the highlighted group show the active timeline dot', () => {
   const record = {
     version_uuid: 'version-uuid',
     entity_kind: 'chart',
@@ -102,9 +96,14 @@ test('rows of the current group show the active timeline dot at rest', () => {
     kind: 'metrics',
     operation: 'update',
     path: ['metrics'],
-  } as SaveGroup['records'][number];
+    from_value: null,
+    to_value: null,
+    summary: '',
+    impact: null,
+  } satisfies ActivityRecord;
   const { container: current } = renderItem({
     isCurrent: true,
+    isHighlighted: true,
     group: makeGroup({ records: [record] }),
   });
   const { container: historical } = renderItem({
