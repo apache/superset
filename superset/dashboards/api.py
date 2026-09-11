@@ -1966,6 +1966,16 @@ class DashboardRestApi(
             return self.response(200, status=STATUS_RUNNING)
         return self.response(200, status="pending")
 
+    def get_method_permission(self, method_name: str) -> str:
+        # download_xlsx is intentionally login-free (no @protect): the
+        # unguessable job_id is the credential, and dashboard access was
+        # already checked when the export was requested. Map it to no
+        # permission so FAB neither requires auth nor advertises a security
+        # requirement for it in the OpenAPI spec.
+        if method_name == "download_xlsx":
+            return ""
+        return super().get_method_permission(method_name)
+
     @expose("/export_xlsx/download/<uuid:job_id>/", methods=("GET",))
     @safe
     @statsd_metrics
@@ -1974,6 +1984,7 @@ class DashboardRestApi(
         ---
         get:
           summary: Download a completed dashboard Excel export
+          security: []
           description: >-
             Intentionally requires no login: the unguessable job_id, emailed
             only to the original requester (or handed to their own session

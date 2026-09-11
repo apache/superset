@@ -19,6 +19,7 @@ from __future__ import annotations
 import glob
 import os
 import tempfile
+import time
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager, ExitStack
@@ -979,7 +980,7 @@ def test_guest_export_reconstructs_guest_user_and_releases_its_lock_slot(
     }
     token: GuestToken = {
         "iat": 0.0,
-        "exp": 0.0,
+        "exp": time.time() + 3600,
         "user": {},
         "resources": [],
         "rls_rules": [],
@@ -1005,6 +1006,37 @@ def test_guest_export_reconstructs_guest_user_and_releases_its_lock_slot(
         token=None,
     )
     assert guest_lock_slot(token) != 0
+
+
+def test_expired_guest_token_aborts_before_running_queries(
+    mocks: dict[str, Any],
+) -> None:
+    """A guest export whose token expired while queued must not run chart
+    queries under stale claims: it aborts, records a failure, and releases the
+    lock."""
+    from superset.tasks.export_dashboard_excel import export_dashboard_excel
+
+    token: GuestToken = {
+        "iat": 0.0,
+        "exp": time.time() - 1,  # already expired
+        "user": {},
+        "resources": [],
+        "rls_rules": [],
+    }
+
+    with pytest.raises(SupersetException, match="expired"):
+        export_dashboard_excel(
+            dashboard_id=1,
+            user_id=None,
+            active_data_mask={},
+            job_id=JOB_ID_FAIL,
+            guest_token=token,
+        )
+
+    mocks["security_manager"].get_guest_user_from_token.assert_not_called()
+    mocks["ChartDataCommand"].return_value.run.assert_not_called()
+    mocks["mark_export_failed"].assert_called_once()
+    mocks["ReleaseDistributedLock"].return_value.run.assert_called_once_with()
 
 
 def test_anonymous_export_runs_under_the_anonymous_principal(
@@ -1265,7 +1297,9 @@ def test_lock_released_and_failure_recorded_when_user_resolution_fails(
 
     from superset.tasks.export_dashboard_excel import guest_lock_slot
 
-    token = GuestToken(iat=0.0, exp=0.0, user={}, resources=[], rls_rules=[])
+    token = GuestToken(
+        iat=0.0, exp=time.time() + 3600, user={}, resources=[], rls_rules=[]
+    )
     with pytest.raises(RuntimeError):
         export_dashboard_excel(
             dashboard_id=1,

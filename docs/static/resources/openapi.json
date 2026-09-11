@@ -18322,14 +18322,7 @@
             "description": "Excel export is not configured on this server"
           }
         },
-        "security": [
-          {
-            "jwt": []
-          },
-          {
-            "api_key": []
-          }
-        ],
+        "security": [],
         "summary": "Download a completed dashboard Excel export",
         "tags": [
           "Dashboards"
