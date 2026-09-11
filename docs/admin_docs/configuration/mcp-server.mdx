@@ -1065,9 +1065,9 @@ characters in column names.
 
 `list_datasets` searches table name, **description**, schema, and SQL using
 escaped, case-insensitive substring matching. Write descriptions with business
-terminology to make differently named datasets discoverable. To look a dataset
-up by UUID, use a `uuid` filter rather than `search`: the column is binary and
-the substring search casts to text, so a UUID string never matches. Matching
+terminology to make differently named datasets discoverable. A complete UUID
+passed as `search` is treated as an exact UUID filter; an explicit `uuid` filter
+can also look up one or more datasets by UUID. Matching
 datasets are candidates, ordered by the requested sort (last modified by default), not
 ranked recommendations. Compare descriptions and metrics, present alternatives
 when ambiguous, and clarify before querying. No matches does not prove that data
