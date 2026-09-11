@@ -1151,12 +1151,13 @@ def test_where_latest_partition_filters_null_partitions(
     """
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
+    database = mock.MagicMock()
     engine = mock.MagicMock()
     engine_ctx = mock.MagicMock()
     engine_ctx.__enter__.return_value = engine
     mocker.patch.object(BigQueryEngineSpec, "get_engine", return_value=engine_ctx)
 
-    # Mock the partition metadata query to return a BigQuery table with __NULL__ partitions
+    # Mock the partition metadata query: __NULL__ partitions are filtered out
     cursor_mock = mock.MagicMock()
     cursor_mock.fetchone.return_value = ("20251231",)
     raw_conn_mock = mock.MagicMock()
