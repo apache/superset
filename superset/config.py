@@ -693,6 +693,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Allow metrics and columns to be grouped into folders in the chart builder
     # @lifecycle: development
     "DATASET_FOLDERS": False,
+    # Enable the folder-based analytics view (replaces Charts/Dashboards nav)
+    # @lifecycle: development
+    "FOLDERS": False,
     # Enable support for date range timeshifts (e.g., "2015-01-03 : 2015-01-04")
     # in addition to relative timeshifts (e.g., "1 day ago")
     # @lifecycle: development
@@ -3229,6 +3232,10 @@ EXTRA_ASSET_EXPORT_FIELDS: Callable[[Any, str], dict[str, Any]] | None = None
 # Consume the "extra" mapping when importing a chart or dashboard. Receives
 # (model, asset_type, extra) once the asset exists.
 EXTRA_ASSET_IMPORT_HANDLER: Callable[[Any, str, dict[str, Any]], None] | None = None
+# When True, folder viewers/editors can access all charts and datasources on a
+# dashboard that is in their folder, even if those charts are not individually
+# in any folder. Disabled by default.
+FOLDER_DASHBOARD_TRANSITIVE_ACCESS: bool = False
 
 
 # The migrations that add catalog permissions might take a considerably long time

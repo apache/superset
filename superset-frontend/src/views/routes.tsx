@@ -37,6 +37,11 @@ const ChartCreation = lazy(
     import(/* webpackChunkName: "ChartCreation" */ 'src/pages/ChartCreation'),
 );
 
+const AnalyticsList = lazy(
+  () =>
+    import(/* webpackChunkName: "AnalyticsList" */ 'src/pages/AnalyticsList'),
+);
+
 const AnnotationLayerList = lazy(
   () =>
     import(
@@ -264,6 +269,13 @@ export const routes: Routes = [
 if (isFeatureEnabled(FeatureFlag.TaggingSystem)) {
   routes.push({ path: RoutePaths.ALL_ENTITIES, Component: AllEntities });
   routes.push({ path: RoutePaths.TAGS, Component: Tags });
+}
+
+if (isFeatureEnabled('FOLDERS' as FeatureFlag)) {
+  routes.push({
+    path: '/analytics/:folderUuid?/',
+    Component: AnalyticsList,
+  });
 }
 
 // Recently-Archived view — gated by the soft-delete feature (T007).
