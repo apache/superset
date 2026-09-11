@@ -857,7 +857,7 @@ pymongo==4.17.0
     # via
     #   pymongosql
     #   testcontainers
-pymongosql==0.7.3
+pymongosql==0.7.4
     # via apache-superset
 pymssql==2.3.13
     # via

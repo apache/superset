@@ -1484,10 +1484,14 @@ async def test_query_dataset_returns_engine_time_bounds(
 
 @pytest.mark.parametrize("empty", [False, True])
 @pytest.mark.asyncio
-async def test_query_dataset_cached_bounds_across_rollover(
+async def test_query_dataset_reexecutes_across_rollover(
     mcp_server: FastMCP, empty: bool
 ) -> None:
-    """Round-trip cached rows while resolving bounds for each MCP request."""
+    """A relative range that rolls over re-executes, so bounds match the rows.
+
+    Sharing one cache entry across the rollover reported the requesting range
+    while serving the earlier range's rows.
+    """
     from datetime import timedelta
 
     from flask import current_app
@@ -1564,19 +1568,19 @@ async def test_query_dataset_cached_bounds_across_rollover(
                 assert "from_dttm" not in stored
                 assert "to_dttm" not in stored
 
-    get_query_result.assert_called_once()
-    assert keys[0] == keys[1]
+    assert get_query_result.call_count == 2
+    assert keys[0] != keys[1]
     fresh_data = json.loads(fresh.content[0].text)
     cached_data = json.loads(cached.content[0].text)
     assert fresh_data["data"] == cached_data["data"] == rows
     assert fresh_data["cache_status"]["cache_hit"] is False
-    assert cached_data["cache_status"]["cache_hit"] is True
+    assert cached_data["cache_status"]["cache_hit"] is False
     assert fresh_data["from_dttm"] == "2026-06-17T00:00:00"
     assert fresh_data["to_dttm"] == "2026-07-17T00:00:00"
     assert cached_data["from_dttm"] == "2026-06-18T00:00:00"
     assert cached_data["to_dttm"] == "2026-07-18T00:00:00"
     assert cached_data["performance"]["cache_status"] == (
-        "no_data" if empty else "cached"
+        "no_data" if empty else "fresh"
     )
 
 
