@@ -233,7 +233,7 @@ kylin = ["kylinpy>=2.8.4, <2.9"]
 # the plain mysql dialect, same driver as mysql.
 mariadb = ["apache-superset[mysql]"]
 monetdb = ["sqlalchemy-monetdb>=2.1.0, <3", "pymonetdb>=1.9.1, <2"]
-mongodb = ["pymongosql>=0.7.3, <1"]
+mongodb = ["pymongosql>=0.7.4, <1"]
 mssql = ["pymssql>=2.3.13, <3"]
 # motherduck is an alias for duckdb - MotherDuck works via the duckdb driver
 motherduck = ["apache-superset[duckdb]"]
