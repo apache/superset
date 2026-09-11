@@ -1457,6 +1457,42 @@ def test_query_context_modified_injected_annotation_layer(
     assert query_context_modified(query_context)
 
 
+def test_query_context_modified_stale_annotation_layer_in_query_context(
+    mocker: MockerFixture,
+    stored_metrics: list[AdhocMetric],
+) -> None:
+    """
+    A layer removed from the chart's current ``params`` is tampering even if
+    it still lingers in the chart's cached ``query_context``: a params-only
+    chart update can drop a layer without refreshing that stale snapshot, so
+    authorization must go by ``params`` alone.
+    """
+    layer = {
+        "annotationType": "INTERVAL",
+        "sourceType": "NATIVE",
+        "value": 1,
+        "name": "Incidents",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.query_context = json.dumps(
+        {"queries": [{"annotation_layers": [layer]}]}
+    )
+    query_context.slice_.params_dict = {
+        "metrics": stored_metrics,
+    }
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": stored_metrics,
+        "annotation_layers": [layer],
+    }
+    query_context.queries = [
+        QueryObject(metrics=stored_metrics, annotation_layers=[layer])  # type: ignore
+    ]
+    assert query_context_modified(query_context)
+
+
 def test_query_context_modified_result_type_expansion(
     mocker: MockerFixture,
     stored_metrics: list[AdhocMetric],
