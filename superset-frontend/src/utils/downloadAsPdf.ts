@@ -21,7 +21,6 @@ import domToPdf from 'dom-to-pdf';
 import { kebabCase } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
-import { addWarningToast } from 'src/components/MessageToasts/actions';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { forceLoadAllCharts, restoreVirtualization } from './downloadUtils';
 
@@ -43,12 +42,16 @@ const generateFileStem = (description: string, date = new Date()) =>
  * @param description name or a short description of what is being printed.
  *   Value will be normalized, and a date as well as a file extension will be added.
  * @param isExactSelector if false, searches for the closest ancestor that matches selector.
+ * @param addWarningToast bound via `useToasts()`/`bindActionCreators`, not the raw
+ *   action creator from `actions.ts`: this module has no dispatch of its own, so an
+ *   unbound creator would only build a Redux action object and never render a toast.
  * @returns event handler
  */
 export default function downloadAsPdf(
   selector: string,
   description: string,
   isExactSelector = false,
+  addWarningToast?: (message: string) => void,
 ) {
   return async (event: SyntheticEvent) => {
     const elementToPrint = isExactSelector
@@ -56,9 +59,10 @@ export default function downloadAsPdf(
       : event.currentTarget.closest(selector);
 
     if (!elementToPrint) {
-      return addWarningToast(
+      addWarningToast?.(
         t('PDF download failed, please refresh and try again.'),
       );
+      return;
     }
 
     // Force any virtualized (unmounted) charts to render before capturing, so

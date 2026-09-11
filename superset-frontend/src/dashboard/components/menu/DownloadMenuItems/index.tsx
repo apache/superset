@@ -70,7 +70,7 @@ export const useDownloadMenuItems = (
     canExportImage,
   } = props;
 
-  const { addDangerToast, addSuccessToast } = useToasts();
+  const { addDangerToast, addSuccessToast, addWarningToast } = useToasts();
   const dataMask = useSelector((state: RootState) => state.dataMask);
   const SCREENSHOT_NODE_SELECTOR = '.dashboard';
 
@@ -92,7 +92,12 @@ export const useDownloadMenuItems = (
 
   const onDownloadPdf = async (e: SyntheticEvent) => {
     try {
-      downloadAsPdf(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
+      downloadAsPdf(
+        SCREENSHOT_NODE_SELECTOR,
+        dashboardTitle,
+        true,
+        addWarningToast,
+      )(e);
     } catch (error) {
       logging.error(error);
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
@@ -102,7 +107,14 @@ export const useDownloadMenuItems = (
 
   const onDownloadImage = async (e: SyntheticEvent) => {
     try {
-      downloadAsImage(SCREENSHOT_NODE_SELECTOR, dashboardTitle, true)(e);
+      downloadAsImage(
+        SCREENSHOT_NODE_SELECTOR,
+        dashboardTitle,
+        true,
+        undefined,
+        undefined,
+        addWarningToast,
+      )(e);
     } catch (error) {
       logging.error(error);
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
