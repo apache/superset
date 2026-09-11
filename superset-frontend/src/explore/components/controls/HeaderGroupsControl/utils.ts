@@ -188,12 +188,12 @@ export function pruneStaleHeaderGroupColumns(
   const validKeys = new Set(columnOptions.map(option => option.value));
   const visibleKeys = [...validKeys];
   const resolveColumn = (column: string): string | null => {
+    if (validKeys.has(column)) {
+      return column;
+    }
     const stored = toStoredTimeComparisonColumnKey(column, visibleKeys);
     if (stored !== column && validKeys.has(stored)) {
       return stored;
-    }
-    if (validKeys.has(column)) {
-      return column;
     }
     if (expandGroupColumnKey(column, visibleKeys).length > 0) {
       return column;

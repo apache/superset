@@ -300,6 +300,24 @@ test('pruneStaleHeaderGroupColumns remaps a localized Main key to the stored slo
   expect(pruned[0].columns).toEqual(['Main revenue', 'region']);
 });
 
+test('pruneStaleHeaderGroupColumns keeps a valid column that looks like a Main slot', () => {
+  const pruned = pruneStaleHeaderGroupColumns(
+    [
+      {
+        id: 'custom',
+        label: 'Custom',
+        columns: ['Principal revenue'],
+      },
+    ],
+    [
+      { value: 'Principal revenue', label: 'Principal revenue' },
+      { value: 'Main revenue', label: 'Main revenue' },
+      { value: '# revenue', label: '# revenue' },
+    ],
+  );
+  expect(pruned[0].columns).toEqual(['Principal revenue']);
+});
+
 test('syncTimeComparisonGroups adds missing and drops stale auto groups', () => {
   const userGroup: HeaderGroupConfig = {
     id: 'custom',
