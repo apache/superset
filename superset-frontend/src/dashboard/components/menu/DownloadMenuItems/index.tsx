@@ -17,7 +17,7 @@
  * under the License.
  */
 import { SyntheticEvent, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -40,6 +40,7 @@ import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
 } from 'src/logger/LogUtils';
+import { removeToast } from 'src/components/MessageToasts/actions';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 
 import { MenuItemTooltip } from 'src/components/Chart/DisabledMenuItemTooltip';
@@ -72,7 +73,8 @@ export const useDownloadMenuItems = (
     canExportImage,
   } = props;
 
-  const { addDangerToast, addSuccessToast } = useToasts();
+  const dispatch = useDispatch();
+  const { addDangerToast, addInfoToast, addSuccessToast } = useToasts();
   const dataMask = useSelector((state: RootState) => state.dataMask);
   const isExcelExportStorageConfigured = useSelector(
     (state: RootState) =>
@@ -159,6 +161,9 @@ export const useDownloadMenuItems = (
 
   const onExportXlsx = async (mode: 'data' | 'images') => {
     setExportingXlsx(mode);
+    const progressToast = addInfoToast(t('Preparing dashboard Excel export…'), {
+      duration: -1,
+    });
     try {
       const response = await SupersetClient.post({
         endpoint: `/api/v1/dashboard/${dashboardId}/export_xlsx/`,
@@ -206,6 +211,7 @@ export const useDownloadMenuItems = (
         addDangerToast(t('Sorry, something went wrong. Try again later.'));
       }
     } finally {
+      dispatch(removeToast(progressToast.payload.id));
       // Re-enable the actions after success or failure.
       setExportingXlsx(null);
     }

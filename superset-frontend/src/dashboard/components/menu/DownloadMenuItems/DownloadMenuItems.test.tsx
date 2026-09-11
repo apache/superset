@@ -34,6 +34,9 @@ import { useDownloadMenuItems } from '.';
 
 const mockAddSuccessToast = jest.fn();
 const mockAddDangerToast = jest.fn();
+const mockAddInfoToast = jest.fn(() => ({
+  payload: { id: 'excel-export-progress' },
+}));
 
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   __esModule: true,
@@ -41,6 +44,7 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
   useToasts: () => ({
     addSuccessToast: mockAddSuccessToast,
     addDangerToast: mockAddDangerToast,
+    addInfoToast: mockAddInfoToast,
   }),
 }));
 
@@ -293,6 +297,10 @@ test('Export Data to Excel reports progress while the export is running', async 
 
   await waitFor(() => {
     expect(screen.getByText('Preparing export…')).toBeInTheDocument();
+    expect(mockAddInfoToast).toHaveBeenCalledWith(
+      'Preparing dashboard Excel export…',
+      { duration: -1 },
+    );
   });
   expect(screen.queryByText('Export Data to Excel')).not.toBeInTheDocument();
   expect(menuItemFor('Preparing export…')).toHaveAttribute(

@@ -116,7 +116,14 @@ def test_plan_counts_aggregate_only_queries_as_one_row(
     charts: mock.MagicMock,
 ) -> None:
     charts.return_value = [
-        _chart(chart_id, {"columns": [], "metrics": ["count"]})
+        _chart(
+            chart_id,
+            {
+                "columns": [],
+                "metrics": ["count"],
+                "granularity": "order_date",
+            },
+        )
         for chart_id in (10, 20, 30)
     ]
 

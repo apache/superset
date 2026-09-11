@@ -1947,6 +1947,7 @@ class DashboardRestApi(
                 ),
                 as_attachment=True,
                 download_name=f"{filename}.xlsx",
+                conditional=False,
                 max_age=0,
             )
         except Exception:
