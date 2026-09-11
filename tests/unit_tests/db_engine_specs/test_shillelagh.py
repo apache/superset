@@ -53,7 +53,9 @@ def test_register_engine_events_disables_attach(local_sqlite_file) -> None:
 def test_attach_enabled_without_registration(local_sqlite_file) -> None:
     """
     Control: without ``register_engine_events`` the driver still permits ATTACH,
-    so the test above exercises a real capability.
+    so the test above exercises a real capability. This pins driver behavior, not
+    Superset's: if it ever fails because the driver blocks ATTACH on its own, drop
+    this test rather than treating it as a regression.
     """
     engine = create_engine("shillelagh://")
     with engine.connect() as connection:
@@ -74,3 +76,12 @@ def test_database_engine_disables_attach(app_context: None, local_sqlite_file) -
     with engine.connect() as connection:
         with pytest.raises(Exception, match="attached databases"):
             connection.execute(text(f"ATTACH DATABASE '{local_sqlite_file}' AS other"))
+
+
+def test_unreachable_apsw_connection_is_refused() -> None:
+    """
+    If the APSW handle cannot be reached the connection is refused, so a driver
+    change can never quietly hand back a connection with ATTACH still enabled.
+    """
+    with pytest.raises(TypeError, match="Expected an APSW connection, got object"):
+        ShillelaghEngineSpec._scope_connection_to_adapters(object(), None)

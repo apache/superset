@@ -16,7 +16,6 @@
 # under the License.
 from __future__ import annotations
 
-import logging
 from typing import Any, TYPE_CHECKING
 
 import apsw
@@ -29,8 +28,6 @@ if TYPE_CHECKING:
     from sqlalchemy.engine.base import Engine
 
     from superset.models.core import Database
-
-logger = logging.getLogger(__name__)
 
 
 class ShillelaghEngineSpec(SqliteEngineSpec):
@@ -90,13 +87,14 @@ class ShillelaghEngineSpec(SqliteEngineSpec):
         and the underlying driver is a full APSW/SQLite engine that would
         otherwise let a query open unrelated local SQLite files. Setting the
         attached-database limit to zero disables ``ATTACH`` on the connection.
+
+        Refuse the connection if the APSW handle cannot be reached, rather than
+        handing back a connection the limit was never applied to.
         """
         apsw_connection = getattr(dbapi_connection, "_connection", None)
         if not isinstance(apsw_connection, apsw.Connection):
-            logger.warning(
-                "No APSW connection found on %s; leaving its limits untouched",
-                type(dbapi_connection).__name__,
+            raise TypeError(
+                f"Expected an APSW connection, got {type(dbapi_connection).__name__}"
             )
-            return
 
         apsw_connection.limit(apsw.SQLITE_LIMIT_ATTACHED, 0)
