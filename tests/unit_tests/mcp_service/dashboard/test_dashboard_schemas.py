@@ -1205,7 +1205,9 @@ def test_native_filter_type_specific_value_shapes(
         [NativeFilterSummary(id="f1", name="Filter", filter_type=filter_type)],
     )
     assert bool(result["native_filter_values"]) is valid
-    assert result["native_filter_values_incomplete"] is not valid
+    assert result["native_filter_values_incomplete"] is (
+        not valid or (value is not None and value != [])
+    )
     if valid:
         assert result["native_filter_values"][0]["value"] == value
 
@@ -1223,3 +1225,56 @@ def test_native_filter_malformed_extra_form_data(extra: Any) -> None:
     )
     assert result["native_filter_values"] == []
     assert result["native_filter_values_incomplete"] is True
+
+
+@pytest.mark.parametrize(
+    ("filter_type", "value"),
+    [
+        ("filter_select", ["EMEA"]),
+        ("filter_range", [0, 100]),
+        ("filter_time", "Last week"),
+        ("filter_timegrain", ["P1D"]),
+    ],
+)
+@pytest.mark.parametrize(
+    "extra",
+    [
+        {},
+        {"filters": None},
+        {"filters": [{"col": "secret_column", "op": "ILIKE", "val": "%x%"}]},
+    ],
+)
+def test_native_filter_incomplete_predicates_for_all_types(
+    filter_type: str, value: Any, extra: dict[str, Any]
+) -> None:
+    """Retain display context without claiming missing or unsupported predicates."""
+    result = redact_filter_state_data_model_metadata(
+        {"dataMask": {"f1": {"filterState": {"value": value}, "extraFormData": extra}}},
+        [NativeFilterSummary(id="f1", name="Filter", filter_type=filter_type)],
+    )
+    assert result["native_filter_values"][0]["value"] == value
+    assert result["native_filter_values_incomplete"] is True
+    assert "secret_column" not in str(result)
+
+
+@pytest.mark.parametrize(
+    ("filter_type", "value", "extra"),
+    [
+        ("filter_select", ["EMEA"], {"filters": [{"op": "IN"}]}),
+        ("filter_range", [0, 100], {"filters": [{"op": ">="}, {"op": "<="}]}),
+        ("filter_range", [0, 0], {"filters": [{"op": "=="}]}),
+        ("filter_time", "Last week", {"time_range": "Last week"}),
+        ("filter_timegrain", ["P1D"], {"time_grain_sqla": "P1D"}),
+        ("filter_select", None, {}),
+        ("filter_select", [], {}),
+    ],
+)
+def test_native_filter_supported_predicates_remain_complete(
+    filter_type: str, value: Any, extra: dict[str, Any]
+) -> None:
+    """Recognize built-in predicate operators and explicitly cleared selections."""
+    result = redact_filter_state_data_model_metadata(
+        {"dataMask": {"f1": {"filterState": {"value": value}, "extraFormData": extra}}},
+        [NativeFilterSummary(id="f1", name="Filter", filter_type=filter_type)],
+    )
+    assert result["native_filter_values_incomplete"] is False

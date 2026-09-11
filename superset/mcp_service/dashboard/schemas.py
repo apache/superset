@@ -1863,20 +1863,26 @@ def redact_filter_state_data_model_metadata(
         # A display value does not describe SQL predicates or wildcard
         # matching. Signal that the summary cannot express these semantics.
         predicates = extra.get("filters", [])
-        if extra.get("adhoc_filters") or (
-            native_filter.filter_type == "filter_select"
-            and (
-                not isinstance(predicates, list)
-                or any(
-                    not isinstance(predicate, dict)
-                    or predicate.get("op") not in ("IN", "NOT IN")
-                    for predicate in predicates
-                )
+        supported_ops = {
+            "filter_select": ("IN", "NOT IN"),
+            "filter_range": (">=", "<=", "=="),
+        }.get(native_filter.filter_type, ())
+        if (
+            extra.get("adhoc_filters")
+            or not isinstance(predicates, list)
+            or any(
+                not isinstance(predicate, dict)
+                or predicate.get("op") not in supported_ops
+                for predicate in predicates
             )
         ):
             incomplete = True
         state = entry["filterState"]
         value = state.get("value")
+        # Cleared or not-yet-applied masks can retain display values without
+        # predicates. Keep that context, but do not claim it is complete.
+        if not extra and value is not None and value != []:
+            incomplete = True
         if not _native_filter_value_is_valid(native_filter.filter_type, value):
             incomplete = True
             continue
