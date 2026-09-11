@@ -74,23 +74,34 @@ def session(get_session) -> Iterator[Session]:
 
 
 @pytest.fixture(scope="session", autouse=True)
-def _preload_engine_specs() -> None:
-    """
-    Import every engine-spec module once per test session, before any test.
+def _preload_clock_reading_drivers() -> None:
+    """Import third-party drivers that read the clock at import, before any test.
 
-    ``load_engine_specs()`` imports the spec modules lazily on first use, and
-    some of them pull in third-party drivers that read the local timezone at
-    import time (``clickhouse_connect`` via ``dateutil``). That import fails
-    under a ``freeze_time`` clock. In a serial run some earlier test always
-    paid the import cost outside a frozen clock, so the dependency was
-    invisible; under pytest-xdist every worker starts cold, and whichever
-    ``freeze_time`` test is the first engine-spec importer on its worker
-    fails -- a flake that moves with worker assignment. Loading here gives
-    every worker the same import state a serial run reached by accident.
-    """
-    from superset.db_engine_specs import load_engine_specs
+    ``clickhouse_connect`` normalises the local timezone through ``dateutil``
+    at module import time, which raises ``AttributeError`` under a frozen
+    ``freeze_time`` clock. Superset's ClickHouse engine spec imports it
+    lazily, on the first ``load_engine_specs()`` call, so whichever test
+    first resolves an engine spec pays that import -- and if that test runs
+    under ``freeze_time`` (seven unit-test files combine ``freeze_time`` with
+    engine-spec resolution) the import fails. Serially some earlier test
+    always paid it outside a frozen clock; under pytest-xdist each worker
+    starts cold, so the failure moves with worker assignment.
 
-    load_engine_specs()
+    Only the third-party module is imported here, deliberately: importing
+    Superset's own engine-spec modules this early would also cache
+    app-context-dependent values (the ClickHouse spec resolves its
+    ``product_name`` from ``current_app`` on import), and running full
+    ``load_engine_specs()`` discovery would execute every registered
+    third-party entry point in every worker. Engine-spec discovery itself
+    stays lazy, so tests that exercise it still observe a cold state.
+    """
+    # Deferred, guarded import: the driver is an optional dependency, so a
+    # module-top import would make this conftest fail to load in an
+    # environment where it is not installed.
+    try:
+        import clickhouse_connect  # noqa: F401
+    except ImportError:
+        pass
 
 
 @pytest.fixture(scope="module")

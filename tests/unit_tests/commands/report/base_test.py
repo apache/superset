@@ -37,12 +37,12 @@ from superset.reports.models import ReportScheduleType
 # requires every worker to collect the same test ids in the same order. A set
 # of strings iterates in per-process hash order (PYTHONHASHSEED), so a set here
 # makes workers disagree and xdist aborts with "Different tests were collected".
-REPORT_TYPES = (
+REPORT_TYPES: tuple[ReportScheduleType, ...] = (
     ReportScheduleType.ALERT,
     ReportScheduleType.REPORT,
 )
 
-TEST_SCHEDULES_EVERY_MINUTE = (
+TEST_SCHEDULES_EVERY_MINUTE: tuple[str, ...] = (
     "* * * * *",
     "1-5 * * * *",
     "10-20 * * * *",
@@ -51,13 +51,15 @@ TEST_SCHEDULES_EVERY_MINUTE = (
     "10,20,30,40-45 * * * *",
 )
 
-TEST_SCHEDULES_SINGLE_MINUTES = (
+TEST_SCHEDULES_SINGLE_MINUTES: tuple[str, ...] = (
     "1,5,8,10,12 * * * *",
     "10 1 * * *",
     "27,2 1-5 * * *",
 )
 
-TEST_SCHEDULES = TEST_SCHEDULES_EVERY_MINUTE + TEST_SCHEDULES_SINGLE_MINUTES
+TEST_SCHEDULES: tuple[str, ...] = (
+    TEST_SCHEDULES_EVERY_MINUTE + TEST_SCHEDULES_SINGLE_MINUTES
+)
 
 
 def dynamic_alert_minimum_interval(**kwargs) -> int:

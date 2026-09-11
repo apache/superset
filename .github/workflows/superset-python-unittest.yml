@@ -69,12 +69,17 @@ jobs:
       # even though every test passed. `--dist loadfile` keeps all tests from
       # one file on one worker, which preserves module-scoped fixture state;
       # pytest-cov combines the per-worker coverage data automatically.
+      # `--durations=0` makes `--durations-min` effective (the min flag only
+      # filters an enabled report) so the slow-file critical path under
+      # loadfile stays visible. `--maxfail` is a controller-level stop: tests
+      # already dispatched to workers finish, so the final failure count can
+      # slightly exceed it.
       - name: Python unit tests
         env:
           SUPERSET_TESTENV: true
           SUPERSET_SECRET_KEY: not-a-secret
         run: |
-          pytest -n auto --dist loadfile --durations-min=0.5 --cov-report= --cov=superset ./tests/common ./tests/unit_tests --cache-clear --maxfail=50 --junit-xml=test-results/junit-unit.xml
+          pytest -n auto --dist loadfile --durations=0 --durations-min=0.5 --cov-report= --cov=superset ./tests/common ./tests/unit_tests --cache-clear --maxfail=50 --junit-xml=test-results/junit-unit.xml
       # COVERAGE_FILE keeps these scoped gates off the default .coverage that
       # the step above wrote. pytest-cov starts a fresh data file per run, so
       # without it the last gate replaces the full-suite data and the report

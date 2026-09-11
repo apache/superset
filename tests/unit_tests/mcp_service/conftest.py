@@ -22,7 +22,33 @@ Disables RBAC permission checks for integration tests.
 RBAC logic is tested directly in test_auth_rbac.py.
 """
 
+from collections.abc import Iterator
+
 import pytest
+
+from superset.mcp_service.auth import _mcp_user_id_var
+
+
+@pytest.fixture(autouse=True)
+def isolate_mcp_user_id_var() -> Iterator[None]:
+    """Reset the ``_mcp_user_id_var`` ContextVar around every MCP test.
+
+    ``_setup_user_context()`` sets the var and relies on ``on_call_tool``'s
+    ``finally`` to clear it. Tests that call ``_setup_user_context()`` (or set
+    the var) directly, without going through the middleware, leave it set in
+    the thread's base context, and pytest-asyncio copies that context into
+    every later async test's task -- so a resolved user id leaks into
+    unrelated tests. In a serial run a middleware-exercising test file that
+    sorts between the leaking file and its victim happened to clear the var;
+    under pytest-xdist the files land on different workers and the leak
+    surfaces as a flake. Scoping the var to each test removes the ordering
+    dependence.
+    """
+    token = _mcp_user_id_var.set(None)
+    try:
+        yield
+    finally:
+        _mcp_user_id_var.reset(token)
 
 
 @pytest.fixture(autouse=True)
