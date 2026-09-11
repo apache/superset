@@ -164,3 +164,15 @@ def test_image_tag_compose_changes_trigger_python_tests() -> None:
         ["docker-compose-image-tag.yml"],
         change_detector.PATTERNS["python"],
     )
+
+
+def test_docker_workflow_changes_trigger_docker_build() -> None:
+    """A change to only the docker-build workflow file itself (no
+    Dockerfile/docker-compose/app-code changes) must still be classified as
+    "docker", or docker-build's job-level `if:` skips the job entirely and a
+    broken workflow edit -- including to the vulnerability scan step it
+    runs -- is never actually exercised on merge."""
+    assert change_detector.detect_changes(
+        [".github/workflows/docker.yml"],
+        change_detector.PATTERNS["docker"],
+    )

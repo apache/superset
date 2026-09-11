@@ -146,6 +146,11 @@ def test_query_dao_stop_query_not_found(
 
     db.session.add(database)
     db.session.add(query_obj)
+    # Committed (not just autoflushed) since QueryDAO.stop_query() is now
+    # wrapped in @transaction, which rolls back the session on the
+    # QueryNotFoundException raised below -- an uncommitted insert would be
+    # discarded along with it.
+    db.session.commit()
 
     mocker.patch("superset.sql_lab.cancel_query", return_value=False)
 
@@ -228,6 +233,11 @@ def test_query_dao_stop_query_failed(
 
     db.session.add(database)
     db.session.add(query_obj)
+    # Committed (not just autoflushed) since QueryDAO.stop_query() is now
+    # wrapped in @transaction, which rolls back the session on the
+    # SupersetCancelQueryException raised below -- an uncommitted insert
+    # would be discarded along with it.
+    db.session.commit()
 
     mocker.patch("superset.sql_lab.cancel_query", return_value=False)
 
@@ -314,6 +324,11 @@ def test_query_dao_stop_query_wrong_user(
 
     db.session.add(database)
     db.session.add(query_obj)
+    # Committed (not just autoflushed) since QueryDAO.stop_query() is now
+    # wrapped in @transaction, which rolls back the session on the
+    # QueryNotFoundException raised below -- an uncommitted insert would be
+    # discarded along with it.
+    db.session.commit()
 
     # Simulate a different user (user 2) attempting to stop user 1's query
     mocker.patch("superset.daos.query.get_user_id", return_value=2)
