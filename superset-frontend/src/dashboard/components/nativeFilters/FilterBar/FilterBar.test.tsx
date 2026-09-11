@@ -1698,8 +1698,9 @@ describe('cascading native filter clear', () => {
     // query apart from the parent select's options query and give it numeric data.
     fetchMock.post(
       request => {
-        const [url, opts] = (request as { args: [string, { body?: string }] })
-          .args;
+        const [url, opts] = (
+          request as unknown as { args: [string, { body?: string }] }
+        ).args;
         return (
           url.includes('/api/v1/chart/data') &&
           typeof opts.body === 'string' &&
