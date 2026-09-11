@@ -18,6 +18,7 @@
  */
 
 import {
+  advanceMapResourceGeneration,
   hasFatalMapResourceError,
   hasUnrecoveredMapResourceError,
   MapRenderGenerationTracker,
@@ -76,11 +77,19 @@ test('treats an unresolved tile request as a failed source at idle', () => {
   });
 
   expect([...loading.pendingTileSourceIds]).toEqual([[tile, 'tiles']]);
+  expect(
+    recordMapResourceLoading(loading, generation, {
+      dataType: 'source',
+      sourceId: 'tiles',
+      tile,
+    }),
+  ).toBe(loading);
   expect(hasUnrecoveredMapResourceError(loading, generation)).toBe(true);
 
   const settled = recordMapResourceIdle(loading, generation);
   expect([...settled.failedSourceIds]).toEqual(['tiles']);
   expect(settled.pendingTileSourceIds.size).toBe(0);
+  expect(recordMapResourceIdle(settled, generation)).toBe(settled);
   expect(hasUnrecoveredMapResourceError(settled, generation)).toBe(true);
 
   const partial = recordMapResourceSuccess(loading, generation, {
@@ -276,6 +285,7 @@ test('carries failures across view renders but resets them for a new source', ()
   });
   expect(resetState.failedSourceIds.size).toBe(0);
   expect([...resetState.successfulSourceIds]).toEqual(['tiles']);
+  expect(advanceMapResourceGeneration(null, newSourceGeneration)).toBeNull();
 });
 
 test('does not let prior-render success erase a carried failure', () => {
@@ -397,7 +407,9 @@ test('distinguishes pending tiles carried into a final map render', () => {
   tracker.rebase(finalGeneration);
   tracker.startTile(finalGeneration, finalTile);
 
-  expect(tracker.completeTile(finalGeneration, carriedTile)).toBe('rebased');
+  expect(tracker.complete(finalGeneration, { tile: carriedTile })).toBe(
+    'rebased',
+  );
   expect(tracker.completeTile(finalGeneration, finalTile)).toBe('current');
   expect(tracker.completeTile(finalGeneration, finalTile)).toBeNull();
 });
