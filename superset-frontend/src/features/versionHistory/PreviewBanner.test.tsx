@@ -245,3 +245,13 @@ test('withholds restore until the previewed version is actually on screen', () =
     screen.queryByRole('button', { name: 'Restore this version' }),
   ).not.toBeInTheDocument();
 });
+
+test('the action slot can wrap under the message instead of crushing it', () => {
+  // In a narrow host (Explore's chart column), the no-shrink action buttons
+  // would otherwise squeeze the message into per-word wrapping; the banner
+  // must let the action row wrap to its own line instead.
+  renderBanner();
+  const banner = screen.getByTestId('version-preview-banner');
+
+  expect(banner).toHaveStyle({ flexWrap: 'wrap' });
+});

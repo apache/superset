@@ -108,15 +108,16 @@ const KebabWrapper = styled.div`
   `}
 `;
 
-// Icon-only trigger: neutral icon color instead of the link-button blue.
+// Icon-only trigger: the design gives row actions the brand accent
+// rather than the link-button blue or a neutral grey.
 const KebabButton = styled(Button)`
   ${({ theme }) => `
     && {
-      color: ${theme.colorTextTertiary};
+      color: ${theme.colorPrimary};
     }
     &&:hover,
     &&:focus {
-      color: ${theme.colorText};
+      color: ${theme.colorPrimaryActive};
     }
   `}
 `;
@@ -131,7 +132,12 @@ export interface ActionRowProps {
    * kebab actions name a specific version, so the menu would be dead.
    */
   showActions?: boolean;
-  isPreviewed: boolean;
+  /**
+   * True when the row belongs to the active group — the current (live)
+   * version at rest, or a historical version while previewed. Drives the
+   * active timeline dot.
+   */
+  isHighlighted: boolean;
   isLast: boolean;
   onPreview: () => void;
   onRestore: () => void;
@@ -143,7 +149,7 @@ export default function ActionRow({
   record,
   showRestore,
   showActions = true,
-  isPreviewed,
+  isHighlighted,
   isLast,
   onPreview,
   onRestore,
@@ -220,7 +226,7 @@ export default function ActionRow({
       data-test="version-history-action-row"
     >
       <Rail>
-        <Dot isActive={isPreviewed} />
+        <Dot isActive={isHighlighted} />
         {!isLast && <Connector />}
       </Rail>
       <Content>
