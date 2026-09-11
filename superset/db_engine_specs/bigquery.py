@@ -584,7 +584,9 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             select(func.max(partitions_table.c.partition_id).label("max_partition_id"))
             .where(partitions_table.c.table_name == table.table)
             .where(
-                partitions_table.c.partition_id.notin_(["__NULL__", "__UNPARTITIONED__"])
+                partitions_table.c.partition_id.notin_(
+                    ["__NULL__", "__UNPARTITIONED__"]
+                )
             )
         )
 
