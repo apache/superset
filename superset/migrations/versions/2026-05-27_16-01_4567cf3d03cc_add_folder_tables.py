@@ -22,6 +22,7 @@ Create Date: 2026-05-27 16:01:44.222914
 
 """
 
+from alembic import op
 from sqlalchemy import (
     Boolean,
     CheckConstraint,
@@ -65,18 +66,23 @@ def upgrade():
         Column("parent_id", Integer, nullable=True),
         Column("folder_type", String(50), nullable=False, server_default="analytics"),
         Column("is_private", Boolean, nullable=False, server_default="0"),
+        Column("is_only_me", Boolean, nullable=False, server_default="0"),
         Column("extra", Text, nullable=True),
+        Column("deleted_at", DateTime, nullable=True),
         Column("created_on", DateTime, nullable=True),
         Column("changed_on", DateTime, nullable=True),
         Column("created_by_fk", Integer, nullable=True),
         Column("changed_by_fk", Integer, nullable=True),
-        UniqueConstraint(
-            "parent_id", "name", "folder_type", name="uq_folder_parent_name_type"
-        ),
     )
     create_index(FOLDERS_TABLE, "idx_folders_uuid", ["uuid"], unique=True)
     create_index(FOLDERS_TABLE, "idx_folders_parent_id", ["parent_id"])
     create_index(FOLDERS_TABLE, "idx_folders_folder_type", ["folder_type"])
+    create_index(FOLDERS_TABLE, "ix_folders_deleted_at", ["deleted_at"])
+    op.execute(
+        "CREATE UNIQUE INDEX ix_folders_active_parent_name_type "
+        f"ON {FOLDERS_TABLE} (parent_id, name, folder_type) "
+        "WHERE deleted_at IS NULL"
+    )
     create_fks_for_table(
         foreign_key_name="fk_folders_parent_id_folders",
         table_name=FOLDERS_TABLE,
@@ -167,9 +173,9 @@ def upgrade():
         FOLDER_EDITORS_TABLE,
         Column("id", Integer, primary_key=True),
         Column("folder_id", Integer, nullable=False),
-        Column("user_id", Integer, nullable=False),
+        Column("subject_id", Integer, nullable=False),
         UniqueConstraint(
-            "folder_id", "user_id", name="uq_folder_editors_folder_user"
+            "folder_id", "subject_id", name="uq_folder_editors_folder_subject"
         ),
     )
     create_fks_for_table(
@@ -181,12 +187,15 @@ def upgrade():
         ondelete="CASCADE",
     )
     create_fks_for_table(
-        foreign_key_name="fk_folder_editors_user_id_ab_user",
+        foreign_key_name="fk_folder_editors_subject_id_subjects",
         table_name=FOLDER_EDITORS_TABLE,
-        referenced_table="ab_user",
-        local_cols=["user_id"],
+        referenced_table="subjects",
+        local_cols=["subject_id"],
         remote_cols=["id"],
         ondelete="CASCADE",
+    )
+    create_index(
+        FOLDER_EDITORS_TABLE, "ix_folder_editors_subject_id", ["subject_id"]
     )
 
     # --- folder_viewers ---
@@ -194,9 +203,9 @@ def upgrade():
         FOLDER_VIEWERS_TABLE,
         Column("id", Integer, primary_key=True),
         Column("folder_id", Integer, nullable=False),
-        Column("user_id", Integer, nullable=False),
+        Column("subject_id", Integer, nullable=False),
         UniqueConstraint(
-            "folder_id", "user_id", name="uq_folder_viewers_folder_user"
+            "folder_id", "subject_id", name="uq_folder_viewers_folder_subject"
         ),
     )
     create_fks_for_table(
@@ -208,12 +217,15 @@ def upgrade():
         ondelete="CASCADE",
     )
     create_fks_for_table(
-        foreign_key_name="fk_folder_viewers_user_id_ab_user",
+        foreign_key_name="fk_folder_viewers_subject_id_subjects",
         table_name=FOLDER_VIEWERS_TABLE,
-        referenced_table="ab_user",
-        local_cols=["user_id"],
+        referenced_table="subjects",
+        local_cols=["subject_id"],
         remote_cols=["id"],
         ondelete="CASCADE",
+    )
+    create_index(
+        FOLDER_VIEWERS_TABLE, "ix_folder_viewers_subject_id", ["subject_id"]
     )
 
     # --- folder_pins ---
@@ -292,15 +304,23 @@ def downgrade():
     )
     drop_table(FOLDER_PINS_TABLE)
 
+    drop_index(FOLDER_VIEWERS_TABLE, "ix_folder_viewers_subject_id")
     drop_fks_for_table(
         FOLDER_VIEWERS_TABLE,
-        ["fk_folder_viewers_folder_id_folders", "fk_folder_viewers_user_id_ab_user"],
+        [
+            "fk_folder_viewers_folder_id_folders",
+            "fk_folder_viewers_subject_id_subjects",
+        ],
     )
     drop_table(FOLDER_VIEWERS_TABLE)
 
+    drop_index(FOLDER_EDITORS_TABLE, "ix_folder_editors_subject_id")
     drop_fks_for_table(
         FOLDER_EDITORS_TABLE,
-        ["fk_folder_editors_folder_id_folders", "fk_folder_editors_user_id_ab_user"],
+        [
+            "fk_folder_editors_folder_id_folders",
+            "fk_folder_editors_subject_id_subjects",
+        ],
     )
     drop_table(FOLDER_EDITORS_TABLE)
 
@@ -318,6 +338,8 @@ def downgrade():
     )
     drop_table(FOLDER_OBJECTS_TABLE)
 
+    op.execute("DROP INDEX IF EXISTS ix_folders_active_parent_name_type")
+    drop_index(FOLDERS_TABLE, "ix_folders_deleted_at")
     drop_index(FOLDERS_TABLE, "idx_folders_uuid")
     drop_index(FOLDERS_TABLE, "idx_folders_parent_id")
     drop_index(FOLDERS_TABLE, "idx_folders_folder_type")

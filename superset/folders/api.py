@@ -71,6 +71,7 @@ from superset.folders.schemas import (
 )
 from superset.folders.utils import can_manage_folders
 from superset.utils import json as json_utils
+from superset.subjects.utils import get_user_subject_ids_subquery
 from superset.utils.core import get_user_id
 from superset.utils.decorators import transaction
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
@@ -161,6 +162,14 @@ def serialize_folder(
         "changed_on_humanized": folder.changed_on_humanized,
         "created_by": _serialize_user(folder.created_by),
         "changed_by": _serialize_user(folder.changed_by),
+        "editors": [
+            {"id": s.id, "label": s.label, "type": s.type, "user_id": s.user_id}
+            for s in (folder.editors or [])
+        ],
+        "viewers": [
+            {"id": s.id, "label": s.label, "type": s.type, "user_id": s.user_id}
+            for s in (folder.viewers or [])
+        ],
         "user_permission": _get_user_permission(folder, implicit_folder_ids),
         "inherits_permissions": _get_inherits_permissions(folder),
         "is_only_me": _is_only_me(folder),
@@ -446,12 +455,13 @@ class FolderRestApi(BaseSupersetApi):
             if user_id:
                 # Batch query instead of N+1 per-folder checks
                 all_folder_ids = [f.id for f in folders]
+                subject_ids_sq = get_user_subject_ids_subquery(user_id)
                 editor_ids = (
                     {
                         r[0]
                         for r in db.session.query(folder_editors.c.folder_id)
                         .filter(
-                            folder_editors.c.user_id == user_id,
+                            folder_editors.c.subject_id.in_(subject_ids_sq),
                             folder_editors.c.folder_id.in_(all_folder_ids),
                         )
                         .all()
@@ -464,7 +474,7 @@ class FolderRestApi(BaseSupersetApi):
                         r[0]
                         for r in db.session.query(folder_viewers.c.folder_id)
                         .filter(
-                            folder_viewers.c.user_id == user_id,
+                            folder_viewers.c.subject_id.in_(subject_ids_sq),
                             folder_viewers.c.folder_id.in_(all_folder_ids),
                         )
                         .all()
@@ -485,10 +495,11 @@ class FolderRestApi(BaseSupersetApi):
                 folders = []
         # Hide other users' private folders (even for admins)
         if user_id:
+            own_subject_ids_sq = get_user_subject_ids_subquery(user_id)
             own_editor_ids = {
                 r[0]
                 for r in db.session.query(folder_editors.c.folder_id)
-                .filter(folder_editors.c.user_id == user_id)
+                .filter(folder_editors.c.subject_id.in_(own_subject_ids_sq))
                 .all()
             }
             folders = [

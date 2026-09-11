@@ -22,6 +22,8 @@ from typing import Any
 
 from sqlalchemy import and_
 from superset import db
+from superset.subjects.models import Subject
+from superset.subjects.utils import get_user_subject
 from superset.utils import json as json_utils
 
 from superset.folders.models import (
@@ -47,13 +49,17 @@ class FolderPermissionDAO:
             folder_editors.select().where(folder_editors.c.folder_id == folder_id)
         ).fetchall()
         for row in editors:
-            subjects.append({"user_id": row.user_id, "permission": "editor"})
+            subj = db.session.query(Subject).get(row.subject_id)
+            if subj and subj.user_id is not None:
+                subjects.append({"user_id": subj.user_id, "permission": "editor"})
 
         viewers = db.session.execute(
             folder_viewers.select().where(folder_viewers.c.folder_id == folder_id)
         ).fetchall()
         for row in viewers:
-            subjects.append({"user_id": row.user_id, "permission": "viewer"})
+            subj = db.session.query(Subject).get(row.subject_id)
+            if subj and subj.user_id is not None:
+                subjects.append({"user_id": subj.user_id, "permission": "viewer"})
 
         return subjects
 
@@ -62,25 +68,37 @@ class FolderPermissionDAO:
     # ------------------------------------------------------------------ #
     @staticmethod
     def add_editor(folder_id: int, user_id: int) -> None:
+        subject = get_user_subject(user_id)
+        subject_id = subject.id if subject else None
+        if subject_id is None:
+            return
         db.session.execute(
-            folder_editors.insert().values(folder_id=folder_id, user_id=user_id)
+            folder_editors.insert().values(folder_id=folder_id, subject_id=subject_id)
         )
         db.session.flush()
 
     @staticmethod
     def add_viewer(folder_id: int, user_id: int) -> None:
+        subject = get_user_subject(user_id)
+        subject_id = subject.id if subject else None
+        if subject_id is None:
+            return
         db.session.execute(
-            folder_viewers.insert().values(folder_id=folder_id, user_id=user_id)
+            folder_viewers.insert().values(folder_id=folder_id, subject_id=subject_id)
         )
         db.session.flush()
 
     @staticmethod
     def remove_editor(folder_id: int, user_id: int) -> None:
+        subject = get_user_subject(user_id)
+        subject_id = subject.id if subject else None
+        if subject_id is None:
+            return
         db.session.execute(
             folder_editors.delete().where(
                 and_(
                     folder_editors.c.folder_id == folder_id,
-                    folder_editors.c.user_id == user_id,
+                    folder_editors.c.subject_id == subject_id,
                 )
             )
         )
@@ -88,11 +106,15 @@ class FolderPermissionDAO:
 
     @staticmethod
     def remove_viewer(folder_id: int, user_id: int) -> None:
+        subject = get_user_subject(user_id)
+        subject_id = subject.id if subject else None
+        if subject_id is None:
+            return
         db.session.execute(
             folder_viewers.delete().where(
                 and_(
                     folder_viewers.c.folder_id == folder_id,
-                    folder_viewers.c.user_id == user_id,
+                    folder_viewers.c.subject_id == subject_id,
                 )
             )
         )
@@ -158,7 +180,7 @@ class FolderPermissionDAO:
         for row in parent_editors:
             db.session.execute(
                 folder_editors.insert().values(
-                    folder_id=child_folder_id, user_id=row.user_id
+                    folder_id=child_folder_id, subject_id=row.subject_id
                 )
             )
 
@@ -170,7 +192,7 @@ class FolderPermissionDAO:
         for row in parent_viewers:
             db.session.execute(
                 folder_viewers.insert().values(
-                    folder_id=child_folder_id, user_id=row.user_id
+                    folder_id=child_folder_id, subject_id=row.subject_id
                 )
             )
 
@@ -223,17 +245,20 @@ class FolderPermissionDAO:
                 folder_viewers.delete().where(folder_viewers.c.folder_id == desc_id)
             )
             # Copy from parent
-            for subject in current_subjects:
-                if subject["permission"] == "editor":
+            for subj_dict in current_subjects:
+                subject = get_user_subject(subj_dict["user_id"])
+                if not subject:
+                    continue
+                if subj_dict["permission"] == "editor":
                     db.session.execute(
                         folder_editors.insert().values(
-                            folder_id=desc_id, user_id=subject["user_id"]
+                            folder_id=desc_id, subject_id=subject.id
                         )
                     )
                 else:
                     db.session.execute(
                         folder_viewers.insert().values(
-                            folder_id=desc_id, user_id=subject["user_id"]
+                            folder_id=desc_id, subject_id=subject.id
                         )
                     )
 
@@ -255,11 +280,16 @@ class FolderPermissionDAO:
     @staticmethod
     def user_has_folder_access(user_id: int, folder_id: int) -> bool:
         """Check if a user has viewer or editor access to a folder."""
+        subject = get_user_subject(user_id)
+        if not subject:
+            return False
+        subject_id = subject.id
+
         is_editor = db.session.execute(
             folder_editors.select().where(
                 and_(
                     folder_editors.c.folder_id == folder_id,
-                    folder_editors.c.user_id == user_id,
+                    folder_editors.c.subject_id == subject_id,
                 )
             )
         ).first()
@@ -270,7 +300,7 @@ class FolderPermissionDAO:
             folder_viewers.select().where(
                 and_(
                     folder_viewers.c.folder_id == folder_id,
-                    folder_viewers.c.user_id == user_id,
+                    folder_viewers.c.subject_id == subject_id,
                 )
             )
         ).first()
@@ -279,12 +309,15 @@ class FolderPermissionDAO:
     @staticmethod
     def user_is_folder_editor(user_id: int, folder_id: int) -> bool:
         """Check if a user is an editor of a specific folder."""
+        subject = get_user_subject(user_id)
+        if not subject:
+            return False
         return (
             db.session.execute(
                 folder_editors.select().where(
                     and_(
                         folder_editors.c.folder_id == folder_id,
-                        folder_editors.c.user_id == user_id,
+                        folder_editors.c.subject_id == subject.id,
                     )
                 )
             ).first()
@@ -294,13 +327,17 @@ class FolderPermissionDAO:
     @staticmethod
     def user_has_any_folder_access(user_id: int) -> bool:
         """Check if user has any folder-level access (editor or viewer)."""
+        subject = get_user_subject(user_id)
+        if not subject:
+            return False
+        subject_id = subject.id
         has_access = (
             db.session.query(folder_editors.c.id)
-            .filter(folder_editors.c.user_id == user_id)
+            .filter(folder_editors.c.subject_id == subject_id)
             .first()
         ) or (
             db.session.query(folder_viewers.c.id)
-            .filter(folder_viewers.c.user_id == user_id)
+            .filter(folder_viewers.c.subject_id == subject_id)
             .first()
         )
         return has_access is not None
@@ -308,9 +345,12 @@ class FolderPermissionDAO:
     @staticmethod
     def user_has_any_folder_editor_access(user_id: int) -> bool:
         """Check if user is an editor on any folder."""
+        subject = get_user_subject(user_id)
+        if not subject:
+            return False
         return (
             db.session.query(folder_editors.c.id)
-            .filter(folder_editors.c.user_id == user_id)
+            .filter(folder_editors.c.subject_id == subject.id)
             .first()
         ) is not None
 

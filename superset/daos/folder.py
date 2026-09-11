@@ -33,6 +33,8 @@ from sqlalchemy.orm import joinedload
 from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.folders.constants import ASSET_TYPE_CONFIGS, asset_types_for_folder_type
+from superset.subjects.models import Subject
+from superset.subjects.utils import get_user_subject, get_user_subject_ids_subquery
 from superset.folders.models import (
     Folder,
     folder_editors,
@@ -202,9 +204,10 @@ class FolderDAO(BaseDAO[Folder]):
                 fq = fq.where(Folder.changed_on <= modified_end)
             # Hide other users' private folders from everyone (including admins)
             if user_id:
+                subject_ids_sq = get_user_subject_ids_subquery(user_id)
                 own_private_ids = (
                     select(folder_editors.c.folder_id).where(
-                        folder_editors.c.user_id == user_id
+                        folder_editors.c.subject_id.in_(subject_ids_sq)
                     )
                 )
                 fq = fq.where(
@@ -229,13 +232,19 @@ class FolderDAO(BaseDAO[Folder]):
                 else:
                     fq = fq.where(Folder.id.in_(member_folder_ids))
             if editors:
+                editor_subject_ids = select(Subject.id).where(
+                    Subject.user_id.in_(editors)
+                )
                 editor_folder_ids = select(folder_editors.c.folder_id).where(
-                    folder_editors.c.user_id.in_(editors)
+                    folder_editors.c.subject_id.in_(editor_subject_ids)
                 )
                 fq = fq.where(Folder.id.in_(editor_folder_ids))
             if viewers:
+                viewer_subject_ids = select(Subject.id).where(
+                    Subject.user_id.in_(viewers)
+                )
                 viewer_folder_ids = select(folder_viewers.c.folder_id).where(
-                    folder_viewers.c.user_id.in_(viewers)
+                    folder_viewers.c.subject_id.in_(viewer_subject_ids)
                 )
                 fq = fq.where(Folder.id.in_(viewer_folder_ids))
             selects.append(fq)
@@ -336,10 +345,13 @@ class FolderDAO(BaseDAO[Folder]):
                 fk_col_filter = getattr(
                     FolderObject, ASSET_TYPE_CONFIGS[name].fk_column
                 )
+                editor_subject_ids_aq = select(Subject.id).where(
+                    Subject.user_id.in_(editors)
+                )
                 editor_asset_ids = select(fk_col_filter).where(
                     FolderObject.folder_id.in_(
                         select(folder_editors.c.folder_id).where(
-                            folder_editors.c.user_id.in_(editors)
+                            folder_editors.c.subject_id.in_(editor_subject_ids_aq)
                         )
                     ),
                     fk_col_filter.isnot(None),
@@ -349,10 +361,13 @@ class FolderDAO(BaseDAO[Folder]):
                 fk_col_filter = getattr(
                     FolderObject, ASSET_TYPE_CONFIGS[name].fk_column
                 )
+                viewer_subject_ids_aq = select(Subject.id).where(
+                    Subject.user_id.in_(viewers)
+                )
                 viewer_asset_ids = select(fk_col_filter).where(
                     FolderObject.folder_id.in_(
                         select(folder_viewers.c.folder_id).where(
-                            folder_viewers.c.user_id.in_(viewers)
+                            folder_viewers.c.subject_id.in_(viewer_subject_ids_aq)
                         )
                     ),
                     fk_col_filter.isnot(None),
@@ -742,11 +757,14 @@ class FolderDAO(BaseDAO[Folder]):
         """Return the user's 'Only Me' folder, creating it if it doesn't exist."""
         from superset.utils import json as json_utils
 
+        subject = get_user_subject(user_id)
+        subject_id = subject.id if subject else None
+
         folder = (
             db.session.query(Folder)
             .join(folder_editors, folder_editors.c.folder_id == Folder.id)
             .filter(
-                folder_editors.c.user_id == user_id,
+                folder_editors.c.subject_id == subject_id,
                 Folder.is_private.is_(True),
                 Folder.parent_id.is_(None),
             )
@@ -768,7 +786,7 @@ class FolderDAO(BaseDAO[Folder]):
         )
         db.session.flush()
         db.session.execute(
-            folder_editors.insert().values(folder_id=new_folder.id, user_id=user_id)
+            folder_editors.insert().values(folder_id=new_folder.id, subject_id=subject_id)
         )
         db.session.flush()
         return new_folder
@@ -824,6 +842,7 @@ class FolderDAO(BaseDAO[Folder]):
     @classmethod
     def get_subjects(cls, folder_id: int) -> list[dict[str, Any]]:
         from superset import security_manager
+        from superset.subjects.models import Subject
 
         subjects: list[dict[str, Any]] = []
         admin_role = security_manager.find_role("Admin")
@@ -835,7 +854,22 @@ class FolderDAO(BaseDAO[Folder]):
             folder_viewers.select().where(folder_viewers.c.folder_id == folder_id)
         ).fetchall()
 
-        all_user_ids = [r.user_id for r in editors] + [r.user_id for r in viewers]
+        all_subject_ids = [r.subject_id for r in editors] + [
+            r.subject_id for r in viewers
+        ]
+        subjects_by_id: dict[int, Subject] = (
+            {
+                s.id: s
+                for s in db.session.query(Subject)
+                .filter(Subject.id.in_(all_subject_ids))
+                .all()
+            }
+            if all_subject_ids
+            else {}
+        )
+        all_user_ids = [
+            s.user_id for s in subjects_by_id.values() if s.user_id is not None
+        ]
         users_by_id = (
             {
                 u.id: u
@@ -851,11 +885,12 @@ class FolderDAO(BaseDAO[Folder]):
             return admin_role in user.roles
 
         for row in editors:
-            user = users_by_id.get(row.user_id)
+            subj = subjects_by_id.get(row.subject_id)
+            user = users_by_id.get(subj.user_id) if subj and subj.user_id else None
             is_admin = _is_admin(user)
             subjects.append(
                 {
-                    "user_id": row.user_id,
+                    "user_id": subj.user_id if subj else None,
                     "permission": "admin" if is_admin else "editor",
                     "email": user.email if user else None,
                     "is_admin": is_admin,
@@ -863,11 +898,12 @@ class FolderDAO(BaseDAO[Folder]):
             )
 
         for row in viewers:
-            user = users_by_id.get(row.user_id)
+            subj = subjects_by_id.get(row.subject_id)
+            user = users_by_id.get(subj.user_id) if subj and subj.user_id else None
             is_admin = _is_admin(user)
             subjects.append(
                 {
-                    "user_id": row.user_id,
+                    "user_id": subj.user_id if subj else None,
                     "permission": "admin" if is_admin else "viewer",
                     "email": user.email if user else None,
                     "is_admin": is_admin,
@@ -883,12 +919,15 @@ class FolderDAO(BaseDAO[Folder]):
         if not db.session.get(User, user_id):
             raise ValueError(f"User {user_id} does not exist")
 
+        subject = get_user_subject(user_id)
+        subject_id = subject.id if subject else None
+
         existing = (
             db.session.execute(
                 folder_editors.select().where(
                     and_(
                         folder_editors.c.folder_id == folder_id,
-                        folder_editors.c.user_id == user_id,
+                        folder_editors.c.subject_id == subject_id,
                     )
                 )
             ).first()
@@ -896,7 +935,7 @@ class FolderDAO(BaseDAO[Folder]):
                 folder_viewers.select().where(
                     and_(
                         folder_viewers.c.folder_id == folder_id,
-                        folder_viewers.c.user_id == user_id,
+                        folder_viewers.c.subject_id == subject_id,
                     )
                 )
             ).first()
@@ -906,22 +945,25 @@ class FolderDAO(BaseDAO[Folder]):
 
         if permission == "editor":
             db.session.execute(
-                folder_editors.insert().values(folder_id=folder_id, user_id=user_id)
+                folder_editors.insert().values(folder_id=folder_id, subject_id=subject_id)
             )
         else:
             db.session.execute(
-                folder_viewers.insert().values(folder_id=folder_id, user_id=user_id)
+                folder_viewers.insert().values(folder_id=folder_id, subject_id=subject_id)
             )
         db.session.flush()
 
     @classmethod
     def update_subject(cls, folder_id: int, user_id: int, permission: str) -> None:
+        subject = get_user_subject(user_id)
+        subject_id = subject.id if subject else None
+
         existing = (
             db.session.execute(
                 folder_editors.select().where(
                     and_(
                         folder_editors.c.folder_id == folder_id,
-                        folder_editors.c.user_id == user_id,
+                        folder_editors.c.subject_id == subject_id,
                     )
                 )
             ).first()
@@ -929,7 +971,7 @@ class FolderDAO(BaseDAO[Folder]):
                 folder_viewers.select().where(
                     and_(
                         folder_viewers.c.folder_id == folder_id,
-                        folder_viewers.c.user_id == user_id,
+                        folder_viewers.c.subject_id == subject_id,
                     )
                 )
             ).first()
@@ -940,7 +982,7 @@ class FolderDAO(BaseDAO[Folder]):
             folder_editors.delete().where(
                 and_(
                     folder_editors.c.folder_id == folder_id,
-                    folder_editors.c.user_id == user_id,
+                    folder_editors.c.subject_id == subject_id,
                 )
             )
         )
@@ -948,7 +990,7 @@ class FolderDAO(BaseDAO[Folder]):
             folder_viewers.delete().where(
                 and_(
                     folder_viewers.c.folder_id == folder_id,
-                    folder_viewers.c.user_id == user_id,
+                    folder_viewers.c.subject_id == subject_id,
                 )
             )
         )
@@ -1011,11 +1053,14 @@ class FolderDAO(BaseDAO[Folder]):
 
     @classmethod
     def remove_subject(cls, folder_id: int, user_id: int) -> None:
+        subject = get_user_subject(user_id)
+        subject_id = subject.id if subject else None
+
         db.session.execute(
             folder_editors.delete().where(
                 and_(
                     folder_editors.c.folder_id == folder_id,
-                    folder_editors.c.user_id == user_id,
+                    folder_editors.c.subject_id == subject_id,
                 )
             )
         )
@@ -1023,7 +1068,7 @@ class FolderDAO(BaseDAO[Folder]):
             folder_viewers.delete().where(
                 and_(
                     folder_viewers.c.folder_id == folder_id,
-                    folder_viewers.c.user_id == user_id,
+                    folder_viewers.c.subject_id == subject_id,
                 )
             )
         )

@@ -6,6 +6,8 @@ from typing import Any
 
 from sqlalchemy import select
 
+from superset.subjects.utils import get_user_subject_ids_subquery
+
 FOLDER_MANAGEMENT_ROLES = {"Admin", "Alpha", "Gamma"}
 
 
@@ -25,12 +27,21 @@ def get_folder_editor_users(folder_id: int) -> list[Any]:
     from superset import db
 
     from superset.folders.models import folder_editors
+    from superset.subjects.models import Subject
 
-    editor_user_ids = [
-        row.user_id
+    editor_subject_ids = [
+        row.subject_id
         for row in db.session.execute(
             folder_editors.select().where(folder_editors.c.folder_id == folder_id)
         ).fetchall()
+    ]
+    if not editor_subject_ids:
+        return []
+    editor_user_ids = [
+        s.user_id
+        for s in db.session.query(Subject)
+        .filter(Subject.id.in_(editor_subject_ids), Subject.user_id.isnot(None))
+        .all()
     ]
     if not editor_user_ids:
         return []
@@ -41,12 +52,13 @@ def user_accessible_folder_ids(user_id: int) -> Any:
     """Subquery of folder IDs the user has access to (editor or viewer)."""
     from superset.folders.models import folder_editors, folder_viewers
 
+    subject_ids = get_user_subject_ids_subquery(user_id)
     return (
         select(folder_viewers.c.folder_id)
-        .where(folder_viewers.c.user_id == user_id)
+        .where(folder_viewers.c.subject_id.in_(subject_ids))
         .union(
             select(folder_editors.c.folder_id).where(
-                folder_editors.c.user_id == user_id
+                folder_editors.c.subject_id.in_(subject_ids)
             )
         )
     )

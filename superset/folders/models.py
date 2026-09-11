@@ -38,12 +38,13 @@ from sqlalchemy.orm import relationship
 from sqlalchemy_utils import UUIDType
 
 from flask_appbuilder import Model
-from superset.models.helpers import AuditMixinNullable
+from superset.models.helpers import AuditMixinNullable, SoftDeleteMixin
+from superset.subjects.models import Subject
 
 metadata = Model.metadata  # pylint: disable=no-member
 
 
-# Junction table: folder editors (users who can manage folder contents).
+# Junction table: folder editors (subjects who can manage folder contents).
 folder_editors = Table(
     "folder_editors",
     metadata,
@@ -55,16 +56,16 @@ folder_editors = Table(
         nullable=False,
     ),
     Column(
-        "user_id",
+        "subject_id",
         Integer,
-        ForeignKey("ab_user.id", ondelete="CASCADE"),
+        ForeignKey("subjects.id", ondelete="CASCADE"),
         nullable=False,
     ),
-    UniqueConstraint("folder_id", "user_id"),
-    Index("ix_folder_editors_user_id", "user_id"),
+    UniqueConstraint("folder_id", "subject_id"),
+    Index("ix_folder_editors_subject_id", "subject_id"),
 )
 
-# Junction table: folder viewers (users who can see folder and its assets).
+# Junction table: folder viewers (subjects who can see folder and its assets).
 folder_viewers = Table(
     "folder_viewers",
     metadata,
@@ -76,21 +77,23 @@ folder_viewers = Table(
         nullable=False,
     ),
     Column(
-        "user_id",
+        "subject_id",
         Integer,
-        ForeignKey("ab_user.id", ondelete="CASCADE"),
+        ForeignKey("subjects.id", ondelete="CASCADE"),
         nullable=False,
     ),
-    UniqueConstraint("folder_id", "user_id"),
-    Index("ix_folder_viewers_user_id", "user_id"),
+    UniqueConstraint("folder_id", "subject_id"),
+    Index("ix_folder_viewers_subject_id", "subject_id"),
 )
 
 
-class Folder(AuditMixinNullable, Model):
+class Folder(AuditMixinNullable, SoftDeleteMixin, Model):
     """A folder for organizing dashboards, charts, and datasets."""
 
     __tablename__ = "folders"
-    __table_args__ = (UniqueConstraint("parent_id", "name", "folder_type"),)
+    # Name uniqueness enforced by partial index ix_folders_active_parent_name_type
+    # (WHERE deleted_at IS NULL) created in the migration.
+    __table_args__: tuple = ()
 
     id = Column(Integer, primary_key=True)
     uuid = Column(
@@ -101,6 +104,7 @@ class Folder(AuditMixinNullable, Model):
     parent_id = Column(Integer, ForeignKey("folders.id"), nullable=True)
     folder_type = Column(String(50), nullable=False, default="analytics")
     is_private = Column(Boolean, nullable=False, default=False)
+    is_only_me = Column(Boolean, nullable=False, default=False)
     extra = Column(Text, nullable=True)
 
     # Relationships
@@ -119,17 +123,17 @@ class Folder(AuditMixinNullable, Model):
         cascade="all, delete-orphan",
     )
     editors = relationship(
-        User,
+        Subject,
         secondary=folder_editors,
         primaryjoin=lambda: Folder.id == folder_editors.c.folder_id,
-        secondaryjoin=lambda: folder_editors.c.user_id == User.id,
+        secondaryjoin=lambda: folder_editors.c.subject_id == Subject.id,
         viewonly=True,
     )
     viewers = relationship(
-        User,
+        Subject,
         secondary=folder_viewers,
         primaryjoin=lambda: Folder.id == folder_viewers.c.folder_id,
-        secondaryjoin=lambda: folder_viewers.c.user_id == User.id,
+        secondaryjoin=lambda: folder_viewers.c.subject_id == Subject.id,
         viewonly=True,
     )
 
