@@ -83,6 +83,9 @@ export default function downloadAsPdf(
       })
       .catch((e: Error) => {
         logging.error('PDF generation failed', e);
+        addWarningToast?.(
+          t('PDF download failed, please refresh and try again.'),
+        );
       })
       .finally(() => {
         if (didForceLoad) {
