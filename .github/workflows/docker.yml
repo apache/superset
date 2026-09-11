@@ -226,7 +226,9 @@ jobs:
       # different tool from a different maintainer with no shared supply
       # chain, and is already on the ASF Infra GitHub Actions allowlist.
       - name: Scan built image for vulnerabilities
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.build_preset == 'lean'
+        if: >-
+          github.event_name == 'push' && github.ref == 'refs/heads/master' &&
+          contains(fromJson('["superset", "lean"]'), matrix.build_preset)
         id: grype-scan
         # This step's own failure (e.g. a transient issue pulling the Grype
         # vulnerability DB) must not fail docker-build, matching the
@@ -246,11 +248,18 @@ jobs:
       - name: Upload vulnerability scan results to GitHub Security tab
         if: >-
           github.event_name == 'push' && github.ref == 'refs/heads/master' &&
-          matrix.build_preset == 'lean' && steps.grype-scan.outputs.sarif != ''
+          contains(fromJson('["superset", "lean"]'), matrix.build_preset) &&
+          steps.grype-scan.outputs.sarif != ''
         continue-on-error: true
         uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
         with:
           sarif_file: ${{ steps.grype-scan.outputs.sarif }}
+          # Both `superset` and `lean` are scanned now; without a distinct
+          # category per preset they would land under the same code-scanning
+          # entry and one build_preset's findings would overwrite the
+          # other's, mirroring the per-language category in
+          # codeql-analysis.yml.
+          category: "docker-${{ matrix.build_preset }}"
 
       - name: WebSocket server smoke test
         if: contains(fromJson('["superset", "lean", "dev"]'), matrix.build_preset)
