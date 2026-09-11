@@ -57,7 +57,8 @@ class Db2EngineSpec(BaseEngineSpec):
                 "connection_string": "ibm_db_sa://{username}:{password}@{hostname}:{port}/{database}",
                 "is_recommended": False,
                 "notes": (
-                    "Db2 11.1.0 or higher is required to support SQL compatibility enhancements. " 
+                    "Db2 11.1.0 or higher is required to support SQL compatibility "
+                    "enhancements. "
                     "Use for older Db2 versions without LIMIT [n] syntax. "
                     "Recommended for SQL Lab."
                 ),
