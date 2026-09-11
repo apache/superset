@@ -24,6 +24,7 @@ import {
   useMemo,
   ChangeEvent,
 } from 'react';
+import { useSelector } from 'react-redux';
 import { omit } from 'lodash-es';
 
 import { t } from '@apache-superset/core/translation';
@@ -49,9 +50,29 @@ import { EditorHost } from 'src/core/editors';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { useThemeValidation } from 'src/theme/hooks/useThemeValidation';
 import { OnlyKeyWithType } from 'src/utils/types';
+import SubjectPicker, {
+  mapSubjectPickerValuesToIds,
+  mapSubjectsToPickerValues,
+  normalizeSubjectToPickerValue,
+  type SubjectPickerValue,
+} from 'src/features/subjects/SubjectPicker';
+import Subject, { SubjectType } from 'src/types/Subject';
+import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
+import getBootstrapData from 'src/utils/getBootstrapData';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { ThemeObject } from './types';
 
 type EditorAnnotation = editors.EditorAnnotation;
+
+type ThemeModalObject = Omit<ThemeObject, 'editors'> & {
+  editors?: SubjectPickerValue[];
+};
+
+// Shape sent to the create/update endpoints: editors are serialized to the
+// subject ids the API expects, not the hydrated Subject objects it returns.
+type ThemeSavePayload = Omit<ThemeObject, 'editors'> & {
+  editors?: number[];
+};
 
 /**
  * Convert Ace annotation format to EditorAnnotation format.
@@ -139,13 +160,46 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   const supersetTheme = useTheme();
   const { setTemporaryTheme } = useThemeContext();
   const [disableSave, setDisableSave] = useState<boolean>(true);
-  const [currentTheme, setCurrentTheme] = useState<ThemeObject | null>(null);
-  const [initialTheme, setInitialTheme] = useState<ThemeObject | null>(null);
+  const [currentTheme, setCurrentTheme] = useState<ThemeModalObject | null>(
+    null,
+  );
+  const [initialTheme, setInitialTheme] = useState<ThemeModalObject | null>(
+    null,
+  );
   const [isHidden, setIsHidden] = useState<boolean>(true);
   const [showConfirmAlert, setShowConfirmAlert] = useState<boolean>(false);
   const isEditMode = theme !== null;
   const isSystemTheme = currentTheme?.is_system === true;
-  const isReadOnly = isSystemTheme;
+
+  const currentUser = useSelector<any, UserWithPermissionsAndRoles>(
+    state => state.user,
+  );
+  const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
+
+  // theme fetch logic
+  const {
+    state: { loading, resource },
+    fetchResource,
+    createResource,
+    updateResource,
+  } = useSingleViewResource<ThemeObject, ThemeSavePayload>(
+    'theme',
+    t('theme'),
+    addDangerToast,
+  );
+
+  // In edit mode a non-editor (and non-admin) may only view the theme. The
+  // editorship check runs against the persisted editors (and any editorship
+  // granted indirectly via EXTRA_EDITORS_RESOLVER) from the fetched
+  // resource, not the in-progress picker selection.
+  const canEditTheme =
+    !isEditMode ||
+    isUserEditorOrAdmin(
+      currentUser,
+      (resource?.editors as Subject[]) || [],
+      resource?.extra_editors,
+    );
+  const isReadOnly = isSystemTheme || !canEditTheme;
 
   const canDevelopThemes = canDevelop;
 
@@ -162,20 +216,23 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     enabled: !isReadOnly && Boolean(currentTheme?.json_data),
   });
 
-  // theme fetch logic
-  const {
-    state: { loading, resource },
-    fetchResource,
-    createResource,
-    updateResource,
-  } = useSingleViewResource<ThemeObject>('theme', t('theme'), addDangerToast);
-
   // Functions
   const hasUnsavedChanges = useCallback(() => {
     if (!currentTheme || !initialTheme || isReadOnly) return false;
+    const currentEditorIds = mapSubjectPickerValuesToIds(
+      currentTheme.editors || [],
+    );
+    const initialEditorIds = mapSubjectPickerValuesToIds(
+      initialTheme.editors || [],
+    );
+    const editorsChanged =
+      currentEditorIds.length !== initialEditorIds.length ||
+      [...currentEditorIds].sort().join(',') !==
+        [...initialEditorIds].sort().join(',');
     return (
       currentTheme.theme_name !== initialTheme.theme_name ||
-      currentTheme.json_data !== initialTheme.json_data
+      currentTheme.json_data !== initialTheme.json_data ||
+      editorsChanged
     );
   }, [currentTheme, initialTheme, isReadOnly]);
 
@@ -199,12 +256,15 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     if (isEditMode) {
       // Edit
       if (currentTheme?.id) {
-        const themeData = omit(currentTheme, [
-          'id',
-          'created_by',
-          'changed_by',
-          'changed_on_delta_humanized',
-        ]);
+        const themeData = {
+          ...omit(currentTheme, [
+            'id',
+            'created_by',
+            'changed_by',
+            'changed_on_delta_humanized',
+          ]),
+          editors: mapSubjectPickerValuesToIds(currentTheme.editors || []),
+        };
 
         updateResource(currentTheme.id, themeData).then(response => {
           if (!response) return;
@@ -215,7 +275,11 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
       }
     } else if (currentTheme) {
       // Create
-      createResource(currentTheme).then(response => {
+      const themeData = {
+        ...currentTheme,
+        editors: mapSubjectPickerValuesToIds(currentTheme.editors || []),
+      };
+      createResource(themeData).then(response => {
         if (!response) return;
         if (onThemeAdd) onThemeAdd();
 
@@ -325,6 +389,15 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     [currentTheme],
   );
 
+  const onEditorsChange = useCallback((values: SubjectPickerValue[]) => {
+    setCurrentTheme(prev => ({
+      ...prev,
+      theme_name: prev?.theme_name || '',
+      json_data: prev?.json_data || '',
+      editors: values || [],
+    }));
+  }, []);
+
   const onFormat = useCallback(() => {
     if (currentTheme?.json_data) {
       const formatted = formatJsonData(currentTheme.json_data);
@@ -353,6 +426,16 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
 
   // Initialize
   useEffect(() => {
+    const currentUserEditor =
+      currentUserSubjectId !== undefined && currentUser
+        ? normalizeSubjectToPickerValue({
+            value: currentUserSubjectId,
+            text: `${currentUser.firstName} ${currentUser.lastName}`,
+            type: SubjectType.User,
+            secondary_label: currentUser.email,
+          })
+        : undefined;
+
     if (
       isEditMode &&
       (!currentTheme?.id ||
@@ -364,20 +447,34 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
       !isEditMode &&
       (!currentTheme || currentTheme.id || (isHidden && show))
     ) {
-      const newTheme = {
+      const newTheme: ThemeModalObject = {
         theme_name: '',
         json_data: JSON.stringify({}, null, 2),
+        editors: currentUserEditor ? [currentUserEditor] : [],
       };
       setCurrentTheme(newTheme);
       setInitialTheme(newTheme);
     }
-  }, [theme, show, isEditMode, currentTheme, isHidden, loading, fetchResource]);
+  }, [
+    theme,
+    show,
+    isEditMode,
+    currentTheme,
+    isHidden,
+    loading,
+    fetchResource,
+    currentUser,
+    currentUserSubjectId,
+  ]);
 
   useEffect(() => {
     if (resource) {
-      const formatted = {
+      const formatted: ThemeModalObject = {
         ...resource,
         json_data: formatJsonData(resource.json_data),
+        editors: mapSubjectsToPickerValues(
+          (resource.editors || []) as Subject[],
+        ),
       };
       setCurrentTheme(formatted);
       setInitialTheme(formatted);
@@ -390,6 +487,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   }, [
     currentTheme ? currentTheme.theme_name : '',
     currentTheme ? currentTheme.json_data : '',
+    currentTheme ? currentTheme.editors?.length : 0,
     isReadOnly,
     validation.hasErrors,
   ]);
@@ -487,6 +585,11 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
               {t('System Theme - Read Only')}
             </Typography.Text>
           )}
+          {!isSystemTheme && isReadOnly && (
+            <Typography.Text type="secondary" className="system-theme-notice">
+              {t('You are not an editor of this theme - Read Only')}
+            </Typography.Text>
+          )}
 
           <Form.Item label={t('Name')} required={!isReadOnly}>
             <Input
@@ -495,6 +598,18 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
               value={currentTheme?.theme_name}
               readOnly={isReadOnly}
               placeholder={t('Enter theme name')}
+            />
+          </Form.Item>
+
+          <Form.Item label={t('Editors')}>
+            <SubjectPicker
+              relatedUrl="/api/v1/theme/related/editors"
+              ariaLabel={t('Editors')}
+              placeholder={t('Select editors')}
+              value={currentTheme?.editors || []}
+              onChange={onEditorsChange}
+              disabled={isReadOnly}
+              dataTest="theme-editors-select"
             />
           </Form.Item>
 
