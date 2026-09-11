@@ -329,7 +329,7 @@
     "lerna": "^10.0.1",
     "lightningcss": "^1.33.0",
     "mini-css-extract-plugin": "^2.10.2",
-    "minimizer-webpack-plugin": "^5.8.0",
+    "minimizer-webpack-plugin": "^5.9.0",
     "open-cli": "^9.0.0",
     "oxfmt": "^0.66.0",
     "oxlint": "^1.81.0",
