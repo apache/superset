@@ -2750,6 +2750,47 @@ async def test_description_discovery_uses_dao_search_and_exposes_alternatives(
 
 
 @pytest.mark.asyncio
+async def test_uuid_search_uses_portable_exact_filter(
+    mcp_server: fastmcp.FastMCP,
+) -> None:
+    """A UUID-shaped search does not depend on engine-specific text casting."""
+    from superset.daos.dataset import DatasetDAO
+
+    identifier = "00000000-0000-0000-0000-000000000001"
+    with patch.object(DatasetDAO, "list", return_value=([], 0)) as listing:
+        async with Client(mcp_server) as client:
+            await client.call_tool(
+                "list_datasets",
+                {"request": {"search": identifier}},
+            )
+
+    kwargs = listing.call_args.kwargs
+    assert kwargs["search"] is None
+    assert [(op.col, op.opr, op.value) for op in kwargs["column_operators"]] == [
+        ("uuid", "eq", identifier)
+    ]
+
+
+@pytest.mark.asyncio
+async def test_non_uuid_search_remains_substring_search(
+    mcp_server: fastmcp.FastMCP,
+) -> None:
+    """Ordinary search terms retain the generic discovery behavior."""
+    from superset.daos.dataset import DatasetDAO
+
+    with patch.object(DatasetDAO, "list", return_value=([], 0)) as listing:
+        async with Client(mcp_server) as client:
+            await client.call_tool(
+                "list_datasets",
+                {"request": {"search": "orders"}},
+            )
+
+    kwargs = listing.call_args.kwargs
+    assert kwargs["search"] == "orders"
+    assert kwargs["column_operators"] == []
+
+
+@pytest.mark.asyncio
 async def test_scoped_discovery_filters_before_pagination_without_echoing_scope(
     mcp_server: fastmcp.FastMCP,
 ) -> None:
