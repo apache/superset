@@ -64,7 +64,10 @@ import {
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import { RESERVED_CHART_URL_PARAMS, URL_PARAMS } from 'src/constants';
-import { QUERY_MODE_REQUISITES, ExploreStandaloneMode } from 'src/explore/constants';
+import {
+  QUERY_MODE_REQUISITES,
+  ExploreStandaloneMode,
+} from 'src/explore/constants';
 import { areObjectsEqual } from 'src/reduxUtils';
 import * as logActions from 'src/logger/actions';
 import {
@@ -245,6 +248,8 @@ const updateHistory = debounce(
           standalone ? URL_PARAMS.standalone.name : 'base',
           {
             [URL_PARAMS.formDataKey.name]: key ?? '',
+            // Carry the active mode through, so mode 2 is not rewritten to 1.
+            ...(standalone ? { [URL_PARAMS.standalone.name]: standalone } : {}),
             ...additionalParam,
           },
           force,
@@ -333,7 +338,9 @@ interface ExploreRootState {
     can_overwrite: boolean;
     sliceName?: string;
     triggerRender: boolean;
-    standalone: number;
+    // The bootstrap payload sends `is_standalone_mode()`, a boolean. The numeric
+    // mode is derived from the URL in mapStateToProps, not from here.
+    standalone: boolean;
     force: boolean;
     form_data?: QueryFormData;
     saveAction?: SaveActionType | null;
@@ -1387,7 +1394,11 @@ function mapStateToProps(state: ExploreRootState) {
     form_data: patchedFormData,
     table_name: datasource.table_name,
     vizType: form_data.viz_type,
-    standalone: explore.standalone || 0,
+    // Read the mode off the URL rather than `explore.standalone`: the bootstrap
+    // payload only carries a boolean (`is_standalone_mode`), which cannot tell
+    // mode 1 from mode 2. `getUrlParam` types this param as a number and already
+    // maps 'true' -> 1 and 'false' -> 0, so screenshot URLs keep working.
+    standalone: getUrlParam(URL_PARAMS.standalone) || 0,
     force: !!explore.force,
     chart,
     timeout: common.conf.SUPERSET_WEBSERVER_TIMEOUT,

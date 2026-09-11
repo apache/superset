@@ -36,6 +36,11 @@ import { UPDATE_COMPONENTS } from '../../actions/dashboardLayout';
 import { AutoRefreshStatus } from '../../types/autoRefresh';
 
 const mockHistoryReplace = jest.fn();
+// Dashboards render top-level (not iframed) unless a test says otherwise.
+const mockIsInIframe = jest.fn(() => false);
+jest.mock('src/dashboard/util/isEmbedded', () => ({
+  isEmbedded: () => mockIsInIframe(),
+}));
 jest.mock('react-router-dom', () => ({
   ...jest.requireActual('react-router-dom'),
   useHistory: () => ({
@@ -244,6 +249,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockIsInIframe.mockReturnValue(false);
   const { useLocation } = jest.requireMock('react-router-dom');
   useLocation.mockReturnValue({
     pathname: '/dashboard',
@@ -856,18 +862,30 @@ test('should hide edit button and navbar, and show Exit fullscreen when in fulls
   expect(screen.queryByTestId('main-navigation')).not.toBeInTheDocument();
 });
 
-test('should show Exit fullscreen when in fullscreen mode', async () => {
-  setup();
-
-  userEvent.click(screen.getByTestId('actions-trigger'));
-
-  expect(await screen.findByText('Exit fullscreen')).toBeInTheDocument();
-});
-
-test('should have fullscreen option in dropdown', async () => {
+test('should show Exit fullscreen when in standalone mode at top level', async () => {
+  // Default setup URL carries standalone=1. A user who clicked "Enter fullscreen"
+  // must be able to get back out, so this must not be hidden outside an iframe.
   setup();
   await openActionsDropdown();
   expect(screen.getByText('Exit fullscreen')).toBeInTheDocument();
+  expect(screen.queryByText('Enter fullscreen')).not.toBeInTheDocument();
+});
+
+test('should show Enter fullscreen when not in standalone mode', async () => {
+  window.history.pushState({}, 'Test page', '/dashboard');
+  setup();
+  await openActionsDropdown();
+  expect(screen.getByText('Enter fullscreen')).toBeInTheDocument();
+  expect(screen.queryByText('Exit fullscreen')).not.toBeInTheDocument();
+});
+
+test('should hide the fullscreen toggle entirely inside an iframe', async () => {
+  // Exiting inside an iframe reloads without the standalone param and restores the
+  // full Superset nav, breaking the embed — so neither direction is offered.
+  mockIsInIframe.mockReturnValue(true);
+  setup();
+  await openActionsDropdown();
+  expect(screen.queryByText('Exit fullscreen')).not.toBeInTheDocument();
   expect(screen.queryByText('Enter fullscreen')).not.toBeInTheDocument();
 });
 

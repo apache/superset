@@ -131,7 +131,9 @@ jest.mock('../ExploreChartPanel', () => ({
     }, [onQuery]);
 
     return (
-      <div data-test={standalone === 1 ? 'standalone-app' : 'explore-chart-panel'} />
+      <div
+        data-test={standalone === 1 ? 'standalone-app' : 'explore-chart-panel'}
+      />
     );
   },
 }));
@@ -285,23 +287,24 @@ test('generates a new form_data param when none is available', async () => {
   replaceSpy.mockRestore();
 });
 
+// The mode is read from the URL, not from `explore.standalone` — the bootstrap
+// payload only carries a boolean and cannot distinguish mode 1 from mode 2.
+// Driving these through `search` covers the path the app actually takes.
 test('renders chart in standalone mode', () => {
-  const { queryByTestId } = renderWithRouter({
-    initialState: {
-      ...reduxState,
-      explore: { ...reduxState.explore, standalone: 1 },
-    },
-  });
+  const { queryByTestId } = renderWithRouter({ search: '?standalone=1' });
+  expect(queryByTestId('standalone-app')).toBeInTheDocument();
+});
+
+test('renders chart in standalone mode when the param is "true"', () => {
+  // Screenshots request `standalone=true` (ChartStandaloneMode.HIDE_NAV), which
+  // getUrlParam maps to 1. Guards chart thumbnails against regressing to the
+  // full editor.
+  const { queryByTestId } = renderWithRouter({ search: '?standalone=true' });
   expect(queryByTestId('standalone-app')).toBeInTheDocument();
 });
 
 test('renders full editor in standalone=2 mode (hide nav, show controls)', () => {
-  const { queryByTestId } = renderWithRouter({
-    initialState: {
-      ...reduxState,
-      explore: { ...reduxState.explore, standalone: 2 },
-    },
-  });
+  const { queryByTestId } = renderWithRouter({ search: '?standalone=2' });
   expect(queryByTestId('standalone-app')).not.toBeInTheDocument();
 });
 
