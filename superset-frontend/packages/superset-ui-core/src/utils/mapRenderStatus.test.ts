@@ -65,6 +65,13 @@ test('routes Mapbox source data errors to failure instead of tile success', () =
   expect([...state.failedSourceIds]).toEqual(['tiles']);
   expect(state.successfulSourceIds.size).toBe(0);
   expect(hasUnrecoveredMapResourceError(state, generation)).toBe(true);
+
+  const successful = recordMapResourceData(null, generation, {
+    dataType: 'source',
+    sourceId: 'tiles',
+    tile: {},
+  });
+  expect([...successful.successfulSourceIds]).toEqual(['tiles']);
 });
 
 test('treats an unresolved tile request as a failed source at idle', () => {
@@ -122,6 +129,7 @@ test('removes terminal and aborted tile requests by identity', () => {
   state = recordMapResourceAbort(state, generation, { tile: abortedTile });
 
   expect(state.pendingTileSourceIds.size).toBe(0);
+  expect(recordMapResourceAbort(state, generation, {})).toBe(state);
   expect(hasUnrecoveredMapResourceError(state, generation)).toBe(false);
 });
 
@@ -277,6 +285,9 @@ test('carries failures across view renders but resets them for a new source', ()
   expect(hasUnrecoveredMapResourceError(recoveredState, movedGeneration)).toBe(
     false,
   );
+  expect(advanceMapResourceGeneration(oldState, movedGeneration)).toEqual(
+    expect.objectContaining({ renderGeneration: movedGeneration.render }),
+  );
 
   const resetState = recordMapResourceSuccess(oldState, newSourceGeneration, {
     dataType: 'source',
@@ -357,6 +368,8 @@ test('matches native starts and terminals within the active generation', () => {
 
 test('keeps a synchronously advanced generation for the ensuing render', () => {
   const tracker = new MapRenderGenerationTracker();
+  const implicitInput = {};
+  expect(tracker.current(implicitInput)).toBe(tracker.current(implicitInput));
   const scope = {};
   const firstInput = {};
   const firstGeneration = tracker.current(firstInput, scope);
