@@ -250,6 +250,17 @@ class ActivityChangedBySchema(Schema):
     last_name = fields.String()
 
 
+# Each activity record's ``impact.affected_charts`` list is capped. The cap
+# bounds ONE record's payload (a per-tooltip number), not the page: it is
+# applied per record in ``impact_for_record``, so a page of 200 records can
+# still carry up to 200 × this many refs, and it only binds when a single
+# dataset feeds more than this many charts on one dashboard. ``impact.charts``
+# always carries the full count, so a consumer can render an "and N more"
+# overflow line. Defined with the contract so the field description below
+# quotes the same number the computation enforces.
+IMPACT_AFFECTED_CHARTS_CAP: int = 50
+
+
 class ActivityImpactChartSchema(Schema):
     """One affected sibling chart inside an ``impact`` payload."""
 
@@ -281,13 +292,14 @@ class ActivityImpactSchema(Schema):
             )
         },
     )
-    chart_names = fields.List(
+    affected_charts = fields.List(
         fields.Nested(ActivityImpactChartSchema),
         metadata={
             "description": (
                 "The affected sibling charts (id + name), sorted by name — "
                 "the detail behind the ``charts`` count, rendered as the "
-                "rollup entry's hover tooltip. Capped at 50 entries; "
+                "rollup entry's hover tooltip. Capped at "
+                f"{IMPACT_AFFECTED_CHARTS_CAP} entries per record; "
                 "``charts`` always carries the full count."
             )
         },

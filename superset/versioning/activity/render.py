@@ -191,6 +191,15 @@ def apply_record_decoration(
                 record["from_value"] = None
                 record["to_value"] = None
                 record["path"] = None
+                # ``impact`` is deliberately NOT redacted here. It names the
+                # charts on the *path* dashboard that pointed at the related
+                # entity at that transaction — the requester's own dashboard
+                # members, which ``raise_for_access`` already gated — not the
+                # deleted entity itself or its editors, which is what this
+                # block exists to withhold. Naming them discloses nothing a
+                # requester entitled to the path entity cannot already see in
+                # its own chart list and history; the count was never redacted
+                # for the same reason. (Explicit decision, review of #43838.)
 
         # Strip the internal-only columns the API contract doesn't expose.
         for key in (

@@ -493,7 +493,7 @@ def test_impact_for_record_dashboard_path_dataset_related_uses_charts() -> None:
     ]
     assert impact_for_record(record, "Dashboard", {(5, 100): charts}) == {
         "charts": 3,
-        "chart_names": charts,
+        "affected_charts": charts,
     }
 
 
@@ -539,34 +539,35 @@ def test_sorted_chart_refs_orders_case_insensitively_with_id_tiebreak() -> None:
     names sort first (they render as an Untitled fallback)."""
     from superset.versioning.activity.impact import _sorted_chart_refs
 
-    refs = _sorted_chart_refs({(5, 100): {3: "beta", 1: "Alpha", 2: "alpha", 4: ""}})
+    refs = _sorted_chart_refs({(5, 100): {3: "Beta", 2: "Alpha", 1: "alpha", 4: ""}})
     assert refs == {
         (5, 100): [
             {"id": 4, "name": ""},
-            {"id": 1, "name": "Alpha"},
-            {"id": 2, "name": "alpha"},
-            {"id": 3, "name": "beta"},
+            {"id": 1, "name": "alpha"},
+            {"id": 2, "name": "Alpha"},
+            {"id": 3, "name": "Beta"},
         ]
     }
 
 
-def test_impact_for_record_caps_chart_names_but_not_the_count() -> None:
+def test_impact_for_record_caps_affected_charts_but_not_the_count() -> None:
     """A dataset feeding very many charts must not balloon the record: the
     named refs are capped while ``charts`` keeps the full count."""
-    from superset.versioning.activity.impact import IMPACT_CHART_NAMES_CAP
+    from superset.versioning.activity.impact import IMPACT_AFFECTED_CHARTS_CAP
 
     record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
     charts: list[ChartRef] = [
-        {"id": i, "name": f"chart {i:03d}"} for i in range(IMPACT_CHART_NAMES_CAP + 10)
+        {"id": i, "name": f"chart {i:03d}"}
+        for i in range(IMPACT_AFFECTED_CHARTS_CAP + 10)
     ]
     result = impact_for_record(record, "Dashboard", {(5, 100): charts})
     assert result is not None
-    assert result["charts"] == IMPACT_CHART_NAMES_CAP + 10
-    assert len(result["chart_names"]) == IMPACT_CHART_NAMES_CAP
-    assert result["chart_names"] == charts[:IMPACT_CHART_NAMES_CAP]
+    assert result["charts"] == IMPACT_AFFECTED_CHARTS_CAP + 10
+    assert len(result["affected_charts"]) == IMPACT_AFFECTED_CHARTS_CAP
+    assert result["affected_charts"] == charts[:IMPACT_AFFECTED_CHARTS_CAP]
 
 
-def test_related_record_impact_payload_carries_chart_names() -> None:
+def test_related_record_impact_payload_carries_affected_charts() -> None:
     """End-to-end through record decoration: a dashboard-path dataset
     record's wire ``impact`` carries the affected chart names alongside
     the count (sc-119775 — the rollup tooltip's data source)."""
@@ -604,7 +605,7 @@ def test_related_record_impact_payload_carries_chart_names() -> None:
     ):
         apply_record_decoration([record], "Dashboard", 1)
 
-    assert record["impact"] == {"charts": 2, "chart_names": charts}
+    assert record["impact"] == {"charts": 2, "affected_charts": charts}
 
 
 # ---- collect_impact_pairs -----------------------------------------------

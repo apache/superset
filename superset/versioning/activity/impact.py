@@ -55,6 +55,7 @@ from superset.versioning.activity.kinds import (
     Window,
 )
 from superset.versioning.baseline import OPERATION_DELETE
+from superset.versioning.schemas import IMPACT_AFFECTED_CHARTS_CAP
 
 
 class ChartRef(TypedDict):
@@ -63,11 +64,6 @@ class ChartRef(TypedDict):
     id: int
     name: str
 
-
-# The wire ``chart_names`` list is capped so one dataset feeding very many
-# charts cannot balloon every related record on the page (page sizes reach
-# 200 records); ``charts`` always carries the full count.
-IMPACT_CHART_NAMES_CAP = 50
 
 # Headroom left below SQLite's 999 bind-variable floor for the handful of scalar
 # binds in the slice-scan WHERE (datasource_type, operation_type, the two tx
@@ -261,10 +257,10 @@ def impact_for_record(
     Pure function — no DB. For the ``impact`` computation: only
     ``path=Dashboard`` and ``related=SqlaTable`` shapes carry an
     impact; everything else returns ``None``. The payload keeps the
-    ``charts`` count and adds ``chart_names`` — the affected charts
+    ``charts`` count and adds ``affected_charts`` — the affected charts
     (id + name) that the count summarizes — so the rollup entry's
-    hover tooltip can list them. ``chart_names`` is capped at
-    :data:`IMPACT_CHART_NAMES_CAP`; ``charts`` stays the full count so
+    hover tooltip can list them. ``affected_charts`` is capped at
+    :data:`IMPACT_AFFECTED_CHARTS_CAP`; ``charts`` stays the full count so
     the consumer can render an "and N more" overflow line.
     """
     api_kind = TABLE_KIND_TO_API.get(record["entity_kind"])
@@ -276,5 +272,5 @@ def impact_for_record(
         return None
     return {
         "charts": len(charts),
-        "chart_names": charts[:IMPACT_CHART_NAMES_CAP],
+        "affected_charts": charts[:IMPACT_AFFECTED_CHARTS_CAP],
     }

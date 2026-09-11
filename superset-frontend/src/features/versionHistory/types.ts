@@ -66,7 +66,7 @@ export interface ActivityRecord {
      * optional only for responses from older backends that predate the
      * field.
      */
-    chart_names?: { id: number; name: string }[];
+    affected_charts?: { id: number; name: string }[];
   } | null;
   /**
    * True only on records whose transaction is the entity's first tracked

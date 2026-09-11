@@ -155,7 +155,7 @@ export default function RelatedUpdateRow({
   // The "Dataset used by N charts updated" phrasing summarizes siblings the
   // row cannot name inline; the impact payload carries them for the hover
   // detail (sc-119775), mirroring the rolled-up-names tooltip above.
-  const impactCharts = record.impact?.chart_names ?? [];
+  const impactCharts = record.impact?.affected_charts ?? [];
   // The server caps the named refs while `charts` keeps the full count;
   // surface the difference as an overflow line.
   const impactOverflow = (record.impact?.charts ?? 0) - impactCharts.length;

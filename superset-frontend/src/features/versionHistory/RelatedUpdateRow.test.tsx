@@ -41,7 +41,7 @@ const baseRecord: ActivityRecord = {
   summary: 'Dataset updated: Sales Transactions',
   impact: {
     charts: 2,
-    chart_names: [
+    affected_charts: [
       { id: 11, name: 'Alpha chart' },
       { id: 12, name: 'Beta chart' },
     ],
@@ -66,7 +66,7 @@ test('an impact chart with an empty name renders as Untitled in the tooltip', as
     ...baseRecord,
     impact: {
       charts: 2,
-      chart_names: [
+      affected_charts: [
         { id: 11, name: '' },
         { id: 12, name: 'Beta chart' },
       ],
@@ -85,7 +85,7 @@ test('a capped impact list shows an overflow line for the remaining charts', asy
     ...baseRecord,
     impact: {
       charts: 5,
-      chart_names: [
+      affected_charts: [
         { id: 11, name: 'Alpha chart' },
         { id: 12, name: 'Beta chart' },
         { id: 13, name: 'Gamma chart' },
@@ -106,7 +106,7 @@ test('a single-chart impact still offers the names tooltip (pinned decision)', a
   // still information the row cannot show inline.
   const record: ActivityRecord = {
     ...baseRecord,
-    impact: { charts: 1, chart_names: [{ id: 11, name: 'Alpha chart' }] },
+    impact: { charts: 1, affected_charts: [{ id: 11, name: 'Alpha chart' }] },
   };
   render(<RelatedUpdateRow record={record} />);
 

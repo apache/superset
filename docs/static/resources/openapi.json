@@ -205,8 +205,8 @@
       },
       "ActivityImpact": {
         "properties": {
-          "chart_names": {
-            "description": "The affected sibling charts (id + name), sorted by name \u2014 the detail behind the ``charts`` count, rendered as the rollup entry's hover tooltip. Capped at 50 entries; ``charts`` always carries the full count.",
+          "affected_charts": {
+            "description": "The affected sibling charts (id + name), sorted by name \u2014 the detail behind the ``charts`` count, rendered as the rollup entry's hover tooltip. Capped at 50 entries per record; ``charts`` always carries the full count.",
             "items": {
               "$ref": "#/components/schemas/ActivityImpactChart"
             },
