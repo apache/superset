@@ -1692,6 +1692,12 @@ def _annotation_layers_modified(
     access check, so a guest injecting a layer the chart was not saved with
     would read data that was never shared with them. Replaying the chart's
     own stored layers is not tampering.
+
+    Authorization is checked against the chart's current ``params`` only,
+    not the cached ``stored_query_context``: a params-only chart update (see
+    ``is_query_context_update``) can remove a layer from ``params`` without
+    refreshing the stored query context, and a layer that only survives in
+    that stale snapshot is no longer something the chart is saved with.
     """
     requested: set[Optional[tuple[str, str]]] = {
         _annotation_layer_identity(layer)
@@ -1713,12 +1719,6 @@ def _annotation_layers_modified(
         _annotation_layer_identity(layer)
         for layer in stored_chart.params_dict.get("annotation_layers") or []
     }
-    if stored_query_context:
-        for query in stored_query_context.get("queries") or []:
-            stored.update(
-                _annotation_layer_identity(layer)
-                for layer in query.get("annotation_layers") or []
-            )
     return not requested.issubset(stored)
 
 
