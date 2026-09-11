@@ -245,7 +245,7 @@ def test_update_chart_query_context_without_datasource_is_allowed(
     ).validate()
 
 
-@pytest.mark.parametrize("datasource_type", ["saved_query", "query"])
+@pytest.mark.parametrize("datasource_type", ["saved_query", "query", "bogus"])
 def test_update_chart_rejects_repointing_to_non_table_datasource(
     mocker: MockerFixture, datasource_type: str
 ) -> None:
@@ -278,6 +278,42 @@ def test_update_chart_rejects_repointing_to_non_table_datasource(
         isinstance(ex, DatasourceTypeInvalidError) for ex in exc_info.value._exceptions
     )
     get_datasource_by_id.assert_not_called()
+
+
+def test_update_chart_accepts_semantic_view_datasource(
+    mocker: MockerFixture,
+) -> None:
+    """Repointing a chart at a SIP-182 semantic view must be accepted: the
+    view is a first-class resolvable datasource (Slice resolves it through
+    the type-guarded ``semantic_view`` relationship), so the non-table guard
+    must explicitly allow it (apache/superset#44167)."""
+    from superset.semantic_layers.models import SemanticView
+
+    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    find_by_id.return_value = mocker.MagicMock(id=1, tags=[], dashboards=[])
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    datasource = mocker.MagicMock(spec=SemanticView)
+    datasource.name = "my_semantic_view"
+    get_datasource_by_id = mocker.patch(
+        "superset.commands.chart.update.get_datasource_by_id",
+        return_value=datasource,
+    )
+    raise_for_access = mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_access"
+    )
+
+    cmd = UpdateChartCommand(
+        1, {"datasource_id": 11, "datasource_type": "semantic_view"}
+    )
+    cmd.validate()
+
+    get_datasource_by_id.assert_called_once_with(11, "semantic_view")
+    raise_for_access.assert_called_once_with(datasource=datasource)
+    assert cmd._properties["datasource_name"] == "my_semantic_view"
 
 
 def test_update_chart_missing_datasource_type_keeps_required_error(
@@ -313,7 +349,7 @@ def test_update_chart_missing_datasource_type_keeps_required_error(
     get_datasource_by_id.assert_not_called()
 
 
-@pytest.mark.parametrize("datasource_type", ["saved_query", "query"])
+@pytest.mark.parametrize("datasource_type", ["saved_query", "query", "bogus"])
 def test_update_chart_rejects_type_only_non_table_datasource(
     mocker: MockerFixture, datasource_type: str
 ) -> None:

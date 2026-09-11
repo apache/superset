@@ -236,7 +236,10 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
                 # below (SavedQuery/Query have no ``.name`` attribute, so
                 # accessing it raises an unhandled AttributeError) or
                 # silently.
-                if datasource_type != DatasourceType.TABLE:
+                if datasource_type not in {
+                    DatasourceType.TABLE,
+                    DatasourceType.SEMANTIC_VIEW,
+                }:
                     raise DatasourceTypeInvalidError()
                 if datasource_id is not None:
                     datasource = get_datasource_by_id(datasource_id, datasource_type)
