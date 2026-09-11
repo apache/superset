@@ -40,7 +40,7 @@ jobs:
           ref: master
 
       - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
+        uses: $/.github/actions/setup-supersetbot/
 
       - name: Set up Python ${{ inputs.python-version }}
         uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0

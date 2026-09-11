@@ -2487,8 +2487,15 @@ class TestDatabaseApi(SupersetTestCase):
         }
         assert response == expected_response
 
+        # Uses a `dialect+driver://` URI (rather than the bare `broken://`
+        # above) to also cover engine-name extraction stripping the driver
+        # suffix. The dialect itself ("broken") must stay one that no
+        # installed extra ever registers a real SQLAlchemy plugin for --
+        # this PR's own testcontainers extras (mssql, oracle, db2, ...)
+        # install real drivers for those dialects, which would make this
+        # URI actually attempt a connection instead of failing to load.
         data = {
-            "sqlalchemy_uri": "mssql+pymssql://url",
+            "sqlalchemy_uri": "broken+driver://url",
             "database_name": "examples",
             "impersonate_user": False,
             "server_cert": None,
@@ -2500,7 +2507,7 @@ class TestDatabaseApi(SupersetTestCase):
         expected_response = {
             "errors": [
                 {
-                    "message": "Could not load database driver for: mssql",
+                    "message": "Could not load database driver for: broken",
                     "error_type": "GENERIC_COMMAND_ERROR",
                     "level": "warning",
                     "extra": {
