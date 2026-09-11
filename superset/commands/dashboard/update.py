@@ -23,6 +23,7 @@ from typing import Any, Optional
 from flask import current_app
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
+from sqlalchemy.exc import IntegrityError
 
 from superset import db, security_manager
 from superset.commands.base import BaseCommand, UpdateMixin
@@ -35,6 +36,9 @@ from superset.commands.dashboard.exceptions import (
     DashboardNotFoundError,
     DashboardSlugExistsValidationError,
     DashboardUpdateFailedError,
+)
+from superset.commands.soft_delete_collisions import (
+    raise_for_soft_deleted_slug_collision,
 )
 from superset.commands.utils import (
     compute_subjects,
@@ -97,6 +101,15 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                 self._model,
                 {k: v for k, v in self._properties.items() if k != "json_metadata"},
             )
+            # See CreateDashboardCommand.run: translate a slug collision
+            # with a soft-deleted dashboard (full-constraint dialects) into
+            # restore guidance; anything else re-raises unchanged.
+            try:
+                db.session.flush()
+            except IntegrityError as ex:
+                db.session.rollback()
+                raise_for_soft_deleted_slug_collision(self._properties.get("slug"), ex)
+                raise
             if json_metadata:
                 DashboardDAO.set_dash_metadata(
                     dashboard,
