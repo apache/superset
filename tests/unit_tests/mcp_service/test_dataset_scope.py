@@ -335,20 +335,35 @@ async def test_scope_does_not_hide_tools_from_listing(mock_auth: Mock) -> None:
     from fastmcp import Client
 
     from superset.mcp_service.app import mcp
+    from superset.mcp_service.server import build_middleware_list
 
-    with patch(
-        "superset.mcp_service.dataset_scope.get_dataset_scope",
-        return_value=frozenset({FIRST}),
-    ):
-        async with Client(mcp) as client:
-            listed = {tool.name for tool in await client.list_tools()}
-            assert "execute_sql" in listed
-            assert SCOPED_TOOLS <= listed
+    original_middleware = list(mcp.middleware)
+    for middleware in build_middleware_list():
+        mcp.add_middleware(middleware)
 
-            with pytest.raises(ToolError, match="No query was run"):
-                await client.call_tool(
-                    "execute_sql", {"request": {"database_id": 1, "sql": "SELECT 1"}}
-                )
+    try:
+        with (
+            patch(
+                "superset.mcp_service.dataset_scope.get_dataset_scope",
+                return_value=frozenset({FIRST}),
+            ),
+            patch(
+                "superset.mcp_service.middleware.get_user_from_request",
+                return_value=mock_auth.return_value,
+            ),
+        ):
+            async with Client(mcp) as client:
+                listed = {tool.name for tool in await client.list_tools()}
+                assert "execute_sql" in listed
+                assert SCOPED_TOOLS <= listed
+
+                with pytest.raises(ToolError, match="No query was run"):
+                    await client.call_tool(
+                        "execute_sql",
+                        {"request": {"database_id": 1, "sql": "SELECT 1"}},
+                    )
+    finally:
+        mcp.middleware[:] = original_middleware
 
 
 @pytest.mark.parametrize(
