@@ -26,6 +26,15 @@ SQLite is skipped: a second writer connection deadlocks against the open
 read transaction instead of modelling a concurrent request. The
 dialect-independent statement-shape pin lives in
 tests/unit_tests/versioning/test_lock_entity.py.
+
+Isolation note: the CI MySQL lane runs InnoDB's default REPEATABLE READ
+-- no ``isolation_level`` is configured in the test configs, and the
+app's READ COMMITTED defaulter (``set_db_default_isolation``) does not
+take effect -- so on that lane dropping ``with_for_update()`` also flips
+the interleave test at the row level (the plain re-read serves the stale
+snapshot). If the isolation default is ever made effective, that extra
+flip disappears and the unit shape pin remains the load-bearing guard,
+as designed.
 """
 
 import gc
