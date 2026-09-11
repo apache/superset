@@ -32,7 +32,7 @@ from superset.commands.exceptions import ImportFailedError
 from superset.constants import PASSWORD_MASK
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
+from superset.db_engine_specs.exceptions import SupersetDBAPIError
 from superset.exceptions import (
     OAuth2RedirectError,
     SupersetSecurityException,
@@ -96,6 +96,21 @@ def _refuse_stored_secret_reuse(existing: Database, config: dict[str, Any]) -> N
         )
 
 
+def _sync_permissions_best_effort(database: Database) -> None:
+    """
+    Sync catalog/schema permissions for ``database``, tolerating a transient
+    or OAuth2 failure rather than letting it fail the import.
+    """
+    try:
+        add_permissions(database)
+    except (SupersetDBAPIError, OAuth2RedirectError) as ex:
+        # ``add_permissions()`` calls ``get_all_catalog_names()`` outside of
+        # its own per-catalog error handling, so any DBAPI error mapped from
+        # that initial catalog discovery -- not just a connection failure --
+        # must be tolerated here too, or it fails the whole import.
+        logger.warning(ex.message)
+
+
 def import_database(  # noqa: C901
     config: dict[str, Any],
     overwrite: bool = False,
@@ -108,6 +123,15 @@ def import_database(  # noqa: C901
     existing = db.session.query(Database).filter_by(uuid=config["uuid"]).first()
     if existing:
         if not overwrite or not can_write:
+            if can_write:
+                # Chart/dataset/saved-query/dashboard bundles that reference
+                # an already-imported database reach this branch; without
+                # this, a schema added to the live connection since the
+                # database was first imported would never get a first-time
+                # grant through this path either. ``add_permissions()`` does
+                # a live, uncached metadata scan, so this can be slow for
+                # cross-catalog-enabled engines -- see its own comment.
+                _sync_permissions_best_effort(existing)
             return existing
         config["id"] = existing.id
         # Stored secrets must not be rebound to a different endpoint: without
@@ -184,9 +208,6 @@ def import_database(  # noqa: C901
             recursive=False,
         )
 
-    try:
-        add_permissions(database)
-    except (SupersetDBAPIConnectionError, OAuth2RedirectError) as ex:
-        logger.warning(ex.message)
+    _sync_permissions_best_effort(database)
 
     return database

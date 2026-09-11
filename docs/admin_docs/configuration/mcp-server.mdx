@@ -954,7 +954,11 @@ Specifying a tool name that does not exist logs a warning at startup and is othe
 
 ## Disabling chart type plugins
 
-The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `pivot_table`, `mixed_timeseries`, `handlebars`, `big_number`, `histogram`, `box_plot`, `waterfall`) to a registered chart type plugin. Two settings let operators enable or disable individual chart type plugins at runtime, without a code deploy.
+The `generate_chart` tool dispatches per chart type (`xy`, `table`, `pie`, `gauge`, `pivot_table`, `interactive_pivot`, `mixed_timeseries`, `handlebars`, `big_number`, `histogram`, `box_plot`, `waterfall`) to a registered chart type plugin. Gauge requests use the public MCP discriminator `chart_type: "gauge"`; Superset stores the corresponding native Explore visualization as `viz_type: "gauge_chart"`. Two settings let operators enable or disable individual chart type plugins at runtime, without a code deploy.
+
+Gauge data inspection and JSON/CSV/XLSX exports preserve source groups, including NULL and non-finite metric values, using the same row-count and completeness semantics as other chart types. The default XLSX exporter writes non-finite floats as `nan`, `inf`, or `-inf` text, matching CSV and distinguishing them from blank NULL cells. Only previews and compile checks skip NULL, NaN, non-finite, and other nonnumeric dial values while preserving finite groups. In preview/compile paths, a nonempty result containing no finite dial returns an error; genuinely empty results retain the no-data behavior. Compile checks inspect the configured dial limit (at most 10), rather than only two groups. Grouped Vega previews center each needle within its own facet and extend it to the midpoint of the dial band. Automatic all-zero ranges span 0–1. Empty or whitespace-only temporal ranges, like `No filter`, are neutral sentinels; missing or non-string native temporal comparators are invalid.
+
+Gauge previews retain data-derived automatic bounds even when configured interval thresholds extend beyond the visible range; Vega previews clip those thresholds into adjacent, non-overlapping bands. Explicit min/max bounds still constrain intervals. All-zero data with both bounds omitted uses a nondegenerate preview range of 0–1. On same-dataset Gauge updates, clearing or changing the dashboard temporal binding preserves user-authored temporal ranges; dataset rebinds discard old query roles and filters. The native `"No filter"` sentinel is a neutral dashboard temporal binding, not a conflicting restriction. Duplicate generated neutral bindings self-heal on updates without removing user-authored ranges. Restating the existing dataset ID without a config is allowed; changing the Gauge dataset still requires a complete config. Native restrictive temporal filters that conflict with the top-level range or another restrictive temporal filter are rejected rather than silently dropped. Unsupported native filter operators are rejected with an indexed error. Native `TEMPORAL_RANGE` adhoc filters require an explicit string comparator; `"No filter"`, empty strings, and whitespace represent an unrestricted range.
 
 ### Static deny-list
 
@@ -1003,3 +1007,56 @@ The callable must be cheap and in-process (consult already-loaded feature flags 
 - **[MCP Integration](/developer-docs/extensions/mcp)** -- Build custom MCP tools and prompts via Superset extensions
 - **[Security](/developer-docs/extensions/security)** -- Security best practices for extensions
 - **[Deployment](/developer-docs/extensions/deployment)** -- Package and deploy Superset extensions
+
+### Reporting query dates
+
+`query_dataset` and `get_table` return `from_dttm` (inclusive) and `to_dttm`
+(exclusive): the primary time boundaries from the query engine's result payload,
+including cached and empty results. Callers should quote these ISO 8601 values
+when explaining the numbers, rather than calculate dates from the request again.
+For example, `previous calendar month` evaluated on July 17, 2026 resolves to
+`2026-06-01T00:00:00` through, but not including, `2026-07-01T00:00:00`.
+`Last month` is a rolling month, not the previous calendar month.
+
+On a cache hit, these bounds reflect the current request, not necessarily the
+original cached execution. A cached result can outlive a relative-range rollover;
+check `cache_status.cache_hit` before describing the bounds as execution dates.
+
+Relative expressions use Superset's server clock and configured
+`DEFAULT_RELATIVE_START_TIME` / `DEFAULT_RELATIVE_END_TIME` (both default to
+`today`, meaning midnight). Valid explicit dates are used as supplied; the server
+cannot determine whether a model intended a different year.
+
+These fields describe the engine's **primary logical range**, not the observed
+minimum/maximum dates in the rows or every SQL predicate. A null boundary means
+no primary bound is available; it does not prove the absence of other filters.
+Additional column filters and virtual dataset SQL can further constrain the
+data. MCP validation rejects open-ended `time_range` strings such as
+`"2025-01-01 : "` or `" : 2025-02-01"` before execution; use explicit comparison
+filters for one-sided constraints. Those comparisons are not primary bounds. Naive
+boundaries are not labeled UTC: dataset timezone or legacy hour-offset settings
+can adjust the SQL comparisons. Use the applied filters and datasource settings
+as well when explaining such queries. `query_dataset.applied_filters` retains the
+original expressions so callers can compare the requested and resolved ranges.
+
+## Dataset query dimensions and nested fields
+
+The `query_dataset` tool accepts exact column names registered on the selected
+Superset dataset. Use `get_dataset_info` with the same `dataset_id` to discover
+those names; a column available on one dataset may not exist on another.
+
+A dotted name such as `address.city.name` can be used as a GROUP BY
+column when that exact name is registered. Registering only the parent
+`address` column does not register its nested fields. If a field is missing,
+refresh the dataset columns when the database exposes nested-field metadata,
+or add a calculated column with the warehouse-appropriate field-access
+expression and query its registered name. For ad-hoc expressions, use
+`execute_sql` instead.
+
+Unknown dimensions return the selected dataset's name and ID, up to ten
+available column names, and a pointer to `get_dataset_info` for the full list.
+Unregistered dotted dimensions also include shared nested-field setup guidance
+once, even when multiple dimensions are missing.
+The tool does not rewrite dots into SQL path separators: quoting and nested-field
+support depend on the dataset's database dialect, and dots can also be literal
+characters in column names.
