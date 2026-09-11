@@ -19,6 +19,8 @@
 
 import math
 from collections.abc import Mapping
+from decimal import Decimal
+from numbers import Real
 from typing import Any
 
 from superset.mcp_service.chart.schemas import ChartError
@@ -281,8 +283,12 @@ def _validate_treemap_rows(
         try:
             valid = (
                 not isinstance(value, bool)
-                and isinstance(value, (int, float))
-                and math.isfinite(value)
+                and isinstance(value, (Real, Decimal))
+                and (
+                    value.is_finite()
+                    if isinstance(value, Decimal)
+                    else math.isfinite(value)
+                )
             )
         except (OverflowError, ValueError):
             valid = False

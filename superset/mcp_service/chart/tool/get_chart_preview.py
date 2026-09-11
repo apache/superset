@@ -183,7 +183,14 @@ def _no_query_fields_error(chart: ChartLike) -> ChartError:
 
 
 def _preview_row_limit(form_data: dict[str, Any], fallback: int) -> int:
-    """Keep Gauge preview cardinality aligned with its frontend row limit."""
+    """Keep single-metric previews aligned with their frontend row limits."""
+    if form_data.get("viz_type") == "treemap_v2":
+        value = form_data.get("row_limit", 100)
+        try:
+            limit = int(value)
+        except (TypeError, ValueError, OverflowError):
+            limit = 100
+        return limit if 1 <= limit <= 10000 else 100
     if form_data.get("viz_type") != "gauge_chart":
         return fallback
     value = form_data.get("row_limit", 10)

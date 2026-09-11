@@ -1930,6 +1930,8 @@ class TestSavedChartExtraFormDataFilters:
         has_finite: bool,
     ) -> None:
         """Treemap validates hierarchy metrics on saved and cached export paths."""
+        from decimal import Decimal
+
         module = importlib.import_module(
             "superset.mcp_service.chart.tool.get_chart_data"
         )
@@ -1973,7 +1975,7 @@ class TestSavedChartExtraFormDataFilters:
             )
 
         rows: list[dict[str, Any]] = [
-            {"team": "Blue", "saved_sla": 42 if has_finite else None}
+            {"team": "Blue", "saved_sla": Decimal("42") if has_finite else None}
         ]
         source_rowcount = len(rows) + 7
         payload = {

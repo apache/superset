@@ -716,8 +716,19 @@ def _merge_treemap_filters(
 ) -> None:
     """Separate explicit filter/temporal changes from mapper-generated defaults."""
     fields = config.model_fields_set
-    if "temporal_column" not in fields:
+    if "temporal_column" in fields and config.temporal_column is None:
+        patch["adhoc_filters"] = _without_generated_gauge_time_filter(patch)
         patch.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+    if dataset_rebind:
+        return
+    if "temporal_column" not in fields:
+        # Discard the mapper's default binding before removing its provenance.
+        patch["adhoc_filters"] = _without_generated_gauge_time_filter(patch)
+        patch.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
+        if "filters" in fields and config.filters:
+            if subject := existing.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT):
+                patch[MCP_DASHBOARD_TIME_FILTER_SUBJECT] = subject
+            preserve_previous_adhoc_filters(patch, existing)
     if "filters" not in fields:
         if "temporal_column" in fields:
             inherited = (
@@ -1387,7 +1398,7 @@ def map_treemap_config(config: TreemapChartConfig) -> Dict[str, Any]:
         value = getattr(config, key)
         if value is not None:
             form_data[key] = (
-                value.model_dump() if hasattr(value, "model_dump") else value
+                value.to_form_data() if isinstance(value, CurrencyFormat) else value
             )
     _add_adhoc_filters(form_data, config.filters)
     return form_data

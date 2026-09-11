@@ -1064,6 +1064,15 @@ characters in column names.
 
 ### Treemap charts
 
+Saved and cached previews honor the configured Treemap row limit across ASCII,
+table, and Vega representations. SQL Decimal metrics are accepted when finite;
+booleans and nonfinite values are rejected. Categories with identical display
+names but distinct raw types retain separate geometry groups. Currency settings
+use the native `symbolPosition` property. Adding filters while omitting the
+temporal column preserves saved predicates and the existing neutral time binding;
+explicit empty filters or a cleared temporal column remove those controls.
+
+
 Use `chart_type: "treemap_v2"` with an ordered `groupby` hierarchy and one
 `metric`. Hierarchy columns accept typed references (`{"name": "region"}`)
 or native strings. Metrics accept typed column references with an aggregate,

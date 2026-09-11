@@ -19,6 +19,7 @@
 
 from contextlib import nullcontext
 from copy import deepcopy
+from decimal import Decimal
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import Mock, patch
@@ -444,6 +445,7 @@ async def test_registered_generate_chart_native_roundtrip(
             "chart_type": "treemap_v2",
             "groupby": ["region", "product"],
             "metric": metric,
+            "currency_format": {"symbol": "USD", "symbolPosition": "suffix"},
         },
         preview_formats=["url"],
     )
@@ -487,6 +489,10 @@ async def test_registered_generate_chart_native_roundtrip(
                             "viz_type": "treemap_v2",
                             "groupby": ["region", "product"],
                             "metric": metric,
+                            "currency_format": {
+                                "symbol": "USD",
+                                "symbolPosition": "suffix",
+                            },
                         },
                         "preview_formats": ["url"],
                     }
@@ -495,6 +501,10 @@ async def test_registered_generate_chart_native_roundtrip(
     data = result.structured_content
     assert data["success"] is valid_result
     if valid_result:
+        assert data["form_data"]["currency_format"] == {
+            "symbol": "USD",
+            "symbolPosition": "suffix",
+        }
         assert data["form_data"]["groupby"] == ["region", "product"]
         assert data["form_data"]["viz_type"] == "treemap_v2"
     else:
@@ -571,10 +581,11 @@ const vega = require('vega');
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("saved", [False, True])
+@pytest.mark.parametrize("source", ["saved", "cached_saved", "cached_unsaved"])
+@pytest.mark.parametrize("row_limit", [1, 7])
 @pytest.mark.parametrize("format_name", ["ascii", "table", "vega_lite"])
 async def test_registered_cached_preview_is_treemap(
-    saved: bool, format_name: str
+    source: str, row_limit: int, format_name: str
 ) -> None:
     """Cached state overrides saved viz and uses identical Treemap dispatch."""
     import importlib
@@ -586,15 +597,20 @@ async def test_registered_cached_preview_is_treemap(
     module = importlib.import_module(
         "superset.mcp_service.chart.tool.get_chart_preview"
     )
-    form = {**FORM_DATA, "currency_format": None}
+    form = {**FORM_DATA, "currency_format": None, "row_limit": row_limit}
     chart = SimpleNamespace(
         id=1,
-        viz_type="table",
+        viz_type="treemap_v2" if source == "saved" else "table",
         slice_name="Chart",
         datasource_id=7,
         datasource_type="table",
-        params=json.dumps({"viz_type": "table"}),
+        params=json.dumps(form if source == "saved" else {"viz_type": "table"}),
     )
+    rows = [
+        {**row, "revenue": Decimal(str(row["revenue"]))} for row in ROWS[:row_limit]
+    ]
+    if row_limit == 7:
+        rows[0]["region"], rows[1]["region"] = 1, "1"
     context = SimpleNamespace(
         queries=[SimpleNamespace(metrics=["revenue"], columns=form["groupby"])]
     )
@@ -617,7 +633,7 @@ async def test_registered_cached_preview_is_treemap(
         ),
         patch.object(
             module, "build_query_context_from_form_data", return_value=context
-        ),
+        ) as build_context,
         patch(
             "superset.commands.explore.form_data.get.GetFormDataCommand.run",
             return_value=json.dumps(form),
@@ -626,20 +642,34 @@ async def test_registered_cached_preview_is_treemap(
             "superset.commands.chart.data.get_data_command.ChartDataCommand"
         ) as command,
     ):
-        command.return_value.run.return_value = {"queries": [{"data": ROWS}]}
-        request = {"form_data_key": "treemap-key", "format": format_name}
-        if saved:
+        command.return_value.run.return_value = {"queries": [{"data": rows}]}
+        request = {"format": format_name}
+        if source != "saved":
+            request["form_data_key"] = "treemap-key"
+        if source != "cached_unsaved":
             request["identifier"] = "1"
         async with Client(mcp) as client:
             result = await client.call_tool("get_chart_preview", {"request": request})
+    assert not result.is_error
+    assert build_context.call_args.kwargs["row_limit"] == row_limit
     data = json.loads(result.content[0].text)
     assert "error_type" not in data, data
     content = data["content"]
     assert content["type"] == format_name
     if format_name == "vega_lite":
-        assert content["specification"]["layer"][0]["mark"]["type"] == "rect"
+        spec = content["specification"]
+        assert spec["layer"][0]["mark"]["type"] == "rect"
+        if row_limit == 7:
+            parents = [
+                n for n in spec["data"]["values"] if not n["leaf"] and n["name"] == "1"
+            ]
+            assert len(parents) == 2
+            assert [n["value"] for n in parents] == [30, 10]
+            assert [
+                (n["x1"] - n["x0"]) * (n["y1"] - n["y0"]) / (600 * 400) for n in parents
+            ] == pytest.approx([0.3, 0.1])
     elif format_name == "ascii":
-        assert "West > A | 30" in content["ascii_content"]
+        assert f"{rows[0]['region']} > A | 30" in content["ascii_content"]
     else:
         assert "revenue" in content["table_data"]
 
@@ -716,6 +746,7 @@ async def test_registered_update_preview_preserves_cached_controls(
                     }
                 },
             )
+    assert not result.is_error
     data = result.structured_content
     if not known_dataset:
         assert data["error"]["error_type"] == "ValidationError"
@@ -797,6 +828,10 @@ async def test_registered_saved_update_preserves_omissions(malformed: bool) -> N
             )
     data = result.structured_content
     if malformed:
+        from superset.mcp_service.chart.schemas import GenerateChartResponse
+
+        assert not result.is_error
+        assert GenerateChartResponse.model_validate(data).success is False
         assert data["success"] is False
         assert data["error"]["error_type"] == "ValidationError"
         assert data["error"]["message"] == "Invalid Treemap update configuration"
@@ -953,3 +988,187 @@ def test_treemap_mixed_type_categories_remain_separate() -> None:
     assert len(nodes) == 2
     assert [node["name"] for node in nodes] == ["1", "1"]
     assert [node["value"] for node in nodes] == [1, 3]
+
+
+@pytest.mark.parametrize(
+    "value,valid",
+    [
+        (Decimal("2.75"), True),
+        (Decimal("1E1000"), True),
+        (Decimal("NaN"), False),
+        (Decimal("sNaN"), False),
+        (Decimal("Infinity"), False),
+        (Decimal("-Infinity"), False),
+        (True, False),
+        ("2.75", False),
+    ],
+)
+def test_decimal_result_contract(value: Any, valid: bool) -> None:
+    """SQL numeric values remain numeric; nonfinite and coercible strings do not."""
+    rows = [{**ROWS[0], "revenue": value}]
+    result = {"queries": [{"data": rows}]}
+    checked = normalize_chart_query_result(result, FORM_DATA)
+    assert isinstance(checked, ChartError) is not valid
+    if valid:
+        assert checked is result
+        assert rows[0]["revenue"] is value
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("save", [False, True])
+@pytest.mark.parametrize("control", ["filters", "empty", "change_time", "clear_time"])
+async def test_registered_filter_update_keeps_saved_temporal_binding(
+    save: bool,
+    control: str,
+) -> None:
+    """Exercise real mapping/binding/merge through both registered update entries."""
+    import importlib
+
+    from fastmcp import Client
+
+    from superset.mcp_service.app import mcp
+    from superset.mcp_service.chart.chart_utils import MCP_DASHBOARD_TIME_FILTER_SUBJECT
+    from superset.mcp_service.chart.compile import CompileResult
+
+    saved_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.update_chart"
+    )
+    preview_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.update_chart_preview"
+    )
+    dataset = Mock(
+        id=7,
+        table_name="sales",
+        schema=None,
+        columns=[],
+        metrics=[],
+        main_dttm_col="default_time",
+    )
+    existing = {
+        **FORM_DATA,
+        "granularity_sqla": None,
+        MCP_DASHBOARD_TIME_FILTER_SUBJECT: "saved_time",
+        "adhoc_filters": [
+            *FORM_DATA["adhoc_filters"],
+            {
+                "expressionType": "SIMPLE",
+                "clause": "WHERE",
+                "subject": "saved_time",
+                "operator": "TEMPORAL_RANGE",
+                "comparator": "No filter",
+            },
+        ],
+    }
+    config: dict[str, Any] = {
+        "chart_type": "treemap_v2",
+        "currency_format": {"symbol": "USD", "symbolPosition": "suffix"},
+    }
+    if control in ("filters", "empty"):
+        config["filters"] = (
+            [{"column": "product", "op": "=", "value": "A"}]
+            if control == "filters"
+            else []
+        )
+    else:
+        config["temporal_column"] = "new_time" if control == "change_time" else None
+    chart = Mock(
+        id=1,
+        datasource_id=7,
+        slice_name="Treemap",
+        viz_type="treemap_v2",
+        uuid="11111111-1111-1111-1111-111111111111",
+        params=json.dumps(existing),
+    )
+    with (
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        ),
+        patch.object(saved_module, "find_chart_by_identifier", return_value=chart),
+        patch(
+            "superset.mcp_service.auth.check_chart_data_access",
+            return_value=Mock(is_valid=True),
+        ),
+        patch.object(preview_module, "_find_dataset", return_value=dataset),
+        patch.object(preview_module, "_get_previous_form_data", return_value=existing),
+        patch.object(preview_module, "has_dataset_access", return_value=True),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch(
+            "superset.mcp_service.chart.chart_utils._find_dataset_by_id_or_uuid",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils._is_temporal_for_dashboard_binding",
+            return_value=True,
+        ),
+        patch(
+            "superset.mcp_service.chart.validation.dataset_validator.DatasetValidator.normalize_column_names",
+            side_effect=lambda value, *args, **kwargs: value,
+        ),
+        patch.object(
+            saved_module, "_validate_update_against_dataset", return_value=None
+        ),
+        patch.object(
+            preview_module,
+            "validate_and_compile",
+            return_value=CompileResult(success=True),
+        ),
+        patch.object(
+            preview_module,
+            "generate_explore_link",
+            return_value="http://localhost/explore/?form_data_key=updated",
+        ) as cache,
+        patch("superset.commands.chart.update.UpdateChartCommand") as update,
+        patch("superset.db.session"),
+    ):
+        update.return_value.run.return_value = chart
+        request: dict[str, Any] = {"config": config, "generate_preview": False}
+        if save:
+            request.update(identifier=1, preview_formats=[])
+        else:
+            request.update(dataset_id=7, form_data_key="previous")
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "update_chart" if save else "update_chart_preview",
+                {"request": request},
+            )
+    assert not result.is_error
+    data = result.structured_content
+    assert data["success"] is True, data
+    merged = (
+        json.loads(update.call_args.args[1]["params"])
+        if save
+        else cache.call_args.args[1]
+    )
+    filters = merged.get("adhoc_filters", [])
+    if control == "empty":
+        assert not filters
+        assert MCP_DASHBOARD_TIME_FILTER_SUBJECT not in merged
+    else:
+        for predicate in FORM_DATA["adhoc_filters"]:
+            assert predicate in filters
+        if control == "clear_time":
+            assert MCP_DASHBOARD_TIME_FILTER_SUBJECT not in merged
+        else:
+            subject = "saved_time" if control == "filters" else "new_time"
+            assert merged[MCP_DASHBOARD_TIME_FILTER_SUBJECT] == subject
+            temporal = [f for f in filters if f["operator"] == "TEMPORAL_RANGE"]
+            assert len(temporal) == 1
+            assert temporal[0]["subject"] == subject
+            assert temporal[0]["comparator"] == "No filter"
+        assert not any(f["subject"] == "default_time" for f in filters)
+        if control == "filters":
+            assert any(
+                f["subject"] == "product" and f["comparator"] == "A" for f in filters
+            )
+    assert merged["currency_format"] == {"symbol": "USD", "symbolPosition": "suffix"}
+
+
+def test_resolution_validation_error_is_caught_value_error() -> None:
+    """Use the installed Pydantic type, rather than assuming its inheritance."""
+    request = UpdateChartPreviewRequest(
+        dataset_id=7, config={"chart_type": "treemap_v2", "show_labels": True}
+    )
+    with pytest.raises(ValidationError) as caught:
+        resolve_treemap_update_config(request.config, {})
+    assert isinstance(caught.value, ValueError)
