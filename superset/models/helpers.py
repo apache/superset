@@ -4405,7 +4405,26 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         col = sa.column(column.get("column_name"), type_=type_)
 
         if template_processor:
-            expression = template_processor.process_template(column["column_name"])
+            try:
+                expression = template_processor.process_template(column["column_name"])
+            except UndefinedError as ex:
+                raise QueryObjectValidationError(
+                    _(
+                        "Time column template error: %(msg)s",
+                        msg=str(ex),
+                    )
+                ) from ex
+            except (TemplateError, SupersetSyntaxErrorException) as ex:
+                if isinstance(ex, TemplateError):
+                    error_msg = ex.message
+                else:
+                    error_msg = str(ex.errors[0].message if ex.errors else ex)
+                raise QueryObjectValidationError(
+                    _(
+                        "Error while rendering time column expression: %(msg)s",
+                        msg=error_msg,
+                    )
+                ) from ex
             expression = self._validate_stored_expression(expression)
             col = sa.literal_column(expression, type_=type_)
 
@@ -4426,7 +4445,27 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         type_ = column_spec.sqla_type if column_spec else None
         if expression := tbl_column.expression:
             if template_processor:
-                expression = template_processor.process_template(expression)
+                try:
+                    expression = template_processor.process_template(expression)
+                except UndefinedError as ex:
+                    raise QueryObjectValidationError(
+                        _(
+                            "Calculated column template error: %(msg)s",
+                            msg=str(ex),
+                        )
+                    ) from ex
+                except (TemplateError, SupersetSyntaxErrorException) as ex:
+                    if isinstance(ex, TemplateError):
+                        error_msg = ex.message
+                    else:
+                        error_msg = str(ex.errors[0].message if ex.errors else ex)
+                    raise QueryObjectValidationError(
+                        _(
+                            "Error while rendering calculated column "
+                            "expression: %(msg)s",
+                            msg=error_msg,
+                        )
+                    ) from ex
                 if expression != tbl_column.expression:
                     # Re-check the rendered expression before embedding it.
                     expression = validate_rendered_expression(
