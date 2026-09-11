@@ -21,6 +21,7 @@ Unit tests for dashboard schema serialization.
 Tests that serialize_dashboard_object correctly handles slug and other fields.
 """
 
+from copy import deepcopy
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -42,6 +43,8 @@ from superset.mcp_service.dashboard.schemas import (
     ListDashboardsRequest,
     ManageDashboardOwnersResponse,
     ManageDashboardRolesResponse,
+    NativeFilterSummary,
+    redact_filter_state_data_model_metadata,
     serialize_chart_summary,
     serialize_dashboard_object,
     UpdateDashboardRequest,
@@ -1066,13 +1069,6 @@ class TestRequestSchemaAliasChoices:
 )
 def test_native_filter_value_projection(filter_type: str, value: Any) -> None:
     """Keep display values without copying arbitrary state or query metadata."""
-    from copy import deepcopy
-
-    from superset.mcp_service.dashboard.schemas import (
-        NativeFilterSummary,
-        redact_filter_state_data_model_metadata,
-    )
-
     raw = {
         "dataMask": {
             "f1": {
@@ -1131,11 +1127,6 @@ def test_native_filter_value_projection_fails_closed(
     entry: Any,
 ) -> None:
     """Unsupported or malformed values are omitted and incompleteness is explicit."""
-    from superset.mcp_service.dashboard.schemas import (
-        NativeFilterSummary,
-        redact_filter_state_data_model_metadata,
-    )
-
     result = redact_filter_state_data_model_metadata(
         {"dataMask": {"f1": entry, "unknown": {"filterState": {"value": "secret"}}}},
         [NativeFilterSummary(id="f1", name="Filter", filter_type=filter_type)],
@@ -1147,10 +1138,6 @@ def test_native_filter_value_projection_fails_closed(
 @pytest.mark.parametrize("mask", [None, [], "invalid", {}])
 def test_native_filter_value_projection_empty_or_malformed_mask(mask: Any) -> None:
     """Distinguish an empty mask from malformed input without raising."""
-    from superset.mcp_service.dashboard.schemas import (
-        redact_filter_state_data_model_metadata,
-    )
-
     result = redact_filter_state_data_model_metadata({"dataMask": mask}, [])
     assert result["native_filter_values"] == []
     assert result["native_filter_values_incomplete"] is (mask != {})
@@ -1165,11 +1152,6 @@ def test_native_filter_value_projection_empty_or_malformed_mask(mask: Any) -> No
 )
 def test_native_filter_special_predicates_are_incomplete(extra: dict[str, Any]) -> None:
     """Selections alone cannot express SQL or wildcard matching semantics."""
-    from superset.mcp_service.dashboard.schemas import (
-        NativeFilterSummary,
-        redact_filter_state_data_model_metadata,
-    )
-
     result = redact_filter_state_data_model_metadata(
         {
             "dataMask": {
@@ -1218,11 +1200,6 @@ def test_native_filter_type_specific_value_shapes(
     filter_type: str, value: Any, valid: bool
 ) -> None:
     """Omit incompatible values rather than guessing their filter semantics."""
-    from superset.mcp_service.dashboard.schemas import (
-        NativeFilterSummary,
-        redact_filter_state_data_model_metadata,
-    )
-
     result = redact_filter_state_data_model_metadata(
         {"dataMask": {"f1": {"filterState": {"value": value}}}},
         [NativeFilterSummary(id="f1", name="Filter", filter_type=filter_type)],
@@ -1236,11 +1213,6 @@ def test_native_filter_type_specific_value_shapes(
 @pytest.mark.parametrize("extra", [None, [], "invalid"])
 def test_native_filter_malformed_extra_form_data(extra: Any) -> None:
     """Do not project values when the mask's query metadata is malformed."""
-    from superset.mcp_service.dashboard.schemas import (
-        NativeFilterSummary,
-        redact_filter_state_data_model_metadata,
-    )
-
     result = redact_filter_state_data_model_metadata(
         {
             "dataMask": {

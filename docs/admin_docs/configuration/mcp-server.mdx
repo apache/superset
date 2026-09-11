@@ -1043,6 +1043,9 @@ original expressions so callers can compare the requested and resolved ranges.
 
 When answering about a filtered dashboard, call `get_dashboard_info` with the
 dashboard's `permalink_key` (a saved snapshot) or caller-supplied `filter_state`.
+This value projection is provided by `get_dashboard_info`;
+`get_dashboard_layout` retains its existing metadata-redacted layout state and
+does not return native filter values.
 The tool cannot observe browser state without one of these inputs. Its response
 includes `filter_state` by default; an explicit `select_columns` must include it.
 
@@ -1088,4 +1091,3 @@ once, even when multiple dimensions are missing.
 The tool does not rewrite dots into SQL path separators: quoting and nested-field
 support depend on the dataset's database dialect, and dots can also be literal
 characters in column names.
-
