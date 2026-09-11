@@ -20,7 +20,7 @@ MCP tool: get_chart_info
 """
 
 import logging
-from typing import cast
+from typing import Any, cast
 
 from fastmcp import Context
 from sqlalchemy.orm import subqueryload
