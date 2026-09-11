@@ -56,7 +56,11 @@ def test_format_cmd_arg() -> None:
     assert compile_po._format_cmd_arg("hello world") == '"hello world"'
     assert compile_po._format_cmd_arg("file&calc.po") == '"file&calc.po"'
     assert compile_po._format_cmd_arg("file|more.json") == '"file|more.json"'
-    assert compile_po._format_cmd_arg('file"name') == r'"file\"name"'
+    assert compile_po._format_cmd_arg('file"name') == '"file""name"'
+    assert (
+        compile_po._format_cmd_arg('file "with" spaces.po')
+        == '"file ""with"" spaces.po"'
+    )
 
 
 def test_run_command_quotes_cmd_metacharacters() -> None:
@@ -64,10 +68,10 @@ def test_run_command_quotes_cmd_metacharacters() -> None:
     with patch("subprocess.run") as mock_run:
         mock_run.return_value = MagicMock(returncode=0)
         with patch("os.name", "nt"):
-            compile_po.run_command(["po2json.cmd", "file&calc.po", "file|more.json"])
+            compile_po.run_command(["po2json.cmd", "file&calc.po", 'file"name.json'])
             mock_run.assert_called_once()
             args, _ = mock_run.call_args
-            assert args[0] == 'po2json.cmd "file&calc.po" "file|more.json"'
+            assert args[0] == 'po2json.cmd "file&calc.po" "file""name.json"'
 
 
 def test_run_command_failure() -> None:

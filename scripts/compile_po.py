@@ -38,11 +38,8 @@ def _format_cmd_arg(arg: str) -> str:
     """Quote an argument if it contains spaces or cmd metacharacters on Windows."""
     if not arg:
         return '""'
-    if any(c in arg for c in " \t\n\v&|<>()^%"):
-        escaped = arg.replace('"', '\\"')
-        return f'"{escaped}"'
-    if '"' in arg:
-        escaped = arg.replace('"', '\\"')
+    if any(c in arg for c in ' \t\n\v&|<>()^%"'):
+        escaped = arg.replace('"', '""')
         return f'"{escaped}"'
     return arg
 
