@@ -73,6 +73,26 @@ def session(get_session) -> Iterator[Session]:
     return get_session()
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _preload_engine_specs() -> None:
+    """
+    Import every engine-spec module once per test session, before any test.
+
+    ``load_engine_specs()`` imports the spec modules lazily on first use, and
+    some of them pull in third-party drivers that read the local timezone at
+    import time (``clickhouse_connect`` via ``dateutil``). That import fails
+    under a ``freeze_time`` clock. In a serial run some earlier test always
+    paid the import cost outside a frozen clock, so the dependency was
+    invisible; under pytest-xdist every worker starts cold, and whichever
+    ``freeze_time`` test is the first engine-spec importer on its worker
+    fails -- a flake that moves with worker assignment. Loading here gives
+    every worker the same import state a serial run reached by accident.
+    """
+    from superset.db_engine_specs import load_engine_specs
+
+    load_engine_specs()
+
+
 @pytest.fixture(scope="module")
 def app(request: SubRequest) -> Iterator[SupersetApp]:
     """
