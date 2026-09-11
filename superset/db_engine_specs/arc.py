@@ -47,7 +47,7 @@ class ArcEngineSpec(BaseEngineSpec):
         "categories": [DatabaseCategory.OTHER, DatabaseCategory.PROPRIETARY],
         "pypi_packages": ["arc-superset-arrow"],
         "connection_string": ("arc+arrow://{api_key}@{hostname}:{port}/{database}"),
-        "default_port": 443,
+        "default_port": 8000,
         "docs_url": "https://docs.arcdata.io",
         "parameters": {
             "api_key": "Arc API key",

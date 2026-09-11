@@ -141,7 +141,7 @@ def test_is_odps_partitioned_table_uri_no_match(
     assert "did not match" in caplog.text
 
 
-def test_is_odps_partitioned_table_partitioned(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_is_odps_partitioned_table_partitioned() -> None:
     """Returns (True, [field_names]) for a partitioned ODPS table."""
     database = MagicMock()
     database.backend = "odps"
@@ -166,9 +166,7 @@ def test_is_odps_partitioned_table_partitioned(monkeypatch: pytest.MonkeyPatch) 
     assert result == (True, ["month"])
 
 
-def test_is_odps_partitioned_table_not_partitioned(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
+def test_is_odps_partitioned_table_not_partitioned() -> None:
     """Returns (False, []) for a non-partitioned ODPS table."""
     database = MagicMock()
     database.backend = "odps"

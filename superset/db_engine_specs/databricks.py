@@ -658,7 +658,10 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
     )
 
     metadata = {
-        "description": ("Databricks legacy connector using databricks-dbapi."),
+        "description": (
+            "Databricks connector using databricks-sql-connector and "
+            "databricks-sqlalchemy."
+        ),
         "logo": "databricks.png",
         "homepage_url": "https://www.databricks.com/",
         "categories": [
@@ -666,9 +669,9 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.HOSTED_OPEN_SOURCE,
         ],
-        "pypi_packages": ["databricks-dbapi[sqlalchemy]"],
+        "pypi_packages": ["databricks-sql-connector", "databricks-sqlalchemy"],
         "connection_string": (
-            "databricks+connector://token:{access_token}@{host}:{port}/{database}"
+            "databricks://token:{access_token}@{host}:{port}/{database}"
         ),
         "default_port": 443,
         "docs_url": "https://docs.databricks.com/",

@@ -30,7 +30,11 @@ def test_ibmi_metadata() -> None:
     assert "IBM Db2 for i" in metadata["description"]
     assert metadata["logo"] == "ibm-db2.svg"
     assert "sqlalchemy-ibmi" in metadata["pypi_packages"]
-    assert metadata["default_port"] == 50000
+    assert (
+        metadata["connection_string"]
+        == "ibmi://{username}:{password}@{host}/{database}"
+    )
+    assert "default_port" not in metadata
 
 
 def test_ibmi_epoch_to_dttm() -> None:

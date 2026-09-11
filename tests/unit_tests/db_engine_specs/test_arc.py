@@ -34,7 +34,7 @@ def test_arc_metadata() -> None:
     )
     assert metadata["logo"] == "arc.png"
     assert "arc-superset-arrow" in metadata["pypi_packages"]
-    assert metadata["default_port"] == 443
+    assert metadata["default_port"] == 8000
 
 
 @pytest.mark.parametrize(
