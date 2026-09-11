@@ -27,20 +27,11 @@ import pathlib
 import re
 
 import pytest
-from flask_babel import force_locale
 from flask_babel.speaklater import LazyString
+from pytest_mock import MockerFixture
 
 from superset.sqllab.query_render import PARAMETER_MISSING_ERR
 from superset.views.core import DATASOURCE_MISSING_ERR
-
-_FR_MO = (
-    pathlib.Path(__file__).parents[3]
-    / "superset"
-    / "translations"
-    / "fr"
-    / "LC_MESSAGES"
-    / "messages.mo"
-)
 
 
 @pytest.mark.parametrize("constant", [DATASOURCE_MISSING_ERR, PARAMETER_MISSING_ERR])
@@ -49,21 +40,22 @@ def test_module_constants_are_lazy(constant: object) -> None:
     assert isinstance(constant, LazyString)
 
 
-@pytest.mark.skipif(
-    not _FR_MO.exists(),
-    reason="fr catalog not compiled in this checkout; the LazyString pin above "
-    "still guards the laziness",
-)
-def test_constant_translates_per_request_locale(app_context: None) -> None:
-    """The same constant renders per-locale — the point of being lazy."""
-    with force_locale("fr"):
-        assert str(DATASOURCE_MISSING_ERR) == (
-            "La source de données semble avoir été effacée"
-        )
-    with force_locale("en"):
-        assert str(DATASOURCE_MISSING_ERR) == (
-            "The data source seems to have been deleted"
-        )
+def test_constant_resolves_through_the_live_translation_lookup(
+    mocker: MockerFixture,
+) -> None:
+    """str(constant) consults the active translation machinery per call.
+
+    Stubbing flask-babel's domain proves every render goes through the
+    lookup — an eager constant would have been frozen to a plain str
+    before the stub existed and could never produce the sentinel. Runs on
+    every backend, unlike a compiled-catalog-dependent locale pin."""
+    domain = mocker.Mock()
+    domain.gettext.side_effect = lambda s, **kw: f"[[{s}]]"
+    mocker.patch("flask_babel.get_domain", return_value=domain)
+
+    assert str(DATASOURCE_MISSING_ERR) == (
+        "[[The data source seems to have been deleted]]"
+    )
 
 
 def test_no_module_level_eager_gettext_constants() -> None:
