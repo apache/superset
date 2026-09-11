@@ -119,23 +119,24 @@ def export_lock_params(user_id: int, dashboard_id: int) -> dict[str, int]:
 
 
 def guest_lock_slot(guest_token: GuestToken | None) -> int:
-    """A stable per-guest lock slot derived from the token's identity (username,
-    resources, and RLS rules), so concurrent guests on the same dashboard
-    throttle independently instead of all sharing slot 0 (where the second
-    guest's export is refused with no job id and no email fallback). RLS is part
-    of the fingerprint because it is what distinguishes embedded guests sharing a
+    """A stable per-guest lock slot derived from the token's identity
+    (username, resources, RLS rules, and dataset allowlist), so concurrent
+    guests on the same dashboard throttle independently instead of all sharing
+    slot 0 (where the second guest's export is refused with no job id and no
+    email fallback). RLS rules and the ``datasets`` allowlist are part of the
+    fingerprint because they are what distinguish embedded guests sharing a
     dashboard when the username is shared or absent. Anonymous requesters (no
     token) share 0.
     """
     if not guest_token:
         return 0
     user = guest_token.get("user") or {}
-    resources = guest_token.get("resources") or []
     fingerprint = json.dumps(
         {
             "username": user.get("username"),
-            "resources": resources,
+            "resources": guest_token.get("resources") or [],
             "rls": guest_token.get("rls_rules") or [],
+            "datasets": guest_token.get("datasets") or [],
         },
         sort_keys=True,
         default=str,
