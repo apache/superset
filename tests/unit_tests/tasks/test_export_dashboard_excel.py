@@ -1147,9 +1147,22 @@ def test_guest_lock_slot_is_stable_and_identity_scoped() -> None:
         rls_rules=[{"dataset": None, "clause": "team_id = 1"}],
     )
 
+    # Same username, resources, and RLS, but different dataset allowlists --
+    # guests whose only difference is which datasets they may access must also
+    # get distinct slots.
+    token_a_datasets = GuestToken(
+        iat=0.0,
+        exp=0.0,
+        user={"username": "alice"},
+        resources=[{"type": GuestTokenResourceType.DASHBOARD, "id": "d1"}],
+        rls_rules=[],
+        datasets=[7, 8],
+    )
+
     assert guest_lock_slot(token_a) == guest_lock_slot(token_a_copy)
     assert guest_lock_slot(token_a) != guest_lock_slot(token_b)
     assert guest_lock_slot(token_a) != guest_lock_slot(token_a_rls)
+    assert guest_lock_slot(token_a) != guest_lock_slot(token_a_datasets)
     assert guest_lock_slot(None) == 0
 
 
