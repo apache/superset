@@ -427,6 +427,7 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                 }
             },
         )
+        cls.register_engine_events(engine)
         conn = engine.connect()
         idx = 0
 
