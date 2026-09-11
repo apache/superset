@@ -306,9 +306,13 @@ RUN /app/docker/apt-install.sh \
 
 # Bundle the common metadata/analytics drivers (postgres, mysql) and the
 # MCP server dependencies (fastmcp) so the default image is usable without
-# layering extra packages.
+# layering extra packages. Routed through pip-install.sh because mysqlclient
+# is a source dist that needs a C compiler to build; the helper installs
+# build-essential just for the build and purges it afterward (the lean base
+# ships no compiler). The mysql client lib installed above stays, so the
+# compiled extension can link against it at runtime.
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
-    uv pip install .[postgres,mysql,fastmcp]
+    /app/docker/pip-install.sh --requires-build-essential .[postgres,mysql,fastmcp]
 
 # Bundle Playwright + a headless Chromium so Alerts & Reports and thumbnail
 # generation work out of the box. Installed directly (rather than via the
