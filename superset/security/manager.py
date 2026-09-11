@@ -2531,6 +2531,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # UI without receiving the dataset name.
                 "is_access_denial": True,
                 "datasource": datasource.data["id"],
+                # Legacy placeholder for frontends built before is_access_denial
+                # existed: satisfies their truthy check on datasource_name so
+                # the request-access UI still renders during a rolling deploy,
+                # without ever carrying the real name.
+                "datasource_name": _("a dataset"),
                 # Owner display names give the viewer someone to contact for
                 # access; sorted for a deterministic payload.
                 "owners": sorted(
