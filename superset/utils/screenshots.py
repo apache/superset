@@ -397,6 +397,42 @@ class BaseScreenshot:
         return set_cache_value(cls.cache, cache_key, cache_payload.to_dict())
 
     @classmethod
+    def _prepare_and_enqueue_task_under_lock(
+        cls,
+        cache_key: str,
+        *,
+        force: bool,
+        scope: str,
+        enqueue: Callable[[], None],
+    ) -> tuple[ScreenshotCachePayload, bool]:
+        """Claim and publish a screenshot task while the producer lock is held."""
+
+        cache_payload = cls.get_from_cache_key(cache_key)
+        cache_payload = cache_payload or ScreenshotCachePayload()
+        if not cache_payload.should_enqueue_task(force, expected_scope=scope):
+            return cache_payload, False
+        cache_payload.pending()
+        cache_payload.set_scope(scope)
+        cls._store_cache_payload_or_raise(cache_key, cache_payload)
+        try:
+            enqueue()
+        except Exception:  # pylint: disable=broad-except
+            try:
+                if not cls.store_error_if_no_active_task(cache_key, scope=scope):
+                    logger.error(
+                        "Could not persist screenshot Error state after enqueue "
+                        "failure: %s",
+                        cache_key,
+                    )
+            except ScreenshotCacheError:
+                logger.exception(
+                    "Could not inspect screenshot state after enqueue failure: %s",
+                    cache_key,
+                )
+            raise
+        return cache_payload, True
+
+    @classmethod
     def prepare_and_enqueue_task(
         cls,
         cache_key: str,
@@ -415,55 +451,56 @@ class BaseScreenshot:
         :return: The latest payload and whether the caller owns the enqueue.
         """
 
+        result: tuple[ScreenshotCachePayload, bool] | None = None
+        operation_error: Exception | None = None
+        release_error: ReleaseDistributedLockFailedException | None = None
         try:
             with DistributedLock(
                 namespace="thumbnail_enqueue",
                 key=cache_key,
             ):
-                cache_payload = cls.get_from_cache_key(cache_key)
-                cache_payload = cache_payload or ScreenshotCachePayload()
-                if not cache_payload.should_enqueue_task(
-                    force,
-                    expected_scope=scope,
-                ):
-                    return cache_payload, False
-                cache_payload.pending()
-                cache_payload.set_scope(scope)
-                cls._store_cache_payload_or_raise(cache_key, cache_payload)
                 try:
-                    enqueue()
-                except Exception:  # pylint: disable=broad-except
-                    try:
-                        if not cls.store_error_if_no_active_task(
-                            cache_key,
-                            scope=scope,
-                        ):
-                            logger.error(
-                                "Could not persist screenshot Error state after "
-                                "enqueue failure: %s",
-                                cache_key,
-                            )
-                    except ScreenshotCacheError:
-                        logger.exception(
-                            "Could not inspect screenshot state after enqueue "
-                            "failure: %s",
-                            cache_key,
-                        )
-                    raise
-                return cache_payload, True
+                    result = cls._prepare_and_enqueue_task_under_lock(
+                        cache_key,
+                        force=force,
+                        scope=scope,
+                        enqueue=enqueue,
+                    )
+                except Exception as ex:  # pylint: disable=broad-except
+                    # Let __exit__ release the producer lock, then preserve the
+                    # operation's original exception even if release also fails.
+                    operation_error = ex
         except LockAlreadyHeldException:
             # Another API producer owns publication for this key. Polling will
             # observe its Pending transition or terminal result.
             cache_payload = ScreenshotCachePayload(scope=scope)
             cache_payload.pending()
             return cache_payload, False
-        except (
-            AcquireDistributedLockFailedException,
-            ReleaseDistributedLockFailedException,
-        ) as ex:
+        except AcquireDistributedLockFailedException as ex:
             raise ScreenshotCacheWriteError(
                 f"Could not coordinate screenshot task for {cache_key}"
             ) from ex
+        except ReleaseDistributedLockFailedException as ex:
+            release_error = ex
+
+        if operation_error is not None:
+            raise operation_error
+        if release_error is not None:
+            if result is None:
+                raise ScreenshotCacheWriteError(
+                    f"Could not coordinate screenshot task for {cache_key}"
+                ) from release_error
+            logger.warning(
+                "Screenshot task producer lock release failed after the operation "
+                "completed for %s; preserving its accepted result: %s",
+                cache_key,
+                release_error,
+            )
+        if result is None:
+            raise ScreenshotCacheWriteError(
+                f"Screenshot task preparation did not complete for {cache_key}"
+            )
+        return result
 
     @classmethod
     def store_error_if_no_active_task(cls, cache_key: str, scope: str) -> bool:

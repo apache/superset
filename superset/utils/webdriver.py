@@ -31,6 +31,7 @@ from superset.utils.report_execution import (
     ReportExecutionContext,
 )
 from superset.utils.screenshot_utils import (
+    capture_readiness_stability_timeout_seconds,
     CHART_CONTAINER_HAS_RENDERED_CONTENT_JS,
     CHART_CONTAINER_READY_JS,
     CHART_CONTAINER_STATE_JS,
@@ -50,6 +51,7 @@ from superset.utils.screenshot_utils import (
     REPORT_HAS_RENDERED_CHART_HOLDERS_JS,
     resolve_screenshot_task_budget_seconds,
     ScreenshotBlankCaptureError,
+    ScreenshotCaptureReadinessChangedError,
     ScreenshotTaskBudgetExceededError,
     STABLE_CHART_CONTAINER_READY_JS,
     STABLE_DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
@@ -265,6 +267,7 @@ class WebDriverPlaywright(WebDriverProxy):
         log_context: str | None,
         report_execution_context: ReportExecutionContext | None,
         screenshot_started_at: float | None,
+        load_wait_seconds: float,
     ) -> float:
         """Return a bounded wait for the pre-capture readiness dwell."""
 
@@ -281,9 +284,9 @@ class WebDriverPlaywright(WebDriverProxy):
             else 0.0
         )
         remaining = task_budget - elapsed if task_budget is not None else None
-        requested_stability_seconds = (
-            REPORT_CAPTURE_READINESS_STABILITY_MS + 1000
-        ) / 1000
+        requested_stability_seconds = capture_readiness_stability_timeout_seconds(
+            load_wait_seconds
+        )
         stable_timeout = (
             min(requested_stability_seconds, remaining - 1.0)
             if remaining is not None
@@ -297,7 +300,7 @@ class WebDriverPlaywright(WebDriverProxy):
         return stable_timeout
 
     @staticmethod
-    def _get_validated_screenshot(
+    def _get_validated_screenshot(  # noqa: C901
         page: Page,
         element: Locator,
         element_name: str,
@@ -306,6 +309,7 @@ class WebDriverPlaywright(WebDriverProxy):
         validate_rendered_content: bool = False,
         require_complete_capture: bool = False,
         screenshot_started_at: float | None = None,
+        load_wait_seconds: float = 60.0,
     ) -> bytes:
         """Capture a standard screenshot and reject blank rendered output."""
 
@@ -316,16 +320,17 @@ class WebDriverPlaywright(WebDriverProxy):
                     log_context,
                     report_execution_context,
                     screenshot_started_at,
+                    load_wait_seconds,
                 )
-                stable_predicate = (
-                    STABLE_CHART_CONTAINER_READY_JS
-                    if element_name == "chart-container"
-                    else (
-                        STABLE_DASHBOARD_ALL_CHART_HOLDERS_READY_JS
-                        if require_complete_capture
-                        else STABLE_REPORT_ALL_CHART_HOLDERS_READY_JS
-                    )
-                )
+                if element_name == "chart-container":
+                    capture_readiness_predicate = CHART_CONTAINER_READY_JS
+                    stable_predicate = STABLE_CHART_CONTAINER_READY_JS
+                elif require_complete_capture:
+                    capture_readiness_predicate = DASHBOARD_ALL_CHART_HOLDERS_READY_JS
+                    stable_predicate = STABLE_DASHBOARD_ALL_CHART_HOLDERS_READY_JS
+                else:
+                    capture_readiness_predicate = REPORT_ALL_CHART_HOLDERS_READY_JS
+                    stable_predicate = STABLE_REPORT_ALL_CHART_HOLDERS_READY_JS
                 try:
                     waited_for_stability = wait_for_stable_readiness(
                         page,
@@ -369,6 +374,23 @@ class WebDriverPlaywright(WebDriverProxy):
                 timeout_seconds=capture_timeout,
             )
             capture_elapsed = time.monotonic() - capture_started_at
+            if require_complete_capture and not bool(
+                page.evaluate(capture_readiness_predicate)
+            ):
+                logger.warning(
+                    "report_capture_readiness_changed capture=standard "
+                    "attempt=%s/%s%s; discarding candidate captured during a "
+                    "render transition",
+                    attempt,
+                    TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+                    context_suffix,
+                )
+                if attempt == TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS:
+                    raise ScreenshotCaptureReadinessChangedError(
+                        "Dashboard readiness changed during standard screenshot "
+                        f"capture after {attempt} attempts"
+                    )
+                continue
             if report_execution_context is None and not validate_rendered_content:
                 return image
 
@@ -1240,6 +1262,7 @@ class WebDriverPlaywright(WebDriverProxy):
                             validate_rendered_content=validate_rendered_content,
                             require_complete_capture=require_complete_capture,
                             screenshot_started_at=screenshot_started_at,
+                            load_wait_seconds=self._screenshot_load_wait,
                         )
                         logger.debug(
                             "Screenshot result: %d bytes for url: %s%s",
@@ -1307,6 +1330,7 @@ class WebDriverPlaywright(WebDriverProxy):
                         validate_rendered_content=validate_rendered_content,
                         require_complete_capture=require_complete_capture,
                         screenshot_started_at=screenshot_started_at,
+                        load_wait_seconds=self._screenshot_load_wait,
                     )
                     logger.debug(
                         "Screenshot result: %d bytes for url: %s%s",

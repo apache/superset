@@ -2007,6 +2007,9 @@ class DashboardRestApi(
                 permalink_key=permalink_key,
                 dashboard_url=dashboard_url,
                 image_url=image_url,
+                task_timeout_seconds=current_app.config[
+                    "THUMBNAIL_COMPUTING_CACHE_TTL"
+                ],
                 task_updated_at=cache_payload.get_timestamp(),
                 task_status=cache_payload.get_status(),
             )

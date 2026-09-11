@@ -36,12 +36,22 @@ jest.mock('react-map-gl/maplibre', () => ({
     onMove,
     onIdle,
     onError,
+    onData,
   }: {
     children: ReactNode;
     mapStyle: unknown;
     onMove: (evt: { viewState: Record<string, number> }) => void;
     onIdle: () => void;
-    onError: () => void;
+    onError: (event: {
+      error?: Error & { status?: number };
+      sourceId?: string;
+      tile?: object;
+    }) => void;
+    onData: (event: {
+      dataType: string;
+      sourceId: string;
+      tile: object;
+    }) => void;
   }) => (
     <div data-test="maplibre-map" data-map-style={JSON.stringify(mapStyle)}>
       <button
@@ -53,7 +63,46 @@ jest.mock('react-map-gl/maplibre', () => ({
         }
       />
       <button type="button" aria-label="idle map" onClick={onIdle} />
-      <button type="button" aria-label="fail map" onClick={onError} />
+      <button
+        type="button"
+        aria-label="fail map"
+        onClick={() =>
+          onError({ sourceId: 'base', tile: {}, error: new Error('tile') })
+        }
+      />
+      <button
+        type="button"
+        aria-label="fail second map source"
+        onClick={() =>
+          onError({ sourceId: 'second', tile: {}, error: new Error('tile') })
+        }
+      />
+      <button
+        type="button"
+        aria-label="fail map glyph"
+        onClick={() => onError({ error: new Error('glyph') })}
+      />
+      <button
+        type="button"
+        aria-label="fail map auth"
+        onClick={() =>
+          onError({ error: Object.assign(new Error('auth'), { status: 401 }) })
+        }
+      />
+      {['base', 'second'].map(sourceId => (
+        <button
+          key={sourceId}
+          type="button"
+          aria-label={`load ${sourceId} map tile`}
+          onClick={() =>
+            onData({
+              dataType: 'source',
+              sourceId,
+              tile: {},
+            })
+          }
+        />
+      ))}
       {children}
     </div>
   ),
@@ -65,15 +114,42 @@ jest.mock('react-map-gl/mapbox', () => ({
     mapStyle,
     onIdle,
     onError,
+    onData,
   }: {
     children: ReactNode;
     mapStyle: unknown;
     onIdle: () => void;
-    onError: () => void;
+    onError: (event: {
+      error?: Error & { status?: number };
+      sourceId?: string;
+      tile?: object;
+    }) => void;
+    onData: (event: {
+      dataType: string;
+      sourceId: string;
+      tile: object;
+    }) => void;
   }) => (
     <div data-test="mapbox-map" data-map-style={JSON.stringify(mapStyle)}>
       <button type="button" aria-label="idle map" onClick={onIdle} />
-      <button type="button" aria-label="fail map" onClick={onError} />
+      <button
+        type="button"
+        aria-label="fail map"
+        onClick={() =>
+          onError({ sourceId: 'base', tile: {}, error: new Error('tile') })
+        }
+      />
+      <button
+        type="button"
+        aria-label="load base map tile"
+        onClick={() =>
+          onData({
+            dataType: 'source',
+            sourceId: 'base',
+            tile: {},
+          })
+        }
+      />
       {children}
     </div>
   ),
@@ -208,6 +284,11 @@ test('DeckGLContainer keeps the missing Mapbox key signal for saved Mapbox chart
   ).toBeInTheDocument();
   expect(screen.queryByTestId('maplibre-map')).not.toBeInTheDocument();
   expect(screen.queryByTestId('mapbox-map')).not.toBeInTheDocument();
+  expect(
+    screen.getByText(
+      'Mapbox requires a MAPBOX_API_KEY to be configured on the server.',
+    ),
+  ).toHaveAttribute('data-superset-map-status', 'error');
 });
 
 test('DeckGLContainer passes Mapbox styles through when a key exists', () => {
@@ -353,7 +434,7 @@ test('DeckGLContainer invalidates completion for layers, dimensions, loading, an
   fireEvent.click(screen.getByRole('button', { name: 'fail map' }));
   fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
   fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
-  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'error');
 
   rerender(
     <ThemeProvider theme={supersetTheme}>
@@ -367,7 +448,10 @@ test('DeckGLContainer invalidates completion for layers, dimensions, loading, an
   fireEvent.click(screen.getByRole('button', { name: 'move map' }));
   fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
   fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
-  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'error');
+
+  fireEvent.click(screen.getByRole('button', { name: 'load base map tile' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
 
   rerender(
     <ThemeProvider theme={supersetTheme}>
@@ -384,6 +468,54 @@ test('DeckGLContainer invalidates completion for layers, dimensions, loading, an
   expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
 });
 
+test('DeckGLContainer isolates failed sources and recovers partial tile coverage', () => {
+  renderContainer({ mapProvider: 'maplibre' });
+  const mapHost = screen.getByTestId('maplibre-map').parentElement;
+
+  fireEvent.click(screen.getByRole('button', { name: 'load base map tile' }));
+  fireEvent.click(
+    screen.getByRole('button', { name: 'fail second map source' }),
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
+  fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'error');
+
+  fireEvent.click(screen.getByRole('button', { name: 'load second map tile' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+
+  // A later 404 from a source that already painted another tile is partial,
+  // not evidence that the entire source is blank.
+  fireEvent.click(screen.getByRole('button', { name: 'fail map' }));
+  fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+});
+
+test('DeckGLContainer retries generic map errors but fails authentication errors', () => {
+  const { rerender } = renderContainer({ mapProvider: 'maplibre' });
+  const mapHost = screen.getByTestId('maplibre-map').parentElement;
+
+  fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
+  fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
+  fireEvent.click(screen.getByRole('button', { name: 'fail map glyph' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+  fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+
+  fireEvent.click(screen.getByRole('button', { name: 'fail map auth' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'error');
+
+  rerender(
+    <ThemeProvider theme={supersetTheme}>
+      <DeckGLContainer
+        {...baseProps}
+        mapProvider="maplibre"
+        mapStyle="new-style"
+      />
+    </ThemeProvider>,
+  );
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+});
+
 test('DeckGLContainer does not complete after the current overlay fails', () => {
   const error = jest.spyOn(console, 'error').mockImplementation(() => {});
   const failedLayer = { id: 'failed' } as unknown as Layer;
@@ -397,7 +529,7 @@ test('DeckGLContainer does not complete after the current overlay fails', () => 
   fireEvent.click(screen.getByRole('button', { name: 'idle map' }));
   fireEvent.click(screen.getByRole('button', { name: 'fail layers' }));
   fireEvent.click(screen.getByRole('button', { name: 'paint layers' }));
-  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'error');
   expect(error).toHaveBeenCalledWith(
     'DeckGL rendering failed',
     expect.any(Error),

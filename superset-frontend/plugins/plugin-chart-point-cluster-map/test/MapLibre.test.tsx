@@ -255,10 +255,18 @@ test('marks map pixels ready only after map idle and canvas redraw', () => {
   );
   expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
 
-  act(() => (lastMapProps.onError as () => void)());
+  act(() =>
+    (
+      lastMapProps.onError as (event: {
+        error: Error;
+        sourceId: string;
+        tile: object;
+      }) => void
+    )({ error: new Error('tile'), sourceId: 'base', tile: {} }),
+  );
   act(() => (lastMapProps.onIdle as () => void)());
   fireEvent.click(screen.getByRole('button', { name: 'redraw overlay' }));
-  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'error');
 
   act(() =>
     (
@@ -271,12 +279,85 @@ test('marks map pixels ready only after map idle and canvas redraw', () => {
   );
   act(() => (lastMapProps.onIdle as () => void)());
   fireEvent.click(screen.getByRole('button', { name: 'redraw overlay' }));
-  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'error');
+
+  act(() =>
+    (
+      lastMapProps.onData as (event: {
+        dataType: string;
+        sourceId: string;
+        tile: object;
+      }) => void
+    )({
+      dataType: 'source',
+      sourceId: 'base',
+      tile: {},
+    }),
+  );
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
 
   rerender(<MapLibre {...defaultProps} mapStyle="recovered-style" />);
   act(() => (lastMapProps.onIdle as () => void)());
   fireEvent.click(screen.getByRole('button', { name: 'redraw overlay' }));
   expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+});
+
+test('keeps map source failures isolated and accepts partial tile coverage', () => {
+  const { container } = render(<MapLibre {...defaultProps} />);
+  const mapHost = container.querySelector('[data-superset-map-status]');
+  const onData = lastMapProps.onData as (
+    event: Record<string, unknown>,
+  ) => void;
+  const onError = lastMapProps.onError as (
+    event: Record<string, unknown>,
+  ) => void;
+
+  act(() => {
+    onData({
+      dataType: 'source',
+      sourceId: 'base',
+      tile: {},
+    });
+    onError({ sourceId: 'second', tile: {}, error: new Error('tile') });
+    (lastMapProps.onIdle as () => void)();
+  });
+  fireEvent.click(screen.getByRole('button', { name: 'redraw overlay' }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'error');
+
+  act(() =>
+    onData({
+      dataType: 'source',
+      sourceId: 'second',
+      tile: {},
+    }),
+  );
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+
+  act(() => onError({ sourceId: 'base', tile: {}, error: new Error('404') }));
+  act(() => (lastMapProps.onIdle as () => void)());
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+});
+
+test('retries generic map errors and reports authentication failures', () => {
+  const { container } = render(<MapLibre {...defaultProps} />);
+  const mapHost = container.querySelector('[data-superset-map-status]');
+  const onError = lastMapProps.onError as (
+    event: Record<string, unknown>,
+  ) => void;
+
+  act(() => (lastMapProps.onIdle as () => void)());
+  fireEvent.click(screen.getByRole('button', { name: 'redraw overlay' }));
+  act(() => onError({ error: new Error('glyph') }));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+  act(() => (lastMapProps.onIdle as () => void)());
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+
+  act(() =>
+    onError({
+      error: Object.assign(new Error('auth'), { status: 403 }),
+    }),
+  );
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'error');
 });
 
 test('converts OSM raster tile templates into MapLibre style objects', () => {
@@ -319,6 +400,11 @@ test('keeps the missing Mapbox key signal for saved Mapbox charts', () => {
     ),
   ).toBeInTheDocument();
   expect(lastMapProps.mapStyle).toBeUndefined();
+  expect(
+    screen.getByText(
+      'Mapbox requires a MAPBOX_API_KEY to be configured on the server.',
+    ),
+  ).toHaveAttribute('data-superset-map-status', 'error');
 });
 
 test('passes Mapbox styles through when a key exists', () => {

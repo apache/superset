@@ -59,18 +59,21 @@ jest.mock('src/utils/urlUtils', () => ({
 }));
 
 const RETRY_INTERVAL = 3000;
-const MAX_SCREENSHOT_WAIT = RETRY_INTERVAL * 32;
+const SCREENSHOT_TASK_TIMEOUT_SECONDS = 360;
+const MAX_SCREENSHOT_WAIT = SCREENSHOT_TASK_TIMEOUT_SECONDS * 1000;
 const DASHBOARD_ID = 123;
 const CACHE_KEY = 'test-cache-key';
 const PERMALINK_KEY = 'test-permalink-key';
 
 const taskResponse = (
   taskStatus: 'Pending' | 'Computing' | 'Updated' | 'Error',
+  taskTimeoutSeconds = SCREENSHOT_TASK_TIMEOUT_SECONDS,
 ) => ({
   json: {
     cache_key: CACHE_KEY,
     permalink_key: PERMALINK_KEY,
     task_status: taskStatus,
+    task_timeout_seconds: taskTimeoutSeconds,
   },
 });
 
@@ -298,15 +301,29 @@ test('triggers only one download when multiple successful responses race', async
   jest.useRealTimers();
 });
 
-test('logs permalinkKey, dashboardId, and format when retries are exhausted', async () => {
+test('keeps polling beyond the previous retry ceiling and downloads', async () => {
   jest.useFakeTimers();
-  mockPostSuccess();
+  let postCalls = 0;
+  (SupersetClient.post as jest.Mock).mockImplementation(() => {
+    postCalls += 1;
+    return Promise.resolve(
+      taskResponse(postCalls >= 36 ? 'Updated' : 'Computing'),
+    );
+  });
+  (SupersetClient.get as jest.Mock).mockResolvedValue(createResponse());
+  Object.assign(window.URL, {
+    createObjectURL: jest.fn(() => 'blob:mock'),
+    revokeObjectURL: jest.fn(),
+  });
+  const clickSpy = jest
+    .spyOn(HTMLAnchorElement.prototype, 'click')
+    .mockImplementation(() => {});
 
   await triggerDownload();
 
-  // Drive one retry interval at a time so each status poll has a chance to
-  // resolve before the next interval fires.
-  for (let i = 0; i < 31; i += 1) {
+  // The trigger plus immediate poll account for two calls. Thirty-four more
+  // intervals put completion beyond the old 96-second wall-clock cutoff.
+  for (let i = 0; i < 34; i += 1) {
     // eslint-disable-next-line no-await-in-loop
     await act(async () => {
       jest.advanceTimersByTime(RETRY_INTERVAL);
@@ -314,11 +331,39 @@ test('logs permalinkKey, dashboardId, and format when retries are exhausted', as
     });
   }
 
-  expect(logging.error).toHaveBeenCalledWith('Max retries reached', {
-    permalinkKey: PERMALINK_KEY,
-    dashboardId: DASHBOARD_ID,
-    format: DownloadScreenshotFormat.PNG,
+  expect(clickSpy).toHaveBeenCalledTimes(1);
+  expect(logging.error).not.toHaveBeenCalled();
+
+  clickSpy.mockRestore();
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
+
+test('uses the task timeout advertised by the server', async () => {
+  jest.useFakeTimers();
+  const advertisedTimeoutSeconds = 420;
+  (SupersetClient.post as jest.Mock).mockResolvedValue(
+    taskResponse('Computing', advertisedTimeoutSeconds),
+  );
+
+  await triggerDownload();
+
+  await act(async () => {
+    jest.advanceTimersByTime(MAX_SCREENSHOT_WAIT);
+    await flushPromises();
   });
+  expect(logging.error).not.toHaveBeenCalled();
+
+  await act(async () => {
+    jest.advanceTimersByTime(
+      advertisedTimeoutSeconds * 1000 - MAX_SCREENSHOT_WAIT,
+    );
+    await flushPromises();
+  });
+  expect(logging.error).toHaveBeenCalledWith(
+    'Screenshot generation timed out',
+    expect.objectContaining({ permalinkKey: PERMALINK_KEY }),
+  );
 
   jest.clearAllTimers();
   jest.useRealTimers();

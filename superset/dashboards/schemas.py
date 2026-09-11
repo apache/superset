@@ -643,6 +643,9 @@ class DashboardCacheScreenshotResponseSchema(Schema):
     task_status = fields.String(
         metadata={"description": "The status of the async screenshot"}
     )
+    task_timeout_seconds = fields.Integer(
+        metadata={"description": "The client wait budget for this screenshot task"}
+    )
     task_updated_at = fields.String(
         metadata={"description": "The timestamp of the last change in status"}
     )

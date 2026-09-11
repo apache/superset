@@ -25,6 +25,14 @@ import {
   resolveMapStyle,
   type ResolvedMapStyle,
 } from '@superset-ui/core/utils/mapStyles';
+import {
+  hasFatalMapResourceError,
+  hasUnrecoveredMapResourceError,
+  type MapResourceEvent,
+  type MapResourceState,
+  recordMapResourceError,
+  recordMapResourceSuccess,
+} from '@superset-ui/core/utils/mapRenderStatus';
 import { useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import ScatterPlotOverlay from './components/ScatterPlotOverlay';
@@ -244,26 +252,46 @@ function MapLibre({
   const [completedOverlayRender, setCompletedOverlayRender] = useState<
     object | null
   >(null);
-  const [failedMapRender, setFailedMapRender] = useState<object | null>(null);
+  const [mapResourceState, setMapResourceState] =
+    useState<MapResourceState | null>(null);
   const handleMapIdle = useCallback(
     () => setCompletedMapRender(currentMapRender),
     [currentMapRender],
   );
-  const handleMapError = useCallback(() => {
-    setFailedMapRender(currentMapSource);
-  }, [currentMapSource]);
+  const handleMapData = useCallback(
+    (event: MapResourceEvent) => {
+      setMapResourceState(current =>
+        recordMapResourceSuccess(current, currentMapSource, event),
+      );
+    },
+    [currentMapSource],
+  );
+  const handleMapError = useCallback(
+    (event: MapResourceEvent) => {
+      setCompletedMapRender(null);
+      setMapResourceState(current =>
+        recordMapResourceError(current, currentMapSource, event),
+      );
+    },
+    [currentMapSource],
+  );
   const handleOverlayRedraw = useCallback(
     () => setCompletedOverlayRender(currentOverlayRender),
     [currentOverlayRender],
   );
+  const mapResourceFailed =
+    hasFatalMapResourceError(mapResourceState, currentMapSource) ||
+    (completedMapRender === currentMapRender &&
+      hasUnrecoveredMapResourceError(mapResourceState, currentMapSource));
   const mapRenderComplete =
     completedMapRender === currentMapRender &&
     completedOverlayRender === currentOverlayRender &&
-    failedMapRender !== currentMapSource;
+    !mapResourceFailed;
 
   if (mapProvider === 'mapbox' && !mapboxApiKey) {
     return (
       <div
+        data-superset-map-status="error"
         style={{
           width,
           height,
@@ -286,7 +314,9 @@ function MapLibre({
 
   return (
     <div
-      data-superset-map-status={mapRenderComplete ? 'rendered' : 'loading'}
+      data-superset-map-status={
+        mapResourceFailed ? 'error' : mapRenderComplete ? 'rendered' : 'loading'
+      }
       style={{ position: 'relative', width, height }}
     >
       <MapComponent
@@ -297,6 +327,7 @@ function MapLibre({
         onMove={handleMove}
         onIdle={handleMapIdle}
         onError={handleMapError}
+        onData={handleMapData}
       >
         <ScatterPlotOverlay
           locations={clusters}

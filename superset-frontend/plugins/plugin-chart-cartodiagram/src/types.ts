@@ -207,4 +207,5 @@ export type ChartWrapperProps = {
   chartConfig: ChartConfigFeature;
   locale: string;
   onRenderComplete?: () => void;
+  onRenderError?: (error: unknown) => void;
 };

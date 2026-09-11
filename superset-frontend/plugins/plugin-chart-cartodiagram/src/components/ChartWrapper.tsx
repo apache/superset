@@ -31,6 +31,7 @@ export const ChartWrapper: FC<ChartWrapperProps> = ({
   chartConfig,
   locale,
   onRenderComplete,
+  onRenderError,
 }) => {
   const [Chart, setChart] = useState<any>();
 
@@ -47,12 +48,13 @@ export const ChartWrapper: FC<ChartWrapperProps> = ({
       .catch(error => {
         if (active) {
           console.warn(`Could not load cartodiagram chart: ${error}`);
+          onRenderError?.(error);
         }
       });
     return () => {
       active = false;
     };
-  }, [vizType]);
+  }, [onRenderError, vizType]);
 
   useLayoutEffect(() => {
     if (Chart !== undefined) {

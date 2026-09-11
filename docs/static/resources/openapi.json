@@ -3688,6 +3688,10 @@
             "description": "The status of the async screenshot",
             "type": "string"
           },
+          "task_timeout_seconds": {
+            "description": "The client wait budget for this screenshot task",
+            "type": "integer"
+          },
           "task_updated_at": {
             "description": "The timestamp of the last change in status",
             "type": "string"

@@ -56,6 +56,18 @@ SCREENSHOT_BLANK_MIN_EDGE_DIFFERENCE = 8
 SCREENSHOT_BLANK_MIN_STRUCTURAL_EDGE_RATIO = 0.02
 SCREENSHOT_BLANK_SAMPLE_SIZES = (256, 1024)
 REPORT_CAPTURE_READINESS_STABILITY_MS = 500
+CAPTURE_READINESS_POLL_MARGIN_MS = 1000
+
+
+def capture_readiness_stability_timeout_seconds(load_wait_seconds: float) -> float:
+    """Allow one full readiness retry window before the final stable dwell."""
+
+    return (
+        max(0.0, float(load_wait_seconds))
+        + (REPORT_CAPTURE_READINESS_STABILITY_MS + CAPTURE_READINESS_POLL_MARGIN_MS)
+        / 1000
+    )
+
 
 # Runtime task-budget policy shared with the approach introduced in #42118.
 # Celery exposes the effective per-task hard/soft limits only on the running
@@ -139,6 +151,10 @@ class TiledScreenshotBudgetExceededError(ScreenshotTaskBudgetExceededError):
 
 class ScreenshotCaptureTimeoutError(RuntimeError):
     """Raised when Chromium repeatedly times out while capturing a tile."""
+
+
+class ScreenshotCaptureReadinessChangedError(RuntimeError):
+    """Raised when render readiness repeatedly changes during capture."""
 
 
 class ScreenshotBlankCaptureError(RuntimeError):
@@ -318,9 +334,8 @@ CHART_ID_CLASS_PATTERN = r"\bdashboard-chart-id-(\d+)\b"
 # the screenshot waits for it instead of capturing a blank chart.
 ECHARTS_UNPAINTED_HOST_SELECTOR = r".echarts-host:not(.echarts-render-finished)"
 AG_GRID_HOST_SELECTOR = r'[data-themed-ag-grid="true"]'
-MAP_UNPAINTED_HOST_SELECTOR = (
-    r'[data-superset-map-status]:not([data-superset-map-status="rendered"])'
-)
+MAP_UNPAINTED_HOST_SELECTOR = r'[data-superset-map-status="loading"]'
+MAP_ERROR_HOST_SELECTOR = r'[data-superset-map-status="error"]'
 ASYNC_CHART_UNPAINTED_HOST_SELECTOR = (
     r"[data-superset-render-status]:"
     r'not([data-superset-render-status="rendered"])'
@@ -394,6 +409,9 @@ def _unready_chart_holders_js_body(
         const hasUnpaintedMap = holder.querySelector(
             '{MAP_UNPAINTED_HOST_SELECTOR}'
         ) !== null;
+        const hasMapError = holder.querySelector(
+            '{MAP_ERROR_HOST_SELECTOR}'
+        ) !== null;
         const hasUnpaintedAsyncChart = holder.querySelector(
             '{ASYNC_CHART_UNPAINTED_HOST_SELECTOR}'
         ) !== null;
@@ -413,7 +431,7 @@ def _unready_chart_holders_js_body(
         // or thumbnails. A map marker cannot be bypassed by an in-chart warning.
         const isReady = !stillLoading
             && (!requireCompleteRender || (
-                !hasUnpaintedMap && !hasUnpaintedAsyncChart
+                !hasMapError && !hasUnpaintedMap && !hasUnpaintedAsyncChart
             )) && (
             hasErrorOrEmpty || (
                 hasSliceContainer
@@ -425,7 +443,9 @@ def _unready_chart_holders_js_body(
             const chartIdMatch = holder.className.match(/{CHART_ID_CLASS_PATTERN}/);
             const chartId = chartIdMatch ? chartIdMatch[1] : null;
             let state;
-            if (stillLoading && hasSliceContainer) {{
+            if (requireCompleteRender && hasSliceContainer && hasMapError) {{
+                state = 'map_error';
+            }} else if (stillLoading && hasSliceContainer) {{
                 state = 'spinner_mounted';
             }} else if (stillLoading) {{
                 state = 'waiting_on_database';
@@ -504,9 +524,15 @@ def _find_chart_holder_states_js(*, require_complete_render: bool = False) -> st
         const hasUnpaintedMap = holder.querySelector(
             '{MAP_UNPAINTED_HOST_SELECTOR}'
         ) !== null;
+        const hasMapError = holder.querySelector(
+            '{MAP_ERROR_HOST_SELECTOR}'
+        ) !== null;
         const hasUnpaintedAsyncChart = holder.querySelector(
             '{ASYNC_CHART_UNPAINTED_HOST_SELECTOR}'
         ) !== null;
+        if (requireCompleteRender && hasSliceContainer && hasMapError) {{
+            return {{ chartId, state: 'map_error', agGridWaitObserved }};
+        }}
         if (stillLoading && hasSliceContainer) {{
             return {{ chartId, state: 'spinner_mounted', agGridWaitObserved }};
         }}
@@ -576,11 +602,16 @@ REPORT_ALL_CHART_HOLDERS_READY_JS = (
     "return holders.length > 0 && unready.length === 0; }"
 )
 DASHBOARD_CHART_HOLDERS_READY_JS = (
-    f"() => {{ {UNREADY_COMPLETE_CHART_HOLDERS_JS_BODY} return unready.length === 0; }}"
+    f"() => {{ {UNREADY_COMPLETE_CHART_HOLDERS_JS_BODY} "
+    "if (unready.some(holder => holder.state === 'map_error')) "
+    "throw new Error('Superset map renderer reported a terminal error'); "
+    "return unready.length === 0; }"
 )
 DASHBOARD_ALL_CHART_HOLDERS_READY_JS = (
     "() => { if (document.querySelector('.dashboard-grid') === null) "
     f"return false; {UNREADY_COMPLETE_ALL_CHART_HOLDERS_JS_BODY} "
+    "if (unready.some(holder => holder.state === 'map_error')) "
+    "throw new Error('Superset map renderer reported a terminal error'); "
     "return unready.length === 0; }"
 )
 
@@ -1154,17 +1185,18 @@ def take_tiled_screenshot(  # noqa: C901
                     else 0.0
                 ),
             )
+            tile_readiness_predicate = (
+                REPORT_CHART_HOLDERS_READY_JS
+                if report_execution_context
+                else (
+                    DASHBOARD_CHART_HOLDERS_READY_JS
+                    if require_complete_capture
+                    else CHART_HOLDERS_READY_JS
+                )
+            )
             try:
                 page.wait_for_function(
-                    (
-                        REPORT_CHART_HOLDERS_READY_JS
-                        if report_execution_context
-                        else (
-                            DASHBOARD_CHART_HOLDERS_READY_JS
-                            if require_complete_capture
-                            else CHART_HOLDERS_READY_JS
-                        )
-                    ),
+                    tile_readiness_predicate,
                     timeout=tile_load_wait * 1000,
                 )
             except PlaywrightTimeout:
@@ -1360,7 +1392,7 @@ def take_tiled_screenshot(  # noqa: C901
                         requested_seconds=(
                             None
                             if report_execution_context
-                            else (REPORT_CAPTURE_READINESS_STABILITY_MS + 1000) / 1000
+                            else capture_readiness_stability_timeout_seconds(load_wait)
                         ),
                         reserve_seconds=(
                             report_execution_context.readiness_reserve_seconds
@@ -1450,6 +1482,26 @@ def take_tiled_screenshot(  # noqa: C901
                         ) from ex
                 else:
                     capture_elapsed = time.monotonic() - capture_started_at
+                    if require_complete_capture and not bool(
+                        page.evaluate(tile_readiness_predicate)
+                    ):
+                        logger.warning(
+                            "report_capture_readiness_changed capture=tile "
+                            "tile=%s/%s attempt=%s/%s%s; discarding candidate "
+                            "captured during a render transition",
+                            i + 1,
+                            num_tiles,
+                            capture_attempt,
+                            TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS,
+                            context_suffix,
+                        )
+                        if capture_attempt == TILED_SCREENSHOT_MAX_CAPTURE_ATTEMPTS:
+                            raise ScreenshotCaptureReadinessChangedError(
+                                "Dashboard readiness changed during tile "
+                                f"{i + 1}/{num_tiles} capture after "
+                                f"{capture_attempt} attempts"
+                            )
+                        continue
                     blankness = get_screenshot_blankness_metrics(candidate)
                     is_blank = blankness.is_blank and (
                         contentful_chart_holders > 0 or holder_count_failed
@@ -1665,7 +1717,11 @@ def take_tiled_screenshot(  # noqa: C901
             context_suffix,
         )
         raise
-    except (ScreenshotBlankCaptureError, ScreenshotCaptureTimeoutError):
+    except (
+        ScreenshotBlankCaptureError,
+        ScreenshotCaptureReadinessChangedError,
+        ScreenshotCaptureTimeoutError,
+    ):
         # Preserve the explicit blank-capture or timeout reason for report execution
         # history instead of degrading it to an anonymous None screenshot.
         logger.exception("Tiled screenshot capture rejected%s", context_suffix)

@@ -63,7 +63,13 @@ export const OlChartMap = (props: OlChartMapProps) => {
     useState<ChartConfig>(chartConfigs);
   const [currentMapView, setCurrentMapView] = useState<MapViewConfigs>(mapView);
   const [layersReady, setLayersReady] = useState(false);
-  const [layerLoadFailed, setLayerLoadFailed] = useState(false);
+  const [layerCreationFailed, setLayerCreationFailed] = useState(false);
+  const [failedLayerSources, setFailedLayerSources] = useState<
+    ReadonlySet<Source>
+  >(new Set());
+  const [successfulLayerSources, setSuccessfulLayerSources] = useState<
+    ReadonlySet<Source>
+  >(new Set());
   const [mapRenderComplete, setMapRenderComplete] = useState(false);
 
   useEffect(() => {
@@ -186,15 +192,15 @@ export const OlChartMap = (props: OlChartMapProps) => {
    */
   useEffect(() => {
     let cancelled = false;
-    const monitoredSources: Source[] = [];
-    const onLayerLoadError = () => {
-      if (!cancelled) {
-        setLayerLoadFailed(true);
-        setMapRenderComplete(false);
-      }
-    };
+    const monitoredSources: {
+      onError: () => void;
+      onSuccess: () => void;
+      source: Source;
+    }[] = [];
     setLayersReady(false);
-    setLayerLoadFailed(false);
+    setLayerCreationFailed(false);
+    setFailedLayerSources(new Set());
+    setSuccessfulLayerSources(new Set());
     setMapRenderComplete(false);
 
     // clear existing layers
@@ -224,9 +230,23 @@ export const OlChartMap = (props: OlChartMapProps) => {
         if (createdLayer.status === 'fulfilled' && createdLayer.value) {
           const source = createdLayer.value.getSource();
           if (source) {
-            source.addEventListener('tileloaderror', onLayerLoadError);
-            source.addEventListener('featuresloaderror', onLayerLoadError);
-            monitoredSources.push(source);
+            const onError = () => {
+              if (!cancelled) {
+                setFailedLayerSources(current => new Set(current).add(source));
+              }
+            };
+            const onSuccess = () => {
+              if (!cancelled) {
+                setSuccessfulLayerSources(current =>
+                  new Set(current).add(source),
+                );
+              }
+            };
+            source.addEventListener('tileloaderror', onError);
+            source.addEventListener('featuresloaderror', onError);
+            source.addEventListener('tileloadend', onSuccess);
+            source.addEventListener('featuresloadend', onSuccess);
+            monitoredSources.push({ onError, onSuccess, source });
           }
           olMap.getLayers().insertAt(0, createdLayer.value);
         } else {
@@ -235,6 +255,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
         }
       });
       setLayersReady(everyLayerCreated);
+      setLayerCreationFailed(!everyLayerCreated);
       setMapRenderComplete(false);
       olMap.render();
     };
@@ -242,9 +263,11 @@ export const OlChartMap = (props: OlChartMapProps) => {
     addLayers(layerConfigs);
     return () => {
       cancelled = true;
-      monitoredSources.forEach(source => {
-        source.removeEventListener('tileloaderror', onLayerLoadError);
-        source.removeEventListener('featuresloaderror', onLayerLoadError);
+      monitoredSources.forEach(({ onError, onSuccess, source }) => {
+        source.removeEventListener('tileloaderror', onError);
+        source.removeEventListener('featuresloaderror', onError);
+        source.removeEventListener('tileloadend', onSuccess);
+        source.removeEventListener('featuresloadend', onSuccess);
       });
     };
   }, [olMap, layerConfigs]);
@@ -455,13 +478,21 @@ export const OlChartMap = (props: OlChartMapProps) => {
     locale,
   ]);
 
+  const hasUnrecoveredLayerFailure = [...failedLayerSources].some(
+    source => !successfulLayerSources.has(source),
+  );
+  const mapRenderFailed =
+    layerCreationFailed || (mapRenderComplete && hasUnrecoveredLayerFailure);
+
   return (
     <div
       id={mapId}
       data-superset-map-status={
-        layersReady && !layerLoadFailed && mapRenderComplete
-          ? 'rendered'
-          : 'loading'
+        mapRenderFailed
+          ? 'error'
+          : layersReady && mapRenderComplete
+            ? 'rendered'
+            : 'loading'
       }
       style={{
         height: `${height}px`,

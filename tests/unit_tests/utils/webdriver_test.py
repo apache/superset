@@ -29,8 +29,10 @@ from superset.utils.report_execution import (
     ReportExecutionDeadline,
 )
 from superset.utils.screenshot_utils import (
+    DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
     REPORT_CAPTURE_READINESS_STABILITY_MS,
     ScreenshotBlankCaptureError,
+    ScreenshotCaptureReadinessChangedError,
 )
 from superset.utils.webdriver import (
     check_playwright_availability,
@@ -289,7 +291,9 @@ class TestStandardScreenshotValidation:
         page = MagicMock()
         element = MagicMock()
         page.screenshot.return_value = _png("black")
-        page.evaluate.return_value = False
+        page.evaluate.side_effect = lambda expression: (
+            "const requireCompleteRender = true" in expression
+        )
 
         result = WebDriverPlaywright._get_validated_screenshot(
             page,
@@ -325,9 +329,53 @@ class TestStandardScreenshotValidation:
                 None,
                 validate_rendered_content=True,
                 require_complete_capture=True,
+                load_wait_seconds=10,
             )
 
         page.screenshot.assert_not_called()
+        assert page.wait_for_function.call_args.kwargs["timeout"] == 11_500
+
+    def test_api_capture_discards_candidate_if_readiness_changes_during_capture(self):
+        page = MagicMock()
+        element = MagicMock()
+        page.screenshot.return_value = _png("black")
+        page.evaluate.side_effect = [False, True, False]
+
+        result = WebDriverPlaywright._get_validated_screenshot(
+            page,
+            element,
+            "standalone",
+            "cache_key=test",
+            None,
+            validate_rendered_content=True,
+            require_complete_capture=True,
+        )
+
+        assert result == _png("black")
+        assert page.screenshot.call_count == 2
+        assert page.wait_for_function.call_count == 2
+
+    def test_api_capture_fails_if_readiness_changes_during_every_capture(self):
+        page = MagicMock()
+        element = MagicMock()
+        page.screenshot.return_value = _png("black")
+        page.evaluate.return_value = False
+
+        with pytest.raises(
+            ScreenshotCaptureReadinessChangedError,
+            match="readiness changed during standard screenshot",
+        ):
+            WebDriverPlaywright._get_validated_screenshot(
+                page,
+                element,
+                "standalone",
+                "cache_key=test",
+                None,
+                validate_rendered_content=True,
+                require_complete_capture=True,
+            )
+
+        assert page.screenshot.call_count == 3
 
 
 class TestWebDriverPlaywrightFallback:
@@ -1496,7 +1544,9 @@ class TestWebDriverPlaywrightChartReadiness:
     ):
         mock_app.config = {**self._base_config}
         mock_context, mock_page = self._make_pw_mocks(mock_browser_manager)
-        mock_page.evaluate.return_value = []
+        mock_page.evaluate.side_effect = lambda expression, *_args: (
+            True if expression == DASHBOARD_ALL_CHART_HOLDERS_READY_JS else []
+        )
         mock_page.screenshot.return_value = _png("black")
 
         with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):

@@ -201,6 +201,9 @@ export class ChartLayer extends Layer {
         () => {
           container.dataset.supersetMapStatus = 'rendered';
         },
+        () => {
+          container.dataset.supersetMapStatus = 'error';
+        },
       );
       const root = createRoot(container);
       root.render(chartComponent);
@@ -243,6 +246,9 @@ export class ChartLayer extends Layer {
         this.locale,
         () => {
           chart.htmlElement.dataset.supersetMapStatus = 'rendered';
+        },
+        () => {
+          chart.htmlElement.dataset.supersetMapStatus = 'error';
         },
       );
       chart.root.render(chartComponent);

@@ -35,7 +35,11 @@ const chartConfig = {
   properties: {},
 };
 
-const renderWrapper = (vizType: string, onRenderComplete = jest.fn()) =>
+const renderWrapper = (
+  vizType: string,
+  onRenderComplete = jest.fn(),
+  onRenderError = jest.fn(),
+) =>
   render(
     <ChartWrapper
       vizType={vizType}
@@ -45,6 +49,7 @@ const renderWrapper = (vizType: string, onRenderComplete = jest.fn()) =>
       theme={supersetTheme}
       locale="en"
       onRenderComplete={onRenderComplete}
+      onRenderError={onRenderError}
     />,
   );
 
@@ -109,14 +114,46 @@ test('ignores a nested module that resolves after the visualization changes', as
   expect(onRenderComplete).toHaveBeenCalledTimes(1);
 });
 
-test('stays loading when a nested chart module rejects', async () => {
+test('reports when the active nested chart module rejects', async () => {
   const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
   mockGetAsPromise.mockRejectedValue(new Error('missing plugin'));
 
   const onRenderComplete = jest.fn();
-  renderWrapper('missing', onRenderComplete);
+  const onRenderError = jest.fn();
+  renderWrapper('missing', onRenderComplete, onRenderError);
 
   await waitFor(() => expect(warn).toHaveBeenCalled());
   expect(onRenderComplete).not.toHaveBeenCalled();
+  expect(onRenderError).toHaveBeenCalledWith(expect.any(Error));
   warn.mockRestore();
+});
+
+test('ignores a rejection from a stale nested chart module', async () => {
+  const rejecters: ((error: Error) => void)[] = [];
+  mockGetAsPromise.mockImplementation(
+    () =>
+      new Promise<ComponentType>((_resolve, reject) => {
+        rejecters.push(reject);
+      }),
+  );
+  const onRenderError = jest.fn();
+  const { rerender } = renderWrapper('pie', jest.fn(), onRenderError);
+
+  rerender(
+    <ChartWrapper
+      vizType="bar"
+      chartConfig={chartConfig}
+      width={100}
+      height={100}
+      theme={supersetTheme}
+      locale="en"
+      onRenderError={onRenderError}
+    />,
+  );
+
+  await act(async () => rejecters[0](new Error('stale')));
+  expect(onRenderError).not.toHaveBeenCalled();
+
+  await act(async () => rejecters[1](new Error('active')));
+  expect(onRenderError).toHaveBeenCalledWith(expect.any(Error));
 });

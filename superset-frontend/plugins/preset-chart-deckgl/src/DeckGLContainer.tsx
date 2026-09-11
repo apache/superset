@@ -39,6 +39,14 @@ import {
   type MapProvider,
   type ResolvedMapStyle,
 } from '@superset-ui/core/utils/mapStyles';
+import {
+  hasFatalMapResourceError,
+  hasUnrecoveredMapResourceError,
+  type MapResourceEvent,
+  type MapResourceState,
+  recordMapResourceError,
+  recordMapResourceSuccess,
+} from '@superset-ui/core/utils/mapRenderStatus';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import DeckGLOverlayMapLibre from './components/DeckGLOverlayMapLibre';
@@ -76,7 +84,8 @@ export const DeckGLContainer = memo(
     const [completedDeckRender, setCompletedDeckRender] = useState<
       object | null
     >(null);
-    const [failedMapRender, setFailedMapRender] = useState<object | null>(null);
+    const [mapResourceState, setMapResourceState] =
+      useState<MapResourceState | null>(null);
     const [failedDeckRender, setFailedDeckRender] = useState<object | null>(
       null,
     );
@@ -164,12 +173,26 @@ export const DeckGLContainer = memo(
       () => setCompletedMapRender(currentMapRender),
       [currentMapRender],
     );
-    // MapLibre can emit idle after a source or tile error. Remember errors for
-    // this source generation so a move or later idle event cannot turn missing
-    // basemap pixels into a successful capture.
-    const onMapError = useCallback(() => {
-      setFailedMapRender(currentMapSource);
-    }, [currentMapSource]);
+    const onMapData = useCallback(
+      (event: MapResourceEvent) => {
+        setMapResourceState(current =>
+          recordMapResourceSuccess(current, currentMapSource, event),
+        );
+      },
+      [currentMapSource],
+    );
+    const onMapError = useCallback(
+      (event: MapResourceEvent) => {
+        // Require a fresh idle after any resource error. A source with at
+        // least one successful tile may still produce a useful partial map;
+        // a wholly failed source is terminal once the map becomes idle.
+        setCompletedMapRender(null);
+        setMapResourceState(current =>
+          recordMapResourceError(current, currentMapSource, event),
+        );
+      },
+      [currentMapSource],
+    );
     const onDeckAfterRender = useCallback(
       () => setCompletedDeckRender(currentDeckRender),
       [currentDeckRender],
@@ -181,10 +204,15 @@ export const DeckGLContainer = memo(
       },
       [currentDeckSource],
     );
+    const mapResourceFailed =
+      hasFatalMapResourceError(mapResourceState, currentMapSource) ||
+      (completedMapRender === currentMapRender &&
+        hasUnrecoveredMapResourceError(mapResourceState, currentMapSource));
+    const deckRenderFailed = failedDeckRender === currentDeckSource;
     const mapRenderComplete =
       !props.isLoading &&
-      failedMapRender !== currentMapSource &&
-      failedDeckRender !== currentDeckSource &&
+      !mapResourceFailed &&
+      !deckRenderFailed &&
       completedMapRender === currentMapRender &&
       completedDeckRender === currentDeckRender;
 
@@ -208,6 +236,7 @@ export const DeckGLContainer = memo(
     if (isMapbox && !props.mapboxApiKey) {
       return (
         <div
+          data-superset-map-status="error"
           style={{
             width,
             height,
@@ -233,7 +262,13 @@ export const DeckGLContainer = memo(
     return (
       <>
         <div
-          data-superset-map-status={mapRenderComplete ? 'rendered' : 'loading'}
+          data-superset-map-status={
+            mapResourceFailed || deckRenderFailed
+              ? 'error'
+              : mapRenderComplete
+                ? 'rendered'
+                : 'loading'
+          }
           style={{ position: 'relative', width, height }}
           onContextMenu={(e: MouseEvent<HTMLDivElement>) => {
             e.preventDefault();
@@ -246,6 +281,7 @@ export const DeckGLContainer = memo(
               onMove={onMove}
               onIdle={onMapIdle}
               onError={onMapError}
+              onData={onMapData}
               mapStyle={mapStyle}
               style={{ width, height }}
             >
@@ -261,6 +297,7 @@ export const DeckGLContainer = memo(
               onMove={onMove}
               onIdle={onMapIdle}
               onError={onMapError}
+              onData={onMapData}
               mapStyle={mapStyle}
               style={{ width, height }}
             >

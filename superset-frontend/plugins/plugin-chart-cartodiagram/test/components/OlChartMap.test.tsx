@@ -202,9 +202,12 @@ test('requires layer creation and a later OpenLayers rendercomplete event', asyn
   expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
 });
 
-test.each(['tileloaderror', 'featuresloaderror'])(
-  'stays loading after a source %s event even if rendering completes',
-  async loadErrorEvent => {
+test.each([
+  ['tileloaderror', 'tileloadend'],
+  ['featuresloaderror', 'featuresloadend'],
+])(
+  'reports an all-failed source after %s and recovers on %s',
+  async (loadErrorEvent, loadSuccessEvent) => {
     const { callbacks: sourceCallbacks, layer, source } = createMockLayer();
     mockCreateLayer.mockResolvedValue(layer);
     const { callbacks: mapCallbacks, map } = createMap();
@@ -225,9 +228,52 @@ test.each(['tileloaderror', 'featuresloaderror'])(
 
     expect(
       container.querySelector('[data-superset-map-status]'),
-    ).toHaveAttribute('data-superset-map-status', 'loading');
+    ).toHaveAttribute('data-superset-map-status', 'error');
+
+    act(() => sourceCallbacks.get(loadSuccessEvent)?.());
+    expect(
+      container.querySelector('[data-superset-map-status]'),
+    ).toHaveAttribute('data-superset-map-status', 'rendered');
   },
 );
+
+test('does not let one successful source mask another all-failed source', async () => {
+  const first = createMockLayer();
+  const second = createMockLayer();
+  mockCreateLayer
+    .mockResolvedValueOnce(first.layer)
+    .mockResolvedValueOnce(second.layer);
+  const { callbacks, map } = createMap();
+  const props = buildProps(map);
+  const { container } = render(
+    <Provider store={store}>
+      <OlChartMap
+        {...props}
+        layerConfigs={[
+          props.layerConfigs[0],
+          { ...props.layerConfigs[0], title: 'second' },
+        ]}
+      />
+    </Provider>,
+  );
+
+  await waitFor(() => expect(mockCreateLayer).toHaveBeenCalledTimes(2));
+  act(() => {
+    first.callbacks.get('tileloadend')?.();
+    second.callbacks.get('tileloaderror')?.();
+    callbacks.get('rendercomplete')?.();
+  });
+  expect(container.querySelector('[data-superset-map-status]')).toHaveAttribute(
+    'data-superset-map-status',
+    'error',
+  );
+
+  act(() => second.callbacks.get('tileloadend')?.());
+  expect(container.querySelector('[data-superset-map-status]')).toHaveAttribute(
+    'data-superset-map-status',
+    'rendered',
+  );
+});
 
 test('does not mark an OpenLayers map complete when a configured layer fails', async () => {
   mockCreateLayer.mockResolvedValue(undefined);
@@ -243,8 +289,34 @@ test('does not mark an OpenLayers map complete when a configured layer fails', a
 
   expect(container.querySelector('[data-superset-map-status]')).toHaveAttribute(
     'data-superset-map-status',
-    'loading',
+    'error',
   );
+});
+
+test('removes every source outcome listener on unmount', async () => {
+  const { layer, source } = createMockLayer();
+  mockCreateLayer.mockResolvedValue(layer);
+  const { map } = createMap();
+  const { unmount } = render(
+    <Provider store={store}>
+      <OlChartMap {...buildProps(map)} />
+    </Provider>,
+  );
+  await waitFor(() => expect(mockCreateLayer).toHaveBeenCalledTimes(1));
+
+  unmount();
+
+  for (const event of [
+    'tileloaderror',
+    'featuresloaderror',
+    'tileloadend',
+    'featuresloadend',
+  ]) {
+    expect(source.removeEventListener).toHaveBeenCalledWith(
+      event,
+      expect.any(Function),
+    );
+  }
 });
 
 test('ignores a stale layer promise after layer configuration changes', async () => {

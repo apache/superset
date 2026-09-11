@@ -4171,6 +4171,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         return self.client.get(uri)
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
+    @with_config({"THUMBNAIL_COMPUTING_CACHE_TTL": 417})
     @pytest.mark.usefixtures("create_dashboard_with_tag")
     @patch(
         "superset.dashboards.api.DashboardScreenshot.store_cache_payload",
@@ -4186,6 +4187,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         response = self._cache_screenshot(dashboard.id)
         assert response.status_code == 202
         assert response.json["permalink_key"]
+        assert response.json["task_timeout_seconds"] == 417
         mock_store_cache_payload.assert_called_once()
 
     @with_feature_flags(THUMBNAILS=True, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)

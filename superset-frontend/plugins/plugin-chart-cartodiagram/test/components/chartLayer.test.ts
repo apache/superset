@@ -87,8 +87,13 @@ test('marks each chart container loading synchronously until React commits', () 
 
   const container = chartLayer.charts[0].htmlElement;
   expect(container).toHaveAttribute('data-superset-map-status', 'loading');
-  const onRenderComplete = mockCreateChartComponent.mock.calls[0][6];
+  const [, , , , , , onRenderComplete, onRenderError] =
+    mockCreateChartComponent.mock.calls[0];
   expect(onRenderComplete).toEqual(expect.any(Function));
   (onRenderComplete as () => void)();
   expect(container).toHaveAttribute('data-superset-map-status', 'rendered');
+
+  expect(onRenderError).toEqual(expect.any(Function));
+  (onRenderError as () => void)();
+  expect(container).toHaveAttribute('data-superset-map-status', 'error');
 });

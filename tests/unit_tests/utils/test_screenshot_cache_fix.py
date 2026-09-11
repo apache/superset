@@ -77,6 +77,16 @@ class RejectImageCache(MockCache):
         return True
 
 
+class ReleaseFailingLock:
+    """Lock double whose body succeeds but release reports a backend error."""
+
+    def __enter__(self) -> None:
+        return None
+
+    def __exit__(self, *args: object) -> None:
+        raise ReleaseDistributedLockFailedException("release failed")
+
+
 @pytest.fixture
 def mock_user() -> MagicMock:
     """Fixture to create a mock user."""
@@ -647,6 +657,69 @@ class TestIntegrationCacheBugFix:
         assert BaseScreenshot.cache.get("key")["status"] == "Pending"
         enqueue.assert_called_once_with()
         mock_lock.assert_called_once_with(namespace="thumbnail_enqueue", key="key")
+
+    def test_enqueue_task_preserves_accepted_result_when_lock_release_fails(
+        self,
+        mocker: MockerFixture,
+    ) -> None:
+        mocker.patch(DISTRIBUTED_LOCK_PATH, return_value=ReleaseFailingLock())
+        enqueue = MagicMock()
+        BaseScreenshot.cache = MockCache()
+
+        payload, should_enqueue = BaseScreenshot.prepare_and_enqueue_task(
+            "key",
+            force=False,
+            scope="dashboard:1",
+            enqueue=enqueue,
+        )
+
+        assert should_enqueue is True
+        assert payload.get_status() == "Pending"
+        assert BaseScreenshot.cache.get("key")["status"] == "Pending"
+        enqueue.assert_called_once_with()
+
+    def test_enqueue_task_preserves_existing_result_when_lock_release_fails(
+        self,
+        mocker: MockerFixture,
+    ) -> None:
+        mocker.patch(DISTRIBUTED_LOCK_PATH, return_value=ReleaseFailingLock())
+        BaseScreenshot.cache = MockCache()
+        BaseScreenshot.cache.set(
+            "key",
+            ScreenshotCachePayload(
+                status=StatusValues.PENDING,
+                scope="dashboard:1",
+            ).to_dict(),
+        )
+        enqueue = MagicMock()
+
+        payload, should_enqueue = BaseScreenshot.prepare_and_enqueue_task(
+            "key",
+            force=False,
+            scope="dashboard:1",
+            enqueue=enqueue,
+        )
+
+        assert should_enqueue is False
+        assert payload.get_status() == "Pending"
+        enqueue.assert_not_called()
+
+    def test_enqueue_failure_wins_over_lock_release_failure(
+        self,
+        mocker: MockerFixture,
+    ) -> None:
+        mocker.patch(DISTRIBUTED_LOCK_PATH, return_value=ReleaseFailingLock())
+        BaseScreenshot.cache = MockCache()
+
+        with pytest.raises(RuntimeError, match="broker unavailable"):
+            BaseScreenshot.prepare_and_enqueue_task(
+                "key",
+                force=False,
+                scope="dashboard:1",
+                enqueue=MagicMock(side_effect=RuntimeError("broker unavailable")),
+            )
+
+        assert BaseScreenshot.cache.get("key")["status"] == "Error"
 
     @patch("superset.utils.screenshots.app")
     def test_enqueue_task_rechecks_fresh_pending_under_lock(

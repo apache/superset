@@ -34,13 +34,14 @@ import { getDashboardUrlParams } from 'src/utils/urlUtils';
 import { DownloadScreenshotFormat } from '../components/menu/DownloadMenuItems/types';
 
 const RETRY_INTERVAL = 3000;
-const MAX_RETRIES = 30;
-const MAX_SCREENSHOT_WAIT = RETRY_INTERVAL * (MAX_RETRIES + 2);
+// Used only until the API advertises the deployment's configured task lease.
+const DEFAULT_SCREENSHOT_TASK_TIMEOUT = 6 * 60 * 1000;
 
 type ScreenshotTaskResponse = {
   cache_key?: string;
   permalink_key?: string;
   task_status?: 'Pending' | 'Computing' | 'Updated' | 'Error';
+  task_timeout_seconds?: number;
 };
 
 export const useDownloadScreenshot = (
@@ -64,16 +65,21 @@ export const useDownloadScreenshot = (
 
   const downloadScreenshot = useCallback(
     (format: DownloadScreenshotFormat) => {
-      let retries = 0;
       let isFetching = false;
       let isFinished = false;
       let permalinkKey: string | undefined;
+      let timeoutId: NodeJS.Timeout | undefined;
+      const operationStartedAt = Date.now();
       const timerIds: NodeJS.Timeout[] = [];
 
       const stopOperation = () => {
         isFinished = true;
         timerIds.forEach(clearInterval);
         timerIds.length = 0;
+        if (timeoutId !== undefined) {
+          clearTimeout(timeoutId);
+          timeoutId = undefined;
+        }
         activeOperationCleanups.current.delete(stopOperation);
       };
 
@@ -115,17 +121,26 @@ export const useDownloadScreenshot = (
         logging.error(logMessage, details);
       };
 
-      // Retry exhaustion only advances after a request settles. Keep one
-      // wall-clock deadline as a backstop for a hung trigger, status poll, or
-      // artifact download.
-      const timeoutId = setTimeout(() => {
-        fail('Screenshot generation timed out', {
-          permalinkKey,
-          dashboardId,
-          format,
-        });
-      }, MAX_SCREENSHOT_WAIT);
-      timerIds.push(timeoutId);
+      // Keep one wall-clock deadline as a backstop for a hung trigger, status
+      // poll, or artifact download. Once the first response arrives, align it
+      // with the server's configured task lease without extending elapsed time.
+      const scheduleTimeout = (timeoutMs: number) => {
+        if (timeoutId !== undefined) {
+          clearTimeout(timeoutId);
+        }
+        const elapsed = Date.now() - operationStartedAt;
+        timeoutId = setTimeout(
+          () => {
+            fail('Screenshot generation timed out', {
+              permalinkKey,
+              dashboardId,
+              format,
+            });
+          },
+          Math.max(0, timeoutMs - elapsed),
+        );
+      };
+      scheduleTimeout(DEFAULT_SCREENSHOT_TASK_TIMEOUT);
 
       const downloadImage = (cacheKey: string) =>
         SupersetClient.get({
@@ -174,6 +189,13 @@ export const useDownloadScreenshot = (
           throw new Error('Invalid screenshot task response');
         }
         permalinkKey = task.permalink_key;
+        if (
+          typeof task.task_timeout_seconds === 'number' &&
+          Number.isFinite(task.task_timeout_seconds) &&
+          task.task_timeout_seconds > 0
+        ) {
+          scheduleTimeout(task.task_timeout_seconds * 1000);
+        }
 
         if (task.task_status === 'Error') {
           fail('Screenshot generation failed', {
@@ -192,15 +214,6 @@ export const useDownloadScreenshot = (
         if (isFinished || isFetching || !permalinkKey) {
           return;
         }
-        if (retries >= MAX_RETRIES) {
-          fail('Max retries reached', {
-            permalinkKey,
-            dashboardId,
-            format,
-          });
-          return;
-        }
-        retries += 1;
         isFetching = true;
         SupersetClient.post({
           endpoint: `/api/v1/dashboard/${dashboardId}/cache_dashboard_screenshot/`,
