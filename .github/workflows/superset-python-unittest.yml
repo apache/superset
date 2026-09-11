@@ -43,7 +43,9 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-26.04
-    timeout-minutes: 30
+    # The full suite plus the two 100%-coverage gates exceeds 30 minutes on
+    # some ubuntu-26.04 runners even when every test passes.
+    timeout-minutes: 35
     permissions:
       id-token: write
     strategy:
