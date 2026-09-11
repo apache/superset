@@ -791,3 +791,208 @@ class TestPerReportHeaderFooter:
         # Page N of M must still be present
         assert 'class="pageNumber"' in html
         assert 'class="totalPages"' in html
+
+
+# ---------------------------------------------------------------------------
+# Auto-orientation: landscape factor applied before banding (SIP-212 fix)
+# ---------------------------------------------------------------------------
+
+
+class TestAutoOrientationLandscapeFactorBeforeBanding:
+    """In auto mode, _landscape_factor must be 1.414 so banding uses landscape
+    width.  Without this, wide tables are split into portrait-width bands and
+    SCALE_WIDE_TABLES_JS never sees overflow to mark data-print-landscape."""
+
+    @patch("superset.utils.webdriver.app")
+    @patch("superset.utils.webdriver._browser_manager")
+    def test_auto_orientation_uses_landscape_width_for_banding(
+        self, mock_bm: MagicMock, mock_app: MagicMock
+    ) -> None:
+        """In auto mode, BAND_TABLE_COLUMNS_JS must receive a usableWidth
+        that reflects the landscape page width (~1.414× portrait), so that
+        a table fitting on one landscape page is NOT split into multiple
+        portrait-width bands."""
+        mock_app.config = {
+            "WEBDRIVER_OPTION_ARGS": [],
+            "WEBDRIVER_WINDOW": {"pixel_density": 1},
+            "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
+            "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "domcontentloaded",
+            "SCREENSHOT_SELENIUM_HEADSTART": 0,
+            "SCREENSHOT_LOAD_WAIT": 10,
+            "BROWSER_PRINT_PDF_VIEWPORT_WIDTH": 1600,
+            "BROWSER_PRINT_PDF_HEADER_FOOTER": False,
+        }
+        mock_page = MagicMock()
+        mock_context = MagicMock()
+        mock_context.new_page.return_value = mock_page
+        mock_bm.get_browser.return_value.new_context.return_value = mock_context
+
+        from superset.utils.webdriver import WebDriverPlaywright
+
+        driver = WebDriverPlaywright("", (1600, 1200))
+
+        # Capture evaluate calls
+        evaluate_calls: list[tuple] = []
+
+        def capture_evaluate(script, *args):
+            evaluate_calls.append((script, args))
+            if args and isinstance(args[0], dict) and "usableWidth" in args[0]:
+                # This is the BAND_TABLE_COLUMNS_JS call — return a valid result
+                return {"banded": 0}
+            # Return sensible defaults for all other JS calls
+            if isinstance(script, str) and "SHOW_ALL" in script:
+                return {"clientExpanded": 0, "serverWarning": 0}
+            if isinstance(script, str) and "getBoundingClientRect" in script:
+                return []
+            return 0
+
+        mock_page.evaluate.side_effect = capture_evaluate
+        mock_page.wait_for_function.return_value = None
+        mock_page.wait_for_timeout.return_value = None
+        mock_page.goto.return_value = None
+        mock_page.locator.return_value.wait_for.return_value = None
+        mock_page.pdf.return_value = b"%PDF-1.4"
+
+        driver.get_print_pdf(
+            "http://superset:8088/dashboard/1/?print=1",
+            user=None,
+            print_orientation="auto",
+        )
+
+        # Find the BAND_TABLE_COLUMNS_JS evaluate call and inspect usableWidth
+        band_call = next(
+            (
+                c
+                for c in evaluate_calls
+                if c[1] and isinstance(c[1][0], dict) and "usableWidth" in c[1][0]
+            ),
+            None,
+        )
+        assert band_call is not None, "BAND_TABLE_COLUMNS_JS was never called"
+        usable_width = band_call[1][0]["usableWidth"]
+
+        # Portrait usableWidth = int((1600 - 24) * 1.0) = 1576
+        # Landscape usableWidth = int((1600 - 24) * 1.414) = 2228
+        portrait_width = int((1600 - 24) * 1.0)
+        landscape_width = int((1600 - 24) * 1.414)
+        assert usable_width == landscape_width, (
+            f"Expected landscape usableWidth={landscape_width} in auto mode, "
+            f"got {usable_width} (portrait would be {portrait_width})"
+        )
+
+    @patch("superset.utils.webdriver.app")
+    @patch("superset.utils.webdriver._browser_manager")
+    def test_portrait_orientation_uses_portrait_width_for_banding(
+        self, mock_bm: MagicMock, mock_app: MagicMock
+    ) -> None:
+        """In portrait mode (the default), usableWidth must stay at portrait
+        width so tables aren't given unnecessary extra space."""
+        mock_app.config = {
+            "WEBDRIVER_OPTION_ARGS": [],
+            "WEBDRIVER_WINDOW": {"pixel_density": 1},
+            "SCREENSHOT_PLAYWRIGHT_DEFAULT_TIMEOUT": 30000,
+            "SCREENSHOT_PLAYWRIGHT_WAIT_EVENT": "domcontentloaded",
+            "SCREENSHOT_SELENIUM_HEADSTART": 0,
+            "SCREENSHOT_LOAD_WAIT": 10,
+            "BROWSER_PRINT_PDF_VIEWPORT_WIDTH": 1600,
+            "BROWSER_PRINT_PDF_HEADER_FOOTER": False,
+        }
+        mock_page = MagicMock()
+        mock_context = MagicMock()
+        mock_context.new_page.return_value = mock_page
+        mock_bm.get_browser.return_value.new_context.return_value = mock_context
+
+        from superset.utils.webdriver import WebDriverPlaywright
+
+        driver = WebDriverPlaywright("", (1600, 1200))
+
+        evaluate_calls: list[tuple] = []
+
+        def capture_evaluate(script, *args):
+            evaluate_calls.append((script, args))
+            if args and isinstance(args[0], dict) and "usableWidth" in args[0]:
+                return {"banded": 0}
+            if isinstance(script, str) and "SHOW_ALL" in script:
+                return {"clientExpanded": 0, "serverWarning": 0}
+            if isinstance(script, str) and "getBoundingClientRect" in script:
+                return []
+            return 0
+
+        mock_page.evaluate.side_effect = capture_evaluate
+        mock_page.wait_for_function.return_value = None
+        mock_page.wait_for_timeout.return_value = None
+        mock_page.goto.return_value = None
+        mock_page.locator.return_value.wait_for.return_value = None
+        mock_page.pdf.return_value = b"%PDF-1.4"
+
+        driver.get_print_pdf(
+            "http://superset:8088/dashboard/1/?print=1",
+            user=None,
+            print_orientation="portrait",
+        )
+
+        band_call = next(
+            (
+                c
+                for c in evaluate_calls
+                if c[1] and isinstance(c[1][0], dict) and "usableWidth" in c[1][0]
+            ),
+            None,
+        )
+        assert band_call is not None, "BAND_TABLE_COLUMNS_JS was never called"
+        usable_width = band_call[1][0]["usableWidth"]
+        portrait_width = int((1600 - 24) * 1.0)
+        assert usable_width == portrait_width, (
+            f"Expected portrait usableWidth={portrait_width}, got {usable_width}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# PRINT_ALL_CHART_HOLDERS_READY_JS — pre-mount guard (SIP-212 fix)
+# ---------------------------------------------------------------------------
+
+
+class TestPrintAllChartHoldersReadyJS:
+    """PRINT_ALL_CHART_HOLDERS_READY_JS must guard against the pre-mount window
+    where .standalone exists but React has not yet mounted chart holders."""
+
+    def test_dragdroppable_guard_present_in_predicate(self) -> None:
+        """The JS predicate must check .dragdroppable-column when holders=0
+        to distinguish pre-mount from a confirmed chart-free dashboard."""
+        from superset.utils.screenshot_utils import PRINT_ALL_CHART_HOLDERS_READY_JS
+
+        # The guard must check for dragdroppable columns
+        assert ".dragdroppable-column" in PRINT_ALL_CHART_HOLDERS_READY_JS
+        assert "columns.length > 0" in PRINT_ALL_CHART_HOLDERS_READY_JS
+        # Must still return false (keep waiting) when columns exist but holders don't
+        assert "return false" in PRINT_ALL_CHART_HOLDERS_READY_JS
+
+    def test_predicate_still_returns_true_when_no_columns_and_no_holders(
+        self,
+    ) -> None:
+        """When both holders and columns are absent (true chart-free dashboard),
+        the predicate must return true (proceed to page.pdf()).
+        This is verified by confirming the JS does not block on columns.length==0."""
+        from superset.utils.screenshot_utils import PRINT_ALL_CHART_HOLDERS_READY_JS
+
+        # The guard only blocks when columns.length > 0 — confirmed by the
+        # conditional structure. When columns.length == 0, the inner if-block
+        # is not entered and execution falls through to 'return unready.length === 0'.
+        # Since holders=0 implies unready=0, the predicate returns true.
+        assert "if (columns.length > 0)" in PRINT_ALL_CHART_HOLDERS_READY_JS
+        # The final return must be the unready check (not a hard-coded false)
+        assert "return unready.length === 0" in PRINT_ALL_CHART_HOLDERS_READY_JS
+
+    def test_predicate_uses_all_holders_not_viewport_only(self) -> None:
+        """The print path takes a full-page PDF (not viewport only), so the
+        predicate must scan all holders, not just viewport-visible ones.
+        Confirmed by reuse of UNREADY_ALL_CHART_HOLDERS_JS_BODY."""
+        from superset.utils.screenshot_utils import (
+            PRINT_ALL_CHART_HOLDERS_READY_JS,
+        )
+
+        # The body of the all-holders scan must be embedded in the predicate
+        # (viewport_only=False path — no innerHeight/getBoundingClientRect skip)
+        assert "window.innerHeight" not in PRINT_ALL_CHART_HOLDERS_READY_JS
+        # The unready body is interpolated, so at least its selector must be present
+        assert "dashboard-component-chart-holder" in PRINT_ALL_CHART_HOLDERS_READY_JS

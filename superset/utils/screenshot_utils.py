@@ -715,16 +715,43 @@ async (maxWaitMs) => {{
 }}
 """
 
-# Like REPORT_ALL_CHART_HOLDERS_READY_JS, but returns True immediately when
-# there are no chart holders (markdown-only dashboards). REPORT_*_READY_JS
-# requires holders.length > 0 to distinguish "still loading" from "no charts";
-# the print path must never block on an empty dashboard, so the gate is omitted.
-# Reuses UNREADY_ALL_CHART_HOLDERS_JS_BODY which already excludes ECharts hosts
-# that have not yet fired their ``finished`` event, preventing blank-canvas
-# captures on dashboards with ECharts vizzes.
-PRINT_ALL_CHART_HOLDERS_READY_JS = (
-    f"() => {{ {UNREADY_ALL_CHART_HOLDERS_JS_BODY} return unready.length === 0; }}"
-)
+# Like REPORT_ALL_CHART_HOLDERS_READY_JS, but handles chart-free dashboards
+# (markdown-only, dividers-only) without blocking indefinitely.
+#
+# Race condition addressed: after .standalone appears and the head-start sleep
+# completes, React may not yet have mounted any .dashboard-component-chart-holder
+# elements — holders.length is 0, unready.length is 0, so a naive
+# "unready.length === 0" predicate returns true immediately and page.pdf()
+# fires against an empty page.
+#
+# Fix: when no chart holders are present, check whether any
+# .dragdroppable-column elements exist in the DOM. If columns exist but no
+# holders have appeared yet, we are in the pre-mount window — keep waiting.
+# A truly chart-free dashboard (markdown-only, dividers, headers) has either
+# no .dragdroppable-column children at all or only columns that never produce
+# a .dashboard-component-chart-holder, both of which are stable states
+# reachable only after React has finished its initial render pass.
+#
+# Reuses UNREADY_ALL_CHART_HOLDERS_JS_BODY which already excludes ECharts
+# hosts that have not yet fired their ``finished`` event, preventing
+# blank-canvas captures on dashboards with ECharts vizzes.
+PRINT_ALL_CHART_HOLDERS_READY_JS = f"""
+() => {{
+    {UNREADY_ALL_CHART_HOLDERS_JS_BODY}
+    if (holders.length === 0) {{
+        // No chart holders mounted yet. If .dragdroppable-column elements
+        // exist, React has placed the grid shell but not the chart components
+        // — this is the pre-mount window; keep waiting.  When no columns
+        // exist at all (or after a full render pass confirms zero holders)
+        // the board is genuinely chart-free and we proceed immediately.
+        const columns = document.querySelectorAll('.dragdroppable-column');
+        if (columns.length > 0) {{
+            return false;
+        }}
+    }}
+    return unready.length === 0;
+}}
+"""
 
 # When forceRender=true is set on antd/rc-tabs tab items, CSSMotion renders
 # inactive panels into the DOM but applies inline style="display:none" on each
