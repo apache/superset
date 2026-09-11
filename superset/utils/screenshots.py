@@ -22,7 +22,7 @@ from collections.abc import Callable
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
-from typing import cast, TYPE_CHECKING, TypedDict
+from typing import cast, NotRequired, TYPE_CHECKING, TypedDict
 
 from flask import current_app as app
 
@@ -55,6 +55,7 @@ DEFAULT_SCREENSHOT_THUMBNAIL_SIZE = 400, 300
 DEFAULT_CHART_WINDOW_SIZE = DEFAULT_CHART_THUMBNAIL_SIZE = 800, 600
 DEFAULT_DASHBOARD_WINDOW_SIZE = 1600, 1200
 DEFAULT_DASHBOARD_THUMBNAIL_SIZE = 800, 600
+DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT = "dashboard-complete-v1"
 
 try:
     from PIL import Image
@@ -95,7 +96,11 @@ class ScreenshotCachePayloadType(TypedDict):
     # and are treated as belonging to no object -- read access is fail-closed
     # until the entry is recomputed. Optional at the type level via `.get()`
     # in `from_dict` for that reason.
-    scope: str | None
+    scope: NotRequired[str | None]
+    # Identifies the validation contract enforced by the worker that produced
+    # an artifact. Legacy workers omit unknown fields when serializing, so a
+    # rolling deployment cannot accidentally bless their unvalidated result.
+    capture_contract: NotRequired[str | None]
 
 
 # Magic bytes for a cheap image sanity check. This is intentionally not a full
@@ -125,6 +130,7 @@ class ScreenshotCachePayload:
         status: StatusValues | None = None,
         timestamp: str = "",
         scope: str | None = None,
+        capture_contract: str | None = None,
     ):
         self._image = image
         self._timestamp = timestamp or datetime.now().isoformat()
@@ -132,16 +138,33 @@ class ScreenshotCachePayload:
             StatusValues.UPDATED if image else StatusValues.PENDING
         )
         self._scope = scope
+        self._capture_contract = capture_contract
 
     @classmethod
     def from_dict(cls, payload: ScreenshotCachePayloadType) -> ScreenshotCachePayload:
+        image = payload["image"]
+        timestamp = payload["timestamp"]
+        scope = payload.get("scope")
+        capture_contract = payload.get("capture_contract")
+        if image is not None and not isinstance(image, (str, bytes)):
+            raise TypeError("Screenshot cache image must be base64 text")
+        if not isinstance(timestamp, str):
+            raise TypeError("Screenshot cache timestamp must be text")
+        parsed_timestamp = datetime.fromisoformat(timestamp)
+        if parsed_timestamp.tzinfo is not None:
+            raise ValueError("Screenshot cache timestamp must be timezone-naive")
+        if scope is not None and not isinstance(scope, str):
+            raise TypeError("Screenshot cache scope must be text")
+        if capture_contract is not None and not isinstance(capture_contract, str):
+            raise TypeError("Screenshot cache capture contract must be text")
         return cls(
-            image=base64.b64decode(payload["image"]) if payload["image"] else None,
+            image=base64.b64decode(image, validate=True) if image else None,
             status=StatusValues(payload["status"]),
-            timestamp=payload["timestamp"],
+            timestamp=timestamp,
             # `.get` rather than `payload["scope"]`: entries cached before this
             # field existed won't have the key.
-            scope=payload.get("scope"),
+            scope=scope,
+            capture_contract=capture_contract,
         )
 
     def to_dict(self) -> ScreenshotCachePayloadType:
@@ -152,6 +175,7 @@ class ScreenshotCachePayload:
             "timestamp": self._timestamp,
             "status": self.status.value,
             "scope": self._scope,
+            "capture_contract": self._capture_contract,
         }
 
     def get_scope(self) -> str | None:
@@ -160,12 +184,22 @@ class ScreenshotCachePayload:
     def set_scope(self, scope: str | None) -> None:
         self._scope = scope
 
+    def get_capture_contract(self) -> str | None:
+        return self._capture_contract
+
+    def set_capture_contract(self, capture_contract: str | None) -> None:
+        self._capture_contract = capture_contract
+
+    def has_capture_contract(self, expected_capture_contract: str) -> bool:
+        return self._capture_contract == expected_capture_contract
+
     def update_timestamp(self) -> None:
         self._timestamp = datetime.now().isoformat()
 
     def pending(self) -> None:
         self.update_timestamp()
         self._image = None
+        self._capture_contract = None
         self.status = StatusValues.PENDING
 
     def computing(self) -> None:
@@ -227,7 +261,10 @@ class ScreenshotCachePayload:
         return self.status == StatusValues.UPDATED
 
     def should_enqueue_task(
-        self, force: bool = False, expected_scope: str | None = None
+        self,
+        force: bool = False,
+        expected_scope: str | None = None,
+        expected_capture_contract: str | None = None,
     ) -> bool:
         """Check whether an API caller should enqueue screenshot computation.
 
@@ -239,13 +276,18 @@ class ScreenshotCachePayload:
             return True
         if self.is_in_progress():
             return self.is_in_progress_stale()
-        return self.should_trigger_task(force, expected_scope)
+        return self.should_trigger_task(
+            force,
+            expected_scope,
+            expected_capture_contract=expected_capture_contract,
+        )
 
     def should_trigger_task(
         self,
         force: bool = False,
         expected_scope: str | None = None,
         retry_fresh_error: bool = False,
+        expected_capture_contract: str | None = None,
     ) -> bool:
         """
         :param expected_scope: The scope (e.g. "dashboard:<id>") the caller
@@ -272,6 +314,11 @@ class ScreenshotCachePayload:
                 and expected_scope is not None
                 and self._scope != expected_scope
             )
+            or (
+                self.status == StatusValues.UPDATED
+                and expected_capture_contract is not None
+                and not self.has_capture_contract(expected_capture_contract)
+            )
         )
 
 
@@ -291,6 +338,7 @@ class BaseScreenshot:
     # they're authorizing, since the same cache backend is shared across
     # every dashboard and chart.
     cache_scope: str | None = None
+    capture_contract: str | None = None
 
     def __init__(
         self,
@@ -367,22 +415,41 @@ class BaseScreenshot:
             # Initially, only bytes were stored. This was changed to store an instance
             # of ScreenshotCachePayload, but since it can't be serialized in all
             # backends it was further changed to a dict of attributes.
-            if isinstance(payload, bytes):
-                payload = ScreenshotCachePayload(payload)
-            elif isinstance(payload, ScreenshotCachePayload):
-                pass
-            elif isinstance(payload, dict):
-                payload = cast(ScreenshotCachePayloadType, payload)
-                payload = ScreenshotCachePayload.from_dict(payload)
-            if invalid_reason := payload.get_invalid_image_reason():
+            try:
+                if isinstance(payload, bytes):
+                    payload = ScreenshotCachePayload(payload)
+                elif isinstance(payload, ScreenshotCachePayload):
+                    pass
+                elif isinstance(payload, dict):
+                    payload = cast(ScreenshotCachePayloadType, payload)
+                    payload = ScreenshotCachePayload.from_dict(payload)
+                else:
+                    raise TypeError(
+                        f"Unexpected screenshot cache payload: {type(payload)!r}"
+                    )
+                parsed_timestamp = datetime.fromisoformat(payload.get_timestamp())
+                if parsed_timestamp.tzinfo is not None:
+                    raise ValueError(
+                        "Screenshot cache timestamp must be timezone-naive"
+                    )
+                payload.get_status()
+                if invalid_reason := payload.get_invalid_image_reason():
+                    logger.warning(
+                        "Rejecting cached screenshot for %s: %s image payload; "
+                        "treating as a cache miss",
+                        cache_key,
+                        invalid_reason,
+                    )
+                    return None
+                return payload
+            except Exception:  # pylint: disable=broad-except
                 logger.warning(
-                    "Rejecting cached screenshot for %s: %s image payload; "
+                    "Rejecting malformed screenshot cache payload for %s; "
                     "treating as a cache miss",
                     cache_key,
-                    invalid_reason,
+                    exc_info=True,
                 )
                 return None
-            return payload
         logger.info("Failed at getting from cache: %s", cache_key)
         return None
 
@@ -403,13 +470,18 @@ class BaseScreenshot:
         *,
         force: bool,
         scope: str,
+        expected_capture_contract: str | None,
         enqueue: Callable[[], None],
     ) -> tuple[ScreenshotCachePayload, bool]:
         """Claim and publish a screenshot task while the producer lock is held."""
 
         cache_payload = cls.get_from_cache_key(cache_key)
         cache_payload = cache_payload or ScreenshotCachePayload()
-        if not cache_payload.should_enqueue_task(force, expected_scope=scope):
+        if not cache_payload.should_enqueue_task(
+            force,
+            expected_scope=scope,
+            expected_capture_contract=expected_capture_contract,
+        ):
             return cache_payload, False
         cache_payload.pending()
         cache_payload.set_scope(scope)
@@ -440,6 +512,7 @@ class BaseScreenshot:
         force: bool,
         scope: str,
         enqueue: Callable[[], None],
+        expected_capture_contract: str | None = None,
     ) -> tuple[ScreenshotCachePayload, bool]:
         """Atomically claim a cache key and publish its API task.
 
@@ -464,6 +537,7 @@ class BaseScreenshot:
                         cache_key,
                         force=force,
                         scope=scope,
+                        expected_capture_contract=expected_capture_contract,
                         enqueue=enqueue,
                     )
                 except Exception as ex:  # pylint: disable=broad-except
@@ -605,6 +679,7 @@ class BaseScreenshot:
                     force=force,
                     expected_scope=self.cache_scope,
                     retry_fresh_error=retry_fresh_error,
+                    expected_capture_contract=self.capture_contract,
                 ):
                     logger.info(
                         "Skipping compute - already processed for thumbnail: %s",
@@ -617,6 +692,7 @@ class BaseScreenshot:
                 logger.info("Processing url for thumbnail: %s", cache_key)
                 cache_payload.set_scope(self.cache_scope)
                 cache_payload.computing()
+                cache_payload.set_capture_contract(self.capture_contract)
                 self._store_cache_payload_or_raise(cache_key, cache_payload)
                 image = None
                 # Assuming all sorts of things can go wrong with Selenium
@@ -775,6 +851,8 @@ class DashboardScreenshot(BaseScreenshot):
             digest,
             require_complete_capture=require_complete_capture,
         )
+        if require_complete_capture:
+            self.capture_contract = DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT
         self.window_size = window_size or DEFAULT_DASHBOARD_WINDOW_SIZE
         self.thumb_size = thumb_size or DEFAULT_DASHBOARD_THUMBNAIL_SIZE
 

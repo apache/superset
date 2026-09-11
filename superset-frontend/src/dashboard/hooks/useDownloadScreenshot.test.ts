@@ -19,6 +19,7 @@
 import { renderHook, act } from '@testing-library/react';
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { useDownloadScreenshot } from './useDownloadScreenshot';
 import { DownloadScreenshotFormat } from '../components/menu/DownloadMenuItems/types';
 
@@ -47,11 +48,7 @@ jest.mock('react-redux', () => ({
 }));
 
 jest.mock('src/components/MessageToasts/withToasts', () => ({
-  useToasts: () => ({
-    addDangerToast: jest.fn(),
-    addSuccessToast: jest.fn(),
-    addInfoToast: jest.fn(),
-  }),
+  useToasts: jest.fn(),
 }));
 
 jest.mock('src/utils/urlUtils', () => ({
@@ -59,11 +56,15 @@ jest.mock('src/utils/urlUtils', () => ({
 }));
 
 const RETRY_INTERVAL = 3000;
-const SCREENSHOT_TASK_TIMEOUT_SECONDS = 360;
+const SCREENSHOT_STATE_LEASE_SECONDS = 360;
+const SCREENSHOT_TASK_TIMEOUT_SECONDS = 2 * SCREENSHOT_STATE_LEASE_SECONDS;
 const MAX_SCREENSHOT_WAIT = SCREENSHOT_TASK_TIMEOUT_SECONDS * 1000;
 const DASHBOARD_ID = 123;
 const CACHE_KEY = 'test-cache-key';
 const PERMALINK_KEY = 'test-permalink-key';
+const addDangerToast = jest.fn();
+const addSuccessToast = jest.fn();
+const addInfoToast = jest.fn();
 
 const taskResponse = (
   taskStatus: 'Pending' | 'Computing' | 'Updated' | 'Error',
@@ -108,6 +109,11 @@ const triggerDownload = async () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  (useToasts as jest.Mock).mockReturnValue({
+    addDangerToast,
+    addSuccessToast,
+    addInfoToast,
+  });
   // Default: GET hangs so microtask chains don't throw on undefined in tests
   // that only care about POST behavior.
   (SupersetClient.get as jest.Mock).mockReturnValue(new Promise(() => {}));
@@ -195,6 +201,41 @@ test('times out when the initial request never settles', async () => {
   jest.useRealTimers();
 });
 
+test('ignores an initial response that settles after the operation timed out', async () => {
+  jest.useFakeTimers();
+  let resolveTrigger: (
+    response: ReturnType<typeof taskResponse>,
+  ) => void = () => {};
+  (SupersetClient.post as jest.Mock).mockReturnValue(
+    new Promise<ReturnType<typeof taskResponse>>(resolve => {
+      resolveTrigger = resolve;
+    }),
+  );
+
+  await triggerDownload();
+
+  // A trigger without a server response retains the shorter default guard.
+  await act(async () => {
+    jest.advanceTimersByTime(SCREENSHOT_STATE_LEASE_SECONDS * 1000);
+    await flushPromises();
+  });
+  expect(logging.error).toHaveBeenCalledWith(
+    'Screenshot generation timed out',
+    expect.objectContaining({ permalinkKey: undefined }),
+  );
+
+  await act(async () => {
+    resolveTrigger(taskResponse('Updated'));
+    await flushPromises();
+  });
+
+  expect(SupersetClient.get).not.toHaveBeenCalled();
+  expect(jest.getTimerCount()).toBe(0);
+
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
+
 test('times out when the artifact download never settles', async () => {
   jest.useFakeTimers();
   (SupersetClient.post as jest.Mock).mockResolvedValue(taskResponse('Updated'));
@@ -215,6 +256,32 @@ test('times out when the artifact download never settles', async () => {
 
   jest.clearAllTimers();
   jest.useRealTimers();
+});
+
+test('reports failure when the browser cannot create the download URL', async () => {
+  (SupersetClient.post as jest.Mock).mockResolvedValue(taskResponse('Updated'));
+  (SupersetClient.get as jest.Mock).mockResolvedValue(createResponse());
+  const originalCreateObjectURL = window.URL.createObjectURL;
+  const originalRevokeObjectURL = window.URL.revokeObjectURL;
+  Object.assign(window.URL, {
+    createObjectURL: jest.fn(() => {
+      throw new Error('object URLs unavailable');
+    }),
+    revokeObjectURL: jest.fn(),
+  });
+
+  await triggerDownload();
+
+  expect(addSuccessToast).not.toHaveBeenCalled();
+  expect(addDangerToast).toHaveBeenCalledTimes(1);
+  expect(logging.error).toHaveBeenCalledWith(
+    'Failed to download screenshot artifact',
+    expect.objectContaining({ cacheKey: CACHE_KEY }),
+  );
+  Object.assign(window.URL, {
+    createObjectURL: originalCreateObjectURL,
+    revokeObjectURL: originalRevokeObjectURL,
+  });
 });
 
 test('keeps independent deadlines for concurrent downloads', async () => {
@@ -339,9 +406,44 @@ test('keeps polling beyond the previous retry ceiling and downloads', async () =
   jest.useRealTimers();
 });
 
+test('waits through the Pending lease when a worker starts near its end', async () => {
+  jest.useFakeTimers();
+  let resolvePoll: (
+    response: ReturnType<typeof taskResponse>,
+  ) => void = () => {};
+  const pendingPoll = new Promise<ReturnType<typeof taskResponse>>(resolve => {
+    resolvePoll = resolve;
+  });
+  (SupersetClient.post as jest.Mock)
+    .mockResolvedValueOnce(taskResponse('Pending'))
+    .mockReturnValueOnce(pendingPoll)
+    .mockImplementation(() => new Promise(() => {}));
+
+  await triggerDownload();
+
+  await act(async () => {
+    jest.advanceTimersByTime(
+      SCREENSHOT_STATE_LEASE_SECONDS * 1000 - RETRY_INTERVAL,
+    );
+    resolvePoll(taskResponse('Computing'));
+    await flushPromises();
+  });
+  await act(async () => {
+    jest.advanceTimersByTime(RETRY_INTERVAL * 2);
+    await flushPromises();
+  });
+
+  // A one-lease client deadline would have fired as Computing began. The
+  // advertised whole-task budget reserves a second lease for worker runtime.
+  expect(logging.error).not.toHaveBeenCalled();
+
+  jest.clearAllTimers();
+  jest.useRealTimers();
+});
+
 test('uses the task timeout advertised by the server', async () => {
   jest.useFakeTimers();
-  const advertisedTimeoutSeconds = 420;
+  const advertisedTimeoutSeconds = 900;
   (SupersetClient.post as jest.Mock).mockResolvedValue(
     taskResponse('Computing', advertisedTimeoutSeconds),
   );

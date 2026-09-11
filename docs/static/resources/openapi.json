@@ -3689,7 +3689,7 @@
             "type": "string"
           },
           "task_timeout_seconds": {
-            "description": "The client wait budget for this screenshot task",
+            "description": "The client wait budget for the Pending and Computing task states",
             "type": "integer"
           },
           "task_updated_at": {

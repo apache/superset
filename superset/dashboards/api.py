@@ -166,6 +166,7 @@ from superset.utils.core import parse_boolean_string, send_export_zip
 from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
+    DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT,
     DashboardScreenshot,
     DEFAULT_DASHBOARD_WINDOW_SIZE,
     ScreenshotCacheError,
@@ -2007,15 +2008,21 @@ class DashboardRestApi(
                 permalink_key=permalink_key,
                 dashboard_url=dashboard_url,
                 image_url=image_url,
-                task_timeout_seconds=current_app.config[
-                    "THUMBNAIL_COMPUTING_CACHE_TTL"
-                ],
+                # Pending and Computing each receive a fresh cache timestamp and
+                # may legitimately consume one full lease. Advertise their
+                # combined wall-clock budget so the UI does not abandon a task
+                # just after a queued worker starts computing it.
+                task_timeout_seconds=(
+                    2 * current_app.config["THUMBNAIL_COMPUTING_CACHE_TTL"]
+                ),
                 task_updated_at=cache_payload.get_timestamp(),
                 task_status=cache_payload.get_status(),
             )
 
         if cached_payload is None or cache_payload.should_enqueue_task(
-            force, expected_scope=cache_scope
+            force,
+            expected_scope=cache_scope,
+            expected_capture_contract=DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT,
         ):
             logger.info("Triggering screenshot ASYNC")
             try:
@@ -2023,6 +2030,7 @@ class DashboardRestApi(
                     cache_key,
                     force=force,
                     scope=cache_scope,
+                    expected_capture_contract=(DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT),
                     enqueue=functools.partial(
                         cache_dashboard_screenshot.delay,
                         username=get_current_user(),
@@ -2119,6 +2127,10 @@ class DashboardRestApi(
             if cache_payload.get_scope() != f"dashboard:{dashboard.id}":
                 return self.response_404()
             if not cache_payload.is_updated():
+                return self.response_404()
+            if not cache_payload.has_capture_contract(
+                DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT
+            ):
                 return self.response_404()
             try:
                 image = cache_payload.get_image()

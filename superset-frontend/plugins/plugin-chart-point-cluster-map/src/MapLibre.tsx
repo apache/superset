@@ -16,9 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
-import { Map as MapLibreMap } from 'react-map-gl/maplibre';
-import { Map as MapboxMap } from 'react-map-gl/mapbox';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Map as MapLibreMap,
+  type MapRef as MapLibreRef,
+} from 'react-map-gl/maplibre';
+import {
+  Map as MapboxMap,
+  type MapRef as MapboxRef,
+} from 'react-map-gl/mapbox';
 import * as maplibregl from 'maplibre-gl';
 import { WebMercatorViewport } from '@math.gl/web-mercator';
 import {
@@ -26,12 +32,19 @@ import {
   type ResolvedMapStyle,
 } from '@superset-ui/core/utils/mapStyles';
 import {
+  advanceMapResourceGeneration,
   hasFatalMapResourceError,
   hasUnrecoveredMapResourceError,
   type MapResourceEvent,
+  type MapResourceGeneration,
   type MapResourceState,
+  MapRenderGenerationTracker,
+  MapTileLifecycleTracker,
+  recordMapResourceAbort,
+  recordMapResourceData,
   recordMapResourceError,
-  recordMapResourceSuccess,
+  recordMapResourceIdle,
+  recordMapResourceLoading,
 } from '@superset-ui/core/utils/mapRenderStatus';
 import { useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
@@ -58,6 +71,8 @@ interface Viewport {
   latitude: number;
   zoom: number;
 }
+
+type MapMoveEvent = { viewState: Viewport };
 
 interface Clusterer {
   getClusters(bbox: number[], zoom: number): GeoJSONLocation[];
@@ -152,18 +167,6 @@ function MapLibre({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewportLongitude, viewportLatitude, viewportZoom]);
 
-  const handleMove = useCallback(
-    (evt: {
-      viewState: { longitude: number; latitude: number; zoom: number };
-    }) => {
-      const { longitude, latitude, zoom } = evt.viewState;
-      const newViewport = { longitude, latitude, zoom };
-      setViewport(newViewport);
-      onViewportChange?.(newViewport);
-    },
-    [onViewportChange],
-  );
-
   // add this variable to widen the visible area
   const offsetHorizontal = (width * 0.5) / 100;
   const offsetVertical = (height * 0.5) / 100;
@@ -201,20 +204,27 @@ function MapLibre({
   // redraw for the same inputs before declaring its pixels capture-ready.
   const currentMapSource = useMemo(
     () => ({
-      hasMapboxApiKey: Boolean(mapboxApiKey),
+      mapboxApiKey,
       mapProvider,
       resolvedMapStyle,
     }),
     [mapProvider, mapboxApiKey, resolvedMapStyle],
   );
-  const currentMapRender = useMemo(
-    () => ({
-      height,
-      source: currentMapSource,
+  const currentMapRenderScope = useMemo(
+    () => ({ height, source: currentMapSource, width }),
+    [currentMapSource, height, width],
+  );
+  const mapRenderGenerationTrackerRef = useRef(
+    new MapRenderGenerationTracker(),
+  );
+  const currentMapRenderGeneration =
+    mapRenderGenerationTrackerRef.current.current(
       viewport,
-      width,
-    }),
-    [currentMapSource, height, viewport, width],
+      currentMapRenderScope,
+    );
+  const currentMapGeneration = useMemo<MapResourceGeneration>(
+    () => ({ render: currentMapRenderGeneration, source: currentMapSource }),
+    [currentMapRenderGeneration, currentMapSource],
   );
   const currentOverlayRender = useMemo(
     () => ({
@@ -254,37 +264,126 @@ function MapLibre({
   >(null);
   const [mapResourceState, setMapResourceState] =
     useState<MapResourceState | null>(null);
-  const handleMapIdle = useCallback(
-    () => setCompletedMapRender(currentMapRender),
-    [currentMapRender],
-  );
-  const handleMapData = useCallback(
-    (event: MapResourceEvent) => {
-      setMapResourceState(current =>
-        recordMapResourceSuccess(current, currentMapSource, event),
-      );
+  const currentMapGenerationRef = useRef(currentMapGeneration);
+  currentMapGenerationRef.current = currentMapGeneration;
+  const mapTileLifecycleRef = useRef(new MapTileLifecycleTracker());
+  const boundMapLibreRef = useRef<MapLibreRef | null>(null);
+  const boundMapboxRef = useRef<MapboxRef | null>(null);
+  const handleMove = useCallback(
+    ({ viewState }: MapMoveEvent) => {
+      const { longitude, latitude, zoom } = viewState;
+      const newViewport = { longitude, latitude, zoom };
+      mapRenderGenerationTrackerRef.current.retainForInput(newViewport);
+      setCompletedMapRender(null);
+      setViewport(newViewport);
+      onViewportChange?.(newViewport);
     },
-    [currentMapSource],
+    [onViewportChange],
   );
-  const handleMapError = useCallback(
-    (event: MapResourceEvent) => {
+  const handleMoveEnd = useCallback(
+    ({ viewState }: MapMoveEvent) => {
+      const { longitude, latitude, zoom } = viewState;
+      const newViewport = { longitude, latitude, zoom };
+      const render = mapRenderGenerationTrackerRef.current.advance(newViewport);
+      currentMapGenerationRef.current = {
+        render,
+        source: currentMapGenerationRef.current.source,
+      };
+      mapTileLifecycleRef.current.rebase(render);
       setCompletedMapRender(null);
       setMapResourceState(current =>
-        recordMapResourceError(current, currentMapSource, event),
+        advanceMapResourceGeneration(current, currentMapGenerationRef.current),
       );
+      setViewport(newViewport);
+      onViewportChange?.(newViewport);
     },
-    [currentMapSource],
+    [onViewportChange],
   );
+  const handleMapIdle = useCallback(() => {
+    const generation = currentMapGenerationRef.current;
+    mapTileLifecycleRef.current.reset(generation.render);
+    setMapResourceState(current => recordMapResourceIdle(current, generation));
+    setCompletedMapRender(generation.render);
+  }, []);
+  const handleMapLoading = useCallback((event: MapResourceEvent) => {
+    const generation = currentMapGenerationRef.current;
+    mapTileLifecycleRef.current.start(generation.render, event);
+    setCompletedMapRender(null);
+    setMapResourceState(current =>
+      recordMapResourceLoading(current, generation, event),
+    );
+  }, []);
+  const handleMapAbort = useCallback((event: MapResourceEvent) => {
+    const generation = currentMapGenerationRef.current;
+    if (!mapTileLifecycleRef.current.finish(generation.render, event)) {
+      return;
+    }
+    setMapResourceState(current =>
+      recordMapResourceAbort(current, generation, event),
+    );
+  }, []);
+  const handleMapLibreRef = useCallback(
+    (mapRef: MapLibreRef | null) => {
+      const previousMap = boundMapLibreRef.current?.getMap();
+      previousMap?.off('sourcedataloading', handleMapLoading);
+      previousMap?.off('sourcedataabort', handleMapAbort);
+      mapTileLifecycleRef.current.reset();
+      boundMapLibreRef.current = mapRef;
+      const nextMap = mapRef?.getMap();
+      nextMap?.on('sourcedataloading', handleMapLoading);
+      nextMap?.on('sourcedataabort', handleMapAbort);
+    },
+    [handleMapAbort, handleMapLoading],
+  );
+  const handleMapboxRef = useCallback(
+    (mapRef: MapboxRef | null) => {
+      const previousMap = boundMapboxRef.current?.getMap();
+      previousMap?.off('sourcedataloading', handleMapLoading);
+      mapTileLifecycleRef.current.reset();
+      boundMapboxRef.current = mapRef;
+      mapRef?.getMap().on('sourcedataloading', handleMapLoading);
+    },
+    [handleMapLoading],
+  );
+  const handleMapData = useCallback((event: MapResourceEvent) => {
+    const generation = currentMapGenerationRef.current;
+    const completion = mapTileLifecycleRef.current.complete(
+      generation.render,
+      event,
+    );
+    if (completion === null && event.sourceDataType !== 'error') {
+      return;
+    }
+    // Mapbox emits failed tile loads as source data events, and any new
+    // resource outcome invalidates an earlier idle until the map repaints.
+    setCompletedMapRender(null);
+    setMapResourceState(current => {
+      if (completion === 'rebased' && event.sourceDataType !== 'error') {
+        return recordMapResourceAbort(current, generation, event);
+      }
+      return recordMapResourceData(current, generation, event);
+    });
+  }, []);
+  const handleMapError = useCallback((event: MapResourceEvent) => {
+    const generation = currentMapGenerationRef.current;
+    if (event.tile !== undefined) {
+      mapTileLifecycleRef.current.finish(generation.render, event);
+    }
+    setCompletedMapRender(null);
+    setMapResourceState(current =>
+      recordMapResourceError(current, generation, event),
+    );
+  }, []);
   const handleOverlayRedraw = useCallback(
     () => setCompletedOverlayRender(currentOverlayRender),
     [currentOverlayRender],
   );
   const mapResourceFailed =
-    hasFatalMapResourceError(mapResourceState, currentMapSource) ||
-    (completedMapRender === currentMapRender &&
-      hasUnrecoveredMapResourceError(mapResourceState, currentMapSource));
+    hasFatalMapResourceError(mapResourceState, currentMapGeneration) ||
+    (completedMapRender === currentMapGeneration.render &&
+      hasUnrecoveredMapResourceError(mapResourceState, currentMapGeneration));
   const mapRenderComplete =
-    completedMapRender === currentMapRender &&
+    completedMapRender === currentMapGeneration.render &&
     completedOverlayRender === currentOverlayRender &&
     !mapResourceFailed;
 
@@ -308,9 +407,30 @@ function MapLibre({
     );
   }
 
-  const MapComponent = mapProvider === 'mapbox' ? MapboxMap : MapLibreMap;
-  const mapboxProps =
-    mapProvider === 'mapbox' ? { mapboxAccessToken: mapboxApiKey } : {};
+  const sharedMapProps = {
+    ...viewport,
+    mapStyle: resolvedMapStyle,
+    onData: handleMapData,
+    onError: handleMapError,
+    onIdle: handleMapIdle,
+    onMove: handleMove,
+    onMoveEnd: handleMoveEnd,
+    style: { width, height },
+  };
+  const overlay = (
+    <ScatterPlotOverlay
+      locations={clusters}
+      dotRadius={pointRadius}
+      pointRadiusUnit={pointRadiusUnit}
+      rgb={rgb}
+      globalOpacity={globalOpacity}
+      compositeOperation="screen"
+      renderWhileDragging={renderWhileDragging}
+      aggregation={hasCustomMetric ? aggregatorName : undefined}
+      zoom={viewport.zoom}
+      onRedraw={handleOverlayRedraw}
+    />
+  );
 
   return (
     <div
@@ -319,29 +439,19 @@ function MapLibre({
       }
       style={{ position: 'relative', width, height }}
     >
-      <MapComponent
-        {...viewport}
-        {...mapboxProps}
-        style={{ width, height }}
-        mapStyle={resolvedMapStyle}
-        onMove={handleMove}
-        onIdle={handleMapIdle}
-        onError={handleMapError}
-        onData={handleMapData}
-      >
-        <ScatterPlotOverlay
-          locations={clusters}
-          dotRadius={pointRadius}
-          pointRadiusUnit={pointRadiusUnit}
-          rgb={rgb}
-          globalOpacity={globalOpacity}
-          compositeOperation="screen"
-          renderWhileDragging={renderWhileDragging}
-          aggregation={hasCustomMetric ? aggregatorName : undefined}
-          zoom={viewport.zoom}
-          onRedraw={handleOverlayRedraw}
-        />
-      </MapComponent>
+      {mapProvider === 'mapbox' ? (
+        <MapboxMap
+          ref={handleMapboxRef}
+          {...sharedMapProps}
+          mapboxAccessToken={mapboxApiKey}
+        >
+          {overlay}
+        </MapboxMap>
+      ) : (
+        <MapLibreMap ref={handleMapLibreRef} {...sharedMapProps}>
+          {overlay}
+        </MapLibreMap>
+      )}
     </div>
   );
 }

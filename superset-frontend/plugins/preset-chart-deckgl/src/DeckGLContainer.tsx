@@ -25,12 +25,19 @@ import {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useRef,
   useState,
   isValidElement,
 } from 'react';
 import { isEqual } from 'lodash-es';
-import { Map as MapLibreMap } from 'react-map-gl/maplibre';
-import { Map as MapboxMap } from 'react-map-gl/mapbox';
+import {
+  Map as MapLibreMap,
+  type MapRef as MapLibreRef,
+} from 'react-map-gl/maplibre';
+import {
+  Map as MapboxMap,
+  type MapRef as MapboxRef,
+} from 'react-map-gl/mapbox';
 import mapboxgl from 'mapbox-gl';
 import type { Layer } from '@deck.gl/core';
 import { JsonObject, JsonValue } from '@superset-ui/core';
@@ -40,12 +47,19 @@ import {
   type ResolvedMapStyle,
 } from '@superset-ui/core/utils/mapStyles';
 import {
+  advanceMapResourceGeneration,
   hasFatalMapResourceError,
   hasUnrecoveredMapResourceError,
   type MapResourceEvent,
+  type MapResourceGeneration,
   type MapResourceState,
+  MapRenderGenerationTracker,
+  MapTileLifecycleTracker,
+  recordMapResourceAbort,
+  recordMapResourceData,
   recordMapResourceError,
-  recordMapResourceSuccess,
+  recordMapResourceIdle,
+  recordMapResourceLoading,
 } from '@superset-ui/core/utils/mapRenderStatus';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
@@ -90,6 +104,9 @@ export const DeckGLContainer = memo(
       null,
     );
     const [viewState, setViewState] = useState(props.viewport);
+    const mapTileLifecycleRef = useRef(new MapTileLifecycleTracker());
+    const boundMapLibreRef = useRef<MapLibreRef | null>(null);
+    const boundMapboxRef = useRef<MapboxRef | null>(null);
 
     useImperativeHandle(ref, () => ({ setTooltip }), []);
 
@@ -115,11 +132,6 @@ export const DeckGLContainer = memo(
       );
     }, [props.viewport]);
 
-    const onMove = useCallback((evt: { viewState: JsonObject }) => {
-      setViewState(evt.viewState as Viewport);
-      setLastUpdate(Date.now());
-    }, []);
-
     const isMapbox = props.mapProvider === 'mapbox';
     const canRenderMap = !isMapbox || Boolean(props.mapboxApiKey);
     const mapStyle = useMemo<ResolvedMapStyle>(
@@ -131,7 +143,7 @@ export const DeckGLContainer = memo(
     );
     const currentMapSource = useMemo(
       () => ({
-        hasMapboxApiKey: Boolean(props.mapboxApiKey),
+        mapboxApiKey: props.mapboxApiKey,
         mapProvider: props.mapProvider,
         mapStyle,
       }),
@@ -146,6 +158,28 @@ export const DeckGLContainer = memo(
       }),
       [currentMapSource, props.height, props.width, viewState],
     );
+    const currentMapRenderScope = useMemo(
+      () => ({
+        height: props.height,
+        source: currentMapSource,
+        width: props.width,
+      }),
+      [currentMapSource, props.height, props.width],
+    );
+    const mapRenderGenerationTrackerRef = useRef(
+      new MapRenderGenerationTracker(),
+    );
+    const currentMapRenderGeneration =
+      mapRenderGenerationTrackerRef.current.current(
+        viewState,
+        currentMapRenderScope,
+      );
+    const currentMapGeneration = useMemo<MapResourceGeneration>(
+      () => ({ render: currentMapRenderGeneration, source: currentMapSource }),
+      [currentMapRenderGeneration, currentMapSource],
+    );
+    const currentMapGenerationRef = useRef(currentMapGeneration);
+    currentMapGenerationRef.current = currentMapGeneration;
     const resolvedLayers = useMemo(
       () =>
         canRenderMap
@@ -169,30 +203,109 @@ export const DeckGLContainer = memo(
       }),
       [currentMapSource, resolvedLayers],
     );
-    const onMapIdle = useCallback(
-      () => setCompletedMapRender(currentMapRender),
-      [currentMapRender],
-    );
-    const onMapData = useCallback(
-      (event: MapResourceEvent) => {
-        setMapResourceState(current =>
-          recordMapResourceSuccess(current, currentMapSource, event),
-        );
+    const onMove = useCallback((evt: { viewState: JsonObject }) => {
+      const nextViewState = evt.viewState as Viewport;
+      mapRenderGenerationTrackerRef.current.retainForInput(nextViewState);
+      setCompletedMapRender(null);
+      setViewState(nextViewState);
+      setLastUpdate(Date.now());
+    }, []);
+    const onMoveEnd = useCallback((evt: { viewState: JsonObject }) => {
+      const nextViewState = evt.viewState as Viewport;
+      const render =
+        mapRenderGenerationTrackerRef.current.advance(nextViewState);
+      currentMapGenerationRef.current = {
+        render,
+        source: currentMapGenerationRef.current.source,
+      };
+      mapTileLifecycleRef.current.rebase(render);
+      setCompletedMapRender(null);
+      setMapResourceState(current =>
+        advanceMapResourceGeneration(current, currentMapGenerationRef.current),
+      );
+      setViewState(nextViewState);
+      setLastUpdate(Date.now());
+    }, []);
+    const onMapIdle = useCallback(() => {
+      const generation = currentMapGenerationRef.current;
+      mapTileLifecycleRef.current.reset(generation.render);
+      setMapResourceState(current =>
+        recordMapResourceIdle(current, generation),
+      );
+      setCompletedMapRender(generation.render);
+    }, []);
+    const onMapLoading = useCallback((event: MapResourceEvent) => {
+      const generation = currentMapGenerationRef.current;
+      mapTileLifecycleRef.current.start(generation.render, event);
+      setCompletedMapRender(null);
+      setMapResourceState(current =>
+        recordMapResourceLoading(current, generation, event),
+      );
+    }, []);
+    const onMapAbort = useCallback((event: MapResourceEvent) => {
+      const generation = currentMapGenerationRef.current;
+      if (!mapTileLifecycleRef.current.finish(generation.render, event)) {
+        return;
+      }
+      setMapResourceState(current =>
+        recordMapResourceAbort(current, generation, event),
+      );
+    }, []);
+    const onMapLibreRef = useCallback(
+      (mapRef: MapLibreRef | null) => {
+        const previousMap = boundMapLibreRef.current?.getMap();
+        previousMap?.off('sourcedataloading', onMapLoading);
+        previousMap?.off('sourcedataabort', onMapAbort);
+        mapTileLifecycleRef.current.reset();
+        boundMapLibreRef.current = mapRef;
+        const nextMap = mapRef?.getMap();
+        nextMap?.on('sourcedataloading', onMapLoading);
+        nextMap?.on('sourcedataabort', onMapAbort);
       },
-      [currentMapSource],
+      [onMapAbort, onMapLoading],
     );
-    const onMapError = useCallback(
-      (event: MapResourceEvent) => {
-        // Require a fresh idle after any resource error. A source with at
-        // least one successful tile may still produce a useful partial map;
-        // a wholly failed source is terminal once the map becomes idle.
-        setCompletedMapRender(null);
-        setMapResourceState(current =>
-          recordMapResourceError(current, currentMapSource, event),
-        );
+    const onMapboxRef = useCallback(
+      (mapRef: MapboxRef | null) => {
+        const previousMap = boundMapboxRef.current?.getMap();
+        previousMap?.off('sourcedataloading', onMapLoading);
+        mapTileLifecycleRef.current.reset();
+        boundMapboxRef.current = mapRef;
+        mapRef?.getMap().on('sourcedataloading', onMapLoading);
       },
-      [currentMapSource],
+      [onMapLoading],
     );
+    const onMapData = useCallback((event: MapResourceEvent) => {
+      const generation = currentMapGenerationRef.current;
+      const completion = mapTileLifecycleRef.current.complete(
+        generation.render,
+        event,
+      );
+      if (completion === null && event.sourceDataType !== 'error') {
+        return;
+      }
+      // Mapbox emits failed tile loads as source data events, and any new
+      // resource outcome invalidates an earlier idle until the map repaints.
+      setCompletedMapRender(null);
+      setMapResourceState(current => {
+        if (completion === 'rebased' && event.sourceDataType !== 'error') {
+          return recordMapResourceAbort(current, generation, event);
+        }
+        return recordMapResourceData(current, generation, event);
+      });
+    }, []);
+    const onMapError = useCallback((event: MapResourceEvent) => {
+      const generation = currentMapGenerationRef.current;
+      if (event.tile !== undefined) {
+        mapTileLifecycleRef.current.finish(generation.render, event);
+      }
+      // Require a fresh idle after any resource error. A source with at
+      // least one successful tile may still produce a useful partial map;
+      // a wholly failed source is terminal once the map becomes idle.
+      setCompletedMapRender(null);
+      setMapResourceState(current =>
+        recordMapResourceError(current, generation, event),
+      );
+    }, []);
     const onDeckAfterRender = useCallback(
       () => setCompletedDeckRender(currentDeckRender),
       [currentDeckRender],
@@ -205,15 +318,15 @@ export const DeckGLContainer = memo(
       [currentDeckSource],
     );
     const mapResourceFailed =
-      hasFatalMapResourceError(mapResourceState, currentMapSource) ||
-      (completedMapRender === currentMapRender &&
-        hasUnrecoveredMapResourceError(mapResourceState, currentMapSource));
+      hasFatalMapResourceError(mapResourceState, currentMapGeneration) ||
+      (completedMapRender === currentMapGeneration.render &&
+        hasUnrecoveredMapResourceError(mapResourceState, currentMapGeneration));
     const deckRenderFailed = failedDeckRender === currentDeckSource;
     const mapRenderComplete =
       !props.isLoading &&
       !mapResourceFailed &&
       !deckRenderFailed &&
-      completedMapRender === currentMapRender &&
+      completedMapRender === currentMapGeneration.render &&
       completedDeckRender === currentDeckRender;
 
     const isCustomTooltip = (content: ReactNode): boolean =>
@@ -277,8 +390,10 @@ export const DeckGLContainer = memo(
         >
           {isMapbox ? (
             <MapboxMap
+              ref={onMapboxRef}
               {...viewState}
               onMove={onMove}
+              onMoveEnd={onMoveEnd}
               onIdle={onMapIdle}
               onError={onMapError}
               onData={onMapData}
@@ -293,8 +408,10 @@ export const DeckGLContainer = memo(
             </MapboxMap>
           ) : (
             <MapLibreMap
+              ref={onMapLibreRef}
               {...viewState}
               onMove={onMove}
+              onMoveEnd={onMoveEnd}
               onIdle={onMapIdle}
               onError={onMapError}
               onData={onMapData}

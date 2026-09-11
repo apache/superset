@@ -26,6 +26,7 @@ from superset.utils.hashing import hash_from_dict
 from superset.utils.screenshots import (
     BaseScreenshot,
     ChartScreenshot,
+    DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT,
     DashboardScreenshot,
     ScreenshotCachePayload,
     ScreenshotCachePayloadType,
@@ -162,6 +163,24 @@ class TestComputeAndCache:
         screenshot_obj.compute_and_cache(force=False)
         cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
         assert cache_payload["status"] == "Updated"
+        assert cache_payload["capture_contract"] is None
+
+    def test_strict_dashboard_stamps_capture_contract(
+        self, mocker: MockerFixture
+    ) -> None:
+        screenshot_obj = DashboardScreenshot(
+            "http://example.com",
+            "digest",
+            require_complete_capture=True,
+        )
+        self._setup_compute_and_cache(mocker, screenshot_obj)
+
+        screenshot_obj.compute_and_cache(force=False)
+
+        cache_payload: ScreenshotCachePayloadType = screenshot_obj.cache.get("key")
+        assert (
+            cache_payload["capture_contract"] == DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT
+        )
 
     def test_stamps_cache_scope_when_set(self, mocker: MockerFixture, screenshot_obj):
         """A caller (the thumbnail Celery tasks) sets `cache_scope` before
@@ -364,6 +383,32 @@ def test_image_without_explicit_status_defaults_to_updated() -> None:
     assert payload.status == StatusValues.UPDATED
 
 
+def test_capture_contract_round_trips_and_legacy_payload_defaults_to_none() -> None:
+    payload = ScreenshotCachePayload(
+        image=FAKE_PNG_BYTES,
+        capture_contract=DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT,
+    )
+    serialized = payload.to_dict()
+
+    assert (
+        ScreenshotCachePayload.from_dict(serialized).get_capture_contract()
+        == DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT
+    )
+    serialized.pop("capture_contract")
+    assert ScreenshotCachePayload.from_dict(serialized).get_capture_contract() is None
+
+
+def test_pending_invalidates_a_prior_capture_contract() -> None:
+    payload = ScreenshotCachePayload(
+        image=FAKE_PNG_BYTES,
+        capture_contract=DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT,
+    )
+
+    payload.pending()
+
+    assert payload.get_capture_contract() is None
+
+
 class TestScreenshotCachePayloadScope:
     """
     Cache entries are shared across every dashboard and chart in the same
@@ -395,7 +440,7 @@ class TestScreenshotCachePayloadScope:
             "image": None,
             "timestamp": "2024-01-01T00:00:00",
             "status": "Updated",
-        }  # type: ignore[typeddict-item]
+        }
         restored = ScreenshotCachePayload.from_dict(legacy_dict)
         assert restored.get_scope() is None
 

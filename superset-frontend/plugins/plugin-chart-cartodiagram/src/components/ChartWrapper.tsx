@@ -19,7 +19,14 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { getChartComponentRegistry } from '@superset-ui/core';
 import { ThemeProvider } from '@apache-superset/core/theme';
-import { FC, useEffect, useLayoutEffect, useState } from 'react';
+import {
+  ComponentType,
+  FC,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { ChartWrapperProps } from '../types';
 
@@ -33,7 +40,11 @@ export const ChartWrapper: FC<ChartWrapperProps> = ({
   onRenderComplete,
   onRenderError,
 }) => {
-  const [Chart, setChart] = useState<any>();
+  const [Chart, setChart] = useState<ComponentType<Record<string, unknown>>>();
+  const onRenderCompleteRef = useRef(onRenderComplete);
+  const onRenderErrorRef = useRef(onRenderError);
+  onRenderCompleteRef.current = onRenderComplete;
+  onRenderErrorRef.current = onRenderError;
 
   useEffect(() => {
     let active = true;
@@ -48,19 +59,19 @@ export const ChartWrapper: FC<ChartWrapperProps> = ({
       .catch(error => {
         if (active) {
           console.warn(`Could not load cartodiagram chart: ${error}`);
-          onRenderError?.(error);
+          onRenderErrorRef.current?.(error);
         }
       });
     return () => {
       active = false;
     };
-  }, [onRenderError, vizType]);
+  }, [vizType]);
 
   useLayoutEffect(() => {
     if (Chart !== undefined) {
-      onRenderComplete?.();
+      onRenderCompleteRef.current?.();
     }
-  }, [Chart, onRenderComplete]);
+  }, [Chart, chartConfig, height, locale, theme, width]);
 
   // Create a mock store that is needed by
   // eCharts components to access the locale.

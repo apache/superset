@@ -78,6 +78,33 @@ test('reports completion only after the nested module resolves', async () => {
   expect(container.textContent).toContain('nested chart');
 });
 
+test('keeps the resolved chart across same-viz size and callback changes', async () => {
+  mockGetAsPromise.mockResolvedValue(({ width }: { width: number }) => (
+    <div>nested chart {width}</div>
+  ));
+  const firstComplete = jest.fn();
+  const secondComplete = jest.fn();
+  const { container, rerender } = renderWrapper('pie', firstComplete);
+  await waitFor(() => expect(firstComplete).toHaveBeenCalledTimes(1));
+
+  rerender(
+    <ChartWrapper
+      vizType="pie"
+      chartConfig={chartConfig}
+      width={200}
+      height={100}
+      theme={supersetTheme}
+      locale="en"
+      onRenderComplete={secondComplete}
+      onRenderError={jest.fn()}
+    />,
+  );
+
+  expect(container.textContent).toContain('nested chart 200');
+  expect(secondComplete).toHaveBeenCalledTimes(1);
+  expect(mockGetAsPromise).toHaveBeenCalledTimes(1);
+});
+
 test('ignores a nested module that resolves after the visualization changes', async () => {
   const resolvers: ((chart: ComponentType) => void)[] = [];
   mockGetAsPromise.mockImplementation(

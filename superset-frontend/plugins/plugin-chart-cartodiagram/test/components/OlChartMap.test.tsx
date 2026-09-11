@@ -27,6 +27,7 @@ import type { OlChartMapProps } from '../../src/types';
 
 const mockCreateLayer = jest.fn();
 const mockFitMapToCharts = jest.fn();
+const mockUnByKey = jest.fn();
 
 jest.mock('../../src/util/layerUtil', () => ({
   createLayer: (...args: unknown[]) => mockCreateLayer(...args),
@@ -68,6 +69,11 @@ jest.mock('../../src/components/ChartLayer', () => ({
     changed() {}
   },
 }));
+jest.mock('ol/Observable', () => ({
+  __esModule: true,
+  ...jest.requireActual('ol/Observable'),
+  unByKey: (...args: unknown[]) => mockUnByKey(...args),
+}));
 
 const store = configureStore({
   reducer: { common: () => ({ locale: 'en' }) },
@@ -75,6 +81,7 @@ const store = configureStore({
 
 const createMap = () => {
   const callbacks = new Map<string, () => void>();
+  const listenerKeys = new Map<string, object>();
   const layers: object[] = [];
   const insertAt = jest.fn((index: number, layer: object) =>
     layers.splice(index, 0, layer),
@@ -97,7 +104,9 @@ const createMap = () => {
     getView: jest.fn(() => view),
     on: jest.fn((event: string, callback: () => void) => {
       callbacks.set(event, callback);
-      return {};
+      const key = { event };
+      listenerKeys.set(event, key);
+      return key;
     }),
     removeLayer: jest.fn((layer: object) => {
       const index = layers.indexOf(layer);
@@ -109,15 +118,17 @@ const createMap = () => {
     setTarget: jest.fn(),
     updateSize: jest.fn(),
   };
-  return { callbacks, insertAt, map: map as unknown as OlMap };
+  return { callbacks, insertAt, listenerKeys, map: map as unknown as OlMap };
 };
 
 const createMockLayer = () => {
-  const callbacks = new Map<string, () => void>();
+  const callbacks = new Map<string, (event?: { tile?: object }) => void>();
   const source = {
-    addEventListener: jest.fn((event: string, callback: () => void) => {
-      callbacks.set(event, callback);
-    }),
+    addEventListener: jest.fn(
+      (event: string, callback: (event?: { tile?: object }) => void) => {
+        callbacks.set(event, callback);
+      },
+    ),
     removeEventListener: jest.fn(),
   };
   return {
@@ -125,6 +136,16 @@ const createMockLayer = () => {
     layer: { getSource: () => source },
     source,
   };
+};
+
+const emitTileOutcome = (
+  callbacks: Map<string, (event?: { tile?: object }) => void>,
+  outcome: 'tileloadend' | 'tileloaderror',
+) => {
+  const tile = {};
+  callbacks.get('tileloadstart')?.({ tile });
+  callbacks.get(outcome)?.({ tile });
+  return tile;
 };
 
 const buildProps = (olMap: OlMap): OlChartMapProps => ({
@@ -198,6 +219,7 @@ test('requires layer creation and a later OpenLayers rendercomplete event', asyn
 
   act(() => callbacks.get('movestart')?.());
   expect(mapHost).toHaveAttribute('data-superset-map-status', 'loading');
+  act(() => callbacks.get('moveend')?.());
   act(() => callbacks.get('rendercomplete')?.());
   expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
 });
@@ -208,6 +230,7 @@ test.each([
 ])(
   'reports an all-failed source after %s and recovers on %s',
   async (loadErrorEvent, loadSuccessEvent) => {
+    const loadStartEvent = loadErrorEvent.replace('error', 'start');
     const { callbacks: sourceCallbacks, layer, source } = createMockLayer();
     mockCreateLayer.mockResolvedValue(layer);
     const { callbacks: mapCallbacks, map } = createMap();
@@ -223,17 +246,81 @@ test.each([
         expect.any(Function),
       ),
     );
-    act(() => sourceCallbacks.get(loadErrorEvent)?.());
+    expect(source.addEventListener).toHaveBeenCalledWith(
+      loadStartEvent,
+      expect.any(Function),
+    );
+    act(() => {
+      if (loadErrorEvent === 'tileloaderror') {
+        emitTileOutcome(sourceCallbacks, loadErrorEvent);
+      } else {
+        sourceCallbacks.get(loadStartEvent)?.();
+        sourceCallbacks.get(loadErrorEvent)?.();
+      }
+    });
     act(() => mapCallbacks.get('rendercomplete')?.());
 
     expect(
       container.querySelector('[data-superset-map-status]'),
     ).toHaveAttribute('data-superset-map-status', 'error');
 
-    act(() => sourceCallbacks.get(loadSuccessEvent)?.());
+    act(() => {
+      if (loadSuccessEvent === 'tileloadend') {
+        emitTileOutcome(sourceCallbacks, loadSuccessEvent);
+      } else {
+        sourceCallbacks.get(loadStartEvent)?.();
+        sourceCallbacks.get(loadSuccessEvent)?.();
+      }
+    });
+    expect(
+      container.querySelector('[data-superset-map-status]'),
+    ).toHaveAttribute('data-superset-map-status', 'loading');
+    act(() => mapCallbacks.get('rendercomplete')?.());
     expect(
       container.querySelector('[data-superset-map-status]'),
     ).toHaveAttribute('data-superset-map-status', 'rendered');
+
+    act(() => {
+      sourceCallbacks.get(loadStartEvent)?.(
+        loadStartEvent === 'tileloadstart' ? { tile: {} } : undefined,
+      );
+    });
+    expect(
+      container.querySelector('[data-superset-map-status]'),
+    ).toHaveAttribute('data-superset-map-status', 'loading');
+    act(() => mapCallbacks.get('rendercomplete')?.());
+    expect(
+      container.querySelector('[data-superset-map-status]'),
+    ).toHaveAttribute(
+      'data-superset-map-status',
+      loadStartEvent === 'tileloadstart' ? 'rendered' : 'error',
+    );
+  },
+);
+
+test.each(['tileloadstart', 'featuresloadstart'])(
+  'reports an unresolved %s request on render completion',
+  async loadStartEvent => {
+    const { callbacks: sourceCallbacks, layer } = createMockLayer();
+    mockCreateLayer.mockResolvedValue(layer);
+    const { callbacks: mapCallbacks, map } = createMap();
+    const { container } = render(
+      <Provider store={store}>
+        <OlChartMap {...buildProps(map)} />
+      </Provider>,
+    );
+
+    await waitFor(() => expect(mockCreateLayer).toHaveBeenCalledTimes(1));
+    act(() => {
+      sourceCallbacks.get(loadStartEvent)?.(
+        loadStartEvent === 'tileloadstart' ? { tile: {} } : undefined,
+      );
+      mapCallbacks.get('rendercomplete')?.();
+    });
+
+    expect(
+      container.querySelector('[data-superset-map-status]'),
+    ).toHaveAttribute('data-superset-map-status', 'error');
   },
 );
 
@@ -259,8 +346,8 @@ test('does not let one successful source mask another all-failed source', async 
 
   await waitFor(() => expect(mockCreateLayer).toHaveBeenCalledTimes(2));
   act(() => {
-    first.callbacks.get('tileloadend')?.();
-    second.callbacks.get('tileloaderror')?.();
+    emitTileOutcome(first.callbacks, 'tileloadend');
+    emitTileOutcome(second.callbacks, 'tileloaderror');
     callbacks.get('rendercomplete')?.();
   });
   expect(container.querySelector('[data-superset-map-status]')).toHaveAttribute(
@@ -268,11 +355,250 @@ test('does not let one successful source mask another all-failed source', async 
     'error',
   );
 
-  act(() => second.callbacks.get('tileloadend')?.());
+  act(() => emitTileOutcome(second.callbacks, 'tileloadend'));
+  expect(container.querySelector('[data-superset-map-status]')).toHaveAttribute(
+    'data-superset-map-status',
+    'loading',
+  );
+  act(() => callbacks.get('rendercomplete')?.());
   expect(container.querySelector('[data-superset-map-status]')).toHaveAttribute(
     'data-superset-map-status',
     'rendered',
   );
+});
+
+test('does not reuse source success after the map viewport moves', async () => {
+  const { callbacks: sourceCallbacks, layer } = createMockLayer();
+  mockCreateLayer.mockResolvedValue(layer);
+  const { callbacks: mapCallbacks, map } = createMap();
+  const { container } = render(
+    <Provider store={store}>
+      <OlChartMap {...buildProps(map)} />
+    </Provider>,
+  );
+
+  await waitFor(() => expect(mockCreateLayer).toHaveBeenCalledTimes(1));
+  act(() => {
+    emitTileOutcome(sourceCallbacks, 'tileloadend');
+    mapCallbacks.get('rendercomplete')?.();
+  });
+  expect(container.querySelector('[data-superset-map-status]')).toHaveAttribute(
+    'data-superset-map-status',
+    'rendered',
+  );
+
+  act(() => {
+    mapCallbacks.get('movestart')?.();
+    emitTileOutcome(sourceCallbacks, 'tileloaderror');
+    mapCallbacks.get('moveend')?.();
+    mapCallbacks.get('rendercomplete')?.();
+  });
+  expect(container.querySelector('[data-superset-map-status]')).toHaveAttribute(
+    'data-superset-map-status',
+    'error',
+  );
+});
+
+test('carries an unrecovered source failure across a viewport render', async () => {
+  const { callbacks: sourceCallbacks, layer } = createMockLayer();
+  mockCreateLayer.mockResolvedValue(layer);
+  const { callbacks: mapCallbacks, map } = createMap();
+  const { container } = render(
+    <Provider store={store}>
+      <OlChartMap {...buildProps(map)} />
+    </Provider>,
+  );
+  const mapHost = container.querySelector('[data-superset-map-status]');
+
+  await waitFor(() => expect(mockCreateLayer).toHaveBeenCalledTimes(1));
+  act(() => {
+    emitTileOutcome(sourceCallbacks, 'tileloaderror');
+    mapCallbacks.get('rendercomplete')?.();
+  });
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'error');
+
+  act(() => {
+    mapCallbacks.get('movestart')?.();
+    mapCallbacks.get('moveend')?.();
+    mapCallbacks.get('rendercomplete')?.();
+  });
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'error');
+});
+
+test('retains painted tile success when the same source reloads', async () => {
+  const { callbacks: sourceCallbacks, layer } = createMockLayer();
+  mockCreateLayer.mockResolvedValue(layer);
+  const { callbacks: mapCallbacks, map } = createMap();
+  const { container } = render(
+    <Provider store={store}>
+      <OlChartMap {...buildProps(map)} />
+    </Provider>,
+  );
+  const mapHost = container.querySelector('[data-superset-map-status]');
+
+  await waitFor(() => expect(mockCreateLayer).toHaveBeenCalledTimes(1));
+  act(() => {
+    emitTileOutcome(sourceCallbacks, 'tileloadend');
+    mapCallbacks.get('rendercomplete')?.();
+  });
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+
+  act(() => {
+    emitTileOutcome(sourceCallbacks, 'tileloaderror');
+    mapCallbacks.get('rendercomplete')?.();
+  });
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+});
+
+test('ignores a late tile completion from an earlier viewport', async () => {
+  const { callbacks: sourceCallbacks, layer } = createMockLayer();
+  mockCreateLayer.mockResolvedValue(layer);
+  const { callbacks: mapCallbacks, map } = createMap();
+  const { container } = render(
+    <Provider store={store}>
+      <OlChartMap {...buildProps(map)} />
+    </Provider>,
+  );
+  const mapHost = container.querySelector('[data-superset-map-status]');
+
+  await waitFor(() => expect(mockCreateLayer).toHaveBeenCalledTimes(1));
+  const oldTile = {};
+  const currentTile = {};
+  act(() => {
+    sourceCallbacks.get('tileloadstart')?.({ tile: oldTile });
+    mapCallbacks.get('movestart')?.();
+    sourceCallbacks.get('tileloadstart')?.({ tile: currentTile });
+    sourceCallbacks.get('tileloaderror')?.({ tile: currentTile });
+    mapCallbacks.get('moveend')?.();
+    sourceCallbacks.get('tileloadend')?.({ tile: oldTile });
+    mapCallbacks.get('rendercomplete')?.();
+  });
+
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'error');
+});
+
+test('carries a pending tile into the final viewport and records its late error', async () => {
+  const { callbacks: sourceCallbacks, layer } = createMockLayer();
+  mockCreateLayer.mockResolvedValue(layer);
+  const { callbacks: mapCallbacks, map } = createMap();
+  const { container } = render(
+    <Provider store={store}>
+      <OlChartMap {...buildProps(map)} />
+    </Provider>,
+  );
+  const mapHost = container.querySelector('[data-superset-map-status]');
+
+  await waitFor(() => expect(mockCreateLayer).toHaveBeenCalledTimes(1));
+  const tile = {};
+  act(() => {
+    sourceCallbacks.get('tileloadstart')?.({ tile });
+    mapCallbacks.get('movestart')?.();
+    mapCallbacks.get('moveend')?.();
+    sourceCallbacks.get('tileloaderror')?.({ tile });
+    mapCallbacks.get('rendercomplete')?.();
+  });
+
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'error');
+});
+
+test('does not let intermediate success erase a failure at move end', async () => {
+  const { callbacks: sourceCallbacks, layer } = createMockLayer();
+  mockCreateLayer.mockResolvedValue(layer);
+  const { callbacks: mapCallbacks, map } = createMap();
+  const { container } = render(
+    <Provider store={store}>
+      <OlChartMap {...buildProps(map)} />
+    </Provider>,
+  );
+  const mapHost = container.querySelector('[data-superset-map-status]');
+
+  await waitFor(() => expect(mockCreateLayer).toHaveBeenCalledTimes(1));
+  act(() => {
+    mapCallbacks.get('movestart')?.();
+    emitTileOutcome(sourceCallbacks, 'tileloadend');
+    emitTileOutcome(sourceCallbacks, 'tileloaderror');
+    mapCallbacks.get('moveend')?.();
+    mapCallbacks.get('rendercomplete')?.();
+  });
+
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'error');
+});
+
+test('does not let rebased success mask a final viewport failure', async () => {
+  const { callbacks: sourceCallbacks, layer } = createMockLayer();
+  mockCreateLayer.mockResolvedValue(layer);
+  const { callbacks: mapCallbacks, map } = createMap();
+  const { container } = render(
+    <Provider store={store}>
+      <OlChartMap {...buildProps(map)} />
+    </Provider>,
+  );
+  const mapHost = container.querySelector('[data-superset-map-status]');
+
+  await waitFor(() => expect(mockCreateLayer).toHaveBeenCalledTimes(1));
+  const rebasedTile = {};
+  act(() => {
+    sourceCallbacks.get('tileloadstart')?.({ tile: rebasedTile });
+    mapCallbacks.get('movestart')?.();
+    mapCallbacks.get('moveend')?.();
+    emitTileOutcome(sourceCallbacks, 'tileloaderror');
+    sourceCallbacks.get('tileloadend')?.({ tile: rebasedTile });
+    mapCallbacks.get('rendercomplete')?.();
+  });
+
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'error');
+});
+
+test('keeps a feature failure when an older feature request succeeds late', async () => {
+  const { callbacks: sourceCallbacks, layer } = createMockLayer();
+  mockCreateLayer.mockResolvedValue(layer);
+  const { callbacks: mapCallbacks, map } = createMap();
+  const { container } = render(
+    <Provider store={store}>
+      <OlChartMap {...buildProps(map)} />
+    </Provider>,
+  );
+  const mapHost = container.querySelector('[data-superset-map-status]');
+
+  await waitFor(() => expect(mockCreateLayer).toHaveBeenCalledTimes(1));
+  act(() => {
+    sourceCallbacks.get('featuresloadstart')?.();
+    mapCallbacks.get('movestart')?.();
+    sourceCallbacks.get('featuresloadstart')?.();
+    sourceCallbacks.get('featuresloaderror')?.();
+    mapCallbacks.get('moveend')?.();
+    sourceCallbacks.get('featuresloadend')?.();
+    mapCallbacks.get('rendercomplete')?.();
+  });
+
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'error');
+});
+
+test('recovers a feature failure only after a fresh request completes', async () => {
+  const { callbacks: sourceCallbacks, layer } = createMockLayer();
+  mockCreateLayer.mockResolvedValue(layer);
+  const { callbacks: mapCallbacks, map } = createMap();
+  const { container } = render(
+    <Provider store={store}>
+      <OlChartMap {...buildProps(map)} />
+    </Provider>,
+  );
+  const mapHost = container.querySelector('[data-superset-map-status]');
+
+  await waitFor(() => expect(mockCreateLayer).toHaveBeenCalledTimes(1));
+  act(() => {
+    sourceCallbacks.get('featuresloadstart')?.();
+    sourceCallbacks.get('featuresloaderror')?.();
+    mapCallbacks.get('rendercomplete')?.();
+  });
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'error');
+
+  act(() => {
+    sourceCallbacks.get('featuresloadstart')?.();
+    sourceCallbacks.get('featuresloadend')?.();
+    mapCallbacks.get('rendercomplete')?.();
+  });
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
 });
 
 test('does not mark an OpenLayers map complete when a configured layer fails', async () => {
@@ -307,6 +633,8 @@ test('removes every source outcome listener on unmount', async () => {
   unmount();
 
   for (const event of [
+    'tileloadstart',
+    'featuresloadstart',
     'tileloaderror',
     'featuresloaderror',
     'tileloadend',
@@ -317,6 +645,67 @@ test('removes every source outcome listener on unmount', async () => {
       expect.any(Function),
     );
   }
+});
+
+test('removes map completion and movement listeners on unmount', async () => {
+  const { layer } = createMockLayer();
+  mockCreateLayer.mockResolvedValue(layer);
+  const { listenerKeys, map } = createMap();
+  const { unmount } = render(
+    <Provider store={store}>
+      <OlChartMap {...buildProps(map)} />
+    </Provider>,
+  );
+  await waitFor(() => expect(mockCreateLayer).toHaveBeenCalledTimes(1));
+
+  unmount();
+
+  expect(mockUnByKey).toHaveBeenCalledWith(
+    expect.arrayContaining([
+      listenerKeys.get('rendercomplete'),
+      listenerKeys.get('movestart'),
+      listenerKeys.get('moveend'),
+    ]),
+  );
+});
+
+test('ignores source events after its layer configuration is replaced', async () => {
+  const stale = createMockLayer();
+  const current = createMockLayer();
+  mockCreateLayer
+    .mockResolvedValueOnce(stale.layer)
+    .mockResolvedValueOnce(current.layer);
+  const { callbacks: mapCallbacks, map } = createMap();
+  const initialProps = buildProps(map);
+  const { container, rerender } = render(
+    <Provider store={store}>
+      <OlChartMap {...initialProps} />
+    </Provider>,
+  );
+  await waitFor(() => expect(stale.source.addEventListener).toHaveBeenCalled());
+
+  rerender(
+    <Provider store={store}>
+      <OlChartMap
+        {...initialProps}
+        layerConfigs={[
+          { ...initialProps.layerConfigs[0], title: 'replacement' },
+        ]}
+      />
+    </Provider>,
+  );
+  await waitFor(() =>
+    expect(current.source.addEventListener).toHaveBeenCalled(),
+  );
+  act(() => {
+    emitTileOutcome(current.callbacks, 'tileloadend');
+    mapCallbacks.get('rendercomplete')?.();
+  });
+  const mapHost = container.querySelector('[data-superset-map-status]');
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
+
+  act(() => emitTileOutcome(stale.callbacks, 'tileloaderror'));
+  expect(mapHost).toHaveAttribute('data-superset-map-status', 'rendered');
 });
 
 test('ignores a stale layer promise after layer configuration changes', async () => {

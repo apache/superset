@@ -22,6 +22,7 @@ import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import { Provider } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import { DatasourceType, SupersetClient } from '@superset-ui/core';
+import * as SupersetUiCore from '@superset-ui/core';
 import DeckMulti from './Multi';
 import * as fitViewportModule from '../utils/fitViewport';
 
@@ -161,6 +162,10 @@ const renderWithProviders = (component: React.ReactElement) =>
       <ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>
     </Provider>,
   );
+
+afterEach(() => {
+  document.body.innerHTML = '';
+});
 
 describe('DeckMulti Autozoom Functionality', () => {
   beforeEach(() => {
@@ -497,6 +502,57 @@ describe('DeckMulti stale-response guard', () => {
     );
     expect(screen.queryByText(/stale layer failure/)).not.toBeInTheDocument();
   });
+
+  test('ignores a layer response after a newer request exceeds the slice cap', async () => {
+    document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify({
+      common: { conf: { DECK_MULTI_MAX_SLICES: 1 } },
+    })}'></div>`;
+    let resolveOldLayer: (value: unknown) => void = () => {};
+    (SupersetClient.post as jest.Mock).mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          resolveOldLayer = resolve;
+        }),
+    );
+
+    const { rerender } = renderWithProviders(
+      <DeckMulti
+        {...baseMockProps}
+        formData={{ ...baseMockProps.formData, deck_slices: [1] }}
+      />,
+    );
+    await waitFor(() => expect(SupersetClient.post).toHaveBeenCalledTimes(1));
+
+    rerender(
+      <Provider store={mockStore}>
+        <ThemeProvider theme={supersetTheme}>
+          <DeckMulti
+            {...baseMockProps}
+            formData={{ ...baseMockProps.formData, deck_slices: [1, 2] }}
+          />
+        </ThemeProvider>
+      </Provider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByText(/maximum allowed is 1/)).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId('deckgl-container')).toHaveAttribute(
+      'data-layers-count',
+      '0',
+    );
+
+    resolveOldLayer({ json: { result: [{ data: [] }] } });
+    await waitFor(() =>
+      expect(screen.getByTestId('deckgl-container')).toHaveAttribute(
+        'data-loading',
+        'false',
+      ),
+    );
+    expect(screen.getByTestId('deckgl-container')).toHaveAttribute(
+      'data-layers-count',
+      '0',
+    );
+  });
 });
 
 describe('DeckMulti Component Rendering', () => {
@@ -534,6 +590,29 @@ describe('DeckMulti Component Rendering', () => {
     );
 
     resolveFirstLayer({ json: { result: [{ data: [] }] } });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('deckgl-container')).toHaveAttribute(
+        'data-loading',
+        'false',
+      ),
+    );
+  });
+
+  test('stops loading when layer error normalization also rejects', async () => {
+    jest
+      .spyOn(SupersetUiCore, 'getClientErrorObject')
+      .mockRejectedValue(new Error('could not normalize error'));
+    (SupersetClient.post as jest.Mock).mockRejectedValue(
+      new Error('layer failed'),
+    );
+
+    renderWithProviders(
+      <DeckMulti
+        {...baseMockProps}
+        formData={{ ...baseMockProps.formData, deck_slices: [1] }}
+      />,
+    );
 
     await waitFor(() =>
       expect(screen.getByTestId('deckgl-container')).toHaveAttribute(

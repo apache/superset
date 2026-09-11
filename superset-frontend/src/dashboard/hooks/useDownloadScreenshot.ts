@@ -169,20 +169,52 @@ export const useDownloadScreenshot = (
             return response.blob().then(blob => ({ blob, fileName }));
           })
           .then(({ blob, fileName }) => {
-            if (!finish('success')) {
+            if (isFinished) {
               return;
             }
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
+            let url: string | undefined;
+            let anchorElement: HTMLAnchorElement | undefined;
+            try {
+              url = window.URL.createObjectURL(blob);
+              anchorElement = document.createElement('a');
+              anchorElement.href = url;
+              anchorElement.download = fileName;
+              document.body.appendChild(anchorElement);
+              anchorElement.click();
+              document.body.removeChild(anchorElement);
+              anchorElement = undefined;
+              window.URL.revokeObjectURL(url);
+              url = undefined;
+              finish('success');
+            } catch (error) {
+              anchorElement?.remove();
+              if (url !== undefined) {
+                try {
+                  window.URL.revokeObjectURL(url);
+                } catch (cleanupError) {
+                  logging.error('Screenshot download cleanup failed', {
+                    cacheKey,
+                    dashboardId,
+                    format,
+                    error: cleanupError,
+                  });
+                }
+              }
+              fail('Failed to download screenshot artifact', {
+                cacheKey,
+                dashboardId,
+                format,
+                error,
+              });
+            }
           });
 
       const handleTaskResponse = async (json: unknown) => {
+        // A request may settle after the operation timed out or its component
+        // unmounted. It must not restart a timer or initiate a late download.
+        if (isFinished) {
+          return;
+        }
         const task = json as ScreenshotTaskResponse | undefined;
         const cacheKey = task?.cache_key;
         if (!cacheKey || !task?.permalink_key || !task.task_status) {

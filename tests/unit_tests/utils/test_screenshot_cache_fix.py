@@ -34,6 +34,7 @@ from superset.exceptions import (
 )
 from superset.utils.screenshots import (
     BaseScreenshot,
+    DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT,
     ScreenshotCachePayload,
     ScreenshotCacheWriteError,
     StatusValues,
@@ -472,6 +473,56 @@ class TestShouldTriggerTask:
 
         assert payload.should_enqueue_task(force=True) is True
 
+    @pytest.mark.parametrize("capture_contract", [None, "legacy-contract"])
+    def test_updated_payload_requires_expected_capture_contract(
+        self, capture_contract: str | None
+    ) -> None:
+        payload = ScreenshotCachePayload(
+            image=FAKE_PNG_BYTES,
+            scope="dashboard:1",
+            capture_contract=capture_contract,
+        )
+
+        assert payload.should_enqueue_task(
+            expected_scope="dashboard:1",
+            expected_capture_contract=DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT,
+        )
+
+    def test_updated_payload_accepts_expected_capture_contract(self) -> None:
+        payload = ScreenshotCachePayload(
+            image=FAKE_PNG_BYTES,
+            scope="dashboard:1",
+            capture_contract=DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT,
+        )
+
+        assert not payload.should_enqueue_task(
+            expected_scope="dashboard:1",
+            expected_capture_contract=DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT,
+        )
+
+    @patch("superset.utils.screenshots.app")
+    def test_contract_does_not_duplicate_fresh_in_progress_or_error_states(
+        self, mock_app: MagicMock
+    ) -> None:
+        mock_app.config = {
+            "THUMBNAIL_COMPUTING_CACHE_TTL": 300,
+            "THUMBNAIL_ERROR_CACHE_TTL": 300,
+        }
+
+        for status in (
+            StatusValues.PENDING,
+            StatusValues.COMPUTING,
+            StatusValues.ERROR,
+        ):
+            payload = ScreenshotCachePayload(
+                status=status,
+                scope="dashboard:1",
+            )
+            assert not payload.should_enqueue_task(
+                expected_scope="dashboard:1",
+                expected_capture_contract=DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT,
+            )
+
     @patch("superset.utils.screenshots.app")
     def test_accepted_worker_can_retry_a_fresh_error(self, mock_app: MagicMock) -> None:
         mock_app.config = {"THUMBNAIL_ERROR_CACHE_TTL": 300}
@@ -657,6 +708,34 @@ class TestIntegrationCacheBugFix:
         assert BaseScreenshot.cache.get("key")["status"] == "Pending"
         enqueue.assert_called_once_with()
         mock_lock.assert_called_once_with(namespace="thumbnail_enqueue", key="key")
+
+    def test_enqueue_task_replaces_legacy_updated_artifact(
+        self,
+        mocker: MockerFixture,
+    ) -> None:
+        mocker.patch(DISTRIBUTED_LOCK_PATH)
+        BaseScreenshot.cache = MockCache()
+        BaseScreenshot.cache.set(
+            "key",
+            ScreenshotCachePayload(
+                image=FAKE_PNG_BYTES,
+                scope="dashboard:1",
+            ).to_dict(),
+        )
+        enqueue = MagicMock()
+
+        payload, should_enqueue = BaseScreenshot.prepare_and_enqueue_task(
+            "key",
+            force=False,
+            scope="dashboard:1",
+            expected_capture_contract=DASHBOARD_SCREENSHOT_CAPTURE_CONTRACT,
+            enqueue=enqueue,
+        )
+
+        assert should_enqueue is True
+        assert payload.get_status() == "Pending"
+        assert payload.get_capture_contract() is None
+        enqueue.assert_called_once_with()
 
     def test_enqueue_task_preserves_accepted_result_when_lock_release_fails(
         self,
@@ -958,6 +1037,62 @@ class TestReadSideImageValidation:
     but carries invalid image bytes must be served as a cache miss, not
     returned to the caller — this is what the dashboard/chart screenshot
     endpoints call to fetch bytes to serve."""
+
+    @pytest.mark.parametrize(
+        "payload",
+        [
+            {"image": None},
+            {
+                "image": "%%%not-base64%%%",
+                "status": "Updated",
+                "timestamp": datetime.now().isoformat(),
+            },
+            {
+                "image": None,
+                "status": "Unknown",
+                "timestamp": datetime.now().isoformat(),
+            },
+            {"image": None, "status": "Pending", "timestamp": "not-a-date"},
+            {
+                "image": None,
+                "status": "Pending",
+                "timestamp": "2026-01-01T00:00:00+00:00",
+            },
+            {
+                "image": None,
+                "status": "Error",
+                "timestamp": "2026-01-01T00:00:00Z",
+            },
+            "unexpected-payload",
+        ],
+        ids=[
+            "missing-fields",
+            "invalid-base64",
+            "invalid-status",
+            "invalid-timestamp",
+            "aware-pending-timestamp",
+            "aware-error-timestamp",
+            "unexpected-type",
+        ],
+    )
+    def test_malformed_payload_is_treated_as_cache_miss(
+        self,
+        mocker: MockerFixture,
+        screenshot_obj: BaseScreenshot,
+        payload: object,
+    ) -> None:
+        mock_logger = mocker.patch("superset.utils.screenshots.logger")
+        BaseScreenshot.cache = MockCache()
+        cache_key = screenshot_obj.get_cache_key()
+        BaseScreenshot.cache.set(cache_key, payload)
+
+        result = screenshot_obj.get_from_cache_key(cache_key)
+
+        assert result is None
+        assert any(
+            cache_key in call.args and "malformed" in call.args[0]
+            for call in mock_logger.warning.call_args_list
+        )
 
     def test_zero_byte_image_is_treated_as_cache_miss(
         self, mocker: MockerFixture, screenshot_obj: BaseScreenshot

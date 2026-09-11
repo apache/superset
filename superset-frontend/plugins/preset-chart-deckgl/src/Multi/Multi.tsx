@@ -554,7 +554,7 @@ const DeckMulti = (props: DeckMultiProps) => {
       });
 
       setLayerOrder(orderedSliceIds);
-      Promise.all(pendingLoads).then(() => {
+      Promise.allSettled(pendingLoads).then(() => {
         if (loadGenerationRef.current === generation) {
           setLayersLoading(false);
         }
@@ -679,6 +679,7 @@ const DeckMulti = (props: DeckMultiProps) => {
         // refuse to fan out a metadata + data request per sub-slice beyond
         // the configured limit instead of stalling the dashboard/server.
         fetchGenerationRef.current += 1;
+        loadGenerationRef.current += 1;
         setSubSlicesLayers({});
         setLayerOrder([]);
         setLayerErrors({
