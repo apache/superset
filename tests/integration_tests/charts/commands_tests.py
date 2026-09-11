@@ -83,6 +83,7 @@ class TestExportChartsCommand(SupersetTestCase):
             f"charts/Energy_Sankey_{example_chart.id}.yaml",
             f"datasets/examples/energy_usage_{example_chart.table.id}.yaml",
             "databases/examples.yaml",
+            "tags.yaml",
         ]
         assert expected == list(contents.keys())
 
@@ -109,6 +110,7 @@ class TestExportChartsCommand(SupersetTestCase):
             "uuid": str(example_chart.uuid),
             "version": "1.0.0",
             "query_context": None,
+            "tags": [],
         }
 
     @patch("superset.utils.core.g")
@@ -161,6 +163,7 @@ class TestExportChartsCommand(SupersetTestCase):
             "uuid",
             "version",
             "dataset_uuid",
+            "tags",
         ]
 
     @patch("superset.security.manager.g")
@@ -548,6 +551,14 @@ class TestChartsUpdateCommand(SupersetTestCase):
         chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
         pk = chart.id
         admin = security_manager.find_user(username="admin")
+
+        # gamma has no access to the energy datasource and cannot edit the chart.
+        # Bind the patched `g` to a real user before the setup commit below:
+        # that commit fires the tagging listeners, whose audit columns resolve
+        # through `g.user.id` and cannot be bound as a mock.
+        gamma = security_manager.find_user(username="gamma")
+        mock_core_g.user = mock_sm_g.user = mock_update_g.user = gamma
+
         chart.editors = subjects_from_users([admin])
         db.session.commit()
 
@@ -555,9 +566,6 @@ class TestChartsUpdateCommand(SupersetTestCase):
         # own raise_for_access gate is what denies the request.
         mock_find_by_id.return_value = chart
 
-        # gamma has no access to the energy datasource and cannot edit the chart
-        gamma = security_manager.find_user(username="gamma")
-        mock_core_g.user = mock_sm_g.user = mock_update_g.user = gamma
         json_obj = {
             "query_context_generation": True,
             "query_context": json.dumps({"foo": "bar"}),

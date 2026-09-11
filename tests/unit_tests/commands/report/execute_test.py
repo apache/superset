@@ -1774,6 +1774,43 @@ def test_screenshot_soft_timeout_distinguishes_reports_from_alert_attachments(
         state._get_screenshots()
 
 
+@pytest.mark.parametrize("has_chart", [True, False])
+def test_blank_capture_prevents_pdf_generation_and_delivery(
+    app: SupersetApp, mocker: MockerFixture, has_chart: bool
+) -> None:
+    """A rejected capture must abort the PDF before any recipient delivery."""
+    from superset.utils.screenshot_utils import ScreenshotBlankCaptureError
+
+    state = _make_notification_state(
+        mocker, report_format=ReportDataFormat.PDF, has_chart=has_chart
+    )
+    state._report_schedule.custom_width = None
+    state._report_schedule.custom_height = None
+    mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user",
+        return_value=(mocker.Mock(), "executor"),
+    )
+    mocker.patch.object(state, "get_dashboard_urls", return_value=["/dashboard/1"])
+    screenshot_class = "ChartScreenshot" if has_chart else "DashboardScreenshot"
+    screenshot = mocker.patch(
+        f"superset.commands.report.execute.{screenshot_class}"
+    ).return_value
+    capture_error = ScreenshotBlankCaptureError("blank capture after 3 attempts")
+    screenshot.get_screenshot.side_effect = capture_error
+    build_pdf = mocker.patch(
+        "superset.commands.report.execute.build_pdf_from_screenshots"
+    )
+    deliver = mocker.patch.object(state, "_send")
+
+    with pytest.raises(ReportScheduleScreenshotFailedError) as exc:
+        state.send()
+
+    assert exc.value.__cause__ is capture_error
+    screenshot.get_screenshot.assert_called_once()
+    build_pdf.assert_not_called()
+    deliver.assert_not_called()
+
+
 def test_executor_not_found_error_message_without_username() -> None:
     """
     When no username is available, the message falls back to ``(unknown)``

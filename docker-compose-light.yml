@@ -138,6 +138,7 @@ services:
         condition: service_started
     volumes: *superset-volumes
     environment:
+      SUPERSET_FORCE_LOAD_EXAMPLES: "${SUPERSET_FORCE_LOAD_EXAMPLES:-}"
       DATABASE_HOST: db-light
       DATABASE_DB: superset_light
       POSTGRES_DB: superset_light

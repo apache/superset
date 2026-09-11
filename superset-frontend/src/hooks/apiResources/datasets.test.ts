@@ -303,24 +303,61 @@ test('useDatasetDrillInfo creates new verbose_map from columns and metrics', asy
   expect(result.current.result?.verbose_map).not.toHaveProperty('old_key');
 });
 
-test('useDatasetDrillInfo handles NaN datasource ID from malformed string', async () => {
+test('useDatasetDrillInfo does not fetch when datasource ID resolves to NaN', async () => {
+  // Regression test: a chart's slice entity can still be unhydrated right
+  // after a client-side navigation back to a dashboard from Explore, so
+  // datasetId may transiently resolve to NaN. The hook must not fire a
+  // request for dataset "NaN" and should stay in loading, retrying once a
+  // real datasetId arrives (see the SliceHeaderControls -> Chart.tsx
+  // `state.sliceEntities.slices[id] || EMPTY_OBJECT` fallback).
+  const { result, rerender } = renderHook(
+    ({ id }: { id: string | number }) => useDatasetDrillInfo(id, 456),
+    { initialProps: { id: 'abc' } },
+  );
+
+  expect(result.current.status).toBe('loading');
+  expect(mockedCachedSupersetGet).not.toHaveBeenCalled();
+
+  const mockDataset = { id: 123, columns: [], metrics: [] };
   mockedCachedSupersetGet.mockResolvedValue({
-    json: {
-      result: { id: NaN, columns: [], metrics: [] },
-    },
+    json: { result: mockDataset },
   } as any);
 
-  const { result } = renderHook(() => useDatasetDrillInfo('abc', 456));
+  rerender({ id: '123__table' });
 
   await waitFor(() => {
     expect(result.current.status).toBe('complete');
   });
-
-  // Verify hook calls endpoint with NaN (API will handle validation)
   expect(mockedCachedSupersetGet).toHaveBeenCalledWith({
-    endpoint: '/api/v1/dataset/NaN/drill_info/?q=(dashboard_id:456)',
+    endpoint: '/api/v1/dataset/123/drill_info/?q=(dashboard_id:456)',
   });
-  expect(result.current.status).toBe('complete');
+});
+
+test('useDatasetDrillInfo resets to loading when datasetId regresses to NaN after resolving another dataset', async () => {
+  // Regression test: if the hook already completed for one dataset and then
+  // receives a transient malformed id (e.g. a fresh navigation clears the
+  // resolved datasetId before the new one hydrates), it must not keep
+  // exposing the previous dataset's Complete result -- the context menu
+  // would otherwise offer drill metadata for the wrong dataset.
+  const mockDataset = { id: 123, columns: [], metrics: [] };
+  mockedCachedSupersetGet.mockResolvedValue({
+    json: { result: mockDataset },
+  } as any);
+
+  const { result, rerender } = renderHook(
+    ({ id }: { id: string | number }) => useDatasetDrillInfo(id, 456),
+    { initialProps: { id: 123 } },
+  );
+
+  await waitFor(() => {
+    expect(result.current.status).toBe('complete');
+  });
+  expect(result.current.result).toMatchObject({ id: 123 });
+
+  rerender({ id: 'abc' });
+
+  expect(result.current.status).toBe('loading');
+  expect(result.current.result).toBeNull();
 });
 
 test('useDatasetDrillInfo fetches dataset via extension when extension and formData provided', async () => {

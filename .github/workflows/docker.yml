@@ -35,7 +35,7 @@ jobs:
           persist-credentials: false
       - name: Check for file changes
         id: check
-        uses: ./.github/actions/change-detector/
+        uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -68,7 +68,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
+        uses: $/.github/actions/setup-supersetbot/
       - name: Assert PY_VER override applies to every preset except py311/py312
         shell: bash
         env:
@@ -107,6 +107,12 @@ jobs:
       needs.changes.outputs.docker == 'true'
     runs-on: ubuntu-26.04
     timeout-minutes: 60
+    permissions:
+      contents: read
+      # Required for the vulnerability scan below to upload its SARIF
+      # results to GitHub code scanning (advanced-security is enabled by
+      # default), matching the same grant in github-action-validator.yml.
+      security-events: write
     strategy:
       matrix:
         build_preset: ${{fromJson(needs.setup_matrix.outputs.matrix_config)}}
@@ -141,14 +147,14 @@ jobs:
           echo "Disk after cleanup:"; df -h /
 
       - name: Setup Docker Environment
-        uses: ./.github/actions/setup-docker
+        uses: $/.github/actions/setup-docker
         with:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
           build: "true"
 
       - name: Setup supersetbot
-        uses: ./.github/actions/setup-supersetbot/
+        uses: $/.github/actions/setup-supersetbot/
 
       - name: Build Docker Image
         shell: bash
@@ -213,6 +219,39 @@ jobs:
           docker images $IMAGE_TAG
           docker history $IMAGE_TAG
 
+      # Scan the built image for known vulnerabilities and publish results
+      # to the Security tab. Trivy did this until #38780 removed it: both
+      # aquasecurity/trivy-action and the trivy binary itself were
+      # compromised (twice) to steal GitHub Secrets from CI runs. Grype is a
+      # different tool from a different maintainer with no shared supply
+      # chain, and is already on the ASF Infra GitHub Actions allowlist.
+      - name: Scan built image for vulnerabilities
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && matrix.build_preset == 'lean'
+        id: grype-scan
+        # This step's own failure (e.g. a transient issue pulling the Grype
+        # vulnerability DB) must not fail docker-build, matching the
+        # informational fail-build: false below -- one is findings, the
+        # other is the scan itself not completing.
+        continue-on-error: true
+        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
+        with:
+          image: ${{ env.IMAGE_TAG }}
+          output-format: sarif
+          severity-cutoff: high
+          only-fixed: true
+          # Informational only, matching the prior Trivy setup: this
+          # workflow does not gate merges on scan findings.
+          fail-build: false
+
+      - name: Upload vulnerability scan results to GitHub Security tab
+        if: >-
+          github.event_name == 'push' && github.ref == 'refs/heads/master' &&
+          matrix.build_preset == 'lean' && steps.grype-scan.outputs.sarif != ''
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          sarif_file: ${{ steps.grype-scan.outputs.sarif }}
+
       - name: WebSocket server smoke test
         if: contains(fromJson('["lean", "dev"]'), matrix.build_preset)
         shell: bash
@@ -275,7 +314,7 @@ jobs:
             /usr/local/share/boost || true
           echo "Disk after cleanup:"; df -h /
       - name: Setup Docker Environment
-        uses: ./.github/actions/setup-docker
+        uses: $/.github/actions/setup-docker
         with:
           dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
           dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}

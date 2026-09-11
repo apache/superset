@@ -44,6 +44,8 @@ from superset.versioning.activity import (
     Window,
 )
 from superset.versioning.activity.impact import (
+    _count_attached_charts_at,
+    batch_chart_counts,
     collect_impact_pairs,
     impact_for_record,
 )
@@ -54,9 +56,6 @@ from superset.versioning.activity.orchestrator import (
     _MAX_PAGE_SIZE,
 )
 from superset.versioning.activity.queries import (
-    _attachment_windows,
-    _M2M_OP_DELETE,
-    _M2M_OP_INSERT,
     _merge_result_into_heap,
     _record_sort_key,
     BoundedRecordHeap,
@@ -68,7 +67,10 @@ from superset.versioning.activity.render import (
 )
 from superset.versioning.activity.scope import resolve_scope
 from superset.versioning.activity.windows import (
+    attachment_windows,
     intersect_windows,
+    M2M_OP_DELETE,
+    M2M_OP_INSERT,
     merge_entity_windows,
     row_within_any_window,
     union_windows,
@@ -893,7 +895,7 @@ def test_build_summary_meta_headline_branches() -> None:
     assert _build_summary("Dashboard", unknown) == "Dashboard updated"
 
 
-# ---- _attachment_windows -------------------------------------------------
+# ---- attachment_windows -------------------------------------------------
 
 
 def test_attachment_windows_closes_at_detach() -> None:
@@ -903,7 +905,7 @@ def test_attachment_windows_closes_at_detach() -> None:
     row's transaction id — an INSERT at t1 paired with a DELETE at t3 yields
     the half-open window [t1, t3), so an edit at t2 (while attached) is
     inside it and an edit at t4 (after removal) is not."""
-    windows = _attachment_windows([(7, 1, 0), (7, 3, 2)])  # INSERT@1, DELETE@3
+    windows = attachment_windows([(7, 1, 0), (7, 3, 2)])  # INSERT@1, DELETE@3
 
     assert windows == [(7, Window(1, 3))]
     window = windows[0][1]
@@ -916,7 +918,7 @@ def test_attachment_windows_still_attached_is_open_ended() -> None:
     """A chart with an INSERT and no following DELETE is still on the
     dashboard, so its window is open-ended (end_tx = None) and every later
     edit remains in scope."""
-    assert _attachment_windows([(7, 5, 0)]) == [(7, Window(5, None))]
+    assert attachment_windows([(7, 5, 0)]) == [(7, Window(5, None))]
 
 
 def test_attachment_windows_reattach_cycles_and_ordering() -> None:
@@ -924,20 +926,30 @@ def test_attachment_windows_reattach_cycles_and_ordering() -> None:
     is independent of the row order the query returns them in (the rows are
     sorted by (slice_id, transaction_id) internally)."""
     rows = [(7, 7, 2), (7, 1, 0), (7, 5, 0), (7, 3, 2)]  # deliberately shuffled
-    assert _attachment_windows(rows) == [(7, Window(1, 3)), (7, Window(5, 7))]
+    assert attachment_windows(rows) == [(7, Window(1, 3)), (7, Window(5, 7))]
+
+
+def test_attachment_windows_reattach_leaves_the_last_episode_open() -> None:
+    """Attach@1, detach@5, re-attach@8 with no later detach: the first episode
+    is the closed window [1, 5) and the current attachment is open-ended
+    [8, None). An edit at tx 10 falls inside the live episode."""
+    windows = attachment_windows([(7, 1, 0), (7, 5, 2), (7, 8, 0)])
+    assert windows == [(7, Window(1, 5)), (7, Window(8, None))]
+    assert windows[1][1].contains(10)
+    assert not windows[0][1].contains(10)
 
 
 def test_attachment_windows_add_and_remove_same_transaction() -> None:
     """Attaching and detaching in a single save (INSERT and DELETE at the
     same transaction) leaves the chart on no committed dashboard state, so it
     contributes no window (and no degenerate zero-width interval)."""
-    assert _attachment_windows([(7, 2, 0), (7, 2, 2)]) == []
+    assert attachment_windows([(7, 2, 0), (7, 2, 2)]) == []
 
 
 def test_attachment_windows_separates_slices() -> None:
     """Each slice gets its own independent windows."""
     rows = [(7, 1, 0), (7, 3, 2), (9, 2, 0)]
-    assert _attachment_windows(rows) == [
+    assert attachment_windows(rows) == [
         (7, Window(1, 3)),
         (9, Window(2, None)),
     ]
@@ -945,10 +957,123 @@ def test_attachment_windows_separates_slices() -> None:
 
 def test_m2m_op_constants_match_continuum() -> None:
     """The association-shadow operation-type constants used by
-    _attachment_windows are the numeric values of Continuum's Operation enum.
+    attachment_windows are the numeric values of Continuum's Operation enum.
     Pin them so a library renumber fails here loudly rather than silently
     mis-pairing attach/detach rows."""
     from sqlalchemy_continuum import Operation
 
-    assert _M2M_OP_INSERT == Operation.INSERT
-    assert _M2M_OP_DELETE == Operation.DELETE
+    assert M2M_OP_INSERT == Operation.INSERT
+    assert M2M_OP_DELETE == Operation.DELETE
+
+
+# ---- _count_attached_charts_at (batch_chart_counts membership) -----------
+
+
+def _slice_row(
+    slice_id: int, datasource_id: int, start: int, end: int | None
+) -> dict[str, Any]:
+    """A chart→dataset parent-shadow row as batch_chart_counts fetches it."""
+    return {
+        "slice_id": slice_id,
+        "datasource_id": datasource_id,
+        "slice_start": start,
+        "slice_end": end,
+    }
+
+
+def test_count_attached_charts_excludes_chart_removed_before_target() -> None:
+    """sc-119907: a chart attached@1 and removed@5 must NOT be counted for a
+    dataset rollup at target_tx=10. Its attachment window [1, 5) does not
+    contain 10, even though its (never-closed) association shadow row would
+    pass a naive end_transaction_id validity filter."""
+    attach_windows = {7: [Window(1, 5)]}
+    slice_rows = [_slice_row(7, 100, 1, None)]  # chart→dataset open the whole time
+    result = _count_attached_charts_at(attach_windows, slice_rows, {100: [10]})
+    assert result == {}  # zero-count pairs are omitted
+
+
+def test_count_attached_charts_counts_chart_inside_its_window() -> None:
+    """The same chart IS counted at a target inside its attachment window."""
+    attach_windows = {7: [Window(1, 5)]}
+    slice_rows = [_slice_row(7, 100, 1, None)]
+    result = _count_attached_charts_at(attach_windows, slice_rows, {100: [3]})
+    assert result == {(100, 3): 1}
+
+
+def test_count_attached_charts_requires_both_windows() -> None:
+    """A chart attached at target_tx but not yet pointing at the dataset (its
+    chart→dataset window starts later) is not counted."""
+    attach_windows = {7: [Window(1, None)]}
+    slice_rows = [_slice_row(7, 100, 8, None)]  # points at dataset only from tx8
+    assert _count_attached_charts_at(attach_windows, slice_rows, {100: [3]}) == {}
+
+
+def test_count_attached_charts_dedupes_within_pair() -> None:
+    """Multiple parent-shadow rows for the same slice count the slice once."""
+    attach_windows = {7: [Window(1, None)]}
+    slice_rows = [_slice_row(7, 100, 1, 4), _slice_row(7, 100, 4, None)]
+    assert _count_attached_charts_at(attach_windows, slice_rows, {100: [5]}) == {
+        (100, 5): 1
+    }
+
+
+def test_count_attached_charts_ignores_slice_never_on_dashboard() -> None:
+    """A slice pointing at the dataset but with no attachment window (never on
+    this dashboard) does not contribute — guards the no-join fetch that may
+    return slices from other dashboards sharing the dataset."""
+    attach_windows: dict[int, list[Window]] = {}
+    slice_rows = [_slice_row(7, 100, 1, None)]
+    assert _count_attached_charts_at(attach_windows, slice_rows, {100: [3]}) == {}
+
+
+# ---- batch_chart_counts bind-variable floor (sc-119907) ------------------
+
+
+def test_batch_chart_counts_stays_under_sqlite_bind_floor(app_context: None) -> None:
+    """sc-119907: a wide dashboard (many member charts AND many requested
+    datasets) must not build a slice-scan statement that exceeds SQLite's 999
+    bind-variable floor. The member-id IN is chunked; the requested-dataset IN
+    is dropped to Python-side filtering when it would not co-bind under the
+    floor. Compiles every issued statement and asserts its bind count stays
+    safely under 999 — the pre-fix code (dataset IN always on) bound
+    500 member + 600 dataset + scalars = ~1104 and would 500 on SQLite."""
+
+    from sqlalchemy.dialects import sqlite
+
+    member_windows = [(sid, Window(1, None)) for sid in range(1, 601)]
+    pairs = {(ds, 5) for ds in range(10_000, 10_600)}  # 600 requested datasets
+    captured: list[Any] = []
+
+    class _FakeResult:
+        def mappings(self) -> "_FakeResult":
+            return self
+
+        def all(self) -> list[Any]:
+            return []
+
+    def _fake_execute(stmt: Any) -> "_FakeResult":
+        captured.append(stmt)
+        return _FakeResult()
+
+    with (
+        patch(
+            "superset.versioning.membership.charts_attached_to_dashboard",
+            return_value=member_windows,
+        ),
+        patch("superset.versioning.activity.impact.db") as mock_db,
+    ):
+        mock_db.session.connection.return_value.execute.side_effect = _fake_execute
+        batch_chart_counts(1, pairs)
+
+    assert captured, "expected at least one slice-scan statement"
+    for stmt in captured:
+        # render_postcompile expands ``IN (...)`` (an expanding bind in
+        # SQLAlchemy 2.0) into one param per element, so the count reflects
+        # what actually hits SQLite — a plain compile would show one bind per
+        # IN and hide the overflow.
+        compiled = stmt.compile(
+            dialect=sqlite.dialect(),
+            compile_kwargs={"render_postcompile": True},
+        )
+        n_binds = len(compiled.params)
+        assert n_binds < 999, f"statement binds {n_binds} params (SQLite floor 999)"
