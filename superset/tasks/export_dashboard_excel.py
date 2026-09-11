@@ -37,6 +37,7 @@ import hashlib
 import logging
 import os
 import tempfile
+import time
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any
@@ -539,6 +540,14 @@ def _resolve_requesting_user(
     if user_id is not None:
         return security_manager.get_user_by_id(user_id)
     if guest_token:
+        # The token's signature/exp were verified at request time, but the
+        # export can sit queued: refuse to run chart queries under a guest
+        # token that has since expired. (Such a guest can no longer reach the
+        # @protect-ed status endpoint to retrieve the result anyway, and has no
+        # email fallback, so nothing servable is lost.)
+        exp = guest_token.get("exp")
+        if exp is not None and exp < time.time():
+            raise SupersetException("The guest token has expired.")
         return security_manager.get_guest_user_from_token(guest_token)
     # Anonymous requester: run under the anonymous principal so the Public
     # role applies, mirroring superset.tasks.async_queries.
