@@ -488,9 +488,10 @@ automatically retry when sending fails — this covers rendering/export
 failures (e.g. a chart screenshot or CSV export erroring out) as well as
 delivery failures such as a transient SMTP or Slack error — instead of
 moving straight to an `Error` state. Execution timeouts (the Celery soft
-time limit) and the `ALERT_REPORTS_EXECUTION_BUDGET_SECONDS` budget being
-exceeded are not covered — those go straight to `Error` without a retry
-even with this setting enabled. This is configured per report in the
+time limit), the `ALERT_REPORTS_EXECUTION_BUDGET_SECONDS` budget being
+exceeded, and a schedule that stays `WORKING` past its `working_timeout`
+are not covered — those go straight to `Error` without a retry even with
+this setting enabled. This is configured per report in the
 **Error Handling** section of the report modal:
 
 - **Enable Retries** – turn on automatic retries for this report.
