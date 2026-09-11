@@ -21,7 +21,7 @@ in isolation: window intersection, scope resolution branching, entity-
 window merging, AV-012 summary headlines, ``changed_by`` projection,
 read-predicate fall-through, and the no-impact paths of
 ``_compute_impact``. The DB-touching helpers
-(``charts_attached_to_dashboard``, ``datasets_used_by_chart``,
+(``chart_attachment_windows_for_dashboard``, ``datasets_used_by_chart``,
 ``fetch_change_records``, ``apply_entity_name_denormalization``,
 ``check_entity_tombstones``, ``_lookup_entity_uuids``) are exercised
 by the integration suite in
@@ -1057,7 +1057,7 @@ def test_batch_chart_counts_stays_under_sqlite_bind_floor(app_context: None) -> 
 
     with (
         patch(
-            "superset.versioning.membership.charts_attached_to_dashboard",
+            "superset.versioning.membership.chart_attachment_windows_for_dashboard",
             return_value=member_windows,
         ),
         patch("superset.versioning.activity.impact.db") as mock_db,

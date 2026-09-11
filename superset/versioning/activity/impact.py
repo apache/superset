@@ -25,7 +25,7 @@ request:
 * :func:`collect_impact_pairs` — pulls the distinct
   ``(dataset_id, transaction_id)`` pairs that need counts.
 * :func:`batch_chart_counts` — counts the matching charts without a
-  join: dashboard membership comes from ``charts_attached_to_dashboard``'s
+  join: dashboard membership comes from ``chart_attachment_windows_for_dashboard``'s
   attach/detach windows over ``dashboard_slices_version``, and a
   member-scoped ``slices_version`` scan supplies the chart→dataset window;
   the two are combined per pair by :func:`_count_attached_charts_at`.
@@ -86,7 +86,7 @@ def batch_chart_counts(
     distinct charts that were both on *dashboard_id* and pointing at
     *dataset_id* at *target_tx*.
 
-    No join: ``charts_attached_to_dashboard`` supplies each member chart's
+    No join: ``chart_attachment_windows_for_dashboard`` supplies each member chart's
     ``[attach, detach)`` windows from the association shadow (Continuum never
     closes an M2M shadow's ``end_transaction_id``, so a validity-window filter
     on it would count a chart removed before ``target_tx`` — sc-119907), and a
@@ -109,7 +109,7 @@ def batch_chart_counts(
     from sqlalchemy_continuum import version_class
 
     from superset.models.slice import Slice
-    from superset.versioning.membership import charts_attached_to_dashboard
+    from superset.versioning.membership import chart_attachment_windows_for_dashboard
 
     slices_tbl = version_class(Slice).__table__
 
@@ -117,13 +117,13 @@ def batch_chart_counts(
     target_txs: set[int] = {target_tx for _, target_tx in pairs}
     min_tx, max_tx = min(target_txs), max(target_txs)
 
-    # Attachment membership per slice. charts_attached_to_dashboard owns the
+    # Attachment membership per slice. chart_attachment_windows_for_dashboard owns the
     # association-shadow read and the attach/detach window pairing — the single
     # place that must never filter the M2M shadow by end_transaction_id, which
     # Continuum never closes (sc-119907). Reused here so restore.py, the
     # activity relationship walk, and this rollup share one implementation.
     attach_windows: dict[int, list[Window]] = {}
-    for slice_id, window in charts_attached_to_dashboard(dashboard_id):
+    for slice_id, window in chart_attachment_windows_for_dashboard(dashboard_id):
         attach_windows.setdefault(slice_id, []).append(window)
     if not attach_windows:
         return {}
