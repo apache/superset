@@ -209,6 +209,27 @@ def test_dashboard_colors_config_derived_only_update_is_exempt(
 
 
 @pytest.mark.parametrize("key", ["color_scheme", "label_colors"])
+def test_dashboard_colors_config_refuses_null_for_absent_key(
+    mocker: MockerFixture, key: str
+) -> None:
+    """An explicit null for a key ABSENT from stored metadata is a change.
+
+    absent != null: the DAO writes every provided key, so accepting the
+    null would add a literal null entry to the managed dashboard's
+    exported json_metadata. Pins the sentinel comparison (a plain
+    .get(key) default would compare equal and slip the gate).
+    """
+    entity = _managed_entity()
+    entity.json_metadata = "{}"
+    _wire_module_mocks(
+        mocker, "superset.commands.dashboard.update", "DashboardDAO", entity
+    )
+
+    with pytest.raises(DashboardForbiddenError):
+        UpdateDashboardColorsConfigCommand(1, {key: None}).validate()
+
+
+@pytest.mark.parametrize("key", ["color_scheme", "label_colors"])
 def test_dashboard_colors_config_refuses_changing_authoritative_colors(
     mocker: MockerFixture, key: str
 ) -> None:

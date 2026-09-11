@@ -321,11 +321,19 @@ class UpdateDashboardColorsConfigCommand(UpdateDashboardCommand):
         if self._model.is_managed_externally and self._changes_authoritative_colors():
             raise DashboardForbiddenError()
 
+    #: Sentinel distinguishing "key absent from stored metadata" from an
+    #: explicit null: an incoming ``color_scheme: null`` on a dashboard
+    #: whose metadata lacks the key would otherwise compare equal to the
+    #: ``.get()`` default and slip the gate — yet the DAO would then write
+    #: a literal null key into the exported json_metadata, a real change.
+    _METADATA_MISSING: object = object()
+
     def _changes_authoritative_colors(self) -> bool:
         assert self._model
         metadata = json.loads(self._model.json_metadata or "{}")
         return any(
-            key in self._properties and self._properties[key] != metadata.get(key)
+            key in self._properties
+            and self._properties[key] != metadata.get(key, self._METADATA_MISSING)
             for key in self._AUTHORITATIVE_COLOR_KEYS
         )
 
