@@ -31,6 +31,7 @@ from superset.extensions import event_logger
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
+    BubbleChartConfig,
     GaugeChartConfig,
     HandlebarsChartConfig,
     HistogramChartConfig,
@@ -60,6 +61,7 @@ _CHART_TYPE_ADAPTERS: Dict[str, TypeAdapter[Any]] = {
     "big_number": TypeAdapter(BigNumberChartConfig),
     "histogram": TypeAdapter(HistogramChartConfig),
     "box_plot": TypeAdapter(BoxPlotChartConfig),
+    "bubble_v2": TypeAdapter(BubbleChartConfig),
     "waterfall": TypeAdapter(WaterfallChartConfig),
 }
 
@@ -194,6 +196,15 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "percentile_high": 90,
         },
     ],
+    "bubble_v2": [
+        {
+            "chart_type": "bubble_v2",
+            "entity": {"name": "country"},
+            "x": {"name": "gdp", "aggregate": "AVG"},
+            "y": {"name": "life_expectancy", "aggregate": "AVG"},
+            "size": {"name": "population", "aggregate": "SUM"},
+        },
+    ],
     "waterfall": [
         {
             "chart_type": "waterfall",
@@ -310,10 +321,9 @@ def get_chart_type_schema(
     for a chart configuration before calling generate_chart or update_chart.
 
     Valid chart_type values depend on the host deployment. Core types are xy,
-    table, pie, gauge, treemap_v2, pivot_table, mixed_timeseries, handlebars,
-    big_number, histogram, box_plot, and waterfall. Deployments that enable an
-    AG Grid
-    pivot extension also expose interactive_pivot.
+    table, pie, gauge, treemap_v2, bubble_v2, pivot_table, mixed_timeseries,
+    handlebars, big_number, histogram, box_plot, and waterfall. Deployments
+    that enable an AG Grid pivot extension also expose interactive_pivot.
 
     Returns the JSON Schema for the requested chart type, optionally
     with working examples.

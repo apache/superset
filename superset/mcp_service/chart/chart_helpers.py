@@ -482,7 +482,7 @@ def resolve_deck_gl_columns(form_data: dict[str, Any]) -> list[str]:
 
 def resolve_metrics(form_data: dict[str, Any], viz_type: str) -> list[Any]:
     """Extract metrics from form_data, handling chart-type-specific fields."""
-    if viz_type == "bubble":
+    if viz_type in ("bubble", "bubble_v2"):
         return [m for field in ("x", "y", "size") if (m := form_data.get(field))]
 
     metrics = form_data.get("metrics") or []
@@ -559,6 +559,21 @@ def extract_x_axis_col(form_data: dict[str, Any]) -> str | None:
     return None
 
 
+# Viz types whose buildQuery reads a single "Sort query by" metric from
+# form_data['orderby'] (the dndSortByControl) rather than a sort flag.
+_SORT_METRIC_VIZ_TYPES: frozenset[str] = frozenset({"bubble", "bubble_v2"})
+
+
+def resolve_sort_metric(form_data: dict[str, Any]) -> Any | None:
+    """Extract the "Sort query by" metric for viz types that carry one."""
+    if form_data.get("viz_type") not in _SORT_METRIC_VIZ_TYPES:
+        return None
+    raw = form_data.get("orderby")
+    if isinstance(raw, (list, tuple)):
+        raw = raw[0] if raw else None
+    return raw or None
+
+
 def _build_single_query_dict(
     form_data: dict[str, Any],
     columns: list[Any],
@@ -582,6 +597,10 @@ def _build_single_query_dict(
     # an unordered result (dropping the heaviest rows rather than the top-N).
     if form_data.get("sort_by_metric") and metrics:
         qd["orderby"] = [(metrics[0], False)]
+    elif sort_metric := resolve_sort_metric(form_data):
+        # Bubble's buildQuery pairs its "Sort query by" metric with the
+        # negated order_desc flag; order_desc defaults to True (descending).
+        qd["orderby"] = [(sort_metric, not form_data.get("order_desc", True))]
     apply_form_data_filters_to_query(qd, form_data)
     return qd
 

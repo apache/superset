@@ -37,6 +37,7 @@ from superset.constants import NO_TIME_RANGE
 from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
+    BubbleChartConfig,
     ChartCapabilities,
     ChartConfig,
     ChartSemantics,
@@ -1280,6 +1281,29 @@ def map_treemap_config(config: TreemapChartConfig) -> Dict[str, Any]:
     return form_data
 
 
+def map_bubble_config(config: BubbleChartConfig) -> Dict[str, Any]:
+    """Map bubble config to Superset form_data (viz_type ``bubble_v2``).
+
+    Matches the frontend Bubble buildQuery contract: an ``entity`` dimension
+    plus three separate metric keys — ``x``, ``y``, ``size`` — that the query
+    layer aliases into ``metrics``; an optional ``series`` dimension colours
+    the bubbles by group.
+    """
+    form_data: Dict[str, Any] = {
+        "viz_type": "bubble_v2",
+        "entity": config.entity.name,
+        "x": create_metric_object(config.x),
+        "y": create_metric_object(config.y),
+        "size": create_metric_object(config.size),
+        "row_limit": config.row_limit,
+        "color_scheme": config.color_scheme or "supersetColors",
+    }
+    if config.series:
+        form_data["series"] = config.series.name
+    _add_adhoc_filters(form_data, config.filters)
+    return form_data
+
+
 def map_histogram_config(config: "HistogramChartConfig") -> Dict[str, Any]:
     """Map histogram config to Superset form_data (viz_type histogram_v2).
 
@@ -1813,6 +1837,13 @@ def _treemap_chart_what(config: TreemapChartConfig) -> str:
     return f"{metric_label}"
 
 
+def _bubble_chart_what(config: BubbleChartConfig) -> str:
+    """Build the 'what' portion for a bubble chart name."""
+    x_label = config.x.label or config.x.name or config.x.sql_expression
+    y_label = config.y.label or config.y.name or config.y.sql_expression
+    return f"{config.entity.name}: {x_label} vs {y_label}"
+
+
 def _pivot_table_what(config: PivotTableChartConfig) -> str:
     """Build the 'what' portion for a pivot table chart name."""
     # Pivot rows reject sql_expression at validation, so name is set.
@@ -1919,6 +1950,19 @@ def get_table_chart_type_label(viz_type: str | None) -> str | None:
     return TABLE_VIZ_TYPE_LABELS.get(viz_type) if viz_type is not None else None
 
 
+def _as_column_list(value: Any) -> list[Any]:
+    """Normalize a config field that holds one column or a list of them.
+
+    Most chart configs type ``y`` as a list, but some (bubble) carry a single
+    column, so the shared analyzers below must accept either shape.
+    """
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return list(value)
+    return [value]
+
+
 def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabilities:
     """Analyze chart capabilities based on type and configuration."""
     if not viz_type:
@@ -1959,7 +2003,7 @@ def analyze_chart_capabilities(viz_type: str | None, config: Any) -> ChartCapabi
     if hasattr(config, "x") and config.x:
         data_types.append("categorical" if not config.x.is_metric else "metric")
     if hasattr(config, "y") and config.y:
-        data_types.extend(["metric"] * len(config.y))
+        data_types.extend(["metric"] * len(_as_column_list(config.y)))
     if "time" in viz_type or "timeseries" in viz_type:
         data_types.append("time_series")
 
@@ -2025,7 +2069,10 @@ def analyze_chart_semantics(viz_type: str | None, config: Any) -> ChartSemantics
     if hasattr(config, "y") and config.y:
         # SQL metrics have no name; fall back to label or the expression.
         columns.extend(
-            [col.name or col.label or col.sql_expression for col in config.y]
+            [
+                col.name or col.label or col.sql_expression
+                for col in _as_column_list(config.y)
+            ]
         )
 
     if columns:
