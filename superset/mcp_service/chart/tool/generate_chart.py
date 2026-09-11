@@ -122,7 +122,8 @@ async def generate_chart(  # noqa: C901
       Required fields: dimension, metric
 
     - chart_type='sunburst' for multi-ring hierarchical part-to-whole charts.
-      Required fields: hierarchy, metric; secondary_metric is optional
+      Required fields: hierarchy, metric. When supplied, secondary_metric divided
+      by metric drives a sequential color scale; omit it for categorical colors.
 
     - chart_type='pivot_table' for pivot table visualizations.
       Required fields: rows, metrics (columns is optional, for cross-tabs)

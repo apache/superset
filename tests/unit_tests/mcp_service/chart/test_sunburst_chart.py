@@ -1235,6 +1235,16 @@ def test_registered_normalizers_preserve_explicit_field_sets(
     assert normalized.model_fields_set == config.model_fields_set
 
 
+def test_secondary_metric_schema_explains_ratio_color_semantics() -> None:
+    description = SunburstChartConfig.model_json_schema()["properties"][
+        "secondary_metric"
+    ]["description"]
+
+    assert "ratio to the primary metric" in description
+    assert "sequential color scale" in description
+    assert "categorical" in description
+
+
 def test_generate_request_accepts_native_viz_type_alias() -> None:
     request = GenerateChartRequest.model_validate(
         {
