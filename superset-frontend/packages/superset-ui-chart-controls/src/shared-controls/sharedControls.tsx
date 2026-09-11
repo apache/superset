@@ -258,6 +258,14 @@ const time_range: SharedControlConfig<'DateFilterControl'> = {
   mapStateToProps: state => ({
     partitionMapping: timeRangePartitionMapping(state),
   }),
+  // SET_FIELD_VALUE rebuilds the changed control against the *pre-action* form
+  // data and rebuilds no other control at all, so `partitionMapping` would go
+  // stale the moment either input to `timeRangePartitionMapping` changes: the
+  // glyph would survive a switch to `No filter`, and stay hidden on the way
+  // back. Listing both inputs here routes this control through the reducer's
+  // `dependantControls` path, which re-runs mapStateToProps against the new
+  // value (see SET_FIELD_VALUE in `src/explore/reducers/exploreReducer.ts`).
+  validationDependencies: ['time_range', 'granularity_sqla'],
   label: TIME_FILTER_LABELS.time_range,
   default: NO_TIME_RANGE, // this value is an empty filter constant so shouldn't translate it.
   description: t(
