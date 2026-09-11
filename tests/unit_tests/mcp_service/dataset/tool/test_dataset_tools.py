@@ -2737,9 +2737,8 @@ async def test_description_discovery_uses_dao_search_and_exposes_alternatives(
         data = json.loads(result.content[0].text)
     from superset.mcp_service.common.schema_discovery import DATASET_SEARCH_COLUMNS
 
-    # The advertised search columns are the ones actually searched, and exclude
-    # uuid: it is a binary column that the text-cast substring search can never
-    # match, so advertising it would invite "not found" from a pasted UUID.
+    # The advertised substring-search columns are the ones actually searched.
+    # Complete UUIDs take the separate, portable exact-filter path below.
     assert listing.call_args.kwargs["search_columns"] == DATASET_SEARCH_COLUMNS
     assert "description" in DATASET_SEARCH_COLUMNS
     assert "uuid" not in DATASET_SEARCH_COLUMNS
