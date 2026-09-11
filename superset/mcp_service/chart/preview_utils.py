@@ -930,7 +930,7 @@ def generate_gauge_vega_lite_preview(  # noqa: C901
 
 # Bubble stores its metrics under x/y/size and its dimensions under
 # entity/series, so the generic spec builder below finds neither.
-_BUBBLE_VIZ_TYPES: frozenset[str] = frozenset({"bubble", "bubble_v2"})
+BUBBLE_VIZ_TYPES: frozenset[str] = frozenset({"bubble", "bubble_v2"})
 
 
 def _metric_field_name(metric: Any) -> str | None:
@@ -1006,7 +1006,7 @@ def _generate_vega_lite_preview_from_data(  # noqa: C901
     viz_type = form_data.get("viz_type", "table")
     if viz_type == "gauge_chart":
         return generate_gauge_vega_lite_preview(data, form_data)
-    if viz_type in _BUBBLE_VIZ_TYPES:
+    if viz_type in BUBBLE_VIZ_TYPES:
         return generate_bubble_vega_lite_preview(data, form_data)
 
     # Map Superset viz types to Vega-Lite marks

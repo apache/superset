@@ -102,6 +102,80 @@ def test_saved_gauge_ascii_preview_uses_native_row_limit_and_renderer(
     assert mock_build_query_context.call_args.kwargs["row_limit"] == 3
 
 
+def _bubble_chart() -> SimpleNamespace:
+    """Build a saved Bubble chart with its native form_data controls."""
+    return SimpleNamespace(
+        id=109,
+        slice_name="GDP vs life expectancy",
+        viz_type="bubble_v2",
+        datasource_id=1,
+        datasource_type="table",
+        params=utils_json.dumps(
+            {
+                "viz_type": "bubble_v2",
+                "entity": "country",
+                "series": "continent",
+                "x": {"label": "AVG(gdp)"},
+                "y": {"label": "AVG(life_expectancy)"},
+                "size": {"label": "SUM(population)"},
+                "row_limit": 100,
+            }
+        ),
+    )
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch(
+    "superset.mcp_service.chart.tool.get_chart_preview."
+    "build_query_context_from_form_data"
+)
+def test_saved_bubble_vega_preview_encodes_its_three_metrics(
+    mock_build_query_context, mock_command
+) -> None:
+    """A saved bubble chart must reach the bubble renderer, not the fallback.
+
+    The generic spec builder reads positions off the first columns it finds,
+    which for bubble result rows means x=country, y=continent and no size or
+    color encoding at all.
+    """
+    mock_build_query_context.return_value = SimpleNamespace(
+        queries=[
+            SimpleNamespace(
+                metrics=["AVG(gdp)", "AVG(life_expectancy)", "SUM(population)"],
+                columns=["country", "continent"],
+            )
+        ]
+    )
+    mock_command.return_value.validate.return_value = None
+    mock_command.return_value.run.return_value = {
+        "queries": [
+            {
+                "data": [
+                    {
+                        "country": "France",
+                        "continent": "Europe",
+                        "AVG(gdp)": 44.5,
+                        "AVG(life_expectancy)": 82.5,
+                        "SUM(population)": 67000000,
+                    }
+                ]
+            }
+        ]
+    }
+
+    preview = VegaLitePreviewStrategy(
+        _bubble_chart(), GetChartPreviewRequest(identifier=109, format="vega_lite")
+    ).generate()
+
+    assert isinstance(preview, VegaLitePreview)
+    assert preview.specification["mark"] == "circle"
+    encoding = preview.specification["encoding"]
+    assert encoding["x"]["field"] == "AVG(gdp)"
+    assert encoding["y"]["field"] == "AVG(life_expectancy)"
+    assert encoding["size"]["field"] == "SUM(population)"
+    assert encoding["color"]["field"] == "continent"
+
+
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch(
     "superset.mcp_service.chart.tool.get_chart_preview."

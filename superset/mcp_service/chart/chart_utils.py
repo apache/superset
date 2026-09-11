@@ -2064,10 +2064,11 @@ def analyze_chart_semantics(viz_type: str | None, config: Any) -> ChartSemantics
 
     # Generate data story
     columns = []
+    # SQL metrics have no name; fall back to label or the expression. Bubble
+    # puts a metric in x as well as y, so both sides need the fallback.
     if hasattr(config, "x") and config.x:
-        columns.append(config.x.name)
+        columns.append(config.x.name or config.x.label or config.x.sql_expression)
     if hasattr(config, "y") and config.y:
-        # SQL metrics have no name; fall back to label or the expression.
         columns.extend(
             [
                 col.name or col.label or col.sql_expression
