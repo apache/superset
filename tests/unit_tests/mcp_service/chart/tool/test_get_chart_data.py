@@ -2898,6 +2898,7 @@ def test_xlsxwriter_preserves_nonfinite_group_rows() -> None:
         row["team"] for row in rows
     ]
 
+
 class _DetachAfterLookupChart:
     """Slice stand-in that starts attached and detaches on demand.
 
@@ -3019,3 +3020,105 @@ async def test_chart_data_survives_chart_detached_after_lookup(
     )
     assert data["chart_id"] == 9
     assert data["chart_name"] == "Sales"
+
+
+@pytest.mark.asyncio
+async def test_guest_authorization_reads_an_attached_chart_after_detachment(
+    mcp_server: Any, mock_auth: Any
+) -> None:
+    """The guest tamper guard must be handed an attached Slice.
+
+    guest_scope.authorize_query pins query_context.slice_ for
+    security_manager.query_context_modified, which reads id, query_context and
+    params_dict off that instance. The lookup's log context has committed by
+    then, so reusing the looked-up Slice fails once it is detached -- and the
+    snapshotted scalars cannot stand in, because the guard has to compare the
+    guest payload against the stored chart itself.
+    """
+    from unittest.mock import patch
+
+    from fastmcp import Client
+
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+
+    detached = _DetachAfterLookupChart()
+    # What a re-fetch returns: a live instance the guard can read.
+    attached = SimpleNamespace(
+        id=9,
+        slice_name="Sales",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        params=None,
+        params_dict={},
+        query_context=_DetachAfterLookupChart._COLUMNS["query_context"],
+    )
+
+    def _detach_at_end_of_lookup(instance: Any) -> int:
+        instance.detach()
+        return 6
+
+    captured: dict[str, Any] = {}
+
+    def fake_load(self: Any, data: dict[str, Any]) -> Any:
+        query_context = SimpleNamespace(
+            queries=[
+                SimpleNamespace(
+                    filter=q.get("filters", []),
+                    time_range=q.get("time_range"),
+                    to_dict=lambda q=q: dict(q),
+                )
+                for q in data.get("queries", [])
+            ],
+            form_data={},
+            slice_=None,
+        )
+        captured["query_context"] = query_context
+        return query_context
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+        def validate(self) -> None: ...
+        def run(self) -> dict[str, Any]:
+            return {"queries": [{"data": [{"a": 1}], "colnames": ["a"], "rowcount": 1}]}
+
+    with (
+        patch.object(
+            module,
+            "find_chart_by_identifier",
+            side_effect=[detached, attached],
+        ),
+        patch.object(
+            module,
+            "validate_chart_dataset",
+            return_value=SimpleNamespace(is_valid=True, warnings=[], error=None),
+        ),
+        patch.object(module.guest_scope, "is_guest_read", return_value=True),
+        patch.object(
+            module.guest_scope, "guest_dashboard_id", _detach_at_end_of_lookup
+        ),
+        # Real guest_scope.authorize_query -- it is the code under test here.
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand", _Command
+        ),
+        patch("superset.charts.schemas.ChartDataQueryContextSchema.load", fake_load),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 9}}
+            )
+
+    data = json.loads(result.content[0].text)
+    assert "error_type" not in data, (
+        f"guest request failed after detachment: "
+        f"{data.get('error_type')}: {data.get('error')}"
+    )
+
+    stored_chart = captured["query_context"].slice_
+    assert stored_chart is attached, (
+        "authorize_query must pin the re-fetched chart, not the detached one"
+    )
+    # The three attributes query_context_modified() reads must be readable.
+    assert stored_chart.id == 9
+    assert stored_chart.query_context is not None
+    assert stored_chart.params_dict == {}

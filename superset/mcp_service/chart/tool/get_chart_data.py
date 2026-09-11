@@ -738,7 +738,31 @@ async def get_chart_data(  # noqa: C901
             # For an embedded guest, attach the dashboard context so
             # raise_for_access authorizes the data query.
             if guest_dashboard_id is not None:
-                guest_scope.authorize_query(query_context, guest_dashboard_id, chart)
+                # Re-fetch rather than reusing the instance from the lookup:
+                # the guest tamper guard (security_manager.query_context_modified)
+                # follows query_context.slice_ into id, query_context and
+                # params_dict, and the lookup's log context has since committed,
+                # so that instance may be expired or detached. Snapshotted values
+                # cannot stand in here -- the guard must read the stored chart
+                # itself for the comparison to mean anything. Goes back through
+                # the DAO so the guest's ChartFilter still applies.
+                guest_chart = find_chart_by_identifier(chart_id)
+                if guest_chart is None:
+                    await ctx.warning(
+                        "Chart no longer accessible: chart_id=%s" % (chart_id,)
+                    )
+                    logger.warning(
+                        "get_chart_data: chart not accessible on re-fetch for "
+                        "guest authorization: chart_id=%s",
+                        chart_id,
+                    )
+                    return ChartError(
+                        error="Chart is not accessible.",
+                        error_type="NotFound",
+                    )
+                guest_scope.authorize_query(
+                    query_context, guest_dashboard_id, guest_chart
+                )
 
             set_query_context_form_data(
                 query_context,
