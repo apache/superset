@@ -249,6 +249,41 @@ unknown impact as zero. Chart and dashboard purge endpoints are unchanged.
 
 - The dashboard datasource-based visibility fallback now fails closed: a dashboard whose member charts’ datasources cannot be resolved (deleted datasource rows, missing `datasource_id`, or unsupported datasource types) is no longer accessible to users without explicit editor/viewer rights, and a dashboard composed of semantic-view charts now requires `datasource_access` on (at least one of) its semantic views or their parent semantic layer — previously any authenticated user could open such a dashboard’s shell. Because the fallback now considers every member chart rather than only table-backed ones, a user holding `datasource_access` on any single member datasource — including a semantic view or its parent layer — can open a mixed dashboard that previously denied them. Dashboards with no charts remain accessible, and dashboards with explicit viewers are unaffected. Conversely, holders of `all_datasource_access` now see every published no-viewer dashboard in the dashboard list — including chart-less ones previously hidden by the inner joins — matching what the object-level gate already allowed them to open.
 - Version restore (`POST /api/v1/{chart,dashboard,dataset}/<uuid>/versions/<version_uuid>/restore`) now refuses an **externally managed** entity (`is_managed_externally = True`) with HTTP 403, enforcing server-side what the docs already promised. Previously the refusal existed only in the browser, so an otherwise-authorized editor could restore such an entity by calling the endpoint directly and have the restore overwritten on the next external sync. Soft-delete recovery is deliberately unaffected — it changes visibility, not content.
+- The purge audit log can now be pruned automatically. The new
+  `deletion_retention.prune_purge_audit` Celery beat task (daily, 03:30, in the
+  default `CeleryConfig.beat_schedule`) removes duplicate `blocked` records
+  within an entity's current blockage streak (the earliest — "blocked since" —
+  record and the first record after each change of block `reason` always
+  survive, mirroring the audit writer's own suppression rule) and ages out
+  operational records (`blocked` from
+  resolved streaks, `failed`) older than
+  `PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS` (default 90). A streak is ended
+  only by proof the object is gone (`confirmed`/`target_absent`); a `failed`
+  attempt does not reset the "blocked since" record. Completed-destruction
+  evidence (`confirmed`, `target_absent`) is **never touched** unless the
+  separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is explicitly set,
+  which is the operator's assertion that an approved compliance policy
+  permits expiring destruction evidence. Automatic deletion is disabled by
+  default; set `PURGE_AUDIT_PRUNING_ENABLED = True` after reviewing these
+  policies to enable it. Deployments that replace the default
+  `CELERY_CONFIG` must carry the new beat entry forward (the task shares
+  `superset.tasks.deletion_retention` with the purge task, so no new worker
+  import is needed). When audit pruning is enabled, a missing schedule or
+  worker import logs a startup warning even if `SOFT_DELETE` is disabled,
+  because historical audit rows remain eligible for pruning. Audit creation,
+  recovery, and pruning batches use a shared database coordination row held
+  through commit. This serializes timestamp assignment with candidate deletion
+  so an uncommitted writer cannot later publish a row into pruning's logical
+  past. A missing coordination row fails pruning closed. Because a pruning batch
+  holds this lock across its DELETE, on a very large audit table a concurrent
+  scheduled purge's audit write can block on it until the batch commits. On
+  PostgreSQL that write then succeeds (``lock_timeout`` is disabled by default);
+  where a lock or statement timeout is configured — and on MySQL
+  (``innodb_lock_wait_timeout``) or SQLite (which does not wait) — the write
+  instead fails closed, so the affected purge cycle is skipped and retried on its
+  next run rather than losing data. Batches are bounded (500 rows) and
+  index-backed to keep the window short — run pruning off-peak if the overlap is
+  noticeable.
 - `SAMPLES_ROW_LIMIT` is now the default for `/datasource/samples` requests without a valid explicit `per_page`, rather than a hard per-request ceiling; explicit limits are honored up to the existing global row-limit ceiling, matching `/chart/data` SAMPLES requests.
 - The `cockroachdb` extra (`pip install apache-superset[cockroachdb]`) now installs `sqlalchemy-cockroachdb` instead of the abandoned `cockroachdb` package, whose SQLAlchemy dialect could not be imported under SQLAlchemy 2.0. Existing environments with the old package installed must `pip uninstall cockroachdb` before reinstalling the extra -- both packages register the same `cockroachdb` SQLAlchemy dialect entry point, so leaving the old one in place can still load the abandoned implementation.
 
@@ -951,7 +986,7 @@ With the flag on, delete confirmations across the chart/dashboard/dataset list p
 
 This also resolves the limitation noted under *Soft delete and restore for datasets*: a database blocked by soft-deleted datasets can now be freed by purging those datasets (per-entity endpoint, retention task, or `force-purge` CLI) instead of hard-deleting `tables` rows out-of-band.
 
-The `purge_audit_log` table is **never pruned by design** — the audit must survive the entities it names; operators who need to age it out should prune manually.
+Automatic pruning of the `purge_audit_log` table is available but **off by default**: set `PURGE_AUDIT_PRUNING_ENABLED = True` to enable the `deletion_retention.prune_purge_audit` Celery beat task (daily, 03:30) so the table no longer grows unbounded and does not need manual pruning. Left at its default (`PURGE_AUDIT_PRUNING_ENABLED = False`) the table is never pruned and grows indefinitely — enabling it is an explicit operator choice. The policy is written to preserve the audit's meaning rather than trade it away: within an entity's current blockage streak the earliest — "blocked since" — record always survives (only redundant duplicate `blocked` records are collapsed), and completed-destruction evidence (`confirmed`, `target_absent`) is **never** removed unless the separate `PURGE_AUDIT_EVIDENCE_RETENTION_DAYS` opt-in is explicitly set. What ages out is operational noise — `blocked` records from already-resolved streaks and `failed` records — once older than `PURGE_AUDIT_OPERATIONAL_RETENTION_DAYS` (default 90). See the release-note entry above for the beat-schedule and `CELERY_CONFIG` details.
 
 
 ### Webhook alerts/reports block private/internal hosts by default
